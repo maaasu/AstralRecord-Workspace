@@ -25,7 +25,7 @@ public enum PlayerSettingKey {
     RANDOM_STATUS_RANGE_DISPLAY("RANDOM_STATUS_RANGE_DISPLAY", "ランダムステータス範囲表示", false),
     ARMOR_DISPLAY("ARMOR_DISPLAY", "防具表示", true),
     ACTION_RING_HOLD_SELECT("ACTION_RING_HOLD_SELECT", "アクションリング長押し選択", false),
-    SKILL_TREE_COMPACT_DISPLAY("SKILL_TREE_COMPACT_DISPLAY", "スキルツリーノード簡易表示", false),
+    SKILL_TREE_COMPACT_DISPLAY("SKILL_TREE_COMPACT_DISPLAY", "スキルツリーノード軽量表示", false),
     ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false);
 
     private final String code;

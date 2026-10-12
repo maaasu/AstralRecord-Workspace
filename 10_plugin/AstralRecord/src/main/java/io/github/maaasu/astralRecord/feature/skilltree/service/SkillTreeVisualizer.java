@@ -84,6 +84,8 @@ final class SkillTreeVisualizer {
     private final Set<UUID> dirtyViewers = new HashSet<>();
     /** 部分更新より常に優先する全体更新要求です。 */
     private final Set<UUID> fullDirtyViewers = new HashSet<>();
+    /** 軽量表示の移動によるラベルだけの更新要求。通常表示の移動基準は進めません。 */
+    private final Set<UUID> proximityDirtyViewers = new HashSet<>();
     private final Map<UUID, Set<String>> dirtyNodeStateNodeIds = new HashMap<>();
     private final Map<UUID, ViewerEmphasisState> viewerEmphasisStates = new HashMap<>();
     /** 前回実際にviewerを描画した位置。微小移動を累積して判定します。 */
@@ -153,6 +155,7 @@ final class SkillTreeVisualizer {
         edgeVisuals.clear();
         viewerEmphasisStates.clear();
         lastViewerRefreshLocations.clear();
+        proximityDirtyViewers.clear();
     }
 
     void markStructureDirty() {
@@ -170,11 +173,12 @@ final class SkillTreeVisualizer {
         dirtyViewers.add(viewerId);
         fullDirtyViewers.add(viewerId);
         dirtyNodeStateNodeIds.remove(viewerId);
+        proximityDirtyViewers.remove(viewerId);
     }
 
     /**
      * 前回描画位置から1 block以上移動したviewerだけを通常再描画対象へ加えます。
-     * teleportや状態変更は {@link #markViewerDirty(UUID)} を使い、ここで抑止しません。
+     * 軽量表示のラベルだけは微小移動でも更新し、teleportや状態変更は {@link #markViewerDirty(UUID)} を使います。
      *
      * @param player 移動したviewer
      * @param current イベントで確定した移動先
@@ -184,6 +188,9 @@ final class SkillTreeVisualizer {
         Location previous = lastViewerRefreshLocations.get(viewerId);
         if (shouldRefreshForMovement(previous, current)) {
             dirtyViewers.add(viewerId);
+        }
+        if (!fullDirtyViewers.contains(viewerId) && service.isLightweightDisplayEnabled(viewerId)) {
+            proximityDirtyViewers.add(viewerId);
         }
     }
 
@@ -205,6 +212,7 @@ final class SkillTreeVisualizer {
         dirtyNodeStateNodeIds.remove(viewerId);
         viewerEmphasisStates.remove(viewerId);
         lastViewerRefreshLocations.remove(viewerId);
+        proximityDirtyViewers.remove(viewerId);
     }
 
     void markNodeStateDirty(@NotNull UUID viewerId, @NotNull Set<String> nodeIds) {
@@ -300,8 +308,17 @@ final class SkillTreeVisualizer {
             boolean fullRefresh = fullDirtyViewers.remove(viewerId);
             if (refreshViewer(player, fullRefresh ? null : dirtyNodeStateNodeIds.remove(viewerId))) {
                 lastViewerRefreshLocations.put(viewerId, player.getLocation().clone());
+                proximityDirtyViewers.remove(viewerId);
             }
         }
+
+        for (UUID viewerId : proximityDirtyViewers) {
+            Player player = plugin.getServer().getPlayer(viewerId);
+            if (player != null) {
+                refreshViewerLabels(player);
+            }
+        }
+        proximityDirtyViewers.clear();
 
         dirtyViewers.removeAll(viewersToRefresh);
         dirtyNodeStateNodeIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
@@ -356,7 +373,7 @@ final class SkillTreeVisualizer {
                     continue;
                 }
                 Location midpoint = visual.midpoint();
-                if (!isVisibleTo(player, midpoint)) {
+                if (!isVisibleTo(context.viewerLocation, midpoint)) {
                     continue;
                 }
                 EdgeState state = resolveEdgeState(context, visual.edge());
@@ -386,7 +403,7 @@ final class SkillTreeVisualizer {
                 && context.mode() == RenderMode.PLAYER;
 
         for (AdminPositionVisual visual : adminPositionVisuals.values()) {
-            boolean visible = context.mode() == RenderMode.ADMIN && isVisibleTo(player, visual.baseLocation());
+            boolean visible = context.mode() == RenderMode.ADMIN && isVisibleTo(context.viewerLocation, visual.baseLocation);
             visual.updateViewer(player, visible);
         }
         for (NodeVisual visual : nodeVisuals.values()) {
@@ -396,14 +413,14 @@ final class SkillTreeVisualizer {
             boolean nodeAvailableToViewer = context.mode() == RenderMode.PLAYER
                     && context.astPlayer() != null
                     && service.isNodeVisible(context.astPlayer(), visual.node());
-            boolean visible = nodeAvailableToViewer && isVisibleTo(player, visual.baseLocation());
+            boolean visible = nodeAvailableToViewer && isVisibleTo(context.viewerLocation, visual.baseLocation);
             SkillTreeService.NodePresentationState nodeState = visible
                     ? service.nodePresentationState(context.nodePresentationSnapshot(), visual.node())
                     : SkillTreeService.NodePresentationState.BLOCKED;
             SkillTreeService.NodeLabelDetail labelDetail = visible
-                    ? service.nodeLabelDetail(player, visual.baseLocation())
+                    ? SkillTreeService.nodeLabelDetail(context.viewerLocation, visual.baseLocation, context.lightweightDisplay)
                     : SkillTreeService.NodeLabelDetail.HIDDEN;
-            NodeBeamState beamState = nodeAvailableToViewer && isBeamVisibleTo(player, visual.baseLocation())
+            NodeBeamState beamState = nodeAvailableToViewer && isBeamVisibleTo(player, visual.baseLocation)
                     ? resolveNodeBeamState(
                             visual.node(),
                             isSkillNodeHighlightEnabled(player.getUniqueId()),
@@ -418,7 +435,7 @@ final class SkillTreeVisualizer {
                     && !dirtyPositions.contains(visual.edge().targetNodeId())) {
                 continue;
             }
-            if (!isVisibleTo(player, visual.midpoint())) {
+            if (!isVisibleTo(context.viewerLocation, visual.midpoint())) {
                 visual.updateViewer(player, EdgeState.HIDDEN);
                 continue;
             }
@@ -427,6 +444,22 @@ final class SkillTreeVisualizer {
             visual.updateViewer(player, visible ? state : EdgeState.HIDDEN);
         }
         return !partialNodeRefresh;
+    }
+
+    /**
+     * 軽量表示の微小移動を10 tickごとにまとめ、表示済みノードのラベルだけを更新します。
+     * ノード状態・アイコン・edge・通常再描画の移動基準は変更しません。
+     *
+     * @param player 移動した表示対象プレイヤー
+     */
+    private void refreshViewerLabels(@NotNull Player player) {
+        ViewerRenderContext context = createViewerRenderContext(player);
+        if (context.mode() != RenderMode.PLAYER || !context.lightweightDisplay) {
+            return;
+        }
+        for (NodeVisual visual : nodeVisuals.values()) {
+            visual.refreshViewerLabel(player, context.viewerLocation);
+        }
     }
 
     /**
@@ -608,10 +641,17 @@ final class SkillTreeVisualizer {
         return RenderMode.HIDDEN;
     }
 
+    /**
+     * 1回の描画で共有するモード・位置・軽量表示設定を取得します。
+     *
+     * @param player 表示対象プレイヤー
+     * @return メインスレッド内の描画用スナップショット
+     */
     private @NotNull ViewerRenderContext createViewerRenderContext(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         RenderMode mode = resolveMode(player, astPlayer);
-        return new ViewerRenderContext(mode, astPlayer);
+        return new ViewerRenderContext(mode, astPlayer, player.getLocation(),
+                service.isLightweightDisplayEnabled(player.getUniqueId()));
     }
 
     private @NotNull EdgeState resolveEdgeState(
@@ -647,12 +687,19 @@ final class SkillTreeVisualizer {
         return EdgeState.LOCKED;
     }
 
-    private boolean isVisibleTo(@NotNull Player player, @Nullable Location location) {
+    /**
+     * 描画周期内で共有したviewer位置から表示範囲を判定します。
+     *
+     * @param viewerLocation 表示対象プレイヤーの位置
+     * @param location 表示基準位置
+     * @return 同じワールドの表示範囲内なら {@code true}
+     */
+    private boolean isVisibleTo(@NotNull Location viewerLocation, @Nullable Location location) {
         double viewDistance = service.viewDistance();
         return location != null
                 && location.getWorld() != null
-                && player.getWorld() == location.getWorld()
-                && player.getLocation().distanceSquared(location) <= viewDistance * viewDistance;
+                && viewerLocation.getWorld() == location.getWorld()
+                && viewerLocation.distanceSquared(location) <= viewDistance * viewDistance;
     }
 
     private boolean isBeamVisibleTo(@NotNull Player player, @Nullable Location location) {
@@ -920,11 +967,20 @@ final class SkillTreeVisualizer {
     private final class ViewerRenderContext {
         private final @NotNull RenderMode mode;
         private final @Nullable AstPlayer astPlayer;
+        private final @NotNull Location viewerLocation;
+        private final boolean lightweightDisplay;
         private @Nullable SkillTreeService.NodePresentationSnapshot nodePresentationSnapshot;
 
-        private ViewerRenderContext(@NotNull RenderMode mode, @Nullable AstPlayer astPlayer) {
+        private ViewerRenderContext(
+                @NotNull RenderMode mode,
+                @Nullable AstPlayer astPlayer,
+                @NotNull Location viewerLocation,
+                boolean lightweightDisplay
+        ) {
             this.mode = mode;
             this.astPlayer = astPlayer;
+            this.viewerLocation = viewerLocation;
+            this.lightweightDisplay = lightweightDisplay;
         }
 
         private @NotNull RenderMode mode() {
@@ -1003,10 +1059,6 @@ final class SkillTreeVisualizer {
             this.marker = packetTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
             Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
             this.label = packetTextDisplay(labelLocation, component("&d" + nodeId), ADMIN_TEXT_SCALE);
-        }
-
-        private @NotNull Location baseLocation() {
-            return baseLocation.clone();
         }
 
         private void teleport(@NotNull Location location) {
@@ -1090,32 +1142,10 @@ final class SkillTreeVisualizer {
             this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, false);
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
             this.beam = packetNodeBeamDisplay(location, NodeBeamState.SKILL.material);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
-            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.SIMPLE, NODE_TEXT_COMPACT_SCALE);
         }
 
         private @NotNull SkillTreeNodeDefinition node() {
             return node;
-        }
-
-        private @NotNull Location baseLocation() {
-            return baseLocation.clone();
         }
 
         private void teleport(@NotNull Location location) {
@@ -1137,6 +1167,15 @@ final class SkillTreeVisualizer {
             showCurrentViewers();
         }
 
+        /**
+         * ノード本体とラベルの表示状態を独立して更新し、変更したentityだけを送信します。
+         *
+         * @param player 送信先プレイヤー
+         * @param visible アイコンの表示可否。ラベルの表示距離には依存しません
+         * @param nodePresentationState 解放・条件の表示状態
+         * @param labelDetail ラベルの表示段階
+         * @param nextBeamState 強調ビームの表示状態
+         */
         private void updateViewer(
                 @NotNull Player player,
                 boolean visible,
@@ -1145,7 +1184,7 @@ final class SkillTreeVisualizer {
                 @NotNull NodeBeamState nextBeamState
         ) {
             NodeRenderState nextState = visible
-                    ? new NodeRenderState(nodePresentationState, labelDetail)
+                    ? new NodeRenderState(true, nodePresentationState, labelDetail)
                     : NodeRenderState.HIDDEN;
             UUID playerId = player.getUniqueId();
             NodeRenderState previousState = viewerStates.getOrDefault(playerId, NodeRenderState.HIDDEN);
@@ -1156,23 +1195,59 @@ final class SkillTreeVisualizer {
                 } else {
                     viewerStates.put(playerId, nextState);
                 }
-                hideState(player, previousState);
-                showState(player, nextState);
+                updateState(player, previousState, nextState);
             }
             updateBeamViewer(player, nextBeamState);
         }
 
-        private void registerLabel(
-                @NotNull Location location,
-                @NotNull SkillTreeNodeDefinition node,
-                @NotNull SkillTreeService.NodePresentationState presentationState,
-                @NotNull SkillTreeService.NodeLabelDetail labelDetail,
-                float scale
-        ) {
-            labels.put(
-                    new NodeLabelKey(presentationState, labelDetail),
-                    packetNodeTextDisplay(location, service.nodeFieldLabel(node, presentationState, labelDetail), scale)
-            );
+        /**
+         * 表示済みノードのラベルだけを距離に合わせ、アイコンとビームを維持します。
+         *
+         * @param player 送信先プレイヤー
+         * @param viewerLocation 描画周期開始時のプレイヤー位置
+         */
+        private void refreshViewerLabel(@NotNull Player player, @NotNull Location viewerLocation) {
+            UUID playerId = player.getUniqueId();
+            NodeRenderState previousState = viewerStates.getOrDefault(playerId, NodeRenderState.HIDDEN);
+            if (previousState.hidden()) {
+                return;
+            }
+            SkillTreeService.NodeLabelDetail detail = SkillTreeService.nodeLabelDetail(viewerLocation, baseLocation, true);
+            if (previousState.labelDetail() != detail) {
+                NodeRenderState nextState = new NodeRenderState(true, previousState.presentationState(), detail);
+                viewerStates.put(playerId, nextState);
+                updateState(player, previousState, nextState);
+            }
+        }
+
+        /**
+         * 状態間で同じアイコンを再送せず、ラベルを含めた表示差分だけを反映します。
+         *
+         * @param player 送信先プレイヤー
+         * @param previousState 現在の表示状態
+         * @param nextState 反映する表示状態
+         */
+        private void updateState(@NotNull Player player, @NotNull NodeRenderState previousState, @NotNull NodeRenderState nextState) {
+            SkillTreePacketDisplay.PacketEntity previousItem = previousState.hidden() ? null : resolveItem(previousState.presentationState());
+            SkillTreePacketDisplay.PacketEntity nextItem = nextState.hidden() ? null : resolveItem(nextState.presentationState());
+            if (previousItem != nextItem) {
+                if (previousItem != null) {
+                    previousItem.destroy(player);
+                }
+                if (nextItem != null) {
+                    nextItem.spawn(player);
+                }
+            }
+            SkillTreePacketDisplay.PacketEntity previousLabel = previousState.hidden() ? null : resolveLabel(previousState);
+            SkillTreePacketDisplay.PacketEntity nextLabel = nextState.hidden() ? null : resolveLabel(nextState);
+            if (previousLabel != nextLabel) {
+                if (previousLabel != null) {
+                    previousLabel.destroy(player);
+                }
+                if (nextLabel != null) {
+                    nextLabel.spawn(player);
+                }
+            }
         }
 
         private void hideState(@NotNull Player player, @NotNull NodeRenderState state) {
@@ -1207,11 +1282,19 @@ final class SkillTreeVisualizer {
             return presentationState == SkillTreeService.NodePresentationState.UNLOCKED ? unlockedItem : lockedItem;
         }
 
+        /**
+         * 必要なラベルだけを生成して共有し、未表示の状態・詳細段階のmetadata生成を省きます。
+         *
+         * @param state ラベルを解決するノード表示状態
+         * @return キャッシュしたpacket entity。ラベル非表示ならnull
+         */
         private @Nullable SkillTreePacketDisplay.PacketEntity resolveLabel(@NotNull NodeRenderState state) {
             if (state.labelDetail() == SkillTreeService.NodeLabelDetail.HIDDEN) {
                 return null;
             }
-            return labels.get(new NodeLabelKey(state.presentationState(), state.labelDetail()));
+            return labels.computeIfAbsent(new NodeLabelKey(state.presentationState(), state.labelDetail()), key ->
+                    packetNodeTextDisplay(baseLocation, service.nodeFieldLabel(node, key.presentationState(), key.labelDetail()),
+                            key.labelDetail() == SkillTreeService.NodeLabelDetail.DETAILED ? NODE_TEXT_SCALE : NODE_TEXT_COMPACT_SCALE));
         }
 
         private void updateBeamViewer(@NotNull Player player, @NotNull NodeBeamState nextState) {
@@ -1342,15 +1425,16 @@ final class SkillTreeVisualizer {
     }
 
     private record NodeRenderState(
+            boolean visible,
             @NotNull SkillTreeService.NodePresentationState presentationState,
             @NotNull SkillTreeService.NodeLabelDetail labelDetail
     ) {
         private static final NodeRenderState HIDDEN =
-                new NodeRenderState(SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.HIDDEN);
+                new NodeRenderState(false, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.HIDDEN);
 
+        /** ラベル段階とは独立したノード本体の非表示状態を返します。 */
         private boolean hidden() {
-            return labelDetail == SkillTreeService.NodeLabelDetail.HIDDEN
-                    && presentationState == SkillTreeService.NodePresentationState.BLOCKED;
+            return !visible;
         }
     }
 

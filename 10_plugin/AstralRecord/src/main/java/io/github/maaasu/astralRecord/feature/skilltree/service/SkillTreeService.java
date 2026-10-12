@@ -116,6 +116,7 @@ public class SkillTreeService {
     private static final int DEFAULT_VIEW_DISTANCE = 27;
     private static final double DETAILED_LABEL_DISTANCE = 14.0D;
     private static final double COMPACT_LABEL_DISTANCE = 36.0D;
+    private static final double LIGHTWEIGHT_LABEL_DISTANCE = 5.0D;
 
     /**
      * 視線上で命中したスキルツリー位置とhitbox入口距離です。
@@ -2412,6 +2413,7 @@ public class SkillTreeService {
 
     /**
      * 移動による表示更新を、前回描画位置からの累積距離で要求します。
+     * 軽量表示では微小移動でも近距離ラベルだけを更新します。回転だけのイベントは呼出元で除外します。
      * teleportや状態変更は {@link #markViewerContextDirty(Player)} を使用します。
      *
      * @param player 移動したviewer
@@ -3242,26 +3244,54 @@ public class SkillTreeService {
     }
 
     /**
-     * ノード表示テキストの詳細段階を返します。
+     * ノード表示テキストの詳細段階を返します。軽量表示では半径5m以内だけラベルを表示します。
      *
      * @param player 表示対象プレイヤー
      * @param nodeLocation ノード位置
      * @return 距離に応じたテキスト段階
      */
     public @NotNull NodeLabelDetail nodeLabelDetail(@NotNull Player player, @Nullable Location nodeLocation) {
-        if (nodeLocation == null || nodeLocation.getWorld() == null || player.getWorld() != nodeLocation.getWorld()) {
+        return nodeLabelDetail(player.getLocation(), nodeLocation, isLightweightDisplayEnabled(player.getUniqueId()));
+    }
+
+    /**
+     * 保存済みの軽量表示設定を読み、描画周期内で共有する値を返します。API I/O は行いません。
+     *
+     * @param viewerId 表示対象プレイヤーのUUID
+     * @return 軽量表示が有効な場合は {@code true}
+     */
+    boolean isLightweightDisplayEnabled(@NotNull UUID viewerId) {
+        return playerSettingService != null && playerSettingService.isSkillTreeCompactDisplayEnabled(viewerId);
+    }
+
+    /**
+     * 取得済みの位置と設定からラベル段階を判定し、ノードごとの位置取得・設定参照を避けます。
+     *
+     * @param viewerLocation 描画周期開始時のプレイヤー位置
+     * @param nodeLocation ノード基準位置。未解決または別ワールドなら非表示
+     * @param lightweightDisplay 軽量表示が有効な場合は {@code true}
+     * @return 距離と設定に対応するラベル段階
+     */
+    static @NotNull NodeLabelDetail nodeLabelDetail(
+            @NotNull Location viewerLocation,
+            @Nullable Location nodeLocation,
+            boolean lightweightDisplay
+    ) {
+        if (nodeLocation == null || nodeLocation.getWorld() == null || viewerLocation.getWorld() != nodeLocation.getWorld()) {
             return NodeLabelDetail.HIDDEN;
         }
-        boolean compactDisplay = playerSettingService != null
-                && playerSettingService.isSkillTreeCompactDisplayEnabled(player.getUniqueId());
-        double distanceSquared = player.getLocation().distanceSquared(nodeLocation);
+        double distanceSquared = viewerLocation.distanceSquared(nodeLocation);
+        if (lightweightDisplay) {
+            return distanceSquared <= LIGHTWEIGHT_LABEL_DISTANCE * LIGHTWEIGHT_LABEL_DISTANCE
+                    ? NodeLabelDetail.SIMPLE : NodeLabelDetail.HIDDEN;
+        }
         double detailedThreshold = Math.min(DETAILED_LABEL_DISTANCE, DEFAULT_VIEW_DISTANCE);
         if (distanceSquared <= detailedThreshold * detailedThreshold) {
-            return compactDisplay ? NodeLabelDetail.SIMPLE : NodeLabelDetail.DETAILED;
+            return NodeLabelDetail.DETAILED;
         }
         double compactThreshold = Math.min(COMPACT_LABEL_DISTANCE, DEFAULT_VIEW_DISTANCE);
         if (distanceSquared <= compactThreshold * compactThreshold) {
-            return compactDisplay ? NodeLabelDetail.SIMPLE : NodeLabelDetail.COMPACT;
+            return NodeLabelDetail.COMPACT;
         }
         return NodeLabelDetail.HIDDEN;
     }
