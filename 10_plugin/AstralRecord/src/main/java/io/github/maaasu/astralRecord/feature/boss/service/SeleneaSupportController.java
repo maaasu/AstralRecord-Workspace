@@ -17,6 +17,8 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -24,8 +26,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,18 +46,21 @@ final class SeleneaSupportController {
     private static final long HEAL_INTERVAL = 60L;
     private static final long ORB_DURATION = 40L;
     private static final long DETONATION_DELAY = 3_600L;
-    private static final long GATE_COOLDOWN = 40L;
+    private static final long GATE_WARNING_INTERVAL = 40L;
     private static final long SUMMON_RETRY_DELAY = 100L;
-    private static final double SUMMON_HEALTH_RATIO = 0.5D;
     private static final double INNER_GATE_RADIUS = 26.0D;
-    private static final double OUTER_GATE_RADIUS = 58.0D;
-    private static final double ADD_RADIUS = 72.0D;
+    private static final double OUTER_GATE_RADIUS = 63.0D;
+    private static final double ADD_RADIUS = 77.0D;
     private static final double OUTER_HEIGHT = 3.0D;
     private static final double GATE_VISUAL_RADIUS = 3.0D;
     private static final double GATE_CENTER_HEIGHT = 3.2D;
-    private static final double GATE_INTERACTION_RADIUS = 3.2D;
+    private static final double GATE_INTERACTION_RADIUS = 1.4D;
+    private static final double DETONATION_RADIUS = 60.0D;
+    private static final int MAX_SURFACE_POINTS = 1_200;
+    private static final int MAX_FLOOR_POINTS = 900;
     private static final double DETONATION_RADIUS_SQUARED = 60.0D * 60.0D;
     private static final double HEAL_RATIO = 0.03D;
+    private static final int MAX_ORBS = 5;
 
     private final MobService mobs;
     private final ParticleDisplayService particles;
@@ -129,8 +134,8 @@ final class SeleneaSupportController {
     }
 
     /**
-     * HP50%以下で初回召喚を試み、生存する写本守1体ごとに25%の軽減を返します。
-     * 初回召喚前は軽減せず、召喚後に回復しても召喚済み状態を維持します。
+     * HP50%未満・10%未満への到達を記録し、各波一回の召喚を試みます。
+     * 生存する戦闘用写本守1体ごとに25%を軽減し、爆発後の残像は数えません。
      * Mob生成の副作用があるため、ダメージ処理のメインスレッドだけで呼び出します。
      * @param boss 被ダメージ対象
      * @param tick 現在のBossMechanicService共通時計。初召喚の180秒期限にも使用します
@@ -143,6 +148,7 @@ final class SeleneaSupportController {
         try {
             summonIfRequired(state);
             if (encounters.get(boss.instanceId()) != state) return 1.0D;
+            if (state.summoning || state.detonating) return 1.0D;
             syncAddHealth(state);
             refreshBuffs(state);
             long alive = state.adds.values().stream().filter(this::isAlive).count();
@@ -154,7 +160,7 @@ final class SeleneaSupportController {
     }
 
     /**
-     * フィールド登場時からボスとゲートを保持し、HP50%以下で一度召喚して時計を開始します。
+     * フィールド登場時からボスと床を保持し、各召喚波で独立した180秒時計を開始します。
      * IDLE中も進行し、追加のScheduler taskは作成しません。
      * @param boss 生存する専用フィールドの魔女
      * @param entity 有効なボス実体
@@ -183,6 +189,11 @@ final class SeleneaSupportController {
                     if (encounters.get(boss.instanceId()) != state) return;
                 }
             }
+            for (Add remnant : List.copyOf(state.remnants)) {
+                MobInstance instance = mobs.getInstance(remnant.instanceId);
+                if (instance != null) mobs.holdPosition(instance, remnant.anchor);
+                if (encounters.get(boss.instanceId()) != state) return;
+            }
             refreshBuffs(state);
             List<Player> active = participants.apply(boss).stream()
                     .filter(player -> player.isOnline() && player.isValid() && !player.isDead()
@@ -193,16 +204,18 @@ final class SeleneaSupportController {
             if (encounters.get(boss.instanceId()) != state) return;
             if (state.addsSummoned && !state.returnAnnounced && tick >= state.detonateAt && !state.detonated) {
                 state.detonated = true;
+                state.detonating = true;
                 announce(state, active, PlayerMsgId.P_7684);
                 if (encounters.get(boss.instanceId()) != state) return;
-                detonate(state, active);
+                try { detonate(state, active); }
+                finally { state.detonating = false; }
                 if (encounters.get(boss.instanceId()) != state) return;
                 refreshBuffs(state);
                 active = participants.apply(boss);
                 updateSupportPresentation(state, active, tick);
                 if (encounters.get(boss.instanceId()) != state) return;
             }
-            if (state.addsSummoned && tick >= state.nextHealAt) {
+            if ((state.addsSummoned || !state.permanentRoles.isEmpty()) && tick >= state.nextHealAt) {
                 state.nextHealAt = tick + HEAL_INTERVAL;
                 launchHealingOrbs(state, tick);
             }
@@ -241,15 +254,18 @@ final class SeleneaSupportController {
             state.supportBar = null;
         }
         state.orbs.clear();
-        state.portalCooldowns.clear();
+        state.portalLocks.clear();
         state.blockedPortalWarnings.clear();
         for (Add add : state.adds.values()) addOwners.remove(add.instanceId);
+        for (Add remnant : state.remnants) addOwners.remove(remnant.instanceId);
         try { clearBuffs(state.boss.instanceId()); }
         catch (RuntimeException cleanupFailure) {
             if (failure == null) failure = cleanupFailure;
             else if (failure != cleanupFailure) failure.addSuppressed(cleanupFailure);
         }
-        for (Add add : state.adds.values()) {
+        List<Add> owned = new ArrayList<>(state.adds.values());
+        owned.addAll(state.remnants);
+        for (Add add : owned) {
             try { mobs.destroy(add.instanceId); }
             catch (RuntimeException cleanupFailure) {
                 if (failure == null) failure = cleanupFailure;
@@ -340,7 +356,7 @@ final class SeleneaSupportController {
 
     /**
      * 確定参加者へ生存数・残秒を表示し、期限前の警告と全滅後の帰還案内を一度だけ送ります。
-     * 召喚前は表示せず、爆発後も生存写本守の支援が残ることを表示します。
+     * 召喚前と爆発後は表示せず、永久支援と戦闘用写本守の全滅を区別して案内します。
      */
     private void updateSupportPresentation(Encounter state, List<Player> active, long tick) {
         if (!state.addsSummoned || encounters.get(state.boss.instanceId()) != state) return;
@@ -350,25 +366,23 @@ final class SeleneaSupportController {
                 state.supportBar.removeAll();
                 state.supportBar = null;
             }
-            state.orbs.clear();
-            clearBuffs(state.boss.instanceId());
+            state.orbs.removeIf(orb -> state.remnants.stream().noneMatch(add -> add.instanceId.equals(orb.sourceId)));
+            refreshBuffs(state);
             if (!state.returnAnnounced) {
                 state.returnAnnounced = true;
-                announce(state, active, PlayerMsgId.P_7686);
+                announce(state, active, state.detonated ? PlayerMsgId.P_7717 : PlayerMsgId.P_7686);
             }
             return;
         }
         long remainingTicks = Math.max(0L, state.detonateAt - tick);
         long seconds = (remainingTicks + 19L) / 20L;
-        String title = state.detonated
-                ? PlayerMsgResource.format(PlayerMsgId.P_7685.getId(), alive)
-                : PlayerMsgResource.format(PlayerMsgId.P_7682.getId(), alive, seconds);
+        String title = PlayerMsgResource.format(PlayerMsgId.P_7682.getId(), alive, seconds);
         if (state.supportBar == null) {
             state.supportBar = Bukkit.createBossBar(title, BarColor.PURPLE, BarStyle.SEGMENTED_6);
         }
         state.supportBar.setTitle(title);
-        state.supportBar.setColor(state.detonated || seconds <= 10L ? BarColor.RED : BarColor.PURPLE);
-        state.supportBar.setProgress(state.detonated ? 1.0D : Math.clamp((double) remainingTicks / DETONATION_DELAY, 0.0D, 1.0D));
+        state.supportBar.setColor(seconds <= 10L ? BarColor.RED : BarColor.PURPLE);
+        state.supportBar.setProgress(Math.clamp((double) remainingTicks / DETONATION_DELAY, 0.0D, 1.0D));
         for (Player viewer : List.copyOf(state.supportBar.getPlayers())) {
             if (!active.contains(viewer)) state.supportBar.removePlayer(viewer);
         }
@@ -400,38 +414,40 @@ final class SeleneaSupportController {
         }
     }
 
-    /** 球形60mと同じ半径の三つの直交大円を、各生存個体144点・20tick周期で予告します。 */
+    /** 球形60mの表面と床面へ範囲比例・有限上限の予告を20tick周期で描きます。 */
     private void renderDetonationDanger(Encounter state) {
+        if (state.center.getWorld() == null || state.center.getWorld().getPlayers().isEmpty()) return;
         for (Map.Entry<Role, Add> entry : state.adds.entrySet()) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!isAlive(entry.getValue())) continue;
             Location center = entry.getValue().anchor;
-            List<Location> points = new ArrayList<>(144);
-            for (int index = 0; index < 48; index++) {
-                double angle = Math.PI * 2.0D * index / 48.0D;
-                double a = 60.0D * Math.cos(angle);
-                double b = 60.0D * Math.sin(angle);
-                points.add(center.clone().add(a, 0.0D, b));
-                points.add(center.clone().add(a, b, 0.0D));
-                points.add(center.clone().add(0.0D, a, b));
-            }
-            particles.spawnForNearbyViewers(points, entry.getKey().particle(), true);
+            particles.spawnForNearbyViewers(detonationSurface(center, 36.0D), entry.getKey().particle(), true);
+            particles.spawnForNearbyViewers(detonationFloor(center, 5.0D),
+                    SharedParticleDefinitions.SELENEA_SUPPORT_WARNING, true);
         }
     }
 
     /**
-     * HP50%以下で四体の初回召喚を試み、成功した召喚だけで180秒期限を確定します。
-     * 部分失敗はボスとゲートを保持して回収し、5秒後以降に再試行します。
-     * 召喚成功後は回復や全滅によって再召喚しません。
+     * 厳密にHP50%未満・10%未満の到達を保持し、成功した波だけを進めます。
+     * 前波の戦闘個体が残る間は第二波を保留し、回復後も到達記録を失いません。
+     * 部分失敗は今回の四体だけを回収し、永久支援を保持したまま5秒後に再試行します。
      */
     private void summonIfRequired(Encounter state) {
         MobInstance boss = state.boss;
-        if (state.addsSummoned || currentTick < state.nextSummonAttemptAt
-                || !Double.isFinite(boss.maxHealth()) || boss.maxHealth() < 6.0D
-                || !Double.isFinite(boss.currentHealth()) || boss.currentHealth() <= 0.0D
-                || boss.currentHealth() > boss.maxHealth() * SUMMON_HEALTH_RATIO) return;
+        if (!Double.isFinite(boss.maxHealth()) || boss.maxHealth() < 6.0D
+                || !Double.isFinite(boss.currentHealth()) || boss.currentHealth() <= 0.0D) return;
+        if (boss.currentHealth() < boss.maxHealth() * 0.5D) state.firstThresholdReached = true;
+        if (boss.currentHealth() < boss.maxHealth() * 0.1D) state.secondThresholdReached = true;
+        if (state.summoning || state.detonating || state.wavesSummoned >= 2
+                || currentTick < state.nextSummonAttemptAt
+                || state.adds.values().stream().anyMatch(this::isAlive)
+                || !(state.wavesSummoned == 0 ? state.firstThresholdReached : state.secondThresholdReached)) return;
+        state.summoning = true;
         state.nextSummonAttemptAt = currentTick + SUMMON_RETRY_DELAY;
         try {
+            clearPartialSummon(state);
+            if (encounters.get(boss.instanceId()) != state) return;
+            int wave = state.wavesSummoned + 1;
             for (Role role : Role.values()) {
                 Location anchor = offset(state.center, role, ADD_RADIUS, OUTER_HEIGHT);
                 MobInstance add = mobs.spawn(role.templateId, anchor);
@@ -443,24 +459,37 @@ final class SeleneaSupportController {
                     mobs.destroy(add.instanceId());
                     return;
                 }
-                state.adds.put(role, new Add(add.instanceId(), anchor));
+                state.adds.put(role, new Add(add.instanceId(), anchor, wave == 1 ? 6.0D : 3.0D, role));
                 addOwners.put(add.instanceId(), boss.instanceId());
-                add.maxHealth(boss.maxHealth() / 6.0D);
+                add.maxHealth(boss.maxHealth() / (wave == 1 ? 6.0D : 3.0D));
                 add.currentHealth(add.maxHealth());
                 add.rewardEligible(false);
                 add.keepWhenUnobserved(true);
                 add.scriptedAction(true);
                 mobs.stopPathfinding(add);
                 Entity entity = mobs.entityController().getEntity(add);
-                if (entity != null) entity.setGravity(false);
+                if (entity == null || !entity.isValid() || entity.isDead()) {
+                    clearPartialSummon(state);
+                    return;
+                }
+                entity.setGravity(false);
                 mobs.holdPosition(add, anchor);
+                if (encounters.get(boss.instanceId()) != state) return;
+            }
+            if (state.adds.size() != Role.values().length || state.adds.values().stream().anyMatch(add -> !isAlive(add))) {
+                clearPartialSummon(state);
+                return;
             }
             refreshBuffs(state);
+            state.wavesSummoned = wave;
             state.addsSummoned = true;
+            state.detonated = false;
+            state.returnAnnounced = false;
+            state.warnedSeconds.clear();
             state.detonateAt = currentTick + DETONATION_DELAY;
-            state.nextHealAt = currentTick + HEAL_INTERVAL;
+            if (state.nextHealAt == 0L) state.nextHealAt = currentTick + HEAL_INTERVAL;
             List<Player> active = participants.apply(boss);
-            announce(state, active, PlayerMsgId.P_7680);
+            announce(state, active, wave == 1 ? PlayerMsgId.P_7680 : PlayerMsgId.P_7716);
             if (encounters.get(boss.instanceId()) != state) return;
             announce(state, active, PlayerMsgId.P_7681);
         } catch (RuntimeException exception) {
@@ -471,6 +500,8 @@ final class SeleneaSupportController {
                 }
             }
             throw exception;
+        } finally {
+            state.summoning = false;
         }
     }
 
@@ -478,10 +509,10 @@ final class SeleneaSupportController {
     private void clearPartialSummon(Encounter state) {
         List<Add> partialAdds = List.copyOf(state.adds.values());
         state.adds.clear();
-        state.orbs.clear();
+        state.orbs.removeIf(orb -> state.remnants.stream().noneMatch(add -> add.instanceId.equals(orb.sourceId)));
         for (Add add : partialAdds) addOwners.remove(add.instanceId);
         RuntimeException failure = null;
-        try { clearBuffs(state.boss.instanceId()); }
+        try { refreshBuffs(state); }
         catch (RuntimeException cleanupFailure) { failure = cleanupFailure; }
         for (Add add : partialAdds) {
             try { mobs.destroy(add.instanceId); }
@@ -495,18 +526,19 @@ final class SeleneaSupportController {
 
     /** 登録済みMobとBukkit実体の両方で、生存を確認します。 */
     private boolean isAlive(@Nullable Add add) {
-        if (add == null) return false;
+        if (add == null || !add.combatActive) return false;
         MobInstance instance = mobs.getInstance(add.instanceId);
         if (instance == null || instance.state() == MobState.DEAD || instance.currentHealth() <= 0.0D) return false;
         Entity entity = mobs.entityController().getEntity(instance);
         return entity != null && entity.isValid() && !entity.isDead();
     }
 
-    /** 後から適用された参加人数HP倍率にも、現在HP割合を維持して最大HP/6を同期します。 */
+    /** 参加人数HP倍率へ現在HP割合を保ち、第一波は最大HP/6、第二波は最大HP/3を同期します。 */
     private void syncAddHealth(Encounter state) {
-        double maximum = state.boss.maxHealth() / 6.0D;
-        if (!Double.isFinite(maximum) || maximum < 1.0D) return;
         for (Add add : state.adds.values()) {
+            if (!add.combatActive) continue;
+            double maximum = state.boss.maxHealth() / add.healthDivisor;
+            if (!Double.isFinite(maximum) || maximum < 1.0D) continue;
             MobInstance instance = mobs.getInstance(add.instanceId);
             if (instance == null || instance.state() == MobState.DEAD || instance.currentHealth() <= 0.0D
                     || Double.compare(instance.maxHealth(), maximum) == 0) continue;
@@ -516,13 +548,13 @@ final class SeleneaSupportController {
         }
     }
 
-    /** 封護は防御+200%、烈怒は与ダメージ+100%。異なる既存効果を消去しません。 */
+    /** 生存個体または爆発後の永久支援があれば同じroleを一度だけ適用します。 */
     private void refreshBuffs(Encounter state) {
         if (effects == null) return;
         UUID bossId = state.boss.instanceId();
-        if (isAlive(state.adds.get(Role.WARD))) effects.applyDefenseMultiplier(bossId, WARD_EFFECT, 40L, 3.0D);
+        if (state.permanentRoles.contains(Role.WARD) || isAlive(state.adds.get(Role.WARD))) effects.applyDefenseMultiplier(bossId, WARD_EFFECT, 40L, 3.0D);
         else effects.clear(bossId, WARD_EFFECT);
-        if (isAlive(state.adds.get(Role.WRATH))) effects.apply(bossId, WRATH_EFFECT, 40L, 1.0D, 2.0D, 1.0D);
+        if (state.permanentRoles.contains(Role.WRATH) || isAlive(state.adds.get(Role.WRATH))) effects.apply(bossId, WRATH_EFFECT, 40L, 1.0D, 2.0D, 1.0D);
         else effects.clear(bossId, WRATH_EFFECT);
     }
 
@@ -533,10 +565,14 @@ final class SeleneaSupportController {
         effects.clear(bossId, WRATH_EFFECT);
     }
 
-    /** 月癒はボスへ一弾、慈癒は自分を除く三体の生存写本守へ各一弾を発射します。 */
+    /** 月癒はボスへ、慈癒は他の生存個体へ発射します。永久慈癒はボスを回復します。 */
     private void launchHealingOrbs(Encounter state, long tick) {
-        Add lunar = state.adds.get(Role.LUNAR);
-        if (isAlive(lunar)) launchOrb(state, lunar, state.boss.instanceId(), tick);
+        Add lunar = healingSource(state, Role.LUNAR);
+        if (lunar != null) launchOrb(state, lunar, state.boss.instanceId(), tick);
+        if (state.permanentRoles.contains(Role.MERCY)) {
+            Add permanentMercy = healingSource(state, Role.MERCY);
+            if (permanentMercy != null) launchOrb(state, permanentMercy, state.boss.instanceId(), tick);
+        }
         Add mercy = state.adds.get(Role.MERCY);
         if (isAlive(mercy)) {
             for (Map.Entry<Role, Add> entry : state.adds.entrySet()) {
@@ -547,25 +583,46 @@ final class SeleneaSupportController {
         }
     }
 
-    /** 発射時の始点と対象を保持し、上限四弾・2秒の放物線軌道を登録します。 */
+    /** 同roleの残像が複数あっても、永久支援の発射元は一体だけ選びます。 */
+    private @Nullable Add healingSource(Encounter state, Role role) {
+        if (state.permanentRoles.contains(role)) {
+            return state.remnants.stream().filter(add -> add.role == role && canEmitOrb(state, add))
+                    .findFirst().orElse(null);
+        }
+        Add add = state.adds.get(role);
+        return isAlive(add) ? add : null;
+    }
+
+    /** 戦闘個体の生存、または所有する無敵残像の実体を確認します。 */
+    private boolean canEmitOrb(Encounter state, @Nullable Add add) {
+        if (add == null) return false;
+        if (add.combatActive) return isAlive(add);
+        if (!state.remnants.contains(add)) return false;
+        MobInstance instance = mobs.getInstance(add.instanceId);
+        Entity entity = instance == null ? null : mobs.entityController().getEntity(instance);
+        return entity != null && entity.isValid() && !entity.isDead();
+    }
+
+    /** 発射時の始点と対象を保持し、永久二役と生存慈癒を合わせ上限五弾の軌道を登録します。 */
     private void launchOrb(Encounter state, Add source, UUID targetId, long tick) {
         MobInstance target = mobs.getInstance(targetId);
-        if (target == null || state.orbs.size() >= 4) return;
+        if (target == null || state.orbs.size() >= MAX_ORBS) return;
         state.orbs.add(new Orb(source.instanceId, targetId, source.anchor.clone().add(0, 1.2D, 0), tick));
     }
 
-    /** 弾の着弾時に対象の実行時最大HPの3%を共通回復通知経由で回復します。 */
+    /** 着弾時に最大HPの3%を回復し、回復通知が他弾を破棄しても安全に走査します。 */
     private void advanceOrbs(Encounter state, long tick) {
         List<Location> points = new ArrayList<>(16);
-        Iterator<Orb> iterator = state.orbs.iterator();
-        while (iterator.hasNext()) {
-            Orb orb = iterator.next();
+        for (Orb orb : List.copyOf(state.orbs)) {
+            if (!state.orbs.contains(orb)) continue;
             Add source = state.adds.values().stream().filter(add -> add.instanceId.equals(orb.sourceId))
                     .findFirst().orElse(null);
+            if (source == null) source = state.remnants.stream().filter(add -> add.instanceId.equals(orb.sourceId))
+                    .findFirst().orElse(null);
             MobInstance target = mobs.getInstance(orb.targetId);
-            if (!isAlive(source) || target == null || target.state() == MobState.DEAD
+            if (!canEmitOrb(state, source) || target == null || target.state() == MobState.DEAD
                     || target.currentHealth() <= 0.0D || target.currentLocation().getWorld() != state.center.getWorld()) {
-                iterator.remove();
+                state.orbs.remove(orb);
                 continue;
             }
             Location destination = target.currentLocation().add(0, 1.2D, 0);
@@ -575,7 +632,7 @@ final class SeleneaSupportController {
                 points.add(arc(orb.origin, destination, tailProgress));
             }
             if (progress >= 1.0D) {
-                iterator.remove();
+                state.orbs.remove(orb);
                 double recovered = mobs.recoverHealth(target, target.maxHealth() * HEAL_RATIO);
                 if (encounters.get(state.boss.instanceId()) != state) return;
                 if (recovered > 0.0D) particles.spawnForNearbyViewers(destination, SharedParticleDefinitions.SELENEA_SUPPORT_HEAL, true);
@@ -591,13 +648,23 @@ final class SeleneaSupportController {
                 (to.getZ() - from.getZ()) * progress);
     }
 
-    /** 各生存写本守の球形60m範囲へ一度だけ致死判定を委譲します。写本守と地形は維持します。 */
+    /** 生存個体の球形60mを一度だけ判定し、元個体を回収して第一門へ永久残像を置きます。 */
     private void detonate(Encounter state, List<Player> active) {
         List<Add> survivors = state.adds.values().stream().filter(this::isAlive).toList();
+        // 致死通知の再入より前に全門・軽減・BossBarを閉じます。元個体の回収所有権は保持します。
+        for (Add add : state.adds.values()) add.combatActive = false;
+        state.orbs.clear();
+        if (state.supportBar != null) {
+            state.supportBar.removeAll();
+            state.supportBar = null;
+        }
         for (Add add : survivors) {
             if (encounters.get(state.boss.instanceId()) != state) return;
-            if (!isAlive(add)) continue;
             particles.spawnForNearbyViewers(add.anchor, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION, true);
+            particles.spawnForNearbyViewers(detonationSurface(add.anchor, 24.0D),
+                    SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION_SURFACE, true);
+            particles.spawnForNearbyViewers(detonationFloor(add.anchor, 4.0D),
+                    SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION_SURFACE, true);
             for (Player player : active) {
                 if (!player.isDead() && player.getWorld() == add.anchor.getWorld()
                         && player.getLocation().distanceSquared(add.anchor) <= DETONATION_RADIUS_SQUARED) {
@@ -605,54 +672,132 @@ final class SeleneaSupportController {
                     if (encounters.get(state.boss.instanceId()) != state) return;
                 }
             }
+            MobInstance original = mobs.getInstance(add.instanceId);
+            if (original == null || original.state() == MobState.DEAD || original.currentHealth() <= 0.0D) continue;
+            // 元実体は先に破棄します。テンプレートを保持して同形・同装備のnative Mobを再生成します。
+            var template = original.template();
+            mobs.destroy(add.instanceId);
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            Location anchor = offset(state.center, add.role, INNER_GATE_RADIUS, 0.0D);
+            MobInstance instance = mobs.spawn(template, anchor);
+            if (instance == null) throw new IllegalStateException("Support remnant could not be spawned");
+            if (encounters.get(state.boss.instanceId()) != state) {
+                mobs.destroy(instance.instanceId());
+                return;
+            }
+            Add remnant = new Add(instance.instanceId(), anchor, add.healthDivisor, add.role);
+            remnant.combatActive = false;
+            state.remnants.add(remnant);
+            addOwners.put(instance.instanceId(), state.boss.instanceId());
+            instance.rewardEligible(false);
+            instance.keepWhenUnobserved(true);
+            instance.scriptedAction(true);
+            mobs.setDamageImmune(instance, true);
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            Entity entity = mobs.entityController().getEntity(instance);
+            if (entity == null) throw new IllegalStateException("Support remnant entity is unavailable");
+            entity.setGravity(false);
+            if (entity instanceof LivingEntity living) {
+                living.setAI(false);
+                living.setCollidable(false);
+                living.setCanPickupItems(false);
+            }
+            if (entity instanceof Mob mob) mob.setTarget(null);
+            mobs.holdPosition(instance, anchor);
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            state.permanentRoles.add(add.role);
         }
+        refreshBuffs(state);
     }
 
-    /** プレイヤーごとに2秒の再転送制限を設け、同色ゲート間を往復させます。 */
+    /** 球面積に比例するFibonacci配置を使い、一個体最大1200点の表面を生成します。 */
+    private static List<Location> detonationSurface(Location center, double areaPerPoint) {
+        int count = Math.min(MAX_SURFACE_POINTS, (int) Math.ceil(4.0D * Math.PI
+                * DETONATION_RADIUS * DETONATION_RADIUS / areaPerPoint));
+        List<Location> points = new ArrayList<>(count);
+        double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
+        for (int index = 0; index < count; index++) {
+            double y = 1.0D - 2.0D * (index + 0.5D) / count;
+            double radial = Math.sqrt(1.0D - y * y);
+            double angle = goldenAngle * index;
+            points.add(center.clone().add(DETONATION_RADIUS * radial * Math.cos(angle),
+                    DETONATION_RADIUS * y, DETONATION_RADIUS * radial * Math.sin(angle)));
+        }
+        return points;
+    }
+
+    /** 水平面積に比例する円盤配置を使い、一個体最大900点の範囲内の床面を生成します。 */
+    private static List<Location> detonationFloor(Location center, double spacing) {
+        int count = Math.min(MAX_FLOOR_POINTS, (int) Math.ceil(Math.PI
+                * DETONATION_RADIUS * DETONATION_RADIUS / (spacing * spacing)));
+        List<Location> points = new ArrayList<>(count);
+        double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
+        for (int index = 0; index < count; index++) {
+            double radius = DETONATION_RADIUS * Math.sqrt((index + 0.5D) / count);
+            double angle = goldenAngle * index;
+            points.add(center.clone().add(radius * Math.cos(angle), 0.25D, radius * Math.sin(angle)));
+        }
+        return points;
+    }
+
+    /** 転送前にロックし、全ての門の判定範囲から一度出るまで再使用を禁止します。 */
     private void teleportParticipants(Encounter state, List<Player> active, long tick) {
-        state.portalCooldowns.entrySet().removeIf(entry -> entry.getValue() <= tick);
         state.blockedPortalWarnings.entrySet().removeIf(entry -> entry.getValue() <= tick);
+        state.portalLocks.removeIf(id -> Bukkit.getPlayer(id) == null);
         for (Player player : active) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!player.isOnline() || !player.isValid() || player.isDead()
                     || player.getWorld() != state.center.getWorld()) continue;
-            if (state.portalCooldowns.containsKey(player.getUniqueId())) continue;
+            Location location = player.getLocation();
+            boolean insideAnyGate = false;
             for (Role role : Role.values()) {
+                if (inGate(location, offset(state.center, role, INNER_GATE_RADIUS, 0.0D))
+                        || inGate(location, offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT))) {
+                    insideAnyGate = true;
+                    break;
+                }
+            }
+            if (!insideAnyGate) state.portalLocks.remove(player.getUniqueId());
+            if (state.portalLocks.contains(player.getUniqueId())) continue;
+            for (Role role : Role.values()) {
+                if (!isAlive(state.adds.get(role))) continue;
                 Location source = offset(state.center, role, INNER_GATE_RADIUS, 0.0D);
                 Location destination = offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT);
-                Location location = player.getLocation();
                 Location target = inGate(location, source) ? destination : inGate(location, destination) ? source : null;
                 if (target == null) continue;
                 if (!SeleneaGatePlatformRegistry.safeLanding(target)) {
                     if (!state.blockedPortalWarnings.containsKey(player.getUniqueId())) {
-                        state.blockedPortalWarnings.put(player.getUniqueId(), tick + GATE_COOLDOWN);
+                        state.blockedPortalWarnings.put(player.getUniqueId(), tick + GATE_WARNING_INTERVAL);
                         announce(state, List.of(player), PlayerMsgId.P_7689);
                     }
                     break;
                 }
                 if (encounters.get(state.boss.instanceId()) != state) return;
-                if (PlayerTeleportService.teleport(player, target)) state.portalCooldowns.put(player.getUniqueId(), tick + GATE_COOLDOWN);
+                state.portalLocks.add(player.getUniqueId());
+                if (!PlayerTeleportService.teleport(player, target)) state.portalLocks.remove(player.getUniqueId());
                 break;
             }
         }
     }
 
-    /** 足元位置を基準に大型ゲートの水平半径3.2m・高さ-0.5～6mの通過範囲を判定します。 */
+    /** 足元位置を基準に水平半径1.4m・高さ-0.5～3.2mの通過範囲を判定します。 */
     private static boolean inGate(Location location, Location base) {
         if (location.getWorld() != base.getWorld()) return false;
         double y = location.getY() - base.getY();
         double x = location.getX() - base.getX();
         double z = location.getZ() - base.getZ();
-        return y >= -0.5D && y <= 6.0D && x * x + z * z <= GATE_INTERACTION_RADIUS * GATE_INTERACTION_RADIUS;
+        return y >= -0.5D && y <= 3.2D && x * x + z * z <= GATE_INTERACTION_RADIUS * GATE_INTERACTION_RADIUS;
     }
 
     /** 八個の大型二重リングと回転する放射線を役割色で描き、白い光点を一括描画します。 */
     private void renderGates(Encounter state) {
-        if (state.center.getWorld() == null || state.center.getWorld().getPlayers().isEmpty()) return;
+        if (state.summoning || state.detonating || state.center.getWorld() == null
+                || state.center.getWorld().getPlayers().isEmpty()) return;
         List<Location> accents = new ArrayList<>(96);
         double rotation = currentTick * Math.PI / 120.0D;
         for (Role role : Role.values()) {
             if (encounters.get(state.boss.instanceId()) != state) return;
+            if (!isAlive(state.adds.get(role))) continue;
             List<Location> points = new ArrayList<>(224);
             portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
             portalRing(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT), role, rotation, points, accents);
@@ -720,19 +865,29 @@ final class SeleneaSupportController {
     private static final class Add {
         private final UUID instanceId;
         private final Location anchor;
+        private final double healthDivisor;
+        private final Role role;
+        private boolean combatActive = true;
 
-        /** 管理Mob IDと不変の固定位置を保存します。 */
-        private Add(UUID instanceId, Location anchor) { this.instanceId = instanceId; this.anchor = anchor.clone(); }
+        /** 管理Mob ID・固定位置・波別HP比率・役割を保存します。 */
+        private Add(UUID instanceId, Location anchor, double healthDivisor, Role role) {
+            this.instanceId = instanceId;
+            this.anchor = anchor.clone();
+            this.healthDivisor = healthDivisor;
+            this.role = role;
+        }
     }
 
-    /** 四体、最大四弾、参加者ごとの転送制限を所有する一遭遇です。 */
+    /** 一波四体・最大八残像・五弾・参加者ごとの転送制限を所有する一遭遇です。 */
     private static final class Encounter {
         private final MobInstance boss;
         private final boolean originalBossRetention;
         private final Location center;
         private final Map<Role, Add> adds = new EnumMap<>(Role.class);
-        private final List<Orb> orbs = new ArrayList<>(4);
-        private final Map<UUID, Long> portalCooldowns = new HashMap<>();
+        private final List<Add> remnants = new ArrayList<>(8);
+        private final Set<Role> permanentRoles = EnumSet.noneOf(Role.class);
+        private final List<Orb> orbs = new ArrayList<>(MAX_ORBS);
+        private final Set<UUID> portalLocks = new java.util.HashSet<>();
         private final Map<UUID, Long> blockedPortalWarnings = new HashMap<>();
         private long detonateAt;
         private long nextSummonAttemptAt;
@@ -741,6 +896,11 @@ final class SeleneaSupportController {
         private long nextLeaseCheckAt;
         private long nextDangerRenderAt;
         private boolean addsSummoned;
+        private int wavesSummoned;
+        private boolean firstThresholdReached;
+        private boolean secondThresholdReached;
+        private boolean summoning;
+        private boolean detonating;
         private boolean detonated;
         private boolean returnAnnounced;
         private @Nullable BossBar supportBar;
