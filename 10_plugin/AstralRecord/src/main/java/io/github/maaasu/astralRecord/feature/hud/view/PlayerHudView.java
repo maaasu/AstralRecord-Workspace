@@ -655,8 +655,9 @@ public class PlayerHudView {
         Component header = Component.text()
             .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
             .append(showPerformanceInfo
-                ? Component.newline().append(Component.text("MSPT ", NamedTextColor.GRAY))
+                ? Component.newline().append(Component.text("[ MSPT: ", NamedTextColor.GRAY))
                     .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
+                    .append(Component.text(" ]", NamedTextColor.GRAY))
                 : Component.empty())
             .build();
         Component footer = Component.empty();
@@ -664,15 +665,16 @@ public class PlayerHudView {
         var boosts = plugin == null ? null : plugin.getChannelBoostService();
         var boostRows = boosts == null ? List.<Component>of() : boosts.tabRows();
         if (!boostRows.isEmpty()) {
-            footer = Component.text("✦ ブースト発動中 ✦", NamedTextColor.GOLD);
+            footer = Component.text("✦ ACTIVE BOOSTS ✦", NamedTextColor.GOLD);
             for (Component row : boostRows) footer = footer.append(Component.newline()).append(row);
         }
         if (showPerformanceInfo) {
             if (!boostRows.isEmpty()) footer = footer.append(Component.newline())
                 .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
                 .append(Component.newline());
-            footer = footer.append(Component.text("通信遅延 ", NamedTextColor.GRAY))
-                .append(Component.text(ping + "ms", pingTextColor(ping)));
+            footer = footer.append(Component.text("[ PING: ", NamedTextColor.GRAY))
+                .append(Component.text(ping + "ms", pingTextColor(ping)))
+                .append(Component.text(" ]", NamedTextColor.GRAY));
         }
         player.sendPlayerListHeaderAndFooter(header, footer);
     }

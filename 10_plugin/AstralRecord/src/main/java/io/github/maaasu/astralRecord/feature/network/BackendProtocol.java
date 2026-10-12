@@ -51,7 +51,7 @@ final class BackendProtocol {
         }
     }
 
-    /** 選択アカウントのVIP種別を末尾に含めてProxyのTAB表示へ送信します。 */
+    /** 選択アカウントのVIP種別とプレイヤーレベルを末尾に含めてProxyのTAB表示へ送信します。 */
     static void sendMetadata(
         @NotNull Plugin plugin,
         @NotNull AstPlayer player,
@@ -76,6 +76,7 @@ final class BackendProtocol {
             output.writeBoolean(classLevelMax);
             output.writeBoolean(accountNameOnly);
             output.writeUTF(vipTier);
+            output.writeInt(player.getAccount().getLevel());
         });
     }
 

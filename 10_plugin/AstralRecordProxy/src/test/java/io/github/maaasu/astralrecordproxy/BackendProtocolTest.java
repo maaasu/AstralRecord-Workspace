@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -98,6 +100,7 @@ class BackendProtocolTest {
 
         assertEquals(5, metadata.permission());
         assertEquals(VipTier.NONE, metadata.vipTier());
+        assertNull(metadata.playerLevel());
         assertFalse(metadata.classLevelMax());
         assertFalse(metadata.accountNameOnly());
     }
@@ -121,6 +124,7 @@ class BackendProtocolTest {
         BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
 
         assertEquals(0, metadata.permission());
+        assertNull(metadata.playerLevel());
         assertFalse(metadata.classLevelMax());
         assertFalse(metadata.accountNameOnly());
     }
@@ -182,6 +186,41 @@ class BackendProtocolTest {
 
         assertTrue(metadata.classLevelMax());
         assertTrue(metadata.accountNameOnly());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: PLVは末尾の独立したintから復元し、CLVと混同しない。不完全な追加値は拒否する。
+     */
+    @Test
+    void decodesSeparatePlayerLevelAndRejectsTruncatedExtension() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("metadata");
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF("mcid");
+            output.writeUTF("rpg");
+            output.writeUTF("account#0");
+            output.writeInt(4);
+            output.writeUTF("MAG");
+            output.writeBoolean(false);
+            output.writeInt(0);
+            output.writeBoolean(false);
+            output.writeBoolean(false);
+            output.writeUTF("ASTRALDER");
+            output.writeInt(35);
+            payload = bytes.toByteArray();
+        }
+        BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
+        assertEquals(4, metadata.level());
+        assertEquals(35, metadata.playerLevel());
+        assertEquals(VipTier.ASTRALDER, metadata.vipTier());
+        byte[] legacyPayload = java.util.Arrays.copyOf(payload, payload.length - Integer.BYTES);
+        assertNull(((BackendProtocol.Metadata) BackendProtocol.decode(legacyPayload)).playerLevel());
+        byte[] truncatedPayload = java.util.Arrays.copyOf(payload, payload.length - 1);
+        assertThrows(java.io.IOException.class, () -> BackendProtocol.decode(truncatedPayload));
     }
 
     @Test

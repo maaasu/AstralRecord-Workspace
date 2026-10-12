@@ -126,7 +126,7 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     /**
-     * タブのプレイヤーリスト名を、クラス短縮名・クラスレベルのタグ付きで更新します。
+     * タブのプレイヤーリスト名を、クラス短縮名・CLV・PL・PLVのタグ付きで更新します。
      *
      * @param astPlayer 更新対象プレイヤー
      */
@@ -137,11 +137,16 @@ class PlayerClassService @JvmOverloads constructor(
         astPlayer.bukkit.playerListName(playerListLabel(astPlayer))
     }
 
-    /** TAB用のクラス・レベル・AFK・アカウント名を返します。 */
-    fun playerListLabel(astPlayer: AstPlayer): Component = playerLabel(
+    /** TAB用のクラス・CLV・AFK・アカウント名の右側にMCIDとPLVを追加して返します。 */
+    fun playerListLabel(astPlayer: AstPlayer): Component = Component.empty().append(playerLabel(
         astPlayer,
         io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account),
-    )
+        true,
+    )).append(PlayerMsgResource.formatPlainComponent(
+        PlayerMsgId.P_7155.id,
+        astPlayer.bukkit.name,
+        astPlayer.account.level.coerceAtLeast(1),
+    ))
 
     /**
      * メッセージ用の名前装飾を維持しながら、クラス・レベル・AFKラベルを組み立てます。
@@ -152,7 +157,8 @@ class PlayerClassService @JvmOverloads constructor(
      */
     fun messageLabel(astPlayer: AstPlayer, accountName: Component): Component = playerLabel(astPlayer, accountName)
 
-    private fun playerLabel(astPlayer: AstPlayer, standardName: Component): Component {
+    /** TabだけのCLV接頭辞と、従来のチャット用Lv.接頭辞を切り替えて名前を組み立てます。 */
+    private fun playerLabel(astPlayer: AstPlayer, standardName: Component, tab: Boolean = false): Component {
         if (astPlayer.account.mode == AccountMode.ADMIN) {
             return standardName
         }
@@ -164,7 +170,7 @@ class PlayerClassService @JvmOverloads constructor(
         val classTag = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5948.id,
             classDisplayName,
-            ClassLevelDisplay.legacy(astPlayer.classLevel, isMaxClassLevel(astPlayer)),
+            ClassLevelDisplay.legacy(astPlayer.classLevel, isMaxClassLevel(astPlayer), if (tab) "CLV." else "Lv."),
         )
         var playerListName = classTag.append(Component.space())
         if (afkStateProvider.test(astPlayer)) {

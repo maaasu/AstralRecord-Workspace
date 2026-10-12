@@ -325,6 +325,7 @@ public class PlayerHudService {
                 statusService.getShieldDisplayCapacity(astPlayer)
             );
             if (!proxyOwnsTabHeader) {
+                playerClassService.updatePlayerListName(astPlayer);
                 playerHudView.renderTabList(
                     player,
                     mspt,

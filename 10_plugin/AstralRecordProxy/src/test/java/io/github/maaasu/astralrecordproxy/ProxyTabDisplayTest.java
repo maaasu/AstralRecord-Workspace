@@ -59,10 +59,10 @@ class ProxyTabDisplayTest {
         ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render(
             "mc.astralrecord.com", "第一チャンネル", 12, 48L, 12.34D, 83);
 
-        assertEquals("A S T R A L   R E C O R D\nmc.astralrecord.com",
+        assertEquals("✦  A S T R A L   R E C O R D  ✦\n[ mc.astralrecord.com ]",
             PLAIN.serialize(display.header()));
-        assertEquals("接続先  第一チャンネル\n人数  このチャンネル 12人    /    全体 83人"
-                + "\nMSPT 12.3    /    PING 48ms",
+        assertEquals("[ CHANNEL: 第一チャンネル ]\n[ ONLINE: 12  |  TOTAL: 83 ]"
+                + "\n[ MSPT: 12.3  |  PING: 48ms ]",
             PLAIN.serialize(display.footer()));
     }
 
@@ -70,9 +70,9 @@ class ProxyTabDisplayTest {
     void showsMeasuringUntilBackendMetricsArrive() {
         ProxyTabDisplay.HeaderFooter display = ProxyTabDisplay.render("", null, -1, -1L, null, -1);
 
-        assertEquals("A S T R A L   R E C O R D", PLAIN.serialize(display.header()));
-        assertEquals("接続先  接続中\n人数  このチャンネル 0人    /    全体 0人"
-                + "\nMSPT 計測中    /    PING 0ms",
+        assertEquals("✦  A S T R A L   R E C O R D  ✦", PLAIN.serialize(display.header()));
+        assertEquals("[ CHANNEL: CONNECTING ]\n[ ONLINE: 0  |  TOTAL: 0 ]"
+                + "\n[ MSPT: MEASURING  |  PING: 0ms ]",
             PLAIN.serialize(display.footer()));
     }
 
@@ -93,18 +93,20 @@ class ProxyTabDisplayTest {
     void animatesOnlyAstralderAccountNameAndKeepsSlotPlain() {
         PlayerMetadata astralder = new PlayerMetadata(
             PLAYER_ID, "test-account", "rpg-1", "rpg", "astral#2", 4, "§dMAG", false, 0, false, false,
-            VipTier.ASTRALDER);
+            VipTier.ASTRALDER, 35);
         PlayerMetadata doner = new PlayerMetadata(
             PLAYER_ID, "test-account", "rpg-1", "rpg", "doner#2", 4, "§dMAG", false, 0, false, false,
             VipTier.DONER);
 
-        Component first = AstralRecordProxyPlugin.tabDisplayName(astralder, 0);
-        Component next = AstralRecordProxyPlugin.tabDisplayName(astralder, 1);
-        assertEquals("[rpg] [MAG Lv.4] astral#2", PLAIN.serialize(first));
+        Component first = AstralRecordProxyPlugin.tabEntryDisplayName(astralder, 0);
+        Component next = AstralRecordProxyPlugin.tabEntryDisplayName(astralder, 1);
+        assertEquals("[rpg] [MAG CLV.4] astral#2 [PL: test-account | PLV: 35]", PLAIN.serialize(first));
+        assertEquals("[rpg] [MAG Lv.4] astral#2",
+            PLAIN.serialize(AstralRecordProxyPlugin.tabDisplayName(astralder, 1)));
         assertEquals(PLAIN.serialize(first), PLAIN.serialize(next));
         assertFalse(first.equals(next));
-        assertEquals(AstralRecordProxyPlugin.tabDisplayName(doner, 0),
-            AstralRecordProxyPlugin.tabDisplayName(doner, 1));
+        assertEquals(AstralRecordProxyPlugin.tabEntryDisplayName(doner, 0),
+            AstralRecordProxyPlugin.tabEntryDisplayName(doner, 1));
     }
 
     @Test
@@ -123,10 +125,10 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: Proxyの通常TabエントリはRPG側と同じクラス名・レベル順序と色で表示する。
+     * 検証契約: Proxyのチャット用ラベルは従来のクラス名・Lv.順序と色で表示する。
      */
     @Test
-    void rendersRpgStyleTabEntry() {
+    void rendersRpgStyleChatLabel() {
         PlayerMetadata metadata = new PlayerMetadata(
             PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 0, false, false);
 
@@ -146,10 +148,10 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: 最大クラスレベル到達者はLv.を維持し、数値の代わりに赤太字のmaxを表示する。
+     * 検証契約: チャットでは最大クラスレベル到達者のLv.を維持し、数値の代わりに赤太字のmaxを表示する。
      */
     @Test
-    void rendersMaximumClassLevelInTabEntry() {
+    void rendersMaximumClassLevelInChatLabel() {
         PlayerMetadata metadata = new PlayerMetadata(
             PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 100, "§dMAG", false, 0, true, false);
 
@@ -203,10 +205,10 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: ProxyのAFK中TabエントリはRPG側と同じ赤いAFK接頭辞を表示する。
+     * 検証契約: ProxyのAFK中チャットラベルはRPG側と同じ赤いAFK接頭辞を表示する。
      */
     @Test
-    void rendersRedAfkPrefixInTabEntry() {
+    void rendersRedAfkPrefixInChatLabel() {
         PlayerMetadata metadata = new PlayerMetadata(
             PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§c§lADM", true, 0, false, false);
 
@@ -227,10 +229,10 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: クラスメタデータ未設定時はRPGのフォールバックとしてMCIDだけを表示する。
+     * 検証契約: クラスメタデータ未設定時はチャットのフォールバックとしてMCIDだけを表示する。
      */
     @Test
-    void rendersMcidWhenClassMetadataIsUnavailable() {
+    void rendersMcidWhenClassMetadataIsUnavailableInChat() {
         PlayerMetadata metadata = new PlayerMetadata(
             PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", null, null, false, 0, false, false);
 
@@ -242,10 +244,10 @@ class ProxyTabDisplayTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: ADMINアカウントはchannelとアカウント名を表示し、クラス・レベル・AFKを省略する。
+     * 検証契約: チャットのADMINアカウントはchannelとアカウント名を表示し、クラス・レベル・AFKを省略する。
      */
     @Test
-    void rendersChannelAndAccountNameForAdminAccountMode() {
+    void rendersChannelAndAccountNameForAdminAccountModeInChat() {
         PlayerMetadata metadata = new PlayerMetadata(
             PLAYER_ID, "test-admin", "rpg-1", "rpg", "admin#1", 100, "§c§lADM", true, 0, true, true);
 

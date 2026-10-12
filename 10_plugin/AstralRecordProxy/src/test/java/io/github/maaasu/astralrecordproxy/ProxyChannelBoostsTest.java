@@ -24,8 +24,8 @@ class ProxyChannelBoostsTest {
         var rows = ProxyChannelBoosts.tabRows(state, now);
         var plain = PlainTextComponentSerializer.plainText();
         assertEquals(2, rows.size());
-        assertEquals("第四  ›  DROP ×1.5  残り10分", plain.serialize(rows.get(0)));
-        assertEquals("第五  ›  EXP ×2  残り10分   ·   DROP ×3  残り5分", plain.serialize(rows.get(1)));
+        assertEquals("第四  ›  DROP ×1.5 (10m left)", plain.serialize(rows.get(0)));
+        assertEquals("第五  ›  EXP ×2 (10m left)   ·   DROP ×3 (5m left)", plain.serialize(rows.get(1)));
         assertEquals(5, ProxyChannelBoosts.lines(state, now).size());
         assertTrue(ProxyChannelBoosts.tabRows(null, now).isEmpty());
     }

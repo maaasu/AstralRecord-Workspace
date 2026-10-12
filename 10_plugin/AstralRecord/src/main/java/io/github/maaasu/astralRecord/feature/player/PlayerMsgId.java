@@ -1835,6 +1835,8 @@ public enum PlayerMsgId {
     P_7153(7153),
     /** Proxy接続確認失敗によりサーバー移動を中止する。 */
     P_7154(7154),
+    /** TABのMCID・プレイヤーレベル表示。 */
+    P_7155(7155),
     // endregion
 
     // region /feature/world/command/AdminWorldTeleportItemCommand.java 7160-7169
