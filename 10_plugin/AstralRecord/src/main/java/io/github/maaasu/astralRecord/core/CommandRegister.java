@@ -108,11 +108,13 @@ import io.github.maaasu.astralRecord.feature.whitelist.command.WhitelistTabCompl
 import io.github.maaasu.astralRecord.feature.whitelist.service.WhitelistService;
 import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
 import io.github.maaasu.astralRecord.feature.world.command.AdminWorldTeleportItemCommand;
+import io.github.maaasu.astralRecord.feature.world.command.InstanceTeleportCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTeleportCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTeleportTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.service.AdminWorldTeleportItemService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportFilter;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckCommand;
@@ -291,6 +293,9 @@ public class CommandRegister {
         cm.registerCommand("bg", builderCommand);
         cm.registerCommand("boss", new BossCommand());
         cm.registerCommand("dungeon", new DungeonCommand());
+        cm.registerCommand("bosstp", new InstanceTeleportCommand("bosstp", InstanceTeleportFilter.BOSS));
+        cm.registerCommand("dungeontp", new InstanceTeleportCommand("dungeontp", InstanceTeleportFilter.DUNGEON));
+        cm.registerCommand("instancetp", new InstanceTeleportCommand("instancetp", InstanceTeleportFilter.ALL));
         cm.registerCommand("drop", new DungeonDropCommand());
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand(

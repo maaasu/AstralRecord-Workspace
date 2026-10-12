@@ -977,6 +977,19 @@ public enum PlayerMsgId {
     P_5769(5769),
     // endregion
 
+    // region /feature/world/InstanceTeleport 5790-5794
+    /** インスタンス受付への転送成功。 */
+    P_5790(5790),
+    /** 受付の定義欠損または転送失敗。 */
+    P_5791(5791),
+    /** 挑戦参加中の受付転送拒否。 */
+    P_5792(5792),
+    /** 受付転送処理中の重複要求拒否。 */
+    P_5793(5793),
+    /** 受付転送サービス未初期化。 */
+    P_5794(5794),
+    // endregion
+
     // region /feature/hotbaraction/event/HotbarActionEventHandler.java 6000-6009
     /**
      * [DEBUG] ホットバー左クリック: {0}

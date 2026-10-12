@@ -383,15 +383,18 @@ import io.github.maaasu.astralRecord.feature.world.event.AdminWorldTeleportItemE
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldGatewayEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldSpawnTeleportEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.ChallengeWaitingHubEventHandler;
+import io.github.maaasu.astralRecord.feature.world.event.InstanceTeleportGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.OverworldTeleportGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.OverworldSpawnReturnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldChangeTitleEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.world.gui.AdminWorldTeleportGui;
+import io.github.maaasu.astralRecord.feature.world.gui.InstanceTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.gui.OverworldTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.feature.world.service.AdminWorldTeleportItemService;
+import io.github.maaasu.astralRecord.feature.world.service.InstanceTeleportService;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -596,6 +599,7 @@ public final class AstralRecord extends JavaPlugin {
     private OverworldTeleportService overworldTeleportService;
     private OverworldTeleportGui overworldTeleportGui;
     private OverworldTeleportGuiEventHandler overworldTeleportGuiEventHandler;
+    private InstanceTeleportGuiEventHandler instanceTeleportGuiEventHandler;
     private ReturnToBaseService returnToBaseService;
     private WorldSpawnParticleTask worldSpawnParticleTask;
     private StoneButtonReachService stoneButtonReachService;
@@ -1619,6 +1623,11 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.CARTOGRAPH_ROOM_TELEPORTED, dungeonId)
         );
         dungeonService.setHistoryService(playerActivityHistoryService);
+        instanceTeleportGuiEventHandler = new InstanceTeleportGuiEventHandler(
+            new InstanceTeleportGui(),
+            new InstanceTeleportService(this, worldService, mobService, bossChallengeService, dungeonService, inventoryService),
+            inventoryService
+        );
         partyService.setChallengePartyMutationGuard(playerId ->
             bossChallengeService.isPartyMutationBlocked(playerId)
                 || dungeonService.isPartyMutationBlocked(playerId)
@@ -2612,6 +2621,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             overworldTeleportGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            instanceTeleportGuiEventHandler,
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -3617,6 +3630,14 @@ public final class AstralRecord extends JavaPlugin {
 
     public DungeonService getDungeonService() {
         return dungeonService;
+    }
+
+    /**
+     * ボス・ダンジョンの共通受付 GUI を開くハンドラを取得します。
+     * @return 初期化済みの共通 GUI ハンドラ。初期化前は null
+     */
+    public InstanceTeleportGuiEventHandler getInstanceTeleportGuiEventHandler() {
+        return instanceTeleportGuiEventHandler;
     }
 
     public PartyService getPartyService() {
