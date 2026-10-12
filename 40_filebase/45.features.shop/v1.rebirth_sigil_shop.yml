@@ -73,69 +73,69 @@ items:
     column: 7
     requiredItems:
       - { itemId: { ref: item:99a00017 }, category: currency, amount: 9000 }
-  - id: cast_time_sigil_i
-    itemId: { ref: item:70a00012 }
+  - id: cast_time_sigil_5
+    itemId: { ref: item:70a00049 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 1
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 1500 }
-  - id: cast_time_sigil_15
-    itemId: { ref: item:70a00036 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 750 }
+  - id: cast_time_sigil_7_percent_5
+    itemId: { ref: item:70a00050 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 2
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 4250 }
-  - id: cast_time_sigil_ii
-    itemId: { ref: item:70a00013 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 1125 }
+  - id: cast_time_sigil_i
+    itemId: { ref: item:70a00012 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 3
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 7000 }
-  - id: cast_time_sigil_25
-    itemId: { ref: item:70a00037 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 1500 }
+  - id: cast_time_sigil_12_percent_5
+    itemId: { ref: item:70a00051 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 4
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 12500 }
-  - id: cast_time_sigil_iii
-    itemId: { ref: item:70a00014 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 2875 }
+  - id: cast_time_sigil_15
+    itemId: { ref: item:70a00036 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 5
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 18000 }
-  - id: cast_time_sigil_35
-    itemId: { ref: item:70a00038 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 4250 }
+  - id: cast_time_sigil_17_percent_5
+    itemId: { ref: item:70a00052 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 6
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 29000 }
-  - id: cast_time_sigil_iv
-    itemId: { ref: item:70a00015 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 5625 }
+  - id: cast_time_sigil_ii
+    itemId: { ref: item:70a00013 }
     category: sigil
     amount: 1
     page: 1
     row: 2
     column: 7
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 40000 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 7000 }
   - id: skill_damage_sigil_i
     itemId: { ref: item:70a00017 }
     category: sigil
@@ -282,24 +282,69 @@ items:
     column: 7
     requiredItems:
       - { itemId: { ref: item:99a00017 }, category: currency, amount: 38500 }
-  - id: cast_time_sigil_45
-    itemId: { ref: item:70a00039 }
+  - id: cast_time_sigil_22_percent_5
+    itemId: { ref: item:70a00053 }
     category: sigil
     amount: 1
     page: 2
     row: 2
     column: 1
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 60000 }
-  - id: cast_time_sigil_v
-    itemId: { ref: item:70a00016 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 9750 }
+  - id: cast_time_sigil_25
+    itemId: { ref: item:70a00037 }
     category: sigil
     amount: 1
     page: 2
     row: 2
     column: 2
     requiredItems:
-      - { itemId: { ref: item:99a00017 }, category: currency, amount: 80000 }
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 12500 }
+  - id: cast_time_sigil_27_percent_5
+    itemId: { ref: item:70a00054 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 15250 }
+  - id: cast_time_sigil_iii
+    itemId: { ref: item:70a00014 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 18000 }
+  - id: cast_time_sigil_32_percent_5
+    itemId: { ref: item:70a00055 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 23500 }
+  - id: cast_time_sigil_35
+    itemId: { ref: item:70a00038 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 6
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 29000 }
+  - id: cast_time_sigil_37_percent_5
+    itemId: { ref: item:70a00056 }
+    category: sigil
+    amount: 1
+    page: 2
+    row: 2
+    column: 7
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 34500 }
   - id: skill_damage_sigil_45
     itemId: { ref: item:70a00043 }
     category: sigil
@@ -407,6 +452,51 @@ items:
     amount: 1
     page: 3
     row: 1
+    column: 5
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 80000 }
+  - id: cast_time_sigil_iv
+    itemId: { ref: item:70a00015 }
+    category: sigil
+    amount: 1
+    page: 3
+    row: 2
+    column: 1
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 40000 }
+  - id: cast_time_sigil_42_percent_5
+    itemId: { ref: item:70a00057 }
+    category: sigil
+    amount: 1
+    page: 3
+    row: 2
+    column: 2
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 50000 }
+  - id: cast_time_sigil_45
+    itemId: { ref: item:70a00039 }
+    category: sigil
+    amount: 1
+    page: 3
+    row: 2
+    column: 3
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 60000 }
+  - id: cast_time_sigil_47_percent_5
+    itemId: { ref: item:70a00058 }
+    category: sigil
+    amount: 1
+    page: 3
+    row: 2
+    column: 4
+    requiredItems:
+      - { itemId: { ref: item:99a00017 }, category: currency, amount: 70000 }
+  - id: cast_time_sigil_v
+    itemId: { ref: item:70a00016 }
+    category: sigil
+    amount: 1
+    page: 3
+    row: 2
     column: 5
     requiredItems:
       - { itemId: { ref: item:99a00017 }, category: currency, amount: 80000 }
