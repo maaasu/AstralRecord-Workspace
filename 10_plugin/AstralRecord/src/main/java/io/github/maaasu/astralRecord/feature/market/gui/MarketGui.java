@@ -428,7 +428,7 @@ public final class MarketGui {
             && equipmentInstance.getItemId().equalsIgnoreCase(listing.itemId())) {
             stack = itemStackFactory.asDisplayStack(itemStackFactory.create(model, equipmentInstance, 1));
         } else {
-            stack = itemStackFactory.createShopDisplay(
+            stack = itemStackFactory.createDisplay(
                 model,
                 Math.max(1, (int) Math.min(64L, listing.remainingQuantity()))
             );
@@ -484,7 +484,7 @@ public final class MarketGui {
         ItemModel model = itemService.findLoadedById(draft.itemId());
         ItemStack stack = model == null
             ? new ItemStack(Material.CHEST)
-            : itemStackFactory.createShopDisplay(model, Math.max(1, (int) Math.min(64L, draft.quantity())));
+            : itemStackFactory.createDisplay(model, Math.max(1, (int) Math.min(64L, draft.quantity())));
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             List<Component> lore = new ArrayList<>();

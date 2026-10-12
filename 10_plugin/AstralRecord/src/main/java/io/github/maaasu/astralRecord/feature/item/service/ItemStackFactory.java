@@ -32,6 +32,8 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -226,8 +228,25 @@ public class ItemStackFactory {
         return asDisplayStack(create(model, amount));
     }
 
+    /**
+     * ショップ用の表示アイテムを生成し、未確定のステータス主値をランダム表記にします。
+     * 数値範囲の補足行は通常と同じ内部マーカーを保持し、受信者の設定で表示を制御します。
+     * キャッシュや購入後の装備インスタンスは変更しません。
+     *
+     * @param model 商品のアイテム定義
+     * @param amount 表示個数
+     * @return ショップ用の説明文と icon Material を反映した表示専用 ItemStack
+     */
     public @NotNull ItemStack createShopDisplay(@NotNull ItemModel model, int amount) {
-        return createDisplay(model, amount);
+        ItemStack item = createDisplay(model, amount);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && model.getEquipment() != null) {
+            meta.lore(buildLore(model, true).stream()
+                    .map(ItemStackFactory::toLoreComponent)
+                    .toList());
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     /**
@@ -731,6 +750,17 @@ public class ItemStackFactory {
      * ItemModel の情報を元に Lore 行リストを構築します。
      */
     private @NotNull List<String> buildLore(@NotNull ItemModel model) {
+        return buildLore(model, false);
+    }
+
+    /**
+     * ショップ表示では未確定のステータス主値だけをランダム表記にして Lore を構築します。
+     *
+     * @param model アイテム定義
+     * @param shopDisplay ショップ用の主値表示にする場合は true
+     * @return 表示制御用の内部マーカーを含む Lore 行
+     */
+    private @NotNull List<String> buildLore(@NotNull ItemModel model, boolean shopDisplay) {
         List<String> lore = new ArrayList<>();
 
         // ヘッダー
@@ -751,7 +781,7 @@ public class ItemStackFactory {
 
         // equipment / rune のカテゴリ固有情報
         if (model.getEquipment() != null) {
-            appendEquipmentLore(lore, model.getEquipment());
+            appendEquipmentLore(lore, model.getEquipment(), shopDisplay);
         }
         if (model.getRune() != null) {
             appendRuneLore(lore, model.getRune());
@@ -806,9 +836,14 @@ public class ItemStackFactory {
 
     /**
      * Equipment 情報を Lore に追加します。
-     * 現時点では API から取得した親データの表示のみ。
+     * ショップでは乱数指定のある主値をランダム表記にし、範囲の補足行は設定による表示用に保持します。
+     *
+     * @param lore 追加先の Lore 行
+     * @param equipment 装備マスタ定義
+     * @param shopDisplay ショップ用の主値表示にする場合は true
      */
-    private void appendEquipmentLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
+    private void appendEquipmentLore(
+            @NotNull List<String> lore, @NotNull ItemEquipment equipment, boolean shopDisplay) {
         lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
 
         // スロット / ハンドタイプ
@@ -843,11 +878,14 @@ public class ItemStackFactory {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
+                String randomRange = formatRandomRangeLabel(stat, stat.getMin(), stat.getMax());
                 appendStatLore(lore,
                         statColor,
                         displayName,
-                        formatStatValueWithType(stat.getType(), statusType, stat.displayValue()),
-                        formatRandomRangeLabel(stat, stat.getMin(), stat.getMax()),
+                        shopDisplay && randomRange != null
+                                ? PlayerMsgResource.getMessage(PlayerMsgId.P_5932.getId())
+                                : formatStatValueWithType(stat.getType(), statusType, stat.displayValue()),
+                        randomRange,
                         null);
             }
         }

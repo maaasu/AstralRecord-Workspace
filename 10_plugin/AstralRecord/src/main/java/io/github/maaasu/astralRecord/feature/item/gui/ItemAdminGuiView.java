@@ -270,7 +270,7 @@ public final class ItemAdminGuiView {
     }
 
     private @NotNull ItemStack createEntryIcon(@NotNull ItemModel model) {
-        ItemStack itemStack = itemStackFactory.createShopDisplay(model, previewStackAmount(model));
+        ItemStack itemStack = itemStackFactory.createDisplay(model, previewStackAmount(model));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
             return itemStack;
