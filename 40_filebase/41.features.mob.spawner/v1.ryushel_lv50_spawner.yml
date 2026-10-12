@@ -2,12 +2,12 @@
 #   motif: "動物・植物 / 白い羊と白樺"
 #   progression: 20
 schemaVersion: 1
-id: ryushel_lv20_spawner
+id: ryushel_lv50_spawner
 type: MOB_SPAWNER
 radiusMeters: 8
 spawnMobs:
   - mobId: mob:ryushel
-    level: 20
+    level: 50
     weight: 100
 spawnTimes:
   - startTick: 0

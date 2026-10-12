@@ -5,9 +5,9 @@ schemaVersion: 1
 id: ryushel
 type: MOB
 category: BOSS
-name: "&f&l白樺の花影・リュシェル Lv.20"
+name: "&f&l白樺の花影・リュシェル Lv.50"
 title: "&a-- 花影に紛れる森の羊 --"
-level: 20
+level: 50
 entityType: SHEEP
 variant:
   age: ADULT
@@ -25,11 +25,11 @@ tags:
   - melee
 baseStats:
   - status: MAX_HEALTH
-    value: 40000
+    value: 100000
   - status: ATTACK
-    value: 1200
+    value: 3000
   - status: DEFENSE
-    value: 2200
+    value: 5500
   - status: ACCURACY
     value: 95
   - status: EVASION
