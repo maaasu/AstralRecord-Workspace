@@ -1,57 +1,506 @@
 # design:
 #   motif: "星律 / 基礎装備のランダム刻印"
 #   progression: 1
+# 攻防の汎用値は専用種別より控えめ。割合・基本能力・リソースは別の尺度で抽選する。
+# SCALARは同じ装備の同status加算値へ適用する乗数。加算元がない場合は効果を持たない。
+# アクセサリーはFLATを半減、SCALARは1を超える増加分を半減し、共通候補を重複させない。
+# 無属性の増加・耐性・耐性上限補正は、火・氷・雷の補正より小さくする。
 schemaVersion: 1
 id: enchant001
 targets:
   - equipmentType: WEAPON
     entries:
-      - effectId: weapon_attack_scalar_130
+      - effectId: weapon_attack_flat
+        status: ATTACK
+        type: FLAT
+        value: "2~12"
+        weight: 10
+      - effectId: weapon_attack_scalar
         status: ATTACK
         type: SCALAR
-        value: 1.30
-        weight: 30
-      - effectId: weapon_critical_rate_19
+        value: "1.02~1.2"
+        weight: 6
+      - effectId: weapon_melee_attack_flat
+        status: MELEE_ATTACK
+        type: FLAT
+        value: "3~24"
+        weight: 10
+      - effectId: weapon_melee_attack_scalar
+        status: MELEE_ATTACK
+        type: SCALAR
+        value: "1.03~1.35"
+        weight: 6
+      - effectId: weapon_ranged_attack_flat
+        status: RANGED_ATTACK
+        type: FLAT
+        value: "3~24"
+        weight: 10
+      - effectId: weapon_ranged_attack_scalar
+        status: RANGED_ATTACK
+        type: SCALAR
+        value: "1.03~1.35"
+        weight: 6
+      - effectId: weapon_magic_attack_flat
+        status: MAGIC_ATTACK
+        type: FLAT
+        value: "3~24"
+        weight: 10
+      - effectId: weapon_magic_attack_scalar
+        status: MAGIC_ATTACK
+        type: SCALAR
+        value: "1.03~1.35"
+        weight: 6
+      - effectId: weapon_strength_flat
+        status: STRENGTH
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: weapon_dexterity_flat
+        status: DEXTERITY
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: weapon_intelligence_flat
+        status: INTELLIGENCE
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: weapon_accuracy_flat
+        status: ACCURACY
+        type: FLAT
+        value: "0.5~6"
+        weight: 8
+      - effectId: weapon_critical_rate_flat
         status: CRITICAL_RATE
         type: FLAT
-        value: 19
-        weight: 1
-      - effectId: weapon_attack_flat_5
-        status: ATTACK
+        value: "0.5~8"
+        weight: 6
+      - effectId: weapon_critical_damage_flat
+        status: CRITICAL_DAMAGE
         type: FLAT
-        value: 5
+        value: "2~24"
+        weight: 6
+      - effectId: weapon_skill_damage_increase_flat
+        status: SKILL_DAMAGE_INCREASE
+        type: FLAT
+        value: "1~12"
+        weight: 6
+      - effectId: weapon_normal_attack_damage_increase_flat
+        status: NORMAL_ATTACK_DAMAGE_INCREASE
+        type: FLAT
+        value: "1~15"
+        weight: 6
+      - effectId: weapon_final_damage_multiplier_flat
+        status: FINAL_DAMAGE_MULTIPLIER
+        type: FLAT
+        value: "0.5~5"
+        weight: 3
+      - effectId: weapon_fire_damage_increase_flat
+        status: FIRE_DAMAGE_INCREASE
+        type: FLAT
+        value: "1~12"
         weight: 10
+      - effectId: weapon_fire_damage_increase_scalar
+        status: FIRE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.02~1.3"
+        weight: 6
+      - effectId: weapon_ice_damage_increase_flat
+        status: ICE_DAMAGE_INCREASE
+        type: FLAT
+        value: "1~12"
+        weight: 10
+      - effectId: weapon_ice_damage_increase_scalar
+        status: ICE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.02~1.3"
+        weight: 6
+      - effectId: weapon_lightning_damage_increase_flat
+        status: LIGHTNING_DAMAGE_INCREASE
+        type: FLAT
+        value: "1~12"
+        weight: 10
+      - effectId: weapon_lightning_damage_increase_scalar
+        status: LIGHTNING_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.02~1.3"
+        weight: 6
+      - effectId: weapon_none_damage_increase_flat
+        status: NONE_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~5"
+        weight: 10
+      - effectId: weapon_none_damage_increase_scalar
+        status: NONE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.01~1.12"
+        weight: 6
   - equipmentType: ARMOR
     entries:
-      - effectId: armor_defense_scalar_130
+      - effectId: armor_strength_flat
+        status: STRENGTH
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: armor_dexterity_flat
+        status: DEXTERITY
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: armor_intelligence_flat
+        status: INTELLIGENCE
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: armor_vitality_flat
+        status: VITALITY
+        type: FLAT
+        value: "0.5~4"
+        weight: 10
+      - effectId: armor_agility_flat
+        status: AGILITY
+        type: FLAT
+        value: "0.5~4"
+        weight: 10
+      - effectId: armor_defense_flat
+        status: DEFENSE
+        type: FLAT
+        value: "2~15"
+        weight: 10
+      - effectId: armor_defense_scalar
         status: DEFENSE
         type: SCALAR
-        value: 1.30
-        weight: 30
-      - effectId: armor_evasion_3
-        status: EVASION
+        value: "1.02~1.25"
+        weight: 6
+      - effectId: armor_melee_defense_flat
+        status: MELEE_DEFENSE
         type: FLAT
-        value: 3
-        weight: 5
-      - effectId: armor_max_health_20
+        value: "3~24"
+        weight: 10
+      - effectId: armor_melee_defense_scalar
+        status: MELEE_DEFENSE
+        type: SCALAR
+        value: "1.03~1.35"
+        weight: 6
+      - effectId: armor_magic_defense_flat
+        status: MAGIC_DEFENSE
+        type: FLAT
+        value: "3~24"
+        weight: 10
+      - effectId: armor_magic_defense_scalar
+        status: MAGIC_DEFENSE
+        type: SCALAR
+        value: "1.03~1.35"
+        weight: 6
+      - effectId: armor_fire_resistance_flat
+        status: FIRE_RESISTANCE
+        type: FLAT
+        value: "1~8"
+        weight: 10
+      - effectId: armor_ice_resistance_flat
+        status: ICE_RESISTANCE
+        type: FLAT
+        value: "1~8"
+        weight: 10
+      - effectId: armor_lightning_resistance_flat
+        status: LIGHTNING_RESISTANCE
+        type: FLAT
+        value: "1~8"
+        weight: 10
+      - effectId: armor_none_damage_increase_flat
+        status: NONE_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~5"
+        weight: 10
+      - effectId: armor_none_damage_increase_scalar
+        status: NONE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.01~1.12"
+        weight: 6
+      - effectId: armor_none_resistance_flat
+        status: NONE_RESISTANCE
+        type: FLAT
+        value: "0.5~3"
+        weight: 10
+      - effectId: armor_none_resistance_cap_flat
+        status: NONE_RESISTANCE_CAP
+        type: FLAT
+        value: "0.5~2"
+        weight: 3
+      - effectId: armor_max_health_flat
         status: MAX_HEALTH
         type: FLAT
-        value: 20
+        value: "10~80"
+        weight: 10
+      - effectId: armor_max_mana_flat
+        status: MAX_MANA
+        type: FLAT
+        value: "2~16"
+        weight: 10
+      - effectId: armor_max_energy_flat
+        status: MAX_ENERGY
+        type: FLAT
+        value: "2~16"
+        weight: 10
+      - effectId: armor_max_shield_flat
+        status: MAX_SHIELD
+        type: FLAT
+        value: "5~60"
+        weight: 10
+      - effectId: armor_hp_regen_flat
+        status: HP_REGEN
+        type: FLAT
+        value: "0.1~2"
+        weight: 10
+      - effectId: armor_mp_regen_flat
+        status: MP_REGEN
+        type: FLAT
+        value: "0.05~0.75"
+        weight: 10
+      - effectId: armor_energy_regen_flat
+        status: ENERGY_REGEN
+        type: FLAT
+        value: "0.05~0.75"
+        weight: 10
+      - effectId: armor_shield_recharge_reduction_flat
+        status: SHIELD_RECHARGE_REDUCTION
+        type: FLAT
+        value: "0.5~6"
         weight: 10
   - equipmentType: ACCESSORY
     entries:
-      - effectId: accessory_luck_scalar_120
-        status: LUCK
+      - effectId: accessory_attack_flat
+        status: ATTACK
+        type: FLAT
+        value: "1~6"
+        weight: 10
+      - effectId: accessory_attack_scalar
+        status: ATTACK
         type: SCALAR
-        value: 1.20
-        weight: 20
-      - effectId: accessory_critical_rate_5
+        value: "1.01~1.1"
+        weight: 6
+      - effectId: accessory_melee_attack_flat
+        status: MELEE_ATTACK
+        type: FLAT
+        value: "1.5~12"
+        weight: 10
+      - effectId: accessory_melee_attack_scalar
+        status: MELEE_ATTACK
+        type: SCALAR
+        value: "1.015~1.175"
+        weight: 6
+      - effectId: accessory_ranged_attack_flat
+        status: RANGED_ATTACK
+        type: FLAT
+        value: "1.5~12"
+        weight: 10
+      - effectId: accessory_ranged_attack_scalar
+        status: RANGED_ATTACK
+        type: SCALAR
+        value: "1.015~1.175"
+        weight: 6
+      - effectId: accessory_magic_attack_flat
+        status: MAGIC_ATTACK
+        type: FLAT
+        value: "1.5~12"
+        weight: 10
+      - effectId: accessory_magic_attack_scalar
+        status: MAGIC_ATTACK
+        type: SCALAR
+        value: "1.015~1.175"
+        weight: 6
+      - effectId: accessory_strength_flat
+        status: STRENGTH
+        type: FLAT
+        value: "0.5~3"
+        weight: 10
+      - effectId: accessory_dexterity_flat
+        status: DEXTERITY
+        type: FLAT
+        value: "0.5~3"
+        weight: 10
+      - effectId: accessory_intelligence_flat
+        status: INTELLIGENCE
+        type: FLAT
+        value: "0.5~3"
+        weight: 10
+      - effectId: accessory_accuracy_flat
+        status: ACCURACY
+        type: FLAT
+        value: "0.25~3"
+        weight: 8
+      - effectId: accessory_critical_rate_flat
         status: CRITICAL_RATE
         type: FLAT
-        value: 5
+        value: "0.25~4"
+        weight: 6
+      - effectId: accessory_critical_damage_flat
+        status: CRITICAL_DAMAGE
+        type: FLAT
+        value: "1~12"
+        weight: 6
+      - effectId: accessory_skill_damage_increase_flat
+        status: SKILL_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~6"
+        weight: 6
+      - effectId: accessory_normal_attack_damage_increase_flat
+        status: NORMAL_ATTACK_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~7.5"
+        weight: 6
+      - effectId: accessory_final_damage_multiplier_flat
+        status: FINAL_DAMAGE_MULTIPLIER
+        type: FLAT
+        value: "0.25~2.5"
+        weight: 3
+      - effectId: accessory_fire_damage_increase_flat
+        status: FIRE_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~6"
         weight: 10
-      - effectId: accessory_max_mana_15
+      - effectId: accessory_fire_damage_increase_scalar
+        status: FIRE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.01~1.15"
+        weight: 6
+      - effectId: accessory_ice_damage_increase_flat
+        status: ICE_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~6"
+        weight: 10
+      - effectId: accessory_ice_damage_increase_scalar
+        status: ICE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.01~1.15"
+        weight: 6
+      - effectId: accessory_lightning_damage_increase_flat
+        status: LIGHTNING_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.5~6"
+        weight: 10
+      - effectId: accessory_lightning_damage_increase_scalar
+        status: LIGHTNING_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.01~1.15"
+        weight: 6
+      - effectId: accessory_none_damage_increase_flat
+        status: NONE_DAMAGE_INCREASE
+        type: FLAT
+        value: "0.25~2.5"
+        weight: 10
+      - effectId: accessory_none_damage_increase_scalar
+        status: NONE_DAMAGE_INCREASE
+        type: SCALAR
+        value: "1.005~1.06"
+        weight: 6
+      - effectId: accessory_vitality_flat
+        status: VITALITY
+        type: FLAT
+        value: "0.25~2"
+        weight: 10
+      - effectId: accessory_agility_flat
+        status: AGILITY
+        type: FLAT
+        value: "0.25~2"
+        weight: 10
+      - effectId: accessory_defense_flat
+        status: DEFENSE
+        type: FLAT
+        value: "1~7.5"
+        weight: 10
+      - effectId: accessory_defense_scalar
+        status: DEFENSE
+        type: SCALAR
+        value: "1.01~1.125"
+        weight: 6
+      - effectId: accessory_melee_defense_flat
+        status: MELEE_DEFENSE
+        type: FLAT
+        value: "1.5~12"
+        weight: 10
+      - effectId: accessory_melee_defense_scalar
+        status: MELEE_DEFENSE
+        type: SCALAR
+        value: "1.015~1.175"
+        weight: 6
+      - effectId: accessory_magic_defense_flat
+        status: MAGIC_DEFENSE
+        type: FLAT
+        value: "1.5~12"
+        weight: 10
+      - effectId: accessory_magic_defense_scalar
+        status: MAGIC_DEFENSE
+        type: SCALAR
+        value: "1.015~1.175"
+        weight: 6
+      - effectId: accessory_fire_resistance_flat
+        status: FIRE_RESISTANCE
+        type: FLAT
+        value: "0.5~4"
+        weight: 10
+      - effectId: accessory_ice_resistance_flat
+        status: ICE_RESISTANCE
+        type: FLAT
+        value: "0.5~4"
+        weight: 10
+      - effectId: accessory_lightning_resistance_flat
+        status: LIGHTNING_RESISTANCE
+        type: FLAT
+        value: "0.5~4"
+        weight: 10
+      - effectId: accessory_none_resistance_flat
+        status: NONE_RESISTANCE
+        type: FLAT
+        value: "0.25~1.5"
+        weight: 10
+      - effectId: accessory_none_resistance_cap_flat
+        status: NONE_RESISTANCE_CAP
+        type: FLAT
+        value: "0.25~1"
+        weight: 3
+      - effectId: accessory_max_health_flat
+        status: MAX_HEALTH
+        type: FLAT
+        value: "5~40"
+        weight: 10
+      - effectId: accessory_max_mana_flat
         status: MAX_MANA
         type: FLAT
-        value: 15
+        value: "1~8"
+        weight: 10
+      - effectId: accessory_max_energy_flat
+        status: MAX_ENERGY
+        type: FLAT
+        value: "1~8"
+        weight: 10
+      - effectId: accessory_max_shield_flat
+        status: MAX_SHIELD
+        type: FLAT
+        value: "2.5~30"
+        weight: 10
+      - effectId: accessory_hp_regen_flat
+        status: HP_REGEN
+        type: FLAT
+        value: "0.05~1"
+        weight: 10
+      - effectId: accessory_mp_regen_flat
+        status: MP_REGEN
+        type: FLAT
+        value: "0.025~0.375"
+        weight: 10
+      - effectId: accessory_energy_regen_flat
+        status: ENERGY_REGEN
+        type: FLAT
+        value: "0.025~0.375"
+        weight: 10
+      - effectId: accessory_shield_recharge_reduction_flat
+        status: SHIELD_RECHARGE_REDUCTION
+        type: FLAT
+        value: "0.25~3"
+        weight: 10
+      - effectId: accessory_luck_flat
+        status: LUCK
+        type: FLAT
+        value: "0.5~5"
         weight: 10

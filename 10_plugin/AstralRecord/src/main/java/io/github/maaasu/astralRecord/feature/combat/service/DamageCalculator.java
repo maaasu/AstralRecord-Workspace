@@ -50,50 +50,6 @@ public final class DamageCalculator {
         );
     }
 
-    /**
-     * 通常攻撃の基礎ダメージへ、指定属性のダメージ増加分だけを個別加算する倍率を返します。
-     * 各属性の耐性・貫通は加算分へ適用し、基礎ダメージ自体は属性間で分配しません。
-     *
-     * @param attacker 攻撃者
-     * @param victim 被弾者
-     * @param attackType 攻撃種別
-     * @param source ダメージ発生元
-     * @param elements 加算対象の属性
-     * @return 1.0を基準とする加算済み倍率
-     */
-    public double additiveElementMultiplier(
-            @NotNull AstEntity attacker,
-            @NotNull AstEntity victim,
-            @NotNull AttackType attackType,
-            @NotNull DamageSource source,
-            @NotNull Set<DamageElement> elements
-    ) {
-        if (elements.isEmpty()) {
-            return 1.0D;
-        }
-        DamageContext context = new DamageContext(
-                attacker,
-                victim,
-                0.0D,
-                attackType,
-                List.of(DamageComponent.defaultComponent()),
-                DamageScaling.ATTACKER_STATUS,
-                source
-        );
-        double multiplier = 1.0D;
-        for (DamageElement element : elements) {
-            if (element == DamageElement.NONE) {
-                continue;
-            }
-            double increaseRatio = Math.max(
-                    0.0D,
-                    attacker.statValue(elementDamageIncrease(element)) / 100.0D
-            );
-            multiplier += increaseRatio * elementResistanceMultiplier(context, element);
-        }
-        return Math.max(0.0D, multiplier);
-    }
-
     DamageCalculator(@NotNull DoubleSupplier criticalRollSupplier) {
         this(() -> 0.0D, criticalRollSupplier);
     }
@@ -566,18 +522,6 @@ public final class DamageCalculator {
                 increaseRatio,
                 new DamageBreakdown.ElementResistance(element, resistance, effectiveResistance)
         );
-    }
-
-    /** 指定属性の耐性上限・貫通を反映した倍率を返します。無属性は貫通を持ちません。 */
-    private double elementResistanceMultiplier(
-            @NotNull DamageContext context,
-            @NotNull DamageElement element
-    ) {
-        double penetration = context.attacker() == null || element == DamageElement.NONE ? 0.0D
-                : context.attacker().statValue(elementPenetration(element));
-        double resistance = context.victim().statValue(elementResistance(element));
-        double effectiveResistance = Math.min(resistance, elementResistanceCap(context, element)) - penetration;
-        return Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
     }
 
     private @NotNull StatusType elementDamageIncrease(@NotNull DamageElement element) {
