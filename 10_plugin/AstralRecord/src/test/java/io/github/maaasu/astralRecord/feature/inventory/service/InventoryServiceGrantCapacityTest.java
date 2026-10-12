@@ -118,34 +118,36 @@ class InventoryServiceGrantCapacityTest {
      */
     @Test
     void reservedApiAdditionDoesNotOverflowOrConsumeAnotherReservation() {
-        Fixture fixture = fixture(3);
-        UUID accountId = fixture.state.getAccountId();
-        var egg = DesignTestFixtures.item("reserved_instance", ItemCategory.PET_EGG, 1);
-        var eggReservation = fixture.service.reserveBagSlotForPreparedInstance(fixture.player, egg).reservation();
-        var otherReservation = fixture.service.reserveBagSlotForPreparedInstance(fixture.player,
-            DesignTestFixtures.item("other_instance", ItemCategory.EQUIPMENT, 1)).reservation();
-        assertNotNull(eggReservation);
-        assertNotNull(otherReservation);
-        var stacked = DesignTestFixtures.item("concurrent_stack", ItemCategory.MATERIAL, 1);
-        assertEquals(1, fixture.service.addItemToNormalInventoryStateOnly(fixture.player, stacked, 2, "test"));
-        assertFalse(fixture.service.canAddItemToNormalInventory(fixture.player, stacked, 1));
-        UUID apiEntryId = UUID.randomUUID(), instanceId = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now();
-        var entry = new InventoryEntryModel(apiEntryId, fixture.bag.getInventoryId(), null,
-            ItemCategory.PET_EGG.getApiValue(), egg.getId(), InventoryInstanceType.PET_EGG.getCode(),
-            instanceId, 1, null, now, now, accountId, accountId, false);
-        var baseline = new InventoryPersistence.PersistedInventoryBaseline(accountId,
-            Map.of(fixture.bag.getInventoryId(), List.of()));
-        var snapshot = new InventoryOperationSnapshot(accountId, Set.of(apiEntryId), List.of(entry), null, List.of());
-        fixture.service.reconcileReservedPetGrant(accountId, baseline, snapshot, eggReservation);
-        var entries = fixture.state.snapshotEntries(fixture.bag.getInventoryId());
-        assertEquals(2, entries.size());
-        assertTrue(entries.stream().allMatch(value -> value.getSlotIndex() >= 1 && value.getSlotIndex() <= 3));
-        assertTrue(entries.stream().noneMatch(value -> value.getSlotIndex() == 2));
-        assertTrue(entries.stream().anyMatch(value -> instanceId.equals(value.getInstanceId())));
-        assertFalse(fixture.service.canAddItemToNormalInventory(fixture.player, stacked, 1));
-        fixture.service.releasePreparedInstanceReservation(otherReservation);
-        assertTrue(fixture.service.canAddItemToNormalInventory(fixture.player, stacked, 1));
+        for (ItemCategory category : List.of(ItemCategory.PET_EGG, ItemCategory.PET)) {
+            Fixture fixture = fixture(3);
+            UUID accountId = fixture.state.getAccountId();
+            var egg = DesignTestFixtures.item("reserved_instance", category, 1);
+            var eggReservation = fixture.service.reserveBagSlotForPreparedInstance(fixture.player, egg).reservation();
+            var otherReservation = fixture.service.reserveBagSlotForPreparedInstance(fixture.player,
+                DesignTestFixtures.item("other_instance", ItemCategory.EQUIPMENT, 1)).reservation();
+            assertNotNull(eggReservation);
+            assertNotNull(otherReservation);
+            var stacked = DesignTestFixtures.item("concurrent_stack", ItemCategory.MATERIAL, 1);
+            assertEquals(1, fixture.service.addItemToNormalInventoryStateOnly(fixture.player, stacked, 2, "test"));
+            assertFalse(fixture.service.canAddItemToNormalInventory(fixture.player, stacked, 1));
+            UUID apiEntryId = UUID.randomUUID(), instanceId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            var entry = new InventoryEntryModel(apiEntryId, fixture.bag.getInventoryId(), null,
+                category.getApiValue(), egg.getId(), (category == ItemCategory.PET ? InventoryInstanceType.PET : InventoryInstanceType.PET_EGG).getCode(),
+                instanceId, 1, null, now, now, accountId, accountId, false);
+            var baseline = new InventoryPersistence.PersistedInventoryBaseline(accountId,
+                Map.of(fixture.bag.getInventoryId(), List.of()));
+            var snapshot = new InventoryOperationSnapshot(accountId, Set.of(apiEntryId), List.of(entry), null, List.of());
+            fixture.service.reconcileReservedPetGrant(accountId, baseline, snapshot, eggReservation);
+            var entries = fixture.state.snapshotEntries(fixture.bag.getInventoryId());
+            assertEquals(2, entries.size());
+            assertTrue(entries.stream().allMatch(value -> value.getSlotIndex() >= 1 && value.getSlotIndex() <= 3));
+            assertTrue(entries.stream().noneMatch(value -> value.getSlotIndex() == 2));
+            assertTrue(entries.stream().anyMatch(value -> instanceId.equals(value.getInstanceId())));
+            assertFalse(fixture.service.canAddItemToNormalInventory(fixture.player, stacked, 1));
+            fixture.service.releasePreparedInstanceReservation(otherReservation);
+            assertTrue(fixture.service.canAddItemToNormalInventory(fixture.player, stacked, 1));
+        }
     }
 
     /**

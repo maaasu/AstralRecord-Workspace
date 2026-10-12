@@ -72,6 +72,26 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
             return Success(egg);
         });
 
+    /// <summary>管理者取得用の未配合個体を、通常の野生孵化の抽選と原子保存で生成します。呼出元Pluginが管理権限を検証します。</summary>
+    public Task<PetMutationResult> CreateWildPetAsync(Guid accountId, PetEggCreateRequest request)
+        => ExecuteAsync(accountId, "admin_grant", request, null, async (master, now, affected) =>
+        {
+            var species = FindSpecies(master, request.SpeciesId);
+            if (species is null) return Failure("species_not_found");
+            var bag = await FindBagAsync(accountId);
+            if (bag is null) return Failure("bag_not_found");
+            var pet = NewEgg(accountId, species, now, request.UpdatedBy);
+            pet.IsEgg = false;
+            pet.ItemId = species.PetItemId;
+            SaveDetails(pet, PetGenetics.HatchWild(master, species, Random.Shared), now, request.UpdatedBy);
+            db.PetInstances.Add(pet);
+            var entry = NewEntry(bag.InventoryId, pet, now, request.UpdatedBy);
+            db.InventoryEntries.Add(entry);
+            Touch(bag, now, request.UpdatedBy);
+            affected.Add(entry.InventoryEntryId);
+            return Success(pet);
+        });
+
     public Task<PetMutationResult> HatchAsync(Guid accountId, Guid instanceId, PetFacilityRequest request)
         => ExecuteAsync(accountId, "hatch", request, instanceId, async (master, now, affected) =>
         {
@@ -361,7 +381,7 @@ public class PetRepository(AstralRecordDbContext db, MasterDataDbContext masters
             var master = await GetMasterAsync();
             if (master is null) return Failure("master_not_found");
             // Keep the account -> inventory -> entry lock order used by player-state/trade.
-            var needsInventory = kind is "egg" or "hatch" or "breed" or "revive" or "equip";
+            var needsInventory = kind is "egg" or "admin_grant" or "hatch" or "breed" or "revive" or "equip";
             InventoryEntity[] inventories = !needsInventory ? [] : db.Database.IsSqlServer()
                 ? await db.Inventories.FromSqlInterpolated($"SELECT * FROM [dbo].[inventory] WITH (UPDLOCK,HOLDLOCK) WHERE [account_id]={accountId} AND [is_deleted]=0 ORDER BY [inventory_id]").ToArrayAsync()
                 : await db.Inventories.Where(i => i.AccountId == accountId && !i.IsDeleted).ToArrayAsync();

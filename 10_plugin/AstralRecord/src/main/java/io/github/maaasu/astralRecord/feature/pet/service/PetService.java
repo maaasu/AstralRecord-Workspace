@@ -441,7 +441,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         }
     }
 
-    /** 卵付与の停止理由。通信結果不明は既存操作IDで復旧を継続します。 */
+    /** 卵・孵化済みペット付与の停止理由。通信結果不明は既存操作IDで復旧を継続します。 */
     public enum EggGrantFailure { NONE, FULL, FAILED, PENDING }
     /** API確定済みの付与数と停止理由です。部分付与も確定数だけを通知します。 */
     public record EggGrantResult(int grantedAmount, EggGrantFailure failure) { }
@@ -457,20 +457,39 @@ public final class PetService implements PetRuntimeService.StateBridge {
      */
     public CompletableFuture<EggGrantResult> grantEggItems(AstPlayer owner,
         ItemModel model, int amount) {
+        return grantPetItems(owner, model, amount, true);
+    }
+
+    /**
+     * 管理権限を検証済みの取得経路から、野生卵を通常孵化した直後と同じ個体を付与します。
+     * メインスレッド専用です。孵化素材は消費せず、BAG予約・非同期保存・結果不明時の復旧を維持します。
+     * @param owner 追加先のロード済みプレイヤー。取得実行者とは異なる場合があります
+     * @param model 孵化済みペットのアイテム定義
+     * @param amount 要求数。1未満は1へ補正
+     * @return API確定数と停止理由。結果通知はメインスレッドへ戻します
+     */
+    public CompletableFuture<EggGrantResult> grantAdminPetItems(AstPlayer owner,
+        ItemModel model, int amount) {
+        return grantPetItems(owner, model, amount, false);
+    }
+
+    /** 卵・孵化済みアイテムの種類を対応するマスター参照から一意に解決します。 */
+    private CompletableFuture<EggGrantResult> grantPetItems(AstPlayer owner,
+        ItemModel model, int amount, boolean egg) {
         List<String> species = master.speciesIds().stream()
-            .filter(id -> PetMaster.itemId(text(master.species(id), "eggItemId", "")).equalsIgnoreCase(model.getId()))
+            .filter(id -> PetMaster.itemId(text(master.species(id), egg ? "eggItemId" : "petItemId", "")).equalsIgnoreCase(model.getId()))
             .toList();
         if (ItemCategory.fromApiValue(model.getCategory())
-                != ItemCategory.PET_EGG || species.size() != 1)
+                != (egg ? ItemCategory.PET_EGG : ItemCategory.PET) || species.size() != 1)
             return CompletableFuture.completedFuture(new EggGrantResult(0, EggGrantFailure.FAILED));
         CompletableFuture<EggGrantResult> completion = new CompletableFuture<>();
-        grantNextEgg(owner, model, species.getFirst(), Math.max(1, amount), 0, completion);
+        grantNextPetItem(owner, model, species.getFirst(), egg, Math.max(1, amount), 0, completion);
         return completion;
     }
 
     /** 各API確定後にメインスレッドで次の1個を開始し、未確定操作の重複生成を防ぎます。 */
-    private void grantNextEgg(AstPlayer owner, ItemModel model,
-        String speciesId, int amount, int granted, CompletableFuture<EggGrantResult> completion) {
+    private void grantNextPetItem(AstPlayer owner, ItemModel model,
+        String speciesId, boolean egg, int amount, int granted, CompletableFuture<EggGrantResult> completion) {
         if (granted == amount) {
             completion.complete(new EggGrantResult(granted, EggGrantFailure.NONE));
             return;
@@ -496,7 +515,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
         body.addProperty("speciesId", speciesId);
         CompletableFuture<JsonObject> operation;
         try {
-            operation = mutate(owner, UUID.randomUUID(), "/eggs", "POST", body, Map.of(), reservation);
+            operation = mutate(owner, UUID.randomUUID(), egg ? "/eggs" : "/admin-grants", "POST", body, Map.of(), reservation);
         } catch (RuntimeException failure) {
             inventory.releasePreparedInstanceReservation(reservation);
             log(failure);
@@ -517,7 +536,7 @@ public final class PetService implements PetRuntimeService.StateBridge {
                 if (owner.getBukkit().isOnline()
                     && io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(owner.getBukkit()) == owner)
                     inventory.refreshNormalInventoryGrantUi(owner);
-                grantNextEgg(owner, model, speciesId, amount, granted + 1, completion);
+                grantNextPetItem(owner, model, speciesId, egg, amount, granted + 1, completion);
             });
         });
     }
@@ -614,12 +633,12 @@ public final class PetService implements PetRuntimeService.StateBridge {
         return mutate(owner,UUID.randomUUID(),"/equipped","PUT",body,Map.of(),null,prepared.plan());
     }
 
-    /** 卵付与のBAG予約を未確定操作へ接続し、同じ操作IDの復旧まで保持します。メインスレッド専用です。 */
+    /** 卵・孵化済みペット付与のBAG予約を未確定操作へ接続し、同じ操作IDの復旧まで保持します。メインスレッド専用です。 */
     private CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,
         JsonObject body,Map<String,Long> payment,InventoryService.PreparedInstanceSlotReservation reservation) {
         return mutate(owner,operationId,suffix,method,body,payment,reservation,null);
     }
-    /** 卵生成または既存PETの装備移動予約を保持したまま原子APIへ渡します。 */
+    /** ペット個体生成または既存PETの装備移動予約を保持したまま原子APIへ渡します。 */
     private CompletableFuture<JsonObject> mutate(AstPlayer owner,UUID operationId,String suffix,String method,
         JsonObject body,Map<String,Long> payment,InventoryService.PreparedInstanceSlotReservation reservation,
         InventoryService.PetEquipmentPlan equipmentPlan) {

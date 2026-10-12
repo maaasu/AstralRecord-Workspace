@@ -1760,17 +1760,17 @@ public class InventoryService {
     }
 
     /**
-     * 遅延確定する装備または卵個体のために、BAG の空き slot を予約します。
+     * 遅延確定する装備・卵・孵化済みペット個体のために、BAG の空き slot を予約します。
      * <p>
      * 予約済み slot は通常のアイテム付与・移動処理からも使用済みとして扱われます。
      * 呼び出し元はローカル個体生成と player-state snapshot の準備に成功した場合
      * {@link #completePreparedInstanceReservation(AstPlayer, ItemModel, InventoryInstanceType, UUID, PreparedInstanceSlotReservation)}、
      * 失敗または取消時は {@link #releasePreparedInstanceReservation(PreparedInstanceSlotReservation)} を必ず呼び出してください。
-     * 卵のAPI生成では {@link #reconcileReservedPetGrant(UUID, InventoryPersistence.PersistedInventoryBaseline,
+     * 卵・孵化済みペットのAPI生成では {@link #reconcileReservedPetGrant(UUID, InventoryPersistence.PersistedInventoryBaseline,
      * InventoryOperationSnapshot, PreparedInstanceSlotReservation)} が取り込みと予約解除を同じstate lock内で確定します。
      *
      * @param astPlayer 予約対象プレイヤー
-     * @param model     装備または卵のアイテム定義
+     * @param model     装備・卵・孵化済みペットのアイテム定義
      * @return 予約結果。空きがない場合は reservation が {@code null}、state 未登録または対象外カテゴリでは空き枠数が {@code -1}
      */
     public @NotNull PreparedInstanceSlotReservationResult reserveBagSlotForPreparedInstance(
@@ -1778,7 +1778,7 @@ public class InventoryService {
         @NotNull ItemModel model
     ) {
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category != ItemCategory.EQUIPMENT && category != ItemCategory.PET_EGG) {
+        if (category != ItemCategory.EQUIPMENT && category != ItemCategory.PET_EGG && category != ItemCategory.PET) {
             return new PreparedInstanceSlotReservationResult(null, -1);
         }
 
@@ -3631,12 +3631,12 @@ public class InventoryService {
     }
 
     /**
-     * API生成済み卵を三者マージし、予約枠の利用と解除をstate lock内で確定します。
+     * API生成済み卵・孵化済みペットを三者マージし、予約枠の利用と解除をstate lock内で確定します。
      * 通信結果不明または取り込み失敗では予約を保持し、同じ操作IDの復旧に使います。
      * @param accountId 追加先アカウント
      * @param baseline 操作前の保存済み状態
      * @param snapshot APIの所有者限定entry応答
-     * @param reservation 卵生成前に確保したBAG枠
+     * @param reservation 個体生成前に確保したBAG枠
      */
     public void reconcileReservedPetGrant(UUID accountId, InventoryPersistence.PersistedInventoryBaseline baseline,
         InventoryOperationSnapshot snapshot, PreparedInstanceSlotReservation reservation) {
@@ -4299,7 +4299,7 @@ public class InventoryService {
             new ExternalReturnNormalization(true, true), snapshot);
     }
 
-    /** API生成で今回追加した卵だけを予約slotへ配置します。既存entryと他予約のslotを変えません。 */
+    /** API生成で今回追加した卵または孵化済みペットだけを予約slotへ配置します。既存entryと他予約のslotを変えません。 */
     private @NotNull List<InventoryEntryModel> placeReservedApiEntry(
         List<InventoryEntryModel> entries, Set<UUID> addedEntryIds,
         PendingBagSlotReservation pending, PlayerInventoryState state
@@ -4307,13 +4307,16 @@ public class InventoryService {
         List<InventoryEntryModel> added = entries.stream()
             .filter(entry -> addedEntryIds.contains(entry.getInventoryEntryId())).toList();
         if (added.size() != 1 || added.getFirst().getInstanceId() == null
-            || !InventoryInstanceType.PET_EGG.getCode().equalsIgnoreCase(added.getFirst().getInstanceType())
+            || !(InventoryInstanceType.PET_EGG.getCode().equalsIgnoreCase(added.getFirst().getInstanceType())
+                && ItemCategory.PET_EGG.getApiValue().equalsIgnoreCase(added.getFirst().getItemCategory())
+                || InventoryInstanceType.PET.getCode().equalsIgnoreCase(added.getFirst().getInstanceType())
+                && ItemCategory.PET.getApiValue().equalsIgnoreCase(added.getFirst().getItemCategory()))
             || added.getFirst().getQuantity() != 1)
-            throw new IllegalStateException("Reserved egg response must contain one instance entry");
+            throw new IllegalStateException("Reserved pet response must contain one instance entry");
         UUID addedId = added.getFirst().getInventoryEntryId();
         if (entries.stream().anyMatch(entry -> !entry.getInventoryEntryId().equals(addedId)
             && Objects.equals(entry.getSlotIndex(), pending.slotIndex())))
-            throw new IllegalStateException("Reserved egg slot is occupied");
+            throw new IllegalStateException("Reserved pet slot is occupied");
         return entries.stream().map(entry -> entry.getInventoryEntryId().equals(addedId)
             ? withSlot(entry, pending.slotIndex(), state.getAccountId()) : entry).toList();
     }

@@ -17,6 +17,67 @@ namespace AstralRecordApi.Tests.Repositories;
 public class PetRepositoryTests
 {
     [Fact]
+    public async Task AdminGrant_CreatesWildHatchStateWithoutPaymentAndReplaysWithoutRerolling()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var request = new PetEggCreateRequest
+            { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, SpeciesId = "wolf" };
+        var result = await fixture.Repository.CreateWildPetAsync(fixture.Account, request);
+        Assert.True(result.Succeeded);
+        var pet = result.Response!.Instance!;
+        Assert.False(pet.IsEgg);
+        Assert.Equal("WILD", pet.Origin);
+        Assert.True(pet.TradeAllowed);
+        Assert.Equal(fixture.Master.Species[0].PetItemId, pet.ItemId);
+        var details = pet.Details!;
+        Assert.Equal(1, details.Level);
+        Assert.Equal(0, details.Experience);
+        Assert.Equal(1, details.HealthRatio);
+        Assert.False(details.IsDead);
+        Assert.Null(details.BreedAvailableAt);
+        Assert.Empty(details.Cooldowns);
+        Assert.Equal(fixture.Master.Species[0].Stats.Keys.Order(), details.Stats.Keys.Order());
+        Assert.All(details.Stats.Values, stat => Assert.InRange(stat.Tier, 0, fixture.Master.Rules.WildMaxTier));
+        Assert.Equal(0, Assert.Single(details.Skills).Tier);
+        Assert.NotNull(details.Appearance?.CollarColor);
+        var entry = Assert.Single(result.Response.InventorySnapshot!.Entries);
+        Assert.Equal("PET", entry.InstanceType);
+        Assert.Equal("pet", entry.ItemCategory);
+        Assert.Equal(pet.InstanceId, entry.InstanceId);
+        Assert.Equal(1, entry.Quantity);
+        Assert.Equal(400, (await fixture.Player.InventoryEntries.AsNoTracking()
+            .SingleAsync(e => e.InventoryEntryId == fixture.Material)).Quantity);
+        var stored = await fixture.Player.PetInstances.AsNoTracking().SingleAsync();
+        Assert.Null(stored.MaleParentId);
+        Assert.Null(stored.FemaleParentId);
+
+        var replay = await fixture.Repository.CreateWildPetAsync(fixture.Account, request);
+        Assert.True(replay.Succeeded);
+        Assert.Equal(pet.InstanceId, replay.Response!.Instance!.InstanceId);
+        Assert.Equal(JsonSerializer.Serialize(details), JsonSerializer.Serialize(replay.Response.Instance.Details));
+        Assert.Equal(1, await fixture.Player.PetInstances.CountAsync());
+        Assert.Equal("operation_conflict", (await fixture.Repository.CreateEggAsync(fixture.Account, request)).Failure);
+
+        var second = await fixture.Repository.CreateWildPetAsync(fixture.Account,
+            new PetEggCreateRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, SpeciesId = "wolf" });
+        Assert.True(second.Succeeded);
+        Assert.NotEqual(pet.InstanceId, second.Response!.Instance!.InstanceId);
+    }
+
+    [Fact]
+    public async Task AdminGrant_RejectsEditingAndUnknownSpeciesWithoutCreatingInstances()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        Assert.Equal("species_not_found", (await fixture.Repository.CreateWildPetAsync(fixture.Account,
+            new PetEggCreateRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, SpeciesId = "missing" })).Failure);
+        await fixture.StartEditWithRuntimeAsync();
+        Assert.Equal("player_editing", (await fixture.Repository.CreateWildPetAsync(fixture.Account,
+            new PetEggCreateRequest { OperationId = Guid.NewGuid(), UpdatedBy = fixture.Account, SpeciesId = "wolf" })).Failure);
+        Assert.Empty(await fixture.Player.PetInstances.ToArrayAsync());
+        Assert.Empty(await fixture.Player.PetOperations.ToArrayAsync());
+    }
+
+    [Fact]
     public async Task ProgressDuringEdit_RequiresCapturedRuntimeProofAndPreservesReplay()
     {
         await using var fixture = await Fixture.CreateAsync();

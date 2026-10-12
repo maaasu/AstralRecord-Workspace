@@ -25,6 +25,9 @@ public class PetController(IPetRepository repository) : ControllerBase
     /// <summary>討伐報酬として野生由来の卵を作成してBAGへ入れます。</summary>
     [HttpPost("accounts/{accountId:guid}/eggs")]
     public async Task<IActionResult> Egg(Guid accountId, PetEggCreateRequest request) => Result(await repository.CreateEggAsync(accountId, request));
+    /// <summary>Pluginで管理権限を検証したアイテム取得から、野生卵の通常孵化と同じ初期個体を素材消費なしでBAGへ追加します。</summary>
+    [HttpPost("accounts/{accountId:guid}/admin-grants")]
+    public async Task<IActionResult> AdminGrant(Guid accountId, PetEggCreateRequest request) => Result(await repository.CreateWildPetAsync(accountId, request));
     /// <summary>施設で素材を原子的に消費して孵化し、初めて個体詳細を公開します。</summary>
     [HttpPost("accounts/{accountId:guid}/{instanceId:guid}/hatch")]
     public async Task<IActionResult> Hatch(Guid accountId, Guid instanceId, PetFacilityRequest request) => Result(await repository.HatchAsync(accountId, instanceId, request));

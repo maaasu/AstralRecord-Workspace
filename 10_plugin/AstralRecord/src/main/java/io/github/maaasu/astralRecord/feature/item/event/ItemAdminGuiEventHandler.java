@@ -123,6 +123,12 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         optionsByPlayer.remove(playerId);
     }
 
+    /**
+     * 管理者の一覧操作を処理し、ペット取得では野生卵の通常孵化と同じ初期個体を生成します。
+     * @param event インベントリクリック
+     * @param player 取得実行者。取得時に管理権限を再検証します
+     * @param topInventory 管理者アイテム一覧
+     */
     private void handleClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -221,18 +227,16 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         }
 
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category == ItemCategory.PET) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_9604);
-            GuiSound.DENY.play(player);
-            return;
-        }
-        if (category == ItemCategory.PET_EGG) {
+        if (category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
             var pets = AstralRecord.getInstance().getPetService();
             if (pets == null) {
                 PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_9605);
                 return;
             }
-            pets.grantEggItems(astPlayer, model, requestedAmount).thenAccept(result -> {
+            var grant = category == ItemCategory.PET
+                ? pets.grantAdminPetItems(astPlayer, model, requestedAmount)
+                : pets.grantEggItems(astPlayer, model, requestedAmount);
+            grant.thenAccept(result -> {
                 if (!AstralRecord.getInstance().isEnabled() || !player.isOnline() || AstPlayerCache.get(player) != astPlayer) return;
                 if (result.grantedAmount() > 0) GuiSound.SELECT.play(player);
                 if (result.failure() != EggGrantFailure.NONE) {

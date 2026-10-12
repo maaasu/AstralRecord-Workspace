@@ -44,7 +44,7 @@ public class ItemCommand extends AstCommand {
      * アイテム管理コマンドを実行します。
      *
      * @param sender コマンド送信者
-     * @param args コマンド引数。対象プレイヤーは get の末尾へ指定できます
+     * @param args コマンド引数。対象プレイヤーは get の末尾へ指定できます。ペット取得は野生卵の孵化直後の個体を生成します
      */
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -146,17 +146,16 @@ public class ItemCommand extends AstCommand {
         }
 
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category == ItemCategory.PET) {
-            PlayerMessageService.getInstance().send(sender, PlayerMsgId.P_9604);
-            return;
-        }
-        if (category == ItemCategory.PET_EGG) {
+        if (category == ItemCategory.PET || category == ItemCategory.PET_EGG) {
             var pets = plugin.getPetService();
             if (pets == null) {
                 PlayerMessageService.getInstance().send(sender, PlayerMsgId.P_9605);
                 return;
             }
-            pets.grantEggItems(target, model, amount).thenAccept(result -> {
+            var grant = category == ItemCategory.PET
+                ? pets.grantAdminPetItems(target, model, amount)
+                : pets.grantEggItems(target, model, amount);
+            grant.thenAccept(result -> {
                 if (!plugin.isEnabled()) return;
                 if (result.grantedAmount() > 0) sendGrantSuccess(sender, target, model, result.grantedAmount());
                 if (result.failure() != EggGrantFailure.NONE)
