@@ -66,7 +66,7 @@ class SkillTreeVisualizerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
      * 検証契約: status絞り込みは補正の正負を問わず一致nodeを紫、複数条件の全一致nodeをマゼンタとして優先する。
      */
     @Test
@@ -109,7 +109,7 @@ class SkillTreeVisualizerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
      * 検証契約: 強調ビームはXZ距離5mで等倍、1mでscale 0とし、その間を線形に縮小する。
      */
     @Test
@@ -126,7 +126,7 @@ class SkillTreeVisualizerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・簡易表示
+     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
      * 検証契約: 微小移動は描画を予約せず、前回描画地点からの累積1block移動で予約する。
      */
     @Test

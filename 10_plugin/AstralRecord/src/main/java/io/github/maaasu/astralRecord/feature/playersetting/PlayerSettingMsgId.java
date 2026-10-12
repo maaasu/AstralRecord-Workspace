@@ -10,7 +10,8 @@ public enum PlayerSettingMsgId {
     P_5323(5323),
     P_5324(5324),
     P_5325(5325),
-    P_5326(5326);
+    P_5326(5326),
+    P_5327(5327);
 
     private final String id;
 

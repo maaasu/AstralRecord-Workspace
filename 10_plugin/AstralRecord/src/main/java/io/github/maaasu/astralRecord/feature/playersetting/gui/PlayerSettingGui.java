@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.playersetting.gui;
 
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
@@ -156,7 +158,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.BOOK,
             PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, draftValues),
-            List.of(Component.text("ノード名と区切り見出しを省略して表示します。", NamedTextColor.GRAY))
+            List.of(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5327.getId()))
         ));
         inventory.setItem(NIGHT_VISION_SLOT, createBooleanItem(
             Material.SPYGLASS,

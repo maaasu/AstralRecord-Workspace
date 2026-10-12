@@ -531,6 +531,8 @@ public enum PlayerMsgId {
     P_5324(5324),
     P_5325(5325),
     P_5326(5326),
+    /** スキルツリーノード軽量表示の設定説明。 */
+    P_5327(5327),
     // endregion
 
     // region /feature/account/command 5330-5349

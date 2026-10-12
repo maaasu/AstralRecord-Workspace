@@ -642,11 +642,23 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         service.markViewerContextDirty(event.getPlayer());
     }
 
+    /**
+     * 実座標が変化した移動だけを表示担当へ通知し、軽量表示のラベル更新をまとめます。
+     *
+     * @param event キャンセルされていない移動イベント
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
         // Web 操作をclaimした後に場所が変わった場合は、保存lane内の最終検証で拒否する。
         service.markRuntimePlayerContextChanged(event.getPlayer());
         if (!shouldRefreshSkillTreeVisuals(event.getPlayer()) || event.getTo() == null) {
+            return;
+        }
+        // 視線の回転だけでは、軽量表示の近距離ラベル更新を予約しません。
+        if (event.getFrom().getWorld() == event.getTo().getWorld()
+                && event.getFrom().getX() == event.getTo().getX()
+                && event.getFrom().getY() == event.getTo().getY()
+                && event.getFrom().getZ() == event.getTo().getZ()) {
             return;
         }
         service.markViewerMoved(event.getPlayer(), event.getTo());

@@ -177,10 +177,10 @@ public final class PlayerSettingService {
     public boolean isActionRingHoldSelectEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, false); }
 
     /**
-     * スキルツリーのノードラベルを簡易表示するかを、ロード済み設定だけから返します。
+     * スキルツリーのノードを軽量表示するかを、ロード済み設定だけから返します。
      *
      * @param userId 設定を所有するユーザー UUID
-     * @return 簡易表示が有効なら {@code true}。cache 未読込または型不正時は {@code false}
+     * @return 軽量表示が有効なら {@code true}。cache 未読込または型不正時は {@code false}
      */
     public boolean isSkillTreeCompactDisplayEnabled(@NotNull UUID userId) {
         return cachedBooleanSetting(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, false);
