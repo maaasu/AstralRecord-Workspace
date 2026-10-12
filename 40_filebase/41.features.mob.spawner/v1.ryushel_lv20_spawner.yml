@@ -13,7 +13,7 @@ spawnTimes:
   - startTick: 0
     endTick: 23999
 itemMaterial: SPAWNER
-spawnIntervalTicks: 600
+spawnIntervalTicks: 10
 spawnChancePercent: 50.0
 spawnLimit:
   maxAlivePerSpawner: 1
