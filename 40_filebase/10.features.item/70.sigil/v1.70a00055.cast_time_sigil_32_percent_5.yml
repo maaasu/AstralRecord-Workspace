@@ -1,0 +1,23 @@
+# design:
+#   motif: "錬金術 / 高速詠唱"
+#   progression: 1
+schemaVersion: 1
+id: 70a00055
+category: sigil
+name: "&b詠唱短縮のシジルⅫ"
+icon: LINGERING_POTION
+iconGlint: true
+appearance:
+  color: "#B5A3D6"
+rarity: RARE
+maxStack: 64
+saleValue: 163
+lore:
+  - "&7合成したスキルだけの詠唱時間短縮を32.5%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cast_time_reduction
+  modifiers:
+    - status: CAST_TIME_REDUCTION
+      value: 32.5

@@ -4618,6 +4618,16 @@ public final class DungeonService {
     }
 
     /**
+     * 現在公開中の検証済みダンジョン定義を取得します。filebase の再読込は行いません。
+     * 受付 World とレベル解決済み Mob は同じ読込スナップショットの組として返します。
+     * @return ダンジョン ID 順の変更不能な定義一覧
+     */
+    public @NotNull List<LoadedDefinition> getLoadedDefinitions() {
+        return loadedDefinitions.values().stream()
+                .sorted(Comparator.comparing(loaded -> loaded.definition().id())).toList();
+    }
+
+    /**
      * 個別 World マスタを要求せず、安全な共通設定から一時 DUNGEON World 定義を作成します。
      *
      * @param definition ダンジョン定義

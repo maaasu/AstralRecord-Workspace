@@ -45,10 +45,16 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
         }
         api = new LobbyApiClient(getConfig());
         selector = new ServerSelector(this);
+        PlayerMessageService playerMessages = new PlayerMessageService();
         getServer().getMessenger().registerOutgoingPluginChannel(this, BackendProtocol.CHANNEL);
         getServer().getMessenger().registerIncomingPluginChannel(this, BackendProtocol.CHANNEL,
             (channel, player, message) -> {
                 if (BackendProtocol.isOpenMenu(message)) selector.open(player);
+                BackendProtocol.ChannelConnection notification = BackendProtocol.decodeChannelConnection(message);
+                if (notification != null) {
+                    playerMessages.send(player, PlayerMsgId.P_7156,
+                        notification.playerName(), notification.channelName());
+                }
             });
         getServer().getPluginManager().registerEvents(new LobbyListener(this, selector), this);
         getServer().getWorlds().forEach(world -> world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true));

@@ -19,6 +19,7 @@ final class BackendProtocol {
     static final String DIRECT_MESSAGE = "direct_message";
     static final String OPEN_MENU = "open_menu";
     static final String PREPARE_CONNECT = "prepare_connect";
+    static final String CHANNEL_CONNECTION = "channel_connection";
 
     private BackendProtocol() {
     }
@@ -43,9 +44,10 @@ final class BackendProtocol {
                     boolean classLevelMax = input.available() > 0 && input.readBoolean();
                     boolean accountNameOnly = input.available() > 0 && input.readBoolean();
                     VipTier vipTier = input.available() > 0 ? VipTier.parse(input.readUTF()) : VipTier.NONE;
+                    Integer playerLevel = input.available() > 0 ? input.readInt() : null;
                     yield new Metadata(
                         playerId, mcid, channel, displayName, level, className, afk, permission,
-                        classLevelMax, accountNameOnly, vipTier);
+                        classLevelMax, accountNameOnly, vipTier, playerLevel);
                 }
                 case CHAT -> {
                     UUID messageId = UUID.fromString(input.readUTF());
@@ -120,6 +122,26 @@ final class BackendProtocol {
         return outgoing(PREPARE_CONNECT, targetServer);
     }
 
+    /**
+     * backendの受信プレイヤーへ表示するチャンネル接続通知を生成します。
+     * @param playerName 接続したプレイヤーのMinecraft名
+     * @param channelName 管理設定のチャンネル表示名
+     * @return 通知payload
+     */
+    static byte[] channelConnection(String playerName, String channelName) {
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (DataOutputStream output = new DataOutputStream(bytes)) {
+                output.writeUTF(CHANNEL_CONNECTION);
+                output.writeUTF(playerName);
+                output.writeUTF(channelName);
+            }
+            return bytes.toByteArray();
+        } catch (IOException impossible) {
+            throw new IllegalStateException(impossible);
+        }
+    }
+
     private static byte[] outgoing(String type, String value) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -150,7 +172,8 @@ final class BackendProtocol {
         int permission,
         boolean classLevelMax,
         boolean accountNameOnly,
-        VipTier vipTier
+        VipTier vipTier,
+        Integer playerLevel
     ) implements Incoming {
     }
 

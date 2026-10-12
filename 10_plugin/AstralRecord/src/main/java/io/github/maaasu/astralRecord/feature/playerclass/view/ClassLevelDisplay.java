@@ -56,7 +56,19 @@ public final class ClassLevelDisplay {
      * @return 通常時は黄色い数値、最大時は赤太字の {@code max} を持つ {@code Lv.} 表示
      */
     public static @NotNull String legacy(int level, boolean maximum) {
-        return ColorCodeUtil.GRAY + "Lv." + (maximum
+        return legacy(level, maximum, "Lv.");
+    }
+
+    /**
+     * 指定した接頭辞でクラスレベルのlegacy表示を生成します。
+     *
+     * @param level 現在クラスレベル
+     * @param maximum 最大レベルへ到達済みか
+     * @param prefix 表示接頭辞。TabではCLv.、通常表示ではLv.
+     * @return 通常時は黄色い数値、最大時は赤太字のmaxを持つ表示
+     */
+    public static @NotNull String legacy(int level, boolean maximum, @NotNull String prefix) {
+        return ColorCodeUtil.GRAY + prefix + (maximum
             ? ColorCodeUtil.RED + ColorCodeUtil.BOLD + "max"
             : ColorCodeUtil.YELLOW + Integer.toString(Math.max(1, level)));
     }

@@ -23,38 +23,38 @@ public final class SharedParticleDefinitions {
 
     /** 封護の写本守へ通じる水色の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_WARD =
-        new SharedParticleDefinition("selenea_gate_ward", Particle.DUST, 4, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_ward", Particle.DUST, 2, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(75, 220, 255), 1.0F));
     /** 月癒の写本守へ通じる薄紫の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_LUNAR =
-        new SharedParticleDefinition("selenea_gate_lunar", Particle.DUST, 4, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_lunar", Particle.DUST, 2, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(190, 140, 255), 1.0F));
     /** 烈怒の写本守へ通じる赤い転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_WRATH =
-        new SharedParticleDefinition("selenea_gate_wrath", Particle.DUST, 4, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_wrath", Particle.DUST, 2, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(255, 75, 90), 1.0F));
     /** 慈癒の写本守へ通じる緑の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_MERCY =
-        new SharedParticleDefinition("selenea_gate_mercy", Particle.DUST, 4, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_gate_mercy", Particle.DUST, 2, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(95, 240, 140), 1.0F));
     /** 放物線を進む支援回復玉です。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_ORB =
-        new SharedParticleDefinition("selenea_support_orb", Particle.END_ROD, 4, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_support_orb", Particle.END_ROD, 2, 0, 0, 0, 0);
     /** 回復玉が到着した対象の回復演出です。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_HEAL =
         new SharedParticleDefinition("selenea_support_heal", Particle.HAPPY_VILLAGER, 12, 0.4, 0.5, 0.4, 0);
     /** 三分後の支援モブ爆発です。地形は変更しません。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_DETONATION =
-        new SharedParticleDefinition("selenea_support_detonation", Particle.EXPLOSION, 4, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_support_detonation", Particle.EXPLOSION, 2, 0, 0, 0, 0);
     /** 広範囲支援爆発の危険面を示す怒りの粒子です。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_WARNING =
-        new SharedParticleDefinition("selenea_support_warning", Particle.ANGRY_VILLAGER, 1, 0, 0, 0, 0);
-    /** 球形60mの爆発面を高密度に示す光点です。 */
+        new SharedParticleDefinition("selenea_support_warning", Particle.ANGRY_VILLAGER, 2, 0, 0, 0, 0);
+    /** 球形60mの爆発を三つの大円で示す光点です。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_DETONATION_SURFACE =
-        new SharedParticleDefinition("selenea_support_detonation_surface", Particle.END_ROD, 1, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_support_detonation_surface", Particle.END_ROD, 2, 0, 0, 0, 0);
     /** 本体と小型分身が放つ三連魔法弾の軌跡です。 */
     public static final SharedParticleDefinition SELENEA_BOLT =
-        new SharedParticleDefinition("selenea_bolt", Particle.DUST, 4, 0.025D, 0.025D, 0.025D, 0,
+        new SharedParticleDefinition("selenea_bolt", Particle.DUST, 2, 0.025D, 0.025D, 0.025D, 0,
             new Particle.DustOptions(Color.fromRGB(210, 80, 245), 0.8F));
     /** 魔法弾が対象へ着弾した紫の火花です。 */
     public static final SharedParticleDefinition SELENEA_BOLT_IMPACT =
@@ -69,7 +69,7 @@ public final class SharedParticleDefinitions {
             new Particle.DustOptions(Color.fromRGB(235, 105, 255), 1.1F));
     /** 頭上の発射点で待機する三つの光球です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_CHARGE =
-        new SharedParticleDefinition("selenea_volley_charge", Particle.DUST, 4, 0.06D, 0.06D, 0.06D, 0,
+        new SharedParticleDefinition("selenea_volley_charge", Particle.DUST, 2, 0.06D, 0.06D, 0.06D, 0,
             new Particle.DustOptions(Color.fromRGB(255, 175, 245), 1.3F));
     /** 予告が完了し、三連弾を解放する瞬間の閃光です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_RELEASE =
@@ -78,26 +78,31 @@ public final class SharedParticleDefinitions {
 
     /** 攻撃と区別した青灰の会場境界です。 */
     public static final SharedParticleDefinition SELENEA_BOUNDARY =
-        new SharedParticleDefinition("selenea_boundary", Particle.DUST, 4, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_boundary", Particle.DUST, 2, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(100, 125, 185), 0.8F));
     /** 呪文の着弾面を紫から銀への粒子で示します。 */
     public static final SharedParticleDefinition SELENEA_IMPACT =
         new SharedParticleDefinition("selenea_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.05, 0.1, 0.05, 0,
             new Particle.DustTransition(Color.fromRGB(190, 65, 240), Color.fromRGB(235, 235, 255), 1.5F));
 
+    /** 危険領域の縁を明るい赤紫で細く示し、面全体を粒子で埋めない予兆です。 */
+    public static final SharedParticleDefinition SELENEA_WARNING_EDGE =
+        new SharedParticleDefinition("selenea_warning_edge", Particle.DUST, 2, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(245, 65, 105), 1.2F));
+
     /** スニーク保持が必要な封頁の文字粒子です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_RING =
-        new SharedParticleDefinition("selenea_sneak_ring", Particle.ENCHANT, 4, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_sneak_ring", Particle.ENCHANT, 2, 0, 0, 0, 0);
     /** 封頁の実際の半径を示す紫の輪郭です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_ACCENT =
-        new SharedParticleDefinition("selenea_sneak_accent", Particle.DUST, 4, 0, 0, 0, 0,
+        new SharedParticleDefinition("selenea_sneak_accent", Particle.DUST, 2, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(195, 90, 255), 1.3F));
     /** 命中判定と同時に危険面だけへ出す、地形を変更しない爆発演出です。 */
     public static final SharedParticleDefinition SELENEA_ATTACK_BURST =
-        new SharedParticleDefinition("selenea_attack_burst", Particle.EXPLOSION, 4, 0, 0, 0, 0);
+        new SharedParticleDefinition("selenea_attack_burst", Particle.EXPLOSION, 2, 0, 0, 0, 0);
     /** 命中した形状を一度だけ明るくなぞる火花です。 */
     public static final SharedParticleDefinition SELENEA_ATTACK_SPARK =
-        new SharedParticleDefinition("selenea_attack_spark", Particle.ELECTRIC_SPARK, 4, 0.05D, 0.2D, 0.05D, 0.02D);
+        new SharedParticleDefinition("selenea_attack_spark", Particle.ELECTRIC_SPARK, 2, 0.05D, 0.2D, 0.05D, 0.02D);
 
     /** 全ボスの攻撃予見。最低密度でも一点一粒を残し、粒子OFF設定は尊重します。 */
     public static final SharedParticleDefinition BOSS_ATTACK_WARNING =
@@ -633,6 +638,33 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition MOB_ERIVA_SPORE_CLOUD =
         new SharedParticleDefinition("mob_eriva_spore_cloud", Particle.WARPED_SPORE, 30,
             1.4D, 0.7D, 1.4D, 0.0D);
+    /** 森陰の魔女が放つ黄緑の呪灯弾です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_HEX_BOLT =
+        new SharedParticleDefinition("mob_witch_forest_hex_bolt", Particle.DUST, 4,
+            0.04D, 0.04D, 0.04D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(165, 225, 75), 1.2F));
+    /** 呪灯弾の着弾で散る魔女の火花です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_HEX_IMPACT =
+        new SharedParticleDefinition("mob_witch_forest_hex_impact", Particle.WITCH, 12,
+            0.2D, 0.25D, 0.2D, 0.0D);
+    /** 呪糸輪の外周を示す薄紫の予告です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_WEB_WARNING =
+        new SharedParticleDefinition("mob_witch_forest_web_warning", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(195, 155, 235), 1.15F));
+    /** 呪糸輪の発動で上がる白い糸片です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_WEB_IMPACT =
+        new SharedParticleDefinition("mob_witch_forest_web_impact", Particle.ITEM, 2,
+            0.05D, 0.25D, 0.05D, 0.02D, new ItemStack(Material.COBWEB));
+    /** 前方の三つの茨輪を示す琥珀色の予告です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_BRAMBLE_WARNING =
+        new SharedParticleDefinition("mob_witch_forest_bramble_warning", Particle.DUST, 1,
+            0.01D, 0.01D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(220, 145, 45), 1.2F));
+    /** 茨輪の突き上げで舞う根の破片です。 */
+    public static final SharedParticleDefinition MOB_WITCH_FOREST_BRAMBLE_IMPACT =
+        new SharedParticleDefinition("mob_witch_forest_bramble_impact", Particle.BLOCK, 3,
+            0.06D, 0.35D, 0.06D, 0.04D, Material.ROOTED_DIRT.createBlockData());
     public static final SharedParticleDefinition MOB_PURPLE_TREE_WARNING =
         new SharedParticleDefinition("mob_purple_tree_warning", Particle.DUST, 1,
             0.01D, 0.01D, 0.01D, 0.0D,

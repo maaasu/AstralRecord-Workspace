@@ -46,7 +46,7 @@ final class ProxyChannelBoosts {
             if (exp == null && drop == null) continue;
             JsonElement name = channel.get("displayName");
             String displayName = name == null || name.isJsonNull() || name.getAsString().isBlank()
-                ? "チャンネル" : name.getAsString().trim();
+                ? "CHANNEL" : name.getAsString().trim();
             Component row = Component.empty()
                 .append(Component.text(displayName, ProxyTabDisplay.WHITE, TextDecoration.BOLD))
                 .append(Component.text("  ›  ", ProxyTabDisplay.MUTED));
@@ -76,7 +76,7 @@ final class ProxyChannelBoosts {
         long minutes = Math.max(1, (Duration.between(now, expiry).getSeconds() + 59) / 60);
         return Component.text(label + " ×" + BigDecimal.valueOf(multiplier).stripTrailingZeros().toPlainString(),
                 ProxyTabDisplay.SILVER)
-            .append(Component.text("  残り" + minutes + "分", ProxyTabDisplay.MUTED));
+            .append(Component.text(" (" + minutes + "m left)", ProxyTabDisplay.MUTED));
     }
 
     private static String boost(JsonObject channel, String key, Instant now) {

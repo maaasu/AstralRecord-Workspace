@@ -60,8 +60,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0")
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
-    private static final TextColor ASTRALDER_GOLD = TextColor.color(0xCBA96B);
-    private static final TextColor ASTRALDER_GLOW = TextColor.color(0xFFF0CD);
+    private static final TextColor ASTRALDER_GOLD = TextColor.color(0xB88A43);
+    private static final TextColor ASTRALDER_GLOW = TextColor.color(0xFFFAE8);
     private static final long AUTHORITY_TRANSFER_PREPARATION_TTL_MILLIS = TimeUnit.SECONDS.toMillis(10L);
     private static final String LIFECYCLE_ACTION_JOIN = "join";
     private static final String LIFECYCLE_ACTION_CHANNEL_CONNECT = "channel_connect";
@@ -77,6 +77,7 @@ public final class AstralRecordProxyPlugin {
     private final Logger logger;
     private final Path dataDirectory;
     private final Map<UUID, PlayerMetadata> metadata = new ConcurrentHashMap<>();
+    private final Map<UUID, String> pendingChannelNotifications = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
     private final Map<UUID, AuthorityTransferPreparation> authorityTransferPreparations = new ConcurrentHashMap<>();
     private final Set<UUID> pendingGameConnections = ConcurrentHashMap.newKeySet();
@@ -299,6 +300,7 @@ public final class AstralRecordProxyPlugin {
         Player player = event.getPlayer();
         authorityTransferPreparations.remove(player.getUniqueId());
         String serverId = event.getServer().getServerInfo().getName();
+        pendingChannelNotifications.remove(player.getUniqueId());
         metadata.compute(player.getUniqueId(), (ignored, current) -> {
             if (current == null) {
                 return lobbyMetadata(player, serverId);
@@ -321,6 +323,10 @@ public final class AstralRecordProxyPlugin {
         String previousServer = event.getPreviousServer() == null
             ? null : event.getPreviousServer().getServerInfo().getName();
         LifecycleNotification notification = lifecycleNotification(playerName, previousServer, currentServer, settings);
+        if (notification != null && settings.isGameServer(currentServer)
+            && !settings.isDiscordSourceServerExcluded(currentServer)) {
+            pendingChannelNotifications.put(playerId, currentServer);
+        }
         if (notification != null) {
             api.publishLifecycleMessage(
                 currentServer, playerId, playerName, notification.action(), notification.message())
@@ -345,6 +351,7 @@ public final class AstralRecordProxyPlugin {
         NetworkSettings settings = settings();
         if (settings == null) return;
         UUID playerId = event.getPlayer().getUniqueId();
+        pendingChannelNotifications.remove(playerId);
         authorityTransferPreparations.remove(playerId);
         String currentServer = event.getPlayer().getCurrentServer()
             .map(connection -> connection.getServerInfo().getName())
@@ -434,7 +441,10 @@ public final class AstralRecordProxyPlugin {
                 metadata.put(update.playerId(), new PlayerMetadata(
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
                     update.level(), update.className(), update.afk(), update.permission(),
-                    update.classLevelMax(), update.accountNameOnly(), update.vipTier()));
+                    update.classLevelMax(), update.accountNameOnly(), update.vipTier(), update.playerLevel()));
+                if (pendingChannelNotifications.remove(update.playerId(), sourceServer)) {
+                    broadcastChannelConnection(connection.getPlayer(), sourceServer, settings);
+                }
                 refreshTabEntries();
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
@@ -481,6 +491,22 @@ public final class AstralRecordProxyPlugin {
             }
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
+        }
+    }
+
+    /**
+     * network有効なRPGのメタデータ到着後、接続通知を各backendのプレイヤーへ一度だけ送ります。
+     * 受信先のDiscord除外設定は適用せず、Devチャンネルにも公開チャンネルの通知を届けます。
+     *
+     * @param player 接続したプレイヤー
+     * @param serverId 接続先backend名
+     * @param settings 現在のネットワーク設定
+     */
+    private void broadcastChannelConnection(Player player, String serverId, NetworkSettings settings) {
+        if (settings.isDiscordSourceServerExcluded(serverId)) return;
+        byte[] payload = BackendProtocol.channelConnection(player.getUsername(), settings.channelName(serverId));
+        for (Player recipient : proxy.getAllPlayers()) {
+            recipient.getCurrentServer().ifPresent(connection -> connection.sendPluginMessage(CHANNEL, payload));
         }
     }
 
@@ -1164,7 +1190,7 @@ public final class AstralRecordProxyPlugin {
         for (Player target : connectedPlayers) {
             PlayerMetadata value = metadata.get(target.getUniqueId());
             if (value != null && value.vipTier() == VipTier.ASTRALDER) {
-                astralderNames.put(target.getUniqueId(), tabDisplayName(value, tabAnimationFrame));
+                astralderNames.put(target.getUniqueId(), tabEntryDisplayName(value, tabAnimationFrame));
             }
         }
         for (Player viewer : connectedPlayers) {
@@ -1199,7 +1225,7 @@ public final class AstralRecordProxyPlugin {
             PlayerMetadata value = metadata.getOrDefault(
                 target.getUniqueId(), lobbyMetadata(target, settings.lobbyServer()));
             displayMetadata.put(target.getUniqueId(), value);
-            displayNames.put(target.getUniqueId(), tabDisplayName(value, tabAnimationFrame));
+            displayNames.put(target.getUniqueId(), tabEntryDisplayName(value, tabAnimationFrame));
         }
         for (Player viewer : connectedPlayers) {
             ProxyTabDisplay.HeaderFooter headerFooter = renderTab(viewer, settings, serverSnapshot,
@@ -1256,7 +1282,7 @@ public final class AstralRecordProxyPlugin {
                                                     TabServerSnapshot serverSnapshot, int totalPlayers,
                                                     List<Component> boostRows, long nowNanos) {
         String serverId = serverSnapshot.serverByPlayer().getOrDefault(viewer.getUniqueId(), "");
-        String channelName = serverId.isEmpty() ? "接続中" : settings.channelName(serverId);
+        String channelName = serverId.isEmpty() ? "CONNECTING" : settings.channelName(serverId);
         return ProxyTabDisplay.render(config.tabServerAddress(), channelName,
             serverSnapshot.counts().getOrDefault(serverId, 0), viewer.getPing(),
             resolveServerMspt(serverMspt.get(serverId), nowNanos), totalPlayers, boostRows, tabAnimationFrame);
@@ -1297,16 +1323,26 @@ public final class AstralRecordProxyPlugin {
             && currentServer.equalsIgnoreCase(sourceServer);
     }
 
-    /** ProxyのTabエントリへ適用するRPG側準拠の表示名を生成する。 */
+    /** チャット等に使う、RPG側準拠の固定表示名を生成する。 */
     static Component tabDisplayName(PlayerMetadata value) {
         return tabDisplayName(value, -1);
     }
 
-    /** frameが負の場合はチャット等に使う固定表示を返す。 */
+    /** チャットの名前に送信時点の光を適用する。frameが負の場合は固定表示を返す。 */
     static Component tabDisplayName(PlayerMetadata value, int frame) {
+        return playerDisplayName(value, frame, false);
+    }
+
+    /** Tab専用のCLvと、アカウント名・PLvをまとめたタグを生成する。 */
+    static Component tabEntryDisplayName(PlayerMetadata value, int frame) {
+        return playerDisplayName(value, frame, true);
+    }
+
+    /** 用途とアニメーションフレームを独立して判定し、名前の装飾を組み立てる。 */
+    private static Component playerDisplayName(PlayerMetadata value, int frame, boolean tab) {
         Component prefix = Component.text("[" + value.channel() + "] ", NamedTextColor.GRAY);
         if (value.accountNameOnly()) {
-            return prefix.append(accountDisplayName(value, frame));
+            return prefix.append(tab ? tabAccountDisplayName(value, frame) : accountDisplayName(value, frame));
         }
         if (value.level() == null || value.className() == null) {
             return prefix.append(Component.text(value.mcid(), NamedTextColor.WHITE));
@@ -1317,11 +1353,11 @@ public final class AstralRecordProxyPlugin {
             .append(className);
         if (value.classLevelMax()) {
             classTag = classTag
-                .append(Component.text(" Lv.", NamedTextColor.GRAY))
+                .append(Component.text(tab ? " CLv." : " Lv.", NamedTextColor.GRAY))
                 .append(Component.text("max", NamedTextColor.RED, TextDecoration.BOLD));
         } else {
             classTag = classTag
-                .append(Component.text(" Lv.", NamedTextColor.GRAY))
+                .append(Component.text(tab ? " CLv." : " Lv.", NamedTextColor.GRAY))
                 .append(Component.text(String.valueOf(value.level()), NamedTextColor.YELLOW));
         }
         classTag = classTag.append(Component.text("] ", NamedTextColor.DARK_GRAY));
@@ -1329,7 +1365,22 @@ public final class AstralRecordProxyPlugin {
         return prefix
             .append(classTag)
             .append(afk)
-            .append(accountDisplayName(value, frame));
+            .append(tab ? tabAccountDisplayName(value, frame) : accountDisplayName(value, frame));
+    }
+
+    /** アカウント名とプレイヤーレベルを同じ括弧にまとめ、名前の装飾範囲を維持する。 */
+    private static Component tabAccountDisplayName(PlayerMetadata value, int frame) {
+        return Component.text("[", NamedTextColor.DARK_GRAY)
+            .append(accountDisplayName(value, frame))
+            .append(tabPlayerDetails(value));
+    }
+
+    /** アカウント名タグの末尾へPLvと閉じ括弧を独立した装飾で表示する。 */
+    private static Component tabPlayerDetails(PlayerMetadata value) {
+        return Component.text(" PLv.", ProxyTabDisplay.MUTED)
+            .append(Component.text(value.playerLevel() == null ? "--" : String.valueOf(Math.max(1, value.playerLevel())),
+                ProxyTabDisplay.WHITE))
+            .append(Component.text("]", NamedTextColor.DARK_GRAY));
     }
 
     private static Component accountDisplayName(PlayerMetadata value, int frame) {

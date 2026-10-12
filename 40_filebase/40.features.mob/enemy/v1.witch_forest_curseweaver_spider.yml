@@ -1,0 +1,59 @@
+# design:
+#   motif: "民間伝承 / 蜘蛛と呪糸"
+#   progression: 20
+schemaVersion: 1
+id: witch_forest_curseweaver_spider
+type: MOB
+category: ENEMY
+name: "&8呪糸の森蜘蛛 Lv.20"
+level: 20
+entityType: SPIDER
+icon: SPIDER_SPAWN_EGG
+lore:
+  - "&7木陰に潜み、獲物の足元へ呪われた糸を張る蜘蛛。"
+  - "&7呪糸の輪に残ると傷を受け、冷気で動きを鈍らされることがある。"
+tags:
+  - forest
+  - beast
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 7600
+  - status: ATTACK
+    value: 1400
+  - status: DEFENSE
+    value: 1325
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 32
+    skills:
+      - id: mob_witch_forest_curse_web
+        activationRange: 7
+        cooldownTicks: 120
+        castTimeTicks: 12
+
+drops:
+  exp: 240
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_2

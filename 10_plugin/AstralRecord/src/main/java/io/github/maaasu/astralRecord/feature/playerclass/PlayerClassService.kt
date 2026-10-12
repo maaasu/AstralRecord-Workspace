@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
 import io.github.maaasu.astralRecord.feature.status.model.StatusType
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import java.util.LinkedHashSet
 import java.util.Locale
 import java.util.function.Consumer
@@ -126,7 +127,7 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     /**
-     * タブのプレイヤーリスト名を、クラス短縮名・クラスレベルのタグ付きで更新します。
+     * タブのプレイヤーリスト名を、クラス短縮名・CLvとアカウント名・PLvのタグ付きで更新します。
      *
      * @param astPlayer 更新対象プレイヤー
      */
@@ -137,10 +138,18 @@ class PlayerClassService @JvmOverloads constructor(
         astPlayer.bukkit.playerListName(playerListLabel(astPlayer))
     }
 
-    /** TAB用のクラス・レベル・AFK・アカウント名を返します。 */
+    /** TAB用のクラス・CLv・AFKと、アカウント名・PLvを同じ括弧にまとめたタグを返します。 */
     fun playerListLabel(astPlayer: AstPlayer): Component = playerLabel(
         astPlayer,
-        io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account),
+        Component.empty()
+            .append(Component.text("[", NamedTextColor.DARK_GRAY))
+            .append(io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.tabName(astPlayer.account)
+                .colorIfAbsent(NamedTextColor.WHITE))
+            .append(PlayerMsgResource.formatPlainComponent(
+                PlayerMsgId.P_7155.id,
+                astPlayer.account.level.coerceAtLeast(1),
+            )),
+        true,
     )
 
     /**
@@ -152,7 +161,8 @@ class PlayerClassService @JvmOverloads constructor(
      */
     fun messageLabel(astPlayer: AstPlayer, accountName: Component): Component = playerLabel(astPlayer, accountName)
 
-    private fun playerLabel(astPlayer: AstPlayer, standardName: Component): Component {
+    /** TabだけのCLv接頭辞と、従来のチャット用Lv.接頭辞を切り替えて名前を組み立てます。 */
+    private fun playerLabel(astPlayer: AstPlayer, standardName: Component, tab: Boolean = false): Component {
         if (astPlayer.account.mode == AccountMode.ADMIN) {
             return standardName
         }
@@ -164,7 +174,7 @@ class PlayerClassService @JvmOverloads constructor(
         val classTag = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5948.id,
             classDisplayName,
-            ClassLevelDisplay.legacy(astPlayer.classLevel, isMaxClassLevel(astPlayer)),
+            ClassLevelDisplay.legacy(astPlayer.classLevel, isMaxClassLevel(astPlayer), if (tab) "CLv." else "Lv."),
         )
         var playerListName = classTag.append(Component.space())
         if (afkStateProvider.test(astPlayer)) {

@@ -988,6 +988,9 @@ public enum LogId {
     E_5756(5756),
     // endregion
 
+    /** ボス・ダンジョンの共通受付 GUI 操作または転送処理失敗。 */
+    E_5790(5790),
+
     // region /feature/skill/ 5800-5899
     /**
      * スキルが見つかりませんでした (API): %s

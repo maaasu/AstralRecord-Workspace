@@ -53,11 +53,13 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -522,6 +524,7 @@ public final class DamageService {
 
     /**
      * Bukkit の近接ダメージイベントを custom combat へ変換します。
+     * 管理対象外の防具立へのクリエイティブプレイヤーの直接攻撃は、イベントを変更せずバニラの破壊処理に委ねます。
      *
      * @param event Bukkit ダメージイベント
      */
@@ -529,6 +532,13 @@ public final class DamageService {
         double originalDamage = event.getDamage();
         AstEntity attacker = resolveEntity(event.getDamager());
         AstEntity victim = resolveEntity(event.getEntity());
+
+        if (!victim.isManaged()
+                && event.getEntity() instanceof ArmorStand
+                && event.getDamager() instanceof Player player
+                && player.getGameMode() == GameMode.CREATIVE) {
+            return;
+        }
 
         if (!attacker.isManaged() && !victim.isManaged()) {
             return;

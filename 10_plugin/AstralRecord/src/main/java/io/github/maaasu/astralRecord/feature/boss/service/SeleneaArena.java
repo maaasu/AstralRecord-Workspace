@@ -18,13 +18,14 @@ final class SeleneaArena {
     static final double MOON_RADIUS = 12.0D;
     static final double MARK_RADIUS = 5.0D;
     static final double PASSAGE_HALF_WIDTH = 6.0D;
+    static final double ULTIMATE_PASSAGE_HALF_WIDTH = 2.75D;
     static final double SAFE_HINT_RADIUS = 1.5D;
     private static final double SAFE_MARGIN_RADIUS = SAFE_HINT_RADIUS + 0.35D;
 
     private SeleneaArena() { }
 
     /** 各攻撃の水平形状。描画時にもこの判定を使用します。 */
-    enum Shape { NONE, FORK, MARKS, INNER, OUTER, PASSAGE, RETURN }
+    enum Shape { NONE, FORK, MARKS, INNER, OUTER, PASSAGE, ULTIMATE_PASSAGE, RETURN }
 
     /**
      * 凍結した予兆と同じ領域かを判定します。ジャンプでは避けず、水平方向へ退避します。
@@ -68,7 +69,8 @@ final class SeleneaArena {
             case MARKS -> marks.stream().anyMatch(mark -> squared(point, mark) <= MARK_RADIUS * MARK_RADIUS);
             case INNER -> distance <= MOON_RADIUS * MOON_RADIUS;
             case OUTER -> distance > MOON_RADIUS * MOON_RADIUS;
-            case PASSAGE -> Math.abs(x * direction.getZ() - z * direction.getX()) > PASSAGE_HALF_WIDTH;
+            case PASSAGE, ULTIMATE_PASSAGE -> Math.abs(x * direction.getZ() - z * direction.getX())
+                > (shape == Shape.ULTIMATE_PASSAGE ? ULTIMATE_PASSAGE_HALF_WIDTH : PASSAGE_HALF_WIDTH);
             default -> false;
         };
     }

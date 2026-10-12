@@ -26,6 +26,27 @@ final class BackendProtocol {
     }
 
     /**
+     * Proxyのチャンネル接続通知を復元します。他種別・不正payloadはnullを返します。
+     * @param payload Plugin message payload
+     * @return プレイヤー名とチャンネル表示名。不正または別種別の場合はnull
+     */
+    static ChannelConnection decodeChannelConnection(byte[] payload) {
+        if (payload.length > 32_767) return null;
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
+            if (!"channel_connection".equals(input.readUTF())) return null;
+            String playerName = input.readUTF();
+            String channelName = input.readUTF();
+            if (playerName.isBlank() || channelName.isBlank() || input.available() > 0) return null;
+            return new ChannelConnection(playerName, channelName);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    record ChannelConnection(String playerName, String channelName) {
+    }
+
+    /**
      * Lobbyで確認済みの権限を添えてProxyへ接続要求を送る。
      *
      * @param plugin 送信元プラグイン

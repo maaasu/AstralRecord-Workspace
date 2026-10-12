@@ -134,7 +134,7 @@ public final class ChannelBoostService {
     private static Component tabBoost(ChannelBoostState.Boost boost, String label, NamedTextColor color, Instant now) {
         long minutes = Math.max(1, (java.time.Duration.between(now, boost.expiresAt()).getSeconds() + 59) / 60);
         return Component.text(label + " ×" + BigDecimal.valueOf(boost.multiplier()).stripTrailingZeros().toPlainString(), color)
-            .append(Component.text("  残り" + minutes + "分", NamedTextColor.GRAY));
+            .append(Component.text(" (" + minutes + "m left)", NamedTextColor.GRAY));
     }
 
     /** server-info用に倍率・残分数を表示します。 */
