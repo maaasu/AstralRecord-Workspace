@@ -241,7 +241,8 @@ public final class BossMechanicService {
         );
         this.seleneaEncounterController = new SeleneaEncounterController(
             mobService, particleDisplayService, this::seleneaParticipants,
-            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio),
+            this::seleneaPartySize
         );
         this.seleneaSupportController = new SeleneaSupportController(
             plugin, mobService, particleDisplayService, this::seleneaParticipants,
@@ -260,12 +261,13 @@ public final class BossMechanicService {
     }
 
     /**
-     * 生存する写本守の割合に基づく被ダメージ倍率を返します。初撃時も召喚を保証します。
+     * 大技の開始待ち・発動中は無敵、生存写本守がある場合はその割合で軽減します。
      * @param victim 被弾対象
      * @return 専用魔女では0〜1、それ以外では1
      */
     public double seleneaSupportDamageMultiplier(@NotNull AstEntity victim) {
         if (!victim.isMob() || victim.mob() == null) return 1.0D;
+        if (seleneaEncounterController.ultimateProtected(victim.mob())) return 0.0D;
         try {
             return seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks);
         } catch (RuntimeException exception) {
@@ -402,6 +404,7 @@ public final class BossMechanicService {
             if (selenea) {
                 activeSeleneas.add(boss.instanceId());
                 boolean dedicatedField = seleneaSupportController.isField(boss);
+                seleneaEncounterController.observeHealthThreshold(boss);
                 try {
                     seleneaSupportController.tick(boss, entity, clockTicks);
                 } catch (RuntimeException exception) {
@@ -2726,6 +2729,17 @@ public final class BossMechanicService {
         }
         return ids.stream().map(Bukkit::getPlayer).filter(java.util.Objects::nonNull)
             .filter(player -> seleneaEligible(boss, player)).toList();
+    }
+
+    /** @param boss 管理中の魔女 @return 一時的な死亡・場外移動を除外しない確定名簿の人数 */
+    private int seleneaPartySize(@NotNull MobInstance boss) {
+        if (bossChallengeService.isBossMob(boss.instanceId())) {
+            return bossChallengeService.participantIdsForBossMob(boss.instanceId()).size();
+        }
+        if (dungeonService.isDungeonMob(boss.instanceId())) {
+            return dungeonService.participantCountForMob(boss.instanceId());
+        }
+        return seleneaDirectParticipants.getOrDefault(boss.instanceId(), Set.of()).size();
     }
 
     /**

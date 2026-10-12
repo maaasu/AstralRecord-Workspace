@@ -17,6 +17,8 @@ lore:
   - "&7月輪の満ち欠けでは、内側と外側の安全圏を見極めよ。"
   - "&7封頁の儀では紋章の輪に入り、しゃがんで術式を解け。"
   - "&7解呪後の隙に反撃しよう。"
+  - "&7低く広がる波は跳んで避け、三連の魔法弾から離れよ。"
+  - "&7残り六割と二割で放つ大術の間は、魔女は無敵となる。"
 tags:
   - boss
   - humanoid
@@ -26,7 +28,7 @@ equipment:
   offHand: GLOW_INK_SAC
 baseStats:
   - status: MAX_HEALTH
-    value: 152000
+    value: 304000
   - status: ATTACK
     value: 4130
   - status: DEFENSE

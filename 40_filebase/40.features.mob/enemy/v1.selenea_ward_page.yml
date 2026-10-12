@@ -20,9 +20,9 @@ equipment:
   mainHand: BOOK
   offHand: GLOW_INK_SAC
 baseStats:
-  # 召喚時に参加人数補正後のボス最大HPの1/6へ置き換える。
+  # 初回召喚は人数補正後のボス最大HPの1/6、第二回は1/3へ置き換える。
   - status: MAX_HEALTH
-    value: 25333.333333333332
+    value: 50666.666666666664
   - status: ATTACK
     value: 0
   - status: DEFENSE

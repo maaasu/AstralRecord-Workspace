@@ -46,6 +46,23 @@ public final class SharedParticleDefinitions {
     /** 三分後の支援モブ爆発です。地形は変更しません。 */
     public static final SharedParticleDefinition SELENEA_SUPPORT_DETONATION =
         new SharedParticleDefinition("selenea_support_detonation", Particle.EXPLOSION, 4, 0, 0, 0, 0);
+    /** 広範囲支援爆発の危険面を示す怒りの粒子です。 */
+    public static final SharedParticleDefinition SELENEA_SUPPORT_WARNING =
+        new SharedParticleDefinition("selenea_support_warning", Particle.ANGRY_VILLAGER, 1, 0, 0, 0, 0);
+    /** 球形60mの爆発面を高密度に示す光点です。 */
+    public static final SharedParticleDefinition SELENEA_SUPPORT_DETONATION_SURFACE =
+        new SharedParticleDefinition("selenea_support_detonation_surface", Particle.END_ROD, 1, 0, 0, 0, 0);
+    /** 本体と小型分身が放つ三連魔法弾の軌跡です。 */
+    public static final SharedParticleDefinition SELENEA_BOLT =
+        new SharedParticleDefinition("selenea_bolt", Particle.DUST, 4, 0.025D, 0.025D, 0.025D, 0,
+            new Particle.DustOptions(Color.fromRGB(210, 80, 245), 0.8F));
+    /** 魔法弾が対象へ着弾した紫の火花です。 */
+    public static final SharedParticleDefinition SELENEA_BOLT_IMPACT =
+        new SharedParticleDefinition("selenea_bolt_impact", Particle.WITCH, 12, 0.2D, 0.3D, 0.2D, 0);
+    /** ジャンプで回避できる床上の低い月蝕波です。 */
+    public static final SharedParticleDefinition SELENEA_GROUND_WAVE =
+        new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 4, 0.04D, 0.08D, 0.04D, 0,
+            new Particle.DustOptions(Color.fromRGB(180, 90, 245), 1.2F));
 
     /** 攻撃と区別した青灰の会場境界です。 */
     public static final SharedParticleDefinition SELENEA_BOUNDARY =
@@ -56,14 +73,7 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("selenea_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.05, 0.1, 0.05, 0,
             new Particle.DustTransition(Color.fromRGB(190, 65, 240), Color.fromRGB(235, 235, 255), 1.5F));
 
-    /** 入るだけで退避できるセレネアの白い輪です。 */
-    public static final SharedParticleDefinition SELENEA_ENTER_RING =
-        new SharedParticleDefinition("selenea_enter_ring", Particle.END_ROD, 4, 0, 0, 0, 0);
-    /** 入るだけの輪に添える緑の縁です。 */
-    public static final SharedParticleDefinition SELENEA_ENTER_ACCENT =
-        new SharedParticleDefinition("selenea_enter_accent", Particle.DUST, 4, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(100, 245, 155), 1.2F));
-    /** スニーク保持が必要な封頁の文字粒子です。白い退避輪とは粒子種も区別します。 */
+    /** スニーク保持が必要な封頁の文字粒子です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_RING =
         new SharedParticleDefinition("selenea_sneak_ring", Particle.ENCHANT, 4, 0, 0, 0, 0);
     /** 封頁の実際の半径を示す紫の輪郭です。 */

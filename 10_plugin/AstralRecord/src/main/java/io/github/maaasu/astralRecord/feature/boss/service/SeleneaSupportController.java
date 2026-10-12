@@ -663,8 +663,12 @@ final class SeleneaSupportController {
             particles.spawnForNearbyViewers(add.anchor, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION, true);
             particles.spawnForNearbyViewers(detonationSurface(add.anchor, 24.0D),
                     SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION_SURFACE, true);
-            particles.spawnForNearbyViewers(detonationFloor(add.anchor, 4.0D),
+            List<Location> floor = detonationFloor(add.anchor, 4.0D);
+            particles.spawnForNearbyViewers(floor,
                     SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION_SURFACE, true);
+            List<Location> bursts = new ArrayList<>((floor.size() + 3) / 4);
+            for (int index = 0; index < floor.size(); index += 4) bursts.add(floor.get(index));
+            particles.spawnForNearbyViewers(bursts, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION, true);
             for (Player player : active) {
                 if (!player.isDead() && player.getWorld() == add.anchor.getWorld()
                         && player.getLocation().distanceSquared(add.anchor) <= DETONATION_RADIUS_SQUARED) {
