@@ -264,9 +264,18 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
         => new(
             fileName,
             JsonValueReader.String(schema["$id"]),
-            JsonValueReader.String(schema["title"]),
+            GetDisplayTitle(schema),
             GetEntityKind(fileName, schema),
             GetVersion(fileName, schema));
+
+    private static string? GetDisplayTitle(JsonObject schema)
+        => JsonValueReader.String(schema["title"]) switch
+        {
+            "AstralRecord SkillTree Node v1" => "AstralRecord スキルツリー ノード定義 v1",
+            "AstralRecord SkillTree Structure v1" => "AstralRecord スキルツリー 構造定義 v1",
+            "AstralRecord SkillTree Node ID Sequence v1" => "AstralRecord スキルツリー 採番定義 v1",
+            var title => title
+        };
 
     internal static string? GetReferencedFileName(JsonObject instance)
     {

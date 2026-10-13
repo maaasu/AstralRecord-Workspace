@@ -11,7 +11,7 @@ public static partial class SafePath
     {
         if (string.IsNullOrWhiteSpace(value) || !IdentifierRegex().IsMatch(value))
             throw new ArgumentException(
-                $"{parameterName} may contain only letters, digits, '.', '_' and '-' and must not be empty.",
+                $"{parameterName} は英字・数字で始まる1〜128文字で指定してください。英字・数字・'.'・'_'・'-' のみ使用できます。",
                 parameterName);
 
         return value;
@@ -22,7 +22,7 @@ public static partial class SafePath
         var rootPath = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         var candidate = Path.GetFullPath(Path.Combine(rootPath, fileName));
         if (!candidate.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
-            throw new UnauthorizedAccessException("The requested path is outside the configured root.");
+            throw new UnauthorizedAccessException("要求されたパスが設定済みのルートディレクトリの外側を指しています。");
 
         return candidate;
     }

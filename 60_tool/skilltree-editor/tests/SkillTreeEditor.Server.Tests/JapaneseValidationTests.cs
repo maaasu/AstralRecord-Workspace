@@ -83,6 +83,60 @@ public sealed class JapaneseValidationTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task KnownSchemaTitlesAreJapaneseWithoutChangingSchemaIdentityOrCustomTitles()
+    {
+        var paths = new WorkspacePaths(_workspace);
+        Directory.CreateDirectory(paths.Schemas);
+        var sourceRoot = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+        var sourceSchemas = new WorkspacePaths(sourceRoot).Schemas;
+        foreach (var fileName in new[] { "node.v1.schema.json", "structure.v1.schema.json", "node-id-sequence.v1.schema.json" })
+            File.Copy(Path.Combine(sourceSchemas, fileName), Path.Combine(paths.Schemas, fileName));
+        await File.WriteAllTextAsync(Path.Combine(paths.Schemas, "custom.schema.json"), "{\"title\":\"Custom Schema\"}");
+        var catalog = new SchemaCatalog(paths);
+
+        var summaries = await catalog.ListAsync(CancellationToken.None);
+
+        foreach (var (fileName, entityKind, label) in new[]
+                 {
+                     ("node.v1.schema.json", "node", "ノード定義"),
+                     ("structure.v1.schema.json", "structure", "構造定義"),
+                     ("node-id-sequence.v1.schema.json", "generic", "採番定義")
+                 })
+        {
+            var summary = Assert.Single(summaries, summary => summary.FileName == fileName);
+            Assert.Equal(entityKind, summary.EntityKind);
+            Assert.Equal(1, summary.Version);
+            Assert.Contains(label, summary.Title);
+            var original = await catalog.GetAsync(fileName, CancellationToken.None);
+            Assert.StartsWith("AstralRecord SkillTree", original!["title"]!.GetValue<string>());
+            Assert.Equal(original["$id"]!.GetValue<string>(), summary.Id);
+        }
+        Assert.Equal("Custom Schema", Assert.Single(summaries, summary => summary.FileName == "custom.schema.json").Title);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("../outside")]
+    [InlineData("_starts-with-symbol")]
+    public void InvalidIdentifiersKeepParameterContextAndUseJapanese(string value)
+    {
+        var exception = Assert.Throws<ArgumentException>(() => SafePath.RequireIdentifier(value, "nodeId"));
+
+        Assert.Equal("nodeId", exception.ParamName);
+        Assert.Contains("nodeId", exception.Message);
+        Assert.Matches("[ぁ-んァ-ヶ一-龯]", exception.Message);
+        Assert.Equal("valid_1000.json", SafePath.RequireIdentifier("valid_1000.json", "nodeId"));
+    }
+
+    [Fact]
+    public void PathOutsideRootIsRejectedInJapanese()
+    {
+        var exception = Assert.Throws<UnauthorizedAccessException>(() => SafePath.UnderRoot(_workspace, "../outside.json"));
+
+        Assert.Matches("[ぁ-んァ-ヶ一-龯]", exception.Message);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_workspace))
