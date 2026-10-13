@@ -1,5 +1,4 @@
 using System.Data;
-using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -38,8 +37,6 @@ public sealed class PlayerStateSnapshotRepository(
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            if (request.QuestState.HasValue && dbContext.Database.IsSqlServer())
-                await AcquireQuestStateSnapshotLockAsync();
 
             var existing = await FindSnapshotForUpdateAsync(request.SnapshotId);
             if (existing is not null)
@@ -107,10 +104,10 @@ public sealed class PlayerStateSnapshotRepository(
             var now = RoundToMilliseconds(DateTime.UtcNow);
             var accountInventories = request.Inventories.Count == 0
                 ? Array.Empty<InventoryEntity>()
-                : await FindAccountInventoriesForUpdateAsync(request.AccountId);
+                : await FindAccountInventoriesForUpdateAsync(request);
             var accountEntries = request.Inventories.Count == 0
                 ? Array.Empty<InventoryEntryEntity>()
-                : await FindActiveAccountEntriesForUpdateAsync(request.AccountId);
+                : await FindActiveAccountEntriesForUpdateAsync(request, accountInventories);
             var result = await ApplyCoreStateAsync(request, accountInventories, accountEntries, now);
             if (!result.Succeeded)
                 return result;
@@ -214,7 +211,7 @@ public sealed class PlayerStateSnapshotRepository(
         var petEquipInventoryIds = inventoriesById.Values
             .Where(i => i.InventoryType == "EQUIP_SLOT" && i.InventoryProfile == "GAME" && !i.IsDeleted)
             .Select(i => i.InventoryId).ToHashSet();
-        var selectedPetId = await dbContext.AccountPetStates.AsNoTracking()
+        var selectedPetId = request.Inventories.Count == 0 ? (Guid?)null : await dbContext.AccountPetStates.AsNoTracking()
             .Where(s => s.AccountId == request.AccountId).Select(s => s.EquippedPetId).SingleOrDefaultAsync();
         var selectedPetWasInSlot = selectedPetId.HasValue && accountEntries.Any(e => !e.IsDeleted
             && petEquipInventoryIds.Contains(e.InventoryId) && e.SlotIndex == 7
@@ -971,87 +968,106 @@ public sealed class PlayerStateSnapshotRepository(
             state.Version = Math.Max(1, state.Version + 1);
             state.UpdatedAt = now;
             state.UpdatedBy = request.UpdatedBy;
-            if (dbContext.Database.IsSqlServer())
-            {
-                await ReplaceQuestChildrenAsync(state.AccountQuestStateId);
-            }
-            else
-            {
-                dbContext.AccountQuestObjectiveProgresses.RemoveRange(
-                    state.ActiveQuests.SelectMany(active => active.ObjectiveProgress));
-                dbContext.AccountQuestActives.RemoveRange(state.ActiveQuests);
-                dbContext.AccountQuestCompletions.RemoveRange(state.Completions);
-                dbContext.AccountQuestCooldowns.RemoveRange(state.Cooldowns);
-                await dbContext.SaveChangesAsync();
-                state.ActiveQuests.Clear();
-                state.Completions.Clear();
-                state.Cooldowns.Clear();
-            }
         }
 
+        await LoadQuestChildrenForUpdateAsync(state);
+        var activeByQuest = state.ActiveQuests.ToDictionary(row => row.QuestId, StringComparer.OrdinalIgnoreCase);
+        var requestedQuests = section.ActiveQuests.Select(row => row.QuestId.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var removed in state.ActiveQuests.Where(row => !requestedQuests.Contains(row.QuestId)).ToArray())
+        {
+            dbContext.AccountQuestObjectiveProgresses.RemoveRange(removed.ObjectiveProgress);
+            dbContext.AccountQuestActives.Remove(removed);
+        }
         foreach (var snapshot in section.ActiveQuests)
         {
-            var active = new AccountQuestActiveEntity
+            var questId = snapshot.QuestId.Trim();
+            if (!activeByQuest.TryGetValue(questId, out var active))
             {
-                AccountQuestActiveId = Guid.NewGuid(),
-                AccountQuestStateId = state.AccountQuestStateId,
-                QuestId = snapshot.QuestId.Trim(),
-                AcceptedAt = FromEpochMillis(snapshot.AcceptedAtEpochMillis),
-                AcceptedNpcId = string.IsNullOrWhiteSpace(snapshot.AcceptedNpcId) ? null : snapshot.AcceptedNpcId.Trim(),
-                ReadyToTurnIn = snapshot.ReadyToTurnIn,
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = request.UpdatedBy,
-                UpdatedBy = request.UpdatedBy,
-            };
+                active = new AccountQuestActiveEntity
+                {
+                    AccountQuestActiveId = Guid.NewGuid(), AccountQuestStateId = state.AccountQuestStateId,
+                    QuestId = questId, CreatedAt = now, CreatedBy = request.UpdatedBy,
+                };
+                dbContext.AccountQuestActives.Add(active);
+            }
+            var acceptedAt = FromEpochMillis(snapshot.AcceptedAtEpochMillis);
+            var npcId = string.IsNullOrWhiteSpace(snapshot.AcceptedNpcId) ? null : snapshot.AcceptedNpcId.Trim();
+            if (active.QuestId != questId || active.AcceptedAt != acceptedAt || active.AcceptedNpcId != npcId
+                || active.ReadyToTurnIn != snapshot.ReadyToTurnIn || active.UpdatedAt == default)
+            {
+                active.QuestId = questId;
+                active.AcceptedAt = acceptedAt;
+                active.AcceptedNpcId = npcId;
+                active.ReadyToTurnIn = snapshot.ReadyToTurnIn;
+                active.UpdatedAt = now; active.UpdatedBy = request.UpdatedBy;
+            }
+            var objectives = active.ObjectiveProgress.ToDictionary(row => row.ObjectiveId, StringComparer.OrdinalIgnoreCase);
+            var requestedObjectives = snapshot.ObjectiveProgress.Select(row => row.ObjectiveId.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            dbContext.AccountQuestObjectiveProgresses.RemoveRange(active.ObjectiveProgress
+                .Where(row => !requestedObjectives.Contains(row.ObjectiveId)).ToArray());
             foreach (var objectiveSnapshot in snapshot.ObjectiveProgress)
             {
-                active.ObjectiveProgress.Add(new AccountQuestObjectiveProgressEntity
+                if (!objectives.TryGetValue(objectiveSnapshot.ObjectiveId.Trim(), out var objective))
                 {
-                    AccountQuestObjectiveProgressId = Guid.NewGuid(),
-                    AccountQuestActiveId = active.AccountQuestActiveId,
-                    ObjectiveId = objectiveSnapshot.ObjectiveId.Trim(),
-                    Progress = objectiveSnapshot.Progress,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = request.UpdatedBy,
-                    UpdatedBy = request.UpdatedBy,
-                });
+                    objective = new AccountQuestObjectiveProgressEntity
+                    {
+                        AccountQuestObjectiveProgressId = Guid.NewGuid(), AccountQuestActiveId = active.AccountQuestActiveId,
+                        ObjectiveId = objectiveSnapshot.ObjectiveId.Trim(), CreatedAt = now, CreatedBy = request.UpdatedBy,
+                    };
+                    dbContext.AccountQuestObjectiveProgresses.Add(objective);
+                }
+                if (objective.ObjectiveId != objectiveSnapshot.ObjectiveId.Trim()
+                    || objective.Progress != objectiveSnapshot.Progress || objective.UpdatedAt == default)
+                {
+                    objective.ObjectiveId = objectiveSnapshot.ObjectiveId.Trim();
+                    objective.Progress = objectiveSnapshot.Progress;
+                    objective.UpdatedAt = now; objective.UpdatedBy = request.UpdatedBy;
+                }
             }
-            state.ActiveQuests.Add(active);
-            await dbContext.AccountQuestActives.AddAsync(active);
         }
+        var completionByQuest = state.Completions.ToDictionary(row => row.QuestId, StringComparer.OrdinalIgnoreCase);
+        var requestedCompletions = section.Completions.Select(row => row.QuestId.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        dbContext.AccountQuestCompletions.RemoveRange(state.Completions.Where(row => !requestedCompletions.Contains(row.QuestId)).ToArray());
         foreach (var snapshot in section.Completions)
         {
-            var completion = new AccountQuestCompletionEntity
+            if (!completionByQuest.TryGetValue(snapshot.QuestId.Trim(), out var completion))
             {
-                AccountQuestCompletionId = Guid.NewGuid(),
-                AccountQuestStateId = state.AccountQuestStateId,
-                QuestId = snapshot.QuestId.Trim(),
-                CompletedAt = FromEpochMillis(snapshot.CompletedAtEpochMillis),
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = request.UpdatedBy,
-                UpdatedBy = request.UpdatedBy,
-            };
-            state.Completions.Add(completion);
-            await dbContext.AccountQuestCompletions.AddAsync(completion);
+                completion = new AccountQuestCompletionEntity
+                {
+                    AccountQuestCompletionId = Guid.NewGuid(), AccountQuestStateId = state.AccountQuestStateId,
+                    QuestId = snapshot.QuestId.Trim(), CreatedAt = now, CreatedBy = request.UpdatedBy,
+                };
+                dbContext.AccountQuestCompletions.Add(completion);
+            }
+            var completedAt = FromEpochMillis(snapshot.CompletedAtEpochMillis);
+            if (completion.QuestId != snapshot.QuestId.Trim() || completion.CompletedAt != completedAt || completion.UpdatedAt == default)
+            {
+                completion.QuestId = snapshot.QuestId.Trim();
+                completion.CompletedAt = completedAt;
+                completion.UpdatedAt = now; completion.UpdatedBy = request.UpdatedBy;
+            }
         }
+        var cooldownByQuest = state.Cooldowns.ToDictionary(row => row.QuestId, StringComparer.OrdinalIgnoreCase);
+        var requestedCooldowns = section.Cooldowns.Select(row => row.QuestId.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        dbContext.AccountQuestCooldowns.RemoveRange(state.Cooldowns.Where(row => !requestedCooldowns.Contains(row.QuestId)).ToArray());
         foreach (var snapshot in section.Cooldowns)
         {
-            var cooldown = new AccountQuestCooldownEntity
+            if (!cooldownByQuest.TryGetValue(snapshot.QuestId.Trim(), out var cooldown))
             {
-                AccountQuestCooldownId = Guid.NewGuid(),
-                AccountQuestStateId = state.AccountQuestStateId,
-                QuestId = snapshot.QuestId.Trim(),
-                CooldownUntil = FromEpochMillis(snapshot.CooldownUntilEpochMillis),
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = request.UpdatedBy,
-                UpdatedBy = request.UpdatedBy,
-            };
-            state.Cooldowns.Add(cooldown);
-            await dbContext.AccountQuestCooldowns.AddAsync(cooldown);
+                cooldown = new AccountQuestCooldownEntity
+                {
+                    AccountQuestCooldownId = Guid.NewGuid(), AccountQuestStateId = state.AccountQuestStateId,
+                    QuestId = snapshot.QuestId.Trim(), CreatedAt = now, CreatedBy = request.UpdatedBy,
+                };
+                dbContext.AccountQuestCooldowns.Add(cooldown);
+            }
+            var until = FromEpochMillis(snapshot.CooldownUntilEpochMillis);
+            if (cooldown.QuestId != snapshot.QuestId.Trim() || cooldown.CooldownUntil != until || cooldown.UpdatedAt == default)
+            {
+                cooldown.QuestId = snapshot.QuestId.Trim();
+                cooldown.CooldownUntil = until;
+                cooldown.UpdatedAt = now; cooldown.UpdatedBy = request.UpdatedBy;
+            }
         }
         return new { clientRevision = section.ClientRevision, version = state.Version, updatedAt = state.UpdatedAt };
     }
@@ -1834,59 +1850,39 @@ public sealed class PlayerStateSnapshotRepository(
     }
 
     /// <summary>
-    /// SQL Serverではchildを読み取り追跡せず、外部キー順の直接DELETEで置換する。
-    /// これにより、Serializable transactionが子主キーの共有範囲lockを保持したまま
-    /// DELETE/INSERTへ昇格するデッドロックを回避する。
+    /// accountとquest親の更新lockで同一accountの書込を直列化した後、natural key索引で既存childだけを読む。
+    /// childは親lockで書込排他済みのためREADCOMMITTEDで読み、Serializable範囲lockを追加せず、別accountのrandom GUID insertとの交差を防ぐ。
     /// </summary>
-    private async Task ReplaceQuestChildrenAsync(Guid stateId)
+    private async Task LoadQuestChildrenForUpdateAsync(AccountQuestStateEntity state)
     {
-        var activeQuestIds = dbContext.AccountQuestActives
-            .Where(active => active.AccountQuestStateId == stateId)
-            .Select(active => active.AccountQuestActiveId);
-        await dbContext.AccountQuestObjectiveProgresses
-            .Where(progress => activeQuestIds.Contains(progress.AccountQuestActiveId))
-            .ExecuteDeleteAsync();
-        await dbContext.AccountQuestActives
-            .Where(active => active.AccountQuestStateId == stateId)
-            .ExecuteDeleteAsync();
-        await dbContext.AccountQuestCompletions
-            .Where(completion => completion.AccountQuestStateId == stateId)
-            .ExecuteDeleteAsync();
-        await dbContext.AccountQuestCooldowns
-            .Where(cooldown => cooldown.AccountQuestStateId == stateId)
-            .ExecuteDeleteAsync();
-    }
-
-    /// <summary>
-    /// クエスト状態を含むsnapshotをtransaction単位で直列化する。
-    /// 異なるaccountでもSerializableの子主キー範囲lockが交差するため、account単位lockだけでは
-    /// quest childの置換DELETE/INSERTのデッドロックを防げない。
-    /// </summary>
-    private async Task AcquireQuestStateSnapshotLockAsync()
-    {
-        var transaction = dbContext.Database.CurrentTransaction
-            ?? throw new InvalidOperationException("Quest snapshot lock requires an active transaction.");
-        await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-        command.Transaction = transaction.GetDbTransaction();
-        var commandTimeoutSeconds = dbContext.Database.GetCommandTimeout() ?? 30;
-        command.CommandTimeout = commandTimeoutSeconds;
-        var lockTimeout = command.CreateParameter();
-        lockTimeout.ParameterName = "@lockTimeout";
-        lockTimeout.Value = Math.Max(0, (commandTimeoutSeconds - 1) * 1000);
-        command.Parameters.Add(lockTimeout);
-        command.CommandText = """
-            DECLARE @result int;
-            EXEC @result = sys.sp_getapplock
-                @Resource = N'AstralRecord:PlayerStateSnapshot:QuestState',
-                @LockMode = N'Exclusive',
-                @LockOwner = N'Transaction',
-                @LockTimeout = @lockTimeout,
-                @DbPrincipal = N'public';
-            SELECT @result;
-            """;
-        var result = Convert.ToInt32(await command.ExecuteScalarAsync(CancellationToken.None), CultureInfo.InvariantCulture);
-        if (result < 0)
-            throw new TimeoutException($"Quest snapshot application lock was not acquired (result={result}).");
+        if (!dbContext.Database.IsSqlServer() || dbContext.Entry(state).State == EntityState.Added) return;
+        var stateId = state.AccountQuestStateId;
+        await dbContext.AccountQuestActives.FromSqlInterpolated($"""
+            SELECT * FROM [dbo].[account_quest_active] WITH (READCOMMITTED,
+                FORCESEEK([UX_account_quest_active_state_quest] ([account_quest_state_id])))
+            WHERE [account_quest_state_id] = {stateId}
+            ORDER BY [quest_id]
+            """).ToListAsync();
+        var activeIdsJson = JsonSerializer.Serialize(state.ActiveQuests.Select(row => row.AccountQuestActiveId));
+        await dbContext.AccountQuestObjectiveProgresses.FromSqlInterpolated($"""
+            SELECT progress.* FROM OPENJSON({activeIdsJson}) WITH ([id] uniqueidentifier '$') requested
+            INNER JOIN [dbo].[account_quest_objective_progress] progress WITH (READCOMMITTED,
+                FORCESEEK([UX_account_quest_objective_progress_active_objective] ([account_quest_active_id])))
+                ON progress.[account_quest_active_id] = requested.[id]
+            ORDER BY progress.[account_quest_active_id], progress.[objective_id]
+            """).ToListAsync();
+        await dbContext.AccountQuestCompletions.FromSqlInterpolated($"""
+            SELECT * FROM [dbo].[account_quest_completion] WITH (READCOMMITTED,
+                FORCESEEK([UX_account_quest_completion_state_quest] ([account_quest_state_id])))
+            WHERE [account_quest_state_id] = {stateId}
+            ORDER BY [quest_id]
+            """).ToListAsync();
+        await dbContext.AccountQuestCooldowns.FromSqlInterpolated($"""
+            SELECT * FROM [dbo].[account_quest_cooldown] WITH (READCOMMITTED,
+                FORCESEEK([UX_account_quest_cooldown_state_quest] ([account_quest_state_id])))
+            WHERE [account_quest_state_id] = {stateId}
+            ORDER BY [quest_id]
+            """).ToListAsync();
     }
 
     private async Task<IReadOnlyList<PlayerSettingEntity>> FindPlayerSettingsForUpdateAsync(Guid userId)
@@ -1905,36 +1901,71 @@ public sealed class PlayerStateSnapshotRepository(
             .ToListAsync();
     }
 
-    private async Task<IReadOnlyList<InventoryEntity>> FindAccountInventoriesForUpdateAsync(Guid accountId)
+    private async Task<IReadOnlyList<InventoryEntity>> FindAccountInventoriesForUpdateAsync(PlayerStateSnapshotSaveRequest request)
     {
+        // 新規親のnatural key競合確認だけは全親が必要。通常保存は対象親とpet装備親に限定する。
+        var accountId = request.AccountId;
+        var ids = request.Inventories.Select(row => row.InventoryId).ToArray();
+        var includeAll = request.Inventories.Any(row => row.IsNew);
         if (dbContext.Database.IsSqlServer())
         {
+            var idsJson = JsonSerializer.Serialize(ids);
             return await dbContext.Inventories.FromSqlInterpolated($"""
                 SELECT * FROM [dbo].[inventory] WITH (UPDLOCK, HOLDLOCK)
                 WHERE [account_id] = {accountId} AND [is_deleted] = 0
+                    AND ({includeAll} = 1 OR [inventory_id] IN (
+                        SELECT [id] FROM OPENJSON({idsJson}) WITH ([id] uniqueidentifier '$'))
+                        OR ([inventory_type] = 'EQUIP_SLOT' AND [inventory_profile] = 'GAME'))
                 ORDER BY [inventory_id]
                 """).ToListAsync();
         }
-        return await dbContext.Inventories.Where(inventory => inventory.AccountId == accountId && !inventory.IsDeleted)
+        return await dbContext.Inventories.Where(inventory => inventory.AccountId == accountId && !inventory.IsDeleted
+                && (includeAll || ids.Contains(inventory.InventoryId)
+                    || (inventory.InventoryType == "EQUIP_SLOT" && inventory.InventoryProfile == "GAME")))
             .OrderBy(inventory => inventory.InventoryId).ToListAsync();
     }
 
-    private async Task<IReadOnlyList<InventoryEntryEntity>> FindActiveAccountEntriesForUpdateAsync(Guid accountId)
+    private async Task<IReadOnlyList<InventoryEntryEntity>> FindActiveAccountEntriesForUpdateAsync(
+        PlayerStateSnapshotSaveRequest request, IReadOnlyList<InventoryEntity> inventories)
     {
+        var accountId = request.AccountId;
+        var ids = request.Inventories.SelectMany(row => row.ExpectedEntries.Select(entry => entry.InventoryEntryId)
+            .Concat(row.Entries.Select(entry => entry.InventoryEntryId)).Concat(row.DeletedEntryIds)).Distinct().ToArray();
+        var fullIds = request.Inventories.Where(row => !UsesEntryDelta(row)).Select(row => row.InventoryId).ToArray();
+        var petIds = inventories.Where(row => row.InventoryType == "EQUIP_SLOT" && row.InventoryProfile == "GAME")
+            .Select(row => row.InventoryId).ToArray();
         if (dbContext.Database.IsSqlServer())
         {
+            var idsJson = JsonSerializer.Serialize(ids);
+            var fullJson = JsonSerializer.Serialize(fullIds);
+            var petJson = JsonSerializer.Serialize(petIds);
+            // UNION各枝のseekで無関係なinventory/entryのscanを避ける。所有者はDBの親で照合する。
             return await dbContext.InventoryEntries.FromSqlInterpolated($"""
-                SELECT entry.* FROM [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK)
-                INNER JOIN [dbo].[inventory] inventory WITH (HOLDLOCK) ON inventory.[inventory_id] = entry.[inventory_id]
-                WHERE inventory.[account_id] = {accountId}
-                  AND inventory.[is_deleted] = 0
-                  AND entry.[is_deleted] = 0
-                ORDER BY entry.[inventory_entry_id]
+                SELECT entry.* FROM OPENJSON({idsJson}) WITH ([id] uniqueidentifier '$') requested
+                INNER JOIN [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK,
+                    FORCESEEK([PK_inventory_entry] ([inventory_entry_id]))) ON entry.[inventory_entry_id] = requested.[id]
+                INNER JOIN [dbo].[inventory] inventory ON inventory.[inventory_id] = entry.[inventory_id]
+                WHERE inventory.[account_id] = {accountId} AND inventory.[is_deleted] = 0 AND entry.[is_deleted] = 0
+                UNION
+                SELECT entry.* FROM OPENJSON({fullJson}) WITH ([id] uniqueidentifier '$') requested
+                INNER JOIN [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK,
+                    FORCESEEK([IX_inventory_entry_active_inventory] ([inventory_id]))) ON entry.[inventory_id] = requested.[id]
+                INNER JOIN [dbo].[inventory] inventory ON inventory.[inventory_id] = entry.[inventory_id]
+                WHERE inventory.[account_id] = {accountId} AND inventory.[is_deleted] = 0 AND entry.[is_deleted] = 0
+                UNION
+                SELECT entry.* FROM OPENJSON({petJson}) WITH ([id] uniqueidentifier '$') requested
+                INNER JOIN [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK,
+                    FORCESEEK([IX_inventory_entry_active_inventory] ([inventory_id]))) ON entry.[inventory_id] = requested.[id]
+                INNER JOIN [dbo].[inventory] inventory ON inventory.[inventory_id] = entry.[inventory_id]
+                WHERE inventory.[account_id] = {accountId} AND inventory.[is_deleted] = 0 AND entry.[is_deleted] = 0 AND entry.[slot_index] = 7
+                ORDER BY [inventory_entry_id]
                 """).ToListAsync();
         }
         return await (from entry in dbContext.InventoryEntries
                       join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
                       where inventory.AccountId == accountId && !inventory.IsDeleted && !entry.IsDeleted
+                        && (ids.Contains(entry.InventoryEntryId) || fullIds.Contains(entry.InventoryId)
+                            || (petIds.Contains(entry.InventoryId) && entry.SlotIndex == 7))
                       orderby entry.InventoryEntryId
                       select entry).ToListAsync();
     }
