@@ -4,11 +4,19 @@ import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.EntityExhaustionEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,10 +33,53 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings({"deprecation", "removal"})
 class LobbyListenerTest {
+    @Test
+    void sendsRaycastOperationOnlyToFrontmostNpc() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        ServerSelector selector = mock(ServerSelector.class);
+        AccountCreator creator = mock(AccountCreator.class);
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        Entity accountNpc = mock(Entity.class);
+        Location eye = new Location(world, 0.0, 65.0, 0.0);
+        when(player.getWorld()).thenReturn(world);
+        when(player.getEyeLocation()).thenReturn(eye);
+        when(selector.raycastDistance()).thenReturn(6.0);
+        when(creator.raycastDistance()).thenReturn(6.0);
+        when(creator.isNpc(accountNpc)).thenReturn(true);
+        when(world.rayTrace(any(), any(), eq(6.0), eq(FluidCollisionMode.NEVER), eq(true), eq(0.3), any()))
+            .thenReturn(new RayTraceResult(new Vector(0.0, 65.0, 3.0), accountNpc));
+        LobbyListener listener = new LobbyListener(plugin, selector, creator);
+        PlayerInteractEvent event = new PlayerInteractEvent(player, Action.RIGHT_CLICK_AIR,
+            null, null, org.bukkit.block.BlockFace.SELF, EquipmentSlot.HAND);
+
+        listener.onInteract(event);
+
+        verify(creator).create(player);
+        verify(selector, never()).open(player);
+    }
+
+    @Test
+    void ignoresOffhandNpcInteraction() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        ServerSelector selector = mock(ServerSelector.class);
+        AccountCreator creator = mock(AccountCreator.class);
+        Player player = mock(Player.class);
+        Entity npc = mock(Entity.class);
+        LobbyListener listener = new LobbyListener(plugin, selector, creator);
+        PlayerInteractEntityEvent event = new PlayerInteractEntityEvent(player, npc, EquipmentSlot.OFF_HAND);
+
+        listener.onInteractEntity(event);
+
+        assertTrue(event.isCancelled());
+        verifyNoInteractions(selector, creator);
+    }
+
     @Test
     void editingAdmissionRejectsLobbyLoginWithDedicatedReason() {
         AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
@@ -40,7 +91,7 @@ class LobbyListenerTest {
         when(api.getAdmission(playerId)).thenReturn(
             new LobbyApiClient.Admission(false, 0, "player_editing", null, null));
 
-        new LobbyListener(plugin, mock(ServerSelector.class)).onPreLogin(event);
+        new LobbyListener(plugin, mock(ServerSelector.class), mock(AccountCreator.class)).onPreLogin(event);
 
         verify(event).disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
             "管理者によるプレイヤー情報の編集が行われているため参加できません。管理者にお問い合わせください。");
@@ -55,7 +106,7 @@ class LobbyListenerTest {
         when(event.getUniqueId()).thenReturn(playerId);
         when(event.getLoginResult()).thenReturn(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
 
-        new LobbyListener(plugin, mock(ServerSelector.class)).onPreLoginComplete(event);
+        new LobbyListener(plugin, mock(ServerSelector.class), mock(AccountCreator.class)).onPreLoginComplete(event);
 
         verify(plugin).finishLogin(event);
         verify(plugin).clearPermission(playerId);
@@ -105,7 +156,7 @@ class LobbyListenerTest {
         when(player.teleport(any(Location.class), eq(PlayerTeleportEvent.TeleportCause.PLUGIN))).thenReturn(false);
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getSpawnLocation()).thenReturn(spawn);
-        LobbyListener listener = new LobbyListener(plugin, selector);
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
         PlayerMoveEvent first = moveEvent(player, world, -65.0);
         PlayerMoveEvent duplicate = moveEvent(player, world, -66.0);
 
@@ -141,7 +192,7 @@ class LobbyListenerTest {
         when(plugin.isAdmin(player)).thenReturn(true);
         when(player.getWorld()).thenReturn(world);
         when(world.getMinHeight()).thenReturn(-64);
-        LobbyListener listener = new LobbyListener(plugin, selector);
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
         PlayerMoveEvent event = moveEvent(player, world, -65.0);
 
         listener.onMove(event);
@@ -162,7 +213,7 @@ class LobbyListenerTest {
         Player regularPlayer = mock(Player.class);
         Player administrator = mock(Player.class);
         when(plugin.isAdmin(administrator)).thenReturn(true);
-        LobbyListener listener = new LobbyListener(plugin, selector);
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
         FoodLevelChangeEvent regularEvent = new FoodLevelChangeEvent(regularPlayer, 14);
         FoodLevelChangeEvent administratorEvent = new FoodLevelChangeEvent(administrator, 12);
 
@@ -191,7 +242,7 @@ class LobbyListenerTest {
         Player player = mock(Player.class);
         EntityExhaustionEvent event = mock(EntityExhaustionEvent.class);
         when(event.getEntity()).thenReturn(player);
-        LobbyListener listener = new LobbyListener(plugin, selector);
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
 
         listener.onExhaustion(event);
 

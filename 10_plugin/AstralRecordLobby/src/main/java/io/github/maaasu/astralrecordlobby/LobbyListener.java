@@ -5,6 +5,7 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameRule;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -25,6 +26,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
@@ -38,6 +40,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 
 import java.util.HashSet;
@@ -47,11 +50,13 @@ import java.util.UUID;
 final class LobbyListener implements Listener {
     private final AstralRecordLobbyPlugin plugin;
     private final ServerSelector selector;
+    private final AccountCreator accountCreator;
     private final Set<UUID> voidReturning = new HashSet<>();
 
-    LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector) {
+    LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector, AccountCreator accountCreator) {
         this.plugin = plugin;
         this.selector = selector;
+        this.accountCreator = accountCreator;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -110,6 +115,7 @@ final class LobbyListener implements Listener {
         }
         plugin.applyLobbyPermission(player);
         keepFoodFull(player);
+        accountCreator.onJoin(player);
     }
 
     @EventHandler
@@ -117,6 +123,7 @@ final class LobbyListener implements Listener {
         UUID playerId = event.getPlayer().getUniqueId();
         voidReturning.remove(playerId);
         plugin.clearPermission(playerId);
+        accountCreator.onQuit(playerId);
     }
 
     /**
@@ -160,18 +167,35 @@ final class LobbyListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteract(PlayerInteractEvent event) {
         if (!plugin.isAdmin(event.getPlayer())) event.setCancelled(true);
-        selector.openIfLookingAt(event.getPlayer());
+        if (event.getHand() == EquipmentSlot.HAND) interactLookingAt(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        if (selector.isSelector(event.getRightClicked())) selector.open(event.getPlayer());
+        if (event.getHand() == EquipmentSlot.HAND) {
+            if (selector.isSelector(event.getRightClicked())) selector.open(event.getPlayer());
+            else if (accountCreator.isNpc(event.getRightClicked())) accountCreator.create(event.getPlayer());
+        }
         if (!plugin.isAdmin(event.getPlayer())) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onAnimation(PlayerAnimationEvent event) {
-        selector.openIfLookingAt(event.getPlayer());
+        if (event.getAnimationType() == PlayerAnimationType.ARM_SWING) interactLookingAt(event.getPlayer());
+    }
+
+    /** 2種類のNPCを同じレイで検出し、手前の1体にだけ操作を渡します。 */
+    private void interactLookingAt(Player player) {
+        Location eye = player.getEyeLocation();
+        var hit = player.getWorld().rayTrace(eye, eye.getDirection(),
+            Math.max(selector.raycastDistance(), accountCreator.raycastDistance()),
+            FluidCollisionMode.NEVER, true, 0.3,
+            entity -> selector.isSelector(entity) || accountCreator.isNpc(entity));
+        if (hit == null || hit.getHitEntity() == null) return;
+        boolean serverSelector = selector.isSelector(hit.getHitEntity());
+        double limit = serverSelector ? selector.raycastDistance() : accountCreator.raycastDistance();
+        if (hit.getHitPosition().distanceSquared(eye.toVector()) > limit * limit) return;
+        if (serverSelector) selector.open(player); else accountCreator.create(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

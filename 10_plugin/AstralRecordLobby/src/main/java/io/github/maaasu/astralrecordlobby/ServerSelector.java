@@ -5,13 +5,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -19,8 +14,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.util.RayTraceResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 
 final class ServerSelector {
-    private static final String NPC_KEY_NAMESPACE = "astralrecordlobby";
     private static final String LORE_SECTION_SEPARATOR = "◈───────────◈";
     private static final Set<String> ITEM_FLAG_EXCLUSIONS = Set.of(
         "HIDE_CUSTOM_NAME",
@@ -43,85 +35,17 @@ final class ServerSelector {
     private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
 
     private final AstralRecordLobbyPlugin plugin;
-    private final NamespacedKey npcKey;
+    private final LobbyNpc npc;
 
     ServerSelector(AstralRecordLobbyPlugin plugin) {
         this.plugin = plugin;
-        this.npcKey = new NamespacedKey(NPC_KEY_NAMESPACE, "server_selector");
+        this.npc = new LobbyNpc(plugin, "selector.npc", "server_selector", "サーバー選択", true);
     }
 
-    /**
-     * 既存のサーバー選択NPCを整理してから、設定位置へ1体だけ生成します。
-     */
-    void spawnNpc() {
-        removeAllSelectorNpcs();
-        if (!plugin.getConfig().getBoolean("selector.npc.enabled", true)) return;
-        String worldName = plugin.getConfig().getString("selector.npc.world", "world");
-        World world = Bukkit.getWorld(worldName);
-        if (world == null) {
-            plugin.getLogger().warning("Server selector NPC world is not loaded: " + worldName);
-            return;
-        }
-        EntityType type;
-        try {
-            type = EntityType.valueOf(plugin.getConfig().getString("selector.npc.type", "VILLAGER").toUpperCase());
-        } catch (IllegalArgumentException exception) {
-            type = EntityType.VILLAGER;
-        }
-        if (!type.isSpawnable() || !type.isAlive()) type = EntityType.VILLAGER;
-        var location = new org.bukkit.Location(
-            world,
-            plugin.getConfig().getDouble("selector.npc.x", 0.5),
-            plugin.getConfig().getDouble("selector.npc.y", 64.0),
-            plugin.getConfig().getDouble("selector.npc.z", 0.5),
-            (float) plugin.getConfig().getDouble("selector.npc.yaw", 0.0),
-            (float) plugin.getConfig().getDouble("selector.npc.pitch", 0.0));
-        Entity npc = world.spawnEntity(location, type);
-        npc.getPersistentDataContainer().set(npcKey, PersistentDataType.BYTE, (byte) 1);
-        npc.customName(Component.text(plugin.getConfig().getString("selector.npc.name", "サーバー選択")));
-        npc.setCustomNameVisible(true);
-        npc.setInvulnerable(true);
-        if (npc instanceof LivingEntity living) {
-            living.setAI(false);
-            living.setSilent(true);
-            living.setCollidable(false);
-            living.setRemoveWhenFarAway(false);
-        }
-    }
-
-    /**
-     * ロード済みワールドに残るサーバー選択NPCをすべて除去します。
-     */
-    void removeNpc() {
-        removeAllSelectorNpcs();
-    }
-
-    /**
-     * ロード済みワールドに残っているサーバー選択NPCをすべて除去します。
-     * 起動・停止をまたいだ古い参照や、設定座標から移動した重複NPCも対象にします。
-     */
-    private void removeAllSelectorNpcs() {
-        plugin.getServer().getWorlds().forEach(world ->
-            world.getEntities().stream()
-                .filter(this::isSelector)
-                .toList()
-                .forEach(Entity::remove));
-    }
-
-    boolean isSelector(Entity entity) {
-        return entity != null && entity.getPersistentDataContainer().has(npcKey, PersistentDataType.BYTE);
-    }
-
-    boolean openIfLookingAt(Player player) {
-        double distance = Math.max(0.1, Math.min(6.0,
-            plugin.getConfig().getDouble("selector.npc.raycastDistance", 6.0)));
-        RayTraceResult hit = player.getWorld().rayTrace(
-            player.getEyeLocation(), player.getEyeLocation().getDirection(), distance,
-            FluidCollisionMode.NEVER, true, 0.3, this::isSelector);
-        if (hit == null || hit.getHitEntity() == null) return false;
-        open(player);
-        return true;
-    }
+    void spawnNpc() { npc.start(); }
+    void removeNpc() { npc.stop(); }
+    boolean isSelector(Entity entity) { return npc.matches(entity); }
+    double raycastDistance() { return npc.raycastDistance(); }
 
     /**
      * サーバー選択GUIを即時表示し、APIから取得した人数情報で非同期更新する。

@@ -3,6 +3,7 @@ package io.github.maaasu.astralrecordlobby;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -37,6 +38,74 @@ class LobbyApiClientTest {
 
     @TempDir
     Path temporaryDirectory;
+
+    @Test
+    void accountRequestsRegisterMissingUserCreateFixedSlotAndSelectReturnedAccount() throws Exception {
+        UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        List<String> requests = new ArrayList<>();
+        List<String> bodies = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            String route = exchange.getRequestMethod() + " " + exchange.getRequestURI();
+            requests.add(route);
+            bodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            String payload = route.startsWith("GET /api/account") ? "[]" : route.startsWith("POST /api/account")
+                ? "{\"uuid\":\"" + accountId + "\",\"accountName\":\"MinecraftName2\"}" : "{}";
+            int status = route.startsWith("GET /api/user/") ? 404 : 200;
+            byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(status, bytes.length);
+            try (OutputStream output = exchange.getResponseBody()) { output.write(bytes); }
+        });
+        server.start();
+        try {
+            YamlConfiguration config = new YamlConfiguration();
+            config.set("api.baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
+            LobbyApiClient api = new LobbyApiClient(config);
+
+            assertTrue(api.getAccounts(playerId).isEmpty());
+            api.ensureUser(playerId, "MinecraftName", "192.0.2.1");
+            var created = api.createAccount(playerId, "MinecraftName");
+            api.selectAccount(playerId, created.uuid());
+
+            assertEquals(List.of("GET /api/account?user_id=" + playerId, "GET /api/user/" + playerId,
+                "POST /api/user", "POST /api/account", "PUT /api/user/" + playerId), requests);
+            var user = JsonParser.parseString(bodies.get(2)).getAsJsonObject();
+            assertEquals(playerId.toString(), user.get("uuid").getAsString());
+            assertEquals("MinecraftName", user.get("mcid").getAsString());
+            assertEquals("192.0.2.1", user.get("globalIp").getAsString());
+            var account = JsonParser.parseString(bodies.get(3)).getAsJsonObject();
+            assertEquals(playerId.toString(), account.get("userId").getAsString());
+            assertEquals(playerId.toString(), account.get("createdBy").getAsString());
+            assertEquals("MinecraftName", account.get("accountName").getAsString());
+            assertEquals(0, account.get("slotIndex").getAsInt());
+            assertEquals(0, account.get("mode").getAsInt());
+            assertEquals("MinecraftName2", created.accountName());
+            var selection = JsonParser.parseString(bodies.get(4)).getAsJsonObject();
+            assertEquals(accountId.toString(), selection.get("accountId").getAsString());
+            assertEquals(playerId.toString(), selection.get("updatedBy").getAsString());
+        } finally { server.stop(0); }
+    }
+
+    @Test
+    void accountListRejectsNullAndHttpFailureInsteadOfAssumingNoAccount() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        java.util.concurrent.atomic.AtomicInteger status = new java.util.concurrent.atomic.AtomicInteger(200);
+        server.createContext("/", exchange -> {
+            byte[] bytes = "null".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(status.get(), bytes.length);
+            try (OutputStream output = exchange.getResponseBody()) { output.write(bytes); }
+        });
+        server.start();
+        try {
+            YamlConfiguration config = new YamlConfiguration();
+            config.set("api.baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
+            LobbyApiClient api = new LobbyApiClient(config);
+            assertThrows(RuntimeException.class, () -> api.getAccounts(UUID.randomUUID()));
+            status.set(503);
+            assertThrows(IllegalStateException.class, () -> api.getAccounts(UUID.randomUUID()));
+        } finally { server.stop(0); }
+    }
 
     @Test
     void vipAdmissionRejectsExpiredMissingAndUnknownTiers() {

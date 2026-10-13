@@ -57,6 +57,52 @@ final class LobbyApiClient {
             optionalString(json, "vipTier"), optionalString(json, "vipExpiresAt"));
     }
 
+    /** 未削除アカウントの一覧を取得します。null・不正応答は未保有として扱いません。 */
+    List<AccountSummary> getAccounts(UUID playerId) {
+        JsonArray array = gson.fromJson(send("GET", "/api/account?user_id=" + playerId, null), JsonArray.class);
+        if (array == null) throw new IllegalStateException("Account list response is null");
+        List<AccountSummary> accounts = new ArrayList<>();
+        array.forEach(value -> accounts.add(AccountSummary.fromJson(value.getAsJsonObject())));
+        return List.copyOf(accounts);
+    }
+
+    /** 作成操作時だけ、未登録Minecraftユーザーを登録します。既存ユーザーは変更しません。 */
+    void ensureUser(UUID playerId, String minecraftName, String globalIp) {
+        HttpResponse<String> response = request("GET", "/api/user/" + playerId, null);
+        if (response.statusCode() == 200) return;
+        if (response.statusCode() != 404) requireSuccess(response);
+        JsonObject body = new JsonObject();
+        String now = java.time.Instant.now().toString();
+        body.addProperty("uuid", playerId.toString());
+        body.addProperty("mcid", minecraftName);
+        body.addProperty("joinDate", now);
+        body.addProperty("lastJoinDate", now);
+        body.addProperty("globalIp", globalIp);
+        body.addProperty("createdBy", playerId.toString());
+        HttpResponse<String> created = request("POST", "/api/user", body.toString());
+        // 同時に初回登録が行われた場合、APIの既存ユーザー判定を受け入れます。
+        if (created.statusCode() != 409) requireSuccess(created);
+    }
+
+    /** 初回用スロット0へ通常アカウントを作ります。自動再送は行いません。 */
+    AccountSummary createAccount(UUID playerId, String minecraftName) {
+        JsonObject body = new JsonObject();
+        body.addProperty("userId", playerId.toString());
+        body.addProperty("accountName", minecraftName);
+        body.addProperty("slotIndex", 0);
+        body.addProperty("mode", 0);
+        body.addProperty("createdBy", playerId.toString());
+        return AccountSummary.fromJson(gson.fromJson(send("POST", "/api/account", body.toString()), JsonObject.class));
+    }
+
+    /** 作成済みアカウントを選択し、admissionが参照するuser.accountIdを初期化します。 */
+    void selectAccount(UUID playerId, UUID accountId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("accountId", accountId.toString());
+        body.addProperty("updatedBy", playerId.toString());
+        send("PUT", "/api/user/" + playerId, body.toString());
+    }
+
     /** Register this Lobby boot as a participant in player edit drains. */
     void registerRuntimeServer(String serverId, UUID serverSessionId) {
         JsonObject body = new JsonObject();
@@ -189,6 +235,18 @@ final class LobbyApiClient {
     }
 
     private String send(String method, String path, String body) {
+        HttpResponse<String> response = request(method, path, body);
+        requireSuccess(response);
+        return response.body();
+    }
+
+    private static void requireSuccess(HttpResponse<String> response) {
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalStateException("Network API returned HTTP " + response.statusCode());
+        }
+    }
+
+    private HttpResponse<String> request(String method, String path, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(timeout)
             .header("X-Api-Key", apiKey)
@@ -200,16 +258,21 @@ final class LobbyApiClient {
                 .method(method, HttpRequest.BodyPublishers.ofString(body));
         }
         try {
-            HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Network API returned HTTP " + response.statusCode());
-            }
-            return response.body();
+            return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Network API request interrupted", exception);
         } catch (Exception exception) {
             throw new IllegalStateException("Network API request failed", exception);
+        }
+    }
+
+    record AccountSummary(UUID uuid, String accountName) {
+        static AccountSummary fromJson(JsonObject value) {
+            if (value == null) throw new IllegalStateException("Account response is null");
+            String name = value.get("accountName").getAsString();
+            if (name.isBlank()) throw new IllegalStateException("Account name is blank");
+            return new AccountSummary(UUID.fromString(value.get("uuid").getAsString()), name);
         }
     }
 

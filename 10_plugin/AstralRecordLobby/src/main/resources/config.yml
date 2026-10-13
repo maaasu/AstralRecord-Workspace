@@ -27,6 +27,7 @@ selector:
     type: VILLAGER
     name: "サーバー選択"
     raycastDistance: 6.0
+    lookDistance: 8.0
   entries:
     ch1:
       server: ch1
@@ -49,3 +50,17 @@ selector:
       name: "dev に接続"
       lore:
         - "開発・検証用サーバー"
+accountCreator:
+  npc:
+    # 配置先を設定してから true にする。未削除アカウントを1つでも持つ場合は作成しない。
+    enabled: false
+    world: world
+    x: 3.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+    type: VILLAGER
+    name: "アカウント作成"
+    raycastDistance: 6.0
+    lookDistance: 8.0

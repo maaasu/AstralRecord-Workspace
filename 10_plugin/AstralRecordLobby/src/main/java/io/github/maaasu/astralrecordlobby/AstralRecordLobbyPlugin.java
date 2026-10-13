@@ -34,6 +34,7 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
     private volatile boolean runtimeRegistered;
     private LobbyApiClient api;
     private ServerSelector selector;
+    private AccountCreator accountCreator;
     private DiscordNetworkBridge discordBridge;
 
     @Override
@@ -45,6 +46,7 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
         }
         api = new LobbyApiClient(getConfig());
         selector = new ServerSelector(this);
+        accountCreator = new AccountCreator(this);
         PlayerMessageService playerMessages = new PlayerMessageService();
         getServer().getMessenger().registerOutgoingPluginChannel(this, BackendProtocol.CHANNEL);
         getServer().getMessenger().registerIncomingPluginChannel(this, BackendProtocol.CHANNEL,
@@ -56,9 +58,11 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
                         notification.playerName(), notification.channelName());
                 }
             });
-        getServer().getPluginManager().registerEvents(new LobbyListener(this, selector), this);
+        getServer().getPluginManager().registerEvents(new LobbyListener(this, selector, accountCreator), this);
         getServer().getWorlds().forEach(world -> world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true));
         selector.spawnNpc();
+        accountCreator.start();
+        getServer().getOnlinePlayers().forEach(accountCreator::onJoin);
         discordBridge = new DiscordNetworkBridge(this, api);
         discordBridge.start();
         getServer().getScheduler().runTaskTimer(this, () ->
@@ -71,6 +75,7 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
     public void onDisable() {
         if (discordBridge != null) discordBridge.stop();
         if (selector != null) selector.removeNpc();
+        if (accountCreator != null) accountCreator.stop();
         getServer().getMessenger().unregisterIncomingPluginChannel(this);
         getServer().getMessenger().unregisterOutgoingPluginChannel(this);
     }
