@@ -205,6 +205,31 @@ class ItemRepositoryEquipmentParsingTest {
         assertEquals("block.note_block.chime", item.getConsumable().getOnUse().getSound());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 5. 所有インスタンス > ### 5.1 `EquipmentInstance`
+     * 検証契約: APIの固定flagは読込とJSON保存で保全し、欠落・nullの旧行は未固定へ正規化する。
+     */
+    @Test
+    void enchantLockIsPreservedAcrossRepositoryAndJsonSnapshotPaths() throws Exception {
+        for (String flag : java.util.List.of("", ", \"isLocked\": null", ", \"isLocked\": true", ", \"isLocked\": false")) {
+            String json = """
+                {"equipmentInstanceId":"i","accountId":"a","itemId":"item",
+                 "enchants":[{"enchantId":"e","equipmentInstanceId":"i","slotIndex":2,
+                  "enchantMasterId":"master","effectId":"effect","status":"ATTACK","type":"FLAT","value":5%s}]}
+                """.formatted(flag);
+            EquipmentInstance parsed = parseEquipmentInstance(json);
+            boolean expected = flag.endsWith("true");
+            assertEquals(expected, parsed.getEnchants().getFirst().isLocked());
+            var gson = new com.google.gson.Gson();
+            var serialized = gson.toJsonTree(parsed).getAsJsonObject();
+            assertEquals(expected, serialized.getAsJsonArray("enchants").get(0).getAsJsonObject().get("isLocked").getAsBoolean());
+            // MarketRepositoryの装備読込も同じGsonモデル変換を利用する。
+            EquipmentInstance marketCopy = gson.fromJson(serialized, EquipmentInstance.class);
+            assertEquals(parsed, marketCopy);
+        }
+    }
+
     private EquipmentInstance parseEquipmentInstance(String json) throws Exception {
         ItemRepository repository = new ItemRepository();
         Method parser = ItemRepository.class.getDeclaredMethod("parseEquipmentInstance", String.class);

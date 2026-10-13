@@ -109,9 +109,32 @@ final class OrbLocalMutationCalculator {
             current.getEnchants(), current.getRunes()), name);
     }
 
+    /**
+     * 未固定行だけを加工し、成立した完成状態を返します。対象なしでは支払い前に拒否します。
+     * @param effect 使用オーブ効果
+     * @param model 装備マスタ
+     * @param current 変更しない入力個体
+     * @param master 付与・上書き・数値再抽選の共通マスタ。削除・固定ではnull可
+     * @return 対象条件を満たす完成状態。条件不成立ではnull
+     */
     private static @Nullable LocalResult enchant(@NotNull ItemOrbEffect effect, @NotNull ItemModel model,
         @NotNull EquipmentInstance current, @Nullable EnchantMaster master) {
-        if (!OrbEligibility.canEnchant(effect, model, current, master) || master == null || model.getEquipment() == null) return null;
+        if (!OrbEligibility.canEnchant(effect, model, current, master) || model.getEquipment() == null) return null;
+        List<EquipmentEnchant> existing = new ArrayList<>(current.getEnchants());
+        ItemOrbEnchantOperation operation = effect.getEnchantOperation();
+        List<EquipmentEnchant> unlocked = existing.stream().filter(enchant -> !enchant.isLocked()).toList();
+        if (operation == ItemOrbEnchantOperation.REMOVE_RANDOM || operation == ItemOrbEnchantOperation.LOCK_FIRST) {
+            EquipmentEnchant chosen = operation == ItemOrbEnchantOperation.LOCK_FIRST
+                ? unlocked.stream().min(Comparator.comparingInt(EquipmentEnchant::getSlotIndex)).orElseThrow()
+                : unlocked.get(ThreadLocalRandom.current().nextInt(unlocked.size()));
+            if (operation == ItemOrbEnchantOperation.REMOVE_RANDOM) {
+                existing.remove(chosen);
+            } else {
+                existing.set(existing.indexOf(chosen), replaceEnchant(chosen, chosen.getEnchantMasterId(), chosen.getValue(), true));
+            }
+            return enchantResult(current, existing);
+        }
+        if (master == null) return null;
         EnchantEquipmentType type = enchantEquipmentType(model.getEquipment().getSlot());
         EnchantTarget target = master.getTargets().stream().filter(candidate -> candidate.getEquipmentType() == type)
             .findFirst().orElse(null);
@@ -119,12 +142,18 @@ final class OrbLocalMutationCalculator {
         Map<String, EnchantEntry> unique = new LinkedHashMap<>();
         target.getEntries().stream().filter(OrbLocalMutationCalculator::isValidEnchantEntry)
             .forEach(entry -> unique.putIfAbsent(normalize(entry.getEffectId()), entry));
-        List<EquipmentEnchant> existing = new ArrayList<>(current.getEnchants());
-        ItemOrbEnchantOperation operation = effect.getEnchantOperation();
+        if (operation == ItemOrbEnchantOperation.REROLL_VALUE_RANDOM) {
+            EquipmentEnchant chosen = unlocked.get(ThreadLocalRandom.current().nextInt(unlocked.size()));
+            EnchantEntry candidate = unique.values().stream().filter(entry -> OrbEligibility.matchesRerollEffect(entry, chosen))
+                .findFirst().orElse(null);
+            if (candidate == null) return null;
+            existing.set(existing.indexOf(chosen), replaceEnchant(chosen, master.getId(), resolveValue(candidate.getValue()), false));
+            return enchantResult(current, existing);
+        }
         List<Integer> slots;
         List<EnchantEntry> candidates;
         if (operation == ItemOrbEnchantOperation.OVERWRITE_RANDOM) {
-            List<OverwriteChoice> viable = existing.stream().map(overwrite -> new OverwriteChoice(overwrite,
+            List<OverwriteChoice> viable = unlocked.stream().map(overwrite -> new OverwriteChoice(overwrite,
                 unique.values().stream().filter(candidate -> existing.stream().noneMatch(other ->
                     !other.getEnchantId().equalsIgnoreCase(overwrite.getEnchantId()) && sameEnchantEffect(candidate, other)))
                     .toList())).filter(choice -> !choice.candidates().isEmpty()).toList();
@@ -151,11 +180,35 @@ final class OrbLocalMutationCalculator {
         for (int index = 0; index < selected.size(); index++) {
             EnchantEntry entry = selected.get(index);
             existing.add(new EquipmentEnchant(UUID.randomUUID().toString(), current.getEquipmentInstanceId(), slots.get(index),
-                master.getId(), entry.getEffectId(), entry.getStatus(), entry.getType(), resolveValue(entry.getValue())));
+                master.getId(), entry.getEffectId(), entry.getStatus(), entry.getType(), resolveValue(entry.getValue()), false));
         }
-        existing.sort(Comparator.comparingInt(EquipmentEnchant::getSlotIndex));
+        return enchantResult(current, existing);
+    }
+
+    /**
+     * エンチャントの識別子・枠・効果を保持して数値由来と固定状態だけを置き換えます。
+     * @param current 変更しない入力行
+     * @param masterId 数値の由来マスタ
+     * @param value 確定値
+     * @param locked 固定状態
+     * @return 置き換え後の不変行
+     */
+    private static @NotNull EquipmentEnchant replaceEnchant(@NotNull EquipmentEnchant current,
+        @NotNull String masterId, double value, boolean locked) {
+        return new EquipmentEnchant(current.getEnchantId(), current.getEquipmentInstanceId(), current.getSlotIndex(),
+            masterId, current.getEffectId(), current.getStatus(), current.getType(), value, locked);
+    }
+
+    /**
+     * 残存枠番号を詰めずに整列し、装備の他の動的データを保持した完成状態を返します。
+     * @param current 変更しない入力個体
+     * @param enchants 加工後の一覧。スロット順へ整列する
+     * @return 加工結果を持つ装備完成状態
+     */
+    private static @NotNull LocalResult enchantResult(@NotNull EquipmentInstance current, @NotNull List<EquipmentEnchant> enchants) {
+        enchants.sort(Comparator.comparingInt(EquipmentEnchant::getSlotIndex));
         return LocalResult.enchant(replace(current, current.getEnhanceLevel(), current.getRuneMaxSlots(),
-            current.getTranscendenceRank(), current.getDurabilityMax(), current.getDurabilityValue(), existing, current.getRunes()));
+            current.getTranscendenceRank(), current.getDurabilityMax(), current.getDurabilityValue(), enchants, current.getRunes()));
     }
 
     private static @Nullable LocalResult attachRune(@NotNull ItemModel model, @NotNull EquipmentInstance current,

@@ -134,8 +134,8 @@ final class OrbEligibility {
      * @param effect 使用するオーブ効果
      * @param model 装備マスタ
      * @param instance 装備個体
-     * @param master 共通エンチャントマスタ
-     * @return 空き枠・候補・重複禁止条件を満たす場合 {@code true}
+     * @param master 共通エンチャントマスタ。削除・固定では不要
+     * @return 操作の対象・空き枠・候補・固定保護・重複禁止条件を満たす場合 {@code true}
      */
     static boolean canEnchant(
         @NotNull ItemOrbEffect effect,
@@ -145,11 +145,17 @@ final class OrbEligibility {
     ) {
         ItemEquipment equipment = model.getEquipment();
         ItemOrbEnchantOperation operation = effect.getEnchantOperation();
-        if (equipment == null || equipment.getEnchant() == null || operation == null || master == null) {
+        if (equipment == null || equipment.getEnchant() == null || operation == null) {
             return false;
         }
         EnchantEquipmentType equipmentType = enchantEquipmentType(equipment.getSlot());
         if (equipmentType == null) {
+            return false;
+        }
+        if (operation == ItemOrbEnchantOperation.REMOVE_RANDOM || operation == ItemOrbEnchantOperation.LOCK_FIRST) {
+            return instance.getEnchants().stream().anyMatch(enchant -> !enchant.isLocked());
+        }
+        if (master == null) {
             return false;
         }
         EnchantTarget target = master.getTargets().stream()
@@ -168,6 +174,12 @@ final class OrbEligibility {
             return false;
         }
 
+        if (operation == ItemOrbEnchantOperation.REROLL_VALUE_RANDOM) {
+            // 一様抽選する未固定行のいずれでも同一効果の値域を解決できる必要がある。
+            List<EquipmentEnchant> unlocked = instance.getEnchants().stream().filter(enchant -> !enchant.isLocked()).toList();
+            return !unlocked.isEmpty() && unlocked.stream().allMatch(enchant -> uniqueCandidates.values().stream()
+                .anyMatch(candidate -> matchesRerollEffect(candidate, enchant)));
+        }
         int maxSlots = effectiveEnchantMaxSlots(equipment, instance.getTranscendenceRank());
         if (maxSlots <= 0) {
             return false;
@@ -184,7 +196,7 @@ final class OrbEligibility {
                 return false;
             }
             // APIと同じく、上書き対象自身だけを重複比較集合から除外して候補を判定する。
-            return instance.getEnchants().stream().anyMatch(overwriteTarget ->
+            return instance.getEnchants().stream().filter(enchant -> !enchant.isLocked()).anyMatch(overwriteTarget ->
                 uniqueCandidates.values().stream().anyMatch(candidate ->
                     instance.getEnchants().stream().noneMatch(other ->
                         !other.getEnchantId().equalsIgnoreCase(overwriteTarget.getEnchantId())
@@ -201,6 +213,19 @@ final class OrbEligibility {
             .count();
         int requiredCandidates = operation == ItemOrbEnchantOperation.FILL_ALL_EMPTY ? emptySlots : 1;
         return availableEffects >= requiredCandidates;
+    }
+
+    /**
+     * 数値再抽選で効果の種類を維持できる候補か判定します。
+     *
+     * @param candidate 使用オーブの共通マスタ候補
+     * @param current 現在の付与行
+     * @return 効果ID・ステータス・補正方式が一致する場合true
+     */
+    static boolean matchesRerollEffect(@NotNull EnchantEntry candidate, @NotNull EquipmentEnchant current) {
+        return candidate.getEffectId().equalsIgnoreCase(current.getEffectId())
+            && candidate.getStatus().equalsIgnoreCase(current.getStatus())
+            && candidate.getType().equalsIgnoreCase(current.getType());
     }
 
     private static boolean isValidEnchantEntry(@NotNull EnchantEntry entry) {

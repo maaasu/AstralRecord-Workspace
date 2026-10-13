@@ -19,6 +19,8 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEnchantOperation;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -1676,7 +1678,7 @@ public final class OrbService {
     }
 
     /**
-     * エンチャント枠操作をプレイヤー向け文言へ変換します。
+     * エンチャント枠操作と固定保護をプレイヤー向け文言へ変換します。
      *
      * @param effect オーブ効果
      * @return 説明文
@@ -1686,9 +1688,12 @@ public final class OrbService {
             return "エンチャント情報を取得できません";
         }
         return switch (effect.getEnchantOperation()) {
-            case OVERWRITE_RANDOM -> "既存の1枠をランダムに上書き";
+            case OVERWRITE_RANDOM -> PlayerMsgResource.getMessage(PlayerMsgId.P_5934.getId());
             case FILL_ONE_EMPTY -> "空いている1枠へ付与";
             case FILL_ALL_EMPTY -> "空いている全枠へ1個で付与";
+            case REROLL_VALUE_RANDOM -> PlayerMsgResource.getMessage(PlayerMsgId.P_5314.getId());
+            case REMOVE_RANDOM -> PlayerMsgResource.getMessage(PlayerMsgId.P_5315.getId());
+            case LOCK_FIRST -> PlayerMsgResource.getMessage(PlayerMsgId.P_5316.getId());
         };
     }
 
@@ -2351,7 +2356,7 @@ public final class OrbService {
                                 rejected.set(true);
                                 throw new LocalMutationRejectedException();
                             }
-                            MutationResult result = toLocalMutationResult(effect.getType(), currentModel, local);
+                            MutationResult result = toLocalMutationResult(effect, currentModel, local);
                             if (local.returnedRuneItemId() != null) {
                                 ItemModel returnedRune = itemService.findLoadedById(local.returnedRuneItemId());
                                 if (returnedRune == null || inventoryService.addItemToNormalInventoryStateOnly(
@@ -2401,18 +2406,24 @@ public final class OrbService {
         }
     }
 
-    /** ローカル計算結果を既存GUI通知用の結果型へ変換します。 */
+    /**
+     * ローカル計算結果を操作の種類を保持したGUI通知用の結果型へ変換します。
+     * @param effect 実行したオーブ効果
+     * @param model 対象装備マスタ
+     * @param local 確定結果
+     * @return 成功通知用結果
+     */
     private @NotNull MutationResult toLocalMutationResult(
-        @NotNull ItemOrbEffectType type,
+        @NotNull ItemOrbEffect effect,
         @NotNull ItemModel model,
         @NotNull OrbLocalMutationCalculator.LocalResult local
     ) {
-        return switch (type) {
+        return switch (effect.getType()) {
             case ENHANCE -> MutationResult.enhancement(
                 model, local.instance(), local.enhancementSucceeded(),
                 Objects.requireNonNull(local.failAction()), local.successRate());
             case REPAIR -> MutationResult.repair(model, local.instance(), local.repairedAmount());
-            case ENCHANT -> MutationResult.enchant(model, local.instance());
+            case ENCHANT -> MutationResult.enchant(model, local.instance(), Objects.requireNonNull(effect.getEnchantOperation()));
             case RUNE_ATTACH, RUNE_DETACH -> MutationResult.rune(model, local.instance());
             case TRANSCENDENCE -> MutationResult.transcendence(
                 model, local.instance(), Objects.requireNonNull(local.transitionName()));
@@ -2829,6 +2840,9 @@ public final class OrbService {
             );
             case ENCHANT -> PlayerMessageService.getInstance().send(
                 player, PlayerMsgId.P_5293, displayName);
+            case ENCHANT_REROLL -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5317, displayName);
+            case ENCHANT_REMOVE -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5318, displayName);
+            case ENCHANT_LOCK -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5319, displayName);
             case RUNE -> { }
             case TRANSCENDENCE -> PlayerMessageService.getInstance().send(
                 player, PlayerMsgId.P_5287, displayName, result.transitionName);
@@ -2948,6 +2962,9 @@ public final class OrbService {
         ENHANCEMENT,
         REPAIR,
         ENCHANT,
+        ENCHANT_REROLL,
+        ENCHANT_REMOVE,
+        ENCHANT_LOCK,
         RUNE,
         TRANSCENDENCE,
     }
@@ -3045,15 +3062,22 @@ public final class OrbService {
          *
          * @param model 装備マスタ
          * @param instance 更新後装備個体
+         * @param operation 実行したエンチャント操作
          * @return エンチャント結果
          */
         private static @NotNull MutationResult enchant(
             @NotNull ItemModel model,
-            @NotNull EquipmentInstance instance
+            @NotNull EquipmentInstance instance,
+            @NotNull ItemOrbEnchantOperation operation
         ) {
             return new MutationResult(
                 MutationStatus.SUCCESS,
-                MutationKind.ENCHANT,
+                switch (operation) {
+                    case REROLL_VALUE_RANDOM -> MutationKind.ENCHANT_REROLL;
+                    case REMOVE_RANDOM -> MutationKind.ENCHANT_REMOVE;
+                    case LOCK_FIRST -> MutationKind.ENCHANT_LOCK;
+                    default -> MutationKind.ENCHANT;
+                },
                 model,
                 instance,
                 false,

@@ -871,6 +871,7 @@ class ItemRepository {
                 status = parseStringOrNull(obj, "status") ?: return@mapNotNull null,
                 type = parseStringOrNull(obj, "type") ?: return@mapNotNull null,
                 value = obj.get("value")?.takeIf { !it.isJsonNull }?.asDouble ?: 0.0,
+                isLocked = obj.get("isLocked")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
             )
         }
     }

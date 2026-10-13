@@ -157,7 +157,7 @@ class EquipmentEnhanceCalculatorTest {
     private static EquipmentInstance instance(int level, int max, int value) {
         return new EquipmentInstance("instance", "account", "equipment", level, 2, 1, max, value, "created", "updated",
             List.of(new EquipmentStatRoll("roll", "ATTACK", "1", "2", 0)),
-            List.of(new EquipmentEnchant("enchant", "instance", 0, "master", "effect", "ATTACK", "FLAT", 1.0D)),
+            List.of(new EquipmentEnchant("enchant", "instance", 0, "master", "effect", "ATTACK", "FLAT", 1.0D, true)),
             List.of(new EquipmentRune("rune", "instance", 0, "rune-item")));
     }
 }

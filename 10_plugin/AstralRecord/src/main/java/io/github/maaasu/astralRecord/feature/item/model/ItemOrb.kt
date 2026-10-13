@@ -84,6 +84,9 @@ enum class ItemOrbEnchantOperation {
     OVERWRITE_RANDOM,
     FILL_ONE_EMPTY,
     FILL_ALL_EMPTY,
+    REROLL_VALUE_RANDOM,
+    REMOVE_RANDOM,
+    LOCK_FIRST,
     ;
 
     companion object {

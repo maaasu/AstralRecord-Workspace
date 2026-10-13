@@ -1475,7 +1475,13 @@ public class ItemStackFactory {
                         var reason = enchantType == ItemEquipmentStatType.SCALAR
                                 ? contribution.scalarInactiveReason(enchantIndex)
                                 : EquipmentStatContributionCalculator.ScalarInactiveReason.NONE;
-                        lore.add(formatEnchantApplicability(line, reason));
+                        String applicableLine = formatEnchantApplicability(line, reason);
+                        if (enchant.isLocked()) {
+                            applicableLine = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD
+                                    + ColorCodeUtil.toPlainText(applicableLine, "") + " "
+                                    + PlayerMsgResource.getMessage(PlayerMsgId.P_5933.getId());
+                        }
+                        lore.add(applicableLine);
                         String masterKey = enchant.getEnchantMasterId().trim().toLowerCase(Locale.ROOT);
                         if (!enchantMasters.containsKey(masterKey)) {
                             enchantMasters.put(masterKey, itemService.findEnchantMasterById(masterKey));
