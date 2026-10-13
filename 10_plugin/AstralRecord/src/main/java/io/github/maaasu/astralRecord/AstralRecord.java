@@ -1741,11 +1741,6 @@ public final class AstralRecord extends JavaPlugin {
         // menu
         guiSessionTransitionService = new GuiSessionTransitionService();
         guiNavigationService = new GuiNavigationService(this);
-        playerGuiRenderContextFactory = new PlayerGuiRenderContextFactory(
-            currencyService,
-            statusService,
-            skillTreeService
-        );
         menuView = new MenuView(this, guideService, guideCompletionRewardService);
         menuGuiTransitionService =
             new MenuGuiTransitionService(this, menuView, inventoryService);
@@ -1801,6 +1796,11 @@ public final class AstralRecord extends JavaPlugin {
         inventoryPersistence.registerStateParticipant(loginBonusService::snapshotPlayerState);
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
+        guideCompletionRewardService.setRewardMailCreatedListener(mailService::invalidateUnreadCount);
+        playerGuiRenderContextFactory = new PlayerGuiRenderContextFactory(
+            currencyService, statusService, skillTreeService,
+            mailService, guideService, guideCompletionRewardService
+        );
         donationNotificationService = new DonationNotificationService(this, new DonationNotificationRepository());
         accountBenefitsService = new io.github.maaasu.astralRecord.feature.vip.service.AccountBenefitsService(
             this, inventoryService, inventorySaveCoordinator);
@@ -2510,6 +2510,7 @@ public final class AstralRecord extends JavaPlugin {
             adventureRecordStateService.discardAccountState(accountId);
             guideService.discardAccountState(accountId);
             guideCompletionRewardService.discardAccountState(accountId);
+            mailService.discardMenuState(accountId);
             loginBonusService.discardAccountState(accountId);
             teleporterService.discardAccountState(accountId);
             questService.discardAccountState(accountId);
@@ -2545,6 +2546,7 @@ public final class AstralRecord extends JavaPlugin {
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
             guideCompletionRewardService.discardAccountState(player.getAccount().getUuid());
+            mailService.discardMenuState(player.getAccount().getUuid());
             try {
                 clearSkillbookCombatState(playerId);
                 meleeDualCrestRuntimeService.forgetPlayer(playerId);

@@ -187,10 +187,15 @@ public final class MailService {
             if (state.count != null && now - state.fetchedAtMs < UNREAD_CACHE_TTL_MS) return;
             if (state.refreshInFlight) {
                 state.callbacks.add(onChanged);
+                if (state.refreshGeneration != state.generation) {
+                    state.refreshRequestedAfterInvalidation = true;
+                }
                 return;
             }
             if (now < state.retryAfterMs) return;
             state.refreshInFlight = true;
+            state.refreshRequestedAfterInvalidation = false;
+            state.refreshGeneration = state.generation;
             state.callbacks.add(onChanged);
             generation = state.generation;
         }
@@ -218,16 +223,24 @@ public final class MailService {
                         return;
                     }
                     List<Runnable> callbacks;
+                    boolean restartForCurrentGeneration;
                     synchronized (state) {
+                        restartForCurrentGeneration = state.generation != generation
+                            && state.refreshRequestedAfterInvalidation && unreadCounts.get(accountId) == state;
                         if (state.generation == generation && result != null) {
                             publishUnreadCount(accountId, state, generation, result);
                         }
                         state.refreshInFlight = false;
-                        state.retryAfterMs = result == null ? System.currentTimeMillis() + UNREAD_REFRESH_RETRY_MS : 0L;
+                        state.refreshRequestedAfterInvalidation = false;
+                        state.retryAfterMs = !restartForCurrentGeneration && result == null
+                            ? System.currentTimeMillis() + UNREAD_REFRESH_RETRY_MS : 0L;
                         callbacks = List.copyOf(state.callbacks);
                         state.callbacks.clear();
                     }
                     callbacks.forEach(Runnable::run);
+                    if (restartForCurrentGeneration && !callbacks.isEmpty() && unreadCounts.get(accountId) == state) {
+                        refreshUnreadCountAsync(accountId, () -> callbacks.forEach(Runnable::run));
+                    }
                 });
             } catch (IllegalPluginAccessException stopped) {
                 clearUnreadRefresh(state);
@@ -327,6 +340,8 @@ public final class MailService {
         private long retryAfterMs;
         private long lastAccessAtMs = System.currentTimeMillis();
         private boolean refreshInFlight;
+        private long refreshGeneration;
+        private boolean refreshRequestedAfterInvalidation;
         private final List<Runnable> callbacks = new ArrayList<>();
     }
 

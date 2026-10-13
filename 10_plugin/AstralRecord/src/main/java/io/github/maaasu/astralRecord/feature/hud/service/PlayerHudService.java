@@ -373,7 +373,8 @@ public class PlayerHudService {
         }
         long remaining = Math.max(0L, astPlayer.getSneakDodgeWindowExpiresAtMs() - System.currentTimeMillis());
         double progress = (double) remaining / (double) io.github.maaasu.astralRecord.feature.player.service.DodgeService.QUICK_SNEAK_WINDOW_MS;
-        playerHudView.renderDodgeWindowActionBar(player, progress);
+        playerHudView.renderDodgeWindowActionBar(player, progress, statusService.getStatus(astPlayer),
+                conditionService.getActiveConditions(AstEntity.player(astPlayer)));
     }
 
     private void renderWallClingWindow(AstPlayer astPlayer) {
@@ -383,7 +384,8 @@ public class PlayerHudService {
         }
         long remaining = Math.max(0L, astPlayer.getWallClingExpiresAtMs() - System.currentTimeMillis());
         double progress = (double) remaining / (double) io.github.maaasu.astralRecord.feature.player.service.AirActionService.WALL_CLING_DURATION_MS;
-        playerHudView.renderWallClingActionBar(player, progress);
+        playerHudView.renderWallClingActionBar(player, progress, statusService.getStatus(astPlayer),
+                conditionService.getActiveConditions(AstEntity.player(astPlayer)));
     }
 
     private boolean isDodgeWindowActive(AstPlayer astPlayer) {
@@ -420,6 +422,7 @@ public class PlayerHudService {
         if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
+        // 表示を省略する場合も、従来の取得経路で期限切れsampleを解放する。
         double currentDps = combatDpsTrackerService == null
                 ? 0.0D
                 : combatDpsTrackerService.getAverageDps(player.getUniqueId(), DPS_SAMPLE_WINDOW_MS);
@@ -428,6 +431,7 @@ public class PlayerHudService {
             player.sendActionBar(override);
             return;
         }
+        boolean showDps = playerSettingService.isCombatDpsDisplayEnabled(astPlayer.getUser().getUuid());
         PaladinGuardRuntimeService.GuardSnapshot guard = paladinGuardRuntimeService == null
                 ? new PaladinGuardRuntimeService.GuardSnapshot(false, 0.0D, 0.0D)
                 : paladinGuardRuntimeService.snapshot(astPlayer);
@@ -447,7 +451,8 @@ public class PlayerHudService {
             phoenix.active(),
             phoenix.current(),
             phoenix.maximum(),
-            swordSpiritRenderer.apply(astPlayer)
+            swordSpiritRenderer.apply(astPlayer),
+            showDps
         );
     }
 
