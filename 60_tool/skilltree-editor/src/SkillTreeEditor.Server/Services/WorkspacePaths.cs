@@ -85,7 +85,7 @@ public sealed class WorkspacePaths
         }
 
         throw new DirectoryNotFoundException(
-            "AstralRecord workspace was not found. Set SkillTreeEditor:WorkspaceRoot or ASTRALRECORD_WORKSPACE.");
+            "AstralRecord ワークスペースが見つかりません。SkillTreeEditor:WorkspaceRoot または ASTRALRECORD_WORKSPACE を設定してください。");
     }
 
     private static string? TryFindWorkspace(string startPath)

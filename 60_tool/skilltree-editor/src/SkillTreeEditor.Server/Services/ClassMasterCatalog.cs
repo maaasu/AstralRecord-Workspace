@@ -15,7 +15,7 @@ public sealed class ClassMasterCatalog(WorkspacePaths paths)
     public async Task<IReadOnlyList<ClassMasterSummary>> ReadAllAsync(CancellationToken token)
     {
         if (!Directory.Exists(paths.Classes))
-            throw new DirectoryNotFoundException($"Class master directory was not found: {paths.Classes}");
+            throw new DirectoryNotFoundException($"クラスマスターディレクトリが見つかりません: {paths.Classes}");
 
         var summaries = new Dictionary<string, ClassMasterSummary>(StringComparer.OrdinalIgnoreCase);
         var files = Directory.EnumerateFiles(paths.Classes, "*.yml", SearchOption.TopDirectoryOnly)
@@ -39,7 +39,7 @@ public sealed class ClassMasterCatalog(WorkspacePaths paths)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToArray());
             if (!summaries.TryAdd(id, summary))
-                throw new InvalidOperationException($"Duplicate class master id '{id}'.");
+                throw new InvalidOperationException($"クラスマスターのID '{id}' が重複しています。");
         }
 
         return summaries.Values.OrderBy(summary => summary.Id, StringComparer.Ordinal).ToArray();

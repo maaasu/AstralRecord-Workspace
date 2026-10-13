@@ -38,7 +38,7 @@ public sealed class ValidationService(
         {
             report.AddError(
                 "DUPLICATE_NODE_ID",
-                $"nodeId '{duplicate.Key}' is defined by multiple files: {string.Join(", ", duplicate.Select(value => value.Document.FileName))}");
+                $"nodeId '{duplicate.Key}' が複数のファイルに定義されています: {string.Join(", ", duplicate.Select(value => value.Document.FileName))}");
         }
         ValidateUniqueSkillPermissions(nodes, report);
 
@@ -50,7 +50,7 @@ public sealed class ValidationService(
         {
             report.AddError(
                 "DUPLICATE_STRUCTURE_ID",
-                $"structureId '{duplicate.Key}' is defined by multiple files: {string.Join(", ", duplicate.Select(value => value.Document.FileName))}");
+                $"structureId '{duplicate.Key}' が複数のファイルに定義されています: {string.Join(", ", duplicate.Select(value => value.Document.FileName))}");
         }
 
         foreach (var node in nodes)
@@ -139,7 +139,7 @@ public sealed class ValidationService(
             {
                 report.AddError(
                     "DUPLICATE_NODE_ID",
-                    $"nodeId '{candidateId}' already exists in {string.Join(", ", conflicts)}.",
+                    $"nodeId '{candidateId}' は {string.Join(", ", conflicts)} に既に存在します。",
                     existingFileName,
                     "/nodeId");
             }
@@ -187,11 +187,11 @@ public sealed class ValidationService(
 
                 var previous = definitions[key];
                 var condition = string.IsNullOrEmpty(classId)
-                    ? "without a class condition"
-                    : $"for class '{classId}'";
+                    ? "クラス条件なし"
+                    : $"クラス '{classId}' の条件";
                 report.AddError(
                     "DUPLICATE_SKILL_PERMISSION",
-                    $"Skill permission '{skillId}' {condition} is duplicated by nodes '{previous.NodeId}' ({previous.FileName}) and '{nodeId}' ({document.FileName}).",
+                    $"スキル使用権限 '{skillId}'（{condition}）がノード '{previous.NodeId}' ({previous.FileName}) と '{nodeId}' ({document.FileName}) で重複しています。",
                     document.FileName,
                     $"/effects/{index}/skillId");
             }
@@ -232,7 +232,7 @@ public sealed class ValidationService(
             {
                 report.AddError(
                     "DUPLICATE_STRUCTURE_ID",
-                    $"structureId '{structureId}' already exists.",
+                    $"structureId '{structureId}' は既に存在します。",
                     existingFileName,
                     "/structureId");
             }
@@ -254,18 +254,18 @@ public sealed class ValidationService(
             }
             catch (ArgumentException exception)
             {
-                report.AddError("NODE_ID_INVALID", exception.Message, fileName, "/nodeId");
+                report.AddError("NODE_ID_INVALID", $"nodeId の形式が不正です。詳細: {exception.Message}", fileName, "/nodeId");
             }
         }
 
         RequireString(node, "name", fileName, report);
         if (!node.ContainsKey("icon"))
-            report.AddError("NODE_FIELD_REQUIRED", "icon is required.", fileName, "/icon");
+            report.AddError("NODE_FIELD_REQUIRED", "icon は必須です。", fileName, "/icon");
         RequireArray(node, "tags", fileName, report);
         RequireString(node, "pointType", fileName, report);
         var pointCost = RequireInt32(node, "pointCost", fileName, report);
         if (pointCost < 0)
-            report.AddError("POINT_COST_INVALID", "pointCost must not be negative.", fileName, "/pointCost");
+            report.AddError("POINT_COST_INVALID", "pointCost に負の値は指定できません。", fileName, "/pointCost");
         RequireArray(node, "effects", fileName, report);
     }
 
@@ -287,7 +287,7 @@ public sealed class ValidationService(
             {
                 report.AddError(
                     "UNKNOWN_MASTER_TAG",
-                    $"Tag '{tagId}' is not defined in the shared master tag catalog.",
+                    $"タグ '{tagId}' は共有マスタータグカタログに定義されていません。",
                     fileName,
                     $"/tags/{index}");
                 continue;
@@ -297,7 +297,7 @@ public sealed class ValidationService(
             {
                 report.AddError(
                     "MASTER_TAG_TARGET_INVALID",
-                    $"Tag '{tagId}' cannot be used by a skill-tree node.",
+                    $"タグ '{tagId}' はスキルツリーのノードには使用できません。",
                     fileName,
                     $"/tags/{index}");
             }
@@ -319,7 +319,7 @@ public sealed class ValidationService(
             if (!Regex.IsMatch(structureId, "^[a-z0-9][a-z0-9_-]*$", RegexOptions.CultureInvariant))
                 report.AddError(
                     "STRUCTURE_ID_INVALID",
-                    "structureId may contain only lowercase letters, digits, '_' and '-'.",
+                    "structureId は英小文字・数字で始め、英小文字・数字・'_'・'-' のみ使用できます。",
                     fileName,
                     "/structureId");
         }
@@ -328,12 +328,12 @@ public sealed class ValidationService(
         var rootNodeId = RequireString(structure, "rootNodeId", fileName, report);
         if (structure["nodes"] is not JsonArray placements)
         {
-            report.AddError("STRUCTURE_FIELD_REQUIRED", "nodes must be an array.", fileName, "/nodes");
+            report.AddError("STRUCTURE_FIELD_REQUIRED", "nodes は配列で指定してください。", fileName, "/nodes");
             placements = [];
         }
         if (structure["edges"] is not JsonArray edges)
         {
-            report.AddError("STRUCTURE_FIELD_REQUIRED", "edges must be an array.", fileName, "/edges");
+            report.AddError("STRUCTURE_FIELD_REQUIRED", "edges は配列で指定してください。", fileName, "/edges");
             edges = [];
         }
 
@@ -343,34 +343,34 @@ public sealed class ValidationService(
         {
             if (placements[index] is not JsonObject placement)
             {
-                report.AddError("PLACEMENT_INVALID", "Each placement must be an object.", fileName, $"/nodes/{index}");
+                report.AddError("PLACEMENT_INVALID", "各ノード配置はオブジェクトで指定してください。", fileName, $"/nodes/{index}");
                 continue;
             }
 
             var nodeId = JsonValueReader.String(placement["nodeId"]);
             if (string.IsNullOrWhiteSpace(nodeId))
             {
-                report.AddError("PLACEMENT_NODE_REQUIRED", "Placement nodeId is required.", fileName, $"/nodes/{index}/nodeId");
+                report.AddError("PLACEMENT_NODE_REQUIRED", "ノード配置の nodeId は必須です。", fileName, $"/nodes/{index}/nodeId");
                 continue;
             }
 
             if (!placementIds.Add(nodeId))
-                report.AddError("DUPLICATE_PLACEMENT", $"nodeId '{nodeId}' is placed more than once.", fileName, $"/nodes/{index}");
+                report.AddError("DUPLICATE_PLACEMENT", $"nodeId '{nodeId}' が複数回配置されています。", fileName, $"/nodes/{index}");
             if (!masterNodeIds.Contains(nodeId))
-                report.AddError("UNKNOWN_NODE_ID", $"Placement references unknown nodeId '{nodeId}'.", fileName, $"/nodes/{index}/nodeId");
+                report.AddError("UNKNOWN_NODE_ID", $"ノード配置が未定義の nodeId '{nodeId}' を参照しています。", fileName, $"/nodes/{index}/nodeId");
 
             var x = ReadCoordinate(placement["x"]);
             var y = ReadCoordinate(placement["y"]);
             var z = ReadCoordinate(placement["z"]);
             if (x is null || y is null || z is null)
             {
-                report.AddError("COORDINATE_INVALID", "x, y and z must be 32-bit coordinates in 0.1-block increments.", fileName, $"/nodes/{index}");
+                report.AddError("COORDINATE_INVALID", "x・y・z は32ビットの座標範囲内で、0.1ブロック刻みの数値を指定してください。", fileName, $"/nodes/{index}");
                 continue;
             }
 
             var coordinateKey = string.Join("|", x.Value.ToString("R", CultureInfo.InvariantCulture), y.Value.ToString("R", CultureInfo.InvariantCulture), z.Value.ToString("R", CultureInfo.InvariantCulture));
             if (!coordinateKeys.Add(coordinateKey))
-                report.AddError("DUPLICATE_COORDINATE", $"Coordinate ({x}, {y}, {z}) is used more than once.", fileName, $"/nodes/{index}");
+                report.AddError("DUPLICATE_COORDINATE", $"座標 ({x}, {y}, {z}) が重複しています。", fileName, $"/nodes/{index}");
 
             if (displaySettings is not null
                 && string.Equals(displaySettings.StructureId, structureId, StringComparison.Ordinal)
@@ -380,7 +380,7 @@ public sealed class ValidationService(
             {
                 report.AddError(
                     "ABSOLUTE_COORDINATE_OVERFLOW",
-                    $"Center + relative coordinate for nodeId '{nodeId}' exceeds the 32-bit block-coordinate range.",
+                    $"nodeId '{nodeId}' の中心座標と相対座標の合計が32ビットのブロック座標範囲を超えています。",
                     fileName,
                     $"/nodes/{index}");
             }
@@ -389,9 +389,9 @@ public sealed class ValidationService(
         if (!string.IsNullOrWhiteSpace(rootNodeId))
         {
             if (!masterNodeIds.Contains(rootNodeId))
-                report.AddError("ROOT_NODE_UNKNOWN", $"rootNodeId '{rootNodeId}' does not exist in the node master.", fileName, "/rootNodeId");
+                report.AddError("ROOT_NODE_UNKNOWN", $"rootNodeId '{rootNodeId}' はノードマスターに存在しません。", fileName, "/rootNodeId");
             if (!placementIds.Contains(rootNodeId))
-                report.AddError("ROOT_NODE_NOT_PLACED", $"rootNodeId '{rootNodeId}' is not placed in the structure.", fileName, "/rootNodeId");
+                report.AddError("ROOT_NODE_NOT_PLACED", $"rootNodeId '{rootNodeId}' は構造に配置されていません。", fileName, "/rootNodeId");
         }
 
         var edgeKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -400,7 +400,7 @@ public sealed class ValidationService(
         {
             if (edges[index] is not JsonObject edge)
             {
-                report.AddError("EDGE_INVALID", "Each edge must be an object.", fileName, $"/edges/{index}");
+                report.AddError("EDGE_INVALID", "各接続はオブジェクトで指定してください。", fileName, $"/edges/{index}");
                 continue;
             }
 
@@ -408,26 +408,26 @@ public sealed class ValidationService(
             var target = JsonValueReader.String(edge["targetNodeId"]);
             if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
             {
-                report.AddError("EDGE_ENDPOINT_REQUIRED", "sourceNodeId and targetNodeId are required.", fileName, $"/edges/{index}");
+                report.AddError("EDGE_ENDPOINT_REQUIRED", "sourceNodeId と targetNodeId は必須です。", fileName, $"/edges/{index}");
                 continue;
             }
 
             if (string.Equals(source, target, StringComparison.Ordinal))
-                report.AddError("SELF_EDGE", $"nodeId '{source}' cannot connect to itself.", fileName, $"/edges/{index}");
+                report.AddError("SELF_EDGE", $"nodeId '{source}' を自身に接続することはできません。", fileName, $"/edges/{index}");
 
             var first = string.CompareOrdinal(source, target) <= 0 ? source : target;
             var second = string.CompareOrdinal(source, target) <= 0 ? target : source;
             if (!edgeKeys.Add(first + "\0" + second))
-                report.AddError("DUPLICATE_EDGE", $"Edge '{first}' - '{second}' is duplicated.", fileName, $"/edges/{index}");
+                report.AddError("DUPLICATE_EDGE", $"接続 '{first}' - '{second}' が重複しています。", fileName, $"/edges/{index}");
 
             if (!placementIds.Contains(source))
-                report.AddError("EDGE_NODE_NOT_PLACED", $"Edge source '{source}' is not placed.", fileName, $"/edges/{index}/sourceNodeId");
+                report.AddError("EDGE_NODE_NOT_PLACED", $"接続元 '{source}' が配置されていません。", fileName, $"/edges/{index}/sourceNodeId");
             if (!placementIds.Contains(target))
-                report.AddError("EDGE_NODE_NOT_PLACED", $"Edge target '{target}' is not placed.", fileName, $"/edges/{index}/targetNodeId");
+                report.AddError("EDGE_NODE_NOT_PLACED", $"接続先 '{target}' が配置されていません。", fileName, $"/edges/{index}/targetNodeId");
             if (!masterNodeIds.Contains(source))
-                report.AddError("UNKNOWN_NODE_ID", $"Edge source references unknown nodeId '{source}'.", fileName, $"/edges/{index}/sourceNodeId");
+                report.AddError("UNKNOWN_NODE_ID", $"接続元が未定義の nodeId '{source}' を参照しています。", fileName, $"/edges/{index}/sourceNodeId");
             if (!masterNodeIds.Contains(target))
-                report.AddError("UNKNOWN_NODE_ID", $"Edge target references unknown nodeId '{target}'.", fileName, $"/edges/{index}/targetNodeId");
+                report.AddError("UNKNOWN_NODE_ID", $"接続先が未定義の nodeId '{target}' を参照しています。", fileName, $"/edges/{index}/targetNodeId");
 
             if (!string.Equals(source, target, StringComparison.Ordinal)
                 && adjacency.TryGetValue(source, out var sourceLinks)
@@ -456,7 +456,7 @@ public sealed class ValidationService(
             {
                 report.AddError(
                     "UNREACHABLE_NODE",
-                    $"nodeId '{unreachable}' is unreachable from rootNodeId '{rootNodeId}'.",
+                    $"nodeId '{unreachable}' は rootNodeId '{rootNodeId}' から到達できません。",
                     fileName,
                     "/nodes");
             }
@@ -467,21 +467,21 @@ public sealed class ValidationService(
     {
         var result = JsonValueReader.String(value[property]);
         if (string.IsNullOrWhiteSpace(result))
-            report.AddError("FIELD_REQUIRED", $"{property} must be a non-empty string.", fileName, $"/{property}");
+            report.AddError("FIELD_REQUIRED", $"{property} は空でない文字列で指定してください。", fileName, $"/{property}");
         return result;
     }
 
     private static void RequireArray(JsonObject value, string property, string? fileName, ValidationReport report)
     {
         if (value[property] is not JsonArray)
-            report.AddError("FIELD_REQUIRED", $"{property} must be an array.", fileName, $"/{property}");
+            report.AddError("FIELD_REQUIRED", $"{property} は配列で指定してください。", fileName, $"/{property}");
     }
 
     private static int? RequireInt32(JsonObject value, string property, string? fileName, ValidationReport report)
     {
         var number = ReadInt32(value[property]);
         if (number is null)
-            report.AddError("FIELD_REQUIRED", $"{property} must be a 32-bit integer.", fileName, $"/{property}");
+            report.AddError("FIELD_REQUIRED", $"{property} は32ビット整数で指定してください。", fileName, $"/{property}");
         return number;
     }
 
@@ -489,7 +489,7 @@ public sealed class ValidationService(
     {
         var version = ReadInt32(value["schemaVersion"]);
         if (version is null || version <= 0)
-            report.AddError("SCHEMA_VERSION_INVALID", "schemaVersion must be a positive integer.", fileName, "/schemaVersion");
+            report.AddError("SCHEMA_VERSION_INVALID", "schemaVersion は正の整数で指定してください。", fileName, "/schemaVersion");
     }
 
     private async Task<PluginSkillTreeSettings?> TryReadDisplaySettingsAsync(
@@ -502,7 +502,7 @@ public sealed class ValidationService(
         }
         catch (Exception exception) when (exception is FileNotFoundException or IOException or UnauthorizedAccessException)
         {
-            report.AddWarning("PLUGIN_CONFIG_UNAVAILABLE", exception.Message, Path.GetFileName(paths.PluginConfig));
+            report.AddWarning("PLUGIN_CONFIG_UNAVAILABLE", $"プラグイン設定を読み込めません。詳細: {exception.Message}", Path.GetFileName(paths.PluginConfig));
             return null;
         }
     }
@@ -522,7 +522,7 @@ public sealed class ValidationService(
         }
         catch (Exception exception)
         {
-            report.AddError("TAG_CATALOG_INVALID", exception.Message, Path.GetFileName(paths.TagCatalog));
+            report.AddError("TAG_CATALOG_INVALID", $"マスタータグカタログを読み込めません。詳細: {exception.Message}", Path.GetFileName(paths.TagCatalog));
             return null;
         }
     }
@@ -543,7 +543,7 @@ public sealed class ValidationService(
         {
             report.AddError(
                 code,
-                $"File name must be '{expected}' for {idProperty} '{id}', but was '{fileName}'.",
+                $"{idProperty} '{id}' のファイル名は '{expected}' にしてください。現在のファイル名: '{fileName}'。",
                 fileName,
                 $"/{idProperty}");
         }
@@ -589,7 +589,7 @@ public sealed class ValidationService(
         {
             report.AddError(
                 "NODE_ID_SEQUENCE_NOT_FOUND",
-                $"Node ID sequence file does not exist: {paths.NodeIdSequence}",
+                $"ノードID採番ファイルが存在しません: {paths.NodeIdSequence}",
                 Path.GetFileName(paths.NodeIdSequence));
             return null;
         }
@@ -598,11 +598,11 @@ public sealed class ValidationService(
         {
             var text = await File.ReadAllTextAsync(paths.NodeIdSequence, Encoding.UTF8, cancellationToken);
             return JsonNode.Parse(text) as JsonObject
-                   ?? throw new JsonException("JSON root must be an object.");
+                   ?? throw new JsonException("JSON のルートはオブジェクトで指定してください。");
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
-            report.AddError("NODE_ID_SEQUENCE_INVALID", exception.Message, Path.GetFileName(paths.NodeIdSequence));
+            report.AddError("NODE_ID_SEQUENCE_INVALID", $"ノードID採番ファイルを読み込めません。詳細: {exception.Message}", Path.GetFileName(paths.NodeIdSequence));
             return null;
         }
     }
@@ -628,7 +628,7 @@ public sealed class ValidationService(
         {
             report.AddError(
                 "NODE_ID_SEQUENCE_BEHIND",
-                $"lastIssuedNodeId '{lastIssued}' is lower than the required high-water '{minimumIssued}'.",
+                $"lastIssuedNodeId '{lastIssued}' は必要な採番済み最大値 '{minimumIssued}' より小さい値です。",
                 "node-id-sequence.json",
                 "/lastIssuedNodeId");
         }
@@ -651,7 +651,7 @@ public sealed class ValidationService(
     {
         if (!Directory.Exists(directory))
         {
-            report.AddWarning("DIRECTORY_NOT_FOUND", $"Directory does not exist yet: {directory}");
+            report.AddWarning("DIRECTORY_NOT_FOUND", $"ディレクトリがまだ存在しません: {directory}");
             return [];
         }
 
@@ -668,12 +668,12 @@ public sealed class ValidationService(
                     CommentHandling = JsonCommentHandling.Disallow
                 }) as JsonObject;
                 if (content is null)
-                    throw new JsonException("JSON root must be an object.");
+                    throw new JsonException("JSON のルートはオブジェクトで指定してください。");
                 documents.Add(new StoredDocument(Path.GetFileName(path), path, content));
             }
             catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
             {
-                report.AddError(invalidCode, exception.Message, Path.GetFileName(path));
+                report.AddError(invalidCode, $"JSON ファイルを読み込めません。詳細: {exception.Message}", Path.GetFileName(path));
             }
         }
 

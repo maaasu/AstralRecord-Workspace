@@ -63,9 +63,9 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
 
         var mediaType = response.Content.Headers.ContentType?.MediaType;
         if (!string.Equals(mediaType, "image/png", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException($"Minecraft icon source returned unsupported content type '{mediaType ?? "unknown"}'.");
+            throw new InvalidDataException($"Minecraft アイコンの取得元が未対応のコンテンツ形式 '{mediaType ?? "不明"}' を返しました。");
         if (response.Content.Headers.ContentLength is > MaximumIconBytes)
-            throw new InvalidDataException("Minecraft icon response exceeded the 2 MiB limit.");
+            throw new InvalidDataException("Minecraft アイコンの応答が上限の2 MiBを超えています。");
 
         Directory.CreateDirectory(paths.MinecraftIconCache);
         var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
@@ -98,7 +98,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
             return null;
         var uri = new Uri(value.TrimEnd('/') + "/", UriKind.Absolute);
         if (uri.Scheme is not "https" and not "http")
-            throw new ArgumentException("Minecraft icon fallback must use an HTTP or HTTPS URL.", nameof(value));
+            throw new ArgumentException("Minecraft アイコンの代替画像には HTTP または HTTPS のURLを指定してください。", nameof(value));
         return uri;
     }
 
@@ -109,7 +109,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
             value = value["minecraft:".Length..];
         value = value.ToLowerInvariant();
         if (!IconIdPattern().IsMatch(value))
-            throw new ArgumentException("Material must contain only letters, digits, or underscores.", nameof(material));
+            throw new ArgumentException("Material には英字・数字・アンダースコアのみ使用できます。", nameof(material));
         return value;
     }
 
@@ -124,7 +124,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
                 break;
             total += read;
             if (total > MaximumIconBytes)
-                throw new InvalidDataException("MC Icons response exceeded the 2 MiB limit.");
+                throw new InvalidDataException("MC Icons の応答が上限の2 MiBを超えています。");
             await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
         }
         await destination.FlushAsync(cancellationToken);

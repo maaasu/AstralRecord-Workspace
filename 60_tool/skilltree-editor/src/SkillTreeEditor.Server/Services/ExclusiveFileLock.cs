@@ -13,7 +13,7 @@ internal static class ExclusiveFileLock
     {
         if (OperatingSystem.IsMacOS())
             throw new PlatformNotSupportedException(
-                "SkillTree Editor file locking is supported on Windows and Linux.");
+                "スキルツリーエディタのファイルロックは Windows と Linux に対応しています。");
 
         var fullPath = Path.GetFullPath(path);
         var processLock = ProcessLocks.GetOrAdd(fullPath, _ => new SemaphoreSlim(1, 1));

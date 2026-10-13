@@ -55,7 +55,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
     {
         SafePath.RequireIdentifier(fileName, nameof(fileName));
         if (!fileName.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Schema file names must end with .schema.json.", nameof(fileName));
+            throw new ArgumentException("スキーマファイル名の末尾は .schema.json にしてください。", nameof(fileName));
 
         var path = SafePath.UnderRoot(paths.Schemas, fileName);
         return File.Exists(path) ? await ReadObjectAsync(path, cancellationToken) : null;
@@ -76,7 +76,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
         {
             return
             [
-                new ValidationIssue("SCHEMA_REFERENCE_INVALID", exception.Message, "error", file, "/$schema")
+                new ValidationIssue("SCHEMA_REFERENCE_INVALID", $"$schema の参照形式が不正です。詳細: {exception.Message}", "error", file, "/$schema")
             ];
         }
 
@@ -86,7 +86,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             [
                 new ValidationIssue(
                     "SCHEMA_REFERENCE_REQUIRED",
-                    "$schema must reference a schema file in the skilltree schemas directory.",
+                    "$schema はスキルツリーの schemas ディレクトリ内のスキーマファイルを参照してください。",
                     "error",
                     file,
                     "/$schema")
@@ -100,7 +100,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             [
                 new ValidationIssue(
                     "SCHEMA_NOT_FOUND",
-                    $"Referenced JSON Schema '{referencedFileName}' was not found in the skilltree schemas directory.",
+                    $"参照先の JSON Schema '{referencedFileName}' がスキルツリーの schemas ディレクトリに見つかりません。",
                     "error",
                     file,
                     "/$schema")
@@ -113,7 +113,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
         {
             schemaText = await File.ReadAllTextAsync(schemaPath, Encoding.UTF8, cancellationToken);
             schemaObject = JsonNode.Parse(schemaText) as JsonObject
-                           ?? throw new JsonException("JSON Schema root must be an object.");
+                           ?? throw new JsonException("JSON Schema のルートはオブジェクトで指定してください。");
         }
         catch (Exception exception) when (
             exception is JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
@@ -122,7 +122,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             [
                 new ValidationIssue(
                     "SCHEMA_INVALID",
-                    $"Schema '{referencedFileName}' could not be read: {exception.Message}",
+                    $"スキーマ '{referencedFileName}' を読み込めません。詳細: {exception.Message}",
                     "error",
                     referencedFileName)
             ];
@@ -136,7 +136,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             [
                 new ValidationIssue(
                     "SCHEMA_KIND_MISMATCH",
-                    $"Schema '{summary.FileName}' describes '{summary.EntityKind}', not '{entityKind}'.",
+                    $"スキーマ '{summary.FileName}' の対象は '{summary.EntityKind}' です。'{entityKind}' 用のスキーマを指定してください。",
                     "error",
                     file,
                     "/$schema")
@@ -166,7 +166,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
                 {
                     issues.Add(new ValidationIssue(
                         "JSON_SCHEMA",
-                        error.Value,
+                        $"{DescribeConstraint(error.Key)} 技術詳細（{error.Key}）: {error.Value}",
                         "error",
                         file,
                         detail.InstanceLocation.ToString()));
@@ -174,7 +174,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             }
 
             if (issues.Count == 0)
-                issues.Add(new ValidationIssue("JSON_SCHEMA", "The document does not satisfy its JSON Schema.", "error", file));
+                issues.Add(new ValidationIssue("JSON_SCHEMA", "ドキュメントが JSON Schema の制約を満たしていません。", "error", file));
             return issues;
         }
         catch (Exception exception) when (exception is JsonException or JsonSchemaException or InvalidOperationException)
@@ -183,7 +183,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             [
                 new ValidationIssue(
                     "SCHEMA_INVALID",
-                    $"Schema '{summary.FileName}' could not be evaluated: {exception.Message}",
+                    $"スキーマ '{summary.FileName}' を評価できません。詳細: {exception.Message}",
                     "error",
                     summary.FileName)
             ];
@@ -217,7 +217,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             {
                 issues.Add(new ValidationIssue(
                     "SCHEMA_INVALID",
-                    $"Schema '{fileName}' is invalid: {exception.Message}",
+                    $"スキーマ '{fileName}' が不正です。詳細: {exception.Message}",
                     "error",
                     fileName));
             }
@@ -231,11 +231,33 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             schema.IsDefault
             && string.Equals(schema.EntityKind, entityKind, StringComparison.OrdinalIgnoreCase));
 
+    private static string DescribeConstraint(string keyword) => keyword switch
+    {
+        "required" => "必須項目が不足しています。",
+        "type" => "値の型がスキーマで指定された型と一致しません。",
+        "const" => "値がスキーマで指定された固定値と一致しません。",
+        "enum" => "値がスキーマで許可された候補に含まれていません。",
+        "additionalProperties" or "unevaluatedProperties" => "追加項目がスキーマの制約を満たしていません。",
+        "minimum" or "exclusiveMinimum" => "数値がスキーマで指定された下限を満たしていません。",
+        "maximum" or "exclusiveMaximum" => "数値がスキーマで指定された上限を満たしていません。",
+        "multipleOf" => "数値がスキーマで指定された刻みに一致しません。",
+        "minLength" => "文字列がスキーマで指定された最小文字数を満たしていません。",
+        "maxLength" => "文字列がスキーマで指定された最大文字数を超えています。",
+        "pattern" => "文字列がスキーマで指定された形式に一致しません。",
+        "format" => "値がスキーマで指定された形式に一致しません。",
+        "minItems" => "配列の要素数がスキーマで指定された最小数を満たしていません。",
+        "maxItems" => "配列の要素数がスキーマで指定された最大数を超えています。",
+        "uniqueItems" => "配列に重複した要素があります。",
+        "minProperties" or "maxProperties" => "項目数がスキーマで指定された範囲を満たしていません。",
+        "anyOf" or "oneOf" or "allOf" or "not" => "値がスキーマの組み合わせ条件を満たしていません。",
+        _ => $"JSON Schema の制約（{keyword}）を満たしていません。"
+    };
+
     private static async Task<JsonObject> ReadObjectAsync(string path, CancellationToken cancellationToken)
     {
         var text = await File.ReadAllTextAsync(path, Encoding.UTF8, cancellationToken);
         return JsonNode.Parse(text) as JsonObject
-            ?? throw new InvalidDataException($"Schema root must be an object: {path}");
+            ?? throw new InvalidDataException($"スキーマのルートはオブジェクトで指定してください: {path}");
     }
 
     private static SchemaSummary CreateSummary(string fileName, JsonObject schema)
@@ -268,7 +290,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
 
         SafePath.RequireIdentifier(fileName, "$schema");
         if (!fileName.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("$schema must reference a file ending in .schema.json.", "$schema");
+            throw new ArgumentException("$schema は末尾が .schema.json のファイルを参照してください。", "$schema");
         return fileName;
     }
 

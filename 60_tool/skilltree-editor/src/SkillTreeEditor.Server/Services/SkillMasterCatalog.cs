@@ -22,7 +22,7 @@ public sealed class SkillMasterCatalog(WorkspacePaths paths)
     public async Task<IReadOnlyList<SkillMasterSummary>> ReadAllAsync(CancellationToken token)
     {
         if (!Directory.Exists(paths.Skills))
-            throw new DirectoryNotFoundException($"Skill master directory was not found: {paths.Skills}");
+            throw new DirectoryNotFoundException($"スキルマスターディレクトリが見つかりません: {paths.Skills}");
 
         var summaries = new Dictionary<string, SkillMasterSummary>(StringComparer.OrdinalIgnoreCase);
         var files = Directory.EnumerateFiles(paths.Skills, "*.yml", SearchOption.AllDirectories)
@@ -42,7 +42,7 @@ public sealed class SkillMasterCatalog(WorkspacePaths paths)
                 string.IsNullOrWhiteSpace(master.Name) ? id : master.Name,
                 master.Type.Trim());
             if (!summaries.TryAdd(id, summary))
-                throw new InvalidOperationException($"Duplicate skill master id '{id}'.");
+                throw new InvalidOperationException($"スキルマスターのID '{id}' が重複しています。");
         }
 
         return summaries.Values.OrderBy(summary => summary.Id, StringComparer.Ordinal).ToArray();

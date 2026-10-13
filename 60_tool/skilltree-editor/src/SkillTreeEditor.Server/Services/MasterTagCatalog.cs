@@ -16,13 +16,13 @@ public sealed class MasterTagCatalog(WorkspacePaths paths)
     public async Task<IReadOnlyList<MasterTagSummary>> ReadAllAsync(CancellationToken token)
     {
         if (!File.Exists(paths.TagCatalog))
-            throw new FileNotFoundException($"Master tag catalog was not found: {paths.TagCatalog}", paths.TagCatalog);
+            throw new FileNotFoundException($"マスタータグカタログが見つかりません: {paths.TagCatalog}", paths.TagCatalog);
 
         var yaml = await File.ReadAllTextAsync(paths.TagCatalog, token);
         var catalog = _deserializer.Deserialize<TagCatalogYaml>(yaml)
-                      ?? throw new InvalidOperationException("Master tag catalog is empty.");
+                      ?? throw new InvalidOperationException("マスタータグカタログが空です。");
         if (catalog.SchemaVersion != 1)
-            throw new InvalidOperationException($"Unsupported master tag catalog schemaVersion '{catalog.SchemaVersion}'.");
+            throw new InvalidOperationException($"マスタータグカタログの schemaVersion '{catalog.SchemaVersion}' は未対応です。");
 
         var categories = RequireUniqueIds(catalog.Categories.Select(value => value.Id), "category");
         var targets = RequireUniqueIds(catalog.Targets.Select(value => value.Id), "target");
@@ -31,18 +31,18 @@ public sealed class MasterTagCatalog(WorkspacePaths paths)
         {
             RequireExactId(tag.Id, "tag");
             if (string.IsNullOrWhiteSpace(tag.DisplayName))
-                throw new InvalidOperationException($"Master tag '{tag.Id}' has no displayName.");
+                throw new InvalidOperationException($"マスタータグ '{tag.Id}' に displayName がありません。");
             if (string.IsNullOrWhiteSpace(tag.Description))
-                throw new InvalidOperationException($"Master tag '{tag.Id}' has no description.");
+                throw new InvalidOperationException($"マスタータグ '{tag.Id}' に description がありません。");
             if (!categories.Contains(tag.Category))
-                throw new InvalidOperationException($"Master tag '{tag.Id}' references unknown category '{tag.Category}'.");
+                throw new InvalidOperationException($"マスタータグ '{tag.Id}' が未定義のカテゴリ '{tag.Category}' を参照しています。");
             if (tag.AppliesTo.Count == 0)
-                throw new InvalidOperationException($"Master tag '{tag.Id}' has no appliesTo target.");
+                throw new InvalidOperationException($"マスタータグ '{tag.Id}' に appliesTo の対象がありません。");
             if (tag.AppliesTo.Distinct(StringComparer.Ordinal).Count() != tag.AppliesTo.Count)
-                throw new InvalidOperationException($"Master tag '{tag.Id}' has duplicate appliesTo targets.");
+                throw new InvalidOperationException($"マスタータグ '{tag.Id}' の appliesTo の対象が重複しています。");
             var unknownTarget = tag.AppliesTo.FirstOrDefault(target => !targets.Contains(target));
             if (unknownTarget is not null)
-                throw new InvalidOperationException($"Master tag '{tag.Id}' references unknown target '{unknownTarget}'.");
+                throw new InvalidOperationException($"マスタータグ '{tag.Id}' が未定義の対象 '{unknownTarget}' を参照しています。");
 
             var summary = new MasterTagSummary(
                 tag.Id,
@@ -51,7 +51,7 @@ public sealed class MasterTagCatalog(WorkspacePaths paths)
                 tag.Category,
                 tag.AppliesTo.ToArray());
             if (!summaries.TryAdd(tag.Id, summary))
-                throw new InvalidOperationException($"Duplicate master tag id '{tag.Id}'.");
+                throw new InvalidOperationException($"マスタータグのID '{tag.Id}' が重複しています。");
         }
 
         return summaries.Values.OrderBy(value => value.Id, StringComparer.Ordinal).ToArray();
@@ -64,7 +64,7 @@ public sealed class MasterTagCatalog(WorkspacePaths paths)
         {
             RequireExactId(value, kind);
             if (!result.Add(value))
-                throw new InvalidOperationException($"Duplicate master tag {kind} id '{value}'.");
+                throw new InvalidOperationException($"マスタータグの {kind} のID '{value}' が重複しています。");
         }
         return result;
     }
@@ -72,7 +72,7 @@ public sealed class MasterTagCatalog(WorkspacePaths paths)
     private static void RequireExactId(string value, string kind)
     {
         if (string.IsNullOrWhiteSpace(value) || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
-            throw new InvalidOperationException($"Master tag {kind} id must be a non-empty string without surrounding whitespace.");
+            throw new InvalidOperationException($"マスタータグの {kind} のIDは、前後に空白がない空でない文字列で指定してください。");
     }
 
     private sealed class TagCatalogYaml
