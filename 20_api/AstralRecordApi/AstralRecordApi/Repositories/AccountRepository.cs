@@ -1390,6 +1390,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             MenuShortcutsJson = account.MenuShortcutsJson,
             Level = account.Level,
             TotalExperience = account.TotalExperience,
+            PlayTimeSeconds = account.PlayTimeSeconds,
             HighestLevel = account.HighestLevel,
             RebirthOriginalLevel = account.RebirthOriginalLevel,
             RebirthExperienceRemainder = account.RebirthExperienceRemainder,

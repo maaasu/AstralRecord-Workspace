@@ -19,6 +19,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 
 /**
  * AstralRecord API を通じてアカウントデータへのアクセスを担うリポジトリ。
@@ -99,6 +100,33 @@ class AccountRepository {
         } catch (e: IOException) {
             Logger.error(LogId.E_5151, e, e.message ?: e.javaClass.simpleName)
             throw e
+        }
+    }
+
+    /**
+     * アカウントのDB保存済みプレイ時間を非同期で取得します。Bukkitの統計は参照しません。
+     * GET /api/account/{uuid}
+     *
+     * @param uuid 表示対象のアカウントUUID
+     * @return 非負の64bit整数秒数。HTTPエラー、対象不一致、欠落・不正値は例外完了します
+     */
+    fun fetchPlayTimeSecondsAsync(uuid: UUID): CompletableFuture<Long> {
+        val path = "/api/account/$uuid"
+        return try {
+            val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+            ApiRequestUtil.sharedClient().sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply { response ->
+                    check(response.statusCode() == 200) { "Unexpected status ${response.statusCode()} for GET $path" }
+                    val account = JsonParser.parseString(response.body()).asJsonObject
+                    check(UUID.fromString(account.get("uuid").asString) == uuid) { "Account UUID mismatch" }
+                    val value = account.get("playTimeSeconds")
+                    check(value != null && value.isJsonPrimitive && value.asJsonPrimitive.isNumber) {
+                        "Missing or invalid playTimeSeconds"
+                    }
+                    value.asBigDecimal.longValueExact().also { check(it >= 0L) { "Negative playTimeSeconds" } }
+                }
+        } catch (failure: RuntimeException) {
+            CompletableFuture.failedFuture(failure)
         }
     }
 

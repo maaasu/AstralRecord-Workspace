@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
@@ -39,7 +41,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -60,6 +61,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * プレイヤー詳細情報を表示する GUI です。
@@ -232,6 +234,30 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull String classDisplayName,
         @NotNull List<ClassProgressViewEntry> classProgresses
     ) {
+        open(viewer, target, snapshot, goldAmount, classDisplayName, classProgresses, inventory -> { });
+    }
+
+    /**
+     * サマリ付き詳細画面を開き、実際の表示完了後に取得処理を開始します。
+     * Bukkitメインスレッドから呼び出してください。取消時はコールバックを呼びません。
+     *
+     * @param viewer 閲覧者
+     * @param target 表示対象
+     * @param snapshot 表示用ステータス
+     * @param goldAmount 対象アカウントの所持Gold
+     * @param classDisplayName クラス表示名
+     * @param classProgresses 全クラスの進行度
+     * @param onOpened 実際に開いたinventoryを受け取る表示完了処理
+     */
+    public void open(
+        @NotNull Player viewer,
+        @NotNull AstPlayer target,
+        @NotNull StatusSnapshot snapshot,
+        long goldAmount,
+        @NotNull String classDisplayName,
+        @NotNull List<ClassProgressViewEntry> classProgresses,
+        @NotNull Consumer<Inventory> onOpened
+    ) {
         Inventory inventory = Bukkit.createInventory(
             new Holder(target.getBukkit().getUniqueId()),
             SIZE,
@@ -239,7 +265,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
                 .append(AccountDisplayNameFormatter.toComponent(target.getAccount()))
         );
         render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classProgresses);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, () -> onOpened.accept(inventory));
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
@@ -475,6 +501,30 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     }
 
     /**
+     * 開いた詳細画面のプロフィールへ、APIで取得したDB保存済みプレイ時間を反映します。
+     * Bukkitメインスレッドから、同じ画面・対象アカウントが有効な場合だけ呼び出してください。
+     *
+     * @param inventory 更新する詳細画面
+     * @param target 取得開始時と同じ対象セッション
+     * @param goldAmount 画面を開いた時点の所持ゴールド
+     * @param classDisplayName 画面を開いた時点のクラス表示名
+     * @param totalSeconds DB保存済み累計秒数。取得失敗の場合はnull
+     */
+    public void updatePlayTime(
+        @NotNull Inventory inventory,
+        @NotNull AstPlayer target,
+        long goldAmount,
+        @NotNull String classDisplayName,
+        @Nullable Long totalSeconds
+    ) {
+        if (!target.getBukkit().getUniqueId().equals(getTargetId(inventory))) return;
+        String line = totalSeconds == null
+            ? PlayerMsgResource.getMessage(PlayerMsgId.P_7852.getId())
+            : PlayerMsgResource.format(PlayerMsgId.P_7851.getId(), formatPlayTime(totalSeconds));
+        inventory.setItem(HEAD_SLOT, playerHead(target, goldAmount, classDisplayName, line));
+    }
+
+    /**
      * ステータス詳細 GUI の対象プレイヤー ID を取得します。
      *
      * @param inventory 判定対象のインベントリ
@@ -502,7 +552,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         inventory.setItem(HEAD_SLOT, playerHead(
             target,
             goldAmount,
-            classDisplayName
+            classDisplayName,
+            PlayerMsgResource.getMessage(PlayerMsgId.P_7850.getId())
         ));
         inventory.setItem(EQUIPMENT_SLOT, equipmentItem(self));
         inventory.setItem(RESOURCE_SLOT, categoryItem(Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, NamedTextColor.GOLD, snapshot));
@@ -884,7 +935,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private @NotNull ItemStack playerHead(
         @NotNull AstPlayer target,
         long goldAmount,
-        @NotNull String classDisplayName
+        @NotNull String classDisplayName,
+        @NotNull String playTimeLine
     ) {
         ItemStack itemStack = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = itemStack.getItemMeta();
@@ -907,7 +959,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             io.github.maaasu.astralRecord.feature.vip.view.AccountBenefitsView.appendLore(lore, target.getAccount().getUuid());
             lore.add(Component.empty());
             lore.add(noItalic(Component.text("所持ゴールド: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
-            lore.add(noItalic(Component.text("プレイ時間: " + formatPlayTime(target), NamedTextColor.YELLOW)));
+            lore.add(noItalic(legacy(playTimeLine)));
+            lore.add(noItalic(legacy(PlayerMsgResource.getMessage(PlayerMsgId.P_7843.getId()))));
             lore.add(noItalic(Component.text("現在地: " + displayWorldName(target.getBukkit()), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("初ログイン: " + formatDateTime(target.getUser().getJoinDate()), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("最終ログイン: " + formatDateTime(target.getUser().getLastJoinDate()), NamedTextColor.GRAY)));
@@ -1192,9 +1245,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         return value.format(DATE_TIME_FORMATTER);
     }
 
-    private @NotNull String formatPlayTime(@NotNull AstPlayer target) {
-        long totalTicks = Math.max(0L, (long) target.getBukkit().getStatistic(Statistic.PLAY_ONE_MINUTE));
-        long totalSeconds = totalTicks / 20L;
+    /** DBの累計秒数を時間・分・秒へ変換します。tick換算は行いません。 */
+    private @NotNull String formatPlayTime(long totalSeconds) {
         long hours = totalSeconds / 3600L;
         long minutes = totalSeconds % 3600L / 60L;
         long seconds = totalSeconds % 60L;

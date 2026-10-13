@@ -143,7 +143,7 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         return Ok(accounts);
     }
 
-    /// <summary>アカウント情報取得</summary>
+    /// <summary>DB保存済みの累計プレイ秒数を含むアカウント情報取得</summary>
     /// <param name="uuid">アカウント UUID</param>
     /// <response code="200">アカウント取得成功</response>
     /// <response code="404">指定 UUID のアカウントが存在しない、または論理削除済み</response>

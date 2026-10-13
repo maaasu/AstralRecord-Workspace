@@ -11,6 +11,8 @@ public class AccountResponse
     public string MenuShortcutsJson { get; set; } = string.Empty;
     public int Level { get; set; }
     public long TotalExperience { get; set; }
+    /// <summary>導入後の通常プレイモードで積算し、DBへ保存済みの累計秒数。</summary>
+    public long PlayTimeSeconds { get; set; }
     public int HighestLevel { get; set; }
     public int? RebirthOriginalLevel { get; set; }
     public int RebirthExperienceRemainder { get; set; }

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -18,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -47,6 +49,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     private final TradeService tradeService;
     private final CurrencyService currencyService;
     private final PlayerClassService playerClassService;
+    private final AccountRepository accountRepository = new AccountRepository();
 
     public PlayerBrowserGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -561,6 +564,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         openTargetDetail(viewer, target);
     }
 
+    /** 対象情報の画面表示完了後、同じ画面・セッションに限りDB保存済みプレイ時間を非同期反映します。 */
     private void openTargetDetail(
         @NotNull Player viewer,
         @NotNull AstPlayer target
@@ -574,13 +578,32 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         var classProgresses = playerClassService == null
             ? List.<io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry>of()
             : playerClassService.getClassProgressViewEntries(target);
+        UUID accountId = target.getAccount().getUuid();
+        AstPlayer viewerSession = AstPlayerCache.get(viewer);
         playerDetailGui.open(
             viewer,
             target,
             statusService.refreshStatus(target),
             goldAmount,
             classDisplayName,
-            classProgresses
+            classProgresses,
+            inventory -> {
+                if (AstPlayerCache.get(viewer) != viewerSession
+                    || AstPlayerCache.get(target.getBukkit()) != target
+                    || !accountId.equals(target.getAccount().getUuid())) return;
+                accountRepository.fetchPlayTimeSecondsAsync(accountId).whenComplete((seconds, failure) -> {
+                    if (failure != null) Logger.error(LogId.E_5151, failure, accountId);
+                    if (!plugin.isEnabled()) return;
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (!viewer.isOnline() || viewer.getOpenInventory().getTopInventory() != inventory
+                            || AstPlayerCache.get(viewer) != viewerSession
+                            || AstPlayerCache.get(target.getBukkit()) != target
+                            || !accountId.equals(target.getAccount().getUuid())) return;
+                        playerDetailGui.updatePlayTime(inventory, target, goldAmount, classDisplayName,
+                            failure == null ? seconds : null);
+                    });
+                });
+            }
         );
     }
 
