@@ -1,6 +1,6 @@
 using AstralRecordApi.Data;
 using AstralRecordApi.Models;
-using Microsoft.EntityFrameworkCore;
+using AstralRecordApi.Services;
 
 namespace AstralRecordApi.Repositories;
 
@@ -8,22 +8,14 @@ namespace AstralRecordApi.Repositories;
 /// MasterDataDB の <c>master_data_entry</c>（<c>master_type = world</c>）から
 /// World マスタを取得する。
 /// </summary>
-public class WorldRepository(MasterDataDbContext dbContext) : IWorldRepository
+public class WorldRepository(MasterDataDbContext dbContext, MasterDataCache? cache = null) : IWorldRepository
 {
     private const string MasterTypeWorld = "world";
+    private readonly MasterDataCatalog<WorldResponse> catalog = new(dbContext, cache ?? new(), MasterTypeWorld);
 
     public IReadOnlyList<WorldSummaryResponse> GetAllSummaries()
     {
-        var payloads = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.MasterType == MasterTypeWorld)
-            .OrderBy(entry => entry.MasterId)
-            .Select(entry => entry.PayloadJson)
-            .ToArray();
-
-        return payloads
-            .Select(MasterDataPayloadJson.Deserialize<WorldResponse>)
-            .Where(world => world is not null)
+        return catalog.Get().Items
             .Select(world => new WorldSummaryResponse
             {
                 Id = world!.Id,
@@ -38,16 +30,6 @@ public class WorldRepository(MasterDataDbContext dbContext) : IWorldRepository
 
     public WorldResponse? GetById(string worldId)
     {
-        var payload = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted
-                && entry.MasterType == MasterTypeWorld
-                && entry.MasterId == worldId)
-            .Select(entry => entry.PayloadJson)
-            .FirstOrDefault();
-
-        return payload is null
-            ? null
-            : MasterDataPayloadJson.Deserialize<WorldResponse>(payload);
+        return catalog.Get().ById.GetValueOrDefault(worldId);
     }
 }

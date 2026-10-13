@@ -18,7 +18,8 @@ public class MasterDataSeeder(
     MasterDataDbContext db,
     IOptions<FileDatabaseOptions> fileDatabaseOptions,
     IOptions<MasterDataOptions> masterDataOptions,
-    ILogger<MasterDataSeeder> logger) : IMasterDataSeeder
+    ILogger<MasterDataSeeder> logger,
+    MasterDataCache? masterDataCache = null) : IMasterDataSeeder
 {
     private const string StatusRunning = "RUNNING";
     private const string StatusSucceeded = "SUCCEEDED";
@@ -155,6 +156,7 @@ public class MasterDataSeeder(
                 await ValidatePetMastersAsync(ct);
                 await ValidateFishingMastersAsync(ct);
                 await transaction.CommitAsync(ct);
+                masterDataCache?.Invalidate();
             }, cancellationToken);
 
             var finishedAt = DateTime.UtcNow;

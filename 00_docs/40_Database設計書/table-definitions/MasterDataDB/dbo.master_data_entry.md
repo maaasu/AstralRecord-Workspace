@@ -83,6 +83,6 @@ API はこのテーブルを `master_type` + `master_id` で検索し、必要�
 ## 設計備考
 
 - 全 item/class/skill/buff/loot/recipe を API 起動時にメモリへ全展開しない。
-- API は DB から必要な `master_type` + `master_id` を取得し、必要に応じて短時間・小容量のアプリ内キャッシュを使う。
+- Item/Skill/Class/Buff/World/SetEffect/Enchantは最初の参照時に必要な種別のDTOを共有キャッシュへ展開する。起動時の全型先読みはしない。キャッシュキーは固定種別で、任意の照会IDごとには増やさない。Seederのデータcommitで失効し、別プロセス・外部DB更新は最大5分の保持期限後に次の参照で反映する。
 - `payload_json` はレスポンス DTO へ変換可能な正規化 JSON とし、YAML 固有表現は Seeder で解決する。
 - 参照整合性は `dbo.master_data_reference` で検証し、`payload_json` 内へ DB 外部キーを直接埋め込まない。

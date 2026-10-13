@@ -1,4 +1,6 @@
 using AstralRecordApi.Repositories;
+using AstralRecordApi.Models;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AstralRecordApi.Controllers;
@@ -6,31 +8,47 @@ namespace AstralRecordApi.Controllers;
 /// <summary>アイテム API</summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ItemController(IItemRepository itemRepository) : ControllerBase
+public class ItemController(IItemRepository itemRepository, IOptions<JsonOptions>? jsonOptions = null) : ControllerBase
 {
     /// <summary>アイテム一覧取得（最小項目）</summary>
     /// <response code="200">アイテム一覧取得成功</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
     {
-        var items = itemRepository.GetAllSummaries();
+        var items = await itemRepository.GetAllSummariesAsync(cancellationToken);
         return Ok(items);
     }
 
     /// <summary>アイテム取得</summary>
+    /// <param name="cancellationToken">要求のキャンセル</param>
     /// <param name="itemId">アイテム ID</param>
     /// <response code="200">アイテム取得成功</response>
     /// <response code="404">対象アイテムが存在しない</response>
     [HttpGet("{itemId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById(string itemId)
+    public async Task<IActionResult> GetById(string itemId, CancellationToken cancellationToken = default)
     {
-        var item = itemRepository.GetById(itemId);
+        var item = await itemRepository.GetByIdAsync(itemId, cancellationToken);
         if (item is null)
             return NotFound();
 
         return Ok(item);
+    }
+    /// <summary>有効なItem詳細を同一世代から分割取得する（最大100件）。世代変更時は409。</summary>
+    [HttpGet("details")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetDetails([FromQuery] int offset = 0, [FromQuery] int limit = 100,
+        [FromQuery] string? generation = null, CancellationToken cancellationToken = default)
+    {
+        if (offset < 0 || limit is < 1 or > 100) return BadRequest();
+        var page = await itemRepository.GetDetailsAsync(offset, limit, cancellationToken);
+        if (generation is not null && generation != page.Generation) return Conflict();
+        return Ok(new MasterDataPageResponse<MasterDataDetailResponse<ItemResponse>>(
+            page.Generation, page.Total, page.Items.Select(master =>
+                MasterDataDetailResponse<ItemResponse>.Create(master, (jsonOptions?.Value ?? new JsonOptions()).JsonSerializerOptions)).ToArray()));
     }
 }

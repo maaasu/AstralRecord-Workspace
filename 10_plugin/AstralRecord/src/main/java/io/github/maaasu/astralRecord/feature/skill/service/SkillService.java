@@ -275,32 +275,18 @@ public class SkillService {
      * @return 検証を通過した immutable な定義スナップショット
      */
     public @NotNull Map<String, SkillDefinition> loadDefinitions() {
-        List<SkillSummary> summaries = List.of();
+        List<SkillDefinition> definitions = List.of();
         MasterDataLoadProgress progress = null;
         try {
-            summaries = repository.findAll();
-            progress = new MasterDataLoadProgress(LogId.I_5801, summaries.size());
+            definitions = repository.findAllDetails();
+            progress = new MasterDataLoadProgress(LogId.I_5801, definitions.size());
         } catch (Exception e) {
             Logger.log(LogId.E_5801, e, "reloadDefinitions");
+            throw new IllegalStateException("Failed to prepare skill definitions", e);
         }
 
         Map<String, SkillDefinition> next = new LinkedHashMap<>();
-        for (SkillSummary summary : summaries) {
-            SkillDefinition definition;
-            try {
-                definition = repository.findById(summary.getId());
-            } catch (Exception e) {
-                Logger.log(LogId.W_5801, summary.getId(), summary.getImplementationId(),
-                        "詳細取得失敗: " + e.getMessage());
-                progress.record(false);
-                continue;
-            }
-            if (definition == null) {
-                Logger.log(LogId.W_5801, summary.getId(), summary.getImplementationId(),
-                        "API から定義を取得できませんでした");
-                progress.record(false);
-                continue;
-            }
+        for (SkillDefinition definition : definitions) {
             progress.record(addValidatedDefinition(next, definition));
         }
 

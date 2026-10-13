@@ -45,15 +45,12 @@ class ClassService {
      * @return 正規化済みIDをキーとする不変スナップショット
      */
     fun loadSnapshot(): Map<String, ClassModel> {
-        val summaries = classRepository.findAll()
-        val progress = MasterDataLoadProgress(LogId.I_5501, summaries.size)
+        val models = classRepository.findAllDetails()
+        val progress = MasterDataLoadProgress(LogId.I_5501, models.size)
         val loaded = LinkedHashMap<String, ClassModel>()
-        for (summary in summaries) {
-            val model = classRepository.findById(summary.id)
-            if (model != null) {
-                loaded[normalize(model.id)] = model
-            }
-            progress.record(model != null)
+        for (model in models) {
+            loaded[normalize(model.id)] = model
+            progress.record(true)
         }
         val snapshot = Collections.unmodifiableMap(LinkedHashMap(loaded))
         validateSnapshot(snapshot)
