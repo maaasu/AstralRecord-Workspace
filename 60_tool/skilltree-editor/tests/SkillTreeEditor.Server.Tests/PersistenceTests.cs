@@ -9,6 +9,24 @@ public sealed class PersistenceTests : IDisposable
 {
     private readonly string _workspace = Path.Combine(Path.GetTempPath(), $"skilltree-editor-tests-{Guid.NewGuid():N}");
 
+    [Fact]
+    public async Task BomNoOpSaveReturnsTheActualPersistedRevision()
+    {
+        CreateWorkspace();
+        var paths = new WorkspacePaths(_workspace);
+        Directory.CreateDirectory(paths.Nodes);
+        var repository = new FilebaseRepository(paths, new BackupService(paths));
+        var node = Node("1000", "Original");
+        var path = Path.Combine(paths.Nodes, "1000.json");
+        await File.WriteAllTextAsync(path, StableJson.Serialize(node), new UTF8Encoding(true));
+        var original = (await repository.GetNodeAsync("1000", CancellationToken.None))!;
+        var saved = await repository.SaveNodeAsync("1000", node, CancellationToken.None);
+        var reloaded = (await repository.GetNodeAsync("1000", CancellationToken.None))!;
+        Assert.Equal(original.Revision, saved.Revision);
+        Assert.Equal(reloaded.Revision, saved.Revision);
+        Assert.False(Directory.Exists(Path.Combine(paths.Backups, "nodes")));
+    }
+
     [Theory]
     [InlineData("  worldName: old\n  structureId: starter\n  center:\n    x: 1\n    y: 2\n")]
     [InlineData("  structureId: starter\n  center:\n    x: 1\n    y: 2\n    z: 3\n")]

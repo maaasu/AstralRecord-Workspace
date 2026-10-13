@@ -12,6 +12,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
     private static readonly BigInteger MinimumIssuedNodeId = new(999);
     private static readonly BigInteger MaximumNodeId = BigInteger.Pow(10, 100) - BigInteger.One;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly MasterDataPaths _boundary = new(paths);
 
     public Task<IReadOnlyList<StoredDocument>> ReadNodesAsync(CancellationToken cancellationToken)
         => ReadDirectoryAsync(paths.Nodes, cancellationToken);
@@ -27,6 +28,8 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
 
     public async Task<string> GetNextNodeIdAsync(CancellationToken cancellationToken)
     {
+        _boundary.RequireNoLinks(paths.NodeIdSequenceLock);
+        _boundary.RequireNoLinks(paths.NodeIdSequence);
         await using var allocationLock = await ExclusiveFileLock.AcquireAsync(
             paths.NodeIdSequenceLock,
             cancellationToken);
@@ -62,6 +65,8 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         await _writeLock.WaitAsync(cancellationToken);
         try
         {
+            _boundary.RequireNoLinks(paths.NodeIdSequenceLock);
+            _boundary.RequireNoLinks(paths.NodeIdSequence);
             await using var allocationLock = await ExclusiveFileLock.AcquireAsync(
                 paths.NodeIdSequenceLock,
                 cancellationToken);
@@ -79,7 +84,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             // which is preferable to ever issuing the same ID twice.
             await WriteNodeIdSequenceLockedAsync(nodeId, cancellationToken);
             await WriteJsonLockedAsync(path, normalized, "nodes", createOnly: true, cancellationToken);
-            return new StoredDocument(Path.GetFileName(path), path, normalized, Revision(normalized));
+            return new StoredDocument(Path.GetFileName(path), path, normalized, await ReadRevisionAsync(path, cancellationToken));
         }
         finally
         {
@@ -98,7 +103,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             ?? throw new FileNotFoundException($"ノード '{nodeId}' が見つかりません。");
         var normalized = NormalizeNode(content);
         await WriteJsonAsync(existing.FullPath, normalized, "nodes", createOnly: false, cancellationToken);
-        return existing with { Content = normalized, Revision = Revision(normalized) };
+        return existing with { Content = normalized, Revision = await ReadRevisionAsync(existing.FullPath, cancellationToken) };
     }
 
     public async Task DeleteNodeAsync(string nodeId, CancellationToken cancellationToken)
@@ -121,7 +126,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         var path = SafePath.UnderRoot(paths.Structures, $"{structureId}.json");
         var normalized = NormalizeStructure(content);
         await WriteJsonAsync(path, normalized, "structures", createOnly: true, cancellationToken);
-        return new StoredDocument(Path.GetFileName(path), path, normalized, Revision(normalized));
+        return new StoredDocument(Path.GetFileName(path), path, normalized, await ReadRevisionAsync(path, cancellationToken));
     }
 
     public async Task<StoredDocument> SaveStructureAsync(
@@ -138,7 +143,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             ?? throw new FileNotFoundException($"構造 '{structureId}' が見つかりません。");
         var normalized = NormalizeStructure(content);
         await WriteJsonAsync(existing.FullPath, normalized, "structures", createOnly: false, cancellationToken);
-        return existing with { Content = normalized, Revision = Revision(normalized) };
+        return existing with { Content = normalized, Revision = await ReadRevisionAsync(existing.FullPath, cancellationToken) };
     }
 
     public static JsonObject NormalizeNode(JsonObject content) => (JsonObject)content.DeepClone();
@@ -183,10 +188,11 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         return clone;
     }
 
-    private static async Task<IReadOnlyList<StoredDocument>> ReadDirectoryAsync(
+    private async Task<IReadOnlyList<StoredDocument>> ReadDirectoryAsync(
         string directory,
         CancellationToken cancellationToken)
     {
+        _boundary.RequireNoLinks(directory);
         if (!Directory.Exists(directory))
             return [];
 
@@ -194,6 +200,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
                      .OrderBy(value => value, StringComparer.OrdinalIgnoreCase))
         {
+            _boundary.RequireNoLinks(file);
             var bytes = await File.ReadAllBytesAsync(file, cancellationToken);
             var text = Encoding.UTF8.GetString(bytes);
             if (text.StartsWith('\uFEFF')) text = text[1..];
@@ -211,9 +218,13 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         return documents;
     }
 
-    private static string Revision(JsonObject content) => EditorRevision.Hash(Encoding.UTF8.GetBytes(StableJson.Serialize(content)));
+    private async Task<string> ReadRevisionAsync(string path, CancellationToken token)
+    {
+        _boundary.RequireNoLinks(path);
+        return EditorRevision.Hash(await File.ReadAllBytesAsync(path, token));
+    }
 
-    private static async Task<StoredDocument?> FindByPropertyAsync(
+    private async Task<StoredDocument?> FindByPropertyAsync(
         string directory,
         string propertyName,
         string propertyValue,
@@ -238,6 +249,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
 
     private async Task<BigInteger?> ReadNodeIdSequenceAsync(CancellationToken cancellationToken)
     {
+        _boundary.RequireNoLinks(paths.NodeIdSequence);
         if (!File.Exists(paths.NodeIdSequence))
             return null;
 
@@ -315,6 +327,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         bool createOnly,
         CancellationToken cancellationToken)
     {
+        _boundary.RequireNoLinks(path);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         if (createOnly && File.Exists(path))
             throw new IOException($"保存先のファイルは既に存在します: {path}");
@@ -338,11 +351,13 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
         try
         {
+            _boundary.RequireNoLinks(temporaryPath);
             await File.WriteAllTextAsync(
                 temporaryPath,
                 serialized,
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                 cancellationToken);
+            _boundary.RequireNoLinks(path);
             File.Move(temporaryPath, path, overwrite: !createOnly);
         }
         finally
@@ -357,7 +372,9 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         await _writeLock.WaitAsync(cancellationToken);
         try
         {
+            _boundary.RequireNoLinks(path);
             await backupService.BackupAsync(path, backupCategory, cancellationToken);
+            _boundary.RequireNoLinks(path);
             File.Delete(path);
         }
         finally

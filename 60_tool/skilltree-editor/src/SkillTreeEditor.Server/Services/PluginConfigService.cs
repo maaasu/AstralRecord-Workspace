@@ -14,12 +14,14 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
         @"(?m)^(?=[^\s#][^:\r\n]*:)",
         RegexOptions.CultureInvariant);
     private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly MasterDataPaths _boundary = new(paths);
 
     public async Task<PluginSkillTreeSettings> ReadAsync(CancellationToken cancellationToken)
         => (await ReadVersionedAsync(cancellationToken)).Content;
 
     public async Task<VersionedDocument<PluginSkillTreeSettings>> ReadVersionedAsync(CancellationToken cancellationToken)
     {
+        _boundary.RequireNoLinks(paths.PluginConfig);
         if (!File.Exists(paths.PluginConfig))
             throw new FileNotFoundException("プラグインの config.yml が見つかりません。", paths.PluginConfig);
 
@@ -45,6 +47,7 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
         await _writeLock.WaitAsync(cancellationToken);
         try
         {
+            _boundary.RequireNoLinks(paths.PluginConfig);
             if (!File.Exists(paths.PluginConfig))
                 throw new FileNotFoundException("プラグインの config.yml が見つかりません。", paths.PluginConfig);
 
@@ -80,11 +83,13 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
                 $".{Path.GetFileName(paths.PluginConfig)}.{Guid.NewGuid():N}.tmp");
             try
             {
+                _boundary.RequireNoLinks(temporaryPath);
                 await File.WriteAllTextAsync(
                     temporaryPath,
                     updated,
                     new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                     cancellationToken);
+                _boundary.RequireNoLinks(paths.PluginConfig);
                 File.Move(temporaryPath, paths.PluginConfig, overwrite: true);
             }
             finally

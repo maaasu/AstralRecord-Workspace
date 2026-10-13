@@ -41,6 +41,30 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task UnrelatedStructureIdentityDoesNotBlockWorldDeletion()
+    {
+        const string world = "60.features.world/v1.main.yml";
+        Write(world, "id: main\n");
+        Write("35.features.skilltree/structures/main.json", "{\"structureId\":\"main\"}");
+        Assert.Empty(await _service.ReferencesAsync(world, CancellationToken.None));
+        var document = await _service.ReadAsync(world, CancellationToken.None);
+        await _service.DeleteAsync(world, document.Revision, CancellationToken.None);
+        Assert.False(File.Exists(_paths.Resolve(world)));
+    }
+
+    [Fact]
+    public async Task BareWorldReferencesOnlyIncludeTypedValuesAndReferenceMaps()
+    {
+        const string world = "60.features.world/v1.main.yml";
+        Write(world, "id: main\n");
+        Write("test/consumer.yml", "structureId: main\nworldId:\n  ref: main\n  metadata:\n    sourceId: main\nworldIds: [main]\n");
+        var references = await _service.ReferencesAsync(world, CancellationToken.None);
+        Assert.Equal(new[] { "/worldId/ref", "/worldIds/0" }, references.Select(reference => reference.Pointer));
+        var document = await _service.ReadAsync(world, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.DeleteAsync(world, document.Revision, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task RawSavePreservesCommentsUnknownFieldsAndCreatesBackupOnlyOnChange()
     {
         const string path = "30.features.skill/custom/v1.alpha.yml";

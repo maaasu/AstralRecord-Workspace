@@ -172,9 +172,8 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var document = await ReadAsync(relative, token);
             foreach (var value in Walk(document.Content))
             {
-                var keys = value.Pointer.Split('/');
                 if (sourceIds.Any(sourceId => prefixes.Any(prefix => value.Value == prefix + ":" + sourceId)
-                    || value.Value == sourceId && keys.Any(key => IsReferenceKey(key, kind))))
+                    || value.Value == sourceId && IsReferenceKey(value.Key, kind)))
                     result.Add(new(relative, value.Pointer, value.Value, DisplayName(document.Content as JsonObject), kind));
             }
             // Local $schema references are path based, not identity based.
@@ -241,7 +240,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
 
     private static bool IsReferenceKey(string key, string kind) => kind switch
     {
-        "item" => key is "itemId" or "item" or "requiredItemId" or "allowedSigilIds" or "sigilId",
+        "item" => key is "itemId" or "item" or "requiredItemId" or "allowedSigilIds" or "sigilId" or "eggItemId" or "petItemId" or "reviveOrbItemId" or "caughtItemId",
         "class" => key is "classId" or "class" or "requiredClasses",
         "skill" => key is "skillId" or "skill" or "usableSkills" or "requiredSkillId" or "sourceSkillId",
         "node" => key is "nodeId" or "rootNodeId" or "sourceNodeId" or "targetNodeId",
@@ -251,7 +250,23 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         "tag" => key is "tag" or "tags" or "targetTags" or "requiredToolTags",
         "loot_table" => key is "lootTable" or "lootTableId",
         "loot_pool" => key is "poolId" or "lootPoolId",
-        _ => key.EndsWith("Id", StringComparison.Ordinal) && key != "id"
+        "world" => key is "worldId" or "worldRef" or "worldIds" or "world",
+        "mob" => key is "mobId" or "mobIds" or "mob" or "npcId" or "facilityId" or "bossMobId",
+        "mob_spawner" => key is "mobSpawnerId" or "mobSpawnerIds",
+        "gathering" => key is "gatheringId" or "gatheringIds" or "gathering",
+        "gathering_spawner" => key is "gatheringSpawnerId" or "gatheringSpawnerIds",
+        "fishing_fish" => key == "fishId",
+        "fishing_area" => key == "areaId",
+        "fishing_rules" => key == "rulesId",
+        "enchant" => key is "enchantId" or "enchantIds",
+        "buff" => key is "buffId" or "buffIds",
+        "recipe" => key is "recipeId" or "recipeIds",
+        "shop" => key is "shopId" or "shopIds",
+        "dungeon" => key is "dungeonId" or "dungeonRef" or "dungeonIds",
+        "mail" => key is "mailId" or "mailIds",
+        "guide" => key is "guideId" or "guideIds",
+        "pet" => key is "petId" or "petIds",
+        _ => false
     };
 
     public static string Kind(string path)
@@ -299,15 +314,15 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         return result.ToArray();
     }
 
-    private static IEnumerable<(string Pointer, string Value)> Walk(JsonNode? node, string pointer = "")
+    private static IEnumerable<(string Pointer, string Value, string Key)> Walk(JsonNode? node, string pointer = "", string key = "")
     {
         if (node is JsonObject obj)
             foreach (var pair in obj)
-                foreach (var child in Walk(pair.Value, pointer + "/" + MasterDataValidation.Escape(pair.Key))) yield return child;
+                foreach (var child in Walk(pair.Value, pointer + "/" + MasterDataValidation.Escape(pair.Key), pair.Key == "ref" ? key : pair.Key)) yield return child;
         else if (node is JsonArray array)
             for (var index = 0; index < array.Count; index++)
-                foreach (var child in Walk(array[index], pointer + "/" + index)) yield return child;
-        else if (MasterDataValidation.Text(node) is { } value) yield return (pointer, value);
+                foreach (var child in Walk(array[index], pointer + "/" + index, key)) yield return child;
+        else if (MasterDataValidation.Text(node) is { } value) yield return (pointer, value, key);
     }
 
     private async Task<string> NextItemIdAsync(string code, char initialGroup, CancellationToken token)
