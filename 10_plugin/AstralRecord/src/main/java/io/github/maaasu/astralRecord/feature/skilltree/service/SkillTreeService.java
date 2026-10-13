@@ -116,7 +116,7 @@ public class SkillTreeService {
     private static final int DEFAULT_VIEW_DISTANCE = 27;
     private static final double DETAILED_LABEL_DISTANCE = 14.0D;
     private static final double COMPACT_LABEL_DISTANCE = 36.0D;
-    private static final double LIGHTWEIGHT_LABEL_DISTANCE = 5.0D;
+    private static final double LIGHTWEIGHT_LABEL_DISTANCE = 10.0D;
 
     /**
      * 視線上で命中したスキルツリー位置とhitbox入口距離です。
@@ -3244,7 +3244,7 @@ public class SkillTreeService {
     }
 
     /**
-     * ノード表示テキストの詳細段階を返します。軽量表示では半径5m以内だけラベルを表示します。
+     * ノード表示テキストの詳細段階を返します。軽量表示では半径10m以内だけラベルを表示します。
      *
      * @param player 表示対象プレイヤー
      * @param nodeLocation ノード位置
