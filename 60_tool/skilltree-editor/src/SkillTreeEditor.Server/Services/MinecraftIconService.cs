@@ -7,6 +7,8 @@ namespace SkillTreeEditor.Server.Services;
 
 public sealed partial class MinecraftIconService(HttpClient httpClient, WorkspacePaths paths, IOptions<EditorOptions>? options = null)
 {
+    private readonly MasterDataPaths _safePaths = new(paths);
+
     private const long MaximumIconBytes = 2 * 1024 * 1024;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.Ordinal);
     private readonly Uri? _fallbackBaseUri = CreateFallbackBaseUri(options?.Value.MinecraftIconsFallbackBaseUrl);
@@ -18,6 +20,8 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
     {
         var iconId = NormalizeMaterial(material);
         var path = Path.Combine(paths.MinecraftIconCache, $"{iconId}.png");
+        if (Directory.Exists(paths.WorkspaceRoot))
+            _safePaths.RequireNoLinks(path);
         if (!refresh && File.Exists(path))
             return path;
 
@@ -25,6 +29,8 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
         await gate.WaitAsync(cancellationToken);
         try
         {
+            if (Directory.Exists(paths.WorkspaceRoot))
+                _safePaths.RequireNoLinks(path);
             if (!refresh && File.Exists(path))
                 return path;
 
@@ -67,10 +73,13 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
         if (response.Content.Headers.ContentLength is > MaximumIconBytes)
             throw new InvalidDataException("Minecraft アイコンの応答が上限の2 MiBを超えています。");
 
+        Directory.CreateDirectory(paths.WorkspaceRoot);
+        _safePaths.RequireNoLinks(path);
         Directory.CreateDirectory(paths.MinecraftIconCache);
         var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
         try
         {
+            _safePaths.RequireNoLinks(temporaryPath);
             await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))
             await using (var destination = new FileStream(
                 temporaryPath,
@@ -82,12 +91,16 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
             {
                 await CopyWithLimitAsync(source, destination, cancellationToken);
             }
+            _safePaths.RequireNoLinks(path);
             File.Move(temporaryPath, path, overwrite: true);
         }
         finally
         {
             if (File.Exists(temporaryPath))
+            {
+                _safePaths.RequireNoLinks(temporaryPath);
                 File.Delete(temporaryPath);
+            }
         }
         return path;
     }

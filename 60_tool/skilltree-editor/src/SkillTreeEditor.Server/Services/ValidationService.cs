@@ -14,6 +14,8 @@ public sealed class ValidationService(
     PluginConfigService pluginConfig,
     MasterTagCatalog masterTagCatalog)
 {
+    private readonly MasterDataPaths _safePaths = new(paths);
+
     public async Task<ValidationReport> ValidateAllAsync(CancellationToken cancellationToken)
     {
         var report = new ValidationReport();
@@ -596,6 +598,7 @@ public sealed class ValidationService(
 
         try
         {
+            _safePaths.RequireNoLinks(paths.NodeIdSequence);
             var text = await File.ReadAllTextAsync(paths.NodeIdSequence, Encoding.UTF8, cancellationToken);
             return JsonNode.Parse(text) as JsonObject
                    ?? throw new JsonException("JSON のルートはオブジェクトで指定してください。");
@@ -643,12 +646,13 @@ public sealed class ValidationService(
                && BigInteger.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out parsed);
     }
 
-    private static async Task<IReadOnlyList<StoredDocument>> LoadDirectoryAsync(
+    private async Task<IReadOnlyList<StoredDocument>> LoadDirectoryAsync(
         string directory,
         string invalidCode,
         ValidationReport report,
         CancellationToken cancellationToken)
     {
+        _safePaths.RequireNoLinks(directory);
         if (!Directory.Exists(directory))
         {
             report.AddWarning("DIRECTORY_NOT_FOUND", $"ディレクトリがまだ存在しません: {directory}");
@@ -661,6 +665,7 @@ public sealed class ValidationService(
         {
             try
             {
+                _safePaths.RequireNoLinks(path);
                 var text = await File.ReadAllTextAsync(path, Encoding.UTF8, cancellationToken);
                 var content = JsonNode.Parse(text, documentOptions: new JsonDocumentOptions
                 {

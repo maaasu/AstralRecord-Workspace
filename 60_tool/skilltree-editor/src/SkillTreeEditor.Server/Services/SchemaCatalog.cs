@@ -8,8 +8,11 @@ namespace SkillTreeEditor.Server.Services;
 
 public sealed class SchemaCatalog(WorkspacePaths paths)
 {
+    private readonly MasterDataPaths _safePaths = new(paths);
+
     public async Task<IReadOnlyList<SchemaSummary>> ListAsync(CancellationToken cancellationToken)
     {
+        _safePaths.RequireNoLinks(paths.Schemas);
         if (!Directory.Exists(paths.Schemas))
             return [];
 
@@ -58,6 +61,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             throw new ArgumentException("スキーマファイル名の末尾は .schema.json にしてください。", nameof(fileName));
 
         var path = SafePath.UnderRoot(paths.Schemas, fileName);
+        _safePaths.RequireNoLinks(path);
         return File.Exists(path) ? await ReadObjectAsync(path, cancellationToken) : null;
     }
 
@@ -94,6 +98,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
         }
 
         var schemaPath = SafePath.UnderRoot(paths.Schemas, referencedFileName);
+        _safePaths.RequireNoLinks(schemaPath);
         if (!File.Exists(schemaPath))
         {
             return
@@ -192,6 +197,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
 
     public async Task<IReadOnlyList<ValidationIssue>> ValidateCatalogAsync(CancellationToken cancellationToken)
     {
+        _safePaths.RequireNoLinks(paths.Schemas);
         if (!Directory.Exists(paths.Schemas))
             return [];
 
@@ -202,6 +208,7 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
             var fileName = Path.GetFileName(path);
             try
             {
+                _safePaths.RequireNoLinks(path);
                 var schemaText = await File.ReadAllTextAsync(path, Encoding.UTF8, cancellationToken);
                 using var schemaDocument = JsonDocument.Parse(schemaText);
                 _ = JsonSchema.Build(
@@ -253,8 +260,9 @@ public sealed class SchemaCatalog(WorkspacePaths paths)
         _ => $"JSON Schema の制約（{keyword}）を満たしていません。"
     };
 
-    private static async Task<JsonObject> ReadObjectAsync(string path, CancellationToken cancellationToken)
+    private async Task<JsonObject> ReadObjectAsync(string path, CancellationToken cancellationToken)
     {
+        _safePaths.RequireNoLinks(path);
         var text = await File.ReadAllTextAsync(path, Encoding.UTF8, cancellationToken);
         return JsonNode.Parse(text) as JsonObject
             ?? throw new InvalidDataException($"スキーマのルートはオブジェクトで指定してください: {path}");

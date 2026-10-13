@@ -7,6 +7,8 @@ namespace SkillTreeEditor.Server.Services;
 /** SkillTreeノードの候補表示に必要なスキル情報をfilebaseから読み取ります。 */
 public sealed class SkillMasterCatalog(WorkspacePaths paths)
 {
+    private readonly MasterDataPaths _safePaths = new(paths);
+
     private readonly IDeserializer _deserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
@@ -21,16 +23,19 @@ public sealed class SkillMasterCatalog(WorkspacePaths paths)
     /// <exception cref="InvalidOperationException">スキルIDが重複する場合。</exception>
     public async Task<IReadOnlyList<SkillMasterSummary>> ReadAllAsync(CancellationToken token)
     {
+        _safePaths.RequireNoLinks(paths.Skills);
         if (!Directory.Exists(paths.Skills))
             throw new DirectoryNotFoundException($"スキルマスターディレクトリが見つかりません: {paths.Skills}");
 
         var summaries = new Dictionary<string, SkillMasterSummary>(StringComparer.OrdinalIgnoreCase);
-        var files = Directory.EnumerateFiles(paths.Skills, "*.yml", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(paths.Skills, "*.yaml", SearchOption.AllDirectories))
+        var files = _safePaths.Enumerate("30.features.skill")
+            .Where(file => Path.GetExtension(file).Equals(".yml", StringComparison.OrdinalIgnoreCase)
+                           || Path.GetExtension(file).Equals(".yaml", StringComparison.OrdinalIgnoreCase))
             .OrderBy(file => file, StringComparer.OrdinalIgnoreCase);
         foreach (var file in files)
         {
             token.ThrowIfCancellationRequested();
+            _safePaths.RequireNoLinks(file);
             var yaml = await File.ReadAllTextAsync(file, token);
             var master = _deserializer.Deserialize<SkillMasterYaml>(yaml);
             if (master is null || string.IsNullOrWhiteSpace(master.Id))

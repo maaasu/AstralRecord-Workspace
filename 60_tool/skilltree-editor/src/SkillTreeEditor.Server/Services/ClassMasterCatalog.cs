@@ -7,6 +7,8 @@ namespace SkillTreeEditor.Server.Services;
 /** SkillTree の表示シミュレーションに必要なクラス階層だけを filebase から読み取ります。 */
 public sealed class ClassMasterCatalog(WorkspacePaths paths)
 {
+    private readonly MasterDataPaths _safePaths = new(paths);
+
     private readonly IDeserializer _deserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
@@ -14,6 +16,7 @@ public sealed class ClassMasterCatalog(WorkspacePaths paths)
 
     public async Task<IReadOnlyList<ClassMasterSummary>> ReadAllAsync(CancellationToken token)
     {
+        _safePaths.RequireNoLinks(paths.Classes);
         if (!Directory.Exists(paths.Classes))
             throw new DirectoryNotFoundException($"クラスマスターディレクトリが見つかりません: {paths.Classes}");
 
@@ -24,6 +27,7 @@ public sealed class ClassMasterCatalog(WorkspacePaths paths)
         foreach (var file in files)
         {
             token.ThrowIfCancellationRequested();
+            _safePaths.RequireNoLinks(file);
             var yaml = await File.ReadAllTextAsync(file, token);
             var master = _deserializer.Deserialize<ClassMasterYaml>(yaml);
             if (master is null || string.IsNullOrWhiteSpace(master.Id))

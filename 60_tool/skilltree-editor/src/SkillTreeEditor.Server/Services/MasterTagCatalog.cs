@@ -7,6 +7,8 @@ namespace SkillTreeEditor.Server.Services;
 /** マスターデータで使用できる共有タグ定義を読み取ります。 */
 public sealed class MasterTagCatalog(WorkspacePaths paths)
 {
+    private readonly MasterDataPaths _safePaths = new(paths);
+
     private readonly IDeserializer _deserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
@@ -15,6 +17,7 @@ public sealed class MasterTagCatalog(WorkspacePaths paths)
     /// <summary>共有タグをIDの大文字・小文字を維持して読み取ります。</summary>
     public async Task<IReadOnlyList<MasterTagSummary>> ReadAllAsync(CancellationToken token)
     {
+        _safePaths.RequireNoLinks(paths.TagCatalog);
         if (!File.Exists(paths.TagCatalog))
             throw new FileNotFoundException($"マスタータグカタログが見つかりません: {paths.TagCatalog}", paths.TagCatalog);
 
