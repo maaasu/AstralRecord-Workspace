@@ -1483,7 +1483,8 @@ public class ItemStackFactory {
                         var range = EnchantRollRangeResolver.resolve(enchantMasters.get(masterKey), eq.getSlot(), enchant);
                         if (range != null) {
                             lore.add(RANDOM_STATUS_RANGE_MARKER + ColorCodeUtil.GRAY + "   └"
-                                    + formatStatRange(enchantType, statusType, range.min(), range.max()));
+                                    + ColorCodeUtil.toPlainText(
+                                            formatStatRange(enchantType, statusType, range.min(), range.max()), ""));
                         }
                     }
                 }
