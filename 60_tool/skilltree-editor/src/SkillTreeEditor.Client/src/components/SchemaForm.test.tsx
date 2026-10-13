@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { defaultFromSchema, SchemaForm } from './SchemaForm'
 import type { JsonObject } from '../types/editor'
+import nodeSchema from '../../../../../../40_filebase/35.features.skilltree/schemas/node.v1.schema.json'
 
 describe('defaultFromSchema', () => {
   it('uses the first enum value even when type is omitted', () => {
@@ -64,5 +65,15 @@ describe('defaultFromSchema', () => {
     expect(screen.getByRole('option', { name: '最大HP（MAX_HEALTH）' })).toHaveValue('MAX_HEALTH')
     fireEvent.change(select, { target: { value: 'STRENGTH' } })
     expect(onChange).toHaveBeenCalledWith('STRENGTH')
+  })
+
+  it('uses Japanese node field labels and changes referenced effects without retaining incompatible fields', () => {
+    const onChange = vi.fn()
+    render(<SchemaForm schema={nodeSchema.properties.effects.items} rootSchema={nodeSchema}
+      value={{ type: 'status', status: 'MAX_HEALTH', modifierType: 'FLAT', value: 25, custom: '保持' }} onChange={onChange} />)
+    expect(screen.getByText('ステータス', { selector: '.schema-field > span' })).toBeInTheDocument()
+    expect(screen.getByText('補正の種類', { selector: '.schema-field > span' })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('combobox', { name: '種類' }), { target: { value: '0' } })
+    expect(onChange).toHaveBeenLastCalledWith({ type: 'skill', skillId: '', custom: '保持' })
   })
 })

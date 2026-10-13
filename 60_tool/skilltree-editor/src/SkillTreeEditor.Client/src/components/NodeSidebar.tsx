@@ -55,7 +55,7 @@ export function NodeSidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <div>
-          <span className="eyebrow">MASTER NODES</span>
+          <span className="eyebrow">ノードマスター</span>
           <h2>ノード一覧</h2>
         </div>
         <button className="button primary compact" onClick={onCreate}>＋ 新規</button>

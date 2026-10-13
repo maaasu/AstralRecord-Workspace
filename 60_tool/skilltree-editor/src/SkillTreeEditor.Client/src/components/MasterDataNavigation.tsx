@@ -60,11 +60,12 @@ interface DetailsProps {
   navigationDisabled: boolean
   onSelect: (path: string) => void
   onFocus: (path: string) => void
-  onInvalid: (path: string, message: string | null) => void
+  onInvalid: (path: string, message: string | null, text?: string) => void
+  invalidValues?: Record<string, string>
   onChange: (value: JsonValue) => void
 }
 
-export function MasterDataDetails({ value, path, fields, references, schema, disabled, navigationDisabled, onSelect, onFocus, onInvalid, onChange }: DetailsProps) {
+export function MasterDataDetails({ value, path, fields, references, schema, disabled, navigationDisabled, onSelect, onFocus, onInvalid, invalidValues, onChange }: DetailsProps) {
   const currentPath = closestContainerPointer(value, path)
   const current = valueAtPointer(value, currentPath)
   const crumbs = currentPath ? currentPath.split('/').slice(1).map((_, index, segments) => '/' + segments.slice(0, index + 1).join('/')) : []
@@ -84,7 +85,7 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
     <div className="master-node-heading"><h3 tabIndex={-1} data-node-heading>{nodeLabel(value, schema, fields, currentPath)}</h3>{currentPath && <code>{currentPath}</code>}</div>
     <fieldset className="master-form-lock" disabled={disabled}>
       <MasterDataForm key={currentPath} value={current === undefined ? value : current} path={currentPath} fields={fields} references={references} schema={schemaAtPointer(schema, currentPath, value)} rootSchema={schema}
-        onInvalid={onInvalid} onNavigate={onSelect} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
+        onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={onSelect} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
     </fieldset>
   </section>
 }

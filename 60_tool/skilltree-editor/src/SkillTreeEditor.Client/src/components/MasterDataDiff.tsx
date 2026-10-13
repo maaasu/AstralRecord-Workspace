@@ -1,3 +1,5 @@
+import { Modal } from './Modal'
+
 export interface DiffLine { kind: 'same' | 'added' | 'removed'; text: string; before?: number; after?: number }
 
 export function masterLineDiff(before: string, after: string): DiffLine[] {
@@ -33,8 +35,8 @@ export function masterLineDiff(before: string, after: string): DiffLine[] {
 
 export function MasterDataDiff({ before, after, onClose }: { before: string; after: string; onClose: () => void }) {
   const lines = masterLineDiff(before, after)
-  return <div className="modal-backdrop" role="presentation"><section className="modal master-diff-dialog" role="dialog" aria-modal="true" aria-label="保存前の差分">
+  return <Modal className="master-diff-dialog" ariaLabel="保存前の差分" onClose={onClose}>
     <header className="modal-header"><div><h2>保存前の差分</h2><p className="master-muted">保存済み → 現在の原稿。{lines.filter((line) => line.kind === 'added').length} 行追加 / {lines.filter((line) => line.kind === 'removed').length} 行削除</p></div><button className="button" onClick={onClose}>閉じる</button></header>
     <div className="master-diff-lines">{lines.map((line, index) => <div key={index} className={`master-diff-line ${line.kind}`}><span>{line.before ?? ''}</span><span>{line.after ?? ''}</span><b>{line.kind === 'added' ? '+' : line.kind === 'removed' ? '−' : ' '}</b><pre>{line.text || ' '}</pre></div>)}</div>
-  </section></div>
+  </Modal>
 }

@@ -398,7 +398,7 @@ function CanvasInner({
           <button role="menuitem" disabled={structure.rootNodeId === contextMenu.nodeId} onClick={() => {
             onRecord({ ...structure, rootNodeId: contextMenu.nodeId })
             setContextMenu(null)
-          }}>ROOTに設定</button>
+          }}>起点に設定</button>
           <button role="menuitem" onClick={() => void copyNodeId(contextMenu.nodeId)}>nodeIdをコピー</button>
           <button role="menuitem" disabled={!contextHasEdges} onClick={() => deleteConnections(contextMenu.nodeId)}>このノードの接続をすべて削除</button>
           <button role="menuitem" className="danger" onClick={() => {
@@ -433,7 +433,7 @@ function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
       <MinecraftIcon icon={data.icon} revision={data.iconRevision} className="canvas-node-icon" />
       <span className="node-kicker">#{data.nodeId} · {data.costTitle} · Y {data.y}</span>
       {data.effects.length > 0 && <span className="effect-count" aria-label={`効果 ${data.effects.length}件`}>{data.effects.length}</span>}
-      {data.root && <span className="root-label">ROOT</span>}
+      {data.root && <span className="root-label">起点</span>}
     </div>
   )
 }

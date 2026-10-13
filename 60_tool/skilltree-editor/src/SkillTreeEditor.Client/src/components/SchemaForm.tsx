@@ -1,6 +1,8 @@
 import type { FieldSuggestion, FieldSuggestionValue, JsonObject, JsonValue } from '../types/editor'
 import { SuggestionInput } from './SuggestionInput'
 import { MaterialIconInput } from './MaterialIconInput'
+import { masterFieldLabel } from '../data/masterDataPresentation'
+import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
 
 interface SchemaFormProps {
   schema: JsonObject
@@ -34,7 +36,7 @@ export function SchemaForm({
             value={selectedIndex}
             onChange={(event) => {
               const next = asObject(union[Number(event.target.value)]) ?? {}
-              onChange(defaultFromSchema(resolveSchema(next, rootSchema), rootSchema))
+              onChange(mergeMasterUnion(value, defaultFromSchema(next, rootSchema), selected, next, rootSchema))
             }}
           >
             {union.map((option, index) => {
@@ -92,7 +94,7 @@ export function SchemaForm({
           return (
             <label className="schema-field" key={key}>
               <span>
-                {String(childSchema.title ?? key)}{required.has(key) && <b aria-label="必須"> *</b>}
+                {String(childSchema.title ?? masterFieldLabel(key))}{required.has(key) && <b aria-label="必須"> *</b>}
                 {childSchema.description && <small>{String(childSchema.description)}</small>}
               </span>
               <SchemaForm
@@ -238,31 +240,8 @@ export function defaultFromSchema(schema: JsonObject, rootSchema: JsonObject = s
   return ''
 }
 
-function resolveSchema(schema: JsonObject, root: JsonObject): JsonObject {
-  const reference = typeof schema.$ref === 'string' ? schema.$ref : null
-  if (!reference?.startsWith('#/')) return schema
-  let current: JsonValue = root
-  for (const segment of reference.slice(2).split('/')) {
-    const object = asObject(current)
-    if (!object) return schema
-    const next = object[segment.replaceAll('~1', '/').replaceAll('~0', '~')]
-    if (next === undefined) return schema
-    current = next
-  }
-  const resolved: JsonObject = { ...asObject(current), ...schema }
-  delete resolved.$ref
-  return resolved
-}
-
 function optionMatches(option: JsonValue, value: JsonValue, root: JsonObject): boolean {
-  const schema = resolveSchema(asObject(option) ?? {}, root)
-  const properties = asObject(schema.properties)
-  const objectValue = asObject(value)
-  if (!properties || !objectValue) return false
-  return Object.entries(properties).some(([key, property]) => {
-    const constValue = asObject(property)?.const
-    return constValue !== undefined && objectValue[key] === constValue
-  })
+  return masterUnionMatches(asObject(option) ?? {}, value, root)
 }
 
 function schemaType(schema: JsonObject, value: JsonValue): string {

@@ -1,4 +1,5 @@
 import { masterFieldLabel } from '../data/masterDataPresentation'
+import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
 import { useEffect, useId, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
@@ -40,17 +41,6 @@ export function fieldForPath(fields: MasterField[], path: string): MasterField |
   })
 }
 
-function resolveSchema(schema: JsonObject, root: JsonObject): JsonObject {
-  if (typeof schema.$ref !== 'string' || !schema.$ref.startsWith('#/')) return schema
-  let target: JsonValue = root
-  for (const part of schema.$ref.slice(2).split('/')) {
-    target = objectOf(target)?.[part.replaceAll('~1', '/').replaceAll('~0', '~')] ?? null
-  }
-  const result: JsonObject = { ...objectOf(target), ...schema }
-  delete result.$ref
-  return result
-}
-
 function valueType(value: JsonValue, schema: JsonObject = {}, field?: MasterField): ValueType {
   const declared = schema.type ?? field?.type
   const normalized = normalizeMasterType(declared)
@@ -66,6 +56,8 @@ export function masterDefault(schema: JsonObject = {}, type: string = 'string', 
   if (resolved.default !== undefined) return structuredClone(resolved.default)
   if (resolved.const !== undefined) return structuredClone(resolved.const)
   if (Array.isArray(resolved.enum) && resolved.enum.length) return structuredClone(resolved.enum[0])
+  const union = resolved.oneOf ?? resolved.anyOf
+  if (Array.isArray(union) && union.length) return masterDefault(objectOf(union[0]) ?? {}, type, root)
   const selected = normalizeMasterType(resolved.type) ?? normalizeMasterType(type) ?? type
   if (selected === 'object' || resolved.properties) {
     const properties = objectOf(resolved.properties) ?? {}
@@ -98,33 +90,27 @@ interface MasterDataFormProps {
   schema?: JsonObject
   rootSchema?: JsonObject
   path?: string
-  onInvalid?: (path: string, message: string | null) => void
+  onInvalid?: (path: string, message: string | null, text?: string) => void
+  invalidValues?: Record<string, string>
   onNavigate?: (path: string) => void
   navigationDisabled?: boolean
 }
 
-export function MasterDataForm({ value, onChange, fields, references = [], schema = {}, rootSchema = schema, path = '', onInvalid, onNavigate, navigationDisabled }: MasterDataFormProps) {
+export function MasterDataForm({ value, onChange, fields, references = [], schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled }: MasterDataFormProps) {
   const resolved = resolveSchema(schema, rootSchema)
   const metadata = fieldForPath(fields, path)
   const kind = valueType(value, resolved, metadata)
-  const inherited = { fields, references, rootSchema, onInvalid, onNavigate, navigationDisabled }
+  const inherited = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled }
   const unions = Array.isArray(resolved.oneOf ?? resolved.anyOf) ? (resolved.oneOf ?? resolved.anyOf) as JsonValue[] : []
-  const selectedUnion = Math.max(0, unions.findIndex((choice) => {
-    const properties = objectOf(objectOf(choice)?.properties)
-    return properties && Object.entries(properties).some(([key, definition]) => objectOf(definition)?.const !== undefined && objectOf(definition)?.const === objectOf(value)?.[key])
-  }))
+  const choices = unions.map((choice) => resolveSchema(objectOf(choice) ?? {}, rootSchema))
+  const selectedUnion = Math.max(0, choices.findIndex((choice) => masterUnionMatches(choice, value, rootSchema)))
   if (unions.length) {
     return <div className="master-union"><label>定義の種類<select aria-label={`${path || '/'} 定義の種類`} value={selectedUnion} onChange={(event) => {
-      const next = objectOf(unions[Number(event.target.value)]) ?? {}
+      const next = choices[Number(event.target.value)] ?? {}
       const defaults = masterDefault(next, 'object', rootSchema)
-      const merged = objectOf(value) && objectOf(defaults) ? { ...objectOf(value), ...objectOf(defaults) } : defaults
-      const properties = objectOf(next.properties) ?? {}
-      if (objectOf(merged)) for (const [key, definition] of Object.entries(properties)) {
-        if (objectOf(definition)?.const !== undefined) (merged as JsonObject)[key] = objectOf(definition)!.const
-      }
-      onChange(merged)
-    }}>{unions.map((choice, index) => <option key={index} value={index}>{String(objectOf(choice)?.title ?? `種類 ${index + 1}`)}</option>)}</select></label>
-      <MasterDataForm {...inherited} path={path} schema={objectOf(unions[selectedUnion]) ?? {}} value={value} onChange={onChange} />
+      onChange(mergeMasterUnion(value, defaults, choices[selectedUnion], next, rootSchema))
+    }} disabled={navigationDisabled}>{choices.map((choice, index) => <option key={index} value={index}>{String(choice.title ?? (objectOf(objectOf(choice.properties)?.type)?.const === 'skill' ? 'スキル効果' : objectOf(objectOf(choice.properties)?.type)?.const === 'status' ? 'ステータス効果' : `種類 ${index + 1}`))}</option>)}</select></label>
+      <MasterDataForm {...inherited} path={path} schema={choices[selectedUnion] ?? {}} value={value} onChange={onChange} />
     </div>
   }
   if (kind === 'object') {
@@ -143,7 +129,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
     {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)}>{String(entry)}</option>)}
   </select>
   if (kind === 'boolean') return <label className="master-checkbox"><input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />{value === true ? 'true（有効）' : 'false（無効）'}</label>
-  if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} />
+  if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
   const referenceKind = metadata?.reference ?? parentReference ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
@@ -155,7 +141,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
     referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`)) : undefined} />
 }
 
-function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
+function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
   const [newKey, setNewKey] = useState('')
   const [newType, setNewType] = useState<ValueType>('string')
   const [addError, setAddError] = useState('')
@@ -192,19 +178,19 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
         <div className="master-field-heading"><strong>{label}</strong><code>{key}</code><span className="master-type">{typeLabels[valueType(child, definition, field)]}</span>{isRequired && <b className="master-required">必須</b>}
           <span className="master-spacer" />
           <details className="master-field-actions"><summary aria-label={childPath + ' の操作'}>操作</summary><div className="master-field-actions-body">
-          {canChangeType && <select className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
+          {canChangeType && <select disabled={navigationDisabled} className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
             const nextType = event.target.value as ValueType
             if ((structured || typeof child === 'string' && child) && !window.confirm(`「${key}」の型を変更して現在の値を置き換えますか？`)) return
             onChange({ ...value, [key]: masterDefault({}, nextType) })
           }}>{types.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select>}
-          <button type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
+          <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
             if (isRequired && !window.confirm(`「${key}」は必須項目です。削除しますか？（保存前の検証で確認されます）`)) return
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
           }}>削除</button></div></details></div>
         {description && <details className="master-field-help"><summary>項目の説明</summary><p className="master-field-description">{description}</p></details>}
         {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
         {structured && onNavigate && !textLines ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}><span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{label}を編集 →</b></button>
-          : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
+          : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
         : <div key={key} className={'master-field ' + (structured || isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
@@ -260,7 +246,7 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
     const index = offset + visibleIndex
     const structured = entry !== null && typeof entry === 'object'
     return <div className={'master-array-entry ' + (paged && structured ? 'master-array-summary-row' : '')} key={index}>
-    <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={`${path}/${index} 上へ`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${path}/${index} 下へ`} disabled={index === values.length - 1} onClick={() => move(index, 1)}>↓</button><button type="button" className="button compact" onClick={() => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])}>複製</button><button type="button" className="button compact danger subtle" aria-label={`${path}/${index} を削除`} onClick={() => onChange(values.filter((_, item) => item !== index))}>削除</button></div>
+    <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={`${path}/${index} 上へ`} disabled={index === 0 || inherited.navigationDisabled} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${path}/${index} 下へ`} disabled={index === values.length - 1 || inherited.navigationDisabled} onClick={() => move(index, 1)}>↓</button><button type="button" className="button compact" disabled={inherited.navigationDisabled} onClick={() => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])}>複製</button><button type="button" disabled={inherited.navigationDisabled} className="button compact danger subtle" aria-label={`${path}/${index} を削除`} onClick={() => onChange(values.filter((_, item) => item !== index))}>削除</button></div>
     {structured && inherited.onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={path + '/' + index + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(path + '/' + index)}>編集 →</button></div>
       : <MasterDataForm {...inherited} path={path + '/' + index} value={entry} schema={itemSchema} onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />}
   </div>})}
@@ -268,18 +254,28 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
     <div className="master-add-row">{!itemSchema.type && <select aria-label={path + ' 配列に追加する型'} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" onClick={() => onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div></div>
 }
 
-function NumberEditor({ value, kind, path, onChange, onInvalid }: { value: number; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid'] }) {
-  const [text, setText] = useState(String(value))
-  const [error, setError] = useState('')
-  useEffect(() => { setText(String(value)); setError(''); onInvalid?.(path, null) }, [value, path, onInvalid])
-  useEffect(() => () => onInvalid?.(path, null), [path, onInvalid])
+function numberInputError(text: string, kind: 'number' | 'integer'): string {
+  const number = Number(text)
+  const invalid = !text.trim() || !Number.isFinite(number) || kind === 'integer' && !Number.isInteger(number)
+  return invalid ? kind === 'integer' ? '有限の整数を入力してください。' : '有限の数値を入力してください。' : ''
+}
+
+function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText }: { value: number; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string }) {
+  const [text, setText] = useState(restoredText ?? String(value))
+  const [error, setError] = useState(() => numberInputError(restoredText ?? String(value), kind))
+  useEffect(() => {
+    const nextText = restoredText ?? String(value)
+    const message = numberInputError(nextText, kind)
+    setText(nextText); setError(message)
+    if (message) onInvalid?.(path, message, nextText)
+    else onInvalid?.(path, null)
+  }, [value, path, kind, onInvalid, restoredText])
   return <div><input type="text" inputMode="decimal" aria-label={path || '/'} aria-invalid={Boolean(error)} value={text} onChange={(event) => {
     setText(event.target.value)
-    const number = Number(event.target.value)
-    const invalid = !event.target.value.trim() || !Number.isFinite(number) || kind === 'integer' && !Number.isInteger(number)
-    const message = invalid ? kind === 'integer' ? '有限の整数を入力してください。' : '有限の数値を入力してください。' : ''
-    setError(message); onInvalid?.(path, message || null)
-    if (!invalid) onChange(number)
+    const message = numberInputError(event.target.value, kind)
+    setError(message)
+    if (message) onInvalid?.(path, message, event.target.value)
+    else { onInvalid?.(path, null); onChange(Number(event.target.value)) }
   }} />{error && <small className="error-message">{error}</small>}</div>
 }
 

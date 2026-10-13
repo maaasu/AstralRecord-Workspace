@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { fieldForPath, masterDefault, MasterDataForm, normalizeMasterType } from './MasterDataForm'
 import type { JsonValue } from '../types/editor'
 import type { MasterField } from '../types/masterData'
 import petSchema from '../../../../../../40_filebase/55.features.pet/schemas/pet-master.v1.schema.json'
+import nodeSchema from '../../../../../../40_filebase/35.features.skilltree/schemas/node.v1.schema.json'
 
 const fields: MasterField[] = [
   { path: '/name', key: 'name', label: '表示名', type: 'string', required: true, description: 'ゲーム内の名前' },
@@ -201,7 +202,65 @@ describe('master form', () => {
     render(<MasterDataForm value={2} fields={fields} path="/equipment/level" onChange={onChange} onInvalid={onInvalid} />)
     fireEvent.change(screen.getByRole('textbox', { name: '/equipment/level' }), { target: { value: '1.5' } })
     expect(onChange).not.toHaveBeenCalled()
-    expect(onInvalid).toHaveBeenLastCalledWith('/equipment/level', '有限の整数を入力してください。')
+    expect(onInvalid).toHaveBeenLastCalledWith('/equipment/level', '有限の整数を入力してください。', '1.5')
+  })
+
+  it('selects referenced status effects and preserves values when selecting their existing branch', () => {
+    const initial = { type: 'status', status: 'MAX_HEALTH', modifierType: 'FLAT', value: 25 }
+    const onChange = vi.fn()
+    render(<MasterDataForm value={initial} schema={nodeSchema.properties.effects.items} rootSchema={nodeSchema} path="/effects/0" fields={[]} onChange={onChange} />)
+    const choice = screen.getByRole('combobox', { name: '/effects/0 定義の種類' })
+    expect(choice).toHaveValue('1')
+    expect(screen.getByRole('option', { name: 'ステータス効果' })).toHaveValue('1')
+    expect(screen.getByRole('textbox', { name: '/effects/0/value' })).toHaveValue('25')
+    fireEvent.change(choice, { target: { value: '1' } })
+    expect(onChange).toHaveBeenLastCalledWith(initial)
+    fireEvent.change(choice, { target: { value: '0' } })
+    expect(onChange).toHaveBeenLastCalledWith({ type: 'skill', skillId: '' })
+    expect(masterDefault(nodeSchema.properties.effects.items, 'object', nodeSchema)).toEqual({ type: 'skill', skillId: '' })
+  })
+
+  it('retains invalid number text and blocks array mutations until it is corrected', () => {
+    function RestorableArray() {
+      const [value, setValue] = useState<JsonValue>([0, 90])
+      const [invalidValues, setInvalidValues] = useState<Record<string, string>>({})
+      const onInvalid = useCallback((path: string, message: string | null, text?: string) => setInvalidValues(current => {
+        if (message && current[path] === text || !message && !Object.hasOwn(current, path)) return current
+        const next = { ...current }
+        if (message) next[path] = text ?? ''
+        else delete next[path]
+        return next
+      }), [])
+      return <><MasterDataForm value={value} path="/experience/wave" fields={[]} schema={petSchema.properties.experience.properties.wave} onChange={setValue}
+        onInvalid={onInvalid} invalidValues={invalidValues} navigationDisabled={Object.keys(invalidValues).length > 0} onNavigate={vi.fn()} /><output data-testid="array">{JSON.stringify(value)}</output></>
+    }
+    render(<RestorableArray />)
+    const first = screen.getByRole('textbox', { name: '/experience/wave/0' })
+    fireEvent.change(first, { target: { value: '-' } })
+    expect(first).toHaveValue('-')
+    expect(first).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('button', { name: '/experience/wave/1 上へ' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '/experience/wave/0 を削除' })).toBeDisabled()
+    expect(screen.getAllByRole('button', { name: '複製' }).every(button => button.hasAttribute('disabled'))).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '/experience/wave/1 上へ' }))
+    expect(first).toHaveValue('-')
+    expect(screen.getByTestId('array')).toHaveTextContent('[0,90]')
+    fireEvent.change(first, { target: { value: '15' } })
+    expect(first).toHaveValue('15')
+    expect(first).toHaveAttribute('aria-invalid', 'false')
+    fireEvent.click(screen.getByRole('button', { name: '/experience/wave/1 上へ' }))
+    expect(screen.getByTestId('array')).toHaveTextContent('[90,15]')
+  })
+
+  it('restores unfinished number text without overwriting the last valid value or clearing it on unmount', () => {
+    const onInvalid = vi.fn(); const onChange = vi.fn()
+    const { unmount } = render(<MasterDataForm value={2} fields={fields} path="/equipment/level" invalidValues={{ '/equipment/level': '-' }} onChange={onChange} onInvalid={onInvalid} />)
+    expect(screen.getByRole('textbox', { name: '/equipment/level' })).toHaveValue('-')
+    expect(onInvalid).toHaveBeenLastCalledWith('/equipment/level', '有限の整数を入力してください。', '-')
+    expect(onChange).not.toHaveBeenCalled()
+    onInvalid.mockClear()
+    unmount()
+    expect(onInvalid).not.toHaveBeenCalled()
   })
 
   it('offers named references without restricting free text', () => {
