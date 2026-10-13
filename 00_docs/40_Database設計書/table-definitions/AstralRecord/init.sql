@@ -1298,6 +1298,7 @@ CREATE TABLE [dbo].[equipment_instance_enchant] (
     [status]                      NVARCHAR(50)      NOT NULL,
     [type]                        NVARCHAR(20)      NOT NULL,
     [value]                       DECIMAL(18, 4)    NOT NULL,
+    [is_locked]                   BIT               NOT NULL CONSTRAINT [DF_equipment_instance_enchant_is_locked] DEFAULT (0),
     [created_at]                  DATETIME2(3)      NOT NULL,
     [updated_at]                  DATETIME2(3)      NOT NULL,
     [created_by]                  UNIQUEIDENTIFIER  NOT NULL,

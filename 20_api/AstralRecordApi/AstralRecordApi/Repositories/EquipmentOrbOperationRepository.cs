@@ -526,6 +526,28 @@ public class EquipmentOrbOperationRepository(
         List<EquipmentInstanceEnchantEntity> currentEnchants,
         DateTime now)
     {
+        var operation = effect.EnchantOperation?.Trim().ToUpperInvariant() ?? string.Empty;
+        var unlocked = currentEnchants.Where(enchant => !enchant.IsLocked).ToList();
+        if (operation is "REMOVE_RANDOM" or "LOCK_FIRST")
+        {
+            if (unlocked.Count == 0)
+                return "NO_SLOT";
+            var selected = operation == "LOCK_FIRST"
+                ? unlocked.MinBy(enchant => enchant.SlotIndex)!
+                : unlocked[Random.Shared.Next(unlocked.Count)];
+            if (operation == "REMOVE_RANDOM")
+            {
+                dbContext.EquipmentInstanceEnchants.Remove(selected);
+                currentEnchants.Remove(selected);
+            }
+            else
+            {
+                selected.IsLocked = true;
+                selected.UpdatedAt = now;
+                selected.UpdatedBy = accountId;
+            }
+            return "APPLIED";
+        }
         var maxSlots = GetEffectiveEnchantMaxSlots(equipment, instance.TranscendenceRank);
         var enchantMaster = string.IsNullOrWhiteSpace(effect.EnchantMasterId)
             ? null
@@ -541,15 +563,38 @@ public class EquipmentOrbOperationRepository(
             .GroupBy(entry => entry.EffectId, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .ToList();
-        var operation = effect.EnchantOperation?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (operation == "REROLL_VALUE_RANDOM")
+        {
+            if (unlocked.Count == 0)
+                return "NO_SLOT";
+            // Every unlocked row must resolve before sampling to avoid biasing
+            // random selection by filtering out legacy or custom effects.
+            var resolved = unlocked.Select(current => new
+            {
+                Current = current,
+                Entry = target.Entries.FirstOrDefault(candidate => IsValidEnchantEntry(candidate)
+                    && IdEquals(candidate.EffectId, current.EffectId)
+                    && IdEquals(candidate.Status, current.Status)
+                    && IdEquals(candidate.Type, current.Type)),
+            }).ToList();
+            if (resolved.Any(candidate => candidate.Entry is null))
+                return "NO_CANDIDATE";
+            var chosen = resolved[Random.Shared.Next(resolved.Count)];
+            var selected = chosen.Current;
+            selected.Value = RangeValueResolver.ResolveDecimal(chosen.Entry!.Value);
+            selected.EnchantMasterId = enchantMaster!.Id;
+            selected.UpdatedAt = now;
+            selected.UpdatedBy = accountId;
+            return "APPLIED";
+        }
         EquipmentInstanceEnchantEntity? overwriteTarget = null;
         IReadOnlyList<int> targetSlots;
         IReadOnlyList<EnchantEntryResponse> candidates;
         if (operation == "OVERWRITE_RANDOM")
         {
-            if (currentEnchants.Count == 0)
+            if (unlocked.Count == 0)
                 return "NO_SLOT";
-            var viable = currentEnchants
+            var viable = unlocked
                 .Select(current => new
                 {
                     Current = current,
@@ -657,6 +702,7 @@ public class EquipmentOrbOperationRepository(
                     Status = enchant.Status,
                     Type = enchant.Type,
                     Value = enchant.Value,
+                    IsLocked = enchant.IsLocked,
                     CreatedAt = enchant.CreatedAt,
                     UpdatedAt = enchant.UpdatedAt,
                     CreatedBy = enchant.CreatedBy,

@@ -483,7 +483,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             {
                 EnchantId = Guid.NewGuid(), EquipmentInstanceId = equipmentIds[enchant.EquipmentInstanceId],
                 SlotIndex = enchant.SlotIndex, EnchantMasterId = enchant.EnchantMasterId, EffectId = enchant.EffectId,
-                Status = enchant.Status, Type = enchant.Type, Value = enchant.Value,
+                Status = enchant.Status, Type = enchant.Type, Value = enchant.Value, IsLocked = enchant.IsLocked,
                 CreatedAt = now, UpdatedAt = now, CreatedBy = actorId, UpdatedBy = actorId,
             }));
             await dbContext.EquipmentInstanceRunes.AddRangeAsync(runes.Select(rune => new EquipmentInstanceRuneEntity

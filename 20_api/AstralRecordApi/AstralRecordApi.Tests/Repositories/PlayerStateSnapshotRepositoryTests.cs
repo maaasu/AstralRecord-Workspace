@@ -226,7 +226,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
                     EquipmentInstanceId = equipmentId, ExpectedUpdatedAt = fixture.BaseTime, RuneMaxSlots = 2,
                     Enchants =
                     [
-                        new PlayerStateEquipmentEnchantSnapshot { EnchantId = firstEnchantId, SlotIndex = 1, EnchantMasterId = "master", EffectId = "effect_two", Status = "FIXED", Type = "FLAT", Value = 2 },
+                        new PlayerStateEquipmentEnchantSnapshot { EnchantId = firstEnchantId, SlotIndex = 1, EnchantMasterId = "master", EffectId = "effect_two", Status = "FIXED", Type = "FLAT", Value = 2, IsLocked = true },
                         new PlayerStateEquipmentEnchantSnapshot { EnchantId = secondEnchantId, SlotIndex = 0, EnchantMasterId = "master", EffectId = "effect_one", Status = "FIXED", Type = "FLAT", Value = 1 },
                     ],
                     Runes =
@@ -254,6 +254,8 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         var enchants = await fixture.DbContext.EquipmentInstanceEnchants.AsNoTracking().Where(enchant => enchant.EquipmentInstanceId == equipmentId).ToDictionaryAsync(enchant => enchant.EnchantId);
         Assert.Equal(1, enchants[firstEnchantId].SlotIndex);
         Assert.Equal("effect_two", enchants[firstEnchantId].EffectId);
+        Assert.True(enchants[firstEnchantId].IsLocked);
+        Assert.False(enchants[secondEnchantId].IsLocked);
         Assert.Equal(0, enchants[secondEnchantId].SlotIndex);
         var runes = await fixture.DbContext.EquipmentInstanceRunes.AsNoTracking().Where(rune => rune.EquipmentInstanceId == equipmentId).ToDictionaryAsync(rune => rune.RuneId);
         Assert.Equal(1, runes[firstRuneId].SlotIndex);

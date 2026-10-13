@@ -50,6 +50,11 @@ CREATE TABLE dbo.account (
     CONSTRAINT PK_account PRIMARY KEY CLUSTERED (uuid)
 );
 CREATE TABLE dbo.market_listing (listing_id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+CREATE TABLE dbo.equipment_instance_enchant (
+    enchant_id UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT PK_equipment_instance_enchant PRIMARY KEY CLUSTERED (enchant_id)
+);
+INSERT dbo.equipment_instance_enchant (enchant_id) VALUES (NEWID());
 CREATE TABLE dbo.skill_bind_preset (
     preset_index INT NOT NULL,
     CONSTRAINT PK_skill_bind_preset PRIMARY KEY CLUSTERED (preset_index)
@@ -67,6 +72,8 @@ CREATE TABLE dbo.account_skilltree_state (
     $config | ConvertTo-Json -Depth 20 | Set-Content -Encoding UTF8 -LiteralPath $tempConfigPath
 
     Invoke-MigrationTool
+    $legacyLock = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT CAST(is_locked AS INT) FROM dbo.equipment_instance_enchant;"
+    if ($legacyLock -ne 0) { throw "Legacy enchants must remain unlocked after migration." }
     $tableCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM sys.tables WHERE name = N'account_learned_skill_operation';"
     $historyCount = Invoke-DbScalar -ConnectionString $databaseConnectionString -CommandText "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id = N'20260905_account_learned_skill_operation';"
     if ([int]$tableCount -ne 1 -or [int]$historyCount -ne 1) {

@@ -35,6 +35,7 @@ public class EquipmentInstanceEnchantResponse
     public string EffectId { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public string Type { get; init; } = string.Empty;
+    public bool IsLocked { get; init; }
     public decimal Value { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }

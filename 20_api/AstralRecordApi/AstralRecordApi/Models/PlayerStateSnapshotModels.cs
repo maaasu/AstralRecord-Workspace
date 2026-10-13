@@ -142,6 +142,7 @@ public sealed class PlayerStateEquipmentEnchantSnapshot
     public required string EffectId { get; init; }
     public required string Status { get; init; }
     public required string Type { get; init; }
+    public bool IsLocked { get; init; }
     public decimal Value { get; init; }
 }
 

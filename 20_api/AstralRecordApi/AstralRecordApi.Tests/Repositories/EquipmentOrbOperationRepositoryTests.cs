@@ -491,6 +491,149 @@ public class EquipmentOrbOperationRepositoryTests
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
     }
 
+    [Theory]
+    [InlineData("19", 19)]
+    [InlineData("30", 30)]
+    public async Task EnchantReroll_ChangesOnlyUnlockedValueAndMasterAndAcceptsSameValue(string range, int expected)
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(0, "locked", "ATTACK", "FLAT", 15, isLocked: true);
+        await harness.AddEnchantAsync(1, "critical", "CRITICAL_RATE", "FLAT", 19);
+        var before = (await harness.GetEnchantsAsync()).ToDictionary(enchant => enchant.SlotIndex);
+        harness.SetEnchantMaster(CreateEnchantMaster(
+            CreateEnchantEntry("critical", "CRITICAL_RATE", "FLAT", range, 1)));
+        var orb = await harness.AddOrbAsync("reroll", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantMasterId = "enchant001", EnchantOperation = "REROLL_VALUE_RANDOM",
+        });
+
+        var result = await harness.ExecuteAsync("reroll", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.True(result.PaymentConsumed);
+        var after = (await harness.GetEnchantsAsync()).ToDictionary(enchant => enchant.SlotIndex);
+        Assert.Equal(before[0].Value, after[0].Value);
+        Assert.True(after[0].IsLocked);
+        Assert.Equal(before[1].EnchantId, after[1].EnchantId);
+        Assert.Equal("critical", after[1].EffectId);
+        Assert.Equal("CRITICAL_RATE", after[1].Status);
+        Assert.Equal("FLAT", after[1].Type);
+        Assert.Equal(expected, after[1].Value);
+        Assert.Equal("enchant001", after[1].EnchantMasterId);
+        Assert.False(after[1].IsLocked);
+        Assert.True(result.Equipment!.Enchants[0].IsLocked);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    [Fact]
+    public async Task EnchantReroll_RejectsAnyUnresolvedUnlockedEffectWithoutPayment()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(0, "critical", "CRITICAL_RATE", "FLAT", 1);
+        await harness.AddEnchantAsync(1, "custom", "ATTACK", "FLAT", 5);
+        harness.SetEnchantMaster(CreateEnchantMaster(
+            CreateEnchantEntry("critical", "CRITICAL_RATE", "FLAT", "19", 1)));
+        var orb = await harness.AddOrbAsync("reroll", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantMasterId = "enchant001", EnchantOperation = "REROLL_VALUE_RANDOM",
+        });
+
+        var result = await harness.ExecuteAsync("reroll", orb);
+
+        Assert.Equal("NO_CANDIDATE", result.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.Equal(1, (await harness.GetEnchantsAsync())[0].Value);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    [Fact]
+    public async Task EnchantRemove_DeletesOnlyUnlockedRowWithoutCompactingSlotsOrMaster()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(1, "locked", "ATTACK", "FLAT", 15, isLocked: true);
+        await harness.AddEnchantAsync(0, "remove", "CRITICAL_RATE", "FLAT", 19);
+        var orb = await harness.AddOrbAsync("remove", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantOperation = "REMOVE_RANDOM",
+        });
+
+        var result = await harness.ExecuteAsync("remove", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        var remaining = Assert.Single(await harness.GetEnchantsAsync());
+        Assert.Equal(1, remaining.SlotIndex);
+        Assert.True(remaining.IsLocked);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    [Fact]
+    public async Task EnchantLock_LocksLowestUnlockedSlotWithoutMasterAndPreservesValues()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(0, "locked", "ATTACK", "FLAT", 15, isLocked: true);
+        await harness.AddEnchantAsync(3, "later", "DEFENSE", "FLAT", 9);
+        await harness.AddEnchantAsync(2, "first", "CRITICAL_RATE", "FLAT", 19);
+        var orb = await harness.AddOrbAsync("lock", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantOperation = "LOCK_FIRST",
+        });
+
+        var result = await harness.ExecuteAsync("lock", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        var after = (await harness.GetEnchantsAsync()).ToDictionary(enchant => enchant.SlotIndex);
+        Assert.True(after[2].IsLocked);
+        Assert.False(after[3].IsLocked);
+        Assert.Equal(19, after[2].Value);
+        Assert.Equal("legacy", after[2].EnchantMasterId);
+    }
+
+    [Theory]
+    [InlineData("REROLL_VALUE_RANDOM")]
+    [InlineData("REMOVE_RANDOM")]
+    [InlineData("LOCK_FIRST")]
+    [InlineData("OVERWRITE_RANDOM")]
+    public async Task EnchantMutation_AllLockedDoesNotConsumePayment(string operation)
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(0, "locked", "ATTACK", "FLAT", 15, isLocked: true);
+        harness.SetEnchantMaster(CreateEnchantMaster(CreateEnchantEntry("new", "ATTACK", "FLAT", "19", 1)));
+        var orb = await harness.AddOrbAsync("locked_orb", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantMasterId = "enchant001", EnchantOperation = operation,
+        });
+
+        var result = await harness.ExecuteAsync("locked_orb", orb);
+
+        Assert.Equal("NO_SLOT", result.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+        Assert.True(Assert.Single(await harness.GetEnchantsAsync()).IsLocked);
+    }
+
+    [Fact]
+    public async Task EnchantOverwrite_PreservesLockedRowAndItsDuplicateOccupancy()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(0, "locked", "ATTACK", "FLAT", 15, isLocked: true);
+        await harness.AddEnchantAsync(1, "old", "CRITICAL_RATE", "FLAT", 1);
+        harness.SetEnchantMaster(CreateEnchantMaster(
+            CreateEnchantEntry("locked", "ATTACK", "FLAT", "30", 1000),
+            CreateEnchantEntry("new", "CRITICAL_RATE", "FLAT", "19", 1)));
+        var orb = await harness.AddOrbAsync("overwrite", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantMasterId = "enchant001", EnchantOperation = "OVERWRITE_RANDOM",
+        });
+
+        var result = await harness.ExecuteAsync("overwrite", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        var after = await harness.GetEnchantsAsync();
+        Assert.True(after[0].IsLocked);
+        Assert.Equal(15, after[0].Value);
+        Assert.Equal("new", after[1].EffectId);
+    }
+
     [Fact]
     public async Task EnchantFillAll_SupportsIntMaxWeightsWithoutOverflow()
     {
@@ -1386,7 +1529,8 @@ public class EquipmentOrbOperationRepositoryTests
             string effectId,
             string status,
             string type,
-            decimal value)
+            decimal value,
+            bool isLocked = false)
         {
             var now = DateTime.UtcNow;
             dbContext.EquipmentInstanceEnchants.Add(new EquipmentInstanceEnchantEntity
@@ -1399,6 +1543,7 @@ public class EquipmentOrbOperationRepositoryTests
                 Status = status,
                 Type = type,
                 Value = value,
+                IsLocked = isLocked,
                 CreatedAt = now,
                 UpdatedAt = now,
                 CreatedBy = AccountId,

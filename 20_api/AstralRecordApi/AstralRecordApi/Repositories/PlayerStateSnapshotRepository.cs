@@ -470,6 +470,7 @@ public sealed class PlayerStateSnapshotRepository(
                     EffectId = enchantSnapshot.EffectId.Trim(),
                     Status = enchantSnapshot.Status.Trim(),
                     Type = enchantSnapshot.Type.Trim(),
+                    IsLocked = enchantSnapshot.IsLocked,
                     Value = enchantSnapshot.Value,
                     CreatedAt = now,
                     UpdatedAt = now,

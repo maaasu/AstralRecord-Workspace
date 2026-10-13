@@ -9,6 +9,7 @@ public class EquipmentInstanceEnchantEntity
     public string EffectId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
+    public bool IsLocked { get; set; }
     public decimal Value { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
