@@ -74,3 +74,267 @@ items:
           ref: item:10a00014
         category: material
         amount: 30
+  - id: iron_pickaxe_1
+    itemId:
+      ref: item:20a00098
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 96
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 192
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 45
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 45
+  - id: iron_hoe_1
+    itemId:
+      ref: item:20a00099
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 14
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 96
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 192
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 45
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 45
+  - id: iron_pickaxe_2
+    itemId:
+      ref: item:20a00100
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 8
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 10
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 10
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 60
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 60
+  - id: iron_hoe_2
+    itemId:
+      ref: item:20a00101
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 15
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 10
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 10
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 60
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 60
+  - id: iron_pickaxe_3
+    itemId:
+      ref: item:20a00102
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 15
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 15
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 192
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 90
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 90
+  - id: iron_hoe_3
+    itemId:
+      ref: item:20a00103
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 16
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 15
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 15
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 192
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 90
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 90
+  - id: iron_pickaxe_4
+    itemId:
+      ref: item:20a00104
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 10
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 20
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 20
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 512
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 120
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 120
+  - id: iron_hoe_4
+    itemId:
+      ref: item:20a00105
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 17
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00021
+        category: material
+        amount: 20
+      - itemId:
+          ref: item:10a00022
+        category: material
+        amount: 20
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 512
+      - itemId:
+          ref: item:10a00018
+        category: material
+        amount: 120
+      - itemId:
+          ref: item:10a00014
+        category: material
+        amount: 120

@@ -1,0 +1,31 @@
+# design:
+#   motif: "鉱物 / 鉄製道具"
+#   progression: 5
+schemaVersion: 1
+id: 20a00102
+category: equipment
+name: "&f鉄のツルハシⅢ"
+icon: IRON_PICKAXE
+rarity: COMMON
+saleValue: 2
+lore:
+  - "&7磨き上げた鉄の採掘道具。"
+  - "&7ギャザリングレベル2の鉱脈に対応する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: PICKAXE
+  requiredLevel: 0
+  stats:
+  - status: GATHERING_LEVEL
+    type: FLAT
+    value: 2
+  - status: MINING_SPEED
+    type: FLAT
+    value: 8
+  durability:
+    max: 150
+    consume: 1
