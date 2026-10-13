@@ -55,48 +55,55 @@ public final class SharedParticleDefinitions {
     /** 本体と小型分身が放つ三連魔法弾の軌跡です。 */
     public static final SharedParticleDefinition SELENEA_BOLT =
         new SharedParticleDefinition("selenea_bolt", Particle.DUST, 2, 0.025D, 0.025D, 0.025D, 0,
-            new Particle.DustOptions(Color.fromRGB(210, 80, 245), 0.8F));
+            new Particle.DustOptions(Color.fromRGB(255, 225, 165), 1.0F));
     /** 魔法弾が対象へ着弾した紫の火花です。 */
     public static final SharedParticleDefinition SELENEA_BOLT_IMPACT =
         new SharedParticleDefinition("selenea_bolt_impact", Particle.WITCH, 12, 0.2D, 0.3D, 0.2D, 0);
     /** ジャンプで回避できる床上の低い月蝕波です。 */
     public static final SharedParticleDefinition SELENEA_GROUND_WAVE =
-        new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 2, 0.04D, 0.08D, 0.04D, 0,
-            new Particle.DustOptions(Color.fromRGB(255, 220, 45), 1.35F));
-    /** 三連弾の発射点へ収束する紫の予告輪です。 */
+        new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 4, 0.04D, 0.08D, 0.04D, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 230, 150), 1.6F));
+    /** 三連弾の発射点へ収束する明るいオレンジの予告輪です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_RING =
-        new SharedParticleDefinition("selenea_volley_ring", Particle.DUST, 2, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(235, 105, 255), 1.1F));
+        new SharedParticleDefinition("selenea_volley_ring", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 190, 80), 1.4F));
     /** 頭上の発射点で待機する三つの光球です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_CHARGE =
         new SharedParticleDefinition("selenea_volley_charge", Particle.DUST, 2, 0.06D, 0.06D, 0.06D, 0,
-            new Particle.DustOptions(Color.fromRGB(255, 175, 245), 1.3F));
+            new Particle.DustOptions(Color.fromRGB(255, 250, 235), 1.3F));
     /** 予告が完了し、三連弾を解放する瞬間の閃光です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_RELEASE =
         new SharedParticleDefinition("selenea_volley_release", Particle.FLASH, 2, 0, 0, 0, 0,
-            Color.fromRGB(235, 105, 255));
+            Color.fromRGB(255, 235, 190));
 
-    /** 攻撃と区別した青灰の会場境界です。 */
+    /** 攻撃のオレンジと区別した白い会場境界です。 */
     public static final SharedParticleDefinition SELENEA_BOUNDARY =
-        new SharedParticleDefinition("selenea_boundary", Particle.DUST, 2, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(100, 125, 185), 0.8F));
+        new SharedParticleDefinition("selenea_boundary", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(245, 245, 255), 1.2F));
     /** 呪文の着弾面を紫から銀への粒子で示します。 */
     public static final SharedParticleDefinition SELENEA_IMPACT =
         new SharedParticleDefinition("selenea_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.05, 0.1, 0.05, 0,
             new Particle.DustTransition(Color.fromRGB(190, 65, 240), Color.fromRGB(235, 235, 255), 1.5F));
 
-    /** 危険領域の縁を明るい赤紫で細く示し、面全体を粒子で埋めない予兆です。 */
+    /** 危険領域の縁だけを明るいオレンジの太い輪郭で示します。 */
     public static final SharedParticleDefinition SELENEA_WARNING_EDGE =
-        new SharedParticleDefinition("selenea_warning_edge", Particle.DUST, 2, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(245, 65, 105), 1.2F));
+        new SharedParticleDefinition("selenea_warning_edge", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 190, 80), 1.6F));
 
     /** スニーク保持が必要な封頁の文字粒子です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_RING =
         new SharedParticleDefinition("selenea_sneak_ring", Particle.ENCHANT, 2, 0, 0, 0, 0);
-    /** 封頁の実際の半径を示す紫の輪郭です。 */
+    /** 封頁の実際の半径を示す白い輪郭です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_ACCENT =
-        new SharedParticleDefinition("selenea_sneak_accent", Particle.DUST, 2, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(195, 90, 255), 1.3F));
+        new SharedParticleDefinition("selenea_sneak_accent", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 250, 235), 1.6F));
+    /** 月影渡りの移動先を予告する白い小輪です。 */
+    public static final SharedParticleDefinition SELENEA_TELEPORT_RING =
+        new SharedParticleDefinition("selenea_teleport_ring", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 250, 235), 1.5F));
+    /** 月影渡りの出発点と到着点に一度だけ表示する白い光です。 */
+    public static final SharedParticleDefinition SELENEA_TELEPORT_BURST =
+        new SharedParticleDefinition("selenea_teleport_burst", Particle.END_ROD, 24, 0.35D, 0.8D, 0.35D, 0.02D);
     /** 命中判定と同時に危険面だけへ出す、地形を変更しない爆発演出です。 */
     public static final SharedParticleDefinition SELENEA_ATTACK_BURST =
         new SharedParticleDefinition("selenea_attack_burst", Particle.EXPLOSION, 2, 0, 0, 0, 0);

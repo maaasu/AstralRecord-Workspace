@@ -35,7 +35,8 @@ final class SeleneaPressureController {
     private static final long BOLT_LIFETIME = 300L;
     private static final int MAX_BOLTS = 108;
     private static final int MAX_WAVES = 3;
-    private static final int MAX_WAVE_POINTS = 160;
+    private static final int MAX_WAVE_POINTS = 512;
+    private static final double WAVE_POINT_SPACING = 0.75D;
     private static final double WAVE_SPEED = 0.2D;
     private static final double WAVE_HALF_WIDTH = 0.55D;
     private static final double JUMP_CLEARANCE = 0.65D;
@@ -124,7 +125,7 @@ final class SeleneaPressureController {
         }
     }
 
-    /** 発射点に収束する紫の輪と三つの光球を一括描画し、発射直前ほど高い音で予告します。 */
+    /** 発射点に収束するオレンジの輪と白い光球を一括描画し、発射直前ほど高い音で予告します。 */
     private void drawVolley(Volley volley, Entity boss, long tick) {
         double progress = Math.clamp((tick - volley.startedAt) / (double) VOLLEY_CHARGE, 0, 1);
         List<Location> ring = new ArrayList<>(96);
@@ -286,7 +287,7 @@ final class SeleneaPressureController {
             wave.previousFeet.keySet().retainAll(present);
             if (tick >= wave.nextRenderAt) {
                 wave.nextRenderAt = tick + RENDER_INTERVAL;
-                int count = Math.clamp((int) Math.ceil(Math.PI * 2.0D * radius / 2.0D), 24, MAX_WAVE_POINTS);
+                int count = Math.clamp((int) Math.ceil(Math.PI * 2.0D * radius / WAVE_POINT_SPACING), 24, MAX_WAVE_POINTS);
                 for (int index = 0; index < count; index++) {
                     double angle = index * Math.PI * 2.0D / count;
                     Location floor = SeleneaArena.ground(wave.center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
@@ -297,6 +298,18 @@ final class SeleneaPressureController {
             if (radius >= maximum + WAVE_HALF_WIDTH) iterator.remove();
         }
         particles.spawnForNearbyViewers(points, SharedParticleDefinitions.SELENEA_GROUND_WAVE, true);
+    }
+
+    /**
+     * 本体の移動後に分身を同期し、古い発射位置の予告だけを取り消します。発射済みの弾と波は残します。
+     * @param bossId 所有ボス @param entity 移動済み本体 @param tick 共通時計
+     */
+    void onBossTeleport(UUID bossId, Entity entity, long tick) {
+        Pressure state = encounters.get(bossId);
+        if (state == null) return;
+        state.volley = null;
+        state.nextVolleyAt = Math.max(state.nextVolleyAt, tick + 30L);
+        syncClones(state, entity, state.clones.size());
     }
 
     /** 中断・死亡・挑戦終了では、分身・飛翔弾・波を所有ボスごとに回収します。 */

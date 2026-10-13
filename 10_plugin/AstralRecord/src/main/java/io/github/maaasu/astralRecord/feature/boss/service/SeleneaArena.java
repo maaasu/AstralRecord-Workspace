@@ -4,7 +4,10 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
@@ -192,6 +195,43 @@ final class SeleneaArena {
     static boolean standingOnGround(Location point) {
         Location floor = ground(point);
         return floor != null && Math.abs(point.getY() - floor.getY()) <= 0.1D;
+    }
+
+    /**
+     * 浮いた本体の全身を移動先へ投影し、床・高さ・未ロードchunk・障害物を検査します。
+     * @param entity 移動する本体 @param floor 安全な床の候補 @param center 固定会場中心
+     * @param hoverHeight 床から浮かせる高さ @return 同じ戦闘階で全身を安全に置ける場合true
+     */
+    static boolean canTeleport(Entity entity, Location floor, Location center, double hoverHeight) {
+        if (entity.getWorld() != floor.getWorld() || !loaded(floor)) return false;
+        Location currentFloor = ground(floor);
+        if (currentFloor == null || !battleFloor(currentFloor, center)
+            || Math.abs(currentFloor.getY() - floor.getY()) > 0.01D) return false;
+        Location destination = floor.clone().add(0, hoverHeight, 0);
+        if (!inArena(destination, center)) return false;
+        World world = destination.getWorld();
+        BoundingBox bounds = entity.getBoundingBox().clone()
+            .shift(destination.toVector().subtract(entity.getLocation().toVector()));
+        int minY = (int) Math.floor(bounds.getMinY());
+        int maxY = (int) Math.floor(Math.nextDown(bounds.getMaxY()));
+        if (minY < world.getMinHeight() || maxY >= world.getMaxHeight()) return false;
+        WorldBorder border = world.getWorldBorder();
+        for (double x : new double[]{bounds.getMinX(), bounds.getMaxX()}) {
+            for (double z : new double[]{bounds.getMinZ(), bounds.getMaxZ()}) {
+                if (!border.isInside(new Location(world, x, destination.getY(), z))) return false;
+            }
+        }
+        for (int x = (int) Math.floor(bounds.getMinX()); x <= (int) Math.floor(Math.nextDown(bounds.getMaxX())); x++) {
+            for (int z = (int) Math.floor(bounds.getMinZ()); z <= (int) Math.floor(Math.nextDown(bounds.getMaxZ())); z++) {
+                if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
+                for (int y = minY; y <= maxY; y++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (block.isLiquid() || block.getType() == Material.FIRE || block.getType() == Material.SOUL_FIRE
+                        || block.getCollisionShape().overlaps(bounds.clone().shift(-x, -y, -z))) return false;
+                }
+            }
+        }
+        return true;
     }
 
     /** 穴、接触ダメージ、頭上2mの障害物を除外します。 */
