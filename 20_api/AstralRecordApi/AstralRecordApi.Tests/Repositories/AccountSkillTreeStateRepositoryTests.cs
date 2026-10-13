@@ -286,6 +286,7 @@ public class AccountSkillTreeStateRepositoryTests
                 level INTEGER NOT NULL,
                 total_experience INTEGER NOT NULL,
                 highest_level INTEGER NOT NULL,
+                play_time_seconds INTEGER NOT NULL DEFAULT 0,
                 rebirth_original_level INTEGER NULL,
                 rebirth_experience_remainder INTEGER NOT NULL,
                 class_id TEXT NOT NULL,

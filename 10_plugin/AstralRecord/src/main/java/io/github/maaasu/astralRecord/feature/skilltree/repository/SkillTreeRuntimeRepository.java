@@ -163,6 +163,13 @@ public final class SkillTreeRuntimeRepository {
     /** accountごとの更新ACKとpending操作。view拒否の場合は次回全体viewを再送します。 */
     public record AccountHeartbeatResult(boolean renewed, boolean viewAccepted, List<Operation> operations) { }
 
+    /** 旧APIのbatch未対応。呼出側は各accountを独立した非同期処理へ渡す。 */
+    public static final class BatchUnavailableException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        /** 404/405検出済みまたは未対応経路の再確認待ちを表す。 */
+        public BatchUnavailableException() { super("Skill tree account heartbeat batch is unavailable"); }
+    }
+
     /**
      * 最大32件の既存sessionの更新・view公開・pending照会を1回のHTTP要求にまとめます。
      *
@@ -171,13 +178,14 @@ public final class SkillTreeRuntimeRepository {
      * @param items 重複accountを含まない1〜32件。未変更viewはACK済み全体との一致を呼出側で確認する
      * @return 入力accountすべてのACKと操作。失効sessionはrenewed=false
      * @throws RuntimeException 通信失敗またはACK件数・識別子・形式の不一致
+     * @throws BatchUnavailableException batch未対応。各accountを独立してheartbeatAccountLegacyへ送ること
      */
     public java.util.Map<UUID, AccountHeartbeatResult> heartbeatAccounts(String serverId, UUID bootId,
                                                                        List<AccountHeartbeat> items) {
         if (items.isEmpty() || items.size() > 32 || items.stream().map(AccountHeartbeat::accountId).distinct().count() != items.size())
             throw new IllegalArgumentException("Invalid skill tree heartbeat batch");
         if (batchRetryAtNanos != 0 && System.nanoTime() - batchRetryAtNanos < 0)
-            return heartbeatAccountsLegacy(serverId, bootId, items);
+            throw new BatchUnavailableException();
         JsonArray requests = new JsonArray();
         for (AccountHeartbeat item : items) {
             JsonObject request = new JsonObject();
@@ -202,7 +210,7 @@ public final class SkillTreeRuntimeRepository {
         catch (InventoryApiException unavailable) {
             if (!unsupportedEndpoint(unavailable)) throw unavailable;
             batchRetryAtNanos = System.nanoTime() + CAPABILITY_RETRY_NANOS;
-            return heartbeatAccountsLegacy(serverId, bootId, items);
+            throw new BatchUnavailableException();
         }
         batchRetryAtNanos = 0;
         java.util.Map<UUID, AccountHeartbeatResult> results = new java.util.HashMap<>();
@@ -218,20 +226,25 @@ public final class SkillTreeRuntimeRepository {
         return java.util.Map.copyOf(results);
     }
 
-    /** 未対応APIでは既存の処理権限更新・全体view・pending経路を使い、同じACKモデルへ変換する。 */
-    private java.util.Map<UUID, AccountHeartbeatResult> heartbeatAccountsLegacy(String serverId, UUID bootId, List<AccountHeartbeat> items) {
-        java.util.Map<UUID, AccountHeartbeatResult> results = new java.util.HashMap<>();
-        for (var item : items) {
-            boolean renewed = acquireAccount(serverId, bootId, item.accountId(), item.session(), item.generationId());
-            boolean accepted = false;
-            if (renewed && item.view() != null) {
-                try { publishPlayerView(serverId, bootId, item.accountId(), item.view(), item.session(), item.sequence()); accepted = true; }
-                catch (InventoryApiException conflict) { if (conflict.getStatusCode() != 409) throw conflict; }
-            }
-            results.put(item.accountId(), new AccountHeartbeatResult(renewed, accepted,
-                    renewed ? findPending(serverId, bootId, item.accountId()) : List.of()));
+    /**
+     * 旧APIで1accountだけを更新し、全体viewとpending照会を既存の順序で実行します。
+     * 他accountと同じ処理内で連続実行せず、個別の非同期taskから呼び出してください。
+     *
+     * @param serverId 実行backend識別子
+     * @param bootId 現在のPlugin起動session
+     * @param item このtaskだけが更新するaccountの処理権限とview
+     * @return このaccountだけの更新ACKとpending操作
+     * @throws RuntimeException このaccountの通信失敗または登録・照会拒否
+     */
+    public AccountHeartbeatResult heartbeatAccountLegacy(String serverId, UUID bootId, AccountHeartbeat item) {
+        boolean renewed = acquireAccount(serverId, bootId, item.accountId(), item.session(), item.generationId());
+        boolean accepted = false;
+        if (renewed && item.view() != null) {
+            try { publishPlayerView(serverId, bootId, item.accountId(), item.view(), item.session(), item.sequence()); accepted = true; }
+            catch (InventoryApiException conflict) { if (conflict.getStatusCode() != 409) throw conflict; }
         }
-        return java.util.Map.copyOf(results);
+        return new AccountHeartbeatResult(renewed, accepted,
+                renewed ? findPending(serverId, bootId, item.accountId()) : List.of());
     }
 
     /** 権限拒否や通信障害と区別し、旧APIの未対応経路だけを判定する。 */

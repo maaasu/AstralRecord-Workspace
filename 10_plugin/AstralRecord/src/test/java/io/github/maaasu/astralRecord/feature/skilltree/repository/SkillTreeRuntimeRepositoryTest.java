@@ -66,7 +66,9 @@ class SkillTreeRuntimeRepositoryTest {
             JsonObject view = new JsonObject();
             var item = f.item(UUID.randomUUID(), view, true);
             for (int i = 0; i < 2; i++) {
-                var result = f.repository.heartbeatAccounts("rpg", f.boot, List.of(item)).get(item.accountId());
+                assertThrows(SkillTreeRuntimeRepository.BatchUnavailableException.class,
+                        () -> f.repository.heartbeatAccounts("rpg", f.boot, List.of(item)));
+                var result = f.repository.heartbeatAccountLegacy("rpg", f.boot, item);
                 assertTrue(result.renewed()); assertTrue(result.viewAccepted()); assertTrue(result.operations().isEmpty());
             }
             assertEquals(8, f.requests.size());

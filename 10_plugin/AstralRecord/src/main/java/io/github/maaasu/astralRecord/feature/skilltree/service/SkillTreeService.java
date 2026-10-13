@@ -1167,35 +1167,40 @@ public class SkillTreeService {
             batch.forEach(c -> runtimeSyncAccounts.remove(c.heartbeat().accountId()));
             return;
         }
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                List<RuntimeHeartbeatCapture> current = batch.stream()
-                        .filter(c -> runtimeSyncEpoch.isCurrent(c.epoch())).toList();
-                if (current.isEmpty()) return;
-                var results = runtimeRepository.heartbeatAccounts(serverId, runtimeServerSessionId,
-                        current.stream().map(RuntimeHeartbeatCapture::heartbeat).toList());
-                for (RuntimeHeartbeatCapture capture : current) {
-                    var item = capture.heartbeat();
-                    var result = results.get(item.accountId());
-                    if (!runtimeSyncEpoch.isCurrent(capture.epoch())) continue;
-                    if (!item.session().equals(runtimeAccountSessions.get(item.accountId()))) continue;
-                    if (result.renewed() && result.viewAccepted() && item.view() != null)
-                        runtimeAcknowledgedViews.put(item.accountId(), new RuntimeAcknowledgedView(item.session().id(), item.view().deepCopy()));
-                    else if (item.view() != null) runtimeAcknowledgedViews.remove(item.accountId());
-                    if (!result.renewed() || result.operations().isEmpty() || !runtimeOperationAccounts.add(item.accountId())) continue;
-                    try {
-                        var claimed = runtimeRepository.claim(serverId, runtimeServerSessionId, result.operations().getFirst(), item.session());
-                        if (claimed == null) runtimeOperationAccounts.remove(item.accountId());
-                        else Bukkit.getScheduler().runTask(plugin, () -> dispatchClaimedRuntimeOperation(serverId, capture.player(), claimed));
-                    } catch (RuntimeException ignored) { runtimeOperationAccounts.remove(item.accountId()); }
-                }
-            } catch (RuntimeException ignored) {
-                // ACKが不明な場合はcached viewを採用せず、次周期で全体を再送する。
-                batch.forEach(c -> runtimeAcknowledgedViews.remove(c.heartbeat().accountId()));
-            } finally {
-                batch.forEach(c -> runtimeSyncAccounts.remove(c.heartbeat().accountId()));
-            }
-        });
+        RuntimeHeartbeatDispatcher.<RuntimeHeartbeatCapture, SkillTreeRuntimeRepository.AccountHeartbeatResult>dispatch(batch,
+                action -> Bukkit.getScheduler().runTaskAsynchronously(plugin, action),
+                captures -> {
+                    List<RuntimeHeartbeatCapture> current = captures.stream()
+                            .filter(c -> runtimeSyncEpoch.isCurrent(c.epoch())).toList();
+                    if (current.isEmpty()) return Map.of();
+                    var results = runtimeRepository.heartbeatAccounts(serverId, runtimeServerSessionId,
+                            current.stream().map(RuntimeHeartbeatCapture::heartbeat).toList());
+                    Map<RuntimeHeartbeatCapture, SkillTreeRuntimeRepository.AccountHeartbeatResult> accepted = new java.util.HashMap<>();
+                    current.forEach(c -> accepted.put(c, results.get(c.heartbeat().accountId())));
+                    return accepted;
+                },
+                capture -> runtimeSyncEpoch.isCurrent(capture.epoch())
+                        && capture.heartbeat().session().equals(runtimeAccountSessions.get(capture.heartbeat().accountId()))
+                        ? runtimeRepository.heartbeatAccountLegacy(serverId, runtimeServerSessionId, capture.heartbeat()) : null,
+                (capture, result) -> processRuntimeHeartbeatResult(serverId, capture, result),
+                (capture, failure) -> runtimeAcknowledgedViews.remove(capture.heartbeat().accountId()),
+                capture -> runtimeSyncAccounts.remove(capture.heartbeat().accountId()));
+    }
+
+    /** 同じepoch・account sessionのACKだけ採用し、そのaccountのclaimを処理する。 */
+    private void processRuntimeHeartbeatResult(String serverId, RuntimeHeartbeatCapture capture,
+                                              SkillTreeRuntimeRepository.AccountHeartbeatResult result) {
+        var item = capture.heartbeat();
+        if (!runtimeSyncEpoch.isCurrent(capture.epoch()) || !item.session().equals(runtimeAccountSessions.get(item.accountId()))) return;
+        if (result.renewed() && result.viewAccepted() && item.view() != null)
+            runtimeAcknowledgedViews.put(item.accountId(), new RuntimeAcknowledgedView(item.session().id(), item.view().deepCopy()));
+        else if (item.view() != null) runtimeAcknowledgedViews.remove(item.accountId());
+        if (!result.renewed() || result.operations().isEmpty() || !runtimeOperationAccounts.add(item.accountId())) return;
+        try {
+            var claimed = runtimeRepository.claim(serverId, runtimeServerSessionId, result.operations().getFirst(), item.session());
+            if (claimed == null) runtimeOperationAccounts.remove(item.accountId());
+            else Bukkit.getScheduler().runTask(plugin, () -> dispatchClaimedRuntimeOperation(serverId, capture.player(), claimed));
+        } catch (RuntimeException ignored) { runtimeOperationAccounts.remove(item.accountId()); }
     }
 
     /** メインスレッドで claim 済みの Web 操作を再検証し、既存の保存 lane へ渡します。 */
