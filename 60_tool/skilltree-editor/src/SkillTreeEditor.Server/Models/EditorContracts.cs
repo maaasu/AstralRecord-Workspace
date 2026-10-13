@@ -2,7 +2,9 @@ using System.Text.Json.Nodes;
 
 namespace SkillTreeEditor.Server.Models;
 
-public sealed record StoredDocument(string FileName, string FullPath, JsonObject Content);
+public sealed record StoredDocument(string FileName, string FullPath, JsonObject Content, string Revision = "");
+
+public sealed record VersionedDocument<T>(T Content, string Revision);
 
 public sealed record SchemaSummary(
     string FileName,

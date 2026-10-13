@@ -9,6 +9,45 @@ public sealed class PersistenceTests : IDisposable
 {
     private readonly string _workspace = Path.Combine(Path.GetTempPath(), $"skilltree-editor-tests-{Guid.NewGuid():N}");
 
+    [Theory]
+    [InlineData("  worldName: old\n  structureId: starter\n  center:\n    x: 1\n    y: 2\n")]
+    [InlineData("  structureId: starter\n  center:\n    x: 1\n    y: 2\n    z: 3\n")]
+    [InlineData("  worldName: old\n  structureId: starter\n")]
+    public async Task PluginConfigMissingManagedKeysPreservesUnknownSettingsAndComments(string managed)
+    {
+        CreateWorkspace();
+        var paths = new WorkspacePaths(_workspace);
+        Directory.CreateDirectory(Path.GetDirectoryName(paths.PluginConfig)!);
+        await File.WriteAllTextAsync(paths.PluginConfig,
+            "skilltree: # header\n  # keep comment\n" + managed + "  extraSetting: keep\nlogging: true\n");
+        var service = new PluginConfigService(paths, new BackupService(paths));
+        await service.SaveAsync(new PluginSkillTreeSettings("world", "starter", 10, 20, 30), CancellationToken.None);
+        var updated = await File.ReadAllTextAsync(paths.PluginConfig);
+        Assert.Contains("skilltree: # header", updated);
+        Assert.Contains("# keep comment", updated);
+        Assert.Contains("extraSetting: keep", updated);
+        Assert.Contains("logging: true", updated);
+        Assert.Equal(new PluginSkillTreeSettings("world", "starter", 10, 20, 30), await service.ReadAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task PluginConfigReadsAndUpdatesOnlyDirectManagedKeys()
+    {
+        CreateWorkspace();
+        var paths = new WorkspacePaths(_workspace);
+        Directory.CreateDirectory(Path.GetDirectoryName(paths.PluginConfig)!);
+        await File.WriteAllTextAsync(paths.PluginConfig,
+            "skilltree:\n  extra:\n    worldName: unrelated\n    x: 999\n  worldName: world\n  structureId: starter\n  center:\n    extra:\n      x: 888\n    x: 1\n    y: 2\n    z: 3\n");
+        var service = new PluginConfigService(paths, new BackupService(paths));
+        Assert.Equal(new PluginSkillTreeSettings("world", "starter", 1, 2, 3), await service.ReadAsync(CancellationToken.None));
+        await service.SaveAsync(new PluginSkillTreeSettings("new", "starter", 10, 20, 30), CancellationToken.None);
+        var updated = await File.ReadAllTextAsync(paths.PluginConfig);
+        Assert.Contains("    worldName: unrelated", updated);
+        Assert.Contains("    x: 999", updated);
+        Assert.Contains("      x: 888", updated);
+        Assert.Equal(new PluginSkillTreeSettings("new", "starter", 10, 20, 30), await service.ReadAsync(CancellationToken.None));
+    }
+
     [Fact]
     public async Task SaveNodeCreatesTimestampedBackupAndStableLfJson()
     {

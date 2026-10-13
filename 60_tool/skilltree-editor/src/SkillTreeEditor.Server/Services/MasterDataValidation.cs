@@ -163,7 +163,8 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
             for (var index = 0; index < array.Count; index++)
                 foreach (var child in ReferenceValues(array[index], pointer + "/" + index, key)) yield return child;
         else if (node?.GetValueKind() == JsonValueKind.String && Text(node) is { } value
-                 && value.Contains(':') && (key == "ref" || key.EndsWith("Id", StringComparison.Ordinal) || key is "usableSkills" or "allowedSigilIds"))
+                 && value.Contains(':') && (key == "ref" || key.EndsWith("Id", StringComparison.Ordinal)
+                     || key.EndsWith("Ref", StringComparison.Ordinal) || key is "usableSkills" or "allowedSigilIds"))
             yield return (pointer, value, key == "ref");
     }
 

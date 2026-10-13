@@ -29,14 +29,14 @@ public static class EditorEndpoints
                 {
                     var path = await icons.GetIconPathAsync(material, refresh ?? false, token);
                     return path is null
-                        ? Results.NotFound(new { message = $"Minecraft icon '{material}' was not found." })
+                        ? Results.NotFound(new { message = $"Minecraftアイコン '{material}' が見つかりません。" })
                         : Results.File(path, "image/png", enableRangeProcessing: false);
                 }
                 catch (HttpRequestException exception)
                 {
                     return Results.Problem(
                         statusCode: StatusCodes.Status503ServiceUnavailable,
-                        title: "MC Icons is unavailable.",
+                        title: "MC Iconsに接続できません。",
                         detail: exception.Message);
                 }
             });
@@ -48,13 +48,16 @@ public static class EditorEndpoints
             return Results.Ok(documents.Select(document => new
             {
                 document.FileName,
+                document.Revision,
                 content = document.Content
             }));
         });
-        api.MapGet("/nodes/{nodeId}", async (string nodeId, FilebaseRepository repository, CancellationToken token) =>
+        api.MapGet("/nodes/{nodeId}", async (string nodeId, FilebaseRepository repository, HttpContext context, CancellationToken token) =>
         {
             var document = await repository.GetNodeAsync(nodeId, token);
-            return document is null ? Results.NotFound() : Results.Ok(document.Content);
+            if (document is null) return Results.NotFound();
+            context.Response.Headers.ETag = EditorRevision.ETag(document.Revision);
+            return Results.Ok(document.Content);
         });
         api.MapPost("/nodes", CreateNodeAsync);
         api.MapPut("/nodes/{nodeId}", SaveNodeAsync);
@@ -66,16 +69,20 @@ public static class EditorEndpoints
             return Results.Ok(documents.Select(document => new
             {
                 document.FileName,
+                document.Revision,
                 content = document.Content
             }));
         });
         api.MapGet("/structures/{structureId}", async (
             string structureId,
             FilebaseRepository repository,
+            HttpContext context,
             CancellationToken token) =>
         {
             var document = await repository.GetStructureAsync(structureId, token);
-            return document is null ? Results.NotFound() : Results.Ok(document.Content);
+            if (document is null) return Results.NotFound();
+            context.Response.Headers.ETag = EditorRevision.ETag(document.Revision);
+            return Results.Ok(document.Content);
         });
         api.MapPost("/structures", CreateStructureAsync);
         api.MapPut("/structures/{structureId}", SaveStructureAsync);
@@ -115,22 +122,30 @@ public static class EditorEndpoints
             return Results.Ok(await validation.ValidateNodeDocumentAsync(document, null, token));
         });
 
-        api.MapGet("/settings", (PluginConfigService config, CancellationToken token) => config.ReadAsync(token));
+        api.MapGet("/settings", async (PluginConfigService config, HttpContext context, CancellationToken token) =>
+        {
+            var settings = await config.ReadVersionedAsync(token);
+            context.Response.Headers.ETag = EditorRevision.ETag(settings.Revision);
+            return Results.Ok(settings.Content);
+        });
         api.MapPut("/settings", async (
             PluginSkillTreeSettings settings,
             PluginConfigService config,
             FilebaseRepository repository,
             ValidationService validation,
             WorkspaceMutationGate mutationGate,
+            HttpContext context,
             CancellationToken token) =>
         {
             await using var mutation = await mutationGate.EnterAsync(token);
+            var current = await config.ReadVersionedAsync(token);
+            if (!EditorRevision.Matches(context.Request, current.Revision)) return EditorRevision.Conflict();
             var structure = await repository.GetStructureAsync(settings.StructureId, token);
             if (structure is null)
             {
                 return Results.BadRequest(new
                 {
-                    message = $"Structure '{settings.StructureId}' was not found."
+                    message = $"構造 '{settings.StructureId}' が見つかりません。"
                 });
             }
 
@@ -143,7 +158,9 @@ public static class EditorEndpoints
                 return Results.Json(report, statusCode: StatusCodes.Status422UnprocessableEntity);
 
             await config.SaveAsync(settings, token);
-            return Results.Ok(settings);
+            var saved = await config.ReadVersionedAsync(token);
+            context.Response.Headers.ETag = EditorRevision.ETag(saved.Revision);
+            return Results.Ok(saved.Content);
         });
 
         return endpoints;
@@ -155,6 +172,7 @@ public static class EditorEndpoints
         ValidationService validation,
         SchemaCatalog schemas,
         WorkspaceMutationGate mutationGate,
+        HttpContext context,
         CancellationToken token)
     {
         var document = RequireObject(payload);
@@ -167,6 +185,7 @@ public static class EditorEndpoints
             return Results.Json(report, statusCode: StatusCodes.Status422UnprocessableEntity);
 
         var created = await repository.CreateNodeAsync(document, token);
+        context.Response.Headers.ETag = EditorRevision.ETag(created.Revision);
         return Results.Created($"/api/nodes/{JsonValueReader.String(created.Content["nodeId"])}", created.Content);
     }
 
@@ -176,6 +195,7 @@ public static class EditorEndpoints
         FilebaseRepository repository,
         ValidationService validation,
         WorkspaceMutationGate mutationGate,
+        HttpContext context,
         CancellationToken token)
     {
         var document = RequireObject(payload);
@@ -183,12 +203,14 @@ public static class EditorEndpoints
         var existing = await repository.GetNodeAsync(nodeId, token);
         if (existing is null)
             return Results.NotFound();
+        if (!EditorRevision.Matches(context.Request, existing.Revision)) return EditorRevision.Conflict();
 
         var report = await validation.ValidateNodeDocumentAsync(document, existing.FileName, token);
         if (!report.IsValid)
             return Results.Json(report, statusCode: StatusCodes.Status422UnprocessableEntity);
 
         var saved = await repository.SaveNodeAsync(nodeId, document, token);
+        context.Response.Headers.ETag = EditorRevision.ETag(saved.Revision);
         return Results.Ok(saved.Content);
     }
 
@@ -196,9 +218,13 @@ public static class EditorEndpoints
         string nodeId,
         FilebaseRepository repository,
         WorkspaceMutationGate mutationGate,
+        HttpContext context,
         CancellationToken token)
     {
         await using var mutation = await mutationGate.EnterAsync(token);
+        var existing = await repository.GetNodeAsync(nodeId, token);
+        if (existing is null) return Results.NotFound();
+        if (!EditorRevision.Matches(context.Request, existing.Revision)) return EditorRevision.Conflict();
         var structures = await repository.ReadStructuresAsync(token);
         var referencedBy = structures
             .Where(structure => ReferencesNode(structure.Content, nodeId))
@@ -208,7 +234,7 @@ public static class EditorEndpoints
         {
             return Results.Conflict(new
             {
-                message = $"Node '{nodeId}' is referenced by structures: {string.Join(", ", referencedBy)}"
+                message = $"ノード '{nodeId}' は構造から参照されているため削除できません: {string.Join(", ", referencedBy)}"
             });
         }
 
@@ -222,6 +248,7 @@ public static class EditorEndpoints
         ValidationService validation,
         SchemaCatalog schemas,
         WorkspaceMutationGate mutationGate,
+        HttpContext context,
         CancellationToken token)
     {
         var document = RequireObject(payload);
@@ -234,6 +261,7 @@ public static class EditorEndpoints
             return Results.Json(report, statusCode: StatusCodes.Status422UnprocessableEntity);
 
         var created = await repository.CreateStructureAsync(document, token);
+        context.Response.Headers.ETag = EditorRevision.ETag(created.Revision);
         return Results.Created($"/api/structures/{structureId}", created.Content);
     }
 
@@ -243,6 +271,7 @@ public static class EditorEndpoints
         FilebaseRepository repository,
         ValidationService validation,
         WorkspaceMutationGate mutationGate,
+        HttpContext context,
         CancellationToken token)
     {
         var document = RequireObject(payload);
@@ -250,17 +279,19 @@ public static class EditorEndpoints
         var existing = await repository.GetStructureAsync(structureId, token);
         if (existing is null)
             return Results.NotFound();
+        if (!EditorRevision.Matches(context.Request, existing.Revision)) return EditorRevision.Conflict();
         var report = await validation.ValidateStructureDocumentAsync(document, existing.FileName, token);
         if (!report.IsValid)
             return Results.Json(report, statusCode: StatusCodes.Status422UnprocessableEntity);
 
         var saved = await repository.SaveStructureAsync(structureId, document, token);
+        context.Response.Headers.ETag = EditorRevision.ETag(saved.Revision);
         return Results.Ok(saved.Content);
     }
 
     private static JsonObject RequireObject(JsonElement payload)
         => JsonNode.Parse(payload.GetRawText()) as JsonObject
-           ?? throw new ArgumentException("Request JSON root must be an object.");
+           ?? throw new ArgumentException("リクエストJSONのルートはオブジェクトで記載してください。");
 
     private static async Task EnsureSchemaReferenceAsync(
         JsonObject document,

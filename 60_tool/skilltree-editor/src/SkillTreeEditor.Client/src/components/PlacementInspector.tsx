@@ -121,7 +121,7 @@ export function PlacementInspector({
       <div className="inspector-heading">
         <MinecraftIcon icon={draft?.icon ?? master?.icon ?? ''} revision={iconRevision} className="inspector-node-icon" />
         <div>
-          <span className="eyebrow">SELECTED NODE</span>
+          <span className="eyebrow">選択中のノード</span>
           <h2>{stripMinecraftFormatting(String(draft?.name ?? master?.name ?? '不明なノード'))}</h2>
           <p className="muted">nodeId #{placement.nodeId}{masterDirty ? ' · マスター未保存' : ''}</p>
         </div>
@@ -253,7 +253,7 @@ export function PlacementInspector({
             </span>
           </div>
           <div className="effect-summary">
-            <strong>Effects ({draft.effects?.length ?? 0})</strong>
+            <strong>効果 ({draft.effects?.length ?? 0})</strong>
             {(draft.effects ?? []).length === 0
               ? <span className="muted">効果なし</span>
               : describeNodeEffects(draft, skillMasters).map((effect, index) => (
@@ -267,7 +267,7 @@ export function PlacementInspector({
               {saving ? '保存中…' : 'マスター定義を保存'}
             </button>
             <button className="button subtle" onClick={() => setDraft(master ? structuredClone(master) : null)} disabled={!masterDirty || saving}>変更を戻す</button>
-            <button className="button subtle" onClick={() => onEditMaster(draft)} disabled={saving}>Effects・Schema・Raw JSONを編集</button>
+            <button className="button subtle" onClick={() => onEditMaster(draft)} disabled={saving}>効果・スキーマ・原稿 JSONを編集</button>
           </div>
         </>
       )}

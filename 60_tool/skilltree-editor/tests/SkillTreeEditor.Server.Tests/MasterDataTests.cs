@@ -28,6 +28,19 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task WorldRefRejectsMissingTargetWithoutTreatingDescriptiveTextAsReference()
+    {
+        Write("config.yml", "referenceResolver:\n  - prefix: 'world:'\n    database: world\n    aliases: [wd]\n");
+        Write("60.features.world/v1.existing.yml", "id: existing\n");
+        var missing = await _validation.ValidateAsync("test/dungeon.yml",
+            "id: dungeon\nentry:\n  worldRef: wd:missing\n", CancellationToken.None);
+        Assert.Contains(missing.Issues, issue => issue.Code == "REFERENCE_NOT_FOUND" && issue.Path == "/entry/worldRef");
+        var existing = await _validation.ValidateAsync("test/dungeon.yml",
+            "id: dungeon\nentry:\n  worldRef: world:existing\ndescription: world:missing\n", CancellationToken.None);
+        Assert.True(existing.IsValid);
+    }
+
+    [Fact]
     public async Task RawSavePreservesCommentsUnknownFieldsAndCreatesBackupOnlyOnChange()
     {
         const string path = "30.features.skill/custom/v1.alpha.yml";

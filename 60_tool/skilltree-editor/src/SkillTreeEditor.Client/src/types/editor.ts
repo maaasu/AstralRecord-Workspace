@@ -40,6 +40,12 @@ export interface StructureDocument extends JsonObject {
 export interface StoredDocument<T extends JsonObject> {
   fileName: string
   content: T
+  revision: string
+}
+
+export interface VersionedDocument<T> {
+  content: T
+  revision: string
 }
 
 export interface SchemaSummary {

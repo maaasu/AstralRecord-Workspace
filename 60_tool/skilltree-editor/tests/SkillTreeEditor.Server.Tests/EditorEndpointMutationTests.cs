@@ -19,6 +19,91 @@ public sealed class EditorEndpointMutationTests : IDisposable
         $"skilltree-endpoint-tests-{Guid.NewGuid():N}");
 
     [Fact]
+    public async Task StaleNodeRevisionCannotOverwriteOrDeleteChangedNode()
+    {
+        await using var host = await StartAsync();
+        using var original = await host.Client.GetAsync("/api/nodes/1000");
+        var revision = original.Headers.ETag?.ToString() ?? "\"missing\"";
+        await File.WriteAllTextAsync(Path.Combine(host.Paths.Nodes, "1000.json"),
+            StableJson.Serialize(Node("1000", "External")));
+        using var save = new HttpRequestMessage(HttpMethod.Put, "/api/nodes/1000")
+        { Content = JsonContent.Create(Node("1000", "Stale")) };
+        save.Headers.TryAddWithoutValidation("If-Match", revision);
+        using var saved = await host.Client.SendAsync(save);
+        using var delete = new HttpRequestMessage(HttpMethod.Delete, "/api/nodes/1000");
+        delete.Headers.TryAddWithoutValidation("If-Match", revision);
+        using var deleted = await host.Client.SendAsync(delete);
+        Assert.Equal(HttpStatusCode.Conflict, saved.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, deleted.StatusCode);
+        Assert.Contains("External", await File.ReadAllTextAsync(Path.Combine(host.Paths.Nodes, "1000.json")));
+    }
+
+    [Fact]
+    public async Task MissingNodeRevisionCannotSave()
+    {
+        await using var host = await StartAsync();
+        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", Node("1000", "Changed"));
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task TwoNodeSavesFromSameRevisionHaveOneWinnerAndReturnNewRevision()
+    {
+        await using var host = await StartAsync();
+        using var original = await host.Client.GetAsync("/api/nodes/1000");
+        var revision = original.Headers.ETag!.ToString();
+        var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(async index =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Put, "/api/nodes/1000")
+            { Content = JsonContent.Create(Node("1000", "Writer" + index)) };
+            request.Headers.TryAddWithoutValidation("If-Match", revision);
+            return await host.Client.SendAsync(request);
+        }));
+        try
+        {
+            var winner = Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK);
+            Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
+            Assert.NotEqual(revision, winner.Headers.ETag!.ToString());
+            using var current = await host.Client.GetAsync("/api/nodes/1000");
+            Assert.Equal(current.Headers.ETag, winner.Headers.ETag);
+        }
+        finally { foreach (var response in responses) response.Dispose(); }
+    }
+
+    [Fact]
+    public async Task StructureAndSettingsRejectStaleRevisions()
+    {
+        await using var host = await StartAsync();
+        var structure = Structure("main", "1000");
+        using var created = await host.Client.PostAsJsonAsync("/api/structures", structure);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var originalStructureRevision = created.Headers.ETag!.ToString();
+        structure["name"] = "Changed";
+        using var currentSave = await PutCurrentAsync(host.Client, "/api/structures/main", structure);
+        Assert.Equal(HttpStatusCode.OK, currentSave.StatusCode);
+        using var staleStructure = new HttpRequestMessage(HttpMethod.Put, "/api/structures/main")
+        { Content = JsonContent.Create(Structure("main", "1000")) };
+        staleStructure.Headers.TryAddWithoutValidation("If-Match", originalStructureRevision);
+        using var structureConflict = await host.Client.SendAsync(staleStructure);
+        Assert.Equal(HttpStatusCode.Conflict, structureConflict.StatusCode);
+
+        using var originalSettings = await host.Client.GetAsync("/api/settings");
+        var originalSettingsRevision = originalSettings.Headers.ETag!.ToString();
+        var settings = new SkillTreeEditor.Server.Models.PluginSkillTreeSettings("world", "main", 10, 20, 30);
+        using var firstRequest = new HttpRequestMessage(HttpMethod.Put, "/api/settings")
+        { Content = JsonContent.Create(settings) };
+        firstRequest.Headers.TryAddWithoutValidation("If-Match", originalSettingsRevision);
+        using var settingsSaved = await host.Client.SendAsync(firstRequest);
+        Assert.Equal(HttpStatusCode.OK, settingsSaved.StatusCode);
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Put, "/api/settings")
+        { Content = JsonContent.Create(settings with { CenterX = 99 }) };
+        secondRequest.Headers.TryAddWithoutValidation("If-Match", originalSettingsRevision);
+        using var settingsConflict = await host.Client.SendAsync(secondRequest);
+        Assert.Equal(HttpStatusCode.Conflict, settingsConflict.StatusCode);
+        Assert.Contains("x: 10", await File.ReadAllTextAsync(host.Paths.PluginConfig));
+    }
+
+    [Fact]
     public async Task StructureCreateAndNodeDeleteCannotPersistDanglingReference()
     {
         await using var host = await StartAsync();
@@ -29,7 +114,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         try
         {
             createTask = host.Client.PostAsJsonAsync("/api/structures", structure);
-            deleteTask = host.Client.DeleteAsync("/api/nodes/1000");
+            deleteTask = DeleteCurrentAsync(host.Client, "/api/nodes/1000");
             await Task.Delay(100);
             Assert.False(createTask.IsCompleted);
             Assert.False(deleteTask.IsCompleted);
@@ -52,7 +137,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task NodeSaveCannotRecreateNodeAfterConcurrentDelete()
+    public async Task ConcurrentNodeSaveAndDeleteCannotLoseSuccessfulSaveOrRecreateDeletedNode()
     {
         await using var host = await StartAsync();
         var changed = Node("1000", "Changed");
@@ -61,8 +146,8 @@ public sealed class EditorEndpointMutationTests : IDisposable
         Task<HttpResponseMessage> deleteTask;
         try
         {
-            saveTask = host.Client.PutAsJsonAsync("/api/nodes/1000", changed);
-            deleteTask = host.Client.DeleteAsync("/api/nodes/1000");
+            saveTask = PutCurrentAsync(host.Client, "/api/nodes/1000", changed);
+            deleteTask = DeleteCurrentAsync(host.Client, "/api/nodes/1000");
             await Task.Delay(100);
             Assert.False(saveTask.IsCompleted);
             Assert.False(deleteTask.IsCompleted);
@@ -75,8 +160,14 @@ public sealed class EditorEndpointMutationTests : IDisposable
         using var saveResponse = await saveTask;
         using var deleteResponse = await deleteTask;
         Assert.Contains(saveResponse.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.NotFound });
-        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
-        Assert.False(File.Exists(Path.Combine(host.Paths.Nodes, "1000.json")));
+        Assert.Contains(deleteResponse.StatusCode, new[] { HttpStatusCode.NoContent, HttpStatusCode.Conflict });
+        var nodePath = Path.Combine(host.Paths.Nodes, "1000.json");
+        if (deleteResponse.StatusCode == HttpStatusCode.NoContent) Assert.False(File.Exists(nodePath));
+        else
+        {
+            Assert.Equal(HttpStatusCode.OK, saveResponse.StatusCode);
+            Assert.Contains("Changed", await File.ReadAllTextAsync(nodePath));
+        }
     }
 
     [Fact]
@@ -85,7 +176,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         await using var host = await StartAsync();
         await File.WriteAllTextAsync(Path.Combine(host.Paths.Schemas, "unrelated.schema.json"), "{");
 
-        using var validResponse = await host.Client.PutAsJsonAsync(
+        using var validResponse = await PutCurrentAsync(host.Client,
             "/api/nodes/1000",
             Node("1000", "Still valid"));
         Assert.Equal(HttpStatusCode.OK, validResponse.StatusCode);
@@ -99,7 +190,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(host.Paths.Schemas, "node.broken.schema.json"), "{");
         var invalid = Node("1000", "Invalid schema");
         invalid["$schema"] = "../schemas/node.broken.schema.json";
-        using var invalidResponse = await host.Client.PutAsJsonAsync("/api/nodes/1000", invalid);
+        using var invalidResponse = await PutCurrentAsync(host.Client, "/api/nodes/1000", invalid);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidResponse.StatusCode);
         Assert.Contains("SCHEMA_INVALID", await invalidResponse.Content.ReadAsStringAsync());
@@ -141,13 +232,13 @@ public sealed class EditorEndpointMutationTests : IDisposable
         var unknown = Node("1000", "Unknown tag");
         unknown["tags"] = new JsonArray("not_defined");
 
-        using var unknownResponse = await host.Client.PutAsJsonAsync("/api/nodes/1000", unknown);
+        using var unknownResponse = await PutCurrentAsync(host.Client, "/api/nodes/1000", unknown);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, unknownResponse.StatusCode);
         Assert.Contains("UNKNOWN_MASTER_TAG", await unknownResponse.Content.ReadAsStringAsync());
 
         var wrongTarget = Node("1000", "Wrong target");
         wrongTarget["tags"] = new JsonArray("active");
-        using var wrongTargetResponse = await host.Client.PutAsJsonAsync("/api/nodes/1000", wrongTarget);
+        using var wrongTargetResponse = await PutCurrentAsync(host.Client, "/api/nodes/1000", wrongTarget);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, wrongTargetResponse.StatusCode);
         Assert.Contains("MASTER_TAG_TARGET_INVALID", await wrongTargetResponse.Content.ReadAsStringAsync());
     }
@@ -158,7 +249,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         await using var host = await StartAsync();
         var node = Node("1000", "Without lore");
 
-        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
+        using var response = await PutCurrentAsync(host.Client, "/api/nodes/1000", node);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var saved = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
@@ -176,9 +267,25 @@ public sealed class EditorEndpointMutationTests : IDisposable
         var node = Node("1000", "Deprecated lore");
         node["lore"] = new JsonArray("Old node description");
 
-        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
+        using var response = await PutCurrentAsync(host.Client, "/api/nodes/1000", node);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
+    private static async Task<HttpResponseMessage> PutCurrentAsync(HttpClient client, string url, JsonObject content)
+    {
+        using var original = await client.GetAsync(url);
+        using var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = JsonContent.Create(content) };
+        request.Headers.TryAddWithoutValidation("If-Match", original.Headers.ETag!.ToString());
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<HttpResponseMessage> DeleteCurrentAsync(HttpClient client, string url)
+    {
+        using var original = await client.GetAsync(url);
+        using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+        request.Headers.TryAddWithoutValidation("If-Match", original.Headers.ETag!.ToString());
+        return await client.SendAsync(request);
     }
 
     private async Task<RunningEditor> StartAsync()

@@ -46,13 +46,13 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
 
         var sequence = await ReadNodeIdSequenceAsync(cancellationToken);
         if (sequence is null)
-            throw new InvalidDataException($"Tracked node ID sequence file is missing: {paths.NodeIdSequence}");
+            throw new InvalidDataException($"nodeId採番の管理ファイルがありません: {paths.NodeIdSequence}");
         if (sequence.Value < maximum)
             throw new InvalidDataException(
-                $"node-id-sequence.json lastIssuedNodeId '{sequence}' is lower than the existing maximum nodeId '{maximum}'.");
+                $"node-id-sequence.json の lastIssuedNodeId '{sequence}' が既存の最大nodeId '{maximum}' より小さい値です。");
         maximum = sequence.Value;
         if (maximum >= MaximumNodeId)
-            throw new InvalidOperationException("No nodeId remains within the 100-digit nodeId contract.");
+            throw new InvalidOperationException("100桁以内のnodeIdを採番できる上限に達しました。");
 
         return (maximum + BigInteger.One).ToString(CultureInfo.InvariantCulture);
     }
@@ -73,13 +73,13 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             normalized["nodeId"] = nodeId;
             var path = SafePath.UnderRoot(paths.Nodes, $"{nodeId}.json");
             if (File.Exists(path))
-                throw new IOException($"The allocated nodeId file already exists: {path}");
+                throw new IOException($"採番されたnodeIdのファイルは既に存在します: {path}");
 
             // Reserve the ID first. A later node write failure intentionally leaves a gap,
             // which is preferable to ever issuing the same ID twice.
             await WriteNodeIdSequenceLockedAsync(nodeId, cancellationToken);
             await WriteJsonLockedAsync(path, normalized, "nodes", createOnly: true, cancellationToken);
-            return new StoredDocument(Path.GetFileName(path), path, normalized);
+            return new StoredDocument(Path.GetFileName(path), path, normalized, Revision(normalized));
         }
         finally
         {
@@ -92,20 +92,20 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         SafePath.RequireIdentifier(nodeId, nameof(nodeId));
         var documentNodeId = JsonValueReader.String(content["nodeId"]);
         if (!string.Equals(nodeId, documentNodeId, StringComparison.Ordinal))
-            throw new InvalidOperationException("nodeId is immutable and must match the route ID.");
+            throw new InvalidOperationException("nodeIdは変更できません。URLのIDと一致させてください。");
 
         var existing = await GetNodeAsync(nodeId, cancellationToken)
-            ?? throw new FileNotFoundException($"Node '{nodeId}' was not found.");
+            ?? throw new FileNotFoundException($"ノード '{nodeId}' が見つかりません。");
         var normalized = NormalizeNode(content);
         await WriteJsonAsync(existing.FullPath, normalized, "nodes", createOnly: false, cancellationToken);
-        return existing with { Content = normalized };
+        return existing with { Content = normalized, Revision = Revision(normalized) };
     }
 
     public async Task DeleteNodeAsync(string nodeId, CancellationToken cancellationToken)
     {
         SafePath.RequireIdentifier(nodeId, nameof(nodeId));
         var existing = await GetNodeAsync(nodeId, cancellationToken)
-            ?? throw new FileNotFoundException($"Node '{nodeId}' was not found.");
+            ?? throw new FileNotFoundException($"ノード '{nodeId}' が見つかりません。");
         await DeleteAsync(existing.FullPath, "nodes", cancellationToken);
     }
 
@@ -113,15 +113,15 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
     {
         var structureId = SafePath.RequireIdentifier(
             JsonValueReader.String(content["structureId"])
-                ?? throw new ArgumentException("structureId is required."),
+                ?? throw new ArgumentException("structureIdは必須です。"),
             "structureId");
         if (await GetStructureAsync(structureId, cancellationToken) is not null)
-            throw new InvalidOperationException($"structureId '{structureId}' already exists.");
+            throw new InvalidOperationException($"structureId '{structureId}' は既に存在します。");
 
         var path = SafePath.UnderRoot(paths.Structures, $"{structureId}.json");
         var normalized = NormalizeStructure(content);
         await WriteJsonAsync(path, normalized, "structures", createOnly: true, cancellationToken);
-        return new StoredDocument(Path.GetFileName(path), path, normalized);
+        return new StoredDocument(Path.GetFileName(path), path, normalized, Revision(normalized));
     }
 
     public async Task<StoredDocument> SaveStructureAsync(
@@ -132,13 +132,13 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         SafePath.RequireIdentifier(structureId, nameof(structureId));
         var documentStructureId = JsonValueReader.String(content["structureId"]);
         if (!string.Equals(structureId, documentStructureId, StringComparison.Ordinal))
-            throw new InvalidOperationException("structureId is immutable and must match the route ID.");
+            throw new InvalidOperationException("structureIdは変更できません。URLのIDと一致させてください。");
 
         var existing = await GetStructureAsync(structureId, cancellationToken)
-            ?? throw new FileNotFoundException($"Structure '{structureId}' was not found.");
+            ?? throw new FileNotFoundException($"構造 '{structureId}' が見つかりません。");
         var normalized = NormalizeStructure(content);
         await WriteJsonAsync(existing.FullPath, normalized, "structures", createOnly: false, cancellationToken);
-        return existing with { Content = normalized };
+        return existing with { Content = normalized, Revision = Revision(normalized) };
     }
 
     public static JsonObject NormalizeNode(JsonObject content) => (JsonObject)content.DeepClone();
@@ -194,7 +194,9 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
                      .OrderBy(value => value, StringComparer.OrdinalIgnoreCase))
         {
-            var text = await File.ReadAllTextAsync(file, Encoding.UTF8, cancellationToken);
+            var bytes = await File.ReadAllBytesAsync(file, cancellationToken);
+            var text = Encoding.UTF8.GetString(bytes);
+            if (text.StartsWith('\uFEFF')) text = text[1..];
             var content = JsonNode.Parse(
                 text,
                 documentOptions: new JsonDocumentOptions
@@ -202,12 +204,14 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
                     CommentHandling = JsonCommentHandling.Disallow,
                     AllowTrailingCommas = false
                 }) as JsonObject
-                ?? throw new InvalidDataException($"JSON root must be an object: {file}");
-            documents.Add(new StoredDocument(Path.GetFileName(file), Path.GetFullPath(file), content));
+                ?? throw new InvalidDataException($"JSONのルートはオブジェクトで記載してください: {file}");
+            documents.Add(new StoredDocument(Path.GetFileName(file), Path.GetFullPath(file), content, EditorRevision.Hash(bytes)));
         }
 
         return documents;
     }
+
+    private static string Revision(JsonObject content) => EditorRevision.Hash(Encoding.UTF8.GetBytes(StableJson.Serialize(content)));
 
     private static async Task<StoredDocument?> FindByPropertyAsync(
         string directory,
@@ -228,7 +232,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             0 => null,
             1 => matches[0],
             _ => throw new InvalidDataException(
-                $"Multiple files define {propertyName} '{propertyValue}': {string.Join(", ", matches.Select(match => match.FileName))}")
+                $"複数のファイルに同じ {propertyName} '{propertyValue}' が定義されています: {string.Join(", ", matches.Select(match => match.FileName))}")
         };
     }
 
@@ -239,7 +243,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
 
         var text = await File.ReadAllTextAsync(paths.NodeIdSequence, Encoding.UTF8, cancellationToken);
         var document = JsonNode.Parse(text) as JsonObject
-            ?? throw new InvalidDataException($"Node ID sequence root must be an object: {paths.NodeIdSequence}");
+            ?? throw new InvalidDataException($"nodeId採番管理ファイルのルートはオブジェクトで記載してください: {paths.NodeIdSequence}");
         if (document.Count != 3
             || !string.Equals(
                 JsonValueReader.String(document["$schema"]),
@@ -248,11 +252,11 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
             || JsonValueReader.Number(document["schemaVersion"]) != 1)
         {
             throw new InvalidDataException(
-                "node-id-sequence.json must contain only the canonical $schema, schemaVersion and lastIssuedNodeId fields.");
+                "node-id-sequence.json には正規の $schema、schemaVersion、lastIssuedNodeId だけを記載してください。");
         }
         var value = JsonValueReader.String(document["lastIssuedNodeId"]);
         if (!TryParseNodeId(value, out var parsed))
-            throw new InvalidDataException("node-id-sequence.json lastIssuedNodeId must be a non-negative decimal string.");
+            throw new InvalidDataException("node-id-sequence.json の lastIssuedNodeId は0以上の10進数を文字列で指定してください。");
         return parsed;
     }
 
@@ -313,7 +317,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         if (createOnly && File.Exists(path))
-            throw new IOException($"The target file already exists: {path}");
+            throw new IOException($"保存先のファイルは既に存在します: {path}");
 
         var serialized = StableJson.Serialize(content);
         if (!createOnly

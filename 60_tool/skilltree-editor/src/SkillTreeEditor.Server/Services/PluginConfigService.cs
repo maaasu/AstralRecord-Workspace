@@ -16,21 +16,27 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
     private readonly SemaphoreSlim _writeLock = new(1, 1);
 
     public async Task<PluginSkillTreeSettings> ReadAsync(CancellationToken cancellationToken)
+        => (await ReadVersionedAsync(cancellationToken)).Content;
+
+    public async Task<VersionedDocument<PluginSkillTreeSettings>> ReadVersionedAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(paths.PluginConfig))
-            throw new FileNotFoundException("Plugin config.yml was not found.", paths.PluginConfig);
+            throw new FileNotFoundException("プラグインの config.yml が見つかりません。", paths.PluginConfig);
 
-        var text = await File.ReadAllTextAsync(paths.PluginConfig, Encoding.UTF8, cancellationToken);
+        var bytes = await File.ReadAllBytesAsync(paths.PluginConfig, cancellationToken);
+        var text = Encoding.UTF8.GetString(bytes);
+        if (text.StartsWith('\uFEFF')) text = text[1..];
+        var revision = EditorRevision.Hash(bytes);
         var block = ExtractSkillTreeBlock(text);
         if (block is null)
-            return new PluginSkillTreeSettings("world", string.Empty, 0, 0, 0);
+            return new(new PluginSkillTreeSettings("world", string.Empty, 0, 0, 0), revision);
 
-        return new PluginSkillTreeSettings(
+        return new(new PluginSkillTreeSettings(
             ReadScalar(block, "worldName") ?? "world",
             ReadScalar(block, "structureId") ?? string.Empty,
             ReadNumber(block, "x"),
             ReadNumber(block, "y"),
-            ReadNumber(block, "z"));
+            ReadNumber(block, "z")), revision);
     }
 
     public async Task SaveAsync(PluginSkillTreeSettings settings, CancellationToken cancellationToken)
@@ -40,7 +46,7 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
         try
         {
             if (!File.Exists(paths.PluginConfig))
-                throw new FileNotFoundException("Plugin config.yml was not found.", paths.PluginConfig);
+                throw new FileNotFoundException("プラグインの config.yml が見つかりません。", paths.PluginConfig);
 
             var original = await File.ReadAllTextAsync(paths.PluginConfig, Encoding.UTF8, cancellationToken);
             var newline = original.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
@@ -106,9 +112,11 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
 
     private static string? ReadScalar(string block, string key)
     {
+        var lines = block.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var indent = lines.Skip(1).Where(IsSettingLine).Select(CountIndent).DefaultIfEmpty(2).Min();
         var match = Regex.Match(
             block,
-            $@"(?m)^[ \t]+(?:{Regex.Escape(key)})[ \t]*:[ \t]*(?<value>[^\r\n]*)\r?$",
+            $@"(?m)^[ \t]{{{indent}}}(?:{Regex.Escape(key)})[ \t]*:[ \t]*(?<value>[^\r\n]*)\r?$",
             RegexOptions.CultureInvariant);
         if (!match.Success)
             return null;
@@ -130,9 +138,16 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
     }
 
     private static int ReadNumber(string block, string key)
-        => int.TryParse(ReadScalar(block, key), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
-            ? value
-            : 0;
+    {
+        var lines = block.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var indent = lines.Skip(1).Where(IsSettingLine).Select(CountIndent).DefaultIfEmpty(2).Min();
+        var centerIndex = Array.FindIndex(lines, line => CountIndent(line) == indent
+            && Regex.IsMatch(line, @"^[ \t]+center[ \t]*:"));
+        if (centerIndex < 0) return 0;
+        var end = FindIndentedBlockEnd(lines, centerIndex);
+        var centerBlock = string.Join("\n", lines[centerIndex..end]);
+        return int.TryParse(ReadScalar(centerBlock, key), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
+    }
 
     private static string BuildBlock(PluginSkillTreeSettings settings, string newline)
     {
@@ -154,37 +169,48 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
         PluginSkillTreeSettings settings,
         string newline)
     {
-        var lines = existingBlock.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
-        var worldNameFound = ReplaceFirstScalar(lines, "worldName", Quote(settings.WorldName), 0, lines.Length);
-        var structureIdFound = ReplaceFirstScalar(lines, "structureId", Quote(settings.StructureId), 0, lines.Length);
+        var lines = existingBlock.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
+        var childIndent = lines.Skip(1).Where(IsSettingLine).Select(CountIndent).DefaultIfEmpty(2).Min();
+        EnsureScalar(lines, "worldName", Quote(settings.WorldName), 1, lines.Count, childIndent);
+        EnsureScalar(lines, "structureId", Quote(settings.StructureId), 1, lines.Count, childIndent);
 
-        var centerIndex = FindKeyLine(lines, "center", 0, lines.Length);
-        var centerEnd = centerIndex < 0 ? -1 : FindIndentedBlockEnd(lines, centerIndex);
-        var xFound = centerIndex >= 0
-                     && ReplaceFirstScalar(
-                         lines,
-                         "x",
-                         settings.CenterX.ToString(CultureInfo.InvariantCulture),
-                         centerIndex + 1,
-                         centerEnd);
-        var yFound = centerIndex >= 0
-                     && ReplaceFirstScalar(
-                         lines,
-                         "y",
-                         settings.CenterY.ToString(CultureInfo.InvariantCulture),
-                         centerIndex + 1,
-                         centerEnd);
-        var zFound = centerIndex >= 0
-                     && ReplaceFirstScalar(
-                         lines,
-                         "z",
-                         settings.CenterZ.ToString(CultureInfo.InvariantCulture),
-                         centerIndex + 1,
-                         centerEnd);
+        var centerIndex = lines.FindIndex(line => CountIndent(line) == childIndent
+            && Regex.IsMatch(line, @"^[ \t]+center[ \t]*:"));
+        if (centerIndex < 0)
+        {
+            centerIndex = TrailingBlankStart(lines, lines.Count);
+            lines.Insert(centerIndex, new string(' ', childIndent) + "center:");
+        }
+        var centerValue = lines[centerIndex][(lines[centerIndex].IndexOf(':') + 1)..].Trim();
+        if (centerValue.Length > 0 && !centerValue.StartsWith('#'))
+            throw new ArgumentException("center は複数行のYAMLオブジェクトで記載してください。既存設定は変更していません。");
+        foreach (var (key, value) in new[] { ("x", settings.CenterX), ("y", settings.CenterY), ("z", settings.CenterZ) })
+        {
+            var snapshot = lines.ToArray();
+            var centerEnd = FindIndentedBlockEnd(snapshot, centerIndex);
+            var coordinateIndent = lines.Skip(centerIndex + 1).Take(centerEnd - centerIndex - 1)
+                .Where(IsSettingLine).Select(CountIndent).DefaultIfEmpty(childIndent + 2).Min();
+            EnsureScalar(lines, key, value.ToString(CultureInfo.InvariantCulture), centerIndex + 1, centerEnd, coordinateIndent);
+        }
+        return string.Join(newline, lines);
+    }
 
-        return worldNameFound && structureIdFound && xFound && yFound && zFound
-            ? string.Join(newline, lines)
-            : BuildBlock(settings, newline);
+    private static bool IsSettingLine(string line) => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith('#');
+
+    private static int TrailingBlankStart(List<string> lines, int end)
+    {
+        while (end > 1 && string.IsNullOrWhiteSpace(lines[end - 1])) end--;
+        return end;
+    }
+
+    private static void EnsureScalar(List<string> lines, string key, string value, int start, int end, int indent)
+    {
+        var snapshot = lines.ToArray();
+        if (ReplaceFirstScalar(snapshot, key, value, start, end, indent))
+        {
+            for (var index = start; index < end; index++) lines[index] = snapshot[index];
+        }
+        else lines.Insert(TrailingBlankStart(lines, end), new string(' ', indent) + key + ": " + value);
     }
 
     private static bool ReplaceFirstScalar(
@@ -192,13 +218,15 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
         string key,
         string replacement,
         int start,
-        int end)
+        int end,
+        int indent)
     {
         var pattern = new Regex(
             $@"^(?<prefix>[ \t]+{Regex.Escape(key)}[ \t]*:[ \t]*)(?<value>.*)$",
             RegexOptions.CultureInvariant);
         for (var index = start; index < end; index++)
         {
+            if (CountIndent(lines[index]) != indent) continue;
             var match = pattern.Match(lines[index]);
             if (!match.Success)
                 continue;
@@ -219,20 +247,6 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
         }
 
         return false;
-    }
-
-    private static int FindKeyLine(string[] lines, string key, int start, int end)
-    {
-        var pattern = new Regex(
-            $@"^[ \t]+{Regex.Escape(key)}[ \t]*:",
-            RegexOptions.CultureInvariant);
-        for (var index = start; index < end; index++)
-        {
-            if (pattern.IsMatch(lines[index]))
-                return index;
-        }
-
-        return -1;
     }
 
     private static int FindIndentedBlockEnd(string[] lines, int headerIndex)
@@ -314,12 +328,12 @@ public sealed class PluginConfigService(WorkspacePaths paths, BackupService back
     private static void Validate(PluginSkillTreeSettings settings)
     {
         if (string.IsNullOrWhiteSpace(settings.WorldName) || ContainsYamlForbiddenCharacter(settings.WorldName))
-            throw new ArgumentException("worldName is required and must contain only valid single-line YAML characters.");
+            throw new ArgumentException("worldNameは必須です。制御文字や改行を含まないYAMLで有効な文字を指定してください。");
         if (!System.Text.RegularExpressions.Regex.IsMatch(
                 settings.StructureId,
                 "^[a-z0-9][a-z0-9_-]*$",
                 RegexOptions.CultureInvariant))
-            throw new ArgumentException("structureId may contain only lowercase letters, digits, '_' and '-'.");
+            throw new ArgumentException("structureIdは小文字英数字・_・-だけを使用してください。");
     }
 
     private static bool ContainsYamlForbiddenCharacter(string value)
