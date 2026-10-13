@@ -219,21 +219,6 @@ data class AstPlayer(
         /** この値以上の permission を持つプレイヤーに Minecraft OP 権限を付与する */
         const val OP_PERMISSION_THRESHOLD = 99
 
-        /**
-         * 初回参加時、管理権限を持つクリエイティブのプレイヤーを管理者モードとして扱います。
-         * 元のモデルや保存待ち状態は変更せず、参加確定後に呼び出し側がモードを保存します。
-         *
-         * @param player 参加した Bukkit プレイヤー
-         * @param user 読み込み済みユーザー。Proxy を含む実効権限で判定します
-         * @param account 読み込み済みアカウント
-         * @return 通常プレイヤーから管理者へ補正したコピー、または元のアカウント
-         */
-        @JvmStatic
-        fun resolveJoinAccount(player: Player, user: UserModel, account: AccountModel): AccountModel =
-            if (account.mode == AccountMode.PLAYER
-                && player.gameMode == GameMode.CREATIVE
-                && NetworkAuthorityRegistry.effectivePermission(player.uniqueId, user.permission) >= OP_PERMISSION_THRESHOLD
-            ) account.copy(mode = AccountMode.ADMIN) else account
     }
 
     /**

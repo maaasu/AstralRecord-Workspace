@@ -2428,6 +2428,13 @@ public class InventoryService {
         state.updateInventoryMetadata(inventory.getInventoryId(), snapshots.toString(), state.getAccountId());
     }
 
+    /**
+     * 管理者用の所持品とゲームモードを DB 保存済みスナップショットから復元します。
+     * スナップショットがない、または不正な場合は空の所持品と SURVIVAL を使用します。
+     * Bukkit の初期ゲームモードは引き継ぎません。メインスレッドから呼び出してください。
+     *
+     * @param astPlayer 管理者モードの対象セッション
+     */
     public void applyToolInventoryToGui(@NotNull AstPlayer astPlayer) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
@@ -2436,6 +2443,7 @@ public class InventoryService {
         resetGuiInteractionState(state);
         clearClickGuard(state.getAccountId());
         clearGuiInventory(astPlayer.getBukkit());
+        GameModeChangeGuard.setGameMode(astPlayer.getBukkit(), org.bukkit.GameMode.SURVIVAL);
         InventoryModel inventory = state.findInventory(InventoryProfile.ADMIN, InventoryType.BAG);
         if (inventory != null) {
             applyToolSnapshot(astPlayer, inventory.getMetadataJson(), astPlayer.getAccount().getMode());

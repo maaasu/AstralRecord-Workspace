@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
+import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -65,7 +68,6 @@ public class MobSpawnerService {
     private final MobSpawnerDefinitionRepository definitionRepository;
     private final MobSpawnerLocationRepository locationRepository;
     private final NamespacedKey spawnerIdKey;
-    private final NamespacedKey visualModeKey;
 
     private final Map<String, MobSpawnerDefinition> definitions = new LinkedHashMap<>();
     private final Map<String, Integer> regionLevelByName = new HashMap<>();
@@ -102,7 +104,6 @@ public class MobSpawnerService {
         this.definitionRepository = definitionRepository;
         this.locationRepository = locationRepository;
         this.spawnerIdKey = new NamespacedKey(plugin, "mob_spawner_id");
-        this.visualModeKey = MobSpawnerVisualMode.storageKey(plugin);
     }
 
     /**
@@ -437,29 +438,34 @@ public class MobSpawnerService {
      * 管理者本人の Mob・採集スポナー共通の表示モードを取得します。
      *
      * @param viewer 表示対象のプレイヤー
-     * @return 保存済みモード。未設定の場合は通常表示
+     * @return ロード済みのユーザー設定。未読込の場合は非表示
      */
     public @NotNull MobSpawnerVisualMode getVisualMode(@NotNull Player viewer) {
-        Byte value = viewer.getPersistentDataContainer().get(visualModeKey, PersistentDataType.BYTE);
-        return MobSpawnerVisualMode.fromStoredValue(value);
+        var settings = AstralRecord.getInstance().getPlayerSettingService();
+        return settings == null ? MobSpawnerVisualMode.OFF : settings.getSpawnerVisualMode(viewer.getUniqueId());
     }
 
     /**
-     * 管理者本人の共通表示モードを保存し、Mob スポナー表示へ直ちに反映します。
+     * 管理者本人の共通表示モードを cache と通常の非同期保存キューへ登録し、表示へ直ちに反映します。
      * Bukkit メインスレッドから呼び出してください。
      *
-     * @param viewer 表示設定を変更するプレイヤー
+     * @param viewer 表示設定を変更するオンラインセッション
      * @param mode 新しい表示モード
+     * @return 有効な設定セッションで更新を受け付けた場合は true
      */
-    public void setVisualMode(@NotNull Player viewer, @NotNull MobSpawnerVisualMode mode) {
-        if (mode == MobSpawnerVisualMode.NORMAL) {
-            viewer.getPersistentDataContainer().remove(visualModeKey);
-        } else {
-            viewer.getPersistentDataContainer().set(visualModeKey, PersistentDataType.BYTE, mode.storedValue());
-        }
+    public boolean setVisualMode(@NotNull AstPlayer viewer, @NotNull MobSpawnerVisualMode mode) {
+        var settings = AstralRecord.getInstance().getPlayerSettingService();
+        if (settings == null || !canViewSpawnerVisual(viewer)) return false;
+        UUID userId = viewer.getUser().getUuid();
+        if (!settings.isInitialLoadComplete(userId)) return false;
+        var request = new PlayerSettingChangeRequest(
+            userId, PlayerSettingKey.SPAWNER_VISUAL_MODE, mode, userId
+        );
+        if (!settings.updatePlayerSetting(request, settings.captureSessionToken(userId)).success()) return false;
         if (visualizer != null) {
             visualizer.refresh();
         }
+        return true;
     }
 
     private boolean hasSpawnerAdminPermission(@Nullable AstPlayer astPlayer) {

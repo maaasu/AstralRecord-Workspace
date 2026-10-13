@@ -55,7 +55,11 @@ public final class MobSpawnerDisplayCommand extends AstCommand {
             return;
         }
 
-        spawnerService.setVisualMode(player.getBukkit(), mode);
+        if (!spawnerService.setVisualMode(player, mode)) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(
+                io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId.P_5325.getId()));
+            return;
+        }
         gatheringSpawnerService.refreshVisuals();
         PlayerMsgId messageId = switch (mode) {
             case NORMAL -> PlayerMsgId.P_5735;

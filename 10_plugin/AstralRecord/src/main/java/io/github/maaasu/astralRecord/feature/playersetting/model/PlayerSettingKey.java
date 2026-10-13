@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.playersetting.model;
 
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerVisualMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +27,8 @@ public enum PlayerSettingKey {
     ARMOR_DISPLAY("ARMOR_DISPLAY", "防具表示", true),
     ACTION_RING_HOLD_SELECT("ACTION_RING_HOLD_SELECT", "アクションリング長押し選択", false),
     SKILL_TREE_COMPACT_DISPLAY("SKILL_TREE_COMPACT_DISPLAY", "スキルツリーノード軽量表示", false),
-    ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false);
+    ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false),
+    SPAWNER_VISUAL_MODE("SPAWNER_VISUAL_MODE", "スポナー管理表示", MobSpawnerVisualMode.NORMAL);
 
     private final String code;
     private final String displayNameJa;
@@ -58,6 +60,11 @@ public enum PlayerSettingKey {
         return defaultValue instanceof ParticleDensity;
     }
 
+    /** @return Mob・採集スポナー共通の表示モードを保持する設定なら true */
+    public boolean isSpawnerVisualModeValue() {
+        return defaultValue instanceof MobSpawnerVisualMode;
+    }
+
     public @Nullable Object parseInputValue(@Nullable String input) {
         if (isBooleanValue()) {
             if (input == null) {
@@ -73,6 +80,9 @@ public enum PlayerSettingKey {
         if (isParticleDensityValue()) {
             return ParticleDensity.fromInput(input);
         }
+        if (isSpawnerVisualModeValue()) {
+            return MobSpawnerVisualMode.fromInput(input);
+        }
         return null;
     }
 
@@ -83,6 +93,9 @@ public enum PlayerSettingKey {
         if (value instanceof ParticleDensity density) {
             return density.getDisplayNameJa();
         }
+        if (value instanceof MobSpawnerVisualMode mode) {
+            return mode.getDisplayNameJa();
+        }
         return String.valueOf(value);
     }
 
@@ -92,6 +105,9 @@ public enum PlayerSettingKey {
         }
         if (isParticleDensityValue()) {
             return ParticleDensity.completionValues();
+        }
+        if (isSpawnerVisualModeValue()) {
+            return MobSpawnerVisualMode.completionValues();
         }
         return List.of();
     }

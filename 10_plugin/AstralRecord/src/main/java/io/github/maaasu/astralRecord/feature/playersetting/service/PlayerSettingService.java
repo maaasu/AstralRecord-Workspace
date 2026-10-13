@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKe
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingModel;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerVisualMode;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +44,7 @@ public final class PlayerSettingService {
     private final AtomicLong sessionSequence = new AtomicLong();
     private final AtomicLong revisionSequence = new AtomicLong();
     private final ConcurrentMap<UUID, Long> activeSessionTokens = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Long> loadedSessionTokens = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, UserOperationLock> operationLocks = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, UUID> userIdsByAccount = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, UUID> accountIdsByUser = new ConcurrentHashMap<>();
@@ -93,6 +95,7 @@ public final class PlayerSettingService {
         synchronized (sessionMonitor) {
             long token = nextSessionToken();
             activeSessionTokens.put(userId, token);
+            loadedSessionTokens.remove(userId);
             if (!hasPending(userId)) cache.remove(userId);
             return token;
         }
@@ -102,6 +105,17 @@ public final class PlayerSettingService {
         return activeSessionTokens.getOrDefault(userId, NO_ACTIVE_SESSION);
     }
 
+    /**
+     * 現在の設定セッションの初期 API 読込が終了したかを、待機せずに返します。
+     *
+     * @param userId 設定を所有するユーザー UUID
+     * @return 現在の session token で cache を公開済みの場合は true
+     */
+    public boolean isInitialLoadComplete(@NotNull UUID userId) {
+        long token = captureSessionToken(userId);
+        return token != NO_ACTIVE_SESSION && loadedSessionTokens.getOrDefault(userId, NO_ACTIVE_SESSION) == token;
+    }
+
     /** 設定変更を account 単位の 200ms 集約保存へ接続します。 */
     public void setLocalPlayerSaveRequester(@NotNull Consumer<UUID> requester) {
         localPlayerSaveRequester = requester;
@@ -109,12 +123,18 @@ public final class PlayerSettingService {
 
     /** 初期 GET 専用。個別 POST/PUT と独自再送は行わない。 */
     public void warmup(@NotNull UUID userId, long token) {
-        withLock(userId, () -> { loadPlayerSettingsLocked(userId, token); return null; });
+        withLock(userId, () -> {
+            if (isActive(userId, token) && !isInitialLoadComplete(userId)) {
+                loadPlayerSettingsLocked(userId, token);
+            }
+            return null;
+        });
     }
 
     public void clear(@NotNull UUID userId) {
         synchronized (sessionMonitor) {
             activeSessionTokens.remove(userId);
+            loadedSessionTokens.remove(userId);
             if (!hasPending(userId)) {
                 cache.remove(userId);
                 forgetAccount(userId);
@@ -134,6 +154,7 @@ public final class PlayerSettingService {
         }
         synchronized (sessionMonitor) {
             activeSessionTokens.remove(userId);
+            loadedSessionTokens.remove(userId);
             pendingSettings.remove(userId);
             cache.remove(userId);
             accountIdsByUser.remove(userId, accountId);
@@ -184,6 +205,19 @@ public final class PlayerSettingService {
      */
     public boolean isSkillTreeCompactDisplayEnabled(@NotNull UUID userId) {
         return cachedBooleanSetting(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, false);
+    }
+
+    /**
+     * Mob・採集スポナーの管理表示モードをロード済み設定だけから返します。API I/O は発生しません。
+     *
+     * @param userId 全チャンネルで共通の設定を所有するユーザー UUID
+     * @return 読込済みモード。未読込・型不正時は表示を停止する OFF
+     */
+    public @NotNull MobSpawnerVisualMode getSpawnerVisualMode(@NotNull UUID userId) {
+        if (!isInitialLoadComplete(userId)) return MobSpawnerVisualMode.OFF;
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        PlayerSettingEntry entry = snapshot == null ? null : snapshot.getEntry(PlayerSettingKey.SPAWNER_VISUAL_MODE);
+        return entry != null && entry.getValue() instanceof MobSpawnerVisualMode mode ? mode : MobSpawnerVisualMode.OFF;
     }
 
     /**
@@ -361,6 +395,10 @@ public final class PlayerSettingService {
                 ParticleDensity density = ParticleDensity.fromInput(value.get("value").getAsString());
                 if (density != null) return density;
             }
+            if (key.isSpawnerVisualModeValue()) {
+                MobSpawnerVisualMode mode = MobSpawnerVisualMode.fromInput(value.get("value").getAsString());
+                if (mode != null) return mode;
+            }
             throw new IllegalArgumentException("invalid value");
         } catch (Exception exception) {
             Logger.log(LogId.W_5311, userId, key.getCode(), exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
@@ -371,6 +409,7 @@ public final class PlayerSettingService {
         JsonObject result = new JsonObject();
         if (key.isBooleanValue()) { result.addProperty("enabled", (Boolean) value); return result.toString(); }
         if (key.isParticleDensityValue()) { result.addProperty("value", ((ParticleDensity) value).getCode()); return result.toString(); }
+        if (key.isSpawnerVisualModeValue()) { result.addProperty("value", ((MobSpawnerVisualMode) value).name()); return result.toString(); }
         throw new IllegalArgumentException("Unsupported player setting key: " + key.getCode());
     }
     private boolean hasPending(UUID userId) { var dirty = pendingSettings.get(userId); return dirty != null && !dirty.isEmpty(); }
@@ -417,7 +456,12 @@ public final class PlayerSettingService {
     private long nextSessionToken() { long token = sessionSequence.incrementAndGet(); return token == 0L ? sessionSequence.incrementAndGet() : token; }
     private boolean isActive(UUID userId, long token) { return token != 0L && activeSessionTokens.getOrDefault(userId, 0L) == token; }
     private void publishIfActive(PlayerSettingSnapshot snapshot, long token) {
-        synchronized (sessionMonitor) { if (isActive(snapshot.getUserId(), token)) cache.put(snapshot); }
+        synchronized (sessionMonitor) {
+            if (isActive(snapshot.getUserId(), token)) {
+                cache.put(snapshot);
+                loadedSessionTokens.put(snapshot.getUserId(), token);
+            }
+        }
     }
     private <T> T withLock(UUID userId, Supplier<T> work) {
         UserOperationLock holder = operationLocks.compute(userId, (ignored, existing) -> { UserOperationLock lock = existing == null ? new UserOperationLock() : existing; lock.references++; return lock; });

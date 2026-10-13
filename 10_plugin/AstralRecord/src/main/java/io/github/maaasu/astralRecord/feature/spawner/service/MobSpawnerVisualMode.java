@@ -1,55 +1,50 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
-import org.bukkit.NamespacedKey;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+
 /** 管理者に送る Mob・採集スポナー共通の表示設定です。 */
 public enum MobSpawnerVisualMode {
-    NORMAL((byte) 0),
-    LIGHT((byte) 1),
-    OFF((byte) 2);
+    NORMAL("通常"),
+    LIGHT("軽量"),
+    OFF("非表示");
 
-    private final byte storedValue;
+    private final String displayNameJa;
 
-    MobSpawnerVisualMode(byte storedValue) {
-        this.storedValue = storedValue;
+    MobSpawnerVisualMode(String displayNameJa) {
+        this.displayNameJa = displayNameJa;
     }
 
     /**
-     * 既存の保存キーを両スポナー種別で共有します。
-     *
-     * @param plugin キーの名前空間を所有するプラグイン
-     * @return 表示モードの PDC キー
+     * @return プレイヤー向けの表示モード名
      */
-    public static @NotNull NamespacedKey storageKey(@NotNull Plugin plugin) {
-        return new NamespacedKey(plugin, "mob_spawner_visual_mode");
+    public @NotNull String getDisplayNameJa() {
+        return displayNameJa;
     }
 
     /**
-     * プレイヤーデータへ保存する値を返します。
-     *
-     * @return 表示モードの保存値
+     * @return コマンドの候補として使う小文字のモード名
      */
-    public byte storedValue() {
-        return storedValue;
+    public static @NotNull List<String> completionValues() {
+        return Arrays.stream(values()).map(mode -> mode.name().toLowerCase(Locale.ROOT)).toList();
     }
 
     /**
-     * 保存値から表示モードを復元します。未設定または未知の値は通常表示にします。
+     * コマンド入力または PlayerSetting の JSON 値から表示モードを解決します。
      *
-     * @param value プレイヤーデータの保存値
-     * @return 対応する表示モード
+     * @param value 大文字・小文字を問わないモード名
+     * @return 対応する表示モード。不明・欠落した値は null
      */
-    public static MobSpawnerVisualMode fromStoredValue(@Nullable Byte value) {
-        if (value != null) {
-            for (MobSpawnerVisualMode mode : values()) {
-                if (mode.storedValue == value) {
-                    return mode;
-                }
-            }
+    public static @Nullable MobSpawnerVisualMode fromInput(@Nullable String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return null;
         }
-        return NORMAL;
     }
 }

@@ -239,7 +239,8 @@ public class PlayerService {
      * メソッド内で例外が発生した場合は、公開済みの GUI・地域・キャッシュ・inventory state と
      * Bukkit プレイヤー状態を逆順に復元してから例外を再送出します。呼び出し後の処理に失敗した場合は、
      * 戻り値を {@link #rollbackPlayerJoin(PlayerJoinApplication)} へ渡してください。
-     * この overload は再ロードとして保存済みモードを優先します。初回参加は3引数版で明示してください。
+     * 初回参加とアカウント再ロードの両方で、API から読み込んだ account.mode を正本にします。
+     * Bukkit の保存済みゲームモードによる補正は行いません。
      *
      * @param player ログインした Bukkit プレイヤー
      * @param joinData 非同期で取得済みのログインデータ
@@ -249,24 +250,6 @@ public class PlayerService {
     public @Nullable PlayerJoinApplication applyPlayerJoinTransactional(
         @NotNull Player player,
         @NotNull PlayerJoinData joinData
-    ) {
-        return applyPlayerJoinTransactional(player, joinData, false);
-    }
-
-    /**
-     * 初回参加とアカウント再ロードを区別して、ロールバック可能な参加反映を行います。
-     * 管理権限のあるクリエイティブ参加では、現在の所持品とゲームモードを維持します。
-     *
-     * @param player 対象 Bukkit プレイヤー。メインスレッドから呼び出します
-     * @param joinData 読み込み済み参加データ
-     * @param initialJoin 初回参加なら true。アカウント切替では保存済みモードを優先します
-     * @return 反映済み参加処理。参加条件を満たさない場合は null
-     * @throws RuntimeException 参加反映が失敗した場合。Bukkit 状態と公開した状態は復元します
-     */
-    public @Nullable PlayerJoinApplication applyPlayerJoinTransactional(
-        @NotNull Player player,
-        @NotNull PlayerJoinData joinData,
-        boolean initialJoin
     ) {
         if (!player.isOnline() || AstPlayerCache.contains(player.getUniqueId())) {
             return null;
@@ -279,9 +262,7 @@ public class PlayerService {
             inventoryStateRegistry.get(joinData.account().getUuid())
         );
         try {
-            AccountModel joinAccount = initialJoin
-                ? AstPlayer.resolveJoinAccount(player, joinData.user(), joinData.account())
-                : joinData.account();
+            AccountModel joinAccount = joinData.account();
             application.astPlayer = new AstPlayer(player, joinData.user(), joinAccount);
             inventoryStateRegistry.put(joinData.inventoryState().state());
             application.inventoryPublished = true;
@@ -293,13 +274,10 @@ public class PlayerService {
             playerRegionService.initializeRegion(application.astPlayer);
             // AstPlayerCache 登録後にコマンドツリーを再送し、permission 反映後の公開条件で同期する。
             player.updateCommands();
-            // 補正参加では PLAYER 描画と過去の管理者スナップショット復元を省略して所持品を維持する。
-            if (joinAccount.getMode() == joinData.account().getMode()) {
-                if (joinAccount.getMode().shouldReflectInventoryToGui()) {
-                    inventoryService.applyInventoriesToGuiOnJoin(application.astPlayer);
-                } else if (isToolInventoryMode(joinAccount.getMode())) {
-                    inventoryService.applyToolInventoryToGui(application.astPlayer);
-                }
+            if (joinAccount.getMode().shouldReflectInventoryToGui()) {
+                inventoryService.applyInventoriesToGuiOnJoin(application.astPlayer);
+            } else if (isToolInventoryMode(joinAccount.getMode())) {
+                inventoryService.applyToolInventoryToGui(application.astPlayer);
             }
             statusService.refreshStatus(application.astPlayer);
             return application;
@@ -370,15 +348,6 @@ public class PlayerService {
         }
         application.committed = true;
         if(petRuntime!=null&&application.astPlayer!=null)petRuntime.refresh(application.astPlayer);
-        if (application.astPlayer != null
-            && application.astPlayer.getAccount().getMode() != application.joinData.account().getMode()) {
-            inventoryService.saveToolInventorySnapshot(application.astPlayer);
-            // 参加成功後だけ dirty にする。既存の自動保存・退出保存で account mode と所持品を一緒に保存する。
-            application.astPlayer.setAccount(accountService.setMode(
-                application.astPlayer.getAccount(), application.astPlayer.getAccount().getMode(),
-                application.player.getUniqueId()
-            ));
-        }
         if (playTimeService != null && application.astPlayer != null) {
             playTimeService.startSession(application.astPlayer);
         }

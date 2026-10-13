@@ -33,6 +33,8 @@
 
 ## 運用メモ
 
+- `SPAWNER_VISUAL_MODE` は Mob・採集スポナー共通の管理表示設定。値は `{"value":"NORMAL"}` / `{"value":"LIGHT"}` / `{"value":"OFF"}` とし、user UUID 単位で全チャンネル・全アカウントから共有します。専用列や Player PDC からの移行は追加しません。
+
 - Plugin は設定変更をローカル cache へ即時反映し、user の有効設定全体を player-state snapshot の `playerSettings` section で保存します。
 - 既存行は `version` を楽観ロックとして検証し、新規行は Plugin が採番した `user_setting_id` を同じ transaction で作成します。DB にだけ存在する有効行がある要求は競合にします。
 - 初期読込は Player Setting API の GET を使用し、Plugin は個別 POST／PUT を使用しません。

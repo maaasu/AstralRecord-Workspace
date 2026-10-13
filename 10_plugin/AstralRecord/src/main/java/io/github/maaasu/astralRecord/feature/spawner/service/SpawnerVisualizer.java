@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -9,7 +10,6 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,7 +19,6 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +49,6 @@ public abstract class SpawnerVisualizer<T> implements Listener {
 
     private final Plugin plugin;
     private final ParticleDisplayService particleDisplayService;
-    private final NamespacedKey visualModeKey;
     private final SpawnerPacketDisplay packetDisplay = new SpawnerPacketDisplay();
     private final Map<UUID, Map<String, SpawnerVisual>> displays = new HashMap<>();
     private BukkitTask task;
@@ -64,7 +62,6 @@ public abstract class SpawnerVisualizer<T> implements Listener {
     protected SpawnerVisualizer(@NotNull Plugin plugin, @NotNull ParticleDisplayService particleDisplayService) {
         this.plugin = plugin;
         this.particleDisplayService = particleDisplayService;
-        this.visualModeKey = MobSpawnerVisualMode.storageKey(plugin);
     }
 
     /** @return この種別の登録済み配置。同期スレッドから参照します。 */
@@ -131,9 +128,9 @@ public abstract class SpawnerVisualizer<T> implements Listener {
         List<VisibleSpawner<T>> candidates = null;
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             var astPlayer = AstPlayerCache.get(player);
-            MobSpawnerVisualMode mode = MobSpawnerVisualMode.fromStoredValue(
-                player.getPersistentDataContainer().get(visualModeKey, PersistentDataType.BYTE)
-            );
+            var settings = AstralRecord.getInstance().getPlayerSettingService();
+            MobSpawnerVisualMode mode = astPlayer == null || settings == null ? MobSpawnerVisualMode.OFF
+                : settings.getSpawnerVisualMode(astPlayer.getUser().getUuid());
             if (astPlayer == null || astPlayer.getAccount().getMode() != AccountMode.ADMIN
                 || mode == MobSpawnerVisualMode.OFF) {
                 continue;

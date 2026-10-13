@@ -1006,7 +1006,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             skillBindPresetsApplied = true;
             skillBindPresetService.applyInitialPresets(joinData.account().getUuid(), skillBindPresets);
             learnedSkillService.applyInitialSkills(joinData.account().getUuid(), learnedSkills);
-            playerJoinApplication = playerService.applyPlayerJoinTransactional(player, joinData, completionListener == null);
+            playerJoinApplication = playerService.applyPlayerJoinTransactional(player, joinData);
             if (playerJoinApplication == null) {
                 rollbackJoinApplication(
                     playerName,
