@@ -10,7 +10,7 @@ namespace AstralRecordApi.Controllers;
 [Authorize]
 public sealed class ServerRecordsController(IServerRecordsRepository repository) : ControllerBase
 {
-    /// <summary>運営権限保有者を除外した、プレイヤー単位の全サーバーレコードを一括取得します。</summary>
+    /// <summary>運営権限保有者を除外した全サーバーレコードを取得します。集計結果は最大10秒間共有します。</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ServerRecordsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

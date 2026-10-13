@@ -158,6 +158,39 @@ public sealed class ServerRecordsRepositoryTests
         Assert.Empty(afterBootstrap.Rankings.Single(ranking => ranking.Type == "play_time").Entries);
     }
 
+    [Fact]
+    public async Task Rankings_SharedCacheAvoidsAllEightQueriesAndRefreshesAuthorityExclusion()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await using var managementConnection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync(); await managementConnection.OpenAsync();
+        var commands = new List<string>();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection)
+            .LogTo(commands.Add, [RelationalEventId.CommandExecuted]).Options;
+        await using var db = new AstralRecordDbContext(options);
+        await using var otherScope = new AstralRecordDbContext(options);
+        await using var management = new ManagementDbContext(new DbContextOptionsBuilder<ManagementDbContext>().UseSqlite(managementConnection).Options);
+        await db.Database.EnsureCreatedAsync(); await management.Database.EnsureCreatedAsync();
+        var first = AddAccount(db, "Alice", 20, 0);
+        AddAccount(db, "Bob", 10, 0);
+        await db.SaveChangesAsync();
+        var runtime = new NetworkRuntimeService(TimeProvider.System);
+        var cache = new ServerRecordsCache(TimeProvider.System);
+        var repository = new ServerRecordsRepository(db, new NetworkManagementRepository(management, db, TimeProvider.System), TimeProvider.System, runtime, cache);
+        var otherRepository = new ServerRecordsRepository(otherScope, new NetworkManagementRepository(management, otherScope, TimeProvider.System), TimeProvider.System, runtime, cache);
+        commands.Clear();
+        var result = await repository.GetAsync(1);
+        Assert.Equal(8, commands.Count);
+        var second = await otherRepository.GetAsync(10);
+        Assert.Equal(8, commands.Count);
+        Assert.Equal(result.GeneratedAt, second.GeneratedAt);
+        Assert.Equal(2, second.Rankings.Single(ranking => ranking.Type == "level").Entries.Count);
+        runtime.ReplaceAuthorities(new AstralRecordApi.Models.NetworkAuthorityUpdateRequest([first.UserId]));
+        var changed = await otherRepository.GetAsync(10);
+        Assert.Equal(16, commands.Count);
+        Assert.Equal("Bob", Assert.Single(changed.Rankings.Single(ranking => ranking.Type == "level").Entries).PlayerName);
+    }
+
     private static AccountEntity AddAccount(AstralRecordDbContext db, string name, int level, long seconds, Guid? ownerId = null,
         int permission = 0, byte mode = 0, int slot = 0, bool deletedUser = false, bool deletedAccount = false)
     {

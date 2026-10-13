@@ -6,13 +6,22 @@ using Microsoft.EntityFrameworkCore;
 namespace AstralRecordApi.Repositories;
 
 public sealed class ServerRecordsRepository(
-    AstralRecordDbContext db, INetworkManagementRepository network, TimeProvider clock, INetworkRuntimeService runtime) : IServerRecordsRepository
+    AstralRecordDbContext db, INetworkManagementRepository network, TimeProvider clock, INetworkRuntimeService runtime,
+    ServerRecordsCache? cache = null) : IServerRecordsRepository
 {
     public async Task<ServerRecordsResponse> GetAsync(int limit, CancellationToken cancellationToken = default)
     {
         if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
         // ManagementDB の永続UUID一覧を使うため、オフライン運営も除外する。
         var authorities = ((await network.GetSettingsAsync())?.AuthorityUsers ?? runtime.GetAuthorities()).ToArray();
+        return cache is null
+            ? await ReadRankingsAsync(authorities, limit, cancellationToken)
+            : await cache.GetAsync(authorities, limit,
+                token => ReadRankingsAsync(authorities, ServerRecordsCache.MaximumLimit, token), cancellationToken);
+    }
+
+    private async Task<ServerRecordsResponse> ReadRankingsAsync(Guid[] authorities, int limit, CancellationToken cancellationToken)
+    {
         var users = db.Users.AsNoTracking().Where(user => !user.IsDeleted && user.Permission == 0
             && !authorities.Contains(user.Uuid));
         var accounts = db.Accounts.AsNoTracking().Where(account => !account.IsDeleted && account.Mode == 0)
