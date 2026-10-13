@@ -1,16 +1,16 @@
 # design:
 #   motif: "鉱物 / 鉄製道具"
-#   progression: 6
+#   progression: 23
 schemaVersion: 1
 id: 20a00104
 category: equipment
-name: "&f鉄のツルハシⅣ"
+name: "&6&l星心の鉄ツルハシ"
 icon: IRON_PICKAXE
-rarity: COMMON
+rarity: LEGENDARY
 saleValue: 2
 lore:
-  - "&7磨き上げた鉄の採掘道具。"
-  - "&7ギャザリングレベル2の鉱脈に対応する。"
+  - "&7星の心石をあしらった、最高位の鉄の採掘道具。"
+  - "&7ギャザリングレベル &e&l2&r&7 の鉱脈に対応する。"
 unTradeable: false
 unSellable: false
 

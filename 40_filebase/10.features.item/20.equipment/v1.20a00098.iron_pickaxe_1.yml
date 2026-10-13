@@ -1,16 +1,16 @@
 # design:
 #   motif: "鉱物 / 鉄製道具"
-#   progression: 3
+#   progression: 20
 schemaVersion: 1
 id: 20a00098
 category: equipment
-name: "&f鉄のツルハシⅠ"
+name: "&a翠風の鉄ツルハシ"
 icon: IRON_PICKAXE
-rarity: COMMON
+rarity: UNCOMMON
 saleValue: 2
 lore:
-  - "&7磨き上げた鉄の採掘道具。"
-  - "&7ギャザリングレベル2の鉱脈に対応する。"
+  - "&7ヴェルディアの風鳴り石を用いて鍛えた鉄の採掘道具。"
+  - "&7ギャザリングレベル &e&l2&r&7 の鉱脈に対応する。"
 unTradeable: false
 unSellable: false
 

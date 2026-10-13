@@ -107,6 +107,18 @@ items:
           ref: item:10a00014
         category: material
         amount: 45
+      - itemId:
+          ref: item:10a00086
+        category: material
+        amount: 512
+      - itemId:
+          ref: item:10a00087
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00088
+        category: material
+        amount: 128
   - id: iron_hoe_1
     itemId:
       ref: item:20a00099
@@ -140,6 +152,18 @@ items:
           ref: item:10a00014
         category: material
         amount: 45
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 512
+      - itemId:
+          ref: item:10a00072
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00071
+        category: material
+        amount: 128
   - id: iron_pickaxe_2
     itemId:
       ref: item:20a00100
@@ -173,6 +197,22 @@ items:
           ref: item:10a00014
         category: material
         amount: 60
+      - itemId:
+          ref: item:10a00086
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00087
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00088
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00089
+        category: material
+        amount: 128
   - id: iron_hoe_2
     itemId:
       ref: item:20a00101
@@ -206,6 +246,22 @@ items:
           ref: item:10a00014
         category: material
         amount: 60
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00072
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00074
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00077
+        category: material
+        amount: 128
   - id: iron_pickaxe_3
     itemId:
       ref: item:20a00102
@@ -239,6 +295,22 @@ items:
           ref: item:10a00014
         category: material
         amount: 90
+      - itemId:
+          ref: item:10a00086
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00087
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00088
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00089
+        category: material
+        amount: 256
   - id: iron_hoe_3
     itemId:
       ref: item:20a00103
@@ -272,6 +344,22 @@ items:
           ref: item:10a00014
         category: material
         amount: 90
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00072
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00077
+        category: material
+        amount: 256
+      - itemId:
+          ref: item:10a00082
+        category: material
+        amount: 256
   - id: iron_pickaxe_4
     itemId:
       ref: item:20a00104
@@ -305,6 +393,26 @@ items:
           ref: item:10a00014
         category: material
         amount: 120
+      - itemId:
+          ref: item:10a00086
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00087
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00088
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00089
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00090
+        category: material
+        amount: 256
   - id: iron_hoe_4
     itemId:
       ref: item:20a00105
@@ -338,3 +446,27 @@ items:
           ref: item:10a00014
         category: material
         amount: 120
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00072
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00077
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00082
+        category: material
+        amount: 128
+      - itemId:
+          ref: item:10a00074
+        category: material
+        amount: 384
+      - itemId:
+          ref: item:10a00084
+        category: material
+        amount: 128

@@ -1,16 +1,16 @@
 # design:
 #   motif: "鉱物 / 鉄製道具"
-#   progression: 4
+#   progression: 21
 schemaVersion: 1
 id: 20a00101
 category: equipment
-name: "&f鉄のクワⅡ"
+name: "&b深翠の鉄クワ"
 icon: IRON_HOE
-rarity: COMMON
+rarity: RARE
 saleValue: 2
 lore:
-  - "&7磨き上げた鉄の採取道具。"
-  - "&7ギャザリングレベル2の植物に対応する。"
+  - "&7森の苔と金風花を用いて磨き上げた鉄の採集道具。"
+  - "&7ギャザリングレベル &e&l2&r&7 の植物に対応する。"
 unTradeable: false
 unSellable: false
 
