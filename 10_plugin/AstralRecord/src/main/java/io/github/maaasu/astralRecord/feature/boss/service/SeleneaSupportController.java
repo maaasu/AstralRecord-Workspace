@@ -90,7 +90,7 @@ final class SeleneaSupportController {
         this.participants = participants;
         this.lethalHit = lethalHit;
         this.chunkLeases = new SeleneaChunkLeaseRegistry(plugin);
-        this.gatePlatforms = new SeleneaGatePlatformRegistry(plugin);
+        this.gatePlatforms = new SeleneaGatePlatformRegistry();
     }
 
     /**
