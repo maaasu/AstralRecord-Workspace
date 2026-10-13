@@ -15,9 +15,9 @@ allowBlockPlace: false
 allowMobSpawn: false
 showSpawnParticle: false
 spawnLocation:
-  x: -46
+  x: -45
   y: 199
-  z: -82
+  z: -81
   yaw: 90.0
   pitch: 0.0
 description: "冒険者の成長や偉業を記したランキングを閲覧する広場。"
