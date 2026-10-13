@@ -1,10 +1,10 @@
 # design:
-#   motif: "エンチャント / 満天の星印"
+#   motif: "ギリシャ神話 / アステリア"
 #   progression: 2
 schemaVersion: 1
 id: 40a00013
 category: orb
-name: "&6満天刻印のオーブ"
+name: "&6アステリアのオーブ"
 icon: ECHO_SHARD
 rarity: EPIC
 maxStack: 64
