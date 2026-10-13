@@ -1,4 +1,6 @@
 using System.Data.SqlTypes;
+using System.Text;
+using Microsoft.Data.SqlClient;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -16,26 +18,38 @@ internal static class PlayerStateUpdateLocks
     internal static async Task<Dictionary<Guid, EquipmentInstanceEntity>?> EquipmentAsync(
         AstralRecordDbContext context, IEnumerable<Guid> equipmentIds, IEnumerable<Guid> marketCheckIds)
     {
-        foreach (var id in marketCheckIds.Distinct().OrderBy(id => new SqlGuid(id)))
-        {
-            if (await MarketListingRangeLock.HasActiveOrSuspendedAsync(context, "EQUIPMENT", id))
-                return null;
-        }
-
-        var result = new Dictionary<Guid, EquipmentInstanceEntity>();
+        var marketIds = marketCheckIds.Distinct().OrderBy(id => new SqlGuid(id)).ToArray();
         var ids = equipmentIds.Distinct().OrderBy(id => new SqlGuid(id)).ToArray();
         if (!context.Database.IsSqlServer())
+        {
+            foreach (var id in marketIds)
+                if (await MarketListingRangeLock.HasActiveOrSuspendedAsync(context, "EQUIPMENT", id)) return null;
             return await context.EquipmentInstances.Where(row => ids.Contains(row.EquipmentInstanceId))
                 .ToDictionaryAsync(row => row.EquipmentInstanceId);
-
-        foreach (var id in ids)
+        }
+        // 各seekを順に実行するSQL batch。IN句の実行計画にlock取得順を委ねない。
+        foreach (var chunk in marketIds.Chunk(128))
         {
-            var row = await context.EquipmentInstances.FromSqlInterpolated($"""
-                SELECT * FROM [dbo].[equipment_instance] WITH (
-                    UPDLOCK, HOLDLOCK, FORCESEEK([PK_equipment_instance] ([equipment_instance_id])))
-                WHERE [equipment_instance_id] = {id}
-                """).SingleOrDefaultAsync();
-            if (row is not null) result.Add(id, row);
+            var sql = new StringBuilder("DECLARE @listed int = 0;\n");
+            var parameters = chunk.Select((id, index) => new SqlParameter($"@id{index}", id)).ToArray();
+            for (var index = 0; index < chunk.Length; index++)
+                sql.Append($"""
+                    SELECT @listed = @listed | COALESCE(MAX(CASE WHEN [status] IN ('ACTIVE','SUSPENDED') THEN 1 ELSE 0 END),0)
+                    FROM [dbo].[market_listing] WITH (UPDLOCK, HOLDLOCK,
+                        FORCESEEK([IX_market_listing_instance_active_status] ([instance_type], [instance_id], [is_deleted])))
+                    WHERE [instance_type] = N'EQUIPMENT' AND [instance_id] = @id{index} AND [is_deleted] = 0;
+
+                    """);
+            sql.Append("SELECT @listed AS [Value];");
+            if ((await context.Database.SqlQueryRaw<int>(sql.ToString(), parameters).ToListAsync()).Single() == 1) return null;
+        }
+        var result = new Dictionary<Guid, EquipmentInstanceEntity>();
+        foreach (var chunk in ids.Chunk(128))
+        {
+            var (sql, parameters) = BuildLockBatch("equipment_instance", "equipment_instance_id", "PK_equipment_instance",
+                chunk.Cast<object>().ToArray());
+            foreach (var row in await context.EquipmentInstances.FromSqlRaw(sql, parameters).ToListAsync())
+                result.Add(row.EquipmentInstanceId, row);
         }
         return result;
     }
@@ -48,14 +62,11 @@ internal static class PlayerStateUpdateLocks
         if (!context.Database.IsSqlServer())
             return await context.AccountMobRecords.Where(row => row.AccountId == accountId && ids.Contains(row.MobId)).ToListAsync();
         var result = new List<AccountMobRecordEntity>();
-        foreach (var id in ids)
+        foreach (var chunk in ids.Chunk(128))
         {
-            var row = await context.AccountMobRecords.FromSqlInterpolated($"""
-                SELECT * FROM [dbo].[account_mob_record] WITH (
-                    UPDLOCK, HOLDLOCK, FORCESEEK([UX_account_mob_record_account_mob] ([account_id], [mob_id])))
-                WHERE [account_id] = {accountId} AND [mob_id] = {id}
-                """).SingleOrDefaultAsync();
-            if (row is not null) result.Add(row);
+            var (sql, parameters) = BuildLockBatch("account_mob_record", "account_mob_record_id",
+                "UX_account_mob_record_account_mob", chunk.Cast<object>().ToArray(), accountId, "mob_id");
+            result.AddRange(await context.AccountMobRecords.FromSqlRaw(sql, parameters).ToListAsync());
         }
         return result;
     }
@@ -68,15 +79,44 @@ internal static class PlayerStateUpdateLocks
         if (!context.Database.IsSqlServer())
             return await context.AccountDungeonRecords.Where(row => row.AccountId == accountId && ids.Contains(row.DungeonId)).ToListAsync();
         var result = new List<AccountDungeonRecordEntity>();
-        foreach (var id in ids)
+        foreach (var chunk in ids.Chunk(128))
         {
-            var row = await context.AccountDungeonRecords.FromSqlInterpolated($"""
-                SELECT * FROM [dbo].[account_dungeon_record] WITH (
-                    UPDLOCK, HOLDLOCK, FORCESEEK([UX_account_dungeon_record_account_dungeon] ([account_id], [dungeon_id])))
-                WHERE [account_id] = {accountId} AND [dungeon_id] = {id}
-                """).SingleOrDefaultAsync();
-            if (row is not null) result.Add(row);
+            var (sql, parameters) = BuildLockBatch("account_dungeon_record", "account_dungeon_record_id",
+                "UX_account_dungeon_record_account_dungeon", chunk.Cast<object>().ToArray(), accountId, "dungeon_id");
+            result.AddRange(await context.AccountDungeonRecords.FromSqlRaw(sql, parameters).ToListAsync());
         }
         return result;
     }
+
+    /// <summary>定数のテーブル/索引名とparameterだけで、固定順のseekを1回の往復へまとめる。</summary>
+    private static (string Sql, object[] Parameters) BuildLockBatch(
+        string table, string primaryKey, string index, object[] ids, Guid? accountId = null, string? naturalKey = null)
+    {
+        var sql = new StringBuilder("DECLARE @locked TABLE ([id] uniqueidentifier PRIMARY KEY);\n");
+        var parameters = new List<object>();
+        if (accountId.HasValue) parameters.Add(new SqlParameter("@account", accountId.Value));
+        for (var position = 0; position < ids.Length; position++)
+        {
+            var parameter = new SqlParameter($"@id{position}", ids[position]);
+            if (ids[position] is string) parameter.Size = 100;
+            parameters.Add(parameter);
+            var predicate = accountId.HasValue
+                ? $"[account_id] = @account AND [{naturalKey}] = @id{position}"
+                : $"[{primaryKey}] = @id{position}";
+            var seekColumns = accountId.HasValue ? $"[account_id], [{naturalKey}]" : $"[{primaryKey}]";
+            sql.Append($"""
+                INSERT INTO @locked ([id]) SELECT [{primaryKey}]
+                FROM [dbo].[{table}] WITH (UPDLOCK, HOLDLOCK, FORCESEEK([{index}] ({seekColumns})))
+                WHERE {predicate};
+
+                """);
+        }
+        sql.Append($"""
+            SELECT target.* FROM @locked AS captured
+            INNER JOIN [dbo].[{table}] target WITH (UPDLOCK, HOLDLOCK, FORCESEEK) ON target.[{primaryKey}] = captured.[id]
+            OPTION (LOOP JOIN, FORCE ORDER, MAXDOP 1);
+            """);
+        return (sql.ToString(), parameters.ToArray());
+    }
+
 }

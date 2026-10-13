@@ -1,4 +1,6 @@
 using System.Data;
+using System.Data.Common;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Repositories;
@@ -12,6 +14,37 @@ namespace AstralRecordApi.Tests.Repositories;
 [Trait("Category", "SqlServerIntegration")]
 public class PlayerStateUpdateLocksSqlServerTests
 {
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(129, 2)]
+    public async Task EquipmentAndAdventureLockRoundTripsAreBoundedByBatchCount(int count, int batches)
+    {
+        if (!Enabled()) return;
+        await using var database = await TemporaryDatabase.CreateAsync();
+        var commands = new ReaderCounter();
+        await using var context = database.Context(commands);
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var ids = Enumerable.Range(0, count).Select(_ => Guid.NewGuid()).ToArray();
+        Assert.Empty((await PlayerStateUpdateLocks.EquipmentAsync(context, ids.Reverse(), ids))!);
+        Assert.Equal(batches * 2, commands.Count);
+        var keys = Enumerable.Range(0, count).Select(index => $"id-{index:D4}").Reverse().ToArray();
+        Assert.Empty(await PlayerStateUpdateLocks.MobsAsync(context, Guid.NewGuid(), keys));
+        Assert.Equal(batches * 3, commands.Count);
+        Assert.Empty(await PlayerStateUpdateLocks.DungeonsAsync(context, Guid.NewGuid(), keys));
+        Assert.Equal(batches * 4, commands.Count);
+    }
+
+    private sealed class ReaderCounter : DbCommandInterceptor
+    {
+        internal int Count { get; private set; }
+        public override ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command,
+            CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
+        {
+            Count++;
+            return ValueTask.FromResult(result);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -149,8 +182,8 @@ public class PlayerStateUpdateLocksSqlServerTests
             Pooling = false,
         }.ConnectionString;
 
-        internal AstralRecordDbContext Context() => new(new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlServer(ConnectionString(name), options => options.CommandTimeout(15)).Options);
+        internal AstralRecordDbContext Context(params IInterceptor[] interceptors) => new(new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlServer(ConnectionString(name), options => options.CommandTimeout(15)).AddInterceptors(interceptors).Options);
 
         /// <summary>処理開始遅延ではなく、指定session同士のSQLロック待機が発生したことを確認する。</summary>
         internal async Task AssertLockWaitAsync(int waitingSession, int owningSession, Task operation)

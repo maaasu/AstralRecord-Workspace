@@ -33,14 +33,17 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         var snapshotIds = await SeedSeparatedSnapshotLedgerGapsAsync(database);
         var first = await SeedAccountAsync(database, "quest-a", includeQuest: true);
         var second = await SeedAccountAsync(database, "quest-b", includeQuest: true);
-        using var snapshotLedgerRead = new CommandPause(IsSnapshotLedgerRead);
+        using var childrenRead = new CommandCompletionGate(2, sql => sql.Contains("FROM [dbo].[account_quest_cooldown] WITH (READCOMMITTED,", StringComparison.OrdinalIgnoreCase));
         var firstAttempt = Task.Run(() => SaveCapturingAsync(database,
-            CreateQuestReplacement(first, snapshotIds.First), snapshotLedgerRead));
-        await snapshotLedgerRead.WaitUntilReachedAsync();
+            CreateQuestReplacement(first, snapshotIds.First), childrenRead));
         var secondAttempt = Task.Run(() => SaveCapturingAsync(database,
-            CreateQuestReplacement(second, snapshotIds.Second)));
-        await database.WaitForApplicationLockAsync(snapshotLedgerRead.SessionId);
-        snapshotLedgerRead.Release();
+            CreateQuestReplacement(second, snapshotIds.Second), childrenRead));
+        try
+        {
+            await childrenRead.WaitUntilAllReachedAsync();
+            await database.AssertSessionsNotWaitingAsync(childrenRead.SessionIds);
+        }
+        finally { childrenRead.Release(); }
         var results = await Task.WhenAll(firstAttempt, secondAttempt).WaitAsync(TimeSpan.FromSeconds(30));
         Assert.All(results, result =>
         {
@@ -51,6 +54,98 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         await AssertQuestReplacementAsync(database, second);
 
         output.WriteLine("Quest replacement: both operations completed without SQL 1205.");
+    }
+
+    [Fact]
+    public async Task QuestSingleObjectiveChangeUpdatesOnlyOneChildRow()
+    {
+        if (!Enabled()) return;
+        await using var database = await TemporaryDatabase.CreateAsync();
+        var account = await SeedAccountAsync(database, "quest-diff", includeQuest: true);
+        var snapshotIds = await SeedSeparatedSnapshotLedgerGapsAsync(database);
+        var timestamp = new DateTimeOffset(2026, 9, 11, 17, 30, 0, TimeSpan.Zero).ToUnixTimeMilliseconds();
+        var recorder = new CommandRecorder();
+        await using var context = database.Context(recorder);
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = snapshotIds.First, AccountId = account.AccountId, UpdatedBy = account.AccountId,
+            QuestState = Section(new PlayerStateQuestStateSection
+            {
+                AccountId = account.AccountId, ExpectedVersion = 1, ClientRevision = 2,
+                ActiveQuests = [new AccountQuestActiveRequest
+                {
+                    QuestId = "quest-diff-active", AcceptedAtEpochMillis = timestamp,
+                    ObjectiveProgress = Enumerable.Range(0, 4).Select(index => new AccountQuestObjectiveProgressRequest
+                        { ObjectiveId = $"quest-diff-objective-{index}", Progress = index == 0 ? 10 : index + 1 }).ToArray(),
+                }],
+                Completions = Enumerable.Range(0, 4).Select(index => new AccountQuestCompletionRequest
+                    { QuestId = $"quest-diff-completion-{index}", CompletedAtEpochMillis = timestamp }).ToArray(),
+            }),
+        };
+        var saved = await new PlayerStateSnapshotRepository(context).SaveAsync(request);
+        Assert.True(saved.Succeeded, saved.Detail);
+        var commands = string.Join(Environment.NewLine, recorder.Commands);
+        Assert.DoesNotContain("DELETE FROM [dbo].[account_quest_", commands, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("INSERT INTO [dbo].[account_quest_", commands, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(commands,
+            @"UPDATE \[dbo\]\.\[account_quest_objective_progress\]", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            .Cast<System.Text.RegularExpressions.Match>());
+        Assert.DoesNotContain("UPDATE [dbo].[account_quest_active]", commands, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("UPDATE [dbo].[account_quest_completion]", commands, StringComparison.OrdinalIgnoreCase);
+        output.WriteLine("Quest objective-only change: 1 objective UPDATE, 0 child INSERT/DELETE, 0 unchanged-child UPDATE.");
+    }
+
+    private sealed class CommandRecorder : DbCommandInterceptor
+    {
+        internal List<string> Commands { get; } = [];
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(500)]
+    public async Task DeltaInventoryReadsOnlyChangedEntryDespiteLargeOwnedInventory(int unrelatedCount)
+    {
+        if (!Enabled()) return;
+        await using var database = await TemporaryDatabase.CreateAsync();
+        var account = await SeedAccountAsync(database, "delta", includeQuest: false, includeInventories: true);
+        var equipment = await SeedMarketEquipmentAsync(database, account);
+        await using (var seed = database.Context())
+        {
+            seed.InventoryEntries.AddRange(Enumerable.Range(0, unrelatedCount).Select(index => new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(), InventoryId = account.BagInventoryId,
+                ItemCategory = "MATERIAL", ItemId = "material-" + index, Quantity = 1,
+                CreatedAt = equipment.UpdatedAt, UpdatedAt = equipment.UpdatedAt,
+                CreatedBy = account.AccountId, UpdatedBy = account.AccountId,
+            }));
+            await seed.SaveChangesAsync();
+        }
+        var snapshotIds = await SeedSeparatedSnapshotLedgerGapsAsync(database);
+        var request = CreateMarketEquipmentSnapshot(account, equipment, snapshotIds.First, entryDelta: true);
+        await using var context = database.Context();
+        await context.Database.OpenConnectionAsync();
+        var logicalReads = 0;
+        ((SqlConnection)context.Database.GetDbConnection()).InfoMessage += (_, message) =>
+        {
+            foreach (SqlError error in message.Errors)
+                if (error.Message.StartsWith("Table 'inventory_entry'.", StringComparison.Ordinal))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(error.Message, @"logical reads (\d+)");
+                    if (match.Success) logicalReads += int.Parse(match.Groups[1].Value);
+                }
+        };
+        await context.Database.ExecuteSqlRawAsync("SET LANGUAGE us_english; SET STATISTICS IO ON;");
+        var saved = await new PlayerStateSnapshotRepository(context).SaveAsync(request);
+        Assert.True(saved.Succeeded, saved.Detail);
+        Assert.Single(context.ChangeTracker.Entries<InventoryEntryEntity>());
+        Assert.InRange(logicalReads, 1, 100);
+        output.WriteLine($"DELTA owned entries={unrelatedCount + 1}, tracked entry rows=1, inventory_entry logical reads={logicalReads}.");
     }
 
     [Fact]
@@ -334,8 +429,8 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
 
     private static bool IsSnapshotInventoryEntryRead(string commandText)
         => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
-            && commandText.Contains("FROM [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK)", StringComparison.OrdinalIgnoreCase)
-            && commandText.Contains("ORDER BY entry.[inventory_entry_id]", StringComparison.OrdinalIgnoreCase);
+            && commandText.Contains("[dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK,", StringComparison.OrdinalIgnoreCase)
+            && commandText.Contains("ORDER BY [inventory_entry_id]", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSellerAccountForUpdateRead(string commandText)
         => commandText.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
@@ -463,10 +558,16 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         await using var context = database.Context();
         var now = new DateTime(2026, 9, 11, 17, 30, 0, DateTimeKind.Utc);
         var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        context.Users.Add(new UserEntity
+        {
+            Uuid = userId, Mcid = label, JoinDate = now, LastJoinDate = now,
+            CreatedAt = now, UpdatedAt = now, CreatedBy = accountId, UpdatedBy = accountId,
+        });
         context.Accounts.Add(new AccountEntity
         {
             Uuid = accountId,
-            UserId = Guid.NewGuid(),
+            UserId = userId,
             AccountName = label,
             IsActive = true,
             Level = 1,
@@ -624,7 +725,7 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
     private static PlayerStateSnapshotSaveRequest CreateMarketEquipmentSnapshot(
         SeededAccount account,
         SeededEquipment equipment,
-        Guid snapshotId) => new()
+        Guid snapshotId, bool entryDelta = false) => new()
     {
         SnapshotId = snapshotId,
         AccountId = account.AccountId,
@@ -633,7 +734,7 @@ public sealed class PlayerStateSnapshotDeadlockSqlServerTests(ITestOutputHelper 
         [
             new PlayerStateInventorySnapshot
             {
-                InventoryId = account.BagInventoryId,
+                InventoryId = account.BagInventoryId, EntryMode = entryDelta ? "DELTA" : null,
                 ExpectedEntries =
                 [
                     new PlayerStateExpectedInventoryEntry
