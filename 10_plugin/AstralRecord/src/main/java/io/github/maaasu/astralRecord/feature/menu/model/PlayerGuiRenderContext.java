@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.model;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,6 +20,9 @@ import java.util.Objects;
  * @param returnToBaseGoldCost 拠点帰還に必要なゴールド
  * @param equipment 現在装備の表示スナップショット
  * @param currencyBalances メニューアイコンへ表示する通貨残高
+ * @param unreadMailCount 直近取得済みの未読件数。未取得・期限切れはnull
+ * @param unreadMailRefreshing 未読件数の更新中か
+ * @param guideMenuStatus 読込済みガイド進行・報酬状態
  */
 public record PlayerGuiRenderContext(
     @NotNull AccountModel account,
@@ -29,7 +33,10 @@ public record PlayerGuiRenderContext(
     long goldAmount,
     long returnToBaseGoldCost,
     @NotNull PlayerEquipmentSnapshot equipment,
-    @NotNull List<CurrencyDisplayEntry> currencyBalances
+    @NotNull List<CurrencyDisplayEntry> currencyBalances,
+    @Nullable Integer unreadMailCount,
+    boolean unreadMailRefreshing,
+    @NotNull GuideMenuStatus guideMenuStatus
 ) {
     public PlayerGuiRenderContext {
         Objects.requireNonNull(account, "account");
@@ -37,7 +44,24 @@ public record PlayerGuiRenderContext(
         Objects.requireNonNull(classPointLabel, "classPointLabel");
         Objects.requireNonNull(equipment, "equipment");
         Objects.requireNonNull(currencyBalances, "currencyBalances");
+        Objects.requireNonNull(guideMenuStatus, "guideMenuStatus");
         currencyBalances = List.copyOf(currencyBalances);
+    }
+
+    /** 通知状態を保持しない従来呼出は、0件扱いにせず未確認として構築します。 */
+    public PlayerGuiRenderContext(
+        @NotNull AccountModel account,
+        @NotNull StatusSnapshot statusSnapshot,
+        @NotNull String classPointLabel,
+        int availableClassPoints,
+        int availablePassivePoints,
+        long goldAmount,
+        long returnToBaseGoldCost,
+        @NotNull PlayerEquipmentSnapshot equipment,
+        @NotNull List<CurrencyDisplayEntry> currencyBalances
+    ) {
+        this(account, statusSnapshot, classPointLabel, availableClassPoints, availablePassivePoints,
+            goldAmount, returnToBaseGoldCost, equipment, currencyBalances, null, false, GuideMenuStatus.UNKNOWN);
     }
 
     /**

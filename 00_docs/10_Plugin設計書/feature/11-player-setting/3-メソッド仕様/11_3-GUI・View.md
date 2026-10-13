@@ -5,10 +5,11 @@
 クラス名: `PlayerSettingGui`
 物理名: `open`, `refresh`
 
-54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24`、4 行目の `29〜33`、5 行目の `38〜39` に配置する。
+54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、3 行目の `20〜24`、4 行目の `29〜33`、5 行目の `38〜40` に配置する。slot `13` の共通案内で、戻る／閉じる時に保存・反映することを示す。保存済み値と異なるdraftを持つ項目の状態行は、保存済み値と変更予定値を区別する。同じ値へ戻したdraftは変更予定扱いにしない。クリックでは保存・反映せず、従来どおりInventoryCloseで保存する。
 
 | slot | key / 操作 |
 |---:|---|
+| 13 | 保存・反映タイミングの共通案内 |
 | 20 | `DAMAGE_LOG_DISPLAY` |
 | 21 | `DAMAGE_LOG_MESSAGE` |
 | 22 | `PARTICLE_DENSITY` |
@@ -21,6 +22,7 @@
 | 33 | `SKILL_TREE_COMPACT_DISPLAY`（`BOOK` icon） |
 | 38 | `NIGHT_VISION`（`SPYGLASS` icon） |
 | 39 | `RANDOM_STATUS_RANGE_DISPLAY`（`COMPARATOR` icon） |
+| 40 | `COMBAT_DPS_DISPLAY`（`CLOCK` icon） |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 

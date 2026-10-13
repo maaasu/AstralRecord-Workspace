@@ -2,6 +2,10 @@ package io.github.maaasu.astralRecord.feature.menu.service;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideCompletionRewardService;
+import io.github.maaasu.astralRecord.feature.mail.service.MailService;
+import io.github.maaasu.astralRecord.feature.menu.model.GuideMenuStatus;
 import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
@@ -32,6 +36,9 @@ public final class PlayerGuiRenderContextFactory {
     private final CurrencyService currencyService;
     private final StatusService statusService;
     private final SkillTreeService skillTreeService;
+    private final MailService mailService;
+    private final GuideService guideService;
+    private final GuideCompletionRewardService guideCompletionRewardService;
 
     /**
      * GUI 描画コンテキスト生成ファクトリを初期化します。
@@ -45,9 +52,33 @@ public final class PlayerGuiRenderContextFactory {
         @NotNull StatusService statusService,
         @NotNull SkillTreeService skillTreeService
     ) {
+        this(currencyService, statusService, skillTreeService, null, null, null);
+    }
+
+    /**
+     * メニュー通知の取得済みcacheを含む描画コンテキスト生成元を初期化します。
+     *
+     * @param currencyService 通貨サービス
+     * @param statusService ステータスサービス
+     * @param skillTreeService スキルツリーサービス
+     * @param mailService 未読表示cache。未接続の場合はnull
+     * @param guideService ガイド進行cache。未接続の場合はnull
+     * @param guideCompletionRewardService 全達成報酬cache。未接続の場合はnull
+     */
+    public PlayerGuiRenderContextFactory(
+        @NotNull CurrencyService currencyService,
+        @NotNull StatusService statusService,
+        @NotNull SkillTreeService skillTreeService,
+        @Nullable MailService mailService,
+        @Nullable GuideService guideService,
+        @Nullable GuideCompletionRewardService guideCompletionRewardService
+    ) {
         this.currencyService = currencyService;
         this.statusService = statusService;
         this.skillTreeService = skillTreeService;
+        this.mailService = mailService;
+        this.guideService = guideService;
+        this.guideCompletionRewardService = guideCompletionRewardService;
     }
 
     /**
@@ -60,6 +91,8 @@ public final class PlayerGuiRenderContextFactory {
         var account = astPlayer.getAccount();
         int accountLevel = Math.max(1, account.getLevel());
         long goldAmount = currencyService.getGoldAmount(account.getUuid());
+        MailService.UnreadMailStatus mailStatus = mailService == null
+            ? new MailService.UnreadMailStatus(null, false) : mailService.getCachedUnreadStatus(account.getUuid());
         return new PlayerGuiRenderContext(
             account,
             statusService.getStatus(astPlayer),
@@ -69,8 +102,55 @@ public final class PlayerGuiRenderContextFactory {
             goldAmount,
             ReturnToBaseService.calculateGoldCost(accountLevel),
             captureEquipment(astPlayer.getBukkit().getInventory()),
-            captureCurrencyBalances(account.getUuid())
+            captureCurrencyBalances(account.getUuid()),
+            mailStatus.count(),
+            mailStatus.refreshing(),
+            guideMenuStatus(account.getUuid())
         );
+    }
+
+    /**
+     * メインメニュー表示完了時の期限付き未読取得を開始します。通常のcreateでは通信しません。
+     *
+     * @param accountId 表示対象アカウントUUID
+     * @param onChanged 主スレッドで表示状態が変わった時の再描画処理
+     */
+    public void refreshMenuNotifications(@NotNull UUID accountId, @NotNull Runnable onChanged) {
+        if (mailService != null) mailService.refreshUnreadCountAsync(accountId, onChanged);
+    }
+
+    /**
+     * 既存の装備・通貨描画値を維持し、通知だけを取得済みcacheから更新します。
+     *
+     * @param context 同じアカウントの描画コンテキスト
+     * @return 通信せず通知状態だけを更新した不変コンテキスト
+     */
+    public @NotNull PlayerGuiRenderContext refreshNotificationSnapshot(@NotNull PlayerGuiRenderContext context) {
+        UUID accountId = context.account().getUuid();
+        var mailStatus = mailService == null ? new MailService.UnreadMailStatus(null, false)
+            : mailService.getCachedUnreadStatus(accountId);
+        return new PlayerGuiRenderContext(context.account(), context.statusSnapshot(), context.classPointLabel(),
+            context.availableClassPoints(), context.availablePassivePoints(), context.goldAmount(),
+            context.returnToBaseGoldCost(), context.equipment(), context.currencyBalances(),
+            mailStatus.count(), mailStatus.refreshing(), guideMenuStatus(accountId));
+    }
+
+    /**
+     * 現在のマスターと読込済みcacheだけでガイド状態を判定します。
+     *
+     * @param accountId 表示対象アカウントUUID
+     * @return 進行未読込と報酬未確認を区別した状態。通信や報酬受取は実行しない
+     */
+    private @NotNull GuideMenuStatus guideMenuStatus(@NotNull UUID accountId) {
+        if (guideService == null || !guideService.isProgressLoaded(accountId)) return GuideMenuStatus.UNKNOWN;
+        if (guideService.getAll().isEmpty()) return GuideMenuStatus.NO_GUIDES;
+        if (guideService.hasIncompleteGuide(accountId)) return GuideMenuStatus.INCOMPLETE;
+        if (guideCompletionRewardService == null) return GuideMenuStatus.REWARD_UNCONFIRMED;
+        if (guideCompletionRewardService.canClaim(accountId)) return GuideMenuStatus.REWARD_CLAIMABLE;
+        var status = guideCompletionRewardService.getCachedStatus(accountId);
+        if (status == null) return GuideMenuStatus.REWARD_UNCONFIRMED;
+        if (status.claimed()) return GuideMenuStatus.REWARD_CLAIMED;
+        return status.configured() ? GuideMenuStatus.REWARD_UNCONFIRMED : GuideMenuStatus.COMPLETED;
     }
 
     private @NotNull List<CurrencyDisplayEntry> captureCurrencyBalances(@NotNull UUID accountId) {

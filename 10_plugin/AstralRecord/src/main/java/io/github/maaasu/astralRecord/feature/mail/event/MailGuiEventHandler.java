@@ -92,6 +92,8 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
 
     /** Web通貨受取で古くなったメール画面と未完了の開封要求を破棄します。 */
     public void invalidateOpenMail(@NotNull Player player) {
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) mailService.invalidateUnreadCount(astPlayer.getAccount().getUuid());
         openRequests.remove(player.getUniqueId());
         if (mailGuiView.isInventory(player.getOpenInventory().getTopInventory())) player.closeInventory();
     }

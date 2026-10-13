@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,6 +34,7 @@ public final class GuideCompletionRewardService {
     private final ConcurrentMap<UUID, UUID> unresolvedRewardBoundaries = new ConcurrentHashMap<>();
     private final java.util.Set<UUID> announcementRequested = ConcurrentHashMap.newKeySet();
     private final java.util.Set<UUID> announced = ConcurrentHashMap.newKeySet();
+    private Consumer<UUID> rewardMailCreatedListener = accountId -> { };
 
     /**
      * 報酬受取サービスを作成します。
@@ -134,6 +136,26 @@ public final class GuideCompletionRewardService {
     }
 
     /**
+     * 受取処理中や未解決境界を除き、取得済みの報酬状態だけを返します。通信は行いません。
+     *
+     * @param accountId 対象アカウントUUID
+     * @return 表示に使える報酬状態。未取得・処理中の場合はnull
+     */
+    public @Nullable GuideCompletionRewardStatus getCachedStatus(@NotNull UUID accountId) {
+        return claimInFlight.containsKey(accountId) || refreshInFlight.containsKey(accountId)
+            || unresolvedRewardBoundaries.containsKey(accountId) ? null : statuses.get(accountId);
+    }
+
+    /**
+     * 全達成報酬メール発行時の表示キャッシュ無効化先を設定します。
+     *
+     * @param listener 発行されたメールを所有するアカウントUUIDを受け取る処理
+     */
+    public void setRewardMailCreatedListener(@NotNull Consumer<UUID> listener) {
+        rewardMailCreatedListener = listener;
+    }
+
+    /**
      * 保存済み進捗を確定させてから非同期で API の受取処理を呼びます。
      * 結果が不明なら GET で再照会し、保存境界が残る場合は同じ操作 ID で回復します。
      * {@code onChanged} は主スレッドで呼びます。
@@ -167,6 +189,7 @@ public final class GuideCompletionRewardService {
                 }
                 if (error == null && outcome != null && outcome.status() != null && outcome.status().claimed()) {
                     statuses.put(accountId, outcome.status());
+                    rewardMailCreatedListener.accept(accountId);
                     messages.send(player, PlayerMsgId.P_5221);
                     onChanged.run();
                     var callbacks = refreshCallbacks.remove(accountId);
@@ -182,6 +205,7 @@ public final class GuideCompletionRewardService {
                 } else {
                     refresh(player, false, () -> {
                         GuideCompletionRewardStatus checked = statuses.get(accountId);
+                        if (checked != null && checked.claimed()) rewardMailCreatedListener.accept(accountId);
                         messages.send(player, checked != null && checked.claimed()
                             ? PlayerMsgId.P_5221 : PlayerMsgId.P_5222);
                         onChanged.run();

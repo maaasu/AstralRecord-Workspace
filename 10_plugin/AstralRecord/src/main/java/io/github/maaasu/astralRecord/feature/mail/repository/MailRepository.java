@@ -55,7 +55,13 @@ public class MailRepository {
         }
     }
 
-    /** 表示可能な未読メールの件数だけを取得します。 */
+    /**
+     * 表示可能な未読メールの件数だけを取得します。呼出側は非同期で実行してください。
+     *
+     * @param accountId 対象アカウントUUID
+     * @return APIで確認した0以上の未読件数
+     * @throws RuntimeException 通信・HTTP・応答変換に失敗した場合。原因をE_5190へ記録する
+     */
     public int countUnread(@NotNull UUID accountId) {
         String path = "/api/mail/unread-count?account_id=" + accountId;
         try {
@@ -68,8 +74,10 @@ public class MailRepository {
             throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            Logger.error(LogId.E_5190, e, "count_unread", path, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException | RuntimeException e) {
+            Logger.error(LogId.E_5190, e, "count_unread", path, failureReason(e));
             throw new RuntimeException(e);
         }
     }

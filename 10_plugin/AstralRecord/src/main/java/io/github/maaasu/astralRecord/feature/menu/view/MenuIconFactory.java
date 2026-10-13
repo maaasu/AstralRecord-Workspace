@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
+import io.github.maaasu.astralRecord.feature.menu.MenuMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
@@ -155,6 +158,44 @@ public final class MenuIconFactory {
                 + " (100 x Lv." + Math.max(1, context.account().getLevel()) + ")",
             NamedTextColor.YELLOW
         ));
+    }
+
+    /**
+     * 未取得・更新中・直近取得の未読件数を区別して表示します。
+     *
+     * @param context 取得済み通知状態を含む描画コンテキスト
+     * @return メールアイコンへ追加する表示行
+     */
+    public static @NotNull List<Component> mailDetails(@NotNull PlayerGuiRenderContext context) {
+        List<Component> details = new ArrayList<>();
+        if (context.unreadMailCount() == null) {
+            details.add(PlayerMsgResource.getComponent(MenuMsgId.P_5641.getId()));
+        } else {
+            details.add(ColorCodeUtil.toComponent(PlayerMsgResource.format(
+                MenuMsgId.P_5640.getId(), context.unreadMailCount()
+            ), ""));
+        }
+        if (context.unreadMailRefreshing()) details.add(PlayerMsgResource.getComponent(MenuMsgId.P_5642.getId()));
+        return details;
+    }
+
+    /**
+     * ガイド進行と報酬の未確認・受取可能・受取済みを区別します。
+     *
+     * @param context 取得済みガイド状態を含む描画コンテキスト
+     * @return ガイドアイコンへ追加する表示行
+     */
+    public static @NotNull List<Component> guideDetails(@NotNull PlayerGuiRenderContext context) {
+        MenuMsgId id = switch (context.guideMenuStatus()) {
+            case UNKNOWN -> MenuMsgId.P_5643;
+            case INCOMPLETE -> MenuMsgId.P_5644;
+            case REWARD_CLAIMABLE -> MenuMsgId.P_5645;
+            case REWARD_CLAIMED -> MenuMsgId.P_5646;
+            case COMPLETED -> MenuMsgId.P_5647;
+            case REWARD_UNCONFIRMED -> MenuMsgId.P_5648;
+            case NO_GUIDES -> MenuMsgId.P_5649;
+        };
+        return List.of(PlayerMsgResource.getComponent(id.getId()));
     }
 
     /**

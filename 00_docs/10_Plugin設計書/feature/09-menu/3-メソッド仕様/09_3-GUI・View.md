@@ -29,10 +29,14 @@
 
 54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。クエスト icon は slot `24` に配置する。`ACCOUNT_INFO` は描画対象 `Player` のスキンを `PLAYER_HEAD` へ設定する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
 
+メールiconは直近取得の未読件数、未確認、更新中を区別する。メインメニューの表示完了後だけ、未取得・期限切れの件数を `MailService` へ非同期更新要求する。取得結果の反映は通知iconだけに限定し、現在の `AstPlayer`、account UUID、開いたinventoryが一致する場合だけ主スレッドで行う。閉じた画面やアカウント切替後の画面へ再描画しない。
+
+ガイドiconは既存の進行cacheと全達成報酬cacheを参照し、未達成・報酬受取可能・受取済みを表示する。進行未取得や報酬の取得・受取処理中は未確認として区別する。全達成だが報酬状態を確認できない場合はガイドを開く導線を案内し、描画で報酬APIを取得しない。
+
 ## 3. アイコン生成
 
 クラス名: `MenuIconFactory`
-物理名: `create`, `createPlayerInfo`, `equipmentDetails`, `currencyDetails`, `returnToBaseDetails`, `openHint`, `executeHint`
+物理名: `create`, `createPlayerInfo`, `equipmentDetails`, `currencyDetails`, `returnToBaseDetails`, `mailDetails`, `guideDetails`, `openHint`, `executeHint`
 
 `MenuIconDefinition` の material、色、説明へ描画コンテキスト由来の詳細と操作 hint を組み合わせる。メインメニューの共通 icon 定義は用途ごとに異なる Material を使い、同じ意味に見える本・プレイヤーヘッドなどを重複させない。`createPlayerInfo` はメインメニューとステータス shortcut の両方で対象プレイヤーのスキンを設定する。
 

@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
@@ -23,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -42,6 +44,8 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 33;
     public static final int NIGHT_VISION_SLOT = 38;
     public static final int RANDOM_STATUS_RANGE_DISPLAY_SLOT = 39;
+    public static final int COMBAT_DPS_DISPLAY_SLOT = 40;
+    public static final int SAVE_GUIDE_SLOT = 13;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -89,6 +93,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case SKILL_TREE_COMPACT_DISPLAY_SLOT -> PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY;
             case NIGHT_VISION_SLOT -> PlayerSettingKey.NIGHT_VISION;
             case RANDOM_STATUS_RANGE_DISPLAY_SLOT -> PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY;
+            case COMBAT_DPS_DISPLAY_SLOT -> PlayerSettingKey.COMBAT_DPS_DISPLAY;
             default -> null;
         };
     }
@@ -107,6 +112,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     ) {
         inventory.clear();
         fill(inventory);
+        inventory.setItem(SAVE_GUIDE_SLOT, createItem(
+            Material.WRITABLE_BOOK,
+            PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5328.getId()),
+            List.of()
+        ));
         inventory.setItem(DAMAGE_LOG_SLOT, createBooleanItem(
             Material.REDSTONE,
             PlayerSettingKey.DAMAGE_LOG_DISPLAY,
@@ -171,6 +181,56 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY, draftValues)
         ));
+        inventory.setItem(COMBAT_DPS_DISPLAY_SLOT, createBooleanItem(
+            Material.CLOCK,
+            PlayerSettingKey.COMBAT_DPS_DISPLAY,
+            (Boolean) resolveValue(userId, PlayerSettingKey.COMBAT_DPS_DISPLAY, draftValues)
+        ));
+        markDraftValues(inventory, userId, draftValues);
+    }
+
+    /**
+     * 保存済み値と異なる下書きだけを明示します。保存・設定反映は行いません。
+     *
+     * @param inventory 項目を描画済みの設定inventory。主スレッドから呼び出すこと
+     * @param userId 読込済み設定を所有するユーザーUUID
+     * @param draftValues 変更予定値。nullまたは空なら変更予定表示を追加しない
+     */
+    private void markDraftValues(
+        @NotNull Inventory inventory,
+        @NotNull UUID userId,
+        @Nullable Map<PlayerSettingKey, Object> draftValues
+    ) {
+        if (draftValues == null || draftValues.isEmpty()) {
+            return;
+        }
+        for (int slot = 0; slot < SIZE; slot++) {
+            PlayerSettingKey key = getKeyAtSlot(slot);
+            if (key == null || !draftValues.containsKey(key)) {
+                continue;
+            }
+            Object savedValue = playerSettingService.getPlayerSetting(userId, key);
+            Object draftValue = draftValues.get(key);
+            if (Objects.equals(savedValue, draftValue)) {
+                continue;
+            }
+            ItemStack item = inventory.getItem(slot);
+            if (item == null || !item.hasItemMeta()) {
+                continue;
+            }
+            var meta = item.getItemMeta();
+            List<Component> lore = new ArrayList<>(meta.lore() == null ? List.of() : meta.lore());
+            Component status = ColorCodeUtil.toComponent(PlayerMsgResource.format(
+                PlayerSettingMsgId.P_5329.getId(), key.formatValue(savedValue), key.formatValue(draftValue)
+            ), "");
+            if (lore.isEmpty()) {
+                lore.add(status);
+            } else {
+                lore.set(0, status);
+            }
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
     }
 
     private @NotNull Object resolveValue(

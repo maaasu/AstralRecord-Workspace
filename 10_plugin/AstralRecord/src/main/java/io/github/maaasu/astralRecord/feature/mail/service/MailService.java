@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,6 +38,9 @@ import java.util.function.Consumer;
 public final class MailService {
     private static final String MAIL_CLAIM_SECTION = "mailClaim";
     private static final String MAIL_DELETE_SECTION = "mailDelete";
+    private static final long UNREAD_CACHE_TTL_MS = 60_000L;
+    private static final long UNREAD_REFRESH_RETRY_MS = 15_000L;
+    private static final long UNREAD_CACHE_RETENTION_MS = 600_000L;
 
     private final Plugin plugin;
     private final MailRepository mailRepository;
@@ -47,6 +51,7 @@ public final class MailService {
     private final Map<UUID, PendingMailClaim> pendingClaimsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, PendingMailDelete> pendingDeletesByAccount = new ConcurrentHashMap<>();
     private final Set<PendingReceivedNotification> pendingReceivedNotifications = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, UnreadCountState> unreadCounts = new ConcurrentHashMap<>();
     private BiConsumer<AstPlayer, String> mailReceivedListener = (player, mailId) -> { };
 
     /**
@@ -87,7 +92,16 @@ public final class MailService {
      * @return メール一覧
      */
     public @NotNull List<MailEntry> list(@NotNull UUID accountId, @NotNull MailFilter filter) {
-        return mailRepository.findAvailable(accountId, filter);
+        UnreadCountState state = unreadState(accountId);
+        long generation;
+        synchronized (state) {
+            generation = state.generation;
+        }
+        List<MailEntry> mails = mailRepository.findAvailable(accountId, filter);
+        if (filter == MailFilter.ALL || filter == MailFilter.UNREAD) {
+            publishUnreadCount(accountId, state, generation, (int) mails.stream().filter(mail -> !mail.read()).count());
+        }
+        return mails;
     }
 
     /**
@@ -131,7 +145,189 @@ public final class MailService {
      * @return 未読メール件数
      */
     public int countUnread(@NotNull UUID accountId) {
-        return mailRepository.countUnread(accountId);
+        UnreadCountState state = unreadState(accountId);
+        long generation;
+        synchronized (state) {
+            generation = state.generation;
+        }
+        int count = mailRepository.countUnread(accountId);
+        publishUnreadCount(accountId, state, generation, count);
+        return count;
+    }
+
+    /**
+     * メニュー用の短期未読状態を通信せず取得します。未取得と0件を区別します。
+     *
+     * @param accountId メールを所有するアカウントUUID
+     * @return 60秒以内の件数と更新中の状態。未取得・期限切れ時の件数はnull
+     */
+    public @NotNull UnreadMailStatus getCachedUnreadStatus(@NotNull UUID accountId) {
+        UnreadCountState state = unreadCounts.get(accountId);
+        if (state == null) return new UnreadMailStatus(null, false);
+        synchronized (state) {
+            Integer count = System.currentTimeMillis() - state.fetchedAtMs < UNREAD_CACHE_TTL_MS ? state.count : null;
+            return new UnreadMailStatus(count, state.refreshInFlight);
+        }
+    }
+
+    /**
+     * メインメニューを開いた時だけ、期限切れの未読件数を非同期で更新します。
+     * 同一アカウントの要求をまとめ、失敗後は15秒間再取得を抑止します。
+     * 主スレッドから呼び出してください。停止中は新しい取得を開始しません。
+     *
+     * @param accountId 対象アカウントUUID
+     * @param onChanged 主スレッドで呼ぶ表示更新。呼出側は画面とセッションを再検証すること
+     */
+    public void refreshUnreadCountAsync(@NotNull UUID accountId, @NotNull Runnable onChanged) {
+        if (!plugin.isEnabled()) return;
+        UnreadCountState state = unreadState(accountId);
+        long generation;
+        synchronized (state) {
+            long now = System.currentTimeMillis();
+            if (state.count != null && now - state.fetchedAtMs < UNREAD_CACHE_TTL_MS) return;
+            if (state.refreshInFlight) {
+                state.callbacks.add(onChanged);
+                return;
+            }
+            if (now < state.retryAfterMs) return;
+            state.refreshInFlight = true;
+            state.callbacks.add(onChanged);
+            generation = state.generation;
+        }
+        onChanged.run();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            if (!plugin.isEnabled()) {
+                clearUnreadRefresh(state);
+                return;
+            }
+            Integer count;
+            try {
+                count = mailRepository.countUnread(accountId);
+            } catch (RuntimeException failure) {
+                count = null;
+            }
+            Integer result = count;
+            if (!plugin.isEnabled()) {
+                clearUnreadRefresh(state);
+                return;
+            }
+            try {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (!plugin.isEnabled()) {
+                        clearUnreadRefresh(state);
+                        return;
+                    }
+                    List<Runnable> callbacks;
+                    synchronized (state) {
+                        if (state.generation == generation && result != null) {
+                            publishUnreadCount(accountId, state, generation, result);
+                        }
+                        state.refreshInFlight = false;
+                        state.retryAfterMs = result == null ? System.currentTimeMillis() + UNREAD_REFRESH_RETRY_MS : 0L;
+                        callbacks = List.copyOf(state.callbacks);
+                        state.callbacks.clear();
+                    }
+                    callbacks.forEach(Runnable::run);
+                });
+            } catch (IllegalPluginAccessException stopped) {
+                clearUnreadRefresh(state);
+                if (plugin.isEnabled()) throw stopped;
+            }
+        });
+    }
+
+    /**
+     * 受取・削除・外部受取後に未読表示を無効化し、進行中の古い応答も採用しません。
+     *
+     * @param accountId 更新されたアカウントUUID
+     */
+    public void invalidateUnreadCount(@NotNull UUID accountId) {
+        UnreadCountState state = unreadCounts.get(accountId);
+        if (state == null) return;
+        synchronized (state) {
+            state.generation++;
+            state.count = null;
+            state.fetchedAtMs = 0L;
+            state.retryAfterMs = 0L;
+        }
+    }
+
+    /**
+     * ログアウト・アカウント切替時に表示用cacheと再描画callbackを破棄します。
+     * 古い非同期応答は取り外したstateへしか書き込めず、新しいセッションへ公開されません。
+     *
+     * @param accountId 終了したアカウントUUID
+     */
+    public void discardMenuState(@NotNull UUID accountId) {
+        UnreadCountState state = unreadCounts.remove(accountId);
+        if (state == null) return;
+        synchronized (state) {
+            state.generation++;
+            state.callbacks.clear();
+        }
+    }
+
+    /** メニュー用表示状態。null件数は未確認であり、0件とは異なります。 */
+    public record UnreadMailStatus(@Nullable Integer count, boolean refreshing) { }
+
+    /**
+     * 停止後の要求状態を通信・Bukkit操作・再描画なしで解除します。
+     *
+     * @param state 終了する要求状態。任意スレッドから呼出可能
+     */
+    private void clearUnreadRefresh(UnreadCountState state) {
+        synchronized (state) {
+            state.refreshInFlight = false;
+            state.callbacks.clear();
+        }
+    }
+
+    /**
+     * 表示cacheを取得し、停止済みの古い表示状態を除去します。
+     *
+     * @param accountId 対象アカウントUUID
+     * @return 同期して読み書きするaccount単位の状態。取得でAPI通信は行わない
+     */
+    private UnreadCountState unreadState(UUID accountId) {
+        long now = System.currentTimeMillis();
+        unreadCounts.entrySet().removeIf(entry -> {
+            UnreadCountState state = entry.getValue();
+            synchronized (state) {
+                return !state.refreshInFlight && now - state.lastAccessAtMs > UNREAD_CACHE_RETENTION_MS;
+            }
+        });
+        UnreadCountState state = unreadCounts.computeIfAbsent(accountId, ignored -> new UnreadCountState());
+        synchronized (state) {
+            state.lastAccessAtMs = now;
+        }
+        return state;
+    }
+
+    /**
+     * 取得開始時のstateと世代が現在も有効な場合だけ、表示件数を公開します。
+     *
+     * @param accountId 取得対象アカウントUUID
+     * @param state 取得開始時のaccount状態
+     * @param generation 取得開始時の世代。無効化・終了を跨いだ応答は破棄する
+     * @param count 確認した未読件数。任意スレッドから呼出可能
+     */
+    private void publishUnreadCount(UUID accountId, UnreadCountState state, long generation, int count) {
+        synchronized (state) {
+            if (unreadCounts.get(accountId) != state || state.generation != generation) return;
+            state.count = Math.max(0, count);
+            state.fetchedAtMs = System.currentTimeMillis();
+            state.retryAfterMs = 0L;
+        }
+    }
+
+    private static final class UnreadCountState {
+        private Integer count;
+        private long generation;
+        private long fetchedAtMs;
+        private long retryAfterMs;
+        private long lastAccessAtMs = System.currentTimeMillis();
+        private boolean refreshInFlight;
+        private final List<Runnable> callbacks = new ArrayList<>();
     }
 
     /**
@@ -186,6 +382,7 @@ public final class MailService {
             completion.accept(new ReadAndReceiveResult(false, false));
             return;
         }
+        invalidateUnreadCount(accountId);
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             MailEntry fresh;
             PreparedClaimRewards prepared;
@@ -207,6 +404,7 @@ public final class MailService {
                     return;
                 }
                 if (currentMail.read()) {
+                    invalidateUnreadCount(accountId);
                     completedClaims.add(claimKey);
                     claimsInFlight.remove(claimKey);
                     completion.accept(new ReadAndReceiveResult(true, false));
@@ -245,6 +443,7 @@ public final class MailService {
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         UUID userId = astPlayer.getUser().getUuid();
         UUID accountId = astPlayer.getAccount().getUuid();
+        invalidateUnreadCount(accountId);
         inventoryService.executeCriticalPlayerMutation(accountId, () -> {
             PendingMailDelete pending = new PendingMailDelete(accountId, UUID.randomUUID(), mailId);
             if (pendingDeletesByAccount.putIfAbsent(accountId, pending) != null) {
@@ -255,6 +454,7 @@ public final class MailService {
                 () -> pendingDeletesByAccount.remove(accountId, pending)
             );
         }).whenComplete((deleted, failure) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+            invalidateUnreadCount(accountId);
             boolean result = failure == null && Boolean.TRUE.equals(deleted);
             AstPlayer current = currentPlayer(playerId, userId, accountId);
             if (current != null) {
@@ -321,6 +521,7 @@ public final class MailService {
                 }
             );
         }).whenComplete((receipt, failure) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+            invalidateUnreadCount(accountId);
             AstPlayer online = currentPlayer(playerId, userId, accountId);
             if (failure != null || receipt == null) {
                 finishClaimFailure(claimKey, online, mail, completion, PlayerMsgId.P_5625);
@@ -525,6 +726,7 @@ public final class MailService {
         @NotNull Consumer<ReadAndReceiveResult> completion,
         @NotNull PlayerMsgId messageId
     ) {
+        invalidateUnreadCount(claimKey.accountId());
         claimsInFlight.remove(claimKey);
         if (astPlayer != null) {
             if (messageId == PlayerMsgId.P_5623) {

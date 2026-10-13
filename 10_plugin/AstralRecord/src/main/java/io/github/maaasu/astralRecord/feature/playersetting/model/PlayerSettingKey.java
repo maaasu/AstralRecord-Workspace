@@ -20,6 +20,7 @@ public enum PlayerSettingKey {
     TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),
     TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true),
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),
+    COMBAT_DPS_DISPLAY("COMBAT_DPS_DISPLAY", "戦闘DPS表示", true),
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
     BUFF_SIDEBAR_DISPLAY("BUFF_SIDEBAR_DISPLAY", "バフ情報のサイドバー表示", false),
     NIGHT_VISION("NIGHT_VISION", "ナイトビジョン", false),

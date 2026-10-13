@@ -182,6 +182,16 @@ public final class PlayerSettingService {
     public boolean isDamageLogDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, true); }
     public boolean isDamageLogMessageEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE, false); }
     public boolean isPerformanceInfoDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY, false); }
+
+    /**
+     * 戦闘アクションバーのDPS表示設定をロード済みcacheだけから返します。API通信は行いません。
+     *
+     * @param userId 設定を所有するユーザーUUID
+     * @return 表示が有効ならtrue。未読込または型不正時は従来表示を維持するtrue
+     */
+    public boolean isCombatDpsDisplayEnabled(@NotNull UUID userId) {
+        return cachedBooleanSetting(userId, PlayerSettingKey.COMBAT_DPS_DISPLAY, true);
+    }
     public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, false); }
     public boolean isDropLogDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.DROP_LOG_DISPLAY, true); }
     public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, false); }

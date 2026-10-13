@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -158,15 +159,30 @@ public class MenuView {
     }
 
     /**
-     * 指定プレイヤーのメインメニューを、取得済みの同一描画コンテキストで開きます。
+     * メインメニューを開き、表示完了後だけ期限切れの未読状態を非同期更新します。
      *
-     * @param astPlayer 表示対象プレイヤー
-     * @param context GUI 描画コンテキスト
+     * @param astPlayer 現在ログイン中のプレイヤー
+     * @param context 同じアカウントの不変な描画値
      */
     public void open(@NotNull AstPlayer astPlayer, @NotNull PlayerGuiRenderContext context) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
         mainMenuScreenView.render(inventory, astPlayer.getBukkit(), context);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(astPlayer.getBukkit(), inventory);
+        Player player = astPlayer.getBukkit();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, () -> {
+            var factory = AstralRecord.getInstance().getPlayerGuiRenderContextFactory();
+            if (factory == null) return;
+            factory.refreshMenuNotifications(accountId, () -> {
+                if (!player.isOnline() || AstPlayerCache.get(player) != astPlayer
+                    || !accountId.equals(astPlayer.getAccount().getUuid())
+                    || player.getOpenInventory().getTopInventory() != inventory) return;
+                var updated = factory.refreshNotificationSnapshot(context);
+                inventory.setItem(MainMenuScreenView.MAIL_SLOT,
+                    MenuIconFactory.create(MenuIconDefinition.MAIL, MenuIconFactory.mailDetails(updated)));
+                inventory.setItem(MainMenuScreenView.GUIDE_SLOT,
+                    MenuIconFactory.create(MenuIconDefinition.GUIDE, MenuIconFactory.guideDetails(updated)));
+            });
+        });
     }
 
     public void openEquipmentGui(@NotNull Player player) {

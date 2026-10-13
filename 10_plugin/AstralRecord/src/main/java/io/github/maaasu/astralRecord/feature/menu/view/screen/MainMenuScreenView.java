@@ -49,11 +49,11 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         ));
         inventory.setItem(PLAYER_SETTING_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_SETTING));
         inventory.setItem(ADVENTURE_RECORD_SLOT, MenuIconFactory.create(MenuIconDefinition.ADVENTURE_RECORD));
-        inventory.setItem(GUIDE_SLOT, MenuIconFactory.create(MenuIconDefinition.GUIDE));
+        inventory.setItem(GUIDE_SLOT, MenuIconFactory.create(MenuIconDefinition.GUIDE, MenuIconFactory.guideDetails(context)));
         inventory.setItem(QUEST_SLOT, MenuIconFactory.create(MenuIconDefinition.QUEST));
         inventory.setItem(PARTY_SLOT, MenuIconFactory.create(MenuIconDefinition.PARTY));
         inventory.setItem(PLAYER_INFO_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_LIST));
-        inventory.setItem(MAIL_SLOT, MenuIconFactory.create(MenuIconDefinition.MAIL));
+        inventory.setItem(MAIL_SLOT, MenuIconFactory.create(MenuIconDefinition.MAIL, MenuIconFactory.mailDetails(context)));
         inventory.setItem(RETURN_TO_BASE_SLOT, MenuIconFactory.create(
             MenuIconDefinition.RETURN_TO_BASE,
             MenuIconFactory.returnToBaseDetails(context)
