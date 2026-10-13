@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.gathering.repository.GatheringDefin
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
@@ -50,7 +51,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
@@ -371,11 +371,13 @@ public class GatheringService {
             }
             return false;
         }
-        if (!hasRequiredGatheringLevel(astPlayer, target.definition())) {
+        int gatheringLevel = resolveGatheringLevel(astPlayer);
+        if (gatheringLevel < target.definition().level()) {
             if (existing != null) {
                 stopSession(existing, true);
             }
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5734);
+            PlayerMessageService.getInstance().send(
+                astPlayer, PlayerMsgId.P_5734, gatheringLevel, target.definition().level());
             return false;
         }
 
@@ -637,7 +639,26 @@ public class GatheringService {
         }
     }
 
-    private boolean canUseCurrentTool(@NotNull Player player, @NotNull GatheringDefinition definition) {
+    /**
+     * メインハンドが対象の採集に対応する使用可能なTOOL装備か判定します。
+     * 候補生成と実行時の両方で使用し、武器や通常アイテムによる採集入力の取得を防ぎます。
+     * ギャザリングレベルはここでは判定せず、採集開始時に不足通知を行います。
+     *
+     * @param player 判定対象プレイヤー
+     * @param definition 採集対象の定義
+     * @return TOOL装備、必要タグ、ツール耐久値の条件を満たす場合はtrue
+     */
+    public boolean canUseCurrentTool(@NotNull Player player, @NotNull GatheringDefinition definition) {
+        ItemStack itemStack = player.getInventory().getItemInMainHand();
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return false;
+        }
+        String itemId = ItemStackFactory.getAstralItemId(itemStack);
+        ItemModel model = itemId == null ? null : itemService.findLoadedById(itemId);
+        if (model == null || model.getEquipment() == null
+                || model.getEquipment().getSlot() != ItemEquipmentSlot.TOOL) {
+            return false;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (equipmentDurabilityService != null
                 && astPlayer != null
@@ -648,8 +669,8 @@ public class GatheringService {
         if (required.isEmpty()) {
             return true;
         }
-        Set<String> currentTags = currentToolTags(player.getInventory().getItemInMainHand());
-        return required.stream().anyMatch(currentTags::contains);
+        String tag = model.getEquipment().getTag();
+        return tag != null && required.contains(tag.trim().toUpperCase(Locale.ROOT));
     }
 
     /**
@@ -759,18 +780,6 @@ public class GatheringService {
             particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_DUST);
             particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_ENCHANT);
         }
-    }
-
-    private @NotNull Set<String> currentToolTags(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return Set.of();
-        }
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        ItemModel model = itemId == null ? null : itemService.findLoadedById(itemId);
-        String tag = model == null || model.getEquipment() == null ? null : model.getEquipment().getTag();
-        return tag == null || tag.isBlank()
-            ? Set.of()
-            : Set.of(tag.trim().toUpperCase(Locale.ROOT));
     }
 
     private @NotNull String currentToolSignature(@NotNull Player player) {

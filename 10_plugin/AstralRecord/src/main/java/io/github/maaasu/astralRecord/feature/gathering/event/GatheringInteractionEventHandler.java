@@ -35,7 +35,8 @@ public final class GatheringInteractionEventHandler
             return List.of();
         }
         GatheringService.GatheringHit hit = gatheringService.findTargetedHit(snapshot.player());
-        if (hit == null || !snapshot.isVisible(hit.hitDistance())) {
+        if (hit == null || !snapshot.isVisible(hit.hitDistance())
+                || !gatheringService.canUseCurrentTool(snapshot.player(), hit.instance().definition())) {
             return List.of();
         }
         UUID targetId = hit.instance().instanceId();
@@ -51,7 +52,8 @@ public final class GatheringInteractionEventHandler
                 GatheringService.GatheringHit current = gatheringService.findTargetedHit(snapshot.player());
                 return current != null
                     && current.instance().instanceId().equals(targetId)
-                    && currentSnapshot.isVisible(current.hitDistance());
+                    && currentSnapshot.isVisible(current.hitDistance())
+                    && gatheringService.canUseCurrentTool(snapshot.player(), current.instance().definition());
             },
             () -> gatheringService.startMining(snapshot.player())
         ));
