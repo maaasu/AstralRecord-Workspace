@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.mob.model;
 
+import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +20,8 @@ public final class MobInstance {
 
     private final UUID instanceId;
     private final MobTemplate template;
+    /** レベル反映済みテンプレートから生成時に解決する通常攻撃間隔。 */
+    private final long normalAttackIntervalTicks;
     private Location spawnLocation;
     private Location wanderAnchor;
     private final MobThreatTable threatTable = new MobThreatTable();
@@ -97,15 +101,18 @@ public final class MobInstance {
 
     /**
      * インスタンスを生成します。初期 HP は {@code MAX_HEALTH} のベースステータス値、
-     * 状態は {@link MobState#IDLE} となります。
+     * 状態は {@link MobState#IDLE} となります。通常攻撃間隔はレベル反映済みテンプレートから一度だけ解決します。
      *
      * @param instanceId    一意なインスタンス ID
-     * @param template      元テンプレート
+     * @param template      レベル反映済みの実効テンプレート
      * @param spawnLocation スポーン位置（leash 判定の基準）
      */
     public MobInstance(@NotNull UUID instanceId, @NotNull MobTemplate template, @NotNull Location spawnLocation) {
         this.instanceId = instanceId;
         this.template = template;
+        MobNormalAttackConfig normalAttack = template.combat() == null ? null : template.combat().normalAttack();
+        this.normalAttackIntervalTicks = normalAttack == null ? 0L : CombatTimingCalculator.resolveAttackIntervalTicks(
+                normalAttack.intervalTicks(), template.statValue(StatusType.ATTACK_SPEED.name(), 0.0D));
         this.spawnLocation = spawnLocation.clone();
         this.wanderAnchor = spawnLocation.clone();
         this.currentLocation = spawnLocation.clone();
@@ -174,6 +181,16 @@ public final class MobInstance {
     @NotNull
     public MobTemplate template() {
         return template;
+    }
+
+    /**
+     * 生成時の実効テンプレートから解決した通常攻撃間隔を返します。
+     * マスタ再読込でも既存インスタンスの間隔は変更しません。
+     *
+     * @return 調整後の間隔（tick）。通常攻撃が未定義の場合は {@code 0}
+     */
+    public long normalAttackIntervalTicks() {
+        return normalAttackIntervalTicks;
     }
 
     /** 現在のスポーン基準位置を返します（変更不可なコピー）。 */

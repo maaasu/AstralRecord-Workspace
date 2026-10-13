@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.display;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -30,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,6 +58,7 @@ public class OverheadDisplayService {
     private Predicate<Player> afkStateProvider = ignored -> false;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> playerDisplays = new HashMap<>();
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> mobDisplays = new HashMap<>();
+    private final Map<UUID, MobTextCache> mobTextCache = new HashMap<>();
     private final Set<UUID> suspendedPlayerDisplays = ConcurrentHashMap.newKeySet();
 
     private BukkitTask task;
@@ -106,6 +109,7 @@ public class OverheadDisplayService {
         restoreVanillaPlayerNames();
         destroyAll(playerDisplays);
         destroyAll(mobDisplays);
+        mobTextCache.clear();
     }
 
     /** 指定プレイヤーの頭上表示を破棄します。次回更新時に表示条件を満たせば再生成されます。 */
@@ -214,18 +218,47 @@ public class OverheadDisplayService {
             activeSubjects.add(instanceId);
             entity.setCustomNameVisible(false);
 
-            DisplayTextService.ManagedTextDisplay display = mobDisplays.computeIfAbsent(
-                    instanceId,
-                    ignored -> displayService.create(
-                            mobDisplayAnchor(instance, entity),
-                            DisplayTextOptions.overhead(mobText(instance))
-                    )
-            );
+            MobTextCache previous = mobTextCache.get(instanceId);
+            boolean reusable = !instance.isSkillCasting() && instance.shieldRechargeState() == null;
+            boolean unchanged = reusable && previous != null && previous.matches(instance);
+            String text = unchanged ? previous.text() : mobText(instance);
+            DisplayTextService.ManagedTextDisplay display = mobDisplays.get(instanceId);
+            if (display == null) {
+                display = displayService.create(mobDisplayAnchor(instance, entity), DisplayTextOptions.overhead(text));
+                mobDisplays.put(instanceId, display);
+            } else if (previous == null || !Objects.equals(previous.text(), text)) {
+                display.setText(text);
+            }
             display.setAnchor(mobDisplayAnchor(instance, entity));
-            display.setText(mobText(instance));
+            if (!unchanged) {
+                mobTextCache.put(instanceId, new MobTextCache(
+                        instance.template(), instance.currentHealth(), instance.maxHealth(),
+                        instance.currentShield(), instance.shieldDisplayCapacity(), reusable, text));
+            }
         }
 
         removeStaleDisplays(mobDisplays, activeSubjects);
+        mobTextCache.keySet().retainAll(activeSubjects);
+    }
+
+    /** 非詠唱・非リチャージ時の表示入力と、最後に設定した文字列だけを保持します。 */
+    private record MobTextCache(
+            MobTemplate template, double health, double maxHealth,
+            double shield, double shieldCapacity, boolean reusable, String text
+    ) {
+        /**
+         * 固定テンプレートと可変リソース値が前回の非進捗表示と同じか判定します。
+         *
+         * @param instance 現在の表示対象
+         * @return 進捗表示を経由せず、表示に使う全入力が同じ場合は {@code true}
+         */
+        private boolean matches(@NotNull MobInstance instance) {
+            return reusable && template == instance.template()
+                    && Double.compare(health, instance.currentHealth()) == 0
+                    && Double.compare(maxHealth, instance.maxHealth()) == 0
+                    && Double.compare(shield, instance.currentShield()) == 0
+                    && Double.compare(shieldCapacity, instance.shieldDisplayCapacity()) == 0;
+        }
     }
 
     private void removeStaleDisplays(

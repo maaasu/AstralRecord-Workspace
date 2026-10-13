@@ -522,7 +522,7 @@ public class MobSpawnerService {
                     Location origin = location.toLocation();
                     if (origin != null && origin.getWorld() != null
                             && definition.canSpawnAt(origin.getWorld().getTime())
-                            && countNearbyGameplayPlayers(origin, definition.radiusMeters()) > 0) {
+                            && countNearbyGameplayPlayers(origin, definition.radiusMeters(), 1) > 0) {
                         pendingSpawns.computeIfAbsent(location.locationKey(), ignored -> new SpawnAttempt(location));
                     }
                 }
@@ -656,7 +656,7 @@ public class MobSpawnerService {
             return false;
         }
 
-        int nearbyPlayers = countNearbyGameplayPlayers(origin, definition.radiusMeters());
+        int nearbyPlayers = countNearbyGameplayPlayers(origin, definition.radiusMeters(), MAX_PLAYER_SCALE);
         if (nearbyPlayers <= 0) {
             cleanupTracked(spawnerLocation.locationKey());
             return false;
@@ -664,7 +664,7 @@ public class MobSpawnerService {
 
         int desired = definition.desiredAliveCount(Math.min(MAX_PLAYER_SCALE, nearbyPlayers));
         int alive = cleanupTracked(spawnerLocation.locationKey());
-        if (alive >= desired || countNearbyMobs(origin, definition.radiusMeters()) >= definition.maxNearbyMobs()) {
+        if (alive >= desired || countNearbyMobs(origin, definition.radiusMeters(), definition.maxNearbyMobs()) >= definition.maxNearbyMobs()) {
             return false;
         }
         if (!attempt.chanceChecked) {
@@ -688,6 +688,7 @@ public class MobSpawnerService {
         }
         if (definition.maxAlivePerMob() > 0 && mobService.getInstances().stream()
                 .filter(instance -> instance.template().id().equals(entry.mobId()))
+                .limit(definition.maxAlivePerMob())
                 .count() >= definition.maxAlivePerMob()) {
             return false;
         }
@@ -712,7 +713,15 @@ public class MobSpawnerService {
         }
     }
 
-    private int countNearbyGameplayPlayers(@NotNull Location origin, double radius) {
+    /**
+     * 同じワールド・三次元距離内の gameplay プレイヤー数を、判定に必要な数まで数えます。
+     *
+     * @param origin 判定中心
+     * @param radius 判定半径
+     * @param limit 存在確認なら1、人数スケールの判定ならその飽和値。正数を指定する
+     * @return 実人数と {@code limit} の小さい方
+     */
+    private int countNearbyGameplayPlayers(@NotNull Location origin, double radius, int limit) {
         double radiusSq = radius * radius;
         int count = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -722,18 +731,32 @@ public class MobSpawnerService {
             }
             if (player.getWorld() == origin.getWorld() && player.getLocation().distanceSquared(origin) <= radiusSq) {
                 count++;
+                if (count >= limit) {
+                    return count;
+                }
             }
         }
         return count;
     }
 
-    private int countNearbyMobs(@NotNull Location origin, double radius) {
+    /**
+     * カテゴリを限定せず周辺 Mob を数え、上限判定が確定した時点で終了します。
+     *
+     * @param origin 判定中心
+     * @param radius 三次元の判定半径
+     * @param limit 周辺 Mob 上限。正数を指定する
+     * @return 実数と {@code limit} の小さい方
+     */
+    private int countNearbyMobs(@NotNull Location origin, double radius, int limit) {
         double radiusSq = radius * radius;
         int count = 0;
         for (MobInstance instance : mobService.getInstances()) {
             Location current = instance.currentLocation();
             if (current.getWorld() == origin.getWorld() && current.distanceSquared(origin) <= radiusSq) {
                 count++;
+                if (count >= limit) {
+                    return count;
+                }
             }
         }
         return count;

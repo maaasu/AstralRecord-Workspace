@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
-import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -272,11 +271,7 @@ public class MobCombatService {
             return;
         }
 
-        long attackIntervalTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
-                normalAttack.intervalTicks(),
-                AstEntity.mob(instance).statValue(StatusType.ATTACK_SPEED)
-        );
-        if (serverTick - instance.lastAttackTick() < attackIntervalTicks) {
+        if (serverTick - instance.lastAttackTick() < instance.normalAttackIntervalTicks()) {
             return;
         }
 
