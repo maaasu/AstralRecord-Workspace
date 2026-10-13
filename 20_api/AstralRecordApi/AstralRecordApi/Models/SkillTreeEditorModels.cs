@@ -121,6 +121,31 @@ public sealed class SkillTreeAccountSessionRequest
     public required string DefinitionGenerationId { get; init; }
 }
 
+/// <summary>最大32件の既存account session更新・view更新・pending照会を束ねます。sessionは新規取得しません。</summary>
+public sealed class SkillTreeAccountHeartbeatBatchRequest
+{
+    public required IReadOnlyList<SkillTreeAccountHeartbeatItemRequest> Items { get; init; }
+}
+
+public sealed class SkillTreeAccountHeartbeatItemRequest
+{
+    public Guid AccountId { get; init; }
+    public required SkillTreeAccountSessionRequest Session { get; init; }
+    public SkillTreePlayerViewRegistrationRequest? View { get; init; }
+    /// <summary>直前のACK済みview全体が同一の場合だけtrue。View.Viewを省略して鮮度だけ更新します。</summary>
+    public bool ViewUnchanged { get; init; }
+    /// <summary>省略したviewのUTF-8 JSON全体SHA-256。APIの保存済みJSONと照合します。</summary>
+    public string? ViewContentHash { get; init; }
+}
+
+public sealed class SkillTreeAccountHeartbeatItemResponse
+{
+    public Guid AccountId { get; init; }
+    public bool Renewed { get; init; }
+    public bool ViewAccepted { get; init; }
+    public IReadOnlyList<SkillTreeOperationResponse> Operations { get; set; } = [];
+}
+
 public sealed class SkillTreeOperationClaimResponse
 {
     public required string LeaseToken { get; init; }

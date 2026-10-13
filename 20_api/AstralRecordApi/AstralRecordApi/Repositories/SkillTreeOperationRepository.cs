@@ -86,9 +86,16 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
     }
 
     public Task<SkillTreeEditorResponse?> RegisterPlayerViewAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request) =>
-        ExecuteRuntimeTransactionAsync(() => RegisterPlayerViewCoreAsync(serverId, accountId, request));
+        ExecuteRuntimeTransactionAsync(async () =>
+        {
+            var registered = await RegisterPlayerViewCoreAsync(serverId, accountId, request);
+            return registered.HasValue ? await BuildEditorAsync(registered.Value.Account, registered.Value.State) : null;
+        });
 
-    private async Task<SkillTreeEditorResponse?> RegisterPlayerViewCoreAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request)
+    public Task<bool> RegisterPlayerViewAckAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request) =>
+        ExecuteRuntimeTransactionAsync(async () => await RegisterPlayerViewCoreAsync(serverId, accountId, request) is not null);
+
+    private async Task<(AccountEntity Account, AccountSkillTreeStateEntity? State)?> RegisterPlayerViewCoreAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request)
     {
         if (accountId == Guid.Empty || !IsValidView(request)) return null;
         await using var tx = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -111,7 +118,7 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
                 .SetProperty(x => x.LeaseTokenHash, (string?)null));
         await dbContext.SaveChangesAsync();
         await tx.CommitAsync();
-        return await BuildEditorAsync(account, state);
+        return (account, state);
     }
 
     public async Task<SkillTreeEditorResponse?> GetEditorAsync(Guid accountId, Guid actorUserId, string? targetServerId = null)

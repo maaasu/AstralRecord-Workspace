@@ -22,14 +22,7 @@ public sealed partial class SkillTreeOperationRepository
         var runtime = await VerifyRuntimeAsync(serverId, request.ServerSessionId);
         if (runtime is null || runtime.DefinitionGenerationId != request.DefinitionGenerationId) return false;
         var existing = await SkillTreeSessionReads.Query(dbContext).SingleOrDefaultAsync(x => x.AccountSessionId == request.AccountSessionId);
-        var edit = await dbContext.PlayerAdminEditSessions.AsNoTracking().SingleOrDefaultAsync(x =>
-            x.UserUuid == ownerUserId.Value && (x.Status == "DRAINING" || x.Status == "READY"
-                || x.Status == "APPLYING" || x.Status == "RECOVERY_REQUIRED"));
-        if (edit is not null && (edit.Status is not ("DRAINING" or "RECOVERY_REQUIRED") || existing is null
-            || existing.CreatedAtUtc > edit.CreatedAtUtc || existing.Closed
-            || !await dbContext.PlayerAdminEditDrains.AsNoTracking().AnyAsync(x =>
-                x.EditSessionId == edit.EditSessionId && x.ServerId == serverId
-                && x.ServerSessionId == request.ServerSessionId))) return false;
+        if (!await AllowsSessionRenewalDuringAdminEditAsync(ownerUserId.Value, serverId, request.ServerSessionId, existing)) return false;
         if (existing is not null)
         {
             if (existing.Closed || existing.ExpiresAtUtc <= DateTime.UtcNow || existing.AccountId != accountId
@@ -119,6 +112,17 @@ public sealed partial class SkillTreeOperationRepository
     public async Task<bool> RequiresRuntimeAuthorityAsync(Guid accountId) =>
         await SkillTreeSessionReads.Query(dbContext).AnyAsync(x => x.AccountId == accountId)
         || await dbContext.AccountSkillTreeStates.AnyAsync(x => x.AccountId == accountId && !x.IsDeleted && x.DefinitionGenerationId != null);
+
+    private async Task<bool> AllowsSessionRenewalDuringAdminEditAsync(Guid userId, string serverId, Guid bootId, SkillTreeAccountSessionEntity? existing)
+    {
+        var edit = await dbContext.PlayerAdminEditSessions.AsNoTracking().SingleOrDefaultAsync(x =>
+            x.UserUuid == userId && (x.Status == "DRAINING" || x.Status == "READY"
+                || x.Status == "APPLYING" || x.Status == "RECOVERY_REQUIRED"));
+        return edit is null || (edit.Status is "DRAINING" or "RECOVERY_REQUIRED") && existing is not null
+            && existing.CreatedAtUtc <= edit.CreatedAtUtc && !existing.Closed
+            && await dbContext.PlayerAdminEditDrains.AsNoTracking().AnyAsync(x =>
+                x.EditSessionId == edit.EditSessionId && x.ServerId == serverId && x.ServerSessionId == bootId);
+    }
 
     private async Task<AccountEntity?> LockAccountAsync(Guid accountId)
     {

@@ -95,6 +95,18 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     public async Task<IActionResult> RegisterPlayerView(string serverId, Guid accountId, [FromBody] SkillTreePlayerViewRegistrationRequest request)
         => !HasRuntimeCredential() ? Unauthorized() : await repository.RegisterPlayerViewAsync(serverId, accountId, request) is { } result ? Ok(result) : Conflict();
 
+    /// <summary>既存view登録と同じ所有権・世代・version・sequence検証を行い、軽量ACKだけ返します。</summary>
+    [HttpPut("runtime/servers/{serverId}/accounts/{accountId:guid}/view/ack")]
+    public async Task<IActionResult> RegisterPlayerViewAck(string serverId, Guid accountId, [FromBody] SkillTreePlayerViewRegistrationRequest request)
+        => !HasRuntimeCredential() ? Unauthorized() : await repository.RegisterPlayerViewAckAsync(serverId, accountId, request)
+            ? Ok(new { accepted = true, viewSequence = request.ViewSequence }) : Conflict();
+
+    /// <summary>最大32件の既存sessionを個別に更新し、viewのACKと有効なpending操作をまとめて返します。</summary>
+    [HttpPost("runtime/servers/{serverId}/accounts/heartbeat")]
+    public async Task<IActionResult> HeartbeatAccounts(string serverId, [FromBody] SkillTreeAccountHeartbeatBatchRequest request)
+        => !HasRuntimeCredential() ? Unauthorized() : await repository.HeartbeatAccountsAsync(serverId, request) is { } result
+            ? Ok(result) : BadRequest();
+
     /// <summary>保守中・offline accountのlegacy採用または明示廃止node除去を一回だけ確定します。</summary>
     [HttpPost("runtime/servers/{serverId}/accounts/{accountId:guid}/migrations")]
     public async Task<IActionResult> Migrate(string serverId, Guid accountId, [FromQuery(Name = "server_session_id")] Guid sessionId, [FromBody] SkillTreeMigrationRequest request)

@@ -384,6 +384,12 @@ public class SkillTreeService {
     private List<UUID> runtimePlayerViewBatch = List.of();
     private int runtimePlayerViewBatchIndex;
     private int runtimePlayerViewTick;
+    private final Set<UUID> runtimeSyncAccounts = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Map<UUID, RuntimeAcknowledgedView> runtimeAcknowledgedViews = new java.util.concurrent.ConcurrentHashMap<>();
+    private final RuntimeHeartbeatBatchBuffer<RuntimeHeartbeatCapture> runtimeHeartbeatQueue = new RuntimeHeartbeatBatchBuffer<>();
+    private final RuntimeHeartbeatEpoch runtimeSyncEpoch = new RuntimeHeartbeatEpoch();
+    private record RuntimeAcknowledgedView(UUID sessionId, JsonObject view) { }
+    private record RuntimeHeartbeatCapture(AstPlayer player, SkillTreeRuntimeRepository.AccountHeartbeat heartbeat, long epoch) { }
     private SkillTreeVisualizer visualizer;
     private @Nullable ParticleDisplayService particleDisplayService;
     private boolean playerStateSaveInProgress;
@@ -619,6 +625,7 @@ public class SkillTreeService {
     public synchronized void beginMasterDataPublication() {
         if (!pendingRuntimeOperationReceipts.isEmpty()) throw new IllegalStateException("Skill tree operation acknowledgement is pending");
         masterPublicationInProgress = true;
+        runtimeSyncEpoch.invalidate();
     }
 
     /** 一括公開または旧スナップショットへの復元が完了した後に保留を解除する。 */
@@ -774,7 +781,9 @@ public class SkillTreeService {
         return nodesById.size();
     }
 
+    /** 表示・保存・runtimeの定期処理を開始し、停止以前の同期captureを再利用しません。 */
     public void start() {
+        runtimeSyncEpoch.start();
         purgeSkillTreeVisualEntities();
         WorldMasterData data = worldService.getById(SKILL_TREE_WORLD_ID);
         World resolvedWorld = data == null ? null : worldService.resolveLoadedWorld(data);
@@ -807,7 +816,9 @@ public class SkillTreeService {
         markAllViewerContextsDirty();
     }
 
+    /** 定期処理を終了し、未送信captureと遅延ACKを失効させます。通信中accountは完了時に解除します。 */
     public void stop() {
+        runtimeSyncEpoch.stop();
         if (visualizer != null) {
             visualizer.stop();
             visualizer = null;
@@ -831,6 +842,7 @@ public class SkillTreeService {
         runtimePlayerViewBatch = List.of();
         runtimePlayerViewBatchIndex = 0;
         runtimePlayerViewTick = 0;
+        runtimeHeartbeatQueue.drain().forEach(c -> runtimeSyncAccounts.remove(c.heartbeat().accountId()));
         for (Player player : Bukkit.getOnlinePlayers()) {
             clearPlayerPresentation(player);
         }
@@ -1090,86 +1102,98 @@ public class SkillTreeService {
         return view;
     }
 
-    /** API 到達可能時に、評価済みの接続情報を非同期で公開します。 */
+    /** API 到達可能時に、評価済みの接続情報を既存session更新・pending照会とまとめて非同期公開します。 */
     public void publishRuntimePlayerViewAsync(@NotNull AstPlayer astPlayer) {
-        String serverId = runtimeServerId();
-        if (serverId == null || !astPlayer.getBukkit().isOnline()) {
-            return;
-        }
-        JsonObject view = createRuntimePlayerView(astPlayer);
-        UUID accountId = astPlayer.getAccount().getUuid();
-        SkillTreeRuntimeRepository.AccountSession session = runtimeAccountSessions.get(accountId);
-        if (session == null) return;
-        long sequence = runtimeViewSequences.merge(accountId, 1L, Long::sum);
-        final boolean settled;
-        synchronized (this) { settled = !dirtyPlayerStates.contains(accountId) && !masterPublicationInProgress; }
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                if (!runtimeRepository.acquireAccount(serverId, runtimeServerSessionId, accountId, session, definitionGenerationId)) return;
-                if (settled) runtimeRepository.publishPlayerView(serverId, runtimeServerSessionId, accountId, view, session, sequence);
-            } catch (RuntimeException ignored) {
-                // 次回 heartbeat / 再公開で回復する。接続中プレイヤーへ失敗を通知しない。
-            }
-        });
+        RuntimeHeartbeatCapture captured = captureRuntimeHeartbeat(astPlayer);
+        if (captured != null) sendRuntimeHeartbeatBatch(List.of(captured));
     }
 
-    /** 5秒ごとの対象を100 tickに分散し、Web表示用のビューを公開します。 */
+    /** Bukkitメインスレッドで捕捉する。inflight accountは重複評価・通信しない。 */
+    private RuntimeHeartbeatCapture captureRuntimeHeartbeat(AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        SkillTreeRuntimeRepository.AccountSession session = runtimeAccountSessions.get(accountId);
+        if (runtimeServerId() == null || !astPlayer.getBukkit().isOnline() || session == null || !runtimeSyncAccounts.add(accountId)) return null;
+        try {
+            long epoch = runtimeSyncEpoch.capture();
+            JsonObject view = createRuntimePlayerView(astPlayer);
+            long sequence = runtimeViewSequences.merge(accountId, 1L, Long::sum);
+            final boolean settled;
+            synchronized (this) { settled = !dirtyPlayerStates.contains(accountId) && !masterPublicationInProgress; }
+            RuntimeAcknowledgedView acknowledged = runtimeAcknowledgedViews.get(accountId);
+            boolean unchanged = acknowledged != null && acknowledged.sessionId().equals(session.id()) && acknowledged.view().equals(view);
+            return new RuntimeHeartbeatCapture(astPlayer, new SkillTreeRuntimeRepository.AccountHeartbeat(
+                    accountId, session, view.get("definitionGenerationId").getAsString(), settled ? view : null, sequence, unchanged), epoch);
+        } catch (RuntimeException failure) {
+            runtimeSyncAccounts.remove(accountId);
+            throw failure;
+        }
+    }
+
+    /** 5秒ごとの対象を100tickに分散し、10tick窓・最大32件で通信をまとめます。 */
     private void publishOnlineRuntimePlayerViews() {
         if (runtimePlayerViewTick == 0) {
-            runtimePlayerViewBatch = Bukkit.getOnlinePlayers().stream()
-                    .map(Player::getUniqueId)
-                    .toList();
+            runtimePlayerViewBatch = Bukkit.getOnlinePlayers().stream().map(Player::getUniqueId).toList();
             runtimePlayerViewBatchIndex = 0;
         }
         int targetIndex = (int) (((long) runtimePlayerViewBatch.size() * (runtimePlayerViewTick + 1)
                 + RUNTIME_PLAYER_VIEW_PERIOD_TICKS - 1) / RUNTIME_PLAYER_VIEW_PERIOD_TICKS);
         while (runtimePlayerViewBatchIndex < targetIndex) {
-            UUID playerId = runtimePlayerViewBatch.get(runtimePlayerViewBatchIndex++);
-            Player player = Bukkit.getPlayer(playerId);
+            Player player = Bukkit.getPlayer(runtimePlayerViewBatch.get(runtimePlayerViewBatchIndex++));
             if (player == null || !player.isOnline()) continue;
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer != null && isStateReady(astPlayer)) {
-                publishRuntimePlayerViewAsync(astPlayer);
-                pollRuntimeOperationsAsync(astPlayer);
+                RuntimeHeartbeatCapture captured = captureRuntimeHeartbeat(astPlayer);
+                if (captured != null) {
+                    List<RuntimeHeartbeatCapture> batch = runtimeHeartbeatQueue.offer(captured);
+                    if (!batch.isEmpty()) sendRuntimeHeartbeatBatch(batch);
+                }
             }
         }
+        if (runtimePlayerViewTick % 10 == 9) flushRuntimeHeartbeatQueue();
         runtimePlayerViewTick = (runtimePlayerViewTick + 1) % RUNTIME_PLAYER_VIEW_PERIOD_TICKS;
         if (runtimePlayerViewTick == 0) runtimePlayerViewBatch = List.of();
     }
 
-    /**
-     * 現在の backend session に配送された Web 操作を一件だけ取得して処理します。
-     *
-     * <p>claim と API 完了通知は非同期、現在地・世代・state版数・実際のポイント判定は
-     * Bukkit メインスレッドと既存の critical mutation lane で行います。</p>
-     */
-    private void pollRuntimeOperationsAsync(@NotNull AstPlayer astPlayer) {
+    /** 周期窓に残っている要求を一度だけ排出し、非同期送信へ渡す。 */
+    private void flushRuntimeHeartbeatQueue() {
+        List<RuntimeHeartbeatCapture> batch = runtimeHeartbeatQueue.drain();
+        if (!batch.isEmpty()) sendRuntimeHeartbeatBatch(batch);
+    }
+
+    /** HTTP処理は非同期。claim後のBukkit操作は従来どおりメインスレッドへ戻します。 */
+    private void sendRuntimeHeartbeatBatch(List<RuntimeHeartbeatCapture> batch) {
         String serverId = runtimeServerId();
-        UUID accountId = astPlayer.getAccount().getUuid();
-        SkillTreeRuntimeRepository.AccountSession accountSession = runtimeAccountSessions.get(accountId);
-        if (serverId == null || accountSession == null || !runtimeOperationAccounts.add(accountId)) {
+        if (serverId == null) {
+            batch.forEach(c -> runtimeSyncAccounts.remove(c.heartbeat().accountId()));
             return;
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                List<SkillTreeRuntimeRepository.Operation> operations = runtimeRepository.findPending(
-                        serverId, runtimeServerSessionId, accountId
-                );
-                if (operations.isEmpty()) {
-                    runtimeOperationAccounts.remove(accountId);
-                    return;
+                List<RuntimeHeartbeatCapture> current = batch.stream()
+                        .filter(c -> runtimeSyncEpoch.isCurrent(c.epoch())).toList();
+                if (current.isEmpty()) return;
+                var results = runtimeRepository.heartbeatAccounts(serverId, runtimeServerSessionId,
+                        current.stream().map(RuntimeHeartbeatCapture::heartbeat).toList());
+                for (RuntimeHeartbeatCapture capture : current) {
+                    var item = capture.heartbeat();
+                    var result = results.get(item.accountId());
+                    if (!runtimeSyncEpoch.isCurrent(capture.epoch())) continue;
+                    if (!item.session().equals(runtimeAccountSessions.get(item.accountId()))) continue;
+                    if (result.renewed() && result.viewAccepted() && item.view() != null)
+                        runtimeAcknowledgedViews.put(item.accountId(), new RuntimeAcknowledgedView(item.session().id(), item.view().deepCopy()));
+                    else if (item.view() != null) runtimeAcknowledgedViews.remove(item.accountId());
+                    if (!result.renewed() || result.operations().isEmpty() || !runtimeOperationAccounts.add(item.accountId())) continue;
+                    try {
+                        var claimed = runtimeRepository.claim(serverId, runtimeServerSessionId, result.operations().getFirst(), item.session());
+                        if (claimed == null) runtimeOperationAccounts.remove(item.accountId());
+                        else Bukkit.getScheduler().runTask(plugin, () -> dispatchClaimedRuntimeOperation(serverId, capture.player(), claimed));
+                    } catch (RuntimeException ignored) { runtimeOperationAccounts.remove(item.accountId()); }
                 }
-                SkillTreeRuntimeRepository.Operation operation = operations.getFirst();
-                    SkillTreeRuntimeRepository.ClaimedOperation claimed = runtimeRepository.claim(
-                            serverId, runtimeServerSessionId, operation, accountSession
-                );
-                if (claimed == null) {
-                    runtimeOperationAccounts.remove(accountId);
-                    return;
-                }
-                Bukkit.getScheduler().runTask(plugin, () -> dispatchClaimedRuntimeOperation(serverId, astPlayer, claimed));
             } catch (RuntimeException ignored) {
-                runtimeOperationAccounts.remove(accountId);
+                // ACKが不明な場合はcached viewを採用せず、次周期で全体を再送する。
+                batch.forEach(c -> runtimeAcknowledgedViews.remove(c.heartbeat().accountId()));
+            } finally {
+                batch.forEach(c -> runtimeSyncAccounts.remove(c.heartbeat().accountId()));
             }
         });
     }
@@ -1831,6 +1855,7 @@ public class SkillTreeService {
         if (session == null) return;
         runtimeAccountDefinitionGenerations.remove(accountId);
         runtimeLastViews.remove(accountId);
+        runtimeAcknowledgedViews.remove(accountId);
         JsonObject captured = new JsonObject();
         long sequence = runtimeViewSequences.getOrDefault(accountId, 0L) + 1;
         runtimeViewSequences.remove(accountId);
@@ -1881,6 +1906,7 @@ public class SkillTreeService {
                 runtimeAccountSessions.remove(accountId, snapshot.session());
                 runtimeAccountDefinitionGenerations.remove(accountId);
                 runtimeLastViews.remove(accountId);
+        runtimeAcknowledgedViews.remove(accountId);
                 runtimeViewSequences.remove(accountId);
                 discardAccountState(accountId);
             }

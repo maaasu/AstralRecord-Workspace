@@ -17,6 +17,37 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed class SkillTreeRuntimeDeadlockSqlServerTests
 {
     [Fact]
+    public async Task ConcurrentHeartbeatBatchesWithReversedAccountsDoNotHoldMultipleAccountLocks()
+    {
+        if (!Enabled()) return;
+        await using var database = await TemporaryDatabase.CreateAsync();
+        await using var seed = database.Context();
+        await using var first = await SkillTreeOperationRepositoryTests.Fixture.SeedAsync(seed, server: "first");
+        await using var otherSeed = database.Context();
+        await using var second = await SkillTreeOperationRepositoryTests.Fixture.SeedAsync(otherSeed, server: "second");
+        await database.ExecuteAsync("""
+            UPDATE dbo.skilltree_account_session SET server_id = @server, server_session_id = @boot
+            WHERE account_session_id = @session;
+            """, new SqlParameter("@server", first.Server), new SqlParameter("@boot", first.Boot), new SqlParameter("@session", second.Session));
+        SkillTreeAccountHeartbeatItemRequest Item(SkillTreeOperationRepositoryTests.Fixture f) => new()
+        {
+            AccountId = f.Account, Session = new() { ServerSessionId = first.Boot, AccountSessionId = f.Session,
+                AccountLeaseToken = f.Token, DefinitionGenerationId = f.Generation },
+        };
+        var a = Item(first); var b = Item(second);
+        await using var left = database.Context();
+        await using var right = database.Context();
+        for (var iteration = 0; iteration < 10; iteration++)
+        {
+            var results = await Task.WhenAll(
+                Repository(left).HeartbeatAccountsAsync(first.Server, new() { Items = [a, b] }),
+                Repository(right).HeartbeatAccountsAsync(first.Server, new() { Items = [b, a] }))
+                .WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.All(results, result => Assert.All(result!, item => Assert.True(item.Renewed)));
+        }
+    }
+
+    [Fact]
     public async Task ConcurrentViewsForDifferentAccountsCompleteWithoutDeadlockRetry()
     {
         if (!Enabled()) return;
@@ -150,6 +181,7 @@ public sealed class SkillTreeRuntimeDeadlockSqlServerTests
             base.OnModelCreating(builder);
             var allowed = new HashSet<Type>
             {
+                typeof(UserEntity), typeof(PlayerAdminEditSessionEntity), typeof(PlayerAdminEditDrainEntity),
                 typeof(AccountEntity), typeof(AccountSkillTreeStateEntity), typeof(AccountSkillTreeUnlockedNodeEntity),
                 typeof(InventoryEntity), typeof(InventoryEntryEntity), typeof(SkillTreeDefinitionGenerationEntity),
                 typeof(SkillTreeServerRuntimeEntity), typeof(SkillTreeServerPlayerViewEntity), typeof(SkillTreeOperationEntity),
