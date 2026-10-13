@@ -186,3 +186,10 @@ button.master-node-link:hover { border-color: var(--blue); }
 button.master-node-link:disabled { opacity: .6; cursor: default; }
 button.master-node-link b { color: var(--text); font-size: 12px; flex-shrink: 0; }
 @media (max-width: 950px) { .master-form-navigation { grid-template-columns: minmax(0, 1fr); } }
+
+.master-recovery-lock { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex: 1; flex-direction: column; overflow: auto; }
+.master-recovery-panel, .master-recovery-list { padding: 12px 16px; margin: 8px; border: 1px solid var(--border, #465674); border-radius: 8px; background: var(--panel, #172238); }
+.master-recovery-list button { margin: 4px; }
+.master-recovery-panel p, .master-recovery-list p { margin: 8px 0; }
+
+.master-create-form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }

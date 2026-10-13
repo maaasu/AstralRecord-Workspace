@@ -14,8 +14,8 @@ export function ValidationPanel({ report, validating, onValidate, onValidateAll 
     <section className="validation-panel panel-section">
       <div className="section-title">
         <h2>検証</h2>
-        <span className={errors ? 'badge error' : 'badge ok'}>{errors} error</span>
-        <span className={warnings ? 'badge warning' : 'badge'}>{warnings} warning</span>
+        <span className={errors ? 'badge error' : 'badge ok'}>エラー {errors} 件</span>
+        <span className={warnings ? 'badge warning' : 'badge'}>警告 {warnings} 件</span>
       </div>
       <div className="button-row">
         <button className="button" onClick={onValidate} disabled={validating}>編集中を検証</button>

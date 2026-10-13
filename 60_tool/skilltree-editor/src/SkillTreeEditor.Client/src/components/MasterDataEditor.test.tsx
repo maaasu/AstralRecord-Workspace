@@ -604,7 +604,7 @@ describe('creation draft protection', () => {
     fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(create).toHaveBeenCalledTimes(2)
-    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false))
     expect(unloadPrevented()).toBe(false)
   })
 })

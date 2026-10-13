@@ -192,7 +192,7 @@ describe('master file tabs', () => {
     await open('ファイルA')
     fireEvent.change(input('/level'), { target: { value: 'invalid' } })
     await open('ファイルB')
-    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true))
     const unload = new Event('beforeunload', { cancelable: true })
     window.dispatchEvent(unload)
     expect(unload.defaultPrevented).toBe(true)

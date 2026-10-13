@@ -4,12 +4,14 @@ import { masterDataApi } from '../api/masterDataApi'
 import { useHistory } from '../state/history'
 import { useMasterDataWorkspace, type MasterDataWorkspace } from '../state/masterDataWorkspace'
 import { emptyMasterTabs, masterTabsReducer, type MasterTabStatus } from '../state/masterDataTabs'
+import { listMasterDrafts, readMasterDraft, removeMasterDraft, writeMasterDraft, type MasterDraftState, type RecoverableMasterDraft } from '../state/masterDataRecovery'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
 import type { MasterCategory, MasterDocument, MasterDraft, MasterFileSummary, MasterReference } from '../types/masterData'
 import { MasterDataDiff } from './MasterDataDiff'
 import { masterDefault } from './MasterDataForm'
 import { MasterDataDetails } from './MasterDataNavigation'
 import { MasterTabContextMenu } from './MasterTabContextMenu'
+import { Modal } from './Modal'
 import { fileNameIncludesId, masterDisplayName, namedMasterOption } from '../data/masterDataPresentation'
 import { closestContainerPointer, parentPointer, valueAtPointer } from '../data/masterDataNavigation'
 import { categoryFacetOptions, facetLabels, inCategory, isDropSourceDirectory, isItemDefinitionDirectory, isSkillDirectory, matchesFileStatus, searchMasterName } from '../data/masterDataFilters'
@@ -17,9 +19,10 @@ import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 
-interface DraftState { raw: string; content: JsonValue; source: 'raw' | 'form' }
+type DraftState = MasterDraftState
 const emptyDraft: DraftState = { raw: '', content: null, source: 'raw' }
 const baseName = (path: string) => path.split('/').at(-1) ?? path
+const referenceKindLabel = (kind?: string) => ({ item: 'アイテム', class: 'クラス', skill: 'スキル', mob: 'モブ', gathering: '採集', world: 'ワールド', buff: 'バフ', quest: 'クエスト', loot: 'ドロップ報酬', node: 'ノード', structure: '構造', pet: 'ペット', fishing_fish: '釣り魚', fishing_area: '釣りエリア', fishing_rules: '釣りルール', loot_table: 'ドロップ報酬テーブル', loot_pool: 'ドロップ報酬プール', set_effect: 'セット効果', recipe: 'レシピ', dungeon: 'ダンジョン', guide: 'ガイド', spawner: 'スポナー', status: 'ステータス', tag: 'タグ', mail: 'メール', enchant: 'エンチャント', mob_spawner: 'モブスポナー', gathering_spawner: '採集スポナー', quest_board: 'クエスト掲示板', schema: '定義スキーマ', skilltree: 'スキルツリー' }[kind ?? ''] ?? kind ?? '参照')
 const slugOf = (text: string) => text.normalize('NFKC').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
 const asObject = (value: JsonValue | undefined): JsonObject | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value : undefined
 const listBatchSize = 50
@@ -46,6 +49,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const latestTabs = useRef(tabsState)
   latestTabs.current = tabsState
   const [welcomeDirty, setWelcomeDirty] = useState(false)
+  const [recoverableDrafts, setRecoverableDrafts] = useState<RecoverableMasterDraft[]>([])
+  const recoveryRoot = useRef('')
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const latestWelcomeDirty = useRef(false)
   const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
@@ -59,9 +64,12 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     if (id === 'welcome') { latestWelcomeDirty.current = status.dirty; setWelcomeDirty(status.dirty) }
     else dispatch({ type: 'status', id, status })
   }, [])
+  const recoveryHandled = useCallback((path: string) => setRecoverableDrafts((current) => current.filter((entry) => entry.document.path !== path)), [])
   const closeTab = (id: string, deleted = false) => {
     const tab = latestTabs.current.tabs.find((entry) => entry.id === id)
     if (!tab || !deleted && (tab.busy || tab.dirty && !window.confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`))) return
+    if (workspace.catalog) removeMasterDraft(workspace.catalog.root, tab.path)
+    setRecoverableDrafts((current) => current.filter((entry) => entry.document.path !== tab.path))
     if (!deleted || latestTabs.current.activeId === id) focusAfterClose.current = true
     dispatch({ type: 'close', id })
   }
@@ -70,6 +78,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     if (!targets.length || targets.some((tab) => tab.busy)) return
     const unsaved = targets.filter((tab) => tab.dirty)
     if (unsaved.length && !window.confirm(`未保存の編集内容を破棄してタブを閉じますか？\n${unsaved.map((tab) => `${stripMinecraftFormatting(tab.name) || baseName(tab.path)} · ${tab.path}`).join('\n')}`)) return
+    if (workspace.catalog) targets.forEach((tab) => removeMasterDraft(workspace.catalog!.root, tab.path))
+    setRecoverableDrafts((current) => current.filter((entry) => !targets.some((tab) => tab.path === entry.document.path)))
     focusAfterClose.current = true
     dispatch({ type: 'closeMany', ids: targets.map((tab) => tab.id) })
   }
@@ -89,6 +99,11 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   ].map(({ label, targets }) => ({ label, disabled: !targets.length || targets.some((tab) => tab.busy), run: () => closeTabs(targets.map((tab) => tab.id)) }))
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
   useEffect(() => {
+    if (!workspace.catalog || recoveryRoot.current === workspace.catalog.root) return
+    recoveryRoot.current = workspace.catalog.root
+    setRecoverableDrafts(listMasterDrafts(workspace.catalog.root))
+  }, [workspace.catalog])
+  useEffect(() => {
     const unload = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = '' } }
     window.addEventListener('beforeunload', unload)
     return () => window.removeEventListener('beforeunload', unload)
@@ -102,6 +117,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   if (workspace.loading) return <div className="loading-screen"><p>Filebaseのカテゴリとファイルを読み込んでいます…</p></div>
   return <div ref={editorHost} className="master-tabbed-editor">
     {(workspace.error || workspace.notice) && <div className={`master-message master-global-message ${workspace.error ? 'error' : 'success'}`} role={workspace.error ? 'alert' : 'status'}><span>{workspace.error || workspace.notice}</span><button type="button" className="button compact subtle" onClick={() => { workspace.setError(''); workspace.setNotice('') }}>閉じる</button></div>}
+    {workspace.error && !workspace.catalog && <div className="master-empty"><p>マスターを読み込めませんでした。接続を確認して再試行してください。</p><button type="button" className="button" disabled={workspace.refreshing} onClick={() => void workspace.refresh().catch((reason) => workspace.setError(reason instanceof Error ? reason.message : String(reason)))}>再試行</button></div>}
+    {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>同じブラウザタブの再読込前の編集です。ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
     {tabsState.tabs.length > 0 && <div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{tabsState.tabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId
       const name = tab.name || workspace.files.find((file) => file.path === tab.path)?.name || baseName(tab.path)
@@ -125,8 +142,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     })}</div>}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onOpenSkillTree={onOpenSkillTree} />
-    </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onOpenSkillTree={onOpenSkillTree} /></div>}
+      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
+    </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} /></div>}
   </div>
 }
 
@@ -139,10 +156,11 @@ interface MasterDataEditorPaneProps {
   onOpenFile: (path: string, document?: MasterDocument) => void
   onCloseTab: () => void
   onTabStatus: (id: string, status: MasterTabStatus) => void
+  onRecoveryHandled: (path: string) => void
   onOpenSkillTree?: () => void
 }
 
-function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, active, onOpenFile, onCloseTab, onTabStatus, onOpenSkillTree }: MasterDataEditorPaneProps) {
+function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, active, onOpenFile, onCloseTab, onTabStatus, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
   const { catalog, files, filterIndex, candidates, refresh, rememberedPaths, categoryId, setCategoryId, query, setQuery, format, setFormat,
     sourceQuery, setSourceQuery, dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
@@ -158,6 +176,12 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const [report, setReport] = useState<ValidationReport | null>(null)
   const [renderWarnings, setRenderWarnings] = useState<string[]>([])
   const [invalidInputs, setInvalidInputs] = useState<Record<string, string>>({})
+  const [invalidValues, setInvalidValues] = useState<Record<string, string>>({})
+  const [recovery, setRecovery] = useState<RecoverableMasterDraft | null>(null)
+  const [requiresDiffReview, setRequiresDiffReview] = useState(false)
+  const [conflictDocument, setConflictDocument] = useState<MasterDocument | null>(null)
+  const [diffBefore, setDiffBefore] = useState<string | null>(null)
+  const storageFailed = useRef(false)
   const [diffRaw, setDiffRaw] = useState<string | null>(null)
   const [createMode, setCreateMode] = useState<'new' | 'copy' | 'import' | null>(null)
   const [createDirty, setCreateDirty] = useState(false)
@@ -259,29 +283,46 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     observer.observe(target)
     return () => observer.disconnect()
   }, [active, visibleCount, visibleFiles.length, sidebarCollapsed, requestMore])
-  const handleInvalid = useCallback((path: string, message: string | null) => setInvalidInputs((current) => {
+  const handleInvalid = useCallback((path: string, message: string | null, text?: string) => {
+    setInvalidValues((current) => {
+      if (message && text !== undefined) return current[path] === text ? current : { ...current, [path]: text }
+      if (!Object.hasOwn(current, path)) return current
+      const next = { ...current }; delete next[path]; return next
+    })
+    setInvalidInputs((current) => {
     if (current[path] === message || !message && !Object.hasOwn(current, path)) return current
     const next = { ...current }
     if (message) next[path] = message
     else delete next[path]
     return next
-  }), [])
+    })
+  }, [])
   const showError = useCallback((reason: unknown) => {
     const payload = reason instanceof ApiError && reason.payload && typeof reason.payload === 'object'
       ? reason.payload as { issues?: ValidationIssue[] } : undefined
     if (payload?.issues) setReport({ isValid: false, issues: payload.issues })
     setError(reason instanceof Error ? reason.message : String(reason))
   }, [])
-  useEffect(() => { onTabStatus(tabId, { dirty: dirty || createDirty, busy, name: typeof displayedName === 'string' ? displayedName : '' }) }, [tabId, dirty, createDirty, busy, displayedName, onTabStatus])
+  useEffect(() => { onTabStatus(tabId, { dirty: dirty || createDirty || Boolean(recovery), busy, name: typeof displayedName === 'string' ? displayedName : '' }) }, [tabId, dirty, createDirty, recovery, busy, displayedName, onTabStatus])
+  useEffect(() => {
+    if (!document || !catalog || recovery || readOnly) return
+    const success = dirty ? writeMasterDraft(catalog.root, { version: 1, document, draft, formPath: selectedFormPath, invalidValues, requiresDiffReview, updatedAt: new Date().toISOString() })
+      : removeMasterDraft(catalog.root, document.path)
+    if (!success && !storageFailed.current) setNotice('ブラウザへ一時下書きを保存できません。再読込する前に「現在の原稿を書出」で編集内容を保管してください。')
+    storageFailed.current = !success
+  }, [catalog, document, draft, dirty, recovery, readOnly, selectedFormPath, invalidValues, requiresDiffReview])
   const allowDiscard = () => !dirty || window.confirm('未保存の編集内容を破棄して再読込しますか？')
-  const acceptDocument = useCallback((loaded: MasterDocument) => {
-    setDocument(loaded); setInvalidInputs({}); history.reset({ raw: loaded.raw, content: loaded.content, source: loaded.content === null ? 'raw' : 'form' })
+  const acceptDocument = useCallback((loaded: MasterDocument, offerRecovery = true) => {
+    setDocument(loaded); setInvalidInputs({}); setInvalidValues({}); history.reset({ raw: loaded.raw, content: loaded.content, source: loaded.content === null ? 'raw' : 'form' })
+    setRecovery(offerRecovery && catalog ? readMasterDraft(catalog.root, loaded.path) : null)
+    setRequiresDiffReview(false)
+    setConflictDocument(null); setDiffBefore(null)
     setDocumentVersion((version) => version + 1)
     setFormPath(closestContainerPointer(loaded.content, rememberedPaths.current[loaded.path] ?? '')); setFocusPath(null)
     if (window.innerWidth <= 640) setSidebarCollapsed(true)
     setReport({ isValid: !loaded.issues.some((entry) => entry.severity === 'error'), issues: loaded.issues }); setRenderWarnings([])
     latestRenderWarnings.current = []; reviewedRaw.current = ''; setReferences([])
-  }, [history.reset, setSidebarCollapsed, rememberedPaths])
+  }, [history.reset, setSidebarCollapsed, rememberedPaths, catalog?.root])
   const loadReferences = useCallback((path: string, requestId: number) => {
     void masterDataApi.references(path).then((next) => { if (requestId === operationId.current) setReferences(next) }).catch(() => {
       if (requestId === operationId.current) setNotice('参照元を取得できませんでした。編集は継続できます。')
@@ -308,7 +349,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     try {
       const loaded = await masterDataApi.file(path)
       if (requestId !== operationId.current) return
-      acceptDocument(loaded); loadReferences(path, requestId)
+      if (document && catalog) removeMasterDraft(catalog.root, path)
+      acceptDocument(loaded, !document); loadReferences(path, requestId)
     } catch (reason) { if (requestId === operationId.current) showError(reason) } finally { if (requestId === operationId.current) setBusy(false) }
   }
   const currentRaw = async () => {
@@ -341,21 +383,29 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     catch (reason) { showError(reason) } finally { setBusy(false) }
   }
   const save = async () => {
-    if (!document || readOnly || busy || Object.keys(invalidInputs).length) return
+    if (!document || readOnly || busy || recovery || Object.keys(invalidInputs).length) return
     setBusy(true); setError(''); setNotice('')
     try {
       const raw = await currentRaw()
-      if (latestRenderWarnings.current.length && reviewedRaw.current !== raw) {
-        setDiffRaw(raw); setNotice('原稿の変換に警告があります。差分を確認して閉じた後、もう一度「保存」を押してください。'); return
+      if ((requiresDiffReview || latestRenderWarnings.current.length > 0) && reviewedRaw.current !== raw) {
+        setDiffRaw(raw); setNotice(requiresDiffReview ? '復元した下書きと最新の保存済み原稿の差分を確認してください。閉じた後、もう一度「保存」を押すと反映します。' : '原稿の変換に警告があります。差分を確認して閉じた後、もう一度「保存」を押してください。'); return
       }
       const validation = await masterDataApi.validate(document.path, raw)
       setReport(validation)
       if (!validation.isValid) { setError('検証エラーがあるため保存しませんでした。'); return }
       const saved = await masterDataApi.save(document.path, raw, document.revision)
-      setDocument(saved); history.reset({ raw: saved.raw, content: saved.content, source: draft.source }); setRenderWarnings([])
+      setDocument(saved); history.reset({ raw: saved.raw, content: saved.content, source: draft.source }); setRenderWarnings([]); setRequiresDiffReview(false)
       setNotice(`${baseName(saved.path)} を保存しました。`)
       void refresh().catch(() => setNotice(`${baseName(saved.path)} は保存済みです。一覧を再読込できませんでした。`))
-    } catch (reason) { showError(reason) } finally { setBusy(false) }
+    } catch (reason) {
+      showError(reason)
+      if (reason instanceof ApiError && reason.status === 409) {
+        try {
+          const latest = await masterDataApi.file(document.path)
+          if (latest.revision !== document.revision) setConflictDocument(latest)
+        } catch { setNotice('最新の原稿を取得できません。編集内容は保持しています。接続を確認して再試行してください。') }
+      }
+    } finally { setBusy(false) }
   }
   const moveHistory = (direction: 'undo' | 'redo') => {
     if (Object.keys(invalidInputs).length) { setNotice('編集中の数値を修正してから履歴を移動してください。'); return }
@@ -376,7 +426,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   useEffect(() => {
     if (!active) return
     const keyboard = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || createMode || diffRaw !== null || busy) return
+      if (!(event.ctrlKey || event.metaKey) || createMode || diffRaw !== null || documentation || recovery || busy) return
       if (event.key.toLowerCase() === 's') { event.preventDefault(); void save() }
       if ((event.target as HTMLElement | null)?.closest('input, textarea, select, [contenteditable]')) return
       if (event.key.toLowerCase() === 'z') { event.preventDefault(); moveHistory(event.shiftKey ? 'redo' : 'undo') }
@@ -422,8 +472,9 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const replaceRaw = async (file: File) => {
     try {
       const raw = await file.text()
-      if (document && !readOnly && window.confirm(`読み込んだ原稿で ${baseName(document.path)} の編集内容を置き換えますか？（保存はまだ行いません）`)) {
-        history.record({ raw, content: null, source: 'raw' }); setInvalidInputs({}); setReport(null); setRenderWarnings([]); setNotice('原稿を読み込みました。検証してから保存してください。')
+      if (document && !readOnly) {
+        if (!window.confirm(`読み込んだ原稿で ${baseName(document.path)} の編集内容を置き換えますか？（保存はまだ行いません）`)) return
+        history.record({ raw, content: null, source: 'raw' }); setInvalidInputs({}); setInvalidValues({}); setReport(null); setRenderWarnings([]); setNotice('原稿を読み込みました。検証してから保存してください。')
       } else { setImportText(raw); setCreateMode('import') }
     } catch (reason) { showError(reason) }
   }
@@ -501,26 +552,46 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     </aside>
     <section className="master-workspace">
       <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
+      {recovery && document && <section className="master-recovery-panel" aria-label="未保存の下書きの復元"><strong>再読込前の下書きがあります</strong><p>{recovery.document.revision === document.revision && !recovery.requiresDiffReview ? '下書きを復元して編集を続けられます。ファイルへは明示保存するまで反映しません。' : '保存済みファイルは下書き作成後に変更されています。復元後の保存には最新原稿との差分確認が必要です。'}</p><div className="button-row"><button type="button" className="button primary" disabled={readOnly} onClick={() => {
+        history.reset(recovery.draft); setInvalidValues(recovery.invalidValues); setInvalidInputs({})
+        setFormPath(closestContainerPointer(recovery.draft.content, recovery.formPath))
+        setRequiresDiffReview(recovery.requiresDiffReview === true || recovery.document.revision !== document.revision)
+        setDocumentVersion((version) => version + 1); setReport(null); setRecovery(null); onRecoveryHandled(document.path)
+        setNotice('下書きを復元しました。内容を確認してから保存してください。')
+      }}>下書きを復元</button><button type="button" className="button" onClick={() => {
+        if (!window.confirm('再読込前の未保存の下書きを破棄しますか？')) return
+        if (catalog) removeMasterDraft(catalog.root, document.path)
+        setRecovery(null); onRecoveryHandled(document.path)
+      }}>下書きを破棄</button></div></section>}
+      <fieldset className="master-recovery-lock" disabled={Boolean(recovery)}>
       <div className="master-toolbar master-main-toolbar"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button><button className="button" title="元に戻す Ctrl+Z" disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="button" title="やり直す Ctrl+Y" disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><span className="master-spacer" /><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
       {(error || notice) && <div className={`master-message ${error ? 'error' : 'success'}`} role={error ? 'alert' : 'status'}><span>{error || notice}</span><button className="button compact subtle" onClick={() => { setError(''); setNotice('') }}>閉じる</button></div>}
+      {conflictDocument && <section className="master-recovery-panel" aria-label="保存競合の解決"><strong>別の編集で保存済み原稿が変更されています</strong><p>現在の編集は保持しています。最新原稿との差分を確認してから、編集を続ける基準を更新できます。</p><div className="button-row"><button type="button" className="button" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => {
+        setBusy(true)
+        void currentRaw().then((raw) => { setDiffBefore(conflictDocument.raw); setDiffRaw(raw) }).catch(showError).finally(() => setBusy(false))
+      }}>最新原稿と比較</button><button type="button" className="button" disabled={busy} onClick={() => {
+        setDocument(conflictDocument); setConflictDocument(null); setRequiresDiffReview(true); reviewedRaw.current = ''
+        setError(''); setNotice('現在の編集を保持し、最新原稿を保存の基準にしました。保存時に差分確認が必要です。')
+      }}>この編集を維持して最新を基準にする</button></div></section>}
       {renderWarnings.length > 0 && <div className="master-message warning"><div><strong>原稿の変換を確認してください</strong>{renderWarnings.map((warning, index) => <p key={index}>{warning}</p>)}</div><button className="button" disabled={busy} onClick={() => void showDiff()}>差分を確認</button></div>}
       <div className="master-edit-area">{document ? <>
         <div className="master-secondary-toolbar"><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" onClick={() => setShowReferences((current) => !current)}>参照一覧 ({references.length})</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
         {readOnly && <p className="master-muted">このファイルは閲覧専用です。Schemaや採番情報の変更は、実装・定義書と同期して管理します。</p>}
         {nodeDocument && <p className="master-muted">ノードの新規作成・複製は専用スキルツリーで自動採番します。{onOpenSkillTree && <button className="button subtle" onClick={onOpenSkillTree}>スキルツリーを開く</button>}</p>}
-        {showReferences && <details open className="master-references"><summary>このファイルを参照している項目</summary><label>参照元を検索<input aria-label="参照元を検索" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label><p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map((entry, index) => <tr key={index}><td>{entry.kind}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button> <small>{entry.pointer}</small></td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div>{!references.length && <p className="master-muted">検出された参照元はありません。</p>}</details>}
+        {showReferences && <details open className="master-references"><summary>このファイルを参照している項目</summary><label>参照元を検索<input aria-label="参照元を検索" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label><p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map((entry, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button> <small>{entry.pointer}</small></td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div>{!references.length && <p className="master-muted">検出された参照元はありません。</p>}</details>}
         {Boolean(documentCategory?.documents.length) && <details className="master-doc-links"><summary>このカテゴリの定義書</summary>{documentCategory?.documents.map((entry) => <button className="button subtle" key={entry.path} disabled={busy} onClick={() => { void masterDataApi.documentation(entry.path).then(setDocumentation).catch(showError) }}>{entry.title}</button>)}</details>}
         {draft.source === 'raw' ? <><p className="master-muted">固有名詞・追加キーを含む全原稿を編集できます。YAMLのコメントは直接編集できます。</p><textarea className="master-raw" aria-label="マスター原稿" disabled={busy} readOnly={readOnly} spellCheck={false} value={draft.raw} onChange={(event) => { history.record({ raw: event.target.value, content: null, source: 'raw' }); setReport(null) }} onKeyDown={(event) => {
           if (readOnly) return
           if (event.key !== 'Tab') return
           event.preventDefault(); const target = event.currentTarget; const start = target.selectionStart; const end = target.selectionEnd
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
-        }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
+        }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
       </> : <div className="master-empty"><h2>{initialPath ? busy ? 'ファイルを読み込んでいます…' : 'ファイルを読み込めませんでした' : 'マスターデータを編集'}</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{initialPath && <button type="button" className="button" disabled={busy} onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button>}{category && <p>{category.label} · {category.directory}</p>}</div>}</div>
       {(report || Object.keys(invalidInputs).length > 0) && <section className="master-validation"><details open><summary>検証結果 {report?.isValid ? '✓ 成功' : ''} {report?.issues.length ? `${report.issues.length} 件` : ''}</summary>{report?.isValid && !report.issues.length && <p className="success-message">検証エラーはありません。</p>}<ul>{Object.entries(invalidInputs).map(([path, message]) => <li className="error" key={path}><button className="text-button" onClick={() => focusIssue(path)}>{path}</button> {message}</li>)}{report?.issues.map((issue, index) => <li key={index} className={issue.severity}><code>{issue.code}</code> <button className="text-button" onClick={() => focusIssue(issue.path)}>{issue.path || '/'}</button> {issue.message}</li>)}</ul></details></section>}
+      </fieldset>
     </section>
-    {diffRaw !== null && document && <MasterDataDiff before={document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null) }} />}
-    {documentation && <div className="modal-backdrop"><section className="modal master-doc-dialog" role="dialog" aria-modal="true" aria-label="マスター定義書"><header className="modal-header"><h2>{baseName(documentation.path)}</h2><button className="button" onClick={() => setDocumentation(null)}>閉じる</button></header><pre className="modal-body">{documentation.raw}</pre></section></div>}
+    {diffRaw !== null && document && <MasterDataDiff before={diffBefore ?? document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null); setDiffBefore(null) }} />}
+    {documentation && <Modal className="master-doc-dialog" ariaLabel="マスター定義書" onClose={() => setDocumentation(null)}><header className="modal-header"><h2>{baseName(documentation.path)}</h2><button className="button" onClick={() => setDocumentation(null)}>閉じる</button></header><pre className="modal-body">{documentation.raw}</pre></Modal>}
     {createMode && <MasterCreateDialog mode={createMode} category={category ?? documentCategory} categories={catalog?.categories ?? []} files={files} source={document} importedRaw={importText} busy={busy} onDirtyChange={setCreateDirty} onCancel={() => setCreateMode(null)} onCreate={create} />}
   </main>
 }
@@ -600,7 +671,7 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
       if (request === generation.current) { generationPending.current = false; setGenerating(false) }
     }
   }
-  return <div className="modal-backdrop"><form className="modal master-create-dialog" role="dialog" aria-modal="true" aria-label="マスターファイル作成" onSubmit={(event) => {
+  return <Modal className="master-create-dialog" ariaLabel="マスターファイル作成" onClose={cancel} closeDisabled={busy}><form className="master-create-form" onSubmit={(event) => {
     event.preventDefault(); setError('')
     if (busy || submitting.current || generationPending.current) return
     if (!path.trim() || !raw.trim()) { setError('保存先と原稿を入力してください。'); return }
@@ -621,5 +692,5 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
     {mode === 'copy' && <p className="master-muted">読み込んだ保存済み原稿から新しいファイルを作成します。アイテムの自動採番以外は、原稿のIDを新しい一意の値へ変更してください。</p>}
     {generating && <p role="status">Schemaから原稿を生成中です…</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
-  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={cancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy || generating}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></div>
+  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={cancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy || generating}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></Modal>
 }

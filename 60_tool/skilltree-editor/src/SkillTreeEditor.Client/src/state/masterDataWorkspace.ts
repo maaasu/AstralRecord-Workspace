@@ -10,6 +10,7 @@ export function useMasterDataWorkspace() {
   const [filterIndex, setFilterIndex] = useState<MasterFilterIndex | null>(null)
   const [candidates, setCandidates] = useState<MasterReference[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [categoryId, setCategoryId] = useState('10.features.item')
@@ -31,6 +32,7 @@ export function useMasterDataWorkspace() {
 
   const refresh = useCallback(async () => {
     const requestId = ++refreshId.current
+    setRefreshing(true)
     let nextCatalog: MasterCatalog
     let nextFiles: MasterFileSummary[]
     let nextFilterIndex: MasterFilterIndex | null
@@ -38,14 +40,19 @@ export function useMasterDataWorkspace() {
       [nextCatalog, nextFiles, nextFilterIndex] = await Promise.all([
         masterDataApi.catalog(), masterDataApi.files(), masterDataApi.filterIndex().catch(() => null),
       ])
-    } catch (reason) { if (requestId === refreshId.current) throw reason; return }
+    } catch (reason) { if (requestId === refreshId.current) { setRefreshing(false); throw reason }; return }
     if (requestId !== refreshId.current) return
+    setRefreshing(false); setError('')
     setCatalog(nextCatalog); setFiles(nextFiles); setFilterIndex(nextFilterIndex)
     setCategoryId((current) => nextCatalog.categories.some((entry) => entry.id === current) ? current
       : nextCatalog.categories.find((entry) => entry.directory === '10.features.item')?.id
       ?? nextCatalog.categories.find((entry) => entry.directory === '10.features.item/10.material')?.id
       ?? nextCatalog.categories[0]?.id ?? '')
-    void masterDataApi.candidates().then((next) => { if (requestId === refreshId.current) setCandidates(next) }).catch(() => { /* Free input remains available. */ })
+    void masterDataApi.candidates().then((next) => { if (requestId === refreshId.current) setCandidates(next) }).catch(() => {
+      if (requestId !== refreshId.current) return
+      setCandidates([])
+      setNotice('参照候補を取得できませんでした。IDの直接入力は利用できます。接続を確認して再読込してください。')
+    })
     if (!nextFilterIndex) {
       setDropSourcePath(''); setSourceQuery(''); setSkillTag('')
       setDropItemId(''); setDropItemQuery(''); setDropPresence(''); setFacetFilters({})
@@ -83,7 +90,7 @@ export function useMasterDataWorkspace() {
   useEffect(() => { setVisibleCount(50) }, [categoryId, query, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus])
 
   return {
-    catalog, files, filterIndex, candidates, loading, error, notice, setError, setNotice, refresh, rememberedPaths,
+    catalog, files, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths,
     categoryId, setCategoryId, query, setQuery, format, setFormat, sourceQuery, setSourceQuery,
     dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,

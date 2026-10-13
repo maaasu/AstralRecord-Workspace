@@ -19,7 +19,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["iconGlint"] = "アイコンのエンチャントエフェクト", ["chargeSaleValue"] = "売却額分のGoldを消費",
         ["rankBasis"] = "状態変化のランク判定基準",
         ["landscape"] = "地形の生成方式", ["ensureMobVariety"] = "候補Mobの種類を保証",
-        ["rarity"] = "レアリティ", ["saleValue"] = "売却額", ["lore"] = "説明文",
+        ["rarity"] = "レアリティ", ["saleValue"] = "売却額", ["lore"] = "説明文", ["maxStack"] = "最大スタック数",
         ["unTradeable"] = "取引不可", ["unSellable"] = "売却不可", ["requiredLevel"] = "必要レベル",
         ["requiredClasses"] = "必要クラス", ["level"] = "レベル", ["status"] = "ステータスID",
         ["value"] = "値", ["type"] = "種別", ["tag"] = "タグID", ["tags"] = "タグ",
@@ -55,7 +55,9 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["gathering"] = "採集", ["shop"] = "ショップ", ["quest"] = "クエスト", ["quest_board"] = "クエスト掲示板",
         ["world"] = "ワールド", ["dungeon"] = "ダンジョン", ["buff"] = "バフ", ["status"] = "ステータス",
         ["tag"] = "タグ", ["loot"] = "ルート", ["pool"] = "ルートプール", ["table"] = "ルートテーブル", ["recipe"] = "レシピ",
-        ["fish"] = "釣り魚", ["area"] = "釣りエリア", ["rules"] = "釣りルール"
+        ["fish"] = "釣り魚", ["area"] = "釣りエリア", ["rules"] = "釣りルール",
+        ["nodes"] = "ノード", ["structures"] = "構造", ["schemas"] = "定義スキーマ",
+        ["harvesting"] = "植物採集", ["mining"] = "採掘"
     };
 
     public async Task<MasterDataCatalogResult> ReadAsync(string backups, CancellationToken token)

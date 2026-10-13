@@ -33,4 +33,12 @@ describe('スキルツリーAPIの版情報', () => {
     await expect(editorApi.listNodes()).rejects.toBeInstanceOf(ApiError)
     await expect(editorApi.listNodes()).rejects.toThrow('サーバーに接続できませんでした')
   })
+  it('ProblemDetailsの競合理由を日本語のまま表示する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ title: '別の編集でファイルが変更されました。再読込してください。' }), { status: 409, headers: { 'Content-Type': 'application/problem+json' } })))
+    await expect(editorApi.saveNode(node, 'old')).rejects.toThrow('別の編集でファイルが変更されました')
+  })
+  it('応答の途中切断を日本語で知らせる', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, headers: new Headers({ 'Content-Type': 'application/json' }), json: () => Promise.reject(new TypeError('network failure')) }))
+    await expect(editorApi.listNodes()).rejects.toThrow('サーバーの応答を読み取れませんでした')
+  })
 })

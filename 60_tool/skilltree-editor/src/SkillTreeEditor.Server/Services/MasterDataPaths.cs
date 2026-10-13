@@ -47,8 +47,11 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
         foreach (var part in relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
         {
             candidate = Path.Combine(candidate, part);
-            if ((File.Exists(candidate) || Directory.Exists(candidate))
-                && (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(candidate); }
+            catch (FileNotFoundException) { continue; }
+            catch (DirectoryNotFoundException) { continue; }
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
                 throw new UnauthorizedAccessException("シンボリックリンク / junction は編集できません。");
         }
     }

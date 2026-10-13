@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { defaultFromSchema, SchemaForm } from './SchemaForm'
 import { schemaForDocument } from '../state/schemaSelection'
 import type { FieldSuggestionValue, JsonObject, JsonValue, LoadedSchema, NodeMaster } from '../types/editor'
@@ -24,7 +24,14 @@ export function NodeEditor({ node, schemas, isNew, saving, errorMessage, onDirty
   const [raw, setRaw] = useState(() => JSON.stringify(node, null, 2))
   const [mode, setMode] = useState<'form' | 'raw'>('form')
   const [parseError, setParseError] = useState('')
-  const dirty = raw !== JSON.stringify(node, null, 2)
+  const [invalidInputs, setInvalidInputs] = useState<Record<string, string>>({})
+  const invalidNumbers = Object.keys(invalidInputs).length > 0
+  const handleInvalid = useCallback((path: string, message: string | null) => setInvalidInputs((current) => {
+    if (message) return current[path] === message ? current : { ...current, [path]: message }
+    if (!Object.hasOwn(current, path)) return current
+    const next = { ...current }; delete next[path]; return next
+  }), [])
+  const dirty = raw !== JSON.stringify(node, null, 2) || invalidNumbers
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange?.(false), [onDirtyChange])
   const requestClose = () => {
@@ -32,10 +39,11 @@ export function NodeEditor({ node, schemas, isNew, saving, errorMessage, onDirty
     onCancel()
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setDraft(structuredClone(node))
     setRaw(JSON.stringify(node, null, 2))
     setParseError('')
+    setInvalidInputs({})
   }, [node])
 
   const title = isNew ? 'ノードを新規作成' : `${String(draft.name || '名称未設定')} #${String(draft.nodeId)}`
@@ -69,6 +77,7 @@ export function NodeEditor({ node, schemas, isNew, saving, errorMessage, onDirty
   const selectSchema = (fileName: string) => {
     const selected = schemas.find((schema) => schema.summary.fileName === fileName)
     if (!selected) return
+    if (dirty && !window.confirm('スキーマを変更して現在のノード原稿を置き換えますか？')) return
     const generated = defaultFromSchema(selected.content)
     if (generated === null || typeof generated !== 'object' || Array.isArray(generated)) return
     const next: JsonObject = {
@@ -91,17 +100,18 @@ export function NodeEditor({ node, schemas, isNew, saving, errorMessage, onDirty
           <button className="icon-button" onClick={requestClose} aria-label="閉じる" disabled={saving}>×</button>
         </header>
         <div className="tab-row">
-          <button className={mode === 'form' ? 'tab active' : 'tab'} onClick={() => setMode('form')}>スキーマフォーム</button>
-          <button className={mode === 'raw' ? 'tab active' : 'tab'} onClick={() => setMode('raw')}>原稿 JSON</button>
+          <button className={mode === 'form' ? 'tab active' : 'tab'} disabled={saving || Boolean(parseError) || invalidNumbers} onClick={() => setMode('form')}>スキーマフォーム</button>
+          <button className={mode === 'raw' ? 'tab active' : 'tab'} disabled={saving || invalidNumbers} onClick={() => setMode('raw')}>原稿 JSON</button>
         </div>
         <div className="modal-body">
           {errorMessage && <p className="error-message" role="alert">{errorMessage}</p>}
+          {invalidNumbers && <p className="error-message" role="alert">数値の入力を修正してから保存・原稿の切替を行ってください。</p>}
           <fieldset className="material-node-form-lock" disabled={saving}>
           <label className="schema-field schema-selector">
             <span>JSON スキーマ<small>既存ノードは文書内の $schema から自動選択します。</small></span>
             <select
               value={selectedSchema?.summary.fileName ?? ''}
-              disabled={!isNew || schemas.length === 0}
+              disabled={!isNew || schemas.length === 0 || invalidNumbers}
               onChange={(event) => selectSchema(event.target.value)}
             >
               {!selectedSchema && <option value="">参照先Schemaが見つかりません</option>}
@@ -114,11 +124,14 @@ export function NodeEditor({ node, schemas, isNew, saving, errorMessage, onDirty
           </label>
           {mode === 'form' && selectedSchema && (
             <SchemaForm
+              key={JSON.stringify(node)}
               schema={selectedSchema.content}
               value={draft}
               onChange={updateDraft}
               disabledPaths={disabledPaths}
               suggestionsByPath={suggestionsByPath}
+              onInvalid={handleInvalid}
+              navigationDisabled={invalidNumbers}
             />
           )}
           {mode === 'form' && !selectedSchema && (
@@ -143,11 +156,11 @@ export function NodeEditor({ node, schemas, isNew, saving, errorMessage, onDirty
             <button className="button danger" onClick={() => void onDelete()} disabled={saving}>削除</button>
           )}
           {!isNew && onDuplicate && (
-            <button className="button subtle" onClick={() => onDuplicate(draft)} disabled={saving || Boolean(parseError)}>複製して新規作成</button>
+            <button className="button subtle" onClick={() => onDuplicate(draft)} disabled={saving || Boolean(parseError) || invalidNumbers}>複製して新規作成</button>
           )}
           <span className="spacer" />
           <button className="button subtle" onClick={requestClose} disabled={saving}>キャンセル</button>
-          <button className="button primary" onClick={() => void onSave(draft)} disabled={saving || Boolean(parseError)}>
+          <button className="button primary" onClick={() => void onSave(draft)} disabled={saving || Boolean(parseError) || invalidNumbers}>
             {saving ? '保存中…' : 'ノードを保存'}
           </button>
         </footer>

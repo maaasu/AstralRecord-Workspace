@@ -32,6 +32,7 @@ builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 });
 
 var app = builder.Build();
+app.UseMiddleware<LocalEditorRequestBoundaryMiddleware>();
 var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
 app.MapMasterAnalyticsEndpoints();
 
@@ -51,7 +52,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     context.Response.StatusCode = status;
     await Results.Problem(
             statusCode: status,
-            title: status == StatusCodes.Status500InternalServerError ? "Editor operation failed" : exception?.Message,
+            title: status == StatusCodes.Status500InternalServerError ? "エディタの処理に失敗しました" : $"エディタの処理を実行できませんでした。{exception?.Message}",
             detail: status == StatusCodes.Status500InternalServerError ? exception?.Message : null)
         .ExecuteAsync(context);
 }));
@@ -67,7 +68,7 @@ app.MapFallback(async context =>
         context.Response.StatusCode = StatusCodes.Status404NotFound;
         await context.Response.WriteAsJsonAsync(new
         {
-            message = "The editor frontend is not built. Run npm ci and npm run build in src/SkillTreeEditor.Client."
+            message = "エディタの画面がビルドされていません。src/SkillTreeEditor.Client で npm ci と npm run build を実行してください。"
         });
         return;
     }

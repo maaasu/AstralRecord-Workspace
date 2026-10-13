@@ -36,11 +36,12 @@ async function request<T>(url: string, init?: RequestInit, onResponse?: (respons
     throw new ApiError('サーバーに接続できませんでした。接続を確認して、もう一度実行してください。', 0)
   }
   const contentType = response.headers.get('content-type') ?? ''
-  const payload = response.status === 204
-    ? undefined
-    : contentType.includes('application/json')
-      ? await response.json()
-      : await response.text()
+  let payload: unknown
+  try {
+    payload = response.status === 204 ? undefined : contentType.includes('json') ? await response.json() : await response.text()
+  } catch {
+    throw new ApiError('サーバーの応答を読み取れませんでした。接続を確認して再試行してください。', 0)
+  }
 
   if (!response.ok) {
     const message = typeof payload === 'object' && payload && 'message' in payload

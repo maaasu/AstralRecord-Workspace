@@ -21,6 +21,15 @@ public sealed class LegacyPathBoundaryTests : IDisposable
     }
 
     [Fact]
+    public void MissingJunctionTargetDoesNotBypassPathProtection()
+    {
+        LinkDirectory(_paths.Nodes, _outside);
+        Directory.Delete(_outside);
+
+        Assert.Throws<UnauthorizedAccessException>(() => new MasterDataPaths(_paths).Resolve("35.features.skilltree/nodes/1000.json"));
+    }
+
+    [Fact]
     public async Task SchemaReadListAndValidationRejectLinkedSchemaDirectory()
     {
         await File.WriteAllTextAsync(Path.Combine(_outside, "node.v1.schema.json"), "{\"title\":\"outside secret\"}");

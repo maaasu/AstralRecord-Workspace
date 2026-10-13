@@ -10,11 +10,17 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
     headers: { 'Content-Type': 'application/json' },
   }
   if (body !== undefined) init.body = JSON.stringify(body)
-  const response = await fetch(`${endpoint}${path}`, init)
-  const text = response.status === 204 ? '' : await response.text()
+  let response: Response
+  try { response = await fetch(`${endpoint}${path}`, init) }
+  catch { throw new ApiError('エディタのサーバーに接続できません。サーバーの起動と接続を確認して再試行してください。', 0) }
+  const text = response.status === 204 ? '' : await response.text().catch(() => {
+    throw new ApiError('サーバーの応答を受信できませんでした。接続を確認して再試行してください。', 0)
+  })
   let payload: unknown = text
   if (response.headers.get('content-type')?.includes('json') && text) {
-    try { payload = JSON.parse(text) } catch { /* Preserve the server response in the error. */ }
+    try { payload = JSON.parse(text) } catch {
+      if (response.ok) throw new ApiError('サーバーの応答を読み取れませんでした。再試行してください。', response.status)
+    }
   }
   if (!response.ok) {
     const details = payload && typeof payload === 'object' ? payload as { message?: string; title?: string } : undefined
