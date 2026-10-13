@@ -16,6 +16,21 @@ public final class PlayerTeleportService {
     }
 
     /**
+     * 現在のXYZを維持して、DBに保存した視線を参加transaction内で同期復元します。
+     * 操作状態の復元は通常移動の方向保持規則の例外です。
+     * @param player 復元対象。Bukkitメインスレッドから呼びます
+     * @param yaw 保存済みyaw
+     * @param pitch 保存済みpitch
+     * @return 転送がキャンセルされず方向を適用できた場合true
+     */
+    public static boolean restoreLookDirection(@NotNull Player player, float yaw, float pitch) {
+        Location current = player.getLocation();
+        current.setYaw(yaw);
+        current.setPitch(pitch);
+        return player.teleport(current);
+    }
+
+    /**
      * テレポート先の座標へ、移動前のプレイヤーの yaw / pitch を反映した Location を作成します。
      * 元の Location は変更せず、ワールド未設定などの検証は呼び出し側で行います。
      *

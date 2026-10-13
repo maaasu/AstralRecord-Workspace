@@ -43,14 +43,14 @@ class WorldJoinSpawnEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
      * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初参加・再参加とも管理外の初期位置を拠点へ置き換え、保存された視線を保持する。
+     * 検証契約: 初参加・再参加とも管理外の初期位置・視線を拠点マスターへ置き換え、DB操作状態は参加transactionで復元する。
      */
     @Test
     void initialSpawnOverridesUnmanagedWorldForNewAndReturningPlayers() {
         WorldService worldService = mock(WorldService.class);
         World baseWorld = mock(World.class);
         World unmanagedWorld = mock(World.class);
-        Location snapshot = new Location(baseWorld, 2.5, 72, -4.5, 0, 0);
+        Location snapshot = new Location(baseWorld, 2.5, 72, -4.5, 45, -10);
         when(worldService.getLoadedSpawnLocationSnapshot("join_base")).thenAnswer(ignored -> snapshot.clone());
         WorldJoinSpawnEventHandler handler = new WorldJoinSpawnEventHandler(
                 mock(AstralRecord.class), "join_base", worldService);
@@ -69,11 +69,11 @@ class WorldJoinSpawnEventHandlerTest {
             assertEquals(2.5, target.getValue().getX());
             assertEquals(72, target.getValue().getY());
             assertEquals(-4.5, target.getValue().getZ());
-            assertEquals(135, target.getValue().getYaw());
-            assertEquals(-25, target.getValue().getPitch());
+            assertEquals(45, target.getValue().getYaw());
+            assertEquals(-10, target.getValue().getPitch());
             assertSame(unmanagedWorld, original.getWorld());
         }
-        assertEquals(0, snapshot.getYaw());
+        assertEquals(45, snapshot.getYaw());
         verify(worldService, never()).getById(any());
         verify(worldService, never()).resolveOrLoadSpawnLocation(any());
     }

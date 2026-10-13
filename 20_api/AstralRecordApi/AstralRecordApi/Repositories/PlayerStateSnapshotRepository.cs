@@ -655,6 +655,7 @@ public sealed class PlayerStateSnapshotRepository(
             GuideProgress = baseAck.GuideProgress,
             AdventureRecords = baseAck.AdventureRecords,
             PlayTime = baseAck.PlayTime,
+            AccountControls = baseAck.AccountControls,
             PlayerSettings = baseAck.PlayerSettings,
             MailClaim = baseAck.MailClaim,
             MailDelete = baseAck.MailDelete,
@@ -678,6 +679,7 @@ public sealed class PlayerStateSnapshotRepository(
         JsonElement? guideProgressAck = null;
         JsonElement? adventureRecordsAck = null;
         JsonElement? playTimeAck = null;
+        JsonElement? accountControlsAck = null;
         JsonElement? playerSettingsAck = null;
         JsonElement? mailClaimAck = null;
         JsonElement? mailDeleteAck = null;
@@ -818,6 +820,22 @@ public sealed class PlayerStateSnapshotRepository(
             playTimeAck = JsonSerializer.SerializeToElement(new { accountId = account.Uuid, totalSeconds = account.PlayTimeSeconds }, JsonOptions);
         }
 
+        if (request.AccountControls.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateAccountControlsSection>(request.AccountControls.Value);
+            if (!IsValidAccountControls(section, request.AccountId))
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "accountControls section is invalid.");
+            if (account.ControlsVersion != section!.ExpectedVersion || account.ControlsVersion == int.MaxValue)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "accountControls section conflicts with current state.");
+            account.SelectedHotbarSlot = section.SelectedHotbarSlot;
+            account.ViewYaw = section.ViewYaw;
+            account.ViewPitch = section.ViewPitch;
+            account.ControlsVersion++;
+            account.UpdatedAt = now;
+            account.UpdatedBy = request.UpdatedBy;
+            accountControlsAck = JsonSerializer.SerializeToElement(new { accountId = account.Uuid, version = account.ControlsVersion }, JsonOptions);
+        }
+
         if (request.PlayerSettings.HasValue)
         {
             var section = TryDeserializeSection<PlayerStatePlayerSettingsSection>(request.PlayerSettings.Value);
@@ -866,6 +884,7 @@ public sealed class PlayerStateSnapshotRepository(
             GuideProgress = guideProgressAck,
             AdventureRecords = adventureRecordsAck,
             PlayTime = playTimeAck,
+            AccountControls = accountControlsAck,
             PlayerSettings = playerSettingsAck,
             MailClaim = mailClaimAck,
             MailDelete = mailDeleteAck,
@@ -2219,8 +2238,18 @@ public sealed class PlayerStateSnapshotRepository(
     private static DateTime FromEpochMillis(long value) =>
         DateTimeOffset.FromUnixTimeMilliseconds(value).UtcDateTime;
 
+    /// <summary>別アカウント、未定義slot、非有限角度、範囲外世代を拒否します。</summary>
+    private static bool IsValidAccountControls(PlayerStateAccountControlsSection? section, Guid accountId) =>
+        section is not null && section.AccountId == accountId && section.ExpectedVersion >= 0
+        && section.SelectedHotbarSlot is >= 0 and <= 8
+        && float.IsFinite(section.ViewYaw) && section.ViewYaw is >= -180 and < 180
+        && float.IsFinite(section.ViewPitch) && section.ViewPitch is >= -90 and <= 90;
+
     private static bool ValidateSections(PlayerStateSnapshotSaveRequest request)
     {
+        if (request.AccountControls is { } controlsJson
+            && !IsValidAccountControls(TryDeserializeSection<PlayerStateAccountControlsSection>(controlsJson), request.AccountId))
+            return false;
         if (request.PlayTime is { } playTimeJson)
         {
             var section = TryDeserializeSection<PlayerStatePlayTimeSection>(playTimeJson);

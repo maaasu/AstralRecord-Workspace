@@ -321,15 +321,19 @@ final class PlayerStateSnapshot {
             for (String name : List.of(
                 "learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones",
                 "questState", "loginBonusClaims", "guideProgress", "adventureRecords", "playerSettings",
-                "mailClaim", "mailDelete", PlayerPlayTimeService.SECTION_NAME
+                "mailClaim", "mailDelete", PlayerPlayTimeService.SECTION_NAME,
+                io.github.maaasu.astralRecord.feature.player.service.PlayerControlsService.SECTION_NAME
             )) {
                 if (!request.has(name)) continue;
                 JsonObject section = request.getAsJsonObject(name);
                 JsonObject received = ack.getAsJsonObject(name);
-                if (!PlayerPlayTimeService.SECTION_NAME.equals(name)) {
+                if (!PlayerPlayTimeService.SECTION_NAME.equals(name)
+                    && !io.github.maaasu.astralRecord.feature.player.service.PlayerControlsService.SECTION_NAME.equals(name)) {
                     requireEqual(section.get("clientRevision"), received.get("clientRevision"));
                 }
                 switch (name) {
+                    case io.github.maaasu.astralRecord.feature.player.service.PlayerControlsService.SECTION_NAME ->
+                        io.github.maaasu.astralRecord.feature.player.service.PlayerControlsService.validateAcknowledgement(section, received);
                     case PlayerPlayTimeService.SECTION_NAME -> PlayerPlayTimeService.validateAcknowledgement(section, received);
                     case "learnedSkills" -> {
                         requireSectionVersions(section.getAsJsonArray("skills"), received, "learnedSkillId");

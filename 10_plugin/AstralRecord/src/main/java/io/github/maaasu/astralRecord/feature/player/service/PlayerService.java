@@ -53,6 +53,12 @@ public class PlayerService {
     private final PlayerSaveCoordinator playerSaveCoordinator;
     private final PlayerRegionService playerRegionService;
     private PlayerPlayTimeService playTimeService;
+    private PlayerControlsService controlsService;
+
+    /** 操作状態を参加transactionと保存境界へ接続します。初期化時に一度呼びます。
+     * @param service 操作状態の捕捉・復元サービス
+     */
+    public void setControlsService(@NotNull PlayerControlsService service) { controlsService = java.util.Objects.requireNonNull(service); }
     private java.util.function.Consumer<AstPlayer> logoutStateSavedListener = ignored -> { };
 
     /** 全退出保存のACK後、inventory解放前に呼ぶ非同期境界処理を登録する。Bukkit APIは使用しない。 */
@@ -187,13 +193,14 @@ public class PlayerService {
     public @NotNull PlayerJoinInventoryState loadPlayerJoinInventoryState(@NotNull AccountModel account) {
         inventorySaveCoordinator.awaitQueuedSaves(account.getUuid()).join();
         if(petService!=null){petService.flush(account.getUuid()).join();petService.loadAccount(account.getUuid());}
+        var controls = controlsService == null ? null : controlsService.load(account.getUuid());
         InventorySaveCoordinator.RetainedStateLease retainedLease =
             inventorySaveCoordinator.claimRetainedState(account.getUuid());
         if (retainedLease != null) {
-            return new PlayerJoinInventoryState(retainedLease.state(), retainedLease);
+            return new PlayerJoinInventoryState(retainedLease.state(), retainedLease, controls);
         }
         PlayerInventoryState inventoryState = inventoryPersistence.load(account.getUuid());
-        return new PlayerJoinInventoryState(inventoryState, null);
+        return new PlayerJoinInventoryState(inventoryState, null, controls);
     }
 
     /**
@@ -274,6 +281,9 @@ public class PlayerService {
             playerRegionService.initializeRegion(application.astPlayer);
             // AstPlayerCache 登録後にコマンドツリーを再送し、permission 反映後の公開条件で同期する。
             player.updateCommands();
+            // hotbar描画と初回status計算は、復元した選択slotを装備正本として参照する。
+            if (controlsService != null && joinData.inventoryState().controls() != null)
+                controlsService.apply(player, joinData.inventoryState().controls());
             if (joinAccount.getMode().shouldReflectInventoryToGui()) {
                 inventoryService.applyInventoriesToGuiOnJoin(application.astPlayer);
             } else if (isToolInventoryMode(joinAccount.getMode())) {
@@ -347,6 +357,8 @@ public class PlayerService {
             throw new IllegalStateException("retained inventory state lease is no longer current");
         }
         application.committed = true;
+        if (controlsService != null && application.astPlayer != null && application.joinData.inventoryState().controls() != null)
+            controlsService.commit(application.astPlayer, application.joinData.inventoryState().controls());
         if(petRuntime!=null&&application.astPlayer!=null)petRuntime.refresh(application.astPlayer);
         if (playTimeService != null && application.astPlayer != null) {
             playTimeService.startSession(application.astPlayer);
@@ -399,6 +411,7 @@ public class PlayerService {
                 ? CompletableFuture.completedFuture(null) : petService.flush(accountId);
             return finishLogoutAfterRelatedSaves(save, petFlush, () -> {
                 if (petService != null) petService.releaseSavedAccount(accountId, petGeneration);
+                if (controlsService != null) controlsService.releaseSaved(logoutPlayer);
                 logoutStateSavedListener.accept(logoutPlayer);
             });
         }
@@ -446,6 +459,7 @@ public class PlayerService {
         player.updateCommands();
         return disposal.thenRun(() -> {
             if (playTimeService != null) playTimeService.discardAccountState(accountId);
+            if (controlsService != null) controlsService.discard(accountId);
         });
     }
 
@@ -458,6 +472,7 @@ public class PlayerService {
     public @NotNull CompletableFuture<Void> discardAccountStateForRecovery(@NotNull UUID accountId) {
         return inventorySaveCoordinator.discardAccountForRecovery(accountId).thenRun(() -> {
             if (playTimeService != null) playTimeService.discardAccountState(accountId);
+            if (controlsService != null) controlsService.discard(accountId);
         });
     }
 
@@ -512,6 +527,7 @@ public class PlayerService {
         }
         UUID accountId = astPlayer.getAccount().getUuid();
         if (playTimeService != null) playTimeService.discardAccountState(accountId);
+        if (controlsService != null) controlsService.discard(accountId);
         if(petRuntime!=null)petRuntime.dismiss(astPlayer);
         if(petService!=null)petService.forgetAccount(accountId);
         player.closeInventory();
@@ -629,11 +645,23 @@ public class PlayerService {
     ) {
     }
 
-    /** ログイン試行で読み込んだインベントリ state と保持 state の引き継ぎ情報です。 */
+    /** ログイン試行で読み込んだインベントリと操作state、保持stateの引き継ぎ情報です。
+     * @param state 未公開のinventory state
+     * @param retainedLease 保持inventoryのlease。新規読込ならnull
+     * @param controls 未公開の操作state。互換呼出しの場合null
+     */
     public record PlayerJoinInventoryState(
         @NotNull PlayerInventoryState state,
-        @Nullable InventorySaveCoordinator.RetainedStateLease retainedLease
+        @Nullable InventorySaveCoordinator.RetainedStateLease retainedLease,
+        @Nullable io.github.maaasu.astralRecord.feature.player.save.AccountControlsState controls
     ) {
+        /** 操作stateがない既存のテスト・呼出し元に互換な構築です。
+         * @param state 読込inventory state
+         * @param retainedLease 保持inventory leaseまたはnull
+         */
+        public PlayerJoinInventoryState(PlayerInventoryState state, InventorySaveCoordinator.RetainedStateLease retainedLease) {
+            this(state, retainedLease, null);
+        }
     }
 
     /**
@@ -682,7 +710,7 @@ public class PlayerService {
             player.getGameMode(),
             attributeBaseValue(player, Attribute.ENTITY_INTERACTION_RANGE),
             attributeBaseValue(player, Attribute.BLOCK_INTERACTION_RANGE),
-            contents
+            contents, player.getInventory().getHeldItemSlot(), player.getLocation().getYaw(), player.getLocation().getPitch()
         );
     }
 
@@ -694,6 +722,9 @@ public class PlayerService {
             runJoinRollbackStep(player, () -> GameModeChangeGuard.setGameMode(player, snapshot.gameMode()));
         }
         runJoinRollbackStep(player, () -> player.setOp(snapshot.op()));
+        runJoinRollbackStep(player, () -> player.getInventory().setHeldItemSlot(snapshot.selectedHotbarSlot()));
+        runJoinRollbackStep(player, () -> io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService.restoreLookDirection(
+            player, snapshot.viewYaw(), snapshot.viewPitch()));
         restoreAttributeBaseValue(player, Attribute.ENTITY_INTERACTION_RANGE, snapshot.entityInteractionRange());
         restoreAttributeBaseValue(player, Attribute.BLOCK_INTERACTION_RANGE, snapshot.blockInteractionRange());
     }
@@ -754,7 +785,8 @@ public class PlayerService {
         @Nullable GameMode gameMode,
         @Nullable Double entityInteractionRange,
         @Nullable Double blockInteractionRange,
-        @Nullable ItemStack[] inventoryContents
+        @Nullable ItemStack[] inventoryContents,
+        int selectedHotbarSlot, float viewYaw, float viewPitch
     ) {
     }
 

@@ -13,6 +13,10 @@ public class AccountResponse
     public long TotalExperience { get; set; }
     /// <summary>導入後の通常プレイモードで積算し、DBへ保存済みの累計秒数。</summary>
     public long PlayTimeSeconds { get; set; }
+    public int SelectedHotbarSlot { get; set; }
+    public float ViewYaw { get; set; }
+    public float ViewPitch { get; set; }
+    public int ControlsVersion { get; set; }
     public int HighestLevel { get; set; }
     public int? RebirthOriginalLevel { get; set; }
     public int RebirthExperienceRemainder { get; set; }

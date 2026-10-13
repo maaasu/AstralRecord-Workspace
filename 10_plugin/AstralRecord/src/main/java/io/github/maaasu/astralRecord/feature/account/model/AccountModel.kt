@@ -86,4 +86,9 @@ data class AccountModel @JvmOverloads constructor(
     val rebirthOriginalLevel: Int? = null,
     /** 転生中にEXPポイントへ未変換の経験値（0～99）。 */
     val rebirthExperienceRemainder: Int = 0,
+    /** アカウント所有の操作状態。アイテム内容・XYZは含みません。 */
+    val selectedHotbarSlot: Int = 0,
+    val viewYaw: Float = 0f,
+    val viewPitch: Float = 0f,
+    val controlsVersion: Int = 0,
 )

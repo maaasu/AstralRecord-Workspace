@@ -12,6 +12,10 @@ public class AccountEntity
     public int Level { get; set; } = 1;
     public long TotalExperience { get; set; }
     public long PlayTimeSeconds { get; set; }
+    public int SelectedHotbarSlot { get; set; }
+    public float ViewYaw { get; set; }
+    public float ViewPitch { get; set; }
+    public int ControlsVersion { get; set; }
     public int HighestLevel { get; set; } = 1;
     public int? RebirthOriginalLevel { get; set; }
     public int RebirthExperienceRemainder { get; set; }

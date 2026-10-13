@@ -29,6 +29,8 @@ public sealed class PlayerStateSnapshotSaveRequest
     public JsonElement? AdventureRecords { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? PlayTime { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? AccountControls { get; init; }
     public JsonElement? PlayerSettings { get; init; }
     public JsonElement? MailClaim { get; init; }
     public JsonElement? MailDelete { get; init; }
@@ -301,6 +303,21 @@ public sealed class PlayerStatePlayTimeSection
     public long DeltaSeconds { get; init; }
 }
 
+/// <summary>アカウントごとの選択ホットバーと視線を、専用世代付きで置換します。</summary>
+public sealed class PlayerStateAccountControlsSection
+{
+    [JsonRequired]
+    public Guid AccountId { get; init; }
+    [JsonRequired]
+    public int ExpectedVersion { get; init; }
+    [JsonRequired]
+    public int SelectedHotbarSlot { get; init; }
+    [JsonRequired]
+    public float ViewYaw { get; init; }
+    [JsonRequired]
+    public float ViewPitch { get; init; }
+}
+
 public sealed class PlayerStateMobDefeatDelta
 {
     public required string MobId { get; init; }
@@ -369,6 +386,8 @@ public sealed class PlayerStateSnapshotAck
     public JsonElement? AdventureRecords { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? PlayTime { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? AccountControls { get; init; }
     public JsonElement? PlayerSettings { get; init; }
     public JsonElement? MailClaim { get; init; }
     public JsonElement? MailDelete { get; init; }

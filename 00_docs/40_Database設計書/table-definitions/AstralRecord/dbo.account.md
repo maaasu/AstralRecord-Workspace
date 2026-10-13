@@ -31,6 +31,10 @@
 | `level`        | `INT`              |    |    ○    |  `1`   | プレイヤーレベル。初期値は `1`、最小値も `1`                             |
 | `total_experience` | `BIGINT`       |    |    ○    |  `0`   | 現在のレベル進行に用いる累計経験値。転生開始・終了時は対応する基準値へ置換し、負数不可 |
 | `play_time_seconds` | `BIGINT` | | ○ | `0` | 導入後の通常プレイ（PLAYERモード）累計秒数。player-state差分を冪等加算。アカウント複製時は0から開始 |
+| `selected_hotbar_slot` | `INT` | | ○ | `0` | アカウント所有のBukkit選択slot（0～8）、ADMIN/PLAYER共通 |
+| `view_yaw` | `REAL` | | ○ | `0` | 視線yaw、-180以上180未満 |
+| `view_pitch` | `REAL` | | ○ | `0` | 視線pitch、-90～90 |
+| `controls_version` | `INT` | | ○ | `0` | 操作状態専用の期待版、snapshot保存ごと+1、clone時0 |
 | `highest_level` | `INT` | | ○ | `1` | 過去最高プレイヤーレベル。PP算出元で、現在レベル以上 |
 | `rebirth_original_level` | `INT` | | | | 転生前レベル。転生中だけ現在レベルより大きい値を保持 |
 | `rebirth_experience_remainder` | `SMALLINT` | | ○ | `0` | EXPポイントへ未変換の転生中経験値（0～99） |
@@ -79,6 +83,7 @@
 
 | 制約名                  | カラム    | 条件                | 説明                     |
 |:---------------------|:-------|:------------------|:-----------------------|
+| `CK_account_controls` | 操作4列 | slot0～8、yaw[-180,180)、pitch[-90,90]、version非負 | 操作状態の範囲を保証 |
 | `CK_account_mode`    | `mode` | `IN (0, 2)`    | 権限モードの有効値を制限する         |
 | `CK_account_menu_shortcuts_json` | `menu_shortcuts_json` | `ISJSON(menu_shortcuts_json) = 1` | shortcut settings JSON validation |
 | `CK_account_level` | `level` | `>= 1` | レベルの下限を制限する |
@@ -95,6 +100,7 @@
 
 | 制約名                              | カラム                   | 値                                                                                  |
 | :------------------------------- | :-------------------- | :--------------------------------------------------------------------------------- |
+| `DF_account_selected_hotbar_slot` / `DF_account_view_yaw` / `DF_account_view_pitch` / `DF_account_controls_version` | 操作4列 | `0` |
 | `DF_account_mode`                | `mode`                | `0`                                                                                |
 | `DF_account_is_active`           | `is_active`           | `0`                                                                                |
 | `DF_account_is_deleted`          | `is_deleted`          | `0`                                                                                |
@@ -135,6 +141,10 @@ CREATE TABLE [dbo].[account] (
     [menu_shortcuts_json] NVARCHAR(MAX) NOT NULL  CONSTRAINT [DF_account_menu_shortcuts_json] DEFAULT (N'["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]'),
     [level]          INT               NOT NULL  CONSTRAINT [DF_account_level]        DEFAULT (1),
     [total_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_total_experience] DEFAULT (0),
+    [selected_hotbar_slot] INT NOT NULL CONSTRAINT [DF_account_selected_hotbar_slot] DEFAULT (0),
+    [view_yaw] REAL NOT NULL CONSTRAINT [DF_account_view_yaw] DEFAULT (0),
+    [view_pitch] REAL NOT NULL CONSTRAINT [DF_account_view_pitch] DEFAULT (0),
+    [controls_version] INT NOT NULL CONSTRAINT [DF_account_controls_version] DEFAULT (0),
     [highest_level]  INT               NOT NULL  CONSTRAINT [DF_account_highest_level] DEFAULT (1),
     [rebirth_original_level] INT       NULL,
     [rebirth_experience_remainder] SMALLINT NOT NULL CONSTRAINT [DF_account_rebirth_experience_remainder] DEFAULT (0),
@@ -157,6 +167,7 @@ CREATE TABLE [dbo].[account] (
         ON UPDATE NO ACTION,
     CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 2)),
     CONSTRAINT [CK_account_menu_shortcuts_json] CHECK (ISJSON([menu_shortcuts_json]) = 1),
+    CONSTRAINT [CK_account_controls] CHECK ([selected_hotbar_slot] BETWEEN 0 AND 8 AND [view_yaw] >= -180 AND [view_yaw] < 180 AND [view_pitch] BETWEEN -90 AND 90 AND [controls_version] >= 0),
     CONSTRAINT [CK_account_level] CHECK ([level] >= 1),
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
     CONSTRAINT [CK_account_highest_level] CHECK ([highest_level] >= [level]),

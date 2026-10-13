@@ -1543,8 +1543,12 @@ public final class AstralRecord extends JavaPlugin {
         damageService.setConditionService(conditionService);
         mobService.setConditionService(conditionService);
 
+        var playerControlsService = new io.github.maaasu.astralRecord.feature.player.service.PlayerControlsService(accountRepository);
+        inventoryPersistence.registerStateParticipant(playerControlsService::snapshotPlayerState);
+        inventoryAutoSaveTask.setControlsCapture(playerControlsService::capture);
         var playerSaveCoordinator = new PlayerSaveCoordinator(
             java.util.List.of(
+                playerControlsService,
                 new AccountClassProgressSaveTask(accountService),
                 new InventorySaveTask(inventoryService, inventoryStateRegistry, inventoryPersistence)
             )
@@ -1563,6 +1567,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerService.setPetServices(petService,petRuntimeService);
         playerService.setPlayTimeService(playerPlayTimeService);
+        playerService.setControlsService(playerControlsService);
         bossFieldInstanceService = new BossFieldInstanceService(this, worldService);
         String bossHubWorldId = getConfig().getString(
             "boss.hubWorldId",

@@ -558,6 +558,10 @@ class AccountRepository {
                     experience = get("classExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
                 )
             ),
+        selectedHotbarSlot = get("selectedHotbarSlot")?.asInt ?: 0,
+        viewYaw = get("viewYaw")?.asFloat ?: 0f,
+        viewPitch = get("viewPitch")?.asFloat ?: 0f,
+        controlsVersion = get("controlsVersion")?.asInt ?: 0,
         progressVersion = get("progressVersion")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
         highestLevel = get("highestLevel")?.takeIf { !it.isJsonNull }?.asInt
             ?: (get("level")?.takeIf { !it.isJsonNull }?.asInt ?: 1),

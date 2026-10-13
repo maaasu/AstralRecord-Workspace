@@ -38,6 +38,12 @@ public final class InventoryAutoSaveTask {
     private final PlayerSettingService playerSettingService;
     private final PlayerMessageService playerMessageService;
     private @org.jetbrains.annotations.Nullable BukkitTask task;
+    private java.util.function.Consumer<AstPlayer> controlsCapture = ignored -> { };
+
+    /** autosave開始前にメインスレッドで操作状態を捕捉する処理を登録します。
+     * @param capture 対象セッションのメインスレッド捕捉処理
+     */
+    public void setControlsCapture(java.util.function.Consumer<AstPlayer> capture) { controlsCapture = java.util.Objects.requireNonNull(capture); }
 
     /**
      * オートセーブタスクを構築します。
@@ -174,6 +180,7 @@ public final class InventoryAutoSaveTask {
     private void captureToolInventorySnapshots() {
         for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
             try {
+                controlsCapture.accept(astPlayer);
                 if (isToolInventoryMode(astPlayer.getAccount().getMode())) {
                     inventoryService.saveToolInventorySnapshot(astPlayer);
                 }

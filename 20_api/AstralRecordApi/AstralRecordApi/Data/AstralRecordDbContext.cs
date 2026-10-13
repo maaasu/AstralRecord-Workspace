@@ -413,6 +413,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.Level).HasColumnName("level");
             entity.Property(account => account.TotalExperience).HasColumnName("total_experience");
             entity.Property(account => account.PlayTimeSeconds).HasColumnName("play_time_seconds").HasDefaultValue(0L);
+            entity.Property(account => account.SelectedHotbarSlot).HasColumnName("selected_hotbar_slot").HasDefaultValue(0);
+            entity.Property(account => account.ViewYaw).HasColumnName("view_yaw").HasDefaultValue(0f);
+            entity.Property(account => account.ViewPitch).HasColumnName("view_pitch").HasDefaultValue(0f);
+            entity.Property(account => account.ControlsVersion).HasColumnName("controls_version").HasDefaultValue(0);
             entity.Property(account => account.HighestLevel).HasColumnName("highest_level");
             entity.Property(account => account.RebirthOriginalLevel).HasColumnName("rebirth_original_level");
             entity.Property(account => account.RebirthExperienceRemainder)

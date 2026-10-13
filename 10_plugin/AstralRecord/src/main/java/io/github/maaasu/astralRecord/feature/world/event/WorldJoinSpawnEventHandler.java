@@ -61,7 +61,7 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
 
     /**
      * 保存先ワールドが未ロードの場合も、初期ワールド情報の送信前に拠点スポーンを指定します。
-     * 非同期イベントでは事前に解決済みの位置だけを読み、保存された視線方向を保持します。
+     * 非同期イベントでは事前に解決済みのマスタ位置・既定方向を使い、DBの視線は参加transactionで復元します。
      *
      * @param event 参加前の非同期スポーン位置イベント
      */
@@ -72,9 +72,6 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
             Logger.log(LogId.W_5751, joinSpawnWorldId);
             return;
         }
-        Location originalLocation = event.getSpawnLocation();
-        spawnLocation.setYaw(originalLocation.getYaw());
-        spawnLocation.setPitch(originalLocation.getPitch());
         event.setSpawnLocation(spawnLocation);
     }
 
