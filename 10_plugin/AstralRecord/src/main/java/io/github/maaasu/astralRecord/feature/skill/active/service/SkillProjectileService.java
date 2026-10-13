@@ -540,7 +540,9 @@ public final class SkillProjectileService {
             }
             double stepDistance = Math.min(spec.speed(), spec.range() - travelled[0]);
             Location blockImpact = targetingService.blockImpact(current[0], currentDirection[0], stepDistance);
-            Location next = targetingService.clippedEnd(current[0], currentDirection[0], stepDistance);
+            Location next = targetingService.clippedEndUsingBlockImpact(
+                    current[0], currentDirection[0], stepDistance, blockImpact
+            );
             double actualDistance = current[0].distance(next);
             if (interceptor != null) {
                 double interceptionRange = blockImpact == null

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * プレイヤー発動スキルの Mob 当たり判定を一元化します。
@@ -218,26 +219,16 @@ public final class SkillTargetingService {
             double radius,
             int maxTargets
     ) {
-        return targets(player, mob -> {
-            return Double.isFinite(lineIntersectionDistance(
-                    targetBounds(mob),
-                    origin.toVector(),
-                    normalizedDirection,
-                    range,
-                    radius
-            ));
-        }).stream()
-                .sorted(Comparator
-                        .comparingDouble((MobInstance mob) -> lineIntersectionDistance(
-                                targetBounds(mob),
-                                origin.toVector(),
-                                normalizedDirection,
-                                range,
-                                radius
-                        ))
-                        .thenComparing(mob -> mob.instanceId().toString()))
+        Vector originVector = origin.toVector();
+        return targetCandidates(player.getWorld())
+                .filter(mob -> canTargetFishing(player.getUniqueId(), mob))
+                .map(mob -> new MobLineIntersection(mob, lineIntersectionDistance(
+                        targetBounds(mob), originVector, normalizedDirection, range, radius
+                )))
+                .filter(hit -> Double.isFinite(hit.distance()))
+                .sorted(MOB_LINE_INTERSECTION_ORDER)
                 .limit(Math.max(0, maxTargets))
-                .map(AstEntity::mob)
+                .map(hit -> AstEntity.mob(hit.mob()))
                 .toList();
     }
 
@@ -447,26 +438,29 @@ public final class SkillTargetingService {
             return List.of();
         }
         double radiusSquared = radius * radius;
-        return targets(world, mob -> {
-            if (ownerId == null && mobService.fishingCombat() != null
-                    && mobService.fishingCombat().isFishingMob(mob)) return false;
-            if (ownerId != null && !canTargetFishing(ownerId, mob)) return false;
-            BoundingBox bounds = targetBounds(mob);
-            double nearestX = Math.clamp(center.getX(), bounds.getMinX(), bounds.getMaxX());
-            double nearestZ = Math.clamp(center.getZ(), bounds.getMinZ(), bounds.getMaxZ());
-            double dx = nearestX - center.getX();
-            double dz = nearestZ - center.getZ();
-            Location targetCenter = targetCenter(mob);
-            return dx * dx + dz * dz <= radiusSquared
-                    && bounds.getMaxY() >= center.getY() - height
-                    && bounds.getMinY() <= center.getY() + height
-                    && (!requireLineOfSight || hasLineOfSight(center, targetCenter));
-        }).stream()
+        return targetCandidates(world)
+                .filter(mob -> ownerId == null
+                        ? mobService.fishingCombat() == null || !mobService.fishingCombat().isFishingMob(mob)
+                        : canTargetFishing(ownerId, mob))
+                .map(SkillTargetingService::geometry)
+                .filter(candidate -> {
+                    BoundingBox bounds = candidate.bounds();
+                    double nearestX = Math.clamp(center.getX(), bounds.getMinX(), bounds.getMaxX());
+                    double nearestZ = Math.clamp(center.getZ(), bounds.getMinZ(), bounds.getMaxZ());
+                    double dx = nearestX - center.getX();
+                    double dz = nearestZ - center.getZ();
+                    return dx * dx + dz * dz <= radiusSquared
+                            && bounds.getMaxY() >= center.getY() - height
+                            && bounds.getMinY() <= center.getY() + height
+                            && (!requireLineOfSight || hasLineOfSight(center, candidate.center()));
+                })
+                .map(candidate -> new MobTargetDistance(candidate.mob(),
+                        horizontalDistanceSquared(candidate.center(), center)))
                 .sorted(Comparator
-                        .comparingDouble((MobInstance mob) -> horizontalDistanceSquared(targetCenter(mob), center))
-                        .thenComparing(mob -> mob.instanceId().toString()))
+                        .comparingDouble(MobTargetDistance::distance)
+                        .thenComparing(candidate -> candidate.mob().instanceId().toString()))
                 .limit(Math.max(0, maxTargets))
-                .map(AstEntity::mob)
+                .map(candidate -> AstEntity.mob(candidate.mob()))
                 .toList();
     }
 
@@ -494,17 +488,18 @@ public final class SkillTargetingService {
         }
         double safeRadius = Math.max(0.0D, radius);
         double radiusSquared = safeRadius * safeRadius;
-        return targets(player, mob -> {
-            BoundingBox bounds = targetBounds(mob);
-            Location targetCenter = targetCenter(mob);
-            return squaredDistanceToBounds(center, bounds) <= radiusSquared
-                    && (!requireLineOfSight || hasLineOfSight(center, targetCenter));
-        }).stream()
+        return targetCandidates(player.getWorld())
+                .filter(mob -> canTargetFishing(player.getUniqueId(), mob))
+                .map(SkillTargetingService::geometry)
+                .map(candidate -> new MobSphereCandidate(candidate,
+                        squaredDistanceToBounds(center, candidate.bounds())))
+                .filter(candidate -> candidate.distanceSquared() <= radiusSquared
+                        && (!requireLineOfSight || hasLineOfSight(center, candidate.geometry().center())))
                 .sorted(Comparator
-                        .comparingDouble((MobInstance mob) -> squaredDistanceToBounds(center, targetBounds(mob)))
-                        .thenComparing(mob -> mob.instanceId().toString()))
+                        .comparingDouble(MobSphereCandidate::distanceSquared)
+                        .thenComparing(candidate -> candidate.geometry().mob().instanceId().toString()))
                 .limit(Math.max(0, maxTargets))
-                .map(AstEntity::mob)
+                .map(candidate -> AstEntity.mob(candidate.geometry().mob()))
                 .toList();
     }
 
@@ -588,11 +583,62 @@ public final class SkillTargetingService {
             return origin.clone();
         }
         Location impact = blockImpact(origin, normalizedDirection, safeRange);
+        return endBeforeBlock(origin, normalizedDirection, safeRange, impact);
+    }
+
+    /**
+     * 直前のblockImpactと同一線分の終点を、外部処理を挟まず解決します。
+     * 再正規化でray方向のdouble値が変わる場合は、従来と同じ再探索を行います。
+     * @param origin 直前の探索と同じ始点
+     * @param direction 直前の探索と同じ進行方向
+     * @param range 直前の探索と同じ距離
+     * @param impact 直前のblockImpact結果。未衝突ならnull
+     * @return clippedEndと同じ終点。入力は変更しません
+     */
+    @NotNull Location clippedEndUsingBlockImpact(
+            @NotNull Location origin, @NotNull Vector direction, double range, @Nullable Location impact
+    ) {
+        Vector normalizedDirection = normalized(direction);
+        double safeRange = Math.max(0.0D, range);
+        if (origin.getWorld() == null || safeRange <= 0.0D) {
+            return origin.clone();
+        }
+        Vector clippedTraceDirection = normalized(normalizedDirection);
+        if (!sameVectorBits(normalizedDirection, clippedTraceDirection)) {
+            impact = blockImpact(origin, normalizedDirection, safeRange);
+        }
+        return endBeforeBlock(origin, normalizedDirection, safeRange, impact);
+    }
+
+    /**
+     * 解決済みの正規化方向と衝突地点から、従来と同じ演算順で終点を返します。
+     * @param origin 始点。変更しません
+     * @param normalizedDirection この呼び出し専用の正規化済み方向。距離を乗算して変更します
+     * @param safeRange 非負へ補正済みの最大距離
+     * @param impact 同一worldの衝突地点。未衝突ならnull
+     * @return 未衝突なら射程終点、衝突なら0.1m手前にある新しい座標
+     */
+    private static @NotNull Location endBeforeBlock(
+            @NotNull Location origin, @NotNull Vector normalizedDirection,
+            double safeRange, @Nullable Location impact
+    ) {
         if (impact == null) {
             return origin.clone().add(normalizedDirection.multiply(safeRange));
         }
         double hitDistance = impact.distance(origin);
         return origin.clone().add(normalizedDirection.multiply(Math.max(0.0D, hitDistance - 0.1D)));
+    }
+
+    /**
+     * Vector.equalsの許容誤差を使わず、ray方向の各成分のbit一致を確認します。
+     * @param first 最初の探索方向。変更しません
+     * @param second 再探索時の方向。変更しません
+     * @return 全成分がDouble.doubleToLongBitsで一致する場合true
+     */
+    private static boolean sameVectorBits(@NotNull Vector first, @NotNull Vector second) {
+        return Double.doubleToLongBits(first.getX()) == Double.doubleToLongBits(second.getX())
+                && Double.doubleToLongBits(first.getY()) == Double.doubleToLongBits(second.getY())
+                && Double.doubleToLongBits(first.getZ()) == Double.doubleToLongBits(second.getZ());
     }
 
     /**
@@ -794,13 +840,21 @@ public final class SkillTargetingService {
             @NotNull World world,
             @NotNull Predicate<MobInstance> shape
     ) {
+        return targetCandidates(world).filter(shape).toList();
+    }
+
+    /**
+     * 今回の検索時点で有効な候補を返し、検索間・tick間では保持しません。
+     * @param world 検索対象world
+     * @return 死亡・NPC・別world・現在攻撃不能な釣り魚を除外する逐次stream
+     * @implNote Bukkitのメインスレッドで直ちに消費し、候補取得中に外部コールバックを実行しません
+     */
+    private @NotNull Stream<MobInstance> targetCandidates(@NotNull World world) {
         return mobService.getInstances().stream()
                 .filter(mob -> mob.state() != MobState.DEAD)
                 .filter(mob -> mob.template().category() != MobCategory.NPC)
                 .filter(mob -> mob.currentLocation().getWorld() == world)
-                .filter(this::isAvailableFishing)
-                .filter(shape)
-                .toList();
+                .filter(this::isAvailableFishing);
     }
 
     /** @return 通常Mob、または指定所有者が現在攻撃できる釣り魚ならtrue */
@@ -829,6 +883,20 @@ public final class SkillTargetingService {
         Location location = mob.currentLocation();
         Vector center = targetBounds(mob).getCenter();
         return new Location(location.getWorld(), center.getX(), center.getY(), center.getZ());
+    }
+
+    /**
+     * 1回の対象検索内でだけ、body boundsとその中心を共有します。
+     * @param mob 現在の対象候補。変更しません
+     * @return 今回取得したboundsとその体積中心を持つ検索専用の値
+     * @implNote Bukkitのメインスレッドで呼び出し、返却値を検索間・tick間へ保持しません
+     */
+    private static @NotNull MobGeometry geometry(@NotNull MobInstance mob) {
+        Location location = mob.currentLocation();
+        BoundingBox bounds = targetBounds(mob);
+        Vector center = bounds.getCenter();
+        return new MobGeometry(mob, bounds,
+                new Location(location.getWorld(), center.getX(), center.getY(), center.getZ()));
     }
 
     private static @NotNull BoundingBox targetBounds(@NotNull MobInstance mob) {
@@ -899,6 +967,15 @@ public final class SkillTargetingService {
     }
 
     private record MobLineIntersection(@NotNull MobInstance mob, double distance) {
+    }
+
+    private record MobGeometry(@NotNull MobInstance mob, @NotNull BoundingBox bounds, @NotNull Location center) {
+    }
+
+    private record MobTargetDistance(@NotNull MobInstance mob, double distance) {
+    }
+
+    private record MobSphereCandidate(@NotNull MobGeometry geometry, double distanceSquared) {
     }
 
     /** ブロック衝突地点と外向き面法線です。 */
