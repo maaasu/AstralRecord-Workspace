@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { Modal } from './Modal'
 
@@ -46,5 +47,26 @@ describe('modal keyboard and focus', () => {
       expect(background).not.toHaveBeenCalled()
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     } finally { window.removeEventListener('keydown', background) }
+  })
+
+  it('lets a nested picker own focus and Escape, then restores its parent', async () => {
+    function NestedDialogs() {
+      const [open, setOpen] = useState(false)
+      return <Modal ariaLabel="親の編集" onClose={vi.fn()}>
+        <button onClick={() => setOpen(true)}>選択画面を開く</button>
+        {open && createPortal(<Modal ariaLabel="候補の選択" onClose={() => setOpen(false)}><input aria-label="候補を検索" /><button>候補を選ぶ</button></Modal>, document.body)}
+      </Modal>
+    }
+    const user = userEvent.setup()
+    render(<NestedDialogs />)
+    await user.click(screen.getByRole('button', { name: '選択画面を開く' }))
+    expect(screen.getByRole('textbox', { name: '候補を検索' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('button', { name: '候補を選ぶ' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: '候補の選択' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '親の編集' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '選択画面を開く' })).toHaveFocus()
+    expect(document.body.style.overflow).toBe('hidden')
   })
 })
