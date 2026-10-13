@@ -16,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
+import io.github.maaasu.astralRecord.infrastructure.util.MasterDataPageUtil
+import io.github.maaasu.astralRecord.infrastructure.util.MasterDataPageUnavailableException
 import java.io.IOException
 import java.net.URLEncoder
 import java.net.http.HttpResponse
@@ -28,6 +30,27 @@ import java.util.Locale
  * GET `/api/skill`：一覧（[SkillSummary]）、GET `/api/skill/{skillId}`：詳細（[SkillDefinition]）。
  */
 class SkillRepository {
+
+    /**
+     * 同一世代の全詳細を100件ずつ取得し、単件APIと同じパーサで変換します。
+     * @return 全詳細。旧APIの404/405時だけ一覧・単件取得へ互換解決します
+     */
+    fun findAllDetails(): List<SkillDefinition> = try {
+        MasterDataPageUtil.fetchAll("/api/skill/details").mapNotNull { entry ->
+            val master = entry.getAsJsonObject("master")
+            try {
+                toDefinition(master)
+            } catch (e: Exception) {
+                val skillId = master.get("id").asString
+                val implementationId = master.get("implementationId").asString
+                val reason = e.message ?: e.javaClass.simpleName
+                Logger.log(LogId.W_5801, e, skillId, implementationId, reason)
+                null
+            }
+        }
+    } catch (e: MasterDataPageUnavailableException) {
+        findAll().mapNotNull { summary -> findById(summary.id) }
+    }
 
     /**
      * 全スキルの一覧を取得します。

@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassUnlockClassLevel
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
+import io.github.maaasu.astralRecord.infrastructure.util.MasterDataPageUtil
+import io.github.maaasu.astralRecord.infrastructure.util.MasterDataPageUnavailableException
 import java.io.IOException
 import java.net.URLEncoder
 import java.net.http.HttpResponse
@@ -21,6 +23,18 @@ import java.nio.charset.StandardCharsets
  * AstralRecord API を通じてクラス定義を取得するリポジトリ。
  */
 class ClassRepository {
+
+    /**
+     * 同一世代の全詳細を100件ずつ取得し、単件APIと同じパーサで変換します。
+     * @return 全詳細。旧APIの404/405時だけ一覧・単件取得へ互換解決します
+     */
+    fun findAllDetails(): List<ClassModel> = try {
+        MasterDataPageUtil.fetchAll("/api/class/details").map { entry ->
+            parseClass(entry.getAsJsonObject("master")).copy(responseBodySha256 = entry.get("responseBodySha256").asString)
+        }
+    } catch (e: MasterDataPageUnavailableException) {
+        findAll().mapNotNull { summary -> findById(summary.id) }
+    }
 
     /**
      * 全クラスの一覧（id/name/role）を取得します。

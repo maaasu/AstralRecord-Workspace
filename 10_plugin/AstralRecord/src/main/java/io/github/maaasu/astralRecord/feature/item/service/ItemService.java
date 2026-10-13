@@ -111,16 +111,9 @@ public class ItemService {
         MasterDataLoadProgress progress;
 
         try {
-            List<ItemSummary> summaries = itemRepository.findAll();
-            progress = new MasterDataLoadProgress(LogId.I_5204, summaries.size());
-            for (ItemSummary summary : summaries) {
-                ItemModel item = itemRepository.findById(summary.getId(), summary.getCategory());
-                if (item == null) {
-                    Logger.log(LogId.W_5200, summary.getCategory(), summary.getId());
-                    throw new IllegalStateException(
-                        "Item detail is unavailable: " + summary.getCategory() + ":" + summary.getId());
-                }
-
+            List<ItemModel> items = itemRepository.findAllDetails();
+            progress = new MasterDataLoadProgress(LogId.I_5204, items.size());
+            for (ItemModel item : items) {
                 snapshot.put(normalize(item.getId()), item);
                 categoryCounts.merge(item.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
                 progress.record(true);

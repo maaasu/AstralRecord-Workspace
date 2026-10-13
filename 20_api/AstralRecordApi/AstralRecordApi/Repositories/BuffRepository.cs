@@ -1,6 +1,6 @@
 using AstralRecordApi.Data;
 using AstralRecordApi.Models;
-using Microsoft.EntityFrameworkCore;
+using AstralRecordApi.Services;
 
 namespace AstralRecordApi.Repositories;
 
@@ -8,22 +8,14 @@ namespace AstralRecordApi.Repositories;
 /// MasterDataDB の <c>master_data_entry</c>（<c>master_type = buff</c>）から
 /// バフマスタを取得する。
 /// </summary>
-public class BuffRepository(MasterDataDbContext dbContext) : IBuffRepository
+public class BuffRepository(MasterDataDbContext dbContext, MasterDataCache? cache = null) : IBuffRepository
 {
     private const string MasterType = "buff";
+    private readonly MasterDataCatalog<BuffResponse> catalog = new(dbContext, cache ?? new(), MasterType);
 
     public IReadOnlyList<BuffSummaryResponse> GetAllSummaries()
     {
-        var payloads = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.MasterType == MasterType)
-            .OrderBy(entry => entry.MasterId)
-            .Select(entry => entry.PayloadJson)
-            .ToArray();
-
-        return payloads
-            .Select(MasterDataPayloadJson.Deserialize<BuffResponse>)
-            .Where(buff => buff is not null)
+        return catalog.Get().Items
             .Select(buff => new BuffSummaryResponse
             {
                 Id = buff!.Id,
@@ -39,16 +31,6 @@ public class BuffRepository(MasterDataDbContext dbContext) : IBuffRepository
 
     public BuffResponse? GetById(string buffId)
     {
-        var payload = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted
-                && entry.MasterType == MasterType
-                && entry.MasterId == buffId)
-            .Select(entry => entry.PayloadJson)
-            .FirstOrDefault();
-
-        return payload is null
-            ? null
-            : MasterDataPayloadJson.Deserialize<BuffResponse>(payload);
+        return catalog.Get().ById.GetValueOrDefault(buffId);
     }
 }

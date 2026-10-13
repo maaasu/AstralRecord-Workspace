@@ -51,6 +51,8 @@ import io.github.maaasu.astralRecord.feature.item.model.EnchantTarget
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
+import io.github.maaasu.astralRecord.infrastructure.util.MasterDataPageUtil
+import io.github.maaasu.astralRecord.infrastructure.util.MasterDataPageUnavailableException
 import java.io.IOException
 import java.net.URLEncoder
 import java.net.http.HttpRequest
@@ -63,6 +65,19 @@ import kotlin.math.min
  * AstralRecord API を通じてアイテム定義を取得するリポジトリ。
  */
 class ItemRepository {
+
+    /**
+     * 同一世代の全詳細を100件ずつ取得し、単件APIと同じパーサで変換します。
+     * @return 全詳細。旧APIの404/405時だけ一覧・単件取得へ互換解決します
+     */
+    fun findAllDetails(): List<ItemModel> = try {
+        MasterDataPageUtil.fetchAll("/api/item/details").map { entry ->
+            parseItem(entry.getAsJsonObject("master")).copy(responseBodySha256 = entry.get("responseBodySha256").asString)
+        }
+    } catch (e: MasterDataPageUnavailableException) {
+        findAll().map { summary -> findById(summary.id, summary.category)
+                ?: throw IOException("Item detail unavailable: ${summary.id}") }
+    }
 
     /**
      * 全カテゴリのアイテム一覧（id/category）を取得します。
@@ -100,14 +115,7 @@ class ItemRepository {
             return emptyList()
         }
 
-        val summaries = findAll().filter { it.category.equals(normalizedCategory, ignoreCase = true) }
-        val items = mutableListOf<ItemModel>()
-        for (summary in summaries) {
-            val item = findById(summary.id, summary.category)
-            if (item != null) {
-                items += item
-            }
-        }
+        val items = findAllDetails().filter { it.category.equals(normalizedCategory, ignoreCase = true) }
 
         Logger.log(LogId.D_5202, normalizedCategory, items.size)
         return items

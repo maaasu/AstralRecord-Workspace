@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using AstralRecordApi.Controllers;
@@ -37,9 +38,14 @@ public sealed class PlayerAdminCatalogSerializationTests
                 }],
             },
         };
-        var response = Assert.IsType<OkObjectResult>(new ItemController(new ItemStub(item)).GetById(item.Id));
-        Assert.Equal(JsonSerializer.Serialize(item, CatalogOptions()),
-            await WriteMvcResponseAsync(response));
+        var response = Assert.IsType<OkObjectResult>(await new ItemController(new ItemStub(item)).GetById(item.Id));
+        var wire = await WriteMvcResponseAsync(response);
+        Assert.Equal(JsonSerializer.Serialize(item, CatalogOptions()), wire);
+        var bulk = Assert.IsType<OkObjectResult>(await new ItemController(new ItemStub(item)).GetDetails());
+        var page = Assert.IsType<MasterDataPageResponse<MasterDataDetailResponse<ItemResponse>>>(bulk.Value);
+        var entry = Assert.Single(page.Items);
+        Assert.Same(item, entry.Master);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(wire))), entry.ResponseBodySha256);
     }
 
     [Fact]
@@ -51,10 +57,24 @@ public sealed class PlayerAdminCatalogSerializationTests
             Order = 1, ShortName = "Mage", Role = "DAMAGE", BaseStats = [],
             UnlockClassLevel = [new ClassUnlockClassLevelResponse { ClassId = "novice", Level = 10 }],
         };
-        var response = Assert.IsType<OkObjectResult>(new ClassController(new ClassStub(definition))
+        var response = Assert.IsType<OkObjectResult>(await new ClassController(new ClassStub(definition))
             .GetById(definition.Id));
-        Assert.Equal(JsonSerializer.Serialize(definition, CatalogOptions()),
-            await WriteMvcResponseAsync(response));
+        var wire = await WriteMvcResponseAsync(response);
+        Assert.Equal(JsonSerializer.Serialize(definition, CatalogOptions()), wire);
+        var bulk = Assert.IsType<OkObjectResult>(await new ClassController(new ClassStub(definition)).GetDetails());
+        var page = Assert.IsType<MasterDataPageResponse<MasterDataDetailResponse<ClassResponse>>>(bulk.Value);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(wire))), Assert.Single(page.Items).ResponseBodySha256);
+    }
+
+    [Fact]
+    public async Task DetailPages_RejectInvalidBoundsAndChangedGeneration()
+    {
+        var item = new ItemResponse { SchemaVersion = 1, Id = "a", Category = "material", Name = "a", Icon = "PAPER", Rarity = "COMMON" };
+        var controller = new ItemController(new ItemStub(item));
+        Assert.IsType<BadRequestResult>(await controller.GetDetails(-1));
+        Assert.IsType<BadRequestResult>(await controller.GetDetails(limit: 0));
+        Assert.IsType<BadRequestResult>(await controller.GetDetails(limit: 101));
+        Assert.IsType<ConflictResult>(await controller.GetDetails(generation: "old"));
     }
 
     private static async Task<string> WriteMvcResponseAsync(OkObjectResult response)
@@ -78,12 +98,16 @@ public sealed class PlayerAdminCatalogSerializationTests
     private sealed class ItemStub(ItemResponse item) : IItemRepository
     {
         public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() => [];
+        public Task<MasterDataPageResponse<ItemResponse>> GetDetailsAsync(int offset, int limit, CancellationToken cancellationToken = default)
+            => Task.FromResult(new MasterDataPageResponse<ItemResponse>("generation", 1, [item]));
         public ItemResponse? GetById(string itemId) => itemId == item.Id ? item : null;
     }
 
     private sealed class ClassStub(ClassResponse definition) : IClassRepository
     {
         public IReadOnlyList<ClassSummaryResponse> GetAllSummaries() => [];
+        public Task<MasterDataPageResponse<ClassResponse>> GetDetailsAsync(int offset, int limit, CancellationToken cancellationToken = default)
+            => Task.FromResult(new MasterDataPageResponse<ClassResponse>("generation", 1, [definition]));
         public ClassResponse? GetById(string classId) => classId == definition.Id ? definition : null;
     }
 }
