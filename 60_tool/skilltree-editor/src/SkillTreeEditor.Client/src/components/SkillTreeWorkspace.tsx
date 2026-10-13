@@ -82,6 +82,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [nodeDirty, setNodeDirty] = useState(false)
   const [settingsDirty, setSettingsDirty] = useState(false)
+  const [inspectorDirty, setInspectorDirty] = useState(false)
+  const [inspectorInputValid, setInspectorInputValid] = useState(true)
   const [report, setReport] = useState<ValidationReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -105,7 +107,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   const structures = useMemo(() => structureDocuments.map((document) => document.content), [structureDocuments])
   const currentStructure = history.present
   const dirty = Boolean(selectedStructureId) && JSON.stringify(currentStructure) !== savedSnapshot
-  const anyDirty = dirty || nodeDirty || settingsDirty
+  const anyDirty = dirty || nodeDirty || settingsDirty || inspectorDirty
   useEffect(() => { onDirtyChange(anyDirty) }, [anyDirty, onDirtyChange])
   const placedIds = useMemo(() => new Set(currentStructure.nodes.map((node) => node.nodeId)), [currentStructure.nodes])
   const selectedMaster = nodes.find((node) => node.nodeId === selectedNodeId) ?? null
@@ -200,26 +202,60 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   }, [anyDirty])
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (!active || saving) return
+      if (!active || saving || !inspectorInputValid) return
       const target = event.target as HTMLElement | null
       if (target?.matches('input, textarea, select') || nodeEditor || settingsOpen) return
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'z') {
         event.preventDefault()
+        if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
+        if (inspectorDirty) setSelectedNodeId(null)
         if (event.shiftKey) history.redo()
         else history.undo()
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'y') {
         event.preventDefault()
+        if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
+        if (inspectorDirty) setSelectedNodeId(null)
         history.redo()
       }
     }
     window.addEventListener('keydown', keyboard)
     return () => window.removeEventListener('keydown', keyboard)
-  }, [active, history, nodeEditor, settingsOpen, saving])
+  }, [active, history, nodeEditor, settingsOpen, saving, inspectorDirty, inspectorInputValid])
+
+  const selectNode = (nodeId: string | null) => {
+    if (saving || nodeId === selectedNodeId) return
+    if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して別のノードへ移動しますか？')) return
+    setSelectedNodeId(nodeId)
+  }
+
+  const editMaster = (node: NodeMaster) => {
+    if (saving) return
+    if (inspectorDirty && node === selectedMaster) {
+      if (!window.confirm('インスペクターの未保存の入力を破棄してノード編集を開きますか？')) return
+      setSelectedNodeId(null)
+    }
+    setNodeEditor({ node, isNew: false, revision: nodeDocuments.find((document) => document.content.nodeId === node.nodeId)?.revision })
+  }
+
+  const changeHistory = (redo: boolean) => {
+    if (saving || !inspectorInputValid) return
+    if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
+    if (inspectorDirty) setSelectedNodeId(null)
+    if (redo) history.redo()
+    else history.undo()
+  }
+
+  const recordCanvas = (value: StructureDocument) => {
+    if (saving || !inspectorInputValid) return
+    if (selectedNodeId && inspectorDirty && !value.nodes.some((node) => node.nodeId === selectedNodeId)
+        && !window.confirm('インスペクターの未保存の入力を破棄して配置を削除しますか？')) return
+    history.record(value)
+  }
 
   const selectStructure = (structureId: string) => {
     if (saving) return
-    if (dirty && !window.confirm('未保存の構造変更を破棄しますか？')) return
+    if ((dirty || inspectorDirty) && !window.confirm('未保存の構造またはインスペクターの変更を破棄しますか？')) return
     const selected = structures.find((structure) => structure.structureId === structureId)
     if (!selected) return
     setSelectedStructureId(structureId)
@@ -231,6 +267,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
 
   const createStructure = async () => {
     if (saving) return
+    if ((dirty || inspectorDirty) && !window.confirm('未保存の構造またはインスペクターの変更を破棄して、新しい構造を作成しますか？')) return
     if (!nodes.length) {
       setError('構造を作る前にノードマスターを1件以上作成してください。')
       return
@@ -277,6 +314,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
 
   const saveStructure = async () => {
     if (!selectedStructureId || saving) return
+    if (!inspectorInputValid) { setError('インスペクターの数値を修正し、座標入力を確定してから保存してください。'); return }
     setSaving(true)
     setError('')
     try {
@@ -302,7 +340,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   }
 
   const autoLayout = () => {
-    if (saving || !selectedStructureId || currentStructure.nodes.length === 0) return
+    if (saving || !inspectorInputValid || !selectedStructureId || currentStructure.nodes.length === 0) return
     if (!window.confirm('現在のX/Z座標を補助自動配置で置き換えますか？（Undoで戻せます）')) return
     history.record(applyAuxiliaryLayout(currentStructure))
     setNotice('補助自動配置を適用しました。最終座標は構造JSONへ明示保存されます。')
@@ -391,6 +429,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   }
 
   const saveSelectedMaster = async (draft: NodeMaster): Promise<NodeMaster | null> => {
+    if (saving || !inspectorInputValid) return null
     setSaving(true)
     setError('')
     try {
@@ -454,11 +493,12 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             if (anyDirty && !window.confirm('未保存の編集を破棄して再読み込みしますか？')) return
             setNodeEditor(null)
             setSettingsOpen(false)
+            setSelectedNodeId(null)
             void load()
           }}>再読み込み</button>
-          <button className="icon-button" onClick={history.undo} disabled={saving || !history.canUndo} title="Undo (Ctrl+Z)">↶</button>
-          <button className="icon-button" onClick={history.redo} disabled={saving || !history.canRedo} title="Redo (Ctrl+Y)">↷</button>
-          <button className="button subtle" onClick={autoLayout} disabled={saving || !selectedStructureId || currentStructure.nodes.length === 0}>補助自動配置</button>
+          <button className="icon-button" onClick={() => changeHistory(false)} disabled={saving || !inspectorInputValid || !history.canUndo} title="Undo (Ctrl+Z)">↶</button>
+          <button className="icon-button" onClick={() => changeHistory(true)} disabled={saving || !inspectorInputValid || !history.canRedo} title="Redo (Ctrl+Y)">↷</button>
+          <button className="button subtle" onClick={autoLayout} disabled={saving || !inspectorInputValid || !selectedStructureId || currentStructure.nodes.length === 0}>補助自動配置</button>
           <span className={dirty ? 'save-state dirty' : 'save-state'}>{dirty ? '未保存' : '保存済み'}</span>
           <button className="button subtle" onClick={retryIcons} title="取得に失敗したMinecraftアイコンを再読み込み">アイコン再読込</button>
           <div className="pane-toggles" role="group" aria-label="表示パネル">
@@ -471,15 +511,20 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
                 className={`button compact pane-toggle ${visiblePanes[pane] ? 'active' : ''}`}
                 key={pane}
                 type="button"
+                disabled={saving}
                 aria-pressed={visiblePanes[pane]}
-                onClick={() => setVisiblePanes((current) => ({ ...current, [pane]: !current[pane] }))}
+                onClick={() => {
+                  if (pane === 'details' && visiblePanes.details && inspectorDirty
+                      && !window.confirm('インスペクターの未保存の入力を破棄して詳細を閉じますか？')) return
+                  setVisiblePanes((current) => ({ ...current, [pane]: !current[pane] }))
+                }}
               >
                 {label}
               </button>
             ))}
           </div>
           <button className="button" onClick={() => setSettingsOpen(true)}>表示設定</button>
-          <button className="button primary" onClick={() => void saveStructure()} disabled={!dirty || saving || !selectedStructureId}>
+          <button className="button primary" onClick={() => void saveStructure()} disabled={!dirty || saving || !inspectorInputValid || !selectedStructureId}>
             {saving ? '保存中…' : '構造を保存'}
           </button>
         </div>
@@ -504,7 +549,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             selectedTag={selectedTag}
             onQueryChange={setQuery}
             onTagChange={setSelectedTag}
-            onEdit={(node) => setNodeEditor({ node, isNew: false, revision: nodeDocuments.find((document) => document.content.nodeId === node.nodeId)?.revision })}
+            onEdit={editMaster}
             onCreate={openNewNode}
             iconRevision={iconRevision}
             skillMasters={skillMasters}
@@ -512,7 +557,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
           />
         )}
         center={(
-          <section className="canvas-column" inert={saving} aria-busy={saving}>
+          <section className="canvas-column" inert={saving || !inspectorInputValid} aria-busy={saving}>
             <div className={`simulation-toolbar ${simulationEnabled ? 'active' : ''}`}>
               <label className="simulation-toggle">
                 <input
@@ -562,12 +607,12 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
               <SkillTreeCanvas
                 structure={currentStructure}
                 masters={nodes}
-                onRecord={(value) => { if (!saving) history.record(value) }}
-                onReplace={(value) => { if (!saving) history.replace(value) }}
-                onBeginTransaction={() => { if (!saving) history.beginTransaction() }}
-                onCommitTransaction={() => { if (!saving) history.commitTransaction() }}
-                onSelectedNode={setSelectedNodeId}
-                onEditMaster={(node) => setNodeEditor({ node, isNew: false, revision: nodeDocuments.find((document) => document.content.nodeId === node.nodeId)?.revision })}
+                onRecord={recordCanvas}
+                onReplace={(value) => { if (!saving && inspectorInputValid) history.replace(value) }}
+                onBeginTransaction={() => { if (!saving && inspectorInputValid) history.beginTransaction() }}
+                onCommitTransaction={() => { if (!saving && inspectorInputValid) history.commitTransaction() }}
+                onSelectedNode={selectNode}
+                onEditMaster={editMaster}
                 onNotify={setNotice}
                 iconRevision={iconRevision}
                 visibleNodeIds={simulationVisibleNodeIds}
@@ -587,14 +632,21 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
               structure={currentStructure}
               master={selectedMaster}
               saving={saving}
+              onDirtyChange={setInspectorDirty}
+              onInputValidityChange={setInspectorInputValid}
               iconRevision={iconRevision}
               materialSuggestions={minecraftMaterialSuggestions}
               tagSuggestions={tagSuggestions}
               skillMasters={skillMasters}
               classMasters={classMasters}
-              onChange={(value) => { if (!saving) history.record(value) }}
+              onChange={(value) => {
+                if (saving) return
+                if (selectedNodeId && inspectorDirty && !value.nodes.some((node) => node.nodeId === selectedNodeId)
+                    && !window.confirm('インスペクターの未保存の入力を破棄して配置を削除しますか？')) return
+                history.record(value)
+              }}
               onSaveMaster={saveSelectedMaster}
-              onEditMaster={(node) => setNodeEditor({ node, isNew: false, revision: nodeDocuments.find((document) => document.content.nodeId === node.nodeId)?.revision })}
+              onEditMaster={editMaster}
               onRetryIcons={retryIcons}
             />
             <ValidationPanel

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeMaster, StructureDocument } from '../types/editor'
 import { PlacementInspector } from './PlacementInspector'
@@ -26,6 +27,39 @@ const structure: StructureDocument = {
 }
 
 describe('PlacementInspector', () => {
+  it('マスター保存待機中は実入力をdisabledにして追加入力を受け付けない', async () => {
+    let finishSave!: (value: NodeMaster) => void
+    const onSaveMaster = vi.fn(() => new Promise<NodeMaster>((resolve) => { finishSave = resolve }))
+    render(<PlacementInspector nodeId="1012" structure={structure} master={master} saving={false} iconRevision={0}
+      onChange={vi.fn()} onSaveMaster={onSaveMaster} onEditMaster={vi.fn()} onRetryIcons={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('名前'), { target: { value: '保存する名前' } })
+    fireEvent.click(screen.getByRole('button', { name: 'マスター定義を保存' }))
+    await waitFor(() => expect(onSaveMaster).toHaveBeenCalledOnce())
+    for (const label of ['名前', 'X', 'Y', 'Z', 'コスト', 'ポイント種別', 'タグを追加']) {
+      expect((screen.getByLabelText(label) as HTMLInputElement).disabled).toBe(true)
+    }
+    fireEvent.change(screen.getByLabelText('名前'), { target: { value: '保存待ち中の入力' } })
+    expect(screen.getByLabelText('名前')).toHaveValue('保存する名前')
+    await act(async () => finishSave({ ...master, name: '保存する名前' }))
+    expect(screen.getByLabelText('名前')).toHaveValue('保存する名前')
+    expect((screen.getByLabelText('名前') as HTMLInputElement).disabled).toBe(false)
+  })
+
+  it.each([['X', ''], ['X', '-'], ['X', '1.25'], ['X', '2147483648'], ['コスト', ''], ['コスト', '1.5'], ['コスト', '-1'], ['コスト', '2147483648']])('不正な%s=%sを保持し、日本語エラーと保存抑止を表示する', (label, value) => {
+    const onChange = vi.fn()
+    const onDirtyChange = vi.fn()
+    render(<PlacementInspector nodeId="1012" structure={structure} master={master} saving={false} iconRevision={0}
+      onChange={onChange} onSaveMaster={vi.fn()} onEditMaster={vi.fn()} onRetryIcons={vi.fn()} onDirtyChange={onDirtyChange} />)
+    fireEvent.change(screen.getByLabelText('名前'), { target: { value: '編集中' } })
+    const input = screen.getByLabelText(label)
+    fireEvent.change(input, { target: { value } })
+    fireEvent.blur(input)
+    expect(input).toHaveValue(value)
+    expect(screen.getByRole('alert')).toHaveTextContent(label === 'コスト' ? '整数' : '0.1単位')
+    expect(screen.getByRole('button', { name: 'マスター定義を保存' })).toBeDisabled()
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+  })
   it('shows the unlock class in the cost summary', () => {
     render(
       <PlacementInspector
@@ -54,21 +88,25 @@ describe('PlacementInspector', () => {
     const onChange = vi.fn()
     const onSaveMaster = vi.fn(async (node: NodeMaster) => node)
 
-    render(
+    function Harness() {
+      const [currentStructure, setCurrentStructure] = useState(structure)
+      return (
       <PlacementInspector
         nodeId="1012"
-        structure={structure}
+        structure={currentStructure}
         master={master}
         saving={false}
         iconRevision={0}
         materialSuggestions={['NETHER_STAR', 'DIAMOND_SWORD']}
         tagSuggestions={['root', 'combat']}
-        onChange={onChange}
+        onChange={(value) => { onChange(value); setCurrentStructure(value) }}
         onSaveMaster={onSaveMaster}
         onEditMaster={vi.fn()}
         onRetryIcons={vi.fn()}
-      />,
-    )
+      />
+      )
+    }
+    render(<Harness />)
 
     expect(screen.getByRole('heading', { name: '旅立ちの記録' })).toBeInTheDocument()
     expect(screen.getByLabelText('Minecraft Material')).toHaveAttribute('list')
@@ -123,6 +161,15 @@ describe('PlacementInspector', () => {
       ...structure,
       nodes: [{ nodeId: '1012', x: 1.2, y: 64, z: 0 }],
     })
+  })
+
+  it('別の座標更新でも入力途中の数値を保持する', () => {
+    const props = { nodeId: '1012', master, saving: false, iconRevision: 0, onChange: vi.fn(), onSaveMaster: vi.fn(), onEditMaster: vi.fn(), onRetryIcons: vi.fn() }
+    const { rerender } = render(<PlacementInspector {...props} structure={structure} />)
+    fireEvent.change(screen.getByLabelText('X'), { target: { value: '-' } })
+    rerender(<PlacementInspector {...props} structure={{ ...structure, nodes: [{ ...structure.nodes[0], y: 65 }] }} />)
+    expect(screen.getByLabelText('X')).toHaveValue('-')
+    expect(screen.getByLabelText('Y')).toHaveValue('65')
   })
 
   it('selects the target class for a CP node', async () => {
