@@ -601,6 +601,7 @@ public class AccountRepositoryTests
                 CreatedBy = targetUserId, UpdatedBy = targetUserId,
             });
             var source = CreateAccount(sourceAccountId, sourceUserId, 3, true, now);
+            source.Mode = 2;
             source.AccountName = "Source_1";
             source.Level = 12;
             source.TotalExperience = 3456;

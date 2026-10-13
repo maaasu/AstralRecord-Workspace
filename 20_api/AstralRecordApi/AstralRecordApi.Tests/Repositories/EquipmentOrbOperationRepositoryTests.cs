@@ -546,6 +546,49 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
     }
 
+    [Theory]
+    [InlineData("REROLL_VALUE_RANDOM")]
+    [InlineData("REMOVE_RANDOM")]
+    [InlineData("LOCK_FIRST")]
+    public async Task EnchantMutation_InvalidClientStateDiscardsMutationAndReplaysFailure(string operation)
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.AddEnchantAsync(0, "locked", "ATTACK", "FLAT", 15, isLocked: true);
+        await harness.AddEnchantAsync(1, "critical", "CRITICAL_RATE", "FLAT", 19);
+        var before = await harness.GetEnchantsAsync();
+        var parentBefore = await harness.GetEquipmentAsync();
+        harness.SetEnchantMaster(CreateEnchantMaster(
+            CreateEnchantEntry("critical", "CRITICAL_RATE", "FLAT", "30", 1)));
+        var orb = await harness.AddOrbAsync("invalid_enchant", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT", EnchantMasterId = "enchant001", EnchantOperation = operation,
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "invalid_enchant", orb);
+        request.ClientState = new EquipmentOrbClientState
+        {
+            BaseEnhanceLevel = 0, BaseTranscendenceRank = 0, EnhanceLevel = 1,
+        };
+
+        var result = await harness.ExecuteAsync(request);
+        var replay = await harness.ExecuteAsync(request);
+
+        Assert.Equal("INVALID", result.Result);
+        Assert.Equal("INVALID", replay.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.False(replay.PaymentConsumed);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+        var after = await harness.GetEnchantsAsync();
+        Assert.Equal(before.Select(enchant => (enchant.EnchantId, enchant.SlotIndex, enchant.EnchantMasterId,
+                enchant.EffectId, enchant.Status, enchant.Type, enchant.Value, enchant.IsLocked, enchant.UpdatedAt)),
+            after.Select(enchant => (enchant.EnchantId, enchant.SlotIndex, enchant.EnchantMasterId,
+                enchant.EffectId, enchant.Status, enchant.Type, enchant.Value, enchant.IsLocked, enchant.UpdatedAt)));
+        Assert.Equal(parentBefore.UpdatedAt, (await harness.GetEquipmentAsync()).UpdatedAt);
+        Assert.True(result.Equipment!.Enchants[0].IsLocked);
+        Assert.False(result.Equipment.Enchants[1].IsLocked);
+        Assert.Equal(19, result.Equipment.Enchants[1].Value);
+        await harness.AssertSingleTerminalLedgerAsync(request.OperationId, paymentConsumed: false);
+    }
+
     [Fact]
     public async Task EnchantRemove_DeletesOnlyUnlockedRowWithoutCompactingSlotsOrMaster()
     {

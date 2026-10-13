@@ -351,7 +351,12 @@ public class EquipmentOrbOperationRepository(
 
             if (request.ClientState is not null
                 && !MatchesClientEquipmentState(request.ClientState, instance))
+            {
+                // Discard provisional equipment/child mutations before saving
+                // the rejection ledger, just as for an unavailable payment.
+                dbContext.ChangeTracker.Clear();
                 return await CompleteAsync("INVALID");
+            }
 
             var paymentAvailable = HasMaterials(normalEntries, requiredMaterials, normalizedOrbItemId)
                 && await HasGoldAsync(request.AccountId, requiredGold);
