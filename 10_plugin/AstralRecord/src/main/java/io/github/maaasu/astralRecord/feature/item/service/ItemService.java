@@ -49,6 +49,7 @@ public class ItemService {
     public static final String LEGACY_ASTRALD_CURRENCY_ITEM_ID = "astrald";
     public static final String STORAGE_EXPANSION_TOKEN_ITEM_ID = "99a00009";
     public static final String STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID = "99a00010";
+    public static final String ORB_REMOTE_ACCESS_TOKEN_ITEM_ID = "99a00023";
     public static final String SKILL_PRESET_UNLOCK_TOKEN_ITEM_ID = "99a00018";
     public static final String PASSIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID = "99a00019";
     public static final String ACTIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID = "99a00020";
