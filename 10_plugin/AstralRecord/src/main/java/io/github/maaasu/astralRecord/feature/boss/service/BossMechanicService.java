@@ -163,6 +163,7 @@ public final class BossMechanicService {
     private final CharonRitualController charonRitualController;
     private final EmpusaSpellController empusaSpellController;
     private final VesperalaEncounterController vesperalaEncounterController;
+    private final IgnivorEncounterController ignivorEncounterController;
     private final VentosEncounterController ventosEncounterController;
     private final KnockerEncounterController knockerEncounterController;
     private final SeleneaEncounterController seleneaEncounterController;
@@ -228,6 +229,10 @@ public final class BossMechanicService {
         this.vesperalaEncounterController = new VesperalaEncounterController(
             mobService, particleDisplayService, this::vesperalaParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio)
+        );
+        this.ignivorEncounterController = new IgnivorEncounterController(
+            mobService, particleDisplayService, this::vesperalaParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.FIRE, ratio)
         );
         this.ventosEncounterController = new VentosEncounterController(
             particleDisplayService,
@@ -346,6 +351,7 @@ public final class BossMechanicService {
         charonRitualController.clear(bossInstanceId);
         empusaSpellController.clear(bossInstanceId);
         vesperalaEncounterController.clear(bossInstanceId);
+        ignivorEncounterController.clear(bossInstanceId);
         ventosEncounterController.clear(bossInstanceId);
         knockerEncounterController.clear(bossInstanceId);
         seleneaEncounterController.clear(bossInstanceId);
@@ -384,6 +390,7 @@ public final class BossMechanicService {
         charonRitualController.clearAll();
         empusaSpellController.clearAll();
         vesperalaEncounterController.clearAll();
+        ignivorEncounterController.clearAll();
         ventosEncounterController.clearAll();
         knockerEncounterController.clearAll();
         seleneaEncounterController.clearAll();
@@ -405,6 +412,7 @@ public final class BossMechanicService {
         Set<UUID> activeBosses = new HashSet<>();
         Set<UUID> activeEmpusas = new HashSet<>();
         Set<UUID> activeVesperalas = new HashSet<>();
+        Set<UUID> activeIgnivors = new HashSet<>();
         Set<UUID> activeVentoses = new HashSet<>();
         Set<UUID> activeKnockers = new HashSet<>();
         Set<UUID> activeSeleneas = new HashSet<>();
@@ -412,10 +420,11 @@ public final class BossMechanicService {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
             boolean vesperala = VesperalaEncounterController.BOSS_ID.equals(boss.template().id());
+            boolean ignivor = IgnivorEncounterController.BOSS_ID.equals(boss.template().id());
             boolean knocker = KnockerEncounterController.BOSS_ID.equals(boss.template().id());
             boolean selenea = SeleneaEncounterController.BOSS_ID.equals(boss.template().id());
             boolean ventos = VentosEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea) || boss.currentHealth() <= 0.0D) {
+            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !ignivor) || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
@@ -452,6 +461,21 @@ public final class BossMechanicService {
                     // 外周足場への転送を通常AIの敵対解除・帰還として扱わない。
                     boss.scriptedAction(true);
                     mobService.stopPathfinding(boss);
+                }
+                continue;
+            }
+
+            if (ignivor) {
+                activeIgnivors.add(boss.instanceId());
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    ignivorEncounterController.clear(boss.instanceId());
+                } else if ((boss.state() != MobState.AGGRO && boss.state() != MobState.COMBAT)
+                    || !conditionService.canRunAi(AstEntity.mob(boss))
+                    || !conditionService.canCastSkill(AstEntity.mob(boss))
+                    || (bindCircleRuntimeService != null && bindCircleRuntimeService.isBound(boss.instanceId()))) {
+                    ignivorEncounterController.cancelCast(boss.instanceId());
+                } else {
+                    ignivorEncounterController.tick(boss, entity, clockTicks);
                 }
                 continue;
             }
@@ -595,6 +619,7 @@ public final class BossMechanicService {
         }
         empusaSpellController.retain(activeEmpusas);
         vesperalaEncounterController.retain(activeVesperalas);
+        ignivorEncounterController.retain(activeIgnivors);
         ventosEncounterController.retain(activeVentoses);
         knockerEncounterController.retain(activeKnockers);
         seleneaEncounterController.retain(activeSeleneas);
@@ -2676,6 +2701,17 @@ public final class BossMechanicService {
                 captureSeleneaParty(boss, player);
             }
             return seleneaParticipants(boss).contains(player);
+        }
+        if (victim.isMob() && IgnivorEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (owner == null) return false;
+            Player player = owner.getBukkit();
+            MobInstance boss = victim.mob();
+            if (!damageService.isMobCombatTarget(player)
+                || !ignivorEncounterController.inArena(boss, player.getLocation())) return false;
+            if (!dungeonService.isDungeonMob(boss.instanceId()) && !bossChallengeService.isBossMob(boss.instanceId())
+                && (boss.state() == MobState.IDLE || boss.targetId() == null)) return true;
+            return vesperalaParticipants(boss).contains(player);
         }
         if (victim.isMob() && VesperalaEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
             var owner = attacker == null ? null : attacker.combatOwner();
