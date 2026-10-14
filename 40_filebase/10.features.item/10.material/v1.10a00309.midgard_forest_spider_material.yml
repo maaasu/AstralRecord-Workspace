@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / クモの脚"
+#   progression: 7
+schemaVersion: 1
+id: 10a00309
+category: material
+name: "&f森グモの脚"
+icon: DRIED_KELP
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7フォレストスパイダーから採取した、黒褐色の細い脚。"
+  - "&7硬い節の間に、森の土がわずかに残っている。"
+unTradeable: false
+unSellable: false
