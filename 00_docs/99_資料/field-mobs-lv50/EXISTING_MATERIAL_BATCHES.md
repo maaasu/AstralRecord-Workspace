@@ -23,3 +23,7 @@ CSV順に2種ずつE01〜E12、最後witch_forest_hex_witchだけE13。各unit�
 ## 検証と装備依存
 
 変更YAML parse/schema、全ID重複、item参照、上記profile継承比較、既存drop保持、名前/icon/progressionを確認。素材101件の既存一覧とは別にこの25件を追加予定として扱う。装備タスクはequipment-scalar-random / codex/equipment-scalar-randomの所有者が20aとスキーマ/API/Web/Editorを管理。E担当はそのworktreeを編集しない。素材実装後と装備反映後に用途なし一覧を再判定する。
+
+## 統合進捗
+
+E01〜E06を受入済み。既存25種中12種（48%）、素材00300〜00311、全27実効levelで追加と既存データ保持を確認。残り13種はE07〜E13。全体ビルドは直前B09/B10まで成功し、E06はfilebaseのみの静的検証。

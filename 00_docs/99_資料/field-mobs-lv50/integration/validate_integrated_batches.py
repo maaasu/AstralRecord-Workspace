@@ -87,7 +87,7 @@ for line in listener(old).splitlines():
 # No pre-existing master or spawn setting has changed.
 changes = subprocess.check_output(["git","-c","core.quotepath=false","diff","--name-status","e2058ade","--","40_filebase"],cwd=root).decode("utf-8").splitlines()
 master_changes = [line for line in changes if any(path.endswith((".yml", ".yaml")) for path in line.split("\t")[1:])]
-existing_materials = {"eriva_bark_sentinel":"10a00300", "eriva_camouflage_zombie":"10a00301", "eriva_grassboar":"10a00302", "eriva_sporecap_beast":"10a00303", "eriva_starhorn_guardian":"10a00304", "eriva_thornfang_wolf":"10a00305", "eriva_underbrush_spider":"10a00306", "maril_sil_dead_hero":"10a00307", "midgard_clay_guard":"10a00308", "midgard_forest_spider":"10a00309"}
+existing_materials = {"eriva_bark_sentinel":"10a00300", "eriva_camouflage_zombie":"10a00301", "eriva_grassboar":"10a00302", "eriva_sporecap_beast":"10a00303", "eriva_starhorn_guardian":"10a00304", "eriva_thornfang_wolf":"10a00305", "eriva_underbrush_spider":"10a00306", "maril_sil_dead_hero":"10a00307", "midgard_clay_guard":"10a00308", "midgard_forest_spider":"10a00309", "midgard_forest_wolf":"10a00310", "midgard_grassboar":"10a00311"}
 allowed_modified = {f"40_filebase/40.features.mob/enemy/v1.{mob}.yml" for mob in existing_materials}
 for line in master_changes:
     cells=line.split("\t")

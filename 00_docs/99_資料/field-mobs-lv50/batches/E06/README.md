@@ -5,7 +5,7 @@
 | Mob ID | 実効レベル | 素材ID / 表示名 | progression | icon |
 |:--|:--|:--|--:|:--|
 | `midgard_forest_wolf` | 6 / 7 / 8 | `10a00310` 森狼の爪 | 6 | `FLINT` |
-| `midgard_grassboar` | 1 / 2 | `10a00311` 小さな猪牙 | 1 | `BONE` |
+| `midgard_grassboar` | 1 / 2 | `10a00311` 小さなイノシシの牙 | 1 | `BONE` |
 
 ## 所有範囲・統合への引継ぎ
 
