@@ -1,0 +1,16 @@
+YAML, IDs and refs: exit 0
+PASS: parsed 862 filebase YAML; no duplicate top-level master IDs by namespace
+PASS: 6 changed YAML, levels, status/tag IDs, changed references, skill manifest and drops
+PENDING: both executors require central registration; full build/test and in-game validation not run
+
+B04 Java and geometry: exit 0
+limited javac: exit 0
+geometry probe: exit 0
+StonebackBisonMobSkillExecutor: geometry safety scenarios passed
+StormRaptorMobSkillExecutor: geometry safety scenarios passed
+PASS 30 geometry assertions; no server started
+Temporary compiled classes: C:\Users\kaede\AppData\Local\Temp\b04-geometry-kdsnuvun
+This validates B04 against cached baseline classes, not a full source build.
+
+Plugin resources: exit 0
+Plugin resource validation passed: 359 log IDs, 969 player message IDs.

@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物・鉱物 / 石背の角"
+#   progression: 26
+schemaVersion: 1
+id: 10a00231
+category: material
+name: "石背の角"
+icon: GOAT_HORN
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 950
+lore:
+  - "&7岩を削りながら育った、重いバイソンの角。"
+unTradeable: false
+unSellable: false

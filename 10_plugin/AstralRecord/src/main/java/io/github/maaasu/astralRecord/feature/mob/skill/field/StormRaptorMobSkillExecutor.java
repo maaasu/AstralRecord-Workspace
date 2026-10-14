@@ -1,0 +1,348 @@
+package io.github.maaasu.astralRecord.feature.mob.skill.field;
+
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
+import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * 風切り急降下。足元差0.25m以内の主対象の着地点を固定し、24tick予告後に飛び込みます。
+ * 最大6m・頂点1.4m・12tickの弧を移動し、着地点でのみ近接・無属性90%を一度判定します。
+ * 着地後10tickは通常AIを止めます。中断時は安全な発動地点へ戻し重力を復元します。
+ * paramsなし、castTimeTicksは0のみ、activationRangeは0超～6m、cooldownTicksは120以上
+ * （既定180）。風属性は現行契約にないため無属性です。予告は内部で必ず24tick確保します。
+ */
+public final class StormRaptorMobSkillExecutor implements MobSkillExecutor, Listener {
+    public static final String SKILL_ID = "mob_field_storm_raptor_diving_strike";
+    private static final int WARNING_TICKS = 24;
+    private static final int MOVE_TICKS = 12;
+    private static final int RECOVERY_TICKS = 10;
+    private static final double MAX_DISTANCE = 6.0D;
+    private final MobService mobService;
+    private final DamageService damageService;
+    private final ConditionService conditionService;
+    private final ParticleDisplayService particles;
+    private final Map<UUID, Dive> actions = new HashMap<>();
+
+    /**
+     * メインスレッドで構築し、停止イベントの回収Listenerも登録します。
+     * @param mobService Mob実体・同期Scheduler・Listener登録先
+     * @param damageService 有効なプレイヤー／召喚ペット判定とダメージ適用先
+     * @param conditionService 行動不能・移動不能の確認先
+     * @param particles 共通粒子の描画先
+     */
+    public StormRaptorMobSkillExecutor(@NotNull MobService mobService, @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService, @NotNull ParticleDisplayService particles) {
+        this.mobService = mobService;
+        this.damageService = damageService;
+        this.conditionService = conditionService;
+        this.particles = particles;
+        mobService.plugin().getServer().getPluginManager().registerEvents(this, mobService.plugin());
+    }
+
+    /** @return Mobマスターの専用技ID */
+    @Override public @NotNull String id() { return SKILL_ID; }
+    /** @return 頭上予告バーへ表示する技名 */
+    @Override public @NotNull String displayName() { return "風切り急降下"; }
+    /** @return 6m・180tick再使用・内部予告を開始する即時発動 */
+    @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(6.0D, 180L, 0L); }
+
+    /**
+     * 固定予告を二重に詠唱せず、連打を防ぐ設定だけを受け付けます。
+     * @param binding マスター上の紐付け
+     * @throws IllegalArgumentException params、射程外、短すぎるCD、外部詠唱がある場合
+     */
+    @Override public void validate(@NotNull MobSkillBinding binding) {
+        MobSkillExecutor.super.validate(binding);
+        var timing = resolveTiming(binding);
+        if (!Double.isFinite(timing.activationRange()) || timing.activationRange() <= 0.0D
+                || timing.activationRange() > MAX_DISTANCE || timing.cooldownTicks() < 120L
+                || timing.castTimeTicks() != 0L) {
+            throw new IllegalArgumentException("Invalid fixed-warning timing: " + id());
+        }
+    }
+
+    /**
+     * 有効な主対象の着地点を固定し、有限の予告・移動・硬直を開始します。
+     * @param context 発動開始時の主対象。メインスレッドから呼び出す
+     * @return 安全な地上から開始できた場合true。既存行動中はfalse
+     */
+    @Override public boolean cast(@NotNull MobSkillContext context) {
+        validate(context.binding());
+        Entity entity = activeCaster(context);
+        if (entity == null || context.mob().scriptedAction() || actions.containsKey(context.mob().instanceId())) return false;
+        Location start = entity.getLocation();
+        Location landing = context.target().getLocation();
+        Vector delta = landing.toVector().subtract(start.toVector());
+        double horizontal = Math.hypot(delta.getX(), delta.getZ());
+        if (horizontal < 0.5D || horizontal > MAX_DISTANCE || Math.abs(delta.getY()) > 0.25D
+                || !clearStep(entity, start, start, true) || !clearStep(entity, landing, landing, true)) return false;
+        Dive action = new Dive(context, entity, start, landing);
+        // 予告前に全弧を確認し、低い天井や未読込領域に向けて無理に発動しません。
+        Location previous = start;
+        for (int step = 1; step <= MOVE_TICKS; step++) {
+            Location next = action.arcPoint(step);
+            if (!clearStep(entity, previous, next, false)) return false;
+            previous = next;
+        }
+        try {
+            actions.put(context.mob().instanceId(), action);
+            context.mob().scriptedAction(true);
+            context.mob().startSkillCasting(displayName(), WARNING_TICKS);
+            mobService.stopPathfinding(context.mob());
+            action.runTaskTimer(mobService.plugin(), 1L, 1L);
+        } catch (RuntimeException ex) {
+            action.finish();
+            throw ex;
+        }
+        return true;
+    }
+
+    /**
+     * 破棄・帰還・対象変更・異常状態・World変更では次tickに中断します。
+     * @param context 発動文脈
+     * @return 同一戦闘で行動できる実体。中断条件ならnull
+     */
+    private @Nullable Entity activeCaster(@NotNull MobSkillContext context) {
+        var mob = context.mob();
+        if (!mobService.plugin().isEnabled() || mobService.getInstance(mob.instanceId()) != mob
+                || mob.state() != MobState.COMBAT || mob.currentHealth() <= 0.0D
+                || !context.target().getUniqueId().equals(mob.targetId())
+                || !damageService.isMobCombatTarget(context.target())) return null;
+        Entity entity = mobService.entityController().getEntity(mob);
+        AstEntity caster = AstEntity.mob(mob);
+        return entity != null && entity.isValid() && !entity.isDead()
+                && entity.getWorld() == context.origin().getWorld() && entity.getWorld() == context.target().getWorld()
+                && conditionService.canRunAi(caster) && conditionService.canCastSkill(caster)
+                && conditionService.canAttack(caster) && conditionService.canMove(caster) ? entity : null;
+    }
+
+    /**
+     * 実体幅・高さを0.15m以下の刻みで調べ、未読込chunkへの参照を防ぎます。
+     * @param entity 発動実体
+     * @param from 現在足元
+     * @param to 次の足元
+     * @param ground 全サンプルの足元支持も必要か
+     * @return 衝突・液体・WorldBorder・World高さのすべてが安全な場合true
+     */
+    private static boolean clearStep(Entity entity, Location from, Location to, boolean ground) {
+        World world = from.getWorld();
+        if (world == null || world != to.getWorld() || world != entity.getWorld()) return false;
+        Vector delta = to.toVector().subtract(from.toVector());
+        int samples = Math.max(1, (int) Math.ceil(delta.length() / 0.15D));
+        BoundingBox shape = entity.getBoundingBox();
+        for (int sample = 0; sample <= samples; sample++) {
+            Location foot = from.clone().add(delta.clone().multiply((double) sample / samples));
+            BoundingBox bounds = shape.clone().shift(foot.toVector().subtract(entity.getLocation().toVector()));
+            int minY = (int) Math.floor(bounds.getMinY());
+            int maxY = (int) Math.floor(Math.nextDown(bounds.getMaxY()));
+            if (minY < world.getMinHeight() || maxY >= world.getMaxHeight()) return false;
+            for (double x : new double[]{bounds.getMinX(), bounds.getMaxX()}) {
+                for (double z : new double[]{bounds.getMinZ(), bounds.getMaxZ()}) {
+                    if (!world.getWorldBorder().isInside(new Location(world, x, foot.getY(), z))) return false;
+                }
+            }
+            for (int x = (int) Math.floor(bounds.getMinX()); x <= (int) Math.floor(Math.nextDown(bounds.getMaxX())); x++) {
+                for (int z = (int) Math.floor(bounds.getMinZ()); z <= (int) Math.floor(Math.nextDown(bounds.getMaxZ())); z++) {
+                    if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
+                    for (int y = minY; y <= maxY; y++) {
+                        var block = world.getBlockAt(x, y, z);
+                        if (block.isLiquid() || block.getCollisionShape().overlaps(bounds.clone().shift(-x, -y, -z))) return false;
+                    }
+                }
+            }
+            if (ground && !supported(world, bounds)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * 中央と四隅が同じ足元高さで支持されるか確認し、薄い角・崖・液体を避けます。
+     * @param world 読込確認するWorld
+     * @param bounds 足元を含む実体の範囲
+     * @return 5点が衝突形状上面から0.12m以内にある場合true
+     */
+    private static boolean supported(World world, BoundingBox bounds) {
+        double footY = bounds.getMinY();
+        int y = (int) Math.floor(footY - 0.05D);
+        if (y < world.getMinHeight()) return false;
+        double centerX = (bounds.getMinX() + bounds.getMaxX()) * 0.5D;
+        double centerZ = (bounds.getMinZ() + bounds.getMaxZ()) * 0.5D;
+        double[][] probes = {{centerX, centerZ}, {bounds.getMinX() + 0.05D, bounds.getMinZ() + 0.05D},
+                {bounds.getMaxX() - 0.05D, bounds.getMinZ() + 0.05D},
+                {bounds.getMinX() + 0.05D, bounds.getMaxZ() - 0.05D},
+                {bounds.getMaxX() - 0.05D, bounds.getMaxZ() - 0.05D}};
+        for (double[] probe : probes) {
+            int x = (int) Math.floor(probe[0]);
+            int z = (int) Math.floor(probe[1]);
+            if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
+            var block = world.getBlockAt(x, y, z);
+            if (block.isLiquid()) return false;
+            boolean found = false;
+            for (BoundingBox support : block.getCollisionShape().getBoundingBoxes()) {
+                double gap = footY - (y + support.getMaxY());
+                if (gap >= -0.001D && gap <= 0.12D && probe[0] - x >= support.getMinX()
+                        && probe[0] - x <= support.getMaxX() && probe[1] - z >= support.getMinZ()
+                        && probe[1] - z <= support.getMaxZ()) { found = true; break; }
+            }
+            if (!found) return false;
+        }
+        return true;
+    }
+
+    /** 予告・弧状移動・着地硬直を担当する一回分の有限状態です。 */
+    private final class Dive extends BukkitRunnable {
+        private final MobSkillContext context;
+        private final Entity entity;
+        private final Location start;
+        private final Location landing;
+        private final List<Location> warning;
+        private final boolean originalGravity;
+        private Location position;
+        private int ticks;
+        private int moves;
+        private int recovery = -1;
+        private boolean airborne;
+        private boolean finished;
+
+        /** @param context 固定戦闘文脈 @param entity 実体 @param start 足元 @param landing 固定着地点 */
+        private Dive(MobSkillContext context, Entity entity, Location start, Location landing) {
+            this.context = context;
+            this.entity = entity;
+            this.start = start.clone();
+            this.landing = landing.clone();
+            this.landing.setYaw(start.getYaw());
+            this.landing.setPitch(start.getPitch());
+            this.position = start.clone();
+            this.originalGravity = entity.hasGravity();
+            this.warning = new ArrayList<>();
+            BoundingBox box = entity.getBoundingBox();
+            BoundingBox targetBox = context.target().getBoundingBox();
+            // 双方の矩形hitboxを含む外接円。足元の中心を輪の外へ出せば回避できます。
+            double radius = Math.hypot((box.getWidthX() + targetBox.getWidthX()) * 0.5D + 0.15D,
+                    (box.getWidthZ() + targetBox.getWidthZ()) * 0.5D + 0.15D);
+            for (int point = 0; point < 16; point++) {
+                double angle = point * Math.PI * 2.0D / 16;
+                warning.add(landing.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
+            }
+        }
+
+        /** @param step 1～12の移動段階 @return 開始・着地を結ぶ固定弧の足元位置 */
+        private Location arcPoint(int step) {
+            double progress = (double) step / MOVE_TICKS;
+            Vector offset = landing.toVector().subtract(start.toVector()).multiply(progress);
+            return start.clone().add(offset).add(0, Math.sin(Math.PI * progress) * 1.4D, 0);
+        }
+
+        /** 固定着地点へ移動し、途中の接触ではダメージを与えません。 */
+        @Override public void run() {
+            try {
+                if (activeCaster(context) != entity || entity.getLocation().distanceSquared(position) > 0.25D) { finish(); return; }
+                if (recovery >= 0) { if (++recovery >= RECOVERY_TICKS) finish(); return; }
+                if (ticks++ < WARNING_TICKS) {
+                    context.mob().updateSkillCastingRemaining(WARNING_TICKS - ticks);
+                    if ((ticks - 1) % 5 == 0) {
+                        particles.spawnForNearbyViewers(landing, warning, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
+                        if (ticks == 1) start.getWorld().playSound(start, org.bukkit.Sound.ENTITY_PARROT_AMBIENT, 0.7F, 1.3F);
+                    }
+                    return;
+                }
+                context.mob().clearSkillCasting();
+                Location next = arcPoint(moves + 1);
+                if (!clearStep(entity, position, next, false)
+                        || !clearStep(entity, landing, landing, true)) { finish(); return; }
+                if (!airborne) {
+                    airborne = true;
+                    entity.setGravity(false);
+                    entity.setVelocity(new Vector());
+                }
+                if (!entity.teleport(next)) { finish(); return; }
+                context.mob().currentLocation(next);
+                position = next;
+                if (++moves % 4 == 0) particles.spawnForNearbyViewers(next.clone().add(0, 0.4D, 0), SharedParticleDefinitions.AIR_ACTION_CLOUD);
+                if (moves < MOVE_TICKS) return;
+                entity.setGravity(originalGravity);
+                entity.setVelocity(new Vector());
+                airborne = false;
+                recovery = 0;
+                BoundingBox impact = entity.getBoundingBox().clone().expand(0.15D, 0.0D, 0.15D);
+                if (!impact.overlaps(context.target().getBoundingBox()) || !clearTargetPath()) return;
+                var result = damageService.attack(AstEntity.mob(context.mob()), damageService.resolveEntity(context.target()),
+                        AttackType.MELEE, List.of(new DamageComponent(DamageElement.NONE, 0.90D)), DamageSource.SKILL);
+                if (!result.evaded() && (result.finalDamage() > 0 || result.shieldDamage() > 0)) {
+                    particles.spawnForNearbyViewers(landing, SharedParticleDefinitions.MOB_ERIVA_THORNFANG_HIT);
+                    landing.getWorld().playSound(landing, org.bukkit.Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.75F, 1.3F);
+                }
+            } catch (RuntimeException ex) { finish(); throw ex; }
+        }
+
+        /** @return 着地実体の中心と対象の間に壁がない場合true */
+        private boolean clearTargetPath() {
+            Location center = entity.getLocation().add(0, entity.getHeight() * 0.5D, 0);
+            Vector ray = context.target().getBoundingBox().getCenter().subtract(center.toVector());
+            double length = ray.length();
+            return length < 0.01D || center.getWorld().rayTraceBlocks(center, ray, length, FluidCollisionMode.NEVER, true) == null;
+        }
+
+        /** 全終了経路で保持参照を解除し、同一Worldの安全な出発点と重力を復元します。 */
+        private void finish() {
+            if (finished) return;
+            finished = true;
+            actions.remove(context.mob().instanceId(), this);
+            context.mob().clearSkillCasting();
+            context.mob().scriptedAction(false);
+            try { cancel(); } catch (IllegalStateException ignored) { /* スケジュール失敗時は未登録です。 */ }
+            if (airborne && entity.isValid() && !entity.isDead()) {
+                try {
+                    if (entity.getWorld() == start.getWorld() && mobService.getInstance(context.mob().instanceId()) == context.mob()
+                            && clearStep(entity, start, start, true) && entity.teleport(start)) {
+                        context.mob().currentLocation(start);
+                    }
+                } finally {
+                    entity.setGravity(originalGravity);
+                    entity.setVelocity(new Vector());
+                }
+            }
+        }
+    }
+
+    /**
+     * メインスレッドで全継続行動を回収します。中央onDisableからも呼び出せます。
+     * @implNote 同じactionの重複終了は無害です。
+     */
+    public void stop() { for (Dive action : List.copyOf(actions.values())) action.finish(); }
+
+    /** @param event 所有Plugin停止時だけ、Bukkitのタスク一括キャンセル前に状態を回収するイベント */
+    @EventHandler public void onPluginDisable(@NotNull PluginDisableEvent event) {
+        if (event.getPlugin() == mobService.plugin()) stop();
+    }
+}
