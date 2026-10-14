@@ -1,0 +1,7 @@
+# E09 統合受入
+
+固定e688b376342a3d98af700652bebddaa4078ce525の4所有YAMLのみを受入。batches/E09/のREADME/validationは固定commitには含まれていない。親から864YAML/2reviews成功の完了報告を受け、統合側で全既存実効drop保持を再検証する。未commitや他worktreeの資料を取り込まない。
+
+midgard_skeleton_archerへ00316 古い矢羽、purple_tree_golmへ00317 紫木の硬皮、各35%1COMMON、幸運あり、sale0。ゴルムは元のitemsなしへitemsを追加、loot/EXPを保持。中央validatorは追加drop除去時に元のitems未定義も復元して完全比較する。既存18/25種72%、残りE10〜E13の7種。
+
+全体Maven反復なし、新規23種の開始基点0a30bedcを維持。Lv20/25装備担当は各19品3setのみ、共有shop/recipeは本統合担当が後続manifest受領後に実装する。実server/DB/port、develop/push/version/deployなし、worktree保持、管理表最小追記のみ。
