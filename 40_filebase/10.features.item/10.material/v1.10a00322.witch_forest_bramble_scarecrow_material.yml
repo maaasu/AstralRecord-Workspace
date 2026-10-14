@@ -1,0 +1,15 @@
+# design:
+#   motif: "民間伝承 / 案山子と茨"
+#   progression: 20
+schemaVersion: 1
+id: 10a00322
+category: material
+name: "&fイバラのわら束"
+icon: HAY_BLOCK
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7茨灯の案山子からほどけ落ちた、イバラの絡むわら束。"
+unTradeable: false
+unSellable: false
