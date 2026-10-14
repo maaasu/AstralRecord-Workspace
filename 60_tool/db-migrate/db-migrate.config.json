@@ -2016,6 +2016,23 @@
         "checkConstraints": [ "CK_account_play_time_seconds" ],
         "indexes": []
       }
+    },
+    {
+      "id": "20261013_account_controls",
+      "fileName": "20261013_account_controls.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account",
+        "primaryKey": "PK_account",
+        "columns": [
+          { "name": "selected_hotbar_slot", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false },
+          { "name": "view_yaw", "sqlType": "real", "maxLengthBytes": 4, "isNullable": false },
+          { "name": "view_pitch", "sqlType": "real", "maxLengthBytes": 4, "isNullable": false },
+          { "name": "controls_version", "sqlType": "int", "maxLengthBytes": 4, "isNullable": false }
+        ],
+        "checkConstraints": [ "CK_account_controls" ],
+        "indexes": []
+      }
     }
   ]
 }
