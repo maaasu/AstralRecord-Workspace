@@ -219,6 +219,63 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task RuneMaxSlotsMetadataAcceptsFixedIntegerAndRandomRangeWrapper()
+    {
+        Write("10.features.item/docs.item.YAMLスキーマ定義.md", """
+            # ITEM
+            | キー | 型 | 必須 | 説明 |
+            |:--|:--|:--|:--|
+            | `name` | String | ○ | 表示名 |
+            """);
+        Write("10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md", """
+            # EQUIPMENT
+            | キー | 型 | 必須 | 説明 |
+            |:--|:--|:--|:--|
+            | `equipment[].rune` | Object | × | ルーン設定 |
+            | `equipment[].rune.maxSlots` | Integer / Object | × | 固定値またはランダム範囲 |
+            | `equipment[].rune.maxSlots.random` | String | × | 範囲文字列 |
+            """);
+        var category = await _catalog.GetAsync("10.features.item/20.equipment", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/equipment/rune/maxSlots" && field.Type == "Integer / Object");
+        Assert.Contains(category.Fields, field => field.Path == "/equipment/rune/maxSlots/random" && field.Type == "String");
+
+        const string path = "10.features.item/20.equipment/v1.20a00001.rune_slots.yml";
+        const string fixedValue = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots: 2
+            """;
+        const string randomRange = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots:
+                  random: "0~1"
+            """;
+        const string scalarRange = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots: "0~1"
+            """;
+
+        Assert.True((await _validation.ValidateAsync(path, fixedValue, CancellationToken.None)).IsValid);
+        Assert.True((await _validation.ValidateAsync(path, randomRange, CancellationToken.None)).IsValid);
+        var invalid = await _validation.ValidateAsync(path, scalarRange, CancellationToken.None);
+        Assert.Contains(invalid.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == "/equipment/rune/maxSlots");
+    }
+
+    [Fact]
     public async Task CatalogCombinesItemCommonAndSubtypeAndAdaptsHistoricalMapPaths()
     {
         Write("10.features.item/docs.item.YAMLスキーマ定義.md", "# ITEM\n| キー | 型 | 必須 | 説明 |\n|:--|:--|:--|:--|\n| `name` | String | ○ | 表示名 |\n");
