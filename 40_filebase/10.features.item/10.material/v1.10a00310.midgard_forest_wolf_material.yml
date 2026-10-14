@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / オオカミの爪"
+#   progression: 6
+schemaVersion: 1
+id: 10a00310
+category: material
+name: "&f森狼の爪"
+icon: FLINT
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7フォレストウルフから採れた硬い爪。"
+  - "&7先端が鋭く、根元には淡い筋が残っている。"
+unTradeable: false
+unSellable: false
