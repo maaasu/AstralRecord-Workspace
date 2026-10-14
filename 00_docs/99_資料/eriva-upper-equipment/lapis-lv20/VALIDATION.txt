@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "baseCommit": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+  "yamlFiles": 951,
+  "namespaceIds": 1213,
+  "equipment": 19,
+  "sets": 3,
+  "randomStats": 33,
+  "primaryRoutes": 19,
+  "optionalMobRoutes": 19,
+  "evolutionRoutes": 19,
+  "materialSources": 10,
+  "scope": "assigned masters and dedicated documents only",
+  "limits": "static validation; no runtime, DB, heavy build, deployment, develop merge or push"
+}

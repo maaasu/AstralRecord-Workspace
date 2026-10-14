@@ -1,0 +1,1783 @@
+{
+  "formatVersion": 1,
+  "package": "eriva-lapis-lv20",
+  "baseCommit": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+  "scope": "専用提案資料。共有shop/recipeへ未反映。Goldはショップ交換価格または同等のレシピ通貨案。",
+  "primarySourcePolicy": "Lv20到達前から集められる既存採集素材。新規モブ素材は必須にしない。",
+  "sources": [
+    {
+      "itemId": "10a00069",
+      "name": "風歌草の葉",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_windsong_grass",
+      "requiredToolTag": "HOE",
+      "sourceGatheringLevel": 1,
+      "hp": 8,
+      "spawnerWeightFraction": 0.35,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00072",
+      "name": "森しずくごけ",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_dew_moss",
+      "requiredToolTag": "HOE",
+      "sourceGatheringLevel": 1,
+      "hp": 10,
+      "spawnerWeightFraction": 0.35,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00073",
+      "name": "水鏡草の葉",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_watermirror_grass",
+      "requiredToolTag": "HOE",
+      "sourceGatheringLevel": 1,
+      "hp": 9,
+      "spawnerWeightFraction": 0.7,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00077",
+      "name": "青しずくの花びら",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_blue_dew_flower",
+      "requiredToolTag": "HOE",
+      "sourceGatheringLevel": 2,
+      "hp": 16,
+      "spawnerWeightFraction": 0.24,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00086",
+      "name": "風鳴り石のかけら",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_cave_windsong_stone",
+      "requiredToolTag": "PICKAXE",
+      "sourceGatheringLevel": 2,
+      "hp": 22,
+      "spawnerWeightFraction": 0.38,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00087",
+      "name": "こけ根岩のかけら",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_cave_mossroot_rock",
+      "requiredToolTag": "PICKAXE",
+      "sourceGatheringLevel": 2,
+      "hp": 26,
+      "spawnerWeightFraction": 0.27,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00088",
+      "name": "黒ひかり石炭",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_cave_darklight_vein",
+      "requiredToolTag": "PICKAXE",
+      "sourceGatheringLevel": 2,
+      "hp": 34,
+      "spawnerWeightFraction": 0.2,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00089",
+      "name": "青泉石のかけら",
+      "sourceKind": "gathering",
+      "sourceId": "verdia_cave_bluewell_vein",
+      "requiredToolTag": "PICKAXE",
+      "sourceGatheringLevel": 2,
+      "hp": 40,
+      "spawnerWeightFraction": 0.13,
+      "dropRatePercent": 100,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00200",
+      "name": "草色の毛皮",
+      "sourceKind": "mob",
+      "sourceId": "field_reed_hound",
+      "sourceMinMobLevel": 22,
+      "dropRatePercent": 40,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    },
+    {
+      "itemId": "10a00201",
+      "name": "ヤブガニの甲羅",
+      "sourceKind": "mob",
+      "sourceId": "field_brush_crab",
+      "sourceMinMobLevel": 22,
+      "dropRatePercent": 45,
+      "amount": 1,
+      "runtimePlacementAccepted": false
+    }
+  ],
+  "items": [
+    {
+      "itemId": "20a00400",
+      "name": "ラピスソード",
+      "sourceTemplate": "20a00073",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00400.lapis_sword.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_sword_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 14,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_sword_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00401",
+      "name": "ラピスハンマー",
+      "sourceTemplate": "20a00074",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00401.lapis_hammer.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_hammer_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00087",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 15,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_hammer_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00087",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00402",
+      "name": "ラピススピア",
+      "sourceTemplate": "20a00075",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00402.lapis_spear.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_spear_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00069",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 16,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_spear_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00069",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00069",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00403",
+      "name": "ラピスショートボウ",
+      "sourceTemplate": "20a00077",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00403.lapis_shortbow.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_shortbow_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00077",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 17,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_shortbow_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00077",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00077",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00404",
+      "name": "ラピスロングボウ",
+      "sourceTemplate": "20a00078",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00404.lapis_longbow.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_longbow_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 28
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 18,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_longbow_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 28
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00405",
+      "name": "ラピスワンド",
+      "sourceTemplate": "20a00079",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00405.lapis_wand.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_wand_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00073",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00072",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 19,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_wand_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00073",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00072",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00406",
+      "name": "ラピススタッフ",
+      "sourceTemplate": "20a00080",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00406.lapis_staff.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_staff_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00077",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 650000,
+        "shopPlacement": {
+          "shopId": "weapon_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 20,
+          "direction": "既存エリヴァの下段"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_staff_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00077",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 650000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00077",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00407",
+      "name": "ラピスガードヘルム",
+      "sourceTemplate": "20a00086",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00407.lapis_guard_head.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_guard_head_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 130000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 4,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_guard_head_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 130000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00087",
+        "replaceAmount": 2,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00408",
+      "name": "ラピスガードメイル",
+      "sourceTemplate": "20a00087",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00408.lapis_guard_chest.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_guard_chest_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 32
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 260000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 11,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_guard_chest_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 32
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 260000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00409",
+      "name": "ラピスガードレギンス",
+      "sourceTemplate": "20a00088",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00409.lapis_guard_legs.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_guard_legs_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 5
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 182000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 18,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_guard_legs_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 3
+          }
+        ],
+        "requiredCurrency": 182000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 3,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00410",
+      "name": "ラピスガードブーツ",
+      "sourceTemplate": "20a00089",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00410.lapis_guard_feet.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_guard_feet_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 3
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 130000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 25,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_guard_feet_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 130000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00088",
+        "replaceAmount": 2,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00411",
+      "name": "ラピスハンターハット",
+      "sourceTemplate": "20a00090",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00411.lapis_hunter_head.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_hunter_head_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 130000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 5,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_hunter_head_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 130000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00069",
+        "replaceAmount": 2,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00412",
+      "name": "ラピスハンターコート",
+      "sourceTemplate": "20a00091",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00412.lapis_hunter_chest.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_hunter_chest_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 32
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 260000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 12,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_hunter_chest_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 28
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 260000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00069",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00413",
+      "name": "ラピスハンターレギンス",
+      "sourceTemplate": "20a00092",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00413.lapis_hunter_legs.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_hunter_legs_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 5
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 182000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 19,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_hunter_legs_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 17
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 5
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 3
+          }
+        ],
+        "requiredCurrency": 182000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00069",
+        "replaceAmount": 3,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00414",
+      "name": "ラピスハンターブーツ",
+      "sourceTemplate": "20a00093",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00414.lapis_hunter_feet.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_hunter_feet_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 3
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 130000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 26,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_hunter_feet_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00069",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00086",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 3
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 130000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00069",
+        "replaceAmount": 2,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00415",
+      "name": "ラピスメイジハット",
+      "sourceTemplate": "20a00094",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00415.lapis_mage_head.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_mage_head_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 130000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 6,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_mage_head_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 130000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00072",
+        "replaceAmount": 2,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00416",
+      "name": "ラピスメイジローブ",
+      "sourceTemplate": "20a00095",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00416.lapis_mage_chest.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_mage_chest_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 32
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 260000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 13,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_mage_chest_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 28
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 2
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 4
+          }
+        ],
+        "requiredCurrency": 260000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00072",
+        "replaceAmount": 4,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00417",
+      "name": "ラピスメイジレギンス",
+      "sourceTemplate": "20a00096",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00417.lapis_mage_legs.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_mage_legs_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 5
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 182000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 20,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_mage_legs_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 17
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 5
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 3
+          }
+        ],
+        "requiredCurrency": 182000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00072",
+        "replaceAmount": 3,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    },
+    {
+      "itemId": "20a00418",
+      "name": "ラピスメイジブーツ",
+      "sourceTemplate": "20a00097",
+      "masterPath": "40_filebase/10.features.item/20.equipment/v1.20a00418.lapis_mage_feet.yml",
+      "primaryRoute": {
+        "proposalId": "lapis_mage_feet_gathering",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 12
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 3
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 130000,
+        "shopPlacement": {
+          "shopId": "armor_craftsman_shop",
+          "page": 1,
+          "logicalSlot": 27,
+          "direction": "右3列、近接/遠隔/魔法の順"
+        }
+      },
+      "evolution": {
+        "requiredEnhanceLevel": 15,
+        "requiredItems": [
+          {
+            "itemId": "10a00086",
+            "amount": 8
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 4
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          }
+        ],
+        "requiredCurrency": 2500,
+        "rankAfter": 1,
+        "maxEnhanceLevelAfter": 30
+      },
+      "optionalMobRoute": {
+        "proposalId": "lapis_mage_feet_mob_optional",
+        "outputAmount": 1,
+        "requiredItems": [
+          {
+            "itemId": "10a00072",
+            "amount": 10
+          },
+          {
+            "itemId": "10a00087",
+            "amount": 6
+          },
+          {
+            "itemId": "10a00088",
+            "amount": 3
+          },
+          {
+            "itemId": "10a00089",
+            "amount": 1
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 2
+          }
+        ],
+        "requiredCurrency": 130000,
+        "requiredSourceMobLevel": 22,
+        "replaceItemId": "10a00072",
+        "replaceAmount": 2,
+        "status": "proposal_only_pending_runtime_placement",
+        "shopPlacement": null,
+        "acceptance": "基本採集ルートを維持。Lv22モブの実配置・入手性の確認後、別レシピまたは別ページ商品として統合担当が採用を判断。"
+      }
+    }
+  ]
+}
