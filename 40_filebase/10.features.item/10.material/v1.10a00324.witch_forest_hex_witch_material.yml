@@ -1,0 +1,15 @@
+# design:
+#   motif: "民間伝承 / 魔女と鬼火"
+#   progression: 20
+schemaVersion: 1
+id: 10a00324
+category: material
+name: "&f魔女の薬瓶"
+icon: GLASS_BOTTLE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7森陰の魔女が持ち歩く、薬草の香りが残る小瓶。"
+unTradeable: false
+unSellable: false
