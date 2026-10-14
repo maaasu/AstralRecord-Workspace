@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 狼の牙"
+#   progression: 16
+schemaVersion: 1
+id: 10a00305
+category: material
+name: "&fトゲ牙"
+icon: POINTED_DRIPSTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7棘牙の森狼が持つ、トゲのように尖った牙。"
+  - "&7根元まで硬く、鋭い先端が残っている。"
+unTradeable: false
+unSellable: false
