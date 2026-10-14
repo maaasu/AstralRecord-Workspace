@@ -73,6 +73,8 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
             }
             await PetMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             await FishingMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
+            if (path.StartsWith("10.features.item/", MasterDataPaths.Comparison))
+                EquipmentRandomValidation.Validate(obj, issues);
             var id = Text(obj["id"]);
             if (id is { Length: > 0 })
             {

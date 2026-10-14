@@ -125,7 +125,16 @@ data class ItemEquipmentStat @JvmOverloads constructor(
     val rawMin: String? = null,
     /** マスタで指定された max の生値。表示用の乱数範囲を保持します。 */
     val rawMax: String? = null,
+    /** 明示指定された生成時一回の乱数。既存scalar/rangeの解釈は変更しません。 */
+    val random: EquipmentStatRandom? = null,
 ) {
+    init {
+        if (random != null) {
+            require(min == max) { "equipment.stats.random requires a scalar value" }
+            random.validateBase(min)
+        }
+    }
+
     /** 値が範囲指定かどうかを返します。 */
     val isRange: Boolean
         get() = min != max

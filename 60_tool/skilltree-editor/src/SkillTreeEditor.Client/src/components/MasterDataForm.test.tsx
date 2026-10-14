@@ -297,4 +297,26 @@ describe('master form', () => {
     render(<MasterDataForm value="bad" path="/equipment/level" fields={fields} onChange={vi.fn()} />)
     expect(screen.getByRole('textbox', { name: '/equipment/level' })).toHaveValue('bad')
   })
+
+  it('adds a schema-defined random object with Japanese labels and numeric inputs', () => {
+    const schema = { type: 'object', properties: {
+      value: { type: 'number', title: '基準値' },
+      random: { type: 'object', title: 'ランダム補正', required: ['offsetMin', 'offsetMax', 'step'], properties: {
+        offsetMin: { type: 'number', title: '最小差分' }, offsetMax: { type: 'number', title: '最大差分' },
+        step: { type: 'number', title: '刻み幅' }, zeroChance: { type: 'number', title: 'ゼロ確率' },
+      } },
+    } }
+    function RandomStatForm() {
+      const [value, setValue] = useState<JsonValue>({ value: 5, customNote: 'keep' })
+      return <><MasterDataForm value={value} schema={schema} path="/equipment/stats/0" fields={[]} onChange={setValue} />
+        <output data-testid="random-value">{JSON.stringify(value)}</output></>
+    }
+    render(<RandomStatForm />)
+    fireEvent.change(screen.getByRole('combobox', { name: '/equipment/stats/0 定義済みの項目を追加', hidden: true }),
+      { target: { value: 'random' } })
+    expect(screen.getAllByText('ランダム補正').length).toBeGreaterThan(0)
+    expect(screen.getByText('最小差分')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/equipment/stats/0/random/step' })).toHaveValue('0')
+    expect(screen.getByTestId('random-value')).toHaveTextContent('"customNote":"keep"')
+  })
 })
