@@ -431,7 +431,7 @@ class Check:
   # Ask Git for paths using ASCII-only invocation, then filter in Python. This
   # avoids Windows argv code-page conversion for Japanese contract filenames.
   changed=self.git("diff","--name-only",BASE,"HEAD").splitlines()
-  dirty_all=self.git("diff","--name-only","HEAD").splitlines()
+  dirty_all=self.git("diff","--name-only","HEAD").splitlines()+self.git("ls-files","--others","--exclude-standard").splitlines()
   prefixes=("10_plugin/AstralRecord/src/main/","20_api/AstralRecordApi/",
             "60_tool/skilltree-editor/src/","60_tool/skilltree-editor/tests/")
   exact={"10_plugin/AstralRecord/pom.xml",
@@ -442,8 +442,28 @@ class Check:
    return path in exact or path.startswith(prefixes) or (path.startswith("60_tool/skilltree-editor/") and path.endswith((".csproj",".sln",".props",".targets")))
   base=[x for x in changed if relevant(x)]
   dirty=[x for x in dirty_all if relevant(x)]
-  if base or dirty: self.err("saved_random_compatibility_gate",{"baselineChanges":base,"uncommitted":dirty})
-  self.report["savedRandomCompatibility"]={"sourceAndContractsUnchanged":not base and not dirty,"baselineChanges":base,"uncommitted":dirty}
+  # The real Editor acceptance found a metadata-only mismatch for the already
+  # supported rune wrapper. Pin the reviewed documentation and generic test
+  # blobs; any runtime change, later edit, or uncommitted change still fails.
+  reviewed={
+   "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md":"5408b5b0b870150fb95d34154bf97297203d3db3",
+   "60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs":"a043c4938bdda070c67be96567152984658f6158"}
+  accepted=[]; unexpected=[]
+  for path in base:
+   expected_blob=reviewed.get(path)
+   actual_blob=self.git("rev-parse",f"HEAD:{path}") if expected_blob else None
+   if expected_blob and actual_blob==expected_blob:
+    accepted.append({"path":path,"blob":actual_blob})
+   else: unexpected.append(path)
+  if unexpected or dirty: self.err("saved_random_compatibility_gate",{"unexpectedBaselineChanges":unexpected,"uncommitted":dirty})
+  self.report["savedRandomCompatibility"]={
+   "sourceAndContractsUnchanged":not base and not dirty,
+   "runtimeSourceUnchanged":not unexpected and not dirty,
+   "baselineChanges":base,"uncommitted":dirty,
+   "reviewedMetadataAndTestChanges":accepted,
+   "reviewedChangeCommit":"35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+   "reason":"Editor metadata now accepts existing random range wrapper; actual loader, scalar snapshot persistence, and saved roll decoder contracts are unchanged; see HEAVY_VALIDATION.json for executed acceptance",
+   "unexpectedChanges":unexpected}
  def check_intake(self):
   results=[]; adjustments=[]
   for label,sha,count in SOURCES:

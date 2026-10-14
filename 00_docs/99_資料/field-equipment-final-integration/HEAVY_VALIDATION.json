@@ -1,0 +1,888 @@
+{
+  "verifiedSourceRevision": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+  "isolatedFixture": {
+    "sourceHead": "7928471b0996e4e56940b90692310841c8f625bc",
+    "equipment": 57,
+    "sets": 9,
+    "shops": 2,
+    "files": [
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.astra_guard.yml",
+        "sha256": "c238ae8d675795e1de8283031bdc2a679413d2a744b0678cd852f26e852e4bd8"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.astra_hunt.yml",
+        "sha256": "99585b503410a00a1912b9272581a2437b23e6e411491b9788a9cfdd81a86e35"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.astra_magia.yml",
+        "sha256": "1398ba7046637a6d44b4811f9f9398b1c533c3fe5afa178501b98503e3903c11"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.lapis_arcana.yml",
+        "sha256": "9a53211b374bfd4612a062383aabb136a56b7348eddeeb415158bce1557a6e67"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.lapis_bastion.yml",
+        "sha256": "547ea645477cd2eca853858178f408bb65b0913b2bae1b17fc40ffe8821a4224"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.lapis_stride.yml",
+        "sha256": "0e349b052c0060cd87cc20a88cf3d0f0390a7573b39417a595a39548c49fde01"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.lumina_guard.yml",
+        "sha256": "8eef9fae1ddd9391dd86f14251159724d385a4a7931c721508d97fadbee64bf4"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.lumina_hunt.yml",
+        "sha256": "edf07d78c6aabfe405f45c6c0882056f1547563f2804a01fb7892016a718efe2"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/set_effect/v1.lumina_magia.yml",
+        "sha256": "35a627c5076e743707b9d1855f64bc450b88f823293f2dbb2fcd49aa031245f9"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00400.lapis_sword.yml",
+        "sha256": "2ef43fca5d316f6e83cb8ce1f8f95b2129cf89a5f020df9a4fa0fde7b764703f"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00401.lapis_hammer.yml",
+        "sha256": "04dddff0d2b812d35ae4f19fbbbdcba3aadbf379a8606b496bb084d524af1bc0"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00402.lapis_spear.yml",
+        "sha256": "2c08c30d5c3583c896dfc595bc44062033ff88c2237ffeffcf7439ade1465056"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00403.lapis_shortbow.yml",
+        "sha256": "1f00af4fd2c2981cf968e0532d767c456d091e009dbaa6909b37c890d1710622"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00404.lapis_longbow.yml",
+        "sha256": "0980847ba35014301b7d8500d820fec97227f97c1e97a229e84dce12f65ae734"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00405.lapis_wand.yml",
+        "sha256": "eaeb0ea8882cc52174367233656c5f0eb9807f07207dc73cdadf5455df01fcc1"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00406.lapis_staff.yml",
+        "sha256": "fb7cd6c18f290b681b47aa1969c1e22cad27768bbb874e35912ee8d9e43db2f7"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00407.lapis_guard_head.yml",
+        "sha256": "9353eec1d7f7e7f794847ade35de70ea3e9435557247178ef8d570827fca0ab9"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00408.lapis_guard_chest.yml",
+        "sha256": "1b6b0888afe15870221c82875377db291d5286ec43072b9e6ca2ad2abc8e676b"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00409.lapis_guard_legs.yml",
+        "sha256": "400a02279fd963407b2c83f3d3031720054cfd2c860b1ca3aff2f007644368c9"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00410.lapis_guard_feet.yml",
+        "sha256": "9b9be0a949a3436cd9b6d0f0138fd7338a0295ee2e105f9fc49f603fb33230b0"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00411.lapis_hunter_head.yml",
+        "sha256": "74726c732adcebd595fc8e96d4ba02054f1e60a0aff94fbcf8bbec514fc5e310"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00412.lapis_hunter_chest.yml",
+        "sha256": "2baf5a9be7c9c57d8e3b2939a842a2151debdbd0ad692f1743a244dea0d34f32"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00413.lapis_hunter_legs.yml",
+        "sha256": "321885f4b10da59e4fe769c8c351862548eb37cbaef9f845b24b21528d41d18c"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00414.lapis_hunter_feet.yml",
+        "sha256": "c313a5e9f147e1b2464fcb295fdf0ad32d044b0a9d058b63584d8bbe76a3720d"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00415.lapis_mage_head.yml",
+        "sha256": "c4902798055b0a5f2d67667aaa9901d526b634fa9f846299dc242cae38a0b8a7"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00416.lapis_mage_chest.yml",
+        "sha256": "9a44a13e23534d2e8cbe4a7b1ffe2a0b744185e94f8aa693df32dd23c8926fac"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00417.lapis_mage_legs.yml",
+        "sha256": "edfb73099262d0c585264e66439160a59321bae5eb861bc04170e12830764ba5"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00418.lapis_mage_feet.yml",
+        "sha256": "01c9f9109d43ca7ad21dc250d059dbee75ec723a856a9e500d443f41f3a1c4c3"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00419.lumina_sword.yml",
+        "sha256": "89e6df7b64b0bc1884aa30d01211da09841a1cf7623ed4d4db3bb4dd1f39a08f"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00420.lumina_hammer.yml",
+        "sha256": "be7f0eb7f58ce6455198e8feff92675e4a42caa738a4370f7e9185e98f33b859"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00421.lumina_spear.yml",
+        "sha256": "e1e6c7dfe73d6d94aea36a50f59750086b618158d3bed97d5d1061f4cd02f3d8"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00422.lumina_shortbow.yml",
+        "sha256": "4c5ef57fba1c53b0bbbd8f4af44d3b608429f472baa532b07cf2aa00e73ca271"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00423.lumina_longbow.yml",
+        "sha256": "d1b738a5a9e6b8979c67d1191b52c706f554b461024accb20c06bc2ba2ed8835"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00424.lumina_wand.yml",
+        "sha256": "8f17015394f28e56d1e4f2c9a43fd2fdb177f6451cc3118b39f89a273a8b26e6"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00425.lumina_staff.yml",
+        "sha256": "f1ca36744f7d388eed895734d72b14bbcba33375b50afbe01711333e779090dc"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00426.lumina_guard_helmet.yml",
+        "sha256": "fada7d0afb45898b6bfe09db25d27e0ea1550a731b245b6fd8ff8ed04135f277"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00427.lumina_guard_chest.yml",
+        "sha256": "65bdadc287ad1198699a9d3de5533e189b40662b7e8138ec79a3b5a43108d629"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00428.lumina_guard_legs.yml",
+        "sha256": "853a16afaca768c26797e19beb775ffc0fecbdf16246af6fded9d331e611ea0a"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00429.lumina_guard_boots.yml",
+        "sha256": "396c877a82dfde75e165c54cd8ac0c9fc30f9b1f4bc50808c7af742227bb2e48"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00430.lumina_hunt_helmet.yml",
+        "sha256": "ef4ae364f9f7ea0629cb529caee9e09c71725ff6de287cbdc341e3ea56b71ead"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00431.lumina_hunt_chest.yml",
+        "sha256": "1c417c08a3d02eaebb380d32c1782e10e804a399a28fed915c838f8176a521bc"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00432.lumina_hunt_legs.yml",
+        "sha256": "ee1611b325617c747c547311b84e6046fefef11dc48b27b3c18ea8ece95b073b"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00433.lumina_hunt_boots.yml",
+        "sha256": "4f814754adc4cb6f8300a19c0e4731d5d5d7362c130e87cb745374deb27a6b97"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00434.lumina_magia_helmet.yml",
+        "sha256": "0cb7f4e5aaff8e7e06c580a5b0fe6c5b594af5d67eb019c960581f71d3b09d5e"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00435.lumina_magia_chest.yml",
+        "sha256": "fdca8eb2379868e22b8b52f39e8481ca1db4464e9eb7aa698eb16a7814609632"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00436.lumina_magia_legs.yml",
+        "sha256": "2f04016efc6817d07ed7fc3bb609828e6558f8e77669b90e18494cbd224cae57"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00437.lumina_magia_boots.yml",
+        "sha256": "cdbed88247ded8acb179c4e1513abcb93e02f930747952f3b164941b2f5fdf36"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00438.astra_sword.yml",
+        "sha256": "71d1e1e2198b3ea50230f473133e8c04b170adb3e9429721fc5d2de4e57e71f6"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00439.astra_hammer.yml",
+        "sha256": "908ce7043f29b96d28e08ccef06897dc61d6447cb7081ee62b604fd4ea1f7128"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00440.astra_spear.yml",
+        "sha256": "bf2aa8033893e32f05a5c7d748dbe0d7d75904a9a714d271164dc4e20bb793b4"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00441.astra_shortbow.yml",
+        "sha256": "608fb70466a8eede3638a68a19e9f0a9eb81fa11fe42fe709157e7b46c33d69f"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00442.astra_longbow.yml",
+        "sha256": "bdc607d9c0713bd47f76b0906dda2f55967088a7b0fc465fcd157214369f8aed"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00443.astra_wand.yml",
+        "sha256": "36f5b5b79925216a160ef9e17d05263f37b96c377d7055dfbabe28547a589ef0"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00444.astra_staff.yml",
+        "sha256": "f09cea931e60e824180420bc3490818464a0d52d0c77a61c06fb6b653247b396"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00445.astra_guard_head.yml",
+        "sha256": "bc982bb915bb0ebf6037b8876c01a2782c8926471a47dbb3b23d19714419e7f6"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00446.astra_guard_chest.yml",
+        "sha256": "86d803b82628ba6d31d76880ebedaadb7ff9dc2adeadfd8c26dbac294949808b"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00447.astra_guard_legs.yml",
+        "sha256": "5a97f0613822c738f74ecd3e53ba56d5f89e3352c5e75658c95ee4afb496409b"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00448.astra_guard_feet.yml",
+        "sha256": "c7e71eb16c2e5bd23a1ba22881cbbb57b57da03a7fac2890678fffcfceb3c835"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00449.astra_hunt_head.yml",
+        "sha256": "7a0a0aa3e45f26a660567212435fd5f8e685a2a64d0a9daa52eacd7f7a990c6a"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00450.astra_hunt_chest.yml",
+        "sha256": "a6243719cefef20a922bbde2ed48552508543d034da20dfbdec97cac730d183d"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00451.astra_hunt_legs.yml",
+        "sha256": "3b1a9c76b9b7f6eddf1ecd692c8ff1128f28f5dd58d961c77de544731a298d56"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00452.astra_hunt_feet.yml",
+        "sha256": "081d9a613faa2e9d76e765eabf1d75f4140fa12dc810cdc23be4bb775c78e655"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00453.astra_magia_head.yml",
+        "sha256": "8a9932783308b34ebaedfb4f145dae963657dcd186fd62c7269a9dee4c2559c4"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00454.astra_magia_chest.yml",
+        "sha256": "0c84fcc934ff0a022da4c376e4f7e15745b5943fe0ecbc7f5dbb59dbbee4efbe"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00455.astra_magia_legs.yml",
+        "sha256": "b546f972d3e4f328694d217e8a7f00e63072f744a63801332458305447f16fd0"
+      },
+      {
+        "path": "40_filebase/10.features.item/20.equipment/v1.20a00456.astra_magia_feet.yml",
+        "sha256": "86858110162108a47fb6fc148bc7a8fe34cd76d40fd9ca8e4de1e2fffb99ab26"
+      },
+      {
+        "path": "40_filebase/45.features.shop/v1.weapon_craftsman_shop.yml",
+        "sha256": "cab6c8d66d8d2a474e8551f4a592f2ddd446a163fbe443a0dbd1c4d052d2099c"
+      },
+      {
+        "path": "40_filebase/45.features.shop/v1.armor_craftsman_shop.yml",
+        "sha256": "ad8e3c0ceb574d10b51e420ce574277115d2aa94ab2a1a35e8e92f7c0ad4b26d"
+      }
+    ]
+  },
+  "environment": {
+    "dotnet": "10.0.302",
+    "node": "24.18.0",
+    "npm": "11.16.0",
+    "java": "21.0.10",
+    "mavenBinary": "C:\\Users\\kaede\\tools\\apache-maven-3.9.13\\bin\\mvn.cmd"
+  },
+  "results": {
+    "api-default": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\api-test-results\\api-tests.trx",
+      "sha256": "f527c7922a2360d37dfb8c1ab6d61a8767faa30033c210069e2e15a28f1bf82a",
+      "counters": {
+        "total": "875",
+        "executed": "875",
+        "passed": "875",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T04:44:51.0769290+09:00",
+        "queuing": "2026-10-15T04:44:51.0769296+09:00",
+        "start": "2026-10-15T04:44:47.8680114+09:00",
+        "finish": "2026-10-15T04:45:11.5631933+09:00"
+      }
+    },
+    "api-local": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\api-local-test-results\\api-local-tests.trx",
+      "sha256": "193cb9b3ae0eb15cd8803f5a3eb68c03518bfac11f236fc8c5563fc93c294651",
+      "counters": {
+        "total": "829",
+        "executed": "829",
+        "passed": "829",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T05:07:21.4118288+09:00",
+        "queuing": "2026-10-15T05:07:21.4118291+09:00",
+        "start": "2026-10-15T05:07:20.3336066+09:00",
+        "finish": "2026-10-15T05:07:35.9429299+09:00"
+      }
+    },
+    "api-actual-loader": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\api-fixture-loader-results\\api-fixture-loader.trx",
+      "sha256": "e89b0ec57b2a1a165b4148c28b0932cdf24ac915b98d80434baa4e5916e29414",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T04:59:36.0884405+09:00",
+        "queuing": "2026-10-15T04:59:36.0884411+09:00",
+        "start": "2026-10-15T04:59:30.7176017+09:00",
+        "finish": "2026-10-15T04:59:36.0935742+09:00"
+      }
+    },
+    "api-actual-persistence": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\api-fixture-persistence-results\\api-fixture-persistence.trx",
+      "sha256": "972ca043e5ab4889b12ecb814c6ec98f1679332038d9eec4deb28f6af816d9c3",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T05:01:42.6872296+09:00",
+        "queuing": "2026-10-15T05:01:42.6872299+09:00",
+        "start": "2026-10-15T05:01:39.3129256+09:00",
+        "finish": "2026-10-15T05:01:42.6927330+09:00"
+      }
+    },
+    "web": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\web-test-results\\web-tests.trx",
+      "sha256": "a6a934eec3507f1af4b59a1a9a9450c13d9334a6b73b94030e37ea17d0ec6572",
+      "counters": {
+        "total": "160",
+        "executed": "160",
+        "passed": "160",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T04:54:32.2627180+09:00",
+        "queuing": "2026-10-15T04:54:32.2627184+09:00",
+        "start": "2026-10-15T04:54:29.9361403+09:00",
+        "finish": "2026-10-15T04:54:49.1015519+09:00"
+      }
+    },
+    "editor-server-before-rune-fix": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\editor-test-results\\editor-tests.trx",
+      "sha256": "58d0282f412175c29ef2fb1b7e8bd0c8cff49ceb88529477dcc5b11eb33f0176",
+      "counters": {
+        "total": "303",
+        "executed": "303",
+        "passed": "303",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T04:55:45.1525230+09:00",
+        "queuing": "2026-10-15T04:55:45.1525234+09:00",
+        "start": "2026-10-15T04:55:42.8164054+09:00",
+        "finish": "2026-10-15T04:56:04.9028302+09:00"
+      }
+    },
+    "plugin-full": {
+      "passed": 1022,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "traceabilityMethods": 1018,
+      "traceabilitySources": 225,
+      "compileJavaMainSources": 1199,
+      "compileJavaTestSources": 223,
+      "log": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\plugin-full-test.log"
+    },
+    "plugin-acceptance": {
+      "firstFourPassed": 4,
+      "databaseDecoderPassed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "editor-client": {
+      "numTotalTests": 270,
+      "numPassedTests": 270,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTotalTestSuites": 72,
+      "numPassedTestSuites": 72,
+      "numFailedTestSuites": 0
+    },
+    "editor-server-final": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\editor-final-test-results\\editor-final-tests.trx",
+      "sha256": "a623a67b1f6a167f9c37d242276b496a62f0bb52fb04ffae4c939495987756df",
+      "counters": {
+        "total": "304",
+        "executed": "304",
+        "passed": "304",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T05:19:54.8272286+09:00",
+        "queuing": "2026-10-15T05:19:54.8272289+09:00",
+        "start": "2026-10-15T05:19:53.8822344+09:00",
+        "finish": "2026-10-15T05:20:10.1177731+09:00"
+      }
+    },
+    "editor-actual": {
+      "resultFile": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\editor-fixture-final-results\\editor-fixture-final.trx",
+      "sha256": "c86a0395c6a9eb946a3798597e76d8e72f51698cf0c26e84a57a9fcdaccf021d",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-10-15T05:18:21.8313845+09:00",
+        "queuing": "2026-10-15T05:18:21.8313850+09:00",
+        "start": "2026-10-15T05:18:11.4758790+09:00",
+        "finish": "2026-10-15T05:18:21.8374225+09:00"
+      }
+    }
+  },
+  "acceptance": {
+    "items": 57,
+    "setDefinitions": 9,
+    "randomDefinitions": 120,
+    "zeroWeightedDefinitions": 42,
+    "statRollsCreatedAndPersisted": 207,
+    "shopDefinitions": 2,
+    "manifestCostAndPlacementRows": 57,
+    "generatedBy": "ItemService.createLocalEquipmentInstance",
+    "snapshotEncoder": "PlayerStateSnapshot",
+    "persistence": "PlayerStateSnapshotRepository.SaveAsync; replay; SQLite in-memory; new EF context",
+    "reload": "EquipmentRepository + EquipmentService.MapToResponse + Plugin ItemRepository.parseEquipmentInstance",
+    "editorRoundTrippedEquipment": 57,
+    "editorPreserves": [
+      "random fields",
+      "unknown root key",
+      "comment text (comment whitespace and position follow structural-render specification)"
+    ]
+  },
+  "warnings": {
+    "apiUnique": [
+      "NU1902 System.Security.Cryptography.Pkcs 9.0.13 GHSA-2fmv-rv2c-59x7",
+      "NU1903 System.Security.Cryptography.Pkcs 9.0.13 GHSA-846f-f764-76mx",
+      "NU1903 SQLitePCLRaw.lib.e_sqlite3 2.1.11 GHSA-2m69-gcr7-jv3q"
+    ],
+    "plugin": [
+      "GuideCompletionRewardRepository.RewardUnavailableException has no serialVersionUID"
+    ],
+    "existingWarningSourcesUnchangedFrom": "989d32b7f10df0c05b799cda98f2c7fb211e72d8"
+  },
+  "notExecuted": [
+    "SQL Server integration 46 expanded cases (15 files with class- or method-level traits); flag disabled and later explicitly filtered",
+    "live server/ports/API HTTP/relogin/shop payment GUI",
+    "100 real fights; actual skills/AI/movement/spawn density",
+    "spawn world/channel/region/coordinates input"
+  ],
+  "logs": [
+    {
+      "name": "api-build.log",
+      "sha256": "426357da717c72d8e77611e3d4e6757c5ae90fe63a55aa49f3a6bb87e787ad2f",
+      "bytes": 8135
+    },
+    {
+      "name": "api-fixture-loader.log",
+      "sha256": "5f9fac4a3c3933a9c9f520d9baaff05de3c0d39c9a70c8a61996a638e0fc16e5",
+      "bytes": 4419
+    },
+    {
+      "name": "api-fixture-persistence.log",
+      "sha256": "6965e91f1fc912a219daf4b3a6f723c5a32848c5a6e7ab435d5a5ff50ef406e6",
+      "bytes": 572
+    },
+    {
+      "name": "api-local-test.log",
+      "sha256": "982cd8db2da7bb9850d353e67345bc08049602029e481d16811b496cac1b3886",
+      "bytes": 4671
+    },
+    {
+      "name": "api-test.log",
+      "sha256": "0bf7af3b55e8a8e1eb8f24612ad207dd6e4e5cde7dfcfe7e5cd3e29886db2b35",
+      "bytes": 544
+    },
+    {
+      "name": "editor-client-build.log",
+      "sha256": "292754035f103b88b43ed0d998be125da45bc787aaee154a43847370c5ba5356",
+      "bytes": 1870
+    },
+    {
+      "name": "editor-client-ci.log",
+      "sha256": "c63af61013d4ce08a394ae044dc05ea372cfab38f9dfed38fa0efd66e9e81eeb",
+      "bytes": 29
+    },
+    {
+      "name": "editor-client-lint.log",
+      "sha256": "1b307d301e5a79e1069c2fcd83e5b0028b997565d29ebe96604ebec669403273",
+      "bytes": 62
+    },
+    {
+      "name": "editor-client-test.log",
+      "sha256": "c8daa6c14ebfdec082dcd9c2cb89e81b75856c2b8ea153c2e80ce26de7f35c74",
+      "bytes": 8217
+    },
+    {
+      "name": "editor-fixture-final.log",
+      "sha256": "73d3de666f97819d7fd7b2930eb2578620c081a66e97c9c54bd2b0c858f18577",
+      "bytes": 1118
+    },
+    {
+      "name": "editor-fixture-fixed.log",
+      "sha256": "c5255333a5ade78df528e9cf8da2d0046699d1d45e314b401ddf3346b2960de1",
+      "bytes": 1995
+    },
+    {
+      "name": "editor-fixture.log",
+      "sha256": "9af58cdc43418562f7d7562b7378b772bccd73292215b78b005cbc39c0a9ff0a",
+      "bytes": 2006
+    },
+    {
+      "name": "editor-server-build.log",
+      "sha256": "35d1f2cd0f47ab5f3ba5b8043406f149c4eacd77d2c43637080c359deabe9039",
+      "bytes": 944
+    },
+    {
+      "name": "editor-server-final-build.log",
+      "sha256": "b4713a03f80c853d360262614309fe7aa7087633e60e4efb34edc7a10ddb24f6",
+      "bytes": 625
+    },
+    {
+      "name": "editor-server-final-test.log",
+      "sha256": "c9c80d60a5291cd9b5ed20ba61b188d95a4aed7260abf12e4cdce37c952285ec",
+      "bytes": 591
+    },
+    {
+      "name": "editor-server-test.log",
+      "sha256": "9141dc67e4f079439da05c681e8e55b8c9cddc49872f072a77cd27afea03e20d",
+      "bytes": 579
+    },
+    {
+      "name": "plugin-compile.log",
+      "sha256": "64850d759b3833ad1121b69689e7dfac8c5cd64dcfff9cc6a6554f0a5a795b29",
+      "bytes": 1661
+    },
+    {
+      "name": "plugin-fixture-database-reload.log",
+      "sha256": "d43ccb4e8e6657207779c51e8e62e4ce134606457fb0f22602416efbaf8104e0",
+      "bytes": 2343
+    },
+    {
+      "name": "plugin-fixture-initial.log",
+      "sha256": "e996112b212eca4c1c329edffe38c6cbdd5baf0a1191fccec64e5a9c7afc1efd",
+      "bytes": 2343
+    },
+    {
+      "name": "plugin-full-test.log",
+      "sha256": "41e4727878e30dcb6ec6c76c7f72428cd75814e6d4ce3433d14dd3b41ef625ca",
+      "bytes": 61218
+    },
+    {
+      "name": "plugin-traceability.log",
+      "sha256": "9ebef6a03bde19f5939c2d56db0584d9c603036840d845e76b416f36071634b8",
+      "bytes": 81
+    },
+    {
+      "name": "web-build.log",
+      "sha256": "9b10a981678c5f8ef947f4c5d4e5df8b4281751418f5e5aca2406e87d1163894",
+      "bytes": 846
+    },
+    {
+      "name": "web-test.log",
+      "sha256": "93d68e86c7aa49f66d7284e82313ef954b99ecb5021287cfcfa63de941fb95a2",
+      "bytes": 544
+    }
+  ],
+  "fixtureEvidenceFiles": [
+    {
+      "name": "api-reloaded-equipment.json",
+      "sha256": "b86451638edfdc3f8bd69cf64d4072b3eb7274a3b60be22af710e0d11798e84f",
+      "bytes": 64365
+    },
+    {
+      "name": "generated-equipment.json",
+      "sha256": "ddfb2c83834d6d35a36a510a328efc9982476ce05a58c650774e64f2c90ed5ce",
+      "bytes": 44461
+    },
+    {
+      "name": "generated-snapshot.json",
+      "sha256": "74957cd92f2d6563b02615423d126d7b94ac3b24db9d9f5ef1f1946ded860a7e",
+      "bytes": 38807
+    },
+    {
+      "name": "items.json",
+      "sha256": "7c17c8de0787ef9b4bcb41ebbe1045e50493879ea93b5ee657e13403a9ef21e1",
+      "bytes": 377427
+    },
+    {
+      "name": "provenance.json",
+      "sha256": "f15257919446092c2e26e07d602f52b1b0a3c65e82d2363c4b78c2b673aea837",
+      "bytes": 12792
+    },
+    {
+      "name": "sets.json",
+      "sha256": "99fdde16ecea7707d6f3fdb0f41cbe499b0fcf0c8fdb94df25b3ba37e393fa1d",
+      "bytes": 2097
+    },
+    {
+      "name": "shop-expectations.json",
+      "sha256": "62125fd94ee2616fb260740bf3e2af4735d74daafa6615e9562218f184c9c796",
+      "bytes": 30522
+    }
+  ],
+  "temporaryAcceptanceSources": [
+    {
+      "path": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-api-fixture-plan\\AdHocFinalEquipmentAcceptanceTests.cs",
+      "sha256": "2fa286cb0f29be1272ca04689cdfb2fc319c88638a2c261bef5471620923e5c2"
+    },
+    {
+      "path": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-plugin-fixture-plan\\AdHocFieldEquipmentAcceptanceTest.java",
+      "sha256": "ae16c1764f198a630c195e1fd3446d5d23199caa2da4da361d65f9fb0ef60910"
+    },
+    {
+      "path": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-editor-fixture-plan\\AdHocFinalEquipmentEditorTests.cs",
+      "sha256": "da97cb81a7504cbb59a93ad606fc810915f2206fed2a03510933c7d88f23b63b"
+    },
+    {
+      "path": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-editor-fixture-plan\\AdHocFinalEquipmentEditorTests.targets",
+      "sha256": "60ad2398809b1c08a064a39a222b8217628197f210cc2a9d2372af7aee0b798c"
+    }
+  ],
+  "componentTrees": {
+    "10_plugin/AstralRecord": "f371893caf62a04fc06e058494dc7aabba1660a9",
+    "20_api/AstralRecordApi": "696a6cf6e6715f7ea3b577abb5cb6f17032c574e",
+    "30_web/AstralRecordWeb": "652ab83c874808cc7eed1038089b7e89d80cd05a",
+    "60_tool/skilltree-editor": "3741e98d32f2d0c4354bdfdd6463ebca9f069c7c",
+    "60_tool/skilltree-editor/src/SkillTreeEditor.Client": "600adccf350d7b093483315e1bb44820035dbd74"
+  },
+  "reviewedMetadataBlob": "5408b5b0b870150fb95d34154bf97297203d3db3",
+  "reviewedEditorRegressionBlob": "a043c4938bdda070c67be96567152984658f6158",
+  "fixtureInputHashesStillMatchCurrentSource": true,
+  "sourceRevisionsByRun": {
+    "api-default": "b046beab1f02c60fd4ccd6d6086f7ef49034327a",
+    "api-local": "7928471b0996e4e56940b90692310841c8f625bc",
+    "plugin": "7928471b0996e4e56940b90692310841c8f625bc",
+    "web": "7928471b0996e4e56940b90692310841c8f625bc",
+    "editor-client": "7928471b0996e4e56940b90692310841c8f625bc",
+    "editor-server-final": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+    "editor-actual": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145"
+  },
+  "componentInputIdentity": {
+    "20_api/AstralRecordApi": {
+      "testedRevision": "b046beab1f02c60fd4ccd6d6086f7ef49034327a",
+      "testedTree": "696a6cf6e6715f7ea3b577abb5cb6f17032c574e",
+      "currentTree": "696a6cf6e6715f7ea3b577abb5cb6f17032c574e"
+    },
+    "10_plugin/AstralRecord": {
+      "testedRevision": "7928471b0996e4e56940b90692310841c8f625bc",
+      "testedTree": "f371893caf62a04fc06e058494dc7aabba1660a9",
+      "currentTree": "f371893caf62a04fc06e058494dc7aabba1660a9"
+    },
+    "30_web/AstralRecordWeb": {
+      "testedRevision": "7928471b0996e4e56940b90692310841c8f625bc",
+      "testedTree": "652ab83c874808cc7eed1038089b7e89d80cd05a",
+      "currentTree": "652ab83c874808cc7eed1038089b7e89d80cd05a"
+    },
+    "60_tool/skilltree-editor/src/SkillTreeEditor.Client": {
+      "testedRevision": "7928471b0996e4e56940b90692310841c8f625bc",
+      "testedTree": "600adccf350d7b093483315e1bb44820035dbd74",
+      "currentTree": "600adccf350d7b093483315e1bb44820035dbd74"
+    }
+  },
+  "temporarySourcesRemovedFromRepository": true,
+  "temporaryEditorCompileInjectionRemoved": true,
+  "correctedDuringAcceptance": [
+    {
+      "type": "repository metadata mismatch",
+      "failure": "Editor FIELD_TYPE /equipment/rune/maxSlots",
+      "fixCommit": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+      "final": "57 real equipment actual read/validate/save/read passed"
+    },
+    {
+      "type": "temporary-test expectation mismatch",
+      "failure": "comment indentation asserted literally after structural Render",
+      "fix": "compare preserved comment text, allow documented whitespace/position formatting",
+      "final": "1/1 one-shot passed"
+    }
+  ],
+  "status": "PASS_LOCAL_GATES_AND_ISOLATED_ACCEPTANCE",
+  "compatibilityGuardRegression": {
+    "negativeResult": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-gates-b046\\filebase-guard-negative.json",
+    "negativeResultSha256": "10671d7a3d156700f2d028e62424abc1feea149ec2f37102db9833c1c3e16903",
+    "negativeStatus": "FAIL",
+    "negativeErrors": 1,
+    "untrackedProbe": [
+      "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/model/AdHocCompatibilityProbe.java"
+    ],
+    "probeRemoved": true,
+    "positiveStatus": "PASS",
+    "positiveErrors": 0,
+    "positivePending": 0,
+    "independentRecheck": "AR-CODE-003 confirmed by independent reviewer"
+  },
+  "reviewRecord": "00_docs/99_資料/レビュー結果/[完了] 26-10-15 05：29：44 code-review.md",
+  "findingsFixed": 4,
+  "balanceReproduction": {
+    "outputDirectory": "C:\\Users\\kaede\\AppData\\Local\\Temp\\field-equipment-heavy-balance-final-repro",
+    "exactOutputMatches": 10,
+    "outputs": [
+      {
+        "name": "REPORT.md",
+        "sha256": "dc07db2dc563f4ccfdcfe1557aef306efa7dfdfbef04a2e645eadb782402ce01"
+      },
+      {
+        "name": "SUMMARY.json",
+        "sha256": "313d835ac6327170499ab72df636b06053fbac06bf9c8125d17e72352b69e33c"
+      },
+      {
+        "name": "equipment_76x3.csv",
+        "sha256": "909b6ce8d2dd23074ba7481e5cac1571bdef51282a439ff2d6236bcfa132c68a"
+      },
+      {
+        "name": "combat_cases.csv",
+        "sha256": "58d49efbadfd2df42b74de23d3de6ce6d3e1c2f209e24589f2d0cd98c1345304"
+      },
+      {
+        "name": "combat_cases.json",
+        "sha256": "8635beed4043bdc465aad8e08d94c6ae914f71ebca9e23d7107978d0fc27de9a"
+      },
+      {
+        "name": "acquisition_76.csv",
+        "sha256": "d4ec31e699d2fb43f1398e9d0fc6435f17780078294dfa798c2382891ebeea2b"
+      },
+      {
+        "name": "acquisition_76.json",
+        "sha256": "1cc46a94643b4c50796158fbaa39edbd4b1d67f0b2ad04bc2a4a9243b1d1a60d"
+      },
+      {
+        "name": "loadout_28.csv",
+        "sha256": "ed7d9c2047875fa5e8d64d54eb1238b3d241b113af5e2d5ee547a3c79655c8f4"
+      },
+      {
+        "name": "mob_cases.json",
+        "sha256": "921733d8f367a48bd656b6ef16af91d8afe7dd093ca9f87f9d4f6371b3c914ac"
+      },
+      {
+        "name": "player_residuals.json",
+        "sha256": "335d3f00aa4070f673a9605560ebbe2b00cff58b2ee77a3baaf59f29c3f6d44b"
+      }
+    ],
+    "scripts": [
+      {
+        "path": "heavy-balance/heavy_balance.py",
+        "sha256": "21b5b10d364b5aa46308315d81974707a74c445ea9986b03a4c17ed736b62c2f"
+      },
+      {
+        "path": "heavy-balance/acquisition.py",
+        "sha256": "999f1d3cf8ca3a9d1adc7699fe858b3c625c1d95b4ff13e7902a9eee06f81339"
+      },
+      {
+        "path": "heavy-balance/summarize.py",
+        "sha256": "4d914b7100be6cc5d24dad551cfd098000d955674fdaba34efc14007b10c4a56"
+      },
+      {
+        "path": "heavy-balance/mob_selection.json",
+        "sha256": "931abb055ce016e548a7a31afcc3dc3f5cdc74ab753870bd3c33e3742300e6c3"
+      }
+    ]
+  }
+}

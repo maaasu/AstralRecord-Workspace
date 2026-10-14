@@ -1,6 +1,6 @@
 # モブ・上位装備 最終統合
 
-統合先は `codex/field-equipment-final-integration` / `E:\AstralRecord-Worktrees\field-equipment-final-integration`。基点は `989d32b7f10df0c05b799cda98f2c7fb211e72d8`。旧統合worktreeと共有 `objects/maintenance.lock` を保持した。以下は静的マスタの統合と検証であり、実サーバーでの戦闘・配置・購入・保存再読込を実施した記録ではない。
+統合先は `codex/field-equipment-final-integration` / `E:\AstralRecord-Worktrees\field-equipment-final-integration`。基点は `989d32b7f10df0c05b799cda98f2c7fb211e72d8`。旧統合worktreeと共有 `objects/maintenance.lock` を保持した。静的マスタ統合と専有fixtureの自動受入を実施した。実サーバーでの戦闘・配置・購入・再ログインは未実施。
 
 ## 固定成果の受入
 
@@ -72,12 +72,16 @@ Lv25の既報TTK1.760734秒は、+30最大個体・武器攻撃FLAT48/SCALAR1.70
 - `SOURCE_LITERAL_ITEM_ID_REFERENCES.csv`: source内の固定ID出現111箇所/31 ID。動的参照や実サーバ設定の不存在保証ではない。
 - `METHOD_AND_SUMMARY.md`: 抽出方法と集計。元17素材の古いスナップショットは変更せず、全新規追加を含む最新一覧を別に保存。
 
-## 静的検証と残る受入
+## 最終自動検証と残る実機受入
 
 `FINAL_VALIDATION.json` に全1004 YAMLの重複キー/namespace ID/変更参照/random契約、25旧敵の全44実効level、23新種92profile・固有技中央登録、新57装備9sets、2Shop・57対価・旧19商品保持・配置・BAG容量・固定commit受入と後続調整の検査結果を保存する。`compare_final_equipment.py` と `validate_final_integration.py` は再実行可能。明示した出力先以外へ資料を生成しない。
 
-保存抽選のPlugin/API/Editor実装とスキーマは基点から変更なし。新randomも既存契約内で、保存済みmin/maxを再抽選する経路を追加していない。これは静的互換確認で、実importer・再ログイン・既存個体再送の実機受入は未実施。今回差分はfilebase/資料だけのため重いbuildと版番号更新は反復していない。基点側のPlugin1022テスト成功を今回の実戦検証とは扱わない。
+保存実装は維持し、Editorのルーン枠型記述だけを既存wrapper契約へ訂正した。Webのrandom応答表示とEditorのメタデータ検証へ汎用回帰を追加。新統合内容でPlugin compile/全1022件、APIの実SQL Server46ケースを除く全829件、Web160件、Editor Server304件/Client270件とlint/buildを通過した。API既定実行875表示のうち46ケースはopt-in未指定で本体未実行である。隔離した実57装備のAPI/Plugin生成・全207ロールのSQLite保存再送/再読込、9セット2/4・2Shop全57対価、Editor57件保存往復も成功。詳細と警告は `HEAVY_VALIDATION.md` / `HEAVY_VALIDATION.json`。一時受入sourceはリポジトリから除去し、版番号・develop・push・配備は変更していない。
 
 独立Shopレビューとラピス改訂レビューは指摘なし。最終横断レビューの再現性指摘1件は修正し、別担当の再確認で監査5出力のSHA256一致と新規回帰なしを確認した。未解決指摘なし。正規記録は `../レビュー結果/[完了] 26-10-15 04：30：39 code-review.md`。実world/channel・地形・既存配置・密度入力が不足する新規スポーンは `HABITAT_PLAN.md` / `HABITAT_GROUPS.csv` の8グループ（原則3種、平原初期のみ2種）に候補と不足入力を記録した。架空座標を含むspawnerやruntime設定は作成しない。
 
 develop反映・push・配備、実サーバー/DB/ポート操作は未実施。新統合branch/worktreeとラピス修正用worktreeを後続レビュー/受入のため保持する。
+
+追加の実Mob/取得負担比較は `heavy-balance/REPORT.md`。全7武器・+0/+15/+30・Lv15/20/25/30の2688条件を掲載し、Lv25代理/ボスと着用条件を区別する。Lv30+30無刻印期待の旧エリヴァ対ラピス約0.6%逆転14条件と、最適刻印でアストラがアンカー150.9%となる極値を明示した。採集・討伐・進化1回費用・未計上の強化/刻印費を分け、石ころ副産物を二重計上せず最大14BAG枠を再確認した。
+
+重い検証後の横断レビューは定義/費用表記/未追跡guard/再実行例の4指摘を修正し、独立再確認を完了した。正規記録は `../レビュー結果/[完了] 26-10-15 05：29：44 code-review.md`。

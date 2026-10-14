@@ -388,9 +388,26 @@
     "slotIssues": []
   },
   "savedRandomCompatibility": {
-    "sourceAndContractsUnchanged": true,
-    "baselineChanges": [],
-    "uncommitted": []
+    "sourceAndContractsUnchanged": false,
+    "runtimeSourceUnchanged": true,
+    "baselineChanges": [
+      "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md",
+      "60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs"
+    ],
+    "uncommitted": [],
+    "reviewedMetadataAndTestChanges": [
+      {
+        "path": "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md",
+        "blob": "5408b5b0b870150fb95d34154bf97297203d3db3"
+      },
+      {
+        "path": "60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs",
+        "blob": "a043c4938bdda070c67be96567152984658f6158"
+      }
+    ],
+    "reviewedChangeCommit": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+    "reason": "Editor metadata now accepts existing random range wrapper; actual loader, scalar snapshot persistence, and saved roll decoder contracts are unchanged; see HEAVY_VALIDATION.json for executed acceptance",
+    "unexpectedChanges": []
   },
   "sourceCommitDiffTree": [
     {
