@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.party.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -10,6 +11,9 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
@@ -17,6 +21,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -25,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -65,6 +69,7 @@ class PartyServiceTest {
         when(target.getUniqueId()).thenReturn(targetId);
         when(target.getName()).thenReturn("target");
 
+        setAccountDisplayName(inviter, "募集担当", 2);
         PartyService service = new PartyService(plugin, userService);
         try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
@@ -77,13 +82,12 @@ class PartyServiceTest {
             service.invite(inviter, target);
         }
 
-        verify(messageService).sendClickable(
-            target,
-            PlayerMsgId.P_5908,
-            "/party accept inviter",
-            "inviter"
-        );
-        verify(messageService, never()).send(target, PlayerMsgId.P_5908, "inviter");
+        verify(messageService).sendComponent(eq(target), argThat(component ->
+            ClickEvent.runCommand("/party accept inviter").equals(component.clickEvent())
+                && hasNoChildClickEvents(component)
+                && PlainTextComponentSerializer.plainText().serialize(component).contains("/party accept inviter")
+                && PlainTextComponentSerializer.plainText().serialize(component).contains("募集担当#2")
+        ));
     }
 
     /**
@@ -116,6 +120,7 @@ class PartyServiceTest {
         when(target.getUniqueId()).thenReturn(targetId);
         when(target.getName()).thenReturn("target");
 
+        setAccountDisplayName(inviter, "募集担当", 2);
         PartyService service = new PartyService(plugin, userService);
         try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
@@ -128,13 +133,12 @@ class PartyServiceTest {
             service.invite(inviter, target);
         }
 
-        verify(messageService).send(target, PlayerMsgId.P_5908, "inviter");
-        verify(messageService, never()).sendClickable(
-            eq(target),
-            eq(PlayerMsgId.P_5908),
-            anyString(),
-            any(Object[].class)
-        );
+        verify(messageService).sendComponent(eq(target), argThat(component ->
+            component.clickEvent() == null
+                && hasNoChildClickEvents(component)
+                && PlainTextComponentSerializer.plainText().serialize(component).contains("/party accept inviter")
+                && PlainTextComponentSerializer.plainText().serialize(component).contains("募集担当#2")
+        ));
     }
 
     /**
@@ -537,6 +541,7 @@ class PartyServiceTest {
         when(requesterPlayer.getName()).thenReturn("requester");
         when(requesterPlayer.isOnline()).thenReturn(true);
 
+        setAccountDisplayName(requester, "応募者", 3);
         PartyService service = new PartyService(plugin, userService);
         try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
              MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
@@ -559,12 +564,12 @@ class PartyServiceTest {
             assertEquals(PlayerMsgId.P_5978, service.joinFromBoard(requester, party.getPartyId()).messageId());
             assertEquals(1, service.getJoinRequests(leaderId).size());
             assertNull(service.findParty(requesterId));
-            verify(messageService).sendClickable(
-                leaderPlayer,
-                PlayerMsgId.P_5979,
-                "/party approve requester",
-                "requester"
-            );
+            verify(messageService).sendComponent(eq(leaderPlayer), argThat(component ->
+                ClickEvent.runCommand("/party approve requester").equals(component.clickEvent())
+                    && hasNoChildClickEvents(component)
+                    && PlainTextComponentSerializer.plainText().serialize(component).contains("/party approve requester")
+                    && PlainTextComponentSerializer.plainText().serialize(component).contains("応募者#3")
+            ));
 
             assertEquals(PlayerMsgId.P_5981, service.approveJoinRequest(leader, "requester").messageId());
             assertEquals(party, service.findParty(requesterId));
@@ -575,5 +580,112 @@ class PartyServiceTest {
                 "leaderのパーティー"
             );
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## 招待応答
+     * 検証契約: リーダー移譲後の旧リーダーの招待承諾を拒否して招待を除去し、人数と所属を変更しない。
+     */
+    @Test
+    void rejectsInviteFromFormerLeaderWithoutJoining() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        PartyService service = createTestService(plugin);
+        AstPlayer leader = mockPartyPlayer("leader");
+        AstPlayer nextLeader = mockPartyPlayer("nextLeader");
+        AstPlayer target = mockPartyPlayer("target");
+        Player leaderPlayer = leader.getBukkit();
+        Player nextLeaderPlayer = nextLeader.getBukkit();
+        Player targetPlayer = target.getBukkit();
+        Map<Player, AstPlayer> players = Map.of(leaderPlayer, leader, nextLeaderPlayer, nextLeader, targetPlayer, target);
+
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(any(AstPlayer.class))).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(any(Player.class)))
+                .thenAnswer(invocation -> players.get(invocation.getArgument(0)));
+            bukkit.when(() -> Bukkit.getPlayerExact("leader")).thenReturn(leaderPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(mock(PlayerMessageService.class));
+
+            assertTrue(service.invite(leader, nextLeaderPlayer).success());
+            assertTrue(service.acceptInvite(nextLeader, "leader").success());
+            assertTrue(service.invite(leader, targetPlayer).success());
+            assertTrue(service.promote(leader, nextLeaderPlayer).success());
+
+            assertEquals(PlayerMsgId.P_5911, service.acceptInvite(target, "leader").messageId());
+            assertNull(service.findParty(targetPlayer.getUniqueId()));
+            assertEquals(2, service.findParty(leaderPlayer.getUniqueId()).size());
+            assertTrue(service.getInvites(targetPlayer.getUniqueId()).isEmpty());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## member 管理
+     * 検証契約: 自己リーダー移譲を拒否してリーダーと既存の参加申請を保持する。
+     */
+    @Test
+    void rejectsSelfPromotionWithoutDiscardingJoinRequests() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        PartyService service = createTestService(plugin);
+        AstPlayer leader = mockPartyPlayer("leader");
+        AstPlayer requester = mockPartyPlayer("requester");
+        Player leaderPlayer = leader.getBukkit();
+        Player requesterPlayer = requester.getBukkit();
+        Map<Player, AstPlayer> players = Map.of(leaderPlayer, leader, requesterPlayer, requester);
+
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(any(AstPlayer.class))).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(any(Player.class)))
+                .thenAnswer(invocation -> players.get(invocation.getArgument(0)));
+            bukkit.when(() -> Bukkit.getPlayer(leaderPlayer.getUniqueId())).thenReturn(leaderPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(mock(PlayerMessageService.class));
+
+            assertTrue(service.createParty(leader).success());
+            Party party = service.findParty(leaderPlayer.getUniqueId());
+            assertTrue(service.setRecruitmentMessage(leader, "参加者募集").success());
+            assertTrue(service.publishRecruitment(leader).success());
+            assertTrue(service.joinFromBoard(requester, party.getPartyId()).success());
+            var requests = service.getJoinRequests(leaderPlayer.getUniqueId());
+            assertEquals(1, requests.size());
+
+            assertEquals(PlayerMsgId.P_5987, service.promote(leader, leaderPlayer).messageId());
+            assertEquals(leaderPlayer.getUniqueId(), party.getLeaderId());
+            assertEquals(requests, service.getJoinRequests(leaderPlayer.getUniqueId()));
+        }
+    }
+
+    private PartyService createTestService(AstralRecord plugin) {
+        Server server = mock(Server.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(mock(BukkitScheduler.class));
+        return new PartyService(plugin, mock(UserService.class));
+    }
+
+    private AstPlayer mockPartyPlayer(String name) {
+        Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getName()).thenReturn(name);
+        when(player.isOnline()).thenReturn(true);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        return astPlayer;
+    }
+
+    private void setAccountDisplayName(AstPlayer player, String name, int slotIndex) {
+        AccountModel account = mock(AccountModel.class);
+        when(account.getAccountName()).thenReturn(name);
+        when(account.getSlotIndex()).thenReturn(slotIndex);
+        when(player.getAccount()).thenReturn(account);
+    }
+
+    private boolean hasNoChildClickEvents(Component component) {
+        return component.children().stream()
+            .allMatch(child -> child.clickEvent() == null && hasNoChildClickEvents(child));
     }
 }

@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -29,7 +30,7 @@ public final class PartyCommand extends AstCommand {
      * PartyCommand を初期化します。
      */
     public PartyCommand() {
-        super("party", "パーティーを管理します。", "/party [gui|create|invite|accept|decline|approve|leave|disband|kick|promote|list|chat [message]]", true);
+        super("party", "パーティーを管理します。", "/party [gui|create|invite|accept|decline|approve|recruit <募集内容>|leave|disband|kick|promote|list|chat [message]]", true);
     }
 
     @Override
@@ -56,12 +57,13 @@ public final class PartyCommand extends AstCommand {
             return;
         }
 
-        switch (args[0].toLowerCase()) {
+        switch (args[0].toLowerCase(Locale.ROOT)) {
             case "create" -> sendResult(player, partyService.createParty(player));
             case "invite" -> invite(player, partyService, args);
             case "accept" -> accept(player, partyService, args);
             case "decline" -> decline(player, partyService, args);
             case "approve" -> approve(player, partyService, args);
+            case "recruit" -> recruit(player, partyService, args);
             case "leave" -> sendResult(player, partyService.leave(player));
             case "disband" -> sendResult(player, partyService.disband(player));
             case "kick" -> kick(player, partyService, args);
@@ -103,6 +105,20 @@ public final class PartyCommand extends AstCommand {
             return;
         }
         sendResult(player, partyService.approveJoinRequest(player, args[1]));
+    }
+
+    /**
+     * 後続引数を募集内容として登録・変更します。リーダー権限と入力検証はサービスへ委譲します。
+     *
+     * @param player コマンド実行者
+     * @param partyService 募集内容を更新するサービス
+     * @param args サブコマンドと募集内容を含む引数
+     */
+    private void recruit(@NotNull AstPlayer player, @NotNull PartyService partyService, @NotNull String[] args) {
+        if (!checkArgsLength(args, 2, player.getBukkit())) {
+            return;
+        }
+        sendResult(player, partyService.setRecruitmentMessage(player, joinArgs(args, 1)));
     }
 
     private void kick(@NotNull AstPlayer player, @NotNull PartyService partyService, @NotNull String[] args) {

@@ -190,7 +190,6 @@ import io.github.maaasu.astralRecord.feature.party.event.PartyRecruitmentGuiEven
 import io.github.maaasu.astralRecord.feature.party.gui.PartyBoardGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
-import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentMessageAnvilGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentSettingsGui;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -607,7 +606,6 @@ public final class AstralRecord extends JavaPlugin {
     private PartyGui partyGui;
     private PartyMemberActionGui partyMemberActionGui;
     private PartyRecruitmentSettingsGui partyRecruitmentSettingsGui;
-    private PartyRecruitmentMessageAnvilGui partyRecruitmentMessageAnvilGui;
     private PartyBoardGui partyBoardGui;
     private LoginBonusService loginBonusService;
     private MailService mailService;
@@ -1302,7 +1300,6 @@ public final class AstralRecord extends JavaPlugin {
         partyService = new PartyService(this, userService);
         partyGui = new PartyGui(partyService);
         partyRecruitmentSettingsGui = new PartyRecruitmentSettingsGui(partyService);
-        partyRecruitmentMessageAnvilGui = new PartyRecruitmentMessageAnvilGui();
         partyBoardGui = new PartyBoardGui(partyService);
 
         // inventory
@@ -2997,7 +2994,6 @@ public final class AstralRecord extends JavaPlugin {
                 partyService,
                 partyGui,
                 partyRecruitmentSettingsGui,
-                partyRecruitmentMessageAnvilGui,
                 partyBoardGui,
                 inventoryService
             ),

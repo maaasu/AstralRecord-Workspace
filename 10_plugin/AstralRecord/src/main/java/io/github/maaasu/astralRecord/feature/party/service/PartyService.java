@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.party.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
@@ -8,12 +9,15 @@ import io.github.maaasu.astralRecord.feature.party.model.PartyJoinRequest;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +39,7 @@ import java.util.function.Predicate;
  */
 public final class PartyService {
     public static final int MAX_MEMBERS = 6;
-    /** 金床GUIから設定できる募集内容の最大Unicode文字数です。 */
+    /** コマンドで設定できる募集内容の最大Unicode文字数です。 */
     public static final int MAX_RECRUITMENT_MESSAGE_LENGTH = 50;
 
     private final AstralRecord plugin;
@@ -139,18 +143,7 @@ public final class PartyService {
         invitesByTarget.computeIfAbsent(targetId, ignored -> new LinkedHashMap<>())
             .put(inviterId, new PartyInvite(party.getPartyId(), inviterId, targetId, java.time.Instant.now()));
         String inviterName = inviter.getBukkit().getName();
-        PlayerMessageService messageService = PlayerMessageService.getInstance();
-        TradeService tradeService = plugin.getTradeService();
-        if (tradeService != null && tradeService.getOpenSession(targetId) != null) {
-            messageService.send(target, PlayerMsgId.P_5908, inviterName);
-        } else {
-            messageService.sendClickable(
-                target,
-                PlayerMsgId.P_5908,
-                "/party accept " + inviterName,
-                inviterName
-            );
-        }
+        sendPartyActionNotification(target, inviter, PlayerMsgId.P_5908, "/party accept " + inviterName);
         recordHistory(inviterId, "PARTY_INVITED", "Party invite sent to " + target.getName());
         recordHistory(targetId, "PARTY_INVITE_RECEIVED", "Party invite received from " + inviter.getBukkit().getName());
         return PartyActionResult.success(PlayerMsgId.P_5907, target.getName());
@@ -158,6 +151,7 @@ public final class PartyService {
 
     /**
      * 招待を承諾してパーティーへ参加します。
+     * 招待時のリーダーが現在もリーダーであることを確認し、無効な招待は除去します。
      *
      * @param player 承諾者
      * @param leaderName 招待者名
@@ -190,7 +184,7 @@ public final class PartyService {
         }
 
         Party party = parties.get(invite.partyId());
-        if (party == null || !party.contains(leaderId)) {
+        if (party == null || !party.isLeader(leaderId)) {
             removeInvite(playerId, leaderId);
             return PartyActionResult.failure(PlayerMsgId.P_5911, leaderName);
         }
@@ -342,6 +336,7 @@ public final class PartyService {
 
     /**
      * リーダーを移譲します。
+     * 自己移譲は拒否し、リーダーと未処理参加申請を変更しません。
      *
      * @param leader 現リーダー
      * @param target 新リーダー
@@ -359,6 +354,9 @@ public final class PartyService {
         }
         if (!party.isLeader(leaderId)) {
             return PartyActionResult.failure(PlayerMsgId.P_5920);
+        }
+        if (leaderId.equals(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5987);
         }
         if (!party.contains(targetId)) {
             return PartyActionResult.failure(PlayerMsgId.P_5924);
@@ -451,7 +449,7 @@ public final class PartyService {
      * 掲載中のパーティーにも即時反映します。
      *
      * @param leader 更新するパーティーのリーダー
-     * @param rawMessage 金床GUIから受け取った募集内容
+     * @param rawMessage コマンドから受け取った募集内容
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult setRecruitmentMessage(
@@ -587,17 +585,7 @@ public final class PartyService {
         }
         requests.put(requesterId, new PartyJoinRequest(partyId, requesterId, java.time.Instant.now()));
         String requesterName = requester.getBukkit().getName();
-        TradeService tradeService = plugin.getTradeService();
-        if (tradeService != null && tradeService.getOpenSession(leaderId) != null) {
-            PlayerMessageService.getInstance().send(leader, PlayerMsgId.P_5979, requesterName);
-        } else {
-            PlayerMessageService.getInstance().sendClickable(
-                leader,
-                PlayerMsgId.P_5979,
-                "/party approve " + requesterName,
-                requesterName
-            );
-        }
+        sendPartyActionNotification(leader, requester, PlayerMsgId.P_5979, "/party approve " + requesterName);
         recordHistory(requesterId, "PARTY_JOIN_REQUESTED", "Party join requested: " + partyId);
         return PartyActionResult.success(PlayerMsgId.P_5978, partyName);
     }
@@ -775,6 +763,33 @@ public final class PartyService {
         if (member != null && member.isOnline()) {
             PlayerMessageService.getInstance().send(member, messageId, args);
         }
+    }
+
+    /**
+     * 招待・申請通知の表示名と手入力用MCIDを分けて送信します。
+     * 名前への情報表示クリックは付けず、トレード中以外は通知全体を参加・承認操作にします。
+     *
+     * @param recipient 通知を受け取るプレイヤー
+     * @param actor 招待・申請を送ったプレイヤー
+     * @param messageId 表示名とMCIDを引数に取る通知メッセージID
+     * @param command 通知クリックで実行するコマンド
+     */
+    private void sendPartyActionNotification(
+        @NotNull Player recipient,
+        @NotNull AstPlayer actor,
+        @NotNull PlayerMsgId messageId,
+        @NotNull String command
+    ) {
+        String actorName = actor.getBukkit().getName();
+        String displayName = actor.getAccount() == null
+            ? actorName
+            : AccountDisplayNameFormatter.toPlain(actor.getAccount());
+        Component notification = PlayerMsgResource.formatPlainComponent(messageId.getId(), displayName, actorName);
+        TradeService tradeService = plugin.getTradeService();
+        if (tradeService == null || tradeService.getOpenSession(recipient.getUniqueId()) == null) {
+            notification = notification.clickEvent(ClickEvent.runCommand(command));
+        }
+        PlayerMessageService.getInstance().sendComponent(recipient, notification);
     }
 
     private void removeInvite(@NotNull UUID targetId, @NotNull UUID leaderId) {

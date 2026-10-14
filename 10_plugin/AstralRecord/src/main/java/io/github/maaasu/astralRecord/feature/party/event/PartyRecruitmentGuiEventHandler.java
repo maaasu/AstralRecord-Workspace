@@ -5,39 +5,38 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyBoardGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
-import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentMessageAnvilGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyRecruitmentSettingsGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
 /**
- * パーティー募集設定、募集内容入力、掲示板一覧のGUI操作を処理します。
+ * パーティー募集設定、募集内容のコマンド案内、掲示板一覧のGUI操作を処理します。
  */
 public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler {
     private final PartyService partyService;
     private final PartyGui partyGui;
     private final PartyRecruitmentSettingsGui settingsGui;
-    private final PartyRecruitmentMessageAnvilGui messageAnvilGui;
     private final PartyBoardGui boardGui;
     private final InventoryService inventoryService;
 
@@ -47,7 +46,6 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
      * @param partyService パーティー状態を更新するサービス
      * @param partyGui 参加成功後に開くパーティーGUI
      * @param settingsGui リーダー向け募集設定GUI
-     * @param messageAnvilGui 募集内容入力用金床GUI
      * @param boardGui 公開パーティー一覧GUI
      * @param inventoryService ホットバーショートカット処理用サービス
      */
@@ -55,36 +53,28 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
         @NotNull PartyService partyService,
         @NotNull PartyGui partyGui,
         @NotNull PartyRecruitmentSettingsGui settingsGui,
-        @NotNull PartyRecruitmentMessageAnvilGui messageAnvilGui,
         @NotNull PartyBoardGui boardGui,
         @NotNull InventoryService inventoryService
     ) {
         this.partyService = partyService;
         this.partyGui = partyGui;
         this.settingsGui = settingsGui;
-        this.messageAnvilGui = messageAnvilGui;
         this.boardGui = boardGui;
         this.inventoryService = inventoryService;
     }
 
     /**
      * 募集 GUI の操作を処理します。
-     * 募集内容入力用の金床では、入力紙のクリックだけ取消済みイベントでも受け付けます。
      *
      * @param event Bukkit のインベントリクリックイベント
      */
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             Inventory topInventory = event.getView().getTopInventory();
             boolean settings = settingsGui.isInventory(topInventory);
-            boolean messageInput = messageAnvilGui.isInventory(topInventory);
             boolean board = boardGui.isInventory(topInventory);
-            if (!settings && !messageInput && !board) {
-                return;
-            }
-            if (event.isCancelled()
-                && (!messageInput || event.getRawSlot() != PartyRecruitmentMessageAnvilGui.CONFIRM_SLOT)) {
+            if (!settings && !board) {
                 return;
             }
             event.setCancelled(true);
@@ -95,12 +85,10 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
                 player.closeInventory();
                 return;
             }
-            if (!messageInput && HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
                 return;
             }
-            if (messageInput) {
-                handleMessageInput(player, event);
-            } else if (settings) {
+            if (settings) {
                 handleSettings(player, event.getRawSlot());
             } else {
                 handleBoard(player, topInventory, event.getRawSlot());
@@ -113,7 +101,6 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
         runSafely(() -> {
             Inventory topInventory = event.getView().getTopInventory();
             if (!settingsGui.isInventory(topInventory)
-                && !messageAnvilGui.isInventory(topInventory)
                 && !boardGui.isInventory(topInventory)) {
                 return;
             }
@@ -122,24 +109,6 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
                 GuiSound.DENY.play(player);
             }
         }, LogId.E_6100, event.getWhoClicked().getName(), "party_recruitment_gui_drag");
-    }
-
-    /**
-     * 募集内容入力用の金床から結果アイテムを除き、通常の金床コスト表示と経験値処理を発生させないようにします。
-     *
-     * @param event Bukkit の金床結果準備イベント
-     */
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPrepareAnvil(@NotNull PrepareAnvilEvent event) {
-        runSafely(() -> {
-            if (!messageAnvilGui.isInventory(event.getInventory())) {
-                return;
-            }
-            if (event.getView() instanceof AnvilView anvilView) {
-                anvilView.setRepairCost(0);
-            }
-            event.setResult(null);
-        }, LogId.E_6100, "anvil", "party_recruitment_gui_prepare");
     }
 
     private void handleSettings(@NotNull Player player, int rawSlot) {
@@ -156,8 +125,14 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
             return;
         }
         if (rawSlot == PartyRecruitmentSettingsGui.MESSAGE_SLOT) {
-            GuiSound.OPEN.play(player);
-            messageAnvilGui.open(player, party.getRecruitmentMessage());
+            GuiSound.SELECT.play(player);
+            PlayerMessageService.getInstance().sendComponent(
+                player,
+                PlayerMsgResource.formatPlainComponent(
+                    PlayerMsgId.P_5986.getId(),
+                    PartyService.MAX_RECRUITMENT_MESSAGE_LENGTH
+                ).clickEvent(ClickEvent.suggestCommand("/party recruit "))
+            );
             return;
         }
         PartyActionResult result;
@@ -174,33 +149,6 @@ public final class PartyRecruitmentGuiEventHandler extends AbstractEventHandler 
         sendResult(player, result);
         playResultSound(player, result);
         settingsGui.open(player);
-    }
-
-    /**
-     * 入力紙のクリックで金床の名前入力値を募集内容として確定します。
-     *
-     * @param player 募集内容を設定するプレイヤー
-     * @param event 金床GUIのクリックイベント
-     */
-    private void handleMessageInput(@NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (event.getRawSlot() != PartyRecruitmentMessageAnvilGui.CONFIRM_SLOT) {
-            return;
-        }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !(event.getView() instanceof AnvilView anvilView)) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        String renameText = anvilView.getRenameText();
-        PartyActionResult result = partyService.setRecruitmentMessage(
-            astPlayer,
-            renameText == null ? "" : renameText
-        );
-        sendResult(player, result);
-        playResultSound(player, result);
-        if (result.success()) {
-            settingsGui.open(player);
-        }
     }
 
     private void handleBoard(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {

@@ -80,15 +80,16 @@ public final class PartyRecruitmentSettingsGui {
         inventory.setItem(MESSAGE_SLOT, GuiItems.create(
             Material.PAPER,
             Component.text("募集内容を設定", NamedTextColor.YELLOW, TextDecoration.BOLD),
-            messageConfigured
-                ? List.of(
-                    Component.text(party.getRecruitmentMessage(), NamedTextColor.WHITE),
-                    Component.text("クリックして金床で変更します", NamedTextColor.GRAY)
-                )
-                : List.of(
-                    Component.text("現在は未設定です", NamedTextColor.RED),
-                    Component.text("掲載前に必ず設定してください", NamedTextColor.GRAY)
-                )
+            List.of(
+                Component.text(
+                    messageConfigured ? party.getRecruitmentMessage() : "現在は未設定です",
+                    messageConfigured ? NamedTextColor.WHITE : NamedTextColor.RED
+                ),
+                Component.empty(),
+                Component.text("/party recruit <募集内容>", NamedTextColor.AQUA),
+                Component.text(PartyService.MAX_RECRUITMENT_MESSAGE_LENGTH + "文字以内で登録・変更できます", NamedTextColor.GRAY),
+                Component.text("クリックで入力方法をチャットに表示", NamedTextColor.GRAY)
+            )
         ));
 
         boolean approvalRequired = party.isRecruitmentApprovalRequired();

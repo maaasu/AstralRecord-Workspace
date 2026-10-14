@@ -8,14 +8,19 @@ import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -164,6 +169,44 @@ class PartyCommandTest {
             eq(PlayerMsgId.P_5981),
             org.mockito.ArgumentMatchers.any(Object[].class)
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## `/party` command
+     * 検証契約: recruitの後続引数を一つの募集文へ結合して登録し、掲載中の変更でも公開状態を維持する。
+     */
+    @Test
+    void recruitmentCommandRegistersAndUpdatesPublishedMessage() {
+        Player leaderPlayer = mockPlayer(UUID.randomUUID());
+        AstPlayer leader = mock(AstPlayer.class);
+        when(leader.getBukkit()).thenReturn(leaderPlayer);
+        AstralRecord plugin = mock(AstralRecord.class);
+        Server server = mock(Server.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(mock(BukkitScheduler.class));
+        PartyService partyService = new PartyService(plugin, mock(UserService.class));
+        when(plugin.getPartyService()).thenReturn(partyService);
+
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstralRecord> astralRecord = mockStatic(AstralRecord.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(leader)).thenReturn(true);
+            astralRecord.when(AstralRecord::getInstance).thenReturn(plugin);
+            messages.when(PlayerMessageService::getInstance).thenReturn(mock(PlayerMessageService.class));
+            assertTrue(partyService.createParty(leader).success());
+            PartyCommand command = new PartyCommand();
+
+            command.executePlayerCommand(leader, new String[] {"recruit", "  初心者", "歓迎  "});
+            Party party = partyService.findParty(leaderPlayer.getUniqueId());
+            assertEquals("初心者 歓迎", party.getRecruitmentMessage());
+            assertTrue(partyService.publishRecruitment(leader).success());
+
+            command.executePlayerCommand(leader, new String[] {"recruit", "ダンジョン", "攻略募集"});
+            assertEquals("ダンジョン 攻略募集", party.getRecruitmentMessage());
+            assertTrue(party.isRecruitmentPublished());
+            assertEquals(List.of(party), partyService.getPublishedParties());
+        }
     }
 
     private Player mockPlayer(UUID uuid) {

@@ -116,7 +116,7 @@ class PlayerMessageServiceTest {
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of());
             bukkit.when(() -> Bukkit.getPlayerExact("Alice")).thenReturn(inviter);
-            service.sendClickable(player, PlayerMsgId.P_5908, "/party accept Alice", "Alice");
+            service.sendClickable(player, PlayerMsgId.P_5908, "/party accept Alice", "Alice", "Alice");
 
             Component sent = captureMessage(player);
             assertTrue(hasRunCommand(sent, "/party accept Alice"));

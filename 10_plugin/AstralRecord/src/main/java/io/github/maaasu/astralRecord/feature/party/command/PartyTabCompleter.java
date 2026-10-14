@@ -24,7 +24,7 @@ public final class PartyTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("gui", "create", "invite", "accept", "decline", "approve", "leave", "disband", "kick", "promote", "list", "chat");
+            return List.of("gui", "create", "invite", "accept", "decline", "approve", "recruit", "leave", "disband", "kick", "promote", "list", "chat");
         }
         if (args.length == 2 && "invite".equalsIgnoreCase(args[0])) {
             return getOnlinePlayerNames().stream()
