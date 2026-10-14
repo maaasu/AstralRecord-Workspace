@@ -1,5 +1,6 @@
 """Read-only validation of the Lv20 package; does not build or contact a server."""
 from pathlib import Path
+from copy import deepcopy
 from decimal import Decimal
 import json
 import math
@@ -10,7 +11,8 @@ import yaml
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[4]
 DOC = Path(__file__).resolve().parent
-BASE = '0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a'
+BASE = 'ce523363ca0060fcdf76c59f3e8b061d88ab3041'
+PACKAGE_BASE = '0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a'
 GEAR = ROOT / '40_filebase/10.features.item/20.equipment'
 EXPECTED = [f'20a{i:05}' for i in range(400, 419)]
 SETS = ['lapis_bastion', 'lapis_stride', 'lapis_arcana']
@@ -30,6 +32,9 @@ UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, map
 
 def load(path):
     return yaml.load(path.read_text(encoding='utf-8-sig'), Loader=UniqueLoader)
+
+def load_from_text(text):
+    return yaml.load(text, Loader=UniqueLoader)
 
 data, masters, root_ids = {}, {}, {}
 for path in (ROOT / '40_filebase').rglob('*.yml'):
@@ -53,7 +58,7 @@ statuses = {s['id'] for s in load(ROOT / '40_filebase/75.shared.status/v1.status
 tags = {s['id'] for s in load(ROOT / '40_filebase/76.shared.tag/v1.tags.yml')['tags'] if s['category'] == 'EQUIPMENT'}
 manifest = json.loads((DOC / 'MATERIAL_MANIFEST.json').read_text(encoding='utf-8'))
 assert [r['itemId'] for r in manifest['items']] == EXPECTED
-assert manifest['baseCommit'] == BASE
+assert manifest['baseCommit'] == PACKAGE_BASE
 all_primary_slots, random_count = set(), 0
 equipment, paths = {}, []
 
@@ -111,8 +116,9 @@ for i, row in enumerate(manifest['items']):
         tag = ['SWORD', 'HAMMER', 'SPEAR', 'SHORTBOW', 'LONGBOW', 'WAND', 'STAFF'][i]
         attack = 'MELEE_ATTACK' if i < 3 else 'RANGED_ATTACK' if i < 5 else 'MAGIC_ATTACK'
         assert e['slot'] == 'WEAPON' and e['tag'] == tag and tag in tags and e['handType'] == 'ONE'
-        assert e['stats'][0] == {'status': attack, 'type': 'FLAT', 'value': 240, 'random': {'offsetMin': -15, 'offsetMax': 15, 'step': 1}}
-        assert e['stats'][1]['value'] == 10 and e['rune']['maxSlots'] == {'random': '0~1'}
+        assert e['stats'][0] == {'status': attack, 'type': 'FLAT', 'value': 170, 'random': {'offsetMin': -7, 'offsetMax': 7, 'step': 1}}
+        assert e['stats'][1]['value'] == 12 and e['stats'][1]['random'] == {'offsetMin': -2, 'offsetMax': 2, 'step': 1}
+        assert e['rune']['maxSlots'] == {'random': '0~1'}
         ice = e['stats'][-1]
         assert ice == {'status': 'ICE_DAMAGE_INCREASE', 'type': 'FLAT', 'value': 0, 'random': {'offsetMin': 1, 'offsetMax': 4, 'step': 1, 'zeroChance': 0.97}}
         assert e['stats'][2:-1] == old['stats'][2:], 'weapon identity changed'
@@ -127,17 +133,36 @@ for i, row in enumerate(manifest['items']):
         assert all('random' not in s for s in e['stats'][1:])
     levels = e['enhance']['levels']
     assert e['enhance']['maxLevel'] == 15 and [r['level'] for r in levels] == list(range(1, 31))
-    for lv, old_lv in zip(levels, old['enhance']['levels'], strict=True):
+    for lv in levels:
         n = lv['level']
         rate = 1 if n == 1 else .75 if n <= 4 else .5 if n <= 6 else .35 if n <= 8 else .2 if n == 9 else .05
         assert lv['successRate'] == rate and lv['failAction'] == 'NONE'
-        assert lv['statIncrease'][1:] == old_lv['statIncrease'][1:], 'secondary growth changed'
+        if i < 7:
+            amount = 3 if n <= 15 else 2
+        else:
+            part = (i - 7) % 4
+            amount = ([2, 3, 2, 1] if n <= 15 else [1, 2, 1, 1])[part]
+        assert lv['statIncrease'] == [{'status': e['stats'][0]['status'], 'type': 'FLAT', 'value': amount}]
         assert all(s['status'] in statuses and 'random' not in s for s in lv['statIncrease'])
     evo = e['transcendence']
     assert len(evo) == 1 and evo[0]['rank'] == 1 and evo[0]['requiredEnhanceLevel'] == 15
     assert evo[0]['overrides']['enhance']['maxLevel'] == 30
     assert evo[0]['requiredMaterials'] == row['evolution']['requiredItems']
     assert evo[0]['requiredCurrency'] == row['evolution']['requiredCurrency'] == 2500
+    baseline_text = subprocess.check_output(
+        ['git', 'show', f'{BASE}:{row["masterPath"]}'], cwd=ROOT, encoding='utf-8')
+    expected_master = deepcopy(load_from_text(baseline_text))
+    expected_equipment = expected_master['equipment']
+    if i < 7:
+        expected_equipment['stats'][0]['value'] = 170
+        expected_equipment['stats'][0]['random'].update(offsetMin=-7, offsetMax=7)
+        expected_equipment['stats'][1]['value'] = 12
+    for level in expected_equipment['enhance']['levels']:
+        n = level['level']
+        amount = (3 if n <= 15 else 2) if i < 7 else (
+            [2, 3, 2, 1][(i - 7) % 4] if n <= 15 else [1, 2, 1, 1][(i - 7) % 4])
+        level['statIncrease'] = [{'status': expected_equipment['stats'][0]['status'], 'type': 'FLAT', 'value': amount}]
+    assert d == expected_master, f'unexpected content change: {path.name}'
     validate_materials(evo[0]['requiredMaterials'])
     p = row['primaryRoute']
     a = row['optionalMobRoute']
@@ -193,10 +218,9 @@ for start in [7, 11, 15]:
 
 diff = subprocess.check_output(['git', '-c', 'core.quotepath=false', 'diff', '--name-only', BASE], cwd=ROOT, encoding='utf-8').splitlines()
 untracked = subprocess.check_output(['git', '-c', 'core.quotepath=false', 'ls-files', '--others', '--exclude-standard'], cwd=ROOT, encoding='utf-8').splitlines()
-allow_masters = {p.relative_to(ROOT).as_posix() for p in paths}
+allow_masters = {p.relative_to(ROOT).as_posix() for p in paths if p.parent == GEAR}
 allow_docs = DOC.relative_to(ROOT).as_posix() + '/'
-allow_review_record = '00_docs/99_資料/レビュー結果/[完了] 26-10-15 03：43：00 code-review.md'
 for p in set(diff + untracked):
-    assert p in allow_masters or p.startswith(allow_docs) or p == allow_review_record, f'out of scope: {p}'
+    assert p in allow_masters or p.startswith(allow_docs), f'out of scope: {p}'
 assert random_count == 33
 print(json.dumps({'result':'PASS','baseCommit':BASE,'yamlFiles':len(data),'namespaceIds':len(masters),'equipment':19,'sets':3,'randomStats':random_count,'primaryRoutes':19,'optionalMobRoutes':19,'evolutionRoutes':19,'materialSources':10,'scope':'assigned masters and dedicated documents only','limits':'static validation; no runtime, DB, heavy build, deployment, develop merge or push'},ensure_ascii=False,indent=2))
