@@ -28,6 +28,8 @@ source_path = root / "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astr
 source = source_path.read_text(encoding="utf-8")
 fields = {"field_reed_hound":("ReedHound", "reedHound", "grass_charge",[22,24,26,28],{"10a00200":40}), "field_brush_crab":("BrushCrab","brushCrab","side_pincer",[22,24,26,28],{"10a00201":45,"10a00202":6}), "field_sunhare":("Sunhare","sunhare","leap_kick",[28,30,32,34],{"10a00210":35}), "field_wind_lizard":("WindLizard","windLizard","wind_tail",[28,30,32,34],{"10a00211":35})}
 fields.update({
+    "field_bark_beetle": ("BarkBeetle", "barkBeetle", "wood_shot", [24,26,28,30], {"10a00240":35}),
+    "field_moss_fox": ("MossFox", "mossFox", "moss_smoke", [24,26,28,30], {"10a00241":35,"10a00242":8}),
     "field_stoneback_bison": ("StonebackBison", "stonebackBison", "earth_charge", [42,44,46,48], {"10a00230":35,"10a00231":10,"10a00232":0.25}),
     "field_storm_raptor": ("StormRaptor", "stormRaptor", "diving_strike", [42,44,46,48], {"10a00233":35}),
     "field_plain_ram": ("PlainRam", "plainRam", "horn_thrust", [28,30,32,34], {"10a00220":35, "10a00221":7}),
@@ -50,7 +52,10 @@ for mob_id, (cls, field, move, levels, drops) in fields.items():
     assert re.search(r"\w+\.remove\(context\.mob\(\)\.instanceId\(\), this\)", text) and "scriptedAction(false)" in text
     mob = data[masters[("40.features.mob",mob_id)]]
     assert [r["level"] for r in mob["levels"]] == levels and 4 <= max(levels)-min(levels) <= 10 and max(levels)<=50
-    assert mob["ai"]["combat"]["normalAttack"]["range"]>0
+    if mob_id=="field_bark_beetle":
+        assert "normalAttack" not in mob["ai"]["combat"]
+    else:
+        assert mob["ai"]["combat"]["normalAttack"]["range"]>0
     assert [r["id"] for r in mob["ai"]["combat"]["skills"]] == [skill_id]
     assert all(set(r.get("drops",{})) <= {"exp"} for r in mob["levels"])
     actual={r["itemId"]["ref"].split(":",1)[1]:r for r in mob["drops"]["items"]}
