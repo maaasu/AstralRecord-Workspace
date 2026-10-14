@@ -195,6 +195,14 @@ public final class ThornDeerMobSkillExecutor implements MobSkillExecutor {
     /** 小さな接触余裕が壁越しの命中を作らないよう、読込済み区間に遮蔽物がないことを確認します。 */
     private boolean clearPath(@NotNull Location from, @NotNull Location to) {
         if (from.getWorld() == null || from.getWorld() != to.getWorld()) return false;
+        // 射線がchunk角を短く横切る場合も、block rayの前に読込状態を確認します。
+        for (int x = Math.min(from.getBlockX(), to.getBlockX()) >> 4;
+                x <= (Math.max(from.getBlockX(), to.getBlockX()) >> 4); x++) {
+            for (int z = Math.min(from.getBlockZ(), to.getBlockZ()) >> 4;
+                    z <= (Math.max(from.getBlockZ(), to.getBlockZ()) >> 4); z++) {
+                if (!from.getWorld().isChunkLoaded(x, z)) return false;
+            }
+        }
         Location start = from.clone().add(0, 0.4D, 0);
         Vector delta = to.clone().add(0, 0.4D, 0).toVector().subtract(start.toVector());
         int samples = Math.max(1, (int) Math.ceil(delta.length() / 0.25D));

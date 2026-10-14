@@ -162,6 +162,8 @@ import io.github.maaasu.astralRecord.feature.mob.skill.field.MesaVultureMobSkill
 import io.github.maaasu.astralRecord.feature.mob.skill.field.EmberSlugMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.LavaCrabMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.AshDrakeMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.CanopyOwlMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.ThornDeerMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.FrostBoarMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
@@ -545,6 +547,8 @@ public final class AstralRecord extends JavaPlugin {
     private EmberSlugMobSkillExecutor emberSlugMobSkillExecutor;
     private LavaCrabMobSkillExecutor lavaCrabMobSkillExecutor;
     private AshDrakeMobSkillExecutor ashDrakeMobSkillExecutor;
+    private CanopyOwlMobSkillExecutor canopyOwlMobSkillExecutor;
+    private ThornDeerMobSkillExecutor thornDeerMobSkillExecutor;
     private FrostBoarMobSkillExecutor frostBoarMobSkillExecutor;
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
@@ -817,6 +821,12 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (thornDeerMobSkillExecutor != null) {
+            thornDeerMobSkillExecutor.stop();
+        }
+        if (canopyOwlMobSkillExecutor != null) {
+            canopyOwlMobSkillExecutor.stop();
+        }
         if (ashDrakeMobSkillExecutor != null) {
             ashDrakeMobSkillExecutor.stop();
         }
@@ -2121,6 +2131,10 @@ public final class AstralRecord extends JavaPlugin {
                 mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(iceMothMobSkillExecutor);
         mobSkillRegistry.register(frostBoarMobSkillExecutor);
+        thornDeerMobSkillExecutor = new ThornDeerMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(thornDeerMobSkillExecutor);
+        canopyOwlMobSkillExecutor = new CanopyOwlMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(canopyOwlMobSkillExecutor);
         ashDrakeMobSkillExecutor = new AshDrakeMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(ashDrakeMobSkillExecutor);
         lavaCrabMobSkillExecutor = new LavaCrabMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
@@ -2198,6 +2212,8 @@ public final class AstralRecord extends JavaPlugin {
             snowWolfMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             iceMothMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             frostBoarMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            thornDeerMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            canopyOwlMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             ashDrakeMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             lavaCrabMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             emberSlugMobSkillExecutor.handleMobDestroyed(mobInstanceId);

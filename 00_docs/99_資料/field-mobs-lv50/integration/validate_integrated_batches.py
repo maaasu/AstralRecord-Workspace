@@ -28,6 +28,8 @@ source_path = root / "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astr
 source = source_path.read_text(encoding="utf-8")
 fields = {"field_reed_hound":("ReedHound", "reedHound", "grass_charge",[22,24,26,28],{"10a00200":40}), "field_brush_crab":("BrushCrab","brushCrab","side_pincer",[22,24,26,28],{"10a00201":45,"10a00202":6}), "field_sunhare":("Sunhare","sunhare","leap_kick",[28,30,32,34],{"10a00210":35}), "field_wind_lizard":("WindLizard","windLizard","wind_tail",[28,30,32,34],{"10a00211":35})}
 fields.update({
+    "field_canopy_owl": ('CanopyOwl', 'canopyOwl', 'leaf_vortex', [36, 38, 40, 42], {'10a00400': 35, '10a00401': 10}),
+    "field_thorn_deer": ('ThornDeer', 'thornDeer', 'thorn_charge', [36, 38, 40, 42], {'10a00402': 35}),
     "field_mesa_vulture": ('MesaVulture', 'mesaVulture', 'stone_drop', [38, 40, 42, 44], {'10a00280': 35}),
     "field_ember_slug": ('EmberSlug', 'emberSlug', 'ember_trail', [44, 46, 48, 50], {'10a00281': 35}),
     "field_lava_crab": ('LavaCrab', 'lavaCrab', 'heated_shell', [44, 46, 48, 50], {'10a00290': 35}),
@@ -54,7 +56,7 @@ for mob_id, (cls, field, move, levels, drops) in fields.items():
     assert source.count(f"private {cls} {field};") == 1
     assert source.count(f"{field} = new {cls}(") == 1
     assert source.count(f"mobSkillRegistry.register({field});") == 1
-    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf","field_ice_moth","field_frost_boar","field_red_scorpion","field_sand_gecko","field_mesa_vulture","field_ember_slug","field_lava_crab","field_ash_drake"] else "clearCasterState"
+    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf","field_ice_moth","field_frost_boar","field_red_scorpion","field_sand_gecko","field_mesa_vulture","field_ember_slug","field_lava_crab","field_ash_drake","field_canopy_owl","field_thorn_deer"] else "clearCasterState"
     assert source.count(f"{field}.{hook}(mobInstanceId);") == 1
     assert source.count(f"{field}.stop();") == 1
     assert source.index(f"{field}.stop();") < source.index("mobService.destroyAll();") < source.index("getServer().getScheduler().cancelTasks(this);")
