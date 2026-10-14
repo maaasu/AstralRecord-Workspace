@@ -106,8 +106,28 @@ public final class ReedHoundMobSkillExecutor implements MobSkillExecutor, Listen
     @EventHandler
     public void onPluginDisable(@NotNull PluginDisableEvent event) {
         if (event.getPlugin() == mobService.plugin()) {
-            List.copyOf(actions.values()).forEach(Charge::finish);
+            stop();
         }
+    }
+
+    /**
+     * Mob破棄時に、この個体の行動タスクと通常AI停止状態を回収します。
+     *
+     * @param mobInstanceId 破棄されたMobの個体ID
+     * @implNote Bukkit同期スレッドから呼び出します。未開始・回収済みの個体は無視します。
+     */
+    public void clearCasterState(@NotNull UUID mobInstanceId) {
+        Charge action = actions.get(mobInstanceId);
+        if (action != null) action.finish();
+    }
+
+    /**
+     * Plugin停止時、Mob破棄とScheduler一括停止より先に全行動を回収します。
+     *
+     * @implNote Bukkit同期スレッドから呼び出します。重複呼び出しは無害です。
+     */
+    public void stop() {
+        List.copyOf(actions.values()).forEach(Charge::finish);
     }
 
     /** 同一戦闘・主対象・worldが継続し、移動・攻撃可能な発動者を返します。 */
