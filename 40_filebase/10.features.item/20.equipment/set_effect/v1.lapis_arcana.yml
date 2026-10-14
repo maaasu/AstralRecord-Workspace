@@ -1,0 +1,17 @@
+# design:
+#   motif: "鉱物 / ラピスの青い石"
+#   progression: 20
+schemaVersion: 1
+id: lapis_arcana
+name: '&bラピスメイジ'
+pieces:
+- count: 2
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 6
+- count: 4
+  stats:
+  - status: ACCURACY
+    type: FLAT
+    value: 2

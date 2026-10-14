@@ -1,0 +1,146 @@
+{
+  "note": "Derived additive armor totals at base/15/30, without enchant/rune/set/class/buff; old range uses expected endpoint center.",
+  "comparison": [
+    {
+      "enhanceLevel": 0,
+      "stats": {
+        "eriva_bastion": {
+          "DEFENSE": 145.0,
+          "MAX_HEALTH": 400.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 8.0
+        },
+        "lapis_bastion": {
+          "DEFENSE": 350.0,
+          "MAX_HEALTH": 560.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 10.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 15,
+      "stats": {
+        "eriva_bastion": {
+          "DEFENSE": 290.0,
+          "MAX_HEALTH": 400.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 8.0
+        },
+        "lapis_bastion": {
+          "DEFENSE": 485.0,
+          "MAX_HEALTH": 560.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 10.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 30,
+      "stats": {
+        "eriva_bastion": {
+          "DEFENSE": 365.0,
+          "MAX_HEALTH": 700.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 8.0
+        },
+        "lapis_bastion": {
+          "DEFENSE": 680.0,
+          "MAX_HEALTH": 860.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 10.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 0,
+      "stats": {
+        "eriva_stride": {
+          "DEFENSE": 128.0,
+          "MAX_ENERGY": 75.0,
+          "ENERGY_REGEN": 5.0
+        },
+        "lapis_stride": {
+          "DEFENSE": 310.0,
+          "MAX_ENERGY": 115.0,
+          "ENERGY_REGEN": 5.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 15,
+      "stats": {
+        "eriva_stride": {
+          "DEFENSE": 273.0,
+          "MAX_ENERGY": 75.0,
+          "ENERGY_REGEN": 5.0
+        },
+        "lapis_stride": {
+          "DEFENSE": 445.0,
+          "MAX_ENERGY": 115.0,
+          "ENERGY_REGEN": 5.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 30,
+      "stats": {
+        "eriva_stride": {
+          "DEFENSE": 348.0,
+          "MAX_ENERGY": 105.0,
+          "ENERGY_REGEN": 5.0
+        },
+        "lapis_stride": {
+          "DEFENSE": 640.0,
+          "MAX_ENERGY": 145.0,
+          "ENERGY_REGEN": 5.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 0,
+      "stats": {
+        "eriva_arcana": {
+          "DEFENSE": 119.0,
+          "MAX_MANA": 120.0,
+          "MP_REGEN": 10.0
+        },
+        "lapis_arcana": {
+          "DEFENSE": 289.0,
+          "MAX_MANA": 180.0,
+          "MP_REGEN": 11.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 15,
+      "stats": {
+        "eriva_arcana": {
+          "DEFENSE": 264.0,
+          "MAX_MANA": 120.0,
+          "MP_REGEN": 10.0
+        },
+        "lapis_arcana": {
+          "DEFENSE": 424.0,
+          "MAX_MANA": 180.0,
+          "MP_REGEN": 11.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 30,
+      "stats": {
+        "eriva_arcana": {
+          "DEFENSE": 369.0,
+          "MAX_MANA": 195.0,
+          "MP_REGEN": 10.0
+        },
+        "lapis_arcana": {
+          "DEFENSE": 619.0,
+          "MAX_MANA": 255.0,
+          "MP_REGEN": 11.0
+        }
+      }
+    }
+  ]
+}
