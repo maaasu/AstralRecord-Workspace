@@ -150,6 +150,14 @@ abstract class MesaDebuffSkillSupport implements MobSkillExecutor {
     /** rayの全区間を先に検査し、未読込chunkのロードや壁越しの命中を防ぎます。 */
     private boolean clearPath(Location from, Location to) {
         if (from.getWorld() == null || from.getWorld() != to.getWorld()) return false;
+        // 射線がchunk角を短く横切る場合も、block rayの前に読込状態を確認します。
+        for (int x = Math.min(from.getBlockX(), to.getBlockX()) >> 4;
+                x <= (Math.max(from.getBlockX(), to.getBlockX()) >> 4); x++) {
+            for (int z = Math.min(from.getBlockZ(), to.getBlockZ()) >> 4;
+                    z <= (Math.max(from.getBlockZ(), to.getBlockZ()) >> 4); z++) {
+                if (!from.getWorld().isChunkLoaded(x, z)) return false;
+            }
+        }
         Location start = from.clone().add(0.0D, 0.4D, 0.0D);
         Vector delta = to.clone().add(0.0D, 0.4D, 0.0D).toVector().subtract(start.toVector());
         int samples = Math.max(1, (int) Math.ceil(delta.length() / 0.25D));

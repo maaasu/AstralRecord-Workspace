@@ -158,6 +158,10 @@ import io.github.maaasu.astralRecord.feature.mob.skill.field.SnowWolfMobSkillExe
 import io.github.maaasu.astralRecord.feature.mob.skill.field.IceMothMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.RedScorpionMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.SandGeckoMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.MesaVultureMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.EmberSlugMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.LavaCrabMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.AshDrakeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.FrostBoarMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
@@ -537,6 +541,10 @@ public final class AstralRecord extends JavaPlugin {
     private IceMothMobSkillExecutor iceMothMobSkillExecutor;
     private RedScorpionMobSkillExecutor redScorpionMobSkillExecutor;
     private SandGeckoMobSkillExecutor sandGeckoMobSkillExecutor;
+    private MesaVultureMobSkillExecutor mesaVultureMobSkillExecutor;
+    private EmberSlugMobSkillExecutor emberSlugMobSkillExecutor;
+    private LavaCrabMobSkillExecutor lavaCrabMobSkillExecutor;
+    private AshDrakeMobSkillExecutor ashDrakeMobSkillExecutor;
     private FrostBoarMobSkillExecutor frostBoarMobSkillExecutor;
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
@@ -809,6 +817,18 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (ashDrakeMobSkillExecutor != null) {
+            ashDrakeMobSkillExecutor.stop();
+        }
+        if (lavaCrabMobSkillExecutor != null) {
+            lavaCrabMobSkillExecutor.stop();
+        }
+        if (emberSlugMobSkillExecutor != null) {
+            emberSlugMobSkillExecutor.stop();
+        }
+        if (mesaVultureMobSkillExecutor != null) {
+            mesaVultureMobSkillExecutor.stop();
+        }
         if (sandGeckoMobSkillExecutor != null) {
             sandGeckoMobSkillExecutor.stop();
         }
@@ -2101,6 +2121,14 @@ public final class AstralRecord extends JavaPlugin {
                 mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(iceMothMobSkillExecutor);
         mobSkillRegistry.register(frostBoarMobSkillExecutor);
+        ashDrakeMobSkillExecutor = new AshDrakeMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(ashDrakeMobSkillExecutor);
+        lavaCrabMobSkillExecutor = new LavaCrabMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(lavaCrabMobSkillExecutor);
+        emberSlugMobSkillExecutor = new EmberSlugMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(emberSlugMobSkillExecutor);
+        mesaVultureMobSkillExecutor = new MesaVultureMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(mesaVultureMobSkillExecutor);
         sandGeckoMobSkillExecutor = new SandGeckoMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(sandGeckoMobSkillExecutor);
         redScorpionMobSkillExecutor = new RedScorpionMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
@@ -2170,6 +2198,10 @@ public final class AstralRecord extends JavaPlugin {
             snowWolfMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             iceMothMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             frostBoarMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            ashDrakeMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            lavaCrabMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            emberSlugMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            mesaVultureMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             sandGeckoMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             redScorpionMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             bindCircleRuntimeService.releaseForUltimate(mobInstanceId);

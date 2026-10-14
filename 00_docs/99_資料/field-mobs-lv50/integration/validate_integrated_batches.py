@@ -28,6 +28,10 @@ source_path = root / "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astr
 source = source_path.read_text(encoding="utf-8")
 fields = {"field_reed_hound":("ReedHound", "reedHound", "grass_charge",[22,24,26,28],{"10a00200":40}), "field_brush_crab":("BrushCrab","brushCrab","side_pincer",[22,24,26,28],{"10a00201":45,"10a00202":6}), "field_sunhare":("Sunhare","sunhare","leap_kick",[28,30,32,34],{"10a00210":35}), "field_wind_lizard":("WindLizard","windLizard","wind_tail",[28,30,32,34],{"10a00211":35})}
 fields.update({
+    "field_mesa_vulture": ('MesaVulture', 'mesaVulture', 'stone_drop', [38, 40, 42, 44], {'10a00280': 35}),
+    "field_ember_slug": ('EmberSlug', 'emberSlug', 'ember_trail', [44, 46, 48, 50], {'10a00281': 35}),
+    "field_lava_crab": ('LavaCrab', 'lavaCrab', 'heated_shell', [44, 46, 48, 50], {'10a00290': 35}),
+    "field_ash_drake": ('AshDrake', 'ashDrake', 'ash_breath', [44, 46, 48, 50], {'10a00291': 35, '10a00292': 8, '10a00293': 0.15}),
     "field_red_scorpion": ("RedScorpion", "redScorpion", "tail_sting", [38,40,42,44], {"10a00270":35}),
     "field_sand_gecko": ("SandGecko", "sandGecko", "sand_scatter", [38,40,42,44], {"10a00271":35,"10a00272":8}),
     "field_ice_moth": ("IceMoth", "iceMoth", "ice_powder", [32,34,36,38], {"10a00260":35,"10a00261":8}),
@@ -50,17 +54,18 @@ for mob_id, (cls, field, move, levels, drops) in fields.items():
     assert source.count(f"private {cls} {field};") == 1
     assert source.count(f"{field} = new {cls}(") == 1
     assert source.count(f"mobSkillRegistry.register({field});") == 1
-    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf","field_ice_moth","field_frost_boar","field_red_scorpion","field_sand_gecko"] else "clearCasterState"
+    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf","field_ice_moth","field_frost_boar","field_red_scorpion","field_sand_gecko","field_mesa_vulture","field_ember_slug","field_lava_crab","field_ash_drake"] else "clearCasterState"
     assert source.count(f"{field}.{hook}(mobInstanceId);") == 1
     assert source.count(f"{field}.stop();") == 1
     assert source.index(f"{field}.stop();") < source.index("mobService.destroyAll();") < source.index("getServer().getScheduler().cancelTasks(this);")
     assert source.index(f"{field} = new {cls}(") < source.index("mobService.setDestroyListener(")
     cleanup = (java.parent/"MesaDebuffSkillSupport.java").read_text(encoding="utf-8") if mob_id in ["field_red_scorpion","field_sand_gecko"] else text
+    if mob_id in ["field_lava_crab","field_ash_drake"]: cleanup=(java.parent/"VolcanicSkillSupport.java").read_text(encoding="utf-8")
     assert f"public void {hook}(" in cleanup and "public void stop()" in cleanup
     assert re.search(r"\w+\.remove\(", cleanup) and "scriptedAction(false)" in cleanup
     mob = data[masters[("40.features.mob",mob_id)]]
     assert [r["level"] for r in mob["levels"]] == levels and 4 <= max(levels)-min(levels) <= 10 and max(levels)<=50
-    if mob_id=="field_bark_beetle":
+    if mob_id in ["field_bark_beetle","field_mesa_vulture"]:
         assert "normalAttack" not in mob["ai"]["combat"]
     else:
         assert mob["ai"]["combat"]["normalAttack"]["range"]>0

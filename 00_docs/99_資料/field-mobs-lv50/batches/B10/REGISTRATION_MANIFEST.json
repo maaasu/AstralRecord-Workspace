@@ -90,7 +90,7 @@
       "materials": [
         {
           "id": "10a00291",
-          "name": "灰竜の煤",
+          "name": "ハイドレイクのすす",
           "rarity": "COMMON",
           "saleValue": 850,
           "rate": 35,
@@ -100,7 +100,7 @@
         },
         {
           "id": "10a00292",
-          "name": "灰竜の咽石",
+          "name": "ハイドレイクののど石",
           "rarity": "UNCOMMON",
           "saleValue": 1800,
           "rate": 8,
@@ -110,7 +110,7 @@
         },
         {
           "id": "10a00293",
-          "name": "灰竜の火核",
+          "name": "ハイドレイクの火の芯",
           "rarity": "RARE",
           "saleValue": 3600,
           "rate": 0.15,
