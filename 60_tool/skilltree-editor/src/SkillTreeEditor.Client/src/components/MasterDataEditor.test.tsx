@@ -255,8 +255,8 @@ describe('master editor workflow', () => {
     await screen.findByRole('button', { name: /項目0/ })
     expect(screen.queryByRole('button', { name: /項目59/ })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /さらに表示/ }))
+    expect(await screen.findByRole('button', { name: /項目59/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /項目0/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /項目59/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /さらに表示/ })).not.toBeInTheDocument()
   })
 
