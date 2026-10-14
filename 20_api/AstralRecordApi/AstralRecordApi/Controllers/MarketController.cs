@@ -151,6 +151,7 @@ public class MarketController(
 
     /// <summary>
     /// マーケット出品を購入確定します。
+    /// 遠隔アクセストークン所持時のオーブは空きのあるストレージへ収納します。
     /// </summary>
     [HttpPost("listings/{listingId:guid}/purchase")]
     [ProducesResponseType(StatusCodes.Status200OK)]

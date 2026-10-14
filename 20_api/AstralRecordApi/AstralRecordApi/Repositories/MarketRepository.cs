@@ -18,6 +18,12 @@ public class MarketRepository(
 ) : IMarketRepository
 {
     private static readonly StringComparer KeyComparer = StringComparer.OrdinalIgnoreCase;
+    private const string OrbCategory = "orb";
+    private const string StorageInventoryType = "STORAGE";
+    private const string OrbRemoteAccessTokenItemId = "99a00023";
+    private const string StorageExpansionTokenItemId = "99a00009";
+    private const int StoragePageSize = 45;
+    private const int StorageBasePageCount = 5;
 
     /// <summary>本人のWeb購入要求を固定IDで登録し、ログインしていなければ直ちに確定します。</summary>
     public async Task<MarketOperationResult<MarketWebPurchaseResponse>> CreateWebPurchaseAsync(
@@ -1469,7 +1475,11 @@ public class MarketRepository(
         Guid updatedBy
     )
     {
-        var inventory = await FindBagInventoryAsync(buyerAccountId);
+        var inventory = !listing.InstanceId.HasValue && listing.InstanceType is null
+            && KeyComparer.Equals(listing.ItemCategory, OrbCategory)
+            ? await FindOrbStorageDestinationAsync(buyerAccountId, listing.ItemId, updatedBy)
+            : null;
+        inventory ??= await FindBagInventoryAsync(buyerAccountId);
         if (inventory is null)
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
                 400,
@@ -1704,6 +1714,97 @@ public class MarketRepository(
                 && inventory.InventoryProfile == "GAME"
                 && inventory.InventoryType == "BAG")
             .FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// 購入オーブの収納先を同じ Serializable transaction 内で確定します。
+    /// 有効な GAME/CURRENCY の遠隔アクセストークンがない場合、または新種用の空き枠がない場合は
+    /// null を返し、呼出元が従来の BAG 付与へ戻します。同種の通常 stack は枠数にかかわらず併合できます。
+    /// 未作成の STORAGE は作成しますが、無効・削除済みの inventory は使用しません。
+    /// </summary>
+    private async Task<InventoryEntity?> FindOrbStorageDestinationAsync(
+        Guid accountId, string itemId, Guid updatedBy)
+    {
+        List<InventoryEntryEntity> tokens;
+        if (dbContext.Database.IsSqlServer())
+        {
+            tokens = await dbContext.InventoryEntries.FromSqlInterpolated($"""
+                SELECT entry.*
+                FROM [dbo].[inventory_entry] AS entry WITH (UPDLOCK, HOLDLOCK)
+                INNER JOIN [dbo].[inventory] AS inventory WITH (HOLDLOCK)
+                    ON inventory.[inventory_id] = entry.[inventory_id]
+                WHERE inventory.[account_id] = {accountId}
+                  AND inventory.[inventory_profile] = {MarketListingExpansion.GameInventoryProfile}
+                  AND inventory.[inventory_type] = {MarketListingExpansion.CurrencyInventoryType}
+                  AND inventory.[is_enabled] = 1 AND inventory.[is_deleted] = 0
+                  AND entry.[item_category] = 'currency'
+                  AND entry.[instance_type] IS NULL AND entry.[instance_id] IS NULL
+                  AND entry.[is_deleted] = 0 AND entry.[quantity] > 0
+                  AND entry.[item_id] IN ({OrbRemoteAccessTokenItemId}, {StorageExpansionTokenItemId})
+                """).AsNoTracking().ToListAsync();
+        }
+        else
+        {
+            tokens = await (from entry in dbContext.InventoryEntries.AsNoTracking()
+                            join inventory in dbContext.Inventories.AsNoTracking()
+                                on entry.InventoryId equals inventory.InventoryId
+                            where inventory.AccountId == accountId
+                                  && inventory.InventoryProfile == MarketListingExpansion.GameInventoryProfile
+                                  && inventory.InventoryType == MarketListingExpansion.CurrencyInventoryType
+                                  && inventory.IsEnabled && !inventory.IsDeleted
+                                  && entry.ItemCategory == "currency"
+                                  && entry.InstanceType == null && entry.InstanceId == null
+                                  && !entry.IsDeleted && entry.Quantity > 0
+                                  && (entry.ItemId == OrbRemoteAccessTokenItemId
+                                      || entry.ItemId == StorageExpansionTokenItemId)
+                            select entry).ToListAsync();
+        }
+        if (!tokens.Any(entry => KeyComparer.Equals(entry.ItemId, OrbRemoteAccessTokenItemId)))
+            return null;
+
+        var storage = dbContext.Database.IsSqlServer()
+            ? await dbContext.Inventories.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[inventory] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [account_id] = {accountId}
+                  AND [inventory_profile] = {MarketListingExpansion.GameInventoryProfile}
+                  AND [inventory_type] = {StorageInventoryType}
+                """).SingleOrDefaultAsync()
+            : await dbContext.Inventories.SingleOrDefaultAsync(inventory =>
+                inventory.AccountId == accountId
+                && inventory.InventoryProfile == MarketListingExpansion.GameInventoryProfile
+                && inventory.InventoryType == StorageInventoryType);
+        if (storage is not null && (!storage.IsEnabled || storage.IsDeleted))
+            return null;
+        if (storage is null)
+        {
+            var now = DateTime.UtcNow;
+            storage = new InventoryEntity
+            {
+                InventoryId = Guid.NewGuid(), AccountId = accountId,
+                InventoryType = StorageInventoryType, InventoryProfile = MarketListingExpansion.GameInventoryProfile,
+                IsEnabled = true, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = updatedBy, UpdatedBy = updatedBy,
+            };
+            dbContext.Inventories.Add(storage);
+            return storage;
+        }
+
+        var entries = dbContext.Database.IsSqlServer()
+            ? await dbContext.InventoryEntries.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[inventory_entry] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [inventory_id] = {storage.InventoryId} AND [is_deleted] = 0
+                """).ToListAsync()
+            : await dbContext.InventoryEntries.Where(entry =>
+                entry.InventoryId == storage.InventoryId && !entry.IsDeleted).ToListAsync();
+        if (entries.Any(entry => entry.InstanceType is null && entry.InstanceId is null
+            && KeyComparer.Equals(entry.ItemId, itemId)))
+            return storage;
+
+        long expansionCount = 0;
+        foreach (var token in tokens.Where(entry => KeyComparer.Equals(entry.ItemId, StorageExpansionTokenItemId)))
+            expansionCount = Math.Min(int.MaxValue, expansionCount + Math.Min(int.MaxValue, token.Quantity));
+        var capacity = Math.Min(int.MaxValue, (StorageBasePageCount + expansionCount) * StoragePageSize);
+        return entries.Count < capacity ? storage : null;
     }
 
     private async Task<MarketOperationResult<IReadOnlyList<Guid>>> DebitGoldAsync(
