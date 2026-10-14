@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / トカゲのウロコ"
+#   progression: 20
+schemaVersion: 1
+id: 10a00211
+category: material
+name: "&f風色のウロコ"
+icon: TURTLE_SCUTE
+rarity: COMMON
+maxStack: 64
+saleValue: 140
+lore:
+  - "&7カゼトカゲの尾から剥がれた、薄いウロコ。"
+  - "&7縁を撫でると、かすかな風が指をくすぐる。"
+unTradeable: false
+unSellable: false

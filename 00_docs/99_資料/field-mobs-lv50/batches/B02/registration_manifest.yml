@@ -1,0 +1,75 @@
+batch: B02
+baseCommit: e2058ade10a682118382e70aa01c7db758ac81c6
+branch: codex/field-mobs-lv50-b02
+status: implementation_ready_pending_central_registration
+executors:
+  - implementationId: mob_field_sunhare_leap_kick
+    mobId: field_sunhare
+    class: io.github.maaasu.astralRecord.feature.mob.skill.field.SunhareMobSkillExecutor
+    constructor: [MobService, DamageService, ConditionService, ParticleDisplayService]
+    fieldName: sunhareMobSkillExecutor
+    registrationCode: |
+      sunhareMobSkillExecutor = new SunhareMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+      mobSkillRegistry.register(sunhareMobSkillExecutor);
+    destroyCode: sunhareMobSkillExecutor.clearCasterState(mobInstanceId);
+    shutdownCode: if (sunhareMobSkillExecutor != null) sunhareMobSkillExecutor.stop();
+  - implementationId: mob_field_wind_lizard_wind_tail
+    mobId: field_wind_lizard
+    class: io.github.maaasu.astralRecord.feature.mob.skill.field.WindLizardMobSkillExecutor
+    constructor: [MobService, DamageService, ConditionService, ParticleDisplayService]
+    fieldName: windLizardMobSkillExecutor
+    registrationCode: |
+      windLizardMobSkillExecutor = new WindLizardMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+      mobSkillRegistry.register(windLizardMobSkillExecutor);
+    destroyCode: windLizardMobSkillExecutor.clearCasterState(mobInstanceId);
+    shutdownCode: if (windLizardMobSkillExecutor != null) windLizardMobSkillExecutor.stop();
+centralChanges:
+  owner: integration
+  entryPoint: 10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/AstralRecord.java
+  instructions:
+    - Executorをフィールドに保持し、既存MobSkillRegistry登録箇所へ登録する。
+    - 既存setDestroyListenerの合成callbackへ両clearCasterStateを追記する。既存listenerを置換しない。
+    - onDisableで、Mob破棄とScheduler一括cancelより先に両stopを呼ぶ。
+    - 初期化前停止経路ではnullを確認し、通常の同期スレッドで回収する。
+  requiredProperties: []
+  requiredLogIds: []
+  requiredMessageIds: []
+  requiredRegistryChanges: []
+  requiredSharedInfrastructureChanges: []
+  requiredBuffs: []
+  requiredLootTables: []
+materials:
+  - id: 10a00210
+    name: やわらかな耳毛
+    source: field_sunhare
+    levels: [28, 30, 32, 34]
+    ratePercent: 35
+    amount: 1
+    luckAffected: true
+    saleValue: 120
+    consumeDestinationOwner: equipment_task
+  - id: 10a00211
+    name: 風色のウロコ
+    source: field_wind_lizard
+    levels: [28, 30, 32, 34]
+    ratePercent: 35
+    amount: 1
+    luckAffected: true
+    saleValue: 140
+    consumeDestinationOwner: equipment_task
+spawnHandoff:
+  habitat: 平原の中位帯
+  levels: [28, 30, 32, 34]
+  evidence:
+    - PLAN.mdのB02に平原帯が割り当てられている。
+    - 既存eriva_camouflage_zombieはgrasslandタグ、Lv18から30の系列を持つ。
+  placementCoordinatesVerified: false
+  worldReferenceVerified: false
+  request: 統合担当が実地域とworld参照を確認した後に専用spawnerを作成する。座標は本バッチで作成しない。
+pendingValidation:
+  - 中央登録とdestroy/shutdown合成を含むPlugin全体コンパイルとmvn -q test。
+  - 登録後に全新規Mob skill IDをRegistryで解決し、MobRepositoryで全レベルと継承dropを読込確認。
+  - 実戦で跳躍の衝突・回避・扇予告・キャンセル・複数個体・召喚ペット・TTKと耐久を確認。
+  - 他バッチ統合後の全namespace ID重複、参照、素材予約と名称を再検証。
+  - 共有進行曲線のLv30超基準が確定した際にLv32と34の暫定延長値を再評価。
+  - 装備担当が新素材の消費先を実装した後、用途と供給量を再確認。
