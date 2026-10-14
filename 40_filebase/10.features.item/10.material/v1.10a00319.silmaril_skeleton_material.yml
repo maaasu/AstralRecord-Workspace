@@ -1,0 +1,17 @@
+# design:
+#   motif: "伝承 / 光る白骨"
+#   progression: 9
+schemaVersion: 1
+id: 10a00319
+category: material
+name: "&f光る骨片"
+icon: BONE
+iconGlint: true
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7シルマリルのスケルトンからこぼれた骨片。"
+  - "&7乾いた断面に、淡い光が残っている。"
+unTradeable: false
+unSellable: false
