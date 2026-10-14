@@ -1,0 +1,53 @@
+# design:
+#   motif: "植物 / 大樹の心と循環する根脈"
+#   progression: 25
+schemaVersion: 1
+id: eriva_greatroot_heartwarden
+type: MOB
+category: BOSS
+name: "&2&l根脈の心守 オルディア"
+title: "&a-- 大樹の根に息づく守り手 --"
+level: 25
+entityType: IRON_GOLEM
+variant:
+  scale: 1.15
+icon: IRON_GOLEM_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7大樹の奥で根脈を束ね、命の巡りを守る心守。"
+  - "&7赤い根の予兆を避け、緑の安全な場所へ移ろう。"
+  - "&7滋養の芽をすべて倒せば、根の守りを断ち切れる。"
+tags:
+  - forest
+  - boss
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 100000
+  - status: ATTACK
+    value: 2100
+  - status: DEFENSE
+    value: 2300
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 70
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 32
+    deaggroRange: 48
+    leashRange: 48
+  combat:
+    style: MELEE
+    preferredRange: 5
+drops:
+  exp: 9000

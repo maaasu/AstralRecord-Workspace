@@ -1,0 +1,118 @@
+# design:
+#   motif: "植物 / 大樹の根洞と根脈"
+#   progression: 25
+schemaVersion: 1
+id: eriva_greatroot_hollow
+displayName: "大樹の根洞"
+recommendedLevel: 25
+entry:
+  worldRef: world:vanaheim_supercontinent
+  x: -1144.5
+  y: 107.0
+  z: 1480.5
+  yaw: 0.0
+  pitch: 0.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 1200
+generation:
+  area:
+    width: 144
+    depth: 144
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 17
+    max: 27
+  bossRoomSize:
+    min: 35
+    max: 39
+  roomHeight: 10
+  corridorWidth: 5
+  corridorHeight: 6
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: RECTANGLE
+      weight: 2
+    - type: CYLINDER
+      weight: 3
+  roomTypes:
+    - type: STANDARD
+      weight: 2
+    - type: SUPPORT_HALL
+      weight: 5
+    - type: COLLAPSED
+      weight: 1
+    - type: ORE_CHAMBER
+      weight: 2
+theme:
+  landscape: INDOOR
+  floor:
+    - material: ROOTED_DIRT
+      weight: 5
+    - material: MOSS_BLOCK
+      weight: 3
+    - material: COARSE_DIRT
+      weight: 2
+  wall:
+    - material: MANGROVE_ROOTS
+      weight: 4
+    - material: MANGROVE_LOG
+      weight: 3
+    - material: ROOTED_DIRT
+      weight: 3
+  ceiling:
+    - material: ROOTED_DIRT
+      weight: 4
+    - material: MANGROVE_ROOTS
+      weight: 3
+    - material: DARK_OAK_LOG
+      weight: 3
+  corridor:
+    - material: ROOTED_DIRT
+      weight: 4
+    - material: MOSS_BLOCK
+      weight: 1
+  gateMaterial: DARK_OAK_FENCE
+  lightMaterial: SHROOMLIGHT
+  pillar:
+    enabled: false
+  decorations:
+    supportMaterial: MANGROVE_LOG
+    beamMaterial: STRIPPED_DARK_OAK_LOG
+    rubble:
+      - material: ROOTED_DIRT
+        weight: 3
+      - material: MOSS_BLOCK
+        weight: 2
+    accent:
+      - material: SHROOMLIGHT
+        weight: 2
+      - material: MUDDY_MANGROVE_ROOTS
+        weight: 3
+encounter:
+  ensureMobVariety: true
+  normalMobPool:
+    - mobId: mob:eriva_greatroot_barkguard
+      level: 25
+      weight: 2
+    - mobId: mob:eriva_greatroot_sporecaller
+      level: 25
+      weight: 3
+    - mobId: mob:eriva_greatroot_rootling
+      level: 25
+      weight: 3
+  mobsPerRoom:
+    min: 4
+    max: 5
+  firstCombatRoomMaxMobLevel: 25
+  bossMobId: mob:eriva_greatroot_heartwarden
+  bossMobLevel: 25

@@ -1,0 +1,57 @@
+# design:
+#   motif: "菌類 / 根洞の胞子と発芽"
+#   progression: 25
+schemaVersion: 1
+id: eriva_greatroot_sporecaller
+type: MOB
+category: ENEMY
+name: "&e根洞の胞子術師"
+level: 25
+entityType: MOOSHROOM
+variant:
+  kind: BROWN
+icon: MOOSHROOM_SPAWN_EGG
+lore:
+  - "&7根に寄り添う茸から、胞子の種を飛ばす。"
+  - "&7印を離れれば開花を避けられる。残る胞子にも気を配ろう。"
+tags:
+  - forest
+  - beast
+  - magic
+baseStats:
+  - status: MAX_HEALTH
+    value: 10500
+  - status: ATTACK
+    value: 1500
+  - status: MAGIC_ATTACK
+    value: 300
+  - status: DEFENSE
+    value: 1800
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 88
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.65
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 30
+    leashRange: 36
+  combat:
+    style: MAGIC
+    preferredRange: 7
+    skills:
+      - id: mob_greatroot_sporecaller_bloom
+        activationRange: 9
+        cooldownTicks: 160
+        castTimeTicks: 0
+drops:
+  exp: 360
