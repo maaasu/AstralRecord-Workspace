@@ -1,0 +1,122 @@
+{
+  "batch": "B06",
+  "base_commit": "e2058ade10a682118382e70aa01c7db758ac81c6",
+  "branch": "codex/field-mobs-lv50-b06",
+  "worktree": "E:/AstralRecord-Workspace/99_work/field-mobs-lv50-b06",
+  "registration_status": "pending_integration",
+  "owned_paths": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/RootTurtleMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/SnowWolfMobSkillExecutor.java",
+    "40_filebase/40.features.mob/enemy/v1.field_root_turtle.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_snow_wolf.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00250.rooted_turtle_shell.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00251.snow_wolf_pelt.yml",
+    "40_filebase/70.shared.buff/v1.field_root_turtle_root_snare.yml",
+    "00_docs/99_資料/field-mobs-lv50/batches/B06/"
+  ],
+  "executors": [
+    {
+      "mob_id": "field_root_turtle",
+      "levels": [
+        24,
+        26,
+        28,
+        30
+      ],
+      "implementation_id": "mob_field_root_turtle_root_snare",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.RootTurtleMobSkillExecutor",
+      "field": "rootTurtleMobSkillExecutor",
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "StatusService statusService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "rootTurtleMobSkillExecutor = new RootTurtleMobSkillExecutor(mobService, damageService, conditionService, statusService, particleDisplayService);\nmobSkillRegistry.register(rootTurtleMobSkillExecutor);",
+      "destroy_listener_code": "rootTurtleMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (rootTurtleMobSkillExecutor != null) rootTurtleMobSkillExecutor.stop();",
+      "target_policy": "有効な通常プレイヤー1体。ペットが主対象の時はcast=falseで既存通常近接へfallback。",
+      "buff_id": "field_root_turtle_root_snare",
+      "buff_policy": "FINAL_SCALAR -0.30 / 24tick / 同ID非重複 / isDebuff=true / resetOnChallenge=true。実行者は付与したActiveBuffの同一性だけで解除。",
+      "materials": [
+        {
+          "id": "10a00250",
+          "name": "根付きの甲羅",
+          "rate": 35,
+          "amount": 1,
+          "luckAffected": true,
+          "saleValue": 300
+        }
+      ]
+    },
+    {
+      "mob_id": "field_snow_wolf",
+      "levels": [
+        32,
+        34,
+        36,
+        38
+      ],
+      "implementation_id": "mob_field_snow_wolf_ice_dash",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.SnowWolfMobSkillExecutor",
+      "field": "snowWolfMobSkillExecutor",
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "snowWolfMobSkillExecutor = new SnowWolfMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(snowWolfMobSkillExecutor);",
+      "destroy_listener_code": "snowWolfMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (snowWolfMobSkillExecutor != null) snowWolfMobSkillExecutor.stop();",
+      "target_policy": "DamageService.isMobCombatTargetが許可する通常プレイヤーまたは有効な召喚ペット1体。固定進路、単発命中、凍結なし。",
+      "materials": [
+        {
+          "id": "10a00251",
+          "name": "雪色の毛皮",
+          "rate": 35,
+          "amount": 1,
+          "luckAffected": true,
+          "saleValue": 400
+        }
+      ]
+    }
+  ],
+  "central_changes": [
+    "AstralRecord.javaへimport/保持field/生成/registry登録を追加する。",
+    "既存mobService.setDestroyListenerのlambdaへ両handleMobDestroyedを追記する。既存listenerを置換しない。",
+    "onDisableで両stopを既存StatusService等の停止・破棄より前に呼ぶ。",
+    "登録後に新規Mob skill IDの全件解決とbuff master lookupを確認する。",
+    "共通properties/LogId/MsgId/schema/status/tag/基盤変更は不要。新規Mobは既存動的master一覧に反映される既存契約内。",
+    "独自loot pool/tableは不要。両種は直接素材dropだけを定義。共有tier tableや既存dropは変更しない。",
+    "Lv31以降の正式装備/成長アンカーとの整合を確認し、必要な調整を一括してから実配置を判断する。",
+    "プラグイン版番号/POM更新は最終統合担当の工程。"
+  ],
+  "habitats": [
+    {
+      "mob_id": "field_root_turtle",
+      "intent": "森林 Lv24〜30",
+      "evidence_paths": [
+        "40_filebase/41.features.mob.spawner/v1.eriva_great_forest_lv15_spawner.yml",
+        "40_filebase/60.features.world/v1.verdia.yml"
+      ],
+      "verified": "森林の存在・従来spawnerのregion表記のみ。Lv24〜30相当の実配置座標は未確認。",
+      "status": "placement_pending"
+    },
+    {
+      "mob_id": "field_snow_wolf",
+      "intent": "雪原 Lv32〜38",
+      "evidence_paths": [],
+      "verified": "共通基点の既存world/spawnerに雪原の根拠なし。world名・座標・spawnerを作成していない。",
+      "status": "placement_blocked"
+    }
+  ],
+  "unverified": [
+    "中央登録未実施。現段階では両implementation IDはregistryで未解決。",
+    "全体Maven build/test・統合読込・実server/clientでの予告視認性・横回避・TTK・耐久・複数個体は未実施。",
+    "現行代表装備+30と設計Lv30アンカーの大幅な乖離。SPEC.mdの実数試算参照。",
+    "新素材の装備/recipe用途は別装備担当の所有。ここでは売却の実装済み経路が用途。",
+    "WORKTREE_MANAGEMENT.mdは依頼の中央管理表編集禁止により未更新。worktreeとbranchは統合待ちで保持。"
+  ]
+}
