@@ -145,9 +145,13 @@ final class GreatrootEncounterController {
             startLink(state, players, tick, state.completedPhase + 1);
             return;
         }
-        Move move = state.completedPhase >= 3 && state.actionIndex % 6 == 5
-            ? Move.CYCLE : ROTATION[state.actionIndex % ROTATION.length];
-        if (begin(state, players, move, tick, false)) state.actionIndex++;
+        // 最終段階は五つの通常技と循環を一巡にし、循環の後も根走りから始めます。
+        int rotationLength = ROTATION.length + (state.completedPhase >= 3 ? 1 : 0);
+        int rotationIndex = state.actionIndex % rotationLength;
+        Move move = rotationIndex == ROTATION.length ? Move.CYCLE : ROTATION[rotationIndex];
+        // 中断した技は開始時に既に数えています。再開で次の技を飛ばさないようにします。
+        boolean resuming = state.resumeMove != null;
+        if (begin(state, players, move, tick, false) && !resuming) state.actionIndex++;
     }
 
     /** @return 所有する芽なら対応ボス。消滅済みまたは無関係ならnull */
