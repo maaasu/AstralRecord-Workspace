@@ -1,0 +1,54 @@
+{
+  "batch": "B04",
+  "base_commit": "e2058ade10a682118382e70aa01c7db758ac81c6",
+  "branch": "codex/field-mobs-lv50-b04",
+  "material_reserved_range": "10a00230-10a00239",
+  "master_paths": [
+    "40_filebase/40.features.mob/enemy/v1.field_stoneback_bison.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_storm_raptor.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00230.thick_bison_hide.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00231.stoneback_horn.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00232.earth_core.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00233.storm_flight_feather.yml"
+  ],
+  "executors": [
+    {
+      "mob_id": "field_stoneback_bison",
+      "implementation_id": "mob_field_stoneback_bison_earth_charge",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.StonebackBisonMobSkillExecutor",
+      "source_path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/StonebackBisonMobSkillExecutor.java",
+      "constructor_dependencies": ["MobService", "DamageService", "ConditionService", "ParticleDisplayService"],
+      "registration_code": "mobSkillRegistry.register(new io.github.maaasu.astralRecord.feature.mob.skill.field.StonebackBisonMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService));",
+      "maximum_range": 8,
+      "registered": false
+    },
+    {
+      "mob_id": "field_storm_raptor",
+      "implementation_id": "mob_field_storm_raptor_diving_strike",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.StormRaptorMobSkillExecutor",
+      "source_path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/StormRaptorMobSkillExecutor.java",
+      "constructor_dependencies": ["MobService", "DamageService", "ConditionService", "ParticleDisplayService"],
+      "registration_code": "mobSkillRegistry.register(new io.github.maaasu.astralRecord.feature.mob.skill.field.StormRaptorMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService));",
+      "maximum_range": 6,
+      "registered": false
+    }
+  ],
+  "lifecycle": "Each constructor registers its own PluginDisableEvent listener. stop() is idempotent. Per-tick cancellation handles death, despawn, target/world change, return and incapacitation. No central lifecycle modification is required.",
+  "properties_logid_msgid_changes": [],
+  "shared_foundation_changes": [],
+  "dedicated_loot_or_buff": "None. Direct independent material drops and single-target damage need no new pool/table/buff.",
+  "habitat": {
+    "plan": "平原C（Lv42/44/46/48）",
+    "reference_world": "40_filebase/60.features.world/v1.starreach_wilds.yml: vanaheim_supercontinent",
+    "reference_spawners": ["40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv30_spawner.yml", "40_filebase/41.features.mob.spawner/v1.eriva_grassboar_lv20_spawner.yml"],
+    "status": "Placement deferred: existing エリヴァ大草原 references do not establish 平原C coordinates. No spawner created."
+  },
+  "integration_required": [
+    "Register both executors after all constructor dependencies have been initialized; constructors register listeners, so instantiate once per registry lifecycle.",
+    "Resolve both YAML bindings through MobSkillRegistry; confirm validate and timing.",
+    "Run one serialized full plugin compile/test and resource check after central integration.",
+    "Verify high-level player equipment/growth and TTK before placement: levels above 30 currently use provisional balance assumptions.",
+    "Decide real habitat placement and validate each exact level reference; fallback to minimum level must not conceal an invalid spawner level.",
+    "Perform in-game telegraph, dodge, wall/slab/cliff/liquid/border/chunk, interruption, disable and multiple-caster checks."
+  ]
+}

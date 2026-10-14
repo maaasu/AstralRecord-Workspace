@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / バイソンの皮"
+#   progression: 25
+schemaVersion: 1
+id: 10a00230
+category: material
+name: "厚い牛皮"
+icon: LEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 400
+lore:
+  - "&7石背の重みを支える、厚くしなやかな牛皮。"
+unTradeable: false
+unSellable: false
