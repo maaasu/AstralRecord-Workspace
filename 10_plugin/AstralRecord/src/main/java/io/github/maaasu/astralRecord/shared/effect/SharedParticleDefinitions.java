@@ -645,6 +645,10 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition MOB_ERIVA_SPORE_CLOUD =
         new SharedParticleDefinition("mob_eriva_spore_cloud", Particle.WARPED_SPORE, 30,
             1.4D, 0.7D, 1.4D, 0.0D);
+    /** 攻撃が成立する池の会場境界を青緑色で表示します。 */
+    public static final SharedParticleDefinition POND_BOUNDARY =
+        new SharedParticleDefinition("pond_boundary", Particle.DUST, 1, 0.01D, 0.02D, 0.01D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(45, 175, 170), 1.05F));
     /** 水鏡が記録した足跡を水色の小点で表示します。 */
     public static final SharedParticleDefinition POND_RECORD =
         new SharedParticleDefinition("pond_record", Particle.DUST, 1, 0.01D, 0.02D, 0.01D, 0.0D,

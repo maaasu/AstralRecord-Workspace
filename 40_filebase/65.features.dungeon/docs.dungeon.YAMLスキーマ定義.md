@@ -40,7 +40,7 @@
 | `generation.roomShapes[]` | List | `RECTANGLE:3`, `CYLINDER:1`。type は両列挙値、weight 省略時 `1` |
 | `generation.roomTypes[]` | List | `STANDARD:1`。type は `STANDARD` / `SUPPORT_HALL` / `COLLAPSED` / `ORE_CHAMBER`、weight 省略時 `1` |
 | `theme.floor/wall/ceiling[]` | List | 各 `STONE_BRICKS:1` |
-| `theme.landscape` | String | `INDOOR`。`INDOOR` / `PLAINS`。`PLAINS` は空が見える草地の生成方式。床・通路素材は各リストを使い、天井は不可視BARRIERへ置き換える |
+| `theme.landscape` | String | `INDOOR`。`INDOOR` / `PLAINS` / `FOREST_POND`。屋外方式は床・通路素材を各リストから選び、天井は不可視BARRIERへ置き換える。`FOREST_POND` は浅い池・桟道・岸辺・森林を生成する |
 | `theme.corridor[]` | List | `COBBLESTONE:1` |
 | `theme.*[].material` | String | AIR ではない solid block Material |
 | `theme.*[].weight` | Integer | `1`。正の相対 weight |
@@ -76,6 +76,8 @@ room typeは部屋のSTART／NORMAL／BOSS役割とは独立してseedから決�
 生成ワールドのバイオームもPLAINSへ固定し、草色・空色・降水方式を平原に揃えます。`INDOOR` は従来のバイオーム生成を維持します。
 
 ## 最小 YAML 例
+
+`FOREST_POND` は屋外の領域充填、連続バリア、3×3の乾いた出現足場を維持し、バイオームをFORESTへ固定します。各部屋には粘土の底を持つ深さ1blockの浅池、スイレン、苔の岸、中央島と乾いた十字の桟道を生成します。部屋外周3blockと中央導線には池を置きません。池のない岸にはシダ・草を配置し、通路・部屋から離れた領域にオーク・シラカバを配置します。枝葉を含めて既存ブロックを上書きせず、葉は自然消滅しません。ボス部屋の内部には樹木を置かず、回避と予告の視界を確保します。この方式では部屋タイプの支柱・梁・瓦礫・壁アクセントは省略します。
 
 ```yaml
 schemaVersion: 1

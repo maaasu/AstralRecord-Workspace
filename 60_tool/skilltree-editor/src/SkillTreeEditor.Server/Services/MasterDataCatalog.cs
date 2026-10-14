@@ -249,7 +249,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                             JsonValue.Create("FILL_ONE_EMPTY"), JsonValue.Create("FILL_ALL_EMPTY"),
                             JsonValue.Create("REROLL_VALUE_RANDOM"), JsonValue.Create("REMOVE_RANDOM"), JsonValue.Create("LOCK_FIRST")),
                         "theme.landscape" when category.Equals("65.features.dungeon", MasterDataPaths.Comparison)
-                            => new JsonArray(JsonValue.Create("INDOOR"), JsonValue.Create("PLAINS")),
+                            => new JsonArray(JsonValue.Create("INDOOR"), JsonValue.Create("PLAINS"), JsonValue.Create("FOREST_POND")),
                         _ => null
                     };
                     yield return new(pointer, scopedKey, label, type, Cell("必須") is "○" or "〇" or "必須" or "yes" or "true", description,

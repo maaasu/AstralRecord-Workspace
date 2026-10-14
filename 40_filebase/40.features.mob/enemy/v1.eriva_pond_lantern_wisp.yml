@@ -1,0 +1,61 @@
+# design:
+#   motif: "光 / 池の灯と鏡映"
+#   progression: 31
+schemaVersion: 1
+id: eriva_pond_lantern_wisp
+type: MOB
+category: ENEMY
+name: "&b鏡映の灯精"
+level: 30
+entityType: ALLAY
+icon: ALLAY_SPAWN_EGG
+nameVisible: true
+variant:
+  age: ADULT
+  scale: 1.2
+lore:
+  - "&7池に浮かぶ灯。足元とその鏡合わせの位置へ光を灯す。"
+  - "&7二つの予告を見て、どちらの小円からも離れよ。"
+tags:
+  - forest
+  - magic
+# 職業Lv30 + 現行エリヴァ無強化装備、主力skill Lv1: 単体TTK約4〜7秒。
+baseStats:
+  - status: MAX_HEALTH
+    value: 1600
+  - status: ATTACK
+    value: 145
+  - status: DEFENSE
+    value: 140
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: CRITICAL_RATE
+    value: 0
+  - status: ATTACK_SPEED
+    value: 100
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 98
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 3
+    speed: 0.7
+  targeting:
+    strategy: NEAREST
+    aggroRange: 17
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MAGIC
+    preferredRange: 8
+    skills:
+      - id: mob_eriva_pond_lantern_echo
+        activationRange: 11
+        cooldownTicks: 140
+        castTimeTicks: 0

@@ -1,0 +1,62 @@
+# design:
+#   motif: "植物 / 池の葦と返る矢"
+#   progression: 31
+schemaVersion: 1
+id: eriva_pond_reed_stalker
+type: MOB
+category: ENEMY
+name: "&2返し葦の潜伏者"
+level: 30
+entityType: BOGGED
+icon: BOGGED_SPAWN_EGG
+nameVisible: true
+variant:
+  age: ADULT
+equipment:
+  mainHand: BOW
+lore:
+  - "&7岸の葦へ紛れ、伸びた水線へ返り矢を放つ射手。"
+  - "&7予告の直線から横へ逃れ、戻る矢が過ぎるまで離れよ。"
+tags:
+  - forest
+  - undead
+# 職業Lv30 + 現行エリヴァ無強化装備、主力skill Lv1: 単体TTK約4〜6秒。
+baseStats:
+  - status: MAX_HEALTH
+    value: 1400
+  - status: ATTACK
+    value: 150
+  - status: DEFENSE
+    value: 125
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: CRITICAL_RATE
+    value: 0
+  - status: ATTACK_SPEED
+    value: 100
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 92
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 2
+    speed: 0.7
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: RANGED
+    preferredRange: 9
+    skills:
+      - id: mob_eriva_pond_reed_return
+        activationRange: 12
+        cooldownTicks: 120
+        castTimeTicks: 0

@@ -51,9 +51,9 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         {
             if (path.StartsWith("65.features.dungeon/", MasterDataPaths.Comparison)
                 && obj["theme"] is JsonObject dungeonTheme && dungeonTheme.ContainsKey("landscape")
-                && Text(dungeonTheme["landscape"]) is not ("INDOOR" or "PLAINS"))
+                && Text(dungeonTheme["landscape"]) is not ("INDOOR" or "PLAINS" or "FOREST_POND"))
                 issues.Add(new("error", "DUNGEON_LANDSCAPE", "/theme/landscape",
-                    "地形の生成方式は INDOOR または PLAINS を指定してください。"));
+                    "地形の生成方式は INDOOR、PLAINS、FOREST_POND のいずれかを指定してください。"));
             if (path.StartsWith("65.features.dungeon/", MasterDataPaths.Comparison)
                 && obj["encounter"] is JsonObject dungeonEncounter
                 && dungeonEncounter["ensureMobVariety"] is JsonValue variety

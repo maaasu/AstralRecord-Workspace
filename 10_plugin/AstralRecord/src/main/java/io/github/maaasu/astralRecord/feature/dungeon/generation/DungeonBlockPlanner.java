@@ -41,7 +41,7 @@ public final class DungeonBlockPlanner {
     ) {
         SplittableRandom random = new SplittableRandom(layout.seed() ^ BLOCK_RANDOM_SALT);
         Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks = new LinkedHashMap<>();
-        if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
+        if (definition.theme().landscape().isOutdoor()) {
             buildPlainsGround(blocks, definition, layout);
         }
         Map<Integer, DungeonLayout.Room> roomById = new HashMap<>();
@@ -56,6 +56,10 @@ public final class DungeonBlockPlanner {
                 definition.generation().corridorWidth()
         );
         buildCorridors(blocks, corridorFootprint, layout.rooms(), definition, layout, random);
+
+        if (definition.theme().landscape() == DungeonLandscape.FOREST_POND) {
+            new DungeonForestPondDecorator().decorateBackdrop(blocks, layout, corridorFootprint);
+        }
 
         Map<Integer, List<DungeonBlockPlan.Position>> gates = new LinkedHashMap<>();
         Map<Integer, List<DungeonBlockPlan.Position>> gateBarriers = new LinkedHashMap<>();
@@ -114,7 +118,7 @@ public final class DungeonBlockPlanner {
             boolean pillar = shouldBuildPillar(definition.theme().pillar(), layout.seed(), room.id());
             List<DungeonBlockPlan.Position> roomSpawnPoints = createSpawnPoints(
                     blocks, room, layout.baseY() + 1, pillar, lightPositions);
-            if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
+            if (definition.theme().landscape().isOutdoor()) {
                 roomSpawnPoints = roomSpawnPoints.stream()
                         .filter(position -> hasClearPlainsSpawnBody(blocks, position))
                         .toList();
@@ -191,7 +195,7 @@ public final class DungeonBlockPlanner {
     ) {
         int floorY = layout.baseY();
         int ceilingY = floorY + layout.roomHeight() - 1;
-        boolean plains = definition.theme().landscape() == DungeonLandscape.PLAINS;
+        boolean plains = definition.theme().landscape().isOutdoor();
         DungeonLayout.Rect bounds = room.bounds();
         for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
             for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
@@ -223,6 +227,10 @@ public final class DungeonBlockPlanner {
     ) {
         SplittableRandom random = new SplittableRandom(
                 layout.seed() ^ (DECORATION_RANDOM_SALT * (room.id() + 1L)));
+        if (definition.theme().landscape() == DungeonLandscape.FOREST_POND) {
+            new DungeonForestPondDecorator().decorateRoom(blocks, room, definition, layout);
+            return;
+        }
         if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
             if (room.type() == DungeonRoomType.COLLAPSED) {
                 buildCollapsedRoom(blocks, room, definition, layout, random);
@@ -399,7 +407,7 @@ public final class DungeonBlockPlanner {
     ) {
         int floorY = layout.baseY();
         int ceilingY = floorY + definition.generation().corridorHeight() + 1;
-        boolean plains = definition.theme().landscape() == DungeonLandscape.PLAINS;
+        boolean plains = definition.theme().landscape().isOutdoor();
         for (DungeonLayout.Point point : footprint) {
             if (isDeepRoomInterior(rooms, point.x(), point.z())) {
                 continue;

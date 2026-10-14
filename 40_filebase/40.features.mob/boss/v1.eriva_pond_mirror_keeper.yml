@@ -1,0 +1,71 @@
+# design:
+#   motif: "動物 / 池の亀と水鏡の記憶"
+#   progression: 31
+schemaVersion: 1
+id: eriva_pond_mirror_keeper
+type: MOB
+category: BOSS
+name: "&3&l水鏡の守り主・ミレア"
+title: "&b―― 足跡を覚える森池の主 ――"
+level: 30
+entityType: TURTLE
+icon: TURTLE_SPAWN_EGG
+nameVisible: true
+variant:
+  age: ADULT
+  scale: 2.6
+lore:
+  - "&7森の奥の池で、訪れる者の足跡を水鏡に留める亀。"
+  - "&7青緑の大輪の内側で戦え。輪の外からの攻撃は届かない。"
+  - "&7足跡が記録され、予告の後に同じ軌跡を鏡片が辿る。"
+  - "&7記録が固定されたら、自分と仲間の軌跡から離れよ。"
+  - "&7傷つくと反転した足跡も現れ、最後は逆向きにも再演する。"
+  - "&7再演をしのぎ、甲羅が光る静水の間に反撃せよ。"
+tags:
+  - forest
+  - beast
+  - boss
+  - magic
+# 職業Lv30 + エリヴァ無強化武器/4部位防具/既存副装備の期待中間個体を基準。
+# Tree/強化/追加passiveなし、主力skill Lv1の定常近似: ソロ74〜123秒。
+# 4人混成の基礎HP削りは約59秒。回避・リソース消費・劣化は含まない。
+# 剣士は約43秒でMPが不足するため、以降は自然回復に合わせて技能回転を落とす。
+# 魔法使いは長期戦でライトニングボルト中心へ切り替えれば自然回復内で持続可能。
+# 設計アンカーと現行装備は乖離しているため、現在の通常育成装備へ合わせる。
+baseStats:
+  - status: MAX_HEALTH
+    value: 22000
+  - status: ATTACK
+    value: 180
+  - status: DEFENSE
+    value: 180
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: CRITICAL_RATE
+    value: 0
+  - status: ATTACK_SPEED
+    value: 100
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 40
+    leashRange: 42
+  combat:
+    style: MAGIC
+    preferredRange: 5
+    normalAttack:
+      range: 4
+      intervalTicks: 40

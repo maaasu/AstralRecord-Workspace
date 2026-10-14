@@ -68,6 +68,7 @@ final class PondEncounterController {
     void tick(@NotNull MobInstance boss, @NotNull Entity entity, long tick) {
         Encounter state = encounters.computeIfAbsent(boss.instanceId(), ignored -> new Encounter(boss));
         try {
+            if (tick % 20L == 0L) drawBoundary(state);
             List<Player> players = active(boss);
             if (players.isEmpty() || !inArena(entity.getLocation(), state.center)) { cancelCast(boss.instanceId()); return; }
             int observed = boss.currentHealth() <= boss.maxHealth() * 0.35D ? 3
@@ -255,6 +256,22 @@ final class PondEncounterController {
         entity.setGlowing(true);
         if (effects != null) effects.apply(state.boss.instanceId(), EXPOSURE_ID, REST_TICKS, 1.20D, 1.0D, 1.0D);
         sound(state.center, Sound.BLOCK_CONDUIT_DEACTIVATE, 1.25F);
+    }
+
+    /**
+     * 攻撃判定と同じスポーン中心・半径の会場境界を1秒ごとに一括描画します。
+     *
+     * @param state 所有する会場。読込済みの浅水面・岸だけを描画し地形を変更しません
+     */
+    private void drawBoundary(Encounter state) {
+        List<Location> ring = new ArrayList<>();
+        for (int i = 0; i < 72; i++) {
+            double angle = Math.PI * 2 * i / 72;
+            Location point = PondSurface.at(state.center.clone().add(
+                Math.cos(angle) * ARENA_RADIUS, 0, Math.sin(angle) * ARENA_RADIUS));
+            if (point != null) ring.add(point);
+        }
+        if (!ring.isEmpty()) particles.spawnForNearbyViewers(state.center, ring, SharedParticleDefinitions.POND_BOUNDARY);
     }
 
     /** 軌跡は点列、再演中は前進する鏡片、安全域は緑の小円で表し、色だけに依存しません。 */

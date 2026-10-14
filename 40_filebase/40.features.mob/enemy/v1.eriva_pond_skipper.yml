@@ -1,0 +1,65 @@
+# design:
+#   motif: "動物 / 池の蛙と波紋"
+#   progression: 31
+schemaVersion: 1
+id: eriva_pond_skipper
+type: MOB
+category: ENEMY
+name: "&a水跳ね蛙"
+level: 30
+entityType: FROG
+icon: FROG_SPAWN_EGG
+nameVisible: true
+variant:
+  age: ADULT
+  kind: TEMPERATE
+  scale: 1.3
+lore:
+  - "&7池の岸から跳ね、踏んだ場所へ波紋を残す蛙。"
+  - "&7足跡を記録する予告が見えたら、通った道から離れよ。"
+tags:
+  - forest
+  - beast
+# 職業Lv30 + 現行エリヴァ無強化装備、主力skill Lv1: 単体TTK約5〜8秒。
+baseStats:
+  - status: MAX_HEALTH
+    value: 1700
+  - status: ATTACK
+    value: 130
+  - status: DEFENSE
+    value: 150
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: CRITICAL_RATE
+    value: 0
+  - status: ATTACK_SPEED
+    value: 100
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 108
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 3
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.2
+      intervalTicks: 36
+    skills:
+      - id: mob_eriva_pond_skipper_wake
+        activationRange: 10
+        cooldownTicks: 180
+        castTimeTicks: 0

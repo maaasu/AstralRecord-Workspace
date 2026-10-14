@@ -1,0 +1,95 @@
+# design:
+#   motif: "地形 / 森林の池と水鏡"
+#   progression: 31
+schemaVersion: 1
+id: eriva_mirrorpond_forest
+displayName: "水鏡の森池"
+recommendedLevel: 30
+# エリヴァ超大陸 spawnLocation (-1149.5, 107.0, 1480.5) の Y + 10。
+entry:
+  worldRef: world:vanaheim_supercontinent
+  x: -1149.5
+  y: 117.0
+  z: 1480.5
+  yaw: 0.0
+  pitch: 0.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 1200
+# 標準144四方より少し広くし、池の岸辺とボスの軌跡回避スペースを確保。
+generation:
+  area:
+    width: 160
+    depth: 160
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 19
+    max: 29
+  bossRoomSize:
+    min: 37
+    max: 41
+  roomHeight: 16
+  corridorWidth: 5
+  corridorHeight: 8
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: CYLINDER
+      weight: 4
+    - type: RECTANGLE
+      weight: 1
+  roomTypes:
+    - type: STANDARD
+      weight: 1
+theme:
+  landscape: FOREST_POND
+  floor:
+    - material: GRASS_BLOCK
+      weight: 5
+    - material: MOSS_BLOCK
+      weight: 4
+    - material: ROOTED_DIRT
+      weight: 1
+  wall:
+    - material: MOSS_BLOCK
+      weight: 5
+    - material: MOSSY_COBBLESTONE
+      weight: 1
+  ceiling:
+    - material: OAK_LEAVES
+      weight: 1
+  corridor:
+    - material: OAK_PLANKS
+      weight: 3
+    - material: MOSS_BLOCK
+      weight: 1
+  gateMaterial: OAK_FENCE
+  lightMaterial: SEA_LANTERN
+  pillar:
+    enabled: false
+encounter:
+  ensureMobVariety: true
+  normalMobPool:
+    - mobId: mob:eriva_pond_skipper
+      level: 30
+      weight: 4
+    - mobId: mob:eriva_pond_reed_stalker
+      level: 30
+      weight: 3
+    - mobId: mob:eriva_pond_lantern_wisp
+      level: 30
+      weight: 2
+  mobsPerRoom:
+    min: 3
+    max: 4
+  firstCombatRoomMaxMobLevel: 30
+  bossMobId: mob:eriva_pond_mirror_keeper
+  bossMobLevel: 30

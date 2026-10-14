@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonVoidChunkGenerator;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonPlainsBiomeProvider;
+import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonForestPondBiomeProvider;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLandscape;
@@ -95,6 +96,8 @@ public final class DungeonInstanceWorldService {
                     .generateStructures(false);
             if (definition.theme().landscape() == DungeonLandscape.PLAINS) {
                 creator.biomeProvider(new DungeonPlainsBiomeProvider());
+            } else if (definition.theme().landscape() == DungeonLandscape.FOREST_POND) {
+                creator.biomeProvider(new DungeonForestPondBiomeProvider());
             }
             world = Bukkit.createWorld(creator);
             if (world == null) {

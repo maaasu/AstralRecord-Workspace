@@ -15,6 +15,7 @@ Dungeon は、入場条件、道中、節目、boss、報酬、退出条件を�
 - `generation.roomTypes` は `STANDARD` / `SUPPORT_HALL` / `COLLAPSED` / `ORE_CHAMBER` を正の相対weightで指定します。省略時は `STANDARD` だけを使用します。
 - `theme.lightMaterial` と `theme.decorations` で照明、木製support／beam、rubble、ore／accentを汎用設定します。中央導線、gate、player／Mob spawnを塞がないことをPluginが保証します。
 - `theme.landscape: PLAINS` は低い崖・草・小花・立石を持つ屋外区画として生成します。外周と高さ上限は不可視BARRIERで閉じ、BSPの攻略順とゲートの通行制限を維持します。省略時は従来の屋内方式です。
+- `theme.landscape: FOREST_POND` は森林バイオームに浅池・苔の岸・スイレン・桟道・樹木を生成します。中央島と縦横導線、外周の岸、乾いた出現候補を維持し、通路と既存バリアを枝葉で上書きしません。ボス部屋内部の樹木と部屋タイプ固有の装飾を省略して戦闘の視界を確保します。
 - `encounter.ensureMobVariety: true` は各通常部屋の適格Mob IDを1体ずつ保証します。最初の戦闘部屋のlevel上限は先に適用し、残りは従来のweight抽選です。最小出現数は全poolの異なるMob ID数以上にします。省略時は従来の全個体抽選です。
 - 個別調整が不要な dungeon は受付地点と Mob 参照だけの最小構成とし、生成寸法・Material・照明・部屋タイプ装飾・柱・人数には Plugin の安全な既定値を使います。
 - `challenge.deathLimit` は0以上の死亡許容回数です。設定回数までは復帰可能で、次の死亡で挑戦終了となるため、難易度意図と合わせます。
