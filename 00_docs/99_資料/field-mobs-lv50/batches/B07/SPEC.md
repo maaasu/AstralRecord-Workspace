@@ -65,9 +65,9 @@ B06の現行代表構成（Player30/class30/エリヴァ剣とバスティオン
 
 ## 素材と経済
 
-蛾は`10a00260`氷蛾の翅片35%×1（COMMON/280G）と`10a00261`氷蛾の鱗粉8%×1（UNCOMMON/500G）を独立抽選する。猪は`10a00262`霜猪の牙35%×1（COMMON/440G）。幸運補正あり、図鑑公開、64stack、取引/売却可能。Gold直付けと共有tier loot追加は行わない。売却期待値は幸運なし蛾138G/猪154Gで、比較のB06狼140G。狩猟速度とGold sinkを含む実測は統合待ち。素材のrecipe/装備用途は別担当とし、実装済みの商人売却だけをLoreへ記載する。
+蛾は`10a00260`コオリガの羽片35%×1（COMMON/280G）と`10a00261`コオリガの粉8%×1（UNCOMMON/500G）を独立抽選する。猪は`10a00262`シモイノシシの牙35%×1（COMMON/440G）。幸運補正あり、図鑑公開、64stack、取引/売却可能。Gold直付けと共有tier loot追加は行わない。売却期待値は幸運なし蛾138G/猪154Gで、比較のB06狼140G。狩猟速度とGold sinkを含む実測は統合待ち。素材のrecipe/装備用途は別担当とし、実装済みの商人売却だけをLoreへ記載する。
 
-翅片FEATHERは薄い翅片、鱗粉GLOWSTONE_DUSTは微細な光る粉、牙POINTED_DRIPSTONEは先細りの硬い牙を示す。使用済みアイコンだが題材に直接対応するため再利用する。MobアイコンはentityType対応spawn egg。現行Paper Material存在を限定コンパイル/`javap`で確認し、Resource Pack変更を必要としない。
+羽片FEATHERは薄い羽片、粉GLOWSTONE_DUSTは微細な光る粉、牙POINTED_DRIPSTONEは先細りの硬い牙を示す。使用済みアイコンだが題材に直接対応するため再利用する。MobアイコンはentityType対応spawn egg。現行Paper Material存在を限定コンパイル/`javap`で確認し、Resource Pack変更を必要としない。
 
 ## 統合担当の工程
 

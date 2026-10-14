@@ -45,7 +45,7 @@
       "materials": [
         {
           "id": "10a00260",
-          "name": "氷蛾の翅片",
+          "name": "コオリガの羽片",
           "rarity": "COMMON",
           "rate": 35.0,
           "saleValue": 280,
@@ -54,7 +54,7 @@
         },
         {
           "id": "10a00261",
-          "name": "氷蛾の鱗粉",
+          "name": "コオリガの粉",
           "rarity": "UNCOMMON",
           "rate": 8.0,
           "saleValue": 500,
@@ -88,7 +88,7 @@
       "materials": [
         {
           "id": "10a00262",
-          "name": "霜猪の牙",
+          "name": "シモイノシシの牙",
           "rarity": "COMMON",
           "rate": 35.0,
           "saleValue": 440,

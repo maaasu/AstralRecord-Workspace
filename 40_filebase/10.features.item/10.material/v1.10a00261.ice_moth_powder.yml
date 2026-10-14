@@ -4,13 +4,13 @@
 schemaVersion: 1
 id: 10a00261
 category: material
-name: 氷蛾の鱗粉
+name: コオリガの粉
 icon: GLOWSTONE_DUST
 rarity: UNCOMMON
 saleValue: 500
 maxStack: 64
 lore:
-- '&7コオリガの翅に付いた、冷たくきらめく鱗粉。'
+- '&7コオリガの翅に付いた、冷たくきらめく粉。'
 - '&7商人に売却できる。'
 unTradeable: false
 unSellable: false
