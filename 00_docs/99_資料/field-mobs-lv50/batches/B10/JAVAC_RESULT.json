@@ -1,0 +1,31 @@
+{
+  "scope": "B10 three Java units only; pre-existing target/classes and cached Maven dependencies",
+  "compiler": "C:\\Program Files\\Java\\jdk-21.0.10\\bin\\javac.exe",
+  "compiler_flags": [
+    "-proc:none",
+    "-encoding UTF-8",
+    "-Xlint:all",
+    "-implicit:none"
+  ],
+  "source_sha256": {
+    "10_plugin\\AstralRecord\\src\\main\\java\\io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\VolcanicSkillSupport.java": "df02b773f3a160d131fbe72f9227eeea6898b7cdaefdfb05f11bf201e4a4c93a",
+    "10_plugin\\AstralRecord\\src\\main\\java\\io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\LavaCrabMobSkillExecutor.java": "867f32ca011b9bcf7c61544797c514e1ccb5f3267b847c111ceedcc6d789a512",
+    "10_plugin\\AstralRecord\\src\\main\\java\\io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\AshDrakeMobSkillExecutor.java": "77224286e6d6a4e6e86c9727e9c36c37816fa1e274c81d7314307dd0f2a51c5a"
+  },
+  "exit_code": 0,
+  "full_output": "",
+  "warning_count": 0,
+  "excluded_unrelated_classpath": [
+    "FastAsyncWorldEdit-Bukkit",
+    "kotlin-compiler",
+    "*-sources.jar"
+  ],
+  "initial_warnings": "22 external JAR Class-Path manifest warnings from the broad cached classpath; unrelated compiler/FAWE JARs removed before this final run",
+  "full_project_build": "not run; delegated integration scope",
+  "class_outputs": [
+    "AshDrakeMobSkillExecutor.class",
+    "LavaCrabMobSkillExecutor.class",
+    "VolcanicSkillSupport$VolcanicCast.class",
+    "VolcanicSkillSupport.class"
+  ]
+}

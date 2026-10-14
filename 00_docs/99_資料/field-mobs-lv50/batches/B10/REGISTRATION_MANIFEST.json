@@ -1,0 +1,152 @@
+{
+  "batch": "B10",
+  "base_commit": "3444b74b2",
+  "branch": "codex/field-mobs-lv50-b10",
+  "worktree": "E:/AstralRecord-Workspace/99_work/field-mobs-lv50-b10",
+  "registration_status": "pending_integration",
+  "owned_paths": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/VolcanicSkillSupport.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/LavaCrabMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/AshDrakeMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00290.lava_crab_shell.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00291.ash_drake_soot.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00292.ash_drake_throat_stone.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00293.ash_drake_fire_core.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_lava_crab.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_ash_drake.yml",
+    "00_docs/99_資料/field-mobs-lv50/batches/B10/"
+  ],
+  "reserved_item_range": [
+    "10a00290",
+    "10a00299"
+  ],
+  "support_class": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/VolcanicSkillSupport.java",
+  "executors": [
+    {
+      "mob_id": "field_lava_crab",
+      "levels": [
+        44,
+        46,
+        48,
+        50
+      ],
+      "implementation_id": "mob_field_lava_crab_heated_shell",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.LavaCrabMobSkillExecutor",
+      "field": "lavaCrabMobSkillExecutor",
+      "activation_range": 3,
+      "cooldown_ticks": 180,
+      "cast_time_ticks": 0,
+      "warning_ticks": 30,
+      "normal_attack_range": 2,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "lavaCrabMobSkillExecutor = new LavaCrabMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(lavaCrabMobSkillExecutor);",
+      "destroy_listener_code": "lavaCrabMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (lavaCrabMobSkillExecutor != null) lavaCrabMobSkillExecutor.stop();",
+      "target_policy": "通常playerまたは召喚petの主対象1体。開始時固定の形状内だけへ命中。",
+      "materials": [
+        {
+          "id": "10a00290",
+          "name": "焼けた甲殻",
+          "rarity": "COMMON",
+          "saleValue": 750,
+          "rate": 35,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "mob_id": "field_ash_drake",
+      "levels": [
+        44,
+        46,
+        48,
+        50
+      ],
+      "implementation_id": "mob_field_ash_drake_ash_breath",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.AshDrakeMobSkillExecutor",
+      "field": "ashDrakeMobSkillExecutor",
+      "activation_range": 7,
+      "cooldown_ticks": 240,
+      "cast_time_ticks": 0,
+      "warning_ticks": 40,
+      "normal_attack_range": 2.4,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "ashDrakeMobSkillExecutor = new AshDrakeMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(ashDrakeMobSkillExecutor);",
+      "destroy_listener_code": "ashDrakeMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (ashDrakeMobSkillExecutor != null) ashDrakeMobSkillExecutor.stop();",
+      "target_policy": "通常playerまたは召喚petの主対象1体。開始時固定の形状内だけへ命中。",
+      "materials": [
+        {
+          "id": "10a00291",
+          "name": "灰竜の煤",
+          "rarity": "COMMON",
+          "saleValue": 850,
+          "rate": 35,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        },
+        {
+          "id": "10a00292",
+          "name": "灰竜の咽石",
+          "rarity": "UNCOMMON",
+          "saleValue": 1800,
+          "rate": 8,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        },
+        {
+          "id": "10a00293",
+          "name": "灰竜の火核",
+          "rarity": "RARE",
+          "saleValue": 3600,
+          "rate": 0.15,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        }
+      ]
+    }
+  ],
+  "dependencies": [],
+  "central_changes": [
+    "AstralRecord.javaへ2種のimport/field/生成/registry登録を追加。",
+    "既存destroy listenerで各handleMobDestroyedを呼び、onDisableでは依存service停止前に各stopを呼ぶ。",
+    "VolcanicSkillSupportも同時に取り込む。共有ファイル、POM、properties、status/tag/schema/loot/spawner、WORKTREE_MANAGEMENT.mdは本担当では編集しない。",
+    "統合後に最新ツリーで8 profile/4素材のmaster読込、全ID参照、registry登録、中央cleanupと全体build/testを確認。"
+  ],
+  "habitats": [
+    {
+      "mob_id": "field_lava_crab",
+      "intent": "火山 Lv44〜50",
+      "evidence_paths": [],
+      "status": "placement_pending_integration",
+      "verified": "world名・座標は未指定のためスポナーを新設せず統合へ委任。"
+    },
+    {
+      "mob_id": "field_ash_drake",
+      "intent": "火山 Lv44〜50",
+      "evidence_paths": [],
+      "status": "placement_pending_integration",
+      "verified": "world名・座標は未指定のためスポナーを新設せず統合へ委任。"
+    }
+  ],
+  "unverified": [
+    "中央登録/cleanup接続、全体build/test、実server/client、編集サイト動的表示は統合待ち。",
+    "Lv31以降の正式アンカー、実TTK、複数個体密度・演出・Geyser受入は未確認。",
+    "管理表更新とdevelopへの統合は統合担当。"
+  ]
+}
