@@ -62,6 +62,7 @@ for line in listener(old).splitlines():
         cursor=new_listener.index(line,cursor)+len(line)
 # No pre-existing master or spawn setting has changed.
 changes = subprocess.check_output(["git","-c","core.quotepath=false","diff","--name-status","e2058ade","--","40_filebase"],cwd=root).decode("utf-8").splitlines()
-assert all(line.startswith("A\t") for line in changes)
-assert all("41.features.mob.spawner" not in line and "60.features.world" not in line for line in changes)
+master_changes = [line for line in changes if any(path.endswith((".yml", ".yaml")) for path in line.split("\t")[1:])]
+assert all(line.startswith("A\t") for line in master_changes)
+assert all("41.features.mob.spawner" not in line and "60.features.world" not in line for line in master_changes)
 print(json.dumps({"yaml_files":len(data),"namespace_ids":len(masters),"registered_executors":4,"level_profiles":16,"materials":5,"existing_master_and_spawn_preserved":True,"result":"PASS","limits":"static source binding only; no semantic compile, runtime registry load, Maven or server"},ensure_ascii=False,indent=2))

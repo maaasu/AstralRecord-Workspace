@@ -1,9 +1,9 @@
 batch,species,levels,item_id,name,rarity,chance_draft,quantity_draft,state,rate_final,amount_final,saleValue_final,validation_state
-B01,field_reed_hound / クサハウンド,"22,24,26,28",10a00200,草色の毛皮,normal,35,1,implemented_integrated,40.0,1,200,central_static_pass_pending_compile_runtime
-B01,field_brush_crab / ヤブガニ,"22,24,26,28",10a00201,ヤブガニの甲羅,normal,35,1,implemented_integrated,45.0,1,200,central_static_pass_pending_compile_runtime
-B01,field_brush_crab / ヤブガニ,"22,24,26,28",10a00202,つや甲羅(希少),uncommon,10,1,implemented_integrated,6.0,1,380,central_static_pass_pending_compile_runtime
-B02,field_sunhare / ヒダマリウサギ,"28,30,32,34",10a00210,やわらかな耳毛,normal,35,1,implemented_integrated,35.0,1,120,central_static_pass_pending_compile_runtime
-B02,field_wind_lizard / カゼトカゲ,"28,30,32,34",10a00211,風色のウロコ,normal,35,1,implemented_integrated,35.0,1,140,central_static_pass_pending_compile_runtime
+B01,field_reed_hound / クサハウンド,"22,24,26,28",10a00200,草色の毛皮,normal,35,1,implemented_integrated,40.0,1,200,central_compile_tests_pass_pending_runtime
+B01,field_brush_crab / ヤブガニ,"22,24,26,28",10a00201,ヤブガニの甲羅,normal,35,1,implemented_integrated,45.0,1,200,central_compile_tests_pass_pending_runtime
+B01,field_brush_crab / ヤブガニ,"22,24,26,28",10a00202,つや甲羅(希少),uncommon,10,1,implemented_integrated,6.0,1,380,central_compile_tests_pass_pending_runtime
+B02,field_sunhare / ヒダマリウサギ,"28,30,32,34",10a00210,やわらかな耳毛,normal,35,1,implemented_integrated,35.0,1,120,central_compile_tests_pass_pending_runtime
+B02,field_wind_lizard / カゼトカゲ,"28,30,32,34",10a00211,風色のウロコ,normal,35,1,implemented_integrated,35.0,1,140,central_compile_tests_pass_pending_runtime
 B03,field_plain_ram / ハラノヒツジ,"28,30,32,34",10a00220,野原の羊毛,normal,35,1,reserved_not_implemented,,,,
 B03,field_plain_ram / ハラノヒツジ,"28,30,32,34",10a00221,硬い巻き角(希少),uncommon,10,1,reserved_not_implemented,,,,
 B03,field_blade_mantis / カマキリソード,"42,44,46,48",10a00222,カマキリの刃,normal,35,1,reserved_not_implemented,,,,
