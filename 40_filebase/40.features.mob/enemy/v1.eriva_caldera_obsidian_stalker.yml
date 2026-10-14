@@ -1,0 +1,51 @@
+# design:
+#   motif: "鉱物・地形 / 黒曜石と灼けた火口"
+#   progression: 40
+schemaVersion: 1
+id: eriva_caldera_obsidian_stalker
+type: MOB
+category: ENEMY
+name: "&8黒曜の追跡者"
+level: 40
+entityType: WITHER_SKELETON
+icon: WITHER_SKELETON_SPAWN_EGG
+lore:
+  - "&7隕石の熱に灼かれ、黒曜石の刃を携えた骸。"
+  - "&7素早く間合いを詰める。術者を狙う前に引き離そう。"
+tags:
+  - undead
+  - melee
+  - stone
+equipment:
+  mainHand: NETHERITE_SWORD
+baseStats:
+  - status: MAX_HEALTH
+    value: 31000
+  - status: ATTACK
+    value: 5616
+  - status: DEFENSE
+    value: 5426
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 6
+    speed: 0.7
+  targeting:
+    strategy: NEAREST
+    aggroRange: 28
+    deaggroRange: 48
+    leashRange: 64
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+    normalAttack:
+      range: 2.5
+      intervalTicks: 36

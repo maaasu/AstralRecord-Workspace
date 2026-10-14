@@ -1,0 +1,106 @@
+# design:
+#   motif: "天体・地形 / 隕石衝突と火山のカルデラ"
+#   progression: 40
+schemaVersion: 1
+id: eriva_meteor_caldera
+displayName: "熾星のカルデラ"
+recommendedLevel: 40
+entry:
+  worldRef: world:vanaheim_supercontinent
+  x: -1149.5
+  y: 112.0
+  z: 1480.5
+  yaw: 0.0
+  pitch: 0.0
+  radius: 2.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 1800
+generation:
+  area:
+    width: 256
+    depth: 256
+  baseY: 64
+  roomCount:
+    min: 12
+    max: 16
+  roomSize:
+    min: 27
+    max: 43
+  bossRoomSize:
+    min: 64
+    max: 64
+  roomHeight: 32
+  corridorWidth: 7
+  corridorHeight: 8
+  splitRatio:
+    min: 0.35
+    max: 0.50
+  roomShapes:
+    - type: RECTANGLE
+      weight: 1
+  roomTypes:
+    - type: STANDARD
+      weight: 5
+    - type: ORE_CHAMBER
+      weight: 3
+theme:
+  landscape: INDOOR
+  floor:
+    - material: POLISHED_BASALT
+      weight: 5
+    - material: BLACKSTONE
+      weight: 3
+    - material: CRYING_OBSIDIAN
+      weight: 1
+  wall:
+    - material: BASALT
+      weight: 5
+    - material: DEEPSLATE
+      weight: 3
+    - material: OBSIDIAN
+      weight: 2
+  ceiling:
+    - material: BLACKSTONE
+      weight: 5
+    - material: NETHERRACK
+      weight: 2
+  corridor:
+    - material: POLISHED_BLACKSTONE
+      weight: 5
+    - material: POLISHED_BASALT
+      weight: 2
+  gateMaterial: IRON_BARS
+  lightMaterial: LANTERN
+  pillar:
+    enabled: false
+  decorations:
+    accent:
+      - material: MAGMA_BLOCK
+        weight: 5
+      - material: GILDED_BLACKSTONE
+        weight: 3
+      - material: CRYING_OBSIDIAN
+        weight: 2
+encounter:
+  ensureMobVariety: true
+  normalMobPool:
+    - mobId: mob:eriva_caldera_obsidian_stalker
+      level: 40
+      weight: 4
+    - mobId: mob:eriva_caldera_basalt_guard
+      level: 40
+      weight: 2
+    - mobId: mob:eriva_caldera_cinder_oracle
+      level: 40
+      weight: 3
+  mobsPerRoom:
+    min: 3
+    max: 5
+  firstCombatRoomMaxMobLevel: 40
+  bossMobId: mob:eriva_caldera_ignivor
+  bossMobLevel: 40

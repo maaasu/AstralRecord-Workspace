@@ -1,0 +1,59 @@
+# design:
+#   motif: "天体・地形 / 隕石核と火山の噴火"
+#   progression: 40
+schemaVersion: 1
+id: eriva_caldera_ignivor
+type: MOB
+category: BOSS
+name: "&c&l熾星火山王イグニヴォル"
+title: "&6-- 隕石核より目覚めた火山の王 --"
+level: 40
+entityType: RAVAGER
+variant:
+  age: ADULT
+  scale: 1.6
+icon: RAVAGER_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7落下した隕石の核と、火口の溶岩が生んだ巨大な獣。"
+  - "&7落星の赤い輪と噴火の亀裂から退避しよう。"
+  - "&7大噴火では緑の避難円へ。次の円への移動も見極めよう。"
+  - "&7大隕石をかわした後、岩殻が静まる隙に反撃しよう。"
+tags:
+  - boss
+  - beast
+  - fire
+  - stone
+  - shield
+baseStats:
+  - status: MAX_HEALTH
+    value: 248000
+  - status: ATTACK
+    value: 6740
+  - status: DEFENSE
+    value: 6240
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 65
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+shield:
+  enabled: true
+  max: 80
+ai:
+  idle:
+    behavior: STATIONARY
+    speed: 0.5
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 64
+    deaggroRange: 80
+    leashRange: 90
+  combat:
+    style: MELEE
+    preferredRange: 3.5

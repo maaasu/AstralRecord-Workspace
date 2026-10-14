@@ -1,0 +1,62 @@
+# design:
+#   motif: "鉱物・地形 / 玄武岩と溶岩の亀裂"
+#   progression: 40
+schemaVersion: 1
+id: eriva_caldera_basalt_guard
+type: MOB
+category: ENEMY
+name: "&6玄武岩の火口守"
+level: 40
+entityType: MAGMA_CUBE
+variant:
+  age: ADULT
+  scale: 1.2
+icon: MAGMA_CUBE_SPAWN_EGG
+lore:
+  - "&7冷えた岩殻で火口を守る、重い溶岩の塊。"
+  - "&7赤く走る亀裂の横へ退き、噴火後の隙を狙おう。"
+tags:
+  - fire
+  - stone
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 46500
+  - status: ATTACK
+    value: 4490
+  - status: DEFENSE
+    value: 6780
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 65
+  - status: KNOCKBACK_RESISTANCE
+    value: 90
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+    speed: 0.5
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 28
+    deaggroRange: 48
+    leashRange: 64
+  combat:
+    style: MELEE
+    preferredRange: 2.8
+    normalAttack:
+      range: 2.8
+      intervalTicks: 44
+    skills:
+      - id: mob_caldera_fissure
+        activationRange: 12
+        cooldownTicks: 160
+        castTimeTicks: 30
+        params:
+          damageRatio: 0.65
+          length: 9
+          width: 2

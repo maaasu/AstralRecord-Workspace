@@ -1,0 +1,57 @@
+# design:
+#   motif: "天体・地形 / 火口に落ちる灼熱の隕石"
+#   progression: 40
+schemaVersion: 1
+id: eriva_caldera_cinder_oracle
+type: MOB
+category: ENEMY
+name: "&c落星の熾火導師"
+level: 40
+entityType: BLAZE
+icon: BLAZE_SPAWN_EGG
+lore:
+  - "&7隕石の残り火を束ね、火口へ灼熱の岩を呼ぶ。"
+  - "&7地面の赤い輪から離れ、隕石が落ちた後に攻めよう。"
+tags:
+  - fire
+  - magic
+baseStats:
+  - status: MAX_HEALTH
+    value: 24800
+  - status: ATTACK
+    value: 5000
+  - status: MAGIC_ATTACK
+    value: 2860
+  - status: DEFENSE
+    value: 4340
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 85
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 4
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 32
+    deaggroRange: 48
+    leashRange: 64
+  combat:
+    style: MAGIC
+    preferredRange: 12
+    skills:
+      - id: mob_caldera_meteor
+        activationRange: 24
+        cooldownTicks: 160
+        castTimeTicks: 30
+        params:
+          damageRatio: 0.9
+          radius: 3.5
+          fallTicks: 20
+          height: 12
