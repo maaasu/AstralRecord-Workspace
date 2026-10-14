@@ -1,0 +1,46 @@
+{
+  "batch": "B12",
+  "base_commit": "3444b74b2",
+  "branch": "codex/field-mobs-lv50-b12",
+  "worktree": "E:/AstralRecord-Workspace/99_work/field-mobs-lv50-b12",
+  "registration_status": "pending_integration",
+  "owned_paths": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ShadeHedgehogMobSkillExecutor.java",
+    "40_filebase/40.features.mob/enemy/v1.field_shade_hedgehog.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00410.shade_hedgehog_needle.yml",
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/",
+    "00_docs/99_資料/レビュー結果/[完了] 26-10-15 02：46：48 code-review.md"
+  ],
+  "reserved_item_ids": ["10a00410"],
+  "executors": [{
+    "mob_id": "field_shade_hedgehog",
+    "levels": [36, 38, 40, 42],
+    "implementation_id": "mob_field_shade_hedgehog_needle_ring",
+    "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.ShadeHedgehogMobSkillExecutor",
+    "field": "shadeHedgehogMobSkillExecutor",
+    "activation_range": 3,
+    "cooldown_ticks": 200,
+    "cast_time_ticks": 0,
+    "warning_ticks": 30,
+    "recovery_ticks": 20,
+    "normal_attack_range": 2,
+    "normal_attack_interval_ticks": 40,
+    "loot_table_id": "normal_enemy_common_table_tier_2",
+    "constructor_dependencies": ["MobService mobService", "DamageService damageService", "ConditionService conditionService", "ParticleDisplayService particleDisplayService"],
+    "registration_code": "shadeHedgehogMobSkillExecutor = new ShadeHedgehogMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(shadeHedgehogMobSkillExecutor);",
+    "destroy_listener_code": "shadeHedgehogMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+    "disable_code": "RuntimeException shadeHedgehogStopFailure = null;\ntry {\n    if (shadeHedgehogMobSkillExecutor != null) shadeHedgehogMobSkillExecutor.stop();\n} catch (RuntimeException exception) {\n    shadeHedgehogStopFailure = exception;\n}",
+    "disable_after_cleanup_code": "if (shadeHedgehogStopFailure != null) throw shadeHedgehogStopFailure;",
+    "target_policy": "通常playerまたは召喚petの主対象1体。開始位置固定の円内へ一度だけ命中。",
+    "materials": [{"id": "10a00410", "name": "木陰の硬針", "rarity": "COMMON", "saleValue": 540, "rate": 35, "amount": 1, "luckAffected": true, "hidden": false}]
+  }],
+  "dependencies": [],
+  "central_changes": [
+    "AstralRecord.javaへimport/field/生成/registry登録を追加。",
+    "既存destroy listenerへhandleMobDestroyedを接続。onDisableでは依存service停止前にdisable_codeを挿入し、B12停止例外を捕捉して保持する。",
+    "onDisableの既存全サービスcleanupの完了後、メソッド末尾だけへdisable_after_cleanup_codeを挿入して保持例外を報告する。disable_code直後で再送出して後続停止を妨げない。",
+    "最新統合ツリーでYAML/全ID/参照/中央cleanup、実master読込、全体build/testを検証。"
+  ],
+  "habitats": [{"mob_id": "field_shade_hedgehog", "intent": "森林上位帯の3種目、Lv36〜42", "evidence_paths": [], "status": "placement_pending_integration", "verified": "world名・座標未指定のためスポナーは統合担当へ委任。"}],
+  "unverified": ["中央登録・cleanup接続、全体build/test、実server/client/Geyser、編集サイト動的表示は統合待ち。", "正式Lv31以降の育成アンカー、実TTK/耐久、複数個体密度と幸運込み素材供給は未確認。", "管理表更新・版番号・develop統合は統合担当。"]
+}

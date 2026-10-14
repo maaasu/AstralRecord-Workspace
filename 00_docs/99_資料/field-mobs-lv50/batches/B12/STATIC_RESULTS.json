@@ -1,0 +1,158 @@
+{
+  "batch": "B12",
+  "yaml_files": 864,
+  "master_ids": 861,
+  "profiles": [
+    {
+      "level": 36,
+      "stats": {
+        "MAX_HEALTH": 28800,
+        "ATTACK": 4329,
+        "DEFENSE": 4410,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 90
+      },
+      "exp": 638
+    },
+    {
+      "level": 38,
+      "stats": {
+        "MAX_HEALTH": 31800,
+        "ATTACK": 4743,
+        "DEFENSE": 4650,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 90
+      },
+      "exp": 682
+    },
+    {
+      "level": 40,
+      "stats": {
+        "MAX_HEALTH": 34800,
+        "ATTACK": 5157,
+        "DEFENSE": 4890,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 90
+      },
+      "exp": 726
+    },
+    {
+      "level": 42,
+      "stats": {
+        "MAX_HEALTH": 37800,
+        "ATTACK": 5571,
+        "DEFENSE": 5130,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 90
+      },
+      "exp": 770
+    }
+  ],
+  "references": [
+    "item:10a00410",
+    "loot_table:normal_enemy_common_table_tier_2"
+  ],
+  "balance_projection": [
+    {
+      "level": 36,
+      "virtual_player_r_hp_d": [
+        4650,
+        13100,
+        4810
+      ],
+      "virtual_ttk_base_seconds": 6.18,
+      "virtual_ttk_first_pose_seconds": 6.6,
+      "virtual_survival_all_needles_hit_seconds": 15.62,
+      "virtual_needle_hp_percent": 14.14,
+      "virtual_needle_zero_defense_hp_percent": 31.39,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "level": 38,
+      "virtual_player_r_hp_d": [
+        5100,
+        14300,
+        5270
+      ],
+      "virtual_ttk_base_seconds": 6.03,
+      "virtual_ttk_first_pose_seconds": 6.42,
+      "virtual_survival_all_needles_hit_seconds": 15.56,
+      "virtual_needle_hp_percent": 14.19,
+      "virtual_needle_zero_defense_hp_percent": 31.51,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "level": 40,
+      "virtual_player_r_hp_d": [
+        5550,
+        15500,
+        5730
+      ],
+      "virtual_ttk_base_seconds": 5.91,
+      "virtual_ttk_first_pose_seconds": 6.28,
+      "virtual_survival_all_needles_hit_seconds": 15.52,
+      "virtual_needle_hp_percent": 14.24,
+      "virtual_needle_zero_defense_hp_percent": 31.61,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "level": 42,
+      "virtual_player_r_hp_d": [
+        6000,
+        16700,
+        6190
+      ],
+      "virtual_ttk_base_seconds": 5.81,
+      "virtual_ttk_first_pose_seconds": 6.17,
+      "virtual_survival_all_needles_hit_seconds": 15.48,
+      "virtual_needle_hp_percent": 14.27,
+      "virtual_needle_zero_defense_hp_percent": 31.69,
+      "current_r416_58_defense_multiplier": 0.0
+    }
+  ],
+  "registration_pending": [
+    "mob_field_shade_hedgehog_needle_ring"
+  ],
+  "transitive_references": [
+    "item:10a00025",
+    "item:10a00410",
+    "item:20a00073",
+    "item:20a00074",
+    "item:20a00075",
+    "item:20a00077",
+    "item:20a00078",
+    "item:20a00079",
+    "item:20a00080",
+    "item:40a00014",
+    "item:40a00015",
+    "item:40a00021",
+    "item:40a00024",
+    "item:40a00027",
+    "item:50a00003",
+    "item:81a00001",
+    "item:81a00002",
+    "item:81a00003",
+    "loot_pool:eriva_weapon_pool",
+    "loot_pool:normal_enemy_common_pool_tier_2",
+    "loot_table:eriva_weapon_table",
+    "loot_table:normal_enemy_common_table_tier_2"
+  ],
+  "unmodified_sale_expected_gold": 189.0,
+  "owned_changed_paths": [
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/JAVAC_RESULT.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/REGISTRATION_MANIFEST.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/SPEC.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/STATIC_RESULTS.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/VALIDATION.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B12/validate_b12.py",
+    "00_docs/99_資料/レビュー結果/[完了] 26-10-15 02：46：48 code-review.md",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ShadeHedgehogMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00410.shade_hedgehog_needle.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_shade_hedgehog.yml"
+  ],
+  "status": "passed_static_pending_integration_and_live_acceptance"
+}
