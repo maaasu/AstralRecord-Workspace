@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / クモの糸"
+#   progression: 15
+schemaVersion: 1
+id: 10a00306
+category: material
+name: "&f森グモの糸"
+icon: STRING
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7下草の狩人が張っていた、細く丈夫な糸。"
+  - "&7束ねた繊維に、淡い光沢が残っている。"
+unTradeable: false
+unSellable: false
