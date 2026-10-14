@@ -1,0 +1,132 @@
+{
+  "batch": "B07",
+  "base_commit": "3444b74b2",
+  "base_policy": "作成時のローカルdevelop。先行batchの共通基点e2058adeではないが、B07差分は新規所有ファイルのみ。",
+  "branch": "codex/field-mobs-lv50-b07",
+  "worktree": "E:/AstralRecord-Workspace/99_work/field-mobs-lv50-b07",
+  "registration_status": "pending_integration",
+  "owned_paths": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/IceMothMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/FrostBoarMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00260.ice_moth_scale.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00261.ice_moth_powder.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00262.frost_boar_tusk.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_ice_moth.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_frost_boar.yml",
+    "00_docs/99_資料/field-mobs-lv50/batches/B07/"
+  ],
+  "reserved_item_range": [
+    "10a00260",
+    "10a00269"
+  ],
+  "executors": [
+    {
+      "mob_id": "field_ice_moth",
+      "levels": [
+        32,
+        34,
+        36,
+        38
+      ],
+      "implementation_id": "mob_field_ice_moth_ice_powder",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.IceMothMobSkillExecutor",
+      "field": "iceMothMobSkillExecutor",
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "iceMothMobSkillExecutor = new IceMothMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(iceMothMobSkillExecutor);",
+      "destroy_listener_code": "iceMothMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (iceMothMobSkillExecutor != null) iceMothMobSkillExecutor.stop();",
+      "target_policy": "DamageService.isMobCombatTargetが許可する通常プレイヤーまたは召喚ペットの主対象1体。通行人へは命中しない。",
+      "crowd_control": "追加の状態異常・バフ・DoT・強制移動なし。共通DamageServiceの通常ノックバックは既存仕様に従う。",
+      "materials": [
+        {
+          "id": "10a00260",
+          "name": "氷蛾の翅片",
+          "rarity": "COMMON",
+          "rate": 35.0,
+          "saleValue": 280,
+          "amount": 1,
+          "luckAffected": true
+        },
+        {
+          "id": "10a00261",
+          "name": "氷蛾の鱗粉",
+          "rarity": "UNCOMMON",
+          "rate": 8.0,
+          "saleValue": 500,
+          "amount": 1,
+          "luckAffected": true
+        }
+      ]
+    },
+    {
+      "mob_id": "field_frost_boar",
+      "levels": [
+        32,
+        34,
+        36,
+        38
+      ],
+      "implementation_id": "mob_field_frost_boar_frost_charge",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.FrostBoarMobSkillExecutor",
+      "field": "frostBoarMobSkillExecutor",
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "frostBoarMobSkillExecutor = new FrostBoarMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(frostBoarMobSkillExecutor);",
+      "destroy_listener_code": "frostBoarMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (frostBoarMobSkillExecutor != null) frostBoarMobSkillExecutor.stop();",
+      "target_policy": "DamageService.isMobCombatTargetが許可する通常プレイヤーまたは召喚ペットの主対象1体。通行人へは命中しない。",
+      "crowd_control": "追加の状態異常・バフ・DoT・強制移動なし。共通DamageServiceの通常ノックバックは既存仕様に従う。",
+      "materials": [
+        {
+          "id": "10a00262",
+          "name": "霜猪の牙",
+          "rarity": "COMMON",
+          "rate": 35.0,
+          "saleValue": 440,
+          "amount": 1,
+          "luckAffected": true
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    "B06 field_snow_wolfと雪原で共存想定。直接参照はなく、単独のitem/mob参照は本バッチ内で解決する。"
+  ],
+  "central_changes": [
+    "AstralRecord.javaへ両Executorのimport/field/生成/registry登録を追加。",
+    "既存destroy listenerへhandleMobDestroyedを追記。既存listenerを置換しない。",
+    "onDisableで両stopを依存サービスの停止より前に呼ぶ。",
+    "2つのMob skill ID解決、8個体と3素材のmaster読込、まとめた全体build/testは統合担当が確認。",
+    "POM版番号・共有properties/schema/status/tag/登録簿・loot・spawnerは本バッチで変更しない。"
+  ],
+  "habitats": [
+    {
+      "mob_id": "field_ice_moth",
+      "intent": "雪原 Lv32〜38",
+      "evidence_paths": [],
+      "status": "placement_blocked",
+      "verified": "既存world/spawnerに雪原の根拠なし。座標を作成していない。"
+    },
+    {
+      "mob_id": "field_frost_boar",
+      "intent": "雪原 Lv32〜38",
+      "evidence_paths": [],
+      "status": "placement_blocked",
+      "verified": "既存world/spawnerに雪原の根拠なし。座標を作成していない。"
+    }
+  ],
+  "unverified": [
+    "全体build/test、registry登録、実server/client検証。",
+    "Lv31+の正式アンカーと装備構成が未確定。B06同様、現行代表装備と設計Lv30アンカーに乖離があるため配置保留。",
+    "新素材の装備/recipe用途は統合担当または別担当。売却経路のみ確定。"
+  ]
+}
