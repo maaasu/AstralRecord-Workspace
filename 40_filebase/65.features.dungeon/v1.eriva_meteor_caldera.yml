@@ -75,7 +75,7 @@ theme:
     - material: POLISHED_BASALT
       weight: 2
   gateMaterial: IRON_BARS
-  lightMaterial: LANTERN
+  lightMaterial: TORCH
   pillar:
     enabled: false
   decorations:
