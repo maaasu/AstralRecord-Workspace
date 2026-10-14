@@ -164,6 +164,7 @@ public final class BossMechanicService {
     private final EmpusaSpellController empusaSpellController;
     private final VesperalaEncounterController vesperalaEncounterController;
     private final VentosEncounterController ventosEncounterController;
+    private final GreatrootEncounterController greatrootEncounterController;
     private final KnockerEncounterController knockerEncounterController;
     private final SeleneaEncounterController seleneaEncounterController;
     private final SeleneaSupportController seleneaSupportController;
@@ -234,6 +235,10 @@ public final class BossMechanicService {
             center -> nearbyManagedPlayers(center, TARGET_RANGE),
             (boss, player, element, ratio) -> damagePlayer(boss, player, AttackType.MELEE, element, ratio)
         );
+        this.greatrootEncounterController = new GreatrootEncounterController(
+            mobService, particleDisplayService, this::greatrootParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MELEE, DamageElement.NONE, ratio)
+        );
         this.knockerEncounterController = new KnockerEncounterController(
             mobService,
             particleDisplayService,
@@ -296,6 +301,7 @@ public final class BossMechanicService {
         seleneaEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
         seleneaSupportController.setTemporarySkillEffectService(temporarySkillEffectService);
         vesperalaEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
+        greatrootEncounterController.setTemporarySkillEffectService(temporarySkillEffectService);
     }
 
     /**
@@ -347,6 +353,7 @@ public final class BossMechanicService {
         empusaSpellController.clear(bossInstanceId);
         vesperalaEncounterController.clear(bossInstanceId);
         ventosEncounterController.clear(bossInstanceId);
+        greatrootEncounterController.handleDestroyed(bossInstanceId);
         knockerEncounterController.clear(bossInstanceId);
         seleneaEncounterController.clear(bossInstanceId);
         seleneaSupportController.clear(bossInstanceId);
@@ -385,6 +392,7 @@ public final class BossMechanicService {
         empusaSpellController.clearAll();
         vesperalaEncounterController.clearAll();
         ventosEncounterController.clearAll();
+        greatrootEncounterController.clearAll();
         knockerEncounterController.clearAll();
         seleneaEncounterController.clearAll();
         seleneaSupportController.clearAll();
@@ -406,6 +414,7 @@ public final class BossMechanicService {
         Set<UUID> activeEmpusas = new HashSet<>();
         Set<UUID> activeVesperalas = new HashSet<>();
         Set<UUID> activeVentoses = new HashSet<>();
+        Set<UUID> activeGreatroots = new HashSet<>();
         Set<UUID> activeKnockers = new HashSet<>();
         Set<UUID> activeSeleneas = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
@@ -415,11 +424,28 @@ public final class BossMechanicService {
             boolean knocker = KnockerEncounterController.BOSS_ID.equals(boss.template().id());
             boolean selenea = SeleneaEncounterController.BOSS_ID.equals(boss.template().id());
             boolean ventos = VentosEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea) || boss.currentHealth() <= 0.0D) {
+            boolean greatroot = GreatrootEncounterController.BOSS_ID.equals(boss.template().id());
+            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot)
+                || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                continue;
+            }
+
+            if (greatroot) {
+                activeGreatroots.add(boss.instanceId());
+                if (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE) {
+                    greatrootEncounterController.clear(boss.instanceId());
+                } else {
+                    // CC中でも召喚消失・25秒の無敵期限・退出cleanupを進める。
+                    boolean canAct = (boss.state() == MobState.AGGRO || boss.state() == MobState.COMBAT)
+                        && conditionService.canRunAi(AstEntity.mob(boss))
+                        && conditionService.canCastSkill(AstEntity.mob(boss))
+                        && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId()));
+                    greatrootEncounterController.tick(boss, entity, clockTicks, canAct);
+                }
                 continue;
             }
 
@@ -596,6 +622,7 @@ public final class BossMechanicService {
         empusaSpellController.retain(activeEmpusas);
         vesperalaEncounterController.retain(activeVesperalas);
         ventosEncounterController.retain(activeVentoses);
+        greatrootEncounterController.retain(activeGreatroots);
         knockerEncounterController.retain(activeKnockers);
         seleneaEncounterController.retain(activeSeleneas);
         seleneaSupportController.retain(activeSeleneas);
@@ -2650,6 +2677,22 @@ public final class BossMechanicService {
      * @return 専用会場制約のないMobはtrue。対象ボスでは場内参加者または直接召喚の初撃だけtrue
      */
     public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (victim.isMob() && greatrootEncounterController.ownsAdd(victim.id())) {
+            MobInstance ownerBoss = greatrootEncounterController.ownerForAdd(victim.id());
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (ownerBoss == null || owner == null || !greatrootParticipants(ownerBoss).contains(owner.getBukkit())) return false;
+            return GreatrootArena.contains(victim.location(), ownerBoss.spawnLocation());
+        }
+        if (victim.isMob() && GreatrootEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (owner == null || !GreatrootArena.contains(owner.getBukkit().getLocation(), victim.mob().spawnLocation())) return false;
+            MobInstance boss = victim.mob();
+            if (!dungeonService.isDungeonMob(boss.instanceId()) && !bossChallengeService.isBossMob(boss.instanceId())
+                && (boss.state() == MobState.IDLE || boss.targetId() == null)) {
+                return damageService.isMobCombatTarget(owner.getBukkit());
+            }
+            return greatrootParticipants(boss).contains(owner.getBukkit());
+        }
         if (victim.isMob() && seleneaSupportController.ownsAdd(victim.id())) {
             MobInstance ownerBoss = seleneaSupportController.ownerForAdd(victim.id());
             var owner = attacker == null ? null : attacker.combatOwner();
@@ -2730,6 +2773,23 @@ public final class BossMechanicService {
                 .filter(damageService::isMobCombatTarget).toList();
         }
         return knockerParticipants(boss);
+    }
+
+    /**
+     * 根洞の確定参加者を攻略中のボス部屋へ限定します。直接召喚は既存の標的所有者・パーティー経路を使います。
+     * @param boss 生存する根脈の心守
+     * @return 同一会場にいる戦闘可能な参加者。終了中・別部屋・見学者は含みません
+     */
+    private @NotNull List<Player> greatrootParticipants(@NotNull MobInstance boss) {
+        List<Player> candidates = dungeonService.isDungeonMob(boss.instanceId())
+            ? dungeonService.resolveMobRewardRecipients(boss.instanceId()).stream().map(AstPlayer::getBukkit)
+                .filter(player -> dungeonService.canApplyCombatDamage(
+                    damageService.resolveEntity(player), AstEntity.mob(boss))).toList()
+            : knockerParticipants(boss);
+        return candidates.stream().filter(damageService::isMobCombatTarget)
+            .filter(player -> player.getGameMode() != org.bukkit.GameMode.CREATIVE
+                && player.getGameMode() != org.bukkit.GameMode.SPECTATOR)
+            .filter(player -> GreatrootArena.contains(player.getLocation(), boss.spawnLocation())).toList();
     }
 
     /**
