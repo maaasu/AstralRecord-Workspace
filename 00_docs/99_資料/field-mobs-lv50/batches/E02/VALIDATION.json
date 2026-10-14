@@ -1,0 +1,310 @@
+{
+  "status": "PASS",
+  "base": "2c419c1af8cff4ffdef63a8cf726f96a3408fe63",
+  "checks": [
+    "scope",
+    "strict_changed_yaml_parse",
+    "material_documented_schema",
+    "all_top_level_master_id_duplicates",
+    "item_and_loot_references",
+    "enemy_byte_preservation",
+    "effective_full_profile_preservation",
+    "exactly_one_new_drop_per_level",
+    "name_icon_progression"
+  ],
+  "yaml_files_scanned_for_ids": 858,
+  "master_ids": 847,
+  "duplicate_ids_within_namespace": {},
+  "preexisting_cross_namespace_reused_ids": {
+    "adventurer_meditation": [
+      "40_filebase/30.features.skill/v1.adventurer_meditation.yml",
+      "40_filebase/70.shared.buff/v1.adventurer_meditation.yml"
+    ],
+    "archer_heal_arrow_alpha": [
+      "40_filebase/30.features.skill/v1.archer_heal_arrow_alpha.yml",
+      "40_filebase/70.shared.buff/v1.archer_heal_arrow_alpha.yml"
+    ],
+    "archmage_celestial_circle": [
+      "40_filebase/30.features.skill/v1.archmage_celestial_circle.yml",
+      "40_filebase/70.shared.buff/v1.archmage_celestial_circle.yml"
+    ],
+    "hunter_build_up": [
+      "40_filebase/30.features.skill/v1.hunter_build_up.yml",
+      "40_filebase/70.shared.buff/v1.hunter_build_up.yml"
+    ],
+    "midgard_greenfields": [
+      "40_filebase/46.features.fishing.area/v1.midgard_greenfields.yml",
+      "40_filebase/60.features.world/v1.wild_overworld.yml"
+    ],
+    "starlit_nox": [
+      "40_filebase/46.features.fishing.area/v1.starlit_nox.yml",
+      "40_filebase/60.features.world/v1.central_base.yml"
+    ],
+    "vanaheim_supercontinent": [
+      "40_filebase/46.features.fishing.area/v1.vanaheim_supercontinent.yml",
+      "40_filebase/60.features.world/v1.starreach_wilds.yml"
+    ],
+    "verdia": [
+      "40_filebase/46.features.fishing.area/v1.verdia.yml",
+      "40_filebase/60.features.world/v1.verdia.yml"
+    ]
+  },
+  "parsed_changed_yaml": 4,
+  "effective_level_count": 7,
+  "materials": [
+    {
+      "mob_id": "eriva_grassboar",
+      "item_id": "10a00302",
+      "name": "大草原の牙",
+      "progression": 15,
+      "icon": "BONE",
+      "levels": [
+        {
+          "level": 15,
+          "exp": 140,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00067"
+              },
+              "rate": 40.0,
+              "amount": "1~2",
+              "luckAffected": true,
+              "hidden": false
+            },
+            {
+              "itemId": {
+                "ref": "item:10a00068"
+              },
+              "rate": 35.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00302"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        },
+        {
+          "level": 16,
+          "exp": 160,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00067"
+              },
+              "rate": 40.0,
+              "amount": "1~2",
+              "luckAffected": true,
+              "hidden": false
+            },
+            {
+              "itemId": {
+                "ref": "item:10a00068"
+              },
+              "rate": 35.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00302"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        },
+        {
+          "level": 17,
+          "exp": 180,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00067"
+              },
+              "rate": 40.0,
+              "amount": "1~2",
+              "luckAffected": true,
+              "hidden": false
+            },
+            {
+              "itemId": {
+                "ref": "item:10a00068"
+              },
+              "rate": 35.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00302"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        },
+        {
+          "level": 18,
+          "exp": 200,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00067"
+              },
+              "rate": 40.0,
+              "amount": "1~2",
+              "luckAffected": true,
+              "hidden": false
+            },
+            {
+              "itemId": {
+                "ref": "item:10a00068"
+              },
+              "rate": 35.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00302"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        },
+        {
+          "level": 19,
+          "exp": 220,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00067"
+              },
+              "rate": 40.0,
+              "amount": "1~2",
+              "luckAffected": true,
+              "hidden": false
+            },
+            {
+              "itemId": {
+                "ref": "item:10a00068"
+              },
+              "rate": 35.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00302"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        },
+        {
+          "level": 20,
+          "exp": 240,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00067"
+              },
+              "rate": 40.0,
+              "amount": "1~2",
+              "luckAffected": true,
+              "hidden": false
+            },
+            {
+              "itemId": {
+                "ref": "item:10a00068"
+              },
+              "rate": 35.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00302"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        }
+      ]
+    },
+    {
+      "mob_id": "eriva_sporecap_beast",
+      "item_id": "10a00303",
+      "name": "キノコの石づき",
+      "progression": 16,
+      "icon": "BROWN_MUSHROOM",
+      "levels": [
+        {
+          "level": 18,
+          "exp": 200,
+          "existing_drops": [
+            {
+              "itemId": {
+                "ref": "item:10a00100"
+              },
+              "rate": 5.0,
+              "amount": 1,
+              "luckAffected": true,
+              "hidden": false
+            }
+          ],
+          "existing_loot_table": "loot_table:normal_enemy_common_table_tier_2",
+          "new_drop": {
+            "itemId": {
+              "ref": "item:10a00303"
+            },
+            "rate": 35.0,
+            "amount": 1,
+            "luckAffected": true,
+            "hidden": false
+          },
+          "all_existing_fields_preserved": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 猪の牙"
+#   progression: 15
+schemaVersion: 1
+id: 10a00302
+category: material
+name: "&f大草原の牙"
+icon: BONE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7大草原を駆けるグラスボアの硬い牙。"
+  - "&7先端まで鋭く、表面には細かな擦り傷が残る。"
+unTradeable: false
+unSellable: false
