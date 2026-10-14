@@ -1,10 +1,10 @@
 # 既存フィールド調査
 
-基点bc7877ae3。enemy全47種=通常field spawner直接参照25種+ダンジョン専用16種+直接参照なし6種。表はfield分類25種。デバッグ、ボス、NPC、ダンジョン専用、召喚専用は素材追加E01に含めない。
+基点bc7877ae3。enemy全47種=通常field spawner直接参照25種+ダンジョン専用16種+直接参照なし6種。表はfield分類25種。デバッグ、ボス、NPC、ダンジョン専用、召喚専用は素材追加E01〜E13に含めない。
 
 共通enemyパス: 40_filebase/40.features.mob/enemy/v1.<種ID>.yml。spawnerパス: 40_filebase/41.features.mob.spawner/v1.<種ID>_lv<level>_spawner.yml (各level1ファイル)。表のdropは直接itemで、別に既存共通lootTableも保持する。単位は確率%。数値の / はlevel順。
 
-| E01素材予約 | 種ID | levels | 直接drop | skill ID | 共通loot |
+| 既存素材予約 | 種ID | levels | 直接drop | skill ID | 共通loot |
 |---|---|---|---|---|---|
 |10a00300|eriva_bark_sentinel|18|10a00100@5|mob_eriva_bark_root_sweep|tier_2|
 |10a00301|eriva_camouflage_zombie|18,20,22,24,26,28,30|なし|なし|tier_2|
