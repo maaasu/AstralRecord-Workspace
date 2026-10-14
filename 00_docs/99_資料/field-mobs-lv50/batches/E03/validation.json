@@ -1,0 +1,88 @@
+{
+  "batch": "E03",
+  "base": "2c419c1af8cff4ffdef63a8cf726f96a3408fe63",
+  "ownership_scope": "passed",
+  "yaml_files_parsed": 858,
+  "master_ids": 847,
+  "existing_duplicate_ids": {
+    "adventurer_meditation": [
+      "40_filebase/30.features.skill/v1.adventurer_meditation.yml",
+      "40_filebase/70.shared.buff/v1.adventurer_meditation.yml"
+    ],
+    "archer_heal_arrow_alpha": [
+      "40_filebase/30.features.skill/v1.archer_heal_arrow_alpha.yml",
+      "40_filebase/70.shared.buff/v1.archer_heal_arrow_alpha.yml"
+    ],
+    "archmage_celestial_circle": [
+      "40_filebase/30.features.skill/v1.archmage_celestial_circle.yml",
+      "40_filebase/70.shared.buff/v1.archmage_celestial_circle.yml"
+    ],
+    "hunter_build_up": [
+      "40_filebase/30.features.skill/v1.hunter_build_up.yml",
+      "40_filebase/70.shared.buff/v1.hunter_build_up.yml"
+    ],
+    "midgard_greenfields": [
+      "40_filebase/46.features.fishing.area/v1.midgard_greenfields.yml",
+      "40_filebase/60.features.world/v1.wild_overworld.yml"
+    ],
+    "starlit_nox": [
+      "40_filebase/46.features.fishing.area/v1.starlit_nox.yml",
+      "40_filebase/60.features.world/v1.central_base.yml"
+    ],
+    "vanaheim_supercontinent": [
+      "40_filebase/46.features.fishing.area/v1.vanaheim_supercontinent.yml",
+      "40_filebase/60.features.world/v1.starreach_wilds.yml"
+    ],
+    "verdia": [
+      "40_filebase/46.features.fishing.area/v1.verdia.yml",
+      "40_filebase/60.features.world/v1.verdia.yml"
+    ]
+  },
+  "introduced_duplicate_ids": [],
+  "mobs": [
+    {
+      "mob_id": "eriva_starhorn_guardian",
+      "enemy_path": "40_filebase/40.features.mob/enemy/v1.eriva_starhorn_guardian.yml",
+      "material_path": "40_filebase/10.features.item/10.material/v1.10a00304.eriva_starhorn_guardian_material.yml",
+      "item_id": "10a00304",
+      "effective_levels": [
+        15
+      ],
+      "explicit_item_overrides": [],
+      "new_drop_occurrences_per_effective_level": 1,
+      "existing_root_and_effective_data_unchanged": true,
+      "item_and_loot_references_resolved": true,
+      "progression": 15,
+      "icon": "GOAT_HORN",
+      "baseline_icon_owners": [
+        "40_filebase/30.features.skill/v1.swordsman_challenging_roar.yml"
+      ],
+      "rate_percent": 35.0,
+      "amount": 1,
+      "luckAffected": true,
+      "hidden": false
+    },
+    {
+      "mob_id": "eriva_thornfang_wolf",
+      "enemy_path": "40_filebase/40.features.mob/enemy/v1.eriva_thornfang_wolf.yml",
+      "material_path": "40_filebase/10.features.item/10.material/v1.10a00305.eriva_thornfang_wolf_material.yml",
+      "item_id": "10a00305",
+      "effective_levels": [
+        17
+      ],
+      "explicit_item_overrides": [],
+      "new_drop_occurrences_per_effective_level": 1,
+      "existing_root_and_effective_data_unchanged": true,
+      "item_and_loot_references_resolved": true,
+      "progression": 16,
+      "icon": "POINTED_DRIPSTONE",
+      "baseline_icon_owners": [
+        "40_filebase/30.features.skill/v1.sharpshooter_piercing_line.yml"
+      ],
+      "rate_percent": 35.0,
+      "amount": 1,
+      "luckAffected": true,
+      "hidden": false
+    }
+  ]
+}

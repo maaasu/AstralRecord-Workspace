@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 星角"
+#   progression: 15
+schemaVersion: 1
+id: 10a00304
+category: material
+name: "&f星角のかけら"
+icon: GOAT_HORN
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7星角の森守からこぼれ落ちた角のかけら。"
+  - "&7細かな光の筋が硬い表面に残っている。"
+unTradeable: false
+unSellable: false
