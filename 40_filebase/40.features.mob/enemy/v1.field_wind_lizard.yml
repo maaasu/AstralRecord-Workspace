@@ -1,0 +1,121 @@
+# design:
+#   motif: "動物 / 風を払うトカゲ"
+#   progression: 20
+schemaVersion: 1
+id: field_wind_lizard
+type: MOB
+category: ENEMY
+name: "&aカゼトカゲ Lv.28"
+level: 28
+entityType: SILVERFISH
+variant:
+  scale: 2.0
+icon: SILVERFISH_SPAWN_EGG
+lore:
+  - "&7草の間を低く這う、長い尾を持つトカゲ。"
+  - "&7尾の風払いに注意。扇の横や後ろへ回り込もう。"
+tags:
+  - grassland
+  - beast
+  - melee
+
+levels:
+  - level: 28
+    name: "&aカゼトカゲ Lv.28"
+  - level: 30
+    name: "&aカゼトカゲ Lv.30"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 19000
+      - status: ATTACK
+        value: 3270
+      - status: DEFENSE
+        value: 2986
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 104
+    drops:
+      exp: 450
+  - level: 32
+    name: "&aカゼトカゲ Lv.32"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 21600
+      - status: ATTACK
+        value: 3683
+      - status: DEFENSE
+        value: 3366
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 104
+    drops:
+      exp: 490
+  - level: 34
+    name: "&aカゼトカゲ Lv.34"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 24400
+      - status: ATTACK
+        value: 4096
+      - status: DEFENSE
+        value: 3746
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 104
+    drops:
+      exp: 530
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 16600
+  - status: ATTACK
+    value: 2857
+  - status: DEFENSE
+    value: 2606
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 104
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 14
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 1.9
+    normalAttack:
+      range: 1.9
+      intervalTicks: 32
+    skills:
+      - id: mob_field_wind_lizard_wind_tail
+        activationRange: 3.4
+        cooldownTicks: 150
+        castTimeTicks: 12
+
+drops:
+  exp: 410
+  items:
+    - itemId:
+        ref: item:10a00211
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false
