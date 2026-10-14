@@ -1,0 +1,127 @@
+# design:
+#   motif: "動物 / 赤い蠍"
+#   progression: 38
+schemaVersion: 1
+id: field_red_scorpion
+type: MOB
+category: ENEMY
+name: '&cアカサソリ'
+level: 38
+entityType: SPIDER
+variant:
+  age: ADULT
+  scale: 0.7
+icon: SPIDER_SPAWN_EGG
+lore:
+- '&7砂地を歩く、毒針を備えた蠍。'
+- '&7細い直線を示してから毒針を突き出す。'
+- '&7横へ避ければ毒針は追ってこない。'
+- '&7毒は短時間続くが、移動や攻撃を封じない。'
+tags:
+- beast
+- melee
+levels:
+- level: 38
+  name: '&cアカサソリ Lv.38'
+- level: 40
+  name: '&cアカサソリ Lv.40'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 28350
+  - status: ATTACK
+    value: 5157
+  - status: DEFENSE
+    value: 4718
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  - status: SUPPORT_POWER
+    value: 2578
+  drops:
+    exp: 698
+- level: 42
+  name: '&cアカサソリ Lv.42'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 30600
+  - status: ATTACK
+    value: 5571
+  - status: DEFENSE
+    value: 5100
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  - status: SUPPORT_POWER
+    value: 2786
+  drops:
+    exp: 746
+- level: 44
+  name: '&cアカサソリ Lv.44'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 32850
+  - status: ATTACK
+    value: 5985
+  - status: DEFENSE
+    value: 5482
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  - status: SUPPORT_POWER
+    value: 2992
+  drops:
+    exp: 794
+baseStats:
+- status: MAX_HEALTH
+  value: 26100
+- status: ATTACK
+  value: 4743
+- status: DEFENSE
+  value: 4335
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 100
+- status: SUPPORT_POWER
+  value: 2372
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+    - id: mob_field_red_scorpion_tail_sting
+      activationRange: 3.5
+      cooldownTicks: 180
+      castTimeTicks: 0
+drops:
+  exp: 650
+  items:
+  - itemId:
+      ref: item:10a00270
+    rate: 35.0
+    amount: 1
+    luckAffected: true
+    hidden: false
