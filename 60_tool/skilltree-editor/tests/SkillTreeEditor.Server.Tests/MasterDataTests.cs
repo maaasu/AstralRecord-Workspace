@@ -81,6 +81,36 @@ public sealed class MasterDataTests : IDisposable
         Assert.NotEqual(document.Revision, saved.Revision);
     }
 
+    [Fact]
+    public async Task SaveRoundTripPreservesEquipmentRandomUnknownKeyAndComments()
+    {
+        const string path = "test/random-equipment.yml";
+        const string original = "# item comment\nequipment:\n  stats:\n    - status: FIRE_DAMAGE_INCREASE\n      value: 5 # base\n      customNote: keep\n";
+        Write(path, original);
+        var document = await _service.ReadAsync(path, CancellationToken.None);
+        var content = _codec.Parse(path, document.Raw).Content!;
+        content["equipment"]!["stats"]![0]!["random"] = JsonNode.Parse("""{"offsetMin":-2,"offsetMax":3,"step":0.5,"zeroChance":0.2}""");
+        var rendered = _codec.Render(new(path, content, document.Raw));
+
+        var saved = await _service.SaveAsync(new(path, rendered.Raw, document.Revision), CancellationToken.None);
+        var reloaded = await _service.ReadAsync(path, CancellationToken.None);
+
+        Assert.Equal(saved.Raw, reloaded.Raw);
+        Assert.True(JsonNode.DeepEquals(content, reloaded.Content));
+        Assert.Equal("keep", reloaded.Content!["equipment"]!["stats"]![0]!["customNote"]!.GetValue<string>());
+        Assert.Contains("# item comment", reloaded.Raw);
+        Assert.Contains("# base", reloaded.Raw);
+    }
+
+    [Fact]
+    public void CodecDoesNotSilentlyTurnDecimalUnderflowIntoZero()
+    {
+        var content = _codec.Parse("test.yml", "value: 1e-100\nzero: 0e-100\n").Content!;
+
+        Assert.Equal("1e-100", content["value"]!.ToString());
+        Assert.Equal(0m, content["zero"]!.GetValue<decimal>());
+    }
+
     [Theory]
     [InlineData("65.features.dungeon/v1.ruins.yml", "id: ruins\ndisplayName: 遺跡\nname: internal\ntitle: caption\n", "遺跡")]
     [InlineData("60.features.world/v1.central.yml", "id: central\ndisplayName: 星影の街\n", "星影の街")]

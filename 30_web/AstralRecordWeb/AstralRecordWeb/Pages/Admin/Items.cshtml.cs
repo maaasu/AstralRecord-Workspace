@@ -111,16 +111,8 @@ public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
     public string RarityClass(string? rarity)
         => "rarity-" + (rarity ?? "common").Trim().ToLowerInvariant();
 
-    public static string StatValueText(ItemEquipmentStatValueResponse? value)
-    {
-        if (value is null)
-            return string.Empty;
-
-        if (string.Equals(value.Min, value.Max, StringComparison.OrdinalIgnoreCase))
-            return value.Min;
-
-        return $"{value.Min} - {value.Max}";
-    }
+    public static string StatValueText(ItemEquipmentStatResponse stat)
+        => ItemEquipmentStatFormatter.Format(stat);
 
     private IEnumerable<ItemMasterResponse> ApplyFilters(IEnumerable<ItemMasterResponse> items)
     {

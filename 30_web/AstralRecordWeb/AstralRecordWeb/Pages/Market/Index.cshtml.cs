@@ -178,9 +178,7 @@ public sealed class IndexModel(MarketApiClient marketApiClient, PlayerProfileApi
             || parameter.Key.StartsWith("stat_", StringComparison.OrdinalIgnoreCase))
         .SelectMany(parameter => parameter.Value.Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => new KeyValuePair<string, string>(parameter.Key, value!)));
-    public string ItemStatText(ItemEquipmentStatResponse stat) => stat.Value is null
-        ? string.Empty
-        : string.Equals(stat.Value.Min, stat.Value.Max, StringComparison.Ordinal) ? stat.Value.Min : $"{stat.Value.Min} - {stat.Value.Max}";
+    public string ItemStatText(ItemEquipmentStatResponse stat) => ItemEquipmentStatFormatter.Format(stat);
     public static string InstanceStatText(MarketEquipmentStatRollResponse stat) =>
         string.Equals(stat.Min, stat.Max, StringComparison.Ordinal) ? stat.Min : $"{stat.Min} - {stat.Max}";
     public static string InstanceTypeLabel(string? instanceType) => instanceType?.ToUpperInvariant() switch

@@ -9,6 +9,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class ItemRepositoryEquipmentParsingTest {
 
@@ -227,6 +229,107 @@ class ItemRepositoryEquipmentParsingTest {
             // MarketRepositoryの装備読込も同じGsonモデル変換を利用する。
             EquipmentInstance marketCopy = gson.fromJson(serialized, EquipmentInstance.class);
             assertEquals(parsed, marketCopy);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
+     * 検証契約: 明示randomだけを保持し、未指定scalarと旧rangeの値および生値を変更しない。
+     */
+    @Test
+    void explicitRandomAndLegacyValuesRemainSeparate() throws Exception {
+        ItemModel item = parseItem("""
+            {"schemaVersion":1,"id":"fixture","category":"equipment","name":"fixture",
+             "icon":"IRON_SWORD","rarity":"COMMON","equipment":{"slot":"WEAPON","stats":[
+              {"status":"MELEE_ATTACK","type":"FLAT","value":{"min":"100","max":"100"},
+               "random":{"offsetMin":-8,"offsetMax":8,"step":1}},
+              {"status":"DEFENSE","type":"FLAT","value":12,"random":null},
+              {"status":"MAGIC_ATTACK","type":"FLAT","value":{"min":"2~3","max":"4~5"}}
+             ]}}
+            """);
+        var stats = item.getEquipment().getStats();
+        assertNotNull(stats.get(0).getRandom());
+        assertEquals(0, stats.get(0).getRandom().zeroChance());
+        assertEquals(100, stats.get(0).getMin());
+        assertNull(stats.get(1).getRandom());
+        assertEquals(12, stats.get(1).getMin());
+        assertEquals(12, stats.get(1).getMax());
+        assertNull(stats.get(2).getRandom());
+        assertEquals("2~3", stats.get(2).getRawMin());
+        assertEquals("4~5", stats.get(2).getRawMax());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
+     * 検証契約: 新規個体の明示randomを同値min/maxへ確定し、保存再読込で個体を再抽選しない。
+     */
+    @Test
+    void generatedScalarRollSurvivesSnapshotReload() throws Exception {
+        ItemModel item = parseItem("""
+            {"schemaVersion":1,"id":"fixture","category":"equipment","name":"fixture",
+             "icon":"IRON_SWORD","rarity":"COMMON","equipment":{"slot":"WEAPON","stats":[
+              {"status":"MELEE_ATTACK","type":"FLAT","value":100,
+               "random":{"offsetMin":-8,"offsetMax":8,"step":1}},
+              {"status":"DEFENSE","type":"FLAT","value":12}
+             ]}}
+            """);
+        var service = new io.github.maaasu.astralRecord.feature.item.service.ItemService();
+        var instance = service.createLocalEquipmentInstance(item, java.util.UUID.randomUUID());
+        assertNotNull(instance);
+        var roll = instance.getStatRolls().getFirst();
+        assertEquals(roll.getMin(), roll.getMax());
+        assertTrue(Double.parseDouble(roll.getMin()) >= 92 && Double.parseDouble(roll.getMax()) <= 108);
+        assertEquals("12", instance.getStatRolls().get(1).getMin());
+        assertEquals("12", instance.getStatRolls().get(1).getMax());
+        String snapshot = new com.google.gson.Gson().toJson(instance);
+        assertEquals(instance, parseEquipmentInstance(snapshot));
+        assertEquals(instance, parseEquipmentInstance(snapshot));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
+     * 検証契約: 過去の個体に保存された異なるmin/maxもマスター乱数とは独立にそのまま復元する。
+     */
+    @Test
+    void legacyInstanceBoundsAreNeverRerolledOnLoad() throws Exception {
+        String snapshot = """
+            {"equipmentInstanceId":"old","accountId":"account","itemId":"fixture",
+             "statRolls":[{"statRollId":"saved","status":"MELEE_ATTACK","min":"3.25","max":"8.75","sortOrder":2}]}
+            """;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            var roll = parseEquipmentInstance(snapshot).getStatRolls().getFirst();
+            assertEquals("saved", roll.getStatRollId());
+            assertEquals("3.25", roll.getMin());
+            assertEquals("8.75", roll.getMax());
+            assertEquals(2, roll.getSortOrder());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
+     * 検証契約: 同値の範囲形式・欠落した刻み・double表現不能な基準値や加算幅を明示randomで拒否する。
+     */
+    @Test
+    void explicitRandomRejectsLegacyRangeAndMissingStep() {
+        for (String stat : List.of(
+            "\"value\":\"100~100\",\"random\":{\"offsetMin\":1,\"offsetMax\":2,\"step\":1}",
+            "\"value\":{\"min\":\"100~100\",\"max\":\"100~100\"},\"random\":{\"offsetMin\":1,\"offsetMax\":2,\"step\":1}",
+            "\"value\":9007199254740993,\"random\":{\"offsetMin\":-1,\"offsetMax\":-1,\"step\":1}",
+            "\"value\":0,\"random\":{\"offsetMin\":9007199254740993,\"offsetMax\":9007199254740993,\"step\":1}",
+            "\"value\":100,\"min\":100,\"random\":{\"offsetMin\":1,\"offsetMax\":2,\"step\":1}",
+            "\"value\":100,\"random\":{\"offsetMin\":1,\"offsetMax\":2}")) {
+            String payload = """
+                {"schemaVersion":1,"id":"fixture","category":"equipment","name":"fixture",
+                 "icon":"IRON_SWORD","rarity":"COMMON","equipment":{"slot":"WEAPON","stats":[
+                   {"status":"MELEE_ATTACK","type":"FLAT",%s}]}}
+                """.formatted(stat);
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(
+                java.lang.reflect.InvocationTargetException.class, () -> parseItem(payload));
+            org.junit.jupiter.api.Assertions.assertInstanceOf(IllegalArgumentException.class, failure.getCause());
         }
     }
 

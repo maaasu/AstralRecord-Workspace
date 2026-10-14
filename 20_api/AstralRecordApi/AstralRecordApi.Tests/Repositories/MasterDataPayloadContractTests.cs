@@ -9,6 +9,81 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MasterDataPayloadContractTests
 {
     [Fact]
+    public void EquipmentStatRandom_PreservesBaseAndSeparateRollDefinition()
+    {
+        var item = Deserialize<ItemResponse>(EquipmentFixture("12.5", "\"random\": {\"offsetMin\": -2.5, \"offsetMax\": 1.5, \"step\": 0.5, \"zeroChance\": 0.2}"));
+        var stat = Assert.Single(item.Equipment!.Stats);
+        Assert.Equal("12.5", stat.Value!.Min);
+        Assert.Equal("12.5", stat.Value.Max);
+        Assert.Equal(-2.5, stat.Random!.OffsetMin);
+        Assert.Equal(1.5, stat.Random.OffsetMax);
+        Assert.Equal(0.5, stat.Random.Step);
+        Assert.Equal(0.2, stat.Random.ZeroChance);
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(item, MasterDataJsonOptions()));
+        var normalized = document.RootElement.GetProperty("equipment").GetProperty("stats")[0];
+        Assert.Equal("12.5", normalized.GetProperty("value").GetProperty("min").GetString());
+        Assert.Equal("12.5", normalized.GetProperty("value").GetProperty("max").GetString());
+        Assert.Equal(0.5, normalized.GetProperty("random").GetProperty("step").GetDouble());
+    }
+
+    [Theory]
+    [InlineData("{\"min\": 10, \"max\": 10}", "\"random\": {\"offsetMin\": 1, \"offsetMax\": 2, \"step\": 1}")]
+    [InlineData("\"10~10\"", "\"random\": {\"offsetMin\": 1, \"offsetMax\": 2, \"step\": 1}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1, \"step\": 0}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1, \"step\": 0.3}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1, \"step\": 0.00001}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1000000, \"step\": 1}")]
+    [InlineData("0", "\"random\": {\"offsetMin\": -1, \"offsetMax\": 1, \"step\": 1, \"zeroChance\": 0.1}")]
+    [InlineData("10.00001", "\"random\": {\"offsetMin\": 1, \"offsetMax\": 2, \"step\": 1}")]
+    [InlineData("10", "\"min\": 9, \"random\": {\"offsetMin\": 1, \"offsetMax\": 2, \"step\": 1}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 1e-100, \"offsetMax\": 2, \"step\": 1}")]
+    [InlineData("10000000000000000", "\"random\": {\"offsetMin\": -1, \"offsetMax\": 1, \"step\": 1}")]
+    [InlineData("9007199254740993", "\"random\": {\"offsetMin\": -1, \"offsetMax\": -1, \"step\": 1}")]
+    [InlineData("1e-1000", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1, \"step\": 1}")]
+    [InlineData("10", "\"random\": {\"offsetMax\": 2, \"step\": 1}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 2, \"offsetMax\": 1, \"step\": 1}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1, \"step\": 1, \"zeroChance\": -0.1}")]
+    [InlineData("10", "\"random\": {\"offsetMin\": 0, \"offsetMax\": 1, \"step\": 1, \"zeroChance\": 1.1}")]
+    [InlineData("79228162514264337593543950335", "\"random\": {\"offsetMin\": 1, \"offsetMax\": 1, \"step\": 1}")]
+    public void EquipmentStatRandom_RejectsInvalidContract(string value, string random)
+        => Assert.Throws<JsonException>(() => Deserialize<ItemResponse>(EquipmentFixture(value, random)));
+
+    [Fact]
+    public void EquipmentStatLegacyScalarAndRangeRemainReadable()
+    {
+        var scalar = Assert.Single(Deserialize<ItemResponse>(EquipmentFixture("10", null)).Equipment!.Stats);
+        var range = Assert.Single(Deserialize<ItemResponse>(EquipmentFixture("{\"min\": \"2~4\", \"max\": \"5~7\"}", null)).Equipment!.Stats);
+        Assert.Equal("10", scalar.Value!.Min);
+        Assert.Null(scalar.Random);
+        Assert.Equal("2~4", range.Value!.Min);
+        Assert.Equal("5~7", range.Value.Max);
+        Assert.Null(range.Random);
+    }
+
+    [Fact]
+    public void EquipmentStatRandom_DefaultsZeroChanceToZero()
+    {
+        var stat = Assert.Single(Deserialize<ItemResponse>(EquipmentFixture("10", "\"random\": {\"offsetMin\": 1, \"offsetMax\": 2, \"step\": 1}")).Equipment!.Stats);
+        Assert.Equal(0, stat.Random!.ZeroChance);
+    }
+
+    private static string EquipmentFixture(string value, string? random) => $$"""
+        {
+          "schemaVersion": 1,
+          "id": "fixed_equipment_fixture",
+          "category": "equipment",
+          "name": "Fixture",
+          "icon": "IRON_SWORD",
+          "rarity": "COMMON",
+          "equipment": {
+            "slot": "WEAPON",
+            "stats": [{"status": "MELEE_ATTACK", "type": "FLAT", "value": {{value}}{{(random is null ? "" : ", " + random)}}}]
+          }
+        }
+        """;
+
+    [Fact]
     public void ItemConsumable_PreservesUseTiming_ThroughApiModelRoundTrip()
     {
         var item = Deserialize<ItemResponse>("""
