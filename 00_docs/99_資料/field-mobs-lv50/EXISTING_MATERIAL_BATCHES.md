@@ -26,4 +26,4 @@ CSV順に2種ずつE01〜E12、最後witch_forest_hex_witchだけE13。各unit�
 
 ## 統合進捗
 
-E01〜E09を受入済み。既存25種中18種（72%）、素材00300〜00317、全37実効levelで追加と既存データ保持を確認。残り7種はE10〜E13。全体Pluginは新規23種基点で1022全成功、E09は静的のみ。
+E01〜E13を受入済み。既存25種中25種（100%）、素材00300〜00324、全44実効levelに通常素材1件を追加。新統合先は `codex/field-equipment-final-integration`。E10〜E13の固定commitを受入、各25種の全levelで追加ドロップと既存設定保持を最終静的検証する。以前のCSV validation_stateはバッチ合計表記を含んでいたため、今回各種ごとの実効profile数へ統一した。Plugin1022全成功は新規23種基点の検証で、以降のfilebase-only統合について重いbuildを反復していない。実ドロップ・配置・実戦は未検証。詳細は `../field-equipment-final-integration/README.md`。
