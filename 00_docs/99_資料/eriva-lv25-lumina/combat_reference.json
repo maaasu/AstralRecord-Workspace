@@ -1,0 +1,109 @@
+{
+  "model": "Synthetic fixed residual; controlled sensitivity comparison, not a verified character build",
+  "fixedNonEquipment": {
+    "ATTACK_and_other_type_attack": 1145.8775510204082,
+    "STRENGTH": 42.8,
+    "DEFENSE_including_derived": 1690,
+    "HP_including_derived": 5610
+  },
+  "enemy": {
+    "level": 25,
+    "HP": 13000,
+    "R": 2355,
+    "D": 2264
+  },
+  "assumptions": {
+    "playerHitRate": 0.92,
+    "enemyHitRate": 0.915,
+    "playerNormalInterval": 1,
+    "enemyInterval": 1.5,
+    "mixedDpsFactor": 1.6,
+    "playerFinalMultiplier": 1.3,
+    "normalShareForNadiComparison": 0.6
+  },
+  "cases": [
+    {
+      "case": "Eriva +15 mean no enchant/rune",
+      "R": 1949.405036,
+      "D": 1980.0,
+      "HP": 6010.0,
+      "normalHit": 1085.769793,
+      "referenceTTK": 8.13388,
+      "referenceSurvival": 7.296725,
+      "R_to_Lv25Anchor": 0.861045,
+      "D_to_Lv25Anchor": 0.840764
+    },
+    {
+      "case": "Lumina +0 mean no enchant/rune",
+      "R": 2091.52,
+      "D": 2070.0,
+      "HP": 6500.0,
+      "normalHit": 1259.077355,
+      "referenceTTK": 7.01428,
+      "referenceSurvival": 8.145145,
+      "R_to_Lv25Anchor": 0.923816,
+      "D_to_Lv25Anchor": 0.878981
+    },
+    {
+      "case": "Lumina +15 mean no enchant/rune",
+      "R": 2185.6,
+      "D": 2190.0,
+      "HP": 6500.0,
+      "normalHit": 1374.738812,
+      "referenceTTK": 6.424145,
+      "referenceSurvival": 8.505902,
+      "R_to_Lv25Anchor": 0.965371,
+      "D_to_Lv25Anchor": 0.929936
+    },
+    {
+      "case": "Lumina +30 mean no enchant/rune",
+      "R": 2232.64,
+      "D": 2265.0,
+      "HP": 6500.0,
+      "normalHit": 1432.8073,
+      "referenceTTK": 6.163789,
+      "referenceSurvival": 8.745742,
+      "R_to_Lv25Anchor": 0.986148,
+      "D_to_Lv25Anchor": 0.961783
+    },
+    {
+      "case": "Lumina +30 maxroll +3 weapon R enchants +3 DEF enchants per armor +rune +matching7%",
+      "R": 2928.840057,
+      "D": 2948.5,
+      "HP": 6500.0,
+      "normalHit": 2466.247771,
+      "referenceTTK": 3.580955,
+      "referenceSurvival": 11.614928,
+      "R_to_Lv25Anchor": 1.293657,
+      "D_to_Lv25Anchor": 1.252017
+    },
+    {
+      "case": "Lumina +30 maxroll NADI third weapon enchant; normal60/skill40 assumption",
+      "R": 2723.066751,
+      "D": 2948.5,
+      "HP": 6500.0,
+      "normalHit": 2844.890311,
+      "referenceTTK": 3.420041,
+      "referenceSurvival": 11.614928,
+      "R_to_Lv25Anchor": 1.202768,
+      "D_to_Lv25Anchor": 1.252017
+    },
+    {
+      "case": "Lumina +30 maxroll +3 weapon R enchants +all4 offensive armor STR/NONE/NONE scalar +rune; NONE attack",
+      "R": 3751.933282,
+      "D": 2281.0,
+      "HP": 6500.0,
+      "normalHit": 5015.818122,
+      "referenceTTK": 1.760734,
+      "referenceSurvival": 8.798431,
+      "R_to_Lv25Anchor": 1.657214,
+      "D_to_Lv25Anchor": 0.968577
+    }
+  ],
+  "limits": [
+    "No class tree, skill timing, normal-attack degradation or 100-battle simulation",
+    "No claim that 3 enchants chosen here globally maximize DPS/survival; other scalar/skill/element/vitality trades exist",
+    "Extreme matching element is one applicable attribute; two different attributes are not added to the same element",
+    "Anchor residual intentionally held fixed; no proof of real player R/D totals or Gold acquisition time"
+  ]
+}

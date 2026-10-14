@@ -1,0 +1,96 @@
+# design:
+#   motif: "工芸 / 光沢をもつ鉄と明るい染め革"
+#   progression: 25
+schemaVersion: 1
+id: 20a00424
+category: equipment
+name: '&bルミナワンド'
+icon: IRON_HOE
+iconGlint: true
+rarity: RARE
+maxStack: 1
+saleValue: 6000
+lore:
+- '&7光沢をまとった、ルミナシリーズの武器。'
+- '&7鍛えて進化させると、さらに成長する。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: WAND
+  requiredLevel: 25
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 180
+    random: {offsetMin: -9, offsetMax: 9, step: 1}
+  - status: INTELLIGENCE
+    type: FLAT
+    value: 14
+    random: {offsetMin: -2, offsetMax: 2, step: 1}
+  - status: NORMAL_ATTACK_DAMAGE_INCREASE
+    type: FLAT
+    value: -10
+  - status: FIRE_DAMAGE_INCREASE
+    type: FLAT
+    value: 0
+    random: {offsetMin: 0.1, offsetMax: 7, step: 0.1, zeroChance: 0.96}
+  - status: ICE_DAMAGE_INCREASE
+    type: FLAT
+    value: 0
+    random: {offsetMin: 0.1, offsetMax: 7, step: 0.1, zeroChance: 0.96}
+  durability:
+    max: 450
+    consume: 1
+  enchant:
+    maxSlots: 3
+  rune:
+    maxSlots: 1
+  enhance:
+    maxLevel: 15
+    levels:
+    - {level: 1, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 1, failAction: NONE}
+    - {level: 2, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.75, failAction: NONE}
+    - {level: 3, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.75, failAction: NONE}
+    - {level: 4, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.75, failAction: NONE}
+    - {level: 5, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.5, failAction: NONE}
+    - {level: 6, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.5, failAction: NONE}
+    - {level: 7, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.35, failAction: NONE}
+    - {level: 8, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.35, failAction: NONE}
+    - {level: 9, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.2, failAction: NONE}
+    - {level: 10, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.05, failAction: NONE}
+    - {level: 11, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.05, failAction: NONE}
+    - {level: 12, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.05, failAction: NONE}
+    - {level: 13, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.05, failAction: NONE}
+    - {level: 14, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.05, failAction: NONE}
+    - {level: 15, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 4}], successRate: 0.05, failAction: NONE}
+    - {level: 16, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 17, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 18, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 19, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 20, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 21, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 22, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 23, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 24, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 25, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 26, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 27, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 28, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 29, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+    - {level: 30, statIncrease: [{status: MAGIC_ATTACK, type: FLAT, value: 2}], successRate: 0.05, failAction: NONE}
+  transcendence:
+  - name: 進化
+    rank: 1
+    requiredEnhanceLevel: 15
+    requiredMaterials:
+    - itemId: 10a00089
+      amount: 20
+    - itemId: 10a00241
+      amount: 10
+    requiredCurrency: 15000
+    overrides:
+      name: '&b進化したルミナワンド'
+      enhance:
+        maxLevel: 30
