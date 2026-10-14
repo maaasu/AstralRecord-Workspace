@@ -1,0 +1,118 @@
+# design:
+#   motif: "動物 / 棘角のシカ"
+#   progression: 36
+schemaVersion: 1
+id: field_thorn_deer
+type: MOB
+category: ENEMY
+name: '&aトゲシカ'
+level: 36
+entityType: GOAT
+variant:
+  age: ADULT
+  scale: 1.15
+icon: GOAT_SPAWN_EGG
+lore:
+- '&7棘に覆われた角を持つシカ。'
+- '&7棘の筋で進路を示してから、一直線に突進する。'
+- '&7構えた後は向きを変えない。進路の脇へ避けよう。'
+tags:
+- beast
+- melee
+levels:
+- level: 36
+  name: '&aトゲシカ Lv.36'
+- level: 38
+  name: '&aトゲシカ Lv.38'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 30450
+  - status: ATTACK
+    value: 5270
+  - status: DEFENSE
+    value: 5100
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 670
+- level: 40
+  name: '&aトゲシカ Lv.40'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 33075
+  - status: ATTACK
+    value: 5730
+  - status: DEFENSE
+    value: 5550
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 710
+- level: 42
+  name: '&aトゲシカ Lv.42'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 35700
+  - status: ATTACK
+    value: 6190
+  - status: DEFENSE
+    value: 6000
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 750
+baseStats:
+- status: MAX_HEALTH
+  value: 27825
+- status: ATTACK
+  value: 4810
+- status: DEFENSE
+  value: 4650
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 105
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.2
+      intervalTicks: 40
+    skills:
+    - id: mob_field_thorn_deer_thorn_charge
+      activationRange: 6
+      cooldownTicks: 180
+      castTimeTicks: 0
+drops:
+  exp: 630
+  items:
+  - itemId:
+      ref: item:10a00402
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false

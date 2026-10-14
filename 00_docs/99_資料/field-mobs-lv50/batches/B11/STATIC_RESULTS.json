@@ -1,0 +1,212 @@
+{
+  "batch": "B11",
+  "yaml_files": 921,
+  "master_ids": 918,
+  "profiles": [
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 36,
+      "stats": {
+        "MAX_HEALTH": 25175,
+        "ATTACK": 4089,
+        "DEFENSE": 3953,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 610
+    },
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 38,
+      "stats": {
+        "MAX_HEALTH": 27550,
+        "ATTACK": 4480,
+        "DEFENSE": 4335,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 650
+    },
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 40,
+      "stats": {
+        "MAX_HEALTH": 29925,
+        "ATTACK": 4871,
+        "DEFENSE": 4718,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 690
+    },
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 42,
+      "stats": {
+        "MAX_HEALTH": 32300,
+        "ATTACK": 5262,
+        "DEFENSE": 5100,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 730
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 36,
+      "stats": {
+        "MAX_HEALTH": 27825,
+        "ATTACK": 4810,
+        "DEFENSE": 4650,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 105
+      },
+      "exp": 630
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 38,
+      "stats": {
+        "MAX_HEALTH": 30450,
+        "ATTACK": 5270,
+        "DEFENSE": 5100,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 105
+      },
+      "exp": 670
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 40,
+      "stats": {
+        "MAX_HEALTH": 33075,
+        "ATTACK": 5730,
+        "DEFENSE": 5550,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 105
+      },
+      "exp": 710
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 42,
+      "stats": {
+        "MAX_HEALTH": 35700,
+        "ATTACK": 6190,
+        "DEFENSE": 6000,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 105
+      },
+      "exp": 750
+    }
+  ],
+  "references": [
+    "item:10a00400",
+    "item:10a00401",
+    "item:10a00402"
+  ],
+  "registration_pending": [
+    "mob_field_canopy_owl_leaf_vortex",
+    "mob_field_thorn_deer_thorn_charge"
+  ],
+  "economy": [
+    {
+      "mob_id": "field_canopy_owl",
+      "unmodified_sale_expected_gold": 202.0
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "unmodified_sale_expected_gold": 136.5
+    }
+  ],
+  "balance_projection": [
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 36,
+      "virtual_ttk_seconds": 4.97,
+      "virtual_normal_melee_survival_seconds": 16.6,
+      "virtual_additive_skill_survival_lower_bound": 12.48,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 38,
+      "virtual_ttk_seconds": 4.96,
+      "virtual_normal_melee_survival_seconds": 16.53,
+      "virtual_additive_skill_survival_lower_bound": 12.43,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 40,
+      "virtual_ttk_seconds": 4.95,
+      "virtual_normal_melee_survival_seconds": 16.48,
+      "virtual_additive_skill_survival_lower_bound": 12.39,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_canopy_owl",
+      "level": 42,
+      "virtual_ttk_seconds": 4.94,
+      "virtual_normal_melee_survival_seconds": 16.44,
+      "virtual_additive_skill_survival_lower_bound": 12.36,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 36,
+      "virtual_ttk_seconds": 6.25,
+      "virtual_normal_melee_survival_seconds": 11.91,
+      "virtual_additive_skill_survival_lower_bound": 9.32,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 38,
+      "virtual_ttk_seconds": 6.24,
+      "virtual_normal_melee_survival_seconds": 11.86,
+      "virtual_additive_skill_survival_lower_bound": 9.28,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 40,
+      "virtual_ttk_seconds": 6.23,
+      "virtual_normal_melee_survival_seconds": 11.83,
+      "virtual_additive_skill_survival_lower_bound": 9.25,
+      "current_r416_58_defense_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "level": 42,
+      "virtual_ttk_seconds": 6.22,
+      "virtual_normal_melee_survival_seconds": 11.79,
+      "virtual_additive_skill_survival_lower_bound": 9.23,
+      "current_r416_58_defense_multiplier": 0.0
+    }
+  ],
+  "owned_changed_paths": [
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/JAVAC_RESULT.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/REGISTRATION_MANIFEST.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/SPEC.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/STATIC_RESULTS.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/VALIDATION.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/validate_b11.py",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/CanopyOwlMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ThornDeerMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00400.canopy_owl_leaf_feather.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00401.canopy_owl_moon_feather.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00402.thorn_deer_barbed_antler.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_canopy_owl.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_thorn_deer.yml"
+  ],
+  "status": "passed_static_pending_integration_and_live_acceptance"
+}

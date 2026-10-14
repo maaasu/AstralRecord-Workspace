@@ -1,0 +1,141 @@
+{
+  "batch": "B11",
+  "base_commit": "41a6dd524",
+  "branch": "codex/field-mobs-lv50-b11",
+  "worktree": "E:\\AstralRecord-Workspace\\99_work\\field-mobs-lv50-b11",
+  "registration_status": "pending_integration",
+  "reserved_item_range": [
+    "10a00400",
+    "10a00409"
+  ],
+  "owned_paths": [
+    "40_filebase/10.features.item/10.material/v1.10a00400.canopy_owl_leaf_feather.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00401.canopy_owl_moon_feather.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_canopy_owl.yml",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/CanopyOwlMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00402.thorn_deer_barbed_antler.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_thorn_deer.yml",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ThornDeerMobSkillExecutor.java",
+    "00_docs/99_資料/field-mobs-lv50/batches/B11/"
+  ],
+  "executors": [
+    {
+      "mob_id": "field_canopy_owl",
+      "levels": [
+        36,
+        38,
+        40,
+        42
+      ],
+      "implementation_id": "mob_field_canopy_owl_leaf_vortex",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.CanopyOwlMobSkillExecutor",
+      "field": "canopyOwlMobSkillExecutor",
+      "activation_range": 8,
+      "cooldown_ticks": 200,
+      "cast_time_ticks": 0,
+      "warning_ticks": 36,
+      "normal_attack_range": 1.8,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "canopyOwlMobSkillExecutor = new CanopyOwlMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(canopyOwlMobSkillExecutor);",
+      "destroy_listener_code": "canopyOwlMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (canopyOwlMobSkillExecutor != null) canopyOwlMobSkillExecutor.stop();",
+      "target_policy": "通常playerまたは有効な召喚petの主対象1体のみ。予告位置/進路は開始後固定。",
+      "materials": [
+        {
+          "id": "10a00400",
+          "name": "木の葉羽",
+          "rarity": "COMMON",
+          "saleValue": 360,
+          "rate": 35,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        },
+        {
+          "id": "10a00401",
+          "name": "月色の羽",
+          "rarity": "UNCOMMON",
+          "saleValue": 760,
+          "rate": 10,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "levels": [
+        36,
+        38,
+        40,
+        42
+      ],
+      "implementation_id": "mob_field_thorn_deer_thorn_charge",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.ThornDeerMobSkillExecutor",
+      "field": "thornDeerMobSkillExecutor",
+      "activation_range": 6,
+      "cooldown_ticks": 180,
+      "cast_time_ticks": 0,
+      "warning_ticks": 36,
+      "normal_attack_range": 2.2,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "thornDeerMobSkillExecutor = new ThornDeerMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(thornDeerMobSkillExecutor);",
+      "destroy_listener_code": "thornDeerMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (thornDeerMobSkillExecutor != null) thornDeerMobSkillExecutor.stop();",
+      "target_policy": "通常playerまたは有効な召喚petの主対象1体のみ。予告位置/進路は開始後固定。",
+      "materials": [
+        {
+          "id": "10a00402",
+          "name": "トゲ付きの角",
+          "rarity": "COMMON",
+          "saleValue": 390,
+          "rate": 35,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        }
+      ]
+    }
+  ],
+  "dependencies": [],
+  "central_changes": [
+    "AstralRecord.javaのimport/field/生成/registry登録に2種を追加。",
+    "既存destroy listenerで各handleMobDestroyedを呼び、onDisableではMobService/ParticleDisplayServiceの停止前に各stopを呼ぶ。",
+    "共有ファイル、pom、schema、properties、status/tag、全spawner、管理表の編集は統合担当のみ。",
+    "中央登録後の全体build/test、Mob master読込、destroy/stop回収と実戦受入を統合担当で実施する。"
+  ],
+  "habitats": [
+    {
+      "mob_id": "field_canopy_owl",
+      "intent": "森林上位帯 Lv36〜42",
+      "evidence_paths": [],
+      "status": "placement_pending_integration",
+      "verified": "world/実座標の根拠なし。既存spawnerの変更と新設は行わない。"
+    },
+    {
+      "mob_id": "field_thorn_deer",
+      "intent": "森林上位帯 Lv36〜42",
+      "evidence_paths": [],
+      "status": "placement_pending_integration",
+      "verified": "world/実座標の根拠なし。既存spawnerの変更と新設は行わない。"
+    }
+  ],
+  "unverified": [
+    "中央登録とdestroy/disable接続は未実施。",
+    "全体build/test・実server/client/Geyser・編集サイト画面は未確認。",
+    "Lv31以降のclass/装備基準は暫定。現行Lv30装備では完全防御閾値を超えるため、実配置の戦闘バランス受入は保留。",
+    "素材用途は商人売却。装備/recipe側の新用途は別担当。",
+    "push/develop反映/version更新/deploy/server/DB/port操作なし。"
+  ]
+}
