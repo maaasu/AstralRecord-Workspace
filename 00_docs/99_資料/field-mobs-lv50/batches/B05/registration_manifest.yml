@@ -1,0 +1,88 @@
+batch: B05
+baseCommit: e2058ade10a682118382e70aa01c7db758ac81c6
+branch: codex/field-mobs-lv50-b05
+status: implementation_ready_pending_central_registration
+executors:
+  - implementationId: mob_field_bark_beetle_wood_shot
+    mobId: field_bark_beetle
+    class: io.github.maaasu.astralRecord.feature.mob.skill.field.BarkBeetleMobSkillExecutor
+    constructor: [MobService, DamageService, ConditionService, ParticleDisplayService]
+    fieldName: barkBeetleMobSkillExecutor
+    registrationCode: |
+      barkBeetleMobSkillExecutor = new BarkBeetleMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+      mobSkillRegistry.register(barkBeetleMobSkillExecutor);
+    destroyCode: barkBeetleMobSkillExecutor.clearCasterState(mobInstanceId);
+    shutdownCode: if (barkBeetleMobSkillExecutor != null) barkBeetleMobSkillExecutor.stop();
+  - implementationId: mob_field_moss_fox_moss_smoke
+    mobId: field_moss_fox
+    class: io.github.maaasu.astralRecord.feature.mob.skill.field.MossFoxMobSkillExecutor
+    constructor: [MobService, DamageService, ConditionService, ParticleDisplayService]
+    fieldName: mossFoxMobSkillExecutor
+    registrationCode: |
+      mossFoxMobSkillExecutor = new MossFoxMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+      mobSkillRegistry.register(mossFoxMobSkillExecutor);
+    destroyCode: mossFoxMobSkillExecutor.clearCasterState(mobInstanceId);
+    shutdownCode: if (mossFoxMobSkillExecutor != null) mossFoxMobSkillExecutor.stop();
+centralChanges:
+  owner: integration
+  entryPoint: 10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/AstralRecord.java
+  instructions:
+    - 完全修飾クラスのimportを追加し、既存MobSkillRegistry登録箇所で各Executorを一度だけ生成してフィールドに保持する。
+    - 既存setDestroyListenerの合成callbackへ両clearCasterStateを追記する。既存listenerを置換しない。
+    - onDisableでMob破棄とScheduler一括cancelより先に両stopを同期スレッドで呼ぶ。初期化前の停止はnullを確認する。
+  requiredProperties: []
+  requiredLogIds: []
+  requiredMessageIds: []
+  requiredRegistryChanges: []
+  requiredSharedInfrastructureChanges: []
+  requiredBuffs: []
+  requiredLootTables: []
+combatDesign:
+  barkBeetle: 通常攻撃なし。既存eriva_reed_archerと同じ固有技中心で、予告と壁遮蔽を持つ散弾140%を60tickごとに使う。
+  mossFox: 近接通常攻撃を維持し、コケ煙は足止めを伴わない持続範囲魔法。
+materials:
+  - id: 10a00240
+    name: 木色の殻
+    source: field_bark_beetle
+    levels: [24, 26, 28, 30]
+    ratePercent: 35
+    amount: 1
+    luckAffected: true
+    saleValue: 180
+    consumeDestinationOwner: equipment_task
+  - id: 10a00241
+    name: コケ色の毛
+    source: field_moss_fox
+    levels: [24, 26, 28, 30]
+    ratePercent: 35
+    amount: 1
+    luckAffected: true
+    saleValue: 180
+    consumeDestinationOwner: equipment_task
+  - id: 10a00242
+    name: 森の香り袋
+    source: field_moss_fox
+    levels: [24, 26, 28, 30]
+    ratePercent: 8
+    amount: 1
+    luckAffected: true
+    saleValue: 500
+    consumeDestinationOwner: equipment_task
+spawnHandoff:
+  habitat: 森林初期帯。B06ネッコガメとの3種構成を想定。
+  levels: [24, 26, 28, 30]
+  evidence:
+    - PLAN.mdのB05/B06に森林24〜30帯が割り当てられている。
+    - eriva_camouflage_zombieのLv24/26/28/30は数値比較用。既存spawnerのregionはエリヴァ大草原なので森林配置の根拠には使わない。
+    - eriva_thornfang_wolf/eriva_bark_sentinelはforestタグと森林専用技の既存例。
+  placementCoordinatesVerified: false
+  worldReferenceVerified: false
+  request: 統合担当が既存worldと実際の森林地域を確認した後でspawnerを作成。座標は本バッチで作成しない。
+pendingValidation:
+  - 中央登録とdestroy/shutdown合成を含むPlugin全体コンパイル、mvn -q test、全新規skill IDのRegistry解決。
+  - MobRepository/API読込で8profileと継承dropを照合。
+  - 実server/clientで固定射線、散弾回避、壁、階差、煙の境界、3回のpulse、各中断経路と複数個体の負荷を確認。
+  - ネッコガメとの同時戦闘で射線と煙の予告が見えるか、拘束中に避ける余地があるかを確認。
+  - 他バッチ統合後のnamespace ID重複と全変更参照を再検証。
+  - 装備担当の消費先を実装した後、素材供給量・売却価値と用途なし一覧を再確認。
+  - 実戦TTKと耐久時間、通常攻撃とのrotationを確認し、重複被弾時の難度を調整。
