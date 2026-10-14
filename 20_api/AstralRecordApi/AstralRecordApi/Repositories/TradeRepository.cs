@@ -140,6 +140,7 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
         DateTime now)
     {
         var result = new ItemTransferResult();
+        var orbStorage = new OrbStorageDestination(dbContext);
         foreach (var item in items)
         {
             var source = await FindNormalEntryForUpdateAsync(item.SourceInventoryEntryId, sourceAccountId);
@@ -171,16 +172,22 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
             if (source.Quantity == 0)
                 source.IsDeleted = true;
 
+            // 提示元を減算した後に、未保存の複数受取を含む現在値でオーブの収納先を決めます。
+            var destination = OrbStorageDestination.IsOrbStack(source.ItemCategory, source.InstanceType, source.InstanceId)
+                ? await orbStorage.FindAsync(destinationBag.AccountId, source.ItemId, updatedBy)
+                : null;
+            destination ??= destinationBag;
+
             // DB クエリだけでは同じ transaction 内で追加した受取 stack が見えない。
             // 保存済み候補を追跡へ読み込み、削除・移動を含む現在値から受取先を選ぶ。
             await dbContext.InventoryEntries.Where(entry =>
-                entry.InventoryId == destinationBag.InventoryId
+                entry.InventoryId == destination.InventoryId
                 && !entry.IsDeleted
                 && entry.ItemId == source.ItemId
                 && entry.InstanceType == null
                 && entry.InstanceId == null).LoadAsync();
             var target = dbContext.InventoryEntries.Local
-                .Where(entry => entry.InventoryId == destinationBag.InventoryId
+                .Where(entry => entry.InventoryId == destination.InventoryId
                     && !entry.IsDeleted
                     && string.Equals(entry.ItemId, source.ItemId, StringComparison.OrdinalIgnoreCase)
                     && entry.InstanceType == null
@@ -193,8 +200,8 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
                 target = new InventoryEntryEntity
                 {
                     InventoryEntryId = Guid.NewGuid(),
-                    InventoryId = destinationBag.InventoryId,
-                    SlotIndex = null,
+                    InventoryId = destination.InventoryId,
+                    SlotIndex = orbStorage.ResolveNewEntrySlot(destination),
                     ItemCategory = source.ItemCategory,
                     ItemId = source.ItemId,
                     Quantity = item.Quantity,

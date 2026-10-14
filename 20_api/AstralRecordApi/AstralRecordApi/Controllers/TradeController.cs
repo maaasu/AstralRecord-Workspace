@@ -10,6 +10,7 @@ public sealed class TradeController(ITradeRepository tradeRepository) : Controll
 {
     /// <summary>
     /// 両参加者の提示 item と Gold を単一トランザクションで交換します。
+    /// 受取人の遠隔アクセストークン所持時は、新規取得オーブを収納可能なストレージへ格納します。
     /// </summary>
     [HttpPost("commit")]
     [ProducesResponseType(StatusCodes.Status200OK)]
