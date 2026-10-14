@@ -1,0 +1,401 @@
+{
+  "model": "synthetic fixed residual; sword + matching guard armor; NONE damage",
+  "luminaSourceCommit": "660f86bf8e96e1494e22dc5f742fb2b8491e4951",
+  "lapisSourceCommit": "2bdcea3c4009092b73aedc14388f326275151b2d",
+  "shared25Residual": {
+    "attack": 1145.8775510204082,
+    "primary": 42.8,
+    "defense": 1690,
+    "hp": 5610
+  },
+  "shared25Mob": {
+    "hp": 13000,
+    "attack": 2355,
+    "defense": 2264
+  },
+  "baselineSameResidualSameMob": {
+    "eriva": {
+      "0": {
+        "R": 1784.727383,
+        "D": 1835.0,
+        "HP": 6010.0,
+        "normalHit": 887.639239,
+        "TTK": 9.949449,
+        "survival": 6.944742,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 1949.405036,
+        "D": 1980.0,
+        "HP": 6010.0,
+        "normalHit": 1085.769793,
+        "TTK": 8.13388,
+        "survival": 7.296725,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2145.177689,
+        "D": 2055.0,
+        "HP": 6310.0,
+        "normalHit": 1324.96249,
+        "TTK": 6.665488,
+        "survival": 7.865092,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    },
+    "lapis": {
+      "0": {
+        "R": 2126.788898,
+        "D": 2040.0,
+        "HP": 6170.0,
+        "normalHit": 1302.358182,
+        "TTK": 6.781177,
+        "survival": 7.649933,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 2329.401551,
+        "D": 2175.0,
+        "HP": 6170.0,
+        "normalHit": 1552.694847,
+        "TTK": 5.687867,
+        "survival": 8.02983,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2565.734204,
+        "D": 2370.0,
+        "HP": 6470.0,
+        "normalHit": 1847.587832,
+        "TTK": 4.780028,
+        "survival": 9.059854,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    },
+    "lumina": {
+      "0": {
+        "R": 2091.52,
+        "D": 2070.0,
+        "HP": 6500.0,
+        "normalHit": 1259.077355,
+        "TTK": 7.01428,
+        "survival": 8.145145,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 2185.6,
+        "D": 2190.0,
+        "HP": 6500.0,
+        "normalHit": 1374.738812,
+        "TTK": 6.424145,
+        "survival": 8.505902,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2232.64,
+        "D": 2265.0,
+        "HP": 6500.0,
+        "normalHit": 1432.8073,
+        "TTK": 6.163789,
+        "survival": 8.745742,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    },
+    "astra": {
+      "0": {
+        "R": 2248.413551,
+        "D": 2220.0,
+        "HP": 6730.0,
+        "normalHit": 1452.311594,
+        "TTK": 6.08101,
+        "survival": 8.904775,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 2319.873551,
+        "D": 2340.0,
+        "HP": 6730.0,
+        "normalHit": 1540.865088,
+        "TTK": 5.731535,
+        "survival": 9.315953,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2391.333551,
+        "D": 2415.0,
+        "HP": 6730.0,
+        "normalHit": 1629.70927,
+        "TTK": 5.419078,
+        "survival": 9.590023,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    }
+  },
+  "optimizedSameResidualSameMob": {
+    "eriva": {
+      "R": 3160.591347,
+      "D": 2086.0,
+      "HP": 6310.0,
+      "normalHit": 2858.569375,
+      "TTK": 3.006803,
+      "survival": 7.952247,
+      "hitRate": 0.92,
+      "criticalFactor": 1.0275,
+      "armorStrength": 36,
+      "armorNone": 10,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar"
+      ],
+      "weaponCombinationCount": 25,
+      "maximumRInSearch": 3350.416653,
+      "maximumRWeaponEffects": [
+        "weapon_melee_attack_scalar"
+      ]
+    },
+    "lapis": {
+      "R": 4018.64498,
+      "D": 2391.0,
+      "HP": 6470.0,
+      "normalHit": 6723.884841,
+      "TTK": 1.408299,
+      "survival": 9.133768,
+      "hitRate": 0.92,
+      "criticalFactor": 1.0275,
+      "armorStrength": 48,
+      "armorNone": 40,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_normal_attack_damage_increase_flat"
+      ],
+      "weaponCombinationCount": 300,
+      "maximumRInSearch": 4243.150286,
+      "maximumRWeaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ]
+    },
+    "lumina": {
+      "R": 3573.392482,
+      "D": 2281.0,
+      "HP": 6500.0,
+      "normalHit": 6076.696378,
+      "TTK": 1.558287,
+      "survival": 8.798431,
+      "hitRate": 0.92,
+      "criticalFactor": 1.0275,
+      "armorStrength": 48,
+      "armorNone": 49.6,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat",
+        "weapon_normal_attack_damage_increase_flat"
+      ],
+      "weaponCombinationCount": 2300,
+      "maximumRInSearch": 3751.933282,
+      "maximumRWeaponEffects": [
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ]
+    },
+    "astra": {
+      "R": 3694.669127,
+      "D": 2428.0,
+      "HP": 6730.0,
+      "normalHit": 6378.115683,
+      "TTK": 1.259992,
+      "survival": 9.638955,
+      "hitRate": 0.92,
+      "criticalFactor": 1.2107,
+      "armorStrength": 48,
+      "armorNone": 49.6,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_critical_rate_flat",
+        "weapon_critical_damage_flat",
+        "weapon_normal_attack_damage_increase_flat"
+      ],
+      "weaponCombinationCount": 12650,
+      "maximumRInSearch": 4140.171233,
+      "maximumRWeaponEffects": [
+        "weapon_attack_flat",
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ]
+    }
+  },
+  "legacyLuminaNoCrit": {
+    "R": 3751.933282,
+    "D": 2281.0,
+    "HP": 6500.0,
+    "normalHit": 5015.818122,
+    "TTK": 1.760734,
+    "survival": 8.798431,
+    "hitRate": 0.92,
+    "criticalFactor": 1
+  },
+  "correctedLuminaBaseCrit": {
+    "R": 3751.933282,
+    "D": 2281.0,
+    "HP": 6500.0,
+    "normalHit": 5015.818122,
+    "TTK": 1.71361,
+    "survival": 8.798431,
+    "hitRate": 0.92,
+    "criticalFactor": 1.0275
+  },
+  "distinctLv30Residual": {
+    "attack": 1774.4206549118385,
+    "primary": 42.8,
+    "defense": 2792.0,
+    "hp": 8380.0
+  },
+  "distinctLv30Mob": {
+    "hp": 19000,
+    "attack": 3442,
+    "defense": 3318
+  },
+  "lv30AnchoredBaseline": {
+    "0": {
+      "R": 3246.54,
+      "D": 3322.0,
+      "HP": 9500.0,
+      "normalHit": 2068.343138,
+      "TTK": 6.240555,
+      "survival": 8.771481,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    },
+    "15": {
+      "R": 3318.0,
+      "D": 3442.0,
+      "HP": 9500.0,
+      "normalHit": 2156.7,
+      "TTK": 5.984888,
+      "survival": 9.049257,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    },
+    "30": {
+      "R": 3389.46,
+      "D": 3517.0,
+      "HP": 9500.0,
+      "normalHit": 2245.272322,
+      "TTK": 5.748794,
+      "survival": 9.230732,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    }
+  },
+  "lv30AnchoredSearch": {
+    "R": 5294.829606,
+    "D": 3530.0,
+    "HP": 9500.0,
+    "normalHit": 9049.414209,
+    "TTK": 1.406995,
+    "survival": 9.262831,
+    "hitRate": 1,
+    "criticalFactor": 1.0275,
+    "armorStrength": 48,
+    "armorNone": 49.6,
+    "weaponEffects": [
+      "weapon_melee_attack_scalar",
+      "weapon_strength_flat",
+      "weapon_accuracy_flat",
+      "weapon_normal_attack_damage_increase_flat"
+    ],
+    "weaponCombinationCount": 12650,
+    "maximumRInSearch": 5527.994406,
+    "maximumRWeaponEffects": [
+      "weapon_attack_flat",
+      "weapon_melee_attack_flat",
+      "weapon_melee_attack_scalar",
+      "weapon_strength_flat"
+    ]
+  },
+  "proposedLapisBaseline": {
+    "0": {
+      "R": 2046.266449,
+      "D": 2040.0,
+      "HP": 6170.0,
+      "normalHit": 1203.692693,
+      "TTK": 7.337024,
+      "survival": 7.649933,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    },
+    "15": {
+      "R": 2115.926449,
+      "D": 2160.0,
+      "HP": 6170.0,
+      "normalHit": 1289.017717,
+      "TTK": 6.851358,
+      "survival": 7.986015,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    },
+    "30": {
+      "R": 2162.366449,
+      "D": 2235.0,
+      "HP": 6170.0,
+      "normalHit": 1346.114441,
+      "TTK": 6.560751,
+      "survival": 8.209339,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    }
+  },
+  "proposedLapisSearch": {
+    "R": 3246.648424,
+    "D": 2256.0,
+    "HP": 6170.0,
+    "normalHit": 4928.721389,
+    "TTK": 1.921236,
+    "survival": 8.273822,
+    "hitRate": 0.92,
+    "criticalFactor": 1.0275,
+    "armorStrength": 48,
+    "armorNone": 40,
+    "weaponEffects": [
+      "weapon_melee_attack_scalar",
+      "weapon_normal_attack_damage_increase_flat"
+    ],
+    "weaponCombinationCount": 300,
+    "maximumRInSearch": 3436.881731,
+    "maximumRWeaponEffects": [
+      "weapon_melee_attack_scalar",
+      "weapon_strength_flat"
+    ]
+  },
+  "assumptions": {
+    "normalShare": 0.6,
+    "skillShare": 0.4,
+    "mixedDpsFactor": 1.6,
+    "hitRate": 0.92,
+    "enemyHitRate": 0.915,
+    "finalMultiplier": 1.3,
+    "critRateIfEnabled": 0.055,
+    "critDamage": 1.5,
+    "weaponAttributeBonus": "excluded for NONE route",
+    "setAccuracyPlus2": "not added to fixed .92 hit assumption"
+  },
+  "limits": [
+    "Search uses enchant003 weapon entries at their maxima and direct melee offense armor entries; not all possible character builds",
+    "Baseline cases omit criticals/enchant/rune to reproduce the previous reference; search enables base criticals",
+    "No skill timing, attack degradation, Shield, source placement, 100-battle simulation or accessory optimization",
+    "Legacy item min/max are attack ranges; new random stats are one saved scalar per instance"
+  ]
+}
