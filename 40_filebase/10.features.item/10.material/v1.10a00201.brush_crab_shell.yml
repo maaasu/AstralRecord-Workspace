@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / カニの甲羅"
+#   progression: 18
+schemaVersion: 1
+id: 10a00201
+category: material
+name: "&fヤブガニの甲羅"
+icon: TURTLE_SCUTE
+rarity: COMMON
+maxStack: 64
+saleValue: 200
+lore:
+  - "&7草むらを渡るヤブガニの硬い甲羅。"
+  - "&7薄い層を重ねた殻で、表面には細い筋がある。"
+unTradeable: false
+unSellable: false
