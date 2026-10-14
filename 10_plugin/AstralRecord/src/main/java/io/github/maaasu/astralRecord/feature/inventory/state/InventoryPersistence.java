@@ -468,7 +468,8 @@ public final class InventoryPersistence {
     }
 
     /**
-     * 外部取引後の正本entryを、次回完成状態保存の期待集合へ反映します。
+     * 外部取引後の正本entryと存在確認済みの所有親を、次回完成状態保存の期待集合へ反映します。
+     * 正本entryの外部キーでAPIに存在する親も永続化済みとし、初回外部収納の親を再作成しません。
      * @param state 所有state。呼出元はこのmonitorを保持する
      * @param entryId 照合したentry ID
      * @param authoritative 正本行。消滅・他者移管の場合null
@@ -480,8 +481,12 @@ public final class InventoryPersistence {
             known.values().forEach(ids -> ids.remove(entryId));
             Map<UUID, java.time.LocalDateTime> versions = persistedEntryVersions.computeIfAbsent(state.getAccountId(), ignored -> new HashMap<>());
             versions.remove(entryId);
-            if (authoritative != null && !authoritative.isDeleted()
-                && state.findInventoryById(authoritative.getInventoryId()) != null) {
+            InventoryModel ownedInventory = authoritative == null ? null
+                : state.findInventoryById(authoritative.getInventoryId());
+            if (authoritative != null && !authoritative.isDeleted() && ownedInventory != null
+                && ownedInventory.getAccountId().equals(state.getAccountId())) {
+                persistedInventoryIds.computeIfAbsent(state.getAccountId(), ignored -> ConcurrentHashMap.newKeySet())
+                    .add(ownedInventory.getInventoryId());
                 known.computeIfAbsent(authoritative.getInventoryId(), ignored -> new HashSet<>()).add(entryId);
                 versions.put(entryId, authoritative.getUpdatedAt());
             }

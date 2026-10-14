@@ -1469,7 +1469,11 @@ public class MarketRepository(
         Guid updatedBy
     )
     {
-        var inventory = await FindBagInventoryAsync(buyerAccountId);
+        var orbStorage = new OrbStorageDestination(dbContext);
+        var inventory = OrbStorageDestination.IsOrbStack(listing.ItemCategory, listing.InstanceType, listing.InstanceId)
+            ? await orbStorage.FindAsync(buyerAccountId, listing.ItemId, updatedBy)
+            : null;
+        inventory ??= await FindBagInventoryAsync(buyerAccountId);
         if (inventory is null)
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
                 400,
@@ -1557,6 +1561,7 @@ public class MarketRepository(
         {
             InventoryEntryId = Guid.NewGuid(),
             InventoryId = inventory.InventoryId,
+            SlotIndex = orbStorage.ResolveNewEntrySlot(inventory),
             ItemCategory = listing.ItemCategory,
             ItemId = listing.ItemId,
             Quantity = quantity,
