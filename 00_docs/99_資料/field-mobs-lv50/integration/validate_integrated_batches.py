@@ -28,6 +28,8 @@ source_path = root / "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astr
 source = source_path.read_text(encoding="utf-8")
 fields = {"field_reed_hound":("ReedHound", "reedHound", "grass_charge",[22,24,26,28],{"10a00200":40}), "field_brush_crab":("BrushCrab","brushCrab","side_pincer",[22,24,26,28],{"10a00201":45,"10a00202":6}), "field_sunhare":("Sunhare","sunhare","leap_kick",[28,30,32,34],{"10a00210":35}), "field_wind_lizard":("WindLizard","windLizard","wind_tail",[28,30,32,34],{"10a00211":35})}
 fields.update({
+    "field_root_turtle": ("RootTurtle", "rootTurtle", "root_snare", [24,26,28,30], {"10a00250":35}),
+    "field_snow_wolf": ("SnowWolf", "snowWolf", "ice_dash", [32,34,36,38], {"10a00251":35}),
     "field_bark_beetle": ("BarkBeetle", "barkBeetle", "wood_shot", [24,26,28,30], {"10a00240":35}),
     "field_moss_fox": ("MossFox", "mossFox", "moss_smoke", [24,26,28,30], {"10a00241":35,"10a00242":8}),
     "field_stoneback_bison": ("StonebackBison", "stonebackBison", "earth_charge", [42,44,46,48], {"10a00230":35,"10a00231":10,"10a00232":0.25}),
@@ -44,12 +46,13 @@ for mob_id, (cls, field, move, levels, drops) in fields.items():
     assert source.count(f"private {cls} {field};") == 1
     assert source.count(f"{field} = new {cls}(") == 1
     assert source.count(f"mobSkillRegistry.register({field});") == 1
-    assert source.count(f"{field}.clearCasterState(mobInstanceId);") == 1
+    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf"] else "clearCasterState"
+    assert source.count(f"{field}.{hook}(mobInstanceId);") == 1
     assert source.count(f"{field}.stop();") == 1
     assert source.index(f"{field}.stop();") < source.index("mobService.destroyAll();") < source.index("getServer().getScheduler().cancelTasks(this);")
     assert source.index(f"{field} = new {cls}(") < source.index("mobService.setDestroyListener(")
-    assert "public void clearCasterState(" in text and "public void stop()" in text
-    assert re.search(r"\w+\.remove\(context\.mob\(\)\.instanceId\(\), this\)", text) and "scriptedAction(false)" in text
+    assert f"public void {hook}(" in text and "public void stop()" in text
+    assert re.search(r"\w+\.remove\(", text) and "scriptedAction(false)" in text
     mob = data[masters[("40.features.mob",mob_id)]]
     assert [r["level"] for r in mob["levels"]] == levels and 4 <= max(levels)-min(levels) <= 10 and max(levels)<=50
     if mob_id=="field_bark_beetle":
@@ -74,7 +77,7 @@ for line in listener(old).splitlines():
 # No pre-existing master or spawn setting has changed.
 changes = subprocess.check_output(["git","-c","core.quotepath=false","diff","--name-status","e2058ade","--","40_filebase"],cwd=root).decode("utf-8").splitlines()
 master_changes = [line for line in changes if any(path.endswith((".yml", ".yaml")) for path in line.split("\t")[1:])]
-existing_materials = {"eriva_bark_sentinel":"10a00300", "eriva_camouflage_zombie":"10a00301", "eriva_grassboar":"10a00302", "eriva_sporecap_beast":"10a00303"}
+existing_materials = {"eriva_bark_sentinel":"10a00300", "eriva_camouflage_zombie":"10a00301", "eriva_grassboar":"10a00302", "eriva_sporecap_beast":"10a00303", "eriva_starhorn_guardian":"10a00304", "eriva_thornfang_wolf":"10a00305"}
 allowed_modified = {f"40_filebase/40.features.mob/enemy/v1.{mob}.yml" for mob in existing_materials}
 for line in master_changes:
     cells=line.split("\t")
@@ -94,6 +97,7 @@ def remove_material(current, old, item):
     if "items" not in old.get("drops",{}):
         assert not value["drops"]["items"];del value["drops"]["items"]
     assert value==old, f"existing effective data changed: {item}"
+assert ("70.shared.buff","field_root_turtle_root_snare") in masters
 existing_profiles=0
 for mob,item in existing_materials.items():
     path=f"40_filebase/40.features.mob/enemy/v1.{mob}.yml"

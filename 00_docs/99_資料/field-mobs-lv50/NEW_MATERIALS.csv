@@ -11,11 +11,11 @@ B04,field_stoneback_bison / イワセバイソン,"42,44,46,48",10a00230,厚い�
 B04,field_stoneback_bison / イワセバイソン,"42,44,46,48",10a00231,石背の角(希少),uncommon,10,1,implemented_integrated,10.0,1,950,central_compile_tests_pass_pending_runtime
 B04,field_stoneback_bison / イワセバイソン,"42,44,46,48",10a00232,大地の芯(低確率),very_rare,1,1,implemented_integrated,0.25,1,2800,central_compile_tests_pass_pending_runtime
 B04,field_storm_raptor / アラシラプター,"42,44,46,48",10a00233,風切り羽,normal,35,1,implemented_integrated,35.0,1,260,central_compile_tests_pass_pending_runtime
-B05,field_bark_beetle / キノカブト,"24,26,28,30",10a00240,木色の殻,normal,35,1,implemented_integrated,35,1,180,central_static_pass_pending_compile_runtime
-B05,field_moss_fox / コケギツネ,"24,26,28,30",10a00241,コケ色の毛,normal,35,1,implemented_integrated,35,1,180,central_static_pass_pending_compile_runtime
-B05,field_moss_fox / コケギツネ,"24,26,28,30",10a00242,森の香り袋(希少),uncommon,10,1,implemented_integrated,8,1,500,central_static_pass_pending_compile_runtime
-B06,field_root_turtle / ネッコガメ,"24,26,28,30",10a00250,根付きの甲羅,normal,35,1,reserved_not_implemented,,,,
-B06,field_snow_wolf / ユキオオカミ,"32,34,36,38",10a00251,雪色の毛皮,normal,35,1,reserved_not_implemented,,,,
+B05,field_bark_beetle / キノカブト,"24,26,28,30",10a00240,木色の殻,normal,35,1,implemented_integrated,35,1,180,central_compile_tests_pass_pending_runtime
+B05,field_moss_fox / コケギツネ,"24,26,28,30",10a00241,コケ色の毛,normal,35,1,implemented_integrated,35,1,180,central_compile_tests_pass_pending_runtime
+B05,field_moss_fox / コケギツネ,"24,26,28,30",10a00242,森の香り袋(希少),uncommon,10,1,implemented_integrated,8,1,500,central_compile_tests_pass_pending_runtime
+B06,field_root_turtle / ネッコガメ,"24,26,28,30",10a00250,根付きの甲羅,normal,35,1,implemented_integrated,35.0,1,300,central_compile_tests_pass_pending_runtime
+B06,field_snow_wolf / ユキオオカミ,"32,34,36,38",10a00251,雪色の毛皮,normal,35,1,implemented_integrated,35.0,1,400,central_compile_tests_pass_pending_runtime
 B07,field_ice_moth / コオリガ,"32,34,36,38",10a00260,冷たい羽粉,normal,35,1,reserved_not_implemented,,,,
 B07,field_ice_moth / コオリガ,"32,34,36,38",10a00261,氷羽の結晶(希少),uncommon,10,1,reserved_not_implemented,,,,
 B07,field_frost_boar / シモイノシシ,"32,34,36,38",10a00262,霜色の牙,normal,35,1,reserved_not_implemented,,,,
