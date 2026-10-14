@@ -92,5 +92,6 @@ describe('master data navigation', () => {
     expect(summarizeMasterValue({ other: 1, name: 'Sword', id: 'sword', type: 'weapon' })).toBe('名前: Sword · id: sword · 種類: weapon（4 項目）')
     expect(summarizeMasterValue('a'.repeat(100))).toHaveLength(80)
     expect(summarizeMasterValue({ description: 'a'.repeat(100) })).toContain('…')
+    expect(summarizeMasterValue({ MAX_HEALTH: 5 })).toBe('最大HP（MAX_HEALTH）: 5（1 項目）')
   })
 })

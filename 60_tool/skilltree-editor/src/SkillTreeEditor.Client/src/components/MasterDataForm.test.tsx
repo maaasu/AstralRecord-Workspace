@@ -23,6 +23,36 @@ function openAdd(path: string) {
 }
 
 describe('master form', () => {
+  it('offers Japanese status ID candidates without reference metadata and preserves unknown IDs and sibling values', () => {
+    render(<Editable initial={{ statusID: 'MAX_HEALTH', AlienRPC: { untouched: true } }} metadata={[]} />)
+    const input = screen.getByRole('combobox', { name: '/statusID' })
+    expect(document.querySelector('option[value="MAX_HEALTH"]')).toHaveTextContent('最大HP（MAX_HEALTH）')
+    expect(screen.getByLabelText('/statusID 選択中の名前')).toHaveTextContent('最大HP（MAX_HEALTH）')
+    fireEvent.change(input, { target: { value: 'UNKNOWN_STATUS' } })
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ statusID: 'UNKNOWN_STATUS', AlienRPC: { untouched: true } })
+    expect(input).toHaveValue('UNKNOWN_STATUS')
+  })
+
+  it('labels status map keys and enum choices in Japanese while saving the original keys and IDs', () => {
+    const onChange = vi.fn()
+    render(<MasterDataForm value={{ MAX_HEALTH: 5, pointType: 'CP' }} fields={[]}
+      schema={{ properties: { pointType: { enum: ['CP', 'PP'] } } }} onChange={onChange} />)
+    expect(screen.getByText('最大HP（MAX_HEALTH）', { selector: 'strong' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'クラスポイント（CP）' })).toHaveValue('"CP"')
+    fireEvent.change(screen.getByRole('combobox', { name: '/pointType' }), { target: { value: '"PP"' } })
+    expect(onChange).toHaveBeenLastCalledWith({ MAX_HEALTH: 5, pointType: 'PP' })
+  })
+
+  it('shows short descriptions inline and gives long help and actions an identifiable target', () => {
+    const { container } = render(<MasterDataForm value={{ name: '名前', description: '本文' }} fields={fields}
+      schema={{ properties: { description: { title: '説明本文', description: '長い説明'.repeat(40) } } }} onChange={vi.fn()} />)
+    expect(screen.getByText('ゲーム内の名前').closest('details')).toBeNull()
+    expect(screen.getByText('説明本文の詳しい説明')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: '表示名（name）の操作' })).toBeInTheDocument()
+    expect(container.querySelectorAll('.master-field-actions')).toHaveLength(0)
+    expect(screen.queryByText('項目の説明')).not.toBeInTheDocument()
+  })
+
   it('renders committed pet experience coefficients and growth correction as editable numbers', () => {
     const onChange = vi.fn()
     const experience = { combatGain: { base: 50, perLevel: 25 }, gatheringGain: { base: 20, perLevel: 10 }, growthRateMin: .25 }
@@ -92,7 +122,7 @@ describe('master form', () => {
     expect(document.querySelector('option[value="81a00001"]')).toHaveTextContent('犬の卵')
     expect(screen.getByText('犬の')).toHaveStyle({ color: '#ffaa00' })
     expect(screen.getByText('卵', { selector: '.minecraft-text span' })).toHaveStyle({ color: '#55ff55' })
-    fireEvent.click(screen.getByText('名前と色を確認して選択'))
+    fireEvent.click(screen.getByText('卵の候補を選択'))
     fireEvent.click(screen.getByRole('button', { name: '犬の卵81a00001' }))
     expect(onChange).toHaveBeenCalledWith('81a00001')
   })
@@ -110,7 +140,7 @@ describe('master form', () => {
     expect(document.querySelector('option[value="enchant:enchant:enchant003"]')).toBeNull()
     fireEvent.change(screen.getByRole('combobox', { name: '/orb/effect/enchantMasterId' }), { target: { value: 'enchant:enchant003' } })
     expect(onChange).toHaveBeenLastCalledWith('enchant:enchant003')
-    fireEvent.click(screen.getByText('名前と色を確認して選択'))
+    fireEvent.click(screen.getByText('エンチャント候補マスタの候補を選択'))
     fireEvent.click(screen.getByRole('button', { name: '中級候補enchant:enchant002' }))
     expect(onChange).toHaveBeenLastCalledWith('enchant:enchant002')
   })

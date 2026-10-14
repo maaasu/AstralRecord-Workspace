@@ -6,6 +6,17 @@ import type { JsonObject, JsonValue } from '../types/editor'
 import nodeSchema from '../../../../../../40_filebase/35.features.skilltree/schemas/node.v1.schema.json'
 
 describe('defaultFromSchema', () => {
+  it('labels declared enums in Japanese and preserves selected IDs including unknown existing values', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<SchemaForm schema={{ enum: ['FLAT', 'SCALAR'] }} value="FLAT" path="/modifierType" onChange={onChange} />)
+    expect(screen.getByRole('option', { name: '定数加算（FLAT）' })).toHaveValue('FLAT')
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'SCALAR' } })
+    expect(onChange).toHaveBeenLastCalledWith('SCALAR')
+    rerender(<SchemaForm schema={{ enum: ['FLAT', 'SCALAR'] }} value="UNKNOWN" path="/modifierType" onChange={onChange} />)
+    expect(screen.getByRole('combobox')).toHaveValue('UNKNOWN')
+    expect(screen.getByRole('option', { name: 'UNKNOWN' })).toHaveValue('UNKNOWN')
+  })
+
   it('uses the first enum value even when type is omitted', () => {
     expect(defaultFromSchema({ enum: ['CP', 'PP'] })).toBe('CP')
     expect(defaultFromSchema({ enum: ['FLAT', 'SCALAR'] })).toBe('FLAT')

@@ -14,6 +14,14 @@ function Editable({ readOnly = false, value: startingValue = initial, schema = {
     <output data-testid="value">{JSON.stringify(value)}</output></>
 }
 describe('master data sections, search and details', () => {
+  it('searches catalog status names in scalar values and Map keys without rewriting stored IDs', () => {
+    render(<Editable value={{ stats: { MAX_HEALTH: 5 }, baseStats: [{ status: 'MAX_HEALTH', value: 7 }] }} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: '最大HP' } })
+    expect(screen.getByRole('button', { name: '/stats/MAX_HEALTH に移動' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '/baseStats/0/status に移動' })).toHaveTextContent('最大HP（MAX_HEALTH）')
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ stats: { MAX_HEALTH: 5 }, baseStats: [{ status: 'MAX_HEALTH', value: 7 }] })
+  })
+
   it('moves directly between Japanese sections without returning to the root', () => {
     render(<Editable value={{ id: 'dungeon', entry: { worldId: 'world' }, challenge: { timeLimitSeconds: 900 } }} />)
     fireEvent.click(within(screen.getByRole('navigation', { name: '編集セクション' })).getByRole('button', { name: '入場地点' }))
