@@ -1,0 +1,16 @@
+# design:
+#   motif: "地形 / 細かい砂粒"
+#   progression: 38
+schemaVersion: 1
+id: 10a00272
+category: material
+name: 砂ヤモリの砂粒
+icon: SAND
+rarity: UNCOMMON
+saleValue: 620
+maxStack: 64
+lore:
+- '&7スナヤモリの体から集めた、細かく乾いた砂粒。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

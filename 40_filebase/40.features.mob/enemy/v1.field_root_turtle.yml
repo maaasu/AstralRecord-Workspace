@@ -1,0 +1,122 @@
+# design:
+#   motif: "植物・動物 / 根をまとった亀"
+#   progression: 24
+schemaVersion: 1
+id: field_root_turtle
+type: MOB
+category: ENEMY
+name: "&aネッコガメ"
+level: 24
+entityType: TURTLE
+variant:
+  age: ADULT
+icon: TURTLE_SPAWN_EGG
+lore:
+  - "&7根の絡んだ甲羅を背負う、ゆっくり歩く亀。"
+  - "&7足元に根の輪を描く。輪から出れば足止めを避けられる。"
+  - "&7根が絡むと1.2秒だけ足が鈍る。攻撃やスキルは使える。"
+tags:
+  - forest
+  - beast
+  - melee
+
+levels:
+  - level: 24
+    name: "&aネッコガメ Lv.24"
+  - level: 26
+    name: "&aネッコガメ Lv.26"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 16330
+      - status: ATTACK
+        value: 2060
+      - status: DEFENSE
+        value: 2725
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 80
+    drops:
+      exp: 396
+  - level: 28
+    name: "&aネッコガメ Lv.28"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 19090
+      - status: ATTACK
+        value: 2405
+      - status: DEFENSE
+        value: 3185
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 80
+    drops:
+      exp: 440
+  - level: 30
+    name: "&aネッコガメ Lv.30"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 21850
+      - status: ATTACK
+        value: 2755
+      - status: DEFENSE
+        value: 3650
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 80
+    drops:
+      exp: 484
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 13800
+  - status: ATTACK
+    value: 1740
+  - status: DEFENSE
+    value: 2300
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 80
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.65
+  targeting:
+    strategy: NEAREST
+    aggroRange: 14
+    deaggroRange: 22
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+      - id: mob_field_root_turtle_root_snare
+        activationRange: 6
+        cooldownTicks: 160
+        castTimeTicks: 0
+
+drops:
+  exp: 352
+  items:
+    - itemId:
+        ref: item:10a00250
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false

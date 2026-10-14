@@ -1,0 +1,271 @@
+# design:
+#   motif: "鉱物 / ラピスの青い石"
+#   progression: 20
+schemaVersion: 1
+id: 20a00415
+category: equipment
+name: '&bラピスメイジハット'
+icon: LEATHER_HELMET
+appearance:
+  color: '#637DBD'
+rarity: RARE
+maxStack: 1
+saleValue: 2300
+lore:
+- '&7青く染めた革を使ったラピスの防具。'
+- '&7鍛え上げて進化させると、さらに成長する。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: HEAD
+  requiredLevel: 20
+  setId: lapis_arcana
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 58
+    random:
+      offsetMin: -4
+      offsetMax: 4
+      step: 1
+  - status: MAX_MANA
+    type: FLAT
+    value: 60
+  - status: MP_REGEN
+    type: FLAT
+    value: 2
+  durability:
+    max: 400
+    consume: 1
+  enchant:
+    maxSlots: 2
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 1
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+  transcendence:
+  - name: 進化
+    rank: 1
+    requiredEnhanceLevel: 15
+    requiredMaterials:
+    - itemId: 10a00086
+      amount: 8
+    - itemId: 10a00087
+      amount: 4
+    - itemId: 10a00089
+      amount: 1
+    requiredCurrency: 2500
+    overrides:
+      name: '&b進化したラピスメイジハット'
+      enhance:
+        maxLevel: 30
+iconGlint: true

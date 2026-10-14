@@ -1,0 +1,16 @@
+# design:
+#   motif: "工芸 / 金属の腕輪"
+#   progression: 10
+schemaVersion: 1
+id: 10a00307
+category: material
+name: "&f古びた腕輪"
+icon: IRON_CHAIN
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7マリルシルの死英雄が着けていた、古い腕輪。"
+  - "&7輪をつなぐ金属がくすみ、細かな傷が残っている。"
+unTradeable: false
+unSellable: false

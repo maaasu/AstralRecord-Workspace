@@ -1,0 +1,15 @@
+# design:
+#   motif: "民間伝承 / 蜘蛛と呪糸"
+#   progression: 20
+schemaVersion: 1
+id: 10a00323
+category: material
+name: "&f黒い糸玉"
+icon: STRING
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7呪糸の森蜘蛛が紡いだ黒い糸を巻き取った小さな糸玉。"
+unTradeable: false
+unSellable: false

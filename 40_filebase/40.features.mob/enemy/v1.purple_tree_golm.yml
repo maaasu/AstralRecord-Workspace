@@ -60,5 +60,12 @@ ai:
         castTimeTicks: 16
 drops:
   exp: 160
+  items:
+    - itemId:
+        ref: item:10a00317
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false
   lootTable:
     ref: loot_table:normal_enemy_common_table_tier_2

@@ -1,0 +1,18 @@
+item_id,name,sink_found,acquisition_evidence,judgment
+10a00005,青灯石の欠片,no,42.features.gathering/harvesting/v1.glimmercap_cluster.yml:32,unused sink; gathering output only
+10a00031,古代遺跡の銀章,no,65.features.dungeon/v1.middle_earth_ruins.yml:50,unused sink; dungeon reward only
+10a00034,遺跡主の王石,no,65.features.dungeon/v1.middle_earth_ruins.yml:53,unused sink; dungeon reward only
+10a00036,風化した遺跡貨,no,65.features.dungeon/v1.middle_earth_ruins.yml:47,unused sink; dungeon reward only
+10a00038,フォレストウルフの爪,no,40.features.mob/enemy/v1.midgard_forest_wolf.yml:50|82|132,unused sink; mob drop only
+10a00045,炎紋の聖印,no,65.features.dungeon/v1.iluvatar_sanctum.yml:39,unused sink; dungeon reward only
+10a00046,万象聖域の金印,no,65.features.dungeon/v1.iluvatar_sanctum.yml:36,unused sink; dungeon reward only
+10a00047,万象の炎晶,no,65.features.dungeon/v1.iluvatar_sanctum.yml:42,unused sink; dungeon reward only
+10a00051,ハイエナの湾曲牙,no,40.features.mob/enemy/v1.midgard_savanna_hyena.yml:49|99,unused sink; mob drop only
+10a00091,星のしずく,no,42.features.gathering/mining/v1.verdia_cave_starheart_vein.yml:40,unused sink; mining output only
+10a00092,冥河の渡し賃,no,40.features.mob/boss/v1.charon_ferryman.yml:91,unused sink; boss drop only
+10a00095,紅銅の呪核,no,40.features.mob/boss/v1.empusa_witch.yml:62,unused sink; boss drop only
+10a00096,煤けた鐘片,no,40.features.mob/boss/v1.mine_bell_knocker.yml:63,unused sink; boss drop only
+10a00097,川ダラ,no,44.features.fishing.fish/v1.river_cod.yml:16,unused sink; catch output only
+10a00098,川サケ,no,44.features.fishing.fish/v1.river_salmon.yml:16,unused sink; catch output only
+10a00099,彩りの熱帯魚,no,44.features.fishing.fish/v1.tropical_fish.yml:16,unused sink; catch output only
+10a00101,月蝕の綴り墨,no,40.features.mob/boss/v1.selenea_eclipse_witch.yml:81,unused sink; boss drop only

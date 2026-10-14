@@ -1,0 +1,899 @@
+{
+  "status": "proposal_only",
+  "baseCommit": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+  "series": "astra",
+  "equipmentLevel": 30,
+  "inventoryAssumption": {
+    "conservativeSlotBudget": 32,
+    "checkFreeOutputSlotBeforeConsumption": true,
+    "maxMaterialTypes": 3
+  },
+  "acceptance": [
+    "新規モブ素材のworld/spawner配置と最低Lv個体からの入手を確認する",
+    "採集objectの配置・再出現・競合と道具の入手/耐久を確認する",
+    "Gold獲得時間を計測し、ショップとレシピは統合担当が反映する",
+    "保守的に32枠内で素材を所持し完成品用空き1枠を購入前に確保する（現行初期容量36枠）"
+  ],
+  "materialSources": [
+    {
+      "itemId": "10a00010",
+      "name": "洞窟の石ころ",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_mossroot_rock",
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_mossroot_rock.yml",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "amount": "2~4",
+      "placement": "definition_only_not_runtime_verified",
+      "gatheringLevel": 2,
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "maxHealth": 26,
+      "secondsAtSpeed4": 2.8000000000000003
+    },
+    {
+      "itemId": "10a00086",
+      "name": "風鳴り石のかけら",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_windsong_stone",
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_windsong_stone.yml",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "amount": "1",
+      "placement": "definition_only_not_runtime_verified",
+      "gatheringLevel": 2,
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "maxHealth": 22,
+      "secondsAtSpeed4": 2.4000000000000004
+    },
+    {
+      "itemId": "10a00087",
+      "name": "こけ根岩のかけら",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_mossroot_rock",
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_mossroot_rock.yml",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "amount": "1",
+      "placement": "definition_only_not_runtime_verified",
+      "gatheringLevel": 2,
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "maxHealth": 26,
+      "secondsAtSpeed4": 2.8000000000000003
+    },
+    {
+      "itemId": "10a00089",
+      "name": "青泉石のかけら",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_bluewell_vein",
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_bluewell_vein.yml",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "amount": "1",
+      "placement": "definition_only_not_runtime_verified",
+      "gatheringLevel": 2,
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "maxHealth": 40,
+      "secondsAtSpeed4": 4.0
+    },
+    {
+      "itemId": "10a00200",
+      "name": "草色の毛皮",
+      "kind": "mob",
+      "sourceId": "field_reed_hound",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_reed_hound.yml",
+      "sourceMinLevel": 22,
+      "dropRatePercent": 40.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00201",
+      "name": "ヤブガニの甲羅",
+      "kind": "mob",
+      "sourceId": "field_brush_crab",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_brush_crab.yml",
+      "sourceMinLevel": 22,
+      "dropRatePercent": 45.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00210",
+      "name": "やわらかな耳毛",
+      "kind": "mob",
+      "sourceId": "field_sunhare",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_sunhare.yml",
+      "sourceMinLevel": 28,
+      "dropRatePercent": 35.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00211",
+      "name": "風色のウロコ",
+      "kind": "mob",
+      "sourceId": "field_wind_lizard",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_wind_lizard.yml",
+      "sourceMinLevel": 28,
+      "dropRatePercent": 35.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00220",
+      "name": "野原の羊毛",
+      "kind": "mob",
+      "sourceId": "field_plain_ram",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_plain_ram.yml",
+      "sourceMinLevel": 28,
+      "dropRatePercent": 35.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00240",
+      "name": "木色の殻",
+      "kind": "mob",
+      "sourceId": "field_bark_beetle",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_bark_beetle.yml",
+      "sourceMinLevel": 24,
+      "dropRatePercent": 35.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00241",
+      "name": "コケ色の毛",
+      "kind": "mob",
+      "sourceId": "field_moss_fox",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_moss_fox.yml",
+      "sourceMinLevel": 24,
+      "dropRatePercent": 35.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    },
+    {
+      "itemId": "10a00250",
+      "name": "根付きの甲羅",
+      "kind": "mob",
+      "sourceId": "field_root_turtle",
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_root_turtle.yml",
+      "sourceMinLevel": 24,
+      "dropRatePercent": 35.0,
+      "amount": "1",
+      "placement": "placement_pending"
+    }
+  ],
+  "products": [
+    {
+      "itemId": "20a00438",
+      "name": "アストラソード",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 14,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 48
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 96
+        },
+        {
+          "itemId": "10a00200",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00439",
+      "name": "アストラハンマー",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 15,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 48
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 96
+        },
+        {
+          "itemId": "10a00201",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00440",
+      "name": "アストラスピア",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 16,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 48
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 96
+        },
+        {
+          "itemId": "10a00240",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00240",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00441",
+      "name": "アストラショートボウ",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 17,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 64
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 128
+        },
+        {
+          "itemId": "10a00211",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00211",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00442",
+      "name": "アストラロングボウ",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 18,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 64
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 128
+        },
+        {
+          "itemId": "10a00210",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00210",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00443",
+      "name": "アストラワンド",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 19,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 24
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 48
+        },
+        {
+          "itemId": "10a00241",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00241",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00444",
+      "name": "アストラスタッフ",
+      "outputAmount": 1,
+      "equipmentSlot": "WEAPON",
+      "setId": null,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 20,
+      "priceGold": 1000000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 24
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 48
+        },
+        {
+          "itemId": "10a00220",
+          "amount": 20
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 24
+          },
+          {
+            "itemId": "10a00220",
+            "amount": 12
+          }
+        ],
+        "requiredCurrency": 24000
+      }
+    },
+    {
+      "itemId": "20a00445",
+      "name": "アストラヘルム",
+      "outputAmount": 1,
+      "equipmentSlot": "HEAD",
+      "setId": "astra_guard",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 4,
+      "priceGold": 200000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 78
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 156
+        },
+        {
+          "itemId": "10a00250",
+          "amount": 16
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00250",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00446",
+      "name": "アストラメイル",
+      "outputAmount": 1,
+      "equipmentSlot": "CHEST",
+      "setId": "astra_guard",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 11,
+      "priceGold": 400000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 156
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 312
+        },
+        {
+          "itemId": "10a00250",
+          "amount": 32
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00250",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00447",
+      "name": "アストラグリーブ",
+      "outputAmount": 1,
+      "equipmentSlot": "LEGS",
+      "setId": "astra_guard",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 18,
+      "priceGold": 280000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 96
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 192
+        },
+        {
+          "itemId": "10a00250",
+          "amount": 24
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00250",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00448",
+      "name": "アストラブーツ",
+      "outputAmount": 1,
+      "equipmentSlot": "FEET",
+      "setId": "astra_guard",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 25,
+      "priceGold": 200000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 78
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 156
+        },
+        {
+          "itemId": "10a00250",
+          "amount": 16
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00250",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00449",
+      "name": "アストラキャップ",
+      "outputAmount": 1,
+      "equipmentSlot": "HEAD",
+      "setId": "astra_hunt",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 5,
+      "priceGold": 200000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 128
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 256
+        },
+        {
+          "itemId": "10a00211",
+          "amount": 16
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00211",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00450",
+      "name": "アストラジャケット",
+      "outputAmount": 1,
+      "equipmentSlot": "CHEST",
+      "setId": "astra_hunt",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 12,
+      "priceGold": 400000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 256
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 512
+        },
+        {
+          "itemId": "10a00211",
+          "amount": 32
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00211",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00451",
+      "name": "アストラパンツ",
+      "outputAmount": 1,
+      "equipmentSlot": "LEGS",
+      "setId": "astra_hunt",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 19,
+      "priceGold": 280000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 160
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 320
+        },
+        {
+          "itemId": "10a00211",
+          "amount": 24
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00211",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00452",
+      "name": "アストラシューズ",
+      "outputAmount": 1,
+      "equipmentSlot": "FEET",
+      "setId": "astra_hunt",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 26,
+      "priceGold": 200000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 128
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 256
+        },
+        {
+          "itemId": "10a00211",
+          "amount": 16
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00211",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00453",
+      "name": "アストラフード",
+      "outputAmount": 1,
+      "equipmentSlot": "HEAD",
+      "setId": "astra_magia",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 6,
+      "priceGold": 200000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 26
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 52
+        },
+        {
+          "itemId": "10a00220",
+          "amount": 16
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00220",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00454",
+      "name": "アストラローブ",
+      "outputAmount": 1,
+      "equipmentSlot": "CHEST",
+      "setId": "astra_magia",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 13,
+      "priceGold": 400000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 54
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 108
+        },
+        {
+          "itemId": "10a00220",
+          "amount": 32
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00220",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00455",
+      "name": "アストラレギンス",
+      "outputAmount": 1,
+      "equipmentSlot": "LEGS",
+      "setId": "astra_magia",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 20,
+      "priceGold": 280000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 33
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 66
+        },
+        {
+          "itemId": "10a00220",
+          "amount": 24
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00220",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    },
+    {
+      "itemId": "20a00456",
+      "name": "アストラサンダル",
+      "outputAmount": 1,
+      "equipmentSlot": "FEET",
+      "setId": "astra_magia",
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 27,
+      "priceGold": 200000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 26
+        },
+        {
+          "itemId": "10a00010",
+          "amount": 52
+        },
+        {
+          "itemId": "10a00220",
+          "amount": 16
+        }
+      ],
+      "evolution": {
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00220",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 12000
+      }
+    }
+  ]
+}

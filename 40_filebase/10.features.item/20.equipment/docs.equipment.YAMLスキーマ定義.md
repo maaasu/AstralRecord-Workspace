@@ -40,9 +40,8 @@
 | `equipment[].enhance.levels[].failAction`                 | String        | ×  | NONE  | 強化失敗時の挙動（`NONE` / `SET_LEVEL` / `DECREASE_ONE`）。                                                                                                       |
 | `equipment[].enhance.levels[].failTargetLevel`            | Integer       | ×  | -     | `failAction: SET_LEVEL` の失敗時に設定する強化値。                                                                                                                |
 | `equipment[].rune`                                        | Object        | ×  | -     | ルーンスロットシステム設定。指定しない場合はルーン装着不可。                                                                                                                 |
-| `equipment[].rune.maxSlots`                               | Integer       | ×  | 0     | 装備に装着できるルーンの最大スロット数。`0` で装着不可。固定値。                                                                                                             |
-| `equipment[].rune.maxSlots.random[].min`                  | Integer       | ×  | -     | 固定値（例: `1`）。装備作成時にスロット数をランダムに決定する最小値。「`rune.maxSlots.random: 1~3`」も可能。指定時maxSlotsの指定は必要なし。                                                     |
-| `equipment[].rune.maxSlots.random[].max`                  | Integer       | ×  | -     | 固定値（例: `3`）。装備作成時にスロット数をランダムに決定する最大値。「`rune.maxSlots.random: 1~3`」も可能。指定時maxSlotsの指定は必要なし。                                                     |
+| `equipment[].rune.maxSlots`                               | Integer / Object | ×  | 0     | 装備に装着できるルーンの最大スロット数。整数の固定値、または `random` に範囲文字列を指定するオブジェクト。`0` で装着不可。                                               |
+| `equipment[].rune.maxSlots.random`                      | String        | ×  | -     | `maxSlots` がオブジェクトの場合に指定する範囲文字列（例: `0~1`）。`random` の `min` / `max` オブジェクト形式は未対応。                                                     |
 | `equipment[].transcendence[]`                             | List          | ×  | -     | 状態変化（進化・覚醒・超越など）の定義リスト。指定した素材を消費することでアイテムの各種パラメータを上書きする。                                                                                       |
 | `equipment[].transcendence[].name`                        | String        | ×  | -     | 状態変化の名称（例: `進化` / `覚醒` / `超越`）。ゲーム内UIに表示される。                                                                                                   |
 | `equipment[].transcendence[].rank`                        | Integer       | ×  | -     | 状態変化の強さ指標。数値が大きいほど上位の状態変化。同一装備内で一意である必要がある。プラグインはこの値を使い、現在の状態変化より `rank` が低い状態変化への遷移を禁止する。                                                     |
@@ -130,6 +129,37 @@
 
 3 の形式では、装備個体ごとに `min` と `max` をそれぞれの範囲から決定できます。
 
+### equipment[].stats[].random（生成時一回の抽選）
+
+`random` は単一の数値 `value` に明示指定した場合だけ有効です。未指定の固定値・旧範囲指定の解釈は変えません。`value` のオブジェクト・`~` 範囲・行の `min/max` と併記できません。同値の `min/max` もマスターでは範囲形式として拒否します。
+
+| キー | 型 | 必須 | デフォルト | 説明 |
+|:--|:--|:--:|:--|:--|
+| `equipment[].stats[].random` | Object | × | - | 単一基準値に対する生成時一回の離散抽選。 |
+| `equipment[].stats[].random.offsetMin` | Number | ○ | - | 基準値へ加算する下端。 |
+| `equipment[].stats[].random.offsetMax` | Number | ○ | - | 基準値へ加算する上端。 |
+| `equipment[].stats[].random.step` | Number | ○ | - | offsetMin起点の候補の刻み。0より大きい値。 |
+| `equipment[].stats[].random.zeroChance` | Number | × | 0 | 通常抽選より先に結果を0とする確率。0～1。 |
+
+基準値・両offset・stepは有限の数値かつ小数4桁以内、offsetMin以下offsetMax、offset差はstepの整数倍、候補数 `(offsetMax-offsetMin)/step+1` は100万以下とします。基準値＋offsetの両端も有限でなければなりません。zeroChanceは有限の0～1で、0より大きい場合は通常区間が0を含む指定を拒否します。通常分岐の各候補は等確率です。
+
+Pluginが新規個体生成時に抽選し、確定値を既存の個体ステータス `min=max` として永続化します。保存済み個体の読込、マスター再読込、表示、戦闘ではこの生成時抽選を再実行しません。マスターの表示・比較では抽選せず、範囲と0の確率を扱います。APIは基準値を従来どおり同値の `value.min/max` へ正規化し、`random` を保持します。
+
+APIと編集サイトでは.NETのdecimal型で表せる範囲の十進数を使用します。基準値・両offset・step自体と通常区間の両端はdoubleとの十進往復で値が変わらず、複数候補のstepは両端の最大絶対値におけるdoubleの隣接間隔以上とします。巨大値で候補が同じ数値へ丸まる設定を拒否します。
+
+```yaml
+- status: MELEE_ATTACK
+  type: FLAT
+  value: 100
+  random: {offsetMin: -8, offsetMax: 8, step: 1}
+- status: FIRE_DAMAGE_INCREASE
+  type: FLAT
+  value: 0
+  random: {offsetMin: 1, offsetMax: 10, step: 0.1, zeroChance: 0.95}
+```
+
+後者は95%で0、残る5%で1.0～10.0を0.1刻みに抽選します。火・氷・雷の `*_DAMAGE_INCREASE` は `type: FLAT` で数値10が10%増加（倍率1.1）です。`SCALAR` は従来どおり係数であり、表示単位の%とは区別します。
+
 ### equipment[].enhance.levels[].failAction
 強化失敗時の挙動を指定します。
 
@@ -184,7 +214,7 @@
 
 ルーンスロットシステムは、ルーンアイテムを装備のスロットに嵌め込むことでステータス補正を付与する仕組みです。ルーンからスキルは付与しません。
 
-- `maxSlots` で装備に同時に装着できるルーン数の上限を設定します。固定値のほか、`random` を使用して装備作成時にスロット数をランダムに決定することもできます（例: `random: 1~3`）。
+- `maxSlots` には整数の固定値、または `random` に範囲文字列を持つオブジェクトを指定します。例: `maxSlots: 2` または `maxSlots: { random: "0~1" }`。後者は装備作成時にスロット数をランダムに決定します。`random` に `min` / `max` を持つオブジェクト形式は未対応です。
 - ルーン側の `requiredEnhanceLevel` が装備の現在の強化レベル以下でなければ装着できません。
 - ルーン側の `targetSlots` に装備の `slot` 種別（または `ANY`）が含まれている場合のみ装着可能です。
 - ルーン側の `targetTags` が指定されている場合、装備の `tag` がいずれかに一致する場合のみ装着可能です。`targetSlots` と `targetTags` の両方を指定した場合は AND 条件です。
@@ -441,7 +471,7 @@ equipment:
     consume: 1
   rune:
     maxSlots:
-      random: 1~3
+      random: "1~3"
 ```
 
 ### 例7: ルーンスロット対応装備（強化対応）

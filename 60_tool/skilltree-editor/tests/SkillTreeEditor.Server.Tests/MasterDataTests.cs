@@ -81,6 +81,36 @@ public sealed class MasterDataTests : IDisposable
         Assert.NotEqual(document.Revision, saved.Revision);
     }
 
+    [Fact]
+    public async Task SaveRoundTripPreservesEquipmentRandomUnknownKeyAndComments()
+    {
+        const string path = "test/random-equipment.yml";
+        const string original = "# item comment\nequipment:\n  stats:\n    - status: FIRE_DAMAGE_INCREASE\n      value: 5 # base\n      customNote: keep\n";
+        Write(path, original);
+        var document = await _service.ReadAsync(path, CancellationToken.None);
+        var content = _codec.Parse(path, document.Raw).Content!;
+        content["equipment"]!["stats"]![0]!["random"] = JsonNode.Parse("""{"offsetMin":-2,"offsetMax":3,"step":0.5,"zeroChance":0.2}""");
+        var rendered = _codec.Render(new(path, content, document.Raw));
+
+        var saved = await _service.SaveAsync(new(path, rendered.Raw, document.Revision), CancellationToken.None);
+        var reloaded = await _service.ReadAsync(path, CancellationToken.None);
+
+        Assert.Equal(saved.Raw, reloaded.Raw);
+        Assert.True(JsonNode.DeepEquals(content, reloaded.Content));
+        Assert.Equal("keep", reloaded.Content!["equipment"]!["stats"]![0]!["customNote"]!.GetValue<string>());
+        Assert.Contains("# item comment", reloaded.Raw);
+        Assert.Contains("# base", reloaded.Raw);
+    }
+
+    [Fact]
+    public void CodecDoesNotSilentlyTurnDecimalUnderflowIntoZero()
+    {
+        var content = _codec.Parse("test.yml", "value: 1e-100\nzero: 0e-100\n").Content!;
+
+        Assert.Equal("1e-100", content["value"]!.ToString());
+        Assert.Equal(0m, content["zero"]!.GetValue<decimal>());
+    }
+
     [Theory]
     [InlineData("65.features.dungeon/v1.ruins.yml", "id: ruins\ndisplayName: 遺跡\nname: internal\ntitle: caption\n", "遺跡")]
     [InlineData("60.features.world/v1.central.yml", "id: central\ndisplayName: 星影の街\n", "星影の街")]
@@ -186,6 +216,63 @@ public sealed class MasterDataTests : IDisposable
         Assert.Contains("design comment", rendered.Raw);
         Assert.Contains("inline comment", rendered.Raw);
         Assert.True(JsonNode.DeepEquals(content, _codec.Parse("sample.yml", rendered.Raw).Content));
+    }
+
+    [Fact]
+    public async Task RuneMaxSlotsMetadataAcceptsFixedIntegerAndRandomRangeWrapper()
+    {
+        Write("10.features.item/docs.item.YAMLスキーマ定義.md", """
+            # ITEM
+            | キー | 型 | 必須 | 説明 |
+            |:--|:--|:--|:--|
+            | `name` | String | ○ | 表示名 |
+            """);
+        Write("10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md", """
+            # EQUIPMENT
+            | キー | 型 | 必須 | 説明 |
+            |:--|:--|:--|:--|
+            | `equipment[].rune` | Object | × | ルーン設定 |
+            | `equipment[].rune.maxSlots` | Integer / Object | × | 固定値またはランダム範囲 |
+            | `equipment[].rune.maxSlots.random` | String | × | 範囲文字列 |
+            """);
+        var category = await _catalog.GetAsync("10.features.item/20.equipment", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/equipment/rune/maxSlots" && field.Type == "Integer / Object");
+        Assert.Contains(category.Fields, field => field.Path == "/equipment/rune/maxSlots/random" && field.Type == "String");
+
+        const string path = "10.features.item/20.equipment/v1.20a00001.rune_slots.yml";
+        const string fixedValue = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots: 2
+            """;
+        const string randomRange = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots:
+                  random: "0~1"
+            """;
+        const string scalarRange = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots: "0~1"
+            """;
+
+        Assert.True((await _validation.ValidateAsync(path, fixedValue, CancellationToken.None)).IsValid);
+        Assert.True((await _validation.ValidateAsync(path, randomRange, CancellationToken.None)).IsValid);
+        var invalid = await _validation.ValidateAsync(path, scalarRange, CancellationToken.None);
+        Assert.Contains(invalid.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == "/equipment/rune/maxSlots");
     }
 
     [Fact]

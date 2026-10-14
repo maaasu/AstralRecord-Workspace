@@ -1,0 +1,132 @@
+# design:
+#   motif: "動物 / カマキリの鎌"
+#   progression: 20
+schemaVersion: 1
+id: field_blade_mantis
+type: MOB
+category: ENEMY
+name: '&aカマキリソード'
+level: 42
+entityType: SILVERFISH
+icon: SILVERFISH_SPAWN_EGG
+variant:
+  age: ADULT
+  scale: 2.0
+lore:
+- '&7刃のような前脚を広げる、野原の大きな虫。'
+- '&7かま振り払いの予告扇形から離れるか、背後へ回ろう。'
+tags:
+- grassland
+- melee
+baseStats:
+- status: MAX_HEALTH
+  value: 30060
+- status: ATTACK
+  value: 6353
+- status: DEFENSE
+  value: 5555
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 112
+levels:
+- level: 42
+  name: '&aカマキリソード Lv.42'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 30060
+  - status: ATTACK
+    value: 6353
+  - status: DEFENSE
+    value: 5555
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+  drops:
+    exp: 680
+- level: 44
+  name: '&aカマキリソード Lv.44'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 32220
+  - status: ATTACK
+    value: 6810
+  - status: DEFENSE
+    value: 5956
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+  drops:
+    exp: 720
+- level: 46
+  name: '&aカマキリソード Lv.46'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 34380
+  - status: ATTACK
+    value: 7266
+  - status: DEFENSE
+    value: 6356
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+  drops:
+    exp: 760
+- level: 48
+  name: '&aカマキリソード Lv.48'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 36540
+  - status: ATTACK
+    value: 7723
+  - status: DEFENSE
+    value: 6757
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+  drops:
+    exp: 800
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+    skills:
+    - id: mob_field_blade_mantis_blade_sweep
+      activationRange: 3.6
+      cooldownTicks: 120
+      castTimeTicks: 12
+drops:
+  exp: 680
+  items:
+  - itemId:
+      ref: item:10a00222
+    rate: 35.0
+    amount: 1
+    luckAffected: true
+    hidden: false

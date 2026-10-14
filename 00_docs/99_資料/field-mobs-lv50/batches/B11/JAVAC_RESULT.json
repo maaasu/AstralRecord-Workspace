@@ -1,0 +1,25 @@
+{
+  "scope": "B11 two Java units only; pre-existing main target/classes and cached Maven dependencies",
+  "compiler": "C:\\Program Files\\Java\\jdk-21.0.10\\bin\\javac.exe",
+  "compiler_flags": [
+    "-proc:none",
+    "-encoding",
+    "UTF-8",
+    "-Xlint:all",
+    "-implicit:none"
+  ],
+  "source_sha256": {
+    "10_plugin\\AstralRecord\\src\\main\\java\\io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\CanopyOwlMobSkillExecutor.java": "d42eaacdf9af6fa97a4e19440eba02547d1466e34fb10521f081ce76207e3744",
+    "10_plugin\\AstralRecord\\src\\main\\java\\io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\ThornDeerMobSkillExecutor.java": "9ff33fa7c69fca0969a2c9c950190225af3fc4b9d4c6c79ce14951df482e4889"
+  },
+  "exit_code": 0,
+  "full_output": "",
+  "warning_count": 0,
+  "full_project_build": "not run; integration scope",
+  "class_outputs": [
+    "io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\CanopyOwlMobSkillExecutor$VortexCast.class",
+    "io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\CanopyOwlMobSkillExecutor.class",
+    "io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\ThornDeerMobSkillExecutor$DashCast.class",
+    "io\\github\\maaasu\\astralRecord\\feature\\mob\\skill\\field\\ThornDeerMobSkillExecutor.class"
+  ]
+}

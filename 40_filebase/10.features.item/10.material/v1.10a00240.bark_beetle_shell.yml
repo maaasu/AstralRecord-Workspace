@@ -1,0 +1,16 @@
+# design:
+#   motif: "昆虫 / 木色の甲殻"
+#   progression: 24
+schemaVersion: 1
+id: 10a00240
+category: material
+name: "&f木色の殻"
+icon: ARMADILLO_SCUTE
+rarity: COMMON
+maxStack: 64
+saleValue: 180
+lore:
+  - "&7キノカブトの背から剥がれた木色の殻。"
+  - "&7軽くて硬く、磨くと木目のような筋が浮かぶ。"
+unTradeable: false
+unSellable: false

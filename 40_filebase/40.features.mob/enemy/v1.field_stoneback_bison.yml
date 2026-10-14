@@ -1,0 +1,145 @@
+# design:
+#   motif: "動物・鉱物 / バイソンと石背"
+#   progression: 25
+schemaVersion: 1
+id: field_stoneback_bison
+type: MOB
+category: ENEMY
+name: イワセバイソン Lv.42
+level: 42
+entityType: COW
+icon: COW_SPAWN_EGG
+variant:
+  age: ADULT
+  scale: 1.15
+lore:
+- '&7石のように硬い背を持つ、大柄な牛。'
+- '&7足踏みの後、予告された進路を一直線に突進する。'
+- '&7横へ退いてかわし、突進後の隙を狙おう。'
+tags:
+- beast
+- melee
+baseStats:
+- status: MAX_HEALTH
+  value: 81928
+- status: ATTACK
+  value: 7758
+- status: DEFENSE
+  value: 7153
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 2
+- status: MOVEMENT_SPEED
+  value: 100
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 28
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.2
+      intervalTicks: 48
+    skills:
+    - id: mob_field_stoneback_bison_earth_charge
+      activationRange: 8
+      cooldownTicks: 240
+      castTimeTicks: 0
+drops:
+  exp: 1120
+  items:
+  - itemId:
+      ref: item:10a00230
+    rate: 35.0
+    amount: '1'
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00231
+    rate: 10.0
+    amount: '1'
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00232
+    rate: 0.25
+    amount: '1'
+    luckAffected: true
+    hidden: false
+levels:
+- level: 42
+  name: イワセバイソン Lv.42
+  baseStats:
+  - status: MAX_HEALTH
+    value: 81928
+  - status: ATTACK
+    value: 7758
+  - status: DEFENSE
+    value: 7153
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 1120
+- level: 44
+  name: イワセバイソン Lv.44
+  baseStats:
+  - status: MAX_HEALTH
+    value: 89916
+  - status: ATTACK
+    value: 8515
+  - status: DEFENSE
+    value: 7851
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 1160
+- level: 46
+  name: イワセバイソン Lv.46
+  baseStats:
+  - status: MAX_HEALTH
+    value: 98276
+  - status: ATTACK
+    value: 9307
+  - status: DEFENSE
+    value: 8581
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 1200
+- level: 48
+  name: イワセバイソン Lv.48
+  baseStats:
+  - status: MAX_HEALTH
+    value: 107008
+  - status: ATTACK
+    value: 10134
+  - status: DEFENSE
+    value: 9343
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 1240

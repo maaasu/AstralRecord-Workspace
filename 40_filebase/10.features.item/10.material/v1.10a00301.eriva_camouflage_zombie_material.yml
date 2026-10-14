@@ -1,0 +1,15 @@
+# design:
+#   motif: "工芸 / 草と苔の付いた布"
+#   progression: 16
+schemaVersion: 1
+id: 10a00301
+category: material
+name: "&f草まみれの布"
+icon: GREEN_WOOL
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7迷彩ゾンビがまとっていた、草と苔のこびりついた布。"
+unTradeable: false
+unSellable: false

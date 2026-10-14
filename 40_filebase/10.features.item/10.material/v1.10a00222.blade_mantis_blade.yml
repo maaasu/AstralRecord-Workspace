@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / カマキリの鎌"
+#   progression: 20
+schemaVersion: 1
+id: 10a00222
+category: material
+name: '&fカマキリの刃'
+icon: SHEARS
+rarity: COMMON
+maxStack: 64
+saleValue: 160
+lore:
+- '&7カマキリソードの前脚に付いた鋭い刃。'
+unTradeable: false
+unSellable: false

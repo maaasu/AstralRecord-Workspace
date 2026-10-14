@@ -1,0 +1,125 @@
+# design:
+#   motif: "動物 / 木の葉に似たフクロウ"
+#   progression: 36
+schemaVersion: 1
+id: field_canopy_owl
+type: MOB
+category: ENEMY
+name: '&aコノハフクロウ'
+level: 36
+entityType: PARROT
+variant:
+  age: ADULT
+  kind: GREEN
+  scale: 1.35
+icon: PARROT_SPAWN_EGG
+lore:
+- '&7葉に似た羽で地表に身を隠すフクロウ。'
+- '&7木の葉の輪を示してから、同じ場所に三度の旋風を起こす。'
+- '&7輪の外へ抜ければ、続く旋風も避けられる。'
+tags:
+- beast
+- melee
+levels:
+- level: 36
+  name: '&aコノハフクロウ Lv.36'
+- level: 38
+  name: '&aコノハフクロウ Lv.38'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 27550
+  - status: ATTACK
+    value: 4480
+  - status: DEFENSE
+    value: 4335
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  drops:
+    exp: 650
+- level: 40
+  name: '&aコノハフクロウ Lv.40'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 29925
+  - status: ATTACK
+    value: 4871
+  - status: DEFENSE
+    value: 4718
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  drops:
+    exp: 690
+- level: 42
+  name: '&aコノハフクロウ Lv.42'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 32300
+  - status: ATTACK
+    value: 5262
+  - status: DEFENSE
+    value: 5100
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  drops:
+    exp: 730
+baseStats:
+- status: MAX_HEALTH
+  value: 25175
+- status: ATTACK
+  value: 4089
+- status: DEFENSE
+  value: 3953
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 110
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 1.8
+    normalAttack:
+      range: 1.8
+      intervalTicks: 40
+    skills:
+    - id: mob_field_canopy_owl_leaf_vortex
+      activationRange: 8
+      cooldownTicks: 200
+      castTimeTicks: 0
+drops:
+  exp: 610
+  items:
+  - itemId:
+      ref: item:10a00400
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00401
+    rate: 10
+    amount: 1
+    luckAffected: true
+    hidden: false

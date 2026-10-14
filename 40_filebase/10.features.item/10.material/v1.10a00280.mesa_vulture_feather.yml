@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / メサハゲワシの羽"
+#   progression: 38
+schemaVersion: 1
+id: 10a00280
+category: material
+name: メサハゲワシの羽
+icon: FEATHER
+rarity: COMMON
+saleValue: 600
+maxStack: 64
+lore:
+- '&7メサハゲワシから得られる大きな羽。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

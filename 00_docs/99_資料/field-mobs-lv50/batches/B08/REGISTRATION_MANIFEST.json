@@ -1,0 +1,137 @@
+{
+  "batch": "B08",
+  "base_commit": "3444b74b2",
+  "branch": "codex/field-mobs-lv50-b08",
+  "worktree": "E:\\AstralRecord-Workspace\\99_work\\field-mobs-lv50-b08",
+  "registration_status": "pending_integration",
+  "owned_paths": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/RedScorpionMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/SandGeckoMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaDebuffSkillSupport.java",
+    "40_filebase/10.features.item/10.material/v1.10a00270.red_scorpion_stinger.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00271.sand_gecko_skin.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00272.sand_gecko_grains.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_red_scorpion.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_sand_gecko.yml",
+    "00_docs/99_資料/field-mobs-lv50/batches/B08/"
+  ],
+  "reserved_item_range": [
+    "10a00270",
+    "10a00279"
+  ],
+  "support_class": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaDebuffSkillSupport.java",
+  "executors": [
+    {
+      "mob_id": "field_red_scorpion",
+      "levels": [
+        38,
+        40,
+        42,
+        44
+      ],
+      "implementation_id": "mob_field_red_scorpion_tail_sting",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.RedScorpionMobSkillExecutor",
+      "field": "redScorpionMobSkillExecutor",
+      "activation_range": 3.5,
+      "cooldown_ticks": 180,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "redScorpionMobSkillExecutor = new RedScorpionMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(redScorpionMobSkillExecutor);",
+      "destroy_listener_code": "redScorpionMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (redScorpionMobSkillExecutor != null) redScorpionMobSkillExecutor.stop();",
+      "target_policy": "共通isMobCombatTargetが許可する通常playerまたは召喚petの主対象1体のみ。通行人へ命中しない。",
+      "crowd_control": "POISON基礎70tick/20tick pulse、SUPPORT_POWER係数0.12。拘束/減速なし。",
+      "materials": [
+        {
+          "id": "10a00270",
+          "name": "アカサソリの毒針",
+          "rarity": "COMMON",
+          "rate": 35.0,
+          "saleValue": 550,
+          "amount": 1,
+          "luckAffected": true
+        }
+      ]
+    },
+    {
+      "mob_id": "field_sand_gecko",
+      "levels": [
+        38,
+        40,
+        42,
+        44
+      ],
+      "implementation_id": "mob_field_sand_gecko_sand_scatter",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.SandGeckoMobSkillExecutor",
+      "field": "sandGeckoMobSkillExecutor",
+      "activation_range": 5,
+      "cooldown_ticks": 220,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "sandGeckoMobSkillExecutor = new SandGeckoMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(sandGeckoMobSkillExecutor);",
+      "destroy_listener_code": "sandGeckoMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (sandGeckoMobSkillExecutor != null) sandGeckoMobSkillExecutor.stop();",
+      "target_policy": "共通isMobCombatTargetが許可する通常playerまたは召喚petの主対象1体のみ。通行人へ命中しない。",
+      "crowd_control": "BLINDNESS基礎30tick。毒/減速/行動不能なし。",
+      "materials": [
+        {
+          "id": "10a00271",
+          "name": "砂ヤモリの皮",
+          "rarity": "COMMON",
+          "rate": 35.0,
+          "saleValue": 420,
+          "amount": 1,
+          "luckAffected": true
+        },
+        {
+          "id": "10a00272",
+          "name": "砂ヤモリの砂粒",
+          "rarity": "UNCOMMON",
+          "rate": 8.0,
+          "saleValue": 620,
+          "amount": 1,
+          "luckAffected": true
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    "B09 mesa_vultureとメサで共存想定。直接参照はなく、本バッチの素材参照は独立して解決する。"
+  ],
+  "central_changes": [
+    "AstralRecord.javaへ二種のimport/field/生成/registry登録を追加。共通ConditionService依存を使う。",
+    "既存destroy listenerへ各handleMobDestroyedを追記し、onDisableで各stopを依存サービス停止より前に呼ぶ。",
+    "MesaDebuffSkillSupport.javaも同時に取り込む。共有properties/schema/status/tag/POM/loot/spawnerは本バッチで変更していない。",
+    "最新統合ツリーで全ID/参照/8個体のmaster読込、2 skill登録、まとめた全体build/testを確認する。"
+  ],
+  "habitats": [
+    {
+      "mob_id": "field_red_scorpion",
+      "intent": "メサ Lv38〜44",
+      "evidence_paths": [],
+      "status": "placement_blocked",
+      "verified": "既存world/spawnerにメサの実配置根拠を確認できず、座標を作成していない。"
+    },
+    {
+      "mob_id": "field_sand_gecko",
+      "intent": "メサ Lv38〜44",
+      "evidence_paths": [],
+      "status": "placement_blocked",
+      "verified": "既存world/spawnerにメサの実配置根拠を確認できず、座標を作成していない。"
+    }
+  ],
+  "unverified": [
+    "中央登録・全体build/test・実server/client・編集サイト動的表示は統合待ち。",
+    "Lv31以降の正式な装備/class/skilltreeアンカーと実TTKを確定するまで実配置保留。",
+    "盲目の実client/Geyser表示、毒tick、耐性、複数個体同時発動の実戦受入は統合後。",
+    "素材のrecipe/装備用途は別担当。商人への売却経路だけを確定。"
+  ]
+}

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / イノシシの牙"
+#   progression: 1
+schemaVersion: 1
+id: 10a00311
+category: material
+name: "&f小さなイノシシの牙"
+icon: BONE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7ミズガルズ・グラスボアから採れた小さな牙。"
+  - "&7乳白色の表面は滑らかで、先端が軽く曲がっている。"
+unTradeable: false
+unSellable: false

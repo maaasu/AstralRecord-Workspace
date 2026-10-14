@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
+using AstralRecordWeb.Models;
 using AstralRecordWeb.Pages.Admin;
 using AstralRecordWeb.Services;
 using Xunit;
@@ -49,6 +51,34 @@ public sealed class ItemMasterApiClientTests
         Assert.Equal(0.8, bundle.Bundle.OnUse.Sound.Volume);
         Assert.Equal("TOTEM_OF_UNDYING", bundle.Bundle.OnUse.Particle!.Particle);
         Assert.Equal(24, bundle.Bundle.OnUse.Particle.Count);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_PreservesRandomMasterForDisplayWithoutChangingSavedInstanceRoll()
+    {
+        using var httpClient = new HttpClient(new ItemMasterApiHandler())
+        {
+            BaseAddress = new Uri("https://api.example/"),
+        };
+        var subject = new ItemMasterApiClient(httpClient);
+
+        var items = await subject.GetAllAsync(CancellationToken.None);
+        var equipment = Assert.Single(items, item => item.Id == "debug_sword");
+        var stat = Assert.Single(equipment.Equipment!.Stats);
+        var value = Assert.IsType<ItemEquipmentStatValueResponse>(stat.Value);
+        var random = Assert.IsType<ItemEquipmentStatRandomResponse>(stat.Random);
+        Assert.Equal("0", value.Min);
+        Assert.Equal("0", value.Max);
+        Assert.Equal(0.1, random.OffsetMin);
+        Assert.Equal(10, random.OffsetMax);
+        Assert.Equal(0.1, random.Step);
+        Assert.Equal(0.95, random.ZeroChance);
+
+        var masterDisplay = ItemsModel.StatValueText(stat);
+        Assert.StartsWith("0.1 - 10", masterDisplay);
+        Assert.Contains($"0の確率 {0.95.ToString("P2", CultureInfo.CurrentCulture)}", masterDisplay);
+        Assert.Equal("4.6", AstralRecordWeb.Pages.Market.IndexModel.InstanceStatText(
+            new MarketEquipmentStatRollResponse { Min = "4.6", Max = "4.6" }));
     }
 
     [Fact]
@@ -118,7 +148,9 @@ public sealed class ItemMasterApiClientTests
                     {
                       "schemaVersion":1,"id":"debug_sword","category":"equipment","name":"Debug Sword",
                       "icon":"IRON_SWORD","rarity":"MYTHIC",
-                      "equipment":{"slot":"WEAPON","requiredClasses":[{"classId":"swordsman","level":3}]}
+                      "equipment":{"slot":"WEAPON","requiredClasses":[{"classId":"swordsman","level":3}],
+                        "stats":[{"status":"FIRE_DAMAGE_INCREASE","type":"FLAT","value":{"min":"0","max":"0"},
+                          "random":{"offsetMin":0.1,"offsetMax":10,"step":0.1,"zeroChance":0.95}}]}
                     }
                     """,
                 "/api/item/initial_bundle" => """

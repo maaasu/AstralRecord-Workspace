@@ -1,0 +1,1131 @@
+{
+  "status": "proposal_only",
+  "baseCommit": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+  "package": "eriva-lv25-lumina",
+  "owner": "Lv25 equipment worker",
+  "recipeIdPolicy": "No recipe IDs reserved. Integration owner assigns only if SHOP recipes are needed; direct requiredItems is supported.",
+  "layout": {
+    "weapon": "Page2 slots0..6. Slots7..13 reserved for future offhand. Lv30 slots14..20 remain unowned.",
+    "armor": "Page2 cols0..2, rows head/chest/legs/feet. Col3 blank; Lv30 cols4..6 remain unowned.",
+    "navigationActualSlots": [
+      45,
+      53
+    ]
+  },
+  "acceptanceBeforeShopEnable": [
+    "Confirm Lv22/24 mob spawn placement and actual material acquisition",
+    "Confirm gathering placement, supported tool and travel/respawn supply",
+    "Confirm Gold acquisition time and full 100-battle combat balance"
+  ],
+  "materialSources": [
+    {
+      "itemId": "10a00069",
+      "name": "風歌草の葉",
+      "kind": "gathering",
+      "sourceId": "verdia_windsong_grass",
+      "sourceMinLevel": 1,
+      "dropRatePercent": 100.0,
+      "sourcePath": "40_filebase/42.features.gathering/harvesting/v1.verdia_windsong_grass.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "requiredToolTags": [
+        "HOE"
+      ],
+      "gatheringLevel": 1,
+      "maxHealth": 8,
+      "amountPerBreak": 1,
+      "secondsAtSpeed4": 0.8
+    },
+    {
+      "itemId": "10a00074",
+      "name": "金風花の花びら",
+      "kind": "gathering",
+      "sourceId": "verdia_goldwind_flower",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "sourcePath": "40_filebase/42.features.gathering/harvesting/v1.verdia_goldwind_flower.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "requiredToolTags": [
+        "HOE"
+      ],
+      "gatheringLevel": 2,
+      "maxHealth": 16,
+      "amountPerBreak": 1,
+      "secondsAtSpeed4": 1.6
+    },
+    {
+      "itemId": "10a00080",
+      "name": "花守りの葉",
+      "kind": "gathering",
+      "sourceId": "verdia_flowerguard_bush",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "sourcePath": "40_filebase/42.features.gathering/harvesting/v1.verdia_flowerguard_bush.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "requiredToolTags": [
+        "HOE"
+      ],
+      "gatheringLevel": 2,
+      "maxHealth": 26,
+      "amountPerBreak": 1,
+      "secondsAtSpeed4": 2.8
+    },
+    {
+      "itemId": "10a00086",
+      "name": "風鳴り石のかけら",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_windsong_stone",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_windsong_stone.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "gatheringLevel": 2,
+      "maxHealth": 22,
+      "amountPerBreak": 1,
+      "secondsAtSpeed4": 2.4
+    },
+    {
+      "itemId": "10a00087",
+      "name": "こけ根岩のかけら",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_mossroot_rock",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_mossroot_rock.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "gatheringLevel": 2,
+      "maxHealth": 26,
+      "amountPerBreak": 1,
+      "secondsAtSpeed4": 2.8
+    },
+    {
+      "itemId": "10a00089",
+      "name": "青泉石のかけら",
+      "kind": "gathering",
+      "sourceId": "verdia_cave_bluewell_vein",
+      "sourceMinLevel": 2,
+      "dropRatePercent": 100.0,
+      "sourcePath": "40_filebase/42.features.gathering/mining/v1.verdia_cave_bluewell_vein.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "requiredToolTags": [
+        "PICKAXE"
+      ],
+      "gatheringLevel": 2,
+      "maxHealth": 40,
+      "amountPerBreak": 1,
+      "secondsAtSpeed4": 4.0
+    },
+    {
+      "itemId": "10a00200",
+      "name": "草色の毛皮",
+      "kind": "mob",
+      "sourceId": "field_reed_hound",
+      "sourceMinLevel": 22,
+      "dropRatePercent": 40.0,
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_reed_hound.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "amountPerDrop": 1
+    },
+    {
+      "itemId": "10a00201",
+      "name": "ヤブガニの甲羅",
+      "kind": "mob",
+      "sourceId": "field_brush_crab",
+      "sourceMinLevel": 22,
+      "dropRatePercent": 45.0,
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_brush_crab.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "amountPerDrop": 1
+    },
+    {
+      "itemId": "10a00240",
+      "name": "木色の殻",
+      "kind": "mob",
+      "sourceId": "field_bark_beetle",
+      "sourceMinLevel": 24,
+      "dropRatePercent": 35.0,
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_bark_beetle.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "amountPerDrop": 1
+    },
+    {
+      "itemId": "10a00241",
+      "name": "コケ色の毛",
+      "kind": "mob",
+      "sourceId": "field_moss_fox",
+      "sourceMinLevel": 24,
+      "dropRatePercent": 35.0,
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_moss_fox.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "amountPerDrop": 1
+    },
+    {
+      "itemId": "10a00250",
+      "name": "根付きの甲羅",
+      "kind": "mob",
+      "sourceId": "field_root_turtle",
+      "sourceMinLevel": 24,
+      "dropRatePercent": 35.0,
+      "sourcePath": "40_filebase/40.features.mob/enemy/v1.field_root_turtle.yml",
+      "placement": "definition_only_not_runtime_verified",
+      "amountPerDrop": 1
+    }
+  ],
+  "products": [
+    {
+      "itemId": "20a00419",
+      "name": "ルミナソード",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 0,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 14
+        },
+        {
+          "itemId": "10a00087",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00201",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナソード",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00420",
+      "name": "ルミナハンマー",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 1,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 18
+        },
+        {
+          "itemId": "10a00087",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00250",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00250",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナハンマー",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00421",
+      "name": "ルミナスピア",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 2,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 16
+        },
+        {
+          "itemId": "10a00087",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00240",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00240",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナスピア",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00422",
+      "name": "ルミナショートボウ",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 3,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00069",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00200",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナショートボウ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00423",
+      "name": "ルミナロングボウ",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 4,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 16
+        },
+        {
+          "itemId": "10a00074",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00200",
+          "amount": 10
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナロングボウ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00424",
+      "name": "ルミナワンド",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 5,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00074",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00241",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00241",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナワンド",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00425",
+      "name": "ルミナスタッフ",
+      "outputAmount": 1,
+      "shopId": "weapon_craftsman_shop",
+      "page": 2,
+      "slot": 6,
+      "priceGold": 750000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 16
+        },
+        {
+          "itemId": "10a00080",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00241",
+          "amount": 10
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 20
+          },
+          {
+            "itemId": "10a00241",
+            "amount": 10
+          }
+        ],
+        "requiredCurrency": 15000,
+        "overrides": {
+          "name": "&b進化したルミナスタッフ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00426",
+      "name": "ルミナヘルム",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 0,
+      "priceGold": 150000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00089",
+          "amount": 6
+        },
+        {
+          "itemId": "10a00201",
+          "amount": 6
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナヘルム",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00427",
+      "name": "ルミナメイル",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 7,
+      "priceGold": 300000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 30
+        },
+        {
+          "itemId": "10a00089",
+          "amount": 16
+        },
+        {
+          "itemId": "10a00250",
+          "amount": 12
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00250",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナメイル",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00428",
+      "name": "ルミナグリーブ",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 14,
+      "priceGold": 210000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 22
+        },
+        {
+          "itemId": "10a00089",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00201",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00201",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナグリーブ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00429",
+      "name": "ルミナブーツ",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 21,
+      "priceGold": 150000,
+      "requiredItems": [
+        {
+          "itemId": "10a00087",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00089",
+          "amount": 6
+        },
+        {
+          "itemId": "10a00200",
+          "amount": 6
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00087",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナブーツ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00430",
+      "name": "ルミナキャップ",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 1,
+      "priceGold": 150000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00069",
+          "amount": 6
+        },
+        {
+          "itemId": "10a00240",
+          "amount": 6
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00240",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナキャップ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00431",
+      "name": "ルミナジャケット",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 8,
+      "priceGold": 300000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 30
+        },
+        {
+          "itemId": "10a00087",
+          "amount": 16
+        },
+        {
+          "itemId": "10a00200",
+          "amount": 12
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナジャケット",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00432",
+      "name": "ルミナパンツ",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 15,
+      "priceGold": 210000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 22
+        },
+        {
+          "itemId": "10a00069",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00240",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00240",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナパンツ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00433",
+      "name": "ルミナシューズ",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 22,
+      "priceGold": 150000,
+      "requiredItems": [
+        {
+          "itemId": "10a00086",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00069",
+          "amount": 6
+        },
+        {
+          "itemId": "10a00241",
+          "amount": 6
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00086",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00241",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナシューズ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00434",
+      "name": "ルミナフード",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 2,
+      "priceGold": 150000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00074",
+          "amount": 6
+        },
+        {
+          "itemId": "10a00241",
+          "amount": 6
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00241",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナフード",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00435",
+      "name": "ルミナローブ",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 9,
+      "priceGold": 300000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 30
+        },
+        {
+          "itemId": "10a00087",
+          "amount": 16
+        },
+        {
+          "itemId": "10a00241",
+          "amount": 12
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00241",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナローブ",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00436",
+      "name": "ルミナレギンス",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 16,
+      "priceGold": 210000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 22
+        },
+        {
+          "itemId": "10a00074",
+          "amount": 8
+        },
+        {
+          "itemId": "10a00200",
+          "amount": 8
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00200",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナレギンス",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    },
+    {
+      "itemId": "20a00437",
+      "name": "ルミナサンダル",
+      "outputAmount": 1,
+      "shopId": "armor_craftsman_shop",
+      "page": 2,
+      "slot": 23,
+      "priceGold": 150000,
+      "requiredItems": [
+        {
+          "itemId": "10a00089",
+          "amount": 12
+        },
+        {
+          "itemId": "10a00074",
+          "amount": 6
+        },
+        {
+          "itemId": "10a00240",
+          "amount": 6
+        }
+      ],
+      "recipeProposal": {
+        "stationType": "SHOP",
+        "recipeId": "unassigned_by_integration_owner",
+        "sameAsShopInputs": true
+      },
+      "evolution": {
+        "name": "進化",
+        "rank": 1,
+        "requiredEnhanceLevel": 15,
+        "requiredMaterials": [
+          {
+            "itemId": "10a00089",
+            "amount": 16
+          },
+          {
+            "itemId": "10a00240",
+            "amount": 8
+          }
+        ],
+        "requiredCurrency": 8000,
+        "overrides": {
+          "name": "&b進化したルミナサンダル",
+          "enhance": {
+            "maxLevel": 30
+          }
+        }
+      }
+    }
+  ]
+}

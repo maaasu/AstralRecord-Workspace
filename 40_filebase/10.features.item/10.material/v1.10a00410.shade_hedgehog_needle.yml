@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ハリネズミの針"
+#   progression: 36
+schemaVersion: 1
+id: 10a00410
+category: material
+name: "木陰の硬針"
+icon: POINTED_DRIPSTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 540
+lore:
+  - "&7コカゲハリネズミの背に生える、短く丈夫な針。"
+  - "&7束ねて売却できる通常素材。"
+unTradeable: false
+unSellable: false

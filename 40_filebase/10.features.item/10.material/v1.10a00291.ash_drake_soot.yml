@@ -1,0 +1,16 @@
+# design:
+#   motif: "火山 / 竜の煤"
+#   progression: 44
+schemaVersion: 1
+id: 10a00291
+category: material
+name: 'ハイドレイクのすす'
+icon: CHARCOAL
+rarity: COMMON
+maxStack: 64
+saleValue: 850
+lore:
+- '&7ハイドレイクの喉からこぼれた、黒い煤。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

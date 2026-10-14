@@ -534,6 +534,7 @@ public class ItemService {
     /**
      * 装備個体を通信せずに生成し、次の player-state snapshot で inventory entry と同時作成します。
      * 乱数値と UUID は呼出時に一度だけ確定するため、同じ snapshot の再送でも変化しません。
+     * 明示randomは単一基準値から抽選した同じ値をmin/maxへ保存し、旧scalar/rangeは従来どおり解決します。
      *
      * @param model 装備マスタ
      * @param accountId 所有アカウント
@@ -562,11 +563,14 @@ public class ItemService {
                 if (stat.getStatus() == null || stat.getStatus().isBlank()) {
                     continue;
                 }
+                String generatedValue = stat.getRandom() == null ? null
+                    : stat.getRandom().sample(stat.getMin(), ThreadLocalRandom.current())
+                        .stripTrailingZeros().toPlainString();
                 statRolls.add(new EquipmentStatRoll(
                     UUID.randomUUID().toString(),
                     stat.getStatus().trim(),
-                    resolveRandomNumericString(stat.getRawMin(), stat.getMin()),
-                    resolveRandomNumericString(stat.getRawMax(), stat.getMax()),
+                    generatedValue == null ? resolveRandomNumericString(stat.getRawMin(), stat.getMin()) : generatedValue,
+                    generatedValue == null ? resolveRandomNumericString(stat.getRawMax(), stat.getMax()) : generatedValue,
                     sortOrder++
                 ));
             }

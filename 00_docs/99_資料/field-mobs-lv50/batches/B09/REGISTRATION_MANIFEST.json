@@ -1,0 +1,125 @@
+{
+  "batch": "B09",
+  "base_commit": "3444b74b2",
+  "branch": "codex/field-mobs-lv50-b09",
+  "worktree": "E:\\AstralRecord-Workspace\\99_work\\field-mobs-lv50-b09",
+  "registration_status": "pending_integration",
+  "owned_paths": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaFireAreaSupport.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaVultureMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/EmberSlugMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00280.mesa_vulture_feather.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_mesa_vulture.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00281.ember_slug_mucus.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_ember_slug.yml",
+    "00_docs/99_資料/field-mobs-lv50/batches/B09/",
+    "00_docs/99_資料/レビュー結果/[完了] 26-10-15 02：19：12 code-review.md"
+  ],
+  "reserved_item_range": [
+    "10a00280",
+    "10a00289"
+  ],
+  "support_class": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaFireAreaSupport.java",
+  "executors": [
+    {
+      "mob_id": "field_mesa_vulture",
+      "levels": [
+        38,
+        40,
+        42,
+        44
+      ],
+      "implementation_id": "mob_field_mesa_vulture_stone_drop",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.MesaVultureMobSkillExecutor",
+      "field": "mesaVultureMobSkillExecutor",
+      "activation_range": 10,
+      "cooldown_ticks": 180,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "mesaVultureMobSkillExecutor = new MesaVultureMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(mesaVultureMobSkillExecutor);",
+      "destroy_listener_code": "mesaVultureMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (mesaVultureMobSkillExecutor != null) mesaVultureMobSkillExecutor.stop();",
+      "target_policy": "共通isMobCombatTargetが許可する主対象player/召喚petの一体だけ。通行人を巻き込まない。",
+      "materials": [
+        {
+          "id": "10a00280",
+          "name": "メサハゲワシの羽",
+          "rarity": "COMMON",
+          "rate": 35,
+          "saleValue": 600,
+          "amount": 1,
+          "luckAffected": true
+        }
+      ]
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "levels": [
+        44,
+        46,
+        48,
+        50
+      ],
+      "implementation_id": "mob_field_ember_slug_ember_trail",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.EmberSlugMobSkillExecutor",
+      "field": "emberSlugMobSkillExecutor",
+      "activation_range": 5,
+      "cooldown_ticks": 240,
+      "constructor_dependencies": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration_code": "emberSlugMobSkillExecutor = new EmberSlugMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);\nmobSkillRegistry.register(emberSlugMobSkillExecutor);",
+      "destroy_listener_code": "emberSlugMobSkillExecutor.handleMobDestroyed(mobInstanceId);",
+      "disable_code": "if (emberSlugMobSkillExecutor != null) emberSlugMobSkillExecutor.stop();",
+      "target_policy": "共通isMobCombatTargetが許可する主対象player/召喚petの一体だけ。通行人を巻き込まない。",
+      "materials": [
+        {
+          "id": "10a00281",
+          "name": "ヒダネナメクジの粘液",
+          "rarity": "COMMON",
+          "rate": 35,
+          "saleValue": 700,
+          "amount": 1,
+          "luckAffected": true
+        }
+      ]
+    }
+  ],
+  "central_changes": [
+    "AstralRecord.javaへ2 executorを一度ずつ生成/registry登録する。EmberSlugの全個体共通hit窓は同じexecutor instanceに保持する。",
+    "destroy listenerへ2 handleMobDestroyed、onDisableの依存service停止より前へ2 stopを追加する。",
+    "POM/共通registry/properties/status/tag/schema/spawnerを本バッチは変更しない。",
+    "統合ツリーで全ID/参照/8個体のmaster読込・2skill登録と全体buildをまとめて確認する。"
+  ],
+  "dependencies": [
+    "直接参照なし。メサのB08と同時発動時の予告/重複damageは実機受入へ。"
+  ],
+  "habitats": [
+    {
+      "mob_id": "field_mesa_vulture",
+      "status": "placement_blocked",
+      "evidence_paths": [],
+      "intent": "メサ Lv38〜44",
+      "reason": "配置world/座標とLv31以降の正式な装備/class/skilltree基準が未確定。"
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "status": "placement_blocked",
+      "evidence_paths": [],
+      "intent": "火山系地形 Lv44〜50",
+      "reason": "配置world/座標とLv31以降の正式な装備/class/skilltree基準が未確定。"
+    }
+  ],
+  "unverified": [
+    "中央登録/停止連携・全体build/test・実server/clientは統合待ち。",
+    "Lv31〜50の数値は既存B08の仮想標準を延長した暫定値。正式なplayer基準で戦闘受入まで配置保留。",
+    "新素材のrecipe/装備用途は別担当。商人売却だけを定義。"
+  ]
+}

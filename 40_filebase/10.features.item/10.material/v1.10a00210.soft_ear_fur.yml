@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ウサギの耳毛"
+#   progression: 20
+schemaVersion: 1
+id: 10a00210
+category: material
+name: "&fやわらかな耳毛"
+icon: RABBIT_HIDE
+rarity: COMMON
+maxStack: 64
+saleValue: 120
+lore:
+  - "&7ヒダマリウサギの耳に生える、細く柔らかな毛。"
+  - "&7軽く、束ねてもふんわりとした感触が残る。"
+unTradeable: false
+unSellable: false

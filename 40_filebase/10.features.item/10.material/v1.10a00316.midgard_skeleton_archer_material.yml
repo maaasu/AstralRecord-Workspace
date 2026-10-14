@@ -1,0 +1,16 @@
+# design:
+#   motif: "工芸 / 古い矢羽"
+#   progression: 2
+schemaVersion: 1
+id: 10a00316
+category: material
+name: "&f古い矢羽"
+icon: FEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7スケルトン・アーチャーが携える古い矢羽。"
+  - "&7羽の端はすり切れ、丈夫な芯が残っている。"
+unTradeable: false
+unSellable: false

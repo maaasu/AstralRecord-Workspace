@@ -1,0 +1,31 @@
+{
+  "scope": "B12 one Java unit only; pre-existing target/classes and cached Maven dependencies",
+  "compiler": "C:\\Program Files\\Java\\jdk-21.0.10\\bin\\javac.exe",
+  "compiler_flags": [
+    "-proc:none",
+    "-encoding UTF-8",
+    "-Xlint:all",
+    "-implicit:none",
+    "-sourcepath <empty-temp>"
+  ],
+  "source_sha256": {
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ShadeHedgehogMobSkillExecutor.java": "4bc932772ede8ace7424634a4d7df81d8747fce3fad9487f933ba80832e0a0e4"
+  },
+  "exit_code": 0,
+  "full_output": "",
+  "warning_count": 0,
+  "full_project_build": "not run; delegated integration scope",
+  "class_outputs": [
+    "io/github/maaasu/astralRecord/feature/mob/skill/field/ShadeHedgehogMobSkillExecutor$NeedleCast.class",
+    "io/github/maaasu/astralRecord/feature/mob/skill/field/ShadeHedgehogMobSkillExecutor.class"
+  ],
+  "excluded_unrelated_classpath": [
+    "FastAsyncWorldEdit",
+    "kotlin-compiler",
+    "*-sources.jar",
+    "*-javadoc.jar",
+    "older paper-api versions",
+    "older JetBrains annotations versions"
+  ],
+  "initial_external_warnings": "6 Paper Location Contract.mutates annotation-method warnings from cache annotations 13.0 shadowing modern annotations; select cached 26.1.0 and rerun"
+}

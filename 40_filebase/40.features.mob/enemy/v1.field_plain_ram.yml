@@ -1,0 +1,139 @@
+# design:
+#   motif: "動物 / 羊の巻き角"
+#   progression: 16
+schemaVersion: 1
+id: field_plain_ram
+type: MOB
+category: ENEMY
+name: '&aハラノヒツジ'
+level: 28
+entityType: SHEEP
+icon: SHEEP_SPAWN_EGG
+variant:
+  age: ADULT
+  color: WHITE
+lore:
+- '&7厚い巻き角を持つ、野原の羊。'
+- '&7角突きの細い予告線から横へ離れると避けられる。'
+tags:
+- grassland
+- beast
+- melee
+baseStats:
+- status: MAX_HEALTH
+  value: 18260
+- status: ATTACK
+  value: 2857
+- status: DEFENSE
+  value: 3041
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 100
+levels:
+- level: 28
+  name: '&aハラノヒツジ Lv.28'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 18260
+  - status: ATTACK
+    value: 2857
+  - status: DEFENSE
+    value: 3041
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 400
+- level: 30
+  name: '&aハラノヒツジ Lv.30'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 20900
+  - status: ATTACK
+    value: 3270
+  - status: DEFENSE
+    value: 3484
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 440
+- level: 32
+  name: '&aハラノヒツジ Lv.32'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 23540
+  - status: ATTACK
+    value: 3683
+  - status: DEFENSE
+    value: 3927
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 480
+- level: 34
+  name: '&aハラノヒツジ Lv.34'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 26180
+  - status: ATTACK
+    value: 4096
+  - status: DEFENSE
+    value: 4369
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+  drops:
+    exp: 520
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 32
+    skills:
+    - id: mob_field_plain_ram_horn_thrust
+      activationRange: 3.6
+      cooldownTicks: 100
+      castTimeTicks: 12
+drops:
+  exp: 400
+  items:
+  - itemId:
+      ref: item:10a00220
+    rate: 35.0
+    amount: 1
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00221
+    rate: 7.0
+    amount: 1
+    luckAffected: true
+    hidden: false

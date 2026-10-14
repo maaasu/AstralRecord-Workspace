@@ -1,0 +1,118 @@
+# design:
+#   motif: "動物 / 赤熱するカニ"
+#   progression: 44
+schemaVersion: 1
+id: field_lava_crab
+type: MOB
+category: ENEMY
+name: '&cヨウガンガニ'
+level: 44
+entityType: SILVERFISH
+variant:
+  scale: 1.5
+icon: SILVERFISH_SPAWN_EGG
+lore:
+- '&7赤熱した甲羅を持つカニ。'
+- '&7殻に熱を蓄え、周囲へ熱波を放つ。'
+- '&7加熱殻の予告が出たら、輪の外へ離れよう。'
+tags:
+- beast
+- melee
+- fire
+levels:
+- level: 44
+  name: '&cヨウガンガニ Lv.44'
+- level: 46
+  name: '&cヨウガンガニ Lv.46'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 46800
+  - status: ATTACK
+    value: 5688
+  - status: DEFENSE
+    value: 7590
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 78
+  drops:
+    exp: 900
+- level: 48
+  name: '&cヨウガンガニ Lv.48'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 49800
+  - status: ATTACK
+    value: 6056
+  - status: DEFENSE
+    value: 8085
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 78
+  drops:
+    exp: 950
+- level: 50
+  name: '&cヨウガンガニ Lv.50'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 52800
+  - status: ATTACK
+    value: 6424
+  - status: DEFENSE
+    value: 8580
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 78
+  drops:
+    exp: 1000
+baseStats:
+- status: MAX_HEALTH
+  value: 43800
+- status: ATTACK
+  value: 5320
+- status: DEFENSE
+  value: 7095
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 78
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 40
+    skills:
+    - id: mob_field_lava_crab_heated_shell
+      activationRange: 3
+      cooldownTicks: 180
+      castTimeTicks: 0
+drops:
+  exp: 850
+  items:
+  - itemId:
+      ref: item:10a00290
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false

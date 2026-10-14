@@ -1,0 +1,15 @@
+# design:
+#   motif: "鉱物 / 大地の芯"
+#   progression: 26
+schemaVersion: 1
+id: 10a00232
+category: material
+name: "大地の芯"
+icon: HEART_OF_THE_SEA
+rarity: RARE
+maxStack: 64
+saleValue: 2800
+lore:
+  - "&7ごくまれに石背の奥から見つかる、密度の高い芯。"
+unTradeable: false
+unSellable: false

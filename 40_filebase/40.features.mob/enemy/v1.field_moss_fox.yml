@@ -1,0 +1,159 @@
+# design:
+#   motif: "動物 / 苔色の狐"
+#   progression: 24
+schemaVersion: 1
+id: field_moss_fox
+type: MOB
+category: ENEMY
+name: '&aコケギツネ Lv.24'
+level: 24
+entityType: FOX
+icon: FOX_SPAWN_EGG
+variant:
+  age: ADULT
+  scale: 1.0
+  kind: RED
+lore:
+- '&7尾を振って、足元にむせるコケ煙を残す。'
+- '&7円の外へ離れれば煙を避けられる。'
+tags:
+- forest
+- beast
+baseStats:
+- status: MAX_HEALTH
+  value: 11160
+- status: ATTACK
+  value: 2000
+- status: DEFENSE
+  value: 1986
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 110
+- status: CRITICAL_RATE
+  value: 0
+- status: FINAL_DAMAGE_MULTIPLIER
+  value: 100
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 14
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2.6
+    normalAttack:
+      range: 2.6
+      intervalTicks: 32
+    skills:
+    - id: mob_field_moss_fox_moss_smoke
+      activationRange: 2.6
+      cooldownTicks: 160
+      castTimeTicks: 20
+drops:
+  exp: 304
+  items:
+  - itemId:
+      ref: item:10a00241
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00242
+    rate: 8
+    amount: 1
+    luckAffected: true
+    hidden: false
+levels:
+- level: 24
+  name: '&aコケギツネ Lv.24'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 11160
+  - status: ATTACK
+    value: 2000
+  - status: DEFENSE
+    value: 1986
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 304
+- level: 26
+  name: '&aコケギツネ Lv.26'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 13210
+  - status: ATTACK
+    value: 2366
+  - status: DEFENSE
+    value: 2351
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 342
+- level: 28
+  name: '&aコケギツネ Lv.28'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 15440
+  - status: ATTACK
+    value: 2766
+  - status: DEFENSE
+    value: 2751
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 380
+- level: 30
+  name: '&aコケギツネ Lv.30'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 17670
+  - status: ATTACK
+    value: 3167
+  - status: DEFENSE
+    value: 3152
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 418

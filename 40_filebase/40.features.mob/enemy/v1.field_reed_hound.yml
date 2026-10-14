@@ -1,0 +1,135 @@
+# design:
+#   motif: "動物 / 草色の猟犬"
+#   progression: 18
+schemaVersion: 1
+id: field_reed_hound
+type: MOB
+category: ENEMY
+name: "&aクサハウンド Lv.22"
+level: 22
+entityType: WOLF
+icon: WOLF_SPAWN_EGG
+lore:
+  - "&7草色の毛並みを持ち、平原を走り回る猟犬。"
+  - "&7低く構えたら直線へ突進する。横に避けよう。"
+tags:
+  - grassland
+  - melee
+  - beast
+  - wolf
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 9500
+  - status: ATTACK
+    value: 1902
+  - status: DEFENSE
+    value: 1568
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 120
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 9
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+      - id: mob_field_reed_hound_grass_charge
+        activationRange: 5.25
+        cooldownTicks: 140
+        castTimeTicks: 16
+
+drops:
+  exp: 280
+  items:
+    - itemId:
+        ref: item:10a00200
+      rate: 40.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+
+levels:
+  - level: 22
+    name: "&aクサハウンド Lv.22"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 9500
+      - status: ATTACK
+        value: 1902
+      - status: DEFENSE
+        value: 1568
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 280
+  - level: 24
+    name: "&aクサハウンド Lv.24"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 11400
+      - status: ATTACK
+        value: 2283
+      - status: DEFENSE
+        value: 1881
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 320
+  - level: 26
+    name: "&aクサハウンド Lv.26"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 13490
+      - status: ATTACK
+        value: 2701
+      - status: DEFENSE
+        value: 2228
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 360
+  - level: 28
+    name: "&aクサハウンド Lv.28"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 15770
+      - status: ATTACK
+        value: 3157
+      - status: DEFENSE
+        value: 2606
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 400

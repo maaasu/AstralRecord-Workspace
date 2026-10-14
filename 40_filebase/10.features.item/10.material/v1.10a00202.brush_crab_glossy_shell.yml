@@ -1,0 +1,17 @@
+# design:
+#   motif: "動物 / カニの甲羅"
+#   progression: 19
+schemaVersion: 1
+id: 10a00202
+category: material
+name: "&aつや甲羅"
+icon: TURTLE_SCUTE
+rarity: UNCOMMON
+iconGlint: true
+maxStack: 64
+saleValue: 380
+lore:
+  - "&7傷が少なく、つやを保ったヤブガニの甲羅。"
+  - "&7なめらかな表面が光を柔らかく返す。"
+unTradeable: false
+unSellable: false

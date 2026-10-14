@@ -1,0 +1,513 @@
+{
+  "repo": "E:\\AstralRecord-Worktrees\\field-equipment-final-integration",
+  "baseline": "989d32b7f10df0c05b799cda98f2c7fb211e72d8",
+  "intakeTip": "1af2b415ccc629858469fe209d72a496f8ea0948",
+  "yamlFilesParsed": 1004,
+  "rootMasters": 1001,
+  "idCollisions": {
+    "namespace": 0,
+    "global": 8,
+    "catalog": 1
+  },
+  "equipmentStages": [
+    {
+      "stage": "Lapis",
+      "level": 20,
+      "equipment": 19,
+      "setIds": [
+        "lapis_arcana",
+        "lapis_bastion",
+        "lapis_stride"
+      ]
+    },
+    {
+      "stage": "Lumina",
+      "level": 25,
+      "equipment": 19,
+      "setIds": [
+        "lumina_guard",
+        "lumina_hunt",
+        "lumina_magia"
+      ]
+    },
+    {
+      "stage": "Astra",
+      "level": 30,
+      "equipment": 19,
+      "setIds": [
+        "astra_guard",
+        "astra_hunt",
+        "astra_magia"
+      ]
+    }
+  ],
+  "equipmentCount": 57,
+  "setCount": 9,
+  "randomStatsChecked": 120,
+  "randomContractFailures": [],
+  "seriesProgression": {
+    "rule": "expected primary attack and per-piece DEFENSE do not decrease across Lv20/Lv25/Lv30; random zeroChance included; side stats/tradeoffs and unlike attributes are not summed",
+    "checks": 22,
+    "regressions": [],
+    "values": [
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00400",
+          "20a00419",
+          "20a00438"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00401",
+          "20a00420",
+          "20a00439"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00402",
+          "20a00421",
+          "20a00440"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00403",
+          "20a00422",
+          "20a00441"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00404",
+          "20a00423",
+          "20a00442"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00405",
+          "20a00424",
+          "20a00443"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "primary_attack",
+        "ids": [
+          "20a00406",
+          "20a00425",
+          "20a00444"
+        ],
+        "expected": [
+          170.0,
+          180.0,
+          260.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "guard",
+        "slot": "HEAD",
+        "ids": [
+          "20a00407",
+          "20a00426",
+          "20a00445"
+        ],
+        "expected": [
+          70.0,
+          70.0,
+          100.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "guard",
+        "slot": "CHEST",
+        "ids": [
+          "20a00408",
+          "20a00427",
+          "20a00446"
+        ],
+        "expected": [
+          125.0,
+          155.0,
+          215.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "guard",
+        "slot": "LEGS",
+        "ids": [
+          "20a00409",
+          "20a00428",
+          "20a00447"
+        ],
+        "expected": [
+          90.0,
+          90.0,
+          125.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "guard",
+        "slot": "FEET",
+        "ids": [
+          "20a00410",
+          "20a00429",
+          "20a00448"
+        ],
+        "expected": [
+          65.0,
+          65.0,
+          90.0
+        ]
+      },
+      {
+        "kind": "armor_set_defense_total",
+        "archetype": "guard",
+        "expected": [
+          350.0,
+          380.0,
+          530.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "hunter",
+        "slot": "HEAD",
+        "ids": [
+          "20a00411",
+          "20a00430",
+          "20a00449"
+        ],
+        "expected": [
+          62.0,
+          65.0,
+          94.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "hunter",
+        "slot": "CHEST",
+        "ids": [
+          "20a00412",
+          "20a00431",
+          "20a00450"
+        ],
+        "expected": [
+          110.0,
+          140.0,
+          200.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "hunter",
+        "slot": "LEGS",
+        "ids": [
+          "20a00413",
+          "20a00432",
+          "20a00451"
+        ],
+        "expected": [
+          80.0,
+          80.0,
+          115.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "hunter",
+        "slot": "FEET",
+        "ids": [
+          "20a00414",
+          "20a00433",
+          "20a00452"
+        ],
+        "expected": [
+          58.0,
+          60.0,
+          85.0
+        ]
+      },
+      {
+        "kind": "armor_set_defense_total",
+        "archetype": "hunter",
+        "expected": [
+          310.0,
+          345.0,
+          494.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "mage",
+        "slot": "HEAD",
+        "ids": [
+          "20a00415",
+          "20a00434",
+          "20a00453"
+        ],
+        "expected": [
+          58.0,
+          60.0,
+          88.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "mage",
+        "slot": "CHEST",
+        "ids": [
+          "20a00416",
+          "20a00435",
+          "20a00454"
+        ],
+        "expected": [
+          103.0,
+          130.0,
+          185.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "mage",
+        "slot": "LEGS",
+        "ids": [
+          "20a00417",
+          "20a00436",
+          "20a00455"
+        ],
+        "expected": [
+          74.0,
+          75.0,
+          108.0
+        ]
+      },
+      {
+        "kind": "armor_defense",
+        "archetype": "mage",
+        "slot": "FEET",
+        "ids": [
+          "20a00418",
+          "20a00437",
+          "20a00456"
+        ],
+        "expected": [
+          54.0,
+          55.0,
+          80.0
+        ]
+      },
+      {
+        "kind": "armor_set_defense_total",
+        "archetype": "mage",
+        "expected": [
+          289.0,
+          320.0,
+          461.0
+        ]
+      }
+    ]
+  },
+  "catalogResolution": {
+    "status": 0,
+    "tag": 0,
+    "set": 0,
+    "ref": 0,
+    "item": 0
+  },
+  "oldMaterialsEnemyIntegrity": {
+    "assignmentRows": 25,
+    "checked": 25,
+    "valid": true,
+    "failures": []
+  },
+  "centralRegistration": {
+    "BATCHrows": 23,
+    "uniqueMobIds": 23,
+    "profiles": 92,
+    "skillIds": 23,
+    "newMaterialRows": 33,
+    "uniqueMaterialIds": 33,
+    "skillIssues": [],
+    "materialIssues": []
+  },
+  "existingShopProducts": {
+    "baselineCount": 19,
+    "preservedExceptSlot": true,
+    "issues": []
+  },
+  "shopIntegration": {
+    "shops": 2,
+    "connectionRows": 57,
+    "manifestProducts": 57,
+    "sourceRows": 33,
+    "routeIssues": [],
+    "bagIssues": [],
+    "slotIssues": []
+  },
+  "savedRandomCompatibility": {
+    "sourceAndContractsUnchanged": false,
+    "runtimeSourceUnchanged": true,
+    "baselineChanges": [
+      "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md",
+      "60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs"
+    ],
+    "uncommitted": [],
+    "reviewedMetadataAndTestChanges": [
+      {
+        "path": "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md",
+        "blob": "5408b5b0b870150fb95d34154bf97297203d3db3"
+      },
+      {
+        "path": "60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs",
+        "blob": "a043c4938bdda070c67be96567152984658f6158"
+      }
+    ],
+    "reviewedChangeCommit": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+    "reason": "Editor metadata now accepts existing random range wrapper; actual loader, scalar snapshot persistence, and saved roll decoder contracts are unchanged; see HEAVY_VALIDATION.json for executed acceptance",
+    "unexpectedChanges": []
+  },
+  "sourceCommitDiffTree": [
+    {
+      "stage": "E10",
+      "sha": "c49e7d611",
+      "parent": "3444b74b24ed99f11fbb93d5e26bfe00ad7f2780",
+      "paths": 4,
+      "expected": 4,
+      "intakeBlobMatches": 4,
+      "mismatches": []
+    },
+    {
+      "stage": "E11",
+      "sha": "f7215c43d",
+      "parent": "3444b74b24ed99f11fbb93d5e26bfe00ad7f2780",
+      "paths": 4,
+      "expected": 4,
+      "intakeBlobMatches": 4,
+      "mismatches": []
+    },
+    {
+      "stage": "Lv20",
+      "sha": "2bdcea3c4",
+      "parent": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+      "paths": 30,
+      "expected": 30,
+      "intakeBlobMatches": 30,
+      "mismatches": []
+    },
+    {
+      "stage": "Lv25",
+      "sha": "660f86bf8",
+      "parent": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+      "paths": 31,
+      "expected": 31,
+      "intakeBlobMatches": 31,
+      "mismatches": []
+    },
+    {
+      "stage": "E12",
+      "sha": "7bc195d8f15976d06ab7a171db298ffb5ed27c6d",
+      "parent": "3444b74b24ed99f11fbb93d5e26bfe00ad7f2780",
+      "paths": 4,
+      "expected": 4,
+      "intakeBlobMatches": 4,
+      "mismatches": []
+    },
+    {
+      "stage": "Lv30",
+      "sha": "a05095ee63252d0ddda6f3e1994192bccb33a31d",
+      "parent": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+      "paths": 34,
+      "expected": 34,
+      "intakeBlobMatches": 34,
+      "mismatches": []
+    },
+    {
+      "stage": "E13",
+      "sha": "4f07d7a19df40b743284bac871be9a88a58ac665",
+      "parent": "3444b74b24ed99f11fbb93d5e26bfe00ad7f2780",
+      "paths": 2,
+      "expected": 2,
+      "intakeBlobMatches": 2,
+      "mismatches": []
+    }
+  ],
+  "expectedAdjustmentsAfterIntake": [
+    {
+      "stage": "Lv20",
+      "sourceSha": "2bdcea3c4",
+      "pathsChangedAfterIntake": [
+        "00_docs/99_資料/eriva-upper-equipment/lapis-lv20/BALANCE_CHECK.json",
+        "00_docs/99_資料/eriva-upper-equipment/lapis-lv20/BALANCE_REPORT.md",
+        "00_docs/99_資料/eriva-upper-equipment/lapis-lv20/EQUIPMENT_STATS.csv",
+        "00_docs/99_資料/eriva-upper-equipment/lapis-lv20/README.md",
+        "00_docs/99_資料/eriva-upper-equipment/lapis-lv20/VALIDATION.txt",
+        "00_docs/99_資料/eriva-upper-equipment/lapis-lv20/validate_lapis.py",
+        "40_filebase/10.features.item/20.equipment/v1.20a00400.lapis_sword.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00401.lapis_hammer.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00402.lapis_spear.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00403.lapis_shortbow.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00404.lapis_longbow.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00405.lapis_wand.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00406.lapis_staff.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00407.lapis_guard_head.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00408.lapis_guard_chest.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00409.lapis_guard_legs.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00410.lapis_guard_feet.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00411.lapis_hunter_head.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00412.lapis_hunter_chest.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00413.lapis_hunter_legs.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00414.lapis_hunter_feet.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00415.lapis_mage_head.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00416.lapis_mage_chest.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00417.lapis_mage_legs.yml",
+        "40_filebase/10.features.item/20.equipment/v1.20a00418.lapis_mage_feet.yml"
+      ]
+    }
+  ],
+  "errors": [],
+  "pending": [],
+  "status": "PASS"
+}

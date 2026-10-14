@@ -1725,6 +1725,13 @@ public class ItemStackFactory {
      */
     private @Nullable String formatRandomRangeLabel(
             @Nullable ItemEquipmentStat statDefinition, double baseMin, double baseMax) {
+        if (statDefinition != null && statDefinition.getRandom() != null) {
+            var random = statDefinition.getRandom();
+            String range = formatStatValue(random.bound(statDefinition.getMin(), false)) + "～"
+                    + formatStatValue(random.bound(statDefinition.getMin(), true));
+            return random.zeroChance() == 0 ? range
+                    : "0 (" + formatStatValue(random.zeroChance() * 100) + "%) / " + range;
+        }
         if (statDefinition == null
                 || (!isRandomRange(statDefinition.getRawMin()) && !isRandomRange(statDefinition.getRawMax()))) {
             return null;

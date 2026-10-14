@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { classBonus, equipmentRows, plainName, rangeOf } from './masterAnalytics'
+import { classBonus, equipmentRows, equipmentStatRange, formatEquipmentRange, plainName, rangeOf } from './masterAnalytics'
 import type { AnalyticsMaster } from './masterAnalytics'
 
 describe('master comparison math', () => {
+  it('shows only zero at probability one and ignores invalid range plus random drafts', () => {
+    const random = { offsetMin: 1, offsetMax: 10, step: 1, zeroChance: 1 }
+    expect(equipmentStatRange({ value: 0, random })).toEqual({ min: 0, max: 0, expected: 0 })
+    expect(equipmentStatRange({ value: '0~0', random })).toBeNull()
+    expect(equipmentStatRange({ value: { min: 0, max: 0 }, random })).toBeNull()
+    expect(equipmentStatRange({ value: 0, min: 0, random })).toBeNull()
+  })
+  it('shows the creation roll bounds and expected value with a zero chance', () => {
+    const master: AnalyticsMaster = { path: 'equipment.yml', progression: null, content: { equipment: {
+      stats: [{ status: 'FIRE_DAMAGE_INCREASE', type: 'FLAT', value: 5,
+        random: { offsetMin: -2, offsetMax: 3, step: 0.5, zeroChance: 0.2 } }],
+    } } }
+    const row = equipmentRows([master], 0)[0]
+    expect(row.stats.FIRE_DAMAGE_INCREASE).toEqual({ min: 0, max: 8, expected: 4.4 })
+    expect(formatEquipmentRange(row.stats.FIRE_DAMAGE_INCREASE)).toContain('期待値 4.4')
+    expect(formatEquipmentRange({ min: 0.0001, max: 0.0002, expected: 0.00015 })).toContain('0.0001～0.0002')
+    expect(row.rawStats[0]).toContain('zeroChance')
+  })
   it('uses visible hex names in search, accessible labels and CSV rows', () => {
     expect(plainName('&#12abef黄金&x&5&5&f&f&5&5の剣')).toBe('黄金の剣')
     expect(equipmentRows([{ path: 'sword.yml', progression: null, content: { name: '§#12abef黄金§rの剣' } }], 0)[0].name).toBe('黄金の剣')

@@ -1,0 +1,10 @@
+[
+  {"level": 15, "role": "normal", "id": "eriva_reed_archer", "category": "ENEMY", "sourceLevel": 15, "profile": "40_filebase/40.features.mob/enemy/v1.eriva_reed_archer.yml"},
+  {"level": 15, "role": "strong", "id": "eriva_stonehorn_ram", "category": "ENEMY", "sourceLevel": 15, "profile": "40_filebase/40.features.mob/enemy/v1.eriva_stonehorn_ram.yml"},
+  {"level": 20, "role": "normal", "id": "flower_archer_skeleton", "category": "ENEMY", "sourceLevel": 20, "profile": "40_filebase/40.features.mob/enemy/v1.flower_archer_skeleton.yml"},
+  {"level": 20, "role": "strong", "id": "manor_thorn_guard", "category": "ENEMY", "sourceLevel": 20, "profile": "40_filebase/40.features.mob/enemy/v1.manor_thorn_guard.yml"},
+  {"level": 25, "role": "normal_proxy_lv24", "id": "field_moss_fox", "category": "ENEMY", "sourceLevel": 24, "profile": "40_filebase/40.features.mob/enemy/v1.field_moss_fox.yml"},
+  {"level": 25, "role": "boss_not_strong", "id": "mine_bell_knocker", "category": "BOSS", "sourceLevel": 25, "profile": "40_filebase/40.features.mob/boss/v1.mine_bell_knocker.yml"},
+  {"level": 30, "role": "normal", "id": "field_sunhare", "category": "ENEMY", "sourceLevel": 30, "profile": "40_filebase/40.features.mob/enemy/v1.field_sunhare.yml"},
+  {"level": 30, "role": "strong", "id": "field_plain_ram", "category": "ENEMY", "sourceLevel": 30, "profile": "40_filebase/40.features.mob/enemy/v1.field_plain_ram.yml"}
+]

@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / 牛皮"
+#   progression: 20
+schemaVersion: 1
+id: 10a00320
+category: material
+name: "&f丈夫な牛皮"
+icon: LEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7草原牛から得られる、厚みのある丈夫な牛皮。"
+unTradeable: false
+unSellable: false

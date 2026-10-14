@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRandom
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleReward
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleOnUse
@@ -426,6 +427,44 @@ class ItemRepository {
             val resolvedMin = minValue ?: maxValue ?: singleValue ?: return@mapNotNull null
             val resolvedMax = maxValue ?: minValue ?: singleValue ?: resolvedMin
 
+            val random = if (statObj.has("random") && !statObj.get("random").isJsonNull) {
+                val randomObj = parseObjectOrNull(statObj, "random")
+                    ?: throw IllegalArgumentException("equipment.stats.random must be an object")
+                val numericRawMin = rawMinValue?.toDoubleOrNull()
+                val numericRawMax = rawMaxValue?.toDoubleOrNull()
+                // APIはscalarを同値のvalue.min/maxへ正規化する。旧rangeはAPIで拒否する。
+                require(!statObj.has("min") && !statObj.has("max")
+                    && scalarValue?.contains(Regex("[~～]")) != true
+                    && resolvedMin == resolvedMax
+                    && numericRawMin != null && numericRawMax != null
+                    && numericRawMin == numericRawMax) {
+                    "equipment.stats.random requires a scalar value"
+                }
+                require(resolvedMin.isFinite()
+                    && java.math.BigDecimal(rawMinValue).compareTo(java.math.BigDecimal.valueOf(resolvedMin)) == 0
+                    && java.math.BigDecimal(rawMaxValue).compareTo(java.math.BigDecimal.valueOf(resolvedMax)) == 0) {
+                    "equipment.stats.random base exceeds numeric precision"
+                }
+                fun requiredNumber(key: String): Double {
+                    val value = randomObj.get(key)
+                    require(value != null && value.isJsonPrimitive && value.asJsonPrimitive.isNumber) {
+                        "equipment.stats.random.$key must be a number"
+                    }
+                    val number = value.asDouble
+                    require(number.isFinite()) { "equipment.stats.random.$key must be finite" }
+                    if (key != "zeroChance") {
+                        require(java.math.BigDecimal(value.asString).compareTo(java.math.BigDecimal.valueOf(number)) == 0) {
+                            "equipment.stats.random.$key exceeds numeric precision"
+                        }
+                    }
+                    return number
+                }
+                EquipmentStatRandom(
+                    requiredNumber("offsetMin"), requiredNumber("offsetMax"), requiredNumber("step"),
+                    if (randomObj.has("zeroChance")) requiredNumber("zeroChance") else 0.0,
+                )
+            } else null
+
             ItemEquipmentStat(
                 status = status,
                 type = ItemEquipmentStatType.fromApiValue(parseStringOrNull(statObj, "type")),
@@ -433,6 +472,7 @@ class ItemRepository {
                 max = max(resolvedMin, resolvedMax),
                 rawMin = rawMinValue,
                 rawMax = rawMaxValue,
+                random = random,
             )
         }
 

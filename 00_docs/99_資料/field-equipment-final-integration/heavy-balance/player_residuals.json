@@ -1,0 +1,54 @@
+{
+  "15": {
+    "attack": 374.57615786040446,
+    "primary": 42.8,
+    "defense": 507.0,
+    "hp": 1800.0,
+    "calibrationSeries": "eriva",
+    "calibrationEnhance": 15,
+    "anchor": {
+      "R": 767,
+      "D": 797,
+      "HP": 2200
+    }
+  },
+  "20": {
+    "attack": 679.5167958656331,
+    "primary": 42.8,
+    "defense": 979.0,
+    "hp": 3440.0,
+    "calibrationSeries": "lapis",
+    "calibrationEnhance": 15,
+    "anchor": {
+      "R": 1394,
+      "D": 1449,
+      "HP": 4000
+    }
+  },
+  "25": {
+    "attack": 1195.8775510204082,
+    "primary": 42.8,
+    "defense": 1855.0,
+    "hp": 5610.0,
+    "calibrationSeries": "lumina",
+    "calibrationEnhance": 15,
+    "anchor": {
+      "R": 2264,
+      "D": 2355,
+      "HP": 6500
+    }
+  },
+  "30": {
+    "attack": 1774.4206549118385,
+    "primary": 42.8,
+    "defense": 2792.0,
+    "hp": 8380.0,
+    "calibrationSeries": "astra",
+    "calibrationEnhance": 15,
+    "anchor": {
+      "R": 3318,
+      "D": 3442,
+      "HP": 9500
+    }
+  }
+}

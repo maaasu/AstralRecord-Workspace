@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 赤い蠍の毒針"
+#   progression: 38
+schemaVersion: 1
+id: 10a00270
+category: material
+name: アカサソリの毒針
+icon: POINTED_DRIPSTONE
+rarity: COMMON
+saleValue: 550
+maxStack: 64
+lore:
+- '&7アカサソリから得られる、先の鋭い毒針。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

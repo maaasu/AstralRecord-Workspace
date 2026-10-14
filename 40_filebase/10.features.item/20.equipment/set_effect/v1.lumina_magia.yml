@@ -1,0 +1,17 @@
+# design:
+#   motif: "工芸 / 光沢をもつ鉄と明るい染め革"
+#   progression: 25
+schemaVersion: 1
+id: lumina_magia
+name: '&bルミナマギア'
+pieces:
+- count: 2
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 8
+- count: 4
+  stats:
+  - status: ACCURACY
+    type: FLAT
+    value: 2

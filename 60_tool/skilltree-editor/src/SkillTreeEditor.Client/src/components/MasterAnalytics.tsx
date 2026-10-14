@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
-import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
+import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 import './masterAnalytics.css'
 import { MinecraftText } from './MinecraftText'

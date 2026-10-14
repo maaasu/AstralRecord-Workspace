@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 砂地のヤモリの皮"
+#   progression: 38
+schemaVersion: 1
+id: 10a00271
+category: material
+name: 砂ヤモリの皮
+icon: RABBIT_HIDE
+rarity: COMMON
+saleValue: 420
+maxStack: 64
+lore:
+- '&7スナヤモリから得られる、砂に強い薄皮。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false
