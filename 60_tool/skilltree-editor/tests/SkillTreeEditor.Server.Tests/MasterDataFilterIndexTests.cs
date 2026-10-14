@@ -290,6 +290,41 @@ public sealed class MasterDataFilterIndexTests : IDisposable
     }
 
     [Fact]
+    public async Task RequiredClassesSupportsClassIdAndLegacyClassAlias()
+    {
+        Write("10.features.item/20.equipment/v1.legacy.yml", """
+            id: legacy
+            equipment:
+              requiredClasses:
+                - class: swordsman
+                  level: 1
+                - class: 'cl:hunter'
+                - classId: wizard
+                  class: ignored
+                - adventurer
+            """);
+
+        var result = await _service.ReadAsync(CancellationToken.None);
+        var legacy = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.legacy.yml", StringComparison.Ordinal));
+        Assert.Equal(["adventurer", "hunter", "swordsman", "wizard"], legacy.Facets["requiredClasses"]);
+        Assert.Equal(["true"], legacy.Facets["classRestricted"]);
+    }
+
+    [Fact]
+    public async Task HeldEquipmentSlotDetectionMatchesPluginCaseNormalization()
+    {
+        Write("10.features.item/20.equipment/v1.weapon.yml", "id: weapon\nequipment: {slot: ' weapon ', handType: TWO}\n");
+        Write("10.features.item/20.equipment/v1.tool.yml", "id: tool\nequipment: {slot: tool}\n");
+
+        var result = await _service.ReadAsync(CancellationToken.None);
+        var weapon = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.weapon.yml", StringComparison.Ordinal));
+        Assert.Equal(["TWO"], weapon.Facets["handType"]);
+        Assert.Equal([" weapon "], weapon.Facets["slot"]);
+        var tool = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.tool.yml", StringComparison.Ordinal));
+        Assert.Equal(["ONE"], tool.Facets["handType"]);
+    }
+
+    [Fact]
     public async Task CommittedMastersProvideFacetsAndDropSources()
     {
         var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);

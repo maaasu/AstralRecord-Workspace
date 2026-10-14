@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import type { MasterCatalog, MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
-import { categoryFacetOptions, inCategory, isDropSourceDirectory, isSkillDirectory } from '../data/masterDataFilters'
+import { categoryFacetOptions, categoryNumericOptions, inCategory, isDropSourceDirectory, type NumericFilters } from '../data/masterDataFilters'
 
 /** Catalog and list filters are shared by all open file tabs. */
 export function useMasterDataWorkspace() {
@@ -15,6 +15,10 @@ export function useMasterDataWorkspace() {
   const [notice, setNotice] = useState('')
   const [categoryId, setCategoryId] = useState('10.features.item')
   const [query, setQuery] = useState('')
+  const [searchScope, setSearchScope] = useState<'folder' | 'all'>('folder')
+  const [browserView, setBrowserView] = useState<'folders' | 'files'>('files')
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => new Set(['10.features.item']))
+  const [numericFilters, setNumericFilters] = useState<NumericFilters>({})
   const [format, setFormat] = useState('')
   const [sourceQuery, setSourceQuery] = useState('')
   const [dropSourcePath, setDropSourcePath] = useState('')
@@ -26,7 +30,6 @@ export function useMasterDataWorkspace() {
   const [fileStatus, setFileStatus] = useState('')
   const [visibleCount, setVisibleCount] = useState(50)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const refreshId = useRef(0)
   const rememberedPaths = useRef<Record<string, string>>({})
 
@@ -56,6 +59,7 @@ export function useMasterDataWorkspace() {
     if (!nextFilterIndex) {
       setDropSourcePath(''); setSourceQuery(''); setSkillTag('')
       setDropItemId(''); setDropItemQuery(''); setDropPresence(''); setFacetFilters({})
+      setNumericFilters({})
       setNotice('ドロップ元とタグなどの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')
     }
   }, [])
@@ -74,29 +78,34 @@ export function useMasterDataWorkspace() {
   useEffect(() => {
     const directory = catalog?.categories.find((entry) => entry.id === categoryId)?.directory
     if (!directory) return
-    if (skillTag && isSkillDirectory(directory) && filterIndex && !filterIndex.skillTags.some((entry) => inCategory(entry.path, directory) && entry.tags.includes(skillTag))) setSkillTag('')
-    const options = categoryFacetOptions(files.filter((file) => inCategory(file.path, directory)), filterIndex)
+    if (skillTag && filterIndex && !filterIndex.skillTags.some((entry) => (searchScope === 'all' || inCategory(entry.path, directory)) && entry.tags.includes(skillTag))) setSkillTag('')
+    const scopedFiles = searchScope === 'all' ? files : files.filter((file) => inCategory(file.path, directory))
+    const options = categoryFacetOptions(scopedFiles, filterIndex)
     setFacetFilters((current) => {
       const next = Object.fromEntries(Object.entries(current).filter(([key, value]) => options[key]?.includes(value)))
       return Object.keys(next).length === Object.keys(current).length ? current : next
     })
-    if (!isDropSourceDirectory(directory)) {
+    const numberOptions = categoryNumericOptions(scopedFiles, filterIndex)
+    setNumericFilters((current) => {
+      const next = Object.fromEntries(Object.entries(current).filter(([key]) => numberOptions[key]))
+      return Object.keys(next).length === Object.keys(current).length ? current : next
+    })
+    if (searchScope === 'folder' && !isDropSourceDirectory(directory)) {
       setDropItemId(''); setDropItemQuery(''); setDropPresence('')
-    } else if (filterIndex && dropItemId && !filterIndex.sources.some((source) => inCategory(source.path, directory) && source.itemIds.includes(dropItemId))) {
+    } else if (filterIndex && dropItemId && !filterIndex.sources.some((source) => (searchScope === 'all' || inCategory(source.path, directory)) && source.itemIds.includes(dropItemId))) {
       setDropItemId(''); setDropItemQuery('')
       setNotice('選択していたドロップ品が見つからないため、ドロップ品の絞り込みを解除しました。')
     }
-  }, [catalog, categoryId, files, filterIndex, dropItemId, skillTag])
-  useEffect(() => { setVisibleCount(50) }, [categoryId, query, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus])
+  }, [catalog, categoryId, files, filterIndex, dropItemId, skillTag, searchScope])
+  useEffect(() => { setVisibleCount(50) }, [categoryId, query, searchScope, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus, numericFilters])
 
   return {
     catalog, files, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths,
-    categoryId, setCategoryId, query, setQuery, format, setFormat, sourceQuery, setSourceQuery,
+    categoryId, setCategoryId, query, setQuery, searchScope, setSearchScope, browserView, setBrowserView, expandedCategories, setExpandedCategories, numericFilters, setNumericFilters, format, setFormat, sourceQuery, setSourceQuery,
     dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
     facetFilters, setFacetFilters, fileStatus, setFileStatus,
     sidebarCollapsed, setSidebarCollapsed,
-    filtersCollapsed, setFiltersCollapsed,
   }
 }
 

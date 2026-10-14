@@ -14,8 +14,8 @@ export const facetLabels: Record<string, string> = {
   category: 'データ種別', type: '種別', tags: 'タグ', rarity: 'レアリティ', slot: '装備スロット',
   world: 'ワールド', entityType: 'エンティティ種別', passiveConfigured: 'パッシブ設定', enabled: '有効・無効',
   role: 'クラス役割', requiredToolTags: '必要な道具タグ', worldType: 'ワールド種別',
-  unTradeable: 'トレード不可', unSellable: '売却不可', enchantEnabled: 'エンチャント可能', enhanceEnabled: '強化可能',
-  requiredClasses: '装備可能クラス', classRestricted: '装備クラス制限', handType: '装備の手数', equipmentTag: '装備種別タグ', setId: '装備セット',
+  unTradeable: 'トレード', unSellable: '売却', enchantEnabled: 'エンチャント可能', enhanceEnabled: '強化可能',
+  requiredClasses: '装備可能クラス', classRestricted: '装備クラス制限', handType: '持ち方', equipmentTag: '装備種別タグ', setId: '装備セット',
 }
 
 export interface NumericFilterRange { min: string; max: string }
@@ -37,8 +37,8 @@ export function categoryNumericOptions(files: MasterFileSummary[], index: Master
       items.filter(Number.isFinite).forEach((item) => set.add(item))
     }
   }
-  return Object.fromEntries(Object.entries(values).filter(([, items]) => items.size > 0)
-    .map(([key, items]) => [key, [...items].sort((a, b) => a - b)]))
+  return Object.fromEntries(Object.keys(numericFilterLabels).filter((key) => values[key]?.size > 0)
+    .map((key) => [key, [...values[key]].sort((a, b) => a - b)]))
 }
 
 function numericBound(raw: string): number | null {

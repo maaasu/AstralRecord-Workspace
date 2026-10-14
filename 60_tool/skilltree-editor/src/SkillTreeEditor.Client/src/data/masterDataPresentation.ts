@@ -11,7 +11,11 @@ const fieldLabels: Record<string, string> = {
   effects: '効果', type: '種類', skillId: 'スキルID', status: 'ステータス', statusID: 'ステータスID', statusId: 'ステータスID', modifierType: '補正の種類', value: '値',
   stats: 'ステータス補正', baseStats: '初期ステータス補正', growthPerLevel: 'レベルごとの成長量',
   tag: 'タグID', role: '職業ロール', description: '説明', lore: '説明文',
-  category: 'カテゴリ', rarity: 'レアリティ', slot: '装備スロット', handType: '手数', equipmentTag: '装備タグ',
+  category: 'カテゴリ', rarity: 'レアリティ', slot: '装備スロット', handType: '持ち方', equipmentTag: '装備タグ',
+  equipment: '装備設定', maxStack: '最大スタック数', saleValue: '売却額',
+  requiredLevel: '必要なプレイヤーレベル', requiredClasses: '装備に必要なクラス',
+  enhance: '強化設定', enchant: 'エンチャント設定', durability: '耐久設定', transcendence: '超越設定',
+  unTradeable: 'トレード禁止', unSellable: '売却禁止', setId: '装備セットID',
   structureId: '構造ID', rootNodeId: '起点ノードID', nodes: 'ノード配置', edges: '接続',
   x: 'X座標', y: 'Y座標', z: 'Z座標', from: '接続元', to: '接続先',
 }

@@ -124,10 +124,10 @@ public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDa
         AddScalar(facets, "equipmentTag", equipment["tag"]);
         AddScalar(facets, "setId", equipment["setId"]);
         // Hand type has meaning only for held equipment.
-        if (Text(equipment["slot"]) is "WEAPON" or "TOOL")
+        if (Text(equipment["slot"])?.Trim().ToUpperInvariant() is "WEAPON" or "TOOL")
             facets["handType"] = [Text(equipment["handType"]) ?? "ONE"];
         var classes = equipment["requiredClasses"] is JsonArray requirements
-            ? requirements.Select(value => ReferenceId(value is JsonObject requirement ? requirement["classId"] : value, "class", "cl"))
+            ? requirements.Select(value => ReferenceId(value is JsonObject requirement ? requirement["classId"] ?? requirement["class"] : value, "class", "cl"))
                 .OfType<string>().Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()
             : [];
         AddValues(facets, "requiredClasses", classes);
