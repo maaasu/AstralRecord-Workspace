@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物・気象 / 霜をまとった猪"
+#   progression: 32
+schemaVersion: 1
+id: 10a00262
+category: material
+name: 霜猪の牙
+icon: POINTED_DRIPSTONE
+rarity: COMMON
+saleValue: 440
+maxStack: 64
+lore:
+- '&7シモイノシシから得られる、霜に覆われた硬い牙。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

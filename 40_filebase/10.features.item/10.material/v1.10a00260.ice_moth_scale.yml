@@ -1,0 +1,16 @@
+# design:
+#   motif: "昆虫・気象 / 氷を帯びた蛾"
+#   progression: 32
+schemaVersion: 1
+id: 10a00260
+category: material
+name: 氷蛾の翅片
+icon: FEATHER
+rarity: COMMON
+saleValue: 280
+maxStack: 64
+lore:
+- '&7コオリガから得られる、薄く氷を帯びた翅のかけら。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

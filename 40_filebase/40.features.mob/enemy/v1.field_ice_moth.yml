@@ -1,0 +1,124 @@
+# design:
+#   motif: "昆虫・気象 / 氷を帯びた蛾"
+#   progression: 32
+schemaVersion: 1
+id: field_ice_moth
+type: MOB
+category: ENEMY
+name: '&bコオリガ'
+level: 32
+entityType: BAT
+variant:
+  age: ADULT
+icon: BAT_SPAWN_EGG
+lore:
+- '&7冷たい鱗粉をまとった蛾。'
+- '&7足元に六方の氷模様を残し、少し遅れて氷粉を降らせる。'
+- '&7模様の外へ歩くと氷粉を避けられる。'
+tags:
+- beast
+- ice
+- magic
+levels:
+- level: 32
+  name: '&bコオリガ Lv.32'
+- level: 34
+  name: '&bコオリガ Lv.34'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 18000
+  - status: ATTACK
+    value: 3480
+  - status: DEFENSE
+    value: 2730
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 520
+- level: 36
+  name: '&bコオリガ Lv.36'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 19875
+  - status: ATTACK
+    value: 3848
+  - status: DEFENSE
+    value: 3023
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 560
+- level: 38
+  name: '&bコオリガ Lv.38'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 21750
+  - status: ATTACK
+    value: 4216
+  - status: DEFENSE
+    value: 3315
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 600
+baseStats:
+- status: MAX_HEALTH
+  value: 16125
+- status: ATTACK
+  value: 3112
+- status: DEFENSE
+  value: 2438
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 105
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+    - id: mob_field_ice_moth_ice_powder
+      activationRange: 7
+      cooldownTicks: 180
+      castTimeTicks: 0
+drops:
+  exp: 480
+  items:
+  - itemId:
+      ref: item:10a00260
+    rate: 35.0
+    amount: 1
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00261
+    rate: 8.0
+    amount: 1
+    luckAffected: true
+    hidden: false
