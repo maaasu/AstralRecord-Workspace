@@ -1,0 +1,61 @@
+# design:
+#   motif: "民間伝承 / 森蜘蛛の呪糸"
+#   progression: 26
+schemaVersion: 1
+id: copper_coven_curseweaver
+type: MOB
+category: ENEMY
+name: "&5紅銅の呪糸蜘蛛"
+level: 25
+entityType: SPIDER
+icon: SPIDER_SPAWN_EGG
+lore:
+  - "&7呪われた糸を扇状に広げ、獲物の力を削ぐ蜘蛛。"
+  - "&7三方向の糸は隙間へ。命中すると衰弱することがある。"
+  - "&7足元に現れる呪糸の輪を離れ、冷気も避けよ。"
+tags:
+  - beast
+  - forest
+  - ranged
+# 妨害型: Lv.25標準のHP/防御0.95倍、攻撃0.9倍。
+baseStats:
+  - status: MAX_HEALTH
+    value: 12350
+  - status: ATTACK
+    value: 2120
+  - status: DEFENSE
+    value: 2151
+  - status: SHIELD_BREAK
+    value: 9
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 108
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 6
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 20
+    deaggroRange: 30
+    leashRange: 36
+  combat:
+    style: RANGED
+    preferredRange: 6
+    skills:
+      - id: mob_vine_spider_fan_web
+        activationRange: 11
+        cooldownTicks: 140
+        castTimeTicks: 20
+        params:
+          damageRatio: 0.30
+          spreadDegrees: 24
+          weaknessChance: 35
+      - id: mob_witch_forest_curse_web
+        activationRange: 9
+        cooldownTicks: 180
+        castTimeTicks: 12

@@ -1,0 +1,56 @@
+# design:
+#   motif: "民間伝承 / 魔女の呪灯と紅銅"
+#   progression: 26
+schemaVersion: 1
+id: copper_coven_hex_witch
+type: MOB
+category: ENEMY
+name: "&d紅銅の呪灯魔女"
+level: 25
+entityType: WITCH
+icon: WITCH_SPAWN_EGG
+lore:
+  - "&7紅銅の灯を掲げ、木陰から鋭い魔弾を放つ魔女。"
+  - "&7呪灯弾は詠唱を見て横へ避けるか、壁を盾にせよ。"
+  - "&7耐久は低い。足を鈍らされる前に接近して倒せ。"
+tags:
+  - humanoid
+  - magic
+  - forest
+equipment:
+  mainHand: BLAZE_ROD
+  offHand: COPPER_INGOT
+# Lv.25高火力型: HP0.8倍 / 攻撃1.4倍 / 防御0.8倍。
+baseStats:
+  - status: MAX_HEALTH
+    value: 10400
+  - status: ATTACK
+    value: 3297
+  - status: DEFENSE
+    value: 1811
+  - status: SHIELD_BREAK
+    value: 9
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 92
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.7
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MAGIC
+    preferredRange: 9
+    skills:
+      - id: mob_witch_forest_hex_bolt
+        activationRange: 14
+        cooldownTicks: 68
+        castTimeTicks: 20

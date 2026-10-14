@@ -1,12 +1,12 @@
 # design:
 #   motif: "ギリシア伝承 / エンプーサの銅と魔女の結界"
-#   progression: 21
+#   progression: 26
 schemaVersion: 1
 id: empusa_coven_witch
 type: MOB
 category: ENEMY
 name: "&5紅銅の結界魔女"
-level: 20
+level: 25
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
 nameVisible: true
@@ -18,13 +18,14 @@ tags:
   - magic
 equipment:
   mainHand: BLAZE_ROD
+# ボス専用召喚: Lv.25標準の半分のHP/防御と、控えめな魔弾。
 baseStats:
   - status: MAX_HEALTH
-    value: 4000
+    value: 6500
   - status: ATTACK
-    value: 1100
+    value: 1780
   - status: DEFENSE
-    value: 700
+    value: 1132
   - status: ACCURACY
     value: 95
   - status: EVASION

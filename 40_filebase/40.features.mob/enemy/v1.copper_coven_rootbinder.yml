@@ -1,0 +1,61 @@
+# design:
+#   motif: "民間伝承 / 魔女の森の根糸と祭祀"
+#   progression: 26
+schemaVersion: 1
+id: copper_coven_rootbinder
+type: MOB
+category: ENEMY
+name: "&a翠呪の根糸術師"
+level: 25
+entityType: EVOKER
+icon: EVOKER_SPAWN_EGG
+lore:
+  - "&7森の根を呼び、魔女の祭苑へ踏み入る者を鈍らせる。"
+  - "&7根糸の円は現れた地点から動かない。円の外へ退避せよ。"
+  - "&7冷気は移動と詠唱を遅くする。茨や魔弾との重なりに注意。"
+tags:
+  - humanoid
+  - magic
+  - forest
+equipment:
+  mainHand: STICK
+  offHand: AMETHYST_SHARD
+# 妨害に寄せ、Lv.25標準からHP/防御1.1倍、攻撃0.8倍。
+baseStats:
+  - status: MAX_HEALTH
+    value: 14300
+  - status: ATTACK
+    value: 1884
+  - status: DEFENSE
+    value: 2490
+  - status: SHIELD_BREAK
+    value: 9
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 88
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 4
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MAGIC
+    preferredRange: 7
+    skills:
+      - id: mob_manor_root_snare
+        activationRange: 10
+        cooldownTicks: 140
+        castTimeTicks: 0
+        params:
+          radius: 2.8
+          damageRatio: 0.40
+          chilledDurationTicks: 40
+          chilledChance: 60

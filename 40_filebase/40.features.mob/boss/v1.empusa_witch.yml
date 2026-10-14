@@ -1,19 +1,19 @@
 # design:
 #   motif: "ギリシア伝承 / エンプーサの変幻と銅の炎"
-#   progression: 21
+#   progression: 26
 schemaVersion: 1
 id: empusa_witch
 type: MOB
 category: BOSS
 name: "&d&l紅銅の魔女エンプーサ"
 title: "&5-- 五彩の魔法を操る希少な怪異 --"
-level: 20
+level: 25
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7銅と炎の伝承を宿し、幾色もの魔法を織る魔女。"
-  - "&7アルダの巨神兵を超える耐久を持つ希少な強敵。"
+  - "&7結界魔女を従え、紅銅の祭苑に五彩の魔法を織り重ねる。"
   - "&7赤い炎の円を離れ、青い霜炎の二重輪は内側か外側へ。"
   - "&7雷の帯は横へ、紫の呪いの扇は側面へ退避せよ。"
   - "&7紅銅の十字は斜めへ。白い輪は魔法の退避先。"
@@ -27,13 +27,18 @@ tags:
 equipment:
   mainHand: BLAZE_ROD
   offHand: AMETHYST_SHARD
+# Lv.25ボスの攻撃1.2倍・防御1.15倍。4人時HP416000を目標に、
+# Dungeonの人数補正2.5倍を逆算して基礎HP166400とする。
 baseStats:
   - status: MAX_HEALTH
-    value: 264480
+    value: 166400
   - status: ATTACK
-    value: 1670
+    value: 2826
   - status: DEFENSE
-    value: 1680
+    value: 2604
+  # 標準ソードマンの無強化Shield20に対し、一撃の基礎換算1〜2＋9。
+  - status: SHIELD_BREAK
+    value: 9
   - status: ACCURACY
     value: 95
   - status: EVASION
