@@ -178,6 +178,118 @@ public sealed class MasterDataFilterIndexTests : IDisposable
     }
 
     [Fact]
+    public async Task IndexesExactMobLevelValuesWithoutFillingProfileGaps()
+    {
+        Write("40.features.mob/enemy/v1.profiles.yml", """
+            id: profiles
+            level: 1
+            levels:
+              - level: 1
+              - level: 20
+              - level: 20
+            """);
+        Write("40.features.mob/npc/v1.no-level.yml", "id: no-level\n");
+        Write("40.features.mob/enemy/v1.invalid.yml", "id: invalid\nlevel: '5'\nlevels: [{level: invalid}]\n");
+
+        var result = await _service.ReadAsync(CancellationToken.None);
+
+        Assert.Equal([1d, 20d], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.profiles.yml", StringComparison.Ordinal)).Numbers!["mobLevel"]);
+        Assert.DoesNotContain(result.Entries.Where(entry => entry.Path.EndsWith("v1.no-level.yml", StringComparison.Ordinal)
+            || entry.Path.EndsWith("v1.invalid.yml", StringComparison.Ordinal)), entry => entry.Numbers!.ContainsKey("mobLevel"));
+    }
+
+    [Fact]
+    public async Task ItemFiltersUseMasterDefaultsAndKeepEquipmentConditionsSeparate()
+    {
+        Write("10.features.item/10.material/v1.material.yml", "id: material\ncategory: material\n");
+        Write("10.features.item/20.equipment/v1.default-equipment.yml", "id: default-equipment\nequipment: {slot: WEAPON}\n");
+        Write("10.features.item/20.equipment/v1.restricted.yml", """
+            id: restricted
+            unTradeable: true
+            unSellable: true
+            maxStack: 1
+            saleValue: 350
+            equipment:
+              slot: WEAPON
+              handType: TWO
+              tag: SPEAR
+              requiredLevel: 15
+              requiredClasses:
+                - classId: swordsman
+                  level: 10
+                - classId: 'class:hunter'
+              setId: sample-set
+              enhance: {maxLevel: 10}
+              enchant: {}
+              durability: {max: 250}
+              transcendence:
+                - rank: 1
+                  overrides:
+                    enhance: {maxLevel: 30}
+                    enchant: {maxSlots: 3}
+            """);
+        Write("10.features.item/20.equipment/v1.disabled.yml", "id: disabled\nequipment: {slot: CHEST, enchant: {maxSlots: 0}, enhance: {maxLevel: 0}}\n");
+        Write("10.features.item/20.equipment/set_effect/v1.effect.yml", "id: effect\n");
+        Write("10.features.item/20.equipment/v1.invalid-values.yml", """
+            id: invalid-values
+            unTradeable: invalid
+            maxStack: invalid
+            equipment:
+              requiredLevel: invalid
+              enchant: {maxSlots: invalid}
+              enhance: {maxLevel: invalid}
+            """);
+
+        var result = await _service.ReadAsync(CancellationToken.None);
+        var material = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.material.yml", StringComparison.Ordinal));
+        Assert.Equal(["false"], material.Facets["unTradeable"]);
+        Assert.Equal(["false"], material.Facets["unSellable"]);
+        Assert.Equal([64d], material.Numbers!["maxStack"]);
+        Assert.Equal([0d], material.Numbers["saleValue"]);
+        Assert.False(material.Numbers.ContainsKey("requiredLevel"));
+        Assert.False(material.Facets.ContainsKey("enchantEnabled"));
+        var defaultEquipment = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.default-equipment.yml", StringComparison.Ordinal));
+        Assert.Equal([0d], defaultEquipment.Numbers!["requiredLevel"]);
+        Assert.Equal([0d], defaultEquipment.Numbers["enhanceMaxLevel"]);
+        Assert.Equal([0d], defaultEquipment.Numbers["enchantMaxSlots"]);
+        Assert.False(defaultEquipment.Numbers.ContainsKey("durabilityMax"));
+        Assert.Equal(["ONE"], defaultEquipment.Facets["handType"]);
+        Assert.Equal(["false"], defaultEquipment.Facets["classRestricted"]);
+        Assert.Equal(["false"], defaultEquipment.Facets["enchantEnabled"]);
+        var restricted = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.restricted.yml", StringComparison.Ordinal));
+        Assert.Equal(["true"], restricted.Facets["unTradeable"]);
+        Assert.Equal(["true"], restricted.Facets["unSellable"]);
+        Assert.Equal(["TWO"], restricted.Facets["handType"]);
+        Assert.Equal(["SPEAR"], restricted.Facets["equipmentTag"]);
+        Assert.Equal(["sample-set"], restricted.Facets["setId"]);
+        Assert.Equal(["hunter", "swordsman"], restricted.Facets["requiredClasses"]);
+        Assert.Equal(["true"], restricted.Facets["classRestricted"]);
+        Assert.Equal(["true"], restricted.Facets["enchantEnabled"]);
+        Assert.Equal(["true"], restricted.Facets["enhanceEnabled"]);
+        Assert.Equal([15d], restricted.Numbers!["requiredLevel"]);
+        Assert.Equal([350d], restricted.Numbers["saleValue"]);
+        Assert.Equal([1d], restricted.Numbers["maxStack"]);
+        Assert.Equal([10d], restricted.Numbers["enhanceMaxLevel"]);
+        Assert.Equal([1d], restricted.Numbers["enchantMaxSlots"]);
+        Assert.Equal([250d], restricted.Numbers["durabilityMax"]);
+        var disabled = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.disabled.yml", StringComparison.Ordinal));
+        Assert.Equal(["false"], disabled.Facets["enchantEnabled"]);
+        Assert.Equal(["false"], disabled.Facets["enhanceEnabled"]);
+        Assert.False(disabled.Facets.ContainsKey("handType"));
+        var setEffect = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.effect.yml", StringComparison.Ordinal));
+        Assert.Empty(setEffect.Facets);
+        Assert.Empty(setEffect.Numbers!);
+        var invalid = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.invalid-values.yml", StringComparison.Ordinal));
+        Assert.False(invalid.Facets.ContainsKey("unTradeable"));
+        Assert.False(invalid.Facets.ContainsKey("enchantEnabled"));
+        Assert.False(invalid.Facets.ContainsKey("enhanceEnabled"));
+        Assert.False(invalid.Numbers!.ContainsKey("requiredLevel"));
+        Assert.False(invalid.Numbers.ContainsKey("maxStack"));
+        Assert.False(invalid.Numbers.ContainsKey("enhanceMaxLevel"));
+        Assert.False(invalid.Numbers.ContainsKey("enchantMaxSlots"));
+    }
+
+    [Fact]
     public async Task CommittedMastersProvideFacetsAndDropSources()
     {
         var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
@@ -193,6 +305,10 @@ public sealed class MasterDataFilterIndexTests : IDisposable
         Assert.Equal(["TANK"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.11.swordsman.yml", StringComparison.Ordinal)).Facets["role"]);
         Assert.Contains("10a00001", Assert.Single(result.Sources, source => source.Id == "midgard_grassboar").ItemIds);
         Assert.Equal("炎", Assert.Single(result.Tags, tag => tag.Id == "fire").Name);
+        var spear = Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.20a00031.anarion_spear.yml", StringComparison.Ordinal));
+        Assert.Equal([1000d], spear.Numbers!["saleValue"]);
+        Assert.Equal(["false"], spear.Facets["unTradeable"]);
+        Assert.Equal(["true"], Assert.Single(result.Entries, entry => entry.Path.EndsWith("v1.99a00022.verdia_waystone.yml", StringComparison.Ordinal)).Facets["unTradeable"]);
     }
 
     private void Write(string path, string raw)

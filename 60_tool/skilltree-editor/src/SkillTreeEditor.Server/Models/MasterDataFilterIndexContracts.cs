@@ -7,7 +7,8 @@ public sealed record MasterDataSkillTags(string Path, IReadOnlyList<string> Tags
 
 public sealed record MasterDataFilterTag(string Id, string Name);
 
-public sealed record MasterDataFilterEntry(string Path, IReadOnlyDictionary<string, IReadOnlyList<string>> Facets);
+public sealed record MasterDataFilterEntry(string Path, IReadOnlyDictionary<string, IReadOnlyList<string>> Facets,
+    IReadOnlyDictionary<string, IReadOnlyList<double>>? Numbers = null);
 
 public sealed record MasterDataFilterIndex(IReadOnlyList<MasterDataDropSource> Sources,
     IReadOnlyList<MasterDataSkillTags> SkillTags, IReadOnlyList<MasterDataFilterTag> Tags,
