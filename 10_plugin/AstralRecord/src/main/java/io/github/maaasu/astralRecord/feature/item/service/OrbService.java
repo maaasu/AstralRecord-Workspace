@@ -856,7 +856,9 @@ public final class OrbService {
         );
         session.inventory.setItem(
             INVENTORY_ORB_INFO_SLOT,
-            createInventoryOrbListInfo(session.page, pageCount, entries.size(), session.storageMode)
+            createInventoryOrbListInfo(session.page, pageCount,
+                (int) entries.stream().map(entry -> entry.itemId().toLowerCase(Locale.ROOT)).distinct().count(),
+                session.storageMode)
         );
         session.inventory.setItem(
             INVENTORY_ORB_NEXT_PAGE_SLOT,
