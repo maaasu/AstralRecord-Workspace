@@ -97,6 +97,24 @@ describe('master form', () => {
     expect(onChange).toHaveBeenCalledWith('81a00001')
   })
 
+  it('selects enchant master candidates with their required prefix in inputs and candidate buttons', () => {
+    const onChange = vi.fn()
+    render(<MasterDataForm value="" path="/orb/effect/enchantMasterId"
+      fields={[{ path: '/orb/effect/enchantMasterId', key: 'enchantMasterId', label: 'エンチャント候補マスタ', type: 'String', required: false, description: '', reference: 'enchant' }]}
+      references={[
+        { path: '12.features.enchant/v1.enchant002.yml', pointer: '/id', value: 'enchant002', kind: 'enchant', label: '中級候補' },
+        { path: '12.features.enchant/v1.enchant003.yml', pointer: '/id', value: 'enchant:enchant003', kind: 'enchant', label: '上級候補' },
+      ]} onChange={onChange} />)
+    expect(document.querySelector('option[value="enchant:enchant002"]')).toHaveTextContent('中級候補')
+    expect(document.querySelector('option[value="enchant:enchant003"]')).toHaveTextContent('上級候補')
+    expect(document.querySelector('option[value="enchant:enchant:enchant003"]')).toBeNull()
+    fireEvent.change(screen.getByRole('combobox', { name: '/orb/effect/enchantMasterId' }), { target: { value: 'enchant:enchant003' } })
+    expect(onChange).toHaveBeenLastCalledWith('enchant:enchant003')
+    fireEvent.click(screen.getByText('名前と色を確認して選択'))
+    fireEvent.click(screen.getByRole('button', { name: '中級候補enchant:enchant002' }))
+    expect(onChange).toHaveBeenLastCalledWith('enchant:enchant002')
+  })
+
   it('shows fishing reference candidates with their prefixes and displays the chance total', () => {
     const onChange = vi.fn()
     const references = [

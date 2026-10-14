@@ -105,6 +105,22 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                     && rankEffect.ContainsKey("rankBasis") && Text(rankEffect["rankBasis"]) is not ("CURRENT" or "TARGET"))
                     issues.Add(new("error", "ORB_RANK_BASIS", "/orb/effect/rankBasis",
                         "rankBasis は CURRENT または TARGET を指定してください。"));
+                if (logical == "orb" && obj["orb"] is JsonObject enchantOrb && enchantOrb["effect"] is JsonObject enchantEffect
+                    && Text(enchantEffect["type"]) == "ENCHANT")
+                {
+                    var operation = Text(enchantEffect["enchantOperation"]);
+                    if (operation is not ("OVERWRITE_RANDOM" or "FILL_ONE_EMPTY" or "FILL_ALL_EMPTY"
+                        or "REROLL_VALUE_RANDOM" or "REMOVE_RANDOM" or "LOCK_FIRST"))
+                        issues.Add(new("error", "ORB_ENCHANT_OPERATION", "/orb/effect/enchantOperation",
+                            "エンチャント操作は定義済みの6種類から指定してください。"));
+                    if (operation is "OVERWRITE_RANDOM" or "FILL_ONE_EMPTY" or "FILL_ALL_EMPTY" or "REROLL_VALUE_RANDOM")
+                    {
+                        var master = Text(enchantEffect["enchantMasterId"]);
+                        if (master is null || !Regex.IsMatch(master, "^enchant:[A-Za-z0-9_-]+$"))
+                            issues.Add(new("error", "ORB_ENCHANT_MASTER", "/orb/effect/enchantMasterId",
+                                "付与・上書き・数値再抽選には enchant:<id> 形式の候補マスタ参照が必要です。"));
+                    }
+                }
             }
         }
         if (path.StartsWith("30.features.skill/", MasterDataPaths.Comparison) && content is JsonObject skill && skill.ContainsKey("params"))

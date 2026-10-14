@@ -135,9 +135,10 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   const referenceKind = metadata?.reference ?? parentReference ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
   const fishingReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
     ? referenceKind + ':' : undefined
+  const enchantReferencePrefix = path === '/orb/effect/enchantMasterId' && referenceKind === 'enchant' ? 'enchant:' : undefined
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
-    referencePrefix={fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
+    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
     referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`)) : undefined} />
 }
 
