@@ -303,6 +303,17 @@ public final class StonebackBisonMobSkillExecutor implements MobSkillExecutor, L
     }
 
     /**
+     * 破棄されたMobの行動を終了し、タスクとAI停止・頭上表示を回収します。
+     *
+     * @param mobInstanceId 破棄されたMobの個体ID
+     * @implNote Bukkit同期スレッドで呼び出します。未開始・回収済みの個体は無視します。
+     */
+    public void clearCasterState(@NotNull UUID mobInstanceId) {
+        Charge action = actions.get(mobInstanceId);
+        if (action != null) action.finish();
+    }
+
+    /**
      * メインスレッドで全継続行動を回収します。中央onDisableからも呼び出せます。
      * @implNote 同じactionの重複終了は無害です。
      */

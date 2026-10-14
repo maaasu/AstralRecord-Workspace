@@ -70,7 +70,7 @@ drops:
     hidden: false
   - itemId:
       ref: item:10a00232
-    rate: 1.0
+    rate: 0.25
     amount: '1'
     luckAffected: true
     hidden: false

@@ -147,6 +147,10 @@ import io.github.maaasu.astralRecord.feature.mob.skill.field.ReedHoundMobSkillEx
 import io.github.maaasu.astralRecord.feature.mob.skill.field.BrushCrabMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.SunhareMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.WindLizardMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.PlainRamMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.BladeMantisMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.StonebackBisonMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.StormRaptorMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaStarhornGroveCircleMobSkillExecutor;
@@ -514,6 +518,10 @@ public final class AstralRecord extends JavaPlugin {
     private BrushCrabMobSkillExecutor brushCrabMobSkillExecutor;
     private SunhareMobSkillExecutor sunhareMobSkillExecutor;
     private WindLizardMobSkillExecutor windLizardMobSkillExecutor;
+    private PlainRamMobSkillExecutor plainRamMobSkillExecutor;
+    private BladeMantisMobSkillExecutor bladeMantisMobSkillExecutor;
+    private StonebackBisonMobSkillExecutor stonebackBisonMobSkillExecutor;
+    private StormRaptorMobSkillExecutor stormRaptorMobSkillExecutor;
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
     private WitchForestSkillSupport witchForestSkillSupport;
@@ -990,6 +998,18 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (windLizardMobSkillExecutor != null) {
             windLizardMobSkillExecutor.stop();
+        }
+        if (plainRamMobSkillExecutor != null) {
+            plainRamMobSkillExecutor.stop();
+        }
+        if (bladeMantisMobSkillExecutor != null) {
+            bladeMantisMobSkillExecutor.stop();
+        }
+        if (stonebackBisonMobSkillExecutor != null) {
+            stonebackBisonMobSkillExecutor.stop();
+        }
+        if (stormRaptorMobSkillExecutor != null) {
+            stormRaptorMobSkillExecutor.stop();
         }
         if (rootweaverRootSnareMobSkillExecutor != null) {
             rootweaverRootSnareMobSkillExecutor.stop();
@@ -2011,6 +2031,18 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(brushCrabMobSkillExecutor);
         mobSkillRegistry.register(sunhareMobSkillExecutor);
         mobSkillRegistry.register(windLizardMobSkillExecutor);
+        plainRamMobSkillExecutor = new PlainRamMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        bladeMantisMobSkillExecutor = new BladeMantisMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(plainRamMobSkillExecutor);
+        mobSkillRegistry.register(bladeMantisMobSkillExecutor);
+        stonebackBisonMobSkillExecutor = new StonebackBisonMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        stormRaptorMobSkillExecutor = new StormRaptorMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(stonebackBisonMobSkillExecutor);
+        mobSkillRegistry.register(stormRaptorMobSkillExecutor);
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));
         mobSkillRegistry.register(new ForestSpiderWebShotMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new ErivaStarhornGroveCircleMobSkillExecutor(mobService, damageService, particleDisplayService));
@@ -2066,6 +2098,10 @@ public final class AstralRecord extends JavaPlugin {
             brushCrabMobSkillExecutor.clearCasterState(mobInstanceId);
             sunhareMobSkillExecutor.clearCasterState(mobInstanceId);
             windLizardMobSkillExecutor.clearCasterState(mobInstanceId);
+            plainRamMobSkillExecutor.clearCasterState(mobInstanceId);
+            bladeMantisMobSkillExecutor.clearCasterState(mobInstanceId);
+            stonebackBisonMobSkillExecutor.clearCasterState(mobInstanceId);
+            stormRaptorMobSkillExecutor.clearCasterState(mobInstanceId);
             bindCircleRuntimeService.releaseForUltimate(mobInstanceId);
             mobProjectileService.clearCasterState(mobInstanceId);
             clayGuardLeapMobSkillExecutor.handleMobDestroyed(mobInstanceId);
