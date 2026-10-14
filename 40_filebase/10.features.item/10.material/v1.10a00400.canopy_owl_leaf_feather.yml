@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 木の葉に似た羽"
+#   progression: 36
+schemaVersion: 1
+id: 10a00400
+category: material
+name: 木の葉羽
+icon: FEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 360
+lore:
+- '&7コノハフクロウの、葉脈のような模様を持つ羽。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false
