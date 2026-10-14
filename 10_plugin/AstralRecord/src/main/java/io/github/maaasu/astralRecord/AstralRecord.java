@@ -164,6 +164,7 @@ import io.github.maaasu.astralRecord.feature.mob.skill.field.LavaCrabMobSkillExe
 import io.github.maaasu.astralRecord.feature.mob.skill.field.AshDrakeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.CanopyOwlMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.ThornDeerMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.ShadeHedgehogMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.field.FrostBoarMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
@@ -549,6 +550,7 @@ public final class AstralRecord extends JavaPlugin {
     private AshDrakeMobSkillExecutor ashDrakeMobSkillExecutor;
     private CanopyOwlMobSkillExecutor canopyOwlMobSkillExecutor;
     private ThornDeerMobSkillExecutor thornDeerMobSkillExecutor;
+    private ShadeHedgehogMobSkillExecutor shadeHedgehogMobSkillExecutor;
     private FrostBoarMobSkillExecutor frostBoarMobSkillExecutor;
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
@@ -821,6 +823,12 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        RuntimeException shadeHedgehogStopFailure = null;
+        try {
+            if (shadeHedgehogMobSkillExecutor != null) shadeHedgehogMobSkillExecutor.stop();
+        } catch (RuntimeException exception) {
+            shadeHedgehogStopFailure = exception;
+        }
         if (thornDeerMobSkillExecutor != null) {
             thornDeerMobSkillExecutor.stop();
         }
@@ -1213,6 +1221,7 @@ public final class AstralRecord extends JavaPlugin {
         if (ConfigProperties.getInstance().isSqlserverEnabled()) {
             SqlServerManager.getInstance().shutdown();
         }
+        if (shadeHedgehogStopFailure != null) throw shadeHedgehogStopFailure;
     }
 
     /**
@@ -2131,6 +2140,8 @@ public final class AstralRecord extends JavaPlugin {
                 mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(iceMothMobSkillExecutor);
         mobSkillRegistry.register(frostBoarMobSkillExecutor);
+        shadeHedgehogMobSkillExecutor = new ShadeHedgehogMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(shadeHedgehogMobSkillExecutor);
         thornDeerMobSkillExecutor = new ThornDeerMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(thornDeerMobSkillExecutor);
         canopyOwlMobSkillExecutor = new CanopyOwlMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
@@ -2212,6 +2223,12 @@ public final class AstralRecord extends JavaPlugin {
             snowWolfMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             iceMothMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             frostBoarMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            RuntimeException shadeHedgehogDestroyFailure = null;
+            try {
+                shadeHedgehogMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            } catch (RuntimeException exception) {
+                shadeHedgehogDestroyFailure = exception;
+            }
             thornDeerMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             canopyOwlMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             ashDrakeMobSkillExecutor.handleMobDestroyed(mobInstanceId);
@@ -2228,6 +2245,7 @@ public final class AstralRecord extends JavaPlugin {
             mobTauntService.clearMob(mobInstanceId);
             bossMechanicService.handleMobDestroyed(mobInstanceId);
             temporarySkillEffectService.clear(mobInstanceId);
+            if (shadeHedgehogDestroyFailure != null) throw shadeHedgehogDestroyFailure;
         });
         var activeSkillTargetingService = new SkillTargetingService(mobService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);

@@ -125,12 +125,12 @@ public final class PlainRamMobSkillExecutor implements MobSkillExecutor {
         Vector hit = hitPosition(target.getBoundingBox(), from.toVector(), direction);
         if (hit == null) return;
         double distance = hit.distance(from.toVector());
-        if (distance > 0.01D && center.getWorld().rayTraceBlocks(from, direction, distance,
+        if (distance > 0.01D && FieldMobRayTrace.trace(center.getWorld(), from, direction, distance,
                 FluidCollisionMode.NEVER, true) != null) return;
         // 拡張hitboxが壁の手前へ張り出しても、実際の胴体まで遮蔽物があれば命中しません。
         Vector sight = target.getLocation().add(0, Math.min(1.0D, target.getHeight() * 0.5D), 0)
                 .toVector().subtract(from.toVector());
-        if (sight.lengthSquared() > 0.0001D && center.getWorld().rayTraceBlocks(from, sight, sight.length(),
+        if (sight.lengthSquared() > 0.0001D && FieldMobRayTrace.trace(center.getWorld(), from, sight, sight.length(),
                 FluidCollisionMode.NEVER, true) != null) return;
         var result = damageService.attack(AstEntity.mob(context.mob()), damageService.resolveEntity(target),
                 AttackType.MELEE, List.of(new DamageComponent(DamageElement.NONE, 1.15D)), DamageSource.SKILL);

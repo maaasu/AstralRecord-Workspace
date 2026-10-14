@@ -28,6 +28,7 @@ source_path = root / "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astr
 source = source_path.read_text(encoding="utf-8")
 fields = {"field_reed_hound":("ReedHound", "reedHound", "grass_charge",[22,24,26,28],{"10a00200":40}), "field_brush_crab":("BrushCrab","brushCrab","side_pincer",[22,24,26,28],{"10a00201":45,"10a00202":6}), "field_sunhare":("Sunhare","sunhare","leap_kick",[28,30,32,34],{"10a00210":35}), "field_wind_lizard":("WindLizard","windLizard","wind_tail",[28,30,32,34],{"10a00211":35})}
 fields.update({
+    "field_shade_hedgehog": ("ShadeHedgehog", "shadeHedgehog", "needle_ring", [36,38,40,42], {"10a00410":35}),
     "field_canopy_owl": ('CanopyOwl', 'canopyOwl', 'leaf_vortex', [36, 38, 40, 42], {'10a00400': 35, '10a00401': 10}),
     "field_thorn_deer": ('ThornDeer', 'thornDeer', 'thorn_charge', [36, 38, 40, 42], {'10a00402': 35}),
     "field_mesa_vulture": ('MesaVulture', 'mesaVulture', 'stone_drop', [38, 40, 42, 44], {'10a00280': 35}),
@@ -56,7 +57,7 @@ for mob_id, (cls, field, move, levels, drops) in fields.items():
     assert source.count(f"private {cls} {field};") == 1
     assert source.count(f"{field} = new {cls}(") == 1
     assert source.count(f"mobSkillRegistry.register({field});") == 1
-    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf","field_ice_moth","field_frost_boar","field_red_scorpion","field_sand_gecko","field_mesa_vulture","field_ember_slug","field_lava_crab","field_ash_drake","field_canopy_owl","field_thorn_deer"] else "clearCasterState"
+    hook = "handleMobDestroyed" if mob_id in ["field_root_turtle","field_snow_wolf","field_ice_moth","field_frost_boar","field_red_scorpion","field_sand_gecko","field_mesa_vulture","field_ember_slug","field_lava_crab","field_ash_drake","field_canopy_owl","field_thorn_deer","field_shade_hedgehog"] else "clearCasterState"
     assert source.count(f"{field}.{hook}(mobInstanceId);") == 1
     assert source.count(f"{field}.stop();") == 1
     assert source.index(f"{field}.stop();") < source.index("mobService.destroyAll();") < source.index("getServer().getScheduler().cancelTasks(this);")
@@ -89,7 +90,7 @@ for line in listener(old).splitlines():
 # No pre-existing master or spawn setting has changed.
 changes = subprocess.check_output(["git","-c","core.quotepath=false","diff","--name-status","e2058ade","--","40_filebase"],cwd=root).decode("utf-8").splitlines()
 master_changes = [line for line in changes if any(path.endswith((".yml", ".yaml")) for path in line.split("\t")[1:])]
-existing_materials = {"eriva_bark_sentinel":"10a00300", "eriva_camouflage_zombie":"10a00301", "eriva_grassboar":"10a00302", "eriva_sporecap_beast":"10a00303", "eriva_starhorn_guardian":"10a00304", "eriva_thornfang_wolf":"10a00305", "eriva_underbrush_spider":"10a00306", "maril_sil_dead_hero":"10a00307", "midgard_clay_guard":"10a00308", "midgard_forest_spider":"10a00309", "midgard_forest_wolf":"10a00310", "midgard_grassboar":"10a00311", "midgard_moss_shell":"10a00312", "midgard_savanna_camel":"10a00313"}
+existing_materials = {"eriva_bark_sentinel":"10a00300", "eriva_camouflage_zombie":"10a00301", "eriva_grassboar":"10a00302", "eriva_sporecap_beast":"10a00303", "eriva_starhorn_guardian":"10a00304", "eriva_thornfang_wolf":"10a00305", "eriva_underbrush_spider":"10a00306", "maril_sil_dead_hero":"10a00307", "midgard_clay_guard":"10a00308", "midgard_forest_spider":"10a00309", "midgard_forest_wolf":"10a00310", "midgard_grassboar":"10a00311", "midgard_moss_shell":"10a00312", "midgard_savanna_camel":"10a00313", "midgard_savanna_hyena":"10a00314", "midgard_savanna_witch":"10a00315"}
 allowed_modified = {f"40_filebase/40.features.mob/enemy/v1.{mob}.yml" for mob in existing_materials}
 for line in master_changes:
     cells=line.split("\t")
@@ -129,3 +130,15 @@ for mob,item in existing_materials.items():
         remove_material(merge(current_root,profile),merge(original_root,original_profiles[profile["level"]]),item)
         existing_profiles+=1
 print(json.dumps({"yaml_files":len(data),"namespace_ids":len(masters),"registered_executors":len(fields),"level_profiles":sum(len(v[3]) for v in fields.values()),"materials":sum(len(v[4]) for v in fields.values()),"existing_drop_and_spawn_preserved":True,"existing_material_additions":len(existing_materials),"existing_profiles_checked":existing_profiles,"result":"PASS","limits":"static source binding only; no semantic compile, runtime registry load, Maven or server"},ensure_ascii=False,indent=2))
+
+# All horizontal field-skill block rays use the loaded-chunk guard. Vertical ground rays stay in a checked column.
+field_dir=source_path.parent/"feature/mob/skill/field"
+raw=[]
+for path in field_dir.glob("*.java"):
+    if path.name=="FieldMobRayTrace.java": continue
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if ".rayTraceBlocks(" in line:
+            assert "RayTraceResult ground =" in line or "RayTraceResult hit = feet." in line or "return location.getWorld().rayTraceBlocks" in line, (path,line)
+            raw.append(path.name)
+assert len(raw)==7
+assert source.index("if (shadeHedgehogStopFailure != null) throw shadeHedgehogStopFailure;") > source.index("SqlServerManager.getInstance().shutdown();")

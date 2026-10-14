@@ -288,7 +288,7 @@ public final class StonebackBisonMobSkillExecutor implements MobSkillExecutor, L
         private boolean clearTargetPath(Location center) {
             Vector ray = context.target().getBoundingBox().getCenter().subtract(center.toVector());
             double length = ray.length();
-            return length < 0.01D || center.getWorld().rayTraceBlocks(center, ray, length, FluidCollisionMode.NEVER, true) == null;
+            return length < 0.01D || FieldMobRayTrace.trace(center.getWorld(), center, ray, length, FluidCollisionMode.NEVER, true) == null;
         }
 
         /** 全終了経路でタスク・バー・AI停止・保持参照を一度だけ回収します。 */

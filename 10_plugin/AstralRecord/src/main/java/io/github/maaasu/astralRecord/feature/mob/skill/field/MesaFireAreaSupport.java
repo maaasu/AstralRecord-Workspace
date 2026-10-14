@@ -97,7 +97,7 @@ final class MesaFireAreaSupport {
         }
         // 点間隔より短いブロック角の通過も、voxel traversalで液体を検査します。
         if (!liquidFree(from, to)) return false;
-        return delta.lengthSquared() < 0.0001D || from.getWorld().rayTraceBlocks(from, delta, delta.length(),
+        return delta.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(from.getWorld(), from, delta, delta.length(),
                 FluidCollisionMode.ALWAYS, true) == null;
     }
 

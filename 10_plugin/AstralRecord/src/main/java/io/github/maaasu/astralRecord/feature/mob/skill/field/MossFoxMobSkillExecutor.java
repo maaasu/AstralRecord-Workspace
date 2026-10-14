@@ -175,7 +175,7 @@ public final class MossFoxMobSkillExecutor implements MobSkillExecutor {
                 if (!insideSmoke(center, feet)) continue;
                 Location from = center.clone().add(0, 0.5D, 0);
                 Vector delta = feet.add(0, Math.min(1.0D, target.getHeight() * 0.5D), 0).toVector().subtract(from.toVector());
-                if (delta.lengthSquared() > 0.0001D && from.getWorld().rayTraceBlocks(from, delta, delta.length()) != null) continue;
+                if (delta.lengthSquared() > 0.0001D && FieldMobRayTrace.trace(from.getWorld(), from, delta, delta.length()) != null) continue;
                 damageService.attack(AstEntity.mob(context.mob()), damageService.resolveEntity(target), AttackType.MAGIC,
                         List.of(new DamageComponent(DamageElement.NONE, 0.40D)), DamageSource.SKILL);
             }

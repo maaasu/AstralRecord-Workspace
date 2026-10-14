@@ -164,7 +164,7 @@ abstract class MesaDebuffSkillSupport implements MobSkillExecutor {
         for (int i = 0; i <= samples; i++) {
             if (!loadedInside(start.clone().add(delta.clone().multiply((double) i / samples)))) return false;
         }
-        return delta.lengthSquared() < 0.0001D || start.getWorld().rayTraceBlocks(start, delta,
+        return delta.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(start.getWorld(), start, delta,
                 delta.length(), FluidCollisionMode.NEVER, true) == null;
     }
 

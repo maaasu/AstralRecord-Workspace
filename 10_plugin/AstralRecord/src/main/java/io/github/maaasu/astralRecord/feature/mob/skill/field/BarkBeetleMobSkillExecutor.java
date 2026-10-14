@@ -173,7 +173,7 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
         private void clipWarning() {
             points.clear();
             for (Vector ray : rays) {
-                RayTraceResult wall = origin.getWorld().rayTraceBlocks(origin, ray, SHOT_RANGE, FluidCollisionMode.NEVER, true);
+                RayTraceResult wall = FieldMobRayTrace.trace(origin.getWorld(), origin, ray, SHOT_RANGE, FluidCollisionMode.NEVER, true);
                 double length = wall == null ? SHOT_RANGE : wall.getHitPosition().distance(origin.toVector());
                 for (double distance = 0; distance <= length; distance += 1.0D)
                     points.add(origin.clone().add(ray.clone().multiply(distance)));
@@ -197,7 +197,7 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
             List<LivingEntity> candidates = damageService.mobCombatTargets(origin, SHOT_RANGE + 1, SHOT_RANGE + 1);
             List<Location> trails = new ArrayList<>(33);
             for (Vector ray : rays) {
-                RayTraceResult wall = origin.getWorld().rayTraceBlocks(origin, ray, SHOT_RANGE, FluidCollisionMode.NEVER, true);
+                RayTraceResult wall = FieldMobRayTrace.trace(origin.getWorld(), origin, ray, SHOT_RANGE, FluidCollisionMode.NEVER, true);
                 double nearest = wall == null ? SHOT_RANGE : wall.getHitPosition().distance(origin.toVector());
                 LivingEntity victim = null;
                 for (LivingEntity candidate : candidates) {

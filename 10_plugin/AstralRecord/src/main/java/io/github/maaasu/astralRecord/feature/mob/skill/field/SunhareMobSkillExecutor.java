@@ -258,7 +258,7 @@ public final class SunhareMobSkillExecutor implements MobSkillExecutor {
         Location from = origin.clone().add(0, 0.3D, 0);
         Location to = context.target().getLocation().add(0, Math.min(1, context.target().getHeight() * 0.5D), 0);
         Vector direction = to.toVector().subtract(from.toVector());
-        return direction.lengthSquared() < 0.0001D || from.getWorld().rayTraceBlocks(from, direction, direction.length(),
+        return direction.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(from.getWorld(), from, direction, direction.length(),
                 FluidCollisionMode.NEVER, true) == null;
     }
 }

@@ -170,7 +170,7 @@ public final class RootTurtleMobSkillExecutor implements MobSkillExecutor {
             Location sample = start.clone().add(delta.clone().multiply((double) i / samples));
             if (!start.getWorld().isChunkLoaded(sample.getBlockX() >> 4, sample.getBlockZ() >> 4)) return false;
         }
-        return delta.lengthSquared() < 0.0001D || start.getWorld().rayTraceBlocks(start, delta,
+        return delta.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(start.getWorld(), start, delta,
                 delta.length(), FluidCollisionMode.NEVER, true) == null;
     }
 

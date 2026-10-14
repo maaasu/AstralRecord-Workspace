@@ -163,7 +163,7 @@ public final class IceMothMobSkillExecutor implements MobSkillExecutor {
             Location point = start.clone().add(delta.clone().multiply((double) i / samples));
             if (!loadedInside(point)) return false;
         }
-        return delta.lengthSquared() < 0.0001D || start.getWorld().rayTraceBlocks(start, delta,
+        return delta.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(start.getWorld(), start, delta,
                 delta.length(), FluidCollisionMode.NEVER, true) == null;
     }
 

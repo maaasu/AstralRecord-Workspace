@@ -81,3 +81,4 @@ new_mob,field_ash_drake,44,10a00293,ハイドレイクの火の芯,0.15,,placeme
 new_mob,field_canopy_owl,36,10a00400,木の葉羽,35,,placement_pending,40_filebase/40.features.mob/enemy/v1.field_canopy_owl.yml
 new_mob,field_canopy_owl,36,10a00401,月色の羽,10,,placement_pending,40_filebase/40.features.mob/enemy/v1.field_canopy_owl.yml
 new_mob,field_thorn_deer,36,10a00402,トゲ付きの角,35,,placement_pending,40_filebase/40.features.mob/enemy/v1.field_thorn_deer.yml
+new_mob,field_shade_hedgehog,36,10a00410,木陰の硬針,35,,placement_pending,40_filebase/40.features.mob/enemy/v1.field_shade_hedgehog.yml

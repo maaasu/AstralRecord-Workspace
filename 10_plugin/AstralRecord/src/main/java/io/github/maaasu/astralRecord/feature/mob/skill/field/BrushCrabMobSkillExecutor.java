@@ -151,7 +151,7 @@ public final class BrushCrabMobSkillExecutor implements MobSkillExecutor, Listen
         Location from = center.clone().add(0, 0.5D, 0);
         Location to = target.getLocation().add(0, Math.min(1.0D, target.getHeight() * 0.5D), 0);
         Vector delta = to.toVector().subtract(from.toVector());
-        return delta.lengthSquared() < 0.0001D || from.getWorld().rayTraceBlocks(from, delta, delta.length()) == null;
+        return delta.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(from.getWorld(), from, delta, delta.length()) == null;
     }
 
     /** 左右両方へ重なる場合も一度だけ攻撃する、個体別の固定予告です。 */

@@ -146,7 +146,7 @@ public final class BladeMantisMobSkillExecutor implements MobSkillExecutor {
             Location from = center.clone().add(0, 0.5D, 0);
             Location to = target.getLocation().add(0, Math.min(1.0D, target.getHeight() * 0.5D), 0);
             Vector sight = to.toVector().subtract(from.toVector());
-            if (sight.lengthSquared() > 0.0001D && center.getWorld().rayTraceBlocks(from, sight, sight.length(),
+            if (sight.lengthSquared() > 0.0001D && FieldMobRayTrace.trace(center.getWorld(), from, sight, sight.length(),
                     FluidCollisionMode.NEVER, true) != null) continue;
             damageService.attack(AstEntity.mob(context.mob()), damageService.resolveEntity(target), AttackType.MELEE,
                     List.of(new DamageComponent(DamageElement.NONE, 1.1D)), DamageSource.SKILL);

@@ -310,7 +310,7 @@ public final class StormRaptorMobSkillExecutor implements MobSkillExecutor, List
             Location center = entity.getLocation().add(0, entity.getHeight() * 0.5D, 0);
             Vector ray = context.target().getBoundingBox().getCenter().subtract(center.toVector());
             double length = ray.length();
-            return length < 0.01D || center.getWorld().rayTraceBlocks(center, ray, length, FluidCollisionMode.NEVER, true) == null;
+            return length < 0.01D || FieldMobRayTrace.trace(center.getWorld(), center, ray, length, FluidCollisionMode.NEVER, true) == null;
         }
 
         /** 全終了経路で保持参照を解除し、同一Worldの安全な出発点と重力を復元します。 */

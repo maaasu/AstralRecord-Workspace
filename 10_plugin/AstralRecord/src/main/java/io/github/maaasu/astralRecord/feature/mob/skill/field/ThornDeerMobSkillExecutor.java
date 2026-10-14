@@ -211,7 +211,7 @@ public final class ThornDeerMobSkillExecutor implements MobSkillExecutor {
             if (!start.getWorld().isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)
                     || !start.getWorld().getWorldBorder().isInside(point)) return false;
         }
-        return delta.lengthSquared() < 0.0001D || start.getWorld().rayTraceBlocks(start, delta,
+        return delta.lengthSquared() < 0.0001D || FieldMobRayTrace.trace(start.getWorld(), start, delta,
                 delta.length(), FluidCollisionMode.NEVER, true) == null;
     }
 
