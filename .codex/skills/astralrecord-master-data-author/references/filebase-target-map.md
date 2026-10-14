@@ -21,8 +21,8 @@
 | 採集 | `40_filebase/42.features.gathering` | `40_filebase/42.features.gathering/docs.gathering.YAMLスキーマ定義.md` と下位種別スキーマ |
 | 採集 スポナー | `40_filebase/43.features.gathering.spawner` | `40_filebase/43.features.gathering.spawner/docs.spawner.YAMLスキーマ定義.md` |
 | ショップ | `40_filebase/45.features.shop` | `40_filebase/45.features.shop/docs.shop.YAMLスキーマ定義.md` |
-| クエスト | `40_filebase/47.features.quest` | `40_filebase/47.features.quest/docs.quest.YAMLスキーマ定義.md` |
-| クエスト掲示板 | `40_filebase/48.features.quest_board` | `40_filebase/48.features.quest_board/docs.quest_board.YAMLスキーマ定義.md` |
+| クエスト | `40_filebase/51.features.quest` | `40_filebase/51.features.quest/docs.quest.YAMLスキーマ定義.md` |
+| クエスト掲示板 | `40_filebase/52.features.quest_board` | `40_filebase/52.features.quest_board/docs.quest_board.YAMLスキーマ定義.md` |
 | ワールド | `40_filebase/60.features.world` | `40_filebase/60.features.world/docs.world.YAMLスキーマ定義.md` |
 | バフ | `40_filebase/70.shared.buff` | `40_filebase/70.shared.buff/docs.buff.YAMLスキーマ定義.md` |
 | ドロップ報酬プール | `40_filebase/80.shared.loot/pool` | `40_filebase/80.shared.loot/pool/docs.pool.YAMLスキーマ定義.md` |

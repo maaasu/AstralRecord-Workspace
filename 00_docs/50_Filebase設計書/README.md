@@ -99,10 +99,10 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 44-boss.md
 │  ├─ 45-shop.md
 │  ├─ 46-enemy.md
-│  ├─ 47-quest.md
-│  ├─ 48-quest_board.md
 │  ├─ 49-npc.md
 │  ├─ 50-fishing.md
+│  ├─ 51-quest.md
+│  ├─ 52-quest_board.md
 │  ├─ 55-pet.md
 │  ├─ 60-world.md
 │  ├─ 65-dungeon.md

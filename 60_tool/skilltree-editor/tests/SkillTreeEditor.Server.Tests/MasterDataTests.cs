@@ -499,6 +499,51 @@ public sealed class MasterDataTests : IDisposable
         finally { Directory.Delete(link); }
     }
 
+    [Fact]
+    public async Task RenumberedQuestCatalogValidatesItemsInBothRequirementAndRewardArrays()
+    {
+        const string category = "51.features.quest";
+        Write(category + "/docs.quest.YAMLスキーマ定義.md", """
+            # quest
+            ## スキーマ定義
+            | Field | Type | Required | Description |
+            |---|---|---|---|
+            | `acceptRequirements.items` | object[] | no | 受領アイテム |
+            | `rewards.items` | object[] | no | 報酬アイテム |
+            ### item
+            | Field | Type | Required | Description |
+            |---|---|---|---|
+            | `amount` | number | yes | 数量 |
+            """);
+        var catalog = await _catalog.GetAsync(category, CancellationToken.None);
+        Assert.Contains(catalog.Fields, field => field.Path == "/acceptRequirements/items/*/amount");
+        Assert.Contains(catalog.Fields, field => field.Path == "/rewards/items/*/amount");
+        Assert.DoesNotContain(catalog.Fields, field => field.Path == "/amount");
+        var invalid = await _validation.ValidateAsync(category + "/v1.patrol.yml",
+            "id: patrol\nacceptRequirements:\n  items: [{}]\nrewards:\n  items: [{}]\n", CancellationToken.None);
+        Assert.Contains(invalid.Issues, issue => issue.Code == "FIELD_REQUIRED" && issue.Path == "/acceptRequirements/items/0/amount");
+        Assert.Contains(invalid.Issues, issue => issue.Code == "FIELD_REQUIRED" && issue.Path == "/rewards/items/0/amount");
+        var valid = await _validation.ValidateAsync(category + "/v1.patrol.yml",
+            "id: patrol\nacceptRequirements:\n  items: [{amount: 1}]\nrewards:\n  items: [{amount: 2}]\n", CancellationToken.None);
+        Assert.True(valid.IsValid);
+    }
+
+    [Theory]
+    [InlineData("51.features.quest", "quest")]
+    [InlineData("52.features.quest_board", "quest_board")]
+    public async Task RenumberedQuestMastersPreserveIdentityCommentsAndUnknownFieldsOnSave(string category, string kind)
+    {
+        var path = category + "/v1.patrol.yml";
+        const string raw = "# preserved\nid: patrol\nname: Patrol\nfutureField: retained\n";
+        var created = await _service.CreateAsync(new(path, raw), CancellationToken.None);
+        var updated = raw.Replace("name: Patrol", "name: Patrol updated", StringComparison.Ordinal);
+        var saved = await _service.SaveAsync(new(path, updated, created.Revision), CancellationToken.None);
+        Assert.Equal(updated, saved.Raw);
+        Assert.Equal("patrol", saved.Content!["id"]!.ToString());
+        Assert.Equal(kind, MasterDataService.Kind(path));
+        Assert.Equal(category, Assert.Single(await _service.ListAsync(category, "", CancellationToken.None)).Category);
+    }
+
     private void Write(string path, string raw)
     {
         var full = Path.Combine(_paths.Root, path.Replace('/', Path.DirectorySeparatorChar));

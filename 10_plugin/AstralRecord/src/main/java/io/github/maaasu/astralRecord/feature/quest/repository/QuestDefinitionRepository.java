@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class QuestDefinitionRepository {
-    private static final String RELATIVE_PATH = "47.features.quest";
+    private static final String RELATIVE_PATH = "51.features.quest";
 
     public @NotNull List<QuestDefinition> findAll() {
         File root = FileDatabaseManager.getInstance().getRootDirectory();

@@ -195,7 +195,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                 if (scope.Length > 0 && !quoted.Success && !arrayPaths.Contains(scope.Replace("[]", "", StringComparison.Ordinal))
                     && !recordTypes.ContainsKey(first) && !scope.Contains('.') && !scope.EndsWith("[]", StringComparison.Ordinal)
                     && scope is not "params" and not "rewards" and not "challenge") scope = "";
-                if (category.Equals("47.features.quest", MasterDataPaths.Comparison) && heading == "item") scope = "@quest-items";
+                if (category.Equals("51.features.quest", MasterDataPaths.Comparison) && heading == "item") scope = "@quest-items";
                 if (category.StartsWith("40.features.mob/npc", MasterDataPaths.Comparison) && heading == "Action") scope = "npc.interaction.actions[]";
                 header = null;
                 continue;

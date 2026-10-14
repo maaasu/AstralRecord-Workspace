@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class QuestBoardRepository {
-    private static final String RELATIVE_PATH = "48.features.quest_board";
+    private static final String RELATIVE_PATH = "52.features.quest_board";
 
     public @NotNull List<QuestBoardDefinition> findAll() {
         File root = FileDatabaseManager.getInstance().getRootDirectory();
