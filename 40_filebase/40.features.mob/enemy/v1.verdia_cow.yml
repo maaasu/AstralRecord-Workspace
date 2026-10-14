@@ -37,5 +37,11 @@ drops:
       amount: 1~2
       luckAffected: true
       hidden: false
+    - itemId:
+        ref: item:10a00320
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false
   lootTable:
     ref: loot_table:normal_enemy_common_table_tier_2

@@ -1,0 +1,15 @@
+# design:
+#   motif: "菌類 / 赤いキノコ"
+#   progression: 20
+schemaVersion: 1
+id: 10a00321
+category: material
+name: "&f赤キノコのかけら"
+icon: RED_MUSHROOM
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7茸牛の背に生えた赤いキノコのかけら。"
+unTradeable: false
+unSellable: false
