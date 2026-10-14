@@ -1,0 +1,273 @@
+{
+  "model": "Uncontested weighted cave-node sampling; max quota expectation is a lower bound, not measured completion time",
+  "spawnerPath": "40_filebase/43.features.gathering.spawner/v1.verdia_cave_mining_spawner.yml",
+  "spawnerDefinition": {
+    "schemaVersion": 1,
+    "id": "verdia_cave_mining_spawner",
+    "type": "GATHERING_SPAWNER",
+    "radiusMeters": 32,
+    "spawnGatherings": [
+      {
+        "gatheringId": "gathering:verdia_cave_windsong_stone",
+        "weight": 38
+      },
+      {
+        "gatheringId": "gathering:verdia_cave_mossroot_rock",
+        "weight": 27
+      },
+      {
+        "gatheringId": "gathering:verdia_cave_darklight_vein",
+        "weight": 20
+      },
+      {
+        "gatheringId": "gathering:verdia_cave_bluewell_vein",
+        "weight": 13
+      },
+      {
+        "gatheringId": "gathering:verdia_cave_starheart_vein",
+        "weight": 2
+      }
+    ],
+    "spawnTimes": [
+      {
+        "startTick": 0,
+        "endTick": 23999
+      }
+    ],
+    "itemMaterial": "SPAWNER",
+    "spawnIntervalTicks": 5,
+    "spawnLimit": {
+      "maxAlivePerSpawner": 60,
+      "maxNearbyGatherings": 144,
+      "spawnPerPlayer": 18
+    },
+    "requiredBaseBlocks": [
+      "STONE",
+      "ANDESITE",
+      "TUFF",
+      "COBBLESTONE",
+      "DEEPSLATE",
+      "MOSSY_COBBLESTONE",
+      "CALCITE"
+    ]
+  },
+  "assumptions": {
+    "secondsPerHit": 0.4,
+    "luckBonus": 0,
+    "oreDropAmount": 1,
+    "stoneAmount": "2~4",
+    "stoneMean": 3,
+    "exclusions": [
+      "travel",
+      "respawn wait",
+      "competition",
+      "tool repair",
+      "Gold acquisition",
+      "mob placement"
+    ]
+  },
+  "nodes": [
+    {
+      "sourceId": "verdia_cave_windsong_stone",
+      "weight": 38,
+      "probability": 0.38,
+      "maxHealth": 22,
+      "hitsAtSpeed4": 6,
+      "hitsAtSpeed10": 3
+    },
+    {
+      "sourceId": "verdia_cave_mossroot_rock",
+      "weight": 27,
+      "probability": 0.27,
+      "maxHealth": 26,
+      "hitsAtSpeed4": 7,
+      "hitsAtSpeed10": 3
+    },
+    {
+      "sourceId": "verdia_cave_darklight_vein",
+      "weight": 20,
+      "probability": 0.2,
+      "maxHealth": 34,
+      "hitsAtSpeed4": 9,
+      "hitsAtSpeed10": 4
+    },
+    {
+      "sourceId": "verdia_cave_bluewell_vein",
+      "weight": 13,
+      "probability": 0.13,
+      "maxHealth": 40,
+      "hitsAtSpeed4": 10,
+      "hitsAtSpeed10": 4
+    },
+    {
+      "sourceId": "verdia_cave_starheart_vein",
+      "weight": 2,
+      "probability": 0.02,
+      "maxHealth": 50,
+      "hitsAtSpeed4": 13,
+      "hitsAtSpeed10": 5
+    }
+  ],
+  "meanNodeSeconds": {
+    "4": 3.0120000000000005,
+    "10": 1.3480000000000003
+  },
+  "purchaseMaterialTotals": {
+    "10a00010": 3078,
+    "10a00086": 800,
+    "10a00087": 552,
+    "10a00089": 187,
+    "10a00200": 20,
+    "10a00201": 20,
+    "10a00210": 20,
+    "10a00211": 108,
+    "10a00220": 108,
+    "10a00240": 20,
+    "10a00241": 20,
+    "10a00250": 88
+  },
+  "evolutionMaterialTotals": {
+    "10a00086": 112,
+    "10a00087": 136,
+    "10a00089": 112,
+    "10a00200": 12,
+    "10a00201": 12,
+    "10a00210": 12,
+    "10a00211": 44,
+    "10a00220": 44,
+    "10a00240": 12,
+    "10a00241": 12,
+    "10a00250": 32
+  },
+  "purchaseOnly": {
+    "ores": [
+      {
+        "itemId": "10a00086",
+        "amount": 800,
+        "probability": 0.38,
+        "expectedNodesForThisQuota": 2105.2631578947367
+      },
+      {
+        "itemId": "10a00087",
+        "amount": 552,
+        "probability": 0.27,
+        "expectedNodesForThisQuota": 2044.4444444444443
+      },
+      {
+        "itemId": "10a00089",
+        "amount": 187,
+        "probability": 0.13,
+        "expectedNodesForThisQuota": 1438.4615384615383
+      }
+    ],
+    "expectedNodeLowerBound": 2105.2631578947367,
+    "activeMinutesLowerBound": {
+      "4": 105.6842105263158,
+      "10": 47.29824561403509
+    },
+    "stoneMeanAtNodeLowerBound": 6315.78947368421
+  },
+  "purchaseAndEvolution": {
+    "ores": [
+      {
+        "itemId": "10a00086",
+        "amount": 912,
+        "probability": 0.38,
+        "expectedNodesForThisQuota": 2400.0
+      },
+      {
+        "itemId": "10a00087",
+        "amount": 688,
+        "probability": 0.27,
+        "expectedNodesForThisQuota": 2548.148148148148
+      },
+      {
+        "itemId": "10a00089",
+        "amount": 299,
+        "probability": 0.13,
+        "expectedNodesForThisQuota": 2300.0
+      }
+    ],
+    "expectedNodeLowerBound": 2548.148148148148,
+    "activeMinutesLowerBound": {
+      "4": 127.91703703703705,
+      "10": 57.2483950617284
+    },
+    "stoneMeanAtNodeLowerBound": 7644.444444444443
+  },
+  "mobSources": [
+    {
+      "itemId": "10a00200",
+      "purchaseAmount": 20,
+      "evolutionAmount": 12,
+      "dropRatePercent": 40.0,
+      "minMobLevel": 22,
+      "expectedKillsForPurchases": 50.0
+    },
+    {
+      "itemId": "10a00201",
+      "purchaseAmount": 20,
+      "evolutionAmount": 12,
+      "dropRatePercent": 45.0,
+      "minMobLevel": 22,
+      "expectedKillsForPurchases": 44.44444444444444
+    },
+    {
+      "itemId": "10a00210",
+      "purchaseAmount": 20,
+      "evolutionAmount": 12,
+      "dropRatePercent": 35.0,
+      "minMobLevel": 28,
+      "expectedKillsForPurchases": 57.142857142857146
+    },
+    {
+      "itemId": "10a00211",
+      "purchaseAmount": 108,
+      "evolutionAmount": 44,
+      "dropRatePercent": 35.0,
+      "minMobLevel": 28,
+      "expectedKillsForPurchases": 308.5714285714286
+    },
+    {
+      "itemId": "10a00220",
+      "purchaseAmount": 108,
+      "evolutionAmount": 44,
+      "dropRatePercent": 35.0,
+      "minMobLevel": 28,
+      "expectedKillsForPurchases": 308.5714285714286
+    },
+    {
+      "itemId": "10a00240",
+      "purchaseAmount": 20,
+      "evolutionAmount": 12,
+      "dropRatePercent": 35.0,
+      "minMobLevel": 24,
+      "expectedKillsForPurchases": 57.142857142857146
+    },
+    {
+      "itemId": "10a00241",
+      "purchaseAmount": 20,
+      "evolutionAmount": 12,
+      "dropRatePercent": 35.0,
+      "minMobLevel": 24,
+      "expectedKillsForPurchases": 57.142857142857146
+    },
+    {
+      "itemId": "10a00250",
+      "purchaseAmount": 88,
+      "evolutionAmount": 32,
+      "dropRatePercent": 35.0,
+      "minMobLevel": 24,
+      "expectedKillsForPurchases": 251.42857142857144
+    }
+  ],
+  "expectedMobKillsForAllPurchases": 1134.4444444444446,
+  "purchaseGold": 10240000,
+  "evolutionGold": 312000,
+  "limits": [
+    "gathering level is not a player-level requirement",
+    "world/spawner placement and source access not accepted at runtime",
+    "5-tick spawner evaluation is not a guaranteed respawn time",
+    "purchase planning conservatively budgets 32 slots; current base INVENTORY_SLOTS is 36 and output space is checked before consumption"
+  ]
+}

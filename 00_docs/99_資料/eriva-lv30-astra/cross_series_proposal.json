@@ -1,0 +1,133 @@
+{
+  "status": "proposal_only_not_applied",
+  "sourceCommits": {
+    "lapis": "2bdcea3c4009092b73aedc14388f326275151b2d",
+    "lumina": "660f86bf8e96e1494e22dc5f742fb2b8491e4951"
+  },
+  "owner": "central equipment integration; do not edit other series from Astra task",
+  "reason": "Current Lapis base240/+30=405 exceeds Lumina180/270 and Astra260/350; compare on shared residual and enemy",
+  "lapisWeapon": {
+    "primaryBase": 170,
+    "random": {
+      "offsetMin": -7,
+      "offsetMax": 7,
+      "step": 1
+    },
+    "primaryIncreasePerLevel1To15": 3,
+    "primaryIncreasePerLevel16To30": 2,
+    "abilityBase": 12,
+    "abilitySpread": 2,
+    "abilityEnhanceIncrease": 0,
+    "expectedPrimaryAt0_15_30": [
+      170,
+      215,
+      245
+    ]
+  },
+  "lapisArmor": {
+    "keepBaseDefense": true,
+    "earlyDefensePerPart": [
+      2,
+      3,
+      2,
+      1
+    ],
+    "lateDefensePerPart": [
+      1,
+      2,
+      1,
+      1
+    ],
+    "enhancementResourceIncrease": 0,
+    "fixedSeriesResources": {
+      "health": 560,
+      "energy": 115,
+      "mana": 180
+    },
+    "expectedGuardDefenseAt0_15_30": [
+      350,
+      470,
+      545
+    ]
+  },
+  "luminaProposal": "Keep current values for this first monotonicity repair; final lower-series balance is central ownership",
+  "astraDecision": "Use base260±8, ability16±2, primary growth3/3, four enchant slots; do not raise to match current Lapis405",
+  "baselineSameConditions": {
+    "0": {
+      "R": 2046.266449,
+      "D": 2040.0,
+      "HP": 6170.0,
+      "normalHit": 1203.692693,
+      "TTK": 7.337024,
+      "survival": 7.649933,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    },
+    "15": {
+      "R": 2115.926449,
+      "D": 2160.0,
+      "HP": 6170.0,
+      "normalHit": 1289.017717,
+      "TTK": 6.851358,
+      "survival": 7.986015,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    },
+    "30": {
+      "R": 2162.366449,
+      "D": 2235.0,
+      "HP": 6170.0,
+      "normalHit": 1346.114441,
+      "TTK": 6.560751,
+      "survival": 8.209339,
+      "hitRate": 0.92,
+      "criticalFactor": 1
+    }
+  },
+  "optimizedSameConditions": {
+    "R": 3246.648424,
+    "D": 2256.0,
+    "HP": 6170.0,
+    "normalHit": 4928.721389,
+    "TTK": 1.921236,
+    "survival": 8.273822,
+    "hitRate": 0.92,
+    "criticalFactor": 1.0275,
+    "armorStrength": 48,
+    "armorNone": 40,
+    "weaponEffects": [
+      "weapon_melee_attack_scalar",
+      "weapon_normal_attack_damage_increase_flat"
+    ],
+    "weaponCombinationCount": 300,
+    "maximumRInSearch": 3436.881731,
+    "maximumRWeaponEffects": [
+      "weapon_melee_attack_scalar",
+      "weapon_strength_flat"
+    ]
+  },
+  "comparisonOrder": [
+    "eriva",
+    "proposed_lapis",
+    "lumina",
+    "astra"
+  ],
+  "ttkAt30": [
+    6.665488,
+    6.560751,
+    6.163789,
+    5.419078
+  ],
+  "searchedMinimumTtk": [
+    3.006803,
+    1.921236,
+    1.558287,
+    1.259992
+  ],
+  "limitations": [
+    "A proposal only; no lower-series YAML modified",
+    "Monotonicity repair does not make every update 15-25%; first extra enchant slot still creates a large extreme jump",
+    "Four-slot optimal firepower remains above standard anchor targets and requires central acceptance",
+    "Material exchange shops requested; new weapon loot/Bundle connections unnecessary in this scope"
+  ]
+}

@@ -1,0 +1,268 @@
+# design:
+#   motif: "天体 / 星の光"
+#   progression: 29
+schemaVersion: 1
+id: 20a00447
+category: equipment
+name: '&bアストラグリーブ'
+icon: LEATHER_LEGGINGS
+rarity: RARE
+maxStack: 1
+saleValue: 3000
+lore:
+- '&7星の光を思わせる色に染めた革の脚防具。'
+- '&7鍛え上げて進化させると、さらに成長する。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 30
+  setId: astra_guard
+  stats:
+  - status: DEFENSE
+    type: FLAT
+    value: 125
+    random:
+      offsetMin: -3
+      offsetMax: 3
+      step: 1
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 160
+  - status: KNOCKBACK_RESISTANCE
+    type: FLAT
+    value: 6
+  durability:
+    max: 450
+    consume: 1
+  enchant:
+    maxSlots: 4
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 2
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: DEFENSE
+        type: FLAT
+        value: 1
+      successRate: 0.05
+      failAction: NONE
+  transcendence:
+  - name: 進化
+    rank: 1
+    requiredEnhanceLevel: 15
+    requiredMaterials:
+    - itemId: 10a00087
+      amount: 16
+    - itemId: 10a00250
+      amount: 8
+    requiredCurrency: 12000
+    overrides:
+      name: '&b進化したアストラグリーブ'
+      enhance:
+        maxLevel: 30
+appearance:
+  color: '#657CA8'

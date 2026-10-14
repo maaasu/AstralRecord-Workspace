@@ -1,0 +1,295 @@
+# design:
+#   motif: "天体 / 星の光"
+#   progression: 29
+schemaVersion: 1
+id: 20a00438
+category: equipment
+name: '&bアストラソード'
+icon: DIAMOND_SWORD
+rarity: RARE
+maxStack: 1
+saleValue: 5000
+lore:
+- '&7星の光を思わせる、光沢のある武器。'
+- '&7鍛え上げて進化させると、さらに成長する。'
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 30
+  stats:
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 260
+    random:
+      offsetMin: -8
+      offsetMax: 8
+      step: 1
+  - status: STRENGTH
+    type: FLAT
+    value: 16
+    random:
+      offsetMin: -2
+      offsetMax: 2
+      step: 1
+  - status: FIRE_DAMAGE_INCREASE
+    type: FLAT
+    value: 0
+    random:
+      offsetMin: 0.1
+      offsetMax: 10
+      step: 0.1
+      zeroChance: 0.95
+  - status: ICE_DAMAGE_INCREASE
+    type: FLAT
+    value: 0
+    random:
+      offsetMin: 0.1
+      offsetMax: 10
+      step: 0.1
+      zeroChance: 0.95
+  - status: LIGHTNING_DAMAGE_INCREASE
+    type: FLAT
+    value: 0
+    random:
+      offsetMin: 0.1
+      offsetMax: 10
+      step: 0.1
+      zeroChance: 0.95
+  durability:
+    max: 380
+    consume: 1
+  enchant:
+    maxSlots: 4
+  rune:
+    maxSlots: 1
+  enhance:
+    maxLevel: 15
+    levels:
+    - level: 1
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 1.0
+      failAction: NONE
+    - level: 2
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.75
+      failAction: NONE
+    - level: 3
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.75
+      failAction: NONE
+    - level: 4
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.75
+      failAction: NONE
+    - level: 5
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 6
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.5
+      failAction: NONE
+    - level: 7
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.35
+      failAction: NONE
+    - level: 8
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.35
+      failAction: NONE
+    - level: 9
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.2
+      failAction: NONE
+    - level: 10
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 11
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 12
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 13
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 14
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 15
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 16
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 17
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 18
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 19
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 20
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 21
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 22
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 23
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 24
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 25
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 26
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 27
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 28
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 29
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+    - level: 30
+      statIncrease:
+      - status: MELEE_ATTACK
+        type: FLAT
+        value: 3
+      successRate: 0.05
+      failAction: NONE
+  transcendence:
+  - name: 進化
+    rank: 1
+    requiredEnhanceLevel: 15
+    requiredMaterials:
+    - itemId: 10a00087
+      amount: 24
+    - itemId: 10a00200
+      amount: 12
+    requiredCurrency: 24000
+    overrides:
+      name: '&b進化したアストラソード'
+      enhance:
+        maxLevel: 30
+iconGlint: true
