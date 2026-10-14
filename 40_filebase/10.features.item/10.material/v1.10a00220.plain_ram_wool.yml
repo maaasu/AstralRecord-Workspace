@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / 羊毛"
+#   progression: 16
+schemaVersion: 1
+id: 10a00220
+category: material
+name: '&f野原の羊毛'
+icon: WHITE_WOOL
+rarity: COMMON
+maxStack: 64
+saleValue: 90
+lore:
+- '&7ハラノヒツジから取れた、柔らかな野原の羊毛。'
+unTradeable: false
+unSellable: false

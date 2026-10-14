@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物 / 羊の巻き角"
+#   progression: 17
+schemaVersion: 1
+id: 10a00221
+category: material
+name: '&a硬い巻き角'
+icon: GOAT_HORN
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 280
+lore:
+- '&7厚く巻かれた、ハラノヒツジの丈夫な角。'
+unTradeable: false
+unSellable: false
