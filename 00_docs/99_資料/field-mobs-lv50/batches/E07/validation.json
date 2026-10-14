@@ -1,0 +1,93 @@
+{
+  "batch": "E07",
+  "base": "3444b74b24ed99f11fbb93d5e26bfe00ad7f2780",
+  "assignments_commit": "2c419c1af8cff4ffdef63a8cf726f96a3408fe63",
+  "status": "PASS",
+  "ownership_scope": "passed",
+  "yaml_files_parsed": 864,
+  "master_ids": 853,
+  "existing_duplicate_ids": {
+    "adventurer_meditation": [
+      "40_filebase/30.features.skill/v1.adventurer_meditation.yml",
+      "40_filebase/70.shared.buff/v1.adventurer_meditation.yml"
+    ],
+    "archer_heal_arrow_alpha": [
+      "40_filebase/30.features.skill/v1.archer_heal_arrow_alpha.yml",
+      "40_filebase/70.shared.buff/v1.archer_heal_arrow_alpha.yml"
+    ],
+    "archmage_celestial_circle": [
+      "40_filebase/30.features.skill/v1.archmage_celestial_circle.yml",
+      "40_filebase/70.shared.buff/v1.archmage_celestial_circle.yml"
+    ],
+    "hunter_build_up": [
+      "40_filebase/30.features.skill/v1.hunter_build_up.yml",
+      "40_filebase/70.shared.buff/v1.hunter_build_up.yml"
+    ],
+    "midgard_greenfields": [
+      "40_filebase/46.features.fishing.area/v1.midgard_greenfields.yml",
+      "40_filebase/60.features.world/v1.wild_overworld.yml"
+    ],
+    "starlit_nox": [
+      "40_filebase/46.features.fishing.area/v1.starlit_nox.yml",
+      "40_filebase/60.features.world/v1.central_base.yml"
+    ],
+    "vanaheim_supercontinent": [
+      "40_filebase/46.features.fishing.area/v1.vanaheim_supercontinent.yml",
+      "40_filebase/60.features.world/v1.starreach_wilds.yml"
+    ],
+    "verdia": [
+      "40_filebase/46.features.fishing.area/v1.verdia.yml",
+      "40_filebase/60.features.world/v1.verdia.yml"
+    ]
+  },
+  "introduced_duplicate_ids": [],
+  "mobs": [
+    {
+      "mob_id": "midgard_moss_shell",
+      "item_id": "10a00312",
+      "enemy_path": "40_filebase/40.features.mob/enemy/v1.midgard_moss_shell.yml",
+      "material_path": "40_filebase/10.features.item/10.material/v1.10a00312.midgard_moss_shell_material.yml",
+      "progression": 2,
+      "effective_levels": [
+        2
+      ],
+      "explicit_item_overrides": [],
+      "new_drop_occurrences_per_effective_level": 1,
+      "existing_root_and_effective_data_unchanged": true,
+      "existing_bytes_unchanged_after_removing_new_drops": true,
+      "item_and_loot_references_resolved": true,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "luckAffected": true,
+      "hidden": false,
+      "icon": "TURTLE_SCUTE",
+      "baseline_icon_owners": [
+        "40_filebase/30.features.skill/v1.paladin_guardian_renewal.yml"
+      ]
+    },
+    {
+      "mob_id": "midgard_savanna_camel",
+      "item_id": "10a00313",
+      "enemy_path": "40_filebase/40.features.mob/enemy/v1.midgard_savanna_camel.yml",
+      "material_path": "40_filebase/10.features.item/10.material/v1.10a00313.midgard_savanna_camel_material.yml",
+      "progression": 7,
+      "effective_levels": [
+        7,
+        8
+      ],
+      "explicit_item_overrides": [
+        8
+      ],
+      "new_drop_occurrences_per_effective_level": 1,
+      "existing_root_and_effective_data_unchanged": true,
+      "existing_bytes_unchanged_after_removing_new_drops": true,
+      "item_and_loot_references_resolved": true,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "luckAffected": true,
+      "hidden": false,
+      "icon": "BROWN_WOOL",
+      "baseline_icon_owners": []
+    }
+  ]
+}

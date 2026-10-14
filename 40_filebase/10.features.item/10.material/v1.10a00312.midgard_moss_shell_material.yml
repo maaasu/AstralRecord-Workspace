@@ -1,0 +1,16 @@
+# design:
+#   motif: "苔 / 甲殻"
+#   progression: 2
+schemaVersion: 1
+id: 10a00312
+category: material
+name: "&f苔甲のかけら"
+icon: TURTLE_SCUTE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7モスシェルの甲羅から剥がれた硬いかけら。"
+  - "&7表面には薄い苔が残り、縁はなだらかに湾曲している。"
+unTradeable: false
+unSellable: false
