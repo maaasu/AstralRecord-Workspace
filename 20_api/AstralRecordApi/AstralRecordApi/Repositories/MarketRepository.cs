@@ -1780,7 +1780,7 @@ public class MarketRepository(
             var now = DateTime.UtcNow;
             storage = new InventoryEntity
             {
-                InventoryId = Guid.NewGuid(), AccountId = accountId,
+                InventoryId = ResolveOrbStorageInventoryId(accountId), AccountId = accountId,
                 InventoryType = StorageInventoryType, InventoryProfile = MarketListingExpansion.GameInventoryProfile,
                 IsEnabled = true, CreatedAt = now, UpdatedAt = now,
                 CreatedBy = updatedBy, UpdatedBy = updatedBy,
@@ -1805,6 +1805,21 @@ public class MarketRepository(
             expansionCount = Math.Min(int.MaxValue, expansionCount + Math.Min(int.MaxValue, token.Quantity));
         var capacity = Math.Min(int.MaxValue, (StorageBasePageCount + expansionCount) * StoragePageSize);
         return entries.Count < capacity ? storage : null;
+    }
+
+    /// <summary>
+    /// Plugin の UUID.nameUUIDFromBytes と同じ UTF-8 identity から新規 GAME/STORAGE の ID を決定します。
+    /// MD5 はUUID v3の名前変換だけに使用し、認証・署名には使用しません。
+    /// </summary>
+    /// <param name="accountId">所有アカウント ID。</param>
+    /// <returns>Plugin と API の初回同時作成でも一致する inventory ID。</returns>
+    internal static Guid ResolveOrbStorageInventoryId(Guid accountId)
+    {
+        var identity = $"astralrecord:inventory:v1:{accountId:D}:{MarketListingExpansion.GameInventoryProfile}:{StorageInventoryType}";
+        var digest = MD5.HashData(Encoding.UTF8.GetBytes(identity));
+        digest[6] = (byte)((digest[6] & 0x0f) | 0x30);
+        digest[8] = (byte)((digest[8] & 0x3f) | 0x80);
+        return new Guid(digest, bigEndian: true);
     }
 
     private async Task<MarketOperationResult<IReadOnlyList<Guid>>> DebitGoldAsync(
