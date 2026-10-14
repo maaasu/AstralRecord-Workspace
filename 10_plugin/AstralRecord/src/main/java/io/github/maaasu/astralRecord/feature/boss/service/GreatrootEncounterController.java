@@ -444,6 +444,13 @@ final class GreatrootEncounterController {
             for (Location anchor : anchors) {
                 MobInstance bud = mobs.spawn(BUD_ID, anchor);
                 if (bud == null) { endLink(state, players, tick, false); return; }
+                if (encounters.get(state.boss.instanceId()) != state || mobs.getInstance(state.boss.instanceId()) != state.boss
+                    || state.boss.currentHealth() <= 0.0D) {
+                    // spawn中の外部callbackで所有ボスが終了した場合、戻ってきた新個体も残さない。
+                    mobs.destroy(bud.instanceId());
+                    destroyBuds(state);
+                    return;
+                }
                 state.buds.put(bud.instanceId(), anchor.clone());
                 addOwners.put(bud.instanceId(), state.boss.instanceId());
                 bud.rewardEligible(false);
@@ -453,6 +460,10 @@ final class GreatrootEncounterController {
                 Entity entity = mobs.entityController().getEntity(bud);
                 if (entity == null || !entity.isValid() || entity.isDead()) { endLink(state, players, tick, false); return; }
                 entity.setVelocity(new Vector());
+            }
+            if (state.buds.size() != phase || state.buds.keySet().stream().anyMatch(id -> !alive(id))) {
+                endLink(state, players, tick, false);
+                return;
             }
             state.savedImmune = state.boss.damageImmune();
             state.ownsImmunity = true;
