@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ハイエナの歯"
+#   progression: 7
+schemaVersion: 1
+id: 10a00314
+category: material
+name: "&fハイエナの歯"
+icon: GHAST_TEAR
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7サバナハイエナから抜け落ちた丈夫な歯。"
+  - "&7黄白色の先端は鋭く、表面に細かな傷が残る。"
+unTradeable: false
+unSellable: false
