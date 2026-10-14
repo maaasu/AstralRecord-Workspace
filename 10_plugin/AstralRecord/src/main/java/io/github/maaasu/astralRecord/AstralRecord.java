@@ -165,6 +165,9 @@ import io.github.maaasu.astralRecord.feature.mob.skill.savannawitch.SavannaWitch
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusGateSlamSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusRuneBoltSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.vinespider.VineSpiderFanWebMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.caldera.CalderaSkillSupport;
+import io.github.maaasu.astralRecord.feature.mob.skill.caldera.CalderaMeteorMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.caldera.CalderaFissureMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.witchforest.WitchForestSkillSupport;
 import io.github.maaasu.astralRecord.feature.mob.skill.witchforest.WitchForestHexBoltMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.witchforest.WitchForestCurseWebMobSkillExecutor;
@@ -509,6 +512,7 @@ public final class AstralRecord extends JavaPlugin {
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
     private WitchForestSkillSupport witchForestSkillSupport;
+    private CalderaSkillSupport calderaSkillSupport;
     private MobTauntService mobTauntService;
     private MobProjectileService mobProjectileService;
     private MobVanillaEffectProtectionService mobVanillaEffectProtectionService;
@@ -976,6 +980,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (witchForestSkillSupport != null) {
             witchForestSkillSupport.stop();
+        }
+        if (calderaSkillSupport != null) {
+            calderaSkillSupport.stop();
         }
         if (clayGuardLeapMobSkillExecutor != null) {
             clayGuardLeapMobSkillExecutor.stop();
@@ -1979,6 +1986,9 @@ public final class AstralRecord extends JavaPlugin {
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
         temporarySkillEffectService = new TemporarySkillEffectService();
         var mobSkillRegistry = new MobSkillRegistry();
+        calderaSkillSupport = new CalderaSkillSupport(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(new CalderaMeteorMobSkillExecutor(calderaSkillSupport));
+        mobSkillRegistry.register(new CalderaFissureMobSkillExecutor(calderaSkillSupport));
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));
         mobSkillRegistry.register(new ForestSpiderWebShotMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new ErivaStarhornGroveCircleMobSkillExecutor(mobService, damageService, particleDisplayService));
@@ -2035,6 +2045,7 @@ public final class AstralRecord extends JavaPlugin {
             clayGuardLeapMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             rootweaverRootSnareMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             witchForestSkillSupport.clearCasterState(mobInstanceId);
+            calderaSkillSupport.clearCasterState(mobInstanceId);
             mobTauntService.clearMob(mobInstanceId);
             bossMechanicService.handleMobDestroyed(mobInstanceId);
             temporarySkillEffectService.clear(mobInstanceId);
