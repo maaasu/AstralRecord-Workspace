@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物・気象 / 雪を駆ける狼"
+#   progression: 32
+schemaVersion: 1
+id: 10a00251
+category: material
+name: "雪色の毛皮"
+icon: WHITE_WOOL
+rarity: COMMON
+maxStack: 64
+saleValue: 400
+lore:
+  - "&7ユキオオカミから得られる、雪色の柔らかな毛皮。"
+  - "&7商人に売却できる。"
+unTradeable: false
+unSellable: false

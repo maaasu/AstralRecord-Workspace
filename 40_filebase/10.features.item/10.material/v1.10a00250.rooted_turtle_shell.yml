@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物・動物 / 根をまとった亀"
+#   progression: 24
+schemaVersion: 1
+id: 10a00250
+category: material
+name: "根付きの甲羅"
+icon: TURTLE_SCUTE
+rarity: COMMON
+maxStack: 64
+saleValue: 300
+lore:
+  - "&7ネッコガメの背から得られる、根の絡んだ甲羅。"
+  - "&7商人に売却できる。"
+unTradeable: false
+unSellable: false

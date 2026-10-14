@@ -1,0 +1,19 @@
+# design:
+#   motif: "植物 / 絡まる根"
+#   progression: 24
+schemaVersion: 1
+id: field_root_turtle_root_snare
+type: BUFF
+name: "&6根の足止め"
+icon: HANGING_ROOTS
+lore:
+  - "&7絡んだ根で移動速度が30%低下する。"
+  - "&7効果は1.2秒。攻撃やスキルは使える。"
+durationTicks: 24
+isDebuff: true
+resetOnChallenge: true
+stackGroup: field_root_turtle_root_snare
+modifiers:
+  - status: MOVEMENT_SPEED
+    type: FINAL_SCALAR
+    value: -0.30

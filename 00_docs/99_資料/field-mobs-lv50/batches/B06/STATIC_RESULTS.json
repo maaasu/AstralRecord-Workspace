@@ -1,0 +1,137 @@
+{
+  "yaml_files": 861,
+  "master_ids": 858,
+  "status_ids": 106,
+  "tag_ids": 134,
+  "changed_paths": [
+    "00_docs/99_資料/field-mobs-lv50/batches/B06/REGISTRATION_MANIFEST.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B06/SPEC.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B06/STATIC_RESULTS.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B06/VALIDATION.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B06/validate_b06.py",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/RootTurtleMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/SnowWolfMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00250.rooted_turtle_shell.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00251.snow_wolf_pelt.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_root_turtle.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_snow_wolf.yml",
+    "40_filebase/70.shared.buff/v1.field_root_turtle_root_snare.yml"
+  ],
+  "profiles": [
+    {
+      "mob_id": "field_root_turtle",
+      "level": 24,
+      "stats": {
+        "MAX_HEALTH": 13800,
+        "ATTACK": 1740,
+        "DEFENSE": 2300,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80
+      },
+      "exp": 352
+    },
+    {
+      "mob_id": "field_root_turtle",
+      "level": 26,
+      "stats": {
+        "MAX_HEALTH": 16330,
+        "ATTACK": 2060,
+        "DEFENSE": 2725,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80
+      },
+      "exp": 396
+    },
+    {
+      "mob_id": "field_root_turtle",
+      "level": 28,
+      "stats": {
+        "MAX_HEALTH": 19090,
+        "ATTACK": 2405,
+        "DEFENSE": 3185,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80
+      },
+      "exp": 440
+    },
+    {
+      "mob_id": "field_root_turtle",
+      "level": 30,
+      "stats": {
+        "MAX_HEALTH": 21850,
+        "ATTACK": 2755,
+        "DEFENSE": 3650,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80
+      },
+      "exp": 484
+    },
+    {
+      "mob_id": "field_snow_wolf",
+      "level": 32,
+      "stats": {
+        "MAX_HEALTH": 21500,
+        "ATTACK": 4085,
+        "DEFENSE": 3375,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 125
+      },
+      "exp": 500
+    },
+    {
+      "mob_id": "field_snow_wolf",
+      "level": 34,
+      "stats": {
+        "MAX_HEALTH": 24000,
+        "ATTACK": 4568,
+        "DEFENSE": 3780,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 125
+      },
+      "exp": 540
+    },
+    {
+      "mob_id": "field_snow_wolf",
+      "level": 36,
+      "stats": {
+        "MAX_HEALTH": 26500,
+        "ATTACK": 5050,
+        "DEFENSE": 4185,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 125
+      },
+      "exp": 580
+    },
+    {
+      "mob_id": "field_snow_wolf",
+      "level": 38,
+      "stats": {
+        "MAX_HEALTH": 29000,
+        "ATTACK": 5535,
+        "DEFENSE": 4590,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 125
+      },
+      "exp": 620
+    }
+  ],
+  "references": [
+    "item:10a00250",
+    "item:10a00251",
+    "buff:field_root_turtle_root_snare"
+  ],
+  "unregistered_skills": [
+    "mob_field_root_turtle_root_snare",
+    "mob_field_snow_wolf_ice_dash"
+  ],
+  "unchanged_existing_drops": true,
+  "status": "passed_static_pending_registration_and_live_acceptance"
+}
