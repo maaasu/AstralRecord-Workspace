@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 狐の香り袋"
+#   progression: 24
+schemaVersion: 1
+id: 10a00242
+category: material
+name: "&a森の香り袋"
+icon: BUNDLE
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 500
+lore:
+  - "&7コケギツネの煙に含まれる香りを留めた袋。"
+  - "&7口を開くと、濡れた木と苔の香りが広がる。"
+unTradeable: false
+unSellable: false

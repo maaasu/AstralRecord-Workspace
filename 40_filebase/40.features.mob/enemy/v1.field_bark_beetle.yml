@@ -1,0 +1,149 @@
+# design:
+#   motif: "昆虫 / 樹皮をまとう甲虫"
+#   progression: 24
+schemaVersion: 1
+id: field_bark_beetle
+type: MOB
+category: ENEMY
+name: '&aキノカブト Lv.24'
+level: 24
+entityType: SILVERFISH
+icon: SILVERFISH_SPAWN_EGG
+variant:
+  age: ADULT
+  scale: 1.8
+lore:
+- '&7木色の殻を鳴らし、木くずを扇状に撃ち出す。'
+- '&7木色の射線を見たら横へ退き、木の陰へ隠れよう。'
+tags:
+- forest
+- beast
+baseStats:
+- status: MAX_HEALTH
+  value: 11520
+- status: ATTACK
+  value: 2174
+- status: DEFENSE
+  value: 1923
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 90
+- status: CRITICAL_RATE
+  value: 0
+- status: FINAL_DAMAGE_MULTIPLIER
+  value: 100
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 14
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: RANGED
+    preferredRange: 6
+    skills:
+    - id: mob_field_bark_beetle_wood_shot
+      activationRange: 8
+      cooldownTicks: 60
+      castTimeTicks: 16
+drops:
+  exp: 304
+  items:
+  - itemId:
+      ref: item:10a00240
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false
+levels:
+- level: 24
+  name: '&aキノカブト Lv.24'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 11520
+  - status: ATTACK
+    value: 2174
+  - status: DEFENSE
+    value: 1923
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 304
+- level: 26
+  name: '&aキノカブト Lv.26'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 13630
+  - status: ATTACK
+    value: 2572
+  - status: DEFENSE
+    value: 2277
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 342
+- level: 28
+  name: '&aキノカブト Lv.28'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 15940
+  - status: ATTACK
+    value: 3007
+  - status: DEFENSE
+    value: 2664
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 380
+- level: 30
+  name: '&aキノカブト Lv.30'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 18240
+  - status: ATTACK
+    value: 3442
+  - status: DEFENSE
+    value: 3053
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: CRITICAL_RATE
+    value: 0
+  - status: FINAL_DAMAGE_MULTIPLIER
+    value: 100
+  drops:
+    exp: 418
