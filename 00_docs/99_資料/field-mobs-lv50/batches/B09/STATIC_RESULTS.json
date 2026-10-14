@@ -1,0 +1,198 @@
+{
+  "yaml_files": 866,
+  "master_ids": 863,
+  "status_ids": 106,
+  "tag_ids": 134,
+  "changed_paths": [
+    "00_docs/99_資料/field-mobs-lv50/batches/B09/REGISTRATION_MANIFEST.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B09/SPEC.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B09/STATIC_RESULTS.json",
+    "00_docs/99_資料/field-mobs-lv50/batches/B09/VALIDATION.md",
+    "00_docs/99_資料/field-mobs-lv50/batches/B09/validate_b09.py",
+    "00_docs/99_資料/レビュー結果/[完了] 26-10-15 02：19：12 code-review.md",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/EmberSlugMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaFireAreaSupport.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/MesaVultureMobSkillExecutor.java",
+    "40_filebase/10.features.item/10.material/v1.10a00280.mesa_vulture_feather.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00281.ember_slug_mucus.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_ember_slug.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_mesa_vulture.yml"
+  ],
+  "profiles": [
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 38,
+      "stats": {
+        "MAX_HEALTH": 23200,
+        "ATTACK": 4743,
+        "DEFENSE": 3570,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 660
+    },
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 40,
+      "stats": {
+        "MAX_HEALTH": 25200,
+        "ATTACK": 5157,
+        "DEFENSE": 3885,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 708
+    },
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 42,
+      "stats": {
+        "MAX_HEALTH": 27200,
+        "ATTACK": 5571,
+        "DEFENSE": 4200,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 756
+    },
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 44,
+      "stats": {
+        "MAX_HEALTH": 29200,
+        "ATTACK": 5985,
+        "DEFENSE": 4515,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 110
+      },
+      "exp": 804
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 44,
+      "stats": {
+        "MAX_HEALTH": 40150,
+        "ATTACK": 3658,
+        "DEFENSE": 5805,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80,
+        "MAGIC_ATTACK": 3658
+      },
+      "exp": 800
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 46,
+      "stats": {
+        "MAX_HEALTH": 42900,
+        "ATTACK": 3910,
+        "DEFENSE": 6210,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80,
+        "MAGIC_ATTACK": 3910
+      },
+      "exp": 850
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 48,
+      "stats": {
+        "MAX_HEALTH": 45650,
+        "ATTACK": 4164,
+        "DEFENSE": 6615,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80,
+        "MAGIC_ATTACK": 4164
+      },
+      "exp": 900
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 50,
+      "stats": {
+        "MAX_HEALTH": 48400,
+        "ATTACK": 4417,
+        "DEFENSE": 7020,
+        "ACCURACY": 95,
+        "EVASION": 3,
+        "MOVEMENT_SPEED": 80,
+        "MAGIC_ATTACK": 4417
+      },
+      "exp": 950
+    }
+  ],
+  "references": [
+    "item:10a00280",
+    "item:10a00281"
+  ],
+  "unregistered_skills": [
+    "mob_field_mesa_vulture_stone_drop",
+    "mob_field_ember_slug_ember_trail"
+  ],
+  "balance_projection": [
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 38,
+      "virtual_ttk_seconds": 3.71,
+      "virtual_survival_all_skill_hits_seconds": 54.87,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 40,
+      "virtual_ttk_seconds": 3.71,
+      "virtual_survival_all_skill_hits_seconds": 54.7,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 42,
+      "virtual_ttk_seconds": 3.7,
+      "virtual_survival_all_skill_hits_seconds": 54.55,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_mesa_vulture",
+      "level": 44,
+      "virtual_ttk_seconds": 3.69,
+      "virtual_survival_all_skill_hits_seconds": 54.43,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 44,
+      "virtual_ttk_seconds": 5.96,
+      "virtual_survival_all_skill_hits_seconds": 50.53,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 46,
+      "virtual_ttk_seconds": 5.95,
+      "virtual_survival_all_skill_hits_seconds": 50.5,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 48,
+      "virtual_ttk_seconds": 5.95,
+      "virtual_survival_all_skill_hits_seconds": 50.35,
+      "current_r416_58_damage_multiplier": 0.0
+    },
+    {
+      "mob_id": "field_ember_slug",
+      "level": 50,
+      "virtual_ttk_seconds": 5.94,
+      "virtual_survival_all_skill_hits_seconds": 50.27,
+      "current_r416_58_damage_multiplier": 0.0
+    }
+  ],
+  "status": "passed_static_pending_registration_and_live_acceptance"
+}
