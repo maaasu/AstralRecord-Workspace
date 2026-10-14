@@ -46,113 +46,110 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 1
       failAction: NONE
     - level: 2
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.75
       failAction: NONE
     - level: 3
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.75
       failAction: NONE
     - level: 4
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.75
       failAction: NONE
     - level: 5
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.5
       failAction: NONE
     - level: 6
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.5
       failAction: NONE
     - level: 7
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.35
       failAction: NONE
     - level: 8
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.35
       failAction: NONE
     - level: 9
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.2
       failAction: NONE
     - level: 10
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.05
       failAction: NONE
     - level: 11
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.05
       failAction: NONE
     - level: 12
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.05
       failAction: NONE
     - level: 13
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.05
       failAction: NONE
     - level: 14
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.05
       failAction: NONE
     - level: 15
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 2
+        value: 1
       successRate: 0.05
       failAction: NONE
     - level: 16
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -161,18 +158,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 18
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -181,18 +172,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 20
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -201,18 +186,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 22
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -221,18 +200,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 24
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -241,18 +214,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 26
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -261,18 +228,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 28
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05
@@ -281,18 +242,12 @@ equipment:
       statIncrease:
       - status: DEFENSE
         type: FLAT
-        value: 3
-      - status: MAX_MANA
-        type: FLAT
         value: 1
       successRate: 0.05
       failAction: NONE
     - level: 30
       statIncrease:
       - status: DEFENSE
-        type: FLAT
-        value: 3
-      - status: MAX_MANA
         type: FLAT
         value: 1
       successRate: 0.05

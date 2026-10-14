@@ -1,8 +1,8 @@
 {
   "result": "PASS",
-  "baseCommit": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
-  "yamlFiles": 951,
-  "namespaceIds": 1213,
+  "baseCommit": "ce523363ca0060fcdf76c59f3e8b061d88ab3041",
+  "yamlFiles": 1003,
+  "namespaceIds": 1265,
   "equipment": 19,
   "sets": 3,
   "randomStats": 33,
