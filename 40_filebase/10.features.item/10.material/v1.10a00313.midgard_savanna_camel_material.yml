@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ラクダの毛"
+#   progression: 7
+schemaVersion: 1
+id: 10a00313
+category: material
+name: "&f砂色のラクダ毛"
+icon: BROWN_WOOL
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7サバナガードキャメルから採れた砂色の毛。"
+  - "&7細い毛が柔らかな束になり、手触りはふんわりとしている。"
+unTradeable: false
+unSellable: false
