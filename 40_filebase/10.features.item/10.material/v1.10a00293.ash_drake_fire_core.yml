@@ -1,0 +1,16 @@
+# design:
+#   motif: "火山 / 竜の火核"
+#   progression: 45
+schemaVersion: 1
+id: 10a00293
+category: material
+name: '灰竜の火核'
+icon: MAGMA_CREAM
+rarity: RARE
+maxStack: 64
+saleValue: 3600
+lore:
+- '&7ごくまれに灰の奥から見つかる、熱を秘めた核。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false
