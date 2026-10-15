@@ -1,0 +1,119 @@
+# design:
+#   motif: "民間伝承 / 魔女の森と紅銅の祭苑"
+#   progression: 26
+schemaVersion: 1
+id: witchwood_copper_coven
+displayName: "翠呪の紅銅祭苑"
+recommendedLevel: 25
+entry:
+  worldRef: world:vanaheim_supercontinent
+  x: -1154.5
+  y: 107.0
+  z: 1480.5
+  yaw: 0.0
+  pitch: 0.0
+  radius: 2.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 3
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 1800
+generation:
+  area:
+    width: 144
+    depth: 144
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 17
+    max: 29
+  # エンプーサの外周魔法（中心から24m＋半径2.6m）にも退避余地を残す。
+  bossRoomSize:
+    min: 55
+    max: 59
+  roomHeight: 12
+  corridorWidth: 5
+  corridorHeight: 6
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: RECTANGLE
+      weight: 1
+  roomTypes:
+    - type: STANDARD
+      weight: 3
+    - type: SUPPORT_HALL
+      weight: 4
+    - type: COLLAPSED
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 2
+theme:
+  floor:
+    - material: MOSS_BLOCK
+      weight: 5
+    - material: ROOTED_DIRT
+      weight: 3
+    - material: MOSSY_STONE_BRICKS
+      weight: 2
+  wall:
+    - material: DARK_OAK_LOG
+      weight: 4
+    - material: MOSSY_COBBLESTONE
+      weight: 3
+    - material: MOSS_BLOCK
+      weight: 2
+  ceiling:
+    - material: DARK_OAK_PLANKS
+      weight: 4
+    - material: MOSS_BLOCK
+      weight: 2
+  corridor:
+    - material: ROOTED_DIRT
+      weight: 4
+    - material: MOSSY_STONE_BRICKS
+      weight: 2
+  gateMaterial: DARK_OAK_FENCE
+  lightMaterial: SOUL_LANTERN
+  # 地走波を跳び越え、属性ごとの退避方向を選べるよう中央柱を置かない。
+  pillar:
+    enabled: false
+  decorations:
+    supportMaterial: DARK_OAK_LOG
+    beamMaterial: STRIPPED_DARK_OAK_LOG
+    rubble:
+      - material: MOSSY_COBBLESTONE
+        weight: 3
+      - material: ROOTED_DIRT
+        weight: 1
+    accent:
+      - material: WAXED_OXIDIZED_COPPER
+        weight: 3
+      - material: AMETHYST_BLOCK
+        weight: 2
+encounter:
+  ensureMobVariety: true
+  normalMobPool:
+    - mobId: mob:copper_coven_hex_witch
+      level: 25
+      weight: 2
+    - mobId: mob:copper_coven_curseweaver
+      level: 25
+      weight: 3
+    - mobId: mob:copper_coven_bramble_guard
+      level: 25
+      weight: 3
+    - mobId: mob:copper_coven_rootbinder
+      level: 25
+      weight: 2
+  mobsPerRoom:
+    min: 4
+    max: 6
+  firstCombatRoomMaxMobLevel: 25
+  bossMobId: mob:empusa_witch
+  bossMobLevel: 25
