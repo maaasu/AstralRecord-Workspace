@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 月色に光る羽"
+#   progression: 37
+schemaVersion: 1
+id: 10a00401
+category: material
+name: 月色の羽
+icon: PHANTOM_MEMBRANE
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 760
+lore:
+- '&7コノハフクロウがまれに落とす、淡い月色の羽。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

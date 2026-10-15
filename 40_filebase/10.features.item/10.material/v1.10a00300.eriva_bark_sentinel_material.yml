@@ -1,0 +1,15 @@
+# design:
+#   motif: "植物 / 樹皮"
+#   progression: 16
+schemaVersion: 1
+id: 10a00300
+category: material
+name: "&f樹皮の板"
+icon: OAK_PLANKS
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7樹皮の番兵からはがれ落ちた、厚い樹皮の板。"
+unTradeable: false
+unSellable: false

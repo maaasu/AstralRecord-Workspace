@@ -5,7 +5,8 @@ import { closestContainerPointer, parentPointer, replaceAtPointer, schemaAtPoint
 import { fieldForPath, MasterDataForm, pointerKey } from './MasterDataForm'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
-import { masterFieldLabel } from '../data/masterDataPresentation'
+import { masterFieldTitle } from '../data/masterDataPresentation'
+import { masterValueLabel } from '../data/masterValuePresentation'
 
 const structured = (value: JsonValue | undefined): value is JsonObject | JsonValue[] => value !== null && typeof value === 'object'
 const decode = (key: string) => key.replaceAll('~1', '/').replaceAll('~0', '~')
@@ -17,7 +18,7 @@ function nodeLabel(value: JsonValue, schema: JsonObject, fields: MasterField[], 
   if (!path) return '基本情報'
   const key = decode(path.split('/').at(-1) ?? '')
   if (Array.isArray(valueAtPointer(value, parentPointer(path)))) return '要素 ' + (Number(key) + 1)
-  return String(schemaAtPointer(schema, path, value).title ?? fieldForPath(fields, path)?.label ?? (masterFieldLabel(key) || '空のキー'))
+  return masterFieldTitle(key, schemaAtPointer(schema, path, value).title ?? fieldForPath(fields, path)?.label) || '空のキー'
 }
 
 interface SearchProps {
@@ -37,7 +38,7 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
     const found: { path: string; label: string; value: JsonValue }[] = []
     function visit(current: JsonValue, path: string) {
       const label = nodeLabel(value, schema, fields, path)
-      const searchableValue = typeof current === 'string' ? current : summarizeMasterValue(current)
+      const searchableValue = typeof current === 'string' ? `${current} ${masterValueLabel(path, current)}` : summarizeMasterValue(current)
       if (path && [path, label, searchableValue, stripMinecraftFormatting(searchableValue)].some((text) => text.toLocaleLowerCase().includes(search))) found.push({ path, label, value: current })
       children(current, path).forEach((child) => visit(child.value, child.path))
     }
@@ -46,7 +47,7 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
   }, [value, fields, schema, search])
   return <div className="master-form-search">
     <label>フォーム内検索<input aria-label="フォーム内検索" placeholder="日本語の項目名 / キー / 値" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-    {search && <div className="master-form-search-results"><p className="master-muted" role="status">{matches.length}件{matches.length > 100 ? '（先頭100件）' : ''}</p><ul>{matches.slice(0, 100).map((match) => <li key={match.path}><button type="button" className="master-search-result" disabled={disabled} aria-label={match.path + ' に移動'} onClick={() => { if (structured(match.value)) onSelect(match.path); else onFocus(match.path); setQuery('') }}><span>{match.label}</span><small><MinecraftText value={summarizeMasterValue(match.value)} /></small><code>{match.path}</code></button></li>)}</ul></div>}
+    {search && <div className="master-form-search-results"><p className="master-muted" role="status">{matches.length}件{matches.length > 100 ? '（先頭100件）' : ''}</p><ul>{matches.slice(0, 100).map((match) => <li key={match.path}><button type="button" className="master-search-result" disabled={disabled} aria-label={match.path + ' に移動'} onClick={() => { if (structured(match.value)) onSelect(match.path); else onFocus(match.path); setQuery('') }}><span>{match.label}</span><small><MinecraftText value={summarizeMasterValue(typeof match.value === 'string' ? masterValueLabel(match.path, match.value) : match.value)} /></small><code>{match.path}</code></button></li>)}</ul></div>}
   </div>
 }
 

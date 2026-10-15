@@ -1,0 +1,22 @@
+# design:
+#   motif: "偉人 / ニュートン"
+#   progression: 2
+schemaVersion: 1
+id: 40a00034
+category: orb
+name: "&bニュートンのオーブ"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2YwNTI5ZDAzM2Y5MzdkNGU0ZDM0ZDg5OTRmYzQ0NjU4MGQ3MDc4YWVjZWIyYzc5N2NlNGIwMWI2MDQ0ZjAzMiJ9fX0=
+rarity: EPIC
+maxStack: 64
+saleValue: 240
+lore:
+  - "&7最も若い未固定エンチャント枠を1つ固定する。"
+  - "&7固定した効果は上書き・数値再抽選・削除の対象外。"
+  - "&7固定は解除できない。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantOperation: LOCK_FIRST

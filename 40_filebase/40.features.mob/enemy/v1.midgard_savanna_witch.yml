@@ -55,6 +55,12 @@ levels:
           amount: 1
           luckAffected: true
           hidden: false
+        - itemId:
+            ref: item:10a00315
+          rate: 35.0
+          amount: 1
+          luckAffected: true
+          hidden: false
       lootTable:
         ref: loot_table:normal_enemy_common_table_tier_1
 
@@ -117,6 +123,12 @@ drops:
     - itemId:
         ref: item:10a00052
       rate: 2.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:10a00315
+      rate: 35.0
       amount: 1
       luckAffected: true
       hidden: false

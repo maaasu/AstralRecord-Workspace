@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 紫色の樹皮"
+#   progression: 16
+schemaVersion: 1
+id: 10a00317
+category: material
+name: "&f紫木の硬皮"
+icon: CRIMSON_HYPHAE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7ゴルムの表面から剥がれた紫色の硬い皮。"
+  - "&7層の重なった断面には木目のような筋が走る。"
+unTradeable: false
+unSellable: false

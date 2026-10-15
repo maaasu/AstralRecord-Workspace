@@ -1984,7 +1984,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return false;
         }
         ItemModel model = itemService.findLoadedById(listing.itemId());
-        return model != null && inventoryService.canAddItemToNormalInventory(
+        return model != null && inventoryService.canReturnItemToNormalInventory(
             astPlayer,
             model,
             (int) listing.remainingQuantity()

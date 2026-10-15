@@ -1,0 +1,131 @@
+# design:
+#   motif: "伝承 / 灰火を吐く地竜"
+#   progression: 44
+schemaVersion: 1
+id: field_ash_drake
+type: MOB
+category: ENEMY
+name: '&cハイドレイク'
+level: 44
+entityType: RAVAGER
+variant:
+  scale: 0.65
+icon: RAVAGER_SPAWN_EGG
+lore:
+- '&7熱い灰を吐く、頑丈な小型の地竜。'
+- '&7通常の獣より手強く、正面へ灰火の息を吐く。'
+- '&7灰ブレスの予告が出たら、側面や背後へ回ろう。'
+tags:
+- dragon
+- melee
+- magic
+- fire
+levels:
+- level: 44
+  name: '&cハイドレイク Lv.44'
+- level: 46
+  name: '&cハイドレイク Lv.46'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 62400
+  - status: ATTACK
+    value: 7466
+  - status: DEFENSE
+    value: 6900
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 1110
+- level: 48
+  name: '&cハイドレイク Lv.48'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 66400
+  - status: ATTACK
+    value: 7949
+  - status: DEFENSE
+    value: 7350
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 1170
+- level: 50
+  name: '&cハイドレイク Lv.50'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 70400
+  - status: ATTACK
+    value: 8432
+  - status: DEFENSE
+    value: 7800
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  drops:
+    exp: 1230
+baseStats:
+- status: MAX_HEALTH
+  value: 58400
+- status: ATTACK
+  value: 6983
+- status: DEFENSE
+  value: 6450
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 105
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2.4
+    normalAttack:
+      range: 2.4
+      intervalTicks: 40
+    skills:
+    - id: mob_field_ash_drake_ash_breath
+      activationRange: 7
+      cooldownTicks: 240
+      castTimeTicks: 0
+drops:
+  exp: 1050
+  items:
+  - itemId:
+      ref: item:10a00291
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00292
+    rate: 8
+    amount: 1
+    luckAffected: true
+    hidden: false
+  - itemId:
+      ref: item:10a00293
+    rate: 0.15
+    amount: 1
+    luckAffected: true
+    hidden: false

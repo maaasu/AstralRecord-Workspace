@@ -1,0 +1,22 @@
+# design:
+#   motif: "ギリシャ神話 / アテナ"
+#   progression: 3
+schemaVersion: 1
+id: 40a00039
+category: orb
+name: "&bアテナのオーブ(上級)"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2VlYWQ4MjQwMGMzYTQ1NDFhNDFjMmE5ZjdhYjNiNWIzZGJmZGUyNGY3NjAyYWM0OWM2YWMxMWZkODkzMjc2ZSJ9fX0=
+iconGlint: true
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 400
+lore:
+  - "&7空いているエンチャント枠1つへ付与する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant003
+    enchantOperation: FILL_ONE_EMPTY

@@ -1128,6 +1128,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.EffectId).HasColumnName("effect_id");
             entity.Property(e => e.Status).HasColumnName("status");
             entity.Property(e => e.Type).HasColumnName("type");
+            entity.Property(e => e.IsLocked).HasColumnName("is_locked").HasDefaultValue(false);
             entity.Property(e => e.Value).HasColumnName("value").HasPrecision(18, 4);
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");

@@ -1,0 +1,59 @@
+# design:
+#   motif: "植物 / 樹皮の衛兵"
+#   progression: 25
+schemaVersion: 1
+id: eriva_greatroot_barkguard
+type: MOB
+category: ENEMY
+name: "&2根洞の樹皮衛兵"
+level: 25
+entityType: IRON_GOLEM
+variant:
+  scale: 0.8
+icon: IRON_GOLEM_SPAWN_EGG
+lore:
+  - "&7樹皮をまとい、太い根の間を守る衛兵。"
+  - "&7根枝を扇状に払い、続けて正面へ根を走らせる。"
+tags:
+  - forest
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 16000
+  - status: ATTACK
+    value: 1600
+  - status: DEFENSE
+    value: 2300
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 78
+  - status: KNOCKBACK_RESISTANCE
+    value: 40
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 5
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 18
+    deaggroRange: 30
+    leashRange: 36
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+    normalAttack:
+      range: 2.5
+      intervalTicks: 42
+    skills:
+      - id: mob_greatroot_barkguard_combo
+        activationRange: 4
+        cooldownTicks: 180
+        castTimeTicks: 0
+drops:
+  exp: 360

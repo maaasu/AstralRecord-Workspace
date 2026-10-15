@@ -1,5 +1,9 @@
 # Database Migration Tool
 
+エンチャント固定化は `20261013_equipment_enchant_lock.sql` をゲームDBへ適用し、既存行を未固定（`is_locked=0`）で維持する。API更新前に適用し、全RPG Plugin更新完了後に固定を開始する。固定開始後は `isLocked` を送らない旧Pluginを混在させない。
+
+`tests/enchant-lock-schema.integration.ps1` はローカルSQL Serverの一時DBで、固定化migrationの登録・スキーマ検査・既存行と新規行のfalse既定値・再実行時の固定状態保持を確認する。
+
 既存のゲームDBまたはHistoryDBへ、対応する manifest に明示された本番 migration だけを順番に適用し、適用後のテーブル・列・型・NULL性・主キー・check制約・索引キー順を検査する。
 
 ## 実行

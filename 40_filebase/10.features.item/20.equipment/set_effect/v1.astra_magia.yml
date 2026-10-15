@@ -1,0 +1,17 @@
+# design:
+#   motif: "天体 / 星の光"
+#   progression: 29
+schemaVersion: 1
+id: astra_magia
+name: '&bアストラマギア'
+pieces:
+- count: 2
+  stats:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 10
+- count: 4
+  stats:
+  - status: ACCURACY
+    type: FLAT
+    value: 2

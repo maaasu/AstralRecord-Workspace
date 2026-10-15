@@ -33,6 +33,19 @@ items:
           ref: item:99a00008
         category: currency
         amount: 300
+  - id: 99a00023
+    itemId:
+      ref: item:99a00023
+    category: currency
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:99a00008
+        category: currency
+        amount: 500
   - id: 99a00011
     itemId:
       ref: item:99a00011

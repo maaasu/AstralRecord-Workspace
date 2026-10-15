@@ -1028,6 +1028,7 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal("18", roll.Min);
         Assert.Equal("24", roll.Max);
         Assert.Equal("flat", Assert.Single(equipment.Enchants).Type);
+        Assert.True(Assert.Single(equipment.Enchants).IsLocked);
         Assert.Equal("market_rune", Assert.Single(equipment.Runes).ItemId);
     }
 
@@ -1997,6 +1998,7 @@ public class MarketRepositoryEquipmentListingTests
                 Status = "physical_attack",
                 Type = "flat",
                 Value = 4,
+                IsLocked = true,
                 CreatedAt = now,
                 UpdatedAt = now,
                 CreatedBy = accountId,

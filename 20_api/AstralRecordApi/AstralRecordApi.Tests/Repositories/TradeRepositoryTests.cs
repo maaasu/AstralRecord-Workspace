@@ -138,6 +138,12 @@ public sealed class TradeRepositoryTests
         var equipment = await harness.DbContext.EquipmentInstances.AsNoTracking()
             .SingleAsync(candidate => candidate.EquipmentInstanceId == harness.EquipmentInstanceId);
         Assert.Equal(harness.PlayerBAccountId, equipment.AccountId);
+        var enchant = await harness.DbContext.EquipmentInstanceEnchants.AsNoTracking()
+            .SingleAsync(candidate => candidate.EquipmentInstanceId == harness.EquipmentInstanceId);
+        Assert.True(enchant.IsLocked);
+        Assert.Equal(2, enchant.SlotIndex);
+        Assert.Equal("enchant003", enchant.EnchantMasterId);
+        Assert.Equal(20, enchant.Value);
         Assert.Contains(harness.EquipmentEntryId, result.Value.PlayerAAffectedInventoryEntryIds);
         Assert.Contains(harness.EquipmentEntryId, result.Value.PlayerBAffectedInventoryEntryIds);
     }
@@ -389,6 +395,13 @@ public sealed class TradeRepositoryTests
                 UpdatedAt = now,
                 CreatedBy = PlayerAAccountId,
                 UpdatedBy = PlayerAAccountId,
+            });
+            DbContext.EquipmentInstanceEnchants.Add(new EquipmentInstanceEnchantEntity
+            {
+                EnchantId = Guid.NewGuid(), EquipmentInstanceId = EquipmentInstanceId, SlotIndex = 2,
+                EnchantMasterId = "enchant003", EffectId = "attack", Status = "ATTACK", Type = "FLAT",
+                Value = 20, IsLocked = true, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = PlayerAAccountId, UpdatedBy = PlayerAAccountId,
             });
             await DbContext.SaveChangesAsync();
         }

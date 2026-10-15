@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 紫色の樹液"
+#   progression: 16
+schemaVersion: 1
+id: 10a00318
+category: material
+name: "&f紫木の樹液"
+icon: HONEY_BOTTLE
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7メルザが携えていた紫色の樹液。"
+  - "&7粘りのある滴が、瓶の内側に薄い膜を作る。"
+unTradeable: false
+unSellable: false

@@ -49,6 +49,7 @@ public class ItemService {
     public static final String LEGACY_ASTRALD_CURRENCY_ITEM_ID = "astrald";
     public static final String STORAGE_EXPANSION_TOKEN_ITEM_ID = "99a00009";
     public static final String STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID = "99a00010";
+    public static final String ORB_REMOTE_ACCESS_TOKEN_ITEM_ID = "99a00023";
     public static final String SKILL_PRESET_UNLOCK_TOKEN_ITEM_ID = "99a00018";
     public static final String PASSIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID = "99a00019";
     public static final String ACTIVE_SKILL_SLOT_UNLOCK_TOKEN_ITEM_ID = "99a00020";
@@ -534,6 +535,7 @@ public class ItemService {
     /**
      * 装備個体を通信せずに生成し、次の player-state snapshot で inventory entry と同時作成します。
      * 乱数値と UUID は呼出時に一度だけ確定するため、同じ snapshot の再送でも変化しません。
+     * 明示randomは単一基準値から抽選した同じ値をmin/maxへ保存し、旧scalar/rangeは従来どおり解決します。
      *
      * @param model 装備マスタ
      * @param accountId 所有アカウント
@@ -562,11 +564,14 @@ public class ItemService {
                 if (stat.getStatus() == null || stat.getStatus().isBlank()) {
                     continue;
                 }
+                String generatedValue = stat.getRandom() == null ? null
+                    : stat.getRandom().sample(stat.getMin(), ThreadLocalRandom.current())
+                        .stripTrailingZeros().toPlainString();
                 statRolls.add(new EquipmentStatRoll(
                     UUID.randomUUID().toString(),
                     stat.getStatus().trim(),
-                    resolveRandomNumericString(stat.getRawMin(), stat.getMin()),
-                    resolveRandomNumericString(stat.getRawMax(), stat.getMax()),
+                    generatedValue == null ? resolveRandomNumericString(stat.getRawMin(), stat.getMin()) : generatedValue,
+                    generatedValue == null ? resolveRandomNumericString(stat.getRawMax(), stat.getMax()) : generatedValue,
                     sortOrder++
                 ));
             }

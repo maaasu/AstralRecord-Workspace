@@ -52,6 +52,26 @@ public sealed class EquipmentRepositoryParentTimestampTests
         Assert.Equal(fixture.AccountId, parent.UpdatedBy);
     }
 
+    [Fact]
+    public async Task DeleteEnchantBySlotIndexAsync_RejectsLockedEnchantWithoutChangingParent()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.DbContext.EquipmentInstanceEnchants.Add(new EquipmentInstanceEnchantEntity
+        {
+            EnchantId = Guid.NewGuid(), EquipmentInstanceId = fixture.InstanceId, SlotIndex = 0,
+            EnchantMasterId = "test", EffectId = "test.effect", Status = "FIXED", Type = "FLAT", Value = 1,
+            IsLocked = true, CreatedAt = fixture.InitialUpdatedAt, UpdatedAt = fixture.InitialUpdatedAt,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        Assert.False(await new EquipmentRepository(fixture.DbContext)
+            .DeleteEnchantBySlotIndexAsync(fixture.InstanceId, 0, fixture.AccountId));
+        Assert.True((await fixture.DbContext.EquipmentInstanceEnchants.AsNoTracking().SingleAsync()).IsLocked);
+        Assert.Equal(fixture.InitialUpdatedAt,
+            (await fixture.DbContext.EquipmentInstances.AsNoTracking().SingleAsync()).UpdatedAt);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection connection;

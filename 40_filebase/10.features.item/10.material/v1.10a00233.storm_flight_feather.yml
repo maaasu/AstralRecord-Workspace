@@ -1,0 +1,15 @@
+# design:
+#   motif: "動物・気象 / 風切り羽"
+#   progression: 25
+schemaVersion: 1
+id: 10a00233
+category: material
+name: "風切り羽"
+icon: FEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 260
+lore:
+  - "&7急な飛び込みにも折れない、長い翼の羽。"
+unTradeable: false
+unSellable: false

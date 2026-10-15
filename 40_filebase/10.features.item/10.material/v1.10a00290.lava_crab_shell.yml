@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 赤熱した甲殻"
+#   progression: 44
+schemaVersion: 1
+id: 10a00290
+category: material
+name: '焼けた甲殻'
+icon: TURTLE_SCUTE
+rarity: COMMON
+maxStack: 64
+saleValue: 750
+lore:
+- '&7ヨウガンガニを守っていた、熱の残る甲殻。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

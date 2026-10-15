@@ -1,0 +1,22 @@
+# design:
+#   motif: "偉人 / アインシュタイン"
+#   progression: 2
+schemaVersion: 1
+id: 40a00038
+category: orb
+name: "&bシュタインのオーブ(中級)"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWM2ODIxMjVjOGY4OWJkZjRiNzU2ZDY1Nzc5M2RiOWIyZTE2YzllMjVlZjlhMGYwODdlM2VmNGYwOTMzYWI1OSJ9fX0=
+rarity: EPIC
+maxStack: 64
+saleValue: 200
+lore:
+  - "&7未固定エンチャント1枠の数値だけを再抽選する。"
+  - "&7効果の種類は変わらず、数値は下がることもある。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant002
+    enchantOperation: REROLL_VALUE_RANDOM

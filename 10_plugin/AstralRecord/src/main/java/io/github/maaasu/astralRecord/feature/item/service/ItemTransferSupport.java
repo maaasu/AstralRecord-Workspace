@@ -88,7 +88,7 @@ public final class ItemTransferSupport {
         int normalizedMaxStackSize = Math.max(1, maxStackSize);
         return switch (clickType) {
             case LEFT -> 1;
-            case RIGHT -> Math.max(1, (sourceAmount + 1) / 2);
+            case RIGHT -> 1 + (sourceAmount - 1) / 2;
             case SHIFT_LEFT -> Math.min(sourceAmount, normalizedMaxStackSize);
             case SHIFT_RIGHT -> sourceAmount;
             default -> 0;

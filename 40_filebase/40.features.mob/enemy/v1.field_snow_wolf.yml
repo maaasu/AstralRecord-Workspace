@@ -1,0 +1,122 @@
+# design:
+#   motif: "動物・気象 / 雪を駆ける狼"
+#   progression: 32
+schemaVersion: 1
+id: field_snow_wolf
+type: MOB
+category: ENEMY
+name: "&bユキオオカミ"
+level: 32
+entityType: WOLF
+variant:
+  age: ADULT
+icon: WOLF_SPAWN_EGG
+lore:
+  - "&7雪色の毛を持つ、すばやい狼。"
+  - "&7低く構えて氷の進路を示し、その方向へ一気に駆ける。"
+  - "&7横へ逃れると氷走りを避けられる。"
+tags:
+  - beast
+  - ice
+  - melee
+
+levels:
+  - level: 32
+    name: "&bユキオオカミ Lv.32"
+  - level: 34
+    name: "&bユキオオカミ Lv.34"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 24000
+      - status: ATTACK
+        value: 4568
+      - status: DEFENSE
+        value: 3780
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 125
+    drops:
+      exp: 540
+  - level: 36
+    name: "&bユキオオカミ Lv.36"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 26500
+      - status: ATTACK
+        value: 5050
+      - status: DEFENSE
+        value: 4185
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 125
+    drops:
+      exp: 580
+  - level: 38
+    name: "&bユキオオカミ Lv.38"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 29000
+      - status: ATTACK
+        value: 5535
+      - status: DEFENSE
+        value: 4590
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 125
+    drops:
+      exp: 620
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 21500
+  - status: ATTACK
+    value: 4085
+  - status: DEFENSE
+    value: 3375
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 125
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.85
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 36
+    skills:
+      - id: mob_field_snow_wolf_ice_dash
+        activationRange: 6
+        cooldownTicks: 140
+        castTimeTicks: 0
+
+drops:
+  exp: 500
+  items:
+    - itemId:
+        ref: item:10a00251
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false

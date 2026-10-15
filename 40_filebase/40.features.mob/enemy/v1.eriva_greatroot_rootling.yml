@@ -1,0 +1,58 @@
+# design:
+#   motif: "動物 / 根の間を掘り進む虫"
+#   progression: 25
+schemaVersion: 1
+id: eriva_greatroot_rootling
+type: MOB
+category: ENEMY
+name: "&a根洞の根潜り"
+level: 25
+entityType: SILVERFISH
+variant:
+  scale: 1.4
+icon: SILVERFISH_SPAWN_EGG
+lore:
+  - "&7根の隙間から顔を出す、掘進の得意な小さな生き物。"
+  - "&7地面の印へ掘り進む。追いかける前に横へ避けよう。"
+tags:
+  - forest
+  - beast
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 10500
+  - status: ATTACK
+    value: 1800
+  - status: DEFENSE
+    value: 1900
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 6
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 30
+    leashRange: 36
+  combat:
+    style: MELEE
+    preferredRange: 1.8
+    normalAttack:
+      range: 1.8
+      intervalTicks: 40
+    skills:
+      - id: mob_greatroot_rootling_burrow
+        activationRange: 6
+        cooldownTicks: 180
+        castTimeTicks: 0
+drops:
+  exp: 360

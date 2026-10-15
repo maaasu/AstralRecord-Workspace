@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 
 import com.google.gson.JsonElement;
@@ -1466,6 +1467,7 @@ public class InventoryService {
      * 通常インベントリへアイテムを追加します。
      * <p>
      * 追加先は model のカテゴリに応じて自動判定し、対応するインベントリ種別へ entry を追加します。
+     * オーブ遠隔アクセストークン所持時の新規オーブは収納余地があれば STORAGE へ追加し、満杯時は BAG へ戻します。
      * EQUIPMENT は個体をローカル生成し、次回の player-state snapshot で entry と同時保存します。
      * RUNE は通常itemと同じく itemId / quantity でstackへ追加します。
      * 永続化は次回オートセーブで行われます。
@@ -1504,7 +1506,7 @@ public class InventoryService {
     /**
      * 通常インベントリへアイテムを追加し、BAG slot の占有結果を同じ state lock 内で返します。
      * <p>
-     * 通貨は BAG slot を消費しないため、{@link NormalInventoryGrantResult#remainingBagSlots()} は
+     * 通貨および自動収納したオーブは BAG slot を消費しないため、{@link NormalInventoryGrantResult#remainingBagSlots()} は
      * {@code -1} になります。state 未登録時も同じく {@code -1} を返します。
      * 装備の API 個体生成はこのメソッド内で実行するため、
      * 非同期ドロップ演出で個体を先に生成する場合は
@@ -1550,11 +1552,12 @@ public class InventoryService {
         if (state == null) {
             return new NormalInventoryGrantResult(safeAmount, 0, 0, -1);
         }
-        InventoryType inventoryType = resolveTargetInventoryType(model);
+        InventoryType inventoryType;
         int granted;
         int remainingBagSlotsBefore = -1;
         int remainingBagSlotsAfter = -1;
         synchronized (state) {
+            inventoryType = resolveAcquisitionInventoryType(state, model, safeAmount);
             InventoryModel targetInventory = ensureInventory(state, inventoryType);
             if (inventoryType == InventoryType.BAG) {
                 remainingBagSlotsBefore = remainingBagSlotCount(state, targetInventory);
@@ -1566,7 +1569,7 @@ public class InventoryService {
                 case PET, PET_EGG -> 0;
                 // ルーンはマスタ定義だけで効果が確定するスタックアイテムです。
                 case RUNE -> addStackedItems(state, targetInventory, model, safeAmount);
-                default -> addStackedItems(state, targetInventory, model, safeAmount);
+                default -> addAcquiredStackedItems(state, targetInventory, model, safeAmount);
             };
             if (inventoryType == InventoryType.BAG) {
                 remainingBagSlotsAfter = remainingBagSlotCount(state, targetInventory);
@@ -1606,6 +1609,9 @@ public class InventoryService {
         }
         int safeAmount = Math.max(1, amount);
         synchronized (state) {
+            if (canAutoStoreAcquiredOrb(state, model, safeAmount)) {
+                return true;
+            }
             InventoryModel storageInventory = findExistingStorageInventory(state);
             if (storageInventory != null) {
                 List<InventoryEntryModel> storageEntries = state.snapshotEntries(storageInventory.getInventoryId()).stream()
@@ -1624,6 +1630,7 @@ public class InventoryService {
     /**
      * 同一通常アイテムの STORAGE entry が存在する場合はその数量へ加算し、存在しない場合は通常インベントリへ
      * 追加します。STORAGE entry へ加算した場合は STORAGE inventory を新規作成せず、結果で判別できます。
+     * オーブ遠隔アクセストークン所持時は、同種entry未存在でも空き枠へ新規収納できます。
      *
      * @param astPlayer 追加対象プレイヤー
      * @param model 追加するアイテム
@@ -1666,6 +1673,11 @@ public class InventoryService {
         InventoryType targetType = resolveTargetInventoryType(model);
         int granted;
         synchronized (state) {
+            if (canAutoStoreAcquiredOrb(state, model, safeAmount)) {
+                InventoryModel storage = ensureInventory(state, InventoryType.STORAGE);
+                int stored = addAcquiredStackedItems(state, storage, model, safeAmount);
+                return new StorageFallbackGrantResult(safeAmount, stored, true);
+            }
             InventoryModel storageInventory = findExistingStorageInventory(state);
             if (storageInventory != null) {
                 List<InventoryEntryModel> storageEntries = new ArrayList<>(
@@ -2087,7 +2099,8 @@ public class InventoryService {
                         continue;
                     }
                     ItemCategory category = ItemCategory.fromApiValue(reward.model().getCategory());
-                    InventoryType inventoryType = resolveTargetInventoryType(reward.model());
+                    InventoryType inventoryType = resolveAcquisitionInventoryType(
+                        state, reward.model(), reward.amount());
                     InventoryModel targetInventory = ensureInventory(state, inventoryType);
                     changedTypes.add(inventoryType);
 
@@ -2120,7 +2133,7 @@ public class InventoryService {
                             succeeded = false;
                             break;
                         }
-                        succeeded = addStackedItems(
+                        succeeded = addAcquiredStackedItems(
                             state,
                             targetInventory,
                             reward.model(),
@@ -2723,7 +2736,7 @@ public class InventoryService {
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_UP_GUI_SLOT,
             createScrollIcon(astPlayer, true, scrollRow > 0));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.INFO_GUI_SLOT,
-            createInventoryInfoIcon(entries, capacity, displayCapacity, scrollRow));
+            createInventoryInfoIcon(state.getAccountId(), entries, capacity, displayCapacity, scrollRow));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT,
             createScrollIcon(astPlayer, false, scrollRow < NormalInventoryLayout.maxScrollRow(displayCapacity)));
     }
@@ -3109,10 +3122,10 @@ public class InventoryService {
                 if (movedAmount <= 0) {
                     return 0;
                 }
-                if (movedAmount >= availableQuantity) {
+                if (movedAmount >= entry.getQuantity()) {
                     entries.remove(index);
                 } else {
-                    entries.set(index, withQuantity(entry, availableQuantity - movedAmount, state.getAccountId()));
+                    entries.set(index, withQuantity(entry, entry.getQuantity() - movedAmount, state.getAccountId()));
                 }
                 state.replaceEntries(storageInventory.getInventoryId(), entries);
                 compactInventoryEntries(state, targetInventory.getInventoryId());
@@ -3164,6 +3177,24 @@ public class InventoryService {
      */
     public boolean hasStorageRemoteAccessToken(@NotNull UUID accountId) {
         return getCurrencyAmount(accountId, ItemService.STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID) > 0L;
+    }
+
+    /**
+     * オーブ自動収納と遠隔取り出しを許可するトークンの所持を返します。消費はしません。
+     *
+     * @param accountId 対象アカウントID
+     * @return 有効な通貨インベントリにトークンを1個以上所持している場合は true
+     */
+    public boolean hasOrbRemoteAccessToken(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            InventoryModel currency = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+            return currency != null && currency.isEnabled() && !currency.isDeleted()
+                && getItemAmount(state, InventoryType.CURRENCY, ItemService.ORB_REMOTE_ACCESS_TOKEN_ITEM_ID) > 0L;
+        }
     }
 
     /**
@@ -3738,6 +3769,29 @@ public class InventoryService {
         if (beforePublish != null) {
             beforePublish.accept(authoritativeAffected);
         }
+        // 外部取引の初回収納で作成した STORAGE も、所有者と GAME profile を照合して取り込みます。
+        Map<UUID, InventoryModel> externalStorageInventories = new LinkedHashMap<>();
+        if (returnNormalization != null) {
+            for (Optional<InventoryEntryModel> optional : authoritativeAffected.values()) {
+                InventoryEntryModel entry = optional.orElse(null);
+                if (entry == null || ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.ORB) {
+                    continue;
+                }
+                boolean known;
+                synchronized (state) {
+                    known = state.findInventoryById(entry.getInventoryId()) != null;
+                }
+                if (!known && !externalStorageInventories.containsKey(entry.getInventoryId())) {
+                    InventoryModel inventory = inventoryRepository.findById(entry.getInventoryId());
+                    if (inventory != null && inventory.getAccountId().equals(accountId)
+                        && DEFAULT_PROFILE.getCode().equalsIgnoreCase(inventory.getInventoryProfile())
+                        && inventory.getInventoryType() == InventoryType.STORAGE
+                        && inventory.isEnabled() && !inventory.isDeleted()) {
+                        externalStorageInventories.put(inventory.getInventoryId(), inventory);
+                    }
+                }
+            }
+        }
         PreparedExternalReturns preparedReturns = returnNormalization == null
             ? PreparedExternalReturns.empty()
             : prepareExternalReturns(
@@ -3750,6 +3804,16 @@ public class InventoryService {
         synchronized (state) {
             if (getState(accountId) != state) {
                 throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            for (InventoryModel inventory : externalStorageInventories.values()) {
+                if (state.findInventoryById(inventory.getInventoryId()) == null) {
+                    InventoryModel existing = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+                    if (existing != null) {
+                        throw new IllegalStateException("External storage inventory conflicts with local storage");
+                    }
+                    state.putInventory(inventory);
+                    state.replaceEntriesFromLoad(inventory.getInventoryId(), List.of());
+                }
             }
             List<InventoryModel> inventories = state.snapshotInventories();
             Map<UUID, List<InventoryEntryModel>> currentEntries = new LinkedHashMap<>();
@@ -3830,7 +3894,8 @@ public class InventoryService {
     }
 
     /**
-     * トレード API 確定後の affected BAG entry を再同期し、通常 item の最大スタック超過分を分割します。
+     * トレード API 確定後の affected entry を再同期し、通常 item の最大スタック超過分を分割します。
+     * オーブ遠隔アクセストークンによる STORAGE 受取は格納先を保持し、同時獲得の容量競合も補正します。
      * <p>
      * 通常の取得経路は容量外 entry を新規追加先にしないため、この処理はトレード受取にだけ使用します。
      * 実効容量内に空きがなければ、超過分は既存 entry の末尾に続く容量外 slot へ保持します。
@@ -4027,7 +4092,9 @@ public class InventoryService {
             }
         }
         return new PreparedExternalReturns(
-            Map.copyOf(modelsByItemId), Map.copyOf(referencesByInstanceId));
+            Map.copyOf(modelsByItemId), Map.copyOf(referencesByInstanceId),
+            baseline.entriesByInventoryId().values().stream().flatMap(Collection::stream)
+                .map(InventoryEntryModel::getInventoryEntryId).collect(Collectors.toUnmodifiableSet()));
     }
 
     /** APIが今回追加したentryの通常品を、account ID を正本として共通返却規則へ通します。 */
@@ -4045,6 +4112,17 @@ public class InventoryService {
             }
             for (UUID entryId : new LinkedHashSet<>(apiAddedEntryIds)) {
                 InventoryEntryModel affected = findOwnedEntry(accountId, entryId);
+                if (affected == null && !runeOnly) {
+                    // 一般GUI用のfindOwnedEntryはBAG/HOTBAR限定です。確定済み受取の通常オーブだけを拡張します。
+                    InventoryModel storage = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+                    if (storage != null && storage.isEnabled() && !storage.isDeleted()) {
+                        affected = state.snapshotEntries(storage.getInventoryId()).stream()
+                            .filter(entry -> !entry.isDeleted() && entry.getInventoryEntryId().equals(entryId)
+                                && ItemCategory.fromApiValue(entry.getItemCategory()) == ItemCategory.ORB
+                                && isNormalItemEntry(entry))
+                            .findFirst().orElse(null);
+                    }
+                }
                 if (affected == null
                     || ItemCategory.fromApiValue(affected.getItemCategory()) == ItemCategory.CURRENCY) {
                     continue;
@@ -4055,6 +4133,14 @@ public class InventoryService {
                 }
                 InventoryModel currentInventory = state.findInventoryById(affected.getInventoryId());
                 if (currentInventory == null || !currentInventory.isEnabled() || currentInventory.isDeleted()) {
+                    continue;
+                }
+                // API で確定したオーブ収納を保持します。トークンの現在所持とは独立した所有済み品です。
+                if (currentInventory.getInventoryType() == InventoryType.STORAGE
+                    && DEFAULT_PROFILE.getCode().equalsIgnoreCase(currentInventory.getInventoryProfile())
+                    && ItemCategory.fromApiValue(affected.getItemCategory()) == ItemCategory.ORB
+                    && isNormalItemEntry(affected)) {
+                    normalizeAcquiredStorageOrb(state, currentInventory, affected, preparedReturns);
                     continue;
                 }
                 if (currentInventory.getInventoryType() != InventoryType.BAG) {
@@ -4072,13 +4158,92 @@ public class InventoryService {
     private record ExternalReturnNormalization(boolean runeOnly, boolean allowBagOverflow) {
     }
 
+    /**
+     * API取引とローカル獲得が同じストレージの最終枠を使った場合に、確定済み受取の数量を保全します。
+     * 同種の重複entryは保存済みIDを優先して統合し、容量内でも受取slotの一意性を維持します。
+     * それでも容量超過なら新規種類の受取をBAGへ戻し、
+     * BAGも競合で埋まった場合は既存の容量外slotへ退避します。API確定後の数量を破棄しません。
+     *
+     * @param state state lock を保持中の所持状態
+     * @param storage API受取先ストレージ
+     * @param affected 今回APIが増加させた通常オーブ
+     * @param preparedReturns API I/O前後に準備したアイテム解決情報
+     */
+    private void normalizeAcquiredStorageOrb(
+        @NotNull PlayerInventoryState state, @NotNull InventoryModel storage,
+        @NotNull InventoryEntryModel affected, @NotNull PreparedExternalReturns preparedReturns
+    ) {
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(storage.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted()).toList());
+        // API増加分の三者マージは別entryを作るため、容量内でも同種を統合してslotの一意性を保ちます。
+        List<InventoryEntryModel> matching = entries.stream()
+            .filter(entry -> isSameStackableItem(entry, affected)).toList();
+        long total = 0L;
+        boolean mergeable = true;
+        for (InventoryEntryModel entry : matching) {
+            if (entry.getQuantity() > Long.MAX_VALUE - total) {
+                mergeable = false;
+                break;
+            }
+            total += entry.getQuantity();
+        }
+        InventoryEntryModel receipt = matching.stream()
+            .filter(entry -> preparedReturns.baselineEntryIds().contains(entry.getInventoryEntryId()))
+            .findFirst().orElse(affected);
+        if (mergeable && matching.size() > 1) {
+            entries.removeIf(entry -> isSameStackableItem(entry, affected));
+            receipt = withQuantity(receipt, total, state.getAccountId());
+            entries.add(receipt);
+        } else {
+            receipt = affected;
+        }
+        // 既存種類の増加は空き枠を消費しません。超過の原因となった新規種類の受取だけをBAGへ戻します。
+        if (entries.size() <= storageMaxEntryCount(state)
+            || preparedReturns.baselineEntryIds().contains(receipt.getInventoryEntryId())) {
+            UUID receiptId = receipt.getInventoryEntryId();
+            Set<Integer> otherSlots = entries.stream()
+                .filter(entry -> !entry.getInventoryEntryId().equals(receiptId))
+                .map(InventoryEntryModel::getSlotIndex).filter(slot -> slot != null && slot > 0)
+                .collect(Collectors.toSet());
+            if (receipt.getSlotIndex() == null || receipt.getSlotIndex() < 1
+                || otherSlots.contains(receipt.getSlotIndex())) {
+                int maxSlot = otherSlots.stream().mapToInt(Integer::intValue).max().orElse(0);
+                int nextSlot = maxSlot < Integer.MAX_VALUE ? maxSlot + 1 : 1;
+                while (otherSlots.contains(nextSlot)) {
+                    if (nextSlot == Integer.MAX_VALUE) {
+                        throw new IllegalStateException("Storage slot limit reached");
+                    }
+                    nextSlot++;
+                }
+                entries.removeIf(entry -> entry.getInventoryEntryId().equals(receiptId));
+                entries.add(withSlot(receipt, nextSlot, state.getAccountId()));
+            }
+            if (!entries.equals(state.snapshotEntries(storage.getInventoryId()))) {
+                state.replaceEntries(storage.getInventoryId(), entries);
+            }
+            return;
+        }
+        ItemModel model = preparedReturns.resolveModel(receipt);
+        if (model == null || receipt.getQuantity() < 1L || receipt.getQuantity() > Integer.MAX_VALUE) {
+            throw new IllegalStateException("Concurrent storage receipt cannot be placed in BAG");
+        }
+        InventoryEntryModel fallback = receipt;
+        entries.removeIf(entry -> entry.getInventoryEntryId().equals(fallback.getInventoryEntryId()));
+        state.replaceEntries(storage.getInventoryId(), entries);
+        InventoryModel bag = ensureInventory(state, InventoryType.BAG);
+        int quantity = Math.toIntExact(receipt.getQuantity());
+        int added = addStackedItems(state, bag, model, quantity);
+        appendBagOverflowStack(state, bag, receipt, quantity - added, Math.max(1, model.getMaxStack()));
+    }
+
     /** state lock内でAPIやmaster cacheへ問い合わせず返却itemを解決するための固定値です。 */
     private record PreparedExternalReturns(
         @NotNull Map<String, ItemModel> modelsByItemId,
-        @NotNull Map<UUID, ItemReference> referencesByInstanceId
+        @NotNull Map<UUID, ItemReference> referencesByInstanceId,
+        @NotNull Set<UUID> baselineEntryIds
     ) {
         private static @NotNull PreparedExternalReturns empty() {
-            return new PreparedExternalReturns(Map.of(), Map.of());
+            return new PreparedExternalReturns(Map.of(), Map.of(), Set.of());
         }
 
         private @Nullable ItemModel resolveModel(@NotNull InventoryEntryModel entry) {
@@ -5045,6 +5210,14 @@ public class InventoryService {
         }
     }
 
+    /**
+     * 新規獲得アイテムの全量を自動収納先または通常インベントリへ追加できるか判定します。
+     *
+     * @param astPlayer 獲得先プレイヤー
+     * @param model 獲得アイテム
+     * @param amount 獲得数量。1未満は1に補正
+     * @return 新規獲得先へ全量収納できる場合 true
+     */
     public boolean canAddItemToNormalInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull ItemModel model,
@@ -5056,7 +5229,28 @@ public class InventoryService {
         }
         int safeAmount = Math.max(1, amount);
         synchronized (state) {
-            return canAddItemToNormalInventory(state, model, safeAmount, true);
+            return canAutoStoreAcquiredOrb(state, model, safeAmount)
+                || canAddItemToNormalInventory(state, model, safeAmount, true);
+        }
+    }
+
+    /**
+     * 所有済みアイテムの返却容量を判定します。新規獲得のオーブ自動収納は適用しません。
+     *
+     * @param astPlayer 返却先プレイヤー
+     * @param model 返却アイテム
+     * @param amount 返却数量。1未満は1に補正
+     * @return カテゴリ標準の通常格納先へ全量返却できる場合 true
+     */
+    public boolean canReturnItemToNormalInventory(
+        @NotNull AstPlayer astPlayer, @NotNull ItemModel model, int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            return canAddItemToNormalInventory(state, model, Math.max(1, amount), true);
         }
     }
 
@@ -8060,6 +8254,89 @@ public class InventoryService {
         return StorageCapacity.maxEntryCount(expansionTokenCount);
     }
 
+    /**
+     * state lock 内で、新規獲得オーブの全量をストレージへ収納できるか判定します。
+     * 同種の既存 stack には空き枠を使わず加算し、満杯・無効時は通常インベントリへ戻します。
+     *
+     * @param state 所持状態
+     * @param model 獲得アイテム
+     * @param amount 正の獲得数量
+     * @return トークンと収納余地の両方がある場合は true。状態は変更しません
+     */
+    private boolean canAutoStoreAcquiredOrb(
+        @NotNull PlayerInventoryState state, @NotNull ItemModel model, int amount
+    ) {
+        if (amount <= 0 || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.ORB
+            || !hasOrbRemoteAccessToken(state.getAccountId())) {
+            return false;
+        }
+        InventoryModel storage = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+        if (storage == null) {
+            return true;
+        }
+        if (!storage.isEnabled() || storage.isDeleted()) {
+            return false;
+        }
+        List<InventoryEntryModel> entries = state.snapshotEntries(storage.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted()).toList();
+        int index = findStackableStorageEntryIndex(entries, model);
+        return index >= 0
+            ? entries.get(index).getQuantity() <= Long.MAX_VALUE - amount
+            : entries.size() < storageMaxEntryCount(state);
+    }
+
+    /**
+     * 新規獲得の格納先を決めます。既存所持品の移動・取り出しには使用しません。
+     *
+     * @param state state lock を保持中の所持状態
+     * @param model 獲得アイテム
+     * @param amount 獲得数量
+     * @return 自動収納可能なら STORAGE、それ以外はカテゴリ標準の格納先
+     */
+    private @NotNull InventoryType resolveAcquisitionInventoryType(
+        @NotNull PlayerInventoryState state, @NotNull ItemModel model, int amount
+    ) {
+        return canAutoStoreAcquiredOrb(state, model, amount)
+            ? InventoryType.STORAGE : resolveTargetInventoryType(model);
+    }
+
+    /**
+     * 新規獲得 stack を格納します。STORAGE は種類ごとに1枠を使い、通常最大stackを適用しません。
+     *
+     * @param state state lock を保持中の所持状態
+     * @param inventory 判定済みの獲得先
+     * @param model 獲得アイテム
+     * @param amount 正の獲得数量
+     * @return 格納数。ストレージ容量不足時は状態を変えず 0
+     */
+    private int addAcquiredStackedItems(
+        @NotNull PlayerInventoryState state, @NotNull InventoryModel inventory,
+        @NotNull ItemModel model, int amount
+    ) {
+        if (inventory.getInventoryType() != InventoryType.STORAGE) {
+            return addStackedItems(state, inventory, model, amount);
+        }
+        if (!canAutoStoreAcquiredOrb(state, model, amount)) {
+            return 0;
+        }
+        List<InventoryEntryModel> entries = new ArrayList<>(
+            state.snapshotEntries(inventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted()).toList());
+        int index = findStackableStorageEntryIndex(entries, model);
+        if (index >= 0) {
+            InventoryEntryModel existing = entries.get(index);
+            entries.set(index, withQuantity(existing, Math.addExact(existing.getQuantity(), amount),
+                state.getAccountId()));
+        } else {
+            JsonObject metadata = new JsonObject();
+            metadata.addProperty(STORAGE_ACQUIRED_AT_KEY, LocalDateTime.now().toString());
+            entries.add(newEntry(inventory.getInventoryId(), nextStorageSlot(inventory.getInventoryId()),
+                model.getCategory(), model.getId(), null, null, amount, metadata.toString(), state.getAccountId()));
+        }
+        state.replaceEntries(inventory.getInventoryId(), entries);
+        return amount;
+    }
+
     private @Nullable OwnedItemBatch collectOwnedItemBatch(
         @NotNull PlayerInventoryState state,
         int sourceBukkitSlot
@@ -8707,7 +8984,18 @@ public class InventoryService {
         );
     }
 
+    /**
+     * 容量・表示行と、通常オーブ検索および所持権限に応じた遠隔アクセスの案内を描画します。
+     *
+     * @param accountId トークン所持を判定するアカウント
+     * @param entries 表示インベントリの正本entry
+     * @param capacity BAGの利用可能容量
+     * @param displayCapacity 容量外entryも含む表示容量
+     * @param scrollRow 現在の先頭表示行。0始まり
+     * @return 情報チェストアイコン
+     */
     private @NotNull ItemStack createInventoryInfoIcon(
+        @NotNull UUID accountId,
         @NotNull List<InventoryEntryModel> entries,
         int capacity,
         int displayCapacity,
@@ -8733,6 +9021,10 @@ public class InventoryService {
             }
             lore.add(Component.text("表示行: " + firstRow + " - " + lastRow + " / " + totalRows,
                 NamedTextColor.GRAY));
+            lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_5986.getId()));
+            if (hasOrbRemoteAccessToken(accountId)) {
+                lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_5994.getId()));
+            }
             meta.lore(lore);
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);

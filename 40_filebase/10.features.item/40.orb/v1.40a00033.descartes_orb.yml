@@ -1,0 +1,20 @@
+# design:
+#   motif: "偉人 / デカルト"
+#   progression: 1
+schemaVersion: 1
+id: 40a00033
+category: orb
+name: "&bデカルトのオーブ"
+icon: PLAYER_HEAD
+iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzExNDdkODlkMjQ5OGY5ZTIxZjM2YWQzZTUzNTZiMjMyN2M4Zjg1NTE4M2QzZTY5ZjRkNjYwZTViYzIxMGFiYiJ9fX0=
+rarity: RARE
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7未固定エンチャント1枠をランダムに削除する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantOperation: REMOVE_RANDOM

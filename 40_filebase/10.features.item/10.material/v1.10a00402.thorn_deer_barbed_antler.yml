@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 棘の生えた角"
+#   progression: 36
+schemaVersion: 1
+id: 10a00402
+category: material
+name: トゲ付きの角
+icon: GOAT_HORN
+rarity: COMMON
+maxStack: 64
+saleValue: 390
+lore:
+- '&7トゲシカの角。細い棘が幾重にも枝分かれしている。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

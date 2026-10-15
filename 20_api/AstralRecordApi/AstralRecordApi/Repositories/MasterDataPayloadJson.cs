@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
 using AstralRecordApi.Models;
 
 namespace AstralRecordApi.Repositories;
@@ -26,6 +27,7 @@ internal static class MasterDataPayloadJson
         };
 
         options.Converters.Add(new ItemEquipmentStatValueConverter());
+        options.Converters.Add(new ItemEquipmentStatConverter());
         options.Converters.Add(new ItemEquipmentRequiredClassConverter());
         options.Converters.Add(new MobSkillBindingResponseConverter());
         options.Converters.Add(new FlexibleStringConverter());
@@ -291,6 +293,162 @@ internal static class MasterDataPayloadJson
             JsonTokenType.Null => string.Empty,
             _ => string.Empty,
         };
+    }
+
+    /// <summary>
+    /// Keep the legacy value shape while validating and exposing the optional scalar offset roll.
+    /// </summary>
+    private sealed class ItemEquipmentStatConverter : JsonConverter<ItemEquipmentStatResponse>
+    {
+        public override ItemEquipmentStatResponse Read(
+            ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            using var document = JsonDocument.ParseValue(ref reader);
+            var stat = document.RootElement;
+            if (stat.ValueKind != JsonValueKind.Object)
+                throw new JsonException("Equipment stat must be an object.");
+
+            var valueElement = Property(stat, "value");
+            var randomElement = Property(stat, "random");
+            var value = valueElement is { } rawValue
+                ? rawValue.Deserialize<ItemEquipmentStatValueResponse>(options)
+                : null;
+            ItemEquipmentStatRandomResponse? random = null;
+            if (randomElement is { } rawRandom)
+            {
+                if (rawRandom.ValueKind != JsonValueKind.Object)
+                    throw new JsonException("Equipment stat random must be an object.");
+                if (valueElement is not { ValueKind: JsonValueKind.Number or JsonValueKind.String }
+                    || value is null || value.Min != value.Max
+                    || (valueElement.Value.ValueKind == JsonValueKind.String
+                        && valueElement.Value.GetString()?.Contains('~') == true)
+                    || Property(stat, "min") is not null || Property(stat, "max") is not null)
+                    throw new JsonException("Equipment stat random requires a scalar value, not a range.");
+
+                // Validate the raw scalar before the legacy value converter can round a JSON number.
+                var basisText = valueElement.Value.ValueKind == JsonValueKind.Number
+                    ? valueElement.Value.GetRawText()
+                    : valueElement.Value.GetString() ?? string.Empty;
+                var basis = ParseFourPlaces(basisText, "value");
+                var normalizedBasis = basis.ToString("0.####", CultureInfo.InvariantCulture);
+                value = new ItemEquipmentStatValueResponse { Min = normalizedBasis, Max = normalizedBasis };
+                var offsetMin = ReadFourPlaces(rawRandom, "offsetMin");
+                var offsetMax = ReadFourPlaces(rawRandom, "offsetMax");
+                var step = ReadFourPlaces(rawRandom, "step");
+                var zeroChanceElement = Property(rawRandom, "zeroChance");
+                var zeroChance = zeroChanceElement is { } chanceValue
+                    && chanceValue.ValueKind == JsonValueKind.Number
+                    ? chanceValue.GetDouble()
+                    : zeroChanceElement is null ? 0d : double.NaN;
+
+                if (offsetMin > offsetMax || step <= 0 || !double.IsFinite(zeroChance)
+                    || zeroChance is < 0 or > 1)
+                    throw new JsonException("Invalid equipment stat random bounds, step, or zeroChance.");
+
+                decimal low;
+                decimal high;
+                decimal intervals;
+                try
+                {
+                    low = checked(basis + offsetMin);
+                    high = checked(basis + offsetMax);
+                    intervals = checked(offsetMax - offsetMin) / step;
+                }
+                catch (OverflowException exception)
+                {
+                    throw new JsonException("Equipment stat random endpoints or interval exceed supported precision.", exception);
+                }
+
+                if (intervals != decimal.Truncate(intervals) || intervals > 999_999)
+                    throw new JsonException("Equipment stat random step must divide the interval with at most one million candidates.");
+                if (zeroChance > 0 && low <= 0 && high >= 0)
+                    throw new JsonException("zeroChance requires an ordinary interval excluding zero.");
+
+                var lowDouble = RequireRoundTripDouble(low);
+                var highDouble = RequireRoundTripDouble(high);
+                if (intervals > 0)
+                {
+                    var magnitude = Math.Max(Math.Abs(lowDouble), Math.Abs(highDouble));
+                    var ulp = Math.BitIncrement(magnitude) - magnitude;
+                    if ((double)step < ulp)
+                        throw new JsonException("Equipment stat random step is smaller than the endpoint double precision.");
+                }
+
+                random = new ItemEquipmentStatRandomResponse
+                {
+                    OffsetMin = (double)offsetMin,
+                    OffsetMax = (double)offsetMax,
+                    Step = (double)step,
+                    ZeroChance = zeroChance,
+                };
+            }
+
+            return new ItemEquipmentStatResponse
+            {
+                Status = ReadOptionalString(stat, "status"),
+                Type = ReadOptionalString(stat, "type"),
+                Value = value,
+                Random = random,
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, ItemEquipmentStatResponse value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            if (value.Status is not null) writer.WriteString("status", value.Status);
+            if (value.Type is not null) writer.WriteString("type", value.Type);
+            if (value.Value is not null)
+            {
+                writer.WritePropertyName("value");
+                JsonSerializer.Serialize(writer, value.Value, options);
+            }
+            if (value.Random is not null)
+            {
+                writer.WritePropertyName("random");
+                JsonSerializer.Serialize(writer, value.Random, options);
+            }
+            writer.WriteEndObject();
+        }
+
+        private static JsonElement? Property(JsonElement element, string name)
+        {
+            foreach (var property in element.EnumerateObject())
+                if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                    return property.Value;
+            return null;
+        }
+
+        private static string? ReadOptionalString(JsonElement element, string name)
+            => Property(element, name) is { ValueKind: JsonValueKind.String } value ? value.GetString() : null;
+
+        private static decimal ReadFourPlaces(JsonElement element, string name)
+        {
+            var value = Property(element, name);
+            if (value is not { ValueKind: JsonValueKind.Number })
+                throw new JsonException($"Equipment stat random {name} is required and must be numeric.");
+            return ParseFourPlaces(value.Value.GetRawText(), name);
+        }
+
+        private static decimal ParseFourPlaces(string text, string name)
+        {
+            if (!decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                || value != decimal.Round(value, 4)
+                || (value == 0 && text.Split('e', 'E')[0].Any(c => c is >= '1' and <= '9')))
+                throw new JsonException($"Equipment stat random {name} must be finite with at most four decimal places.");
+            RequireRoundTripDouble(value);
+            return value;
+        }
+
+        private static double RequireRoundTripDouble(decimal value)
+        {
+            var converted = (double)value;
+            if (!double.IsFinite(converted)
+                || !decimal.TryParse(converted.ToString("R", CultureInfo.InvariantCulture),
+                    NumberStyles.Float, CultureInfo.InvariantCulture, out var roundTrip)
+                || roundTrip != value)
+                throw new JsonException("Equipment stat random endpoint cannot be preserved as a double.");
+            return converted;
+        }
     }
 
     /// <summary>

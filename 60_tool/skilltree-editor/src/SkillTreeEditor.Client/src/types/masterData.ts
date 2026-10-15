@@ -65,7 +65,13 @@ export interface MasterFilterIndex {
   sources: { path: string; id: string; name: string; kind: 'mob' | 'gathering'; itemIds: string[] }[]
   skillTags: { path: string; tags: string[] }[]
   tags: { id: string; name: string }[]
-  entries?: { path: string; facets: Record<string, string[]> }[]
+  entries?: MasterFilterEntry[]
+}
+
+export interface MasterFilterEntry {
+  path: string
+  facets: Record<string, string[]>
+  numbers?: Record<string, number[]>
 }
 
 export interface MasterDraft {

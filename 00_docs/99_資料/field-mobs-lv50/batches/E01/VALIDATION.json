@@ -1,0 +1,154 @@
+{
+  "status": "PASS",
+  "base_commit": "2c419c1af8cff4ffdef63a8cf726f96a3408fe63",
+  "yaml_files_parsed": 858,
+  "master_ids_checked": 847,
+  "introduced_duplicate_master_ids": {},
+  "duplicate_ids_within_namespace": {},
+  "existing_cross_namespace_ids": {
+    "adventurer_meditation": [
+      "40_filebase/30.features.skill/v1.adventurer_meditation.yml",
+      "40_filebase/70.shared.buff/v1.adventurer_meditation.yml"
+    ],
+    "archer_heal_arrow_alpha": [
+      "40_filebase/30.features.skill/v1.archer_heal_arrow_alpha.yml",
+      "40_filebase/70.shared.buff/v1.archer_heal_arrow_alpha.yml"
+    ],
+    "archmage_celestial_circle": [
+      "40_filebase/30.features.skill/v1.archmage_celestial_circle.yml",
+      "40_filebase/70.shared.buff/v1.archmage_celestial_circle.yml"
+    ],
+    "hunter_build_up": [
+      "40_filebase/30.features.skill/v1.hunter_build_up.yml",
+      "40_filebase/70.shared.buff/v1.hunter_build_up.yml"
+    ],
+    "midgard_greenfields": [
+      "40_filebase/46.features.fishing.area/v1.midgard_greenfields.yml",
+      "40_filebase/60.features.world/v1.wild_overworld.yml"
+    ],
+    "starlit_nox": [
+      "40_filebase/46.features.fishing.area/v1.starlit_nox.yml",
+      "40_filebase/60.features.world/v1.central_base.yml"
+    ],
+    "vanaheim_supercontinent": [
+      "40_filebase/46.features.fishing.area/v1.vanaheim_supercontinent.yml",
+      "40_filebase/60.features.world/v1.starreach_wilds.yml"
+    ],
+    "verdia": [
+      "40_filebase/46.features.fishing.area/v1.verdia.yml",
+      "40_filebase/60.features.world/v1.verdia.yml"
+    ]
+  },
+  "schema_check": "変更項目の独自契約検査（Markdownスキーマは手動照合、JSON Schemaなし）",
+  "profiles_checked": 8,
+  "effective_profiles": [
+    {
+      "mob_id": "eriva_bark_sentinel",
+      "level": 18,
+      "new_item_id": "10a00300",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [
+        {
+          "itemId": {
+            "ref": "item:10a00100"
+          },
+          "rate": 5.0,
+          "amount": 1,
+          "luckAffected": true,
+          "hidden": false
+        }
+      ],
+      "exp": 200,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 18,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 200,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 20,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 240,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 22,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 280,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 24,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 320,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 26,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 360,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 28,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 400,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    },
+    {
+      "mob_id": "eriva_camouflage_zombie",
+      "level": 30,
+      "new_item_id": "10a00301",
+      "new_entry_count": 1,
+      "rate_percent": 35.0,
+      "amount": 1,
+      "existing_items": [],
+      "exp": 440,
+      "loot_table": "loot_table:normal_enemy_common_table_tier_2",
+      "existing_effective_data_unchanged": true
+    }
+  ],
+  "scope_check": "PASS",
+  "heavy_build": "not run"
+}

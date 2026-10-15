@@ -2,7 +2,8 @@ import type { FieldSuggestion, FieldSuggestionValue, JsonObject, JsonValue } fro
 import { useEffect, useId, useRef, useState } from 'react'
 import { SuggestionInput } from './SuggestionInput'
 import { MaterialIconInput } from './MaterialIconInput'
-import { masterFieldLabel } from '../data/masterDataPresentation'
+import { masterFieldTitle } from '../data/masterDataPresentation'
+import { masterStatusSuggestions, masterTagSuggestions, masterValueLabel, masterValueReferenceKind } from '../data/masterValuePresentation'
 import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
 
 interface SchemaFormProps {
@@ -77,8 +78,9 @@ export function SchemaForm({
     )
   }
 
-  if (resolved.const !== undefined) return <input type="text" aria-label={path || '/'} readOnly disabled={disabledPaths.has(path)}
+  if (resolved.const !== undefined) return <><input type="text" aria-label={path || '/'} readOnly disabled={disabledPaths.has(path)}
     value={typeof value === 'string' ? value : JSON.stringify(value)} />
+    {typeof value === 'string' && masterValueLabel(path, value) !== value && <small>{masterValueLabel(path, value)}</small>}</>
 
   const enumValues = asArray(resolved.enum)
   if (enumValues) {
@@ -91,7 +93,8 @@ export function SchemaForm({
           onChange(selected ?? event.target.value)
         }}
       >
-        {enumValues.map((candidate) => <option key={String(candidate)} value={String(candidate)}>{String(candidate)}</option>)}
+        {!enumValues.some((candidate) => String(candidate) === String(value ?? '')) && <option value={String(value ?? '')}>{String(value ?? '')}</option>}
+        {enumValues.map((candidate) => <option key={String(candidate)} value={String(candidate)}>{masterValueLabel(path, String(candidate))}</option>)}
       </select>
     )
   }
@@ -110,7 +113,7 @@ export function SchemaForm({
           return (
             <label className="schema-field" key={key}>
               <span>
-                {String(childSchema.title ?? masterFieldLabel(key))}{required.has(key) && <b aria-label="必須"> *</b>}
+                {masterFieldTitle(key, childSchema.title)}{required.has(key) && <b aria-label="必須"> *</b>}
                 {childSchema.description && <small>{String(childSchema.description)}</small>}
               </span>
               <SchemaForm
@@ -193,7 +196,9 @@ export function SchemaForm({
       disabled={disabledPaths.has(path)} onChange={onChange} onInvalid={onInvalid} validateInitial={validateInitial} />
   }
 
-  const suggestions = suggestionsForPath(suggestionsByPath, path)
+  const providedSuggestions = suggestionsForPath(suggestionsByPath, path)
+  const referenceKind = masterValueReferenceKind(path)
+  const suggestions = providedSuggestions.length ? providedSuggestions : referenceKind === 'status' ? masterStatusSuggestions : referenceKind === 'tag' ? masterTagSuggestions : []
   if (path === '/icon') return <MaterialIconInput value={typeof value === 'string' ? value : ''} onChange={onChange}
     disabled={disabledPaths.has(path)} suggestions={suggestions.length ? suggestions.filter((suggestion): suggestion is string => typeof suggestion === 'string') : undefined}
     placeholder={resolved.description ? String(resolved.description) : undefined} />

@@ -14,12 +14,16 @@
 | `chargeSaleValue` | Boolean | × | false | trueの場合、成立した操作1回につきitemの非負の`saleValue`と同額のゴールドを消費する。`ENHANCE` / `REPAIR` / `TRANSCENDENCE`だけで指定可能。他効果の実行時は無視する |
 | `repairAmount` | Integer | 条件 | Null | `REPAIR` の固定回復量 |
 | `repairFull` | Boolean | 条件 | false | `true` の場合は最大耐久まで全回復 |
-| `enchantMasterId` | String | 条件 | Null | `ENCHANT` で使用する共通エンチャントマスタの必須参照。`enchant:<id>` 形式（例: `enchant:enchant001`）で指定する |
-| `enchantOperation` | String | 条件 | Null | `OVERWRITE_RANDOM` / `FILL_ONE_EMPTY` / `FILL_ALL_EMPTY` |
+| `enchantMasterId` | String | 条件 | Null | `OVERWRITE_RANDOM` / `FILL_ONE_EMPTY` / `FILL_ALL_EMPTY` / `REROLL_VALUE_RANDOM` で必須の候補マスタ参照。`enchant:<id>` 形式（例: `enchant:enchant001`）。`REMOVE_RANDOM` / `LOCK_FIRST` は不要 |
+| `enchantOperation` | String | 条件 | Null | `ENCHANT` で必須。`OVERWRITE_RANDOM` / `FILL_ONE_EMPTY` / `FILL_ALL_EMPTY` / `REROLL_VALUE_RANDOM` / `REMOVE_RANDOM` / `LOCK_FIRST` |
 
 強化は装備マスタの次レベルにある `successRate` と `failAction` を使用します。`chargeSaleValue: true` の強化・修理・状態変化は売り値と同額のゴールドを消費し、状態変化に必要な素材・通貨へ加算します。強化は成功・失敗を問わず成立した試行でオーブ1個とゴールドを一体消費します。残高不足または実行条件不成立なら装備・オーブ・ゴールドを変更しません。複数回使用は各回で再確認し、不足した時点で終了します。修理済み、条件外ランク、空き枠不足など実行不能な装備は一覧へ表示しません。
 
 `FILL_ALL_EMPTY` は全空き枠を1個で埋めます。同一 `effectId` は重複せず、全枠分の未付与候補がない場合は無変更・無消費です。
+
+`REROLL_VALUE_RANDOM` は未固定の付与済みエンチャントから一様ランダムに1枠を選び、参照マスタの同じ `effectId` / `status` / `type` の値幅で数値だけを再抽選します。効果・スロット・個体IDは維持し、`enchantMasterId` は使用したオーブの参照マスタへ更新します。数値は上がる場合も下がる場合もあり、同値になった場合も成立として1個消費します。すべての未固定効果を参照マスタへ解決できる場合だけ使用できます。
+
+`REMOVE_RANDOM` は未固定の付与済みエンチャントを一様ランダムに1枠削除し、残りのスロット番号を詰めません。`LOCK_FIRST` は付与済みで未固定のうち最小の `slotIndex` を1枠固定します。空き枠と固定済みの枠は飛ばします。固定は解除できず、固定済みは上書き・数値再抽選・削除のランダム候補から除外しますが、枠と同一効果の重複判定では引き続き占有します。いずれも対象がなければ無変更・無消費、成立時はオーブ1個を消費します。
 
 `RUNE_ATTACH` は対象装備を選択後、所持ルーンを1個選んで装着します。`RUNE_DETACH` は装着済みルーンを1個選んで取り外し、通常インベントリへ返却します。これら二種はオーブ自体を消費しません。
 

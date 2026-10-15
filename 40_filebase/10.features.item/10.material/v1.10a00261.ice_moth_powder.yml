@@ -1,0 +1,16 @@
+# design:
+#   motif: "昆虫・気象 / 氷を帯びた蛾"
+#   progression: 33
+schemaVersion: 1
+id: 10a00261
+category: material
+name: コオリガの粉
+icon: GLOWSTONE_DUST
+rarity: UNCOMMON
+saleValue: 500
+maxStack: 64
+lore:
+- '&7コオリガの翅に付いた、冷たくきらめく粉。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

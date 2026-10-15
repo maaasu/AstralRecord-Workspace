@@ -263,6 +263,7 @@ public class EquipmentService(
             EffectId = e.EffectId,
             Status = e.Status,
             Type = e.Type,
+            IsLocked = e.IsLocked,
             Value = e.Value,
             CreatedAt = e.CreatedAt,
             UpdatedAt = e.UpdatedAt,

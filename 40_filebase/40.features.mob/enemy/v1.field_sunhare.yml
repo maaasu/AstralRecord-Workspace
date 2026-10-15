@@ -1,0 +1,123 @@
+# design:
+#   motif: "動物 / 日だまりのウサギ"
+#   progression: 20
+schemaVersion: 1
+id: field_sunhare
+type: MOB
+category: ENEMY
+name: "&aヒダマリウサギ Lv.28"
+level: 28
+entityType: RABBIT
+variant:
+  age: ADULT
+  kind: BROWN
+  scale: 1.25
+icon: RABBIT_SPAWN_EGG
+lore:
+  - "&7日なたを好む、耳の長い野ウサギ。"
+  - "&7身を低く構えて跳び蹴りを放つ。横へ避けよう。"
+tags:
+  - grassland
+  - beast
+  - melee
+
+levels:
+  - level: 28
+    name: "&aヒダマリウサギ Lv.28"
+  - level: 30
+    name: "&aヒダマリウサギ Lv.30"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 16150
+      - status: ATTACK
+        value: 2926
+      - status: DEFENSE
+        value: 2654
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 6
+      - status: MOVEMENT_SPEED
+        value: 116
+    drops:
+      exp: 430
+  - level: 32
+    name: "&aヒダマリウサギ Lv.32"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 18360
+      - status: ATTACK
+        value: 3295
+      - status: DEFENSE
+        value: 2992
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 6
+      - status: MOVEMENT_SPEED
+        value: 116
+    drops:
+      exp: 470
+  - level: 34
+    name: "&aヒダマリウサギ Lv.34"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 20740
+      - status: ATTACK
+        value: 3665
+      - status: DEFENSE
+        value: 3330
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 6
+      - status: MOVEMENT_SPEED
+        value: 116
+    drops:
+      exp: 510
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 14110
+  - status: ATTACK
+    value: 2556
+  - status: DEFENSE
+    value: 2317
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 6
+  - status: MOVEMENT_SPEED
+    value: 116
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 12
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 1.7
+    normalAttack:
+      range: 1.7
+      intervalTicks: 28
+    skills:
+      - id: mob_field_sunhare_leap_kick
+        activationRange: 4.5
+        cooldownTicks: 140
+        castTimeTicks: 12
+
+drops:
+  exp: 390
+  items:
+    - itemId:
+        ref: item:10a00210
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false

@@ -1,0 +1,142 @@
+{
+  "evaluationSourceHead": "7beca38dc678e5caffc4c02fdc29f5fb4c3cb217",
+  "decision": {
+    "equipmentBodies": "accepted_without_numeric_change",
+    "smallSets": "accepted_without_change",
+    "erivaLapisInversion": "accepted_investment_tradeoff",
+    "optimizedR130Guideline": "not_met",
+    "fullOptimizedEnchantRelease": "not_approved",
+    "masterChanges": 0,
+    "heavyGatesRepeated": false
+  },
+  "calculations": {
+    "inversionConditions": "Player30, weapon+matching4armor +30, mean rolls, no enchant/rune/crit, same residual; 7weaponTags*2mobs",
+    "normalTtkIncreasePercent": 0.5997927907990919,
+    "strongTtkIncreasePercent": 0.7382880707483164,
+    "normalSurvivalIncreasePercent": 4.551722046726381,
+    "setContribution": {
+      "astraPlus15AttackR": 15.88,
+      "astraMaxAttackR": 22.080000000000002,
+      "astraMaxWithoutSetR": 5505.914406045339,
+      "nextSeriesSetAttackOnlyR": 3.176,
+      "fourPieceAccuracyPercentagePoints": 2
+    },
+    "astraNormalBaseline": {
+      "R": 3389.46,
+      "percentOfAnchor3318": 102.15370705244123,
+      "standardMobTtkWithSetAccuracy": 5.626479514828447,
+      "standardMobSurvival": 9.230731701360485
+    },
+    "sameConditionsLuminaToAstra": {
+      "expected_unenchanted": {
+        "luminaR": 3218.195587,
+        "astraR": 3389.46,
+        "RIncreasePercent": 5.321752776364108,
+        "luminaTtk": 4.56401,
+        "astraTtk": 4.191313,
+        "DpsIncreasePercent": 8.892129984088504
+      },
+      "enchant_mean_opt": {
+        "luminaR": 3941.114357,
+        "astraR": 4337.097463,
+        "RIncreasePercent": 10.047490890404532,
+        "luminaTtk": 2.233776,
+        "astraTtk": 1.940662,
+        "DpsIncreasePercent": 15.103815089902305
+      },
+      "offense_max": {
+        "luminaR": 4677.238314,
+        "astraR": 5007.067127,
+        "RIncreasePercent": 7.051785495144647,
+        "luminaTtk": 1.297877,
+        "astraTtk": 1.092401,
+        "DpsIncreasePercent": 18.809576336894594
+      }
+    },
+    "selectedMaximumR": {
+      "R": 5527.994406045339,
+      "ratio": 1.666062207970265,
+      "threshold130": 4313.400000000001
+    },
+    "minimumSameAnchorSensitivity": {
+      "R": 5420.964643639509,
+      "ratio": 1.6338048956116662
+    }
+  },
+  "independentMaxR": [
+    {
+      "enhance": 0,
+      "R": 5190.170406045339,
+      "TTK": 1.458900332855397,
+      "weaponEffects": [
+        "weapon_attack_flat",
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ],
+      "percentageOfLv30Anchor3318": 156.42466564331946
+    },
+    {
+      "enhance": 15,
+      "R": 5359.08240604534,
+      "TTK": 1.3975263673488685,
+      "weaponEffects": [
+        "weapon_attack_flat",
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ],
+      "percentageOfLv30Anchor3318": 161.51544322017298
+    },
+    {
+      "enhance": 30,
+      "R": 5527.994406045339,
+      "TTK": 1.3410699498719278,
+      "weaponEffects": [
+        "weapon_attack_flat",
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ],
+      "percentageOfLv30Anchor3318": 166.60622079702648
+    }
+  ],
+  "sourceFormulaInputs": [
+    {
+      "comparisonLevel": 20,
+      "series": "eriva",
+      "residualAttack": 679.5167958656331,
+      "setAttack": 6,
+      "weaponMain30Mean": 194.75,
+      "residualStrength": 42.8,
+      "weaponStrength30Mean": 16.5
+    },
+    {
+      "comparisonLevel": 20,
+      "series": "lapis",
+      "residualAttack": 679.5167958656331,
+      "setAttack": 6,
+      "weaponMain30Mean": 245.0,
+      "residualStrength": 42.8,
+      "weaponStrength30Mean": 12.0
+    },
+    {
+      "comparisonLevel": 30,
+      "series": "eriva",
+      "residualAttack": 1774.4206549118385,
+      "setAttack": 6,
+      "weaponMain30Mean": 194.75,
+      "residualStrength": 42.8,
+      "weaponStrength30Mean": 16.5
+    },
+    {
+      "comparisonLevel": 30,
+      "series": "lapis",
+      "residualAttack": 1774.4206549118385,
+      "setAttack": 6,
+      "weaponMain30Mean": 245.0,
+      "residualStrength": 42.8,
+      "weaponStrength30Mean": 12.0
+    }
+  ]
+}

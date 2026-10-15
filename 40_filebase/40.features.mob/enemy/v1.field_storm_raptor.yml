@@ -1,0 +1,133 @@
+# design:
+#   motif: "動物・気象 / 猛禽と風"
+#   progression: 25
+schemaVersion: 1
+id: field_storm_raptor
+type: MOB
+category: ENEMY
+name: アラシラプター Lv.42
+level: 42
+entityType: CHICKEN
+icon: CHICKEN_SPAWN_EGG
+variant:
+  age: ADULT
+  scale: 1.5
+lore:
+- '&7風に乗って跳び、鋭い爪で襲う大きな鳥。'
+- '&7着地点の輪を示してから、弧を描いて飛び込む。'
+- '&7輪の外へ離れ、着地後の隙を狙おう。'
+tags:
+- beast
+- melee
+baseStats:
+- status: MAX_HEALTH
+  value: 34261
+- status: ATTACK
+  value: 7556
+- status: DEFENSE
+  value: 5853
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 4
+- status: MOVEMENT_SPEED
+  value: 115
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 28
+  combat:
+    style: MELEE
+    preferredRange: 1.8
+    normalAttack:
+      range: 1.8
+      intervalTicks: 36
+    skills:
+    - id: mob_field_storm_raptor_diving_strike
+      activationRange: 6
+      cooldownTicks: 180
+      castTimeTicks: 0
+drops:
+  exp: 560
+  items:
+  - itemId:
+      ref: item:10a00233
+    rate: 35.0
+    amount: '1'
+    luckAffected: true
+    hidden: false
+levels:
+- level: 42
+  name: アラシラプター Lv.42
+  baseStats:
+  - status: MAX_HEALTH
+    value: 34261
+  - status: ATTACK
+    value: 7556
+  - status: DEFENSE
+    value: 5853
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 115
+  drops:
+    exp: 560
+- level: 44
+  name: アラシラプター Lv.44
+  baseStats:
+  - status: MAX_HEALTH
+    value: 37601
+  - status: ATTACK
+    value: 8292
+  - status: DEFENSE
+    value: 6423
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 115
+  drops:
+    exp: 580
+- level: 46
+  name: アラシラプター Lv.46
+  baseStats:
+  - status: MAX_HEALTH
+    value: 41097
+  - status: ATTACK
+    value: 9064
+  - status: DEFENSE
+    value: 7021
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 115
+  drops:
+    exp: 600
+- level: 48
+  name: アラシラプター Lv.48
+  baseStats:
+  - status: MAX_HEALTH
+    value: 44749
+  - status: ATTACK
+    value: 9869
+  - status: DEFENSE
+    value: 7645
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 115
+  drops:
+    exp: 620

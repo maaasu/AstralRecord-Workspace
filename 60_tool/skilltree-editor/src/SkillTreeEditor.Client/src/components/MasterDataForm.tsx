@@ -1,4 +1,5 @@
-import { masterFieldLabel } from '../data/masterDataPresentation'
+import { masterFieldLabel, masterFieldTitle } from '../data/masterDataPresentation'
+import { masterStatusSuggestions, masterTagSuggestions, masterValueFieldKey, masterValueLabel, masterValueReferenceKind } from '../data/masterValuePresentation'
 import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
 import { useEffect, useId, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
@@ -126,18 +127,19 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   const enumValues = Array.isArray(resolved.enum) ? resolved.enum : metadata?.enum
   if (enumValues?.length) return <select aria-label={path || '/'} value={JSON.stringify(value)} onChange={(event) => onChange(JSON.parse(event.target.value))}>
     {!enumValues.some((entry) => JSON.stringify(entry) === JSON.stringify(value)) && <option value={JSON.stringify(value)}>未定義: {String(value)}</option>}
-    {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)}>{String(entry)}</option>)}
+    {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)}>{masterValueLabel(path, String(entry))}</option>)}
   </select>
   if (kind === 'boolean') return <label className="master-checkbox"><input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />{value === true ? 'true（有効）' : 'false（無効）'}</label>
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
-  const referenceKind = metadata?.reference ?? parentReference ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
+  const referenceKind = metadata?.reference ?? parentReference ?? masterValueReferenceKind(path) ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
   const fishingReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
     ? referenceKind + ':' : undefined
+  const enchantReferencePrefix = path === '/orb/effect/enchantMasterId' && referenceKind === 'enchant' ? 'enchant:' : undefined
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
-  return <StringEditor path={path} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
-    referencePrefix={fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
+  return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
+    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
     referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`)) : undefined} />
 }
 
@@ -169,7 +171,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const isRequired = required.has(key) || field?.required === true
       const structured = Array.isArray(child) || objectOf(child)
       const textLines = isTextLineArray(childPath, child)
-      const label = String(definition.title ?? field?.label ?? masterFieldLabel(key))
+      const label = masterFieldTitle(key, definition.title ?? field?.label)
       const description = String(definition.description ?? field?.description ?? '')
       const declaredType = normalizeMasterType(definition.type ?? field?.type)
       const currentType = valueType(child, definition, field)
@@ -177,7 +179,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const content = <>
         <div className="master-field-heading"><strong>{label}</strong><code>{key}</code><span className="master-type">{typeLabels[valueType(child, definition, field)]}</span>{isRequired && <b className="master-required">必須</b>}
           <span className="master-spacer" />
-          <details className="master-field-actions"><summary aria-label={childPath + ' の操作'}>操作</summary><div className="master-field-actions-body">
+          <div className="master-field-inline-actions" role="group" aria-label={`${label}（${key}）の操作`}>
           {canChangeType && <select disabled={navigationDisabled} className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
             const nextType = event.target.value as ValueType
             if ((structured || typeof child === 'string' && child) && !window.confirm(`「${key}」の型を変更して現在の値を置き換えますか？`)) return
@@ -186,8 +188,10 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
           <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
             if (isRequired && !window.confirm(`「${key}」は必須項目です。削除しますか？（保存前の検証で確認されます）`)) return
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
-          }}>削除</button></div></details></div>
-        {description && <details className="master-field-help"><summary>項目の説明</summary><p className="master-field-description">{description}</p></details>}
+          }}>削除</button></div></div>
+        {description && (description.length > 120 || description.includes('\n')
+          ? <details className="master-field-help"><summary>{label}の詳しい説明</summary><p className="master-field-description">{description}</p></details>
+          : <p className="master-field-description">{description}</p>)}
         {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
         {structured && onNavigate && !textLines ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}><span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{label}を編集 →</b></button>
           : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
@@ -195,10 +199,10 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
         : <div key={key} className={'master-field ' + (structured || isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
     })}
-    <details className="master-add-field"><summary>項目を追加</summary><div className="master-add-field-body">
+    <details className="master-add-field"><summary>{masterFieldLabel(textFieldName(path) ?? '') || '基本情報'}に項目を追加</summary><div className="master-add-field-body">
       {optionalKeys.length > 0 && <label>定義済みの項目を追加<select aria-label={`${path || '/'} 定義済みの項目を追加`} value="" onChange={(event) => { if (event.target.value) add(event.target.value) }}><option value="">項目を選択…</option>{optionalKeys.map((key) => {
         const field = fieldForPath(fields, `${path}/${pointerKey(key)}`)
-        return <option key={key} value={key}>{String(childSchema(key).title ?? field?.label ?? key)} · {key}{required.has(key) || field?.required ? '（必須）' : ''}</option>
+        return <option key={key} value={key}>{masterFieldTitle(key, childSchema(key).title ?? field?.label)} · {key}{required.has(key) || field?.required ? '（必須）' : ''}</option>
       })}</select></label>}
       <div className="master-add-row"><input aria-label={`${path || '/'} 新しいキー`} value={newKey} placeholder="任意のキーを追加" onChange={(event) => setNewKey(event.target.value)} /><select aria-label={`${path || '/'} 追加する型`} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select><button type="button" className="button" onClick={() => add(newKey)}>＋ キー</button></div>
       {addError && <p role="alert" className="error-message">{addError}</p>}
@@ -279,25 +283,29 @@ function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText }: 
   }} />{error && <small className="error-message">{error}</small>}</div>
 }
 
-function StringEditor({ value, path, onChange, references, referenceKind, referencePrefix, referenceFilter }: { value: string; path: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string; referenceFilter?: (entry: MasterReference) => boolean }) {
+function StringEditor({ value, path, label, onChange, references, referenceKind, referencePrefix, referenceFilter }: { value: string; path: string; label: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string; referenceFilter?: (entry: MasterReference) => boolean }) {
   const listId = useId()
-  const candidates = referenceKind ? [...new Map(references.filter((entry) => entry.kind === referenceKind && (!referenceFilter || referenceFilter(entry))).map((entry) => {
+  const catalog = referenceKind === 'status' ? masterStatusSuggestions : referenceKind === 'tag' ? masterTagSuggestions : []
+  const catalogReferences: MasterReference[] = catalog.map((entry) => ({ ...entry, kind: referenceKind, path: '', pointer: '' }))
+  const candidates = referenceKind ? [...new Map([...references, ...catalogReferences].filter((entry) => entry.kind === referenceKind && (!referenceFilter || referenceFilter(entry))).map((entry) => {
     const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
-    return [candidate.value, candidate] as const
+    const knownLabel = masterValueLabel(referenceKind, candidate.value)
+    return [candidate.value, knownLabel !== candidate.value ? { ...candidate, label: knownLabel } : candidate] as const
   })).values()] : []
   const search = stripMinecraftFormatting(value).toLocaleLowerCase()
   const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(search)).slice(0, 100)
   const selected = candidates.find((entry) => entry.value === value)
-  const preview = selected?.label ?? value
+  const preview = selected?.label ?? masterValueLabel(path, value)
   const formatted = preview !== stripMinecraftFormatting(preview)
   const description = isDescriptionField(path)
   const hexColor = textFieldName(path)?.toLowerCase() === 'color' && /^#[0-9a-f]{6}$/i.test(value)
   return <div>{description || value.includes('\n') ? <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(4, value.split('\n').length + 1))} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}
     {description && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}
     {(formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
+    {!formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
     {hexColor && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
     {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small>
-      <details className="master-colored-candidates"><summary>名前と色を確認して選択</summary><div>{visibleCandidates.map((entry) => <button type="button" className="master-candidate" key={entry.value} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!visibleCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div></details>
+      <details className="master-colored-candidates"><summary aria-label={`${label}（${path}）の候補を選択`}>{label}の候補を選択</summary><div>{visibleCandidates.map((entry) => <button type="button" className="master-candidate" key={entry.value} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!visibleCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div></details>
     </>}
   </div>
 }

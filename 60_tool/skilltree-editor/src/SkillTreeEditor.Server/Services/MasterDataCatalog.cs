@@ -18,6 +18,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["category"] = "カテゴリ", ["icon"] = "アイコン素材", ["iconTexture"] = "頭アイコンのテクスチャ",
         ["iconGlint"] = "アイコンのエンチャントエフェクト", ["chargeSaleValue"] = "売却額分のGoldを消費",
         ["rankBasis"] = "状態変化のランク判定基準",
+        ["enchantOperation"] = "エンチャント操作", ["enchantMasterId"] = "エンチャント候補マスタ",
         ["landscape"] = "地形の生成方式", ["ensureMobVariety"] = "候補Mobの種類を保証",
         ["rarity"] = "レアリティ", ["saleValue"] = "売却額", ["lore"] = "説明文", ["maxStack"] = "最大スタック数",
         ["unTradeable"] = "取引不可", ["unSellable"] = "売却不可", ["requiredLevel"] = "必要レベル",
@@ -240,10 +241,13 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                     var leaf = segments.LastOrDefault(segment => segment != "*") ?? key;
                     var description = Cell("説明").Replace("\\|", "|", StringComparison.Ordinal);
                     var label = Labels.GetValueOrDefault(leaf) ?? leaf;
-                    var reference = FishingReferenceKind(pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "status" => "status", "tag" or "tags" => "tag", _ => null };
+                    var reference = FishingReferenceKind(pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "enchantMasterId" => "enchant", "status" => "status", "tag" or "tags" => "tag", _ => null };
                     var enumValues = scopedKey switch
                     {
                         "orb.effect.rankBasis" => new JsonArray(JsonValue.Create("CURRENT"), JsonValue.Create("TARGET")),
+                        "orb.effect.enchantOperation" => new JsonArray(JsonValue.Create("OVERWRITE_RANDOM"),
+                            JsonValue.Create("FILL_ONE_EMPTY"), JsonValue.Create("FILL_ALL_EMPTY"),
+                            JsonValue.Create("REROLL_VALUE_RANDOM"), JsonValue.Create("REMOVE_RANDOM"), JsonValue.Create("LOCK_FIRST")),
                         "theme.landscape" when category.Equals("65.features.dungeon", MasterDataPaths.Comparison)
                             => new JsonArray(JsonValue.Create("INDOOR"), JsonValue.Create("PLAINS")),
                         _ => null

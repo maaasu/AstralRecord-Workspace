@@ -1,0 +1,16 @@
+# design:
+#   motif: "粘土 / 守護像"
+#   progression: 3
+schemaVersion: 1
+id: 10a00308
+category: material
+name: "&f粘土のかけら"
+icon: CLAY_BALL
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7クレイガードの身体からこぼれた、小さな粘土片。"
+  - "&7砕けた表面に、守護像の形を刻んだ跡が残っている。"
+unTradeable: false
+unSellable: false

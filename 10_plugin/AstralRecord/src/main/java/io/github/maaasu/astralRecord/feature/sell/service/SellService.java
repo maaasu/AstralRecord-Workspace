@@ -548,7 +548,7 @@ public final class SellService {
             ItemStack cleanItem = stripTransferDisplayLore(itemStack);
             ItemModel model = resolveTransferItemModel(cleanItem);
             if (model == null
-                || !inventoryService.canAddItemToNormalInventory(astPlayer, model, Math.max(1, cleanItem.getAmount()))
+                || !inventoryService.canReturnItemToNormalInventory(astPlayer, model, Math.max(1, cleanItem.getAmount()))
                 || inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem.clone()) == null) {
                 failedItems.add(cleanItem);
                 continue;

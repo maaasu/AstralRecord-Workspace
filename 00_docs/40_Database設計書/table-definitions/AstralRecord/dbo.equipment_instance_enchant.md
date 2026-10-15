@@ -30,6 +30,7 @@
 | `status`                | `NVARCHAR(50)`     |    |    ○    |        | 付与されたステータス（`StatusType`） |
 | `type`                  | `NVARCHAR(20)`     |    |    ○    |        | 補正方式（`FLAT` / `SCALAR`）  |
 | `value`                 | `DECIMAL(18, 4)`   |    |    ○    |        | 実際に付与された数値（範囲から決定された後の値） |
+| `is_locked`             | `BIT`              |    |    ○    | `0`    | 固定済み。再抽選・削除・上書きの候補から除外 |
 | `created_at`            | `DATETIME2(3)`     |    |    ○    |        | レコード作成日時                 |
 | `updated_at`            | `DATETIME2(3)`     |    |    ○    |        | レコード最終更新日時               |
 | `created_by`            | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                |
@@ -81,6 +82,7 @@ CREATE TABLE [dbo].[equipment_instance_enchant] (
     [status]                      NVARCHAR(50)      NOT NULL,
     [type]                        NVARCHAR(20)      NOT NULL,
     [value]                       DECIMAL(18, 4)    NOT NULL,
+    [is_locked]                   BIT               NOT NULL CONSTRAINT [DF_equipment_instance_enchant_is_locked] DEFAULT (0),
     [created_at]                  DATETIME2(3)      NOT NULL,
     [updated_at]                  DATETIME2(3)      NOT NULL,
     [created_by]                  UNIQUEIDENTIFIER  NOT NULL,
@@ -114,6 +116,10 @@ GO
 ---
 
 ## 既存の互換行
+
+固定化の導入時は `migrations/20261013_equipment_enchant_lock.sql` をAPI更新前に適用する。
+既存行は `is_locked=0` となる。新規DBは同じdefaultを持つ `init.sql` を使用する。
+固定化しても `slot_index` と `effect_id` は占有し、重複制約を維持する。削除後はスロット番号を詰めない。
 
 過去に移行済みの `enchant_master_id = legacy`、`effect_id = legacy_{enchant_id}` 行は
 付与済みのステータス値を保持します。旧スキーマ向けmigrationは保持せず、新規DBは現行 `init.sql` を使用します。旧 `pool_index` だけから

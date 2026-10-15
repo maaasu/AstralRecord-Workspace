@@ -1,0 +1,128 @@
+# design:
+#   motif: "動物 / 火種を運ぶナメクジ"
+#   progression: 44
+schemaVersion: 1
+id: field_ember_slug
+type: MOB
+category: ENEMY
+name: '&cヒダネナメクジ'
+level: 44
+entityType: SILVERFISH
+variant:
+  age: ADULT
+  scale: 1.4
+icon: SILVERFISH_SPAWN_EGG
+lore:
+- '&7熱を帯びた粘液を吐く、ゆっくり動く軟体生物。'
+- '&7帯状の予告を示し、前方に4秒間の火の道を残す。'
+- '&7帯から離れれば炎を避けられる。重なる炎でも連続では命中しない。'
+tags:
+- beast
+- melee
+- magic
+- fire
+levels:
+- level: 44
+  name: '&cヒダネナメクジ Lv.44'
+- level: 46
+  name: '&cヒダネナメクジ Lv.46'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 42900
+  - status: ATTACK
+    value: 3910
+  - status: DEFENSE
+    value: 6210
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: MAGIC_ATTACK
+    value: 3910
+  drops:
+    exp: 850
+- level: 48
+  name: '&cヒダネナメクジ Lv.48'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 45650
+  - status: ATTACK
+    value: 4164
+  - status: DEFENSE
+    value: 6615
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: MAGIC_ATTACK
+    value: 4164
+  drops:
+    exp: 900
+- level: 50
+  name: '&cヒダネナメクジ Lv.50'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 48400
+  - status: ATTACK
+    value: 4417
+  - status: DEFENSE
+    value: 7020
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: MAGIC_ATTACK
+    value: 4417
+  drops:
+    exp: 950
+baseStats:
+- status: MAX_HEALTH
+  value: 40150
+- status: ATTACK
+  value: 3658
+- status: DEFENSE
+  value: 5805
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 80
+- status: MAGIC_ATTACK
+  value: 3658
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 40
+    skills:
+    - id: mob_field_ember_slug_ember_trail
+      activationRange: 5
+      cooldownTicks: 240
+      castTimeTicks: 0
+drops:
+  exp: 800
+  items:
+  - itemId:
+      ref: item:10a00281
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false

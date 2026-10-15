@@ -1,0 +1,16 @@
+# design:
+#   motif: "菌類 / キノコの石づき"
+#   progression: 16
+schemaVersion: 1
+id: 10a00303
+category: material
+name: "&fキノコの石づき"
+icon: BROWN_MUSHROOM
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7茸獣の背に生えるキノコの根元。"
+  - "&7湿った土の香りが残り、触れると細かな胞子がこぼれる。"
+unTradeable: false
+unSellable: false

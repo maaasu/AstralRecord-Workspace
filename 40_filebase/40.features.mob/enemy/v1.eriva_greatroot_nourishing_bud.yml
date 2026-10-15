@@ -1,0 +1,39 @@
+# design:
+#   motif: "植物 / 滋養の芽と根脈"
+#   progression: 25
+schemaVersion: 1
+id: eriva_greatroot_nourishing_bud
+type: MOB
+category: ENEMY
+name: "&a滋養の芽"
+level: 25
+entityType: SLIME
+variant:
+  scale: 0.75
+icon: SLIME_SPAWN_EGG
+lore:
+  - "&7心守と根脈をつなぐ小さな芽。"
+  - "&7芽をすべて倒すと根の守りが解け、反撃の機会が生まれる。"
+tags:
+  - forest
+  - support
+baseStats:
+  - status: MAX_HEALTH
+    value: 4500
+  - status: ATTACK
+    value: 1100
+  - status: DEFENSE
+    value: 1000
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 0
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+ai:
+  idle:
+    behavior: STATIONARY
+drops:
+  exp: 0

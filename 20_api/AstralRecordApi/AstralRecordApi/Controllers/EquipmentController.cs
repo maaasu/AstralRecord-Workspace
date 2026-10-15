@@ -83,10 +83,10 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return result is null ? NotFound() : Ok(result);
     }
 
-    /// <summary>指定スロットのエンチャントを削除</summary>
+    /// <summary>指定スロットの未固定エンチャントを削除</summary>
     /// <param name="request">対象装備、スロット番号、所有アカウントを含むリクエスト</param>
     /// <response code="200">削除後の装備インスタンス</response>
-    /// <response code="404">対象装備・スロットが存在しない、または所有者が一致しない</response>
+    /// <response code="404">対象装備・スロットが存在しない、所有者が一致しない、または固定済み</response>
     [HttpDelete("enchant")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

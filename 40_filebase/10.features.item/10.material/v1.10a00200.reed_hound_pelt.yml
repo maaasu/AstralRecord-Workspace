@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 猟犬の毛皮"
+#   progression: 18
+schemaVersion: 1
+id: 10a00200
+category: material
+name: "&f草色の毛皮"
+icon: GREEN_WOOL
+rarity: COMMON
+maxStack: 64
+saleValue: 200
+lore:
+  - "&7草に紛れる緑の毛並みを残したクサハウンドの毛皮。"
+  - "&7軽くてしなやかな毛が密に生えている。"
+unTradeable: false
+unSellable: false

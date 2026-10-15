@@ -2033,6 +2033,20 @@
         "checkConstraints": [ "CK_account_controls" ],
         "indexes": []
       }
+    },
+    {
+      "id": "20261013_equipment_enchant_lock",
+      "fileName": "20261013_equipment_enchant_lock.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "equipment_instance_enchant",
+        "primaryKey": "PK_equipment_instance_enchant",
+        "columns": [
+          { "name": "is_locked", "sqlType": "bit", "maxLengthBytes": 1, "isNullable": false }
+        ],
+        "checkConstraints": [],
+        "indexes": []
+      }
     }
   ]
 }

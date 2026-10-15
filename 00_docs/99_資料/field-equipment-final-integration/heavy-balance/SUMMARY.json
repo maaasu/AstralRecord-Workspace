@@ -1,0 +1,208 @@
+{
+  "repo": "E:\\AstralRecord-Worktrees\\field-equipment-final-integration",
+  "head": "35bbdf3475dc4c65ab0ca3cf1a994990f6b54145",
+  "reviewBaseline": "b046beab1f02c60fd4ccd6d6086f7ef49034327a",
+  "inputsUnchangedSinceBaseline": true,
+  "combatRows": 2688,
+  "gearRows": 228,
+  "shopRows": 76,
+  "newShopRows": 57,
+  "loadoutRows": 28,
+  "inversionCount": 14,
+  "inversions": [
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "SWORD",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 4.740137,
+        "lapis": 4.768568,
+        "lumina": 4.56401,
+        "astra": 4.191313
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "HAMMER",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 2.755894,
+        "lapis": 2.772424,
+        "lumina": 2.653494,
+        "astra": 2.43681
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "SPEAR",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 4.740137,
+        "lapis": 4.768568,
+        "lumina": 4.56401,
+        "astra": 4.191313
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "SHORTBOW",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 5.780655,
+        "lapis": 5.815327,
+        "lumina": 5.565866,
+        "astra": 5.111358
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "LONGBOW",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 3.338125,
+        "lapis": 3.358147,
+        "lumina": 3.214092,
+        "astra": 2.951629
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "WAND",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 5.042699,
+        "lapis": 5.072945,
+        "lumina": 4.85533,
+        "astra": 4.458844
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "normal",
+      "weaponTag": "STAFF",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 3.822692,
+        "lapis": 3.84562,
+        "lumina": 3.680653,
+        "astra": 3.380091
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "SWORD",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 7.514411,
+        "lapis": 7.569889,
+        "lumina": 7.173792,
+        "astra": 6.470171
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "HAMMER",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 4.368843,
+        "lapis": 4.401098,
+        "lumina": 4.170809,
+        "astra": 3.761727
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "SPEAR",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 7.514411,
+        "lapis": 7.569889,
+        "lumina": 7.173792,
+        "astra": 6.470171
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "SHORTBOW",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 9.163915,
+        "lapis": 9.231572,
+        "lumina": 8.748527,
+        "astra": 7.890452
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "LONGBOW",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 5.291839,
+        "lapis": 5.330908,
+        "lumina": 5.051966,
+        "astra": 4.556458
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "WAND",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 7.994054,
+        "lapis": 8.053074,
+        "lumina": 7.631694,
+        "astra": 6.88316
+      }
+    },
+    {
+      "mobLevel": "30",
+      "mobRole": "strong",
+      "weaponTag": "STAFF",
+      "enhance": 30,
+      "mode": "expected_unenchanted",
+      "ttkBySeries": {
+        "eriva": 6.060009,
+        "lapis": 6.104749,
+        "lumina": 5.785316,
+        "astra": 5.21788
+      }
+    }
+  ],
+  "astraLv30SwordMaxNoneR": 5007.067127,
+  "astraLv30SwordMaxNoneTtk": 1.092401,
+  "astraLv30RAnchorRatio": 1.5090618224834238,
+  "maximumSinglePurchaseBagSlots": 14,
+  "maximumSinglePurchaseItem": "20a00450",
+  "limits": [
+    "analytical expectation, not 100 real fights",
+    "Lv25 exact ordinary ENEMY does not exist; uses Lv24 proxy",
+    "Lv25 strong slot is a BOSS, not ordinary strong ENEMY",
+    "optimal enchant effect IDs are conditional selections; obtainability not priced",
+    "mob AI, skills, actual attack intervals, movement and tool travel omitted"
+  ]
+}

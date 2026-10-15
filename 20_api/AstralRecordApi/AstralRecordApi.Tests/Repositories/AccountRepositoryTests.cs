@@ -601,6 +601,7 @@ public class AccountRepositoryTests
                 CreatedBy = targetUserId, UpdatedBy = targetUserId,
             });
             var source = CreateAccount(sourceAccountId, sourceUserId, 3, true, now);
+            source.Mode = 2;
             source.AccountName = "Source_1";
             source.Level = 12;
             source.TotalExperience = 3456;
@@ -640,6 +641,13 @@ public class AccountRepositoryTests
                 EquipmentInstanceId = equipmentId, AccountId = sourceAccountId, ItemId = "sword", EnhanceLevel = 2,
                 CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
             });
+            setup.EquipmentInstanceEnchants.Add(new EquipmentInstanceEnchantEntity
+            {
+                EnchantId = Guid.NewGuid(), EquipmentInstanceId = equipmentId, SlotIndex = 2,
+                EnchantMasterId = "enchant003", EffectId = "attack", Status = "ATTACK", Type = "FLAT",
+                Value = 20, IsLocked = true, CreatedAt = now, UpdatedAt = now,
+                CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
+            });
             setup.InventoryEntries.Add(new InventoryEntryEntity
             {
                 InventoryEntryId = Guid.NewGuid(), InventoryId = inventoryId, SlotIndex = 0, ItemCategory = "EQUIPMENT",
@@ -678,6 +686,12 @@ public class AccountRepositoryTests
         var cloneInventory = await dbContext.Inventories.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
         var cloneEntry = await dbContext.InventoryEntries.SingleAsync(row => row.InventoryId == cloneInventory.InventoryId);
         Assert.NotEqual(equipmentId, cloneEntry.InstanceId);
+        var clonedEnchant = await dbContext.EquipmentInstanceEnchants.AsNoTracking()
+            .SingleAsync(row => row.EquipmentInstanceId == cloneEntry.InstanceId);
+        Assert.True(clonedEnchant.IsLocked);
+        Assert.Equal(2, clonedEnchant.SlotIndex);
+        Assert.Equal("enchant003", clonedEnchant.EnchantMasterId);
+        Assert.Equal(20, clonedEnchant.Value);
         Assert.True(await dbContext.EquipmentInstances.AnyAsync(row => row.AccountId == cloned.Account.Uuid));
         var cloneState = await dbContext.AccountSkillTreeStates.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
         Assert.True(await dbContext.AccountSkillTreeUnlockedNodes.AnyAsync(row => row.AccountSkillTreeStateId == cloneState.AccountSkillTreeStateId));

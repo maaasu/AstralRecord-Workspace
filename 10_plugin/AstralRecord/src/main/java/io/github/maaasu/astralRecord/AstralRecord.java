@@ -143,6 +143,29 @@ import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementReposito
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillRegistry;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.ReedHoundMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.BrushCrabMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.SunhareMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.WindLizardMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.PlainRamMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.BladeMantisMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.StonebackBisonMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.StormRaptorMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.BarkBeetleMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.MossFoxMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.RootTurtleMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.SnowWolfMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.IceMothMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.RedScorpionMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.SandGeckoMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.MesaVultureMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.EmberSlugMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.LavaCrabMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.AshDrakeMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.CanopyOwlMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.ThornDeerMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.ShadeHedgehogMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.field.FrostBoarMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.ryushel.RyushelFlowerLeapMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaStarhornGroveCircleMobSkillExecutor;
@@ -150,6 +173,10 @@ import io.github.maaasu.astralRecord.feature.mob.skill.rootweaver.RootweaverRoot
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaThornfangPounceMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaBarkRootSweepMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.eriva.ErivaSporeBurstMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.greatroot.GreatrootSkillSupport;
+import io.github.maaasu.astralRecord.feature.mob.skill.greatroot.GreatrootBarkguardComboMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.greatroot.GreatrootSporecallerBloomMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.greatroot.GreatrootRootlingBurrowMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.forestspider.ForestSpiderWebShotMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElChargeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElIceSphereMobSkillExecutor;
@@ -506,9 +533,33 @@ public final class AstralRecord extends JavaPlugin {
     private MobCombatService mobCombatService;
     private MobSkillService mobSkillService;
     private BindCircleRuntimeService bindCircleRuntimeService;
+    private ReedHoundMobSkillExecutor reedHoundMobSkillExecutor;
+    private BrushCrabMobSkillExecutor brushCrabMobSkillExecutor;
+    private SunhareMobSkillExecutor sunhareMobSkillExecutor;
+    private WindLizardMobSkillExecutor windLizardMobSkillExecutor;
+    private PlainRamMobSkillExecutor plainRamMobSkillExecutor;
+    private BladeMantisMobSkillExecutor bladeMantisMobSkillExecutor;
+    private StonebackBisonMobSkillExecutor stonebackBisonMobSkillExecutor;
+    private StormRaptorMobSkillExecutor stormRaptorMobSkillExecutor;
+    private BarkBeetleMobSkillExecutor barkBeetleMobSkillExecutor;
+    private MossFoxMobSkillExecutor mossFoxMobSkillExecutor;
+    private RootTurtleMobSkillExecutor rootTurtleMobSkillExecutor;
+    private SnowWolfMobSkillExecutor snowWolfMobSkillExecutor;
+    private IceMothMobSkillExecutor iceMothMobSkillExecutor;
+    private RedScorpionMobSkillExecutor redScorpionMobSkillExecutor;
+    private SandGeckoMobSkillExecutor sandGeckoMobSkillExecutor;
+    private MesaVultureMobSkillExecutor mesaVultureMobSkillExecutor;
+    private EmberSlugMobSkillExecutor emberSlugMobSkillExecutor;
+    private LavaCrabMobSkillExecutor lavaCrabMobSkillExecutor;
+    private AshDrakeMobSkillExecutor ashDrakeMobSkillExecutor;
+    private CanopyOwlMobSkillExecutor canopyOwlMobSkillExecutor;
+    private ThornDeerMobSkillExecutor thornDeerMobSkillExecutor;
+    private ShadeHedgehogMobSkillExecutor shadeHedgehogMobSkillExecutor;
+    private FrostBoarMobSkillExecutor frostBoarMobSkillExecutor;
     private ClayGuardLeapMobSkillExecutor clayGuardLeapMobSkillExecutor;
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
     private WitchForestSkillSupport witchForestSkillSupport;
+    private GreatrootSkillSupport greatrootSkillSupport;
     private MobTauntService mobTauntService;
     private MobProjectileService mobProjectileService;
     private MobVanillaEffectProtectionService mobVanillaEffectProtectionService;
@@ -777,6 +828,48 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        RuntimeException shadeHedgehogStopFailure = null;
+        try {
+            if (shadeHedgehogMobSkillExecutor != null) shadeHedgehogMobSkillExecutor.stop();
+        } catch (RuntimeException exception) {
+            shadeHedgehogStopFailure = exception;
+        }
+        if (thornDeerMobSkillExecutor != null) {
+            thornDeerMobSkillExecutor.stop();
+        }
+        if (canopyOwlMobSkillExecutor != null) {
+            canopyOwlMobSkillExecutor.stop();
+        }
+        if (ashDrakeMobSkillExecutor != null) {
+            ashDrakeMobSkillExecutor.stop();
+        }
+        if (lavaCrabMobSkillExecutor != null) {
+            lavaCrabMobSkillExecutor.stop();
+        }
+        if (emberSlugMobSkillExecutor != null) {
+            emberSlugMobSkillExecutor.stop();
+        }
+        if (mesaVultureMobSkillExecutor != null) {
+            mesaVultureMobSkillExecutor.stop();
+        }
+        if (sandGeckoMobSkillExecutor != null) {
+            sandGeckoMobSkillExecutor.stop();
+        }
+        if (redScorpionMobSkillExecutor != null) {
+            redScorpionMobSkillExecutor.stop();
+        }
+        if (iceMothMobSkillExecutor != null) {
+            iceMothMobSkillExecutor.stop();
+        }
+        if (frostBoarMobSkillExecutor != null) {
+            frostBoarMobSkillExecutor.stop();
+        }
+        if (rootTurtleMobSkillExecutor != null) {
+            rootTurtleMobSkillExecutor.stop();
+        }
+        if (snowWolfMobSkillExecutor != null) {
+            snowWolfMobSkillExecutor.stop();
+        }
         if (builderService != null) {
             builderService.stop();
         }
@@ -971,11 +1064,44 @@ public final class AstralRecord extends JavaPlugin {
         if (mobSkillService != null) {
             mobSkillService.stop();
         }
+        if (reedHoundMobSkillExecutor != null) {
+            reedHoundMobSkillExecutor.stop();
+        }
+        if (brushCrabMobSkillExecutor != null) {
+            brushCrabMobSkillExecutor.stop();
+        }
+        if (sunhareMobSkillExecutor != null) {
+            sunhareMobSkillExecutor.stop();
+        }
+        if (windLizardMobSkillExecutor != null) {
+            windLizardMobSkillExecutor.stop();
+        }
+        if (plainRamMobSkillExecutor != null) {
+            plainRamMobSkillExecutor.stop();
+        }
+        if (bladeMantisMobSkillExecutor != null) {
+            bladeMantisMobSkillExecutor.stop();
+        }
+        if (stonebackBisonMobSkillExecutor != null) {
+            stonebackBisonMobSkillExecutor.stop();
+        }
+        if (stormRaptorMobSkillExecutor != null) {
+            stormRaptorMobSkillExecutor.stop();
+        }
+        if (barkBeetleMobSkillExecutor != null) {
+            barkBeetleMobSkillExecutor.stop();
+        }
+        if (mossFoxMobSkillExecutor != null) {
+            mossFoxMobSkillExecutor.stop();
+        }
         if (rootweaverRootSnareMobSkillExecutor != null) {
             rootweaverRootSnareMobSkillExecutor.stop();
         }
         if (witchForestSkillSupport != null) {
             witchForestSkillSupport.stop();
+        }
+        if (greatrootSkillSupport != null) {
+            greatrootSkillSupport.stop();
         }
         if (clayGuardLeapMobSkillExecutor != null) {
             clayGuardLeapMobSkillExecutor.stop();
@@ -1103,6 +1229,7 @@ public final class AstralRecord extends JavaPlugin {
         if (ConfigProperties.getInstance().isSqlserverEnabled()) {
             SqlServerManager.getInstance().shutdown();
         }
+        if (shadeHedgehogStopFailure != null) throw shadeHedgehogStopFailure;
     }
 
     /**
@@ -1979,6 +2106,66 @@ public final class AstralRecord extends JavaPlugin {
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
         temporarySkillEffectService = new TemporarySkillEffectService();
         var mobSkillRegistry = new MobSkillRegistry();
+        reedHoundMobSkillExecutor = new ReedHoundMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        brushCrabMobSkillExecutor = new BrushCrabMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        sunhareMobSkillExecutor = new SunhareMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        windLizardMobSkillExecutor = new WindLizardMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(reedHoundMobSkillExecutor);
+        mobSkillRegistry.register(brushCrabMobSkillExecutor);
+        mobSkillRegistry.register(sunhareMobSkillExecutor);
+        mobSkillRegistry.register(windLizardMobSkillExecutor);
+        plainRamMobSkillExecutor = new PlainRamMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        bladeMantisMobSkillExecutor = new BladeMantisMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(plainRamMobSkillExecutor);
+        mobSkillRegistry.register(bladeMantisMobSkillExecutor);
+        stonebackBisonMobSkillExecutor = new StonebackBisonMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        stormRaptorMobSkillExecutor = new StormRaptorMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(stonebackBisonMobSkillExecutor);
+        mobSkillRegistry.register(stormRaptorMobSkillExecutor);
+        barkBeetleMobSkillExecutor = new BarkBeetleMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mossFoxMobSkillExecutor = new MossFoxMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(barkBeetleMobSkillExecutor);
+        mobSkillRegistry.register(mossFoxMobSkillExecutor);
+        rootTurtleMobSkillExecutor = new RootTurtleMobSkillExecutor(
+                mobService, damageService, conditionService, statusService, particleDisplayService);
+        snowWolfMobSkillExecutor = new SnowWolfMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(rootTurtleMobSkillExecutor);
+        mobSkillRegistry.register(snowWolfMobSkillExecutor);
+        iceMothMobSkillExecutor = new IceMothMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        frostBoarMobSkillExecutor = new FrostBoarMobSkillExecutor(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(iceMothMobSkillExecutor);
+        mobSkillRegistry.register(frostBoarMobSkillExecutor);
+        shadeHedgehogMobSkillExecutor = new ShadeHedgehogMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(shadeHedgehogMobSkillExecutor);
+        thornDeerMobSkillExecutor = new ThornDeerMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(thornDeerMobSkillExecutor);
+        canopyOwlMobSkillExecutor = new CanopyOwlMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(canopyOwlMobSkillExecutor);
+        ashDrakeMobSkillExecutor = new AshDrakeMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(ashDrakeMobSkillExecutor);
+        lavaCrabMobSkillExecutor = new LavaCrabMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(lavaCrabMobSkillExecutor);
+        emberSlugMobSkillExecutor = new EmberSlugMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(emberSlugMobSkillExecutor);
+        mesaVultureMobSkillExecutor = new MesaVultureMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(mesaVultureMobSkillExecutor);
+        sandGeckoMobSkillExecutor = new SandGeckoMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(sandGeckoMobSkillExecutor);
+        redScorpionMobSkillExecutor = new RedScorpionMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(redScorpionMobSkillExecutor);
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));
         mobSkillRegistry.register(new ForestSpiderWebShotMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new ErivaStarhornGroveCircleMobSkillExecutor(mobService, damageService, particleDisplayService));
@@ -1992,6 +2179,11 @@ public final class AstralRecord extends JavaPlugin {
                 mobService, damageService, conditionService, particleDisplayService));
         mobSkillRegistry.register(new ErivaSporeBurstMobSkillExecutor(
                 mobService, damageService, conditionService, particleDisplayService));
+        greatrootSkillSupport = new GreatrootSkillSupport(
+                mobService, damageService, conditionService, particleDisplayService);
+        mobSkillRegistry.register(new GreatrootBarkguardComboMobSkillExecutor(greatrootSkillSupport));
+        mobSkillRegistry.register(new GreatrootSporecallerBloomMobSkillExecutor(greatrootSkillSupport));
+        mobSkillRegistry.register(new GreatrootRootlingBurrowMobSkillExecutor(greatrootSkillSupport));
         witchForestSkillSupport = new WitchForestSkillSupport(
                 mobService, damageService, conditionService, particleDisplayService);
         mobSkillRegistry.register(new WitchForestHexBoltMobSkillExecutor(
@@ -2030,14 +2222,44 @@ public final class AstralRecord extends JavaPlugin {
         mobService.setDestroyListener(mobInstanceId -> {
             skillService.clearCasterState(mobInstanceId);
             mobSkillService.clearCasterState(mobInstanceId);
+            reedHoundMobSkillExecutor.clearCasterState(mobInstanceId);
+            brushCrabMobSkillExecutor.clearCasterState(mobInstanceId);
+            sunhareMobSkillExecutor.clearCasterState(mobInstanceId);
+            windLizardMobSkillExecutor.clearCasterState(mobInstanceId);
+            plainRamMobSkillExecutor.clearCasterState(mobInstanceId);
+            bladeMantisMobSkillExecutor.clearCasterState(mobInstanceId);
+            stonebackBisonMobSkillExecutor.clearCasterState(mobInstanceId);
+            stormRaptorMobSkillExecutor.clearCasterState(mobInstanceId);
+            barkBeetleMobSkillExecutor.clearCasterState(mobInstanceId);
+            mossFoxMobSkillExecutor.clearCasterState(mobInstanceId);
+            rootTurtleMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            snowWolfMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            iceMothMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            frostBoarMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            RuntimeException shadeHedgehogDestroyFailure = null;
+            try {
+                shadeHedgehogMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            } catch (RuntimeException exception) {
+                shadeHedgehogDestroyFailure = exception;
+            }
+            thornDeerMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            canopyOwlMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            ashDrakeMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            lavaCrabMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            emberSlugMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            mesaVultureMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            sandGeckoMobSkillExecutor.handleMobDestroyed(mobInstanceId);
+            redScorpionMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             bindCircleRuntimeService.releaseForUltimate(mobInstanceId);
             mobProjectileService.clearCasterState(mobInstanceId);
             clayGuardLeapMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             rootweaverRootSnareMobSkillExecutor.handleMobDestroyed(mobInstanceId);
             witchForestSkillSupport.clearCasterState(mobInstanceId);
+            greatrootSkillSupport.clearCasterState(mobInstanceId);
             mobTauntService.clearMob(mobInstanceId);
             bossMechanicService.handleMobDestroyed(mobInstanceId);
             temporarySkillEffectService.clear(mobInstanceId);
+            if (shadeHedgehogDestroyFailure != null) throw shadeHedgehogDestroyFailure;
         });
         var activeSkillTargetingService = new SkillTargetingService(mobService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);

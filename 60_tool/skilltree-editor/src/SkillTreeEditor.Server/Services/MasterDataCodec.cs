@@ -105,7 +105,14 @@ public sealed class MasterDataCodec
         if (long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var integer))
             return JsonValue.Create(integer);
         if (decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            // Keep a nonzero value that underflows decimal as text so validation can reject it.
+            var exponent = value.IndexOfAny(new[] { 'e', 'E' });
+            var significand = exponent < 0 ? value : value[..exponent];
+            if (number == 0 && significand.Any(character => character is >= '1' and <= '9'))
+                return JsonValue.Create(value);
             return JsonValue.Create(number);
+        }
         return JsonValue.Create(value);
     }
 

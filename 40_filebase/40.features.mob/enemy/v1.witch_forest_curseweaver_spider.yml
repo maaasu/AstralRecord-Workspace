@@ -55,5 +55,12 @@ ai:
 
 drops:
   exp: 240
+  items:
+    - itemId:
+        ref: item:10a00323
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false
   lootTable:
     ref: loot_table:normal_enemy_common_table_tier_2

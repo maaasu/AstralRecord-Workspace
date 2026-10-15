@@ -1,5 +1,6 @@
 import type { JsonObject, JsonValue } from '../types/editor'
-import { masterDisplayName } from './masterDataPresentation'
+import { masterDisplayName, masterFieldLabel } from './masterDataPresentation'
+import { masterValueLabel } from './masterValuePresentation'
 
 function pointerParts(path: string): string[] {
   if (path === '') return []
@@ -153,13 +154,14 @@ export function summarizeMasterValue(value: JsonValue): string {
   for (const key of selected) {
     if (seen.has(key)) continue
     seen.add(key)
-    const scalar = shortScalar(object[key])
+    const fieldValue = object[key]
+    const scalar = shortScalar(typeof fieldValue === 'string' ? masterValueLabel(key, fieldValue) : fieldValue)
     if (scalar !== undefined) {
       if (['displayName', 'name', 'title'].includes(key)) {
         if (named || scalar !== shortScalar(masterDisplayName(object))) continue
         named = true
       }
-      const label = ['displayName', 'name', '名前'].includes(key) ? '名前' : key === 'title' ? '題名' : key === 'type' ? '種類' : key
+      const label = ['displayName', 'name', '名前'].includes(key) ? '名前' : masterFieldLabel(key)
       parts.push(`${label}: ${scalar}`)
     }
     if (parts.length === 3) break

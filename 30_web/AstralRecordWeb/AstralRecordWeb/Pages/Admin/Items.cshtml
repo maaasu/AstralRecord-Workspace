@@ -137,7 +137,7 @@
                                 <ul>
                                     @foreach (var stat in item.Equipment.Stats)
                                     {
-                                        <li><span>@stat.Status</span><strong>@ItemsModel.StatValueText(stat.Value)</strong><em>@stat.Type</em></li>
+                                        <li><span>@stat.Status</span><strong>@ItemsModel.StatValueText(stat)</strong><em>@stat.Type</em></li>
                                     }
                                 </ul>
                             </div>

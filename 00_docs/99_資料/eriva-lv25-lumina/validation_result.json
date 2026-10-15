@@ -1,0 +1,668 @@
+{
+  "status": "PASS",
+  "baseCommit": "0a30bedc1d8bf7eec4c2ca5f654dd621985e1f1a",
+  "yamlFilesParsed": 951,
+  "introducedRootIdDuplicates": {},
+  "unchangedBaselineCrossNamespaceDuplicates": {
+    "adventurer_meditation": [
+      "40_filebase/30.features.skill/v1.adventurer_meditation.yml",
+      "40_filebase/70.shared.buff/v1.adventurer_meditation.yml"
+    ],
+    "archer_heal_arrow_alpha": [
+      "40_filebase/30.features.skill/v1.archer_heal_arrow_alpha.yml",
+      "40_filebase/70.shared.buff/v1.archer_heal_arrow_alpha.yml"
+    ],
+    "archmage_celestial_circle": [
+      "40_filebase/30.features.skill/v1.archmage_celestial_circle.yml",
+      "40_filebase/70.shared.buff/v1.archmage_celestial_circle.yml"
+    ],
+    "hunter_build_up": [
+      "40_filebase/30.features.skill/v1.hunter_build_up.yml",
+      "40_filebase/70.shared.buff/v1.hunter_build_up.yml"
+    ],
+    "midgard_greenfields": [
+      "40_filebase/46.features.fishing.area/v1.midgard_greenfields.yml",
+      "40_filebase/60.features.world/v1.wild_overworld.yml"
+    ],
+    "starlit_nox": [
+      "40_filebase/46.features.fishing.area/v1.starlit_nox.yml",
+      "40_filebase/60.features.world/v1.central_base.yml"
+    ],
+    "vanaheim_supercontinent": [
+      "40_filebase/46.features.fishing.area/v1.vanaheim_supercontinent.yml",
+      "40_filebase/60.features.world/v1.starreach_wilds.yml"
+    ],
+    "verdia": [
+      "40_filebase/46.features.fishing.area/v1.verdia.yml",
+      "40_filebase/60.features.world/v1.verdia.yml"
+    ]
+  },
+  "equipmentCount": 19,
+  "setCount": 3,
+  "proposalProducts": 19,
+  "weaponAttributeProbability": {
+    "bothZero": "0.9216",
+    "exactlyOneNonzero": "0.0768",
+    "bothNonzero": "0.0016",
+    "anyNonzero": "0.0784"
+  },
+  "ranges": {
+    "20a00419": {
+      "MELEE_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "STRENGTH": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "FIRE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "LIGHTNING_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00420": {
+      "MELEE_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "STRENGTH": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "NORMAL_ATTACK_DAMAGE_INCREASE": {
+        "min": "120",
+        "max": "120",
+        "mean": "120",
+        "zeroChance": "0"
+      },
+      "FIRE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "LIGHTNING_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00421": {
+      "MELEE_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "STRENGTH": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "FIRE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "LIGHTNING_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00422": {
+      "RANGED_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "DEXTERITY": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "NORMAL_ATTACK_DAMAGE_INCREASE": {
+        "min": "-30",
+        "max": "-30",
+        "mean": "-30",
+        "zeroChance": "0"
+      },
+      "ICE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "LIGHTNING_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00423": {
+      "RANGED_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "DEXTERITY": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "NORMAL_ATTACK_DAMAGE_INCREASE": {
+        "min": "70",
+        "max": "70",
+        "mean": "70",
+        "zeroChance": "0"
+      },
+      "ICE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "LIGHTNING_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00424": {
+      "MAGIC_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "INTELLIGENCE": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "NORMAL_ATTACK_DAMAGE_INCREASE": {
+        "min": "-10",
+        "max": "-10",
+        "mean": "-10",
+        "zeroChance": "0"
+      },
+      "FIRE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "ICE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00425": {
+      "MAGIC_ATTACK": {
+        "min": "171",
+        "max": "189",
+        "mean": "180",
+        "zeroChance": "0",
+        "regularMin": "171",
+        "regularMax": "189",
+        "step": "1",
+        "candidates": 19
+      },
+      "INTELLIGENCE": {
+        "min": "12",
+        "max": "16",
+        "mean": "14",
+        "zeroChance": "0",
+        "regularMin": "12",
+        "regularMax": "16",
+        "step": "1",
+        "candidates": 5
+      },
+      "NORMAL_ATTACK_DAMAGE_INCREASE": {
+        "min": "40",
+        "max": "40",
+        "mean": "40",
+        "zeroChance": "0"
+      },
+      "FIRE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      },
+      "ICE_DAMAGE_INCREASE": {
+        "min": "0",
+        "max": "7",
+        "mean": "0.1420",
+        "zeroChance": "0.96",
+        "regularMin": "0.1",
+        "regularMax": "7",
+        "step": "0.1",
+        "candidates": 70
+      }
+    },
+    "20a00426": {
+      "DEFENSE": {
+        "min": "67",
+        "max": "73",
+        "mean": "70",
+        "zeroChance": "0",
+        "regularMin": "67",
+        "regularMax": "73",
+        "step": "1",
+        "candidates": 7
+      },
+      "MAX_HEALTH": {
+        "min": "240",
+        "max": "240",
+        "mean": "240",
+        "zeroChance": "0"
+      },
+      "KNOCKBACK_RESISTANCE": {
+        "min": "2",
+        "max": "2",
+        "mean": "2",
+        "zeroChance": "0"
+      }
+    },
+    "20a00427": {
+      "DEFENSE": {
+        "min": "149",
+        "max": "161",
+        "mean": "155",
+        "zeroChance": "0",
+        "regularMin": "149",
+        "regularMax": "161",
+        "step": "1",
+        "candidates": 13
+      },
+      "MAX_HEALTH": {
+        "min": "450",
+        "max": "450",
+        "mean": "450",
+        "zeroChance": "0"
+      },
+      "HP_REGEN": {
+        "min": "8",
+        "max": "8",
+        "mean": "8",
+        "zeroChance": "0"
+      },
+      "KNOCKBACK_RESISTANCE": {
+        "min": "10",
+        "max": "10",
+        "mean": "10",
+        "zeroChance": "0"
+      }
+    },
+    "20a00428": {
+      "DEFENSE": {
+        "min": "86",
+        "max": "94",
+        "mean": "90",
+        "zeroChance": "0",
+        "regularMin": "86",
+        "regularMax": "94",
+        "step": "1",
+        "candidates": 9
+      },
+      "MAX_HEALTH": {
+        "min": "120",
+        "max": "120",
+        "mean": "120",
+        "zeroChance": "0"
+      },
+      "KNOCKBACK_RESISTANCE": {
+        "min": "6",
+        "max": "6",
+        "mean": "6",
+        "zeroChance": "0"
+      }
+    },
+    "20a00429": {
+      "DEFENSE": {
+        "min": "62",
+        "max": "68",
+        "mean": "65",
+        "zeroChance": "0",
+        "regularMin": "62",
+        "regularMax": "68",
+        "step": "1",
+        "candidates": 7
+      },
+      "MAX_HEALTH": {
+        "min": "80",
+        "max": "80",
+        "mean": "80",
+        "zeroChance": "0"
+      },
+      "KNOCKBACK_RESISTANCE": {
+        "min": "2",
+        "max": "2",
+        "mean": "2",
+        "zeroChance": "0"
+      }
+    },
+    "20a00430": {
+      "DEFENSE": {
+        "min": "62",
+        "max": "68",
+        "mean": "65",
+        "zeroChance": "0",
+        "regularMin": "62",
+        "regularMax": "68",
+        "step": "1",
+        "candidates": 7
+      },
+      "MAX_ENERGY": {
+        "min": "35",
+        "max": "35",
+        "mean": "35",
+        "zeroChance": "0"
+      }
+    },
+    "20a00431": {
+      "DEFENSE": {
+        "min": "134",
+        "max": "146",
+        "mean": "140",
+        "zeroChance": "0",
+        "regularMin": "134",
+        "regularMax": "146",
+        "step": "1",
+        "candidates": 13
+      },
+      "MAX_ENERGY": {
+        "min": "50",
+        "max": "50",
+        "mean": "50",
+        "zeroChance": "0"
+      },
+      "ENERGY_REGEN": {
+        "min": "2",
+        "max": "2",
+        "mean": "2",
+        "zeroChance": "0"
+      }
+    },
+    "20a00432": {
+      "DEFENSE": {
+        "min": "76",
+        "max": "84",
+        "mean": "80",
+        "zeroChance": "0",
+        "regularMin": "76",
+        "regularMax": "84",
+        "step": "1",
+        "candidates": 9
+      },
+      "MAX_ENERGY": {
+        "min": "25",
+        "max": "25",
+        "mean": "25",
+        "zeroChance": "0"
+      },
+      "ENERGY_REGEN": {
+        "min": "2",
+        "max": "2",
+        "mean": "2",
+        "zeroChance": "0"
+      }
+    },
+    "20a00433": {
+      "DEFENSE": {
+        "min": "57",
+        "max": "63",
+        "mean": "60",
+        "zeroChance": "0",
+        "regularMin": "57",
+        "regularMax": "63",
+        "step": "1",
+        "candidates": 7
+      },
+      "MAX_ENERGY": {
+        "min": "15",
+        "max": "15",
+        "mean": "15",
+        "zeroChance": "0"
+      },
+      "ENERGY_REGEN": {
+        "min": "1",
+        "max": "1",
+        "mean": "1",
+        "zeroChance": "0"
+      }
+    },
+    "20a00434": {
+      "DEFENSE": {
+        "min": "57",
+        "max": "63",
+        "mean": "60",
+        "zeroChance": "0",
+        "regularMin": "57",
+        "regularMax": "63",
+        "step": "1",
+        "candidates": 7
+      },
+      "MAX_MANA": {
+        "min": "60",
+        "max": "60",
+        "mean": "60",
+        "zeroChance": "0"
+      },
+      "MP_REGEN": {
+        "min": "2",
+        "max": "2",
+        "mean": "2",
+        "zeroChance": "0"
+      }
+    },
+    "20a00435": {
+      "DEFENSE": {
+        "min": "124",
+        "max": "136",
+        "mean": "130",
+        "zeroChance": "0",
+        "regularMin": "124",
+        "regularMax": "136",
+        "step": "1",
+        "candidates": 13
+      },
+      "MAX_MANA": {
+        "min": "80",
+        "max": "80",
+        "mean": "80",
+        "zeroChance": "0"
+      },
+      "MP_REGEN": {
+        "min": "3",
+        "max": "3",
+        "mean": "3",
+        "zeroChance": "0"
+      }
+    },
+    "20a00436": {
+      "DEFENSE": {
+        "min": "71",
+        "max": "79",
+        "mean": "75",
+        "zeroChance": "0",
+        "regularMin": "71",
+        "regularMax": "79",
+        "step": "1",
+        "candidates": 9
+      },
+      "MAX_MANA": {
+        "min": "40",
+        "max": "40",
+        "mean": "40",
+        "zeroChance": "0"
+      },
+      "MP_REGEN": {
+        "min": "3",
+        "max": "3",
+        "mean": "3",
+        "zeroChance": "0"
+      }
+    },
+    "20a00437": {
+      "DEFENSE": {
+        "min": "52",
+        "max": "58",
+        "mean": "55",
+        "zeroChance": "0",
+        "regularMin": "52",
+        "regularMax": "58",
+        "step": "1",
+        "candidates": 7
+      },
+      "MAX_MANA": {
+        "min": "25",
+        "max": "25",
+        "mean": "25",
+        "zeroChance": "0"
+      },
+      "MP_REGEN": {
+        "min": "2",
+        "max": "2",
+        "mean": "2",
+        "zeroChance": "0"
+      }
+    }
+  },
+  "limitations": [
+    "Markdown schema contract subset checked statically; application importer not executed",
+    "Runtime crafting, persistence, appearance, 100-battle combat and source placement not verified",
+    "Shared shop/recipe application deferred to integration"
+  ]
+}

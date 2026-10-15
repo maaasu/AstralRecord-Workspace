@@ -1,0 +1,23 @@
+# design:
+#   motif: "保管 / オーブ遠隔アクセス認証"
+#   progression: 0
+schemaVersion: 1
+id: 99a00023
+category: currency
+name: "&5オーブ遠隔アクセストークン"
+icon: SPYGLASS
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7所持している間、新しく獲得したオーブを"
+  - "&7ストレージへ自動で格納します。"
+  - "&eストレージが満杯の場合は通常インベントリへ入ります。"
+  - "&7インベントリ情報をクリックすると、"
+  - "&7ストレージ内のオーブ一覧にもアクセスできます。"
+  - "&7このトークンは消費されません。"
+unTradeable: true
+unSellable: true
+currency:
+  type: ORB_REMOTE_ACCESS
+  group: storage_access

@@ -1,0 +1,116 @@
+# design:
+#   motif: "動物 / ハゲワシと落石"
+#   progression: 38
+schemaVersion: 1
+id: field_mesa_vulture
+type: MOB
+category: ENEMY
+name: '&cメサハゲワシ'
+level: 38
+entityType: PARROT
+variant:
+  age: ADULT
+  kind: GRAY
+  scale: 1.3
+icon: PARROT_SPAWN_EGG
+lore:
+- '&7石をくわえ、砂岩の地表を歩く大きな鳥。'
+- '&7足元の円を示してから石を落とす。'
+- '&7予告した落下地点は動かない。円から離れて避けよう。'
+tags:
+- beast
+- ranged
+levels:
+- level: 38
+  name: '&cメサハゲワシ Lv.38'
+- level: 40
+  name: '&cメサハゲワシ Lv.40'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 25200
+  - status: ATTACK
+    value: 5157
+  - status: DEFENSE
+    value: 3885
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  drops:
+    exp: 708
+- level: 42
+  name: '&cメサハゲワシ Lv.42'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 27200
+  - status: ATTACK
+    value: 5571
+  - status: DEFENSE
+    value: 4200
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  drops:
+    exp: 756
+- level: 44
+  name: '&cメサハゲワシ Lv.44'
+  baseStats:
+  - status: MAX_HEALTH
+    value: 29200
+  - status: ATTACK
+    value: 5985
+  - status: DEFENSE
+    value: 4515
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 110
+  drops:
+    exp: 804
+baseStats:
+- status: MAX_HEALTH
+  value: 23200
+- status: ATTACK
+  value: 4743
+- status: DEFENSE
+  value: 3570
+- status: ACCURACY
+  value: 95
+- status: EVASION
+  value: 3
+- status: MOVEMENT_SPEED
+  value: 110
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 26
+    leashRange: 32
+  combat:
+    style: RANGED
+    preferredRange: 7
+    skills:
+    - id: mob_field_mesa_vulture_stone_drop
+      activationRange: 10
+      cooldownTicks: 180
+      castTimeTicks: 0
+drops:
+  exp: 660
+  items:
+  - itemId:
+      ref: item:10a00280
+    rate: 35
+    amount: 1
+    luckAffected: true
+    hidden: false

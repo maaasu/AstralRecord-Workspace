@@ -1,0 +1,120 @@
+{
+  "batch": "B03",
+  "baseCommit": "e2058ade10a682118382e70aa01c7db758ac81c6",
+  "centralOwner": "field-mobs-lv50 integration",
+  "skills": [
+    {
+      "mobId": "field_plain_ram",
+      "implementationId": "mob_field_plain_ram_horn_thrust",
+      "executorClass": "io.github.maaasu.astralRecord.feature.mob.skill.field.PlainRamMobSkillExecutor",
+      "constructor": [
+        "MobService",
+        "DamageService",
+        "ConditionService",
+        "ParticleDisplayService"
+      ],
+      "variable": "plainRamMobSkillExecutor",
+      "registerCode": "mobSkillRegistry.register(plainRamMobSkillExecutor);",
+      "destroyHook": "plainRamMobSkillExecutor.clearCasterState(id);",
+      "shutdownHook": "if (plainRamMobSkillExecutor != null) plainRamMobSkillExecutor.stop();",
+      "levels": [
+        28,
+        30,
+        32,
+        34
+      ],
+      "constructorCode": "plainRamMobSkillExecutor = new io.github.maaasu.astralRecord.feature.mob.skill.field.PlainRamMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);",
+      "fieldCode": "private io.github.maaasu.astralRecord.feature.mob.skill.field.PlainRamMobSkillExecutor plainRamMobSkillExecutor;"
+    },
+    {
+      "mobId": "field_blade_mantis",
+      "implementationId": "mob_field_blade_mantis_blade_sweep",
+      "executorClass": "io.github.maaasu.astralRecord.feature.mob.skill.field.BladeMantisMobSkillExecutor",
+      "constructor": [
+        "MobService",
+        "DamageService",
+        "ConditionService",
+        "ParticleDisplayService"
+      ],
+      "variable": "bladeMantisMobSkillExecutor",
+      "registerCode": "mobSkillRegistry.register(bladeMantisMobSkillExecutor);",
+      "destroyHook": "bladeMantisMobSkillExecutor.clearCasterState(id);",
+      "shutdownHook": "if (bladeMantisMobSkillExecutor != null) bladeMantisMobSkillExecutor.stop();",
+      "levels": [
+        42,
+        44,
+        46,
+        48
+      ],
+      "constructorCode": "bladeMantisMobSkillExecutor = new io.github.maaasu.astralRecord.feature.mob.skill.field.BladeMantisMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService);",
+      "fieldCode": "private io.github.maaasu.astralRecord.feature.mob.skill.field.BladeMantisMobSkillExecutor bladeMantisMobSkillExecutor;"
+    }
+  ],
+  "materials": [
+    {
+      "id": "10a00220",
+      "name": "野原の羊毛",
+      "mobId": "field_plain_ram",
+      "rate": 35.0,
+      "amount": 1
+    },
+    {
+      "id": "10a00221",
+      "name": "硬い巻き角",
+      "mobId": "field_plain_ram",
+      "rate": 7.0,
+      "amount": 1
+    },
+    {
+      "id": "10a00222",
+      "name": "カマキリの刃",
+      "mobId": "field_blade_mantis",
+      "rate": 35.0,
+      "amount": 1
+    }
+  ],
+  "reservedUnusedMaterials": [
+    "10a00223",
+    "10a00224",
+    "10a00225",
+    "10a00226",
+    "10a00227",
+    "10a00228",
+    "10a00229"
+  ],
+  "properties": [],
+  "logIds": [],
+  "messageIds": [],
+  "sharedInfrastructureChanges": [],
+  "lootTables": [],
+  "buffs": [],
+  "habitats": [
+    {
+      "mobId": "field_plain_ram",
+      "plannedRegion": "平原B",
+      "worldIdCandidate": "vanaheim_supercontinent",
+      "evidence": [
+        "40_filebase/60.features.world/v1.starreach_wilds.yml",
+        "40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv28_spawner.yml",
+        "40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv30_spawner.yml"
+      ],
+      "placement": "未確認・新規spawnerと実座標は統合担当で保留"
+    },
+    {
+      "mobId": "field_blade_mantis",
+      "plannedRegion": "平原C",
+      "worldIdCandidate": null,
+      "evidence": [],
+      "placement": "平原Cのworld・座標・既存配置根拠が未確認のため保留"
+    }
+  ],
+  "requiredIntegrationChecks": [
+    "同じExecutor instanceを登録・破棄通知・停止処理で保持する。MobService既存destroyListenerに追加し、既存callbackを置き換えない。",
+    "stop()をPlugin停止処理から、Scheduler一括cancel前に同期で呼ぶ。clearCasterState()はdestroyListenerの個体IDで呼ぶ。",
+    "Registry登録後に2つのimplementationIdとtiming/params検証を確認する。",
+    "重いMaven test/buildは統合側の直列枠で実行する。B03では未実行。",
+    "実server/clientで予告・横回避・背後・遮蔽物・ペット/非ゲームプレイヤー制限・死亡/despawn/leash/world変更/停止・複数個体・TTKを確認する。",
+    "Lv32以降の暫定外挿とLv30超装備実値による耐久を再評価する。素材消費先は装備担当へ引き渡す。"
+  ],
+  "registrationStatus": "未登録・中央編集禁止により統合待ち"
+}

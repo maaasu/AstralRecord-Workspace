@@ -68,7 +68,7 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
             var enchants = await dbContext.EquipmentInstanceEnchants
                 .Where(x => x.EquipmentInstanceId == instanceId && x.SlotIndex == slotIndex)
                 .ToListAsync();
-            if (enchants.Count == 0)
+            if (enchants.Count == 0 || enchants.Any(enchant => enchant.IsLocked))
                 return false;
 
             dbContext.EquipmentInstanceEnchants.RemoveRange(enchants);

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 苔色の狐の毛"
+#   progression: 24
+schemaVersion: 1
+id: 10a00241
+category: material
+name: "&fコケ色の毛"
+icon: LEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 180
+lore:
+  - "&7コケギツネから得られる緑がかった毛。"
+  - "&7湿り気を含んでも柔らかさを失わない。"
+unTradeable: false
+unSellable: false

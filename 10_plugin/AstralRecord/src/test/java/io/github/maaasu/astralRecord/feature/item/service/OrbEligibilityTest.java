@@ -360,6 +360,148 @@ class OrbEligibilityTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 固定操作は空枠・固定済みを飛ばし、最小スロットの未固定行だけを固定し、効果と値を保持する。
+     */
+    @Test
+    void locksLowestUnlockedSlotWithoutReorderingRemainingSlots() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 5);
+        EquipmentEnchant locked = lockedEnchant(0, "attack");
+        EquipmentEnchant later = enchant(4, "speed");
+        EquipmentEnchant first = enchant(2, "critical");
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(later, locked, first));
+        var result = OrbLocalMutationCalculator.apply(enchantEffect(ItemOrbEnchantOperation.LOCK_FIRST), model, current, null, null, null);
+        assertNotNull(result);
+        var enchants = result.instance().getEnchants();
+        assertEquals(List.of(0, 2, 4), enchants.stream().map(EquipmentEnchant::getSlotIndex).toList());
+        assertEquals(locked, enchants.get(0));
+        assertEquals(first.copy(first.getEnchantId(), first.getEquipmentInstanceId(), first.getSlotIndex(), first.getEnchantMasterId(),
+            first.getEffectId(), first.getStatus(), first.getType(), first.getValue(), true), enchants.get(1));
+        assertEquals(later, enchants.get(2));
+        assertFalse(current.getEnchants().get(2).isLocked());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 削除は未固定行だけを対象とし、残存行のスロットと固定状態を保全する。
+     */
+    @Test
+    void removalLeavesLockedSlotAndDoesNotCompactGaps() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 4);
+        EquipmentEnchant locked = lockedEnchant(3, "attack");
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(enchant(0, "speed"), locked));
+        var result = OrbLocalMutationCalculator.apply(enchantEffect(ItemOrbEnchantOperation.REMOVE_RANDOM), model, current, null, null, null);
+        assertNotNull(result);
+        assertEquals(List.of(locked), result.instance().getEnchants());
+        assertEquals(2, current.getEnchants().size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 全固定の加工は上書き・再抽選・削除・固定のいずれも無変更として拒否し、支払い対象の完成状態を返さない。
+     */
+    @Test
+    void allLockedRejectsRandomMutationsAndFurtherLocking() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 1);
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(lockedEnchant(0, "attack")));
+        for (var operation : List.of(ItemOrbEnchantOperation.OVERWRITE_RANDOM, ItemOrbEnchantOperation.REROLL_VALUE_RANDOM,
+            ItemOrbEnchantOperation.REMOVE_RANDOM, ItemOrbEnchantOperation.LOCK_FIRST)) {
+            ItemOrbEffect effect = enchantEffect(operation);
+            assertFalse(OrbEligibility.canEnchant(effect, model, current, enchantMaster(List.of("attack"))), operation.name());
+            assertNull(OrbLocalMutationCalculator.apply(effect, model, current, enchantMaster(List.of("attack")), null, null), operation.name());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 数値再抽選は固定済みを保全し、未固定行のID・枠・効果を保持しながら数値と由来だけを上下のマスタで更新する。
+     */
+    @Test
+    void rerollPreservesIdentityAndLockedRowsAcrossDifferentMasterRanges() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 3);
+        EquipmentEnchant locked = lockedEnchant(0, "critical");
+        EquipmentEnchant currentEnchant = enchant(2, "attack");
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(locked, currentEnchant));
+        ItemOrbEffect effect = enchantEffect(ItemOrbEnchantOperation.REROLL_VALUE_RANDOM);
+        for (double value : List.of(8.0D, 0.25D, 1.0D)) {
+            EnchantMaster master = new EnchantMaster(1, "reroll-master", List.of(new EnchantTarget(EnchantEquipmentType.WEAPON,
+                List.of(new EnchantEntry("attack", "ATTACK", "FLAT", Double.toString(value), 1)))));
+            var result = OrbLocalMutationCalculator.apply(effect, model, current, master, null, null);
+            assertNotNull(result);
+            assertEquals(locked, result.instance().getEnchants().getFirst());
+            assertEquals(currentEnchant.copy(currentEnchant.getEnchantId(), currentEnchant.getEquipmentInstanceId(), currentEnchant.getSlotIndex(),
+                master.getId(), currentEnchant.getEffectId(), currentEnchant.getStatus(), currentEnchant.getType(), value, false),
+                result.instance().getEnchants().get(1));
+        }
+        assertEquals(1.0D, current.getEnchants().get(1).getValue());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 数値再抽選は全未固定行の効果ID・status・typeが使用マスタにある場合だけ許可し、種類の置換を防ぐ。
+     */
+    @Test
+    void rerollRejectsMissingOrDifferentEffectDefinitions() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 2);
+        ItemOrbEffect effect = enchantEffect(ItemOrbEnchantOperation.REROLL_VALUE_RANDOM);
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(enchant(0, "attack"), enchant(1, "critical")));
+        assertFalse(OrbEligibility.canEnchant(effect, model, current, enchantMaster(List.of("attack"))));
+        EnchantMaster incompatible = new EnchantMaster(1, "master", List.of(new EnchantTarget(EnchantEquipmentType.WEAPON,
+            List.of(new EnchantEntry("attack", "ATTACK", "SCALAR", "1", 1), new EnchantEntry("critical", "ATTACK", "FLAT", "1", 1)))));
+        assertFalse(OrbEligibility.canEnchant(effect, model, current, incompatible));
+        assertNull(OrbLocalMutationCalculator.apply(effect, model, current, incompatible, null, null));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 上書きは未固定行だけを対象にし、固定済みの効果との重複を禁止する。
+     */
+    @Test
+    void overwriteProtectsLockedRowsAndIncludesThemInDuplicateChecks() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 2);
+        EquipmentEnchant locked = lockedEnchant(0, "attack");
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(locked, enchant(1, "critical")));
+        ItemOrbEffect effect = enchantEffect(ItemOrbEnchantOperation.OVERWRITE_RANDOM);
+        assertFalse(OrbEligibility.canEnchant(effect, model, current, enchantMaster(List.of("attack"))));
+        var result = OrbLocalMutationCalculator.apply(effect, model, current, enchantMaster(List.of("attack", "speed")), null, null);
+        assertNotNull(result);
+        assertEquals(locked, result.instance().getEnchants().getFirst());
+        assertEquals("speed", result.instance().getEnchants().get(1).getEffectId());
+        assertFalse(result.instance().getEnchants().get(1).isLocked());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 空き枠への付与では固定行を占有枠・重複集合へ含めて維持し、新規付与行は未固定とする。
+     */
+    @Test
+    void fillRespectsLockedOccupancyAndEffects() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 2);
+        EquipmentEnchant locked = lockedEnchant(1, "attack");
+        EquipmentInstance current = instance(0, 0, 100, 100, List.of(locked));
+        var result = OrbLocalMutationCalculator.apply(enchantEffect(ItemOrbEnchantOperation.FILL_ALL_EMPTY), model, current,
+            enchantMaster(List.of("attack", "critical")), null, null);
+        assertNotNull(result);
+        assertEquals("critical", result.instance().getEnchants().getFirst().getEffectId());
+        assertEquals(0, result.instance().getEnchants().getFirst().getSlotIndex());
+        assertFalse(result.instance().getEnchants().getFirst().isLocked());
+        assertEquals(locked, result.instance().getEnchants().get(1));
+    }
+
+    private static EquipmentEnchant lockedEnchant(int slot, String effectId) {
+        EquipmentEnchant current = enchant(slot, effectId);
+        return current.copy(current.getEnchantId(), current.getEquipmentInstanceId(), current.getSlotIndex(), current.getEnchantMasterId(),
+            current.getEffectId(), current.getStatus(), current.getType(), current.getValue(), true);
+    }
+
     /** テスト用装備マスタを作成します。 */
     private static ItemModel equipmentModel(
         ItemEquipmentSlot slot,

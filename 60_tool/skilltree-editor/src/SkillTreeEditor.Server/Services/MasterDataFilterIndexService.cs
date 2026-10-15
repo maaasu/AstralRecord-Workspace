@@ -35,6 +35,7 @@ public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDa
                 skillTags.Add(new(path, tags));
 
             var facets = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+            var numbers = new Dictionary<string, IReadOnlyList<double>>(StringComparer.Ordinal);
             AddScalar(facets, "category", obj["category"]);
             AddScalar(facets, "type", obj["type"]);
             AddValues(facets, "tags", tags);
@@ -53,7 +54,19 @@ public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDa
                 facets["enabled"] = [enabled.GetValue<bool>() ? "true" : "false"];
             if (path.StartsWith("30.features.skill/", StringComparison.Ordinal))
                 facets["passiveConfigured"] = [obj["passive"] is JsonObject ? "true" : "false"];
-            entries.Add(new(path, facets));
+            if (path.StartsWith("40.features.mob/", StringComparison.Ordinal))
+            {
+                var levels = new List<double>();
+                if (Number(obj["level"]) is { } level) levels.Add(level);
+                if (obj["levels"] is JsonArray profiles)
+                    levels.AddRange(profiles.OfType<JsonObject>().Select(profile => Number(profile["level"]))
+                        .OfType<double>());
+                if (levels.Count > 0) numbers["mobLevel"] = levels.Distinct().Order().ToArray();
+            }
+            if (path.StartsWith("10.features.item/", StringComparison.Ordinal)
+                && !path.StartsWith("10.features.item/20.equipment/set_effect/", StringComparison.Ordinal))
+                AddItemFilters(obj, facets, numbers);
+            entries.Add(new(path, facets, numbers));
 
             var kind = path.StartsWith("40.features.mob/", StringComparison.Ordinal) ? "mob"
                 : path.StartsWith("42.features.gathering/", StringComparison.Ordinal) ? "gathering" : null;
@@ -97,6 +110,61 @@ public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDa
     {
         if (values.Length > 0) facets[key] = values;
     }
+
+    private static void AddItemFilters(JsonObject obj, Dictionary<string, IReadOnlyList<string>> facets,
+        Dictionary<string, IReadOnlyList<double>> numbers)
+    {
+        // Defaults mirror ItemResponse / ItemRepository; these are master flags, not instance transfer checks.
+        AddBooleanDefault(facets, "unTradeable", obj["unTradeable"], false);
+        AddBooleanDefault(facets, "unSellable", obj["unSellable"], false);
+        AddNumber(numbers, "saleValue", obj["saleValue"], 0);
+        AddNumber(numbers, "maxStack", obj["maxStack"], 64);
+        if (obj["equipment"] is not JsonObject equipment) return;
+        AddNumber(numbers, "requiredLevel", equipment["requiredLevel"], 0);
+        AddScalar(facets, "equipmentTag", equipment["tag"]);
+        AddScalar(facets, "setId", equipment["setId"]);
+        // Hand type has meaning only for held equipment.
+        if (Text(equipment["slot"])?.Trim().ToUpperInvariant() is "WEAPON" or "TOOL")
+            facets["handType"] = [Text(equipment["handType"]) ?? "ONE"];
+        var classes = equipment["requiredClasses"] is JsonArray requirements
+            ? requirements.Select(value => ReferenceId(value is JsonObject requirement ? requirement["classId"] ?? requirement["class"] : value, "class", "cl"))
+                .OfType<string>().Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()
+            : [];
+        AddValues(facets, "requiredClasses", classes);
+        AddBoolean(facets, "classRestricted", classes.Length > 0);
+        var enhance = equipment["enhance"] as JsonObject;
+        var enchant = equipment["enchant"] as JsonObject;
+        // Limits describe the initial equipment state, before transcendence overrides.
+        AddNumber(numbers, "enhanceMaxLevel", enhance?["maxLevel"], 0);
+        AddNumber(numbers, "enchantMaxSlots", enchant?["maxSlots"], enchant is null ? 0 : 1);
+        if (numbers.TryGetValue("enhanceMaxLevel", out var enhanceMax))
+            AddBoolean(facets, "enhanceEnabled", enhanceMax[0] > 0);
+        if (numbers.TryGetValue("enchantMaxSlots", out var enchantMax))
+            AddBoolean(facets, "enchantEnabled", enchantMax[0] > 0);
+        if (equipment["durability"] is JsonObject durability)
+            AddNumber(numbers, "durabilityMax", durability["max"]);
+    }
+
+    private static void AddBooleanDefault(Dictionary<string, IReadOnlyList<string>> facets, string key,
+        JsonNode? node, bool fallback)
+    {
+        if (node is null) AddBoolean(facets, key, fallback);
+        else if (node is JsonValue value && value.TryGetValue<bool>(out var boolean)) AddBoolean(facets, key, boolean);
+    }
+
+    private static void AddBoolean(Dictionary<string, IReadOnlyList<string>> facets, string key, bool value) =>
+        facets[key] = [value ? "true" : "false"];
+
+    private static void AddNumber(Dictionary<string, IReadOnlyList<double>> numbers, string key,
+        JsonNode? node, double? fallback = null)
+    {
+        if ((Number(node) ?? (node is null ? fallback : null)) is { } number) numbers[key] = [number];
+    }
+
+    private static double? Number(JsonNode? node) => node is JsonValue value
+        && value.GetValueKind() == System.Text.Json.JsonValueKind.Number
+        && double.TryParse(value.ToJsonString(), System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var number) && double.IsFinite(number) ? number : null;
 
     private async Task<JsonObject?> ReadObjectAsync(string path, CancellationToken token)
     {

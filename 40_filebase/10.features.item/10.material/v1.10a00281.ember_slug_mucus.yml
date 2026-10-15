@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ヒダネナメクジの粘液"
+#   progression: 44
+schemaVersion: 1
+id: 10a00281
+category: material
+name: ヒダネナメクジの粘液
+icon: SLIME_BALL
+rarity: COMMON
+saleValue: 700
+maxStack: 64
+lore:
+- '&7ヒダネナメクジから得られる熱を帯びた粘液。'
+- '&7商人に売却できる。'
+unTradeable: false
+unSellable: false

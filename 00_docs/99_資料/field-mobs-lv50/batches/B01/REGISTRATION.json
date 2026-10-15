@@ -1,0 +1,116 @@
+{
+  "batch": "B01",
+  "baseCommit": "e2058ade10a682118382e70aa01c7db758ac81c6",
+  "status": "implemented_unregistered_not_runtime_verified",
+  "executors": [
+    {
+      "mobId": "field_reed_hound",
+      "skillId": "mob_field_reed_hound_grass_charge",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.ReedHoundMobSkillExecutor",
+      "source": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ReedHoundMobSkillExecutor.java",
+      "constructor": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration": "mobSkillRegistry.register(new ReedHoundMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService));",
+      "listener": "Constructor registers PluginDisableEvent listener once. No separate registration required."
+    },
+    {
+      "mobId": "field_brush_crab",
+      "skillId": "mob_field_brush_crab_side_pincer",
+      "class": "io.github.maaasu.astralRecord.feature.mob.skill.field.BrushCrabMobSkillExecutor",
+      "source": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/BrushCrabMobSkillExecutor.java",
+      "constructor": [
+        "MobService mobService",
+        "DamageService damageService",
+        "ConditionService conditionService",
+        "ParticleDisplayService particleDisplayService"
+      ],
+      "registration": "mobSkillRegistry.register(new BrushCrabMobSkillExecutor(mobService, damageService, conditionService, particleDisplayService));",
+      "listener": "Constructor registers PluginDisableEvent listener once. No separate registration required."
+    }
+  ],
+  "materials": [
+    {
+      "itemId": "10a00200",
+      "name": "草色の毛皮",
+      "mobId": "field_reed_hound",
+      "levels": [
+        22,
+        24,
+        26,
+        28
+      ],
+      "rate": 40,
+      "amount": 1,
+      "rarity": "COMMON"
+    },
+    {
+      "itemId": "10a00201",
+      "name": "ヤブガニの甲羅",
+      "mobId": "field_brush_crab",
+      "levels": [
+        22,
+        24,
+        26,
+        28
+      ],
+      "rate": 45,
+      "amount": 1,
+      "rarity": "COMMON"
+    },
+    {
+      "itemId": "10a00202",
+      "name": "つや甲羅",
+      "mobId": "field_brush_crab",
+      "levels": [
+        22,
+        24,
+        26,
+        28
+      ],
+      "rate": 6,
+      "amount": 1,
+      "rarity": "UNCOMMON"
+    }
+  ],
+  "centralRequests": {
+    "registry": "Instantiate and register both executors once during AstralRecord initialization alongside Eriva executors. Verify YAML IDs resolve after registration.",
+    "properties": [],
+    "logIds": [],
+    "messageIds": [],
+    "sharedCode": [],
+    "pomChanges": [],
+    "spawning": {
+      "habitat": "平原A。既存迷彩ゾンビ Lv22/24/26/28 と共存。",
+      "confirmedReferences": [
+        "40_filebase/40.features.mob/enemy/v1.eriva_camouflage_zombie.yml",
+        "40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv22_spawner.yml",
+        "40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv24_spawner.yml",
+        "40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv26_spawner.yml",
+        "40_filebase/41.features.mob.spawner/v1.eriva_camouflage_zombie_lv28_spawner.yml"
+      ],
+      "worldAndCoordinatesVerified": false,
+      "status": "No spawner/world/coordinate added. Integration owner must confirm world and actual placement.",
+      "suggestion": "Mix both species into the existing plains encounter density; initial static definitions do not authorize additional density."
+    },
+    "materialUse": "売却はsaleValueにより既存経路で成立。装備レシピ・超越素材用途は装備担当に委譲。"
+  },
+  "integrationValidation": [
+    "Check registered skill IDs for all level profiles and defaultTiming/empty params.",
+    "Run Plugin Maven test/build serially after central registration; no Maven/dotnet/npm build executed by B01.",
+    "Run real server/client scenarios in TEST_SCENARIOS.csv after authorization.",
+    "Confirm particle visibility, actual model, wall/cliff interruption, multiple casters and Plugin disable cleanup."
+  ],
+  "ownedFiles": [
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/ReedHoundMobSkillExecutor.java",
+    "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/skill/field/BrushCrabMobSkillExecutor.java",
+    "40_filebase/40.features.mob/enemy/v1.field_reed_hound.yml",
+    "40_filebase/40.features.mob/enemy/v1.field_brush_crab.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00200.reed_hound_pelt.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00201.brush_crab_shell.yml",
+    "40_filebase/10.features.item/10.material/v1.10a00202.brush_crab_glossy_shell.yml"
+  ]
+}

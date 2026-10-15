@@ -54,7 +54,7 @@ data class EquipmentStatRoll(
 /**
  * 装備インスタンスに付与されたエンチャント。
  */
-data class EquipmentEnchant(
+data class EquipmentEnchant @JvmOverloads constructor(
     /** エンチャントレコード ID（UUID） */
     val enchantId: String,
     /** 対象装備インスタンス ID（UUID） */
@@ -71,6 +71,8 @@ data class EquipmentEnchant(
     val type: String,
     /** 確定した付与値 */
     val value: Double,
+    /** 固定済み。未指定の旧個体は未固定として扱う */
+    val isLocked: Boolean = false,
 )
 
 /**

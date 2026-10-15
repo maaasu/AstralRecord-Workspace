@@ -81,6 +81,36 @@ public sealed class MasterDataTests : IDisposable
         Assert.NotEqual(document.Revision, saved.Revision);
     }
 
+    [Fact]
+    public async Task SaveRoundTripPreservesEquipmentRandomUnknownKeyAndComments()
+    {
+        const string path = "test/random-equipment.yml";
+        const string original = "# item comment\nequipment:\n  stats:\n    - status: FIRE_DAMAGE_INCREASE\n      value: 5 # base\n      customNote: keep\n";
+        Write(path, original);
+        var document = await _service.ReadAsync(path, CancellationToken.None);
+        var content = _codec.Parse(path, document.Raw).Content!;
+        content["equipment"]!["stats"]![0]!["random"] = JsonNode.Parse("""{"offsetMin":-2,"offsetMax":3,"step":0.5,"zeroChance":0.2}""");
+        var rendered = _codec.Render(new(path, content, document.Raw));
+
+        var saved = await _service.SaveAsync(new(path, rendered.Raw, document.Revision), CancellationToken.None);
+        var reloaded = await _service.ReadAsync(path, CancellationToken.None);
+
+        Assert.Equal(saved.Raw, reloaded.Raw);
+        Assert.True(JsonNode.DeepEquals(content, reloaded.Content));
+        Assert.Equal("keep", reloaded.Content!["equipment"]!["stats"]![0]!["customNote"]!.GetValue<string>());
+        Assert.Contains("# item comment", reloaded.Raw);
+        Assert.Contains("# base", reloaded.Raw);
+    }
+
+    [Fact]
+    public void CodecDoesNotSilentlyTurnDecimalUnderflowIntoZero()
+    {
+        var content = _codec.Parse("test.yml", "value: 1e-100\nzero: 0e-100\n").Content!;
+
+        Assert.Equal("1e-100", content["value"]!.ToString());
+        Assert.Equal(0m, content["zero"]!.GetValue<decimal>());
+    }
+
     [Theory]
     [InlineData("65.features.dungeon/v1.ruins.yml", "id: ruins\ndisplayName: 遺跡\nname: internal\ntitle: caption\n", "遺跡")]
     [InlineData("60.features.world/v1.central.yml", "id: central\ndisplayName: 星影の街\n", "星影の街")]
@@ -189,6 +219,63 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task RuneMaxSlotsMetadataAcceptsFixedIntegerAndRandomRangeWrapper()
+    {
+        Write("10.features.item/docs.item.YAMLスキーマ定義.md", """
+            # ITEM
+            | キー | 型 | 必須 | 説明 |
+            |:--|:--|:--|:--|
+            | `name` | String | ○ | 表示名 |
+            """);
+        Write("10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md", """
+            # EQUIPMENT
+            | キー | 型 | 必須 | 説明 |
+            |:--|:--|:--|:--|
+            | `equipment[].rune` | Object | × | ルーン設定 |
+            | `equipment[].rune.maxSlots` | Integer / Object | × | 固定値またはランダム範囲 |
+            | `equipment[].rune.maxSlots.random` | String | × | 範囲文字列 |
+            """);
+        var category = await _catalog.GetAsync("10.features.item/20.equipment", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/equipment/rune/maxSlots" && field.Type == "Integer / Object");
+        Assert.Contains(category.Fields, field => field.Path == "/equipment/rune/maxSlots/random" && field.Type == "String");
+
+        const string path = "10.features.item/20.equipment/v1.20a00001.rune_slots.yml";
+        const string fixedValue = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots: 2
+            """;
+        const string randomRange = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots:
+                  random: "0~1"
+            """;
+        const string scalarRange = """
+            schemaVersion: 1
+            id: 20a00001
+            category: equipment
+            name: test
+            equipment:
+              rune:
+                maxSlots: "0~1"
+            """;
+
+        Assert.True((await _validation.ValidateAsync(path, fixedValue, CancellationToken.None)).IsValid);
+        Assert.True((await _validation.ValidateAsync(path, randomRange, CancellationToken.None)).IsValid);
+        var invalid = await _validation.ValidateAsync(path, scalarRange, CancellationToken.None);
+        Assert.Contains(invalid.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == "/equipment/rune/maxSlots");
+    }
+
+    [Fact]
     public async Task CatalogCombinesItemCommonAndSubtypeAndAdaptsHistoricalMapPaths()
     {
         Write("10.features.item/docs.item.YAMLスキーマ定義.md", "# ITEM\n| キー | 型 | 必須 | 説明 |\n|:--|:--|:--|:--|\n| `name` | String | ○ | 表示名 |\n");
@@ -232,6 +319,59 @@ public sealed class MasterDataTests : IDisposable
         Assert.Contains(unrelated.Issues, issue => issue.Code == "ORB_GOLD_EFFECT_TYPE" && issue.Path == "/orb/effect/chargeSaleValue");
         var invalidRankBasis = await _validation.ValidateAsync(path, raw.Replace("chargeSaleValue: true", "rankBasis: BEFORE", StringComparison.Ordinal), CancellationToken.None);
         Assert.Contains(invalidRankBasis.Issues, issue => issue.Code == "ORB_RANK_BASIS" && issue.Path == "/orb/effect/rankBasis");
+    }
+
+    [Fact]
+    public async Task EnchantOperationCatalogOffersCraftingOperationsAndMasterReference()
+    {
+        Write("10.features.item/40.orb/docs.orb.YAMLスキーマ定義.md", "# ORB\n## `orb.effect`\n| キー | 型 | 必須 | デフォルト | 説明 |\n|:--|:--|:--|:--|:--|\n| `enchantMasterId` | String | 条件 | Null | 候補マスタ参照 |\n| `enchantOperation` | String | 条件 | Null | エンチャント操作 |\n");
+        var category = await _catalog.GetAsync("10.features.item/40.orb", CancellationToken.None);
+        var operation = Assert.Single(category.Fields, field => field.Path == "/orb/effect/enchantOperation");
+        Assert.Equal("エンチャント操作", operation.Label);
+        Assert.Equal(["OVERWRITE_RANDOM", "FILL_ONE_EMPTY", "FILL_ALL_EMPTY", "REROLL_VALUE_RANDOM", "REMOVE_RANDOM", "LOCK_FIRST"],
+            operation.Enum!.Select(value => value!.ToString()).ToArray());
+        var master = Assert.Single(category.Fields, field => field.Path == "/orb/effect/enchantMasterId");
+        Assert.Equal("enchant", master.Reference);
+        Assert.False(master.Required);
+    }
+
+    [Theory]
+    [InlineData("FILL_ONE_EMPTY", true)]
+    [InlineData("FILL_ALL_EMPTY", true)]
+    [InlineData("OVERWRITE_RANDOM", true)]
+    [InlineData("REROLL_VALUE_RANDOM", true)]
+    [InlineData("REMOVE_RANDOM", false)]
+    [InlineData("LOCK_FIRST", false)]
+    public async Task EnchantOperationsRequireMasterOnlyForValueGeneration(string operation, bool masterRequired)
+    {
+        const string path = "10.features.item/40.orb/v1.40a00032.stein_orb.yml";
+        var raw = "schemaVersion: 1\nid: 40a00032\ncategory: orb\norb:\n  effect:\n    type: ENCHANT\n    enchantOperation: " + operation + "\n";
+        var report = await _validation.ValidateAsync(path, raw, CancellationToken.None);
+        Assert.Equal(!masterRequired, report.IsValid);
+        Assert.Equal(masterRequired, report.Issues.Any(issue => issue.Code == "ORB_ENCHANT_MASTER"));
+
+        var withMaster = raw + "    enchantMasterId: enchant:enchant002\n";
+        Write("12.features.enchant/v1.enchant002.yml", "schemaVersion: 1\nid: enchant002\n");
+        Write("config.yml", "referenceResolver:\n  - prefix: 'enchant:'\n    database: enchant\n");
+        Assert.True((await _validation.ValidateAsync(path, withMaster, CancellationToken.None)).IsValid);
+        var document = await _service.CreateAsync(new(path, withMaster), CancellationToken.None);
+        var saved = await _service.SaveAsync(new(document.Path, document.Raw + "# preserved\n", document.Revision), CancellationToken.None);
+        Assert.Equal(operation, saved.Content!["orb"]!["effect"]!["enchantOperation"]!.ToString());
+        Assert.Equal("enchant:enchant002", saved.Content["orb"]!["effect"]!["enchantMasterId"]!.ToString());
+    }
+
+    [Fact]
+    public async Task EnchantValidationRejectsUnknownOperationAndBrokenMasterReference()
+    {
+        const string path = "10.features.item/40.orb/v1.40a00032.stein_orb.yml";
+        const string raw = "schemaVersion: 1\nid: 40a00032\ncategory: orb\norb:\n  effect:\n    type: ENCHANT\n    enchantOperation: REROLL_VALUE_RANDOM\n    enchantMasterId: enchant:missing\n";
+        Write("config.yml", "referenceResolver:\n  - prefix: 'enchant:'\n    database: enchant\n");
+        var missing = await _validation.ValidateAsync(path, raw, CancellationToken.None);
+        Assert.Contains(missing.Issues, issue => issue.Code == "REFERENCE_NOT_FOUND");
+        var unknown = await _validation.ValidateAsync(path, raw.Replace("REROLL_VALUE_RANDOM", "REROLL_UNKNOWN", StringComparison.Ordinal), CancellationToken.None);
+        Assert.Contains(unknown.Issues, issue => issue.Code == "ORB_ENCHANT_OPERATION");
+        var malformed = await _validation.ValidateAsync(path, raw.Replace("enchant:missing", "item:40a00001", StringComparison.Ordinal), CancellationToken.None);
+        Assert.Contains(malformed.Issues, issue => issue.Code == "ORB_ENCHANT_MASTER");
     }
 
     [Fact]

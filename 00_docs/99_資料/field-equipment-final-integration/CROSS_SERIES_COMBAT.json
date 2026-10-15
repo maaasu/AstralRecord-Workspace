@@ -1,0 +1,245 @@
+{
+  "model": "固定したLv25仮想残差・同じ敵・剣+近接4防具、実YAMLの期待値、無属性",
+  "residual": {
+    "attack": 1145.8775510204082,
+    "primary": 42.8,
+    "defense": 1690,
+    "hp": 5610
+  },
+  "mob": {
+    "hp": 13000,
+    "attack": 2355,
+    "defense": 2264
+  },
+  "baseline": {
+    "eriva": {
+      "0": {
+        "R": 1784.727383,
+        "D": 1835.0,
+        "HP": 6010.0,
+        "normalHit": 887.639239,
+        "TTK": 9.949449,
+        "survival": 6.944742,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 1949.405036,
+        "D": 1980.0,
+        "HP": 6010.0,
+        "normalHit": 1085.769793,
+        "TTK": 8.13388,
+        "survival": 7.296725,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2145.177689,
+        "D": 2055.0,
+        "HP": 6310.0,
+        "normalHit": 1324.96249,
+        "TTK": 6.665488,
+        "survival": 7.865092,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    },
+    "lapis": {
+      "0": {
+        "R": 2046.266449,
+        "D": 2040.0,
+        "HP": 6170.0,
+        "normalHit": 1203.692693,
+        "TTK": 7.337024,
+        "survival": 7.649933,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 2115.926449,
+        "D": 2160.0,
+        "HP": 6170.0,
+        "normalHit": 1289.017717,
+        "TTK": 6.851358,
+        "survival": 7.986015,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2162.366449,
+        "D": 2235.0,
+        "HP": 6170.0,
+        "normalHit": 1346.114441,
+        "TTK": 6.560751,
+        "survival": 8.209339,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    },
+    "lumina": {
+      "0": {
+        "R": 2091.52,
+        "D": 2070.0,
+        "HP": 6500.0,
+        "normalHit": 1259.077355,
+        "TTK": 7.01428,
+        "survival": 8.145145,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 2185.6,
+        "D": 2190.0,
+        "HP": 6500.0,
+        "normalHit": 1374.738812,
+        "TTK": 6.424145,
+        "survival": 8.505902,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2232.64,
+        "D": 2265.0,
+        "HP": 6500.0,
+        "normalHit": 1432.8073,
+        "TTK": 6.163789,
+        "survival": 8.745742,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    },
+    "astra": {
+      "0": {
+        "R": 2248.413551,
+        "D": 2220.0,
+        "HP": 6730.0,
+        "normalHit": 1452.311594,
+        "TTK": 6.08101,
+        "survival": 8.904775,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "15": {
+        "R": 2319.873551,
+        "D": 2340.0,
+        "HP": 6730.0,
+        "normalHit": 1540.865088,
+        "TTK": 5.731535,
+        "survival": 9.315953,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      },
+      "30": {
+        "R": 2391.333551,
+        "D": 2415.0,
+        "HP": 6730.0,
+        "normalHit": 1629.70927,
+        "TTK": 5.419078,
+        "survival": 9.590023,
+        "hitRate": 0.92,
+        "criticalFactor": 1
+      }
+    }
+  },
+  "optimized": {
+    "eriva": {
+      "R": 3160.591347,
+      "D": 2086.0,
+      "HP": 6310.0,
+      "normalHit": 2858.569375,
+      "TTK": 3.006803,
+      "survival": 7.952247,
+      "hitRate": 0.92,
+      "criticalFactor": 1.0275,
+      "armorStrength": 36,
+      "armorNone": 10,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar"
+      ],
+      "weaponCombinationCount": 25,
+      "maximumRInSearch": 3350.416653,
+      "maximumRWeaponEffects": [
+        "weapon_melee_attack_scalar"
+      ]
+    },
+    "lapis": {
+      "R": 3246.648424,
+      "D": 2256.0,
+      "HP": 6170.0,
+      "normalHit": 4928.721389,
+      "TTK": 1.921236,
+      "survival": 8.273822,
+      "hitRate": 0.92,
+      "criticalFactor": 1.0275,
+      "armorStrength": 48,
+      "armorNone": 40,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_normal_attack_damage_increase_flat"
+      ],
+      "weaponCombinationCount": 300,
+      "maximumRInSearch": 3436.881731,
+      "maximumRWeaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ]
+    },
+    "lumina": {
+      "R": 3573.392482,
+      "D": 2281.0,
+      "HP": 6500.0,
+      "normalHit": 6076.696378,
+      "TTK": 1.558287,
+      "survival": 8.798431,
+      "hitRate": 0.92,
+      "criticalFactor": 1.0275,
+      "armorStrength": 48,
+      "armorNone": 49.6,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat",
+        "weapon_normal_attack_damage_increase_flat"
+      ],
+      "weaponCombinationCount": 2300,
+      "maximumRInSearch": 3751.933282,
+      "maximumRWeaponEffects": [
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ]
+    },
+    "astra": {
+      "R": 3694.669127,
+      "D": 2428.0,
+      "HP": 6730.0,
+      "normalHit": 6378.115683,
+      "TTK": 1.259992,
+      "survival": 9.638955,
+      "hitRate": 0.92,
+      "criticalFactor": 1.2107,
+      "armorStrength": 48,
+      "armorNone": 49.6,
+      "weaponEffects": [
+        "weapon_melee_attack_scalar",
+        "weapon_critical_rate_flat",
+        "weapon_critical_damage_flat",
+        "weapon_normal_attack_damage_increase_flat"
+      ],
+      "weaponCombinationCount": 12650,
+      "maximumRInSearch": 4140.171233,
+      "maximumRWeaponEffects": [
+        "weapon_attack_flat",
+        "weapon_melee_attack_flat",
+        "weapon_melee_attack_scalar",
+        "weapon_strength_flat"
+      ]
+    }
+  },
+  "assumptions": "無刻印基準:会心なし/命中92%/最終1.3/skill込み係数1.6。極値:上級刻印の非重複effect組合せ/基礎会心5.5%・会心倍率150%/通常60%・skill40%/ルーンATTACK5。",
+  "limits": [
+    "旧エリヴァの二重min/max区間の平均中心と新規保存scalarの分布は異なる。",
+    "3属性は別属性で無属性に足さない。",
+    "全職・全アクセサリ・攻撃劣化・shield・操作時間・実入手量・100戦は未確認。",
+    "極値は指定刻印候補と構成内の探索結果で、全ビルドの上限保証ではない。"
+  ]
+}

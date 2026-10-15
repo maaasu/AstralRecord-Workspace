@@ -19,6 +19,21 @@
   line-height: 1.5;
 }
 
+.master-value-label {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.master-field-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .master-line-preview,
 .master-scalar-preview {
   display: grid;

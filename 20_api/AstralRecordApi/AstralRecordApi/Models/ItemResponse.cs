@@ -185,6 +185,19 @@ public class ItemEquipmentStatResponse
     public string? Type { get; init; }
 
     public ItemEquipmentStatValueResponse? Value { get; init; }
+
+    public ItemEquipmentStatRandomResponse? Random { get; init; }
+}
+
+public class ItemEquipmentStatRandomResponse
+{
+    public double OffsetMin { get; init; }
+
+    public double OffsetMax { get; init; }
+
+    public double Step { get; init; }
+
+    public double ZeroChance { get; init; }
 }
 
 public class ItemEquipmentStatValueResponse

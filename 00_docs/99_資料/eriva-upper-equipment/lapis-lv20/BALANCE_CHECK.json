@@ -1,0 +1,226 @@
+{
+  "note": "YAML-derived armor totals and synthetic combat sensitivity at +0/+15/+30; no enchant/rune/class/buff. Old range uses expected endpoint center.",
+  "comparison": [
+    {
+      "enhanceLevel": 0,
+      "stats": {
+        "eriva_bastion": {
+          "DEFENSE": 145.0,
+          "MAX_HEALTH": 400.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 8.0
+        },
+        "lapis_bastion": {
+          "DEFENSE": 350.0,
+          "MAX_HEALTH": 560.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 10.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 15,
+      "stats": {
+        "eriva_bastion": {
+          "DEFENSE": 290.0,
+          "MAX_HEALTH": 400.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 8.0
+        },
+        "lapis_bastion": {
+          "DEFENSE": 470.0,
+          "MAX_HEALTH": 560.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 10.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 30,
+      "stats": {
+        "eriva_bastion": {
+          "DEFENSE": 365.0,
+          "MAX_HEALTH": 700.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 8.0
+        },
+        "lapis_bastion": {
+          "DEFENSE": 545.0,
+          "MAX_HEALTH": 560.0,
+          "KNOCKBACK_RESISTANCE": 20.0,
+          "HP_REGEN": 10.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 0,
+      "stats": {
+        "eriva_stride": {
+          "DEFENSE": 128.0,
+          "MAX_ENERGY": 75.0,
+          "ENERGY_REGEN": 5.0
+        },
+        "lapis_stride": {
+          "DEFENSE": 310.0,
+          "MAX_ENERGY": 115.0,
+          "ENERGY_REGEN": 5.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 15,
+      "stats": {
+        "eriva_stride": {
+          "DEFENSE": 273.0,
+          "MAX_ENERGY": 75.0,
+          "ENERGY_REGEN": 5.0
+        },
+        "lapis_stride": {
+          "DEFENSE": 430.0,
+          "MAX_ENERGY": 115.0,
+          "ENERGY_REGEN": 5.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 30,
+      "stats": {
+        "eriva_stride": {
+          "DEFENSE": 348.0,
+          "MAX_ENERGY": 105.0,
+          "ENERGY_REGEN": 5.0
+        },
+        "lapis_stride": {
+          "DEFENSE": 505.0,
+          "MAX_ENERGY": 115.0,
+          "ENERGY_REGEN": 5.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 0,
+      "stats": {
+        "eriva_arcana": {
+          "DEFENSE": 119.0,
+          "MAX_MANA": 120.0,
+          "MP_REGEN": 10.0
+        },
+        "lapis_arcana": {
+          "DEFENSE": 289.0,
+          "MAX_MANA": 180.0,
+          "MP_REGEN": 11.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 15,
+      "stats": {
+        "eriva_arcana": {
+          "DEFENSE": 264.0,
+          "MAX_MANA": 120.0,
+          "MP_REGEN": 10.0
+        },
+        "lapis_arcana": {
+          "DEFENSE": 409.0,
+          "MAX_MANA": 180.0,
+          "MP_REGEN": 11.0
+        }
+      }
+    },
+    {
+      "enhanceLevel": 30,
+      "stats": {
+        "eriva_arcana": {
+          "DEFENSE": 369.0,
+          "MAX_MANA": 195.0,
+          "MP_REGEN": 10.0
+        },
+        "lapis_arcana": {
+          "DEFENSE": 484.0,
+          "MAX_MANA": 180.0,
+          "MP_REGEN": 11.0
+        }
+      }
+    }
+  ],
+  "combatReference": {
+    "model": "Lv25 fixed non-equipment residual and standard enemy; not a verified player build or actual combat TTK",
+    "fixedNonEquipment": {
+      "attack": 1145.8775510204082,
+      "strength": 42.8,
+      "defense": 1690,
+      "hp": 5610
+    },
+    "enemy": {
+      "level": 25,
+      "hp": 13000,
+      "attack": 2355,
+      "defense": 2264
+    },
+    "assumptions": {
+      "playerHit": 0.92,
+      "enemyHit": 0.915,
+      "playerIntervalSeconds": 1,
+      "enemyIntervalSeconds": 1.5,
+      "playerFinalMultiplier": 1.3,
+      "mixedDpsFactor": 1.6,
+      "critical": false
+    },
+    "cases": [
+      {
+        "series": "eriva",
+        "enhanceLevel": 0,
+        "R": 1784.727383,
+        "D": 1835.0,
+        "HP": 6010.0,
+        "TTK": 9.949449,
+        "survival": 6.944742
+      },
+      {
+        "series": "eriva",
+        "enhanceLevel": 15,
+        "R": 1949.405036,
+        "D": 1980.0,
+        "HP": 6010.0,
+        "TTK": 8.13388,
+        "survival": 7.296725
+      },
+      {
+        "series": "eriva",
+        "enhanceLevel": 30,
+        "R": 2145.177689,
+        "D": 2055.0,
+        "HP": 6310.0,
+        "TTK": 6.665488,
+        "survival": 7.865092
+      },
+      {
+        "series": "lapis",
+        "enhanceLevel": 0,
+        "R": 2046.266449,
+        "D": 2040.0,
+        "HP": 6170.0,
+        "TTK": 7.337024,
+        "survival": 7.649933
+      },
+      {
+        "series": "lapis",
+        "enhanceLevel": 15,
+        "R": 2115.926449,
+        "D": 2160.0,
+        "HP": 6170.0,
+        "TTK": 6.851358,
+        "survival": 7.986015
+      },
+      {
+        "series": "lapis",
+        "enhanceLevel": 30,
+        "R": 2162.366449,
+        "D": 2235.0,
+        "HP": 6170.0,
+        "TTK": 6.560751,
+        "survival": 8.209339
+      }
+    ]
+  }
+}
