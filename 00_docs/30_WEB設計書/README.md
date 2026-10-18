@@ -17,6 +17,10 @@ AstralRecord Web (`30_web/AstralRecordWeb`) の画面、認証、画面遷移を
 
 API 契約は `00_docs/20_API設計書`、DB 定義は `00_docs/40_Database設計書` を正として参照します。
 
+## 独立した管理Web
+
+[AstralRecordControl 設計書](AstralRecordControl/README.md) は、管理Webと各PCのAgent/RunnerによるMinecraft運用管理の採用済み・未実装設計です。Devを開発PC、チャンネルをMC用PCに配置し、Craftyに依存しません。既存AstralRecordWebとは別アプリ・別認証として、通信、保存モデル、運用、段階別の実装/受入条件を定義します。
+
 ## ホームのサーバー状況
 
 参加情報と同じ `PublicSite:JavaServerAddress` / `JavaServerPort` へJava Edition Server List Pingを送り、公開中・参加人数・定員・最終確認時刻を表示する。接続拒否は閉鎖中、DNS/タイムアウト/不正応答など確認不能は別表示とし人数は「—」。ホーム初期表示でも取得し、表示中は30秒ごとに更新、サーバー側は15秒キャッシュを共有する。接続先はWebの要求パラメーターから変更できない。
