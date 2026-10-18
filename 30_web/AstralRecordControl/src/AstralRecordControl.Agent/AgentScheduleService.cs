@@ -114,6 +114,19 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
 
     private async Task ProcessAsync(ScheduleDefinition definition, ScheduleOccurrenceReport report, CancellationToken cancellationToken)
     {
+        if (report.Status == ScheduleOccurrenceStatus.Pending && report.Fence is null &&
+            report.AppliedInventoryRevision != store.GetState().AppliedInventoryRevision)
+        {
+            var existingHold = (await runner.GetSnapshotAsync(cancellationToken)).Holds.SingleOrDefault(h => h.ReservationId == report.ReservationId);
+            if (existingHold is null)
+            {
+                store.SaveScheduleReport(report with { Status = ScheduleOccurrenceStatus.Skipped, ErrorCode = "StaleRevision", UpdatedAtUtc = clock.GetUtcNow() });
+                return;
+            }
+            if (existingHold.OwnerWorkflowId != report.WorkflowId) throw new AgentFault(ErrorCode.RecoveryRequired);
+            report = store.SaveScheduleReport(report with { Status = ScheduleOccurrenceStatus.Running,
+                Fence = existingHold.Fence, ReservedResourceKeys = existingHold.ResourceKeys, UpdatedAtUtc = clock.GetUtcNow() });
+        }
         if (report.Status == ScheduleOccurrenceStatus.Pending && clock.GetUtcNow() - report.ScheduledAtUtc > TimeSpan.FromSeconds(60) && !report.Manual)
         {
             store.SaveScheduleReport(report with { Status = ScheduleOccurrenceStatus.Skipped, ErrorCode = "DeadlineExpired", UpdatedAtUtc = clock.GetUtcNow() });

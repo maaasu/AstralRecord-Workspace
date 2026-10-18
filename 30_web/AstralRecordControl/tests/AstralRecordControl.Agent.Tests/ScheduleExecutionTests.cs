@@ -58,6 +58,29 @@ public sealed class ScheduleExecutionTests
     }
 
     [Fact]
+    public async Task UnacknowledgedInventoryChangeDoesNotStartPreviouslyClaimedOccurrence()
+    {
+        using var fixture = new Fixture();
+        var at = fixture.Clock.GetUtcNow();
+        var original = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = at });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, original); store.MarkScheduleInventoryAcknowledged(1);
+        var operationId = ScheduleIdentity.Occurrence(original.ScheduleId, 1, at);
+        store.ClaimScheduleOccurrence(original, new ScheduleOccurrenceReport
+        {
+            ScheduleId = original.ScheduleId, HostId = original.HostId, ServerId = original.ServerId!.Value, Revision = 1,
+            ScheduledAtUtc = at, OperationId = operationId, WorkflowId = ScheduleIdentity.Uuid5(operationId, "workflow"),
+            ReservationId = ScheduleIdentity.Uuid5(operationId, "reservation"), AppliedInventoryRevision = 1,
+            DefinitionSha256 = ControlProtocol.Hash(ControlJson.Serialize(original)), Status = ScheduleOccurrenceStatus.Pending,
+            UpdatedAtUtc = at
+        });
+        fixture.Apply(store, 2, original with { Revision = 2, Enabled = false });
+        await fixture.Service(store).TickAsync();
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.Equal(ScheduleOccurrenceStatus.Skipped, Assert.Single(store.ReadScheduleReports()).Report.Status);
+    }
+
+    [Fact]
     public async Task CentralHoldConflictSkipsWithoutStartingAndFailedStepStopsChain()
     {
         using var fixture = new Fixture();
