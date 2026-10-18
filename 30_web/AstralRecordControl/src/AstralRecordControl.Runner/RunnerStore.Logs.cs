@@ -8,6 +8,7 @@ public sealed partial class RunnerStore
     private const long MaxLogSegmentBytes = 100L * 1024 * 1024;
     private const int MaxLogLineBytes = 64 * 1024;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
+    private DateTimeOffset lastLogPruneUtc = DateTimeOffset.MinValue;
 
     public LogBatch ReadLogs(ReadLogsRequest query)
     {
@@ -22,7 +23,7 @@ public sealed partial class RunnerStore
             }
             if (sessionId is null) return new LogBatch { ServerId = query.ServerId };
             if (Scalar("SELECT 1 FROM ServerSessions WHERE serverId=$server AND sessionId=$session;", null, ("$server", query.ServerId.ToString()), ("$session", sessionId.Value.ToString())) is null) throw new RunnerFault(ErrorCode.StateConflict);
-            var earliest = Convert.ToInt64(Scalar("SELECT COALESCE(MIN(sequence),0) FROM LogLines WHERE serverId=$server AND sessionId=$session;", null, ("$server", query.ServerId.ToString()), ("$session", sessionId.Value.ToString())));
+            var earliest = Convert.ToInt64(Scalar("SELECT COALESCE((SELECT MIN(sequence) FROM LogLines WHERE serverId=$server AND sessionId=$session),(SELECT nextSequence FROM LogCursors WHERE serverId=$server AND sessionId=$session),0);", null, ("$server", query.ServerId.ToString()), ("$session", sessionId.Value.ToString())));
             var gap = earliest > 0 && query.AfterSequence < earliest - 1;
             var after = gap ? earliest - 1 : query.AfterSequence;
             var rows = new List<LogRow>();
@@ -85,10 +86,15 @@ public sealed partial class RunnerStore
         var bytes = StrictUtf8.GetBytes(text);
         lock (sync)
         {
-            var nextSequence = Convert.ToInt64(Scalar("SELECT COALESCE(MAX(sequence),0)+1 FROM LogLines WHERE serverId=$server AND sessionId=$session;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString())));
+            Execute("INSERT INTO LogCursors VALUES($server,$session,1,0) ON CONFLICT DO NOTHING;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()));
+            var nextSequence = Convert.ToInt64(Scalar("SELECT nextSequence FROM LogCursors WHERE serverId=$server AND sessionId=$session;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString())));
             var segmentId = Convert.ToInt64(Scalar("SELECT COALESCE(MAX(segmentId),0) FROM LogSegments WHERE serverId=$server AND sessionId=$session;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString())));
             var existingBytes = segmentId == 0 ? 0 : Convert.ToInt64(Scalar("SELECT bytes FROM LogSegments WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$segment", segmentId)));
-            if (segmentId == 0 || existingBytes + bytes.Length > MaxLogSegmentBytes) { segmentId++; existingBytes = 0; }
+            if (segmentId == 0 || existingBytes + bytes.Length > MaxLogSegmentBytes)
+            {
+                segmentId = Convert.ToInt64(Scalar("SELECT currentSegment+1 FROM LogCursors WHERE serverId=$server AND sessionId=$session;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString())));
+                existingBytes = 0;
+            }
             var directory = Path.Combine(dataRoot, "logs", serverId.ToString(), sessionId.ToString());
             Directory.CreateDirectory(directory);
             LocalResourceBoundary.ValidateLocalPath(directory);
@@ -105,7 +111,37 @@ public sealed partial class RunnerStore
                 ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$segment", segmentId), ("$path", path), ("$seq", nextSequence), ("$bytes", existingBytes + bytes.Length), ("$utc", clock.GetUtcNow().ToString("O")));
             Execute("INSERT INTO LogLines VALUES($server,$session,$seq,$segment,$offset,$bytes,$stream,$truncated,$utc);", transaction,
                 ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$seq", nextSequence), ("$segment", segmentId), ("$offset", existingBytes), ("$bytes", bytes.Length), ("$stream", stream), ("$truncated", truncated ? 1 : 0), ("$utc", clock.GetUtcNow().ToString("O")));
+            Execute("UPDATE LogCursors SET nextSequence=$next,currentSegment=$segment WHERE serverId=$server AND sessionId=$session;", transaction,
+                ("$next", checked(nextSequence + 1)), ("$segment", segmentId), ("$server", serverId.ToString()), ("$session", sessionId.ToString()));
             transaction.Commit();
+        }
+    }
+
+    public void PruneLogs(bool force = false)
+    {
+        lock (sync)
+        {
+            var now = clock.GetUtcNow();
+            if (!force && now - lastLogPruneUtc < TimeSpan.FromMinutes(30)) return;
+            lastLogPruneUtc = now;
+            var candidates = new List<(string Server, string Session, long Segment, string Path)>();
+            using (var command = Command("SELECT g.serverId,g.sessionId,g.segmentId,g.path,s.config,MAX(l.createdUtc) FROM LogSegments g JOIN Servers s ON s.id=g.serverId JOIN LogLines l ON l.serverId=g.serverId AND l.sessionId=g.sessionId AND l.segmentId=g.segmentId WHERE NOT(s.currentSessionId=g.sessionId AND s.processState<>'Stopped' AND g.segmentId=(SELECT MAX(x.segmentId) FROM LogSegments x WHERE x.serverId=g.serverId AND x.sessionId=g.sessionId)) GROUP BY g.serverId,g.sessionId,g.segmentId;"))
+            using (var reader = command.ExecuteReader())
+                while (reader.Read())
+                {
+                    var config = ControlJson.Deserialize<ServerConfig>(reader.GetString(4));
+                    if (DateTimeOffset.Parse(reader.GetString(5)) < now.AddDays(-config.LogRetentionDays)) candidates.Add((reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(3)));
+                }
+            foreach (var item in candidates)
+            {
+                LocalResourceBoundary.ValidateLocalPath(item.Path);
+                // Delete both indexes in one commit. A leftover file can be retried on the next prune.
+                File.Delete(item.Path);
+                using var transaction = database.BeginTransaction();
+                Execute("DELETE FROM LogLines WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", transaction, ("$server", item.Server), ("$session", item.Session), ("$segment", item.Segment));
+                Execute("DELETE FROM LogSegments WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", transaction, ("$server", item.Server), ("$session", item.Session), ("$segment", item.Segment));
+                transaction.Commit();
+            }
         }
     }
 }

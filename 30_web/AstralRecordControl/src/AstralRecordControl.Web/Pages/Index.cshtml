@@ -2,7 +2,7 @@
 @model AstralRecordControl.Web.Pages.IndexModel
 @{ ViewData["Title"] = "概要"; }
 <h1>Control 概要</h1>
-<p>P0: 台帳と接続確認。ゲーム操作は利用できません。</p>
+<p>PCの接続とサーバー状態を確認できます。基本運転はサーバー台帳から選択してください。</p>
 <p>取得時刻: <time>@Model.ObservedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-dd HH:mm:ss zzz")</time>。画面の再読込で最新状態を取得します。</p>
 <table>
     <thead><tr><th>Host</th><th>接続</th><th>希望 / 適用 inventory</th><th>最終受信 (UTC)</th><th>要確認</th></tr></thead>

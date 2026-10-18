@@ -107,7 +107,7 @@ public sealed partial class RunnerStore : IDisposable
                     Execute("UPDATE Servers SET desiredState='AutoStartPending',nextAutoStartUtc=$next WHERE id=$id AND processState='Stopped' AND recoveryRequired=0;", transaction,
                         ("$next", clock.GetUtcNow().AddSeconds(server.StartDelaySeconds).ToString("O")), ("$id", server.ServerId.ToString()));
             }
-            // Removal is safe in P0 because every definition remains stopped and has no Session.
+            // A definition can be removed only after its process and holds are settled.
             var keep = inventory.Servers.Select(s => s.ServerId.ToString()).ToHashSet(StringComparer.Ordinal);
             var existing = new List<string>();
             using (var command = Command("SELECT id FROM Servers;", transaction))

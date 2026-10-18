@@ -43,6 +43,7 @@ public sealed record ExecutionSnapshot
     public string? ErrorCode { get; init; }
     public JsonElement Result { get; init; } = ControlJson.Element(new { });
     public DateTimeOffset UpdatedAtUtc { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool IsTerminal => Status is OperationStatus.Succeeded or OperationStatus.Failed or OperationStatus.Rejected or OperationStatus.Expired or OperationStatus.Cancelled;
 }
 

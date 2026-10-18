@@ -9,11 +9,12 @@
 <body>
     <header>
         <a class="brand" href="/">AstralRecordControl</a>
-        <span class="badge">P0 · 台帳と接続確認</span>
+        <span class="badge">P1 · 基本運転</span>
         @if (User.Identity?.IsAuthenticated == true)
         {
             <nav aria-label="管理メニュー">
                 <a href="/">概要</a><a href="/Hosts">PC台帳</a><a href="/Servers">サーバー台帳</a>
+                <a href="/Workflows">運転・保守履歴</a>
                 <a href="/Security">認証設定</a><a href="/Logout">ログアウト</a>
             </nav>
         }
@@ -21,7 +22,7 @@
     <main id="main">
         @RenderBody()
     </main>
-    <footer>Minecraftの操作はP1以降で利用できます。接続が切れたPCの状態は最終確認時点の情報です。</footer>
+    <footer>接続が切れたPCの状態は最終確認時点の情報です。操作結果が不明な場合は保守履歴を確認してください。</footer>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

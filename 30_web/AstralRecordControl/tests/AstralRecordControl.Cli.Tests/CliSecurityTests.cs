@@ -40,4 +40,11 @@ public sealed class CliSecurityTests
         Assert.Throws<ArgumentException>(() => ControlCli.ParseOptions(["--lease-file"]));
         Assert.Throws<ArgumentException>(() => ControlCli.ParseOptions(["lease-file", "one"]));
     }
+    [Fact]
+    public void GateSessionMustMatchConfiguredControlOrigin()
+    {
+        ControlCli.ValidateExpectedOrigin("https://CONTROL.example:443", "https://control.example/");
+        Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateExpectedOrigin("https://control.example/", "https://another.example/"));
+        Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateExpectedOrigin("https://control.example:8443/", "https://control.example/"));
+    }
 }

@@ -24,7 +24,7 @@ using Xunit;
 
 namespace AstralRecordControl.Integration.Tests;
 
-public sealed class LiveTransportTests
+public sealed partial class LiveTransportTests
 {
     [Theory]
     [InlineData(HttpTransportType.WebSockets)]
@@ -185,7 +185,7 @@ public sealed class LiveTransportTests
         private LiveFixture(WebApplication app, string root, Uri origin, string thumbprint, HostResources resources)
         { this.app = app; Root = root; Origin = origin; this.thumbprint = thumbprint; Resources = resources; }
 
-        public static async Task<LiveFixture> StartAsync()
+        public static async Task<LiveFixture> StartAsync(bool enableProcessControl = false)
         {
             var root = Path.Combine(Path.GetTempPath(), "control-live-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -204,11 +204,16 @@ public sealed class LiveTransportTests
             var app = ControlApplication.Build([
                 "--environment=Testing", "--applicationName=AstralRecordControl.Web", "--contentRoot=" + contentRoot,
                 "--urls=https://127.0.0.1:" + port, "--Control:DataRoot=" + Path.Combine(root, "Web"), "--Control:PublicOrigin=" + origin.GetLeftPart(UriPartial.Authority),
+                "--Control:EnableProcessControl=" + enableProcessControl,
                 "--Kestrel:Certificates:Default:Path=" + certificatePath, "--Kestrel:Certificates:Default:Password=" + certificatePassword,
                 "--Logging:LogLevel:Default=Warning", "--Logging:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics=Error"
             ]);
             var managedRoot = Path.Combine(root, "managed"); Directory.CreateDirectory(Path.Combine(managedRoot, "dev"));
-            var executable = Path.Combine(root, "fixture-java.exe"); await File.WriteAllTextAsync(executable, "fixture only; never executed");
+            var executable = enableProcessControl ? Environment.ProcessPath! : Path.Combine(root, "fixture-java.exe");
+            if (enableProcessControl)
+                executable = Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "../../..", "dotnet.exe");
+            else await File.WriteAllTextAsync(executable, "fixture only; never executed");
+            executable = Path.GetFullPath(executable);
             await File.WriteAllTextAsync(Path.Combine(managedRoot, "dev", "fixture.jar"), "fixture only; never executed");
             var resources = new HostResources
             {
@@ -258,17 +263,17 @@ public sealed class LiveTransportTests
             var key = (await users.GetAuthenticatorKeyAsync((await users.FindByNameAsync("owner"))!))!;
             Assert.Equal(HttpStatusCode.OK, (await Form(owner, "/Mfa/Enroll", new() { ["Code"] = Totp(key) })).StatusCode);
         }
-        public async Task<T> OwnerApiAsync<T>(HttpClient owner, HttpMethod method, string path, object? body, bool create = false, long? match = null)
+        public async Task<T> OwnerApiAsync<T>(HttpClient owner, HttpMethod method, string path, object? body, bool create = false, long? match = null, HttpStatusCode? expectedStatus = null, Guid? requestId = null)
         {
             var csrf = Token(await owner.GetStringAsync("/Security"));
             using var request = new HttpRequestMessage(method, path);
             request.Headers.Add("Origin", Origin.GetLeftPart(UriPartial.Authority));
             request.Headers.Add("X-CSRF-TOKEN", csrf);
-            if (create) { request.Headers.Add("If-None-Match", "*"); request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString()); }
+            if (create) { request.Headers.Add("If-None-Match", "*"); request.Headers.Add("Idempotency-Key", (requestId ?? Guid.NewGuid()).ToString()); }
             if (match.HasValue) request.Headers.Add("If-Match", $"\"{match}\"");
             if (body is not null) request.Content = new StringContent(JsonSerializer.Serialize(body, body.GetType(), ControlJson.CreateOptions()), Encoding.UTF8, "application/json");
             using var response = await owner.SendAsync(request);
-            var expected = method == HttpMethod.Post ? HttpStatusCode.Created : method == HttpMethod.Delete ? HttpStatusCode.NoContent : HttpStatusCode.OK;
+            var expected = expectedStatus ?? (method == HttpMethod.Post ? HttpStatusCode.Created : method == HttpMethod.Delete ? HttpStatusCode.NoContent : HttpStatusCode.OK);
             Assert.True(expected == response.StatusCode, $"{method} {path}: expected {expected}, received {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
             return response.StatusCode == HttpStatusCode.NoContent ? default! : ControlJson.Deserialize<T>(await response.Content.ReadAsStringAsync());
         }

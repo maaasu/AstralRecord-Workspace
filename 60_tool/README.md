@@ -2,7 +2,7 @@
 
 番号付きの実行入口BATはこのディレクトリ直下、複数ファイルで構成される実装や環境設定は用途別の専用ディレクトリに配置します。単一ファイルで完結する小規模なPowerShellジェネレーターだけは直下に置きます。採番したBATは、どのカレントディレクトリからでも実行できます。
 
-独立管理系AstralRecordControlのP0用publish・Windowsサービス登録・配布前検査・Web/Agent更新は [control-deploy](control-deploy/README.md) を使用します。既存01/16とは独立し、P0ではMinecraftの起動・停止を行いません。
+独立管理系AstralRecordControlのpublish・Windowsサービス登録・配布前検査・更新は [control-deploy](control-deploy/README.md) を使用します。P1の基本運転を有効化する場合は、01/02/03/16/17すべてに [共通gate](control-gate/README.md) を導入し、実行対象とControl台帳のbindingを設定します。
 
 ## 実行入口
 

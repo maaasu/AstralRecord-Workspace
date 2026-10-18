@@ -26,17 +26,17 @@ public sealed partial class RunnerStore
             SetRuntime(serverId, ProcessState.Stopping, sessionId, "Stopped");
             ChangeExecution(command.OperationId, OperationStatus.Running, ExecutionPhase.Stopping);
         }
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(config.StopTimeoutSeconds, command.ExecutionTimeoutSeconds)));
         try
         {
-            await process.StandardInput.WriteLineAsync(config.StopCommand);
-            await process.StandardInput.FlushAsync();
+            await process.StandardInput.WriteLineAsync(config.StopCommand.AsMemory(), timeout.Token);
+            await process.StandardInput.FlushAsync(timeout.Token);
         }
         catch
         {
             lock (sync) ChangeExecution(command.OperationId, OperationStatus.NeedsAttention, ExecutionPhase.Unknown, ErrorCode.RecoveryRequired);
             return;
         }
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(config.StopTimeoutSeconds, command.ExecutionTimeoutSeconds)));
         try { await process.WaitForExitAsync(timeout.Token); }
         catch (OperationCanceledException)
         {
@@ -85,7 +85,7 @@ public sealed partial class RunnerStore
             var current = CurrentSession(serverId);
             if (current == sessionId.ToString()) SetRuntime(serverId, ProcessState.Stopped, null, "Stopped");
             if (rescue)
-                Execute("UPDATE ExecutionLedger SET status='Failed',phase='Completed',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind='Stop' AND status='NeedsAttention';", null,
+                Execute("UPDATE ExecutionLedger SET status='Failed',phase='Completed',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind IN ('Stop','Restart') AND status='NeedsAttention';", null,
                     ("$server", serverId.ToString()), ("$reservation", command.ReservationId!.Value.ToString()), ("$workflow", command.WorkflowId!.Value.ToString()), ("$fence", command.ReservationFence!.Value), ("$now", clock.GetUtcNow().ToString("O")));
             ChangeExecution(command.OperationId, OperationStatus.Succeeded, ExecutionPhase.Completed);
         }
@@ -192,13 +192,32 @@ public sealed partial class RunnerStore
                 if (!process.WaitForExit(30000)) throw new RunnerFault(ErrorCode.Timeout);
                 Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code WHERE sessionId=$session;", null, ("$now", clock.GetUtcNow().ToString("O")), ("$code", process.ExitCode), ("$session", inspected.Session.ServerSessionId.ToString()));
             }
-            else if (request.Action == WorkflowRecoveryAction.AbortAfterInspection && inspected.ProcessAlive) throw new RunnerFault(ErrorCode.RecoveryRequired);
+            else if (request.Action == WorkflowRecoveryAction.AbortAfterInspection && inspected.ProcessAlive)
+            {
+                // A mismatching executable is not proof of exit; a different creation time is.
+                using var process = Process.GetProcessById(inspected.Session!.ProcessId!.Value);
+                bool pidReused;
+                try { pidReused = inspected.Session.ProcessCreatedAtUtc is DateTimeOffset created && Math.Abs((process.StartTime.ToUniversalTime() - created.UtcDateTime).TotalMilliseconds) > 1; }
+                catch (System.ComponentModel.Win32Exception) { throw new RunnerFault(ErrorCode.RecoveryRequired); }
+                var unresolved = Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention' AND kind<>'ConsoleCommand';", null, ("$server", request.ServerId.ToString())));
+                var acknowledgeConsole = inspected.IdentityMatches && ownedProcesses.ContainsKey(request.ServerId) && unresolved == 0;
+                if (!pidReused && !acknowledgeConsole) throw new RunnerFault(ErrorCode.RecoveryRequired);
+                if (acknowledgeConsole)
+                {
+                    Execute("UPDATE ExecutionLedger SET status='Failed',phase='Completed',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE serverId=$server AND status='NeedsAttention' AND kind='ConsoleCommand';", null, ("$server", request.ServerId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
+                    SetRuntime(request.ServerId, ProcessState.Running, inspected.Runtime.CurrentSessionId, "Running");
+                    AuditRecovery(request);
+                    return InspectRecovery(new(request.ServerId));
+                }
+            }
             else if (request.Action != WorkflowRecoveryAction.AbortAfterInspection) throw new RunnerFault(ErrorCode.ProtocolMismatch);
-            Execute("INSERT INTO RecoveryAudit VALUES($id,$server,$session,$action,$reason,$utc);", null,
-                ("$id", Guid.NewGuid().ToString()), ("$server", request.ServerId.ToString()), ("$session", request.ExpectedServerSessionId?.ToString() ?? (object)DBNull.Value), ("$action", request.Action.ToString()), ("$reason", request.Reason), ("$utc", clock.GetUtcNow().ToString("O")));
+            AuditRecovery(request);
             SetRuntime(request.ServerId, ProcessState.Stopped, null, "Stopped");
             Execute("UPDATE ExecutionLedger SET status='Failed',phase='Completed',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE serverId=$server AND status='NeedsAttention';", null, ("$server", request.ServerId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
             return InspectRecovery(new InspectRecoveryRequest(request.ServerId));
         }
     }
+
+    private void AuditRecovery(RunnerRecoveryRequest request) => Execute("INSERT INTO RecoveryAudit VALUES($id,$server,$session,$action,$reason,$utc);", null,
+        ("$id", Guid.NewGuid().ToString()), ("$server", request.ServerId.ToString()), ("$session", request.ExpectedServerSessionId?.ToString() ?? (object)DBNull.Value), ("$action", request.Action.ToString()), ("$reason", request.Reason), ("$utc", clock.GetUtcNow().ToString("O")));
 }

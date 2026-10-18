@@ -82,7 +82,7 @@ public sealed partial class RunnerStore
         if (hold is null || hold.OwnerWorkflowId != command.WorkflowId || hold.Fence != command.ReservationFence || !hold.ResourceKeys.Contains("server:" + serverId)) throw new RunnerFault(ErrorCode.ReservationConflict);
     }
 
-    private bool IsRescueKill(OperationCommand command) => Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind='Stop' AND status='NeedsAttention';", null,
+    private bool IsRescueKill(OperationCommand command) => Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind IN ('Stop','Restart') AND status='NeedsAttention';", null,
         ("$server", command.ServerId!.Value.ToString()), ("$reservation", command.ReservationId!.Value.ToString()), ("$workflow", command.WorkflowId!.Value.ToString()), ("$fence", command.ReservationFence!.Value))) > 0;
 
     private async Task RunOperationAsync(OperationCommand command)
@@ -130,6 +130,8 @@ public sealed partial class RunnerStore
         var terminal = OperationValidation.IsTerminal(status) || status == OperationStatus.NeedsAttention;
         Execute("UPDATE ExecutionLedger SET status=$status,phase=$phase,statusVersion=statusVersion+1,startedUtc=COALESCE(startedUtc,$now),finishedUtc=CASE WHEN $terminal=1 THEN $now ELSE finishedUtc END,errorCode=$error,result=$result WHERE operationId=$id;", null,
             ("$status", status.ToString()), ("$phase", phase.ToString()), ("$now", clock.GetUtcNow().ToString("O")), ("$terminal", terminal ? 1 : 0), ("$error", error?.ToString() ?? (object)DBNull.Value), ("$result", result is null ? DBNull.Value : ControlJson.Serialize(result)), ("$id", id.ToString()));
+        if (status == OperationStatus.NeedsAttention)
+            Execute("UPDATE Servers SET recoveryRequired=1,stateRevision=stateRevision+1 WHERE id=(SELECT serverId FROM ExecutionLedger WHERE operationId=$id) AND recoveryRequired=0;", null, ("$id", id.ToString()));
     }
 
     private ServerConfig GetServerConfig(Guid serverId)
@@ -264,7 +266,14 @@ public sealed partial class RunnerStore
             if (current == sessionId.ToString())
             {
                 var desired = (string?)Scalar("SELECT desiredState FROM Servers WHERE id=$server;", null, ("$server", serverId.ToString()));
-                if (desired == "Stopped") SetRuntime(serverId, ProcessState.Stopped, null, "Stopped");
+                if (desired == "Stopped")
+                {
+                    // A delayed exit settles a timed-out Stop; Restart did not reach its new Start.
+                    Execute("UPDATE ExecutionLedger SET status=CASE WHEN kind='Stop' THEN 'Succeeded' ELSE 'Failed' END,phase='Completed',statusVersion=statusVersion+1,finishedUtc=$now WHERE serverId=$server AND kind IN ('Stop','Restart') AND status='NeedsAttention' AND phase='Stopping';", null,
+                        ("$server", serverId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
+                    var pending = Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention';", null, ("$server", serverId.ToString()))) != 0;
+                    SetRuntime(serverId, ProcessState.Stopped, null, "Stopped", pending);
+                }
                 else ScheduleCrashRestart(serverId, process.ExitCode);
             }
         }

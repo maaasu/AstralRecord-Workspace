@@ -7,6 +7,9 @@
     <Project Path="src/AstralRecordControl.Runner/AstralRecordControl.Runner.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/AstralRecordControl.Cli.Tests/AstralRecordControl.Cli.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.Operations.Tests/AstralRecordControl.Operations.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.TestProcess/AstralRecordControl.TestProcess.csproj" />
     <Project Path="tests/AstralRecordControl.Contracts.Tests/AstralRecordControl.Contracts.Tests.csproj" />
     <Project Path="tests/AstralRecordControl.Authentication.Tests/AstralRecordControl.Authentication.Tests.csproj" />
     <Project Path="tests/AstralRecordControl.Inventory.Tests/AstralRecordControl.Inventory.Tests.csproj" />

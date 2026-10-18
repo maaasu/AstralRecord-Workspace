@@ -8,5 +8,6 @@
     <ProjectReference Include="../../src/AstralRecordControl.Web/AstralRecordControl.Web.csproj" />
     <ProjectReference Include="../../src/AstralRecordControl.Agent/AstralRecordControl.Agent.csproj" />
     <ProjectReference Include="../../src/AstralRecordControl.Runner/AstralRecordControl.Runner.csproj" />
+    <ProjectReference Include="../AstralRecordControl.TestProcess/AstralRecordControl.TestProcess.csproj" />
   </ItemGroup>
 </Project>
