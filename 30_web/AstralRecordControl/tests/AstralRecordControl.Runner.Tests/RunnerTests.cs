@@ -5,12 +5,46 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Runner;
+using Microsoft.Data.Sqlite;
 using Xunit;
 
 namespace AstralRecordControl.Runner.Tests;
 
 public sealed class RunnerTests
 {
+    [Fact]
+    public void ReleasedReservationCannotBeResurrectedAfterRestartAndReleaseReplayIsIdempotent()
+    {
+        using var fixture = new Fixture();
+        var request = new AcquireHoldRequest(Guid.NewGuid(), Guid.NewGuid(), ["server:" + fixture.Server.ServerId], HoldMode.Maintenance);
+        ResourceHold hold;
+        using (var runner = fixture.Open())
+        {
+            runner.ApplyInventory(fixture.Envelope(1, fixture.Server));
+            hold = runner.AcquireHold(request);
+            runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        }
+        using var restarted = fixture.Open();
+        restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        Assert.Empty(restarted.GetSnapshot().Holds);
+        Assert.Equal(ErrorCode.ReservationConflict, Assert.Throws<RunnerFault>(() => restarted.AcquireHold(request)).Code);
+        Assert.Throws<RunnerFault>(() => restarted.ReleaseHold(new(hold.ReservationId, Guid.NewGuid(), hold.Fence)));
+        Assert.Throws<RunnerFault>(() => restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence + 1)));
+    }
+
+    [Fact]
+    public void UnversionedExistingSchemaIsRejectedWithoutChangingItsContents()
+    {
+        using var fixture = new Fixture(); var data = Path.Combine(fixture.Root, "runner"); Directory.CreateDirectory(data);
+        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.Combine(data, "runner.db"), Pooling = false }.ToString());
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "CREATE TABLE LegacyData(value TEXT); INSERT INTO LegacyData VALUES('preserve');"; command.ExecuteNonQuery();
+        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => fixture.Open()).Code);
+        command.CommandText = "SELECT value FROM LegacyData;"; Assert.Equal("preserve", command.ExecuteScalar());
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name='State';"; Assert.Equal(0L, command.ExecuteScalar());
+    }
+
     [Fact]
     public void RestartRestoresInventoryHoldStateAndFenceButChangesEpoch()
     {

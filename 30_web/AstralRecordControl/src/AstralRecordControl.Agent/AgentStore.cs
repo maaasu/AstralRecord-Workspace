@@ -20,12 +20,15 @@ public sealed class AgentStore : IDisposable
         AgentResourceBoundary.ValidateLocalPath(path);
         var existed = File.Exists(path);
         database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString());
+        try
+        {
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
         if (version is < 0 or > 1) throw new AgentFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
+            if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new AgentFault(ErrorCode.RecoveryRequired);
             if (existed)
             {
                 using var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path + ".before-v1.bak" }.ToString());
@@ -38,6 +41,8 @@ public sealed class AgentStore : IDisposable
         }
         if ((string?)Scalar("SELECT hostId FROM State WHERE id=1;") != hostId.ToString()) throw new AgentFault(ErrorCode.RecoveryRequired);
         GetState();
+        }
+        catch { database.Dispose(); throw; }
     }
 
     public AgentState GetState()

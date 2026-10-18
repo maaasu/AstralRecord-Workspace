@@ -14,7 +14,16 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
             await credentials.EnsureActiveAsync(identity);
             var host = await store.HostAsync(identity.HostId);
             string? fault = null;
-            if (hello.ProtocolVersions == null || !hello.ProtocolVersions.Contains(1)) { host.ConnectionState = HostConnectionState.Incompatible; fault = "ProtocolMismatch"; }
+            if (hello.ProtocolVersions == null || !hello.ProtocolVersions.Contains(1))
+            {
+                // An unsuccessful candidate handshake must not replace a healthy connection.
+                if (connections.Current(host.HostId) is null)
+                {
+                    host.ConnectionState = HostConnectionState.Incompatible;
+                    host.ConnectionEpoch = null; host.InventoryErrorCode = "ProtocolMismatch";
+                }
+                return (Ack: (HelloAck?)null, Fault: (string?)"ProtocolMismatch");
+            }
             else if (hello.AgentStoreId == Guid.Empty || hello.RunnerEpoch == Guid.Empty || hello.MaxLocalEventSeq < 0 || hello.AppliedInventoryRevision < 0 || string.IsNullOrWhiteSpace(hello.AgentVersion) || hello.AgentVersion.Length > 128) throw new InventoryFault(400, "InvalidInput");
             else if (host.RecoveryRequired || host.AgentStoreId.HasValue && host.AgentStoreId != hello.AgentStoreId || hello.MaxLocalEventSeq < host.AckAgentEventSeq || hello.AppliedInventoryRevision < host.AppliedInventoryRevision || hello.AppliedInventoryRevision > host.DesiredInventoryRevision)
             { host.RecoveryRequired = true; host.ConnectionState = HostConnectionState.Offline; fault = "RecoveryRequired"; }

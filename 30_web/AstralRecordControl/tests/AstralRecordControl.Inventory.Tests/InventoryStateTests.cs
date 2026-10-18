@@ -11,6 +11,18 @@ namespace AstralRecordControl.Inventory.Tests;
 public sealed class InventoryStateTests
 {
     [Fact]
+    public async Task FailedCandidateHelloDoesNotReplaceTheHealthyConnection()
+    {
+        await using var f = await Fixture.CreateAsync(); var host = await f.HostAsync("dev-pc"); var hello = f.Hello(); var aborted = false;
+        var ack = await f.Protocol.HelloAsync(f.Identity(host), hello, "healthy", () => aborted = true);
+        await f.Protocol.ReconcileAsync(f.Identity(host), new() { ConnectionEpoch = ack.ConnectionEpoch, RunnerEpoch = hello.RunnerEpoch }, "healthy");
+        await Fault("ProtocolMismatch", () => f.Protocol.HelloAsync(f.Identity(host), hello with { ProtocolVersions = [2] }, "bad-candidate", () => { }));
+        Assert.False(aborted);
+        Assert.Equal(ack.ConnectionEpoch, (await f.Protocol.RequireAsync(f.Identity(host), ack.ConnectionEpoch, "healthy")).ConnectionEpoch);
+        Assert.Equal(HostConnectionState.Online, (await f.Store.HostAsync(host.HostId)).ConnectionState);
+    }
+
+    [Fact]
     public async Task IdempotencyIsGlobalAndInputSensitive()
     {
         await using var f = await Fixture.CreateAsync();

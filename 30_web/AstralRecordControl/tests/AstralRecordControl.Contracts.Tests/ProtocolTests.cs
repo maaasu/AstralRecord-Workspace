@@ -22,6 +22,15 @@ public sealed class ProtocolTests
     [Fact]
     public void StrictEnumRoundTrips() => Assert.Equal(ServerKind.Velocity, ControlJson.Deserialize<ServerConfig>(ControlJson.Serialize(Server() with { Kind = ServerKind.Velocity })).Kind);
 
+    [Fact]
+    public void MissingRequiredConstructorFieldsRejectInsteadOfChangingHostState()
+    {
+        Assert.Throws<JsonException>(() => ControlJson.Deserialize<HostUpdateRequest>("{\"displayName\":\"new name\"}"));
+        Assert.True(ControlJson.Deserialize<HostUpdateRequest>("{\"displayName\":\"new name\",\"enabled\":true}").Enabled);
+        var ack = new InventoryApplied(Guid.NewGuid(), 1, new string('a', 64), true);
+        Assert.Null(ControlJson.Deserialize<InventoryApplied>(ControlJson.Serialize(ack)).ErrorCode);
+    }
+
     [Theory]
     [InlineData("../server")][InlineData("/server")][InlineData("C:/server")][InlineData("a\\b")]
     [InlineData("a/./b")][InlineData("a//b")][InlineData("a/CON.txt")][InlineData("a/b.")][InlineData("a/b ")][InlineData("a/x:stream")]

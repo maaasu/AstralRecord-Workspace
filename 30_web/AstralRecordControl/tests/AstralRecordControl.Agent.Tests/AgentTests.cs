@@ -8,6 +8,19 @@ namespace AstralRecordControl.Agent.Tests;
 public sealed class AgentTests
 {
     [Fact]
+    public void UnversionedExistingSchemaIsRejectedWithoutChangingItsContents()
+    {
+        using var fixture = new Fixture(); Directory.CreateDirectory(fixture.DataRoot);
+        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.Combine(fixture.DataRoot, "agent.db"), Pooling = false }.ToString());
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "CREATE TABLE LegacyData(value TEXT); INSERT INTO LegacyData VALUES('preserve');"; command.ExecuteNonQuery();
+        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<AgentFault>(() => fixture.Open()).Code);
+        command.CommandText = "SELECT value FROM LegacyData;"; Assert.Equal("preserve", command.ExecuteScalar());
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name='State';"; Assert.Equal(0L, command.ExecuteScalar());
+    }
+
+    [Fact]
     public void StoreIdentitySequenceOutboxAndAcknowledgementsSurviveRestart()
     {
         using var fixture = new Fixture(); Guid id;

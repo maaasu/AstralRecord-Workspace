@@ -22,12 +22,15 @@ public sealed class RunnerStore : IDisposable
         LocalResourceBoundary.ValidateLocalPath(path);
         var existed = File.Exists(path);
         database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString());
+        try
+        {
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
         if (version is < 0 or > 1) throw new RunnerFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
+            if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
             if (existed)
             {
                 using var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path + ".before-v1.bak" }.ToString());
@@ -35,11 +38,14 @@ public sealed class RunnerStore : IDisposable
             }
             using var transaction = database.BeginTransaction();
             Execute("CREATE TABLE State(id INTEGER PRIMARY KEY CHECK(id=1),hostId TEXT NOT NULL,epoch TEXT NOT NULL,bootUtc TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,snapshot TEXT NOT NULL,nextFence INTEGER NOT NULL); CREATE TABLE Servers(id TEXT PRIMARY KEY,config TEXT NOT NULL,stateRevision INTEGER NOT NULL); CREATE TABLE Holds(resource TEXT PRIMARY KEY,reservation TEXT NOT NULL,workflow TEXT NOT NULL,fence INTEGER NOT NULL,mode TEXT NOT NULL,createdUtc TEXT NOT NULL); PRAGMA user_version=1;", transaction);
+            Execute("CREATE TABLE ReleasedHolds(reservation TEXT PRIMARY KEY,workflow TEXT NOT NULL,fence INTEGER NOT NULL);", transaction);
             Execute("INSERT INTO State VALUES(1,$host,$epoch,$utc,0,'','',0);", transaction, ("$host", configuration.HostId.ToString()), ("$epoch", Epoch.ToString()), ("$utc", DateTimeOffset.UtcNow.ToString("O")));
             transaction.Commit();
         }
         if (!string.Equals((string?)Scalar("SELECT hostId FROM State WHERE id=1;"), configuration.HostId.ToString(), StringComparison.Ordinal)) throw new RunnerFault(ErrorCode.RecoveryRequired);
         Execute("UPDATE State SET epoch=$epoch,bootUtc=$utc WHERE id=1;", null, ("$epoch", Epoch.ToString()), ("$utc", DateTimeOffset.UtcNow.ToString("O")));
+        }
+        catch { database.Dispose(); throw; }
     }
 
     public RunnerSnapshot GetSnapshot()
@@ -113,6 +119,7 @@ public sealed class RunnerStore : IDisposable
             if (request.ReservationId == Guid.Empty || request.OwnerWorkflowId == Guid.Empty || request.ResourceKeys.Length is < 1 or > 64 || !Enum.IsDefined(request.Mode)) throw new RunnerFault(ErrorCode.ReservationConflict);
             if (request.ResourceKeys.Distinct(StringComparer.Ordinal).Count() != request.ResourceKeys.Length) throw new RunnerFault(ErrorCode.ReservationConflict);
             var keys = ExpandResourceKeys(request.ResourceKeys);
+            if (Scalar("SELECT reservation FROM ReleasedHolds WHERE reservation=$id;", null, ("$id", request.ReservationId.ToString())) is not null) throw new RunnerFault(ErrorCode.ReservationConflict);
             var existing = ReadHolds().SingleOrDefault(h => h.ReservationId == request.ReservationId);
             if (existing is not null)
             {
@@ -139,9 +146,16 @@ public sealed class RunnerStore : IDisposable
         lock (sync)
         {
             var existing = ReadHolds().SingleOrDefault(h => h.ReservationId == request.ReservationId);
-            if (existing is null) throw new RunnerFault(ErrorCode.ReservationConflict);
+            if (existing is null)
+            {
+                using var command = Command("SELECT workflow,fence FROM ReleasedHolds WHERE reservation=$id;", null, ("$id", request.ReservationId.ToString()));
+                using var reader = command.ExecuteReader();
+                if (reader.Read() && reader.GetString(0) == request.OwnerWorkflowId.ToString() && reader.GetInt64(1) == request.ExpectedFence) return;
+                throw new RunnerFault(ErrorCode.ReservationConflict);
+            }
             if (existing.OwnerWorkflowId != request.OwnerWorkflowId || existing.Fence != request.ExpectedFence) throw new RunnerFault(ErrorCode.ReservationConflict);
             using var transaction = database.BeginTransaction();
+            Execute("INSERT INTO ReleasedHolds VALUES($reservation,$workflow,$fence);", transaction, ("$reservation", request.ReservationId.ToString()), ("$workflow", request.OwnerWorkflowId.ToString()), ("$fence", request.ExpectedFence));
             Execute("DELETE FROM Holds WHERE reservation=$reservation;", transaction, ("$reservation", request.ReservationId.ToString()));
             BumpState(existing.ResourceKeys, transaction);
             transaction.Commit();

@@ -1,5 +1,4 @@
 using AstralRecordControl.Web.Authentication;
-using Microsoft.AspNetCore.Antiforgery;
 
 namespace AstralRecordControl.Web;
 
@@ -32,11 +31,6 @@ public static partial class ControlApplication
             if (context.WebSockets.IsWebSocketRequest || string.Equals(context.Request.Headers.Upgrade, "websocket", StringComparison.OrdinalIgnoreCase) || (unsafeMethod && cookieRequest))
             {
                 if (!string.Equals(context.Request.Headers.Origin, expectedOrigin, StringComparison.Ordinal)) { context.Response.StatusCode = 403; return; }
-            }
-            if (unsafeMethod && cookieRequest && context.Request.Path.StartsWithSegments("/api/control"))
-            {
-                try { await context.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(context); }
-                catch (AntiforgeryValidationException) { context.Response.StatusCode = 400; return; }
             }
             context.Response.Headers.CacheControl = "no-store";
             await next(context);
