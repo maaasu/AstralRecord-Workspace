@@ -1,0 +1,43 @@
+@page "/Notifications"
+@model NotificationsModel
+@{ ViewData["Title"] = "通知"; }
+<h1>通知</h1>
+<p>通知先の登録・変更には<a asp-page="/Security">直近5分以内の再認証</a>が必要です。Webhook URL は保存後に再表示しません。</p>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+@if (Model.Message != null) { <p>@Model.Message</p> }
+<h2>Webhook 通知先</h2>
+<form method="post" asp-page-handler="Save">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="destinationId" value="@Model.NewDestinationId" />
+    <input type="hidden" name="revision" value="0" />
+    <label>名前 <input name="displayName" maxlength="128" required /></label>
+    <label>HTTPS URL <input name="url" type="password" autocomplete="off" maxlength="2048" required /></label>
+    <label><input name="enabled" type="checkbox" value="true" checked />有効</label>
+    <button type="submit">通知先を登録</button>
+</form>
+@foreach (var destination in Model.Destinations)
+{
+    <section>
+        <h3>@destination.Name</h3>
+        <p>ID: @destination.Id / @(destination.Enabled ? "有効" : "無効") / URL: 設定済み</p>
+        <form method="post" asp-page-handler="Save">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="destinationId" value="@destination.Id" />
+            <input type="hidden" name="revision" value="@destination.Revision" />
+            <label>名前 <input name="displayName" value="@destination.Name" maxlength="128" required /></label>
+            <label>新しい HTTPS URL（変更時のみ） <input name="url" type="password" autocomplete="off" maxlength="2048" /></label>
+            <label><input name="enabled" type="checkbox" value="true" checked="@destination.Enabled" />有効</label>
+            <button type="submit">保存</button>
+        </form>
+    </section>
+}
+<h2>配送履歴</h2>
+<table>
+    <thead><tr><th>発生 UTC</th><th>イベント</th><th>通知先</th><th>状態</th><th>試行</th><th>エラー区分</th></tr></thead>
+    <tbody>
+    @foreach (var delivery in Model.Deliveries)
+    {
+        <tr><td>@delivery.OccurredAtUtc</td><td>@delivery.EventType<br /><small>@delivery.EventId</small></td><td>@delivery.DestinationName</td><td>@delivery.State</td><td>@delivery.Attempt</td><td>@(delivery.ErrorCode ?? "—")</td></tr>
+    }
+    </tbody>
+</table>

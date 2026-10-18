@@ -9,7 +9,12 @@ public sealed record NotificationPayload(
     Guid? HostId,
     Guid? ServerId,
     Guid? OperationId,
-    string? Outcome);
+    string? Outcome,
+    Guid? ScheduleId = null,
+    Guid? ScheduleRunId = null,
+    NotificationScheduleStep[]? ScheduleSteps = null);
+
+public sealed record NotificationScheduleStep(string StepKey, Guid OperationId, string Status);
 
 // Persisted by Agent before transmission; both snapshots refer to the same Server.
 // UnexpectedExit is set only when Runner observes an exit without a requested stop.
@@ -27,4 +32,9 @@ public static class NotificationEventTypes
     public const string BackupSucceeded = "BackupSucceeded";
     public const string BackupFailed = "BackupFailed";
     public const string RecoveryRequired = "RecoveryRequired";
+    public const string ScheduleStarted = "ScheduleStarted";
+    public const string ScheduleCompleted = "ScheduleCompleted";
+    public const string ScheduleFailed = "ScheduleFailed";
+    public const string ScheduleSkipped = "ScheduleSkipped";
+    public const string ScheduleRecoveryRequired = "ScheduleRecoveryRequired";
 }
