@@ -75,6 +75,18 @@ public sealed partial class RunnerStore
         if (config.Revision != command.ConfigRevision) throw new RunnerFault(ErrorCode.StaleRevision);
         if (revision != command.ExpectedStateRevision || session != command.ExpectedServerSessionId) throw new RunnerFault(ErrorCode.StateConflict);
         var rescueKill = command.Kind == OperationKind.Kill && IsRescueKill(command);
+        using (var pendingData = Command("SELECT operationId,kind,reservation,workflow,fence,status,readyForRestart FROM DataOperationLedger WHERE serverId=$server AND status IN ('Accepted','Running','NeedsAttention');", null, ("$server", serverId.ToString())))
+        using (var pendingReader = pendingData.ExecuteReader())
+            while (pendingReader.Read())
+            {
+                var parentId = Guid.Parse(pendingReader.GetString(0));
+                var parentKind = Enum.Parse<OperationKind>(pendingReader.GetString(1));
+                var sameHold = pendingReader.GetString(2) == command.ReservationId?.ToString() && pendingReader.GetString(3) == command.WorkflowId?.ToString() && pendingReader.GetInt64(4) == command.ReservationFence;
+                var active = pendingReader.GetString(5) == OperationStatus.Running.ToString();
+                var childStop = active && command.Kind == OperationKind.Stop && (parentKind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && command.OperationId == DataExecution.ChildOperationId(parentId, OperationKind.Stop);
+                var childStart = active && pendingReader.GetBoolean(6) && command.Kind == OperationKind.Start && (parentKind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && command.OperationId == DataExecution.ChildOperationId(parentId, OperationKind.Start);
+                if (!sameHold || !(childStop || childStart || rescueKill)) throw new RunnerFault(ErrorCode.RecoveryRequired);
+            }
         if ((recovery || state == ProcessState.Unmanaged) && !rescueKill) throw new RunnerFault(ErrorCode.RecoveryRequired);
         if (command.Kind == OperationKind.Start && state != ProcessState.Stopped) throw new RunnerFault(ErrorCode.StateConflict);
         if (command.Kind != OperationKind.Start && state != ProcessState.Running && !(command.Kind == OperationKind.Stop && state == ProcessState.Stopped) && !(rescueKill && state is ProcessState.Stopping or ProcessState.Unmanaged)) throw new RunnerFault(ErrorCode.StateConflict);

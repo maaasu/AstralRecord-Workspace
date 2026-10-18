@@ -41,6 +41,24 @@ public sealed partial class RunnerStore
         Execute("UPDATE Servers SET processState='Unmanaged',recoveryRequired=1,stateRevision=stateRevision+1 WHERE processState IN ('Starting','Running','Stopping') OR currentSessionId IS NOT NULL;", transaction);
         Execute("UPDATE ExecutionLedger SET status='NeedsAttention',phase='Unknown',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE status IN ('Accepted','Running');", transaction, ("$now", clock.GetUtcNow().ToString("O")));
         Execute("UPDATE Servers SET recoveryRequired=1,stateRevision=stateRevision+1 WHERE recoveryRequired=0 AND id IN (SELECT serverId FROM ExecutionLedger WHERE status='NeedsAttention');", transaction);
+        Execute("UPDATE DataOperationLedger SET status='NeedsAttention',statusVersion=statusVersion+1 WHERE status IN ('Accepted','Running');", transaction);
+        Execute("UPDATE Servers SET recoveryRequired=1,stateRevision=stateRevision+1 WHERE recoveryRequired=0 AND id IN (SELECT serverId FROM DataOperationLedger WHERE status='NeedsAttention');", transaction);
+        transaction.Commit();
+    }
+
+    private void MigrateV3(string path, bool backupExisting)
+    {
+        if (backupExisting)
+        {
+            var backupPath = path + ".before-v3." + clock.GetUtcNow().ToString("yyyyMMddHHmmssfffffff") + "." + Guid.NewGuid().ToString("N") + ".bak";
+            using var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backupPath, Pooling = false }.ToString());
+            backup.Open(); database.BackupDatabase(backup);
+        }
+        using var transaction = database.BeginTransaction();
+        Execute("CREATE TABLE DataOperationLedger(operationId TEXT PRIMARY KEY,commandHash TEXT NOT NULL,commandJson TEXT NOT NULL,serverId TEXT NOT NULL,reservation TEXT NOT NULL,workflow TEXT NOT NULL,fence INTEGER NOT NULL,kind TEXT NOT NULL,status TEXT NOT NULL,statusVersion INTEGER NOT NULL,readyForRestart INTEGER NOT NULL DEFAULT 0,acceptedUtc TEXT NOT NULL,finishedUtc TEXT);", transaction);
+        Execute("CREATE INDEX IX_DataOperationLedger_Reservation ON DataOperationLedger(reservation,status);", transaction);
+        Execute("CREATE TABLE DataResumeAudit(id TEXT PRIMARY KEY,operationId TEXT NOT NULL,reason TEXT NOT NULL,occurredUtc TEXT NOT NULL);", transaction);
+        Execute("PRAGMA user_version=3;", transaction);
         transaction.Commit();
     }
 }

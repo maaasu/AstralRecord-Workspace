@@ -25,7 +25,7 @@ public sealed partial class AgentStore
     {
         lock (sync)
         {
-            using var command = Command("SELECT commandSha256,status,statusVersion,resultJson,errorCode,updatedAtUtc FROM OperationInbox WHERE operationId=$id;", null, ("$id", operationId.ToString()));
+            using var command = Command("SELECT commandSha256,status,statusVersion,resultJson,errorCode,updatedAtUtc,phase,serverSessionId FROM OperationInbox WHERE operationId=$id;", null, ("$id", operationId.ToString()));
             using var reader = command.ExecuteReader();
             if (!reader.Read()) return null;
             return new ExecutionSnapshot
@@ -34,7 +34,8 @@ public sealed partial class AgentStore
                 CommandSha256 = reader.GetString(0),
                 Status = Enum.Parse<OperationStatus>(reader.GetString(1)),
                 StatusVersion = reader.GetInt64(2),
-                Phase = reader.IsDBNull(3) ? ExecutionPhase.Accepted : ExecutionPhase.Unknown,
+                Phase = Enum.Parse<ExecutionPhase>(reader.GetString(6)),
+                ServerSessionId = reader.IsDBNull(7) ? null : Guid.Parse(reader.GetString(7)),
                 Result = reader.IsDBNull(3) ? ControlJson.Element(new { }) : ControlJson.Deserialize<JsonElement>(reader.GetString(3)),
                 ErrorCode = reader.IsDBNull(4) ? null : reader.GetString(4),
                 UpdatedAtUtc = DateTimeOffset.Parse(reader.GetString(5), System.Globalization.CultureInfo.InvariantCulture)
@@ -72,12 +73,48 @@ public sealed partial class AgentStore
             if (execution.StatusVersion <= previous.StatusVersion) return previous;
             if (OperationValidation.IsTerminal(previous.Status) && previous.Status != execution.Status) throw new AgentFault(ErrorCode.RecoveryRequired);
             using var transaction = database.BeginTransaction();
-            Execute("UPDATE OperationInbox SET status=$status,statusVersion=$version,resultJson=$result,errorCode=$error,updatedAtUtc=$now WHERE operationId=$id;", transaction,
-                ("$status", execution.Status.ToString()), ("$version", execution.StatusVersion), ("$result", execution.Result.GetRawText()), ("$error", (object?)execution.ErrorCode ?? DBNull.Value), ("$now", execution.UpdatedAtUtc.ToString("O")), ("$id", execution.OperationId.ToString()));
+            Execute("UPDATE OperationInbox SET status=$status,statusVersion=$version,resultJson=$result,errorCode=$error,updatedAtUtc=$now,phase=$phase,serverSessionId=$session WHERE operationId=$id;", transaction,
+                ("$status", execution.Status.ToString()), ("$version", execution.StatusVersion), ("$result", execution.Result.GetRawText()), ("$error", (object?)execution.ErrorCode ?? DBNull.Value), ("$now", execution.UpdatedAtUtc.ToString("O")), ("$phase", execution.Phase.ToString()), ("$session", execution.ServerSessionId?.ToString() ?? (object)DBNull.Value), ("$id", execution.OperationId.ToString()));
             AppendOperationEvent(transaction, execution.OperationId, execution.StatusVersion, execution.Status, execution.Result, execution.ErrorCode, execution.UpdatedAtUtc);
             transaction.Commit();
             return execution;
         }
+    }
+
+    public ExecutionSnapshot AdvanceOperation(Guid operationId, OperationStatus status, ExecutionPhase phase, object? result = null, ErrorCode? error = null)
+    {
+        var previous = GetOperation(operationId) ?? throw new AgentFault(ErrorCode.OperationConflict);
+        return SaveOperation(previous with { Status = status, StatusVersion = previous.StatusVersion + 1, Phase = phase,
+            Result = result is null ? previous.Result : ControlJson.Element(result), ErrorCode = error?.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow });
+    }
+
+    public void SavePendingResult(Guid operationId, string resultJson, bool restartRequired = false)
+    {
+        if (System.Text.Encoding.UTF8.GetByteCount(resultJson) > 16 * 1024 * 1024) throw new AgentFault(ErrorCode.ProtocolMismatch);
+        using var parsed = JsonDocument.Parse(resultJson);
+        if (parsed.RootElement.ValueKind != JsonValueKind.Object) throw new AgentFault(ErrorCode.ProtocolMismatch);
+        lock (sync) Execute("INSERT INTO PendingResults(operationId,resultJson,resultSha256,restartRequired) VALUES($id,$json,$hash,$restart) ON CONFLICT(operationId) DO UPDATE SET resultJson=excluded.resultJson,resultSha256=excluded.resultSha256,restartRequired=excluded.restartRequired;", null,
+            ("$id", operationId.ToString()), ("$json", resultJson), ("$hash", ControlProtocol.Hash(resultJson)), ("$restart", restartRequired ? 1 : 0));
+    }
+
+    public string? GetPendingResult(Guid operationId) => GetPendingResultState(operationId)?.Json;
+
+    public (string Json, bool RestartRequired)? GetPendingResultState(Guid operationId)
+    {
+        lock (sync)
+        {
+            using var command = Command("SELECT resultJson,resultSha256,restartRequired FROM PendingResults WHERE operationId=$id;", null, ("$id", operationId.ToString()));
+            using var reader = command.ExecuteReader();
+            if (!reader.Read()) return null;
+            var json = reader.GetString(0);
+            if (ControlProtocol.Hash(json) != reader.GetString(1)) throw new AgentFault(ErrorCode.RecoveryRequired);
+            return (json, reader.GetBoolean(2));
+        }
+    }
+
+    public void DeletePendingResult(Guid operationId)
+    {
+        lock (sync) Execute("DELETE FROM PendingResults WHERE operationId=$id;", null, ("$id", operationId.ToString()));
     }
 
     public (Guid OperationId, string CommandSha256, OperationStatus Status)[] ReadNonTerminalOperations()

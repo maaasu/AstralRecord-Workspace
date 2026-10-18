@@ -9,6 +9,7 @@ public sealed record RunnerConfiguration
     public string PipeName { get; init; } = ControlProtocol.RunnerPipeName;
     public HostResources LocalResources { get; init; } = new();
     public bool EnableProcessControl { get; init; }
+    public bool EnableFileControl { get; init; }
     public static string DefaultDataRoot => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "Runner");
 }
 

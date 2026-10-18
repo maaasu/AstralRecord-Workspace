@@ -7,11 +7,13 @@ public sealed record AgentState(Guid StoreId, long MaxEventSequence, long Contro
 
 public sealed partial class AgentStore : IDisposable
 {
+    public string DataRoot { get; }
     private readonly SqliteConnection database;
     private readonly Guid hostId;
     private readonly object sync = new();
     public AgentStore(string dataRoot, Guid hostId)
     {
+        DataRoot = dataRoot;
         if (hostId == Guid.Empty) throw new ArgumentException("HostId is required.");
         this.hostId = hostId;
         AgentResourceBoundary.ValidateLocalPath(dataRoot);
@@ -25,7 +27,7 @@ public sealed partial class AgentStore : IDisposable
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
-        if (version is < 0 or > 2) throw new AgentFault(ErrorCode.ProtocolMismatch);
+        if (version is < 0 or > 3) throw new AgentFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new AgentFault(ErrorCode.RecoveryRequired);
@@ -48,6 +50,21 @@ public sealed partial class AgentStore : IDisposable
             }
             using var transaction = database.BeginTransaction();
             Execute("CREATE TABLE OperationInbox(operationId TEXT PRIMARY KEY,commandJson TEXT NOT NULL,commandSha256 TEXT NOT NULL,status TEXT NOT NULL,statusVersion INTEGER NOT NULL,dispatchAttempted INTEGER NOT NULL DEFAULT 0,resultJson TEXT,errorCode TEXT,updatedAtUtc TEXT NOT NULL); PRAGMA user_version=2;", transaction);
+            transaction.Commit();
+        }
+        if (version <= 2)
+        {
+            if (version == 2)
+            {
+                var backupPath = path + ".before-v3." + DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmssfffffff") + "." + Guid.NewGuid().ToString("N") + ".bak";
+                using var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backupPath, Pooling = false }.ToString());
+                backup.Open(); database.BackupDatabase(backup);
+            }
+            using var transaction = database.BeginTransaction();
+            Execute("ALTER TABLE OperationInbox ADD COLUMN phase TEXT NOT NULL DEFAULT 'Accepted';", transaction);
+            Execute("ALTER TABLE OperationInbox ADD COLUMN serverSessionId TEXT;", transaction);
+            Execute("CREATE TABLE PendingResults(operationId TEXT PRIMARY KEY,resultJson TEXT NOT NULL,resultSha256 TEXT NOT NULL,restartRequired INTEGER NOT NULL DEFAULT 0);", transaction);
+            Execute("PRAGMA user_version=3;", transaction);
             transaction.Commit();
         }
         if ((string?)Scalar("SELECT hostId FROM State WHERE id=1;") != hostId.ToString()) throw new AgentFault(ErrorCode.RecoveryRequired);
@@ -137,6 +154,15 @@ public sealed partial class AgentStore : IDisposable
             Execute("UPDATE State SET revision=$revision,hash=$hash,snapshot=$snapshot WHERE id=1;", transaction, ("$revision", envelope.Revision), ("$hash", envelope.Sha256), ("$snapshot", envelope.SnapshotJson));
             Execute("DELETE FROM PendingInventory WHERE id=1;", transaction);
             transaction.Commit();
+        }
+    }
+    public InventorySnapshot GetAppliedInventory()
+    {
+        lock (sync)
+        {
+            var snapshot = (string?)Scalar("SELECT snapshot FROM State WHERE id=1;");
+            if (string.IsNullOrEmpty(snapshot)) throw new AgentFault(ErrorCode.StaleRevision);
+            return InventoryValidation.ReadEnvelope(new InventoryEnvelope(ControlProtocol.Version, hostId, GetState().AppliedInventoryRevision, snapshot, ControlProtocol.Hash(snapshot)), hostId);
         }
     }
     private SqliteCommand Command(string sql, SqliteTransaction? transaction = null, params (string, object)[] parameters)

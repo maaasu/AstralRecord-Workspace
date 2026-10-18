@@ -15,6 +15,12 @@ public interface IRunnerClient
     Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
     Task<LogBatch> ReadLogsAsync(ReadLogsRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
     Task<RecoveryInspection> InspectRecoveryAsync(Guid serverId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> BeginDataOperationAsync(ExecuteRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> VerifyDataOperationAsync(Guid operationId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> MarkDataReadyForRestartAsync(Guid operationId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> FinishDataOperationAsync(FinishDataOperationRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> GetDataOperationAsync(Guid operationId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> ResumeDataOperationAsync(AgentResumeDataOperationRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
 }
 
 public sealed class RunnerClient(AgentConfiguration configuration) : IRunnerClient
@@ -27,6 +33,12 @@ public sealed class RunnerClient(AgentConfiguration configuration) : IRunnerClie
     public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("GetExecution", new GetExecutionRequest(operationId), cancellationToken);
     public Task<LogBatch> ReadLogsAsync(ReadLogsRequest request, CancellationToken cancellationToken) => SendAsync<LogBatch>("ReadLogs", request, cancellationToken);
     public Task<RecoveryInspection> InspectRecoveryAsync(Guid serverId, CancellationToken cancellationToken) => SendAsync<RecoveryInspection>("InspectRecovery", new InspectRecoveryRequest(serverId), cancellationToken);
+    public Task<ExecutionSnapshot> BeginDataOperationAsync(ExecuteRequest request, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("BeginDataOperation", request, cancellationToken);
+    public Task<ExecutionSnapshot> VerifyDataOperationAsync(Guid operationId, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("VerifyDataOperation", new VerifyDataOperationRequest(operationId), cancellationToken);
+    public Task<ExecutionSnapshot> MarkDataReadyForRestartAsync(Guid operationId, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("MarkDataReadyForRestart", new MarkDataReadyForRestartRequest(operationId), cancellationToken);
+    public Task<ExecutionSnapshot> FinishDataOperationAsync(FinishDataOperationRequest request, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("FinishDataOperation", request, cancellationToken);
+    public Task<ExecutionSnapshot> GetDataOperationAsync(Guid operationId, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("GetDataOperation", new GetExecutionRequest(operationId), cancellationToken);
+    public Task<ExecutionSnapshot> ResumeDataOperationAsync(AgentResumeDataOperationRequest request, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("ResumeDataOperation", request, cancellationToken);
     private async Task<T> SendAsync<T>(string method, object body, CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

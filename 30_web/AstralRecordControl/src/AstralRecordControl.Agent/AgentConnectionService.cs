@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using AstralRecordControl.Agent.Transfers;
 using System.Threading.Channels;
 using AstralRecordControl.Contracts;
 using Microsoft.AspNetCore.SignalR;
@@ -40,6 +41,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
                 // Never log remote exception text, Authorization headers, token values or snapshot arguments.
                 logger.LogWarning("Agent connection interrupted; retrying ({ErrorCode}).", exception is AgentFault fault ? fault.Code : ErrorCode.HostOffline);
             }
+            finally { operations.SetDataSession(null, null); }
             await Task.Delay(ReconnectBackoff.Delay(failures++, Random.Shared.NextDouble()), stoppingToken);
         }
     }
@@ -81,6 +83,8 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         });
         hub.On<AgentReadLogsRequest, LogBatch>("ReadLogs", request => operations.ReadLogsAsync(request, epoch, stoppingToken));
         hub.On<AgentInspectRecoveryRequest, RecoveryInspection>("InspectRecovery", request => operations.InspectRecoveryAsync(request, epoch, stoppingToken));
+        hub.On<AgentListBackupsRequest, BackupSummary[]>("ListBackups", request => operations.ListBackups(request, epoch));
+        hub.On<AgentResumeDataOperationRequest, ExecutionSnapshot>("ResumeDataOperation", request => operations.ResumeDataAsync(request, epoch, stoppingToken));
         hub.On<AgentSnapshotRequest, RunnerSnapshot>("GetSnapshot", request => operations.SnapshotAsync(request, epoch, stoppingToken));
         hub.On<JsonElement>("InventoryChanged", message =>
         {
@@ -100,12 +104,17 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
             RunnerEpoch = snapshot.RunnerEpoch, AppliedInventoryRevision = state.AppliedInventoryRevision,
             LocalResources = configuration.LocalResources,
             Capabilities = processGate.Enabled
-                ? ["P0.Inventory", "P1.Operations", "P1.LegacyGate"] : ["P0.Inventory"]
+                ? configuration.EnableFileControl
+                    ? ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P2.Files", "P2.Backups"]
+                    : ["P0.Inventory", "P1.Operations", "P1.LegacyGate"]
+                : ["P0.Inventory"]
         }, stoppingToken);
         if (hello.ProtocolVersion != ControlProtocol.Version || hello.ConnectionEpoch == Guid.Empty || hello.HeartbeatSeconds is < 1 or > 60) throw new AgentFault(ErrorCode.ProtocolMismatch);
         store.Acknowledge(hello.ControllerAckEventSeq);
         epoch = hello.ConnectionEpoch;
         http.DefaultRequestHeaders.Add("X-Control-Connection-Epoch", epoch.ToString());
+        operations.SetDataSession(new AgentTransferClient(http, configuration.HostId, Path.Combine(store.DataRoot, "transfers")),
+            (operationId, commandHash, resultJson, cancellationToken) => PublishResultAsync(http, operationId, commandHash, resultJson, cancellationToken));
         if (snapshot.AppliedInventoryRevision < state.AppliedInventoryRevision) throw new AgentFault(ErrorCode.RecoveryRequired);
         var reconciliation = await InvokeAsync<ReconcileAck>(hub, "Reconcile", new ReconcileRequest
         {
@@ -180,5 +189,18 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
     {
         var response = await hub.InvokeAsync<JsonElement>(method, request, cancellationToken);
         return ControlJson.Deserialize<T>(response.GetRawText());
+    }
+
+    private static async Task PublishResultAsync(HttpClient http, Guid operationId, string commandHash, string resultJson, CancellationToken cancellationToken)
+    {
+        var bytes = Encoding.UTF8.GetBytes(resultJson);
+        if (bytes.Length > 16 * 1024 * 1024) throw new AgentFault(ErrorCode.ProtocolMismatch);
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/agent/v1/operations/{operationId:D}/result");
+        request.Headers.TryAddWithoutValidation("X-Command-Sha256", commandHash);
+        request.Headers.TryAddWithoutValidation("X-Result-Sha256", ControlProtocol.Hash(resultJson));
+        request.Content = new ByteArrayContent(bytes);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        if (!response.IsSuccessStatusCode) throw new AgentFault(ErrorCode.HostOffline);
     }
 }

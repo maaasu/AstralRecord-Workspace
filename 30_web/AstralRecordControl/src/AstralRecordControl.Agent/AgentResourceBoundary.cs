@@ -13,7 +13,7 @@ public static class AgentResourceBoundary
             throw new AgentFault(ErrorCode.PathOutsideRoot);
         foreach (var root in resources.Roots)
         {
-            ValidateLocalPath(root.Path);
+            ValidateRootPath(root);
             if (!Directory.Exists(root.Path)) throw new AgentFault(ErrorCode.PathOutsideRoot);
         }
         foreach (var executable in resources.Executables)
@@ -31,6 +31,7 @@ public static class AgentResourceBoundary
         {
             var root = resources.Roots.SingleOrDefault(r => r.Id == server.ManagedRootId)
                 ?? throw new AgentFault(ErrorCode.PathOutsideRoot);
+            if (root.BackupOnly) throw new AgentFault(ErrorCode.PathOutsideRoot);
             var executable = resources.Executables.SingleOrDefault(e => e.Id == server.ExecutableId);
             if (executable is null || executable.Kind != server.Kind) throw new AgentFault(ErrorCode.PathOutsideRoot);
             var directory = Resolve(root.Path, server.ServerDirectory);
@@ -68,9 +69,17 @@ public static class AgentResourceBoundary
     }
 
     public static void ValidateLocalPath(string path)
+        => ValidatePath(path, false);
+
+    public static void ValidateRootPath(ManagedRoot root)
+        => ValidatePath(root.Path, root.BackupOnly);
+
+    private static void ValidatePath(string path, bool allowBackupUnc)
     {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path) || path.StartsWith("\\\\", StringComparison.Ordinal)
-            || path.StartsWith("//", StringComparison.Ordinal) || path.AsSpan(Math.Min(2, path.Length)).Contains(':'))
+        var unc = path?.StartsWith("\\\\", StringComparison.Ordinal) == true;
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)
+            || (unc && (!allowBackupUnc || path.StartsWith("\\\\?\\", StringComparison.Ordinal) || path.StartsWith("\\\\.\\", StringComparison.Ordinal) || path.Split('\\').Length < 4))
+            || path.StartsWith("//", StringComparison.Ordinal) || (!unc && path.AsSpan(Math.Min(2, path.Length)).Contains(':')))
             throw new AgentFault(ErrorCode.PathOutsideRoot);
         var current = Path.GetFullPath(path);
         var leaf = true;

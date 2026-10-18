@@ -182,6 +182,7 @@ public sealed partial class RunnerStore
         {
             var inspected = InspectRecovery(new InspectRecoveryRequest(request.ServerId));
             if (inspected.Runtime.CurrentSessionId != request.ExpectedServerSessionId || !inspected.RecoveryRequired) throw new RunnerFault(ErrorCode.StateConflict);
+            if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM DataOperationLedger WHERE serverId=$server AND kind='RestoreBackup' AND status IN ('Accepted','Running','NeedsAttention');", null, ("$server", request.ServerId.ToString()))) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
             if (request.Action == WorkflowRecoveryAction.Resume) throw new RunnerFault(ErrorCode.UnsupportedCapability);
             if (request.Action == WorkflowRecoveryAction.KillAfterInspection)
             {
@@ -217,6 +218,7 @@ public sealed partial class RunnerStore
             AuditRecovery(request);
             SetRuntime(request.ServerId, ProcessState.Stopped, null, "Stopped");
             Execute("UPDATE ExecutionLedger SET status='Failed',phase='Completed',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE serverId=$server AND status='NeedsAttention';", null, ("$server", request.ServerId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
+            Execute("UPDATE DataOperationLedger SET status='Failed',statusVersion=statusVersion+1,finishedUtc=$now WHERE serverId=$server AND status='NeedsAttention' AND kind<>'RestoreBackup';", null, ("$server", request.ServerId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
             return InspectRecovery(new InspectRecoveryRequest(request.ServerId));
         }
     }

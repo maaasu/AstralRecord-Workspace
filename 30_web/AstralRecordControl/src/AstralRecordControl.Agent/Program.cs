@@ -57,5 +57,6 @@ builder.Services.AddSingleton<IRunnerClient, RunnerClient>();
 builder.Services.AddSingleton<InventoryApplier>();
 builder.Services.AddSingleton(new AgentProcessControlGate(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "managed-operations.enabled")));
 builder.Services.AddSingleton<AgentOperationHandler>();
+builder.Services.AddSingleton(_ => new AstralRecordControl.Agent.Storage.P2StorageService(Path.Combine(dataRoot, "storage"), configuration.LocalResources));
 builder.Services.AddHostedService<AgentConnectionService>();
 await builder.Build().RunAsync();

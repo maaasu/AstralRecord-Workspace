@@ -7,7 +7,7 @@ public sealed class AgentProcessControlGate(string markerPath)
     public bool Enabled => File.Exists(markerPath);
 }
 
-public sealed class AgentOperationHandler(AgentConfiguration configuration, AgentStore store, IRunnerClient runner, AgentProcessControlGate? processGate = null)
+public sealed partial class AgentOperationHandler(AgentConfiguration configuration, AgentStore store, IRunnerClient runner, AgentProcessControlGate? processGate = null, Storage.P2StorageService? storage = null)
 {
     private readonly SemaphoreSlim gate = new(1, 1);
 
@@ -18,6 +18,7 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
         if (request.ProtocolVersion != ControlProtocol.Version || request.OperationId == Guid.Empty) throw new AgentFault(ErrorCode.ProtocolMismatch);
         var execute = new ExecuteRequest(request.OperationId, request.CommandJson, request.CommandSha256);
         var command = OperationValidation.Read(execute, configuration.HostId);
+        if (IsDataKind(command.Kind)) return await DispatchDataAsync(execute, command, cancellationToken);
         await gate.WaitAsync(cancellationToken);
         try
         {
@@ -49,6 +50,8 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
     public async Task<ExecutionSnapshot> QueryAsync(AgentExecutionRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
         RequireEpoch(request.ConnectionEpoch, activeEpoch);
+        var dispatch = store.GetDispatch(request.OperationId);
+        if (IsDataKind(OperationValidation.Read(dispatch.Command, configuration.HostId).Kind)) return await QueryDataAsync(request.OperationId, cancellationToken);
         await gate.WaitAsync(cancellationToken);
         try
         {
@@ -112,6 +115,13 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
     {
         foreach (var pending in store.ReadNonTerminalOperations())
         {
+            var dispatch = store.GetDispatch(pending.OperationId);
+            if (IsDataKind(OperationValidation.Read(dispatch.Command, configuration.HostId).Kind))
+            {
+                try { await QueryDataAsync(pending.OperationId, cancellationToken); }
+                catch (Exception exception) when (exception is IOException or AgentFault or OperationCanceledException) { }
+                continue;
+            }
             await gate.WaitAsync(cancellationToken);
             try
             {

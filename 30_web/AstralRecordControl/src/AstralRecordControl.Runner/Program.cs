@@ -13,6 +13,7 @@ LocalResourceBoundary.ValidateLocalPath(Path.Combine(dataRoot, "service.lock"));
 using var instanceLock = new FileStream(Path.Combine(dataRoot, "service.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 LocalResourceBoundary.ValidateLocalPath(Path.Combine(dataRoot, "config.json"));
 var configuration = ControlJson.Deserialize<RunnerConfiguration>(File.ReadAllText(Path.Combine(dataRoot, "config.json")));
+if (configuration.EnableFileControl && !configuration.EnableProcessControl) throw new InvalidOperationException("File control requires process control.");
 if (configuration.EnableProcessControl)
 {
     var marker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "managed-operations.enabled");

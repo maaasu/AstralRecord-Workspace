@@ -21,6 +21,7 @@ public sealed partial class RunnerStore : IDisposable
         this.clock = clock ?? TimeProvider.System;
         this.configuration = configuration;
         if (configuration.HostId == Guid.Empty) throw new ArgumentException("HostId is required.");
+        if (configuration.EnableFileControl && !configuration.EnableProcessControl) throw new ArgumentException("File control requires process control.");
         LocalResourceBoundary.ValidateLocalPath(dataRoot);
         LocalResourceBoundary.ValidateResources(configuration.LocalResources);
         Directory.CreateDirectory(dataRoot);
@@ -33,7 +34,7 @@ public sealed partial class RunnerStore : IDisposable
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
-        if (version is < 0 or > 2) throw new RunnerFault(ErrorCode.ProtocolMismatch);
+        if (version is < 0 or > 3) throw new RunnerFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
@@ -49,6 +50,7 @@ public sealed partial class RunnerStore : IDisposable
             transaction.Commit();
         }
         if (version <= 1) MigrateV2(path, version == 1);
+        if (version <= 2) MigrateV3(path, version == 2);
         if (!string.Equals((string?)Scalar("SELECT hostId FROM State WHERE id=1;"), configuration.HostId.ToString(), StringComparison.Ordinal)) throw new RunnerFault(ErrorCode.RecoveryRequired);
         Execute("UPDATE State SET epoch=$epoch,bootUtc=$utc WHERE id=1;", null, ("$epoch", Epoch.ToString()), ("$utc", DateTimeOffset.UtcNow.ToString("O")));
         ReconcileAfterRestart();
@@ -89,6 +91,7 @@ public sealed partial class RunnerStore : IDisposable
                 return GetSnapshot();
             }
             var holds = ReadHolds();
+            if (holds.Length != 0 && BackupProfilesChanged((string?)Scalar("SELECT snapshot FROM State WHERE id=1;"), envelope.SnapshotJson)) throw new RunnerFault(ErrorCode.ReservationConflict);
             using var transaction = database.BeginTransaction();
             foreach (var server in inventory.Servers)
             {
@@ -168,6 +171,7 @@ public sealed partial class RunnerStore : IDisposable
             }
             if (existing.OwnerWorkflowId != request.OwnerWorkflowId || existing.Fence != request.ExpectedFence) throw new RunnerFault(ErrorCode.ReservationConflict);
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE reservation=$reservation AND status IN ('Accepted','Running','NeedsAttention');", null, ("$reservation", request.ReservationId.ToString()))) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
+            if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM DataOperationLedger WHERE reservation=$reservation AND status IN ('Accepted','Running','NeedsAttention');", null, ("$reservation", request.ReservationId.ToString()))) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
             using var transaction = database.BeginTransaction();
             Execute("INSERT INTO ReleasedHolds VALUES($reservation,$workflow,$fence);", transaction, ("$reservation", request.ReservationId.ToString()), ("$workflow", request.OwnerWorkflowId.ToString()), ("$fence", request.ExpectedFence));
             Execute("DELETE FROM Holds WHERE reservation=$reservation;", transaction, ("$reservation", request.ReservationId.ToString()));
@@ -194,12 +198,22 @@ public sealed partial class RunnerStore : IDisposable
                 && Guid.TryParseExact(parts[2], "D", out var rootId) && rootId.ToString() == parts[2])
             {
                 var root = configuration.LocalResources.Roots.SingleOrDefault(r => r.Id == rootId) ?? throw new RunnerFault(ErrorCode.PathOutsideRoot);
-                LocalResourceBoundary.Resolve(root.Path, parts[3]);
+                LocalResourceBoundary.ResolveManagedRoot(root, parts[3]);
                 keys.Add($"directory:{configuration.HostId}:{rootId}:{parts[3].ToLowerInvariant()}");
             }
             else throw new RunnerFault(ErrorCode.ReservationConflict);
         }
         return keys.Order(StringComparer.Ordinal).ToArray();
+    }
+    private static bool BackupProfilesChanged(string? previous, string next)
+    {
+        static string Profiles(string? json)
+        {
+            if (string.IsNullOrEmpty(json)) return "[]";
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("backupProfiles", out var value) ? value.GetRawText() : "[]";
+        }
+        return !string.Equals(Profiles(previous), Profiles(next), StringComparison.Ordinal);
     }
     private string DirectoryKey(ServerConfig server) => $"directory:{configuration.HostId}:{server.ManagedRootId}:{server.ServerDirectory.ToLowerInvariant()}";
     private bool ConfigurationIsHeld(ServerConfig server, ResourceHold[] holds) => holds.Any(hold => hold.ResourceKeys.Any(key => key == "server:" + server.ServerId || ResourcesConflict(DirectoryKey(server), key)));
@@ -208,7 +222,7 @@ public sealed partial class RunnerStore : IDisposable
         var parts = key.Split(':', 4);
         if (parts.Length != 4 || parts[0] != "directory") return null;
         var root = configuration.LocalResources.Roots.Single(r => r.Id.ToString() == parts[2]);
-        return LocalResourceBoundary.Resolve(root.Path, parts[3]);
+        return LocalResourceBoundary.ResolveManagedRoot(root, parts[3]);
     }
     private bool ResourcesConflict(string left, string right)
     {
