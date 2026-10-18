@@ -67,6 +67,32 @@ public sealed class OperationGateTests
     }
 
     [Fact]
+    public async Task InspectedAbortTombstonesHostWithoutObservedHoldBeforeCentralRelease()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var first = await fixture.ServerAsync("one");
+        var second = await fixture.ServerAsync("two");
+        var delayedHost = new[] { first.HostId, second.HostId }.Max();
+        fixture.Agent.FailHost = delayedHost;
+        fixture.Agent.SnapshotUnavailableAfterFailure = true;
+        var request = new ReservationAcquireRequest { WorkflowId = Guid.NewGuid(), AdapterId = "16", RunReference = "run-delayed", ResourceKeys = [ReservationService.ServerKey(first.ServerId), ReservationService.ServerKey(second.ServerId)] };
+        await Assert.ThrowsAsync<IOException>(() => fixture.Reservations.AcquireAsync(request));
+        fixture.Agent.FailHost = null;
+        fixture.Agent.SnapshotUnavailableAfterFailure = false;
+        fixture.Agent.FailReleaseHost = delayedHost;
+        await Assert.ThrowsAsync<IOException>(() => fixture.Reservations.RecoverMaintenancePreparationAsync(request.WorkflowId, WorkflowRecoveryAction.AbortAfterInspection));
+        Assert.Equal(ReservationStatus.RecoveryRequired, (await fixture.Reservations.GetAsync(request.WorkflowId)).Status);
+        fixture.Agent.FailReleaseHost = null;
+        await fixture.Reservations.RecoverMaintenancePreparationAsync(request.WorkflowId, WorkflowRecoveryAction.AbortAfterInspection);
+        var releasedLease = await fixture.Reservations.GetAsync(request.WorkflowId);
+        Assert.Equal(ReservationStatus.Released, releasedLease.Status);
+        Assert.Empty(fixture.Agent.Holds);
+        Assert.Equal(2, fixture.Agent.ReleasedHolds.Count);
+        var oldKeys = releasedLease.ResourceKeys.Where(x => x == ReservationService.ServerKey(delayedHost == first.HostId ? first.ServerId : second.ServerId) || x.StartsWith($"directory:{delayedHost:D}:", StringComparison.Ordinal)).ToArray();
+        await Fault("ReservationConflict", () => fixture.Agent.PrepareAsync(delayedHost, new AcquireHoldRequest(releasedLease.ReservationId, request.WorkflowId, oldKeys, HoldMode.Maintenance), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task ReleasedLeaseRemainsReadableAfterResourceIsReused()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -295,6 +321,7 @@ public sealed class OperationGateTests
     {
         public Dictionary<Guid, ServerRuntimeSnapshot> States { get; } = [];
         public Dictionary<Guid, ResourceHold> Holds { get; } = [];
+        public Dictionary<Guid, ResourceHold> ReleasedHolds { get; } = [];
         public Guid? FailHost { get; set; }
         public Guid? ChangeStateHost { get; set; }
         public Guid? FailReleaseHost { get; set; }
@@ -313,6 +340,7 @@ public sealed class OperationGateTests
         public async Task<PreparedHold> PrepareAsync(Guid hostId, AcquireHoldRequest request, CancellationToken token)
         {
             PrepareCount++;
+            if (ReleasedHolds.TryGetValue(hostId, out var released) && released.ReservationId == request.ReservationId) throw new InventoryFault(409, "ReservationConflict");
             if (hostId == FailHost) throw new IOException("Injected lost response.");
             var hold = new ResourceHold { ReservationId = request.ReservationId, OwnerWorkflowId = request.OwnerWorkflowId, ResourceKeys = request.ResourceKeys, Mode = request.Mode, Fence = 1 };
             Holds[hostId] = hold;
@@ -320,7 +348,13 @@ public sealed class OperationGateTests
             if (hostId == ChangeStateHost) States[hostId] = States[hostId] with { ProcessState = ProcessState.Running };
             return new(hold, await SnapshotAsync(hostId, token));
         }
-        public Task ReleaseAsync(Guid hostId, ReleaseHoldRequest request, CancellationToken token) { if (hostId == FailReleaseHost) throw new IOException("Injected release timeout."); Holds.Remove(hostId); return Task.CompletedTask; }
+        public Task ReleaseAsync(Guid hostId, ReleaseHoldRequest request, CancellationToken token)
+        {
+            if (hostId == FailReleaseHost) throw new IOException("Injected release timeout.");
+            if (Holds.TryGetValue(hostId, out var hold) && hold.ReservationId == request.ReservationId && hold.Fence == request.ExpectedFence) { Holds.Remove(hostId); ReleasedHolds[hostId] = hold; return Task.CompletedTask; }
+            if (ReleasedHolds.TryGetValue(hostId, out var released) && released.ReservationId == request.ReservationId && released.Fence == request.ExpectedFence) return Task.CompletedTask;
+            throw new InventoryFault(409, "ReservationConflict");
+        }
         public Task<ExecutionSnapshot> DispatchAsync(Guid hostId, Guid operationId, string json, string hash, CancellationToken token)
         {
             DispatchCount++;

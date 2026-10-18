@@ -1,0 +1,46 @@
+@page "/Workflows"
+@model WorkflowsModel
+@{ ViewData["Title"] = "運転・保守履歴"; }
+<h1>運転・保守履歴</h1>
+<p>復旧操作の前に対象 Host の Runner 状態と実プロセスを点検してください。</p>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+@foreach (var item in Model.Recent)
+{
+    <section>
+        <h2><a asp-page="Workflows" asp-route-workflowId="@item.Workflow.WorkflowId">@item.Workflow.WorkflowId</a></h2>
+        <p>種別: @item.Workflow.Kind / 状態: @item.Workflow.Status / 作成: @item.Workflow.CreatedAtUtc.ToLocalTime()</p>
+        @if (item.Lease != null)
+        {
+            <p>予約: @item.Lease.ReservationId / @item.Lease.Status / Adapter: @(item.Lease.AdapterId ?? "なし") / run: @(item.Lease.RunReference ?? "なし")</p>
+            <p>Host fence: @string.Join(", ", item.Fences.Select(x => $"{x.HostId:D}:{x.Fence}"))</p>
+        }
+        @foreach (var child in item.Operations)
+        {
+            <p>操作: @child.Kind / @child.Status / @child.OperationId / エラー: @(child.ErrorCode ?? "なし")
+                @if (child.ServerId.HasValue) { <a asp-page="/Servers/Operations" asp-route-serverId="@child.ServerId">Server 操作</a> }
+            </p>
+        }
+        @if (item.Lease?.Status == ReservationStatus.RecoveryRequired)
+        {
+            <form method="post" asp-page-handler="Recover">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="workflowId" value="@item.Workflow.WorkflowId" />
+                <label>点検理由 <input name="reason" required maxlength="1024" /></label>
+                @if (item.Workflow.Kind == "Maintenance" && !item.Lease.PreparedOnce)
+                {
+                    <button type="submit" name="action" value="Resume">同じ run を再開</button>
+                    <button type="submit" name="action" value="AbortAfterInspection">点検後に中断</button>
+                }
+                else if (item.Workflow.Kind == "SingleOperation")
+                {
+                    <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button>
+                    @if (item.Operations.Any(x => x.Kind is OperationKind.Stop or OperationKind.Restart && x.Status == OperationStatus.NeedsAttention))
+                    {
+                        <label><input type="checkbox" name="killConfirmed" value="true" /> 対象 Session と実プロセスを確認した</label>
+                        <button type="submit" name="action" value="KillAfterInspection">確認後 Kill</button>
+                    }
+                }
+            </form>
+        }
+    </section>
+}

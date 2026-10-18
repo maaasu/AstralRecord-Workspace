@@ -294,7 +294,20 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
         }
         if (action == WorkflowRecoveryAction.AbortAfterInspection)
         {
-            foreach (var fence in held) await agents.ReleaseAsync(fence.HostId, new ReleaseHoldRequest(lease.ReservationId, workflowId, fence.Fence), token);
+            foreach (var (hostId, keys) in hostKeys.OrderBy(x => x.Key))
+            {
+                var fence = held.SingleOrDefault(x => x.HostId == hostId) ?? lease.Fences.SingleOrDefault(x => x.HostId == hostId);
+                if (fence == null)
+                {
+                    // Force a hold/release tombstone even when a delayed Prepare has
+                    // not reached the Runner yet. The Agent serializes both calls.
+                    var prepared = await agents.PrepareAsync(hostId, new AcquireHoldRequest(lease.ReservationId, workflowId, keys, original.Mode), token);
+                    if (prepared.Hold.ReservationId != lease.ReservationId || prepared.Hold.OwnerWorkflowId != workflowId || prepared.Hold.Fence < 1 || !prepared.Hold.ResourceKeys.Order(StringComparer.Ordinal).SequenceEqual(keys.Order(StringComparer.Ordinal))) throw new InventoryFault(409, "RecoveryRequired");
+                    fence = new HostReservationFence(hostId, prepared.Hold.Fence);
+                    await PersistFenceAsync(lease.ReservationId, hostId, fence.Fence);
+                }
+                await agents.ReleaseAsync(hostId, new ReleaseHoldRequest(lease.ReservationId, workflowId, fence.Fence), token);
+            }
             await CompleteInspectedAbortAsync(lease.ReservationId, workflowId);
             return;
         }
