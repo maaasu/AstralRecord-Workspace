@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio"><PrivateAssets>all</PrivateAssets></PackageReference>
+    <ProjectReference Include="../../src/AstralRecordControl.Web/AstralRecordControl.Web.csproj" />
+    <ProjectReference Include="../../src/AstralRecordControl.Agent/AstralRecordControl.Agent.csproj" />
+    <ProjectReference Include="../../src/AstralRecordControl.Runner/AstralRecordControl.Runner.csproj" />
+  </ItemGroup>
+</Project>
