@@ -65,7 +65,7 @@ public sealed class RunnerTests
         using (var database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
         {
             database.Open(); using var version = database.CreateCommand(); version.CommandText = "PRAGMA user_version;";
-            Assert.Equal(3L, version.ExecuteScalar());
+            Assert.Equal(4L, version.ExecuteScalar());
         }
         var backup = Assert.Single(Directory.GetFiles(data, "runner.db.before-v2.*.bak"));
         using var saved = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backup, Pooling = false }.ToString());

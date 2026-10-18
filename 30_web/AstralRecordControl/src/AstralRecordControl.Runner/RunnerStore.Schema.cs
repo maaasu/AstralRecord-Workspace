@@ -61,4 +61,18 @@ public sealed partial class RunnerStore
         Execute("PRAGMA user_version=3;", transaction);
         transaction.Commit();
     }
+
+    private void MigrateV4(string path, bool backupExisting)
+    {
+        if (backupExisting)
+        {
+            var backupPath = path + ".before-v4." + clock.GetUtcNow().ToString("yyyyMMddHHmmssfffffff") + "." + Guid.NewGuid().ToString("N") + ".bak";
+            using var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backupPath, Pooling = false }.ToString());
+            backup.Open(); database.BackupDatabase(backup);
+        }
+        using var transaction = database.BeginTransaction();
+        Execute("ALTER TABLE ServerSessions ADD COLUMN lastExitWasExpected INTEGER;", transaction);
+        Execute("PRAGMA user_version=4;", transaction);
+        transaction.Commit();
+    }
 }
