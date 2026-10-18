@@ -53,9 +53,9 @@ public static class ControlJson
         return JsonSerializer.Deserialize<T>(json, Options) ?? throw new JsonException("Null is not a message.");
     }
     public static JsonElement Element<T>(T value) => JsonSerializer.SerializeToElement(value, Options);
-    public static void ValidateJson(string json)
+    public static void ValidateJson(string json, int maxBytes = ControlProtocol.MaxMessageBytes)
     {
-        if (Encoding.UTF8.GetByteCount(json) > ControlProtocol.MaxMessageBytes) throw new JsonException("Message too large.");
+        if (Encoding.UTF8.GetByteCount(json) > maxBytes) throw new JsonException("Message too large.");
         using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 });
         Visit(document.RootElement);
     }

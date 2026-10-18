@@ -135,6 +135,7 @@ public sealed record CliTokenIssued(Guid CredentialId, string Token, DateTimeOff
 public static class OperationValidation
 {
     public static bool IsP1Kind(OperationKind kind) => kind is OperationKind.Start or OperationKind.Stop or OperationKind.Restart or OperationKind.Kill or OperationKind.ConsoleCommand;
+    public static bool IsP2Kind(OperationKind kind) => kind is OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.WriteFile or OperationKind.FileMutation or OperationKind.ExportFiles or OperationKind.ImportArtifact or OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.ProvisionServer or OperationKind.PruneBackups or OperationKind.SetBackupProtection or OperationKind.DeleteBackup;
     public static bool IsTerminal(OperationStatus status) => status is OperationStatus.Succeeded or OperationStatus.Failed or OperationStatus.Rejected or OperationStatus.Expired or OperationStatus.Cancelled;
     public static OperationCommand Read(ExecuteRequest request, Guid hostId)
     {
@@ -147,7 +148,8 @@ public static class OperationValidation
     public static void Validate(OperationCommand command, Guid hostId)
     {
         if (command.SchemaVersion != 1 || command.OperationId == Guid.Empty || command.HostId != hostId || hostId == Guid.Empty || command.ServerId is null || command.ServerId == Guid.Empty || command.WorkflowId is null || command.WorkflowId == Guid.Empty || command.ReservationId is null || command.ReservationId == Guid.Empty || command.ReservationFence is null or < 1 || command.ConfigRevision is null or < 1 || command.ExpectedStateRevision is null or < 0 || command.ExpectedServerSessionId == Guid.Empty) throw new ArgumentException("Invalid operation identity/revision.");
-        if (!IsP1Kind(command.Kind) || command.StartBeforeUtc.Offset != TimeSpan.Zero || command.StartBeforeUtc == default || command.ExecutionTimeoutSeconds is < 1 or > 86400 || command.Payload.ValueKind != JsonValueKind.Object) throw new ArgumentException("Invalid operation capability/limits.");
+        if ((!IsP1Kind(command.Kind) && !IsP2Kind(command.Kind)) || command.StartBeforeUtc.Offset != TimeSpan.Zero || command.StartBeforeUtc == default || command.ExecutionTimeoutSeconds is < 1 or > 86400 || command.Payload.ValueKind != JsonValueKind.Object) throw new ArgumentException("Invalid operation capability/limits.");
+        if (IsP2Kind(command.Kind)) { FileOperationValidation.ValidatePayload(command.Kind, command.Payload); return; }
         var properties = command.Payload.EnumerateObject().ToArray();
         if (command.Kind is OperationKind.Start or OperationKind.Stop or OperationKind.Restart) { if (properties.Length != 0) throw new ArgumentException("Unexpected operation payload."); }
         else
