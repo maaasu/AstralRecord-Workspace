@@ -1,6 +1,6 @@
 # AstralRecordControl 設計書
 
-- 設計状態: 採用済み。P0の台帳・認証・通信基盤とP1のRunner・Java基本運転・共通gateを実装。P2のファイル操作・転送・停止バックアップ・journal復元を実装。P3以降は未実装。
+- 設計状態: 採用済み。P0の台帳・認証・通信基盤、P1のRunner・Java基本運転・共通gate、P2のファイル操作・転送・停止バックアップ・journal復元、P3の同一Host予約実行・監視・Webhook通知を実装。P4以降は未実装。
 - 初版: 2026-10-18。v1の対象OSはWindows、実装基盤は.NET 10。
 - 目的: Craftyを使わず、単一の管理Webから複数PC上のMinecraftを運用する。
 - 配置: Devは開発PC、チャンネルはMC用PC。管理Webはそれらと独立したWeb管理用PCに置く。
@@ -56,4 +56,4 @@
 
 固定DNS名、TLS証明書、PCの実パス、Javaのインストール先、既存runtimeServerIdとの対応、バックアップ実保存先は導入時の設定値。実サーバーへ接続できたことや既存設定の正確な版は前提にしない。これらは実装上の未決仕様ではなく、登録時に検証する必須入力である。
 
-実装入口は [Control README](../../../30_web/AstralRecordControl/README.md)、導入入口は [control-deploy](../../../60_tool/control-deploy/README.md)、既存ツールとの対応付けは [control-gate](../../../60_tool/control-gate/README.md)。P1の変更操作は既定無効で、全Hostの入口改修・導入marker・能力確認を経て有効化する。本設計の完成形のAPI/機能をすべて実装済みとは扱わない。P2のファイル操作・バックアップは追加のEnableFileControlと能力確認で有効化する。P3以降の予約実行等は未提供。
+実装入口は [Control README](../../../30_web/AstralRecordControl/README.md)、導入入口は [control-deploy](../../../60_tool/control-deploy/README.md)、既存ツールとの対応付けは [control-gate](../../../60_tool/control-gate/README.md)。P1の変更操作は既定無効で、全Hostの入口改修・導入marker・能力確認を経て有効化する。P2のファイル操作・バックアップは追加のEnableFileControlと能力確認で有効化する。P3の予約実行はWeb/AgentのEnableSchedulesと同じmarker/gateを必要とし、監視とWebhook通知の設定・履歴を提供する。本設計の完成形のAPI/機能をすべて実装済みとは扱わず、PC横断Workflowや外部監視endpointはP4/P5へ残す。

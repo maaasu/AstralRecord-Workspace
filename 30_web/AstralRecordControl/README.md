@@ -2,7 +2,7 @@
 
 Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していてもログインできる独立管理系です。.NET 10 / Windows x64を使用します。設計の正本は [AstralRecordControl設計書](../../00_docs/30_WEB設計書/AstralRecordControl/README.md) です。
 
-## 実装済みの機能（P0・P1・P2）
+## 実装済みの機能（P0・P1・P2・P3）
 
 - 単一ownerのパスワード＋TOTP、使い捨て回復コード、8時間の固定セッション、全セッション失効、停止中のローカルCLIによるowner作成/リセット。
 - PC・Server・Environment台帳、Agentトークンの一度限り表示/失効、希望設定版と適用版の区別。
@@ -15,7 +15,7 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 
 変更操作は既定で無効です。`Control:EnableProcessControl=true`、Runnerの`EnableProcessControl=true`に加え、対象Hostすべての`P1.Operations`/`P1.LegacyGate` capabilityが必要です。Runner/Agentの本番起動は固定`%ProgramData%\AstralRecordControl\managed-operations.enabled`を確認します。markerは既存ツールの共通gate導入を検査したinstallerの`-EnableManagedOperations`で作成します。詳しくは[導入手順](../../60_tool/control-deploy/README.md)と[既存ツールgate](../../60_tool/control-gate/README.md)を参照してください。
 
-P1のプロセス運転はJavaの独立した基本運転です。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrock/Velocityのプロセス運転、予約実行・更新Adapter・別PCへのServer複製/移送は後続段階です。非対応設定や操作を開始済みとして扱いません。
+P1のプロセス運転はJavaの独立した基本運転です。P3では同一Host/Serverの予約実行、監視、Webhook通知を追加しました。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrock/Velocityのプロセス運転、更新Adapter・別PCへのServer複製/移送はP4以降です。非対応設定や操作を開始済みとして扱いません。
 
 ## プロジェクト
 
@@ -61,6 +61,9 @@ node --test tests/WebScript.Tests/sha256.test.cjs
 | `/api/control/v1/servers/{id}/operations`、`operations/{id}`、`servers/{id}/logs` | Owner Cookie。変更はCSRF、操作作成はIdempotency-Key + If-None-Match |
 | `/api/control/v1/reservations`、`reservations/{id}/validate`、`release`、`gate/catalog` | Owner Cookieまたは15分CLI Bearer。Cookie変更はCSRF |
 | `/api/control/v1/auth/cli-token`、`cli-token/revoke` | パスワード＋TOTP/回復コードで発行、CLI Bearerで自己失効 |
+| `/api/control/v1/schedules`、`schedules/{id}`、`schedules/{id}/run-now`、`schedules/{id}/requests/{operationId}` | Owner Cookie。設定変更はCSRF/Idempotency-Key/条件付きrevision、Run Nowは永続受付後202、要求IDで照会・再送 |
+| `/api/control/v1/servers/{id}/metrics` | Owner Cookie。期間とminute/hour粒度を指定して時系列を取得 |
+| `/api/control/v1/notification-destinations`、`notification-destinations/{id}`、`notifications` | Owner Cookie。送信先変更は再認証/CSRF/Idempotency-Key/条件付きrevision、URLは応答しない。配信履歴は最大100件 |
 
 JSONはcamelCase/定義済み文字列enumで、未知フィールド、重複フィールド、不正な型を拒否します。メッセージ上限1MiB、inventory JSON上限512KiBです。inventoryは保存済みの文字列そのもののSHA-256を検証し、Runner保存→Agent保存→Web ACKの順で適用します。
 
@@ -70,7 +73,7 @@ Agent tokenをOwner Cookieとして使うことも、その逆もできません
 
 既定は`%ProgramData%\AstralRecordControl\Web|Agent|Runner`です。各サービスのSQLiteはローカルディスク/WAL/busy timeout 5秒で、別サービスのDBを直接開きません。各プロセスは排他lockファイルを保持します。DB・Data Protection keys・credentials・configは配布パッケージに含めません。
 
-Web/Agent/Runnerの現行schemaは3です。schema1/2からはSQLite backupを作成してtransaction内で移行します。未知版や版情報のない既存schemaを持つDBは起動を拒否し、自動破棄/自動採用しません。Agent DBのstoreId変更やACKより古い状態への巻戻りは要復旧です。トークンの再発行だけで台帳のstoreIdを変更しません。同じHostへの自動再登録は提供せず、旧Hostを無効化して新しいHost IDへ明示登録し直します。
+Web/Agent/Runnerの現行schemaは4です。旧schemaからは各サービスのSQLite backupを作成してtransaction内で移行します。未知版や版情報のない既存schemaを持つDBは起動を拒否し、自動破棄/自動採用しません。Agent DBのstoreId変更やACKより古い状態への巻戻りは要復旧です。トークンの再発行だけで台帳のstoreIdを変更しません。同じHostへの自動再登録は提供せず、旧Hostを無効化して新しいHost IDへ明示登録し直します。
 
 DPAPI鍵/トークンを別PCへコピーするだけでは復旧できません。Webは停止中CLIでowner/MFAを再設定し、Agentは新規Hostとして再登録します。既存ServerのPC間移送は後続段階です。
 
@@ -105,3 +108,15 @@ P1の導入条件に加え、Webの`Control:EnableFileControl=true`、Agent/Runn
 取得は同じ予約内で正常停止と終了を確認してからローカルstageを作り、各entryとmanifestのSHA-256を検証して保存先へ確定します。最新7件または30日以内の成功世代を残し、保護/復元中/未完了の世代を保持します。世代の保護・削除・downloadも画面から操作できます。
 
 復元の範囲は常に`ServerFiles`です。SQL/API/マスターデータ/公開状態は含みません。Replaceはsnapshotの状態へ戻し、Mergeはその他のファイルを保持します。旧データは同volumeの保護退避フォルダに残し、stageと交換過程をjournalへ保存します。既定で再起動しません。中断時はRunnerのdata journalとholdを保持して起動を禁止し、`/Workflows`から同じ復元を理由付きで再開します。入場制限は自動解除しません。
+
+## 予約実行・監視・通知（P3）
+
+予約実行はWebの`Control:EnableSchedules=true`とAgentの`enableSchedules=true`を明示設定し、P1の管理運用markerと共通gateを維持して有効化します。初期値はfalseです。Webで定義を保存してもAgentのinventory適用ACKまでは発火しません。Once、60秒以上のInterval、秒なし5フィールドCron（標準`Asia/Tokyo`）を扱い、夏時間の重複時刻は先のUTCだけを採用します。開始期限を60秒超過した予定はSkipに記録し、停止中の予定をまとめて追走しません。同一Host/Serverの最大16段の連鎖は同じローカル予約を使い、段間待機は0～86400秒です。PC横断/Environment WorkflowはP4です。
+
+`/Servers/{id}/Schedules`で定義・適用版・実行履歴を確認できます。Run Nowは先に要求IDを永続化し、受付結果が不明な場合も202と照会先を返します。同じIdempotency-Keyで照会・再送し、新しい要求IDで重複実行しません。バックアップprofileはinventory内で希望版と適用ACKを区別し、定義更新時にも既存profileを保持します。
+
+Agentは約10秒ごとにHost/プロセスCPU、メモリ、ディスク空き、稼働時間を採取し、Javaの`127.0.0.1` status pingから取得できる人数だけを報告します。取得不能はnull/欠測で、0人や停止へ変換しません。TPS/MSPTはP3のデータ源に含みません。Webの`/Servers/{id}/Metrics`では1分粒度7日、1時間粒度90日の系列を表示します。
+
+`/Notifications`でOwnerがWebhook送信先と履歴を管理します。URL全体をData Protectionで保護し、画面/APIへ戻しません。送信先は公開到達可能なHTTPS・443番だけを許可し、リダイレクトとプロキシを使わずDNS解決先の公開IPへ固定して送ります。Web停止中のAgentイベントもUTC発生時刻と同じeventIdでACKまで保持します。初回失敗後1/5/30分の最大3回再試行後にdead-letterとなり、送信失敗はゲーム操作の結果を変更しません。外部Webhookへの厳密なat-most-once配信は保証しないため、受信側はeventIdで重複排除してください。
+
+完了済み操作・Schedule履歴・通知は90日で本文を退役させ、再送照合に必要なID/hashを保持します。非終端操作・要復旧保守・未ACKイベントは期限だけで削除しません。検証は一時fixtureで行い、実Minecraft、実NAS、外部Webhook、実サービス登録には接続しません。
