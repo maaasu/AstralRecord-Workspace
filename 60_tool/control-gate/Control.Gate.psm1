@@ -91,9 +91,20 @@ function Get-ControlGateResumeIdentity {
     $gatePath=Join-Path $run 'control-gate-run.json'
     if (!(Test-Path -LiteralPath $gatePath -PathType Leaf)) { throw 'Active run has no Control reservation identity.' }
     $identity=Get-Content -Raw -Encoding UTF8 -LiteralPath $gatePath | ConvertFrom-Json
-    $workflowId=[Guid]::Empty
-    if (![Guid]::TryParse([string]$identity.workflowId,[ref]$workflowId) -or $workflowId -eq [Guid]::Empty) { throw 'Active run Control workflow ID is invalid.' }
-    return [pscustomobject]@{ WorkflowId=$workflowId.ToString('D'); RunReference=$run }
+    $workflowId=[Guid]::Empty; $reservationId=[Guid]::Empty
+    if (![Guid]::TryParse([string]$identity.workflowId,[ref]$workflowId) -or $workflowId -eq [Guid]::Empty -or
+        ![Guid]::TryParse([string]$identity.reservationId,[ref]$reservationId) -or $reservationId -eq [Guid]::Empty) {
+        throw 'Active run Control reservation identity is invalid.'
+    }
+    $completed=$active.status -ceq 'Completed'
+    if ($completed) {
+        $statePath=Join-Path $run 'workflow-state.json'
+        if (!(Test-Path -LiteralPath $statePath -PathType Leaf) -or
+            (Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json).status -cne 'Completed') {
+            throw 'Completed run state is inconsistent; retain the Control reservation.'
+        }
+    }
+    return [pscustomobject]@{ WorkflowId=$workflowId.ToString('D'); ReservationId=$reservationId.ToString('D'); RunReference=$run; Completed=$completed }
 }
 
 function New-ControlGateRunReference {
@@ -130,6 +141,73 @@ function Invoke-ControlGateCli {
     if ($LASTEXITCODE -ne 0) { throw "Control gate rejected the operation (exit $LASTEXITCODE)." }
 }
 
+function Assert-ControlGateLeaseIdentity {
+    param($Local, $Remote, [string]$WorkflowId, [string]$ReservationId, [string]$Operation,
+        [string]$RunReference, [string[]]$ExpectedKeys)
+    $workflow=[Guid]::Empty; $reservation=[Guid]::Empty
+    if (![Guid]::TryParse($WorkflowId,[ref]$workflow) -or $workflow -eq [Guid]::Empty -or
+        ![Guid]::TryParse($ReservationId,[ref]$reservation) -or $reservation -eq [Guid]::Empty) {
+        throw 'Control gate resume identity is invalid.'
+    }
+    foreach ($lease in @($Local,$Remote)) {
+        if (!$lease -or [string]$lease.workflowId -cne $workflow.ToString('D') -or
+            [string]$lease.reservationId -cne $reservation.ToString('D') -or
+            [string]$lease.adapterId -cne $Operation -or [string]$lease.runReference -cne $RunReference) {
+            throw 'Control gate inspection belongs to a different run or reservation.'
+        }
+        $keys=@($lease.resourceKeys)
+        if (!$keys.Count -or @($keys | Sort-Object -Unique -CaseSensitive).Count -ne $keys.Count) { throw 'Control gate resource identity is invalid.' }
+        foreach ($key in $ExpectedKeys) { if ($key -cnotin $keys) { throw 'Control gate lease does not cover every required resource.' } }
+    }
+    $localKeys=@($Local.resourceKeys | Sort-Object -CaseSensitive)
+    $remoteKeys=@($Remote.resourceKeys | Sort-Object -CaseSensitive)
+    if ($localKeys.Count -ne $remoteKeys.Count -or [string]::Join("`n",$localKeys) -cne [string]::Join("`n",$remoteKeys)) {
+        throw 'Control gate inspected resources differ from the protected lease.'
+    }
+    $fences=@()
+    foreach ($lease in @($Local,$Remote)) {
+        $values=@(foreach ($item in @($lease.fences)) {
+            $hostId=[Guid]::Empty; $fence=0L
+            if (![Guid]::TryParse([string]$item.hostId,[ref]$hostId) -or $hostId -eq [Guid]::Empty -or
+                ![long]::TryParse([string]$item.fence,[ref]$fence) -or $fence -le 0) { throw 'Control gate fence identity is invalid.' }
+            $hostId.ToString('D') + ':' + $fence
+        })
+        if (!$values.Count -or @($values | Sort-Object -Unique -CaseSensitive).Count -ne $values.Count) { throw 'Control gate fence identity is invalid.' }
+        $fences+=,[string]::Join("`n",@($values | Sort-Object -CaseSensitive))
+    }
+    if ($fences[0] -cne $fences[1]) { throw 'Control gate inspected fences differ from the protected lease.' }
+}
+
+function Get-ControlGateInspectedLease {
+    param([string]$CliPath, [string]$LeaseFile, [string]$ServerUrl, [string]$WorkflowId,
+        [string]$ReservationId, [string]$Operation, [string]$RunReference, [string[]]$ExpectedKeys)
+    $local=Get-Content -Raw -Encoding UTF8 -LiteralPath $LeaseFile | ConvertFrom-Json
+    $response=@(Invoke-ControlGateCli $CliPath @('gate','inspect','--lease-file',$LeaseFile,'--expected-server-url',$ServerUrl))
+    try { $remote=($response -join "`n") | ConvertFrom-Json } catch { throw 'Control gate inspection response is invalid.' }
+    Assert-ControlGateLeaseIdentity $local $remote $WorkflowId $ReservationId $Operation $RunReference $ExpectedKeys
+    if ([string]$remote.status -cnotin @('Prepared','Releasing','Released')) { throw 'Control gate reservation needs manual recovery.' }
+    if ([string]$local.status -cnotin @('Prepared','Releasing','Released') -or
+        ($local.status -ceq 'Released' -and $remote.status -cne 'Released')) { throw 'Protected Control gate lease status conflicts with the inspected reservation.' }
+    return $remote
+}
+
+function Find-ControlGateResumeLease {
+    param([string]$WorkflowId, [string]$ReservationId, [string]$Operation, [string]$RunReference)
+    $root=Join-Path $env:LOCALAPPDATA 'AstralRecordControl\GateLeases'
+    if (!(Test-Path -LiteralPath $root -PathType Container)) { throw 'Protected Control gate lease directory is missing.' }
+    $matches=@()
+    foreach ($file in @(Get-ChildItem -LiteralPath $root -Filter '*.json' -File | Sort-Object FullName)) {
+        if ($file.Length -gt 1048576) { continue }
+        try { $lease=Get-Content -Raw -Encoding UTF8 -LiteralPath $file.FullName | ConvertFrom-Json } catch { continue }
+        if ([string]$lease.workflowId -cne $WorkflowId) { continue }
+        if ([string]$lease.reservationId -cne $ReservationId -or [string]$lease.adapterId -cne $Operation -or
+            [string]$lease.runReference -cne $RunReference) { throw 'Saved Control gate lease conflicts with the active run.' }
+        $matches+=,$file.FullName
+    }
+    if (!$matches.Count) { throw 'Protected Control gate lease for the active run is missing.' }
+    return $matches[0]
+}
+
 function Enter-ControlGate {
     param(
         [Parameter(Mandatory)]$Configuration,
@@ -139,6 +217,8 @@ function Enter-ControlGate {
         [Parameter(Mandatory)][ValidateSet('Stopped','Running')][string]$RequiredState,
         [string]$RunReference = '',
         [string]$WorkflowId = '',
+        [string]$ReservationId = '',
+        [switch]$CompletedRun,
         [ValidateSet('Deploy','Restore','Seed','WaitForStartup','Publish','Preview','Commit','Resume')][string]$InitialStep='Deploy'
     )
     $mode = Get-ControlGateMode $Configuration
@@ -149,6 +229,18 @@ function Enter-ControlGate {
     if (!$RuntimeServerIds.Count -or @($RuntimeServerIds | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count) { throw 'Managed gate requires every affected runtime server.' }
     if (!$AffectedPaths) { $AffectedPaths=@() }
     $resources = Resolve-ControlGateResources $gate $RuntimeServerIds $AffectedPaths $RequiredState
+    if ($WorkflowId) {
+        if (!$ReservationId -or !$RunReference) { throw 'Control gate resume requires the saved reservation and run reference.' }
+        $lease=Find-ControlGateResumeLease $WorkflowId $ReservationId $Operation $RunReference
+        $remote=Get-ControlGateInspectedLease $cli $lease $serverUrl $WorkflowId $ReservationId $Operation $RunReference $resources.Keys
+        if (!$CompletedRun -and $remote.status -cne 'Prepared') { throw 'Incomplete run cannot resume a releasing or released Control reservation.' }
+        if (!$CompletedRun) { Invoke-ControlGateCli $cli @('gate','validate','--lease-file',$lease,'--step',$InitialStep,'--expected-server-url',$serverUrl) }
+        [Environment]::SetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE', $lease, 'Process')
+        return [pscustomobject]@{ Mode='Managed'; Owner=$true; LeaseFile=$lease; CliPath=$cli; ServerUrl=$serverUrl;
+            WorkflowId=$WorkflowId; ReservationId=$ReservationId; AdapterId=$Operation; RunReference=$RunReference;
+            ResourceKeys=$resources.Keys; CompletedRun=[bool]$CompletedRun; RemoteStatus=[string]$remote.status }
+    }
+    if ($ReservationId -or $CompletedRun) { throw 'Control gate resume metadata is incomplete.' }
     $inherited = [Environment]::GetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE', 'Process')
     if ($inherited) {
         if (![IO.Path]::IsPathFullyQualified($inherited) -or !(Test-Path -LiteralPath $inherited -PathType Leaf)) { throw 'Inherited Control gate lease is missing.' }
@@ -172,7 +264,10 @@ function Enter-ControlGate {
         if (!(Test-Path -LiteralPath $lease -PathType Leaf)) { throw 'Control CLI did not create a lease file.' }
         [Environment]::SetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE', $lease, 'Process')
         Invoke-ControlGateCli $cli @('gate','validate','--lease-file',$lease,'--step',$InitialStep,'--expected-server-url',$serverUrl)
-        return [pscustomobject]@{ Mode='Managed'; Owner=$true; LeaseFile=$lease; CliPath=$cli; ServerUrl=$serverUrl }
+        $saved=Get-Content -Raw -Encoding UTF8 -LiteralPath $lease | ConvertFrom-Json
+        return [pscustomobject]@{ Mode='Managed'; Owner=$true; LeaseFile=$lease; CliPath=$cli; ServerUrl=$serverUrl;
+            WorkflowId=[string]$saved.workflowId; ReservationId=[string]$saved.reservationId; AdapterId=$Operation;
+            RunReference=$RunReference; ResourceKeys=$resources.Keys; CompletedRun=$false; RemoteStatus='Prepared' }
     } finally {
         if (Test-Path -LiteralPath $requestFile) { Remove-Item -LiteralPath $requestFile -Force }
     }
@@ -187,7 +282,16 @@ function Complete-ControlGate {
     param($Context, [Parameter(Mandatory)][string]$RunReference)
     if ($Context.Mode -ne 'Managed' -or !$Context.Owner) { return }
     if ([string]::IsNullOrWhiteSpace($RunReference)) { throw 'Managed gate release requires a run reference.' }
-    Invoke-ControlGateCli $Context.CliPath @('gate','release','--lease-file',$Context.LeaseFile,'--outcome','Succeeded','--run-reference',$RunReference,'--expected-server-url',$Context.ServerUrl)
+    if ($RunReference -cne $Context.RunReference) { throw 'Control gate release run reference differs from its reservation.' }
+    $remote=Get-ControlGateInspectedLease $Context.CliPath $Context.LeaseFile $Context.ServerUrl $Context.WorkflowId `
+        $Context.ReservationId $Context.AdapterId $RunReference $Context.ResourceKeys
+    if ($remote.status -cne 'Released') {
+        if ($remote.status -cne 'Prepared' -and $remote.status -cne 'Releasing') { throw 'Control gate release requires manual recovery.' }
+        Invoke-ControlGateCli $Context.CliPath @('gate','release','--lease-file',$Context.LeaseFile,'--outcome','Succeeded','--run-reference',$RunReference,'--expected-server-url',$Context.ServerUrl)
+        $remote=Get-ControlGateInspectedLease $Context.CliPath $Context.LeaseFile $Context.ServerUrl $Context.WorkflowId `
+            $Context.ReservationId $Context.AdapterId $RunReference $Context.ResourceKeys
+    }
+    if ($remote.status -cne 'Released') { throw 'Control gate release remains unconfirmed.' }
     if (Test-Path -LiteralPath (Join-Path $RunReference 'control-gate-run.json') -PathType Leaf) {
         @{releasedAtUtc=[DateTimeOffset]::UtcNow.ToString('O');runReference=$RunReference} | ConvertTo-Json |
             Set-Content -Encoding UTF8 -LiteralPath (Join-Path $RunReference 'control-gate-released.json')

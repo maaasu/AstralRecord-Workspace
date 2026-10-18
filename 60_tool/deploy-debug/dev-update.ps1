@@ -104,7 +104,18 @@ try {
     $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
     $gateContext=Enter-ControlGate -Configuration $config -Operation $adapterId -RuntimeServerIds @($normalized.ServerIds) `
         -AffectedPaths $affected -RequiredState $requiredState -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
+        -ReservationId $(if ($resume) { $resume.ReservationId } else { '' }) -CompletedRun:([bool]($resume -and $resume.Completed)) `
         -InitialStep $(if ($resume) { 'Resume' } else { 'Deploy' })
+    if ($resume -and $resume.Completed) {
+        $confirmed=Get-ControlGateResumeIdentity $workflow.runRoot
+        if (!$confirmed -or !$confirmed.Completed -or $confirmed.WorkflowId -cne $resume.WorkflowId -or
+            $confirmed.ReservationId -cne $resume.ReservationId -or $confirmed.RunReference -cne $resume.RunReference) {
+            throw 'Completed Control run changed during release recovery.'
+        }
+        Complete-ControlGate $gateContext $resume.RunReference
+        Write-Host "Control release confirmed for completed run: $($resume.RunReference)"
+        exit 0
+    }
     Write-Host "設定ファイル: $ConfigPath"
     Write-Host "更新モード: $mode"
     if ($config.plugin.enabled -and !$MasterDataOnly) {

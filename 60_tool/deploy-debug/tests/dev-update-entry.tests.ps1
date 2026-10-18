@@ -2,6 +2,7 @@
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('ar-update-entry-' + [guid]::NewGuid().ToString('N'))
+$priorProgramData=$env:ProgramData; $priorLocalAppData=$env:LOCALAPPDATA
 New-Item -ItemType Directory -Path $fixture | Out-Null
 Start-Transcript -LiteralPath (Join-Path $fixture 'verification.log') | Out-Null
 function Assert($Condition,$Message) { if (!$Condition) { throw $Message } }
@@ -102,5 +103,76 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
     & pwsh -NoProfile -File "$fixture/maintenance/maintenance.ps1" -ConfigPath $channelPath -ServersStopped -AdmissionClosed -WorldCopy Skip -NetworkPlugins Skip
     Assert ($LASTEXITCODE -eq 0) 'Default maintenance phase must execute workflow.'
     Assert ((Get-Content -Raw -LiteralPath "$channel/plugins/AstralRecord.jar") -eq 'new jar') 'Workflow did not run real distribution.'
+    # A completed workflow must recover a committed Control release before any new deployment.
+    foreach ($relative in @('player-patch-migration/player-patch-migration.ps1','master-data-reload/master-data-reload.ps1')) {
+        $destination=Join-Path $fixture $relative
+        New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $toolsRoot $relative) -Destination $destination
+    }
+    $markerRoot=Join-Path $fixture 'AstralRecordControl'; New-Item -ItemType Directory -Path $markerRoot | Out-Null
+    $entryFiles=@('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
+        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
+        'master-data-reload\master-data-reload.ps1')
+    $hashes=@{}; foreach ($file in $entryFiles) { $hashes[$file]=(Get-FileHash -LiteralPath (Join-Path $fixture $file) -Algorithm SHA256).Hash }
+    @{schemaVersion=1;toolRoot=$fixture;hashes=$hashes} | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $markerRoot 'managed-operations.enabled')
+    $env:ProgramData=$fixture; $env:LOCALAPPDATA=$fixture
+    $env:MOCK_GATE_LOG=Join-Path $fixture 'release-recovery-commands.log'
+    $mockCli=Join-Path $fixture 'mock-gate.ps1'
+    @'
+$command=($args[0..1] -join ' ')
+Add-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG -Value ($args -join '|')
+if ($command -ne 'gate inspect') { $global:LASTEXITCODE=1; return }
+$leaseFile=$args[[array]::IndexOf($args,'--lease-file')+1]
+Get-Content -Raw -Encoding UTF8 -LiteralPath ($leaseFile+'.central')
+$global:LASTEXITCODE=0
+'@ | Set-Content -Encoding UTF8 -LiteralPath $mockCli
+    $environmentId=[Guid]::NewGuid().ToString('D'); $hostId=[Guid]::NewGuid().ToString('D')
+    $devServerId=[Guid]::NewGuid().ToString('D'); $channelServerId=[Guid]::NewGuid().ToString('D')
+    $config.controlGate=@{mode='Managed';cliPath=$mockCli;serverUrl='https://control.example.test';environmentId=$environmentId;bindings=@{
+        servers=@(@{runtimeServerId='dev';serverId=$devServerId})
+        paths=@(
+            @{path="$dev/plugins";accessRoot=$fixture;hostId=$hostId;managedRootId=[Guid]::NewGuid().ToString('D');relativePath='dev/plugins'},
+            @{path="$fixture/filebase";accessRoot=$fixture;hostId=$hostId;managedRootId=[Guid]::NewGuid().ToString('D');relativePath='filebase'},
+            @{path="$fixture/source";accessRoot=$fixture;hostId=$hostId;managedRootId=[Guid]::NewGuid().ToString('D');relativePath='source'}
+        )
+    }}
+    $config | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 -LiteralPath $configPath
+    function Write-CompletedGateRun($RunRoot,$Adapter,$Keys,$Name) {
+        $relative='run-20261018T103000Z-'+[Guid]::NewGuid().ToString('N')
+        $runPath=Join-Path $RunRoot $relative
+        New-Item -ItemType Directory -Path $runPath -Force | Out-Null
+        $workflowId=[Guid]::NewGuid().ToString('D'); $reservationId=[Guid]::NewGuid().ToString('D')
+        @{schemaVersion=1;relativeRunDirectory=$relative;status='Completed'} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $RunRoot 'active-run.json')
+        @{schemaVersion=1;status='Completed'} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $runPath 'workflow-state.json')
+        @{schemaVersion=1;workflowId=$workflowId;reservationId=$reservationId;adapterId=$Adapter} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $runPath 'control-gate-run.json')
+        $leaseRoot=Join-Path $env:LOCALAPPDATA 'AstralRecordControl/GateLeases'; New-Item -ItemType Directory -Path $leaseRoot -Force | Out-Null
+        $leaseFile=Join-Path $leaseRoot ($Name+'.json')
+        $lease=@{workflowId=$workflowId;reservationId=$reservationId;adapterId=$Adapter;runReference=$runPath;resourceKeys=$Keys;fences=@(@{hostId=$hostId;fence=1});status='Prepared'}
+        $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath $leaseFile
+        $lease.status='Released'; $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath ($leaseFile+'.central')
+        return $runPath
+    }
+    $devKeys=@(('environment:'+$environmentId),('server:'+$devServerId))
+    foreach ($binding in $config.controlGate.bindings.paths) { $devKeys+=('directory:'+$binding.hostId+':'+$binding.managedRootId+':'+$binding.relativePath) }
+    $devRun=Write-CompletedGateRun "$fixture/dev-runs" '01' $devKeys 'dev'
+    Remove-Item -LiteralPath "$fixture/backend-result.json" -ErrorAction SilentlyContinue
+    & pwsh -NoProfile -File $entry -ConfigPath $configPath -ServersStopped -AdmissionClosed
+    Assert ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath (Join-Path $devRun 'control-gate-released.json'))) '01 completed release was not recovered.'
+    Assert (!(Test-Path "$fixture/backend-result.json")) '01 release recovery launched deployment.'
+    $channelConfig.controlGate=@{mode='Managed';cliPath=$mockCli;serverUrl='https://control.example.test';environmentId=$environmentId;bindings=@{
+        servers=@(@{runtimeServerId='dev';serverId=$devServerId},@{runtimeServerId='channel';serverId=$channelServerId})
+    }}
+    $channelConfig | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 -LiteralPath $channelPath
+    $channelRun=Write-CompletedGateRun "$fixture/channel-runs" '16' @(
+        ('environment:'+$environmentId),('server:'+$devServerId),('server:'+$channelServerId)) 'channel'
+    Remove-Item -LiteralPath "$fixture/channel-runs/entry-result.json" -ErrorAction SilentlyContinue
+    & pwsh -NoProfile -File "$fixture/maintenance/maintenance.ps1" -ConfigPath $channelPath -ServersStopped -AdmissionClosed -WorldCopy Skip -NetworkPlugins Skip
+    Assert ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath (Join-Path $channelRun 'control-gate-released.json'))) '16 completed release was not recovered.'
+    Assert (!(Test-Path "$fixture/channel-runs/entry-result.json")) '16 release recovery launched workflow.'
+    Assert (@(Get-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG | Where-Object { $_ -like 'gate|acquire|*' }).Count -eq 0) 'Completed recovery must not acquire new reservations.'
     Write-Host "PASS: Dev/test modes, selection validation, cross-process fingerprints, startup routing without account settings, channel workflow, release preflight. Evidence: $fixture"
-} finally { Stop-Transcript | Out-Null }
+} finally {
+    $env:ProgramData=$priorProgramData; $env:LOCALAPPDATA=$priorLocalAppData
+    Remove-Item Env:MOCK_GATE_LOG -ErrorAction SilentlyContinue
+    Stop-Transcript | Out-Null
+}

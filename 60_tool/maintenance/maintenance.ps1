@@ -59,7 +59,18 @@ try {
         }
         $gateContext=Enter-ControlGate -Configuration $config -Operation '16' -RuntimeServerIds $gateServerIds `
             -AffectedPaths $gatePaths -RequiredState 'Stopped' -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
+            -ReservationId $(if ($resume) { $resume.ReservationId } else { '' }) -CompletedRun:([bool]($resume -and $resume.Completed)) `
             -InitialStep $(if ($resume) { 'Resume' } elseif ($Phase -eq 'Restore') { 'Restore' } else { 'Deploy' })
+        if ($resume -and $resume.Completed) {
+            $confirmed=Get-ControlGateResumeIdentity $gateRunRoot
+            if (!$confirmed -or !$confirmed.Completed -or $confirmed.WorkflowId -cne $resume.WorkflowId -or
+                $confirmed.ReservationId -cne $resume.ReservationId -or $confirmed.RunReference -cne $resume.RunReference) {
+                throw 'Completed Control run changed during release recovery.'
+            }
+            Complete-ControlGate $gateContext $resume.RunReference
+            Write-Host "Control release confirmed for completed run: $($resume.RunReference)"
+            exit 0
+        }
     }
     if ($Phase -eq 'Workflow') {
         if (!$config.ContainsKey('workflow') -or !$config.migration.enabled) { throw 'Configure workflow and enable patch publication in migration before using the guided maintenance workflow.' }

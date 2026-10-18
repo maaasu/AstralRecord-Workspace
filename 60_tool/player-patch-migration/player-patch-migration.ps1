@@ -45,13 +45,24 @@ try {
     $gateRunPath=Join-Path $RunDirectory ("control-gate-$Phase.json")
     $gateReleasedPath=Join-Path $RunDirectory ("control-gate-$Phase-released.json")
     $gateWorkflowId=''
+    $gateReservationId=''
+    $completedPhase=$false
+    $phaseResultPath=Join-Path $RunDirectory 'skilltree-migration-result.json'
     if ((Get-ControlGateMode $config) -eq 'Managed' -and (Test-Path -LiteralPath $gateRunPath -PathType Leaf) -and
         !(Test-Path -LiteralPath $gateReleasedPath -PathType Leaf)) {
         $savedGate=Get-Content -Raw -Encoding UTF8 -LiteralPath $gateRunPath | ConvertFrom-Json
         $gateWorkflowId=[string]$savedGate.workflowId
+        $gateReservationId=[string]$savedGate.reservationId
+        if (Test-Path -LiteralPath $phaseResultPath -PathType Leaf) {
+            $savedResult=Get-Content -Raw -Encoding UTF8 -LiteralPath $phaseResultPath | ConvertFrom-Json
+            $completedPhase=$savedResult.RunDirectory -ceq $RunDirectory -and
+                (($Phase -eq 'Preview' -and $savedResult.Status -ceq 'PREVIEW_COMPLETE') -or
+                 ($Phase -eq 'Commit' -and $savedResult.Status -ceq 'APPLIED'))
+        }
     }
     $gateContext=Enter-ControlGate -Configuration $config -Operation '17' -RuntimeServerIds @($normalized.ServerIds) `
         -AffectedPaths @() -RequiredState 'Running' -RunReference $RunDirectory -WorkflowId $gateWorkflowId `
+        -ReservationId $gateReservationId -CompletedRun:$completedPhase `
         -InitialStep $(if ($gateWorkflowId) { 'Resume' } else { $Phase })
     New-Item -ItemType Directory -Path $RunDirectory -Force | Out-Null
     $runLock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
@@ -66,6 +77,9 @@ try {
     Write-MaintenanceDiagnostic 'player-migration.begin' @{phase=$Phase}
     $digest=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
     $digestPath=Join-Path $RunDirectory 'config-digest.json'
+    if ($completedPhase -and !(Test-Path -LiteralPath $digestPath -PathType Leaf)) {
+        throw 'Completed migration phase has no configuration evidence; retain the Control reservation.'
+    }
     if (Test-Path -LiteralPath $digestPath) {
         $saved=Get-Content -Raw -Encoding UTF8 -LiteralPath $digestPath | ConvertFrom-Json
         if ($saved.sha256 -cne $digest) { throw 'Configuration changed within this run. Restore the original configuration before retrying.' }
@@ -74,6 +88,19 @@ try {
     if (Test-Path -LiteralPath $deploymentPath) {
         $deployment=Get-Content -Raw -Encoding UTF8 -LiteralPath $deploymentPath | ConvertFrom-Json
         if ($deployment.status -cne 'Deployed') { throw 'Distribution is incomplete or restored; migration is blocked.' }
+    }
+    if ($completedPhase) {
+        $confirmed=Get-Content -Raw -Encoding UTF8 -LiteralPath $phaseResultPath | ConvertFrom-Json
+        if ($confirmed.RunDirectory -cne $RunDirectory -or
+            !(($Phase -eq 'Preview' -and $confirmed.Status -ceq 'PREVIEW_COMPLETE') -or
+              ($Phase -eq 'Commit' -and $confirmed.Status -ceq 'APPLIED'))) {
+            throw 'Completed migration phase changed during Control release recovery.'
+        }
+        Complete-ControlGate $gateContext $RunDirectory
+        @{releasedAtUtc=[DateTimeOffset]::UtcNow.ToString('O')} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $gateReleasedPath
+        $confirmed
+        Write-Host "Control release confirmed for completed $Phase phase: $RunDirectory"
+        exit 0
     }
     if ($Phase -eq 'Commit') {
         Assert-ControlGateStep $gateContext 'Commit'
