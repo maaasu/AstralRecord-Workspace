@@ -168,6 +168,21 @@ public sealed class P2StorageTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => store.ListFilesAsync(config, new(new(f.BackupRootId, "srv"))));
     }
 
+    [Fact]
+    public async Task ExcludedDirectoryAndChildrenAreAbsentFromSnapshot()
+    {
+        using var f = new Fixture();
+        Directory.CreateDirectory(Path.Combine(f.ServerPath, "logs"));
+        File.WriteAllText(Path.Combine(f.ServerPath, "logs", "private.log"), "excluded");
+        File.WriteAllText(Path.Combine(f.ServerPath, "safe.txt"), "retained");
+        var id = Guid.NewGuid();
+        var profile = f.Profile() with { ExcludePatterns = ["logs"] };
+        var manifest = await f.Store.CreateBackupAsync(f.Server, profile, new(id, f.ProfileId, 1), Guid.NewGuid(), Guard);
+        Assert.Single(manifest.Entries);
+        Assert.Equal("safe.txt", manifest.Entries[0].RelativePath);
+        Assert.False(Directory.Exists(Path.Combine(f.BackupRoot, "control-backups", f.Server.ServerId.ToString("N"), id.ToString("N"), "files", "logs")));
+    }
+
     private static Task Guard(CancellationToken _) => Task.CompletedTask;
 
     private sealed class Fixture : IDisposable

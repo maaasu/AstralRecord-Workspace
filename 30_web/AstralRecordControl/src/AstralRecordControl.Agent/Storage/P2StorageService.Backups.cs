@@ -66,7 +66,7 @@ public sealed partial class P2StorageService
                 await Guard(verifyGuard, cancellationToken);
                 var sourceFiles = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)
                     .Select(path => (Path: path, Relative: Path.GetRelativePath(source, path).Replace('\\', '/')))
-                    .Where(x => !profile.ExcludePatterns.Any(p => FileSystemName.MatchesSimpleExpression(p, x.Relative, true))).ToArray();
+                    .Where(x => !IsExcluded(x.Relative, profile.ExcludePatterns)).ToArray();
                 var size = sourceFiles.Sum(x => new FileInfo(x.Path).Length);
                 EnsureFreeSpace(stage, size);
                 var entries = new List<BackupEntry>(sourceFiles.Length);
@@ -74,7 +74,7 @@ public sealed partial class P2StorageService
                 {
                     StoragePaths.CheckNoReparse(directory);
                     var relative = Path.GetRelativePath(source, directory).Replace('\\', '/');
-                    if (!ControlProtocol.IsRelativePath(relative) || profile.ExcludePatterns.Any(p => FileSystemName.MatchesSimpleExpression(p, relative, true))) continue;
+                    if (!ControlProtocol.IsRelativePath(relative) || IsExcluded(relative, profile.ExcludePatterns)) continue;
                     Directory.CreateDirectory(Path.Combine(stage, "files", relative.Replace('/', Path.DirectorySeparatorChar)));
                     entries.Add(new BackupEntry(relative, 0, "", true));
                 }
@@ -122,6 +122,18 @@ public sealed partial class P2StorageService
             }
         }
         finally { gate.Release(); }
+    }
+
+    private static bool IsExcluded(string relativePath, string[] patterns)
+    {
+        var current = relativePath;
+        while (true)
+        {
+            if (patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, current, true))) return true;
+            var slash = current.LastIndexOf('/');
+            if (slash < 0) return false;
+            current = current[..slash];
+        }
     }
 
     private static async Task VerifyStoredBackupAsync(string directory, BackupManifest manifest, CancellationToken cancellationToken)

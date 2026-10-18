@@ -50,16 +50,17 @@ public sealed partial class P2StorageService
                 EnsureFreeSpace(target, payload.Artifact.SizeBytes);
                 var temp = Path.Combine(Path.GetDirectoryName(target)!, ".control-import-" + operationId.ToString("N") + ".tmp");
                 File.Copy(verifiedArtifactPath, temp, false);
-                var trash = etag == "absent" ? null : TrashPath(server, operationId, Path.GetFileName(target));
                 try
                 {
+                    if (await Sha256Async(temp, cancellationToken) != payload.Artifact.Sha256) throw new InvalidDataException("Artifact changed during local staging.");
+                    var trash = etag == "absent" ? null : TrashPath(server, operationId, Path.GetFileName(target));
                     await Guard(verifyGuard, cancellationToken);
                     paths.Target(server, payload.Target);
                     if ((File.Exists(target) ? await Sha256Async(target, cancellationToken) : "absent") != payload.ExpectedEtag) throw new InvalidOperationException("Target changed during import.");
                     if (trash is null) File.Move(temp, target); else File.Replace(temp, target, trash);
+                    return new FileMutationResult(payload.Artifact.Sha256, trash);
                 }
                 finally { if (File.Exists(temp)) File.Delete(temp); }
-                return new FileMutationResult(payload.Artifact.Sha256, trash);
             }
             if (payload.ExpectedEtag != "absent" || File.Exists(target) || Directory.Exists(target)) throw new IOException("ZIP target must be absent.");
             var stage = Path.Combine(Path.GetDirectoryName(target)!, ".control-extract-" + operationId.ToString("N"));
@@ -70,6 +71,7 @@ public sealed partial class P2StorageService
             try
             {
                 await ExtractValidatedZipAsync(verifiedArtifactPath, stage, cancellationToken);
+                if (await Sha256Async(verifiedArtifactPath, cancellationToken) != payload.Artifact.Sha256) throw new InvalidDataException("Artifact changed during ZIP extraction.");
                 await Guard(verifyGuard, cancellationToken);
                 paths.Target(server, payload.Target);
                 if (File.Exists(target) || Directory.Exists(target)) throw new IOException("ZIP target appeared during import.");
@@ -100,6 +102,7 @@ public sealed partial class P2StorageService
             try
             {
                 await ExtractValidatedZipAsync(verifiedArtifactPath, stage, cancellationToken);
+                if (await Sha256Async(verifiedArtifactPath, cancellationToken) != payload.Artifact.Sha256) throw new InvalidDataException("Artifact changed during provisioning.");
                 if (server.Kind == ServerKind.Java) await File.WriteAllTextAsync(Path.Combine(stage, "eula.txt"), "eula=true\n", cancellationToken);
                 await Guard(verifyGuard, cancellationToken);
                 paths.Server(server);
