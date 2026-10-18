@@ -30,7 +30,7 @@ public sealed class OperationGateTests
     }
 
     [Fact]
-    public async Task UnknownSecondHostPrepareKeepsFirstHoldAndCentralReservation()
+    public async Task KnownPartialPrepareReleasesHoldsAndCentralReservation()
     {
         await using var fixture = await Fixture.CreateAsync();
         var first = await fixture.ServerAsync("one");
@@ -39,9 +39,31 @@ public sealed class OperationGateTests
         var request = new ReservationAcquireRequest { WorkflowId = Guid.NewGuid(), ResourceKeys = [ReservationService.ServerKey(first.ServerId), ReservationService.ServerKey(second.ServerId)] };
         await Assert.ThrowsAsync<IOException>(() => fixture.Reservations.AcquireAsync(request));
         var lease = await fixture.Reservations.GetAsync(request.WorkflowId);
+        Assert.Equal(ReservationStatus.Released, lease.Status);
+        Assert.Empty(fixture.Agent.Holds);
+        Assert.All(await fixture.Db.Reservations.ToArrayAsync(), x => Assert.Equal(ReservationStatus.Released, x.State));
+        Assert.Single(lease.Fences);
+    }
+
+    [Fact]
+    public async Task UnknownPartialPreparePersistsFenceAndCanResumeAfterInspection()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var first = await fixture.ServerAsync("one");
+        var second = await fixture.ServerAsync("two");
+        fixture.Agent.FailHost = new[] { first.HostId, second.HostId }.Max();
+        fixture.Agent.SnapshotUnavailableAfterFailure = true;
+        var request = new ReservationAcquireRequest { WorkflowId = Guid.NewGuid(), AdapterId = "16", RunReference = "run-1", ResourceKeys = [ReservationService.ServerKey(first.ServerId), ReservationService.ServerKey(second.ServerId)] };
+        await Assert.ThrowsAsync<IOException>(() => fixture.Reservations.AcquireAsync(request));
+        var lease = await fixture.Reservations.GetAsync(request.WorkflowId);
         Assert.Equal(ReservationStatus.RecoveryRequired, lease.Status);
-        Assert.NotEmpty(fixture.Agent.Holds);
-        Assert.All(await fixture.Db.Reservations.ToArrayAsync(), x => Assert.Equal(ReservationStatus.RecoveryRequired, x.State));
+        Assert.Single(lease.Fences);
+        fixture.Agent.SnapshotUnavailableAfterFailure = false;
+        fixture.Agent.FailHost = null;
+        await fixture.Reservations.RecoverMaintenancePreparationAsync(request.WorkflowId, WorkflowRecoveryAction.Resume);
+        lease = await fixture.Reservations.GetAsync(request.WorkflowId);
+        Assert.Equal(ReservationStatus.Prepared, lease.Status);
+        Assert.Equal(2, lease.Fences.Length);
     }
 
     [Fact]
@@ -75,6 +97,51 @@ public sealed class OperationGateTests
         Assert.Equal(operation.OperationId, (await fixture.Operations.CreateAsync(server.ServerId, request, key)).OperationId);
         Assert.Equal(1, fixture.Agent.DispatchCount);
         await Fault("OperationConflict", () => fixture.Operations.CreateAsync(server.ServerId, request with { Kind = OperationKind.Stop }, key));
+    }
+
+    [Fact]
+    public async Task QueuedWebOperationRedispatchesTheSameCommandAfterTransportReturns()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        fixture.Agent.DispatchUnavailable = true;
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 1 };
+        var key = Guid.NewGuid();
+        var queued = await fixture.Operations.CreateAsync(server.ServerId, request, key);
+        Assert.Equal(OperationStatus.Queued, queued.Status);
+        fixture.Agent.DispatchUnavailable = false;
+        var accepted = await fixture.Operations.RefreshAsync(queued.OperationId);
+        Assert.Equal(OperationStatus.Accepted, accepted.Status);
+        Assert.Equal(queued.OperationId, accepted.OperationId);
+        Assert.Equal(queued.CommandSha256, accepted.CommandSha256);
+    }
+
+    [Fact]
+    public async Task MaintenanceStartRequiresPersistedStartupWaitAndNeverAcceptsAdapter17()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 2 };
+        var maintenance = new ReservationAcquireRequest { WorkflowId = Guid.NewGuid(), AdapterId = "01", RunReference = "run-1", ResourceKeys = [ReservationService.ServerKey(server.ServerId)], ServerConditions = [new(server.ServerId, ProcessRequirement.Stopped)] };
+        var lease = await fixture.Reservations.AcquireAsync(maintenance);
+        var inherited = request with { WorkflowId = lease.WorkflowId, ReservationId = lease.ReservationId };
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(server.ServerId, inherited, Guid.NewGuid()));
+        await fixture.Reservations.ValidateAsync(lease.ReservationId, new GateValidateRequest(lease.WorkflowId, lease.Fences, "WaitForStartup", "run-1"));
+        var state = fixture.Agent.States[server.HostId];
+        inherited = inherited with { ExpectedStateRevision = state.StateRevision };
+        var started = await fixture.Operations.CreateAsync(server.ServerId, inherited, Guid.NewGuid());
+        Assert.Equal(OperationStatus.Accepted, started.Status);
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(server.ServerId, inherited with { Kind = OperationKind.Stop }, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task Adapter17CannotInheritProcessOperation()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var lease = await fixture.Reservations.AcquireAsync(new ReservationAcquireRequest { WorkflowId = Guid.NewGuid(), AdapterId = "17", RunReference = "run-17", ResourceKeys = [ReservationService.ServerKey(server.ServerId)] });
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = fixture.Agent.States[server.HostId].StateRevision, WorkflowId = lease.WorkflowId, ReservationId = lease.ReservationId };
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid()));
     }
 
     [Fact]
@@ -149,9 +216,15 @@ public sealed class OperationGateTests
         public Dictionary<Guid, ServerRuntimeSnapshot> States { get; } = [];
         public Dictionary<Guid, ResourceHold> Holds { get; } = [];
         public Guid? FailHost { get; set; }
+        public bool SnapshotUnavailableAfterFailure { get; set; }
+        public bool DispatchUnavailable { get; set; }
         public int PrepareCount { get; private set; }
         public int DispatchCount { get; private set; }
-        public Task<RunnerSnapshot> SnapshotAsync(Guid hostId, CancellationToken token) => Task.FromResult(new RunnerSnapshot { RunnerEpoch = Guid.NewGuid(), Servers = [States[hostId]], Holds = Holds.TryGetValue(hostId, out var hold) ? [hold] : [] });
+        public Task<RunnerSnapshot> SnapshotAsync(Guid hostId, CancellationToken token)
+        {
+            if (SnapshotUnavailableAfterFailure && hostId == FailHost && PrepareCount > 0) throw new IOException("Snapshot unavailable.");
+            return Task.FromResult(new RunnerSnapshot { RunnerEpoch = Guid.NewGuid(), Servers = [States[hostId]], Holds = Holds.TryGetValue(hostId, out var hold) ? [hold] : [] });
+        }
         public async Task<PreparedHold> PrepareAsync(Guid hostId, AcquireHoldRequest request, CancellationToken token)
         {
             PrepareCount++;
@@ -165,6 +238,7 @@ public sealed class OperationGateTests
         public Task<ExecutionSnapshot> DispatchAsync(Guid hostId, Guid operationId, string json, string hash, CancellationToken token)
         {
             DispatchCount++;
+            if (DispatchUnavailable) throw new IOException("Transport unavailable.");
             return Task.FromResult(new ExecutionSnapshot { OperationId = operationId, CommandSha256 = hash, Status = OperationStatus.Accepted, StatusVersion = 1, UpdatedAtUtc = DateTimeOffset.UtcNow });
         }
         public Task<ExecutionSnapshot> QueryAsync(Guid hostId, Guid operationId, CancellationToken token) => throw new NotImplementedException();

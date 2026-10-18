@@ -22,7 +22,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         if (replay != null)
         {
             if (replay.RequestSha256 != requestHash) throw new InventoryFault(409, "OperationConflict");
-            return replay;
+            return await RefreshAsync(replay.OperationId, token);
         }
         var server = await db.Servers.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == serverId) ?? throw new InventoryFault(404, "NotFound");
         if (server.AppliedRevision != request.ConfigRevision || server.DesiredRevision != request.ConfigRevision || request.ConfigRevision < 1) throw new InventoryFault(409, "StaleRevision");
@@ -41,7 +41,12 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             : await reservations.AcquireAsync(new ReservationAcquireRequest { WorkflowId = workflowId, ResourceKeys = keys.ToArray(), Mode = HoldMode.Exclusive }, token);
         try
         {
-            if (lease.WorkflowId != workflowId || lease.Status != ReservationStatus.Prepared || !lease.ResourceKeys.Contains(ReservationService.ServerKey(serverId)) || (inherited && request.Kind is not (OperationKind.Start or OperationKind.Stop))) throw new InventoryFault(409, "ReservationConflict");
+            if (lease.WorkflowId != workflowId || lease.Status != ReservationStatus.Prepared || !lease.ResourceKeys.Contains(ReservationService.ServerKey(serverId))) throw new InventoryFault(409, "ReservationConflict");
+            if (inherited)
+            {
+                var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
+                if (request.Kind != OperationKind.Start || lease.AdapterId is not ("01" or "16") || workflow.Status != WorkflowStatus.WaitingForStartup) throw new InventoryFault(409, "ReservationConflict");
+            }
             var fence = lease.Fences.SingleOrDefault(x => x.HostId == server.HostId);
             if (fence == null || lease.Status != ReservationStatus.Prepared) throw new InventoryFault(409, "RecoveryRequired");
             var after = await agents.SnapshotAsync(server.HostId, token);
@@ -73,21 +78,13 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 var operation = new ControlOperation { OperationId = command.OperationId, IdempotencyKey = idempotencyKey, HostId = server.HostId, ServerId = serverId, WorkflowId = workflowId, ReservationId = lease.ReservationId, Kind = request.Kind, RequestSha256 = requestHash, CommandJson = json, CommandSha256 = ControlProtocol.Hash(json), Status = OperationStatus.Queued, CreatedAtUtc = Now };
                 db.Operations.Add(operation); return operation;
             });
-            if (row.OperationId != command.OperationId) return row;
+            if (row.OperationId != command.OperationId) return await RefreshAsync(row.OperationId, token);
             try
             {
                 var execution = await agents.DispatchAsync(row.HostId, row.OperationId, row.CommandJson, row.CommandSha256, token);
                 return await ApplyExecutionAsync(row.OperationId, execution);
             }
-            catch
-            {
-                try { return await ApplyExecutionAsync(row.OperationId, await agents.QueryAsync(row.HostId, row.OperationId, token)); }
-                catch
-                {
-                    await MarkAttentionAsync(row.OperationId);
-                    throw new InventoryFault(409, "RecoveryRequired");
-                }
-            }
+            catch { return await RefreshAsync(row.OperationId, token); }
         }
         catch
         {
@@ -127,10 +124,17 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
     {
         var row = await GetAsync(operationId);
         if (OperationValidation.IsTerminal(row.Status)) return row;
-        try { return await ApplyExecutionAsync(operationId, await agents.QueryAsync(row.HostId, operationId, token)); }
-        catch (InventoryFault fault) when (fault.Status is 401 or 503) { return row; }
-        catch (InventoryFault) { throw; }
+        ExecutionSnapshot execution;
+        try
+        {
+            // Reuse the immutable command: Agent and Runner both deduplicate this ID/hash.
+            // This also repairs a crash after the Queued transaction committed.
+            execution = row.Status == OperationStatus.Queued
+                ? await agents.DispatchAsync(row.HostId, row.OperationId, row.CommandJson, row.CommandSha256, token)
+                : await agents.QueryAsync(row.HostId, operationId, token);
+        }
         catch { return row; }
+        return await ApplyExecutionAsync(operationId, execution);
     }
 
     public async Task<LogBatch> ReadLogsAsync(Guid serverId, ReadLogsRequest request, CancellationToken token = default)
@@ -189,12 +193,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             db.Operations.Add(created); return created;
         });
         if (row.CommandSha256 != ControlProtocol.Hash(json) || row.RequestSha256 != requestHash) throw new InventoryFault(409, "OperationConflict");
-        try { return await ApplyExecutionAsync(row.OperationId, await agents.DispatchAsync(server.HostId, row.OperationId, row.CommandJson, row.CommandSha256, token)); }
-        catch
-        {
-            try { return await ApplyExecutionAsync(row.OperationId, await agents.QueryAsync(server.HostId, row.OperationId, token)); }
-            catch { await MarkAttentionAsync(row.OperationId); throw new InventoryFault(409, "RecoveryRequired"); }
-        }
+        return await RefreshAsync(row.OperationId, token);
     }
 
     private async Task MarkAttentionAsync(Guid operationId)

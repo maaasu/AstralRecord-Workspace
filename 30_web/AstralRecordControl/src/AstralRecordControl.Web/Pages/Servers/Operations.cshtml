@@ -13,14 +13,6 @@ else
         <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" />
         <input type="hidden" name="expectedStateRevision" value="@Model.Runtime!.StateRevision" />
         <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime.CurrentSessionId" />
-        @if (Model.MaintenanceLeases.Length > 0)
-        {
-            <label>保守 Workflow を継承
-                <select name="reservationId"><option value="">新しい単一操作</option>
-                    @foreach (var lease in Model.MaintenanceLeases) { <option value="@lease.ReservationId">@lease.AdapterId / @lease.WorkflowId</option> }
-                </select>
-            </label>
-        }
         <button type="submit" name="kind" value="Start">Start</button>
         <button type="submit" name="kind" value="Stop">Stop</button>
         <button type="submit" name="kind" value="Restart">Restart</button>
@@ -29,6 +21,18 @@ else
         <label>Console 命令 <input name="command" maxlength="4096" /></label>
         <button type="submit" name="kind" value="ConsoleCommand">送信</button>
     </form>
+    @foreach (var lease in Model.MaintenanceLeases.Where(_ => Model.Runtime!.ProcessState == AstralRecordControl.Contracts.ProcessState.Stopped))
+    {
+        <form method="post" asp-page-handler="Operate">
+            <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
+            <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+            <input type="hidden" name="reservationId" value="@lease.ReservationId" />
+            <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" />
+            <input type="hidden" name="expectedStateRevision" value="@Model.Runtime!.StateRevision" />
+            <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime.CurrentSessionId" />
+            <button type="submit" name="kind" value="Start">@lease.AdapterId 保守 Workflow の Start</button>
+        </form>
+    }
 }
 <h2>操作履歴</h2>
 <table><thead><tr><th>日時</th><th>種別</th><th>状態</th><th>エラー</th></tr></thead><tbody>

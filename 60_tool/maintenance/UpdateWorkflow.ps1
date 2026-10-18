@@ -457,6 +457,7 @@ function Invoke-UpdateWorkflow {
             } else {
                 Write-Host '対象サーバーを起動してください。入場制限を維持したまま、起動を自動確認しています。'
             }
+            if ($GateContext) { Assert-ControlGateStep $GateContext 'WaitForStartup' }
             Write-MaintenanceDiagnostic 'startup.wait.begin'
             $baselineRuntimes = if ($state.Contains('baselineRuntimes')) { $state.baselineRuntimes } else { $null }
             if ($null -eq $baselineRuntimes) {
@@ -471,7 +472,6 @@ function Invoke-UpdateWorkflow {
                 -TimeoutSeconds $WorkflowConfig.startupTimeoutSeconds -PollIntervalSeconds $WorkflowConfig.pollIntervalSeconds `
                 -SleepAction $SleepAction
             $state.deployedRuntimes=@($runtimes); $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath
-            if ($GateContext) { Assert-ControlGateStep $GateContext 'WaitForStartup' }
             Write-MaintenanceDiagnostic 'startup.wait.end'
         }
         # An old workflow may already have sent player changes. Preserve those operation IDs,

@@ -40,6 +40,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
                 _ => ControlJson.Element(new { })
             };
             var lease = reservationId.HasValue ? MaintenanceLeases.SingleOrDefault(x => x.ReservationId == reservationId.Value) ?? throw new InventoryFault(409, "ReservationConflict") : null;
+            if (lease != null && kind != OperationKind.Start) throw new InventoryFault(409, "ReservationConflict");
             var request = new ServerOperationRequest { Kind = kind, Payload = payload, ConfigRevision = configRevision, ExpectedStateRevision = expectedStateRevision, ExpectedServerSessionId = expectedServerSessionId, WorkflowId = lease?.WorkflowId, ReservationId = lease?.ReservationId };
             await operations.CreateAsync(serverId, request, requestKey, HttpContext.RequestAborted);
             return RedirectToPage(new { serverId });
@@ -58,9 +59,10 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         Runtime = ControlJson.Deserialize<ServerRuntimeSnapshot[]>(host.RuntimeSnapshotJson).SingleOrDefault(x => x.ServerId == serverId);
         var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
         Enabled = configuration.GetValue<bool>("Control:EnableProcessControl") && host.ConnectionState == HostConnectionState.Online && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate") && Runtime != null && Server.AppliedRevision == Server.DesiredRevision;
-        Recent = await db.Operations.AsNoTracking().Where(x => x.ServerId == serverId).OrderByDescending(x => x.CreatedAtUtc).Take(20).ToArrayAsync();
+        Recent = (await db.Operations.AsNoTracking().Where(x => x.ServerId == serverId).ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(20).ToArray();
         var active = await db.Reservations.AsNoTracking().Where(x => x.ResourceKey == ReservationService.ServerKey(serverId) && x.State == ReservationStatus.Prepared).Select(x => x.ReservationId).ToArrayAsync();
-        MaintenanceLeases = (await Task.WhenAll(active.Select(id => reservations.GetByReservationAsync(id)))).Where(x => x.AdapterId != null).ToArray();
+        var waiting = await db.Workflows.AsNoTracking().Where(x => x.Status == WorkflowStatus.WaitingForStartup).Select(x => x.WorkflowId).ToArrayAsync();
+        MaintenanceLeases = (await Task.WhenAll(active.Select(id => reservations.GetByReservationAsync(id)))).Where(x => x.AdapterId is "01" or "16" && waiting.Contains(x.WorkflowId)).ToArray();
         try { Logs = await operations.ReadLogsAsync(serverId, new ReadLogsRequest { ServerId = serverId, AfterSequence = afterSequence, Limit = 200 }, HttpContext.RequestAborted); }
         catch (Exception exception) when (exception is InventoryFault or IOException or OperationCanceledException) { }
     }

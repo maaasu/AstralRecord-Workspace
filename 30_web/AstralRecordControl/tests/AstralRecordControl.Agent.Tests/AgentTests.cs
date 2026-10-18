@@ -167,6 +167,40 @@ public sealed class AgentTests
         }
     }
 
+    [Fact]
+    public async Task AcceptedBeforeRunnerDispatchIsResentOnceWithOriginalIdentity()
+    {
+        using var fixture = new Fixture();
+        var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = fixture.Configuration.HostId, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 2, StartBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(1) };
+        var json = ControlJson.Serialize(command);
+        var request = new ExecuteRequest(command.OperationId, json, ControlProtocol.Hash(json));
+        using (var store = fixture.Open()) store.AcceptOperation(request);
+        var runner = new OperationRunner();
+        using var reopened = fixture.Open();
+        var epoch = Guid.NewGuid();
+        var handler = new AgentOperationHandler(fixture.Configuration, reopened, runner);
+        var result = await handler.DispatchAsync(new DispatchOperationRequest(1, epoch, request.OperationId, json, request.CommandSha256), epoch, CancellationToken.None);
+        Assert.Equal(OperationStatus.Running, result.Status);
+        Assert.Equal(1, runner.ExecuteCount);
+        Assert.True(reopened.GetDispatch(request.OperationId).DispatchAttempted);
+    }
+
+    [Fact]
+    public async Task AttemptedDispatchWithMissingRunnerLedgerNeedsAttentionWithoutReplay()
+    {
+        using var fixture = new Fixture();
+        var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = fixture.Configuration.HostId, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.ConsoleCommand, ConfigRevision = 1, ExpectedStateRevision = 2, ExpectedServerSessionId = Guid.NewGuid(), StartBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(1), Payload = ControlJson.Element(new { command = "say test" }) };
+        var json = ControlJson.Serialize(command);
+        using var store = fixture.Open();
+        store.AcceptOperation(new ExecuteRequest(command.OperationId, json, ControlProtocol.Hash(json)));
+        store.MarkDispatchAttempted(command.OperationId);
+        var runner = new OperationRunner();
+        var epoch = Guid.NewGuid();
+        var result = await new AgentOperationHandler(fixture.Configuration, store, runner).DispatchAsync(new DispatchOperationRequest(1, epoch, command.OperationId, json, ControlProtocol.Hash(json)), epoch, CancellationToken.None);
+        Assert.Equal(OperationStatus.NeedsAttention, result.Status);
+        Assert.Equal(0, runner.ExecuteCount);
+    }
+
     private sealed class OperationRunner : IRunnerClient
     {
         public int ExecuteCount { get; private set; }
@@ -179,7 +213,7 @@ public sealed class AgentTests
             state = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256, Status = OperationStatus.Running, StatusVersion = 2, UpdatedAtUtc = DateTimeOffset.UtcNow };
             return Task.FromResult(state);
         }
-        public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => Task.FromResult(state);
+        public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => state is null ? throw new AgentFault(ErrorCode.StateConflict) : Task.FromResult(state);
     }
 
     private sealed class FakeRunner : IRunnerClient

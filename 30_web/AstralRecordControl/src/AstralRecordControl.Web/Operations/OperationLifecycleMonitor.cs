@@ -23,7 +23,7 @@ public sealed class OperationLifecycleMonitor(IServiceScopeFactory scopes, ILogg
                     try { await operations.RefreshAsync(operationId, stoppingToken); }
                     catch (Exception) when (!stoppingToken.IsCancellationRequested) { }
                 }
-                var activeWorkflowIds = await db.Workflows.AsNoTracking().Where(x => x.Kind == "SingleOperation" && (x.Status == WorkflowStatus.Running || x.Status == WorkflowStatus.RecoveryRequired)).OrderBy(x => x.CreatedAtUtc).Select(x => x.WorkflowId).ToArrayAsync(stoppingToken);
+                var activeWorkflowIds = (await db.Workflows.AsNoTracking().Where(x => x.Kind == "SingleOperation" && (x.Status == WorkflowStatus.Running || x.Status == WorkflowStatus.RecoveryRequired)).Select(x => new { x.WorkflowId, x.CreatedAtUtc }).ToArrayAsync(stoppingToken)).OrderBy(x => x.CreatedAtUtc).Select(x => x.WorkflowId).ToArray();
                 foreach (var workflowId in activeWorkflowIds)
                 {
                     var lease = await reservations.GetAsync(workflowId);

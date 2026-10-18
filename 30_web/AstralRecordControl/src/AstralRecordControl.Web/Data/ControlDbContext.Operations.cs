@@ -83,6 +83,7 @@ public sealed class ControlReservationLease
     public Guid WorkflowId { get; set; }
     public string ResourceKeysJson { get; set; } = "[]";
     public string FencesJson { get; set; } = "[]";
+    public bool PreparedOnce { get; set; }
     public ReservationStatus Status { get; set; } = ReservationStatus.Preparing;
     public string? AdapterId { get; set; }
     public string? RunReference { get; set; }

@@ -47,7 +47,7 @@ public sealed partial class AgentStore : IDisposable
                 backup.Open(); database.BackupDatabase(backup);
             }
             using var transaction = database.BeginTransaction();
-            Execute("CREATE TABLE OperationInbox(operationId TEXT PRIMARY KEY,commandJson TEXT NOT NULL,commandSha256 TEXT NOT NULL,status TEXT NOT NULL,statusVersion INTEGER NOT NULL,resultJson TEXT,errorCode TEXT,updatedAtUtc TEXT NOT NULL); PRAGMA user_version=2;", transaction);
+            Execute("CREATE TABLE OperationInbox(operationId TEXT PRIMARY KEY,commandJson TEXT NOT NULL,commandSha256 TEXT NOT NULL,status TEXT NOT NULL,statusVersion INTEGER NOT NULL,dispatchAttempted INTEGER NOT NULL DEFAULT 0,resultJson TEXT,errorCode TEXT,updatedAtUtc TEXT NOT NULL); PRAGMA user_version=2;", transaction);
             transaction.Commit();
         }
         if ((string?)Scalar("SELECT hostId FROM State WHERE id=1;") != hostId.ToString()) throw new AgentFault(ErrorCode.RecoveryRequired);

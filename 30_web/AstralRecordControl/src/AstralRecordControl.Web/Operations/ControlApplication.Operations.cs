@@ -32,7 +32,7 @@ public static partial class ControlApplication
         });
         owner.MapGet("/servers/{serverId:guid}/logs", async (Guid serverId, Guid? sessionId, string? segmentId, long? afterSequence, int? limit, Operations.ControlOperationsService operations, HttpContext http) =>
             Results.Ok(await operations.ReadLogsAsync(serverId, new ReadLogsRequest { ServerId = serverId, SessionId = sessionId, SegmentId = segmentId, AfterSequence = afterSequence ?? 0, Limit = limit ?? 200 }, http.RequestAborted)));
-        owner.MapGet("/workflows", async (ControlDbContext db) => await db.Workflows.AsNoTracking().OrderByDescending(x => x.CreatedAtUtc).Take(100).ToArrayAsync());
+        owner.MapGet("/workflows", async (ControlDbContext db) => (await db.Workflows.AsNoTracking().ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(100).ToArray());
         owner.MapGet("/workflows/{workflowId:guid}", async (Guid workflowId, ControlDbContext db, Operations.ReservationService reservations) =>
         {
             var workflow = await db.Workflows.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId) ?? throw new InventoryFault(404, "NotFound");
@@ -40,9 +40,15 @@ public static partial class ControlApplication
             var operations = await db.Operations.AsNoTracking().Where(x => x.WorkflowId == workflowId).Select(x => new { x.OperationId, x.Status, x.ErrorCode }).ToArrayAsync();
             return Results.Ok(new { workflow.WorkflowId, workflow.Kind, workflow.Status, workflow.RecoveryRequired, lease, operations });
         });
-        owner.MapPost("/workflows/{workflowId:guid}/recover", async (Guid workflowId, JsonElement body, Operations.ControlOperationsService operations, HttpContext http) =>
+        owner.MapPost("/workflows/{workflowId:guid}/recover", async (Guid workflowId, JsonElement body, Operations.ControlOperationsService operations, Operations.ReservationService reservations, ControlDbContext db, HttpContext http) =>
         {
             var request = Read<WorkflowRecoveryRequest>(body);
+            var workflow = await db.Workflows.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId) ?? throw new InventoryFault(404, "NotFound");
+            if (workflow.Kind == "Maintenance")
+            {
+                await reservations.RecoverMaintenancePreparationAsync(workflowId, request.Action, http.RequestAborted);
+                return Results.Accepted($"/api/control/v1/workflows/{workflowId}", new { workflowId, status = request.Action == WorkflowRecoveryAction.Resume ? "Resumed" : "Resolved" });
+            }
             var child = await operations.RecoverAsync(workflowId, request, http.RequestAborted);
             return Results.Accepted($"/api/control/v1/workflows/{workflowId}", new { workflowId, operationId = child?.OperationId, status = child?.Status.ToString() ?? "Resolved" });
         });

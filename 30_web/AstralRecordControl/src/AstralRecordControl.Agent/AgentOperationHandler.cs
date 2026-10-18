@@ -26,12 +26,11 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
             {
                 if (existing.CommandSha256 != request.CommandSha256) throw new AgentFault(ErrorCode.OperationConflict);
                 if (OperationValidation.IsTerminal(existing.Status)) return existing;
-                // A previous Execute response may have been lost. Query the Runner ledger;
-                // never issue Execute again for an operation whose result is uncertain.
                 return await RefreshAsync(existing, cancellationToken);
             }
-            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) throw new AgentFault(ErrorCode.DeadlineExpired);
             var accepted = store.AcceptOperation(execute);
+            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(accepted);
+            store.MarkDispatchAttempted(request.OperationId);
             try { return store.SaveOperation(await runner.ExecuteAsync(execute, cancellationToken)); }
             catch (Exception exception) when (exception is IOException or OperationCanceledException or AgentFault)
             {
@@ -48,8 +47,13 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
     public async Task<ExecutionSnapshot> QueryAsync(AgentExecutionRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
         RequireEpoch(request.ConnectionEpoch, activeEpoch);
-        var existing = store.GetOperation(request.OperationId) ?? throw new AgentFault(ErrorCode.OperationConflict);
-        return await RefreshAsync(existing, cancellationToken);
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var existing = store.GetOperation(request.OperationId) ?? throw new AgentFault(ErrorCode.OperationConflict);
+            return await RefreshAsync(existing, cancellationToken);
+        }
+        finally { gate.Release(); }
     }
 
     public async Task<PreparedHold> PrepareHoldAsync(PrepareHoldRequest request, Guid activeEpoch, CancellationToken cancellationToken)
@@ -88,18 +92,40 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
     {
         foreach (var pending in store.ReadNonTerminalOperations())
         {
-            var current = store.GetOperation(pending.OperationId)!;
-            try { await RefreshAsync(current, cancellationToken); }
+            await gate.WaitAsync(cancellationToken);
+            try
+            {
+                var current = store.GetOperation(pending.OperationId)!;
+                await RefreshAsync(current, cancellationToken);
+            }
             catch (Exception exception) when (exception is IOException or AgentFault or OperationCanceledException) { }
+            finally { gate.Release(); }
         }
     }
 
     private async Task<ExecutionSnapshot> RefreshAsync(ExecutionSnapshot existing, CancellationToken cancellationToken)
     {
-        var runnerState = await runner.GetExecutionAsync(existing.OperationId, cancellationToken);
+        ExecutionSnapshot runnerState;
+        try { runnerState = await runner.GetExecutionAsync(existing.OperationId, cancellationToken); }
+        catch (AgentFault fault) when (fault.Code == ErrorCode.StateConflict)
+        {
+            var dispatch = store.GetDispatch(existing.OperationId);
+            if (dispatch.DispatchAttempted)
+                return store.SaveOperation(existing with { Status = OperationStatus.NeedsAttention, StatusVersion = existing.StatusVersion + 1, Phase = ExecutionPhase.Unknown, ErrorCode = ErrorCode.RecoveryRequired.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow });
+            var command = OperationValidation.Read(dispatch.Command, configuration.HostId);
+            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(existing);
+            store.MarkDispatchAttempted(existing.OperationId);
+            runnerState = await runner.ExecuteAsync(dispatch.Command, cancellationToken);
+        }
         if (runnerState.OperationId != existing.OperationId || runnerState.CommandSha256 != existing.CommandSha256) throw new AgentFault(ErrorCode.RecoveryRequired);
         return store.SaveOperation(runnerState);
     }
+
+    private ExecutionSnapshot Expire(ExecutionSnapshot accepted) => store.SaveOperation(accepted with
+    {
+        Status = OperationStatus.Expired, StatusVersion = accepted.StatusVersion + 1,
+        Phase = ExecutionPhase.Completed, ErrorCode = ErrorCode.DeadlineExpired.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow
+    });
 
     private static void RequireEpoch(Guid received, Guid active)
     {

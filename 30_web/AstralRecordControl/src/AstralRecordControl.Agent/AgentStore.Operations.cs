@@ -5,6 +5,22 @@ namespace AstralRecordControl.Agent;
 
 public sealed partial class AgentStore
 {
+    public (ExecuteRequest Command, bool DispatchAttempted) GetDispatch(Guid operationId)
+    {
+        lock (sync)
+        {
+            using var command = Command("SELECT commandJson,commandSha256,dispatchAttempted FROM OperationInbox WHERE operationId=$id;", null, ("$id", operationId.ToString()));
+            using var reader = command.ExecuteReader();
+            if (!reader.Read()) throw new AgentFault(ErrorCode.OperationConflict);
+            return (new ExecuteRequest(operationId, reader.GetString(0), reader.GetString(1)), reader.GetBoolean(2));
+        }
+    }
+
+    public void MarkDispatchAttempted(Guid operationId)
+    {
+        lock (sync) Execute("UPDATE OperationInbox SET dispatchAttempted=1 WHERE operationId=$id;", null, ("$id", operationId.ToString()));
+    }
+
     public ExecutionSnapshot? GetOperation(Guid operationId)
     {
         lock (sync)
