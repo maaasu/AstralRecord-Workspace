@@ -24,6 +24,7 @@ public sealed partial class RunnerStore
             sessionId = Guid.Parse(current);
             process = VerifyOwnedProcess(serverId, sessionId);
             SetRuntime(serverId, ProcessState.Stopping, sessionId, "Stopped");
+            Execute("UPDATE ServerSessions SET lastExitWasExpected=1 WHERE sessionId=$session AND exitedUtc IS NULL;", null, ("$session", sessionId.ToString()));
             ChangeExecution(command.OperationId, OperationStatus.Running, ExecutionPhase.Stopping);
         }
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(config.StopTimeoutSeconds, command.ExecutionTimeoutSeconds)));
@@ -70,6 +71,7 @@ public sealed partial class RunnerStore
             }
             else process = VerifyOwnedProcess(serverId, sessionId);
             SetRuntime(serverId, ProcessState.Stopping, sessionId, "Stopped", rescue);
+            Execute("UPDATE ServerSessions SET lastExitWasExpected=1 WHERE sessionId=$session AND exitedUtc IS NULL;", null, ("$session", sessionId.ToString()));
             ChangeExecution(command.OperationId, OperationStatus.Running, ExecutionPhase.Stopping);
         }
         process.Kill(entireProcessTree: false);

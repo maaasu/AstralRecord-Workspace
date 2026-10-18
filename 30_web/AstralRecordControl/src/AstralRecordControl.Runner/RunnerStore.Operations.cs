@@ -218,7 +218,7 @@ public sealed partial class RunnerStore
             {
                 var alive = process is not null && !process.HasExited;
                 SetRuntime(serverId, alive ? ProcessState.Unmanaged : ProcessState.Stopped, alive ? sessionId : null, "Stopped", alive);
-                if (!alive) Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code WHERE sessionId=$session;", null,
+                if (!alive) Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code,lastExitWasExpected=0 WHERE sessionId=$session;", null,
                     ("$now", clock.GetUtcNow().ToString("O")), ("$code", process?.ExitCode ?? -1), ("$session", sessionId.ToString()));
             }
             throw;
@@ -272,8 +272,10 @@ public sealed partial class RunnerStore
         lock (sync)
         {
             if (disposed) return;
-            Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code WHERE sessionId=$session AND exitedUtc IS NULL;", null,
-                ("$now", clock.GetUtcNow().ToString("O")), ("$code", process.ExitCode), ("$session", sessionId.ToString()));
+            var desiredAtExit = (string?)Scalar("SELECT desiredState FROM Servers WHERE id=$server;", null, ("$server", serverId.ToString()));
+            Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code,lastExitWasExpected=COALESCE(lastExitWasExpected,$expected) WHERE sessionId=$session AND exitedUtc IS NULL;", null,
+                ("$now", clock.GetUtcNow().ToString("O")), ("$code", process.ExitCode),
+                ("$expected", desiredAtExit == "Stopped" ? 1 : 0), ("$session", sessionId.ToString()));
             if (ownedProcesses.TryGetValue(serverId, out var owned) && ReferenceEquals(owned, process)) ownedProcesses.Remove(serverId);
             var current = CurrentSession(serverId);
             if (current == sessionId.ToString())

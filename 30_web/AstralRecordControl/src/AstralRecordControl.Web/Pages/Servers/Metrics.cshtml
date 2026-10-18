@@ -1,0 +1,29 @@
+@page "/Servers/{serverId:guid}/Metrics"
+@model AstralRecordControl.Web.Pages.Servers.MetricsModel
+@using AstralRecordControl.Contracts
+@{ ViewData["Title"] = "Server メトリクス"; }
+<h1>@Model.Server.DisplayName のメトリクス</h1>
+<p>Host 接続: <span id="host-state">@Model.ConnectionState</span> / プロセス: <span id="process-state">@(Model.ProcessState ?? "状態未取得")</span></p>
+<p>Agent がオフラインの間は最後の値を現在値として表示しません。線のない区間は欠測です。</p>
+<label>期間 <select id="metrics-range" data-server-id="@Model.Server.ServerId">
+    <option value="1">1時間</option><option value="24" selected>24時間</option>
+    <option value="168">7日</option><option value="720">30日</option><option value="2160">90日</option>
+</select></label>
+<p id="metrics-status" role="status"></p>
+<section aria-label="Host メトリクス">
+    <h2>Host</h2>
+    <canvas id="host-cpu" width="800" height="180" role="img" aria-label="Host CPU 使用率"></canvas>
+    <canvas id="host-memory" width="800" height="180" role="img" aria-label="Host メモリ使用量"></canvas>
+    <canvas id="host-disk" width="800" height="180" role="img" aria-label="Host ディスク空き容量"></canvas>
+</section>
+<section aria-label="Server メトリクス">
+    <h2>プロセスとゲーム</h2>
+    <canvas id="server-cpu" width="800" height="180" role="img" aria-label="プロセス CPU 使用率"></canvas>
+    <canvas id="server-memory" width="800" height="180" role="img" aria-label="プロセス メモリ使用量"></canvas>
+    <canvas id="server-players" width="800" height="180" role="img" aria-label="人数"></canvas>
+    <canvas id="server-tps" width="800" height="180" role="img" aria-label="TPS"></canvas>
+    <canvas id="server-mspt" width="800" height="180" role="img" aria-label="MSPT"></canvas>
+</section>
+<p>稼働時間: <span id="host-uptime">欠測</span> / プロセス稼働時間: <span id="server-uptime">欠測</span></p>
+<p>人数・TPS・MSPTは取得可能なゲーム Adapter が設定されている場合だけ表示します。</p>
+@section Scripts { <script src="~/js/server-metrics.js" asp-append-version="true" defer></script> }

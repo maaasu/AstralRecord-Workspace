@@ -34,7 +34,7 @@ public sealed partial class RunnerStore : IDisposable
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
-        if (version is < 0 or > 3) throw new RunnerFault(ErrorCode.ProtocolMismatch);
+        if (version is < 0 or > 4) throw new RunnerFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
@@ -51,6 +51,7 @@ public sealed partial class RunnerStore : IDisposable
         }
         if (version <= 1) MigrateV2(path, version == 1);
         if (version <= 2) MigrateV3(path, version == 2);
+        if (version <= 3) MigrateV4(path, version == 3);
         if (!string.Equals((string?)Scalar("SELECT hostId FROM State WHERE id=1;"), configuration.HostId.ToString(), StringComparison.Ordinal)) throw new RunnerFault(ErrorCode.RecoveryRequired);
         Execute("UPDATE State SET epoch=$epoch,bootUtc=$utc WHERE id=1;", null, ("$epoch", Epoch.ToString()), ("$utc", DateTimeOffset.UtcNow.ToString("O")));
         ReconcileAfterRestart();
@@ -63,12 +64,28 @@ public sealed partial class RunnerStore : IDisposable
         lock (sync)
         {
             var servers = new List<ServerRuntimeSnapshot>();
-            using (var command = Command("SELECT id,config,stateRevision,processState,currentSessionId FROM Servers ORDER BY id;"))
+            using (var command = Command("""
+                SELECT s.id,s.config,s.stateRevision,s.processState,s.currentSessionId,
+                    x.exitedUtc,x.exitCode,x.lastExitWasExpected
+                FROM Servers s
+                LEFT JOIN ServerSessions x ON x.sessionId=(
+                    SELECT sessionId FROM ServerSessions WHERE serverId=s.id AND exitedUtc IS NOT NULL
+                    ORDER BY exitedUtc DESC, sessionId DESC LIMIT 1)
+                ORDER BY s.id;
+                """))
             using (var reader = command.ExecuteReader())
                 while (reader.Read())
                 {
                     var config = ControlJson.Deserialize<ServerConfig>(reader.GetString(1));
-                    servers.Add(new ServerRuntimeSnapshot { ServerId = Guid.Parse(reader.GetString(0)), ConfigRevision = config.Revision, StateRevision = reader.GetInt64(2), ProcessState = Enum.Parse<ProcessState>(reader.GetString(3)), CurrentSessionId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)), Readiness = GameReadiness.Unknown });
+                    servers.Add(new ServerRuntimeSnapshot
+                    {
+                        ServerId = Guid.Parse(reader.GetString(0)), ConfigRevision = config.Revision,
+                        StateRevision = reader.GetInt64(2), ProcessState = Enum.Parse<ProcessState>(reader.GetString(3)),
+                        CurrentSessionId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)), Readiness = GameReadiness.Unknown,
+                        LastExitedAtUtc = reader.IsDBNull(5) ? null : DateTimeOffset.Parse(reader.GetString(5)),
+                        LastExitCode = reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                        LastExitWasExpected = reader.IsDBNull(7) ? null : reader.GetInt64(7) != 0
+                    });
                 }
             return new RunnerSnapshot { RunnerEpoch = Epoch, AppliedInventoryRevision = Convert.ToInt64(Scalar("SELECT revision FROM State WHERE id=1;")), Servers = servers.ToArray(), Holds = ReadHolds() };
         }

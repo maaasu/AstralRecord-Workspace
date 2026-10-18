@@ -10,6 +10,29 @@ namespace AstralRecordControl.Runner.Tests;
 public sealed class ProcessTests
 {
     [Fact]
+    public async Task OwnedFixtureProcessReportsMetricsAndExpectedExit()
+    {
+        using var fixture = new Fixture();
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        var start = fixture.Request(runner, hold, OperationKind.Start);
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(start).OperationId)).Status);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var process = Assert.Single(runner.ReadMetrics().Processes);
+        Assert.Equal(fixture.Server.ServerId, process.ServerId);
+        Assert.NotNull(process.TotalProcessorTicks);
+        Assert.True(process.WorkingSetBytes > 0);
+        Assert.True(process.UptimeSeconds >= 0);
+        var stop = fixture.Request(runner, hold, OperationKind.Stop);
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(stop).OperationId)).Status);
+        await WaitUntil(() => runner.GetSnapshot().Servers.Single().LastExitedAtUtc is not null);
+        Assert.True(Assert.Single(runner.GetSnapshot().Servers).LastExitWasExpected);
+        Assert.Empty(runner.ReadMetrics().Processes);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    [Fact]
     public async Task StartConsoleLogsStopAndIdempotentReplayUseOneSession()
     {
         using var fixture = new Fixture();

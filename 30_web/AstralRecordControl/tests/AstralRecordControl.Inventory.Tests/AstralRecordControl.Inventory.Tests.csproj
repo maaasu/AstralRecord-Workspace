@@ -11,6 +11,8 @@
     <Compile Include="../../src/AstralRecordControl.Web/Data/ControlDbContext.cs" Link="Implementation/ControlDbContext.cs" />
     <Compile Include="../../src/AstralRecordControl.Web/Data/ControlUser.cs" Link="Implementation/ControlUser.cs" />
     <Compile Include="../../src/AstralRecordControl.Web/Data/ControlDbContext.Inventory.cs" Link="Implementation/ControlDbContext.Inventory.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Data/ControlDbContext.Metrics.cs" Link="Implementation/ControlDbContext.Metrics.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Metrics/MetricsStore.cs" Link="Implementation/MetricsStore.cs" />
     <Compile Include="../../src/AstralRecordControl.Web/Data/ControlDbContext.Operations.cs" Link="Implementation/ControlDbContext.Operations.cs" />
     <Compile Include="../../src/AstralRecordControl.Web/Inventory/InventoryStore.cs" Link="Implementation/InventoryStore.cs" />
     <Compile Include="../../src/AstralRecordControl.Web/Inventory/AgentConnections.cs" Link="Implementation/AgentConnections.cs" />
