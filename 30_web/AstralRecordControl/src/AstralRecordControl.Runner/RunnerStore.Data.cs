@@ -109,7 +109,7 @@ public sealed partial class RunnerStore
             var previous = GetDataOperation(request.OperationId);
             if (previous.Status != OperationStatus.NeedsAttention) throw new RunnerFault(ErrorCode.StateConflict);
             var command = ReadDataCommand(request.OperationId);
-            if (command.Kind != OperationKind.RestoreBackup && !(command.Kind == OperationKind.CreateBackup && Convert.ToInt64(Scalar("SELECT readyForRestart FROM DataOperationLedger WHERE operationId=$id;", null, ("$id", request.OperationId.ToString()))) != 0)) throw new RunnerFault(ErrorCode.UnsupportedCapability);
+            if (command.Kind is not (OperationKind.RestoreBackup or OperationKind.CreateBackup)) throw new RunnerFault(ErrorCode.UnsupportedCapability);
             VerifyDataHold(command);
             var server = GetSnapshot().Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new RunnerFault(ErrorCode.StateConflict);
             if (server.ProcessState != ProcessState.Stopped || server.CurrentSessionId is not null || server.ConfigRevision != command.ConfigRevision) throw new RunnerFault(ErrorCode.RecoveryRequired);

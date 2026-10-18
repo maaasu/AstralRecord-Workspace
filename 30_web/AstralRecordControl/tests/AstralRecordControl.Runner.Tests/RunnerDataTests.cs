@@ -54,6 +54,27 @@ public sealed class RunnerDataTests
         Assert.Equal(ErrorCode.OperationConflict, Assert.Throws<RunnerFault>(() => runner.BeginDataOperation(new(request.OperationId, changedJson, ControlProtocol.Hash(changedJson)))).Code);
     }
 
+    [Fact]
+    public void InterruptedBackupCanResumeBeforeRestartIntentWasRecorded()
+    {
+        using var fixture = new DataFixture();
+        ExecuteRequest request;
+        ResourceHold hold;
+        using (var runner = fixture.Open())
+        {
+            fixture.Apply(runner);
+            hold = runner.AcquireHold(new AcquireHoldRequest(Guid.NewGuid(), Guid.NewGuid(), ["server:" + fixture.Server.ServerId], HoldMode.Maintenance));
+            request = fixture.Command(runner, hold, OperationKind.CreateBackup, new CreateBackupPayload(Guid.NewGuid(), Guid.NewGuid(), 1));
+            runner.BeginDataOperation(request);
+        }
+        using var restarted = fixture.Open();
+        Assert.Equal(OperationStatus.NeedsAttention, restarted.GetDataOperation(request.OperationId).Status);
+        Assert.Equal(OperationStatus.Running, restarted.ResumeDataOperation(new AgentResumeDataOperationRequest(Guid.Empty, request.OperationId, "verified completed backup receipt")).Status);
+        Assert.Equal(OperationStatus.Running, restarted.VerifyDataOperation(request.OperationId).Status);
+        restarted.FinishDataOperation(new(request.OperationId, request.CommandSha256, OperationStatus.Succeeded));
+        restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
     private sealed class DataFixture : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "control-data-runner-" + Guid.NewGuid().ToString("N"));

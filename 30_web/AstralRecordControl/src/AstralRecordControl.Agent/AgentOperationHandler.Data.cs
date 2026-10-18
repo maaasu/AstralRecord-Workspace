@@ -65,7 +65,7 @@ public sealed partial class AgentOperationHandler
             var profile = command.Kind is OperationKind.CreateBackup or OperationKind.PruneBackups ? ResolveProfile(inventory, command) : null;
             if (resume)
             {
-                if (command.Kind != OperationKind.RestoreBackup && !(command.Kind == OperationKind.CreateBackup && pendingAtStart?.RestartRequired == true)) throw new AgentFault(ErrorCode.UnsupportedCapability);
+                if (command.Kind is not (OperationKind.RestoreBackup or OperationKind.CreateBackup)) throw new AgentFault(ErrorCode.UnsupportedCapability);
                 if (command.Kind == OperationKind.RestoreBackup && pendingAtStart is null)
                 {
                     var journal = storage!.InspectRecovery(server);
@@ -85,18 +85,23 @@ public sealed partial class AgentOperationHandler
             var initial = await runner.GetSnapshotAsync(cancellationToken);
             var runtime = initial.Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new AgentFault(ErrorCode.StateConflict);
             if (!resume && (runtime.StateRevision != command.ExpectedStateRevision || runtime.CurrentSessionId != command.ExpectedServerSessionId)) throw new AgentFault(ErrorCode.StateConflict);
-            var previouslyRunning = runtime.ProcessState == ProcessState.Running;
+            var previouslyRunning = resume ? command.ExpectedServerSessionId is not null : runtime.ProcessState == ProcessState.Running;
             var restartRequired = pendingAtStart?.RestartRequired ?? false;
             if (pendingAtStart is null)
             {
                 if ((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && previouslyRunning)
                     await RunChildProcessOperationAsync(command, OperationKind.Stop, cancellationToken);
                 if (command.Kind is not (OperationKind.ListFiles or OperationKind.ReadFile)) await VerifyDataGuardAsync(command.OperationId, cancellationToken);
-                var result = resume
-                    ? restoreBeforeJournal
-                        ? await ExecuteStorageAsync(command, server, profile, cancellationToken)
-                        : await storage!.ResumeRestoreAsync(server, command.OperationId, token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken)
-                    : await ExecuteStorageAsync(command, server, profile, cancellationToken);
+                object result;
+                if (resume && command.Kind == OperationKind.CreateBackup)
+                {
+                    var completed = await storage!.GetCompletedBackupAsync(server, FileOperationValidation.Read<CreateBackupPayload>(command.Payload), cancellationToken)
+                        ?? throw new AgentFault(ErrorCode.RecoveryRequired);
+                    result = BackupResult(completed);
+                }
+                else if (resume && command.Kind == OperationKind.RestoreBackup && !restoreBeforeJournal)
+                    result = await storage!.ResumeRestoreAsync(server, command.OperationId, token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
+                else result = await ExecuteStorageAsync(command, server, profile, cancellationToken);
                 if (result is RestoreResult restored) result = RestoreResultSummary(restored);
                 restartRequired = command.Kind == OperationKind.CreateBackup && previouslyRunning && profile!.RestartIfPreviouslyRunning
                     || command.Kind == OperationKind.RestoreBackup && FileOperationValidation.Read<RestoreBackupPayload>(command.Payload).RestartAfterRestore;
@@ -297,6 +302,11 @@ public sealed partial class AgentOperationHandler
         {
             var recovered = await runner.GetDataOperationAsync(operationId, cancellationToken);
             if (recovered.Status == OperationStatus.Failed) return store.AdvanceOperation(operationId, OperationStatus.Failed, ExecutionPhase.Completed, error: ErrorCode.RecoveryRequired);
+            if (recovered.Status == OperationStatus.Succeeded && store.GetPendingResult(operationId) is not null)
+            {
+                await PublishPendingResultAsync(operationId, recovered.CommandSha256, cancellationToken);
+                return store.GetOperation(operationId)!;
+            }
             return local;
         }
         var dispatch = store.GetDispatch(operationId);
@@ -355,7 +365,14 @@ public sealed partial class AgentOperationHandler
         if (existing.Status != OperationStatus.NeedsAttention) throw new AgentFault(ErrorCode.StateConflict);
         var dispatch = store.GetDispatch(request.OperationId);
         var command = OperationValidation.Read(dispatch.Command, configuration.HostId);
-        if (command.Kind != OperationKind.RestoreBackup && !(command.Kind == OperationKind.CreateBackup && store.GetPendingResultState(request.OperationId)?.RestartRequired == true)) throw new AgentFault(ErrorCode.UnsupportedCapability);
+        if (command.Kind is not (OperationKind.RestoreBackup or OperationKind.CreateBackup)) throw new AgentFault(ErrorCode.UnsupportedCapability);
+        if (command.Kind == OperationKind.CreateBackup && store.GetPendingResultState(request.OperationId) is null)
+        {
+            var server = store.GetAppliedInventory().Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new AgentFault(ErrorCode.StaleRevision);
+            if (server.Revision != command.ConfigRevision || storage is null ||
+                await storage.GetCompletedBackupAsync(server, FileOperationValidation.Read<CreateBackupPayload>(command.Payload), cancellationToken) is null)
+                throw new AgentFault(ErrorCode.RecoveryRequired);
+        }
         if (dataJobs.ContainsKey(request.OperationId)) return existing;
         StartDataJob(dispatch.Command, command, true, request.Reason);
         return existing;
