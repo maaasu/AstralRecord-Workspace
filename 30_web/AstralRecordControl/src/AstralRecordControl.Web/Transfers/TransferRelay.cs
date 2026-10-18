@@ -1,4 +1,5 @@
 using System.Buffers;
+using OperationStatus = AstralRecordControl.Contracts.OperationStatus;
 using System.Security.Cryptography;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
@@ -185,6 +186,7 @@ public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, I
     {
         var row = await FindAsync(transferId, ct);
         if (row.DestinationHostId != destinationHostId || row.ServerId != serverId) throw new InventoryFault(403, "HostScopeMismatch");
+        if (row.OperationId != consumingOperationId) throw new InventoryFault(409, "OperationConflict");
         if (row.Status != TransferStatus.Verified && !(row.Status == TransferStatus.Consumed && row.ConsumingOperationId == consumingOperationId)) throw new InventoryFault(409, "StateConflict");
         if (row.ConsumingOperationId.HasValue && row.ConsumingOperationId != consumingOperationId) throw new InventoryFault(409, "OperationConflict");
         if (consumingOperationId == Guid.Empty) throw new InventoryFault(400, "InvalidInput");
@@ -204,10 +206,12 @@ public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, I
 
     public async Task CleanupAsync(CancellationToken ct) => await LockedAsync(async () =>
     {
+        var failedConsumers = await db.Operations.AsNoTracking().Where(x => x.Status == OperationStatus.Failed || x.Status == OperationStatus.Rejected || x.Status == OperationStatus.Expired || x.Status == OperationStatus.Cancelled).Select(x => x.OperationId).ToArrayAsync(ct);
         var due = (await db.Transfers.ToArrayAsync(ct)).Where(x =>
             (x.ConsumingOperationId == null &&
                 (x.Status == TransferStatus.Created || x.Status == TransferStatus.Uploading ? x.ExpiresAtUtc <= Now :
                  x.Status == TransferStatus.Verified ? x.VerifiedAtUtc <= Now.AddHours(-24) : false)) ||
+            (x.Status == TransferStatus.Verified && x.ConsumingOperationId.HasValue && failedConsumers.Contains(x.ConsumingOperationId.Value) && x.VerifiedAtUtc <= Now.AddHours(-24)) ||
             (x.Status == TransferStatus.Consumed && x.ConsumedAtUtc <= Now.AddHours(-24))).ToArray();
         foreach (var row in due)
         {

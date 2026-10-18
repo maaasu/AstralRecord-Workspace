@@ -1,0 +1,13 @@
+@page "/Transfers"
+@model TransfersModel
+@{ ViewData["Title"] = "転送"; }
+<h1>ファイル転送</h1>
+<p>未完了のアップロードは同じファイルを選択して再開できます。転送完了後の取り込みは対象サーバーのファイル画面で行います。</p>
+<p>大きなダウンロードはファイル保存APIに対応したブラウザを使用してください。SHA-256を照合しながら分割して保存します。</p>
+<section id="p2-control" data-mode="transfers" data-enabled="true">
+    @Html.AntiForgeryToken()
+    <button type="button" id="transfers-refresh">更新</button>
+    <table><thead><tr><th>転送ID</th><th>状態</th><th>送信済み / サイズ</th><th>期限</th><th>操作</th></tr></thead><tbody id="transfer-entries"></tbody></table>
+    <p id="p2-status" role="status" aria-live="polite"></p><pre id="p2-result"></pre>
+</section>
+@section Scripts { <script src="~/js/p2-control.js" asp-append-version="true" defer></script> }

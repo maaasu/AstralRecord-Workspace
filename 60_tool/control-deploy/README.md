@@ -8,7 +8,7 @@
 pwsh -File ./60_tool/control-deploy/Publish-Control.ps1 -OutputDirectory C:\ControlPackages\p1-001
 ```
 
-出力は`Web`、`Agent`、`Runner`、`Cli`の4ディレクトリです。バイナリだけを配布し、ProgramData・DB・鍵・ローカル設定を混在させません。秘密を含むパッケージや`P1`以外のmanifestは配布前検査で拒否します。
+出力は`Web`、`Agent`、`Runner`、`Cli`の4ディレクトリです。バイナリだけを配布し、ProgramData・DB・鍵・ローカル設定を混在させません。秘密を含むパッケージや`P1`/`P2`以外のmanifestは配布前検査で拒否します。
 
 ## サービス登録と保存先
 
@@ -125,3 +125,11 @@ pwsh -NoProfile -File ./60_tool/control-deploy/tests/deployment-preflight.ps1
 ```
 
 このテストは一時ディレクトリのpackage/config検査だけを実行し、サービス登録、証明書設定、実PCへのデプロイを行いません。
+
+## P2の有効化
+
+新しいpublish成果物はphase=P2です。P1の導入markerと共通gateを維持し、Web/Agent/Runner/CLIをP2版へ更新します。Webは`Control.EnableFileControl`、Agent/Runnerは`enableFileControl`をtrueにして再起動します。初期値はfalseです。Runner更新は従来と同じく全Server停止・Session/holdなしを必須とします。
+
+バックアップ保存先はAgent/RunnerのlocalResources.rootsへ同じGUIDで追加します。例: `{ "id":"44444444-4444-4444-4444-444444444444", "displayName":"Backup NAS", "path":"\\\\nas\\backups", "backupOnly":true }`。UNCはバックアップ専用rootだけで許可し、Server root/実行ファイルには指定できません。Agentサービスの実行アカウントにNASの認証/読み書き権限を別途設定します。WebからNAS資格情報を入力・保存しません。設定後は画面のHost resourcesとP2能力、バックアップ設定の適用ACKを確認してください。
+
+変更機能を有効化する設定やmarker発行は実サーバー導入時に明示して実行します。開発テストは一時fixtureだけを使用します。

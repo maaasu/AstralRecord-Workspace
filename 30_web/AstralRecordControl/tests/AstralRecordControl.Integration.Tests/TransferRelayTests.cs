@@ -45,7 +45,7 @@ public sealed class TransferRelayTests
             Assert.Equal(bytes[..10], actual);
             Assert.Equal(Hash(actual), range.ChunkSha256);
         }
-        var consumer = Guid.NewGuid();
+        var consumer = request.OperationId;
         await f.Relay.GetVerifiedForConsumeAsync(transfer.TransferId, f.HostId, f.ServerId, consumer, default);
         await Fault("OperationConflict", () => f.Relay.GetVerifiedForConsumeAsync(transfer.TransferId, f.HostId, f.ServerId, Guid.NewGuid(), default));
         await f.Relay.FinalizeConsumedAsync(transfer.TransferId, consumer, default);
@@ -90,7 +90,7 @@ public sealed class TransferRelayTests
         var transfer = await f.Relay.CreateAsync(f.Request(0, sha), Guid.NewGuid(), default);
         transfer = await f.Relay.CompleteAsync(transfer.TransferId, null, new(0, sha), default);
         Assert.Single(await f.Relay.ListAsync(default));
-        var consumer = Guid.NewGuid();
+        var consumer = transfer.OperationId;
         await f.Relay.GetVerifiedForConsumeAsync(transfer.TransferId, f.HostId, f.ServerId, consumer, default);
         f.Clock.Advance(TimeSpan.FromHours(25));
         await f.Relay.CleanupAsync(default);
@@ -102,6 +102,24 @@ public sealed class TransferRelayTests
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+    [Fact]
+    public async Task FailedConsumerStageIsReclaimedButUnknownOrAttentionConsumerIsRetained()
+    {
+        await using var f = await Fixture.StartAsync();
+        var request = f.Request(0, Hash([]));
+        var transfer = await f.Relay.CreateAsync(request, Guid.NewGuid(), default);
+        await f.Relay.CompleteAsync(transfer.TransferId, null, new(0, Hash([])), default);
+        await Fault("OperationConflict", () => f.Relay.GetVerifiedForConsumeAsync(transfer.TransferId, f.HostId, f.ServerId, Guid.NewGuid(), default));
+        await f.Relay.GetVerifiedForConsumeAsync(transfer.TransferId, f.HostId, f.ServerId, request.OperationId, default);
+        var workflow = new ControlWorkflow { WorkflowId = Guid.NewGuid() }; f.Db.Workflows.Add(workflow);
+        var op = new ControlOperation { OperationId = request.OperationId, IdempotencyKey = Guid.NewGuid(), HostId = f.HostId, ServerId = f.ServerId, WorkflowId = workflow.WorkflowId, Status = OperationStatus.NeedsAttention };
+        f.Db.Operations.Add(op); await f.Db.SaveChangesAsync();
+        f.Clock.Advance(TimeSpan.FromHours(25)); await f.Relay.CleanupAsync(default);
+        Assert.Equal(TransferStatus.Verified, (await f.Relay.GetAsync(transfer.TransferId, null, default)).Status);
+        op.Status = OperationStatus.Failed; await f.Db.SaveChangesAsync(); await f.Relay.CleanupAsync(default);
+        await Fault("NotFound", () => f.Relay.GetAsync(transfer.TransferId, null, default));
+    }
     private static async Task Fault(string code, Func<Task> run) => Assert.Equal(code, (await Assert.ThrowsAsync<InventoryFault>(run)).Code);
 
     private sealed class GeneratedStream(long length) : Stream
@@ -134,7 +152,7 @@ public sealed class TransferRelayTests
         public Guid HostId { get; } = Guid.NewGuid();
         public Guid ServerId { get; } = Guid.NewGuid();
         public FakeClock Clock { get; } = new();
-        private ControlDbContext Db { get; set; } = null!;
+        public ControlDbContext Db { get; private set; } = null!;
         public TransferRelay Relay { get; private set; } = null!;
         public static async Task<Fixture> StartAsync()
         {

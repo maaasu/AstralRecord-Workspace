@@ -22,7 +22,7 @@ public sealed class P2StorageTests
         Assert.Equal("a=3\r\nb=4\r\n", Encoding.UTF8.GetString(File.ReadAllBytes(path)[3..]));
         Assert.NotNull(saved.TrashPath);
         Assert.Equal("a=1\r\nb=2\r\n", Encoding.UTF8.GetString(File.ReadAllBytes(saved.TrashPath!)[3..]));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Store.WriteFileAsync(f.Server, new(target, old.Etag, "stale"), Guid.NewGuid(), Guard));
+        await Assert.ThrowsAsync<FileConflictException>(() => f.Store.WriteFileAsync(f.Server, new(target, old.Etag, "stale"), Guid.NewGuid(), Guard));
     }
 
     [Fact]
@@ -160,6 +160,13 @@ public sealed class P2StorageTests
         Assert.Equal("unchanged", File.ReadAllText(Path.Combine(f.ServerPath, "world.dat")));
         Assert.Contains(f.Store.ListBackups(f.Server), x => x.BackupId == backupId && x.State == BackupState.Failed);
         Assert.Null(await f.Store.GetCompletedBackupAsync(f.Server, new(backupId, f.ProfileId, 1)));
+        Assert.False(Directory.Exists(Path.Combine(f.Root, "agent", "staging", "backup-" + backupId.ToString("N"))));
+        File.Delete(Path.Combine(f.BackupRoot, "control-backups"));
+        var staleStage = Path.Combine(f.Root, "agent", "staging", "backup-" + backupId.ToString("N"));
+        var incomplete = Path.Combine(f.BackupRoot, "control-backups", f.Server.ServerId.ToString("N"), backupId.ToString("N") + ".incomplete");
+        Directory.CreateDirectory(staleStage); Directory.CreateDirectory(incomplete);
+        _ = new P2StorageService(Path.Combine(f.Root, "agent"), new HostResources { Roots = [new() { Id = f.RootId, Path = Path.Combine(f.Root, "managed") }, new() { Id = f.BackupRootId, Path = f.BackupRoot }] });
+        Assert.False(Directory.Exists(staleStage)); Assert.False(Directory.Exists(incomplete));
     }
 
     [Fact]
@@ -169,7 +176,10 @@ public sealed class P2StorageTests
         File.WriteAllText(Path.Combine(f.ServerPath, "world.dat"), "saved");
         var payload = new CreateBackupPayload(Guid.NewGuid(), f.ProfileId, 1);
         Assert.Null(await f.Store.GetCompletedBackupAsync(f.Server, payload));
-        var completed = await f.Store.CreateBackupAsync(f.Server, f.Profile(), payload, Guid.NewGuid(), Guard);
+        var operationId = Guid.NewGuid();
+        var completed = await f.Store.CreateBackupAsync(f.Server, f.Profile(), payload, operationId, Guard);
+        await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.GetCompletedBackupAsync(f.Server, payload, expectedOperationId: Guid.NewGuid()));
+        Assert.NotNull(await f.Store.GetCompletedBackupAsync(f.Server, payload, expectedOperationId: operationId));
         Assert.Equal(ControlJson.Serialize(completed), ControlJson.Serialize(await f.Store.GetCompletedBackupAsync(f.Server, payload)));
         await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.GetCompletedBackupAsync(f.Server, payload with { ProfileRevision = 2 }));
         var storedFile = Path.Combine(f.BackupRoot, "control-backups", f.Server.ServerId.ToString("N"), payload.BackupId.ToString("N"), "files", "world.dat");
@@ -254,6 +264,21 @@ public sealed class P2StorageTests
     }
 
     private static Task Guard(CancellationToken _) => Task.CompletedTask;
+
+    [Fact]
+    public async Task RestoreRejectsModifiedIndexEvenWithOriginalManifestHash()
+    {
+        using var f = new Fixture();
+        File.WriteAllText(Path.Combine(f.ServerPath, "world.dat"), "saved");
+        var backupId = Guid.NewGuid();
+        await f.Store.CreateBackupAsync(f.Server, f.Profile(), new(backupId, f.ProfileId, 1), Guid.NewGuid(), Guard);
+        var index = Path.Combine(f.Root, "agent", "backups", backupId.ToString("N") + ".json");
+        var data = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(index))!;
+        data["manifest"]!["entries"] = new System.Text.Json.Nodes.JsonArray();
+        File.WriteAllText(index, data.ToJsonString());
+        await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.RestoreBackupAsync(f.Server, new(backupId, RestoreMode.Replace), Guid.NewGuid(), Guard));
+        Assert.Equal("saved", File.ReadAllText(Path.Combine(f.ServerPath, "world.dat")));
+    }
 
     private sealed class Fixture : IDisposable
     {

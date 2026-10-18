@@ -16,6 +16,8 @@ public interface IAgentOperationTransport
     Task<RunnerSnapshot> SnapshotAsync(Guid hostId, CancellationToken cancellationToken);
     Task<LogBatch> ReadLogsAsync(Guid hostId, ReadLogsRequest request, CancellationToken cancellationToken);
     Task<RecoveryInspection> InspectRecoveryAsync(Guid hostId, Guid serverId, CancellationToken cancellationToken);
+    Task<BackupPage> ListBackupsAsync(Guid hostId, Guid serverId, CancellationToken cancellationToken, Guid? cursor = null, int limit = 100, Guid? backupId = null) => throw new InventoryFault(409, "UnsupportedCapability");
+    Task<ExecutionSnapshot> ResumeDataAsync(Guid hostId, Guid operationId, string reason, CancellationToken cancellationToken) => throw new InventoryFault(409, "UnsupportedCapability");
 }
 
 public sealed class AgentOperationTransport(IHubContext<AgentHub> hub, AgentConnectionRegistry connections, ControlDbContext db, TimeProvider clock) : IAgentOperationTransport
@@ -76,5 +78,17 @@ public sealed class AgentOperationTransport(IHubContext<AgentHub> hub, AgentConn
         var current = await RequireAsync(hostId);
         using var timeout = Deadline(cancellationToken);
         return await hub.Clients.Client(current.ConnectionId).InvokeAsync<RecoveryInspection>("InspectRecovery", new AgentInspectRecoveryRequest(current.Epoch, serverId), timeout.Token);
+    }
+    public async Task<BackupPage> ListBackupsAsync(Guid hostId, Guid serverId, CancellationToken cancellationToken, Guid? cursor = null, int limit = 100, Guid? backupId = null)
+    {
+        var current = await RequireAsync(hostId);
+        using var timeout = Deadline(cancellationToken);
+        return await hub.Clients.Client(current.ConnectionId).InvokeAsync<BackupPage>("ListBackups", new AgentListBackupsRequest(current.Epoch, serverId, cursor, limit, backupId), timeout.Token);
+    }
+    public async Task<ExecutionSnapshot> ResumeDataAsync(Guid hostId, Guid operationId, string reason, CancellationToken cancellationToken)
+    {
+        var current = await RequireAsync(hostId);
+        using var timeout = Deadline(cancellationToken);
+        return await hub.Clients.Client(current.ConnectionId).InvokeAsync<ExecutionSnapshot>("ResumeDataOperation", new AgentResumeDataOperationRequest(current.Epoch, operationId, reason), timeout.Token);
     }
 }

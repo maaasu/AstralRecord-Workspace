@@ -37,13 +37,13 @@ public sealed partial class P2StorageService
         foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
         {
             StoragePaths.CheckNoReparse(file);
-            var m = ReadJson<StoredBackup>(file).Manifest;
-            if (m.ServerId == server.ServerId) result.Add(new BackupSummary(m.BackupId, m.ServerId, m.BackupProfileId, m.State, m.CreatedAtUtc, m.SizeBytes, m.Protected, m.Format, m.Scope));
+            var stored = ReadJson<StoredBackup>(file); var m = stored.Manifest;
+            if (m.ServerId == server.ServerId) result.Add(new BackupSummary(m.BackupId, m.ServerId, m.BackupProfileId, m.State, m.CreatedAtUtc, m.SizeBytes, m.Protected, m.Format, m.Scope, stored.DestinationRootId));
         }
         return [.. result.OrderByDescending(x => x.CreatedAtUtc)];
     }
 
-    public async Task<BackupManifest?> GetCompletedBackupAsync(ServerConfig server, CreateBackupPayload payload, CancellationToken cancellationToken = default)
+    public async Task<BackupManifest?> GetCompletedBackupAsync(ServerConfig server, CreateBackupPayload payload, CancellationToken cancellationToken = default, Guid? expectedOperationId = null)
     {
         RequireId(payload.BackupId);
         RequireId(payload.BackupProfileId);
@@ -51,6 +51,7 @@ public sealed partial class P2StorageService
         if (!File.Exists(BackupIndex(payload.BackupId))) return null;
         var stored = LoadBackup(server, payload.BackupId);
         var manifest = stored.Manifest;
+        if (expectedOperationId.HasValue && manifest.OperationId != expectedOperationId) throw new InvalidDataException("Backup operation mismatch.");
         if (manifest.State is BackupState.Failed or BackupState.Creating) return null;
         if (manifest.State != BackupState.Completed || manifest.HostId != server.HostId || manifest.ServerKind != server.Kind ||
             manifest.ConfigRevision != server.Revision || manifest.BackupProfileId != payload.BackupProfileId ||
@@ -80,7 +81,7 @@ public sealed partial class P2StorageService
             var stage = Data(Path.Combine("staging", "backup-" + payload.BackupId.ToString("N")));
             if (Directory.Exists(stage)) throw new IOException("Backup stage already exists.");
             Directory.CreateDirectory(Path.Combine(stage, "files"));
-            var creating = new BackupManifest { BackupId = payload.BackupId, HostId = server.HostId, ServerId = server.ServerId, ConfigRevision = server.Revision, ServerKind = server.Kind, BackupProfileId = profile.BackupProfileId, ProfileRevision = profile.Revision, CreatedAtUtc = clock.GetUtcNow(), Format = profile.Format, State = BackupState.Creating };
+            var creating = new BackupManifest { BackupId = payload.BackupId, OperationId = operationId, HostId = server.HostId, ServerId = server.ServerId, ConfigRevision = server.Revision, ServerKind = server.Kind, BackupProfileId = profile.BackupProfileId, ProfileRevision = profile.Revision, CreatedAtUtc = clock.GetUtcNow(), Format = profile.Format, ExcludedPatterns = [.. profile.ExcludePatterns], State = BackupState.Creating };
             await AtomicJsonAsync(BackupIndex(payload.BackupId), new StoredBackup(creating, profile.DestinationRootId), cancellationToken);
             try
             {
@@ -139,7 +140,8 @@ public sealed partial class P2StorageService
             }
             catch
             {
-                await AtomicJsonAsync(BackupIndex(payload.BackupId), new StoredBackup(creating with { State = BackupState.Failed }, profile.DestinationRootId), CancellationToken.None);
+                try { await AtomicJsonAsync(BackupIndex(payload.BackupId), new StoredBackup(creating with { State = BackupState.Failed }, profile.DestinationRootId), CancellationToken.None); }
+                finally { TryDeleteTemporaryTree(stage); TryDeleteTemporaryTree(destination + ".incomplete"); }
                 throw;
             }
         }
@@ -162,6 +164,7 @@ public sealed partial class P2StorageService
     {
         var diskManifest = ReadJson<BackupManifest>(Path.Combine(directory, "manifest.json"));
         if (diskManifest.ManifestSha256 != manifest.ManifestSha256 || diskManifest.BackupId != manifest.BackupId || diskManifest.ServerId != manifest.ServerId) throw new InvalidDataException("Backup manifest changed.");
+        if (ControlJson.Serialize(manifest with { State = diskManifest.State, Protected = diskManifest.Protected }) != ControlJson.Serialize(diskManifest)) throw new InvalidDataException("Backup index differs from verified manifest.");
         if (diskManifest.ManifestSha256 != ControlProtocol.Hash(ControlJson.Serialize(diskManifest with { ManifestSha256 = "" }))) throw new InvalidDataException("Backup manifest hash mismatch.");
         manifest = diskManifest;
         if (manifest.Format == BackupFormat.Directory)
@@ -263,5 +266,31 @@ public sealed partial class P2StorageService
         if (File.Exists(output)) throw new IOException("Export already exists.");
         ZipFile.CreateFromDirectory(destination, output, CompressionLevel.Optimal, false);
         return new ExportedArtifact(output, new FileInfo(output).Length, await Sha256Async(output, cancellationToken));
+    }
+
+    private static void TryDeleteTemporaryTree(string path)
+    {
+        try { if (Directory.Exists(path)) { StoragePaths.CheckTree(path); Directory.Delete(path, true); } }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException) { /* Retry from durable Failed metadata after the storage is available. */ }
+    }
+
+    public void CleanupFailedBackups()
+    {
+        var directory = Data("backups");
+        if (!Directory.Exists(directory)) return;
+        foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+        {
+            try
+            {
+                StoragePaths.CheckNoReparse(file);
+                var stored = ReadJson<StoredBackup>(file); var manifest = stored.Manifest;
+                if (manifest.State != BackupState.Failed || manifest.BackupId == Guid.Empty || manifest.ServerId == Guid.Empty || Path.GetFileNameWithoutExtension(file) != manifest.BackupId.ToString("N")) continue;
+                TryDeleteTemporaryTree(Data(Path.Combine("staging", "backup-" + manifest.BackupId.ToString("N"))));
+                var root = paths.Root(stored.DestinationRootId, true);
+                var incomplete = Path.Combine(root, "control-backups", manifest.ServerId.ToString("N"), manifest.BackupId.ToString("N") + ".incomplete");
+                TryDeleteTemporaryTree(incomplete);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.Text.Json.JsonException) { }
+        }
     }
 }

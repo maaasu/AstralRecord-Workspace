@@ -75,6 +75,18 @@ public sealed class RunnerDataTests
         restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
     }
 
+    [Fact]
+    public void VerifiedFileConflictCanRejectAndReleaseWithoutSuppressingStartup()
+    {
+        using var fixture = new DataFixture(); using var runner = fixture.Open(); fixture.Apply(runner);
+        var hold = runner.AcquireHold(new(Guid.NewGuid(), Guid.NewGuid(), ["server:" + fixture.Server.ServerId], HoldMode.Exclusive));
+        var request = fixture.Command(runner, hold, OperationKind.WriteFile, new WriteFilePayload(new(fixture.Server.ManagedRootId, "server/file.txt"), "absent", "new"));
+        runner.BeginDataOperation(request);
+        Assert.Equal(OperationStatus.Rejected, runner.FinishDataOperation(new(request.OperationId, request.CommandSha256, OperationStatus.Rejected)).Status);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        Assert.False(runner.InspectRecovery(new(fixture.Server.ServerId)).RecoveryRequired);
+    }
+
     private sealed class DataFixture : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "control-data-runner-" + Guid.NewGuid().ToString("N"));

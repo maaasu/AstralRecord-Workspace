@@ -9,14 +9,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordControl.Web.Operations;
 
-public sealed class ControlOperationsService(ControlDbContext db, InventoryStore store, ReservationService reservations, IAgentOperationTransport agents, TimeProvider clock)
+public sealed class ControlOperationsService(ControlDbContext db, InventoryStore store, ReservationService reservations, IAgentOperationTransport agents, TimeProvider clock, IConfiguration? configuration = null, Transfers.TransferRelay? transfers = null)
 {
     private DateTimeOffset Now => clock.GetUtcNow();
 
     public async Task<ControlOperation> CreateAsync(Guid serverId, ServerOperationRequest request, Guid idempotencyKey, CancellationToken token = default)
     {
         if (!reservations.Enabled) throw new InventoryFault(409, "UnsupportedCapability");
-        if (idempotencyKey == Guid.Empty || !OperationValidation.IsP1Kind(request.Kind) || request.WorkflowId.HasValue != request.ReservationId.HasValue) throw new InventoryFault(400, "InvalidInput");
+        var dataOperation = OperationValidation.IsP2Kind(request.Kind);
+        if (dataOperation && configuration?.GetValue<bool>("Control:EnableFileControl") != true) throw new InventoryFault(409, "UnsupportedCapability");
+        if (idempotencyKey == Guid.Empty || (!OperationValidation.IsP1Kind(request.Kind) && !dataOperation) || request.WorkflowId.HasValue != request.ReservationId.HasValue) throw new InventoryFault(400, "InvalidInput");
+        if (dataOperation)
+        {
+            try { FileOperationValidation.ValidatePayload(request.Kind, request.Payload); }
+            catch (ArgumentException) { throw new InventoryFault(400, "InvalidInput"); }
+        }
         var requestJson = ControlJson.Serialize(request);
         var requestHash = ControlProtocol.Hash($"ServerOperation:{serverId:D}:{requestJson}");
         var replay = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey);
@@ -28,12 +35,52 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         var server = await db.Servers.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == serverId) ?? throw new InventoryFault(404, "NotFound");
         if (server.AppliedRevision != request.ConfigRevision || server.DesiredRevision != request.ConfigRevision || request.ConfigRevision < 1) throw new InventoryFault(409, "StaleRevision");
         var config = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
-        if (config.Kind != ServerKind.Java || config.DependencyReadiness == DependencyReadiness.AstralReady) throw new InventoryFault(409, "UnsupportedCapability");
+        Guid? backupDestination = null;
+        if (request.Kind is OperationKind.ImportArtifact or OperationKind.ProvisionServer)
+        {
+            var artifact = request.Kind == OperationKind.ImportArtifact
+                ? ControlJson.Deserialize<ImportArtifactPayload>(request.Payload.GetRawText()).Artifact
+                : ControlJson.Deserialize<ProvisionServerPayload>(request.Payload.GetRawText()).Artifact;
+            var transfer = transfers == null ? throw new InventoryFault(409, "UnsupportedCapability") : await transfers.GetAsync(artifact.TransferId, null, token);
+            if (transfer.ServerId != serverId || transfer.DestinationHostId != server.HostId) throw new InventoryFault(403, "HostScopeMismatch");
+            if (transfer.Status != TransferStatus.Verified || transfer.SizeBytes != artifact.SizeBytes || transfer.Sha256 != artifact.Sha256) throw new InventoryFault(409, "HashMismatch");
+        }
+        if (!dataOperation && (config.Kind != ServerKind.Java || config.DependencyReadiness == DependencyReadiness.AstralReady)) throw new InventoryFault(409, "UnsupportedCapability");
+        if (dataOperation)
+        {
+            var host = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);
+            var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
+            if (!capabilities.Contains("P2.Files") || (IsBackupKind(request.Kind) && !capabilities.Contains("P2.Backups"))) throw new InventoryFault(409, "UnsupportedCapability");
+            if (request.Kind == OperationKind.CreateBackup)
+            {
+                var payload = ControlJson.Deserialize<CreateBackupPayload>(request.Payload.GetRawText());
+                backupDestination = (await store.AppliedBackupProfileAsync(serverId, payload.BackupProfileId, payload.ProfileRevision)).DestinationRootId;
+            }
+            if (request.Kind == OperationKind.PruneBackups)
+                backupDestination = (await store.AppliedBackupProfileAsync(serverId, ControlJson.Deserialize<PruneBackupsPayload>(request.Payload.GetRawText()).BackupProfileId)).DestinationRootId;
+            Guid? backupId = request.Kind switch
+            {
+                OperationKind.RestoreBackup => ControlJson.Deserialize<RestoreBackupPayload>(request.Payload.GetRawText()).BackupId,
+                OperationKind.SetBackupProtection => ControlJson.Deserialize<SetBackupProtectionPayload>(request.Payload.GetRawText()).BackupId,
+                OperationKind.DeleteBackup => ControlJson.Deserialize<DeleteBackupPayload>(request.Payload.GetRawText()).BackupId,
+                OperationKind.ExportFiles => ControlJson.Deserialize<ExportFilesPayload>(request.Payload.GetRawText()).BackupId,
+                _ => null
+            };
+            if (backupId.HasValue)
+            {
+                var backup = (await agents.ListBackupsAsync(server.HostId, serverId, token, backupId: backupId)).Rows.SingleOrDefault(b => b.BackupId == backupId) ?? throw new InventoryFault(404, "NotFound");
+                if (backup.DestinationRootId == Guid.Empty) throw new InventoryFault(409, "RecoveryRequired");
+                backupDestination = backup.DestinationRootId;
+            }
+            if (request.Kind == OperationKind.ExportFiles)
+                await ValidateExportAsync(server, idempotencyKey, request.Payload, token);
+        }
         var before = await agents.SnapshotAsync(server.HostId, token);
         var oldState = before.Servers.SingleOrDefault(x => x.ServerId == serverId) ?? throw new InventoryFault(409, "StateConflict");
         if (oldState.StateRevision != request.ExpectedStateRevision || oldState.CurrentSessionId != request.ExpectedServerSessionId || oldState.ConfigRevision != request.ConfigRevision) throw new InventoryFault(409, "StateConflict");
         ValidateState(request.Kind, oldState);
         var keys = new List<string> { ReservationService.ServerKey(serverId), ReservationService.DirectoryKey(server.HostId, config.ManagedRootId, config.ServerDirectory) };
+        if (backupDestination.HasValue) keys.Add(ReservationService.DirectoryKey(server.HostId, backupDestination.Value, "control-backups/" + serverId.ToString("N")));
         if (server.EnvironmentId.HasValue) keys.Add(ReservationService.EnvironmentKey(server.EnvironmentId.Value));
         var inherited = request.WorkflowId.HasValue;
         var workflowId = request.WorkflowId ?? Guid.NewGuid();
@@ -58,12 +105,12 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             if (!after.Holds.Any(x => x.ReservationId == lease.ReservationId && x.OwnerWorkflowId == workflowId && x.Fence == fence.Fence && x.ResourceKeys.Contains(ReservationService.ServerKey(serverId)))) throw new InventoryFault(409, "RecoveryRequired");
             var command = new OperationCommand
             {
-                OperationId = Guid.NewGuid(), HostId = server.HostId, ServerId = serverId, WorkflowId = workflowId,
+                OperationId = dataOperation ? idempotencyKey : Guid.NewGuid(), HostId = server.HostId, ServerId = serverId, WorkflowId = workflowId,
                 ReservationId = lease.ReservationId, ReservationFence = fence.Fence, Kind = request.Kind,
                 ConfigRevision = request.ConfigRevision, ExpectedStateRevision = current.StateRevision,
                 ExpectedServerSessionId = current.CurrentSessionId,
                 StartBeforeUtc = request.StartBeforeUtc ?? Now.AddSeconds(60),
-                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? (request.Kind switch { OperationKind.Start => 900, OperationKind.Stop => 120, OperationKind.Restart => 1020, _ => 30 }),
+                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? (dataOperation ? 3600 : request.Kind switch { OperationKind.Start => 900, OperationKind.Stop => 120, OperationKind.Restart => 1020, _ => 30 }),
                 Payload = request.Payload
             };
             try { OperationValidation.Validate(command, server.HostId); }
@@ -84,6 +131,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             if (row.OperationId != command.OperationId) return await RefreshAsync(row.OperationId, token);
             try
             {
+                await PrepareArtifactAsync(row, token);
                 var execution = await agents.DispatchAsync(row.HostId, row.OperationId, row.CommandJson, row.CommandSha256, token);
                 return await ApplyExecutionAsync(row.OperationId, execution);
             }
@@ -100,7 +148,9 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         }
     }
 
-    public async Task<ControlOperation> ApplyExecutionAsync(Guid operationId, ExecutionSnapshot execution) => await store.WriteAsync(async () =>
+    public async Task<ControlOperation> ApplyExecutionAsync(Guid operationId, ExecutionSnapshot execution)
+    {
+        var applied = await store.WriteAsync(async () =>
     {
         var row = await db.Operations.SingleOrDefaultAsync(x => x.OperationId == operationId) ?? throw new InventoryFault(404, "NotFound");
         if (execution.OperationId != operationId || execution.CommandSha256 != row.CommandSha256) throw new InventoryFault(409, "OperationConflict");
@@ -119,19 +169,23 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             (await db.ReservationLeases.SingleAsync(x => x.ReservationId == row.ReservationId)).Status = ReservationStatus.RecoveryRequired;
         }
         return row;
-    });
+        });
+        await FinalizeArtifactAsync(applied);
+        return applied;
+    }
 
     public async Task<ControlOperation> GetAsync(Guid operationId) => await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == operationId) ?? throw new InventoryFault(404, "NotFound");
 
     public async Task<ControlOperation> RefreshAsync(Guid operationId, CancellationToken token = default)
     {
         var row = await GetAsync(operationId);
-        if (OperationValidation.IsTerminal(row.Status)) return row;
+        if (OperationValidation.IsTerminal(row.Status)) { await FinalizeArtifactAsync(row); return row; }
         ExecutionSnapshot execution;
         try
         {
             // Reuse the immutable command: Agent and Runner both deduplicate this ID/hash.
             // This also repairs a crash after the Queued transaction committed.
+            if (row.Status == OperationStatus.Queued) await PrepareArtifactAsync(row, token);
             execution = row.Status == OperationStatus.Queued
                 ? await agents.DispatchAsync(row.HostId, row.OperationId, row.CommandJson, row.CommandSha256, token)
                 : await agents.QueryAsync(row.HostId, operationId, token);
@@ -164,6 +218,13 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         if (lease.Status != ReservationStatus.RecoveryRequired) throw new InventoryFault(409, "StateConflict");
         var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
         if (workflow.Kind != "SingleOperation") throw new InventoryFault(409, "UnsupportedCapability");
+        var dataChild = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId && (x.Kind == OperationKind.RestoreBackup || x.Kind == OperationKind.CreateBackup));
+        if (dataChild != null && request.Action == WorkflowRecoveryAction.Resume && dataChild.Status == OperationStatus.NeedsAttention)
+        {
+            if (request.Action != WorkflowRecoveryAction.Resume || dataChild.Status != OperationStatus.NeedsAttention) throw new InventoryFault(409, "RecoveryRequired");
+            var resumed = await agents.ResumeDataAsync(dataChild.HostId, dataChild.OperationId, request.Reason, token);
+            return await ApplyExecutionAsync(dataChild.OperationId, resumed);
+        }
         if (request.Action is WorkflowRecoveryAction.Resume or WorkflowRecoveryAction.AbortAfterInspection)
         {
             var children = await db.Operations.AsNoTracking().Where(x => x.WorkflowId == workflowId).ToArrayAsync();
@@ -234,9 +295,60 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
 
     private static void ValidateState(OperationKind kind, ServerRuntimeSnapshot state)
     {
+        if (OperationValidation.IsP2Kind(kind))
+        {
+            if (kind is OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.ExportFiles) return;
+            if (kind is OperationKind.CreateBackup or OperationKind.RestoreBackup && state.ProcessState == ProcessState.Running && state.CurrentSessionId != null) return;
+            if (state.ProcessState != ProcessState.Stopped || state.CurrentSessionId != null) throw new InventoryFault(409, "StateConflict");
+            return;
+        }
         if (kind == OperationKind.Start && (state.ProcessState != ProcessState.Stopped || state.CurrentSessionId != null)) throw new InventoryFault(409, "StateConflict");
         if (kind == OperationKind.Stop && state.ProcessState == ProcessState.Stopped && state.CurrentSessionId is null) return;
         if (kind != OperationKind.Start && (state.ProcessState != ProcessState.Running || state.CurrentSessionId is null)) throw new InventoryFault(409, "StateConflict");
+    }
+
+    private static bool IsBackupKind(OperationKind kind) => kind is OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.PruneBackups or OperationKind.SetBackupProtection or OperationKind.DeleteBackup;
+
+    private async Task PrepareArtifactAsync(ControlOperation row, CancellationToken token)
+    {
+        if (row.Kind == OperationKind.ExportFiles)
+        {
+            var server = await store.ServerAsync(row.ServerId!.Value);
+            await ValidateExportAsync(server, row.OperationId, ControlJson.Deserialize<OperationCommand>(row.CommandJson).Payload, token);
+            return;
+        }
+        if (row.Kind is not (OperationKind.ImportArtifact or OperationKind.ProvisionServer)) return;
+        var command = ControlJson.Deserialize<OperationCommand>(row.CommandJson);
+        var artifact = row.Kind == OperationKind.ImportArtifact ? ControlJson.Deserialize<ImportArtifactPayload>(command.Payload.GetRawText()).Artifact : ControlJson.Deserialize<ProvisionServerPayload>(command.Payload.GetRawText()).Artifact;
+        if (transfers == null) throw new InventoryFault(409, "UnsupportedCapability");
+        try { await transfers.GetVerifiedForConsumeAsync(artifact.TransferId, row.HostId, row.ServerId!.Value, row.OperationId, token); }
+        catch (InventoryFault fault) when (fault.Code is "OperationConflict" or "StateConflict" or "HostScopeMismatch")
+        {
+            await store.WriteAsync(async () =>
+            {
+                var current = await db.Operations.SingleAsync(x => x.OperationId == row.OperationId);
+                if (current.Status == OperationStatus.Queued) { current.Status = OperationStatus.Rejected; current.StatusVersion++; current.ErrorCode = fault.Code; current.FinishedAtUtc = Now; }
+                return true;
+            });
+            throw;
+        }
+    }
+
+    private async Task ValidateExportAsync(InventoryServer server, Guid operationId, JsonElement payload, CancellationToken token)
+    {
+        var export = ControlJson.Deserialize<ExportFilesPayload>(payload.GetRawText());
+        if (transfers == null) throw new InventoryFault(409, "UnsupportedCapability");
+        var transfer = await transfers.GetAsync(export.TransferId, null, token);
+        if (transfer.SourceHostId != server.HostId || transfer.ServerId != server.ServerId || transfer.OperationId != operationId) throw new InventoryFault(409, "OperationConflict");
+        if (transfer.Status is not (TransferStatus.Created or TransferStatus.Uploading or TransferStatus.Verified)) throw new InventoryFault(409, "StateConflict");
+    }
+
+    private async Task FinalizeArtifactAsync(ControlOperation row)
+    {
+        if (row.Status != OperationStatus.Succeeded || row.Kind is not (OperationKind.ImportArtifact or OperationKind.ProvisionServer) || transfers == null) return;
+        var payload = ControlJson.Deserialize<OperationCommand>(row.CommandJson).Payload;
+        var artifact = row.Kind == OperationKind.ImportArtifact ? ControlJson.Deserialize<ImportArtifactPayload>(payload.GetRawText()).Artifact : ControlJson.Deserialize<ProvisionServerPayload>(payload.GetRawText()).Artifact;
+        await transfers.FinalizeConsumedAsync(artifact.TransferId, row.OperationId, CancellationToken.None);
     }
 
     private static Guid ChildId(Guid workflowId, string name)

@@ -69,7 +69,7 @@ public sealed partial class RunnerStore
         {
             var previous = GetDataOperation(request.OperationId);
             if (previous.CommandSha256 != request.CommandSha256) throw new RunnerFault(ErrorCode.OperationConflict);
-            if (request.Status is not (OperationStatus.Succeeded or OperationStatus.NeedsAttention)) throw new RunnerFault(ErrorCode.ProtocolMismatch);
+            if (request.Status is not (OperationStatus.Succeeded or OperationStatus.NeedsAttention or OperationStatus.Rejected)) throw new RunnerFault(ErrorCode.ProtocolMismatch);
             if (previous.Status == OperationStatus.NeedsAttention && request.Status == OperationStatus.NeedsAttention) return previous;
             if (previous.Status == OperationStatus.NeedsAttention) throw new RunnerFault(ErrorCode.RecoveryRequired);
             if (OperationValidation.IsTerminal(previous.Status))
@@ -77,6 +77,7 @@ public sealed partial class RunnerStore
                 if (previous.Status != request.Status) throw new RunnerFault(ErrorCode.OperationConflict);
                 return previous;
             }
+            if (request.Status == OperationStatus.Rejected) VerifyDataOperation(request.OperationId);
             if (request.Status == OperationStatus.Succeeded)
             {
                 var command = ReadDataCommand(request.OperationId);

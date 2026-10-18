@@ -25,6 +25,7 @@ public static partial class ControlApplication
         builder.Services.AddScoped<IAgentOperationTransport, AgentOperationTransport>();
         builder.Services.AddScoped<ReservationService>();
         builder.Services.AddScoped<ControlOperationsService>();
+        builder.Services.AddScoped<OperationResultStore>();
         builder.Services.AddHostedService<OperationLifecycleMonitor>();
         builder.Services.AddHostedService<AgentOfflineMonitor>();
         builder.Services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, AgentBearerHandler>(AgentBearerHandler.SchemeName, _ => { });
@@ -102,7 +103,8 @@ public static partial class ControlApplication
         owner.MapPost("/hosts/{hostId:guid}/operations", async (Guid hostId, InventoryStore store) => { await store.HostAsync(hostId); throw new InventoryFault(409, "UnsupportedCapability"); });
         owner.MapDelete("/servers/{serverId:guid}", async (Guid serverId, InventoryStore store) => { await store.ServerAsync(serverId); throw new InventoryFault(409, "UnsupportedCapability"); });
         MapOperations(app, owner);
-        foreach (var path in new[] { "/schedules/{**rest}", "/backup-profiles/{**rest}", "/backups/{**rest}", "/transfers/{**rest}" })
+        MapBackups(owner);
+        foreach (var path in new[] { "/schedules/{**rest}" })
             owner.MapMethods(path, ["GET", "POST", "PUT", "DELETE"], (HttpContext http) => Fault(http, 409, "UnsupportedCapability"));
 
         var agent = app.MapGroup("/api/agent/v1").RequireAuthorization("AgentOnly");
@@ -125,9 +127,11 @@ public static partial class ControlApplication
             if (request.ConnectionEpoch.ToString() != http.Request.Headers["X-Control-Connection-Epoch"].ToString()) throw new InventoryFault(409, "StateConflict");
             return await protocol.PublishEventsAsync(AgentIdentity.From(http.User), request);
         });
-        agent.MapMethods("/transfers/{transferId:guid}/{**action}", ["GET", "POST", "PUT"], async (Guid transferId, string? action, HttpContext http, InventoryStore store) =>
+        agent.MapPost("/operations/{operationId:guid}/result", async (Guid operationId, HttpContext http, OperationResultStore results) =>
         {
-            await store.ValidateTransferScopeAsync(AgentIdentity.From(http.User).HostId, transferId, string.IsNullOrEmpty(action) ? "metadata" : action); return Results.Empty;
+            if (http.Request.ContentLength > OperationResultStore.MaxResultBytes) throw new InventoryFault(413, "ResultTooLarge");
+            await results.SaveAsync(AgentIdentity.From(http.User).HostId, operationId, http.Request.Headers["X-Command-Sha256"].ToString(), http.Request.Headers["X-Result-Sha256"].ToString(), http.Request.Body, http.RequestAborted);
+            return Results.NoContent();
         });
         app.MapHub<AgentHub>(ControlProtocol.AgentHubPath);
         app.MapHub<UiHub>(ControlProtocol.UiHubPath);

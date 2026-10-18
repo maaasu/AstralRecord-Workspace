@@ -185,7 +185,7 @@ public sealed partial class LiveTransportTests
         private LiveFixture(WebApplication app, string root, Uri origin, string thumbprint, HostResources resources)
         { this.app = app; Root = root; Origin = origin; this.thumbprint = thumbprint; Resources = resources; }
 
-        public static async Task<LiveFixture> StartAsync(bool enableProcessControl = false)
+        public static async Task<LiveFixture> StartAsync(bool enableProcessControl = false, bool enableFileControl = false)
         {
             var root = Path.Combine(Path.GetTempPath(), "control-live-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -205,6 +205,7 @@ public sealed partial class LiveTransportTests
                 "--environment=Testing", "--applicationName=AstralRecordControl.Web", "--contentRoot=" + contentRoot,
                 "--urls=https://127.0.0.1:" + port, "--Control:DataRoot=" + Path.Combine(root, "Web"), "--Control:PublicOrigin=" + origin.GetLeftPart(UriPartial.Authority),
                 "--Control:EnableProcessControl=" + enableProcessControl,
+                "--Control:EnableFileControl=" + enableFileControl,
                 "--Kestrel:Certificates:Default:Path=" + certificatePath, "--Kestrel:Certificates:Default:Password=" + certificatePassword,
                 "--Logging:LogLevel:Default=Warning", "--Logging:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics=Error"
             ]);
@@ -220,6 +221,11 @@ public sealed partial class LiveTransportTests
                 Roots = [new ManagedRoot { Id = Guid.NewGuid(), DisplayName = "Fixture root", Path = managedRoot }],
                 Executables = [new ManagedExecutable { Id = Guid.NewGuid(), DisplayName = "Fixture Java", Path = executable, Kind = ServerKind.Java }]
             };
+            if (enableFileControl)
+            {
+                var backupRoot = Path.Combine(root, "backup-destination"); Directory.CreateDirectory(backupRoot);
+                resources = resources with { Roots = [.. resources.Roots, new ManagedRoot { Id = Guid.NewGuid(), DisplayName = "Backup fixture", Path = backupRoot, BackupOnly = true }] };
+            }
             try
             {
                 await app.StartAsync();

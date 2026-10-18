@@ -26,6 +26,7 @@ public sealed partial class P2StorageService
         this.availableBytesProbe = availableBytesProbe ?? AvailableBytes;
         StoragePaths.CheckNoReparse(this.dataDirectory);
         Directory.CreateDirectory(this.dataDirectory);
+        CleanupFailedBackups();
     }
 
     private string Data(string relative)

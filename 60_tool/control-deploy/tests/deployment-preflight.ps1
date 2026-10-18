@@ -25,6 +25,8 @@ try {
     foreach ($name in 'AstralRecordControl.Web.exe','AstralRecordControl.Web.dll','AstralRecordControl.Web.runtimeconfig.json') { [IO.File]::WriteAllText((Join-Path $package $name), '{}') }
     @{component='Web';phase='P1';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
     Assert-ControlPackage $package Web | Out-Null
+    @{component='Web';phase='P2';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
+    Assert-ControlPackage $package Web | Out-Null
     @{component='Web';phase='P0';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
     Assert-Throws { Assert-ControlPackage $package Web }
     @{component='Web';phase='P1';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8

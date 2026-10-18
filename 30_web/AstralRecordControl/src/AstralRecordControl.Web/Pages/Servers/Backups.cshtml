@@ -1,0 +1,35 @@
+@page "/Servers/{serverId:guid}/Backups"
+@model AstralRecordControl.Web.Pages.Servers.BackupsModel
+@{ ViewData["Title"] = Model.Server.DisplayName + " · バックアップ"; }
+<h1>@Model.Server.DisplayName · バックアップ</h1>
+<p><a asp-page="Edit" asp-route-serverId="@Model.Server.ServerId">設定</a> / <a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId">運転</a> / <a asp-page="Files" asp-route-serverId="@Model.Server.ServerId">ファイル</a></p>
+<p><strong>復元範囲: ServerFiles</strong>。このサーバーのファイルが対象です。SQL・API・マスターデータ・公開状態は含みません。</p>
+@if (!Model.Enabled) { <p role="alert">PCの接続とP2機能の有効化が必要です。</p> }
+<section id="p2-control" data-mode="backups" data-server-id="@Model.Server.ServerId" data-host-id="@Model.Server.HostId" data-root-id="@Model.Config.ManagedRootId" data-directory="@Model.Config.ServerDirectory" data-enabled="@Model.Enabled.ToString().ToLowerInvariant()">
+    @Html.AntiForgeryToken()
+    <h2>バックアップ設定</h2>
+    <label>設定 <select id="backup-profile"><option value="">新しい設定</option></select></label>
+    <label>登録済み保存先 <select id="backup-destination">@foreach (var root in Model.Resources.Roots.Where(r => r.Id != Model.Config.ManagedRootId)) { <option value="@root.Id">@root.DisplayName</option> }</select></label>
+    <label>形式 <select id="backup-format"><option value="Directory">非圧縮</option><option value="Zip">ZIP</option></select></label>
+    <label>保持数 <input id="retention-count" type="number" min="1" max="1000" value="7" /></label>
+    <label>保持日数 <input id="retention-days" type="number" min="1" max="3650" value="30" /></label>
+    <p>保持数以内または保持期間以内の成功世代を残します。保護世代と未完了世代は削除しません。</p>
+    <label>除外パターン（1行に1件）<textarea id="exclude-patterns" rows="3"></textarea></label>
+    <label><input type="checkbox" id="backup-restart" /> 取得前に稼働していた場合は、取得後に再起動する</label>
+    <button type="button" data-action="save-profile">設定を保存</button><button type="button" data-action="create-backup">正常停止してバックアップ取得</button><button type="button" data-action="prune-backups">保持条件による世代整理</button>
+    <h2>世代一覧</h2><button type="button" data-action="refresh-backups">更新</button>
+    <table><thead><tr><th>選択</th><th>作成時刻</th><th>状態</th><th>サイズ</th><th>保護</th></tr></thead><tbody id="backup-entries"></tbody></table>
+    <button type="button" id="backups-next" data-action="backups-next" hidden>次の世代</button>
+    <button type="button" data-action="protect">保護</button><button type="button" data-action="unprotect">保護解除</button><button type="button" data-action="export-backup">ダウンロードを準備</button>
+    <h2>選択した世代の復元・削除</h2>
+    <label>復元方式 <select id="restore-mode"><option value="Replace">Replace: 世代の状態へ戻す（現在のデータは退避）</option><option value="Merge">Merge: 世代内のファイルを復元し、その他は保持</option></select></label>
+    <label><input type="checkbox" id="restore-restart" /> 復元成功後に起動する</label>
+    <label><input type="checkbox" id="restore-confirm" /> 選択した世代・ServerFilesの範囲・再起動の有無を確認した</label>
+    <button type="button" data-action="restore">正常停止して復元</button>
+    <label>削除理由 <input id="backup-delete-reason" maxlength="1024" /></label>
+    <label><input type="checkbox" id="backup-delete-confirm" /> 選択したバックアップ世代を削除する</label>
+    <button type="button" data-action="delete-backup">世代を削除</button>
+    <p>復元が中断した場合は起動を禁止します。<a href="/Workflows">保守履歴</a>から同じ処理を再開してください。</p>
+    <p><a href="/Transfers">転送・ダウンロード</a></p><p id="p2-status" role="status" aria-live="polite"></p><pre id="p2-result"></pre>
+</section>
+@section Scripts { <script src="~/js/p2-control.js" asp-append-version="true" defer></script> }

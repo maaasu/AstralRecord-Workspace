@@ -12,5 +12,5 @@ public static class DataExecution
 public sealed record VerifyDataOperationRequest(Guid OperationId);
 public sealed record MarkDataReadyForRestartRequest(Guid OperationId);
 public sealed record FinishDataOperationRequest(Guid OperationId, string CommandSha256, OperationStatus Status);
-public sealed record AgentListBackupsRequest(Guid ConnectionEpoch, Guid ServerId);
+public sealed record AgentListBackupsRequest(Guid ConnectionEpoch, Guid ServerId, Guid? Cursor = null, int Limit = 100, Guid? BackupId = null);
 public sealed record AgentResumeDataOperationRequest(Guid ConnectionEpoch, Guid OperationId, string Reason);

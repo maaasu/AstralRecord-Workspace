@@ -33,7 +33,12 @@
                 }
                 else if (item.Workflow.Kind == "SingleOperation")
                 {
-                    <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button>
+                    @if (item.Operations.Any(x => x.Kind is OperationKind.RestoreBackup or OperationKind.CreateBackup && x.Status == OperationStatus.NeedsAttention))
+                    {
+                        <p>バックアップ・復元処理の中断です。同じ操作と保存済みデータを照合して再開します。起動禁止と退避コピーは完了まで保持します。</p>
+                        <button type="submit" name="action" value="Resume">同じ処理を再開</button>
+                    }
+                    else { <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button> }
                     @if (item.Operations.Any(x => x.Kind is OperationKind.Stop or OperationKind.Restart && x.Status == OperationStatus.NeedsAttention))
                     {
                         <label><input type="checkbox" name="killConfirmed" value="true" /> 対象 Session と実プロセスを確認した</label>

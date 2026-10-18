@@ -33,6 +33,7 @@ public static partial class ControlApplication
         ConfigureAuthentication(builder);
         Authentication.CliAuthentication.Configure(builder);
         ConfigureInventory(builder);
+        ConfigureTransfers(builder);
         var app = builder.Build();
         app.UseExceptionHandler(error => error.Run(async context =>
         {
@@ -79,13 +80,16 @@ public static partial class ControlApplication
         MapAuthentication(app);
         Authentication.CliAuthentication.Map(app);
         MapInventory(app);
+        MapTransfers(app);
         app.MapRazorPages();
         app.MapGet("/health/live", () => Results.Ok(new { status = "live" })).AllowAnonymous();
         return app;
     }
     static partial void ConfigureAuthentication(WebApplicationBuilder builder);
     static partial void ConfigureInventory(WebApplicationBuilder builder);
+    static partial void ConfigureTransfers(WebApplicationBuilder builder);
     static partial void ConfigureAuthenticationMiddleware(WebApplication app);
     static partial void MapAuthentication(WebApplication app);
     static partial void MapInventory(WebApplication app);
+    static partial void MapTransfers(WebApplication app);
 }

@@ -23,11 +23,13 @@ public sealed record PruneBackupsPayload(Guid BackupProfileId);
 public sealed record SetBackupProtectionPayload(Guid BackupId, bool Protected);
 public sealed record DeleteBackupPayload(Guid BackupId, string Reason);
 public sealed record BackupEntry(string RelativePath, long SizeBytes, string Sha256, bool IsDirectory = false);
-public sealed record BackupSummary(Guid BackupId, Guid ServerId, Guid BackupProfileId, BackupState State, DateTimeOffset CreatedAtUtc, long SizeBytes, bool Protected, BackupFormat Format, string Scope);
+public sealed record BackupSummary(Guid BackupId, Guid ServerId, Guid BackupProfileId, BackupState State, DateTimeOffset CreatedAtUtc, long SizeBytes, bool Protected, BackupFormat Format, string Scope, Guid DestinationRootId = default);
+public sealed record BackupPage(BackupSummary[] Rows, Guid? NextCursor);
 public sealed record BackupManifest
 {
     public int SchemaVersion { get; init; } = 1;
     public Guid BackupId { get; init; }
+    public Guid OperationId { get; init; }
     public Guid HostId { get; init; }
     public Guid ServerId { get; init; }
     public long ConfigRevision { get; init; }
@@ -42,8 +44,9 @@ public sealed record BackupManifest
     public string Consistency { get; init; } = "Stopped";
     public Guid? EnvironmentId { get; init; }
     public string? RuntimeServerId { get; init; }
-    public string? DefinitionRevision { get; init; }
-    public string? PatchRevision { get; init; }
+    public Guid? DefinitionGenerationId { get; init; }
+    public int? PatchNumber { get; init; }
+    public string[] ExcludedPatterns { get; init; } = [];
     public BackupEntry[] Entries { get; init; } = [];
     public long SizeBytes { get; init; }
     public string ManifestSha256 { get; init; } = "";

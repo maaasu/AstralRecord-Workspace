@@ -1,0 +1,28 @@
+@page "/Servers/{serverId:guid}/Files"
+@model AstralRecordControl.Web.Pages.Servers.FilesModel
+@{ ViewData["Title"] = Model.Server.DisplayName + " · ファイル"; }
+<h1>@Model.Server.DisplayName · ファイル</h1>
+<p><a asp-page="Edit" asp-route-serverId="@Model.Server.ServerId">設定</a> / <a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId">運転</a> / <a asp-page="Backups" asp-route-serverId="@Model.Server.ServerId">バックアップ</a></p>
+@if (!Model.Enabled) { <p role="alert">PCの接続とP2機能の有効化が必要です。</p> }
+<section id="p2-control" data-mode="files" data-server-id="@Model.Server.ServerId" data-host-id="@Model.Server.HostId" data-root-id="@Model.Config.ManagedRootId" data-directory="@Model.Config.ServerDirectory" data-kind="@Model.Config.Kind" data-enabled="@Model.Enabled.ToString().ToLowerInvariant()">
+    @Html.AntiForgeryToken()
+    <p>パスはこのサーバー内の相対パスです。書き込みは停止中に行い、削除したデータは退避領域へ移します。</p>
+    <label>対象パス（空欄でサーバー直下）<input id="file-path" maxlength="512" /></label>
+    <button type="button" data-action="list">一覧</button><button type="button" data-action="read">テキストを開く</button><button type="button" data-action="export">ダウンロードを準備</button>
+    <table><thead><tr><th>名前</th><th>種類</th><th>サイズ</th></tr></thead><tbody id="file-entries"></tbody></table>
+    <button type="button" data-action="list-next" hidden id="list-next">次の一覧</button>
+    <label>保存時のetag <input id="file-etag" value="absent" readonly /></label>
+    <label>テキスト（保存上限64KiB・UTF-8）<textarea id="file-content" rows="16"></textarea></label>
+    <button type="button" data-action="write">保存</button><button type="button" data-action="new-file">新しいファイルとして編集</button>
+    <label>コピー・移動先 <input id="file-destination" maxlength="512" /></label>
+    <button type="button" data-action="mkdir">対象パスにフォルダ作成</button><button type="button" data-action="copy">コピー</button><button type="button" data-action="move">移動</button><button type="button" data-action="delete">対象を退避削除</button>
+    <h2>ファイル・ZIPの取り込み</h2>
+    <p>転送完了後に反映します。ZIPの展開先は存在しない新しいフォルダに指定してください。</p>
+    <input id="upload-file" type="file" />
+    <label>取り込み方法 <select id="import-mode"><option value="File">単体ファイル</option><option value="ExtractZip">ZIP展開</option><option value="Provision">空のサーバーへZIPから新規配置</option></select></label>
+    <label><input type="checkbox" id="eula-accepted" /> 新規配置時、MinecraftのEULAに同意する</label>
+    <button type="button" data-action="upload">転送して取り込む</button>
+    <p><a href="/Transfers">転送の進捗・再開・ダウンロード</a></p>
+    <p id="p2-status" role="status" aria-live="polite"></p><pre id="p2-result"></pre>
+</section>
+@section Scripts { <script src="~/js/p2-control.js" asp-append-version="true" defer></script> }

@@ -83,7 +83,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         });
         hub.On<AgentReadLogsRequest, LogBatch>("ReadLogs", request => operations.ReadLogsAsync(request, epoch, stoppingToken));
         hub.On<AgentInspectRecoveryRequest, RecoveryInspection>("InspectRecovery", request => operations.InspectRecoveryAsync(request, epoch, stoppingToken));
-        hub.On<AgentListBackupsRequest, BackupSummary[]>("ListBackups", request => operations.ListBackups(request, epoch));
+        hub.On<AgentListBackupsRequest, BackupPage>("ListBackups", request => operations.ListBackups(request, epoch));
         hub.On<AgentResumeDataOperationRequest, ExecutionSnapshot>("ResumeDataOperation", request => operations.ResumeDataAsync(request, epoch, stoppingToken));
         hub.On<AgentSnapshotRequest, RunnerSnapshot>("GetSnapshot", request => operations.SnapshotAsync(request, epoch, stoppingToken));
         hub.On<JsonElement>("InventoryChanged", message =>

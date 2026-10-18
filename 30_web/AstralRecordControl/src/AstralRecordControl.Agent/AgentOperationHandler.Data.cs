@@ -95,7 +95,7 @@ public sealed partial class AgentOperationHandler
                 object result;
                 if (resume && command.Kind == OperationKind.CreateBackup)
                 {
-                    var completed = await storage!.GetCompletedBackupAsync(server, FileOperationValidation.Read<CreateBackupPayload>(command.Payload), cancellationToken)
+                    var completed = await storage!.GetCompletedBackupAsync(server, FileOperationValidation.Read<CreateBackupPayload>(command.Payload), cancellationToken, command.OperationId)
                         ?? throw new AgentFault(ErrorCode.RecoveryRequired);
                     result = BackupResult(completed);
                 }
@@ -122,6 +122,17 @@ public sealed partial class AgentOperationHandler
         }
         catch (Exception exception)
         {
+            if (begun && exception is FileConflictException)
+            {
+                try
+                {
+                    await runner.FinishDataOperationAsync(new FinishDataOperationRequest(command.OperationId, execute.CommandSha256, OperationStatus.Rejected), CancellationToken.None);
+                    store.AdvanceOperation(command.OperationId, OperationStatus.Rejected, ExecutionPhase.Completed, error: ErrorCode.StateConflict);
+                    return;
+                }
+                catch { /* An unknown local RPC result still needs inspection. */ }
+            }
+            var uncertainBegin = !begun && store.GetDispatch(command.OperationId).DispatchAttempted && exception is IOException or OperationCanceledException;
             var error = exception is AgentFault fault ? fault.Code : ErrorCode.RecoveryRequired;
             if (store.GetPendingResult(command.OperationId) is not null)
             {
@@ -144,7 +155,7 @@ public sealed partial class AgentOperationHandler
             }
             var current = store.GetOperation(command.OperationId);
             if (current is not null && !OperationValidation.IsTerminal(current.Status) && current.Status != OperationStatus.NeedsAttention)
-                store.AdvanceOperation(command.OperationId, begun ? OperationStatus.NeedsAttention : OperationStatus.Failed, ExecutionPhase.Unknown, error: error);
+                store.AdvanceOperation(command.OperationId, begun || uncertainBegin ? OperationStatus.NeedsAttention : OperationStatus.Failed, ExecutionPhase.Unknown, error: error);
         }
     }
 
@@ -177,14 +188,14 @@ public sealed partial class AgentOperationHandler
                     if (Directory.Exists(path))
                     {
                         var runtime = (await runner.GetSnapshotAsync(cancellationToken)).Servers.Single(s => s.ServerId == server.ServerId);
-                        if (runtime.ProcessState != ProcessState.Stopped) throw new AgentFault(ErrorCode.StateConflict);
+                        if (runtime.ProcessState != ProcessState.Stopped) throw new FileConflictException("Directory export requires a stopped server.");
                     }
                 }
                 var artifact = request.BackupId is Guid backupId
                     ? await storage!.ExportBackupAsync(server, backupId, id, cancellationToken)
                     : await storage!.ExportFilesAsync(server, request, id, cancellationToken);
                 var transfer = transferClient ?? throw new AgentFault(ErrorCode.HostOffline);
-                await transfer.UploadAsync(request.TransferId, artifact.Path, true, cancellationToken);
+                await transfer.UploadAsync(request.TransferId, artifact.Path, true, cancellationToken, id, server.ServerId);
                 return new { request.TransferId, artifact.SizeBytes, artifact.Sha256 };
             }
             case OperationKind.ImportArtifact:
@@ -301,6 +312,12 @@ public sealed partial class AgentOperationHandler
         if (local.Status == OperationStatus.NeedsAttention)
         {
             var recovered = await runner.GetDataOperationAsync(operationId, cancellationToken);
+            if (recovered.CommandSha256 != local.CommandSha256) throw new AgentFault(ErrorCode.RecoveryRequired);
+            if (recovered.Status is OperationStatus.Running or OperationStatus.Accepted)
+            {
+                await runner.FinishDataOperationAsync(new(operationId, recovered.CommandSha256, OperationStatus.NeedsAttention), cancellationToken);
+                return local;
+            }
             if (recovered.Status == OperationStatus.Failed) return store.AdvanceOperation(operationId, OperationStatus.Failed, ExecutionPhase.Completed, error: ErrorCode.RecoveryRequired);
             if (recovered.Status == OperationStatus.Succeeded && store.GetPendingResult(operationId) is not null)
             {
@@ -350,17 +367,23 @@ public sealed partial class AgentOperationHandler
         return store.AdvanceOperation(operationId, OperationStatus.NeedsAttention, ExecutionPhase.Recovering, error: ErrorCode.RecoveryRequired);
     }
 
-    public BackupSummary[] ListBackups(AgentListBackupsRequest request, Guid activeEpoch)
+    public BackupPage ListBackups(AgentListBackupsRequest request, Guid activeEpoch)
     {
         RequireEpoch(request.ConnectionEpoch, activeEpoch);
         if (!configuration.EnableFileControl || processGate?.Enabled == false || storage is null) throw new AgentFault(ErrorCode.UnsupportedCapability);
+        if (request.Limit is < 1 or > 100 || request.Cursor == Guid.Empty || request.BackupId == Guid.Empty || request.Cursor.HasValue && request.BackupId.HasValue) throw new AgentFault(ErrorCode.StateConflict);
         var server = store.GetAppliedInventory().Servers.SingleOrDefault(s => s.ServerId == request.ServerId) ?? throw new AgentFault(ErrorCode.StateConflict);
-        return storage.ListBackups(server).Take(100).ToArray();
+        var all = storage.ListBackups(server).Where(b => !request.BackupId.HasValue || b.BackupId == request.BackupId).OrderByDescending(b => b.CreatedAtUtc).ThenBy(b => b.BackupId).ToArray();
+        var offset = request.Cursor.HasValue ? Array.FindIndex(all, b => b.BackupId == request.Cursor) + 1 : 0;
+        if (request.Cursor.HasValue && offset == 0) throw new AgentFault(ErrorCode.StateConflict);
+        var rows = all.Skip(offset).Take(request.Limit).ToArray();
+        return new BackupPage(rows, offset + rows.Length < all.Length ? rows[^1].BackupId : null);
     }
 
     public async Task<ExecutionSnapshot> ResumeDataAsync(AgentResumeDataOperationRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
         RequireEpoch(request.ConnectionEpoch, activeEpoch);
+        if (!configuration.EnableFileControl || processGate?.Enabled == false || storage is null) throw new AgentFault(ErrorCode.UnsupportedCapability);
         var existing = store.GetOperation(request.OperationId) ?? throw new AgentFault(ErrorCode.OperationConflict);
         if (existing.Status != OperationStatus.NeedsAttention) throw new AgentFault(ErrorCode.StateConflict);
         var dispatch = store.GetDispatch(request.OperationId);
@@ -370,7 +393,7 @@ public sealed partial class AgentOperationHandler
         {
             var server = store.GetAppliedInventory().Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new AgentFault(ErrorCode.StaleRevision);
             if (server.Revision != command.ConfigRevision || storage is null ||
-                await storage.GetCompletedBackupAsync(server, FileOperationValidation.Read<CreateBackupPayload>(command.Payload), cancellationToken) is null)
+                await storage.GetCompletedBackupAsync(server, FileOperationValidation.Read<CreateBackupPayload>(command.Payload), cancellationToken, command.OperationId) is null)
                 throw new AgentFault(ErrorCode.RecoveryRequired);
         }
         if (dataJobs.ContainsKey(request.OperationId)) return existing;

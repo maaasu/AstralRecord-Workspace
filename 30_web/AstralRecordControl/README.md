@@ -2,7 +2,7 @@
 
 Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していてもログインできる独立管理系です。.NET 10 / Windows x64を使用します。設計の正本は [AstralRecordControl設計書](../../00_docs/30_WEB設計書/AstralRecordControl/README.md) です。
 
-## 実装済みの機能（P0・P1）
+## 実装済みの機能（P0・P1・P2）
 
 - 単一ownerのパスワード＋TOTP、使い捨て回復コード、8時間の固定セッション、全セッション失効、停止中のローカルCLIによるowner作成/リセット。
 - PC・Server・Environment台帳、Agentトークンの一度限り表示/失効、希望設定版と適用版の区別。
@@ -15,7 +15,7 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 
 変更操作は既定で無効です。`Control:EnableProcessControl=true`、Runnerの`EnableProcessControl=true`に加え、対象Hostすべての`P1.Operations`/`P1.LegacyGate` capabilityが必要です。Runner/Agentの本番起動は固定`%ProgramData%\AstralRecordControl\managed-operations.enabled`を確認します。markerは既存ツールの共通gate導入を検査したinstallerの`-EnableManagedOperations`で作成します。詳しくは[導入手順](../../60_tool/control-deploy/README.md)と[既存ツールgate](../../60_tool/control-gate/README.md)を参照してください。
 
-P1の対象はJavaの独立した基本運転です。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrock/Velocity、ファイル編集・バックアップ・予約実行・更新Adapterは後続段階です。非対応設定や操作を開始済みとして扱いません。
+P1のプロセス運転はJavaの独立した基本運転です。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrock/Velocityのプロセス運転、予約実行・更新Adapter・別PCへのServer複製/移送は後続段階です。非対応設定や操作を開始済みとして扱いません。
 
 ## プロジェクト
 
@@ -39,6 +39,7 @@ DevのHostは開発PC、チャンネルのHostはMC用PCです。どちらもAge
 dotnet test AstralRecordControl.slnx -c Release
 pwsh -NoProfile -File ../../60_tool/control-deploy/tests/deployment-preflight.ps1
 pwsh -NoProfile -File ../../60_tool/control-gate/tests/gate-entry.tests.ps1
+node --test tests/WebScript.Tests/sha256.test.cjs
 ```
 
 実際の登録/設定は [導入手順](../../60_tool/control-deploy/README.md) を使用します。テスト用`Testing`環境は一時データルートを明示した自動テスト専用です。通常導入で指定しません。
@@ -69,7 +70,7 @@ Agent tokenをOwner Cookieとして使うことも、その逆もできません
 
 既定は`%ProgramData%\AstralRecordControl\Web|Agent|Runner`です。各サービスのSQLiteはローカルディスク/WAL/busy timeout 5秒で、別サービスのDBを直接開きません。各プロセスは排他lockファイルを保持します。DB・Data Protection keys・credentials・configは配布パッケージに含めません。
 
-Web/Agent/Runnerの現行schemaは2です。schema1からはSQLite backupを作成してtransaction内で移行します。未知版や版情報のない既存schemaを持つDBは起動を拒否し、自動破棄/自動採用しません。Agent DBのstoreId変更やACKより古い状態への巻戻りは要復旧です。トークンの再発行だけで台帳のstoreIdを変更しません。同じHostへの自動再登録は提供せず、旧Hostを無効化して新しいHost IDへ明示登録し直します。
+Web/Agent/Runnerの現行schemaは3です。schema1/2からはSQLite backupを作成してtransaction内で移行します。未知版や版情報のない既存schemaを持つDBは起動を拒否し、自動破棄/自動採用しません。Agent DBのstoreId変更やACKより古い状態への巻戻りは要復旧です。トークンの再発行だけで台帳のstoreIdを変更しません。同じHostへの自動再登録は提供せず、旧Hostを無効化して新しいHost IDへ明示登録し直します。
 
 DPAPI鍵/トークンを別PCへコピーするだけでは復旧できません。Webは停止中CLIでowner/MFAを再設定し、Agentは新規Hostとして再登録します。既存ServerのPC間移送は後続段階です。
 
@@ -90,3 +91,17 @@ AstralRecordControl.Cli.exe runner recover --server-id <GUID> --session-id <GUID
 ```
 
 緊急復旧はローカルOS管理者のみ許可します。対象を確認できない場合は停止扱いへ変更しません。Console結果不明だけの場合、同じRunnerが所有するSessionは`AbortAfterInspection`で入力を再送せずFailed確定し稼働を維持できます。Runnerのholdと中央予約は別々に残るため、ローカル復旧後もWebの保守履歴で照合して解放します。ログはServer/Sessionごとに100MiBで分割し、1行64KiBを超える出力は`truncated`付きに分割します。30分ごとに`logRetentionDays`を過ぎた閉じたsegmentを削除し、稼働中の最新segmentを保持します。古いcursorや削除途中の中断には`gap`を返します。
+
+## ファイル・バックアップ・復元（P2）
+
+P1の導入条件に加え、Webの`Control:EnableFileControl=true`、Agent/Runnerの`enableFileControl=true`を設定します。初期値はすべてfalseです。対象Hostは`P2.Files`/`P2.Backups`を通知します。既存Minecraftへの有効化や実サービス登録は実装テストに含めません。
+
+サーバー設定から`Files`へ進み、一覧/テキスト読取/64KiB以下のUTF-8編集、フォルダ作成/コピー/移動/退避削除を行います。読み込み上限は2MiB、UTF-8以外はArtifactとして取得します。保存はSHA-256のetagを照合し、BOMと既存改行を保持します。書き込みは停止中だけ許可します。ZIPはパス/link/展開容量/entry数/圧縮比を検査し、新規配置は空のServerフォルダとEULA確認を必要とします。
+
+転送はHTTPの最大4MiB chunkと全体SHA-256を検証し、同じ転送ID・ファイルでoffsetから再開できます。既定上限は1件20GiB、Web stage合計100GiB、未完了の期限は2時間です。`/Transfers`から進捗確認・再開・保存ができます。ブラウザで64MiBを超える保存はファイル保存API対応ブラウザを使用します。Web/Agentはファイル全体をメモリへ読み込みません。
+
+`Backups`で保存先、除外、非圧縮/ZIP、保持数/日数、取得後の再起動を設定します。設定はinventoryへ保存し、Agentの適用ACKを確認してから使います。保存先はServer root外の登録済みrootです。NASは両サービスのresourcesで`backupOnly=true`を指定したUNC rootだけを許可します。Agentのサービスアカウントへ共有先の権限を設定してください。任意のブラウザ入力パスへ接続しません。
+
+取得は同じ予約内で正常停止と終了を確認してからローカルstageを作り、各entryとmanifestのSHA-256を検証して保存先へ確定します。最新7件または30日以内の成功世代を残し、保護/復元中/未完了の世代を保持します。世代の保護・削除・downloadも画面から操作できます。
+
+復元の範囲は常に`ServerFiles`です。SQL/API/マスターデータ/公開状態は含みません。Replaceはsnapshotの状態へ戻し、Mergeはその他のファイルを保持します。旧データは同volumeの保護退避フォルダに残し、stageと交換過程をjournalへ保存します。既定で再起動しません。中断時はRunnerのdata journalとholdを保持して起動を禁止し、`/Workflows`から同じ復元を理由付きで再開します。入場制限は自動解除しません。

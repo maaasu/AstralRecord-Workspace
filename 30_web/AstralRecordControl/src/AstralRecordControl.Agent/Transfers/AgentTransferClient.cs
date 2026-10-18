@@ -11,7 +11,7 @@ public sealed class AgentTransferClient(HttpClient http, Guid hostId, string sta
 {
     private const int ChunkSize = 4 * 1024 * 1024;
 
-    public async Task<TransferInfo> UploadAsync(Guid transferId, string localStagePath, bool prepareGenerated, CancellationToken ct)
+    public async Task<TransferInfo> UploadAsync(Guid transferId, string localStagePath, bool prepareGenerated, CancellationToken ct, Guid? expectedOperationId = null, Guid? expectedServerId = null)
     {
         if (!Path.IsPathFullyQualified(localStagePath)) throw new ArgumentException("A local stage path is required.", nameof(localStagePath));
         await using var file = new FileStream(localStagePath, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
@@ -19,7 +19,7 @@ public sealed class AgentTransferClient(HttpClient http, Guid hostId, string sta
         var size = file.Length;
         var sha = Convert.ToHexString(await SHA256.HashDataAsync(file, ct)).ToLowerInvariant();
         var info = await GetAsync(transferId, ct);
-        if (info.SourceHostId != hostId) throw new InvalidOperationException("Transfer source host mismatch.");
+        if (info.SourceHostId != hostId || expectedOperationId.HasValue && info.OperationId != expectedOperationId || expectedServerId.HasValue && info.ServerId != expectedServerId) throw new InvalidOperationException("Transfer source/operation/server mismatch.");
         if (prepareGenerated)
             info = await PostAsync<TransferPrepareRequest>($"/api/agent/v1/transfers/{transferId}/prepare", new(size, sha), ct);
         if (info.SizeBytes != size || !string.Equals(info.Sha256, sha, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Transfer metadata mismatch.");
@@ -48,7 +48,7 @@ public sealed class AgentTransferClient(HttpClient http, Guid hostId, string sta
     {
         var info = await GetAsync(transferId, ct);
         if (info.DestinationHostId != hostId || info.ServerId != expectedServerId ||
-            info.ConsumingOperationId != consumingOperationId || info.Status is not (TransferStatus.Verified or TransferStatus.Consumed) ||
+            info.OperationId != consumingOperationId || info.ConsumingOperationId != consumingOperationId || info.Status is not (TransferStatus.Verified or TransferStatus.Consumed) ||
             info.SizeBytes is null || info.Sha256 is null) throw new InvalidOperationException("Transfer destination binding mismatch.");
         Directory.CreateDirectory(stageRoot);
         var path = Path.Combine(stageRoot, transferId.ToString("N") + ".download");

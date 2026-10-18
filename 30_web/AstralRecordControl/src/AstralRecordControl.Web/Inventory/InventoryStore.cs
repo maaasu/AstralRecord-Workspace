@@ -16,7 +16,7 @@ public sealed class InventoryFault(int status, string code) : Exception(code)
 // including checks spanning several rows, rather than retrying a partially validated write.
 public sealed class InventoryWriteGate { internal SemaphoreSlim Semaphore { get; } = new(1); }
 
-public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate, TimeProvider clock, IConfiguration? configuration = null)
+public sealed partial class InventoryStore(ControlDbContext db, InventoryWriteGate gate, TimeProvider clock, IConfiguration? configuration = null)
 {
     private DateTimeOffset Now => clock.GetUtcNow();
     private bool ProcessControlEnabled => configuration?.GetValue<bool>("Control:EnableProcessControl") == true;
@@ -126,7 +126,7 @@ public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate,
             if (!ProcessControlEnabled || !capabilities.Contains("P1.Operations") || !capabilities.Contains("P1.LegacyGate") || config.Kind != ServerKind.Java) throw new InventoryFault(409, "UnsupportedCapability");
         }
         var resources = ControlJson.Deserialize<HostResources>(host.ResourcesJson);
-        if (!resources.Roots.Any(r => r.Id == config.ManagedRootId) || !resources.Executables.Any(e => e.Id == config.ExecutableId && e.Kind == config.Kind)) throw new InventoryFault(400, "PathOutsideRoot");
+        if (!resources.Roots.Any(r => r.Id == config.ManagedRootId && !r.BackupOnly) || !resources.Executables.Any(e => e.Id == config.ExecutableId && e.Kind == config.Kind)) throw new InventoryFault(400, "PathOutsideRoot");
         if (server.EnvironmentId.HasValue && !await db.Environments.AnyAsync(x => x.EnvironmentId == server.EnvironmentId)) throw new InventoryFault(404, "NotFound");
         if (server.RuntimeServerId is { Length: > 128 } || server.RuntimeServerId?.Any(char.IsControl) == true) throw new InventoryFault(400, "InvalidInput");
         foreach (var dependency in config.DependsOnServerIds)
@@ -140,10 +140,17 @@ public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate,
         InventoryValidation.Validate(new InventorySnapshot { HostId = host.HostId, Revision = host.DesiredInventoryRevision + 1, Servers = configs }, host.HostId);
         if (configs.Select(c => c.ManagedRootId + "/" + c.ServerDirectory).Distinct(StringComparer.OrdinalIgnoreCase).Count() != configs.Length) throw new InventoryFault(409, "OperationConflict");
     }
-    private void SaveInventory(InventoryHost host, ServerConfig[] configs)
+    private void SaveInventory(InventoryHost host, ServerConfig[] configs, JsonElement[]? backupProfiles = null)
     {
+        if (backupProfiles == null && host.DesiredInventoryRevision > 0)
+        {
+            var previous = db.InventoryVersions.Local.SingleOrDefault(v => v.HostId == host.HostId && v.Revision == host.DesiredInventoryRevision)
+                ?? db.InventoryVersions.AsNoTracking().Single(v => v.HostId == host.HostId && v.Revision == host.DesiredInventoryRevision);
+            backupProfiles = ControlJson.Deserialize<InventorySnapshot>(previous.SnapshotJson).BackupProfiles;
+        }
         host.DesiredInventoryRevision++;
-        var snapshot = new InventorySnapshot { HostId = host.HostId, Revision = host.DesiredInventoryRevision, Servers = configs.OrderBy(c => c.ServerId).ToArray() };
+        var snapshot = new InventorySnapshot { HostId = host.HostId, Revision = host.DesiredInventoryRevision, Servers = configs.OrderBy(c => c.ServerId).ToArray(), BackupProfiles = backupProfiles ?? [] };
+        InventoryValidation.Validate(snapshot, host.HostId);
         var json = ControlJson.Serialize(snapshot);
         if (System.Text.Encoding.UTF8.GetByteCount(json) > ControlProtocol.MaxInventoryBytes) throw new InventoryFault(413, "InventoryTooLarge");
         db.InventoryVersions.Add(new InventoryVersion { HostId = host.HostId, Revision = snapshot.Revision, SnapshotJson = json, Sha256 = ControlProtocol.Hash(json), CreatedAtUtc = Now });

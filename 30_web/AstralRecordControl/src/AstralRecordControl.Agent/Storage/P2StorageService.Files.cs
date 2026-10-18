@@ -62,7 +62,7 @@ public sealed partial class P2StorageService
             var path = paths.Target(server, payload.Target);
             if (Directory.Exists(path)) throw new IOException("Target is a directory.");
             var current = File.Exists(path) ? await ReadFileAsync(server, new ReadFilePayload(payload.Target), cancellationToken) : null;
-            if ((current?.Etag ?? "absent") != payload.ExpectedEtag) throw new InvalidOperationException("File etag changed.");
+            if ((current?.Etag ?? "absent") != payload.ExpectedEtag) throw new FileConflictException("File etag changed.");
             var text = current?.Newline switch
             {
                 "crlf" => payload.ContentUtf8.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n"),
@@ -86,7 +86,7 @@ public sealed partial class P2StorageService
             {
                 await Guard(verifyGuard, cancellationToken);
                 paths.Target(server, payload.Target);
-                if ((File.Exists(path) ? await Sha256Async(path, cancellationToken) : "absent") != payload.ExpectedEtag) throw new InvalidOperationException("File etag changed during edit.");
+                if ((File.Exists(path) ? await Sha256Async(path, cancellationToken) : "absent") != payload.ExpectedEtag) throw new FileConflictException("File etag changed during edit.");
                 if (trash is null) File.Move(temporary, path);
                 else File.Replace(temporary, path, trash);
             }
@@ -121,7 +121,7 @@ public sealed partial class P2StorageService
             if (!File.Exists(source) && !Directory.Exists(source)) throw new FileNotFoundException("Mutation source missing.");
             var isDirectory = Directory.Exists(source);
             if (isDirectory && payload.ExpectedEtag != "absent") throw new ArgumentException("Directory etag must be absent.");
-            if (!isDirectory && await Sha256Async(source, cancellationToken) != payload.ExpectedEtag) throw new InvalidOperationException("Source etag changed.");
+            if (!isDirectory && await Sha256Async(source, cancellationToken) != payload.ExpectedEtag) throw new FileConflictException("Source etag changed.");
             if (payload.Action is FileMutationAction.Copy or FileMutationAction.Move)
             {
                 if (destination is null || File.Exists(destination) || Directory.Exists(destination) || !Directory.Exists(Path.GetDirectoryName(destination))) throw new IOException("Invalid or occupied destination.");
@@ -129,7 +129,7 @@ public sealed partial class P2StorageService
             await Guard(verifyGuard, cancellationToken);
             paths.Target(server, payload.Source);
             if (payload.Destination is not null) paths.Target(server, payload.Destination);
-            if (!isDirectory && await Sha256Async(source, cancellationToken) != payload.ExpectedEtag) throw new InvalidOperationException("Source etag changed during mutation.");
+            if (!isDirectory && await Sha256Async(source, cancellationToken) != payload.ExpectedEtag) throw new FileConflictException("Source etag changed during mutation.");
             if (payload.Action == FileMutationAction.Delete)
             {
                 var trash = TrashPath(server, operationId, Path.GetFileName(source));

@@ -24,14 +24,21 @@ public static partial class ControlApplication
             var row = await operations.RefreshAsync(operationId);
             return Results.Ok(new { row.OperationId, row.HostId, row.ServerId, row.WorkflowId, row.Kind, row.Status, row.StatusVersion, row.CreatedAtUtc, row.AcceptedAtUtc, row.StartedAtUtc, row.FinishedAtUtc, row.ErrorCode });
         });
-        owner.MapGet("/operations/{operationId:guid}/result", async (Guid operationId, Operations.ControlOperationsService operations) =>
+        owner.MapGet("/operations/{operationId:guid}/result", async (Guid operationId, Operations.ControlOperationsService operations, Operations.OperationResultStore results, HttpContext http) =>
         {
             var row = await operations.GetAsync(operationId);
             if (!OperationValidation.IsTerminal(row.Status)) throw new InventoryFault(409, "StateConflict");
-            return Results.Content(row.ResultJson ?? "{}", "application/json");
+            var stored = row.Status == OperationStatus.Succeeded ? await results.ReadAsync(operationId, http.RequestAborted) : null;
+            if (stored == null && row.ResultJson?.Contains("\"resultStored\":true", StringComparison.Ordinal) == true) throw new InventoryFault(409, "RecoveryRequired");
+            return Results.Content(stored ?? row.ResultJson ?? "{}", "application/json");
         });
         owner.MapGet("/servers/{serverId:guid}/logs", async (Guid serverId, Guid? sessionId, string? segmentId, long? afterSequence, int? limit, Operations.ControlOperationsService operations, HttpContext http) =>
             Results.Ok(await operations.ReadLogsAsync(serverId, new ReadLogsRequest { ServerId = serverId, SessionId = sessionId, SegmentId = segmentId, AfterSequence = afterSequence ?? 0, Limit = limit ?? 200 }, http.RequestAborted)));
+        owner.MapGet("/servers/{serverId:guid}/runtime", async (Guid serverId, InventoryStore store, Operations.IAgentOperationTransport agents, HttpContext http) =>
+        {
+            var server = await store.ServerAsync(serverId);
+            return Results.Ok((await agents.SnapshotAsync(server.HostId, http.RequestAborted)).Servers.SingleOrDefault(s => s.ServerId == serverId) ?? throw new InventoryFault(409, "StateConflict"));
+        });
         owner.MapGet("/workflows", async (ControlDbContext db) => (await db.Workflows.AsNoTracking().ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(100).ToArray());
         owner.MapGet("/workflows/{workflowId:guid}", async (Guid workflowId, ControlDbContext db, Operations.ReservationService reservations) =>
         {
