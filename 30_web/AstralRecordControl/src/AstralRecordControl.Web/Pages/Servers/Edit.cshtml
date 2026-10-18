@@ -2,7 +2,8 @@
 @model AstralRecordControl.Web.Pages.Servers.EditModel
 @{ ViewData["Title"] = Model.Server.DisplayName; }
 <h1>@Model.Server.DisplayName (@Model.Server.ServerKey)</h1>
-<p>read-only / pilot。希望 config @Model.Server.DesiredRevision / 適用 @Model.Server.AppliedRevision。保存後の適用結果は概要画面で確認します。</p>
+<p>希望 config @Model.Server.DesiredRevision / 適用 @Model.Server.AppliedRevision。保存後の適用結果は概要画面で確認します。</p>
+<p><a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId">操作・ログを開く</a></p>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 <form method="post">
     <input type="hidden" name="serverId" value="@Model.Server.ServerId" /><input type="hidden" name="revision" value="@Model.Server.DesiredRevision" />

@@ -27,12 +27,13 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         await LoadAsync(serverId, afterSequence ?? 0);
         return Page();
     }
-    public async Task<IActionResult> OnPostOperateAsync(Guid serverId, Guid requestKey, OperationKind kind, string? command, string? reason, Guid? reservationId, long configRevision, long expectedStateRevision, Guid? expectedServerSessionId)
+    public async Task<IActionResult> OnPostOperateAsync(Guid serverId, Guid requestKey, OperationKind kind, string? command, string? reason, Guid? reservationId, long configRevision, long expectedStateRevision, Guid? expectedServerSessionId, bool confirmKill = false)
     {
         try
         {
             await LoadAsync(serverId, 0);
             if (!Enabled || Runtime is null) throw new InventoryFault(409, "UnsupportedCapability");
+            if (!ModelState.IsValid || (kind == OperationKind.Kill && !confirmKill)) throw new InventoryFault(400, "Killには対象Sessionと強制終了の確認が必要です。");
             var payload = kind switch
             {
                 OperationKind.ConsoleCommand => ControlJson.Element(new { command }),

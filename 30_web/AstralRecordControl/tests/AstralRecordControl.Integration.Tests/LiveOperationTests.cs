@@ -21,6 +21,11 @@ public sealed partial class LiveTransportTests
         await using var fixture = await LiveFixture.StartAsync(enableProcessControl: true);
         using var owner = fixture.CreateClient(fixture.OwnerCookies);
         await fixture.LoginOwnerAsync(owner);
+        using var cli = fixture.CreateClient();
+        var cliToken = await fixture.IssueCliAsync(cli);
+        cli.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cliToken.Token);
+        using (var denied = await cli.GetAsync("/api/control/v1/overview")) Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+        using (var catalog = await cli.GetAsync("/api/control/v1/gate/catalog")) Assert.Equal(HttpStatusCode.OK, catalog.StatusCode);
         var host = await fixture.OwnerApiAsync<InventoryHost>(owner, HttpMethod.Post, "/api/control/v1/hosts", new HostCreateRequest("operation-pc", "Operation fixture"), create: true);
         var credential = await fixture.OwnerApiAsync<CredentialIssued>(owner, HttpMethod.Post, $"/api/control/v1/hosts/{host.HostId}/credentials", new { });
         using var identity = WindowsIdentity.GetCurrent();
@@ -74,6 +79,9 @@ public sealed partial class LiveTransportTests
             var running = Assert.Single((await runnerClient.GetSnapshotAsync(timeout.Token)).Servers);
             Assert.Equal(ProcessState.Running, running.ProcessState);
             Assert.NotNull(running.CurrentSessionId);
+            await Heartbeat(hub, epoch, await runnerClient.GetSnapshotAsync(timeout.Token), timeout.Token);
+            using (var operationsPage = await owner.GetAsync($"/Servers/{serverId}/Operations", timeout.Token)) Assert.Equal(HttpStatusCode.OK, operationsPage.StatusCode);
+            using (var workflowsPage = await owner.GetAsync("/Workflows", timeout.Token)) Assert.Equal(HttpStatusCode.OK, workflowsPage.StatusCode);
             await Task.Delay(100, timeout.Token);
             var held = ControlJson.Deserialize<GateLease>(await owner.GetStringAsync($"/api/control/v1/reservations/{lease.ReservationId}", timeout.Token));
             Assert.Equal(ReservationStatus.Prepared, held.Status);
@@ -98,6 +106,8 @@ public sealed partial class LiveTransportTests
             } while (!logs.Rows.Any(x => x.Text.Contains("echo:say fixture-once", StringComparison.Ordinal)));
             Assert.Contains(logs.Rows, x => x.Stream == "stderr" && x.Text.Contains("fixture-stderr", StringComparison.Ordinal));
             Assert.Single(logs.Rows, x => x.Text.Contains("echo:say fixture-once", StringComparison.Ordinal));
+            using (var revoked = await cli.PostAsync("/api/control/v1/auth/cli-token/revoke", null, timeout.Token)) Assert.Equal(HttpStatusCode.NoContent, revoked.StatusCode);
+            using (var denied = await cli.GetAsync("/api/control/v1/gate/catalog", timeout.Token)) Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
             // Revoking the Agent connection does not own or terminate the running process.
             await fixture.OwnerApiAsync<object>(owner, HttpMethod.Delete, $"/api/control/v1/hosts/{host.HostId}/credentials/{credential.CredentialId}", null);
             Assert.Equal(ProcessState.Running, Assert.Single((await runnerClient.GetSnapshotAsync(timeout.Token)).Servers).ProcessState);

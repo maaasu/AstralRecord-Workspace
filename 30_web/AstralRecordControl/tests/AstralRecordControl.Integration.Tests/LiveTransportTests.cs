@@ -263,6 +263,15 @@ public sealed partial class LiveTransportTests
             var key = (await users.GetAuthenticatorKeyAsync((await users.FindByNameAsync("owner"))!))!;
             Assert.Equal(HttpStatusCode.OK, (await Form(owner, "/Mfa/Enroll", new() { ["Code"] = Totp(key) })).StatusCode);
         }
+        public async Task<CliTokenIssued> IssueCliAsync(HttpClient cli)
+        {
+            using var scope = app.Services.CreateScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
+            var key = (await users.GetAuthenticatorKeyAsync((await users.FindByNameAsync("owner"))!))!;
+            using var response = await cli.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password, Totp(key))), Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return ControlJson.Deserialize<CliTokenIssued>(await response.Content.ReadAsStringAsync());
+        }
         public async Task<T> OwnerApiAsync<T>(HttpClient owner, HttpMethod method, string path, object? body, bool create = false, long? match = null, HttpStatusCode? expectedStatus = null, Guid? requestId = null)
         {
             var csrf = Token(await owner.GetStringAsync("/Security"));

@@ -42,7 +42,7 @@ public static class ControlCli
                 if (subcommand is "snapshot" or "check-update")
                 {
                     var snapshot = await RunnerAsync<RunnerSnapshot>(pipe, "GetSnapshot", new { });
-                    if (subcommand == "check-update" && (snapshot.Servers.Any(s => s.ProcessState != ProcessState.Stopped) || snapshot.Holds.Length != 0)) throw new InvalidOperationException("RunnerNotSafeToUpdate");
+                    if (subcommand == "check-update" && (snapshot.Servers.Any(s => s.ProcessState != ProcessState.Stopped || s.CurrentSessionId != null) || snapshot.Holds.Length != 0)) throw new InvalidOperationException("RunnerNotSafeToUpdate");
                     Console.WriteLine(ControlJson.Serialize(snapshot)); return 0;
                 }
                 var server = Guid.Parse(Required(options, "server-id"));

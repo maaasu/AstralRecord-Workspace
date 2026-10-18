@@ -30,6 +30,7 @@ public sealed class WorkflowsModel(ControlDbContext db, ReservationService reser
     {
         try
         {
+            if (!ModelState.IsValid) throw new InventoryFault(400, "InvalidInput");
             if (string.IsNullOrWhiteSpace(reason) || reason.Length > 1024 || reason.Any(c => c is '\r' or '\n' or '\0') || !Enum.IsDefined(action)) throw new InventoryFault(400, "InvalidInput");
             if (action == WorkflowRecoveryAction.KillAfterInspection && !killConfirmed) throw new InventoryFault(400, "KillConfirmationRequired");
             var workflow = await db.Workflows.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId) ?? throw new InventoryFault(404, "NotFound");

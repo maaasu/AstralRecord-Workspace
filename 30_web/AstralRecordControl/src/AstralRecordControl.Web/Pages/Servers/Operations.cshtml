@@ -17,6 +17,7 @@ else
         <button type="submit" name="kind" value="Stop">Stop</button>
         <button type="submit" name="kind" value="Restart">Restart</button>
         <label>Kill 理由 <input name="reason" maxlength="1024" /></label>
+        <label><input type="checkbox" name="confirmKill" value="true" /> 表示中のサーバーとSessionを確認し、保存せず強制終了することを了承しました</label>
         <button type="submit" name="kind" value="Kill">Kill</button>
         <label>Console 命令 <input name="command" maxlength="4096" /></label>
         <button type="submit" name="kind" value="ConsoleCommand">送信</button>
@@ -43,6 +44,8 @@ else
 else
 {
     @if (Model.Logs.Gap) { <p>保持期間を超えた行があります。最古 cursor: @Model.Logs.EarliestAvailableCursor</p> }
-    <pre>@foreach (var row in Model.Logs.Rows) { @($"[{row.OccurredAtUtc:O}] {row.Stream}: {row.Text}\n") }</pre>
+    <p id="log-status" role="status">ログは3秒ごとに更新します。</p>
+    <pre id="server-log" data-server-id="@Model.Server.ServerId" data-session-id="@Model.Logs.SessionId" data-cursor="@Model.Logs.NextCursor">@foreach (var row in Model.Logs.Rows) { @($"[{row.OccurredAtUtc:O}] {row.Stream}: {row.Text}\n") }</pre>
     <a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId" asp-route-afterSequence="@Model.Logs.NextCursor">次のログ</a>
 }
+@section Scripts { <script src="~/js/server-logs.js" asp-append-version="true" defer></script> }
