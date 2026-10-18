@@ -1,0 +1,50 @@
+@page "/Servers/{serverId:guid}/Schedules"
+@model AstralRecordControl.Web.Pages.Servers.SchedulesModel
+@{ ViewData["Title"] = "予約実行"; }
+<h1>@Model.Server.DisplayName — 予約実行</h1>
+<p>適用済みの予約は管理Webに接続できなくても、このPC内で実行します。開始が60秒を超えて遅れた予約はスキップします。</p>
+@if (!Model.Available) { <p>予約実行は無効です。導入手順に従って有効化してください。</p> }
+@if (Model.Message != null) { <p role="status">@Model.Message</p> }
+<div asp-validation-summary="All"></div>
+@foreach (var request in Model.PendingRequests)
+{
+    <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@request.ScheduleId">
+        <p>@(request.RejectionCode == null ? "受付の確認待ち" : "開始前に拒否")：@request.OperationId @request.RejectionCode（@request.CreatedAtUtc.ToString("u")）</p>
+        <input type="hidden" name="RequestKey" value="@request.OperationId" />
+        <button disabled="@(request.RejectionCode != null)">同じ要求を照合</button>
+    </form>
+}
+@foreach (var row in Model.Schedules)
+{
+    var definition = row.Definition;
+    <section>
+        <h2>@definition.ScheduleId</h2>
+        <p>@definition.Trigger.Kind / @(definition.Enabled ? "有効" : "無効") / 希望版 @definition.Revision / 適用版 @(row.AppliedRevision?.ToString() ?? "未適用")</p>
+        <p><a asp-page="/Servers/Schedules" asp-route-serverId="@Model.Server.ServerId" asp-route-edit="@definition.ScheduleId">編集</a></p>
+        <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@definition.ScheduleId">
+            <input type="hidden" name="RequestKey" value="@Guid.NewGuid()" />
+            <button disabled="@(!Model.Available || !definition.Enabled || row.AppliedRevision != definition.Revision)">今すぐ実行</button>
+        </form>
+        <table><thead><tr><th>予定UTC</th><th>結果</th><th>詳細</th></tr></thead><tbody>
+        @foreach (var item in Model.History[definition.ScheduleId])
+        {
+            <tr><td>@item.ScheduledAtUtc.ToString("u") @(item.Manual ? "(手動)" : "")</td><td>@item.Status</td><td>@item.ErrorCode / @item.OperationId</td></tr>
+        }
+        </tbody></table>
+    </section>
+}
+<h2>@(Model.ScheduleId.HasValue ? "予約を編集" : "予約を追加")</h2>
+<form method="post" asp-page-handler="Save">
+    <input asp-for="RequestKey" type="hidden" /><input asp-for="ScheduleId" type="hidden" /><input asp-for="Revision" type="hidden" />
+    <label><input asp-for="Enabled" /> 有効</label>
+    <label asp-for="TriggerKind">実行方式</label><select asp-for="TriggerKind" asp-items="Html.GetEnumSelectList<AstralRecordControl.Contracts.ScheduleTriggerKind>()"></select>
+    <label asp-for="AtUtc">日時／間隔の基準時刻（UTC、例 2026-10-19T00:00:00Z）</label><input asp-for="AtUtc" />
+    <label asp-for="Seconds">間隔（秒、60以上）</label><input asp-for="Seconds" type="number" min="60" max="31536000" />
+    <label asp-for="Expression">Cron（分 時 日 月 曜日）</label><input asp-for="Expression" maxlength="128" />
+    <label asp-for="TimeZoneId">Cronのタイムゾーン</label><input asp-for="TimeZoneId" maxlength="128" />
+    <label asp-for="StepsJson">処理の順序（JSON、最大16件）</label><textarea asp-for="StepsJson" rows="8" maxlength="65536"></textarea>
+    <p>Start / Stop / Restart / ConsoleCommand / CreateBackup / PruneBackups を指定できます。stepKeyは各処理の識別名、delaySecondsは開始前の待ち秒数です。失敗すると後続処理を中止します。</p>
+    <p>告知の例：<code>{"stepKey":"announce","kind":"ConsoleCommand","payload":{"command":"say サーバーを再起動します"},"delaySeconds":0}</code></p>
+    <button disabled="@(!Model.Available)">保存</button>
+</form>
+<p><a asp-page="/Servers/Index">サーバー一覧</a></p>

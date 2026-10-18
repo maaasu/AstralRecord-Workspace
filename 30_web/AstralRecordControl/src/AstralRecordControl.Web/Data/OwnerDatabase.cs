@@ -6,7 +6,7 @@ namespace AstralRecordControl.Web.Data;
 
 public static class ControlDatabase
 {
-    public const int SchemaVersion = 3;
+    public const int SchemaVersion = 4;
     public static async Task InitializeAsync(ControlDbContext db, CancellationToken cancellationToken = default)
     {
         await db.Database.OpenConnectionAsync(cancellationToken);
@@ -63,6 +63,22 @@ public static class ControlDatabase
                     CREATE TABLE TransferChunks (TransferId TEXT NOT NULL, Offset INTEGER NOT NULL, SizeBytes INTEGER NOT NULL, Sha256 TEXT NOT NULL, PRIMARY KEY(TransferId, Offset), FOREIGN KEY(TransferId) REFERENCES Transfers(TransferId) ON DELETE CASCADE);
                     PRAGMA user_version=3;
                     """, cancellationToken);
+                await migration.CommitAsync(cancellationToken);
+                version = 3;
+            }
+            if (version == 3)
+            {
+                if (connection is not SqliteConnection source) throw new InvalidOperationException("control.db requires SQLite.");
+                await using (var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = source.DataSource + ".before-v4." + Guid.NewGuid().ToString("N") + ".bak", Pooling = false }.ToString()))
+                {
+                    await backup.OpenAsync(cancellationToken);
+                    source.BackupDatabase(backup);
+                }
+                await using var migration = await db.Database.BeginTransactionAsync(cancellationToken);
+                await db.Database.ExecuteSqlRawAsync(ScheduleSchema.Sql, cancellationToken);
+                await db.Database.ExecuteSqlRawAsync(MetricsSchema.Sql, cancellationToken);
+                await db.Database.ExecuteSqlRawAsync(NotificationSchema.Sql, cancellationToken);
+                await db.Database.ExecuteSqlRawAsync("PRAGMA user_version=4;", cancellationToken);
                 await migration.CommitAsync(cancellationToken);
                 return;
             }

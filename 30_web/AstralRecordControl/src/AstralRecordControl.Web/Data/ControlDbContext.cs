@@ -13,10 +13,15 @@ public sealed partial class ControlDbContext(DbContextOptions<ControlDbContext> 
         ConfigureOperations(builder);
         ConfigureCli(builder);
         ConfigureTransfers(builder);
+        ConfigureSchedules(builder);
+        ConfigureMetrics(builder);
+        ConfigureNotifications(builder);
     }
     partial void ConfigureOwner(ModelBuilder builder);
     partial void ConfigureInventory(ModelBuilder builder);
     partial void ConfigureOperations(ModelBuilder builder);
     partial void ConfigureCli(ModelBuilder builder);
     partial void ConfigureTransfers(ModelBuilder builder);
+    partial void ConfigureSchedules(ModelBuilder builder);
+    partial void ConfigureMetrics(ModelBuilder builder);
 }

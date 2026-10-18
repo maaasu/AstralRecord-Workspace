@@ -79,11 +79,34 @@ public sealed partial class AgentStore
         }
     }
 
+    public ScheduleOccurrenceReport ClaimManualScheduleOccurrence(RunScheduleNowRequest request, DateTimeOffset now)
+    {
+        lock (sync)
+        {
+            var previous = GetScheduleReport(request.OperationId);
+            if (previous != null)
+            {
+                if (previous.ScheduleId != request.ScheduleId || previous.Revision != request.Revision || !previous.Manual) throw new AgentFault(ErrorCode.OperationConflict);
+                return previous;
+            }
+            var (revision, definitions) = GetAcknowledgedScheduleDefinitions();
+            if (revision == 0 || revision != GetState().AppliedInventoryRevision) throw new AgentFault(ErrorCode.StaleRevision);
+            var definition = definitions.SingleOrDefault(s => s.ScheduleId == request.ScheduleId && s.Revision == request.Revision && s.Enabled) ?? throw new AgentFault(ErrorCode.StaleRevision);
+            var report = new ScheduleOccurrenceReport { ScheduleId = definition.ScheduleId, HostId = definition.HostId, ServerId = definition.ServerId!.Value,
+                Revision = definition.Revision, ScheduledAtUtc = now, Manual = true, OperationId = request.OperationId,
+                WorkflowId = ScheduleIdentity.Uuid5(request.OperationId, "workflow"), ReservationId = ScheduleIdentity.Uuid5(request.OperationId, "reservation"),
+                AppliedInventoryRevision = revision, DefinitionSha256 = ControlProtocol.Hash(ControlJson.Serialize(definition)), Status = ScheduleOccurrenceStatus.Pending, UpdatedAtUtc = now };
+            ClaimScheduleOccurrence(definition, report);
+            return report;
+        }
+    }
+
     public ScheduleOccurrenceReport? GetScheduleReport(Guid occurrenceId)
     {
         lock (sync)
         {
             var json = (string?)Scalar("SELECT reportJson FROM ScheduleOccurrences WHERE operationId=$id;", null, ("$id", occurrenceId.ToString()));
+            if (json == "") throw new AgentFault(ErrorCode.OperationConflict); // Retired occurrence identity is never reusable.
             return json is null ? null : ControlJson.Deserialize<ScheduleOccurrenceReport>(json);
         }
     }
@@ -92,7 +115,8 @@ public sealed partial class AgentStore
     {
         lock (sync)
         {
-            using var command = Command("SELECT definitionJson,reportJson FROM ScheduleOccurrences ORDER BY scheduledAtUtc,operationId;");
+            var filter = nonterminalOnly ? " AND CASE WHEN json_valid(reportJson) THEN json_extract(reportJson,'$.status') END IN ('Pending','Running','NeedsAttention')" : "";
+            using var command = Command("SELECT definitionJson,reportJson FROM ScheduleOccurrences WHERE reportJson<>''" + filter + " ORDER BY scheduledAtUtc,operationId;");
             using var reader = command.ExecuteReader();
             var rows = new List<(ScheduleDefinition, ScheduleOccurrenceReport)>();
             while (reader.Read())
@@ -108,6 +132,23 @@ public sealed partial class AgentStore
     public bool OwnsScheduledOperation(Guid operationId)
     {
         lock (sync) return Scalar("SELECT 1 FROM ScheduleChildOperations WHERE operationId=$id;", null, ("$id", operationId.ToString())) is not null;
+    }
+
+    public void RetireScheduleHistory(DateTimeOffset beforeUtc)
+    {
+        lock (sync)
+        {
+            var old = ReadScheduleReports().Where(r => r.Report.UpdatedAtUtc < beforeUtc && r.Report.Status is ScheduleOccurrenceStatus.Succeeded or ScheduleOccurrenceStatus.Failed or ScheduleOccurrenceStatus.Skipped).ToArray();
+            foreach (var (_, report) in old)
+            {
+                using var transaction = database.BeginTransaction();
+                var pending = Convert.ToInt64(Scalar("SELECT COUNT(*) FROM EventOutbox WHERE json_extract(eventJson,'$.body.operationId')=$id;", transaction, ("$id", report.OperationId.ToString())));
+                if (pending > 0) { transaction.Rollback(); continue; }
+                Execute("UPDATE ScheduleOccurrences SET definitionJson='',reportJson='' WHERE operationId=$id;", transaction, ("$id", report.OperationId.ToString()));
+                Execute("UPDATE OperationInbox SET commandJson='',resultJson=NULL WHERE operationId IN (SELECT operationId FROM ScheduleChildOperations WHERE occurrenceId=$id) AND status IN ('Succeeded','Failed','Rejected','Expired','Cancelled');", transaction, ("$id", report.OperationId.ToString()));
+                transaction.Commit();
+            }
+        }
     }
 
     public void RegisterScheduleChild(Guid occurrenceId, ScheduleStepReport step)

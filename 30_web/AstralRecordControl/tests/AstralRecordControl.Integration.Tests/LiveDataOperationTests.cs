@@ -120,8 +120,9 @@ public sealed partial class LiveTransportTests
             storage.JournalBoundary = null;
             using var workflow = JsonDocument.Parse(await owner.GetStringAsync($"/api/control/v1/operations/{interrupted.Id}", timeout.Token));
             var workflowId = workflow.RootElement.GetProperty("workflowId").GetGuid();
+            var interruptedVersion = workflow.RootElement.GetProperty("statusVersion").GetInt64();
             await fixture.OwnerApiAsync<JsonElement>(owner, HttpMethod.Post, $"/api/control/v1/workflows/{workflowId}/recover", new WorkflowRecoveryRequest(WorkflowRecoveryAction.Resume, "fixture verified same restore journal"), create: true, expectedStatus: HttpStatusCode.Accepted);
-            await Await(interrupted.Id);
+            await Await(interrupted.Id, afterVersion: interruptedVersion);
             Assert.Equal("value=alpha\r\n", await File.ReadAllTextAsync(Path.Combine(live, "settings.properties"), timeout.Token));
             Assert.Contains(Directory.EnumerateDirectories(root.Path, ".control-prerestore-*"), p => File.ReadAllText(Path.Combine(p, "settings.properties")) == "value=beta\r\n");
             Assert.False((await runnerClient.InspectRecoveryAsync(serverId, timeout.Token)).RecoveryRequired);
@@ -144,13 +145,18 @@ public sealed partial class LiveTransportTests
                 await fixture.OwnerApiAsync<object>(owner, HttpMethod.Post, $"/api/control/v1/reservations/{lease.ReservationId}/release", new GateReleaseRequest(lease.WorkflowId, lease.Fences, GateOutcome.Succeeded, ""), expectedStatus: HttpStatusCode.NoContent);
                 return (operationId, result.RootElement.Clone());
             }
-            async Task<JsonElement> Await(Guid operationId, bool expectAttention = false)
+            async Task<JsonElement> Await(Guid operationId, bool expectAttention = false, long afterVersion = -1)
             {
                 while (true)
                 {
                     using var current = JsonDocument.Parse(await owner.GetStringAsync($"/api/control/v1/operations/{operationId}", timeout.Token));
                     var state = Enum.Parse<OperationStatus>(current.RootElement.GetProperty("status").GetString()!);
-                    if (OperationValidation.IsTerminal(state) || state == OperationStatus.NeedsAttention) { Assert.Equal(expectAttention ? OperationStatus.NeedsAttention : OperationStatus.Succeeded, state); return current.RootElement.Clone(); }
+                    // Resume is asynchronous: its 202 receipt can precede the first new state.
+                    if (current.RootElement.GetProperty("statusVersion").GetInt64() > afterVersion && (OperationValidation.IsTerminal(state) || state == OperationStatus.NeedsAttention))
+                    {
+                        Assert.True(state == (expectAttention ? OperationStatus.NeedsAttention : OperationStatus.Succeeded), current.RootElement.GetRawText());
+                        return current.RootElement.Clone();
+                    }
                     await Task.Delay(50, timeout.Token);
                 }
             }

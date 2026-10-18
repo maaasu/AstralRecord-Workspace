@@ -140,16 +140,18 @@ public sealed partial class InventoryStore(ControlDbContext db, InventoryWriteGa
         InventoryValidation.Validate(new InventorySnapshot { HostId = host.HostId, Revision = host.DesiredInventoryRevision + 1, Servers = configs }, host.HostId);
         if (configs.Select(c => c.ManagedRootId + "/" + c.ServerDirectory).Distinct(StringComparer.OrdinalIgnoreCase).Count() != configs.Length) throw new InventoryFault(409, "OperationConflict");
     }
-    private void SaveInventory(InventoryHost host, ServerConfig[] configs, JsonElement[]? backupProfiles = null)
+    private void SaveInventory(InventoryHost host, ServerConfig[] configs, JsonElement[]? backupProfiles = null, JsonElement[]? schedules = null)
     {
-        if (backupProfiles == null && host.DesiredInventoryRevision > 0)
+        if ((backupProfiles == null || schedules == null) && host.DesiredInventoryRevision > 0)
         {
             var previous = db.InventoryVersions.Local.SingleOrDefault(v => v.HostId == host.HostId && v.Revision == host.DesiredInventoryRevision)
                 ?? db.InventoryVersions.AsNoTracking().Single(v => v.HostId == host.HostId && v.Revision == host.DesiredInventoryRevision);
-            backupProfiles = ControlJson.Deserialize<InventorySnapshot>(previous.SnapshotJson).BackupProfiles;
+            var old = ControlJson.Deserialize<InventorySnapshot>(previous.SnapshotJson);
+            backupProfiles ??= old.BackupProfiles;
+            schedules ??= old.Schedules;
         }
         host.DesiredInventoryRevision++;
-        var snapshot = new InventorySnapshot { HostId = host.HostId, Revision = host.DesiredInventoryRevision, Servers = configs.OrderBy(c => c.ServerId).ToArray(), BackupProfiles = backupProfiles ?? [] };
+        var snapshot = new InventorySnapshot { HostId = host.HostId, Revision = host.DesiredInventoryRevision, Servers = configs.OrderBy(c => c.ServerId).ToArray(), BackupProfiles = backupProfiles ?? [], Schedules = schedules ?? [] };
         InventoryValidation.Validate(snapshot, host.HostId);
         var json = ControlJson.Serialize(snapshot);
         if (System.Text.Encoding.UTF8.GetByteCount(json) > ControlProtocol.MaxInventoryBytes) throw new InventoryFault(413, "InventoryTooLarge");

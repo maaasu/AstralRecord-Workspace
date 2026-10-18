@@ -65,9 +65,13 @@ public static class InventoryValidation
         ArgumentNullException.ThrowIfNull(inventory);
         if (inventory.SchemaVersion != 1 || inventory.HostId != hostId || hostId == Guid.Empty || inventory.Revision < 0) throw new ArgumentException("Invalid inventory identity/version.");
         if (inventory.Servers is null || inventory.Schedules is null || inventory.BackupProfiles is null || inventory.Servers.Any(s => s is null)) throw new ArgumentException("Missing inventory arrays.");
-        if (inventory.Servers.Length > 32 || inventory.Schedules.Length != 0 || inventory.BackupProfiles.Length > 128) throw new ArgumentException("Unsupported inventory capability.");
+        if (inventory.Servers.Length > 32 || inventory.Schedules.Length > 128 || inventory.BackupProfiles.Length > 128) throw new ArgumentException("Unsupported inventory capability.");
         if (inventory.Servers.Select(s => s.ServerId).Distinct().Count() != inventory.Servers.Length) throw new ArgumentException("Duplicate server ID.");
         foreach (var config in inventory.Servers) Validate(config, hostId);
+        var schedules = inventory.Schedules.Select(ScheduleValidation.Read).ToArray();
+        if (schedules.Select(s => s.ScheduleId).Distinct().Count() != schedules.Length) throw new ArgumentException("Duplicate schedule ID.");
+        foreach (var schedule in schedules)
+            if (schedule.HostId != hostId || !inventory.Servers.Any(s => s.ServerId == schedule.ServerId)) throw new ArgumentException("Schedule server/host mismatch.");
         var profiles = inventory.BackupProfiles.Select(p => ControlJson.Deserialize<BackupProfile>(p.GetRawText())).ToArray();
         if (profiles.Select(p => p.BackupProfileId).Distinct().Count() != profiles.Length) throw new ArgumentException("Duplicate backup profile ID.");
         foreach (var profile in profiles)

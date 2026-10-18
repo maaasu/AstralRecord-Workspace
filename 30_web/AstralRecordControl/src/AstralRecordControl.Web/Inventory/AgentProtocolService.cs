@@ -1,11 +1,13 @@
 using System.Text.Json;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
+using AstralRecordControl.Web.Metrics;
+using AstralRecordControl.Web.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordControl.Web.Inventory;
 
-public sealed class AgentProtocolService(ControlDbContext db, InventoryStore store, AgentCredentialService credentials, AgentConnectionRegistry connections, TimeProvider clock)
+public sealed class AgentProtocolService(ControlDbContext db, InventoryStore store, AgentCredentialService credentials, AgentConnectionRegistry connections, TimeProvider clock, MetricsStore? metrics = null, NotificationService? notifications = null)
 {
     public async Task<HelloAck> HelloAsync(AgentIdentity identity, AgentHello hello, string connectionId, Action abort)
     {
@@ -52,6 +54,8 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         if (request.RunnerEpoch == Guid.Empty || request.RunnerEpoch != host.RunnerEpoch) throw new InventoryFault(409, "StateConflict");
         if (request.AppliedInventoryRevision < host.AppliedInventoryRevision || request.AppliedInventoryRevision > host.DesiredInventoryRevision) throw new InventoryFault(409, "RecoveryRequired");
         if (request.Operations == null || request.Holds == null || request.Operations.Length > 1024 || request.Holds.Length > 128) throw new InventoryFault(400, "InvalidInput");
+        if (request.ScheduleOccurrences == null || request.ScheduleOccurrences.Length > 128) throw new InventoryFault(400, "InvalidInput");
+        foreach (var report in request.ScheduleOccurrences) await store.StageScheduleReportAsync(identity.HostId, report);
         foreach (var value in request.Operations)
         {
             var item = ControlJson.Deserialize<ReconciledOperation>(value.GetRawText());
@@ -60,7 +64,9 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         }
         foreach (var hold in request.Holds)
         {
-            if (hold.ReservationId == Guid.Empty || hold.OwnerWorkflowId == Guid.Empty || hold.Fence < 1 || !await db.Reservations.AnyAsync(x => x.ReservationId == hold.ReservationId && x.OwnerWorkflowId == hold.OwnerWorkflowId && x.HostId == identity.HostId && x.State != ReservationStatus.Released)) throw new InventoryFault(409, "RecoveryRequired");
+            var local = request.ScheduleOccurrences.SingleOrDefault(r => r.ReservationId == hold.ReservationId);
+            var validLocal = local != null && !InventoryStore.IsScheduleTerminal(local.Status) && local.WorkflowId == hold.OwnerWorkflowId && local.Fence == hold.Fence && hold.ResourceKeys != null && local.ReservedResourceKeys.Order().SequenceEqual(hold.ResourceKeys.Order());
+            if (hold.ReservationId == Guid.Empty || hold.OwnerWorkflowId == Guid.Empty || hold.Fence < 1 || !validLocal && !await db.Reservations.AnyAsync(x => x.ReservationId == hold.ReservationId && x.OwnerWorkflowId == hold.OwnerWorkflowId && x.HostId == identity.HostId && x.State != ReservationStatus.Released)) throw new InventoryFault(409, "RecoveryRequired");
         }
         await ValidateRuntimeAsync(identity.HostId, request.Servers);
         // The handshake cannot assert that an unacknowledged desired revision applied.
@@ -76,8 +82,9 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         var host = await RequireAsync(identity, request.ConnectionEpoch, connectionId);
         if (host.ConnectionState != HostConnectionState.Online) throw new InventoryFault(409, "StateConflict");
         if (request.RunnerEpoch != host.RunnerEpoch || request.RunnerEpoch == Guid.Empty) throw new InventoryFault(409, "StateConflict");
-        if (request.ObservedAtUtc.Offset != TimeSpan.Zero || request.Metrics == null || request.Metrics.Length > 0) throw new InventoryFault(400, "InvalidInput");
+        if (request.ObservedAtUtc.Offset != TimeSpan.Zero) throw new InventoryFault(400, "InvalidInput");
         await ValidateRuntimeAsync(identity.HostId, request.ServerSnapshots);
+        if (metrics != null) await metrics.AcceptAsync(identity.HostId, request.Metrics, request.RunnerAvailable, request.ServerSnapshots);
         host.LastSeenAtUtc = clock.GetUtcNow(); host.RuntimeSnapshotJson = ControlJson.Serialize(request.ServerSnapshots);
         return true;
     });
@@ -112,7 +119,17 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         foreach (var item in request.Events)
         {
             if (item.EventSeq < 1 || item.OccurredAtUtc.Offset != TimeSpan.Zero || item.Body.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(item.EventType) || item.EventType.Length > 128 || System.Text.Encoding.UTF8.GetByteCount(item.Body.GetRawText()) > 8192) throw new InventoryFault(400, "InvalidEvent");
-            if (item.EventType is not ("AgentConnected" or "InventoryApplied" or "InventoryApplyFailed" or "Diagnostic" or "OperationChanged")) throw new InventoryFault(409, "UnsupportedCapability");
+            if (item.EventType is not ("AgentConnected" or "InventoryApplied" or "InventoryApplyFailed" or "Diagnostic" or "OperationChanged" or "ScheduleOccurrenceChanged" or "RuntimeChanged")) throw new InventoryFault(409, "UnsupportedCapability");
+            if (item.EventType == "ScheduleOccurrenceChanged")
+                await store.StageScheduleReportAsync(identity.HostId, ControlJson.Deserialize<ScheduleOccurrenceReport>(item.Body.GetRawText()));
+            if (item.EventType == "RuntimeChanged")
+            {
+                var body = ControlJson.Deserialize<RuntimeChangedBody>(item.Body.GetRawText());
+                var server = await db.Servers.AsNoTracking().SingleOrDefaultAsync(s => s.ServerId == body.Current.ServerId && s.HostId == identity.HostId) ?? throw new InventoryFault(403, "HostScopeMismatch");
+                if (body.Current.ConfigRevision < 1 || body.Current.ConfigRevision > server.DesiredRevision || body.Current.StateRevision < 0 || !Enum.IsDefined(body.Current.ProcessState) || !Enum.IsDefined(body.Current.Readiness) || body.Previous != null && (body.Previous.ServerId != body.Current.ServerId || body.Previous.StateRevision > body.Current.StateRevision)) throw new InventoryFault(400, "InvalidEvent");
+                var newExit = body.Current.LastExitedAtUtc.HasValue && (body.Previous?.LastExitedAtUtc == null || body.Current.LastExitedAtUtc > body.Previous.LastExitedAtUtc);
+                if (body.UnexpectedExit != (newExit && body.Current.LastExitWasExpected == false) || body.RecoveryRequired != (body.Current.ProcessState == ProcessState.Unmanaged)) throw new InventoryFault(400, "InvalidEvent");
+            }
             if (item.EventType == "OperationChanged")
             {
                 if (item.OperationId is null || item.StatusVersion is null or < 1) throw new InventoryFault(400, "InvalidEvent");
@@ -145,6 +162,13 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
             }
             if (item.EventSeq != host.AckAgentEventSeq + 1) throw new InventoryFault(409, "StateConflict");
             db.AgentEvents.Add(new InventoryEvent { HostId = host.HostId, EventSeq = item.EventSeq, Json = json, Sha256 = hash, CreatedAtUtc = clock.GetUtcNow() });
+            if (item.EventType == "ScheduleOccurrenceChanged")
+            {
+                var report = ControlJson.Deserialize<ScheduleOccurrenceReport>(item.Body.GetRawText());
+                var row = db.ScheduleOccurrences.Local.SingleOrDefault(r => r.OperationId == report.OperationId) ?? await db.ScheduleOccurrences.FindAsync(report.OperationId);
+                if (row != null && row.ReportJson == ControlJson.Serialize(report)) row.AckedAgentEventSeq = item.EventSeq;
+            }
+            if (notifications != null) await notifications.StageAgentEventAsync(identity.HostId, item);
             host.AckAgentEventSeq = item.EventSeq;
         }
         host.LastSeenAtUtc = clock.GetUtcNow(); return new EventAck(host.AckAgentEventSeq);

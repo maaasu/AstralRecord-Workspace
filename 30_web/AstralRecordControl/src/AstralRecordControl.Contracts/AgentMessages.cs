@@ -23,6 +23,9 @@ public sealed record ServerRuntimeSnapshot
     public ProcessState ProcessState { get; init; }
     public Guid? CurrentSessionId { get; init; }
     public GameReadiness Readiness { get; init; }
+    public DateTimeOffset? LastExitedAtUtc { get; init; }
+    public int? LastExitCode { get; init; }
+    public bool? LastExitWasExpected { get; init; }
 }
 public sealed record ResourceHold
 {
@@ -47,6 +50,7 @@ public sealed record ReconcileRequest
     public ServerRuntimeSnapshot[] Servers { get; init; } = [];
     public ResourceHold[] Holds { get; init; } = [];
     public JsonElement[] Operations { get; init; } = [];
+    public ScheduleOccurrenceReport[] ScheduleOccurrences { get; init; } = [];
 }
 public sealed record ReconcileAck(long AckEventSeq, Guid[] OperationIds, bool InventoryRequired);
 public sealed record InventoryApplied(Guid ConnectionEpoch, long InventoryRevision, string Sha256, bool Success, string? ErrorCode = null);
@@ -58,7 +62,8 @@ public sealed record AgentHeartbeat
     public DateTimeOffset ObservedAtUtc { get; init; }
     public bool RunnerAvailable { get; init; }
     public ServerRuntimeSnapshot[] ServerSnapshots { get; init; } = [];
-    public JsonElement[] Metrics { get; init; } = [];
+    [JsonConverter(typeof(HeartbeatMetricsConverter))]
+    public AgentMetricsBatch? Metrics { get; init; }
 }
 public sealed record AgentEvent(long EventSeq, Guid? OperationId, long? StatusVersion, string EventType, DateTimeOffset OccurredAtUtc, JsonElement Body)
 {

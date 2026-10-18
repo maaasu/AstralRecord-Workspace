@@ -70,6 +70,7 @@ public sealed record ScheduleOccurrenceReport
 }
 
 public sealed record RunScheduleNowRequest(Guid ConnectionEpoch, Guid ScheduleId, long Revision, Guid OperationId);
+public sealed record RunScheduleNowResponse(ScheduleOccurrenceReport? Report, ErrorCode? ErrorCode);
 
 public static class ScheduleValidation
 {

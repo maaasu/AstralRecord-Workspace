@@ -256,6 +256,23 @@ public sealed class RunnerTests
         Assert.Throws<RunnerFault>(() => LocalResourceBoundary.Resolve(fixture.ManagedRoot, "../outside"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AuditRetentionRemovesExpiredResolvedRowsButKeepsHeldOrRecentRecovery(bool held)
+    {
+        using var fixture = new Fixture(); using var store = fixture.Open();
+        store.ApplyInventory(fixture.Envelope(1, fixture.Server));
+        using var connection = new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = Path.Combine(fixture.Root, "runner", "runner.db"), Pooling = false }.ToString());
+        connection.Open(); using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO RecoveryAudit VALUES($old,$server,NULL,'AbortAfterInspection','old',$oldUtc); INSERT INTO RecoveryAudit VALUES($recent,$server,NULL,'AbortAfterInspection','recent',$recentUtc);";
+        command.Parameters.AddWithValue("$old", Guid.NewGuid().ToString()); command.Parameters.AddWithValue("$recent", Guid.NewGuid().ToString()); command.Parameters.AddWithValue("$server", fixture.Server.ServerId.ToString());
+        command.Parameters.AddWithValue("$oldUtc", DateTimeOffset.UtcNow.AddDays(-91).ToString("O")); command.Parameters.AddWithValue("$recentUtc", DateTimeOffset.UtcNow.AddDays(-89).ToString("O")); command.ExecuteNonQuery();
+        if (held) store.AcquireHold(new(Guid.NewGuid(), Guid.NewGuid(), ["server:" + fixture.Server.ServerId], HoldMode.Maintenance));
+        store.PruneAuditHistory();
+        command.CommandText = "SELECT COUNT(*) FROM RecoveryAudit;"; Assert.Equal(held ? 2L : 1L, command.ExecuteScalar());
+    }
+
     private sealed class Fixture : IDisposable
     {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "control-runner-test-" + Guid.NewGuid().ToString("N"));

@@ -220,7 +220,11 @@ public sealed partial class AgentOperationHandler
                 var restored = await storage!.RestoreBackupAsync(server, FileOperationValidation.Read<RestoreBackupPayload>(payload), id, verify, cancellationToken);
                 return RestoreResultSummary(restored);
             }
-            case OperationKind.PruneBackups: return await storage!.PruneBackupsAsync(server, profile!, verify, cancellationToken);
+            case OperationKind.PruneBackups:
+            {
+                var removed = await storage!.PruneBackupsAsync(server, profile!, verify, cancellationToken);
+                return new { prunedBackupIds = removed, count = removed.Length };
+            }
             case OperationKind.SetBackupProtection:
             {
                 var backup = await storage!.SetBackupProtectionAsync(server, FileOperationValidation.Read<SetBackupProtectionPayload>(payload), verify, cancellationToken);
@@ -289,7 +293,13 @@ public sealed partial class AgentOperationHandler
     {
         var json = store.GetPendingResult(operationId) ?? throw new AgentFault(ErrorCode.RecoveryRequired);
         object summary;
-        if (Encoding.UTF8.GetByteCount(json) > 4096)
+        if (Encoding.UTF8.GetByteCount(json) > 4096 && store.OwnsScheduledOperation(operationId))
+        {
+            using var parsed = JsonDocument.Parse(json);
+            var count = parsed.RootElement.TryGetProperty("count", out var countValue) && countValue.TryGetInt32(out var value) ? (int?)value : null;
+            summary = new { resultSha256 = ControlProtocol.Hash(json), count };
+        }
+        else if (Encoding.UTF8.GetByteCount(json) > 4096)
         {
             var publisher = publishResult ?? throw new AgentFault(ErrorCode.HostOffline);
             await publisher(operationId, commandHash, json, cancellationToken);

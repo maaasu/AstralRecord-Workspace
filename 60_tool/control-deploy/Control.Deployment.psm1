@@ -36,7 +36,7 @@ function Assert-ControlPackage([string]$Path, [string]$Component) {
     $manifestPath = Join-Path $root 'control-package.json'
     if (-not (Test-Path -LiteralPath $manifestPath)) { throw 'Missing package manifest.' }
     $manifest = Get-Content -Raw -Encoding UTF8 -LiteralPath $manifestPath | ConvertFrom-Json
-    if ($manifest.component -ne $Component -or $manifest.phase -notin @('P1','P2') -or $manifest.protocolVersion -ne 1) { throw 'Package capability/version mismatch.' }
+    if ($manifest.component -ne $Component -or $manifest.phase -notin @('P1','P2','P3') -or $manifest.protocolVersion -ne 1) { throw 'Package capability/version mismatch.' }
     return $root
 }
 
@@ -69,6 +69,7 @@ function Test-ControlConfiguration([string]$DataRoot, [string]$Component) {
         if (-not [Guid]::TryParse($config.hostId, [ref]$id) -or $id -eq [Guid]::Empty) { throw 'A registered hostId is required.' }
         if ($Component -eq 'Agent') {
             if ($config.ContainsKey('enableFileControl') -and $config.enableFileControl -isnot [bool]) { throw 'Agent enableFileControl must be boolean.' }
+            if ($config.ContainsKey('enableSchedules') -and $config.enableSchedules -isnot [bool]) { throw 'Agent enableSchedules must be boolean.' }
             $uri = $null
             if (-not [Uri]::TryCreate($config.serverUrl, [UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -ne 'https' -or $uri.AbsolutePath -ne '/' -or $uri.Query -or $uri.Fragment -or $uri.UserInfo) { throw 'Agent serverUrl must be a fixed HTTPS origin.' }
             if (-not (Test-Path -LiteralPath (Join-Path $root 'credentials\token.bin'))) { throw 'Run Agent --configure before starting Agent.' }

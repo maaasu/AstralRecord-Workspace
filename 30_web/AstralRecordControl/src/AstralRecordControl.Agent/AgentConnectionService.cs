@@ -19,7 +19,8 @@ public static class ReconnectBackoff
 }
 
 public sealed class AgentConnectionService(AgentConfiguration configuration, AgentStore store,
-    InventoryApplier applier, AgentOperationHandler operations, AgentProcessControlGate processGate, ProtectedTokenFile tokenFile, ILogger<AgentConnectionService> logger) : BackgroundService
+    InventoryApplier applier, AgentOperationHandler operations, AgentProcessControlGate processGate, ProtectedTokenFile tokenFile, ILogger<AgentConnectionService> logger,
+    AgentScheduleService schedules, AgentMetricsSampler metrics, TimeProvider clock) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -86,6 +87,11 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         hub.On<AgentListBackupsRequest, BackupPage>("ListBackups", request => operations.ListBackups(request, epoch));
         hub.On<AgentResumeDataOperationRequest, ExecutionSnapshot>("ResumeDataOperation", request => operations.ResumeDataAsync(request, epoch, stoppingToken));
         hub.On<AgentSnapshotRequest, RunnerSnapshot>("GetSnapshot", request => operations.SnapshotAsync(request, epoch, stoppingToken));
+        hub.On<RunScheduleNowRequest, RunScheduleNowResponse>("RunScheduleNow", async request =>
+        {
+            try { return new(await schedules.RunNowAsync(request, epoch, stoppingToken), null); }
+            catch (AgentFault fault) { return new(null, fault.Code); }
+        });
         hub.On<JsonElement>("InventoryChanged", message =>
         {
             var change = ControlJson.Deserialize<InventoryChanged>(message.GetRawText());
@@ -94,6 +100,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         using var handler = new HttpClientHandler { AllowAutoRedirect = false };
         using var http = new HttpClient(handler) { BaseAddress = origin, Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await schedules.RefreshHeldReportsAsync(stoppingToken);
         var snapshot = await operations.GetSnapshotAsync(stoppingToken);
         await hub.StartAsync(stoppingToken);
         var state = store.GetState();
@@ -103,11 +110,11 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
             AgentStoreId = state.StoreId, MaxLocalEventSeq = state.MaxEventSequence,
             RunnerEpoch = snapshot.RunnerEpoch, AppliedInventoryRevision = state.AppliedInventoryRevision,
             LocalResources = configuration.LocalResources,
-            Capabilities = processGate.Enabled
+            Capabilities = (processGate.Enabled
                 ? configuration.EnableFileControl
                     ? ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P2.Files", "P2.Backups"]
                     : ["P0.Inventory", "P1.Operations", "P1.LegacyGate"]
-                : ["P0.Inventory"]
+                : new[] { "P0.Inventory" }).Concat(processGate.Enabled && configuration.EnableSchedules ? ["P3.Schedules"] : Array.Empty<string>()).Append("P3.Metrics").ToArray()
         }, stoppingToken);
         if (hello.ProtocolVersion != ControlProtocol.Version || hello.ConnectionEpoch == Guid.Empty || hello.HeartbeatSeconds is < 1 or > 60) throw new AgentFault(ErrorCode.ProtocolMismatch);
         store.Acknowledge(hello.ControllerAckEventSeq);
@@ -120,7 +127,8 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         {
             ConnectionEpoch = epoch, RunnerEpoch = snapshot.RunnerEpoch, AppliedInventoryRevision = state.AppliedInventoryRevision,
             Servers = snapshot.Servers, Holds = snapshot.Holds,
-            Operations = store.ReadNonTerminalOperations().Select(x => ControlJson.Element(new { operationId = x.OperationId, commandSha256 = x.CommandSha256, status = x.Status })).ToArray()
+            Operations = store.ReadNonTerminalOperations().Where(x => !store.OwnsScheduledOperation(x.OperationId)).Select(x => ControlJson.Element(new { operationId = x.OperationId, commandSha256 = x.CommandSha256, status = x.Status })).ToArray(),
+            ScheduleOccurrences = store.ReadScheduleReports(nonterminalOnly: true).Select(x => x.Report).ToArray()
         }, stoppingToken);
         store.Acknowledge(reconciliation.AckEventSeq);
         await operations.RefreshOutstandingAsync(stoppingToken);
@@ -143,10 +151,11 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
             var runnerAvailable = true;
             try { snapshot = await operations.GetSnapshotAsync(stoppingToken); }
             catch (Exception exception) when (exception is IOException or OperationCanceledException) { runnerAvailable = false; }
+            var samples = await metrics.SampleAsync(snapshot, runnerAvailable, stoppingToken);
             await hub.InvokeAsync("Heartbeat", new AgentHeartbeat
             {
-                ConnectionEpoch = epoch, RunnerEpoch = snapshot.RunnerEpoch, ObservedAtUtc = DateTimeOffset.UtcNow,
-                RunnerAvailable = runnerAvailable, ServerSnapshots = runnerAvailable ? snapshot.Servers : []
+                ConnectionEpoch = epoch, RunnerEpoch = snapshot.RunnerEpoch, ObservedAtUtc = clock.GetUtcNow(),
+                RunnerAvailable = runnerAvailable, ServerSnapshots = runnerAvailable ? snapshot.Servers : [], Metrics = samples
             }, stoppingToken);
             using var wait = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             var timer = Task.Delay(TimeSpan.FromSeconds(hello.HeartbeatSeconds), wait.Token);
@@ -175,6 +184,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         {
             await applier.ApplyAsync(inventory, cancellationToken);
             await hub.InvokeAsync("InventoryApplied", new InventoryApplied(epoch, inventory.Revision, inventory.Sha256, true), cancellationToken);
+            store.MarkScheduleInventoryAcknowledged(inventory.Revision);
         }
         catch (Exception exception) when (exception is AgentFault or ArgumentException or JsonException)
         {

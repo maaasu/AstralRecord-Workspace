@@ -108,6 +108,80 @@ public sealed class ScheduleExecutionTests
     }
 
     [Fact]
+    public async Task ManualAcceptanceDoesNotExecuteInlineAndSameIdSurvivesDefinitionChange()
+    {
+        using var fixture = new Fixture(); using var store = fixture.OpenStore();
+        var definition = fixture.Schedule(new() { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow().AddHours(1) });
+        fixture.Apply(store, 1, definition); store.MarkScheduleInventoryAcknowledged(1);
+        var service = fixture.Service(store); var epoch = Guid.NewGuid(); var operationId = Guid.NewGuid();
+        var request = new RunScheduleNowRequest(epoch, definition.ScheduleId, 1, operationId);
+        var accepted = await service.RunNowAsync(request, epoch, CancellationToken.None);
+        Assert.Equal(ScheduleOccurrenceStatus.Pending, accepted.Status); Assert.Empty(fixture.Runner.Executions);
+        await service.TickAsync();
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, store.GetScheduleReport(operationId)!.Status);
+        fixture.Apply(store, 2, definition with { Revision = 2, Enabled = false }); store.MarkScheduleInventoryAcknowledged(2);
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, (await service.RunNowAsync(request, epoch, CancellationToken.None)).Status);
+        Assert.Single(fixture.Runner.Executions);
+    }
+
+    [Fact]
+    public async Task RetentionKeepsUnackedOccurrenceAndRetiresOnlyAckedTerminalPayload()
+    {
+        using var fixture = new Fixture(); using var store = fixture.OpenStore();
+        var definition = fixture.Schedule(new() { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() });
+        fixture.Apply(store, 1, definition); store.MarkScheduleInventoryAcknowledged(1);
+        await fixture.Service(store).TickAsync();
+        var report = Assert.Single(store.ReadScheduleReports()).Report;
+        store.RetireScheduleHistory(fixture.Clock.GetUtcNow().AddDays(91));
+        Assert.Single(store.ReadScheduleReports());
+        store.Acknowledge(store.GetState().MaxEventSequence);
+        store.RetireScheduleHistory(fixture.Clock.GetUtcNow().AddDays(91));
+        Assert.Empty(store.ReadScheduleReports());
+        Assert.Throws<AgentFault>(() => store.GetScheduleReport(report.OperationId));
+    }
+
+    [Fact]
+    public async Task FailedChainCanFinalizeAfterHoldWasReleasedBeforeTerminalReportSaved()
+    {
+        using var fixture = new Fixture(); using var store = fixture.OpenStore();
+        var schedule = fixture.Schedule(new() { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new() { StepKey = "first", Kind = OperationKind.Start }, new() { StepKey = "second", Kind = OperationKind.Stop });
+        fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1); fixture.Runner.FailKind = OperationKind.Start;
+        var service = fixture.Service(store); await service.TickAsync();
+        var terminal = Assert.Single(store.ReadScheduleReports()).Report;
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, terminal.Status); Assert.Single(terminal.Steps);
+        // Reproduce the durable state before the final report write, after Runner release committed.
+        store.SaveScheduleReport(terminal with { Status = ScheduleOccurrenceStatus.Running });
+        await service.TickAsync();
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, store.GetScheduleReport(terminal.OperationId)!.Status);
+        Assert.Single(fixture.Runner.Executions);
+    }
+
+    [Fact]
+    public async Task LargeLocalPruneResultFinishesWithoutWebPublisher()
+    {
+        using var fixture = new Fixture(); using var store = fixture.OpenStore();
+        var schedule = fixture.Schedule(new() { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow().AddHours(1) },
+            new ScheduleStep { StepKey = "prune", Kind = OperationKind.PruneBackups, Payload = ControlJson.Element(new PruneBackupsPayload(fixture.ProfileId)) });
+        fixture.Apply(store, 1, schedule, includeBackupProfile: true); store.MarkScheduleInventoryAcknowledged(1);
+        var epoch = Guid.NewGuid(); var id = Guid.NewGuid();
+        var report = await fixture.Service(store).RunNowAsync(new(epoch, schedule.ScheduleId, 1, id), epoch, CancellationToken.None);
+        var hold = await fixture.Runner.AcquireHoldAsync(new(report.ReservationId, report.WorkflowId, ["server:" + fixture.ServerId], HoldMode.Exclusive), CancellationToken.None);
+        var child = ScheduleIdentity.Child(report.WorkflowId, "prune", 1); store.RegisterScheduleChild(id, new("prune", 1, child, OperationStatus.Accepted, null));
+        var command = new OperationCommand { OperationId = child, HostId = fixture.HostId, ServerId = fixture.ServerId, WorkflowId = report.WorkflowId, ReservationId = report.ReservationId, ReservationFence = hold.Fence,
+            ConfigRevision = 1, ExpectedStateRevision = (await fixture.Runner.GetSnapshotAsync(CancellationToken.None)).Servers.Single().StateRevision, Kind = OperationKind.PruneBackups,
+            StartBeforeUtc = fixture.Clock.GetUtcNow().AddMinutes(1), Payload = ControlJson.Element(new PruneBackupsPayload(fixture.ProfileId)) };
+        var json = ControlJson.Serialize(command); var execute = new ExecuteRequest(child, json, ControlProtocol.Hash(json)); store.AcceptOperation(execute);
+        await fixture.Runner.BeginDataOperationAsync(execute, CancellationToken.None);
+        await fixture.Runner.FinishDataOperationAsync(new(child, execute.CommandSha256, OperationStatus.Succeeded), CancellationToken.None);
+        store.SavePendingResult(child, ControlJson.Serialize(new { prunedBackupIds = Enumerable.Range(0, 200).Select(_ => Guid.NewGuid()).ToArray(), count = 200 }), false);
+        var handler = new AgentOperationHandler(fixture.Configuration, store, fixture.Runner, fixture.Gate, fixture.Storage, fixture.Clock);
+        var result = await handler.QueryAsync(new(epoch, child), epoch, CancellationToken.None);
+        Assert.Equal(OperationStatus.Succeeded, result.Status); Assert.Equal(200, result.Result.GetProperty("count").GetInt32());
+        Assert.Null(store.GetPendingResult(child));
+    }
+
+    [Fact]
     public async Task HeldOccurrenceRecoversFenceBeforeReconcile()
     {
         using var fixture = new Fixture();
@@ -226,6 +300,7 @@ public sealed class ScheduleExecutionTests
         private readonly Dictionary<Guid, ExecutionSnapshot> dataExecutions = [];
         public IReadOnlyDictionary<Guid, ExecutionSnapshot> Executions => executions;
         public Dictionary<Guid, ResourceHold> Holds { get; } = [];
+        private readonly HashSet<Guid> released = [];
         public bool CentralHold { get; set; }
         public OperationKind? FailKind { get; set; }
         public bool IsRunning { get; set; }
@@ -239,7 +314,7 @@ public sealed class ScheduleExecutionTests
         public Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken)
         {
             if (Holds.TryGetValue(request.ReservationId, out var held)) return Task.FromResult(held);
-            if (CentralHold || Holds.Count != 0) throw new AgentFault(ErrorCode.ReservationConflict);
+            if (CentralHold || Holds.Count != 0 || released.Contains(request.ReservationId)) throw new AgentFault(ErrorCode.ReservationConflict);
             var hold = new ResourceHold { ReservationId = request.ReservationId, OwnerWorkflowId = request.OwnerWorkflowId,
                 ResourceKeys = ["server:" + serverId], Mode = request.Mode, Fence = ++fence };
             Holds.Add(hold.ReservationId, hold); stateRevision++;
@@ -248,6 +323,7 @@ public sealed class ScheduleExecutionTests
         public Task<bool> ReleaseHoldAsync(ReleaseHoldRequest request, CancellationToken cancellationToken)
         {
             var removed = Holds.Remove(request.ReservationId); if (removed) stateRevision++;
+            if (removed) released.Add(request.ReservationId);
             return Task.FromResult(removed);
         }
         public Task<ExecutionSnapshot> ExecuteAsync(ExecuteRequest request, CancellationToken cancellationToken)

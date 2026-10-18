@@ -27,7 +27,7 @@ public sealed partial class AgentStore : IDisposable
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
-        if (version is < 0 or > 3) throw new AgentFault(ErrorCode.ProtocolMismatch);
+        if (version is < 0 or > 4) throw new AgentFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new AgentFault(ErrorCode.RecoveryRequired);
@@ -65,6 +65,20 @@ public sealed partial class AgentStore : IDisposable
             Execute("ALTER TABLE OperationInbox ADD COLUMN serverSessionId TEXT;", transaction);
             Execute("CREATE TABLE PendingResults(operationId TEXT PRIMARY KEY,resultJson TEXT NOT NULL,resultSha256 TEXT NOT NULL,restartRequired INTEGER NOT NULL DEFAULT 0);", transaction);
             Execute("PRAGMA user_version=3;", transaction);
+            transaction.Commit();
+            version = 3;
+        }
+        if (version == 3)
+        {
+            var backupPath = path + ".before-v4." + Guid.NewGuid().ToString("N") + ".bak";
+            using (var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backupPath, Pooling = false }.ToString()))
+            {
+                backup.Open(); database.BackupDatabase(backup);
+            }
+            using var transaction = database.BeginTransaction();
+            InitializeScheduleSchema(transaction);
+            Execute("CREATE TABLE RuntimeObservations(serverId TEXT PRIMARY KEY,snapshotJson TEXT NOT NULL);", transaction);
+            Execute("PRAGMA user_version=4;", transaction);
             transaction.Commit();
         }
         if ((string?)Scalar("SELECT hostId FROM State WHERE id=1;") != hostId.ToString()) throw new AgentFault(ErrorCode.RecoveryRequired);

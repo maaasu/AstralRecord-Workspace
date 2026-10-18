@@ -30,6 +30,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         if (replay != null)
         {
             if (replay.RequestSha256 != requestHash) throw new InventoryFault(409, "OperationConflict");
+            if (replay.CommandJson.Length == 0 && replay.FinishedAtUtc.HasValue) throw new InventoryFault(410, "HistoryExpired");
             return await RefreshAsync(replay.OperationId, token);
         }
         var server = await db.Servers.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == serverId) ?? throw new InventoryFault(404, "NotFound");
@@ -174,7 +175,12 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         return applied;
     }
 
-    public async Task<ControlOperation> GetAsync(Guid operationId) => await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == operationId) ?? throw new InventoryFault(404, "NotFound");
+    public async Task<ControlOperation> GetAsync(Guid operationId)
+    {
+        var row = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == operationId) ?? throw new InventoryFault(404, "NotFound");
+        if (row.CommandJson.Length == 0 && row.FinishedAtUtc.HasValue) throw new InventoryFault(410, "HistoryExpired");
+        return row;
+    }
 
     public async Task<ControlOperation> RefreshAsync(Guid operationId, CancellationToken token = default)
     {

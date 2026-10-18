@@ -264,7 +264,7 @@ public sealed class OperationGateTests
                 await ControlDatabase.InitializeAsync(db);
                 db.Hosts.Add(new InventoryHost { HostId = Guid.NewGuid(), HostKey = "preserved", DisplayName = "Preserved" });
                 await db.SaveChangesAsync();
-                await db.Database.ExecuteSqlRawAsync("DROP TABLE TransferChunks; DROP TABLE Transfers; DROP TABLE Operations; DROP TABLE Reservations; DROP TABLE ReservationLeases; DROP TABLE Workflows; DROP TABLE CliCredentials; PRAGMA user_version=1;");
+                await db.Database.ExecuteSqlRawAsync("DROP TABLE NotificationOutbox; DROP TABLE NotificationEvents; DROP TABLE NotificationDestinations; DROP TABLE MetricBuckets; DROP TABLE ScheduleOccurrences; DROP TABLE ScheduleManualRequests; DROP TABLE TransferChunks; DROP TABLE Transfers; DROP TABLE Operations; DROP TABLE Reservations; DROP TABLE ReservationLeases; DROP TABLE Workflows; DROP TABLE CliCredentials; PRAGMA user_version=1;");
             }
             await using (var db = new ControlDbContext(options))
             {
@@ -275,7 +275,7 @@ public sealed class OperationGateTests
                 await db.Database.OpenConnectionAsync();
                 await using var versionCommand = db.Database.GetDbConnection().CreateCommand();
                 versionCommand.CommandText = "PRAGMA user_version;";
-                Assert.Equal(3L, Convert.ToInt64(await versionCommand.ExecuteScalarAsync()));
+                Assert.Equal(4L, Convert.ToInt64(await versionCommand.ExecuteScalarAsync()));
                 await db.Database.CloseConnectionAsync();
             }
             Assert.True(File.Exists(path + ".before-v2.bak"));

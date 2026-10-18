@@ -9,6 +9,7 @@ namespace AstralRecordControl.Web.Operations;
 
 public interface IAgentOperationTransport
 {
+    Task<ScheduleOccurrenceReport> RunScheduleNowAsync(Guid hostId, Guid scheduleId, long revision, Guid operationId, CancellationToken cancellationToken) => throw new InventoryFault(409, "UnsupportedCapability");
     Task<PreparedHold> PrepareAsync(Guid hostId, AcquireHoldRequest request, CancellationToken cancellationToken);
     Task ReleaseAsync(Guid hostId, ReleaseHoldRequest request, CancellationToken cancellationToken);
     Task<ExecutionSnapshot> DispatchAsync(Guid hostId, Guid operationId, string commandJson, string hash, CancellationToken cancellationToken);
@@ -22,6 +23,14 @@ public interface IAgentOperationTransport
 
 public sealed class AgentOperationTransport(IHubContext<AgentHub> hub, AgentConnectionRegistry connections, ControlDbContext db, TimeProvider clock) : IAgentOperationTransport
 {
+    public async Task<ScheduleOccurrenceReport> RunScheduleNowAsync(Guid hostId, Guid scheduleId, long revision, Guid operationId, CancellationToken cancellationToken)
+    {
+        var current = await RequireAsync(hostId);
+        using var timeout = Deadline(cancellationToken);
+        var result = await hub.Clients.Client(current.ConnectionId).InvokeAsync<RunScheduleNowResponse>("RunScheduleNow", new RunScheduleNowRequest(current.Epoch, scheduleId, revision, operationId), timeout.Token);
+        if (result.ErrorCode.HasValue) throw new InventoryFault(409, result.ErrorCode.Value.ToString());
+        return result.Report ?? throw new InventoryFault(409, "ProtocolMismatch");
+    }
     private async Task<AgentConnection> RequireAsync(Guid hostId)
     {
         var active = connections.Current(hostId) ?? throw new InventoryFault(503, "HostOffline");

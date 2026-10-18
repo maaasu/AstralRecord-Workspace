@@ -61,7 +61,7 @@ node --test tests/WebScript.Tests/sha256.test.cjs
 | `/api/control/v1/servers/{id}/operations`、`operations/{id}`、`servers/{id}/logs` | Owner Cookie。変更はCSRF、操作作成はIdempotency-Key + If-None-Match |
 | `/api/control/v1/reservations`、`reservations/{id}/validate`、`release`、`gate/catalog` | Owner Cookieまたは15分CLI Bearer。Cookie変更はCSRF |
 | `/api/control/v1/auth/cli-token`、`cli-token/revoke` | パスワード＋TOTP/回復コードで発行、CLI Bearerで自己失効 |
-| `/api/control/v1/schedules`、`schedules/{id}`、`schedules/{id}/run-now`、`schedules/{id}/requests/{operationId}` | Owner Cookie。設定変更はCSRF/Idempotency-Key/条件付きrevision、Run Nowは永続受付後202、要求IDで照会・再送 |
+| `/api/control/v1/schedules`、`schedules/{id}`、`schedules/{id}/run-now`、`schedules/{id}/requests/{operationId}` | Owner Cookie。変更はCSRF、作成/Run NowはIdempotency-Key、更新はIf-Match。Run Nowは永続受付後202、要求IDで照会・再送 |
 | `/api/control/v1/servers/{id}/metrics` | Owner Cookie。期間とminute/hour粒度を指定して時系列を取得 |
 | `/api/control/v1/notification-destinations`、`notification-destinations/{id}`、`notifications` | Owner Cookie。送信先変更は再認証/CSRF/Idempotency-Key/条件付きrevision、URLは応答しない。配信履歴は最大100件 |
 
@@ -113,10 +113,10 @@ P1の導入条件に加え、Webの`Control:EnableFileControl=true`、Agent/Runn
 
 予約実行はWebの`Control:EnableSchedules=true`とAgentの`enableSchedules=true`を明示設定し、P1の管理運用markerと共通gateを維持して有効化します。初期値はfalseです。Webで定義を保存してもAgentのinventory適用ACKまでは発火しません。Once、60秒以上のInterval、秒なし5フィールドCron（標準`Asia/Tokyo`）を扱い、夏時間の重複時刻は先のUTCだけを採用します。開始期限を60秒超過した予定はSkipに記録し、停止中の予定をまとめて追走しません。同一Host/Serverの最大16段の連鎖は同じローカル予約を使い、段間待機は0～86400秒です。PC横断/Environment WorkflowはP4です。
 
-`/Servers/{id}/Schedules`で定義・適用版・実行履歴を確認できます。Run Nowは先に要求IDを永続化し、受付結果が不明な場合も202と照会先を返します。同じIdempotency-Keyで照会・再送し、新しい要求IDで重複実行しません。バックアップprofileはinventory内で希望版と適用ACKを区別し、定義更新時にも既存profileを保持します。
+`/Servers/{id}/Schedules`で定義・適用版・実行履歴を確認できます。Run Nowは初期offline時に503で拒否し、受付済み要求は同じIdempotency-Keyで照会・再送します。受付後に通信結果が不明なら202と照会先を返し、Agentが開始前の拒否を確定した場合はRejectedとして保存・表示します。新しい要求IDで重複実行しません。バックアップprofileはinventory内で希望版と適用ACKを区別し、定義更新時にも既存profileを保持します。
 
 Agentは約10秒ごとにHost/プロセスCPU、メモリ、ディスク空き、稼働時間を採取し、Javaの`127.0.0.1` status pingから取得できる人数だけを報告します。取得不能はnull/欠測で、0人や停止へ変換しません。TPS/MSPTはP3のデータ源に含みません。Webの`/Servers/{id}/Metrics`では1分粒度7日、1時間粒度90日の系列を表示します。
 
 `/Notifications`でOwnerがWebhook送信先と履歴を管理します。URL全体をData Protectionで保護し、画面/APIへ戻しません。送信先は公開到達可能なHTTPS・443番だけを許可し、リダイレクトとプロキシを使わずDNS解決先の公開IPへ固定して送ります。Web停止中のAgentイベントもUTC発生時刻と同じeventIdでACKまで保持します。初回失敗後1/5/30分の最大3回再試行後にdead-letterとなり、送信失敗はゲーム操作の結果を変更しません。外部Webhookへの厳密なat-most-once配信は保証しないため、受信側はeventIdで重複排除してください。
 
-完了済み操作・Schedule履歴・通知は90日で本文を退役させ、再送照合に必要なID/hashを保持します。非終端操作・要復旧保守・未ACKイベントは期限だけで削除しません。検証は一時fixtureで行い、実Minecraft、実NAS、外部Webhook、実サービス登録には接続しません。
+完了済み操作・Web/AgentのSchedule履歴・通知は90日で本文を退役させ、再送照合に必要なID/hashを保持します。Runnerの復旧監査も90日を過ぎ、対象の要復旧状態とholdがない場合に削除します。非終端操作・要復旧保守・未ACKイベントは期限だけで削除しません。大量のPruneBackups結果はローカル予約では件数/hashへ要約し、Web転送に依存しません。検証は一時fixtureで行い、実Minecraft、実NAS、外部Webhook、実サービス登録には接続しません。

@@ -37,6 +37,7 @@ public sealed partial class RunnerStore
     public async Task RunAutomaticStartsAsync(CancellationToken cancellationToken = default)
     {
         PruneLogs();
+        PruneAuditHistory();
         if (!configuration.EnableProcessControl || !await automation.WaitAsync(0, cancellationToken)) return;
         try
         {

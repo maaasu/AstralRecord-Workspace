@@ -38,6 +38,7 @@ public sealed class RunnerDispatcher(RunnerStore store)
             var body = request.Method switch
             {
                 "GetSnapshot" => Snapshot(request),
+                "ReadMetrics" => ControlJson.Element(store.ReadMetrics()),
                 "ApplyInventory" => ControlJson.Element(store.ApplyInventory(ControlJson.Deserialize<ApplyInventoryRequest>(request.Body.GetRawText()).Inventory)),
                 "AcquireHold" => ControlJson.Element(store.AcquireHold(ControlJson.Deserialize<AcquireHoldRequest>(request.Body.GetRawText()))),
                 "ReleaseHold" => Release(request),

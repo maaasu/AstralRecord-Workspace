@@ -9,6 +9,7 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
     private readonly SemaphoreSlim tickGate = new(1, 1);
     private readonly Guid localEpoch = Guid.NewGuid();
+    private DateTimeOffset nextRetentionAtUtc = DateTimeOffset.MinValue;
 
     public async Task RefreshHeldReportsAsync(CancellationToken cancellationToken = default)
     {
@@ -31,34 +32,23 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
         finally { tickGate.Release(); }
     }
 
-    public async Task<ScheduleOccurrenceReport> RunNowAsync(RunScheduleNowRequest request, Guid activeEpoch, CancellationToken cancellationToken)
+    public Task<ScheduleOccurrenceReport> RunNowAsync(RunScheduleNowRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
         if (request.ConnectionEpoch == Guid.Empty || request.ConnectionEpoch != activeEpoch || request.OperationId == Guid.Empty)
             throw new AgentFault(ErrorCode.StateConflict);
         if (!configuration.EnableSchedules || !processGate.Enabled) throw new AgentFault(ErrorCode.UnsupportedCapability);
-        await tickGate.WaitAsync(cancellationToken);
-        try
-        {
-            var (inventoryRevision, definitions) = store.GetAcknowledgedScheduleDefinitions();
-            if (inventoryRevision == 0 || inventoryRevision != store.GetState().AppliedInventoryRevision) throw new AgentFault(ErrorCode.StaleRevision);
-            var definition = definitions.SingleOrDefault(s => s.ScheduleId == request.ScheduleId && s.Revision == request.Revision && s.Enabled)
-                ?? throw new AgentFault(ErrorCode.StaleRevision);
-            var previous = store.GetScheduleReport(request.OperationId);
-            if (previous is not null)
-            {
-                if (previous.ScheduleId != request.ScheduleId || previous.Revision != request.Revision || !previous.Manual) throw new AgentFault(ErrorCode.OperationConflict);
-                return previous;
-            }
-            var report = NewReport(definition, inventoryRevision, clock.GetUtcNow(), manual: true, request.OperationId);
-            store.ClaimScheduleOccurrence(definition, report);
-            await ProcessAsync(definition, report, cancellationToken);
-            return store.GetScheduleReport(request.OperationId)!;
-        }
-        finally { tickGate.Release(); }
+        cancellationToken.ThrowIfCancellationRequested();
+        // ACK/definition validation and acceptance share the same local lock as inventory commit.
+        return Task.FromResult(store.ClaimManualScheduleOccurrence(request, clock.GetUtcNow()));
     }
 
     public async Task TickAsync(CancellationToken cancellationToken = default)
     {
+        if (clock.GetUtcNow() >= nextRetentionAtUtc)
+        {
+            store.RetireScheduleHistory(clock.GetUtcNow().AddDays(-90));
+            nextRetentionAtUtc = clock.GetUtcNow().AddHours(1);
+        }
         if (!configuration.EnableSchedules || !processGate.Enabled) return;
         await tickGate.WaitAsync(cancellationToken);
         try
@@ -127,7 +117,7 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
             report = store.SaveScheduleReport(report with { Status = ScheduleOccurrenceStatus.Running,
                 Fence = existingHold.Fence, ReservedResourceKeys = existingHold.ResourceKeys, UpdatedAtUtc = clock.GetUtcNow() });
         }
-        if (report.Status == ScheduleOccurrenceStatus.Pending && clock.GetUtcNow() - report.ScheduledAtUtc > TimeSpan.FromSeconds(60) && !report.Manual)
+        if (report.Status == ScheduleOccurrenceStatus.Pending && clock.GetUtcNow() - report.ScheduledAtUtc > TimeSpan.FromSeconds(60))
         {
             store.SaveScheduleReport(report with { Status = ScheduleOccurrenceStatus.Skipped, ErrorCode = "DeadlineExpired", UpdatedAtUtc = clock.GetUtcNow() });
             return;
@@ -136,7 +126,7 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
         try
         {
             hold = await runner.AcquireHoldAsync(new AcquireHoldRequest(report.ReservationId, report.WorkflowId,
-                ReservationKeys(definition), HoldMode.Exclusive), cancellationToken);
+                report.Fence.HasValue ? report.ReservedResourceKeys : ReservationKeys(definition), HoldMode.Exclusive), cancellationToken);
         }
         catch (AgentFault fault) when (fault.Code == ErrorCode.ReservationConflict && report.Fence is null)
         {
@@ -147,9 +137,9 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
         {
             var holds = (await runner.GetSnapshotAsync(cancellationToken)).Holds;
             if (holds.Any(h => h.ReservationId == report.ReservationId)) throw;
-            var allSteps = report.Steps.Length == definition.Template.Steps.Length && report.Steps.All(s => OperationValidation.IsTerminal(s.Status));
-            if (!allSteps) throw new AgentFault(ErrorCode.RecoveryRequired);
-            var failed = report.Steps.FirstOrDefault(s => s.Status != OperationStatus.Succeeded);
+            var failed = report.Steps.FirstOrDefault(s => OperationValidation.IsTerminal(s.Status) && s.Status != OperationStatus.Succeeded);
+            var allSteps = report.Steps.Length == definition.Template.Steps.Length && report.Steps.All(s => s.Status == OperationStatus.Succeeded);
+            if (failed == null && !allSteps) throw new AgentFault(ErrorCode.RecoveryRequired);
             store.SaveScheduleReport(report with { Status = failed is null ? ScheduleOccurrenceStatus.Succeeded : ScheduleOccurrenceStatus.Failed,
                 ErrorCode = failed?.ErrorCode, UpdatedAtUtc = clock.GetUtcNow() });
             return;

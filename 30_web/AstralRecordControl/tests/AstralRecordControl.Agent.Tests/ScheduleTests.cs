@@ -49,6 +49,18 @@ public sealed class ScheduleTests
     }
 
     [Fact]
+    public void LongOutageKeepsMostRecentDueInsteadOfDroppingItAtTheBatchLimit()
+    {
+        var anchor = new DateTimeOffset(2026, 10, 18, 0, 0, 0, TimeSpan.Zero);
+        var definition = Definition(new() { Kind = ScheduleTriggerKind.Interval, AnchorUtc = anchor, Seconds = 60 });
+        var through = anchor.AddDays(2).AddSeconds(10);
+        var due = AgentSchedulePlanner.DueBetween(definition, anchor.AddTicks(-1), through);
+        Assert.Equal(1000, due.Length);
+        Assert.Equal(anchor.AddDays(2), due[^1]);
+        Assert.True(through - due[^1] < TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
     public void OnceInThePastIsEnumeratedForSkipAndLocalKindsAreConstrained()
     {
         var at = new DateTimeOffset(2026, 10, 18, 0, 0, 0, TimeSpan.Zero);

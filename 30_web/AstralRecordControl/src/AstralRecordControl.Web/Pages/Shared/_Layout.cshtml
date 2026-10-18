@@ -9,13 +9,14 @@
 <body>
     <header>
         <a class="brand" href="/">AstralRecordControl</a>
-        <span class="badge">P2 · ファイルとバックアップ</span>
+        <span class="badge">P3 · 予約・監視・通知</span>
         @if (User.Identity?.IsAuthenticated == true)
         {
             <nav aria-label="管理メニュー">
                 <a href="/">概要</a><a href="/Hosts">PC台帳</a><a href="/Servers">サーバー台帳</a>
                 <a href="/Workflows">運転・保守履歴</a>
                 <a href="/Transfers">転送</a>
+                <a href="/Notifications">通知</a>
                 <a href="/Security">認証設定</a><a href="/Logout">ログアウト</a>
             </nav>
         }

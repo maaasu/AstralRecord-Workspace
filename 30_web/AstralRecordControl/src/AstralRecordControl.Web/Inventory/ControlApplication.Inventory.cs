@@ -5,6 +5,8 @@ using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Hubs;
 using AstralRecordControl.Web.Inventory;
 using AstralRecordControl.Web.Operations;
+using AstralRecordControl.Web.Metrics;
+using AstralRecordControl.Web.Notifications;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -26,6 +28,11 @@ public static partial class ControlApplication
         builder.Services.AddScoped<ReservationService>();
         builder.Services.AddScoped<ControlOperationsService>();
         builder.Services.AddScoped<OperationResultStore>();
+        builder.Services.AddScoped<ControlHistoryRetention>();
+        builder.Services.AddHostedService<ControlHistoryRetentionWorker>();
+        builder.Services.AddScoped<MetricsStore>();
+        builder.Services.AddHostedService<MetricsRetentionService>();
+        builder.Services.AddControlNotifications();
         builder.Services.AddHostedService<OperationLifecycleMonitor>();
         builder.Services.AddHostedService<AgentOfflineMonitor>();
         builder.Services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, AgentBearerHandler>(AgentBearerHandler.SchemeName, _ => { });
@@ -104,8 +111,9 @@ public static partial class ControlApplication
         owner.MapDelete("/servers/{serverId:guid}", async (Guid serverId, InventoryStore store) => { await store.ServerAsync(serverId); throw new InventoryFault(409, "UnsupportedCapability"); });
         MapOperations(app, owner);
         MapBackups(owner);
-        foreach (var path in new[] { "/schedules/{**rest}" })
-            owner.MapMethods(path, ["GET", "POST", "PUT", "DELETE"], (HttpContext http) => Fault(http, 409, "UnsupportedCapability"));
+        MapSchedules(owner);
+        MapMetrics(owner);
+        MapNotifications(owner);
 
         var agent = app.MapGroup("/api/agent/v1").RequireAuthorization("AgentOnly");
         agent.AddEndpointFilter(async (context, next) =>

@@ -7,6 +7,7 @@ namespace AstralRecordControl.Agent;
 
 public interface IRunnerClient
 {
+    Task<RunnerMetricsSnapshot> ReadMetricsAsync(CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
     Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken);
     Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken);
     Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
@@ -25,6 +26,7 @@ public interface IRunnerClient
 
 public sealed class RunnerClient(AgentConfiguration configuration) : IRunnerClient
 {
+    public Task<RunnerMetricsSnapshot> ReadMetricsAsync(CancellationToken cancellationToken) => SendAsync<RunnerMetricsSnapshot>("ReadMetrics", new { }, cancellationToken);
     public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => SendAsync<RunnerSnapshot>("GetSnapshot", new { }, cancellationToken);
     public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => SendAsync<RunnerSnapshot>("ApplyInventory", new ApplyInventoryRequest(inventory), cancellationToken);
     public Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken) => SendAsync<ResourceHold>("AcquireHold", request, cancellationToken);

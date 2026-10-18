@@ -22,6 +22,9 @@ public static class AgentSchedulePlanner
             var anchor = trigger.AnchorUtc!.Value;
             var interval = TimeSpan.FromSeconds(trigger.Seconds!.Value).Ticks;
             var firstIndex = afterExclusive < anchor ? 0 : (afterExclusive - anchor).Ticks / interval + 1;
+            // Bound expired history from the latest side, so an outage never hides a current due time.
+            var lastIndex = throughInclusive < anchor ? -1 : (throughInclusive - anchor).Ticks / interval;
+            firstIndex = Math.Max(firstIndex, lastIndex - 999);
             var result = new List<DateTimeOffset>();
             for (var index = firstIndex; index < firstIndex + 1000; index++)
             {
