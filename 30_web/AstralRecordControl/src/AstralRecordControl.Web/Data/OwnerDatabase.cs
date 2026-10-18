@@ -6,7 +6,7 @@ namespace AstralRecordControl.Web.Data;
 
 public static class ControlDatabase
 {
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
     public static async Task InitializeAsync(ControlDbContext db, CancellationToken cancellationToken = default)
     {
         await db.Database.OpenConnectionAsync(cancellationToken);
@@ -44,6 +44,25 @@ public static class ControlDatabase
                     PRAGMA user_version=2;
                     """, cancellationToken);
                 await db.Database.ExecuteSqlRawAsync(CliAuthentication.SchemaSql, cancellationToken);
+                await migration.CommitAsync(cancellationToken);
+                version = 2;
+            }
+            if (version == 2)
+            {
+                if (connection is not SqliteConnection source) throw new InvalidOperationException("control.db requires SQLite.");
+                await using (var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = source.DataSource + ".before-v3.bak", Pooling = false }.ToString()))
+                {
+                    await backup.OpenAsync(cancellationToken);
+                    source.BackupDatabase(backup);
+                }
+                await using var migration = await db.Database.BeginTransactionAsync(cancellationToken);
+                await db.Database.ExecuteSqlRawAsync("""
+                    CREATE TABLE Transfers (TransferId TEXT NOT NULL PRIMARY KEY, IdempotencyKey TEXT NOT NULL, RequestSha256 TEXT NOT NULL, SourceHostId TEXT NULL, DestinationHostId TEXT NULL, OperationId TEXT NOT NULL, ServerId TEXT NOT NULL, ConsumingOperationId TEXT NULL, Status TEXT NOT NULL, SizeBytes INTEGER NULL, Sha256 TEXT NULL, CommittedOffset INTEGER NOT NULL, CreatedAtUtc TEXT NOT NULL, ExpiresAtUtc TEXT NOT NULL, VerifiedAtUtc TEXT NULL, ConsumedAtUtc TEXT NULL, FOREIGN KEY(ServerId) REFERENCES Servers(ServerId) ON DELETE RESTRICT);
+                    CREATE UNIQUE INDEX IX_Transfers_IdempotencyKey ON Transfers(IdempotencyKey);
+                    CREATE INDEX IX_Transfers_ExpiresAtUtc ON Transfers(ExpiresAtUtc);
+                    CREATE TABLE TransferChunks (TransferId TEXT NOT NULL, Offset INTEGER NOT NULL, SizeBytes INTEGER NOT NULL, Sha256 TEXT NOT NULL, PRIMARY KEY(TransferId, Offset), FOREIGN KEY(TransferId) REFERENCES Transfers(TransferId) ON DELETE CASCADE);
+                    PRAGMA user_version=3;
+                    """, cancellationToken);
                 await migration.CommitAsync(cancellationToken);
                 return;
             }
