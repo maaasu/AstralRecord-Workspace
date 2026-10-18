@@ -35,7 +35,13 @@ public sealed class MetricsStore(ControlDbContext db, TimeProvider clock)
         await AccumulateAsync(hostId, HostKey, batch.ObservedAtUtc, null, batch.Host, null);
         foreach (var sample in batch.Servers)
             await AccumulateAsync(hostId, sample.ServerId.ToString("D"), batch.ObservedAtUtc, sample.ProcessState, null, sample);
-        // Retention is based on server time, never an untrusted Agent timestamp.
+        await PruneAsync();
+    }
+
+    // Uses server time and can run without Agent heartbeats.
+    public async Task PruneAsync()
+    {
+        var now = clock.GetUtcNow();
         await db.MetricBuckets.Where(row => row.Granularity == "minute" && row.BucketUtcTicks < now.AddDays(-7).UtcTicks ||
             row.Granularity == "hour" && row.BucketUtcTicks < now.AddDays(-90).UtcTicks).ExecuteDeleteAsync();
     }

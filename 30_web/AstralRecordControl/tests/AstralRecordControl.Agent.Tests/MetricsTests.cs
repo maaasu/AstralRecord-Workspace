@@ -28,6 +28,54 @@ public sealed class MetricsTests
         Assert.Null(offline.Host.CpuPercent);
     }
 
+    [Fact]
+    public async Task SamplerOnlyQueriesAppliedRunningJavaPortsAndPreservesZero()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "control-metrics-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var hostId = Guid.NewGuid();
+            using var store = new AgentStore(root, hostId);
+            var configs = new[]
+            {
+                Config(hostId, ServerKind.Java, 25565), Config(hostId, ServerKind.Java, 25566),
+                Config(hostId, ServerKind.Bedrock, 19132), Config(hostId, ServerKind.Java, null)
+            };
+            var snapshot = new InventorySnapshot { HostId = hostId, Revision = 1, Servers = configs };
+            var json = ControlJson.Serialize(snapshot);
+            var envelope = new InventoryEnvelope(ControlProtocol.Version, hostId, 1, json, ControlProtocol.Hash(json));
+            store.PrepareInventory(envelope); store.CommitInventory(envelope);
+            var runtime = new RunnerSnapshot { Servers =
+            [
+                new ServerRuntimeSnapshot { ServerId = configs[0].ServerId, ProcessState = ProcessState.Running },
+                new ServerRuntimeSnapshot { ServerId = configs[1].ServerId, ProcessState = ProcessState.Stopped },
+                new ServerRuntimeSnapshot { ServerId = configs[2].ServerId, ProcessState = ProcessState.Running },
+                new ServerRuntimeSnapshot { ServerId = configs[3].ServerId, ProcessState = ProcessState.Running }
+            ] };
+            var gameProbe = new FakeGameProbe();
+            var sampler = new AgentMetricsSampler(new FakeMetricsRunner(Guid.NewGuid(), Guid.NewGuid()),
+                new AgentConfiguration(), hostProbe: new EmptyHostProbe(), store: store, gameProbe: gameProbe);
+            var sample = await sampler.SampleAsync(runtime, true, CancellationToken.None);
+            Assert.Equal([25565], gameProbe.Ports);
+            Assert.Equal(0, sample.Servers.Single(s => s.ServerId == configs[0].ServerId).PlayerCount);
+            Assert.All(sample.Servers.Skip(1), s => Assert.Null(s.PlayerCount));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+    }
+
+    private static ServerConfig Config(Guid hostId, ServerKind kind, int? port) => new()
+    {
+        ServerId = Guid.NewGuid(), HostId = hostId, Revision = 1, Kind = kind,
+        ManagedRootId = Guid.NewGuid(), ExecutableId = Guid.NewGuid(),
+        ServerDirectory = "server", ListenPort = port
+    };
+    private sealed class FakeGameProbe : IJavaServerStatusProbe
+    {
+        public List<int> Ports { get; } = [];
+        public Task<int?> QueryPlayerCountAsync(int port, CancellationToken cancellationToken)
+        { Ports.Add(port); return Task.FromResult<int?>(0); }
+    }
+
     private sealed class MutableClock(DateTimeOffset now) : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = now;

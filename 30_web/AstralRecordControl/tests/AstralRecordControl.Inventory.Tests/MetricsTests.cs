@@ -40,12 +40,12 @@ public sealed class MetricsTests
         Assert.Equal("Offline", offline.ConnectionState);
         Assert.Null(offline.ProcessState);
         clock.Now = start.AddDays(8);
-        await store.AcceptAsync(hostId, Batch(clock.Now, serverId, null, null), true, [runtime]); await db.SaveChangesAsync();
+        await store.PruneAsync(); // No heartbeat arrives while the Agent is offline.
         Assert.DoesNotContain(await db.MetricBuckets.ToArrayAsync(), x => x.Granularity == "minute" && x.BucketUtcTicks == start.UtcTicks);
         Assert.Contains(await db.MetricBuckets.ToArrayAsync(), x => x.Granularity == "hour" && x.BucketUtcTicks == start.UtcTicks);
         await Assert.ThrowsAsync<InventoryFault>(() => store.QueryServerAsync(serverId, start, clock.Now, "minute"));
         clock.Now = start.AddDays(91);
-        await store.AcceptAsync(hostId, Batch(clock.Now, serverId, null, null), true, [runtime]); await db.SaveChangesAsync();
+        await store.PruneAsync();
         Assert.DoesNotContain(await db.MetricBuckets.ToArrayAsync(), x => x.Granularity == "hour" && x.BucketUtcTicks == start.UtcTicks);
     }
 
