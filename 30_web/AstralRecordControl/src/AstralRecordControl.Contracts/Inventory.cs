@@ -61,7 +61,9 @@ public static class InventoryValidation
 {
     public static void Validate(InventorySnapshot inventory, Guid hostId)
     {
+        ArgumentNullException.ThrowIfNull(inventory);
         if (inventory.SchemaVersion != 1 || inventory.HostId != hostId || hostId == Guid.Empty || inventory.Revision < 0) throw new ArgumentException("Invalid inventory identity/version.");
+        if (inventory.Servers is null || inventory.Schedules is null || inventory.BackupProfiles is null || inventory.Servers.Any(s => s is null)) throw new ArgumentException("Missing inventory arrays.");
         if (inventory.Servers.Length > 32 || inventory.Schedules.Length != 0 || inventory.BackupProfiles.Length != 0) throw new ArgumentException("Unsupported P0 inventory capability.");
         if (inventory.Servers.Select(s => s.ServerId).Distinct().Count() != inventory.Servers.Length) throw new ArgumentException("Duplicate server ID.");
         foreach (var config in inventory.Servers) Validate(config, hostId);
@@ -82,6 +84,8 @@ public static class InventoryValidation
     }
     public static void Validate(ServerConfig c, Guid hostId)
     {
+        ArgumentNullException.ThrowIfNull(c);
+        if (c.ArgumentList is null || c.DependsOnServerIds is null || c.IgnoredExitCodes is null || c.IgnoredExitCodes.Length > 128 || c.DependsOnServerIds.Length > 32) throw new ArgumentException("Invalid server arrays.");
         if (c.SchemaVersion != 1 || c.HostId != hostId || c.HostId == Guid.Empty || c.ServerId == Guid.Empty || c.Revision < 1 || c.ManagedRootId == Guid.Empty || c.ExecutableId == Guid.Empty) throw new ArgumentException("Invalid server identity/version.");
         if (!Enum.IsDefined(c.Kind) || !Enum.IsDefined(c.DependencyReadiness) || !ControlProtocol.IsRelativePath(c.ServerDirectory)) throw new ArgumentException("Invalid server kind/path.");
         if (string.IsNullOrWhiteSpace(c.StopCommand) || System.Text.Encoding.UTF8.GetByteCount(c.StopCommand) > 4096 || c.StopCommand.Any(ch => ch is '\r' or '\n' or '\0')) throw new ArgumentException("Invalid stop command.");
@@ -91,6 +95,8 @@ public static class InventoryValidation
     }
     public static InventorySnapshot ReadEnvelope(InventoryEnvelope envelope, Guid hostId)
     {
+        ArgumentNullException.ThrowIfNull(envelope);
+        if (envelope.SnapshotJson is null) throw new ArgumentException("Missing inventory JSON.");
         if (envelope.ProtocolVersion != 1 || envelope.HostId != hostId || !ControlProtocol.IsHash(envelope.Sha256) || ControlProtocol.Hash(envelope.SnapshotJson) != envelope.Sha256 || System.Text.Encoding.UTF8.GetByteCount(envelope.SnapshotJson) > ControlProtocol.MaxInventoryBytes) throw new ArgumentException("Invalid inventory envelope/hash.");
         var snapshot = ControlJson.Deserialize<InventorySnapshot>(envelope.SnapshotJson);
         Validate(snapshot, hostId);

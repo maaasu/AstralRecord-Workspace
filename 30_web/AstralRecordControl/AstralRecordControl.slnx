@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AstralRecordControl.Contracts/AstralRecordControl.Contracts.csproj" />
+    <Project Path="src/AstralRecordControl.Web/AstralRecordControl.Web.csproj" />
+    <Project Path="src/AstralRecordControl.Cli/AstralRecordControl.Cli.csproj" />
+    <Project Path="src/AstralRecordControl.Agent/AstralRecordControl.Agent.csproj" />
+    <Project Path="src/AstralRecordControl.Runner/AstralRecordControl.Runner.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AstralRecordControl.Contracts.Tests/AstralRecordControl.Contracts.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.Authentication.Tests/AstralRecordControl.Authentication.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.Inventory.Tests/AstralRecordControl.Inventory.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.Agent.Tests/AstralRecordControl.Agent.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.Runner.Tests/AstralRecordControl.Runner.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -2,6 +2,8 @@
 
 番号付きの実行入口BATはこのディレクトリ直下、複数ファイルで構成される実装や環境設定は用途別の専用ディレクトリに配置します。単一ファイルで完結する小規模なPowerShellジェネレーターだけは直下に置きます。採番したBATは、どのカレントディレクトリからでも実行できます。
 
+独立管理系AstralRecordControlのP0用publish・Windowsサービス登録・配布前検査・Web/Agent更新は [control-deploy](control-deploy/README.md) を使用します。既存01/16とは独立し、P0ではMinecraftの起動・停止を行いません。
+
 ## 実行入口
 
 | 番号 | bat | 用途 |

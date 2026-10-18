@@ -1,6 +1,6 @@
 # AstralRecordControl 設計書
 
-- 設計状態: 採用済み・未実装。既存システムの実装済み仕様とは区別する。
+- 設計状態: 採用済み。P0の台帳・認証・通信基盤を実装。P1以降のゲーム運用機能は未実装。
 - 初版: 2026-10-18。v1の対象OSはWindows、実装基盤は.NET 10。
 - 目的: Craftyを使わず、単一の管理Webから複数PC上のMinecraftを運用する。
 - 配置: Devは開発PC、チャンネルはMC用PC。管理Webはそれらと独立したWeb管理用PCに置く。
@@ -56,4 +56,4 @@
 
 固定DNS名、TLS証明書、PCの実パス、Javaのインストール先、既存runtimeServerIdとの対応、バックアップ実保存先は導入時の設定値。実サーバーへ接続できたことや既存設定の正確な版は前提にしない。これらは実装上の未決仕様ではなく、登録時に検証する必須入力である。
 
-この設計書追加ではアプリ、Windowsサービス、DB、公開Web、Plugin、配布BATを変更しない。各段階の実装完了までは現行運用を継続する。
+P0の実装入口は [Control README](../../../30_web/AstralRecordControl/README.md)、導入入口は [control-deploy](../../../60_tool/control-deploy/README.md)。本設計の完成形のAPI/機能をすべて実装済みとは扱わない。P0ではServerをpilot台帳へ登録するだけで、Minecraftの起動停止・既存配布BATとの共通gate・ファイル変更は有効化しない。

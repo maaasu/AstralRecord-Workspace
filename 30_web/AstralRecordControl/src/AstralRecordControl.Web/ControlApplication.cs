@@ -2,6 +2,7 @@ using AstralRecordControl.Contracts;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using System.Text;
 
 namespace AstralRecordControl.Web;
 
@@ -10,6 +11,10 @@ public static partial class ControlApplication
     public static WebApplication Build(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        var dataRoot = builder.Configuration["Control:DataRoot"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "Web");
+        builder.Configuration.AddJsonFile(Path.Combine(dataRoot, "config.json"), optional: true, reloadOnChange: false);
+        builder.Configuration.AddEnvironmentVariables();
+        builder.Configuration.AddCommandLine(args);
         builder.Services.AddWindowsService(o => o.ServiceName = "AstralRecordControl.Web");
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddRazorPages();
@@ -33,6 +38,15 @@ public static partial class ControlApplication
             context.Response.StatusCode = 500;
             await context.Response.WriteAsJsonAsync(new { errorCode = "InternalError", traceId = context.TraceIdentifier });
         }));
+        if (!app.Environment.IsEnvironment("Testing")) app.UseHsts();
+        app.Use(async (context, next) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            context.Response.Headers["Referrer-Policy"] = "no-referrer";
+            context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'; base-uri 'none'";
+            await next(context);
+        });
         app.Use(async (context, next) =>
         {
             if (context.Request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true)
@@ -41,12 +55,12 @@ public static partial class ControlApplication
                 context.Request.EnableBuffering(30 * 1024, ControlProtocol.MaxMessageBytes);
                 try
                 {
-                    using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
+                    using var reader = new StreamReader(context.Request.Body, new UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: false, leaveOpen: true);
                     var body = await reader.ReadToEndAsync(context.RequestAborted);
                     if (body.Length > 0) ControlJson.ValidateJson(body);
                     context.Request.Body.Position = 0;
                 }
-                catch (Exception exception) when (exception is JsonException or IOException)
+                catch (Exception exception) when (exception is JsonException or IOException or DecoderFallbackException)
                 {
                     context.Response.StatusCode = 400;
                     await context.Response.WriteAsJsonAsync(new { errorCode = "InvalidJson" });

@@ -15,9 +15,9 @@ public static partial class ControlProtocol
     public const string UiHubPath = "/hubs/control-ui/v1";
     public const string RunnerPipeName = "AstralRecordControl.Runner.v1";
     public static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
-    public static bool IsKey(string value) => KeyPattern().IsMatch(value);
-    public static bool IsHash(string value) => HashPattern().IsMatch(value);
-    public static bool IsRelativePath(string path)
+    public static bool IsKey(string? value) => value is not null && KeyPattern().IsMatch(value);
+    public static bool IsHash(string? value) => value is not null && HashPattern().IsMatch(value);
+    public static bool IsRelativePath(string? path)
     {
         if (string.IsNullOrEmpty(path) || path.Length > 512 || path.Contains('\\') || path.StartsWith('/') || path.Contains(':')) return false;
         return path.Split('/').All(part => part.Length > 0 && part is not "." and not ".."

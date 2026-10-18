@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] | AstralRecordControl</title>
+    <link rel="stylesheet" href="~/css/control.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <a class="brand" href="/">AstralRecordControl</a>
+        <span class="badge">P0 · 台帳と接続確認</span>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <nav aria-label="管理メニュー">
+                <a href="/">概要</a><a href="/Hosts">PC台帳</a><a href="/Servers">サーバー台帳</a>
+                <a href="/Security">認証設定</a><a href="/Logout">ログアウト</a>
+            </nav>
+        }
+    </header>
+    <main id="main">
+        @RenderBody()
+    </main>
+    <footer>Minecraftの操作はP1以降で利用できます。接続が切れたPCの状態は最終確認時点の情報です。</footer>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
