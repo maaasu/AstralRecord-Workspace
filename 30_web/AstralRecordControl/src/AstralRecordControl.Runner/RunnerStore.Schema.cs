@@ -28,7 +28,7 @@ public sealed partial class RunnerStore
         Execute("CREATE INDEX IX_ExecutionLedger_Reservation ON ExecutionLedger(reservation,phase);", transaction);
         Execute("CREATE TABLE LogSegments(serverId TEXT NOT NULL,sessionId TEXT NOT NULL,segmentId INTEGER NOT NULL,path TEXT NOT NULL,firstSequence INTEGER NOT NULL,lastSequence INTEGER NOT NULL,bytes INTEGER NOT NULL,createdUtc TEXT NOT NULL,PRIMARY KEY(serverId,sessionId,segmentId));", transaction);
         Execute("CREATE TABLE LogLines(serverId TEXT NOT NULL,sessionId TEXT NOT NULL,sequence INTEGER NOT NULL,segmentId INTEGER NOT NULL,offset INTEGER NOT NULL,bytes INTEGER NOT NULL,stream TEXT NOT NULL,truncated INTEGER NOT NULL,createdUtc TEXT NOT NULL,PRIMARY KEY(serverId,sessionId,sequence));", transaction);
-        Execute("CREATE TABLE LogCursors(serverId TEXT NOT NULL,sessionId TEXT NOT NULL,nextSequence INTEGER NOT NULL,currentSegment INTEGER NOT NULL,PRIMARY KEY(serverId,sessionId));", transaction);
+        Execute("CREATE TABLE LogCursors(serverId TEXT NOT NULL,sessionId TEXT NOT NULL,nextSequence INTEGER NOT NULL,currentSegment INTEGER NOT NULL,retentionDays INTEGER NOT NULL,PRIMARY KEY(serverId,sessionId));", transaction);
         Execute("CREATE TABLE RecoveryAudit(id TEXT PRIMARY KEY,serverId TEXT NOT NULL,sessionId TEXT,action TEXT NOT NULL,reason TEXT NOT NULL,occurredUtc TEXT NOT NULL);", transaction);
         Execute("PRAGMA user_version=2;", transaction);
         transaction.Commit();

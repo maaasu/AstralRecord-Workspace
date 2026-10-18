@@ -9,6 +9,7 @@ public static class Program
         var ignoreStop = args.Contains("ignore-stop", StringComparer.Ordinal);
         Console.WriteLine("fixture-ready");
         Console.Error.WriteLine("fixture-stderr");
+        if (args.Contains("no-read", StringComparer.Ordinal)) await Task.Delay(Timeout.InfiniteTimeSpan);
         while (true)
         {
             var line = await Console.In.ReadLineAsync();

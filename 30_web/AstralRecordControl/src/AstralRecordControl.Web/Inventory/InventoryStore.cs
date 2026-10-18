@@ -119,6 +119,7 @@ public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate,
         if (config.ServerId != server.ServerId || config.Revision != revision) throw new InventoryFault(409, "StaleRevision");
         InventoryValidation.Validate(config, host.HostId);
         if (config.DependencyReadiness != DependencyReadiness.Running) throw new InventoryFault(409, "UnsupportedCapability");
+        if (ProcessControlEnabled && config.DependsOnServerIds.Length != 0) throw new InventoryFault(409, "UnsupportedCapability");
         if (config.AutoStart || config.RestartOnCrash)
         {
             var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);

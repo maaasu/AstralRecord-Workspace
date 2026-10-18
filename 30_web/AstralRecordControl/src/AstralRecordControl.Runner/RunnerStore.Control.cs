@@ -190,7 +190,10 @@ public sealed partial class RunnerStore
                 if (!IdentityMatches(process, inspected.Session)) throw new RunnerFault(ErrorCode.RecoveryRequired);
                 process.Kill(entireProcessTree: false);
                 if (!process.WaitForExit(30000)) throw new RunnerFault(ErrorCode.Timeout);
-                Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code WHERE sessionId=$session;", null, ("$now", clock.GetUtcNow().ToString("O")), ("$code", process.ExitCode), ("$session", inspected.Session.ServerSessionId.ToString()));
+                object exitCode;
+                try { exitCode = process.ExitCode; }
+                catch (InvalidOperationException) { exitCode = DBNull.Value; }
+                Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code WHERE sessionId=$session;", null, ("$now", clock.GetUtcNow().ToString("O")), ("$code", exitCode), ("$session", inspected.Session.ServerSessionId.ToString()));
             }
             else if (request.Action == WorkflowRecoveryAction.AbortAfterInspection && inspected.ProcessAlive)
             {

@@ -25,10 +25,10 @@ public sealed partial class LiveTransportTests
         var credential = await fixture.OwnerApiAsync<CredentialIssued>(owner, HttpMethod.Post, $"/api/control/v1/hosts/{host.HostId}/credentials", new { });
         using var identity = WindowsIdentity.GetCurrent();
         var pipeName = "control-p1-live-" + Guid.NewGuid().ToString("N");
-        using var runnerStore = new RunnerStore(Path.Combine(fixture.Root, "Runner"), new RunnerConfiguration
-        { HostId = host.HostId, AgentServiceSid = identity.User!.Value, PipeName = pipeName, LocalResources = fixture.Resources, EnableProcessControl = true });
-        using var runner = new RunnerService(runnerStore, new RunnerConfiguration
-        { HostId = host.HostId, AgentServiceSid = identity.User!.Value, PipeName = pipeName, LocalResources = fixture.Resources, EnableProcessControl = true }, NullLogger<RunnerService>.Instance);
+        var runnerConfiguration = new RunnerConfiguration
+        { HostId = host.HostId, AgentSid = identity.User!.Value, PipeName = pipeName, LocalResources = fixture.Resources, EnableProcessControl = true };
+        using var runnerStore = new RunnerStore(Path.Combine(fixture.Root, "Runner"), runnerConfiguration);
+        using var runner = new RunnerService(runnerConfiguration, new RunnerDispatcher(runnerStore), NullLogger<RunnerService>.Instance);
         await runner.StartAsync(CancellationToken.None);
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var configuration = new AgentConfiguration { HostId = host.HostId, ServerUrl = fixture.Origin.ToString(), RunnerPipeName = pipeName, LocalResources = fixture.Resources };
@@ -68,6 +68,7 @@ public sealed partial class LiveTransportTests
             { WorkflowId = workflowId, ResourceKeys = ["server:" + serverId], AdapterId = "01", RunReference = "fixture-run", ServerConditions = [new GateServerCondition(serverId, ProcessRequirement.Stopped)] }, create: true);
             Assert.Equal(ReservationStatus.Prepared, lease.Status);
             await fixture.OwnerApiAsync<JsonElement>(owner, HttpMethod.Post, $"/api/control/v1/reservations/{lease.ReservationId}/validate", new GateValidateRequest(workflowId, lease.Fences, "Deploy", "fixture-run"), expectedStatus: HttpStatusCode.OK);
+            await fixture.OwnerApiAsync<JsonElement>(owner, HttpMethod.Post, $"/api/control/v1/reservations/{lease.ReservationId}/validate", new GateValidateRequest(workflowId, lease.Fences, "WaitForStartup", "fixture-run"), expectedStatus: HttpStatusCode.OK);
             var start = await SendOperation(OperationKind.Start, new { }, workflowId, lease.ReservationId);
             Assert.Equal(OperationStatus.Succeeded, await AwaitOperation(start));
             var running = Assert.Single((await runnerClient.GetSnapshotAsync(timeout.Token)).Servers);
@@ -76,9 +77,10 @@ public sealed partial class LiveTransportTests
             await Task.Delay(100, timeout.Token);
             var held = ControlJson.Deserialize<GateLease>(await owner.GetStringAsync($"/api/control/v1/reservations/{lease.ReservationId}", timeout.Token));
             Assert.Equal(ReservationStatus.Prepared, held.Status);
-            var stop = await SendOperation(OperationKind.Stop, new { }, workflowId, lease.ReservationId);
-            Assert.Equal(OperationStatus.Succeeded, await AwaitOperation(stop));
             await fixture.OwnerApiAsync<object>(owner, HttpMethod.Post, $"/api/control/v1/reservations/{lease.ReservationId}/release", new GateReleaseRequest(workflowId, lease.Fences, GateOutcome.Succeeded, "fixture-run"), expectedStatus: HttpStatusCode.NoContent);
+            var stop = await SendOperation(OperationKind.Stop, new { });
+            Assert.Equal(OperationStatus.Succeeded, await AwaitOperation(stop));
+            await WaitForNoHolds();
 
             var secondStart = await SendOperation(OperationKind.Start, new { });
             Assert.Equal(OperationStatus.Succeeded, await AwaitOperation(secondStart));
@@ -95,7 +97,7 @@ public sealed partial class LiveTransportTests
                 if (!logs.Rows.Any(x => x.Text.Contains("echo:say fixture-once", StringComparison.Ordinal))) await Task.Delay(50, timeout.Token);
             } while (!logs.Rows.Any(x => x.Text.Contains("echo:say fixture-once", StringComparison.Ordinal)));
             Assert.Contains(logs.Rows, x => x.Stream == "stderr" && x.Text.Contains("fixture-stderr", StringComparison.Ordinal));
-            Assert.Single(logs.Rows.Where(x => x.Text.Contains("echo:say fixture-once", StringComparison.Ordinal)));
+            Assert.Single(logs.Rows, x => x.Text.Contains("echo:say fixture-once", StringComparison.Ordinal));
             // Revoking the Agent connection does not own or terminate the running process.
             await fixture.OwnerApiAsync<object>(owner, HttpMethod.Delete, $"/api/control/v1/hosts/{host.HostId}/credentials/{credential.CredentialId}", null);
             Assert.Equal(ProcessState.Running, Assert.Single((await runnerClient.GetSnapshotAsync(timeout.Token)).Servers).ProcessState);
@@ -116,14 +118,22 @@ public sealed partial class LiveTransportTests
             {
                 while (true)
                 {
-                    var current = JsonDocument.Parse(await owner.GetStringAsync($"/api/control/v1/operations/{operation}", timeout.Token));
+                    using var current = JsonDocument.Parse(await owner.GetStringAsync($"/api/control/v1/operations/{operation}", timeout.Token));
                     var status = Enum.Parse<OperationStatus>(current.RootElement.GetProperty("status").GetString()!);
                     if (OperationValidation.IsTerminal(status) || status == OperationStatus.NeedsAttention) return status;
                     await Task.Delay(100, timeout.Token);
                 }
             }
             async Task WaitForNoHolds()
-            { while ((await runnerClient.GetSnapshotAsync(timeout.Token)).Holds.Length > 0) await Task.Delay(100, timeout.Token); }
+            {
+                while (true)
+                {
+                    var state = await runnerClient.GetSnapshotAsync(timeout.Token);
+                    if (state.Holds.Length == 0) return;
+                    await Heartbeat(hub, epoch, state, timeout.Token);
+                    await Task.Delay(500, timeout.Token);
+                }
+            }
         }
         finally
         {

@@ -110,7 +110,7 @@ public static class ControlCli
             }
             throw new ArgumentException();
         }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException)
+        catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException)
         {
             // Remote bodies, commands, credentials and exception messages are never echoed.
             Console.Error.WriteLine("Control CLI処理を拒否しました。設定、認証期限、予約状態を確認してください。"); return 1;

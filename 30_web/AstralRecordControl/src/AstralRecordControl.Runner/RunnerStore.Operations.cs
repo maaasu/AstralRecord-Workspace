@@ -71,6 +71,7 @@ public sealed partial class RunnerStore
         var session = reader.IsDBNull(3) ? (Guid?)null : Guid.Parse(reader.GetString(3));
         var recovery = reader.GetInt64(4) != 0;
         reader.Close();
+        if (config.Kind != ServerKind.Java || config.DependencyReadiness != DependencyReadiness.Running || config.DependsOnServerIds.Length != 0) throw new RunnerFault(ErrorCode.UnsupportedCapability);
         if (config.Revision != command.ConfigRevision) throw new RunnerFault(ErrorCode.StaleRevision);
         if (revision != command.ExpectedStateRevision || session != command.ExpectedServerSessionId) throw new RunnerFault(ErrorCode.StateConflict);
         var rescueKill = command.Kind == OperationKind.Kill && IsRescueKill(command);

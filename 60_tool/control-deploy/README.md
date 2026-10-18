@@ -5,7 +5,7 @@
 ## パッケージ作成
 
 ```powershell
-pwsh -File ./60_tool/control-deploy/Publish-Control.ps1 -OutputDirectory C:\ControlPackages\p0-001
+pwsh -File ./60_tool/control-deploy/Publish-Control.ps1 -OutputDirectory C:\ControlPackages\p1-001
 ```
 
 出力は`Web`、`Agent`、`Runner`、`Cli`の4ディレクトリです。バイナリだけを配布し、ProgramData・DB・鍵・ローカル設定を混在させません。秘密を含むパッケージや`P1`以外のmanifestは配布前検査で拒否します。
@@ -15,10 +15,10 @@ pwsh -File ./60_tool/control-deploy/Publish-Control.ps1 -OutputDirectory C:\Cont
 対象PCの管理者PowerShellで、管理PCはWeb、開発PCとMC用PCはRunner/Agentをそれぞれ登録します。登録だけではサービスを開始しません。
 
 ```powershell
-./60_tool/control-deploy/Install-Control.ps1 -Component Web -PackageDirectory C:\ControlPackages\p0-001\Web
+./60_tool/control-deploy/Install-Control.ps1 -Component Web -PackageDirectory C:\ControlPackages\p1-001\Web
 # 各ゲームPCで実行
-./60_tool/control-deploy/Install-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p0-001\Runner
-./60_tool/control-deploy/Install-Control.ps1 -Component Agent -PackageDirectory C:\ControlPackages\p0-001\Agent
+./60_tool/control-deploy/Install-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p1-001\Runner
+./60_tool/control-deploy/Install-Control.ps1 -Component Agent -PackageDirectory C:\ControlPackages\p1-001\Agent
 ```
 
 既定のbinary配置は`%ProgramFiles%\AstralRecordControl\<Component>\<releaseId>`、データは`%ProgramData%\AstralRecordControl\<Component>`。専用仮想サービスアカウント`NT SERVICE\AstralRecordControl.<Component>`で動作し、通常の管理者権限を付与しません。データは該当サービス/SYSTEM/Administratorsのみ、バイナリはサービスに読取/実行だけを付与します。登録結果に表示されたAgent SIDをRunnerへ設定します。
@@ -52,8 +52,8 @@ Webを停止したまま、配布したCliの実行ファイルを管理者の�
 
 ```powershell
 $env:Control__DataRoot = "$env:ProgramData\AstralRecordControl\Web"
-C:\ControlPackages\p0-001\Cli\AstralRecordControl.Cli.exe owner create
-./60_tool/control-deploy/Install-Control.ps1 -Component Web -PackageDirectory C:\ControlPackages\p0-001\Web -PreflightOnly
+C:\ControlPackages\p1-001\Cli\AstralRecordControl.Cli.exe owner create
+./60_tool/control-deploy/Install-Control.ps1 -Component Web -PackageDirectory C:\ControlPackages\p1-001\Web -PreflightOnly
 Start-Service AstralRecordControl.Web
 ```
 
@@ -83,22 +83,22 @@ Runnerの例:
 }
 ```
 
-Agentの`hostId`はRunnerと一致させ、`runnerPipeName`はRunnerの`pipeName`と一致させます。既定pipe名は1PC1組を前提にしています。DataRoot/管理rootへサービスアカウントの必要権限を付与します。P0ではゲームファイルを書き換えず、実行ファイルも起動しません。
+Agentの`hostId`はRunnerと一致させ、`runnerPipeName`はRunnerの`pipeName`と一致させます。既定pipe名は1PC1組を前提にしています。DataRoot/管理rootへサービスアカウントの必要権限を付与します。初期状態ではEnableProcessControl=falseとして登録し、共通gateの導入確認後に有効化します。
 
 ```powershell
-./60_tool/control-deploy/Install-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p0-001\Runner -PreflightOnly
-./60_tool/control-deploy/Install-Control.ps1 -Component Agent -PackageDirectory C:\ControlPackages\p0-001\Agent -PreflightOnly
+./60_tool/control-deploy/Install-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p1-001\Runner -PreflightOnly
+./60_tool/control-deploy/Install-Control.ps1 -Component Agent -PackageDirectory C:\ControlPackages\p1-001\Agent -PreflightOnly
 Start-Service AstralRecordControl.Runner
 Start-Service AstralRecordControl.Agent
 ```
 
-Hello→Reconcile後にHostがOnlineになり、登録root/executableが表示されます。`/Servers`から開発PCへ`dev`、MC用PCへ`channel1`/`channel2`をpilot登録します。希望版と適用版が一致することを確認します。設定適用に失敗した場合は適用版が進まず、既存の設定が維持されます。
+Hello→Reconcile後にHostがOnlineになり、登録root/executableが表示されます。`/Servers`から開発PCへ`dev`、MC用PCへ`channel1`/`channel2`を登録します。希望版と適用版が一致することを確認します。設定適用に失敗した場合は適用版が進まず、既存の設定が維持されます。
 
 ## 更新
 
 ```powershell
-./60_tool/control-deploy/Update-Control.ps1 -Component Web -PackageDirectory C:\ControlPackages\p0-002\Web
-./60_tool/control-deploy/Update-Control.ps1 -Component Agent -PackageDirectory C:\ControlPackages\p0-002\Agent
+./60_tool/control-deploy/Update-Control.ps1 -Component Web -PackageDirectory C:\ControlPackages\p1-002\Web
+./60_tool/control-deploy/Update-Control.ps1 -Component Agent -PackageDirectory C:\ControlPackages\p1-002\Agent
 ```
 
 Web更新はWebだけ、Agent更新はAgentだけを停止します。サービス停止後に排他leaseを取得し、SQLite本体/WAL/SHMを一組として同じdata root内の`updates/<id>`へ退避してから新binaryへ切り替えます。旧binaryと旧サービスパスを残し、設定・鍵・credentialsを上書きしません。失敗時は退避先とサービス状態を確認し、DBを単純に上書きしてACKを巻き戻さないでください。
@@ -118,7 +118,7 @@ Runnerの更新はControl CLIによる`runner check-update`が全ServerのStoppe
 ./60_tool/control-deploy/Enable-ManagedOperations.ps1 -Renew -CliPath 'C:\Program Files\AstralRecordControl\Cli\AstralRecordControl.Cli.exe'
 ```
 
-自動migration対象は空DBの初期作成のみです。未知schemaは起動を拒否します。今後schemaを追加するときはbackup/transaction migrationと更新ツールの受入条件を同時に追加します。
+Web/Agent/Runnerはschema1から2へbackup付きtransactionで移行します。未知schemaは起動を拒否します。更新前snapshotとmigration前backupを保持してください。
 
 ```powershell
 pwsh -NoProfile -File ./60_tool/control-deploy/tests/deployment-preflight.ps1

@@ -47,4 +47,7 @@ public sealed class CliSecurityTests
         Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateExpectedOrigin("https://control.example/", "https://another.example/"));
         Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateExpectedOrigin("https://control.example:8443/", "https://control.example/"));
     }
+    [Fact]
+    public async Task MalformedServerIdIsRejectedWithoutOpeningRunnerPipe()
+        => Assert.Equal(1, await ControlCli.RunAsync(["runner", "inspect", "--server-id", "not-a-guid"]));
 }

@@ -66,6 +66,46 @@ public sealed class ProcessTests
         runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
     }
 
+    [Theory]
+    [InlineData(OperationKind.Stop)]
+    [InlineData(OperationKind.Restart)]
+    public async Task TimedOutPowerOperationCanBeRecoveredByLocalAdministrator(OperationKind kind)
+    {
+        using var fixture = new Fixture(ignoreStop: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var pending = runner.Execute(fixture.Request(runner, hold, kind, timeout: 1));
+        Assert.Equal(OperationStatus.NeedsAttention, (await WaitTerminal(runner, pending.OperationId)).Status);
+        var inspection = runner.InspectRecovery(new(fixture.Server.ServerId));
+        Assert.True(inspection.RecoveryRequired);
+        var recovered = runner.Recover(new(fixture.Server.ServerId, inspection.Runtime.CurrentSessionId, WorkflowRecoveryAction.KillAfterInspection, "fixture inspected"), true);
+        Assert.Equal(ProcessState.Stopped, recovered.Runtime.ProcessState);
+        Assert.False(recovered.RecoveryRequired);
+        Assert.Equal(OperationStatus.Failed, runner.GetExecution(pending.OperationId).Status);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    [Fact]
+    public async Task StopDeadlineIncludesBlockedStdinWrite()
+    {
+        using var fixture = new Fixture(noRead: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var watch = Stopwatch.StartNew();
+        var stop = await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Stop, timeout: 1)).OperationId);
+        Assert.Equal(OperationStatus.NeedsAttention, stop.Status);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(4));
+        var inspected = runner.InspectRecovery(new(fixture.Server.ServerId));
+        runner.Recover(new(fixture.Server.ServerId, inspected.Runtime.CurrentSessionId, WorkflowRecoveryAction.KillAfterInspection, "fixture stdin blocked"), true);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
     [Fact]
     public async Task RunnerRestartLeavesLiveChildUnmanagedAndCannotReplayStdin()
     {
@@ -169,7 +209,14 @@ public sealed class ProcessTests
         await WaitUntil(() => runner.ReadLogs(new ReadLogsRequest { ServerId = fixture.Server.ServerId, SessionId = session }).Rows.Any(r => r.Text == "echo:once-only"));
         Assert.Single(runner.ReadLogs(new ReadLogsRequest { ServerId = fixture.Server.ServerId, SessionId = session }).Rows, r => r.Text == "echo:once-only");
         Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence))).Code);
-        fixture.KillFixtureProcess(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var inspection = runner.InspectRecovery(new(fixture.Server.ServerId));
+        Assert.True(inspection.RecoveryRequired);
+        var acknowledged = runner.Recover(new(fixture.Server.ServerId, session, WorkflowRecoveryAction.AbortAfterInspection, "checked console result; do not resend"), true);
+        Assert.Equal(ProcessState.Running, acknowledged.Runtime.ProcessState);
+        Assert.False(acknowledged.RecoveryRequired);
+        Assert.Equal(OperationStatus.Failed, runner.GetExecution(console.OperationId).Status);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        fixture.KillFixtureProcess(acknowledged);
     }
 
     [Fact]
@@ -183,6 +230,8 @@ public sealed class ProcessTests
         await WaitTerminal(runner, runner.Execute(start).OperationId);
         var original = runner.InspectRecovery(new(fixture.Server.ServerId));
         fixture.Track(original);
+        runner.Dispose();
+        fixture.KillFixtureProcess(original);
         using (var database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.DatabasePath, Pooling = false }.ToString()))
         {
             database.Open();
@@ -197,7 +246,10 @@ public sealed class ProcessTests
         Assert.True(inspected.ProcessAlive);
         Assert.False(inspected.IdentityMatches);
         Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => restarted.Recover(new(fixture.Server.ServerId, inspected.Runtime.CurrentSessionId, WorkflowRecoveryAction.KillAfterInspection, "fixture PID reuse"), true)).Code);
-        fixture.KillFixtureProcess(original);
+        var recovered = restarted.Recover(new(fixture.Server.ServerId, inspected.Runtime.CurrentSessionId, WorkflowRecoveryAction.AbortAfterInspection, "old process exited; PID now belongs to test host"), true);
+        Assert.Equal(ProcessState.Stopped, recovered.Runtime.ProcessState);
+        Assert.False(recovered.RecoveryRequired);
+        restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
     }
 
     [Fact]
@@ -223,6 +275,81 @@ public sealed class ProcessTests
         Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(stopSecond).OperationId)).Status);
         runner.ReleaseHold(new(firstHold.ReservationId, firstHold.OwnerWorkflowId, firstHold.Fence));
         runner.ReleaseHold(new(secondHold.ReservationId, secondHold.OwnerWorkflowId, secondHold.Fence));
+    }
+
+    [Fact]
+    public async Task LogRetentionKeepsActiveSegmentThenReportsGapAfterClosedLogsExpire()
+    {
+        using var fixture = new Fixture();
+        var clock = new FixtureClock();
+        using var runner = fixture.Open(clock);
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        var session = (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId)).ServerSessionId;
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var query = new ReadLogsRequest { ServerId = fixture.Server.ServerId, SessionId = session };
+        await WaitUntil(() => runner.ReadLogs(query).Rows.Length >= 2);
+        var saved = runner.ReadLogs(query);
+        clock.Now = clock.Now.AddDays(31);
+        runner.PruneLogs(force: true);
+        Assert.NotEmpty(runner.ReadLogs(query).Rows);
+        clock.Now = DateTimeOffset.UtcNow;
+        await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Stop)).OperationId);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        var emptyJson = ControlJson.Serialize(new InventorySnapshot { HostId = fixture.Configuration.HostId, Revision = 2 });
+        runner.ApplyInventory(new(1, fixture.Configuration.HostId, 2, emptyJson, ControlProtocol.Hash(emptyJson)));
+        clock.Now = clock.Now.AddDays(31);
+        runner.PruneLogs(force: true);
+        var expired = runner.ReadLogs(query);
+        Assert.Empty(expired.Rows);
+        Assert.True(expired.Gap);
+        Assert.Equal(saved.NextCursor, expired.NextCursor);
+        Assert.Equal(saved.NextCursor + 1, expired.EarliestAvailableCursor);
+    }
+
+    [Fact]
+    public async Task MissingLogFileAfterInterruptedPruneReturnsGapInsteadOfThrowing()
+    {
+        using var fixture = new Fixture();
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        var session = (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId)).ServerSessionId;
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var query = new ReadLogsRequest { ServerId = fixture.Server.ServerId, SessionId = session };
+        await WaitUntil(() => runner.ReadLogs(query).Rows.Length >= 2);
+        await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Stop)).OperationId);
+        var previous = runner.ReadLogs(query);
+        using (var db = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.DatabasePath, Pooling = false }.ToString()))
+        {
+            db.Open(); using var command = db.CreateCommand(); command.CommandText = "SELECT path FROM LogSegments;";
+            using var rows = command.ExecuteReader(); while (rows.Read()) File.Delete(rows.GetString(0));
+        }
+        var current = runner.ReadLogs(query);
+        Assert.True(current.Gap);
+        Assert.Empty(current.Rows);
+        Assert.Equal(previous.NextCursor, current.NextCursor);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    [Fact]
+    public void UnsupportedDependencyChainCannotBeSilentlyStarted()
+    {
+        using var fixture = new Fixture(twoServers: true);
+        using var runner = fixture.Open();
+        var second = fixture.SecondServer!;
+        var json = ControlJson.Serialize(new InventorySnapshot { HostId = fixture.Configuration.HostId, Revision = 1, Servers = [fixture.Server with { DependsOnServerIds = [second.ServerId] }, second] });
+        runner.ApplyInventory(new(1, fixture.Configuration.HostId, 1, json, ControlProtocol.Hash(json)));
+        var hold = fixture.Hold(runner);
+        Assert.Equal(ErrorCode.UnsupportedCapability, Assert.Throws<RunnerFault>(() => runner.Execute(fixture.Request(runner, hold, OperationKind.Start))).Code);
+        Assert.All(runner.GetSnapshot().Servers, state => Assert.Equal(ProcessState.Stopped, state.ProcessState));
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    private sealed class FixtureClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 
     private static async Task<ExecutionSnapshot> WaitTerminal(RunnerStore runner, Guid operationId)
@@ -255,22 +382,23 @@ public sealed class ProcessTests
         public ServerConfig Server { get; }
         public ServerConfig? SecondServer { get; }
         public string DatabasePath => Path.Combine(root, "runner", "runner.db");
-        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false)
+        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false)
         {
             var managed = Path.Combine(root, "managed");
             Directory.CreateDirectory(Path.Combine(managed, "server"));
-            var executable = Path.Combine("C:\\AstralRecord-Worktrees", ".tools", "dotnet", "dotnet.exe");
+            var executable = Path.GetFullPath(Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "../../..", "dotnet.exe"));
             Assert.True(File.Exists(executable));
             var host = Guid.NewGuid(); var managedId = Guid.NewGuid(); var executableId = Guid.NewGuid();
             Configuration = new RunnerConfiguration { HostId = host, EnableProcessControl = true, LocalResources = new HostResources { Roots = [new ManagedRoot { Id = managedId, Path = managed }], Executables = [new ManagedExecutable { Id = executableId, Path = executable, Kind = ServerKind.Java }] } };
             Server = new ServerConfig { ServerId = Guid.NewGuid(), HostId = host, Revision = 1, Kind = ServerKind.Java, ManagedRootId = managedId, ExecutableId = executableId, ServerDirectory = "server", ArgumentList = ignoreStop ? [typeof(Marker).Assembly.Location, "ignore-stop"] : [typeof(Marker).Assembly.Location], AutoStart = autoStart, RestartOnCrash = restartOnCrash, RestartDelaySeconds = 1 };
+            if (noRead) Server = Server with { ArgumentList = [typeof(Marker).Assembly.Location, "no-read"], StopCommand = new string('x', 4096) };
             if (twoServers)
             {
                 Directory.CreateDirectory(Path.Combine(managed, "server2"));
                 SecondServer = Server with { ServerId = Guid.NewGuid(), ServerDirectory = "server2" };
             }
         }
-        public RunnerStore Open() => new(Path.Combine(root, "runner"), Configuration);
+        public RunnerStore Open(TimeProvider? clock = null) => new(Path.Combine(root, "runner"), Configuration, clock);
         public InventoryEnvelope Envelope()
         {
             var inventory = new InventorySnapshot { HostId = Configuration.HostId, Revision = 1, Servers = SecondServer is null ? [Server] : [Server, SecondServer] };

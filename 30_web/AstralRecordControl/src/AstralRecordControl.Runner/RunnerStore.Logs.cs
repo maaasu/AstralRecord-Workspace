@@ -23,6 +23,7 @@ public sealed partial class RunnerStore
             }
             if (sessionId is null) return new LogBatch { ServerId = query.ServerId };
             if (Scalar("SELECT 1 FROM ServerSessions WHERE serverId=$server AND sessionId=$session;", null, ("$server", query.ServerId.ToString()), ("$session", sessionId.Value.ToString())) is null) throw new RunnerFault(ErrorCode.StateConflict);
+            RemoveMissingSegments(query.ServerId.ToString(), sessionId.Value.ToString());
             var earliest = Convert.ToInt64(Scalar("SELECT COALESCE((SELECT MIN(sequence) FROM LogLines WHERE serverId=$server AND sessionId=$session),(SELECT nextSequence FROM LogCursors WHERE serverId=$server AND sessionId=$session),0);", null, ("$server", query.ServerId.ToString()), ("$session", sessionId.Value.ToString())));
             var gap = earliest > 0 && query.AfterSequence < earliest - 1;
             var after = gap ? earliest - 1 : query.AfterSequence;
@@ -86,7 +87,7 @@ public sealed partial class RunnerStore
         var bytes = StrictUtf8.GetBytes(text);
         lock (sync)
         {
-            Execute("INSERT INTO LogCursors VALUES($server,$session,1,0) ON CONFLICT DO NOTHING;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()));
+            Execute("INSERT INTO LogCursors VALUES($server,$session,1,0,$days) ON CONFLICT(serverId,sessionId) DO UPDATE SET retentionDays=$days;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$days", GetServerConfig(serverId).LogRetentionDays));
             var nextSequence = Convert.ToInt64(Scalar("SELECT nextSequence FROM LogCursors WHERE serverId=$server AND sessionId=$session;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString())));
             var segmentId = Convert.ToInt64(Scalar("SELECT COALESCE(MAX(segmentId),0) FROM LogSegments WHERE serverId=$server AND sessionId=$session;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString())));
             var existingBytes = segmentId == 0 ? 0 : Convert.ToInt64(Scalar("SELECT bytes FROM LogSegments WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$segment", segmentId)));
@@ -125,23 +126,43 @@ public sealed partial class RunnerStore
             if (!force && now - lastLogPruneUtc < TimeSpan.FromMinutes(30)) return;
             lastLogPruneUtc = now;
             var candidates = new List<(string Server, string Session, long Segment, string Path)>();
-            using (var command = Command("SELECT g.serverId,g.sessionId,g.segmentId,g.path,s.config,MAX(l.createdUtc) FROM LogSegments g JOIN Servers s ON s.id=g.serverId JOIN LogLines l ON l.serverId=g.serverId AND l.sessionId=g.sessionId AND l.segmentId=g.segmentId WHERE NOT(s.currentSessionId=g.sessionId AND s.processState<>'Stopped' AND g.segmentId=(SELECT MAX(x.segmentId) FROM LogSegments x WHERE x.serverId=g.serverId AND x.sessionId=g.sessionId)) GROUP BY g.serverId,g.sessionId,g.segmentId;"))
+            using (var command = Command("SELECT g.serverId,g.sessionId,g.segmentId,g.path,s.config,MAX(l.createdUtc),c.retentionDays FROM LogSegments g LEFT JOIN Servers s ON s.id=g.serverId JOIN LogCursors c ON c.serverId=g.serverId AND c.sessionId=g.sessionId JOIN LogLines l ON l.serverId=g.serverId AND l.sessionId=g.sessionId AND l.segmentId=g.segmentId WHERE s.id IS NULL OR NOT(s.currentSessionId IS g.sessionId AND s.processState<>'Stopped' AND g.segmentId=(SELECT MAX(x.segmentId) FROM LogSegments x WHERE x.serverId=g.serverId AND x.sessionId=g.sessionId)) GROUP BY g.serverId,g.sessionId,g.segmentId;"))
             using (var reader = command.ExecuteReader())
                 while (reader.Read())
                 {
-                    var config = ControlJson.Deserialize<ServerConfig>(reader.GetString(4));
-                    if (DateTimeOffset.Parse(reader.GetString(5)) < now.AddDays(-config.LogRetentionDays)) candidates.Add((reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(3)));
+                    var retention = reader.IsDBNull(4) ? reader.GetInt32(6) : ControlJson.Deserialize<ServerConfig>(reader.GetString(4)).LogRetentionDays;
+                    if (DateTimeOffset.Parse(reader.GetString(5)) < now.AddDays(-retention)) candidates.Add((reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(3)));
                 }
             foreach (var item in candidates)
             {
                 LocalResourceBoundary.ValidateLocalPath(item.Path);
-                // Delete both indexes in one commit. A leftover file can be retried on the next prune.
+                // If interrupted here, ReadLogs removes the missing segment's stale indexes.
                 File.Delete(item.Path);
                 using var transaction = database.BeginTransaction();
                 Execute("DELETE FROM LogLines WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", transaction, ("$server", item.Server), ("$session", item.Session), ("$segment", item.Segment));
                 Execute("DELETE FROM LogSegments WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", transaction, ("$server", item.Server), ("$session", item.Session), ("$segment", item.Segment));
                 transaction.Commit();
             }
+        }
+    }
+
+    private void RemoveMissingSegments(string server, string session)
+    {
+        var missing = new List<long>();
+        using (var command = Command("SELECT segmentId,path FROM LogSegments WHERE serverId=$server AND sessionId=$session;", null, ("$server", server), ("$session", session)))
+        using (var reader = command.ExecuteReader())
+            while (reader.Read())
+            {
+                var path = reader.GetString(1);
+                LocalResourceBoundary.ValidateLocalPath(path);
+                if (!File.Exists(path)) missing.Add(reader.GetInt64(0));
+            }
+        foreach (var segment in missing)
+        {
+            using var transaction = database.BeginTransaction();
+            Execute("DELETE FROM LogLines WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", transaction, ("$server", server), ("$session", session), ("$segment", segment));
+            Execute("DELETE FROM LogSegments WHERE serverId=$server AND sessionId=$session AND segmentId=$segment;", transaction, ("$server", server), ("$session", session), ("$segment", segment));
+            transaction.Commit();
         }
     }
 }

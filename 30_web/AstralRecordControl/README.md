@@ -15,7 +15,7 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 
 変更操作は既定で無効です。`Control:EnableProcessControl=true`、Runnerの`EnableProcessControl=true`に加え、対象Hostすべての`P1.Operations`/`P1.LegacyGate` capabilityが必要です。Runner/Agentの本番起動は固定`%ProgramData%\AstralRecordControl\managed-operations.enabled`を確認します。markerは既存ツールの共通gate導入を検査したinstallerの`-EnableManagedOperations`で作成します。詳しくは[導入手順](../../60_tool/control-deploy/README.md)と[既存ツールgate](../../60_tool/control-gate/README.md)を参照してください。
 
-P1の対象はJavaの独立した基本運転です。`AstralReady`依存判定、Bedrock/Velocity、ファイル編集・バックアップ・予約実行・更新Adapterは後続段階です。非対応設定や操作を開始済みとして扱いません。
+P1の対象はJavaの独立した基本運転です。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrock/Velocity、ファイル編集・バックアップ・予約実行・更新Adapterは後続段階です。非対応設定や操作を開始済みとして扱いません。
 
 ## プロジェクト
 
@@ -89,4 +89,4 @@ AstralRecordControl.Cli.exe runner inspect --server-id <GUID>
 AstralRecordControl.Cli.exe runner recover --server-id <GUID> --session-id <GUID> --action KillAfterInspection --reason "残存プロセスを確認済み"
 ```
 
-緊急復旧はローカルOS管理者のみ許可します。対象を確認できない場合は停止扱いへ変更しません。Runnerのholdと中央予約は別々に残るため、ローカル復旧後もWebの保守履歴で照合して解放します。ログはServer/Sessionごとに100MiBで分割し、1行64KiBを超える出力は`truncated`付きに分割します。P1はcursorによる表示までで、保持世代の自動削除は未実装です。
+緊急復旧はローカルOS管理者のみ許可します。対象を確認できない場合は停止扱いへ変更しません。Console結果不明だけの場合、同じRunnerが所有するSessionは`AbortAfterInspection`で入力を再送せずFailed確定し稼働を維持できます。Runnerのholdと中央予約は別々に残るため、ローカル復旧後もWebの保守履歴で照合して解放します。ログはServer/Sessionごとに100MiBで分割し、1行64KiBを超える出力は`truncated`付きに分割します。30分ごとに`logRetentionDays`を過ぎた閉じたsegmentを削除し、稼働中の最新segmentを保持します。古いcursorや削除途中の中断には`gap`を返します。
