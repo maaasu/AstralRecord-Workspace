@@ -1,4 +1,5 @@
 using AstralRecordControl.Agent;
+using AstralRecordControl.Agent.Storage;
 using AstralRecordControl.Contracts;
 using Xunit;
 
@@ -109,11 +110,47 @@ public sealed class ScheduleExecutionTests
         Assert.Empty(fixture.Runner.Executions);
     }
 
+    [Fact]
+    public async Task ScheduledBackupUsesDataOperationAndDeterministicBackupId()
+    {
+        using var fixture = new Fixture();
+        fixture.Runner.IsRunning = true;
+        var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new ScheduleStep { StepKey = "backup", Kind = OperationKind.CreateBackup,
+                Payload = ControlJson.Element(new CreateBackupPayload(Guid.Empty, fixture.ProfileId, 1)) });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, schedule, includeBackupProfile: true); store.MarkScheduleInventoryAcknowledged(1);
+        var service = fixture.Service(store);
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            await service.TickAsync();
+            if (store.ReadScheduleReports().Single().Report.Status == ScheduleOccurrenceStatus.Succeeded) break;
+            await Task.Delay(20);
+        }
+        var report = Assert.Single(store.ReadScheduleReports()).Report;
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, report.Status);
+        var child = Assert.Single(report.Steps);
+        var backup = Assert.Single(fixture.Storage.ListBackups(fixture.Server));
+        Assert.Equal(ScheduleIdentity.Uuid5(child.OperationId, "backup"), backup.BackupId);
+        Assert.Equal(BackupState.Completed, backup.State);
+        Assert.Contains(fixture.Runner.Executions.Keys, id => id == DataExecution.ChildOperationId(child.OperationId, OperationKind.Stop));
+        Assert.False(fixture.Runner.IsRunning);
+        Assert.Equal("world", File.ReadAllText(Path.Combine(fixture.BackupRoot, "control-backups", fixture.ServerId.ToString("N"), backup.BackupId.ToString("N"), "files", "level.dat")));
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "control-schedule-test-" + Guid.NewGuid().ToString("N"));
         public Guid HostId { get; } = Guid.NewGuid();
         public Guid ServerId { get; } = Guid.NewGuid();
+        public Guid RootId { get; } = Guid.NewGuid();
+        public Guid BackupRootId { get; } = Guid.NewGuid();
+        public Guid ProfileId { get; } = Guid.NewGuid();
+        public string BackupRoot => Path.Combine(root, "backup-root");
+        public ServerConfig Server => new() { HostId = HostId, ServerId = ServerId, Revision = 1,
+            ManagedRootId = RootId, ExecutableId = Guid.NewGuid(), ServerDirectory = "server" };
+        public P2StorageService Storage { get; }
         public ManualClock Clock { get; } = new(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         public FakeRunner Runner { get; }
         public AgentConfiguration Configuration { get; }
@@ -121,23 +158,32 @@ public sealed class ScheduleExecutionTests
         public Fixture()
         {
             Directory.CreateDirectory(root);
+            var liveRoot = Path.Combine(root, "managed-root");
+            Directory.CreateDirectory(Path.Combine(liveRoot, "server"));
+            Directory.CreateDirectory(BackupRoot);
+            File.WriteAllText(Path.Combine(liveRoot, "server", "level.dat"), "world");
             var marker = Path.Combine(root, "marker"); File.WriteAllText(marker, "test");
             Gate = new AgentProcessControlGate(marker);
-            Configuration = new AgentConfiguration { HostId = HostId, ServerUrl = "https://control.test", EnableSchedules = true };
+            Configuration = new AgentConfiguration { HostId = HostId, ServerUrl = "https://control.test", EnableSchedules = true, EnableFileControl = true,
+                LocalResources = new HostResources { Roots = [new ManagedRoot { Id = RootId, Path = liveRoot, DisplayName = "fixture" },
+                    new ManagedRoot { Id = BackupRootId, Path = BackupRoot, DisplayName = "backup", BackupOnly = true }] } };
             Runner = new FakeRunner(HostId, ServerId, Clock);
+            Storage = new P2StorageService(Path.Combine(root, "storage"), Configuration.LocalResources, Clock, _ => long.MaxValue);
         }
         public AgentStore OpenStore() => new(Path.Combine(root, "agent"), HostId);
-        public AgentScheduleService Service(AgentStore store) => new(Configuration, store, Runner, new AgentOperationHandler(Configuration, store, Runner, Gate, timeProvider: Clock), Gate, Clock);
+        public AgentScheduleService Service(AgentStore store) => new(Configuration, store, Runner,
+            new AgentOperationHandler(Configuration, store, Runner, Gate, Storage, Clock), Gate, Clock);
         public ScheduleDefinition Schedule(ScheduleTrigger trigger, params ScheduleStep[] steps) => new()
         {
             ScheduleId = Guid.NewGuid(), HostId = HostId, ServerId = ServerId, Revision = 1, Enabled = true, Trigger = trigger,
             Template = new ScheduleTemplate { ActionType = steps.Length > 1 ? ScheduleActionType.LocalChain : ScheduleActionType.Operation,
                 Steps = steps.Length > 0 ? steps : [new ScheduleStep { StepKey = "first", Kind = OperationKind.Start }] }
         };
-        public void Apply(AgentStore store, long revision, ScheduleDefinition schedule)
+        public void Apply(AgentStore store, long revision, ScheduleDefinition schedule, bool includeBackupProfile = false)
         {
-            var server = new ServerConfig { HostId = HostId, ServerId = ServerId, Revision = 1, ManagedRootId = Guid.NewGuid(), ExecutableId = Guid.NewGuid(), ServerDirectory = "server" };
-            var json = ControlJson.Serialize(new InventorySnapshot { HostId = HostId, Revision = revision, Servers = [server], Schedules = [ControlJson.Element(schedule)] });
+            var profile = new BackupProfile { BackupProfileId = ProfileId, ServerId = ServerId, Revision = 1, DestinationRootId = BackupRootId };
+            var json = ControlJson.Serialize(new InventorySnapshot { HostId = HostId, Revision = revision, Servers = [Server], Schedules = [ControlJson.Element(schedule)],
+                BackupProfiles = includeBackupProfile ? [ControlJson.Element(profile)] : [] });
             var envelope = new InventoryEnvelope(1, HostId, revision, json, ControlProtocol.Hash(json));
             store.PrepareInventory(envelope); store.CommitInventory(envelope);
         }
@@ -154,14 +200,18 @@ public sealed class ScheduleExecutionTests
         private long fence;
         private long stateRevision;
         private readonly Dictionary<Guid, ExecutionSnapshot> executions = [];
+        private readonly Dictionary<Guid, ExecutionSnapshot> dataExecutions = [];
         public IReadOnlyDictionary<Guid, ExecutionSnapshot> Executions => executions;
         public Dictionary<Guid, ResourceHold> Holds { get; } = [];
         public bool CentralHold { get; set; }
         public OperationKind? FailKind { get; set; }
+        public bool IsRunning { get; set; }
+        private readonly Guid sessionId = Guid.NewGuid();
         public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => Task.FromResult(new RunnerSnapshot
         {
-            RunnerEpoch = Guid.NewGuid(), Holds = Holds.Values.ToArray(), Servers = [new ServerRuntimeSnapshot { ServerId = serverId, ConfigRevision = 1, StateRevision = stateRevision }]
+            RunnerEpoch = Guid.NewGuid(), Holds = Holds.Values.ToArray(), Servers = [new ServerRuntimeSnapshot { ServerId = serverId, ConfigRevision = 1, StateRevision = stateRevision,
+                ProcessState = IsRunning ? ProcessState.Running : ProcessState.Stopped, CurrentSessionId = IsRunning ? sessionId : null }]
         });
         public Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken)
         {
@@ -184,6 +234,7 @@ public sealed class ScheduleExecutionTests
             if (!Holds.TryGetValue(command.ReservationId!.Value, out var hold) || hold.Fence != command.ReservationFence || command.ExpectedStateRevision != stateRevision)
                 throw new AgentFault(ErrorCode.ReservationConflict);
             var status = command.Kind == FailKind ? OperationStatus.Failed : OperationStatus.Succeeded;
+            if (status == OperationStatus.Succeeded && command.Kind == OperationKind.Stop) { IsRunning = false; stateRevision++; }
             var result = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256,
                 Status = status, StatusVersion = 2, Phase = ExecutionPhase.Completed, UpdatedAtUtc = clock.GetUtcNow() };
             executions.Add(request.OperationId, result);
@@ -191,5 +242,27 @@ public sealed class ScheduleExecutionTests
         }
         public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) =>
             executions.TryGetValue(operationId, out var result) ? Task.FromResult(result) : throw new AgentFault(ErrorCode.StateConflict);
+        public Task<ExecutionSnapshot> BeginDataOperationAsync(ExecuteRequest request, CancellationToken cancellationToken)
+        {
+            var operation = OperationValidation.Read(request, hostId);
+            if (!Holds.ContainsKey(operation.ReservationId!.Value)) throw new AgentFault(ErrorCode.ReservationConflict);
+            if (!dataExecutions.TryGetValue(request.OperationId, out var result))
+            {
+                result = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256,
+                    Status = OperationStatus.Running, StatusVersion = 2, Phase = ExecutionPhase.Running, UpdatedAtUtc = clock.GetUtcNow() };
+                dataExecutions.Add(request.OperationId, result);
+            }
+            return Task.FromResult(result);
+        }
+        public Task<ExecutionSnapshot> VerifyDataOperationAsync(Guid operationId, CancellationToken cancellationToken) => GetDataOperationAsync(operationId, cancellationToken);
+        public Task<ExecutionSnapshot> FinishDataOperationAsync(FinishDataOperationRequest request, CancellationToken cancellationToken)
+        {
+            var previous = dataExecutions[request.OperationId];
+            var next = previous with { Status = request.Status, StatusVersion = previous.StatusVersion + 1, Phase = ExecutionPhase.Completed };
+            dataExecutions[request.OperationId] = next;
+            return Task.FromResult(next);
+        }
+        public Task<ExecutionSnapshot> GetDataOperationAsync(Guid operationId, CancellationToken cancellationToken) =>
+            dataExecutions.TryGetValue(operationId, out var result) ? Task.FromResult(result) : throw new AgentFault(ErrorCode.StateConflict);
     }
 }

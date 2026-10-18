@@ -34,7 +34,7 @@ public sealed partial class AgentOperationHandler
                 return existing;
             }
             var accepted = store.AcceptOperation(execute);
-            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(accepted);
+            if (clock.GetUtcNow() > command.StartBeforeUtc) return Expire(accepted);
             StartDataJob(execute, command, false);
             return accepted;
         }
@@ -272,13 +272,13 @@ public sealed partial class AgentOperationHandler
         if (kind == OperationKind.Start && server.ProcessState == ProcessState.Running) return;
         var childId = DataExecution.ChildOperationId(parent.OperationId, kind);
         var child = parent with { OperationId = childId, Kind = kind, ExpectedStateRevision = server.StateRevision, ExpectedServerSessionId = server.CurrentSessionId,
-            StartBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(1), Payload = ControlJson.Element(new { }) };
+            StartBeforeUtc = clock.GetUtcNow().AddMinutes(1), Payload = ControlJson.Element(new { }) };
         var json = ControlJson.Serialize(child);
         var accepted = await runner.ExecuteAsync(new ExecuteRequest(childId, json, ControlProtocol.Hash(json)), cancellationToken);
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(Math.Min(parent.ExecutionTimeoutSeconds, 3600));
+        var deadline = clock.GetUtcNow().AddSeconds(Math.Min(parent.ExecutionTimeoutSeconds, 3600));
         while (!OperationValidation.IsTerminal(accepted.Status) && accepted.Status != OperationStatus.NeedsAttention)
         {
-            if (DateTimeOffset.UtcNow > deadline) throw new AgentFault(ErrorCode.Timeout);
+            if (clock.GetUtcNow() > deadline) throw new AgentFault(ErrorCode.Timeout);
             await Task.Delay(500, cancellationToken);
             accepted = await runner.GetExecutionAsync(childId, cancellationToken);
         }
@@ -353,7 +353,7 @@ public sealed partial class AgentOperationHandler
         catch (AgentFault fault) when (fault.Code == ErrorCode.StateConflict)
         {
             var command = OperationValidation.Read(dispatch.Command, configuration.HostId);
-            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(local);
+            if (clock.GetUtcNow() > command.StartBeforeUtc) return Expire(local);
             StartDataJob(dispatch.Command, command, false);
             return local;
         }
