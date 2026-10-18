@@ -31,6 +31,7 @@ public static partial class ControlApplication
             foreach (var converter in strict.Converters) o.SerializerOptions.Converters.Add(converter);
         });
         ConfigureAuthentication(builder);
+        Authentication.CliAuthentication.Configure(builder);
         ConfigureInventory(builder);
         var app = builder.Build();
         app.UseExceptionHandler(error => error.Run(async context =>
@@ -76,6 +77,7 @@ public static partial class ControlApplication
         app.UseAuthorization();
         app.UseAntiforgery();
         MapAuthentication(app);
+        Authentication.CliAuthentication.Map(app);
         MapInventory(app);
         app.MapRazorPages();
         app.MapGet("/health/live", () => Results.Ok(new { status = "live" })).AllowAnonymous();
