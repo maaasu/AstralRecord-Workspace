@@ -1,0 +1,5 @@
+@page
+@model AstralRecordControl.Web.Pages.LogoutModel
+@{ ViewData["Title"] = "ログアウト"; }
+<h1>ログアウト</h1>
+<form method="post">@Html.AntiForgeryToken()<button type="submit">ログアウトする</button></form>

@@ -1,0 +1,12 @@
+@page
+@model AstralRecordControl.Web.Pages.SecurityModel
+@{ ViewData["Title"] = "セキュリティ"; }
+<h1>セキュリティ</h1>
+<p>@Model.Message</p>
+<form method="post" action="?handler=Reauthenticate">
+    @Html.AntiForgeryToken()
+    <label>パスワード <input name="Password" type="password" autocomplete="current-password" maxlength="1024" required /></label>
+    <label>認証コード <input name="Code" autocomplete="one-time-code" maxlength="100" required /></label>
+    <button type="submit">再認証</button>
+</form>
+<form method="post" action="?handler=LogoutAll">@Html.AntiForgeryToken()<button type="submit">すべてのセッションからログアウト</button></form>

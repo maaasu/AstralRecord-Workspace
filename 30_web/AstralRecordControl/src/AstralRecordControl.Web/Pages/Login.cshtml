@@ -1,0 +1,11 @@
+@page
+@model AstralRecordControl.Web.Pages.LoginModel
+@{ ViewData["Title"] = "ログイン"; }
+<h1>管理者ログイン</h1>
+<form method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All"></div>
+    <label>管理者名 <input name="UserName" value="@Model.UserName" autocomplete="username" maxlength="256" required /></label>
+    <label>パスワード <input name="Password" type="password" autocomplete="current-password" maxlength="1024" required /></label>
+    <button type="submit">次へ</button>
+</form>

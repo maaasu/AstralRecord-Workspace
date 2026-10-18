@@ -1,0 +1,12 @@
+@page
+@model AstralRecordControl.Web.Pages.Mfa.VerifyModel
+@{ ViewData["Title"] = "二要素認証"; }
+<h1>二要素認証</h1>
+<form method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All"></div>
+    <label>認証コード <input name="Code" autocomplete="one-time-code" maxlength="100" required /></label>
+    <label><input name="Recovery" type="checkbox" value="true" />回復コードを使う</label>
+    <button type="submit">ログイン</button>
+</form>
+<a href="/Logout">ログアウト</a>
