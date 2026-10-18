@@ -21,7 +21,10 @@ public sealed class RunnerService(RunnerConfiguration configuration, RunnerDispa
                 timeout.CancelAfter(TimeSpan.FromSeconds(5));
                 var json = await PipeProtocol.ReadAsync(pipe, timeout.Token);
                 var request = ControlJson.Deserialize<IpcRequest>(json);
-                await PipeProtocol.WriteAsync(pipe, dispatcher.Dispatch(request), timeout.Token);
+                var administrator = false;
+                if (request.Method == "Recover")
+                    pipe.RunAsClient(() => administrator = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator));
+                await PipeProtocol.WriteAsync(pipe, dispatcher.Dispatch(request, administrator), timeout.Token);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
             catch (Exception exception) when (exception is IOException or OperationCanceledException or ArgumentException or System.Text.Json.JsonException or RunnerFault)

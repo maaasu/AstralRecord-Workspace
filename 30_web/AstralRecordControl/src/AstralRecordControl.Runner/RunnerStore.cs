@@ -3,16 +3,22 @@ using Microsoft.Data.Sqlite;
 
 namespace AstralRecordControl.Runner;
 
-/// <summary>Single writer for Runner facts. P0 cannot create or control a game process.</summary>
-public sealed class RunnerStore : IDisposable
+/// <summary>Single writer for Runner facts and durable process execution.</summary>
+public sealed partial class RunnerStore : IDisposable
 {
     private readonly SqliteConnection database;
     private readonly RunnerConfiguration configuration;
     private readonly object sync = new();
+    private readonly string dataRoot;
+    private readonly TimeProvider clock;
+    private bool disposed;
     public Guid Epoch { get; } = Guid.NewGuid();
+    public bool ProcessControlEnabled => configuration.EnableProcessControl;
 
-    public RunnerStore(string dataRoot, RunnerConfiguration configuration)
+    public RunnerStore(string dataRoot, RunnerConfiguration configuration, TimeProvider? clock = null)
     {
+        this.dataRoot = dataRoot;
+        this.clock = clock ?? TimeProvider.System;
         this.configuration = configuration;
         if (configuration.HostId == Guid.Empty) throw new ArgumentException("HostId is required.");
         LocalResourceBoundary.ValidateLocalPath(dataRoot);
@@ -27,7 +33,7 @@ public sealed class RunnerStore : IDisposable
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
-        if (version is < 0 or > 1) throw new RunnerFault(ErrorCode.ProtocolMismatch);
+        if (version is < 0 or > 2) throw new RunnerFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
@@ -42,8 +48,10 @@ public sealed class RunnerStore : IDisposable
             Execute("INSERT INTO State VALUES(1,$host,$epoch,$utc,0,'','',0);", transaction, ("$host", configuration.HostId.ToString()), ("$epoch", Epoch.ToString()), ("$utc", DateTimeOffset.UtcNow.ToString("O")));
             transaction.Commit();
         }
+        if (version <= 1) MigrateV2(path, version == 1);
         if (!string.Equals((string?)Scalar("SELECT hostId FROM State WHERE id=1;"), configuration.HostId.ToString(), StringComparison.Ordinal)) throw new RunnerFault(ErrorCode.RecoveryRequired);
         Execute("UPDATE State SET epoch=$epoch,bootUtc=$utc WHERE id=1;", null, ("$epoch", Epoch.ToString()), ("$utc", DateTimeOffset.UtcNow.ToString("O")));
+        ReconcileAfterRestart();
         }
         catch { database.Dispose(); throw; }
     }
@@ -53,12 +61,12 @@ public sealed class RunnerStore : IDisposable
         lock (sync)
         {
             var servers = new List<ServerRuntimeSnapshot>();
-            using (var command = Command("SELECT id,config,stateRevision FROM Servers ORDER BY id;"))
+            using (var command = Command("SELECT id,config,stateRevision,processState,currentSessionId FROM Servers ORDER BY id;"))
             using (var reader = command.ExecuteReader())
                 while (reader.Read())
                 {
                     var config = ControlJson.Deserialize<ServerConfig>(reader.GetString(1));
-                    servers.Add(new ServerRuntimeSnapshot { ServerId = Guid.Parse(reader.GetString(0)), ConfigRevision = config.Revision, StateRevision = reader.GetInt64(2), ProcessState = ProcessState.Stopped, Readiness = GameReadiness.Unknown });
+                    servers.Add(new ServerRuntimeSnapshot { ServerId = Guid.Parse(reader.GetString(0)), ConfigRevision = config.Revision, StateRevision = reader.GetInt64(2), ProcessState = Enum.Parse<ProcessState>(reader.GetString(3)), CurrentSessionId = reader.IsDBNull(4) ? null : Guid.Parse(reader.GetString(4)), Readiness = GameReadiness.Unknown });
                 }
             return new RunnerSnapshot { RunnerEpoch = Epoch, AppliedInventoryRevision = Convert.ToInt64(Scalar("SELECT revision FROM State WHERE id=1;")), Servers = servers.ToArray(), Holds = ReadHolds() };
         }
@@ -91,9 +99,13 @@ public sealed class RunnerStore : IDisposable
                     var previous = ControlJson.Deserialize<ServerConfig>(previousJson);
                     if (server.Revision < previous.Revision || (server.Revision == previous.Revision && nextJson != previousJson)) throw new RunnerFault(ErrorCode.StaleRevision);
                     if (nextJson != previousJson && (ConfigurationIsHeld(previous, holds) || ConfigurationIsHeld(server, holds))) throw new RunnerFault(ErrorCode.ReservationConflict);
+                    if (nextJson != previousJson && (string?)Scalar("SELECT processState FROM Servers WHERE id=$id;", transaction, ("$id", server.ServerId.ToString())) != ProcessState.Stopped.ToString()) throw new RunnerFault(ErrorCode.StateConflict);
                 }
                 else if (ConfigurationIsHeld(server, holds)) throw new RunnerFault(ErrorCode.ReservationConflict);
                 Execute("INSERT INTO Servers(id,config,stateRevision) VALUES($id,$config,0) ON CONFLICT(id) DO UPDATE SET stateRevision=Servers.stateRevision+CASE WHEN Servers.config<>excluded.config THEN 1 ELSE 0 END,config=excluded.config;", transaction, ("$id", server.ServerId.ToString()), ("$config", nextJson));
+                if (configuration.EnableProcessControl && server.AutoStart && (previousJson is null || !ControlJson.Deserialize<ServerConfig>(previousJson).AutoStart))
+                    Execute("UPDATE Servers SET desiredState='AutoStartPending',nextAutoStartUtc=$next WHERE id=$id AND processState='Stopped' AND recoveryRequired=0;", transaction,
+                        ("$next", clock.GetUtcNow().AddSeconds(server.StartDelaySeconds).ToString("O")), ("$id", server.ServerId.ToString()));
             }
             // Removal is safe in P0 because every definition remains stopped and has no Session.
             var keep = inventory.Servers.Select(s => s.ServerId.ToString()).ToHashSet(StringComparer.Ordinal);
@@ -104,6 +116,7 @@ public sealed class RunnerStore : IDisposable
             {
                 var previous = ControlJson.Deserialize<ServerConfig>((string)Scalar("SELECT config FROM Servers WHERE id=$id;", transaction, ("$id", id))!);
                 if (ConfigurationIsHeld(previous, holds)) throw new RunnerFault(ErrorCode.ReservationConflict);
+                if ((string?)Scalar("SELECT processState FROM Servers WHERE id=$id;", transaction, ("$id", id)) != ProcessState.Stopped.ToString()) throw new RunnerFault(ErrorCode.StateConflict);
                 Execute("DELETE FROM Servers WHERE id=$id;", transaction, ("$id", id));
             }
             Execute("UPDATE State SET revision=$revision,hash=$hash,snapshot=$snapshot WHERE id=1;", transaction, ("$revision", envelope.Revision), ("$hash", envelope.Sha256), ("$snapshot", envelope.SnapshotJson));
@@ -154,6 +167,7 @@ public sealed class RunnerStore : IDisposable
                 throw new RunnerFault(ErrorCode.ReservationConflict);
             }
             if (existing.OwnerWorkflowId != request.OwnerWorkflowId || existing.Fence != request.ExpectedFence) throw new RunnerFault(ErrorCode.ReservationConflict);
+            if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE reservation=$reservation AND status IN ('Accepted','Running','NeedsAttention');", null, ("$reservation", request.ReservationId.ToString()))) != 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
             using var transaction = database.BeginTransaction();
             Execute("INSERT INTO ReleasedHolds VALUES($reservation,$workflow,$fence);", transaction, ("$reservation", request.ReservationId.ToString()), ("$workflow", request.OwnerWorkflowId.ToString()), ("$fence", request.ExpectedFence));
             Execute("DELETE FROM Holds WHERE reservation=$reservation;", transaction, ("$reservation", request.ReservationId.ToString()));
@@ -233,5 +247,12 @@ public sealed class RunnerStore : IDisposable
     }
     private void Execute(string sql, SqliteTransaction? transaction = null, params (string, object)[] parameters) { using var command = Command(sql, transaction, parameters); command.ExecuteNonQuery(); }
     private object? Scalar(string sql, SqliteTransaction? transaction = null, params (string, object)[] parameters) { using var command = Command(sql, transaction, parameters); return command.ExecuteScalar(); }
-    public void Dispose() => database.Dispose();
+    public void Dispose()
+    {
+        lock (sync)
+        {
+            disposed = true;
+            database.Dispose();
+        }
+    }
 }

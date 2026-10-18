@@ -46,6 +46,34 @@ public sealed class RunnerTests
     }
 
     [Fact]
+    public void SchemaOneMigratesTransactionallyWithIndependentBackup()
+    {
+        using var fixture = new Fixture();
+        var data = Path.Combine(fixture.Root, "runner"); Directory.CreateDirectory(data);
+        var path = Path.Combine(data, "runner.db");
+        using (var database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
+        {
+            database.Open();
+            using var schema = database.CreateCommand();
+            schema.CommandText = "CREATE TABLE State(id INTEGER PRIMARY KEY CHECK(id=1),hostId TEXT NOT NULL,epoch TEXT NOT NULL,bootUtc TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,snapshot TEXT NOT NULL,nextFence INTEGER NOT NULL); CREATE TABLE Servers(id TEXT PRIMARY KEY,config TEXT NOT NULL,stateRevision INTEGER NOT NULL); CREATE TABLE Holds(resource TEXT PRIMARY KEY,reservation TEXT NOT NULL,workflow TEXT NOT NULL,fence INTEGER NOT NULL,mode TEXT NOT NULL,createdUtc TEXT NOT NULL); CREATE TABLE ReleasedHolds(reservation TEXT PRIMARY KEY,workflow TEXT NOT NULL,fence INTEGER NOT NULL); INSERT INTO State VALUES(1,$host,$epoch,$utc,0,'','',0); PRAGMA user_version=1;";
+            schema.Parameters.AddWithValue("$host", fixture.Configuration.HostId.ToString());
+            schema.Parameters.AddWithValue("$epoch", Guid.NewGuid().ToString());
+            schema.Parameters.AddWithValue("$utc", DateTimeOffset.UtcNow.ToString("O"));
+            schema.ExecuteNonQuery();
+        }
+        using (var migrated = fixture.Open()) Assert.Empty(migrated.GetSnapshot().Servers);
+        using (var database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
+        {
+            database.Open(); using var version = database.CreateCommand(); version.CommandText = "PRAGMA user_version;";
+            Assert.Equal(2L, version.ExecuteScalar());
+        }
+        var backup = Assert.Single(Directory.GetFiles(data, "runner.db.before-v2.*.bak"));
+        using var saved = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backup, Pooling = false }.ToString());
+        saved.Open(); using var prior = saved.CreateCommand(); prior.CommandText = "PRAGMA user_version;";
+        Assert.Equal(1L, prior.ExecuteScalar());
+    }
+
+    [Fact]
     public void RestartRestoresInventoryHoldStateAndFenceButChangesEpoch()
     {
         using var fixture = new Fixture();
