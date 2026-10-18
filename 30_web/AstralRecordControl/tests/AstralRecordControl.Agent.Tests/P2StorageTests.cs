@@ -82,6 +82,8 @@ public sealed class P2StorageTests
         Assert.False(File.Exists(Path.Combine(f.ServerPath, "extra.txt")));
         Assert.True(Directory.Exists(Path.Combine(f.ServerPath, "empty")));
         Assert.Null(f.Store.InspectRecovery(f.Server));
+        Assert.Equal(resumed, f.Store.GetRestoreReceipt(f.Server, operationId));
+        Assert.Equal(resumed, await f.Store.RestoreBackupAsync(f.Server, new(backupId, RestoreMode.Replace), operationId, Guard));
     }
 
     [Fact]
@@ -181,6 +183,58 @@ public sealed class P2StorageTests
         Assert.Single(manifest.Entries);
         Assert.Equal("safe.txt", manifest.Entries[0].RelativePath);
         Assert.False(Directory.Exists(Path.Combine(f.BackupRoot, "control-backups", f.Server.ServerId.ToString("N"), id.ToString("N"), "files", "logs")));
+    }
+
+    [Fact]
+    public async Task MissingDestinationCapacityFailsBeforeBackupCompletion()
+    {
+        using var f = new Fixture();
+        File.WriteAllText(Path.Combine(f.ServerPath, "world.dat"), "unchanged");
+        var store = new P2StorageService(Path.Combine(f.Root, "capacity-agent"), new HostResources { Roots = [new ManagedRoot { Id = f.RootId, Path = Path.Combine(f.Root, "managed") }, new ManagedRoot { Id = f.BackupRootId, Path = f.BackupRoot }] },
+            availableBytesProbe: path => path.StartsWith(f.BackupRoot, StringComparison.OrdinalIgnoreCase) ? null : long.MaxValue);
+        var backupId = Guid.NewGuid();
+        await Assert.ThrowsAsync<IOException>(() => store.CreateBackupAsync(f.Server, f.Profile(), new(backupId, f.ProfileId, 1), Guid.NewGuid(), Guard));
+        Assert.Equal("unchanged", File.ReadAllText(Path.Combine(f.ServerPath, "world.dat")));
+        Assert.Equal(BackupState.Failed, Assert.Single(store.ListBackups(f.Server)).State);
+        Assert.False(Directory.Exists(Path.Combine(f.BackupRoot, "control-backups", f.Server.ServerId.ToString("N"), backupId.ToString("N"))));
+    }
+
+    [Fact]
+    public async Task MetadataLargerThanProtocolMessageLimitRoundTrips()
+    {
+        using var f = new Fixture();
+        var backupId = Guid.NewGuid();
+        var entries = Enumerable.Range(0, 7_000).Select(i => new BackupEntry($"entry-{i:D5}-" + new string('x', 90), 0, new string('a', 64))).ToArray();
+        var manifest = new BackupManifest { BackupId = backupId, HostId = f.Server.HostId, ServerId = f.Server.ServerId, ConfigRevision = 1, BackupProfileId = f.ProfileId, ProfileRevision = 1, CreatedAtUtc = DateTimeOffset.UtcNow, State = BackupState.Completed, Entries = entries };
+        var json = ControlJson.Serialize(new { manifest, destinationRootId = f.BackupRootId });
+        Assert.True(Encoding.UTF8.GetByteCount(json) > ControlProtocol.MaxMessageBytes);
+        var index = Path.Combine(f.Root, "agent", "backups", backupId.ToString("N") + ".json");
+        Directory.CreateDirectory(Path.GetDirectoryName(index)!);
+        File.WriteAllText(index, json);
+        Assert.Equal(backupId, Assert.Single(f.Store.ListBackups(f.Server)).BackupId);
+        await f.Store.SetBackupProtectionAsync(f.Server, new(backupId, true), Guard);
+        Assert.True(Assert.Single(f.Store.ListBackups(f.Server)).Protected);
+    }
+
+    [Theory]
+    [InlineData("OriginalMoved")]
+    [InlineData("Completed")]
+    public async Task ResumeRejectsChangedStageOrInstalledData(string interruptAt)
+    {
+        using var f = new Fixture();
+        File.WriteAllText(Path.Combine(f.ServerPath, "world.dat"), "snapshot");
+        var backupId = Guid.NewGuid();
+        await f.Store.CreateBackupAsync(f.Server, f.Profile(), new(backupId, f.ProfileId, 1), Guid.NewGuid(), Guard);
+        var operationId = Guid.NewGuid();
+        f.Store.JournalBoundary = journal => { if (journal.Phase == interruptAt) throw new IOException("interrupt"); };
+        await Assert.ThrowsAsync<IOException>(() => f.Store.RestoreBackupAsync(f.Server, new(backupId, RestoreMode.Replace), operationId, Guard));
+        var pending = f.Store.InspectRecovery(f.Server)!;
+        var changed = interruptAt == "OriginalMoved" ? Path.Combine(pending.StagePath, "world.dat") : Path.Combine(f.ServerPath, "world.dat");
+        File.WriteAllText(changed, "tampered");
+        f.Store.JournalBoundary = null;
+        await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.ResumeRestoreAsync(f.Server, operationId, Guard));
+        Assert.NotNull(f.Store.InspectRecovery(f.Server));
+        Assert.Null(f.Store.GetRestoreReceipt(f.Server, operationId));
     }
 
     private static Task Guard(CancellationToken _) => Task.CompletedTask;

@@ -3,9 +3,22 @@ using AstralRecordControl.Contracts;
 
 namespace AstralRecordControl.Agent.Storage;
 
+internal sealed record RestoreReceipt(Guid OperationId, Guid ServerId, RestoreResult Result);
+
 public sealed partial class P2StorageService
 {
     private string RestoreJournalPath(ServerConfig server) => Data(Path.Combine("restore-journals", server.ServerId.ToString("N") + ".json"));
+    private string RestoreReceiptPath(Guid operationId) => Data(Path.Combine("restore-receipts", operationId.ToString("N") + ".json"));
+
+    public RestoreResult? GetRestoreReceipt(ServerConfig server, Guid operationId)
+    {
+        RequireId(operationId);
+        var path = RestoreReceiptPath(operationId);
+        if (!File.Exists(path)) return null;
+        var receipt = ReadJson<RestoreReceipt>(path);
+        if (receipt.OperationId != operationId || receipt.ServerId != server.ServerId) throw new InvalidDataException("Restore receipt identity mismatch.");
+        return receipt.Result;
+    }
 
     public RestoreJournal? InspectRecovery(ServerConfig server)
     {
@@ -29,6 +42,12 @@ public sealed partial class P2StorageService
         await gate.WaitAsync(cancellationToken);
         try
         {
+            var receipt = GetRestoreReceipt(server, operationId);
+            if (receipt is not null)
+            {
+                if (receipt.BackupId != payload.BackupId || receipt.Mode != payload.Mode) throw new InvalidOperationException("Restore operation payload changed.");
+                return receipt;
+            }
             EnsureNoRecovery(server);
             var stored = LoadBackup(server, payload.BackupId);
             if (stored.Manifest.State != BackupState.Completed) throw new InvalidOperationException("Backup is incomplete.");
@@ -54,8 +73,8 @@ public sealed partial class P2StorageService
                 throw;
             }
             var journal = new RestoreJournal(operationId, server.ServerId, payload.BackupId, payload.Mode, "Prepared", stage, preRestore, clock.GetUtcNow());
-            await AtomicJsonAsync(BackupIndex(payload.BackupId), stored with { Manifest = stored.Manifest with { State = BackupState.Restoring } }, cancellationToken);
             await PersistBoundaryAsync(journal, cancellationToken);
+            await AtomicJsonAsync(BackupIndex(payload.BackupId), stored with { Manifest = stored.Manifest with { State = BackupState.Restoring } }, cancellationToken);
             return await CompleteRestoreUnderGateAsync(server, stored, journal, verifyGuard, cancellationToken);
         }
         finally { gate.Release(); }
@@ -67,7 +86,8 @@ public sealed partial class P2StorageService
         await gate.WaitAsync(cancellationToken);
         try
         {
-            var journal = InspectRecovery(server) ?? throw new InvalidOperationException("No restore to resume.");
+            var journal = InspectRecovery(server);
+            if (journal is null) return GetRestoreReceipt(server, operationId) ?? throw new InvalidOperationException("No restore to resume.");
             if (journal.OperationId != operationId) throw new InvalidOperationException("Restore operation mismatch.");
             var stored = LoadBackup(server, journal.BackupId);
             return await CompleteRestoreUnderGateAsync(server, stored, journal, verifyGuard, cancellationToken);
@@ -89,9 +109,9 @@ public sealed partial class P2StorageService
             {
                 if (!Directory.Exists(stage)) throw new InvalidDataException("Restore stage missing.");
                 await VerifyStageAsync(stage, stored.Manifest, cancellationToken);
-                EnsureFreeSpace(pre, TreeSize(live));
                 await Guard(verifyGuard, cancellationToken);
                 paths.Server(server);
+                StoragePaths.CheckNoReparse(pre);
                 Directory.Move(live, pre);
             }
             if (!Directory.Exists(pre) || Directory.Exists(live)) throw new InvalidDataException("Restore pre-copy state requires inspection.");
@@ -104,6 +124,7 @@ public sealed partial class P2StorageService
             {
                 await Guard(verifyGuard, cancellationToken);
                 StoragePaths.CheckNoReparse(stage);
+                await VerifyStageAsync(stage, stored.Manifest, cancellationToken);
                 Directory.Move(stage, live);
             }
             if (!Directory.Exists(live) || Directory.Exists(stage)) throw new InvalidDataException("Restore exchange state requires inspection.");
@@ -113,13 +134,18 @@ public sealed partial class P2StorageService
         if (journal.Phase == "Installed")
         {
             await VerifyStageAsync(live, stored.Manifest, cancellationToken);
+            StoragePaths.CheckTree(pre);
             journal = journal with { Phase = "Completed", UpdatedAtUtc = clock.GetUtcNow() };
             await PersistBoundaryAsync(journal, cancellationToken);
         }
         if (journal.Phase != "Completed") throw new InvalidDataException("Unknown restore journal phase.");
+        await VerifyStageAsync(live, stored.Manifest, cancellationToken);
+        StoragePaths.CheckTree(pre);
         await AtomicJsonAsync(BackupIndex(journal.BackupId), stored with { Manifest = stored.Manifest with { State = BackupState.Completed } }, cancellationToken);
+        var result = new RestoreResult(journal.BackupId, journal.Mode, stored.Manifest.Entries.Length, pre);
+        await AtomicJsonAsync(RestoreReceiptPath(journal.OperationId), new RestoreReceipt(journal.OperationId, server.ServerId, result), cancellationToken);
         File.Delete(RestoreJournalPath(server));
-        return new RestoreResult(journal.BackupId, journal.Mode, stored.Manifest.Entries.Length, pre);
+        return result;
     }
 
     private static long TreeSize(string directory)

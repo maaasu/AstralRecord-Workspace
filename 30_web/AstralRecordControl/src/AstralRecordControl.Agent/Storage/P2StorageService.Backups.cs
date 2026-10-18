@@ -106,6 +106,7 @@ public sealed partial class P2StorageService
                 }
                 await Guard(verifyGuard, cancellationToken);
                 StoragePaths.CheckNoReparse(destination);
+                EnsureFreeSpace(destination, profile.Format == BackupFormat.Zip ? new FileInfo(Path.Combine(stage, "snapshot.zip")).Length : manifest.SizeBytes);
                 var incomplete = destination + ".incomplete";
                 if (Directory.Exists(incomplete)) throw new IOException("Incomplete destination already exists.");
                 await CopyTreeAsync(stage, incomplete, cancellationToken);
