@@ -7,7 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordControl.Web.Transfers;
 
-public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, InventoryWriteGate gate, TimeProvider clock)
+public interface ITransferFreeSpaceProbe
+{
+    long AvailableBytes(string stageRoot);
+}
+
+public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, InventoryWriteGate gate, TimeProvider clock,
+    ITransferFreeSpaceProbe? freeSpace = null)
 {
     public const int ChunkSize = 4 * 1024 * 1024;
     public const long MaxTransferBytes = 20L * 1024 * 1024 * 1024;
@@ -233,8 +239,8 @@ public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, I
         var reserved = await db.Transfers.Where(x => x.Status == TransferStatus.Uploading || x.Status == TransferStatus.Created || x.Status == TransferStatus.Verified).SumAsync(x => x.SizeBytes ?? 0, ct);
         if (size > MaxStageBytes - reserved) throw new InventoryFault(413, "StageCapacityExceeded");
         Directory.CreateDirectory(StageRoot);
-        var free = new DriveInfo(Path.GetPathRoot(StageRoot)!).AvailableFreeSpace;
-        if (size > free) throw new InventoryFault(413, "InsufficientStorage");
+        var available = freeSpace?.AvailableBytes(StageRoot) ?? new DriveInfo(Path.GetPathRoot(StageRoot)!).AvailableFreeSpace;
+        if (size > available) throw new InventoryFault(413, "InsufficientStorage");
     }
     private static void ValidateMetadata(long? size, string? sha, bool allowUnknown)
     {
