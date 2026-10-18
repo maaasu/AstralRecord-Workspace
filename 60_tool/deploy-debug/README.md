@@ -1,5 +1,7 @@
 # Dev更新の入口
 
+Control管理を有効にしたPCで01/02/03を実行するときは、[既存ツールgate](../control-gate/README.md)の`controlGate`を同じ設定ファイルに追加し、事前にControl CLIへ対話ログインしてください。PowerShellの`dev-update.ps1`直接実行も同じgateを通ります。管理下のDev停止/稼働状態はRunnerが確認し、`-ServersStopped`/`-ServerAlreadyRunning`はその代替証明になりません。`deploy-debug.ps1`単独の直接配布は管理下で拒否します。
+
 通常は `60_tool/01-deploy-debug.bat` を実行します。PowerShell 7が必要です。01はDevの停止・再起動を運用者が行います。Filebaseとマスタだけを更新する03は、APIとPluginを更新済みでマスタ自動再読込が有効なら、Devを起動したまま実行できます。
 
 1. Devのプレイヤーを退出させ、保存完了を待ってDevを停止する。更新中は入場させない。

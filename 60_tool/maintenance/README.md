@@ -1,5 +1,7 @@
 # メンテナンス配布とパッチ公開
 
+Control管理を有効にしたPCで16を実行するときは、[既存ツールgate](../control-gate/README.md)の`controlGate`をmaintenance設定に追加し、事前にControl CLIへ対話ログインしてください。`maintenance.ps1`の直接実行と子Deploy/Restoreも同じ予約を使用します。全対象の停止はRunner snapshotで検証し、`-ServersStopped`宣言だけでは開始できません。
+
 `../16-maintenance.bat` はDev/Buildから各サーバーへファイルを配布する入口です。PowerShell 7 (`pwsh`) が必要です。既定の `Workflow` は配布・seed・手動起動の案内と待機・現在のパッチ公開まで進めます。プレイヤーの一括更新は含みません。通常はログイン時に各プレイヤーを更新し、大きな仕様変更・復旧時の一括更新は [17の専用入口](../player-patch-migration/README.md) を使用します。停止・起動と入場制限の解除は運用者が行います。変更なしで確認する場合だけ `-Phase Plan` を使用します。
 
 ## 初回設定

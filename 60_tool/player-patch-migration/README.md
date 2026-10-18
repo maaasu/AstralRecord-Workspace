@@ -1,5 +1,7 @@
 # プレイヤーパッチの手動一括更新
 
+Control管理を有効にしたPCでは、[既存ツールgate](../control-gate/README.md)の`controlGate`を使用する設定に追加し、事前にControl CLIへ対話ログインしてください。17のPreview/Commitと直接PowerShell実行はEnvironmentと対象Serverを予約し、RunnerでRunningを確認します。途中失敗では予約を保持し、同じRunDirectoryと要求IDで再開します。
+
 `../17-player-patch-migration.bat` は、大きな仕様変更や復旧時に運用者が明示して使う入口です。通常の01/02/03/16は配置とパッチ公開まで行い、プレイヤーはログイン時に更新されます。17はファイル配置・サーバー停止起動・パッチ公開を行いません。PowerShell 7が必要です。
 
 ## 実行手順

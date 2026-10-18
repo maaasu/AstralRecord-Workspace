@@ -18,6 +18,7 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'DeploymentSelection.ps1')
 $locks = [Collections.Generic.List[IDisposable]]::new()
 $maintenanceDiagnosticFile = $null
+$gateContext=$null
 try {
     if (($Recovery -ne 'Auto' -or $RecoveryChecked) -and $Phase -ne 'Workflow') { throw '-Recoveryは通常Workflow専用です。詳細操作は-Phase Restoreを使用してください。' }
     if (($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins')) -and $Phase -notin @('Workflow','Plan','Deploy')) { throw 'Distribution selection is supported only for Workflow, Plan and Deploy.' }
@@ -28,6 +29,37 @@ try {
     if ($config.migration.enabled) {
         . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
         $normalizedMigration = ConvertTo-SkillTreeRuntimeConfig $config.migration
+    }
+    if ($Phase -ne 'Plan') {
+        Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
+        $resume=$null
+        if ($Phase -eq 'Workflow' -and (Get-ControlGateMode $config) -eq 'Managed') {
+            $gateRunRoot=if ($config.workflow.runRoot) { Get-MaintenanceAbsolutePath $config.workflow.runRoot } else { Join-Path ([IO.Path]::GetDirectoryName((Resolve-Path -LiteralPath $ConfigPath).Path)) 'runs' }
+            $resume=Get-ControlGateResumeIdentity $gateRunRoot
+        }
+        $resumeReference=if ($resume) { $resume.RunReference } elseif ($Phase -eq 'Workflow' -and (Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $gateRunRoot } else { $RunDirectory }
+        $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
+        # Server resource keys make Runner include the corresponding server root directories.
+        $gatePaths=@()
+        $gateServerIds=@($config.servers | Where-Object enabled | ForEach-Object { [string]$_.id })
+        if ($config.migration.enabled) { $gateServerIds+=@($normalizedMigration.ServerIds) }
+        if ($config.ContainsKey('networkPlugins') -and $config.networkPlugins) {
+            foreach ($networkEntry in $config.networkPlugins.destinations) {
+                if ([string]::IsNullOrWhiteSpace($networkEntry.deployDirectory)) { continue }
+                $networkPath=Get-MaintenanceAbsolutePath $networkEntry.deployDirectory
+                $gatePaths+=$networkPath
+                if ((Get-ControlGateMode $config) -eq 'Managed') {
+                    $networkBindings=@($config.controlGate.bindings.paths | Where-Object { [string]$_.path -ieq $networkPath })
+                    if ($networkBindings.Count -ne 1 -or ![string]$networkBindings[0].runtimeServerId) { throw 'Managed network destination requires one path binding with runtimeServerId.' }
+                    $gateServerIds+=[string]$networkBindings[0].runtimeServerId
+                }
+            }
+            if ($config.networkPlugins.sourceDirectory) { $gatePaths+=Get-MaintenanceAbsolutePath $config.networkPlugins.sourceDirectory }
+            else { $gatePaths+=Get-MaintenanceAbsolutePath (Join-Path $PSScriptRoot '../network-plugin-build/output') }
+        }
+        $gateContext=Enter-ControlGate -Configuration $config -Operation '16' -RuntimeServerIds $gateServerIds `
+            -AffectedPaths $gatePaths -RequiredState 'Stopped' -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
+            -InitialStep $(if ($resume) { 'Resume' } elseif ($Phase -eq 'Restore') { 'Restore' } else { 'Deploy' })
     }
     if ($Phase -eq 'Workflow') {
         if (!$config.ContainsKey('workflow') -or !$config.migration.enabled) { throw 'Configure workflow and enable patch publication in migration before using the guided maintenance workflow.' }
@@ -59,6 +91,7 @@ try {
         }
         $deployAction={
             param($RunDirectory)
+            Assert-ControlGateStep $gateContext 'Deploy'
             Write-MaintenanceDiagnostic 'child.launch' @{phase='Deploy'}
             & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -WorldCopy $selection.choices.worldCopy -NetworkPlugins $selection.choices.networkPlugins -ServersStopped 2>&1 |
                 Tee-Object -FilePath (Join-Path $RunDirectory 'distribution.log') -Append | Out-Host
@@ -67,13 +100,16 @@ try {
         }
         $restoreAction={
             param($RunDirectory)
+            Assert-ControlGateStep $gateContext 'Restore'
             & $pwsh -NoProfile -File $entryScript -Phase Restore -ConfigPath $ConfigPath -RunDirectory $RunDirectory -ServersStopped 2>&1 |
                 Tee-Object -FilePath (Join-Path $RunDirectory 'recovery-restore.log') -Append | Out-Host
             if ($LASTEXITCODE -ne 0) { throw "ファイル復旧に失敗しました。停止を維持し $RunDirectory の記録を確認してください。" }
         }
-        Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $config.migration -ConfigurationFingerprint $fingerprint `
+        $workflowResult=Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $config.migration -ConfigurationFingerprint $fingerprint `
             -ServerRoots $roots -DeployAction $deployAction -PrepareRunAction $prepareRunAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Channels' `
-            -RestoreAction $restoreAction -Recovery $Recovery -RecoveryChecked:$RecoveryChecked
+            -RestoreAction $restoreAction -Recovery $Recovery -RecoveryChecked:$RecoveryChecked -GateContext $gateContext -PreferredRunDirectory $resumeReference
+        if ($workflowResult.Status -cne 'COMPLETED') { throw 'Control gate retained: workflow did not reach completion.' }
+        Complete-ControlGate $gateContext $workflowResult.RunDirectory
         exit 0
     }
     if ($Phase -eq 'Plan') {
@@ -140,16 +176,19 @@ try {
     }
     switch ($Phase) {
         Deploy {
+            Assert-ControlGateStep $gateContext 'Deploy'
             Invoke-MaintenanceDeploy $config $RunDirectory
             Write-Host 'Distribution complete. Keep admission closed. Finish API master updates before startup and patch publication.'
         }
         Restore {
+            Assert-ControlGateStep $gateContext 'Restore'
             Restore-MaintenanceDeployment $RunDirectory
             Write-Host 'Files restored. Backups and displaced artifacts were retained. Check server state before opening admission.'
         }
     }
     Write-Host "Run records: $RunDirectory"
     Write-MaintenanceDiagnostic 'entry.completed' @{phase=$Phase}
+    Complete-ControlGate $gateContext $RunDirectory
 } catch {
     Write-MaintenanceDiagnostic 'entry.failed' -Failure $_
     # Do not print exception bodies from HTTP calls; migration credentials may be present there.

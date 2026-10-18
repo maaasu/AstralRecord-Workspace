@@ -36,8 +36,11 @@ function Get-UpdateWorkflowRunDirectory {
 }
 
 function New-UpdateWorkflowRunDirectory {
-    param([Parameter(Mandatory)][string] $RunRoot)
-    $relative = 'run-{0}-{1}' -f [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ'), [Guid]::NewGuid().ToString('N')
+    param([Parameter(Mandatory)][string] $RunRoot, [string]$PreferredRunDirectory='')
+    $relative = if ($PreferredRunDirectory) {
+        if ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($PreferredRunDirectory)) -ine [IO.Path]::GetFullPath($RunRoot).TrimEnd('\','/')) { throw 'Preferred run path is outside runRoot.' }
+        [IO.Path]::GetFileName($PreferredRunDirectory)
+    } else { 'run-{0}-{1}' -f [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ'), [Guid]::NewGuid().ToString('N') }
     $path = Get-UpdateWorkflowRunDirectory $RunRoot $relative
     New-Item -ItemType Directory -Path $path -ErrorAction Stop | Out-Null
     return [pscustomobject]@{ Relative = $relative; Path = $path }
@@ -245,6 +248,8 @@ function Invoke-UpdateWorkflow {
         [switch] $AllowSameSessionPublication,
         [switch] $AdmissionClosed,
         [ValidateSet('Dev','Channels')][string] $Label = 'Dev',
+        $GateContext,
+        [string] $PreferredRunDirectory='',
         [scriptblock] $HttpInvoker,
         [scriptblock] $SleepAction
     )
@@ -281,6 +286,12 @@ function Invoke-UpdateWorkflow {
                 $restored=$previousJournal.status -ceq 'Restored'
             }
             $configurationChanged=$active.configurationFingerprint -cne $ConfigurationFingerprint
+            if ($GateContext -and $GateContext.Mode -eq 'Managed') {
+                if ($configurationChanged -or $restored -or $Recovery -ne 'Auto' -or
+                    (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -and !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label))) {
+                    throw 'Control-managed recovery requires inspection of the existing reservation and run before starting a new run.'
+                }
+            }
             if ($configurationChanged -and (Test-UpdateWorkflowUndeployedRun $runDirectory $Label $active.configurationFingerprint)) {
                 $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
                     -Fingerprint $active.configurationFingerprint -Recovery Auto -ConfigurationChanged
@@ -304,12 +315,32 @@ function Invoke-UpdateWorkflow {
                 Stop-UpdateWorkflowConfigurationChange $active $prior $runDirectory $ConfigurationFingerprint $Label
             }
         }
+        if ($active -and $active.status -eq 'Completed' -and $GateContext -and $GateContext.Mode -eq 'Managed' -and $PreferredRunDirectory) {
+            $completedRun=Get-UpdateWorkflowRunDirectory $validated.RunRoot $active.relativeRunDirectory
+            if ([IO.Path]::GetFullPath($completedRun) -ieq [IO.Path]::GetFullPath($PreferredRunDirectory) -and
+                !(Test-Path -LiteralPath (Join-Path $completedRun 'control-gate-released.json') -PathType Leaf)) {
+                $completedState=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $completedRun 'workflow-state.json') | ConvertFrom-Json
+                if ($completedState.status -cne 'Completed') { throw 'Completed run state is inconsistent; retain the Control reservation.' }
+                return [pscustomobject]@{Status='COMPLETED';RunDirectory=$completedRun;PatchPublicationResult=$null}
+            }
+        }
         if (!$active -or $active.status -eq 'Completed') {
-            $run = New-UpdateWorkflowRunDirectory $validated.RunRoot; $runDirectory=$run.Path
+            $run = New-UpdateWorkflowRunDirectory $validated.RunRoot $PreferredRunDirectory; $runDirectory=$run.Path
             $active = [ordered]@{ schemaVersion=1; relativeRunDirectory=$run.Relative; configurationFingerprint=$ConfigurationFingerprint; status='Created'; createdAtUtc=[DateTime]::UtcNow.ToString('o') }
             Save-UpdateWorkflowJson $active $activePath
         } else { Write-Host "Resuming update: $runDirectory" }
+        if ($PreferredRunDirectory -and [IO.Path]::GetFullPath($runDirectory) -ine [IO.Path]::GetFullPath($PreferredRunDirectory)) { throw 'Active run differs from the Control reservation run reference.' }
         Write-Host "Run records: $runDirectory"
+        if ($GateContext -and $GateContext.Mode -eq 'Managed') {
+            $gateRunPath=Join-Path $runDirectory 'control-gate-run.json'
+            $lease=Get-Content -Raw -Encoding UTF8 -LiteralPath $GateContext.LeaseFile | ConvertFrom-Json
+            if (Test-Path -LiteralPath $gateRunPath) {
+                $priorGate=Get-Content -Raw -Encoding UTF8 -LiteralPath $gateRunPath | ConvertFrom-Json
+                if ($priorGate.workflowId -cne $lease.workflowId -or $priorGate.reservationId -cne $lease.reservationId) { throw 'The existing run belongs to a different Control reservation.' }
+            } else {
+                @{schemaVersion=1;workflowId=$lease.workflowId;reservationId=$lease.reservationId;adapterId=$lease.adapterId} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $gateRunPath
+            }
+        }
         $maintenanceDiagnosticFile = New-MaintenanceDiagnosticLog $runDirectory 'Workflow'
         Write-MaintenanceDiagnostic 'workflow.begin' @{label=$Label; powershell=$PSVersionTable.PSVersion.ToString()}
         $statePath = Join-Path $runDirectory 'workflow-state.json'
@@ -379,6 +410,7 @@ function Invoke-UpdateWorkflow {
             }
             $state.status='Deploying'; Save-UpdateWorkflowJson $state $statePath
             try {
+                if ($GateContext) { Assert-ControlGateStep $GateContext 'Deploy' }
                 Write-MaintenanceDiagnostic 'deployment.action.begin'
                 & $DeployAction $runDirectory
                 Write-MaintenanceDiagnostic 'deployment.action.end'
@@ -413,6 +445,7 @@ function Invoke-UpdateWorkflow {
         }
         if ($state.status -eq 'WaitingForStartup') {
             if ($WorkflowConfig.seedMasterData -and $state.seedStatus -ne 'SUCCEEDED') {
+                if ($GateContext) { Assert-ControlGateStep $GateContext 'Seed' }
                 Write-MaintenanceDiagnostic 'seed.begin'
                 $seed = Invoke-UpdateWorkflowRequest $HttpInvoker 'POST' "$($validated.Migration.BaseUrl)/api/master-data/seed?mode=diff" @{ 'X-Api-Key'=$validated.ApiKey } $null
                 if ($seed.StatusCode -ne 200 -or (Get-UpdateWorkflowValue $seed.Body 'status') -cne 'SUCCEEDED') { throw 'Master data seed did not succeed; startup waiting and patch publication are stopped.' }
@@ -438,6 +471,7 @@ function Invoke-UpdateWorkflow {
                 -TimeoutSeconds $WorkflowConfig.startupTimeoutSeconds -PollIntervalSeconds $WorkflowConfig.pollIntervalSeconds `
                 -SleepAction $SleepAction
             $state.deployedRuntimes=@($runtimes); $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath
+            if ($GateContext) { Assert-ControlGateStep $GateContext 'WaitForStartup' }
             Write-MaintenanceDiagnostic 'startup.wait.end'
         }
         # An old workflow may already have sent player changes. Preserve those operation IDs,
@@ -453,6 +487,7 @@ function Invoke-UpdateWorkflow {
             $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath
         }
         if ($state.status -eq 'PublishingPatch') {
+            if ($GateContext) { Assert-ControlGateStep $GateContext 'Publish' }
             # Only publish after every configured server agrees. No account enumeration or
             # player-data write is performed by this workflow, including on a retry.
             $expectedRuntimes = @(Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers -AllowRestart)

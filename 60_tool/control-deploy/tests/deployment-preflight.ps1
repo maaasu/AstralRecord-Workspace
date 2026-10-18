@@ -23,8 +23,11 @@ try {
     $package = Join-Path $temp 'package'
     New-Item -ItemType Directory -Path $package | Out-Null
     foreach ($name in 'AstralRecordControl.Web.exe','AstralRecordControl.Web.dll','AstralRecordControl.Web.runtimeconfig.json') { [IO.File]::WriteAllText((Join-Path $package $name), '{}') }
-    @{component='Web';phase='P0';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
+    @{component='Web';phase='P1';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
     Assert-ControlPackage $package Web | Out-Null
+    @{component='Web';phase='P0';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
+    Assert-Throws { Assert-ControlPackage $package Web }
+    @{component='Web';phase='P1';protocolVersion=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'control-package.json') -Encoding utf8
     [IO.File]::WriteAllText((Join-Path $package 'control.db-wal'), 'sensitive-fixture')
     Assert-Throws { Assert-ControlPackage $package Web }
     Remove-Item -LiteralPath (Join-Path $package 'control.db-wal')
@@ -33,6 +36,40 @@ try {
     $configuration = @{Control=@{PublicOrigin='https://control.example.test'};Kestrel=@{Endpoints=@{Https=@{Url='https://0.0.0.0:5443';Certificate=@{Subject='control.example.test';Store='My';Location='LocalMachine'}}}}}
     $configuration | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $web 'config.json') -Encoding utf8
     Assert-Throws { Test-ControlConfiguration $web Web }
+    Assert-ControlRunnerStoppedSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@();servers=@(@{serverId=[Guid]::NewGuid().ToString();processState='Stopped';currentSessionId=$null})}
+    Assert-Throws { Assert-ControlRunnerStoppedSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@(@{reservationId=[Guid]::NewGuid().ToString()});servers=@()} }
+    Assert-Throws { Assert-ControlRunnerStoppedSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@();servers=@(@{serverId=[Guid]::NewGuid().ToString();processState='Unmanaged';currentSessionId=$null})} }
+    Assert-Throws { Assert-ControlRunnerStoppedSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@();servers=@(@{serverId=[Guid]::NewGuid().ToString();processState='Running';currentSessionId=[Guid]::NewGuid().ToString()})} }
+    $mockCli=Join-Path $temp 'control-cli.cmd'
+    function Set-MockRunnerSnapshot($snapshot) {
+        $json=$snapshot | ConvertTo-Json -Depth 8 -Compress
+        [IO.File]::WriteAllText($mockCli, "@echo off`r`necho $json`r`nexit /b 0`r`n")
+    }
+    Set-MockRunnerSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@();servers=@(@{serverId=[Guid]::NewGuid().ToString();processState='Stopped';currentSessionId=$null})}
+    Assert-ControlRunnerUpdateReady $mockCli 'AstralRecordControl.Runner.v1'
+    Assert-Throws { Assert-ControlRunnerUpdateReady $mockCli 'invalid\\pipe' }
+    Set-MockRunnerSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@(@{reservationId=[Guid]::NewGuid().ToString()});servers=@()}
+    Assert-Throws { Assert-ControlRunnerUpdateReady $mockCli 'AstralRecordControl.Runner.v1' }
+    Set-MockRunnerSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@();servers=@(@{serverId=[Guid]::NewGuid().ToString();processState='Unmanaged';currentSessionId=$null})}
+    Assert-Throws { Assert-ControlRunnerUpdateReady $mockCli 'AstralRecordControl.Runner.v1' }
+    $toolRoot=Join-Path $temp 'tools'
+    $entries=@('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
+        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
+        'master-data-reload\master-data-reload.ps1')
+    foreach ($entry in $entries) {
+        $path=Join-Path $toolRoot $entry
+        New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($path)) -Force | Out-Null
+        [IO.File]::WriteAllText($path, '# test entry')
+    }
+    $savedProgramData=$env:ProgramData
+    try {
+        $env:ProgramData=$temp
+        Assert-Throws { Enable-ControlManagedOperations $toolRoot -Renew -CliPath $mockCli -PipeName 'AstralRecordControl.Runner.v1' }
+        $markerRoot=Join-Path $temp 'AstralRecordControl'
+        New-Item -ItemType Directory -Path $markerRoot | Out-Null
+        @{schemaVersion=1;toolRoot=(Join-Path $temp 'different-tools');hashes=@{}} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $markerRoot 'managed-operations.enabled') -Encoding utf8
+        Assert-Throws { Enable-ControlManagedOperations $toolRoot -Renew -CliPath $mockCli -PipeName 'AstralRecordControl.Runner.v1' }
+    } finally { $env:ProgramData=$savedProgramData }
     $agent = Join-Path $temp 'Agent'
     New-Item -ItemType Directory -Path (Join-Path $agent 'credentials') | Out-Null
     [IO.File]::WriteAllText((Join-Path $agent 'credentials\token.bin'), 'encrypted-fixture')

@@ -8,7 +8,7 @@
 pwsh -File ./60_tool/control-deploy/Publish-Control.ps1 -OutputDirectory C:\ControlPackages\p0-001
 ```
 
-出力は`Web`、`Agent`、`Runner`、`Cli`の4ディレクトリです。バイナリだけを配布し、ProgramData・DB・鍵・ローカル設定を混在させません。秘密を含むパッケージや`P0`以外のmanifestは配布前検査で拒否します。
+出力は`Web`、`Agent`、`Runner`、`Cli`の4ディレクトリです。バイナリだけを配布し、ProgramData・DB・鍵・ローカル設定を混在させません。秘密を含むパッケージや`P1`以外のmanifestは配布前検査で拒否します。
 
 ## サービス登録と保存先
 
@@ -103,7 +103,20 @@ Hello→Reconcile後にHostがOnlineになり、登録root/executableが表示�
 
 Web更新はWebだけ、Agent更新はAgentだけを停止します。サービス停止後に排他leaseを取得し、SQLite本体/WAL/SHMを一組として同じdata root内の`updates/<id>`へ退避してから新binaryへ切り替えます。旧binaryと旧サービスパスを残し、設定・鍵・credentialsを上書きしません。失敗時は退避先とサービス状態を確認し、DBを単純に上書きしてACKを巻き戻さないでください。
 
-Runnerのオンライン更新ツールはP0では提供しません。P1でゲームプロセスとholdの停止確認を実装してから有効化します。再起動が必要な場合はAgentとRunnerを明示停止し、保存データを保持してOS管理者が保守します。P0のままMinecraftの運転管理へ移行しません。
+Runnerの更新はControl CLIによる`runner check-update`が全ServerのStopped、Sessionなし、holdなしを返した場合だけ行います。Unmanagedや状態不明も拒否します。Agentを停止した後に再検査し、Runnerを更新してから元々稼働していたAgentを起動します。`-CliPath`にはP1 CLIの絶対パスを指定します。
+更新途中に失敗した場合は、Agent/Runnerの実際のサービス状態と旧binary・snapshotを確認してから復旧します。
+
+```powershell
+./60_tool/control-deploy/Update-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p1-002\Runner -CliPath C:\ControlPackages\p1-002\Cli\AstralRecordControl.Cli.exe
+```
+
+01/02/03/16/17をControlと共存させるPCでは、P1ツール入口を導入し、新規Runner登録時は`Install-Control.ps1 -Component Runner -EnableManagedOperations`、既存Runner更新後は`Enable-ManagedOperations.ps1`で管理運用markerを作成します。markerにはgateと各PowerShell入口のSHA-256を記録し、SYSTEM/Administratorsだけに変更権限を与えます。marker導入後、旧Legacy入口は停止します。各ツール設定の`controlGate`とCLI対話ログインは[既存ツールgate](../control-gate/README.md)を参照してください。Control Web側の変更操作は導入確認後に明示的に有効化します。
+
+導入済みツールを更新した後は、Runnerの全Serverを停止し、holdがない状態で管理者PowerShellからmarkerを再発行します。`-Renew`は既存markerと同じツールrootだけを対象にし、P1 Runnerパッケージと`enableProcessControl=true`の設定を確認します。CLIによるRunnerの`check-update`を再発行直前にも実行し、旧markerを同じ保護ディレクトリに`.backup`として退避してから原子的に置き換えます。状態不明、Unmanaged、稼働中、holdありは拒否します。旧markerは調査・復旧のため保持してください。
+
+```powershell
+./60_tool/control-deploy/Enable-ManagedOperations.ps1 -Renew -CliPath 'C:\Program Files\AstralRecordControl\Cli\AstralRecordControl.Cli.exe'
+```
 
 自動migration対象は空DBの初期作成のみです。未知schemaは起動を拒否します。今後schemaを追加するときはbackup/transaction migrationと更新ツールの受入条件を同時に追加します。
 

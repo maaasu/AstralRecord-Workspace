@@ -1,10 +1,11 @@
 #requires -Version 7.0
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory)][ValidateSet('Web','Agent')][string]$Component,
+    [Parameter(Mandatory)][ValidateSet('Web','Agent','Runner')][string]$Component,
     [Parameter(Mandatory)][string]$PackageDirectory,
     [string]$InstallRoot = (Join-Path $env:ProgramFiles 'AstralRecordControl'),
-    [string]$DataRoot = ''
+    [string]$DataRoot = '',
+    [string]$CliPath = ''
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -25,12 +26,38 @@ $registered = Get-CimInstance Win32_Service -Filter "Name='$name'"
 if ($registered.StartName -ne "NT SERVICE\$name") { throw 'Unexpected service identity.' }
 $expected = [regex]::Escape($binaryRoot + '\')
 if ($registered.PathName -notmatch ('^"' + $expected)) { throw 'Service binary path is outside the managed installation.' }
+if ($Component -eq 'Runner') {
+    if (!$CliPath -or ![IO.Path]::IsPathFullyQualified($CliPath) -or !(Test-Path -LiteralPath $CliPath -PathType Leaf)) { throw 'Runner update requires an installed Control CLI path.' }
+    $runnerConfig=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $data 'config.json') | ConvertFrom-Json
+    $pipeName=if ($runnerConfig.pipeName) { [string]$runnerConfig.pipeName } else { 'AstralRecordControl.Runner.v1' }
+    function Get-SafeRunnerSnapshot {
+        $output=& $CliPath runner check-update --pipe-name $pipeName
+        if ($LASTEXITCODE -ne 0) { throw 'Runner snapshot request failed.' }
+        try { $snapshot=($output -join "`n") | ConvertFrom-Json } catch { throw 'Runner snapshot JSON is invalid.' }
+        Assert-ControlRunnerStoppedSnapshot $snapshot
+    }
+    Get-SafeRunnerSnapshot
+}
 if (-not $PSCmdlet.ShouldProcess($name, 'Stop only this service, snapshot data and switch to new binaries')) { return }
 $sid = [Security.Principal.NTAccount]::new("NT SERVICE\$name").Translate([Security.Principal.SecurityIdentifier]).Value
 $release = Join-Path $binaryRoot ([Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $release | Out-Null
 Get-ChildItem -LiteralPath $source -Force | Copy-Item -Destination $release -Recurse
 Set-ControlAcl $release $sid -ReadOnly
+$agentWasRunning=$false
+if ($Component -eq 'Runner') {
+    $agent=Get-Service -Name 'AstralRecordControl.Agent' -ErrorAction SilentlyContinue
+    if ($agent -and $agent.Status -eq 'Running') {
+        Stop-Service -Name $agent.Name
+        $agent.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
+        $agentWasRunning=$true
+    }
+    try { Get-SafeRunnerSnapshot }
+    catch {
+        if ($agentWasRunning) { Start-Service -Name 'AstralRecordControl.Agent' }
+        throw
+    }
+}
 Stop-Service -Name $name
 $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
 $lockFile = if ($Component -eq 'Web') { 'web.lock' } else { 'service.lock' }
@@ -48,4 +75,5 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Binary switch failed; service stays stopped.' }
 } finally { $lease.Dispose() }
 Start-Service -Name $name
+if ($agentWasRunning) { Start-Service -Name 'AstralRecordControl.Agent' }
 Write-Output "Updated $name. Previous binaries and offline database snapshot retained. Verify health/Agent reconciliation."

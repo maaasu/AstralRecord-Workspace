@@ -7,7 +7,7 @@ Start-Transcript -LiteralPath (Join-Path $fixture 'verification.log') | Out-Null
 function Assert($Condition,$Message) { if (!$Condition) { throw $Message } }
 try {
     $toolsRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-    foreach ($relative in @('player-patch-migration/player-patch-migration.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/SkillTreeMigration.ps1')) {
+    foreach ($relative in @('player-patch-migration/player-patch-migration.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/SkillTreeMigration.ps1','control-gate/Control.Gate.psm1')) {
         $destination=Join-Path $fixture $relative
         New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
         Copy-Item -LiteralPath (Join-Path $toolsRoot $relative) -Destination $destination

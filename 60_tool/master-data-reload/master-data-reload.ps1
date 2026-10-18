@@ -101,6 +101,12 @@ if (-not (Get-Command robocopy -ErrorAction SilentlyContinue)) {
 }
 
 $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+Import-Module (Join-Path $scriptDir '../control-gate/Control.Gate.psm1') -Force
+$gateConfiguration=@{}
+if ($config.PSObject.Properties['controlGate']) { $gateConfiguration.controlGate=@{mode=[string]$config.controlGate.mode} }
+if ((Get-ControlGateMode $gateConfiguration) -eq 'Managed') {
+    throw 'The legacy master-data-reload script has no complete server binding. Use 03-master-data-reload.bat with Control gate bindings.'
+}
 Invoke-FilebaseMirror -Config $config
 Invoke-MasterDataSeed -Config $config
 

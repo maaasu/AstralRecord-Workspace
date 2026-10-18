@@ -18,8 +18,8 @@ try {
         $destination = Join-Path $output $component
         & $Dotnet publish "src/AstralRecordControl.$component/AstralRecordControl.$component.csproj" -c Release -r win-x64 --self-contained true -o $destination --nologo
         if ($LASTEXITCODE -ne 0) { throw "Publish failed: $component" }
-        @{ component=$component; phase='P0'; protocolVersion=1; createdAtUtc=[DateTimeOffset]::UtcNow.ToString('O') } | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $destination 'control-package.json')
+        @{ component=$component; phase='P1'; protocolVersion=1; createdAtUtc=[DateTimeOffset]::UtcNow.ToString('O') } | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $destination 'control-package.json')
         Assert-ControlPackage $destination $component | Out-Null
     }
 } finally { Pop-Location }
-Write-Output "Control P0 package: $output"
+Write-Output "Control P1 package: $output"

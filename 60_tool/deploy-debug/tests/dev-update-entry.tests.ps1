@@ -8,7 +8,7 @@ function Assert($Condition,$Message) { if (!$Condition) { throw $Message } }
 function Write-TestFile($Path,$Content) { New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($Path)) -Force | Out-Null; [IO.File]::WriteAllText($Path,$Content) }
 try {
     $toolsRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-    foreach ($relative in @('deploy-debug/dev-update.ps1','deploy-debug/PluginTestSelection.ps1','maintenance/maintenance.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/DeploymentSelection.ps1','maintenance/SkillTreeMigration.ps1')) {
+    foreach ($relative in @('deploy-debug/dev-update.ps1','deploy-debug/PluginTestSelection.ps1','maintenance/maintenance.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/DeploymentSelection.ps1','maintenance/SkillTreeMigration.ps1','control-gate/Control.Gate.psm1')) {
         $destination=Join-Path $fixture $relative
         New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
         Copy-Item -LiteralPath (Join-Path $toolsRoot $relative) -Destination $destination
@@ -25,13 +25,14 @@ if ($WorkflowFingerprint) {
 @{pluginOnly=[bool]$PluginOnly;masterDataOnly=[bool]$MasterDataOnly;release=[bool]$ReleaseManagementOnly;preflight=[bool]$PreflightOnly;testMode=$TestMode;tests=$Tests;fingerprint=$WorkflowFingerprint} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Split-Path $ConfigPath) 'backend-result.json')
 '@
     Write-TestFile (Join-Path $fixture 'maintenance/UpdateWorkflow.ps1') @'
-function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label,$Recovery,[switch]$RecoveryChecked,$PrepareRunAction,$RestoreAction,[switch]$ServerAlreadyRunning,[switch]$AutomaticWritersStopped,[switch]$AllowSameSessionPublication) {
+function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label,$Recovery,[switch]$RecoveryChecked,$PrepareRunAction,$RestoreAction,[switch]$ServerAlreadyRunning,[switch]$AutomaticWritersStopped,[switch]$AllowSameSessionPublication,$GateContext,$PreferredRunDirectory) {
     $run=Join-Path $WorkflowConfig.runRoot ([guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $run -Force | Out-Null
     @{label=$Label;servers=$MigrationConfig.serverIds;seed=$WorkflowConfig.seedMasterData;roots=$ServerRoots} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkflowConfig.runRoot 'entry-result.json')
     if ($PrepareRunAction) { $null=& $PrepareRunAction $run }
     & $DeployAction $run
     if (!(Test-Path -LiteralPath (Join-Path $run 'deploy-action-success.json')) -and !(Test-Path -LiteralPath (Join-Path $run 'deployment.json'))) { throw 'Deployment completion was not journaled.' }
+    [pscustomobject]@{Status='COMPLETED';RunDirectory=$run}
 }
 '@
     $dev=Join-Path $fixture 'dev'; $channel=Join-Path $fixture 'channel'

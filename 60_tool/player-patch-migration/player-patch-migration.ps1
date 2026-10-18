@@ -12,6 +12,7 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot '../maintenance/SkillTreeMigration.ps1')
 $runLock=$null
 $maintenanceDiagnosticFile=$null
+$gateContext=$null
 try {
     if (!$AdmissionClosed) { throw 'Keep players offline and admission closed, then specify -AdmissionClosed. The target servers must remain running and ready.' }
     if (!$RunDirectory) { throw '-RunDirectory is required. Reuse the same directory for Preview, Commit, and retries.' }
@@ -40,8 +41,27 @@ try {
     foreach ($root in $protectedRoots) {
         if (Test-MaintenanceOverlap $RunDirectory $root) { throw 'Run directory overlaps server, source, or deployment data.' }
     }
+    Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
+    $gateRunPath=Join-Path $RunDirectory ("control-gate-$Phase.json")
+    $gateReleasedPath=Join-Path $RunDirectory ("control-gate-$Phase-released.json")
+    $gateWorkflowId=''
+    if ((Get-ControlGateMode $config) -eq 'Managed' -and (Test-Path -LiteralPath $gateRunPath -PathType Leaf) -and
+        !(Test-Path -LiteralPath $gateReleasedPath -PathType Leaf)) {
+        $savedGate=Get-Content -Raw -Encoding UTF8 -LiteralPath $gateRunPath | ConvertFrom-Json
+        $gateWorkflowId=[string]$savedGate.workflowId
+    }
+    $gateContext=Enter-ControlGate -Configuration $config -Operation '17' -RuntimeServerIds @($normalized.ServerIds) `
+        -AffectedPaths @() -RequiredState 'Running' -RunReference $RunDirectory -WorkflowId $gateWorkflowId `
+        -InitialStep $(if ($gateWorkflowId) { 'Resume' } else { $Phase })
     New-Item -ItemType Directory -Path $RunDirectory -Force | Out-Null
     $runLock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
+    if ($gateContext.Mode -eq 'Managed') {
+        $lease=Get-Content -Raw -Encoding UTF8 -LiteralPath $gateContext.LeaseFile | ConvertFrom-Json
+        if (!(Test-Path -LiteralPath $gateRunPath) -or (Test-Path -LiteralPath $gateReleasedPath)) {
+            @{schemaVersion=1;workflowId=$lease.workflowId;reservationId=$lease.reservationId} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $gateRunPath
+            if (Test-Path -LiteralPath $gateReleasedPath) { Remove-Item -LiteralPath $gateReleasedPath -Force }
+        } elseif ($savedGate.reservationId -cne $lease.reservationId) { throw 'The migration run belongs to another Control reservation.' }
+    }
     $maintenanceDiagnosticFile=New-MaintenanceDiagnosticLog $RunDirectory 'PlayerPatchMigration'
     Write-MaintenanceDiagnostic 'player-migration.begin' @{phase=$Phase}
     $digest=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
@@ -56,14 +76,22 @@ try {
         if ($deployment.status -cne 'Deployed') { throw 'Distribution is incomplete or restored; migration is blocked.' }
     }
     if ($Phase -eq 'Commit') {
+        Assert-ControlGateStep $gateContext 'Commit'
         $markerPath=Join-Path $RunDirectory 'migration-commit-started.json'
         if (!(Test-Path -LiteralPath $markerPath)) { Write-MaintenanceJson @{startedAtUtc=[DateTime]::UtcNow.ToString('o')} $markerPath }
         Write-Host 'プレイヤーの一括更新を実行します。完了までログアウトと入場制限を維持してください。'
-    } else { Write-Host 'プレイヤー一括更新の事前確認を行います。プレイヤーデータは書き換えません。' }
+    } else {
+        Assert-ControlGateStep $gateContext 'Preview'
+        Write-Host 'プレイヤー一括更新の事前確認を行います。プレイヤーデータは書き換えません。'
+    }
     $result=Invoke-SkillTreeMigration -Config $migration -RunDirectory $RunDirectory -Commit:($Phase -eq 'Commit')
     $result
     Write-Host "Run records: $RunDirectory"
     Write-MaintenanceDiagnostic 'player-migration.completed' @{phase=$Phase;status=$result.Status}
+    if (($Phase -eq 'Preview' -and $result.Status -ceq 'PREVIEW_COMPLETE') -or ($Phase -eq 'Commit' -and $result.Status -ceq 'APPLIED')) {
+        Complete-ControlGate $gateContext $RunDirectory
+        if ($gateContext.Mode -eq 'Managed') { @{releasedAtUtc=[DateTimeOffset]::UtcNow.ToString('O')} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $gateReleasedPath }
+    } else { throw 'Control gate retained: migration did not reach the expected phase result.' }
 } catch {
     Write-MaintenanceDiagnostic 'player-migration.failed' -Failure $_
     Write-Error $_.Exception.Message -ErrorAction Continue

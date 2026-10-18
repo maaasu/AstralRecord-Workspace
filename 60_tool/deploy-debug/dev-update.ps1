@@ -18,6 +18,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+$gateContext=$null
 try {
     . (Join-Path $PSScriptRoot 'PluginTestSelection.ps1')
     $testSelection=Resolve-PluginTestSelection -TestMode $TestMode -Tests $Tests -PluginOnly:$PluginOnly `
@@ -89,6 +90,21 @@ try {
         Write-Host 'No builds, copies, or API requests performed.'
         exit 0
     }
+    Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
+    $resume=if ((Get-ControlGateMode $config) -eq 'Managed') { Get-ControlGateResumeIdentity $workflow.runRoot } else { $null }
+    $adapterId=if ($PluginOnly) { '02' } elseif ($MasterDataOnly) { '03' } else { '01' }
+    $affected=@()
+    if ($config.plugin.enabled -and !$MasterDataOnly) { $affected += Get-MaintenanceAbsolutePath $config.plugin.deployPath }
+    foreach ($name in @('api','web','fileDatabase')) {
+        if ($config[$name].enabled -and !$PluginOnly) { $affected += Get-MaintenanceAbsolutePath $config[$name].deployPath }
+    }
+    if ($config.fileDatabase.enabled -and !$PluginOnly) { $affected += Get-MaintenanceAbsolutePath $config.fileDatabase.sourcePath }
+    $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
+    $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
+    $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
+    $gateContext=Enter-ControlGate -Configuration $config -Operation $adapterId -RuntimeServerIds @($normalized.ServerIds) `
+        -AffectedPaths $affected -RequiredState $requiredState -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
+        -InitialStep $(if ($resume) { 'Resume' } else { 'Deploy' })
     Write-Host "設定ファイル: $ConfigPath"
     Write-Host "更新モード: $mode"
     if ($config.plugin.enabled -and !$MasterDataOnly) {
@@ -98,6 +114,7 @@ try {
     $fingerprint=Get-DevDeploymentFingerprint -ConfigPath $ConfigPath -Mode $mode -TestSelection $testSelection
     $deployAction={
         param($RunDirectory)
+        Assert-ControlGateStep $gateContext 'Deploy'
         $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
         $arguments+=@('-WorkflowRunDirectory',$RunDirectory,'-WorkflowFingerprint',$fingerprint)
         if ($PluginOnly) { $arguments+='-PluginOnly' }
@@ -114,11 +131,13 @@ try {
         }
         Write-MaintenanceJson @{ completedAtUtc=[DateTime]::UtcNow.ToString('o') } (Join-Path $RunDirectory 'deploy-action-success.json')
     }
-    Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
+    $workflowResult=Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
         -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Dev' `
         -ServerAlreadyRunning:$ServerAlreadyRunning -AutomaticWritersStopped:$AutomaticWritersStopped `
         -AllowSameSessionPublication:($MasterDataOnly -and $workflow.seedMasterData) `
-        -Recovery $Recovery -RecoveryChecked:$RecoveryChecked
+        -Recovery $Recovery -RecoveryChecked:$RecoveryChecked -GateContext $gateContext -PreferredRunDirectory $resumeReference
+    if ($workflowResult.Status -cne 'COMPLETED') { throw 'Control gate retained: workflow did not reach completion.' }
+    Complete-ControlGate $gateContext $workflowResult.RunDirectory
 } catch {
     Write-Error $_.Exception.Message -ErrorAction Continue
     exit 1

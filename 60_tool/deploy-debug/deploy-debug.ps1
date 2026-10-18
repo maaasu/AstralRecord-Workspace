@@ -645,6 +645,25 @@ if (-not (Test-Path -LiteralPath $ConfigPath)) {
 }
 
 $config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
+$gateConfiguration=Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+$gateMode=Get-ControlGateMode $gateConfiguration
+if ($gateMode -eq 'Managed' -and !$PreflightOnly) {
+    $lease=[Environment]::GetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE','Process')
+    if (!$WorkflowRunDirectory -or !$lease -or !(Test-Path -LiteralPath $lease -PathType Leaf)) {
+        throw 'Managed direct deployment requires the guided 01/02/03 workflow and inherited Control gate lease.'
+    }
+    $backendPaths=@()
+    if ($config.plugin.enabled -and !$MasterDataOnly) { $backendPaths+=[IO.Path]::GetFullPath([string]$config.plugin.deployPath) }
+    foreach ($name in @('api','web','fileDatabase')) {
+        if ($config.$name.enabled -and !$PluginOnly) { $backendPaths+=[IO.Path]::GetFullPath([string]$config.$name.deployPath) }
+    }
+    if ($config.fileDatabase.enabled -and !$PluginOnly) { $backendPaths+=[IO.Path]::GetFullPath([string]$config.fileDatabase.sourcePath) }
+    $backendAdapter=if ($PluginOnly) { '02' } elseif ($MasterDataOnly) { '03' } else { '01' }
+    $backendGate=Enter-ControlGate -Configuration $gateConfiguration -Operation $backendAdapter `
+        -RuntimeServerIds @($gateConfiguration.devWorkflow.migration.serverIds) -AffectedPaths $backendPaths `
+        -RequiredState 'Stopped' -RunReference $WorkflowRunDirectory
+}
 if (!$config.plugin.enabled -and ($TestMode -or $PSBoundParameters.ContainsKey('Tests'))) { throw 'TestMode/Tests require plugin.enabled=true.' }
 
 if ($PluginOnly) {

@@ -6,12 +6,14 @@ param(
     [string]$InstallRoot = (Join-Path $env:ProgramFiles 'AstralRecordControl'),
     [string]$DataRoot = '',
     [switch]$Start,
-    [switch]$PreflightOnly
+    [switch]$PreflightOnly,
+    [switch]$EnableManagedOperations
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Control.Deployment.psm1') -Force
 if (-not $IsWindows) { throw 'Windows services are required.' }
+if ($EnableManagedOperations -and $Component -ne 'Runner') { throw 'Managed operations attestation is installed with Runner on each game PC.' }
 $source = Assert-ControlPackage $PackageDirectory $Component
 $binaryRoot = Get-ControlAbsolutePath (Join-Path $InstallRoot $Component)
 if (-not $DataRoot) { $DataRoot = Join-Path $env:ProgramData "AstralRecordControl\$Component" }
@@ -43,4 +45,8 @@ Set-ControlAcl $binaryRoot $sid -ReadOnly
 Set-ControlAcl $data $sid
 Write-Output "Registered stopped service $serviceName. Service SID: $sid"
 Write-Output "Persistent data: $data. Complete config/owner/token and certificate ACL before starting."
+if ($EnableManagedOperations) {
+    $marker=Enable-ControlManagedOperations (Join-Path $PSScriptRoot '..')
+    Write-Output "Managed tool attestation: $marker"
+}
 if ($Start) { Test-ControlConfiguration $data $Component; Start-Service -Name $serviceName }
