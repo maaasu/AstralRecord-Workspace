@@ -34,7 +34,6 @@ public sealed class NotificationService(ControlDbContext db, IDataProtectionProv
             outcome = body.Status.ToString();
             kind = body.Status switch
             {
-                OperationStatus.Running when operation.Kind == OperationKind.Start => NotificationEventTypes.Started,
                 OperationStatus.Succeeded when operation.Kind == OperationKind.CreateBackup => NotificationEventTypes.BackupSucceeded,
                 OperationStatus.Failed when operation.Kind == OperationKind.CreateBackup => NotificationEventTypes.BackupFailed,
                 OperationStatus.NeedsAttention => NotificationEventTypes.RecoveryRequired,
