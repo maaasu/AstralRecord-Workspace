@@ -45,7 +45,7 @@ public sealed class NotificationService(ControlDbContext db, IDataProtectionProv
         {
             var body = ControlJson.Deserialize<RuntimeChangedBody>(item.Body.GetRawText());
             serverId = body.Current.ServerId;
-            if (serverId == Guid.Empty || body.Current.StateRevision < 1 || body.Previous is not null && (body.Previous.ServerId != serverId || body.Previous.StateRevision >= body.Current.StateRevision)) throw new InventoryFault(400, "InvalidEvent");
+            if (serverId == Guid.Empty || body.Current.StateRevision < 0 || body.Previous is not null && (body.Previous.ServerId != serverId || body.Previous.StateRevision > body.Current.StateRevision)) throw new InventoryFault(400, "InvalidEvent");
             if (!await db.Servers.AnyAsync(x => x.ServerId == serverId && x.HostId == hostId)) throw new InventoryFault(403, "HostScopeMismatch");
             kind = body.RecoveryRequired ? NotificationEventTypes.RecoveryRequired
                 : body.UnexpectedExit ? NotificationEventTypes.Crashed
