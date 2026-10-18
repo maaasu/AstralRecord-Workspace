@@ -1,0 +1,29 @@
+@page "/Servers"
+@model AstralRecordControl.Web.Pages.Servers.IndexModel
+@{ ViewData["Title"] = "Servers"; }
+<h1>Servers</h1>
+<p>read-only / pilot 登録。P0 では起動・停止・ファイル変更はできません。</p>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+<table><thead><tr><th>Server</th><th>Host</th><th>希望 / 適用</th><th></th></tr></thead><tbody>
+@foreach (var server in Model.Servers) {
+    <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a></td></tr>
+}
+</tbody></table>
+<h2>Server を登録</h2>
+<p>dev-pc → dev、mc-pc → channel1 / channel2 のように割り当てます。root と実行ファイルは接続済み Agent の報告から選択します。</p>
+<form method="post" asp-page-handler="Create">
+    <input type="hidden" name="requestKey" value="@Model.RequestKey" /><input type="hidden" name="serverId" value="@Model.ServerId" />
+    <label>Host <select name="hostId" required><option value="">選択</option>@foreach (var host in Model.Hosts.Where(h => h.Enabled)) { <option value="@host.HostId">@host.HostKey</option> }</select></label>
+    <label>Server key <input name="serverKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
+    <label>表示名 <input name="displayName" required maxlength="128" /></label>
+    <label>Environment <select name="environmentId"><option value="">なし</option>@foreach (var environment in Model.Environments) { <option value="@environment.EnvironmentId">@environment.DisplayName</option> }</select></label>
+    <label>runtimeServerId (任意) <input name="runtimeServerId" maxlength="128" /></label>
+    <label>種類 <select name="kind"><option>Java</option><option>Bedrock</option><option>Velocity</option></select></label>
+    <label>登録root <select name="managedRootId" required><option value="">選択</option>@foreach (var host in Model.Hosts) { @foreach (var root in Model.Resources(host).Roots) { <option value="@root.Id">@host.HostKey / @root.DisplayName</option> } }</select></label>
+    <label>登録実行ファイル <select name="executableId" required><option value="">選択</option>@foreach (var host in Model.Hosts) { @foreach (var executable in Model.Resources(host).Executables) { <option value="@executable.Id">@host.HostKey / @executable.DisplayName (@executable.Kind)</option> } }</select></label>
+    <label>root 内の相対ディレクトリ <input name="serverDirectory" required placeholder="servers/dev" maxlength="512" /></label>
+    <label>引数 (1行につき1引数) <textarea name="arguments" rows="5" placeholder="-jar&#10;server.jar&#10;nogui"></textarea></label>
+    <label>Listen port (任意) <input type="number" name="listenPort" min="1" max="65535" /></label>
+    <label>停止コマンド <input name="stopCommand" value="stop" required maxlength="4096" /></label>
+    <button type="submit">pilot 登録</button>
+</form>

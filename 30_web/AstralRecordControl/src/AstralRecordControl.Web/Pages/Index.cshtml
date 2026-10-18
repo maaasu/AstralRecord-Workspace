@@ -1,0 +1,19 @@
+@page
+@model AstralRecordControl.Web.Pages.IndexModel
+@{ ViewData["Title"] = "概要"; }
+<h1>Control 概要</h1>
+<p>P0: 台帳と接続確認。ゲーム操作は利用できません。</p>
+<p>取得時刻: <time>@Model.ObservedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-dd HH:mm:ss zzz")</time>。画面の再読込で最新状態を取得します。</p>
+<table>
+    <thead><tr><th>Host</th><th>接続</th><th>希望 / 適用 inventory</th><th>最終受信 (UTC)</th><th>要確認</th></tr></thead>
+    <tbody>@foreach (var host in Model.Hosts) {
+        <tr><td>@host.DisplayName (@host.HostKey)</td><td>@host.ConnectionState</td><td>@host.DesiredInventoryRevision / @host.AppliedInventoryRevision</td><td>@host.LastSeenAtUtc</td><td>@(host.RecoveryRequired ? "再登録・照合が必要" : host.InventoryErrorCode)</td></tr>
+    }</tbody>
+</table>
+<p>Offline はゲームプロセスの停止を意味しません。希望版と適用版が異なる場合は旧設定が適用されています。</p>
+<table>
+    <thead><tr><th>Server</th><th>Host</th><th>希望 / 適用 config</th><th>登録状態</th></tr></thead>
+    <tbody>@foreach (var server in Model.Servers) {
+        <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td>read-only / pilot</td></tr>
+    }</tbody>
+</table>

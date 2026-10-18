@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/AstralRecordControl.Contracts/AstralRecordControl.Contracts.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <Compile Include="../../src/AstralRecordControl.Web/Data/ControlDbContext.cs" Link="Implementation/ControlDbContext.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Data/ControlUser.cs" Link="Implementation/ControlUser.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Data/ControlDbContext.Inventory.cs" Link="Implementation/ControlDbContext.Inventory.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Inventory/InventoryStore.cs" Link="Implementation/InventoryStore.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Inventory/AgentConnections.cs" Link="Implementation/AgentConnections.cs" />
+    <Compile Include="../../src/AstralRecordControl.Web/Inventory/AgentProtocolService.cs" Link="Implementation/AgentProtocolService.cs" />
+  </ItemGroup>
+</Project>

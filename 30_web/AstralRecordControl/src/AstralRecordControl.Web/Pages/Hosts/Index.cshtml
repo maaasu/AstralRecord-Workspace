@@ -1,0 +1,41 @@
+@page "/Hosts"
+@model AstralRecordControl.Web.Pages.Hosts.IndexModel
+@{ ViewData["Title"] = "Hosts"; }
+<h1>Hosts / Environments</h1>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+@if (Model.Issued != null) {
+    <section role="status"><h2>Agent トークン</h2><p>この応答で一度だけ表示します。Agent の対話設定へコピーしてください。</p><p>credentialId: @Model.Issued.CredentialId</p><pre>@Model.Issued.Token</pre></section>
+}
+<h2>Host を登録</h2>
+<p>例: dev-pc、mc-pc。ゲームPCごとに異なる Host を作成します。</p>
+<form method="post" asp-page-handler="Create">
+    <input type="hidden" name="requestKey" value="@Model.RequestKey" />
+    <label>Host key <input name="hostKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
+    <label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">登録</button>
+</form>
+@foreach (var host in Model.Hosts) {
+    <section><h2>@host.DisplayName (@host.HostKey)</h2>
+    <p>Host ID: @host.HostId / 接続: @host.ConnectionState / inventory 希望 @host.DesiredInventoryRevision ・適用 @host.AppliedInventoryRevision</p>
+    <form method="post" asp-page-handler="Update">
+        <input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="revision" value="@host.Revision" />
+        <label>表示名 <input name="displayName" value="@host.DisplayName" required maxlength="128" /></label>
+        <label><input type="checkbox" name="enabled" value="true" checked="@host.Enabled" />有効</label><button type="submit">保存</button>
+    </form>
+    <form method="post" asp-page-handler="Issue"><input type="hidden" name="hostId" value="@host.HostId" /><button type="submit">Agent トークンを発行</button></form>
+    @foreach (var credential in Model.Credentials.Where(c => c.HostId == host.HostId)) {
+        <p>@credential.CredentialId / 発行 @credential.IssuedAtUtc / @(credential.RevokedAtUtc.HasValue ? "失効済み" : "有効")</p>
+        @if (!credential.RevokedAtUtc.HasValue) {
+            <form method="post" asp-page-handler="Revoke"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="credentialId" value="@credential.CredentialId" /><button type="submit">失効して接続を切断</button></form>
+        }
+    }
+    <details><summary>Agent が報告した登録root / 実行ファイル</summary><pre>@host.ResourcesJson</pre></details>
+    </section>
+}
+<h2>Environment を登録</h2>
+<p>共有 API / master の範囲を明示します。Dev / チャンネルの名前から自動分離しません。</p>
+<form method="post" asp-page-handler="Environment">
+    <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+    <label>Environment key <input name="environmentKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
+    <label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">登録</button>
+</form>
+<ul>@foreach (var environment in Model.Environments) { <li>@environment.EnvironmentKey: @environment.DisplayName (@environment.EnvironmentId)</li> }</ul>

@@ -1,0 +1,20 @@
+@page "/Servers/{serverId:guid}"
+@model AstralRecordControl.Web.Pages.Servers.EditModel
+@{ ViewData["Title"] = Model.Server.DisplayName; }
+<h1>@Model.Server.DisplayName (@Model.Server.ServerKey)</h1>
+<p>read-only / pilot。希望 config @Model.Server.DesiredRevision / 適用 @Model.Server.AppliedRevision。保存後の適用結果は概要画面で確認します。</p>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+<form method="post">
+    <input type="hidden" name="serverId" value="@Model.Server.ServerId" /><input type="hidden" name="revision" value="@Model.Server.DesiredRevision" />
+    <label>表示名 <input name="displayName" value="@Model.Server.DisplayName" required maxlength="128" /></label>
+    <label>Environment <select name="environmentId"><option value="">なし</option>@foreach (var environment in Model.Environments) { <option value="@environment.EnvironmentId" selected="@(environment.EnvironmentId == Model.Server.EnvironmentId)">@environment.DisplayName</option> }</select></label>
+    <label>runtimeServerId <input name="runtimeServerId" value="@Model.Server.RuntimeServerId" maxlength="128" /></label>
+    <label>登録root <select name="managedRootId" required>@foreach (var root in Model.Resources.Roots) { <option value="@root.Id" selected="@(root.Id == Model.Config.ManagedRootId)">@root.DisplayName</option> }</select></label>
+    <label>登録実行ファイル <select name="executableId" required>@foreach (var executable in Model.Resources.Executables.Where(e => e.Kind == Model.Config.Kind)) { <option value="@executable.Id" selected="@(executable.Id == Model.Config.ExecutableId)">@executable.DisplayName</option> }</select></label>
+    <label>相対ディレクトリ <input name="serverDirectory" value="@Model.Config.ServerDirectory" required maxlength="512" /></label>
+    <label>引数 (1行につき1引数) <textarea name="arguments" rows="6">@string.Join("\n", Model.Config.ArgumentList)</textarea></label>
+    <label>Listen port <input type="number" name="listenPort" value="@Model.Config.ListenPort" min="1" max="65535" /></label>
+    <label>停止コマンド <input name="stopCommand" value="@Model.Config.StopCommand" required maxlength="4096" /></label>
+    <button type="submit">希望設定を保存</button>
+</form>
+<details><summary>希望設定 JSON / SHA-256</summary><pre>@Model.Server.DesiredConfigJson</pre><p>@Model.Server.ConfigSha256</p></details>
