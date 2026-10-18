@@ -13,11 +13,42 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
+using AstralRecordControl.Contracts;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace AstralRecordControl.Authentication.Tests;
 
 public sealed class OwnerAuthenticationTests
 {
+    [Fact]
+    public async Task CliRequiresMfaAndSeparatesCredentialsFromOwnerAndAgentAndRevokeAll()
+    {
+        await using var factory = new AuthFactory(); await CreateOwner(factory);
+        using var anonymous = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
+        async Task<HttpResponseMessage> Login(string code) => await anonymous.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password, code)), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login("000000")).StatusCode);
+        using var owner = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        await LoginEnrolled(factory, owner);
+        var issuedResponse = await Login(Totp(await GetKey(factory))); Assert.Equal(HttpStatusCode.OK, issuedResponse.StatusCode);
+        var issued = ControlJson.Deserialize<CliTokenIssued>(await issuedResponse.Content.ReadAsStringAsync());
+        Assert.InRange(issued.ExpiresAtUtc - DateTimeOffset.UtcNow, TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(16));
+        anonymous.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", issued.Token);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/control/v1/hosts")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/agent/v1/inventory")).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var service = scope.ServiceProvider.GetRequiredService<CliCredentialService>();
+            Assert.NotNull(await service.AuthenticateAsync(issued.Token));
+            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+            Assert.NotEqual(issued.Token, (await db.CliCredentials.SingleAsync()).TokenHashHex);
+            var setting = await db.OwnerSettings.SingleAsync();
+            await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().RevokeAllAsync(setting.OwnerUserId);
+            Assert.Null(await service.AuthenticateAsync(issued.Token));
+        }
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsync("/api/control/v1/auth/cli-token/revoke", null)).StatusCode);
+    }
+
     [Theory]
     [InlineData("//server/share/control-data")]
     [InlineData("\\\\server\\share\\control-data")]

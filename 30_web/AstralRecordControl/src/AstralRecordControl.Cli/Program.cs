@@ -5,6 +5,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+if (args.Length > 0 && args[0] != "owner")
+{
+    if (!OperatingSystem.IsWindows()) { Console.Error.WriteLine("Control CLI requires Windows."); return 2; }
+    return await AstralRecordControl.Cli.ControlCli.RunAsync(args);
+}
+
 if (args.Length != 2 || args[0] != "owner" || args[1] is not ("create" or "reset"))
 {
     Console.Error.WriteLine("使用法: AstralRecordControl.Cli owner create|reset（対話専用）");

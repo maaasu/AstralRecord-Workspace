@@ -6,6 +6,20 @@ namespace AstralRecordControl.Contracts.Tests;
 
 public sealed class ProtocolTests
 {
+    [Fact]
+    public void ImmutableOperationEnvelopeRejectsTamperingHostAndCommandInjection()
+    {
+        var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = Host, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.ConsoleCommand, ConfigRevision = 1, ExpectedStateRevision = 0, ExpectedServerSessionId = Guid.NewGuid(), StartBeforeUtc = DateTimeOffset.UtcNow.AddSeconds(60), Payload = ControlJson.Element(new { command = "list" }) };
+        ExecuteRequest Request(OperationCommand value) { var json = ControlJson.Serialize(value); return new(value.OperationId, json, ControlProtocol.Hash(json)); }
+        var original = Request(command);
+        Assert.Equal(command.OperationId, OperationValidation.Read(original, Host).OperationId);
+        Assert.Throws<ArgumentException>(() => OperationValidation.Read(original with { CommandJson = original.CommandJson + " " }, Host));
+        Assert.Throws<ArgumentException>(() => OperationValidation.Read(original, Guid.NewGuid()));
+        Assert.Throws<ArgumentException>(() => OperationValidation.Read(Request(command with { Payload = ControlJson.Element(new { command = "list\nstop" }) }), Host));
+        Assert.Throws<ArgumentException>(() => OperationValidation.Read(Request(command with { Payload = ControlJson.Element(new { command = "list", shell = true }) }), Host));
+        Assert.Throws<ArgumentException>(() => OperationValidation.Read(Request(command with { ReservationFence = null }), Host));
+    }
+
     private static readonly Guid Host = Guid.NewGuid();
     private static ServerConfig Server() => new() { HostId = Host, ServerId = Guid.NewGuid(), ManagedRootId = Guid.NewGuid(), ExecutableId = Guid.NewGuid(), ServerDirectory = "dev", Revision = 1 };
 
