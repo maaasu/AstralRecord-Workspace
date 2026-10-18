@@ -12,5 +12,6 @@
     <Project Path="tests/AstralRecordControl.Inventory.Tests/AstralRecordControl.Inventory.Tests.csproj" />
     <Project Path="tests/AstralRecordControl.Agent.Tests/AstralRecordControl.Agent.Tests.csproj" />
     <Project Path="tests/AstralRecordControl.Runner.Tests/AstralRecordControl.Runner.Tests.csproj" />
+    <Project Path="tests/AstralRecordControl.Integration.Tests/AstralRecordControl.Integration.Tests.csproj" />
   </Folder>
 </Solution>

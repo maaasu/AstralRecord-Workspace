@@ -18,6 +18,11 @@ namespace AstralRecordControl.Authentication.Tests;
 
 public sealed class OwnerAuthenticationTests
 {
+    [Theory]
+    [InlineData("//server/share/control-data")]
+    [InlineData("\\\\server\\share\\control-data")]
+    public void StorageRejectsUncBeforeOpeningAnyNetworkPath(string path) => Assert.Throws<InvalidOperationException>(() => new ControlStorage(path));
+
     private const string Password = "Valid-Owner-Password1!";
 
     [Fact]

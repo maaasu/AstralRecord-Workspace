@@ -31,6 +31,19 @@ public sealed class ProtocolTests
         Assert.Null(ControlJson.Deserialize<InventoryApplied>(ControlJson.Serialize(ack)).ErrorCode);
     }
 
+    [Fact]
+    public void OptionalServerAndEventFieldsMayBeOmittedWhileMandatoryFieldsStillReject()
+    {
+        var config = ControlJson.Serialize(Server());
+        var create = ControlJson.Deserialize<ServerCreateRequest>("{\"hostId\":\"" + Host + "\",\"serverKey\":\"dev\",\"displayName\":\"Dev\",\"config\":" + config + "}");
+        Assert.Null(create.EnvironmentId); Assert.Null(create.RuntimeServerId);
+        var update = ControlJson.Deserialize<ServerUpdateRequest>("{\"displayName\":\"Dev\",\"config\":" + config + "}");
+        Assert.Null(update.EnvironmentId); Assert.Null(update.RuntimeServerId);
+        Assert.Throws<JsonException>(() => ControlJson.Deserialize<ServerUpdateRequest>("{\"displayName\":\"Dev\"}"));
+        var item = ControlJson.Deserialize<AgentEvent>("{\"eventSeq\":1,\"eventType\":\"Diagnostic\",\"occurredAtUtc\":\"2026-10-18T00:00:00Z\",\"body\":{}}");
+        Assert.Null(item.OperationId); Assert.Null(item.StatusVersion);
+    }
+
     [Theory]
     [InlineData("../server")][InlineData("/server")][InlineData("C:/server")][InlineData("a\\b")]
     [InlineData("a/./b")][InlineData("a//b")][InlineData("a/CON.txt")][InlineData("a/b.")][InlineData("a/b ")][InlineData("a/x:stream")]

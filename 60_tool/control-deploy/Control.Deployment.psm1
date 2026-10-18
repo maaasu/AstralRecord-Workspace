@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 function Get-ControlAbsolutePath([string]$Path) {
     if (-not [IO.Path]::IsPathFullyQualified($Path) -or $Path.StartsWith('\\')) { throw 'A local absolute path is required.' }
     $resolved = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    if ($resolved.StartsWith('\\')) { throw 'A local absolute path is required.' }
     if ($resolved.Length -le 3) { throw 'A drive root is not allowed.' }
     $cursor = $resolved
     while ($cursor) {
@@ -66,9 +67,12 @@ function Test-ControlConfiguration([string]$DataRoot, [string]$Component) {
         if (-not [Guid]::TryParse($config.hostId, [ref]$id) -or $id -eq [Guid]::Empty) { throw 'A registered hostId is required.' }
         if ($Component -eq 'Agent') {
             $uri = $null
-            if (-not [Uri]::TryCreate($config.serverUrl, [UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -ne 'https') { throw 'Agent serverUrl must use HTTPS.' }
+            if (-not [Uri]::TryCreate($config.serverUrl, [UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -ne 'https' -or $uri.AbsolutePath -ne '/' -or $uri.Query -or $uri.Fragment -or $uri.UserInfo) { throw 'Agent serverUrl must be a fixed HTTPS origin.' }
             if (-not (Test-Path -LiteralPath (Join-Path $root 'credentials\token.bin'))) { throw 'Run Agent --configure before starting Agent.' }
-        } elseif (-not $config.agentSid.StartsWith('S-1-5-', [StringComparison]::Ordinal)) { throw 'Runner agentSid is required.' }
+        } else {
+            try { $agentSid = [Security.Principal.SecurityIdentifier]::new([string]$config.agentSid) } catch { throw 'Runner agentSid is invalid.' }
+            if (-not $agentSid.Value.StartsWith('S-1-5-', [StringComparison]::Ordinal)) { throw 'Runner agentSid must identify the configured Windows principal.' }
+        }
     }
 }
 

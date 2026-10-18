@@ -19,7 +19,7 @@ public static class ControlDatabase
             var version = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
             if (version == SchemaVersion) return;
             if (version != 0) throw new InvalidOperationException($"Unsupported control.db schema: {version}");
-            command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+            command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';";
             if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken)) != 0)
                 throw new InvalidOperationException("Unversioned existing control.db is not supported.");
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -40,6 +40,7 @@ public sealed class ControlStorage
         if (!Path.IsPathFullyQualified(dataRoot) || dataRoot.StartsWith(@"\\", StringComparison.Ordinal))
             throw new InvalidOperationException("Control:DataRoot must be an absolute local path.");
         DataRoot = Path.GetFullPath(dataRoot);
+        if (DataRoot.StartsWith(@"\\", StringComparison.Ordinal)) throw new InvalidOperationException("Control:DataRoot must be an absolute local path.");
         Directory.CreateDirectory(DataRoot);
     }
     public string ConnectionString => new SqliteConnectionStringBuilder

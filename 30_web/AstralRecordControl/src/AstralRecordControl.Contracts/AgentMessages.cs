@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AstralRecordControl.Contracts;
 
@@ -59,7 +60,12 @@ public sealed record AgentHeartbeat
     public ServerRuntimeSnapshot[] ServerSnapshots { get; init; } = [];
     public JsonElement[] Metrics { get; init; } = [];
 }
-public sealed record AgentEvent(long EventSeq, Guid? OperationId, long? StatusVersion, string EventType, DateTimeOffset OccurredAtUtc, JsonElement Body);
+public sealed record AgentEvent(long EventSeq, Guid? OperationId, long? StatusVersion, string EventType, DateTimeOffset OccurredAtUtc, JsonElement Body)
+{
+    [JsonConstructor]
+    public AgentEvent(long eventSeq, string eventType, DateTimeOffset occurredAtUtc, JsonElement body, Guid? operationId = null, long? statusVersion = null)
+        : this(eventSeq, operationId, statusVersion, eventType, occurredAtUtc, body) { }
+}
 public sealed record EventBatch(Guid ConnectionEpoch, AgentEvent[] Events);
 public sealed record EventAck(long AckEventSeq);
 public sealed record IpcRequest(int ProtocolVersion, Guid RequestId, string Method, JsonElement Body);
@@ -70,6 +76,16 @@ public sealed record ReleaseHoldRequest(Guid ReservationId, Guid OwnerWorkflowId
 
 public sealed record HostCreateRequest(string HostKey, string DisplayName);
 public sealed record HostUpdateRequest(string DisplayName, bool Enabled);
-public sealed record ServerCreateRequest(Guid HostId, string ServerKey, string DisplayName, Guid? EnvironmentId, string? RuntimeServerId, ServerConfig Config);
-public sealed record ServerUpdateRequest(string DisplayName, Guid? EnvironmentId, string? RuntimeServerId, ServerConfig Config);
+public sealed record ServerCreateRequest(Guid HostId, string ServerKey, string DisplayName, Guid? EnvironmentId, string? RuntimeServerId, ServerConfig Config)
+{
+    [JsonConstructor]
+    public ServerCreateRequest(Guid hostId, string serverKey, string displayName, ServerConfig config, Guid? environmentId = null, string? runtimeServerId = null)
+        : this(hostId, serverKey, displayName, environmentId, runtimeServerId, config) { }
+}
+public sealed record ServerUpdateRequest(string DisplayName, Guid? EnvironmentId, string? RuntimeServerId, ServerConfig Config)
+{
+    [JsonConstructor]
+    public ServerUpdateRequest(string displayName, ServerConfig config, Guid? environmentId = null, string? runtimeServerId = null)
+        : this(displayName, environmentId, runtimeServerId, config) { }
+}
 public sealed record CredentialIssued(Guid CredentialId, string Token);

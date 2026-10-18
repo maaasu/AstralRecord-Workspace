@@ -16,6 +16,7 @@ try {
         if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
     }
     Assert-Throws { Get-ControlAbsolutePath '\\server\share' }
+    Assert-Throws { Get-ControlAbsolutePath '//server/share/control-data' }
     Assert-Throws { Get-ControlAbsolutePath 'relative\path' }
     Assert-Throws { Get-ControlAbsolutePath 'C:\' }
     Assert-Throws { Assert-ControlSeparatePaths (Join-Path $temp 'data') (Join-Path $temp 'data\binary') }
@@ -32,6 +33,18 @@ try {
     $configuration = @{Control=@{PublicOrigin='https://control.example.test'};Kestrel=@{Endpoints=@{Https=@{Url='https://0.0.0.0:5443';Certificate=@{Subject='control.example.test';Store='My';Location='LocalMachine'}}}}}
     $configuration | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $web 'config.json') -Encoding utf8
     Assert-Throws { Test-ControlConfiguration $web Web }
+    $agent = Join-Path $temp 'Agent'
+    New-Item -ItemType Directory -Path (Join-Path $agent 'credentials') | Out-Null
+    [IO.File]::WriteAllText((Join-Path $agent 'credentials\token.bin'), 'encrypted-fixture')
+    foreach ($origin in 'https://control.example.test/path','https://user:secret@control.example.test','https://control.example.test?token=secret','https://control.example.test/#fragment') {
+        @{hostId=[Guid]::NewGuid().ToString();serverUrl=$origin} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $agent 'config.json') -Encoding utf8
+        Assert-Throws { Test-ControlConfiguration $agent Agent }
+    }
+    $runner = Join-Path $temp 'Runner'; New-Item -ItemType Directory -Path $runner | Out-Null
+    @{hostId=[Guid]::NewGuid().ToString();agentSid='S-1-5-bad'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runner 'config.json') -Encoding utf8
+    Assert-Throws { Test-ControlConfiguration $runner Runner }
+    @{hostId=[Guid]::NewGuid().ToString();agentSid='S-1-5-80-1-2-3-4-5'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runner 'config.json') -Encoding utf8
+    Test-ControlConfiguration $runner Runner
     [IO.File]::WriteAllText((Join-Path $web 'control.db'), '')
     Test-ControlConfiguration $web Web
     $configuration.Control.PublicOrigin = 'http://control.example.test'

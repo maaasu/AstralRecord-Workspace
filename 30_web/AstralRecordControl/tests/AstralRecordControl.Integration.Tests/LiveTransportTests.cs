@@ -89,7 +89,7 @@ public sealed class LiveTransportTests
                 ManagedRootId = resources.Roots.Single().Id, ExecutableId = resources.Executables.Single().Id,
                 ServerDirectory = "dev", ArgumentList = ["-jar", "fixture.jar", "nogui"], ListenPort = 25565
             };
-            await fixture.OwnerApiAsync<InventoryServer>(owner, HttpMethod.Post, "/api/control/v1/servers", new ServerCreateRequest(host.HostId, "dev", "Dev", null, null, config), create: true);
+            await fixture.OwnerApiAsync<InventoryServer>(owner, HttpMethod.Post, "/api/control/v1/servers", new { hostId = host.HostId, serverKey = "dev", displayName = "Dev", config }, create: true);
             var changed = await inventoryChanged.Task.WaitAsync(timeout.Token);
             Assert.Equal(hello.ConnectionEpoch, changed.ConnectionEpoch);
             var reconcile = await Invoke<ReconcileAck>(hub, "Reconcile", new ReconcileRequest
@@ -107,7 +107,7 @@ public sealed class LiveTransportTests
 
             // A real second definition must advance Runner stateRevision before its next heartbeat.
             var next = config with { Revision = 2, ListenPort = 25566 };
-            await fixture.OwnerApiAsync<InventoryServer>(owner, HttpMethod.Put, $"/api/control/v1/servers/{serverId}", new ServerUpdateRequest("Dev updated", null, null, next), match: 1);
+            await fixture.OwnerApiAsync<InventoryServer>(owner, HttpMethod.Put, $"/api/control/v1/servers/{serverId}", new { displayName = "Dev updated", config = next }, match: 1);
             var secondEnvelope = await ApplyAndAck(agent, hub, hello.ConnectionEpoch, applier, agentStore, runnerClient, timeout.Token);
             Assert.True(secondEnvelope.Revision > firstEnvelope.Revision);
             snapshot = await runnerClient.GetSnapshotAsync(timeout.Token);
