@@ -60,6 +60,7 @@ public static class ControlCli
                 return 0;
             }
             var cached = ControlJson.Deserialize<CliSession>(SecureFiles.Read(sessionPath, protect: true));
+            if (args[0] == "gate") ValidateExpectedOrigin(cached.ServerUrl, Required(options, "expected-server-url"));
             using var http = CreateClient(ValidateOrigin(cached.ServerUrl));
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cached.Token);
             if (args[0] == "logout")
@@ -71,7 +72,7 @@ public static class ControlCli
             if (cached.ExpiresAtUtc <= DateTimeOffset.UtcNow) throw new InvalidOperationException("CliSessionExpired");
             if (args[0] == "gate")
             {
-                RequireOptions(options, "session-file", "request-file", "lease-file", "step", "outcome", "run-reference");
+                RequireOptions(options, "session-file", "request-file", "lease-file", "step", "outcome", "run-reference", "expected-server-url");
                 var leasePath = Required(options, "lease-file");
                 if (subcommand == "acquire")
                 {
@@ -107,13 +108,6 @@ public static class ControlCli
                 else throw new ArgumentException();
                 return 0;
             }
-            if (args[0] == "server" && subcommand == "operation")
-            {
-                RequireOptions(options, "session-file", "request-file", "server-id", "request-id");
-                var request = ControlJson.Deserialize<ServerOperationRequest>(ReadBounded(Required(options, "request-file")));
-                var result = await SendAsync<System.Text.Json.JsonElement>(http, HttpMethod.Post, "/api/control/v1/servers/" + Guid.Parse(Required(options, "server-id")) + "/operations", request, Guid.Parse(Required(options, "request-id")));
-                Console.WriteLine(result.GetRawText()); return 0;
-            }
             throw new ArgumentException();
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException)
@@ -133,6 +127,10 @@ public static class ControlCli
     { if (options.Keys.Any(k => !allowed.Contains(k, StringComparer.Ordinal))) throw new ArgumentException(); }
     private static string Required(Dictionary<string, string> options, string key) => options.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value) ? value : throw new ArgumentException("MissingArgument");
     public static Uri ValidateOrigin(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == "https" && uri.AbsolutePath == "/" && uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0 ? uri : throw new ArgumentException("FixedHttpsOriginRequired");
+    public static void ValidateExpectedOrigin(string actual, string expected)
+    {
+        if (ValidateOrigin(actual) != ValidateOrigin(expected)) throw new InvalidOperationException("ControlOriginMismatch");
+    }
     private static HttpClient CreateClient(Uri origin) => new(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { BaseAddress = origin, Timeout = TimeSpan.FromSeconds(45) };
     private static string ReadBounded(string path)
     {

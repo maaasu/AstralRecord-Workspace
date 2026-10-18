@@ -53,6 +53,7 @@ public sealed record ReleasePreparedHoldResponse(Guid ReservationId, bool Releas
 public sealed record AgentExecutionRequest(Guid ConnectionEpoch, Guid OperationId);
 public sealed record AgentReadLogsRequest(Guid ConnectionEpoch, ReadLogsRequest Query);
 public sealed record AgentSnapshotRequest(Guid ConnectionEpoch);
+public sealed record AgentInspectRecoveryRequest(Guid ConnectionEpoch, Guid ServerId);
 
 public sealed record ReadLogsRequest
 {
