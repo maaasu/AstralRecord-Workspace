@@ -31,7 +31,14 @@ public sealed class AgentHub(AgentProtocolService protocol, InventoryNotifier no
     {
         await protocol.ApplyAckAsync(Agent, Read<Contracts.InventoryApplied>(message), Context.ConnectionId); await notifier.StateChangedAsync(); return true;
     });
-    public Task<EventAck> PublishEvents(JsonElement message) => Invoke(async () => await protocol.PublishEventsAsync(Agent, Read<EventBatch>(message), Context.ConnectionId));
+    public Task<EventAck> PublishEvents(JsonElement message) => Invoke(async () =>
+    {
+        var batch = Read<EventBatch>(message);
+        var result = await protocol.PublishEventsAsync(Agent, batch, Context.ConnectionId);
+        foreach (var id in batch.Events.Where(x => x.EventType == "OperationChanged" && x.OperationId.HasValue).Select(x => x.OperationId!.Value).Distinct())
+            await notifier.OperationChangedAsync(id);
+        return result;
+    });
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         await protocol.DisconnectedAsync(Agent, Context.ConnectionId); await notifier.StateChangedAsync(); await base.OnDisconnectedAsync(exception);
@@ -41,6 +48,7 @@ public sealed class AgentHub(AgentProtocolService protocol, InventoryNotifier no
 public sealed class InventoryNotifier(IHubContext<AgentHub> agents, IHubContext<UiHub> ui, AgentConnectionRegistry connections, InventoryStore store)
 {
     public Task StateChangedAsync() => ui.Clients.All.SendAsync("StateChanged", new { observedAtUtc = DateTimeOffset.UtcNow });
+    public Task OperationChangedAsync(Guid operationId) => ui.Clients.All.SendAsync("OperationChanged", new { operationId, observedAtUtc = DateTimeOffset.UtcNow });
     public async Task InventoryChangedAsync(Guid hostId)
     {
         var connection = connections.Current(hostId);

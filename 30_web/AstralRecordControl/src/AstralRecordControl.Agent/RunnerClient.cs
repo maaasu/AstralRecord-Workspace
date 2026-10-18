@@ -9,12 +9,24 @@ public interface IRunnerClient
 {
     Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken);
     Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken);
+    Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<bool> ReleaseHoldAsync(ReleaseHoldRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> ExecuteAsync(ExecuteRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<LogBatch> ReadLogsAsync(ReadLogsRequest request, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
+    Task<RecoveryInspection> InspectRecoveryAsync(Guid serverId, CancellationToken cancellationToken) => throw new AgentFault(ErrorCode.UnsupportedCapability);
 }
 
 public sealed class RunnerClient(AgentConfiguration configuration) : IRunnerClient
 {
     public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => SendAsync<RunnerSnapshot>("GetSnapshot", new { }, cancellationToken);
     public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => SendAsync<RunnerSnapshot>("ApplyInventory", new ApplyInventoryRequest(inventory), cancellationToken);
+    public Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken) => SendAsync<ResourceHold>("AcquireHold", request, cancellationToken);
+    public async Task<bool> ReleaseHoldAsync(ReleaseHoldRequest request, CancellationToken cancellationToken) { await SendAsync<System.Text.Json.JsonElement>("ReleaseHold", request, cancellationToken); return true; }
+    public Task<ExecutionSnapshot> ExecuteAsync(ExecuteRequest request, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("Execute", request, cancellationToken);
+    public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => SendAsync<ExecutionSnapshot>("GetExecution", new GetExecutionRequest(operationId), cancellationToken);
+    public Task<LogBatch> ReadLogsAsync(ReadLogsRequest request, CancellationToken cancellationToken) => SendAsync<LogBatch>("ReadLogs", request, cancellationToken);
+    public Task<RecoveryInspection> InspectRecoveryAsync(Guid serverId, CancellationToken cancellationToken) => SendAsync<RecoveryInspection>("InspectRecovery", new InspectRecoveryRequest(serverId), cancellationToken);
     private async Task<T> SendAsync<T>(string method, object body, CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

@@ -55,5 +55,7 @@ builder.Services.AddSingleton(_ => new AgentStore(dataRoot, configuration.HostId
 builder.Services.AddSingleton(_ => new ProtectedTokenFile(dataRoot, configuration.TokenFile));
 builder.Services.AddSingleton<IRunnerClient, RunnerClient>();
 builder.Services.AddSingleton<InventoryApplier>();
+builder.Services.AddSingleton(new AgentProcessControlGate(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "managed-operations.enabled")));
+builder.Services.AddSingleton<AgentOperationHandler>();
 builder.Services.AddHostedService<AgentConnectionService>();
 await builder.Build().RunAsync();

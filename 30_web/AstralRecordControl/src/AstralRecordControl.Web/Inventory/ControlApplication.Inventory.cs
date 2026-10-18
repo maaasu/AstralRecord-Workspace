@@ -4,6 +4,7 @@ using AstralRecordControl.Web.Authentication;
 using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Hubs;
 using AstralRecordControl.Web.Inventory;
+using AstralRecordControl.Web.Operations;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +22,10 @@ public static partial class ControlApplication
         builder.Services.AddScoped<AgentCredentialService>();
         builder.Services.AddScoped<AgentProtocolService>();
         builder.Services.AddScoped<InventoryNotifier>();
+        builder.Services.AddScoped<IAgentOperationTransport, AgentOperationTransport>();
+        builder.Services.AddScoped<ReservationService>();
+        builder.Services.AddScoped<ControlOperationsService>();
+        builder.Services.AddHostedService<OperationLifecycleMonitor>();
         builder.Services.AddHostedService<AgentOfflineMonitor>();
         builder.Services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, AgentBearerHandler>(AgentBearerHandler.SchemeName, _ => { });
         builder.Services.AddAuthorization(options => options.AddPolicy("AgentOnly", new AuthorizationPolicyBuilder(AgentBearerHandler.SchemeName).RequireAuthenticatedUser().RequireClaim("host_id").Build()));
@@ -94,10 +99,10 @@ public static partial class ControlApplication
             var row = await store.UpdateServerAsync(serverId, Read<ServerUpdateRequest>(body), Match(http), ConfigJson(body));
             await notifier.InventoryChangedAsync(row.HostId); http.Response.Headers.ETag = Quote(row.DesiredRevision); return Results.Ok(row);
         });
-        owner.MapPost("/servers/{serverId:guid}/operations", async (Guid serverId, InventoryStore store) => { await store.ServerAsync(serverId); throw new InventoryFault(409, "UnsupportedCapability"); });
         owner.MapPost("/hosts/{hostId:guid}/operations", async (Guid hostId, InventoryStore store) => { await store.HostAsync(hostId); throw new InventoryFault(409, "UnsupportedCapability"); });
         owner.MapDelete("/servers/{serverId:guid}", async (Guid serverId, InventoryStore store) => { await store.ServerAsync(serverId); throw new InventoryFault(409, "UnsupportedCapability"); });
-        foreach (var path in new[] { "/operations/{**rest}", "/workflows/{**rest}", "/reservations/{**rest}", "/schedules/{**rest}", "/backup-profiles/{**rest}", "/backups/{**rest}", "/transfers/{**rest}" })
+        MapOperations(app, owner);
+        foreach (var path in new[] { "/schedules/{**rest}", "/backup-profiles/{**rest}", "/backups/{**rest}", "/transfers/{**rest}" })
             owner.MapMethods(path, ["GET", "POST", "PUT", "DELETE"], (HttpContext http) => Fault(http, 409, "UnsupportedCapability"));
 
         var agent = app.MapGroup("/api/agent/v1").RequireAuthorization("AgentOnly");

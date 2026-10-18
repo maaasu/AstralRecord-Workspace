@@ -18,7 +18,7 @@ public static class ReconnectBackoff
 }
 
 public sealed class AgentConnectionService(AgentConfiguration configuration, AgentStore store, IRunnerClient runner,
-    InventoryApplier applier, ProtectedTokenFile tokenFile, ILogger<AgentConnectionService> logger) : BackgroundService
+    InventoryApplier applier, AgentOperationHandler operations, AgentProcessControlGate processGate, ProtectedTokenFile tokenFile, ILogger<AgentConnectionService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -67,6 +67,17 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
             .AddJsonProtocol(options => options.PayloadSerializerOptions = ControlJson.CreateOptions())
             .Build();
         hub.Closed += _ => { closed.TrySetResult(); return Task.CompletedTask; };
+        hub.On<DispatchOperationRequest, ExecutionSnapshot>("DispatchOperation", request => operations.DispatchAsync(request, epoch, stoppingToken));
+        hub.On<PrepareHoldRequest, PreparedHold>("PrepareHold", request => operations.PrepareHoldAsync(request, epoch, stoppingToken));
+        hub.On<ReleasePreparedHoldRequest, ReleasePreparedHoldResponse>("ReleaseHold", request => operations.ReleaseHoldAsync(request, epoch, stoppingToken));
+        hub.On<AgentExecutionRequest, ExecutionSnapshot>("GetExecution", request => operations.QueryAsync(request, epoch, stoppingToken));
+        hub.On<AgentReadLogsRequest, LogBatch>("ReadLogs", request => operations.ReadLogsAsync(request, epoch, stoppingToken));
+        hub.On<AgentInspectRecoveryRequest, RecoveryInspection>("InspectRecovery", request => operations.InspectRecoveryAsync(request, epoch, stoppingToken));
+        hub.On<AgentSnapshotRequest, RunnerSnapshot>("GetSnapshot", async request =>
+        {
+            if (request.ConnectionEpoch != epoch || epoch == Guid.Empty) throw new AgentFault(ErrorCode.StateConflict);
+            return await runner.GetSnapshotAsync(stoppingToken);
+        });
         hub.On<JsonElement>("InventoryChanged", message =>
         {
             var change = ControlJson.Deserialize<InventoryChanged>(message.GetRawText());
@@ -83,7 +94,9 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
             AgentVersion = typeof(AgentConnectionService).Assembly.GetName().Version?.ToString() ?? "1.0.0",
             AgentStoreId = state.StoreId, MaxLocalEventSeq = state.MaxEventSequence,
             RunnerEpoch = snapshot.RunnerEpoch, AppliedInventoryRevision = state.AppliedInventoryRevision,
-            LocalResources = configuration.LocalResources
+            LocalResources = configuration.LocalResources,
+            Capabilities = processGate.Enabled
+                ? ["P0.Inventory", "P1.Operations", "P1.LegacyGate"] : ["P0.Inventory"]
         }, stoppingToken);
         if (hello.ProtocolVersion != ControlProtocol.Version || hello.ConnectionEpoch == Guid.Empty || hello.HeartbeatSeconds is < 1 or > 60) throw new AgentFault(ErrorCode.ProtocolMismatch);
         store.Acknowledge(hello.ControllerAckEventSeq);
@@ -93,10 +106,11 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         var reconciliation = await InvokeAsync<ReconcileAck>(hub, "Reconcile", new ReconcileRequest
         {
             ConnectionEpoch = epoch, RunnerEpoch = snapshot.RunnerEpoch, AppliedInventoryRevision = state.AppliedInventoryRevision,
-            Servers = snapshot.Servers, Holds = snapshot.Holds
+            Servers = snapshot.Servers, Holds = snapshot.Holds,
+            Operations = store.ReadNonTerminalOperations().Select(x => ControlJson.Element(new { operationId = x.OperationId, commandSha256 = x.CommandSha256, status = x.Status })).ToArray()
         }, stoppingToken);
         store.Acknowledge(reconciliation.AckEventSeq);
-        if (reconciliation.OperationIds.Length != 0) throw new AgentFault(ErrorCode.UnsupportedCapability);
+        await operations.RefreshOutstandingAsync(stoppingToken);
         // Always fetch after reconciliation: a previously applied ACK or InventoryChanged may have been lost.
         await FetchAndApplyAsync(http, hub, epoch, stoppingToken);
         reconciled();

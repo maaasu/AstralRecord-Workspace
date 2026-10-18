@@ -51,13 +51,24 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         var host = await RequireAsync(identity, request.ConnectionEpoch, connectionId);
         if (request.RunnerEpoch == Guid.Empty || request.RunnerEpoch != host.RunnerEpoch) throw new InventoryFault(409, "StateConflict");
         if (request.AppliedInventoryRevision < host.AppliedInventoryRevision || request.AppliedInventoryRevision > host.DesiredInventoryRevision) throw new InventoryFault(409, "RecoveryRequired");
-        if (request.Operations == null || request.Holds == null || request.Operations.Length > 0 || request.Holds.Length > 0) throw new InventoryFault(409, "UnsupportedCapability");
+        if (request.Operations == null || request.Holds == null || request.Operations.Length > 1024 || request.Holds.Length > 128) throw new InventoryFault(400, "InvalidInput");
+        foreach (var value in request.Operations)
+        {
+            var item = ControlJson.Deserialize<ReconciledOperation>(value.GetRawText());
+            var known = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == item.OperationId && x.HostId == identity.HostId) ?? throw new InventoryFault(409, "RecoveryRequired");
+            if (known.CommandSha256 != item.CommandSha256) throw new InventoryFault(409, "OperationConflict");
+        }
+        foreach (var hold in request.Holds)
+        {
+            if (hold.ReservationId == Guid.Empty || hold.OwnerWorkflowId == Guid.Empty || hold.Fence < 1 || !await db.Reservations.AnyAsync(x => x.ReservationId == hold.ReservationId && x.OwnerWorkflowId == hold.OwnerWorkflowId && x.HostId == identity.HostId && x.State != ReservationStatus.Released)) throw new InventoryFault(409, "RecoveryRequired");
+        }
         await ValidateRuntimeAsync(identity.HostId, request.Servers);
         // The handshake cannot assert that an unacknowledged desired revision applied.
         // The exact revision/hash is acknowledged through InventoryApplied.
         host.RuntimeSnapshotJson = ControlJson.Serialize(request.Servers);
         host.ConnectionState = HostConnectionState.Online; host.LastSeenAtUtc = clock.GetUtcNow();
-        return new ReconcileAck(host.AckAgentEventSeq, [], request.AppliedInventoryRevision != host.DesiredInventoryRevision || host.AppliedInventoryRevision != request.AppliedInventoryRevision);
+        var operationIds = await db.Operations.AsNoTracking().Where(x => x.HostId == identity.HostId && x.Status != OperationStatus.Succeeded && x.Status != OperationStatus.Failed && x.Status != OperationStatus.Rejected && x.Status != OperationStatus.Expired && x.Status != OperationStatus.Cancelled).Select(x => x.OperationId).ToArrayAsync();
+        return new ReconcileAck(host.AckAgentEventSeq, operationIds, request.AppliedInventoryRevision != host.DesiredInventoryRevision || host.AppliedInventoryRevision != request.AppliedInventoryRevision);
     });
 
     public async Task HeartbeatAsync(AgentIdentity identity, AgentHeartbeat request, string connectionId) => await store.WriteAsync(async () =>
@@ -100,9 +111,31 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         if (request.Events == null || request.Events.Length > 128) throw new InventoryFault(400, "InvalidInput");
         foreach (var item in request.Events)
         {
-            if (item.EventSeq < 1 || item.OccurredAtUtc.Offset != TimeSpan.Zero || item.OperationId.HasValue || item.StatusVersion.HasValue || item.Body.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(item.EventType) || item.EventType.Length > 128 || System.Text.Encoding.UTF8.GetByteCount(item.Body.GetRawText()) > 8192) throw new InventoryFault(400, "InvalidEvent");
-            // P0 has no executable operations. Keep informational event facts only.
-            if (item.EventType is not ("AgentConnected" or "InventoryApplied" or "InventoryApplyFailed" or "Diagnostic")) throw new InventoryFault(409, "UnsupportedCapability");
+            if (item.EventSeq < 1 || item.OccurredAtUtc.Offset != TimeSpan.Zero || item.Body.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(item.EventType) || item.EventType.Length > 128 || System.Text.Encoding.UTF8.GetByteCount(item.Body.GetRawText()) > 8192) throw new InventoryFault(400, "InvalidEvent");
+            if (item.EventType is not ("AgentConnected" or "InventoryApplied" or "InventoryApplyFailed" or "Diagnostic" or "OperationChanged")) throw new InventoryFault(409, "UnsupportedCapability");
+            if (item.EventType == "OperationChanged")
+            {
+                if (item.OperationId is null || item.StatusVersion is null or < 1) throw new InventoryFault(400, "InvalidEvent");
+                var operation = await db.Operations.SingleOrDefaultAsync(x => x.OperationId == item.OperationId && x.HostId == identity.HostId) ?? throw new InventoryFault(409, "OperationConflict");
+                var body = ControlJson.Deserialize<OperationEventBody>(item.Body.GetRawText());
+                if (item.StatusVersion > operation.StatusVersion)
+                {
+                    if (OperationValidation.IsTerminal(operation.Status) && body.Status != operation.Status) throw new InventoryFault(409, "RecoveryRequired");
+                    operation.Status = body.Status; operation.StatusVersion = item.StatusVersion.Value; operation.EventSeq = item.EventSeq;
+                    operation.ResultJson = body.Result?.GetRawText(); operation.ErrorCode = body.ErrorCode;
+                    if (body.Status is OperationStatus.Accepted or OperationStatus.Running) operation.AcceptedAtUtc ??= clock.GetUtcNow();
+                    if (body.Status == OperationStatus.Running) operation.StartedAtUtc ??= clock.GetUtcNow();
+                    if (OperationValidation.IsTerminal(body.Status)) operation.FinishedAtUtc = clock.GetUtcNow();
+                    if (body.Status == OperationStatus.NeedsAttention)
+                    {
+                        var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == operation.WorkflowId);
+                        workflow.Status = WorkflowStatus.RecoveryRequired; workflow.RecoveryRequired = true; workflow.UpdatedAtUtc = clock.GetUtcNow();
+                        foreach (var reservation in await db.Reservations.Where(x => x.ReservationId == operation.ReservationId).ToArrayAsync()) reservation.State = ReservationStatus.RecoveryRequired;
+                        (await db.ReservationLeases.SingleAsync(x => x.ReservationId == operation.ReservationId)).Status = ReservationStatus.RecoveryRequired;
+                    }
+                }
+            }
+            else if (item.OperationId.HasValue || item.StatusVersion.HasValue) throw new InventoryFault(400, "InvalidEvent");
             var json = ControlJson.Serialize(item); var hash = ControlProtocol.Hash(json);
             if (item.EventSeq <= host.AckAgentEventSeq)
             {
@@ -162,4 +195,6 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         foreach (var executable in resources.Executables)
             if (executable.Id == Guid.Empty || !Enum.IsDefined(executable.Kind) || string.IsNullOrWhiteSpace(executable.DisplayName) || executable.DisplayName.Length > 128 || string.IsNullOrWhiteSpace(executable.Path) || executable.Path.Length > 1024) throw new InventoryFault(400, "InvalidInput");
     }
+    private sealed record ReconciledOperation(Guid OperationId, string CommandSha256, OperationStatus Status);
+    private sealed record OperationEventBody(OperationStatus Status, JsonElement? Result, string? ErrorCode);
 }

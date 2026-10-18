@@ -1,0 +1,44 @@
+@page "/Servers/{serverId:guid}/Operations"
+@model AstralRecordControl.Web.Pages.Servers.OperationsModel
+@{ ViewData["Title"] = "Server 操作"; }
+<h1>@Model.Server.DisplayName</h1>
+<p>プロセス: @(Model.Runtime?.ProcessState.ToString() ?? "状態未取得") / Session: @(Model.Runtime?.CurrentSessionId.ToString() ?? "なし") / 設定: @Model.Server.AppliedRevision</p>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+@if (!Model.Enabled) { <p>操作は現在利用できません。共通 gate、Host 接続、設定適用を確認してください。</p> }
+else
+{
+    <form method="post" asp-page-handler="Operate">
+        <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
+        <input type="hidden" name="requestKey" value="@Model.RequestKey" />
+        <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" />
+        <input type="hidden" name="expectedStateRevision" value="@Model.Runtime!.StateRevision" />
+        <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime.CurrentSessionId" />
+        @if (Model.MaintenanceLeases.Length > 0)
+        {
+            <label>保守 Workflow を継承
+                <select name="reservationId"><option value="">新しい単一操作</option>
+                    @foreach (var lease in Model.MaintenanceLeases) { <option value="@lease.ReservationId">@lease.AdapterId / @lease.WorkflowId</option> }
+                </select>
+            </label>
+        }
+        <button type="submit" name="kind" value="Start">Start</button>
+        <button type="submit" name="kind" value="Stop">Stop</button>
+        <button type="submit" name="kind" value="Restart">Restart</button>
+        <label>Kill 理由 <input name="reason" maxlength="1024" /></label>
+        <button type="submit" name="kind" value="Kill">Kill</button>
+        <label>Console 命令 <input name="command" maxlength="4096" /></label>
+        <button type="submit" name="kind" value="ConsoleCommand">送信</button>
+    </form>
+}
+<h2>操作履歴</h2>
+<table><thead><tr><th>日時</th><th>種別</th><th>状態</th><th>エラー</th></tr></thead><tbody>
+@foreach (var operation in Model.Recent) { <tr><td>@operation.CreatedAtUtc</td><td>@operation.Kind</td><td>@operation.Status</td><td>@operation.ErrorCode</td></tr> }
+</tbody></table>
+<h2>ログ</h2>
+@if (Model.Logs is null) { <p>ログは現在取得できません。</p> }
+else
+{
+    @if (Model.Logs.Gap) { <p>保持期間を超えた行があります。最古 cursor: @Model.Logs.EarliestAvailableCursor</p> }
+    <pre>@foreach (var row in Model.Logs.Rows) { @($"[{row.OccurredAtUtc:O}] {row.Stream}: {row.Text}\n") }</pre>
+    <a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId" asp-route-afterSequence="@Model.Logs.NextCursor">次のログ</a>
+}

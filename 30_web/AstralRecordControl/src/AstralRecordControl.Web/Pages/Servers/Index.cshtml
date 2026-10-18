@@ -2,11 +2,11 @@
 @model AstralRecordControl.Web.Pages.Servers.IndexModel
 @{ ViewData["Title"] = "Servers"; }
 <h1>Servers</h1>
-<p>read-only / pilot 登録。P0 では起動・停止・ファイル変更はできません。</p>
+<p>操作は共通 gate と Host の準備が完了した環境で有効です。</p>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 <table><thead><tr><th>Server</th><th>Host</th><th>希望 / 適用</th><th></th></tr></thead><tbody>
 @foreach (var server in Model.Servers) {
-    <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a></td></tr>
+    <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a> <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a></td></tr>
 }
 </tbody></table>
 <h2>Server を登録</h2>
@@ -25,5 +25,5 @@
     <label>引数 (1行につき1引数) <textarea name="arguments" rows="5" placeholder="-jar&#10;server.jar&#10;nogui"></textarea></label>
     <label>Listen port (任意) <input type="number" name="listenPort" min="1" max="65535" /></label>
     <label>停止コマンド <input name="stopCommand" value="stop" required maxlength="4096" /></label>
-    <button type="submit">pilot 登録</button>
+    <button type="submit">登録</button>
 </form>

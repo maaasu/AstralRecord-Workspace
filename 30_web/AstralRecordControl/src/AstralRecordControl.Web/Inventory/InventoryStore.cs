@@ -2,6 +2,7 @@ using System.Text.Json;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AstralRecordControl.Web.Inventory;
 
@@ -15,9 +16,10 @@ public sealed class InventoryFault(int status, string code) : Exception(code)
 // including checks spanning several rows, rather than retrying a partially validated write.
 public sealed class InventoryWriteGate { internal SemaphoreSlim Semaphore { get; } = new(1); }
 
-public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate, TimeProvider clock)
+public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate, TimeProvider clock, IConfiguration? configuration = null)
 {
     private DateTimeOffset Now => clock.GetUtcNow();
+    private bool ProcessControlEnabled => configuration?.GetValue<bool>("Control:EnableProcessControl") == true;
     public async Task<T> WriteAsync<T>(Func<Task<T>> action)
     {
         await gate.Semaphore.WaitAsync();
@@ -85,7 +87,7 @@ public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate,
         ValidateName(request.ServerKey, request.DisplayName);
         if (await db.Servers.AnyAsync(x => x.ServerKey == request.ServerKey || x.ServerId == request.Config.ServerId)) throw new InventoryFault(409, "OperationConflict");
         var host = await HostAsync(request.HostId);
-        var row = new InventoryServer { ServerId = request.Config.ServerId, HostId = request.HostId, ServerKey = request.ServerKey, DisplayName = request.DisplayName, EnvironmentId = request.EnvironmentId, RuntimeServerId = request.RuntimeServerId, DesiredRevision = 1, DesiredConfigJson = configJson, ConfigSha256 = ControlProtocol.Hash(configJson), CreatedAtUtc = Now, UpdatedAtUtc = Now };
+        var row = new InventoryServer { ServerId = request.Config.ServerId, HostId = request.HostId, ServerKey = request.ServerKey, DisplayName = request.DisplayName, EnvironmentId = request.EnvironmentId, RuntimeServerId = request.RuntimeServerId, DesiredRevision = 1, DesiredConfigJson = configJson, ConfigSha256 = ControlProtocol.Hash(configJson), ReadOnlyPilot = !ProcessControlEnabled, CreatedAtUtc = Now, UpdatedAtUtc = Now };
         await ValidateServerAsync(row, request.Config, host, 1);
         var existing = await db.Servers.Where(s => s.HostId == host.HostId).ToListAsync();
         var configs = existing.Select(s => ControlJson.Deserialize<ServerConfig>(s.DesiredConfigJson)).Append(request.Config).ToArray();
@@ -107,6 +109,7 @@ public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate,
         ValidateSnapshot(host, configs);
         row.EnvironmentId = request.EnvironmentId; row.RuntimeServerId = request.RuntimeServerId; row.DisplayName = request.DisplayName;
         row.DesiredRevision = nextRevision; row.DesiredConfigJson = configJson; row.ConfigSha256 = ControlProtocol.Hash(configJson); row.UpdatedAtUtc = Now;
+        row.ReadOnlyPilot = !ProcessControlEnabled;
         SaveInventory(host, configs); return row;
     });
 
@@ -115,7 +118,12 @@ public sealed class InventoryStore(ControlDbContext db, InventoryWriteGate gate,
         if (!host.Enabled) throw new InventoryFault(409, "AgentDisabled");
         if (config.ServerId != server.ServerId || config.Revision != revision) throw new InventoryFault(409, "StaleRevision");
         InventoryValidation.Validate(config, host.HostId);
-        if (config.AutoStart || config.RestartOnCrash || config.DependencyReadiness != DependencyReadiness.Running) throw new InventoryFault(409, "UnsupportedCapability");
+        if (config.DependencyReadiness != DependencyReadiness.Running) throw new InventoryFault(409, "UnsupportedCapability");
+        if (config.AutoStart || config.RestartOnCrash)
+        {
+            var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
+            if (!ProcessControlEnabled || !capabilities.Contains("P1.Operations") || !capabilities.Contains("P1.LegacyGate") || config.Kind != ServerKind.Java) throw new InventoryFault(409, "UnsupportedCapability");
+        }
         var resources = ControlJson.Deserialize<HostResources>(host.ResourcesJson);
         if (!resources.Roots.Any(r => r.Id == config.ManagedRootId) || !resources.Executables.Any(e => e.Id == config.ExecutableId && e.Kind == config.Kind)) throw new InventoryFault(400, "PathOutsideRoot");
         if (server.EnvironmentId.HasValue && !await db.Environments.AnyAsync(x => x.EnvironmentId == server.EnvironmentId)) throw new InventoryFault(404, "NotFound");

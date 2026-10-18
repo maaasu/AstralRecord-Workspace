@@ -5,7 +5,7 @@ namespace AstralRecordControl.Agent;
 
 public sealed record AgentState(Guid StoreId, long MaxEventSequence, long ControllerAckSequence, long AppliedInventoryRevision, string InventorySha256);
 
-public sealed class AgentStore : IDisposable
+public sealed partial class AgentStore : IDisposable
 {
     private readonly SqliteConnection database;
     private readonly Guid hostId;
@@ -25,7 +25,7 @@ public sealed class AgentStore : IDisposable
         database.Open();
         Execute("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version;"));
-        if (version is < 0 or > 1) throw new AgentFault(ErrorCode.ProtocolMismatch);
+        if (version is < 0 or > 2) throw new AgentFault(ErrorCode.ProtocolMismatch);
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%';")) != 0) throw new AgentFault(ErrorCode.RecoveryRequired);
@@ -37,6 +37,17 @@ public sealed class AgentStore : IDisposable
             using var transaction = database.BeginTransaction();
             Execute("CREATE TABLE State(id INTEGER PRIMARY KEY CHECK(id=1),hostId TEXT NOT NULL,storeId TEXT NOT NULL,maxSeq INTEGER NOT NULL,ackSeq INTEGER NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,snapshot TEXT NOT NULL); CREATE TABLE PendingInventory(id INTEGER PRIMARY KEY CHECK(id=1),envelope TEXT NOT NULL); CREATE TABLE EventOutbox(seq INTEGER PRIMARY KEY,eventJson TEXT NOT NULL); PRAGMA user_version=1;", transaction);
             Execute("INSERT INTO State VALUES(1,$host,$store,0,0,0,'','');", transaction, ("$host", hostId.ToString()), ("$store", Guid.NewGuid().ToString()));
+            transaction.Commit();
+            version = 1;
+        }
+        if (version == 1)
+        {
+            using (var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path + ".before-v2.bak", Pooling = false }.ToString()))
+            {
+                backup.Open(); database.BackupDatabase(backup);
+            }
+            using var transaction = database.BeginTransaction();
+            Execute("CREATE TABLE OperationInbox(operationId TEXT PRIMARY KEY,commandJson TEXT NOT NULL,commandSha256 TEXT NOT NULL,status TEXT NOT NULL,statusVersion INTEGER NOT NULL,resultJson TEXT,errorCode TEXT,updatedAtUtc TEXT NOT NULL); PRAGMA user_version=2;", transaction);
             transaction.Commit();
         }
         if ((string?)Scalar("SELECT hostId FROM State WHERE id=1;") != hostId.ToString()) throw new AgentFault(ErrorCode.RecoveryRequired);

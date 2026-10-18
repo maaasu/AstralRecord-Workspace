@@ -140,6 +140,48 @@ public sealed class AgentTests
         Assert.Equal(TimeSpan.FromSeconds(60), ReconnectBackoff.Delay(1000, 0));
     }
 
+    [Fact]
+    public async Task OperationInboxSurvivesRestartAndDuplicateNeverExecutesAgain()
+    {
+        using var fixture = new Fixture();
+        var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = fixture.Configuration.HostId, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 7, Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 2, StartBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(1) };
+        var json = ControlJson.Serialize(command);
+        var epoch = Guid.NewGuid();
+        var dispatch = new DispatchOperationRequest(1, epoch, command.OperationId, json, ControlProtocol.Hash(json));
+        var runner = new OperationRunner();
+        using (var store = fixture.Open())
+        {
+            var handler = new AgentOperationHandler(fixture.Configuration, store, runner);
+            Assert.Equal(OperationStatus.Running, (await handler.DispatchAsync(dispatch, epoch, CancellationToken.None)).Status);
+            Assert.Equal(1, runner.ExecuteCount);
+            Assert.Equal(2, store.ReadEvents().Length);
+        }
+        using (var reopened = fixture.Open())
+        {
+            var handler = new AgentOperationHandler(fixture.Configuration, reopened, runner);
+            Assert.Equal(OperationStatus.Running, (await handler.DispatchAsync(dispatch, epoch, CancellationToken.None)).Status);
+            Assert.Equal(1, runner.ExecuteCount);
+            Assert.Single(reopened.ReadNonTerminalOperations());
+            await Assert.ThrowsAsync<ArgumentException>(() => handler.DispatchAsync(dispatch with { CommandSha256 = new string('0', 64) }, epoch, CancellationToken.None));
+            await Assert.ThrowsAsync<AgentFault>(() => handler.DispatchAsync(dispatch, Guid.NewGuid(), CancellationToken.None));
+        }
+    }
+
+    private sealed class OperationRunner : IRunnerClient
+    {
+        public int ExecuteCount { get; private set; }
+        private ExecutionSnapshot state = null!;
+        public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => Task.FromResult(new RunnerSnapshot { RunnerEpoch = Guid.NewGuid() });
+        public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<ExecutionSnapshot> ExecuteAsync(ExecuteRequest request, CancellationToken cancellationToken)
+        {
+            ExecuteCount++;
+            state = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256, Status = OperationStatus.Running, StatusVersion = 2, UpdatedAtUtc = DateTimeOffset.UtcNow };
+            return Task.FromResult(state);
+        }
+        public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => Task.FromResult(state);
+    }
+
     private sealed class FakeRunner : IRunnerClient
     {
         public int ApplyCount { get; private set; }
