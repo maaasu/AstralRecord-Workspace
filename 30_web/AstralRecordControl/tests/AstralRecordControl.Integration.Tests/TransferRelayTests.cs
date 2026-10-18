@@ -82,6 +82,25 @@ public sealed class TransferRelayTests
         Assert.Equal(0, new FileInfo(Path.Combine(f.Root, "transfers", transfer.TransferId.ToString("N") + ".stage")).Length);
     }
 
+    [Fact]
+    public async Task CleanupKeepsAnActiveConsumeLeaseAndRemovesFinalizedStageAfterTwentyFourHours()
+    {
+        await using var f = await Fixture.StartAsync();
+        var sha = Hash([]);
+        var transfer = await f.Relay.CreateAsync(f.Request(0, sha), Guid.NewGuid(), default);
+        transfer = await f.Relay.CompleteAsync(transfer.TransferId, null, new(0, sha), default);
+        Assert.Single(await f.Relay.ListAsync(default));
+        var consumer = Guid.NewGuid();
+        await f.Relay.GetVerifiedForConsumeAsync(transfer.TransferId, f.HostId, f.ServerId, consumer, default);
+        f.Clock.Advance(TimeSpan.FromHours(25));
+        await f.Relay.CleanupAsync(default);
+        Assert.Equal(TransferStatus.Verified, (await f.Relay.GetAsync(transfer.TransferId, null, default)).Status);
+        await f.Relay.FinalizeConsumedAsync(transfer.TransferId, consumer, default);
+        f.Clock.Advance(TimeSpan.FromHours(25));
+        await f.Relay.CleanupAsync(default);
+        await Fault("NotFound", () => f.Relay.GetAsync(transfer.TransferId, null, default));
+    }
+
     private static string Hash(ReadOnlySpan<byte> bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     private static async Task Fault(string code, Func<Task> run) => Assert.Equal(code, (await Assert.ThrowsAsync<InventoryFault>(run)).Code);
 
@@ -102,11 +121,19 @@ public sealed class TransferRelayTests
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
+    private sealed class FakeClock : TimeProvider
+    {
+        private DateTimeOffset current = DateTimeOffset.Parse("2026-10-18T00:00:00Z");
+        public override DateTimeOffset GetUtcNow() => current;
+        public void Advance(TimeSpan delta) => current += delta;
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "control-transfer-" + Guid.NewGuid().ToString("N"));
         public Guid HostId { get; } = Guid.NewGuid();
         public Guid ServerId { get; } = Guid.NewGuid();
+        public FakeClock Clock { get; } = new();
         private ControlDbContext Db { get; set; } = null!;
         public TransferRelay Relay { get; private set; } = null!;
         public static async Task<Fixture> StartAsync()
@@ -119,7 +146,7 @@ public sealed class TransferRelayTests
             f.Db.Hosts.Add(new InventoryHost { HostId = f.HostId, HostKey = "host", DisplayName = "host", Enabled = true });
             f.Db.Servers.Add(new InventoryServer { ServerId = f.ServerId, HostId = f.HostId, ServerKey = "server", DisplayName = "server" });
             await f.Db.SaveChangesAsync();
-            f.Relay = new TransferRelay(f.Db, storage, new InventoryWriteGate(), TimeProvider.System);
+            f.Relay = new TransferRelay(f.Db, storage, new InventoryWriteGate(), f.Clock);
             return f;
         }
         public TransferCreateRequest Request(long size, string sha) => new()

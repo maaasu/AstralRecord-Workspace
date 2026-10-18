@@ -65,7 +65,7 @@ public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, I
     }
 
     public async Task<TransferInfo[]> ListAsync(CancellationToken ct) =>
-        (await db.Transfers.AsNoTracking().OrderByDescending(x => x.CreatedAtUtc).Take(100).ToArrayAsync(ct)).Select(Info).ToArray();
+        (await db.Transfers.FromSqlRaw("SELECT * FROM Transfers ORDER BY CreatedAtUtc DESC LIMIT 100").AsNoTracking().ToArrayAsync(ct)).Select(Info).ToArray();
 
     public async Task<TransferInfo> PrepareAsync(Guid id, Guid sourceHostId, TransferPrepareRequest request, CancellationToken ct) => await LockedAsync(async () =>
     {
@@ -198,18 +198,17 @@ public sealed class TransferRelay(ControlDbContext db, ControlStorage storage, I
 
     public async Task CleanupAsync(CancellationToken ct) => await LockedAsync(async () =>
     {
-        var due = await db.Transfers.Where(x =>
+        var due = (await db.Transfers.ToArrayAsync(ct)).Where(x =>
             (x.ConsumingOperationId == null &&
                 (x.Status == TransferStatus.Created || x.Status == TransferStatus.Uploading ? x.ExpiresAtUtc <= Now :
                  x.Status == TransferStatus.Verified ? x.VerifiedAtUtc <= Now.AddHours(-24) : false)) ||
-            (x.Status == TransferStatus.Consumed && x.ConsumedAtUtc <= Now.AddHours(-24))).ToArrayAsync(ct);
+            (x.Status == TransferStatus.Consumed && x.ConsumedAtUtc <= Now.AddHours(-24))).ToArray();
         foreach (var row in due)
         {
-            if (row.Status is TransferStatus.Created or TransferStatus.Uploading) row.Status = TransferStatus.Expired;
             var path = StagePath(row.TransferId);
             try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { continue; }
-            if (row.Status == TransferStatus.Expired) continue;
-            db.TransferScopes.Remove(new InventoryTransferScope { TransferId = row.TransferId });
+            var scope = await db.TransferScopes.SingleOrDefaultAsync(x => x.TransferId == row.TransferId, ct);
+            if (scope != null) db.TransferScopes.Remove(scope);
             db.Transfers.Remove(row);
         }
         await db.SaveChangesAsync(ct);
