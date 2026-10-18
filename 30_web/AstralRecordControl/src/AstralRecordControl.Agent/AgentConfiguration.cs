@@ -14,6 +14,7 @@ public sealed record AgentConfiguration
     public string TokenFile { get; init; } = "credentials/token.bin";
     public HostResources LocalResources { get; init; } = new();
     public bool EnableFileControl { get; init; }
+    public bool EnableSchedules { get; init; }
     public static string DefaultDataRoot => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "Agent");
     public Uri Validate()
     {

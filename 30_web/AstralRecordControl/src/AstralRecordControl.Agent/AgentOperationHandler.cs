@@ -7,9 +7,10 @@ public sealed class AgentProcessControlGate(string markerPath)
     public bool Enabled => File.Exists(markerPath);
 }
 
-public sealed partial class AgentOperationHandler(AgentConfiguration configuration, AgentStore store, IRunnerClient runner, AgentProcessControlGate? processGate = null, Storage.P2StorageService? storage = null)
+public sealed partial class AgentOperationHandler(AgentConfiguration configuration, AgentStore store, IRunnerClient runner, AgentProcessControlGate? processGate = null, Storage.P2StorageService? storage = null, TimeProvider? timeProvider = null)
 {
     private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
 
     public async Task<ExecutionSnapshot> DispatchAsync(DispatchOperationRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
@@ -30,7 +31,7 @@ public sealed partial class AgentOperationHandler(AgentConfiguration configurati
                 return await RefreshAsync(existing, cancellationToken);
             }
             var accepted = store.AcceptOperation(execute);
-            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(accepted);
+            if (clock.GetUtcNow() > command.StartBeforeUtc) return Expire(accepted);
             store.MarkDispatchAttempted(request.OperationId);
             try { return store.SaveOperation(await runner.ExecuteAsync(execute, cancellationToken)); }
             catch (Exception exception) when (exception is IOException or OperationCanceledException or AgentFault)
@@ -144,7 +145,7 @@ public sealed partial class AgentOperationHandler(AgentConfiguration configurati
             // ledger. A transport failure never enters this branch. Execute with the
             // original ID/hash so a concurrent acceptance remains idempotent.
             var command = OperationValidation.Read(dispatch.Command, configuration.HostId);
-            if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(existing);
+            if (clock.GetUtcNow() > command.StartBeforeUtc) return Expire(existing);
             store.MarkDispatchAttempted(existing.OperationId);
             try { runnerState = await runner.ExecuteAsync(dispatch.Command, cancellationToken); }
             catch (AgentFault error) when (error.Code == ErrorCode.DeadlineExpired) { return Expire(existing); }
@@ -156,7 +157,7 @@ public sealed partial class AgentOperationHandler(AgentConfiguration configurati
     private ExecutionSnapshot Expire(ExecutionSnapshot accepted) => store.SaveOperation(accepted with
     {
         Status = OperationStatus.Expired, StatusVersion = accepted.StatusVersion + 1,
-        Phase = ExecutionPhase.Completed, ErrorCode = ErrorCode.DeadlineExpired.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow
+        Phase = ExecutionPhase.Completed, ErrorCode = ErrorCode.DeadlineExpired.ToString(), UpdatedAtUtc = clock.GetUtcNow()
     });
 
     private static void RequireEpoch(Guid received, Guid active)

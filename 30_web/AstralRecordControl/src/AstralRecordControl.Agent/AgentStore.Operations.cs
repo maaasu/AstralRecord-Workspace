@@ -135,6 +135,10 @@ public sealed partial class AgentStore
 
     private void AppendOperationEvent(Microsoft.Data.Sqlite.SqliteTransaction transaction, Guid id, long version, OperationStatus status, JsonElement? result, string? error, DateTimeOffset occurredAt)
     {
+        // Scheduled children are reported through their parent occurrence. The
+        // controller does not have an ordinary owner-created Operation for them.
+        if (Scalar("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ScheduleChildOperations';", transaction) is not null &&
+            Scalar("SELECT 1 FROM ScheduleChildOperations WHERE operationId=$id;", transaction, ("$id", id.ToString())) is not null) return;
         var sequence = checked(Convert.ToInt64(Scalar("SELECT maxSeq FROM State WHERE id=1;", transaction)) + 1);
         var item = new AgentEvent(sequence, id, version, "OperationChanged", occurredAt, ControlJson.Element(new { status, result, errorCode = error }));
         Execute("INSERT INTO EventOutbox VALUES($seq,$json);", transaction, ("$seq", sequence), ("$json", ControlJson.Serialize(item)));
