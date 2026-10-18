@@ -159,6 +159,22 @@ public sealed class P2StorageTests
         await Assert.ThrowsAnyAsync<IOException>(() => f.Store.CreateBackupAsync(f.Server, f.Profile(), new(backupId, f.ProfileId, 1), Guid.NewGuid(), Guard));
         Assert.Equal("unchanged", File.ReadAllText(Path.Combine(f.ServerPath, "world.dat")));
         Assert.Contains(f.Store.ListBackups(f.Server), x => x.BackupId == backupId && x.State == BackupState.Failed);
+        Assert.Null(await f.Store.GetCompletedBackupAsync(f.Server, new(backupId, f.ProfileId, 1)));
+    }
+
+    [Fact]
+    public async Task CompletedBackupCanBeRecoveredOnlyWithMatchingVerifiedSnapshot()
+    {
+        using var f = new Fixture();
+        File.WriteAllText(Path.Combine(f.ServerPath, "world.dat"), "saved");
+        var payload = new CreateBackupPayload(Guid.NewGuid(), f.ProfileId, 1);
+        Assert.Null(await f.Store.GetCompletedBackupAsync(f.Server, payload));
+        var completed = await f.Store.CreateBackupAsync(f.Server, f.Profile(), payload, Guid.NewGuid(), Guard);
+        Assert.Equal(ControlJson.Serialize(completed), ControlJson.Serialize(await f.Store.GetCompletedBackupAsync(f.Server, payload)));
+        await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.GetCompletedBackupAsync(f.Server, payload with { ProfileRevision = 2 }));
+        var storedFile = Path.Combine(f.BackupRoot, "control-backups", f.Server.ServerId.ToString("N"), payload.BackupId.ToString("N"), "files", "world.dat");
+        File.WriteAllText(storedFile, "corrupt");
+        await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.GetCompletedBackupAsync(f.Server, payload));
     }
 
     [Fact]

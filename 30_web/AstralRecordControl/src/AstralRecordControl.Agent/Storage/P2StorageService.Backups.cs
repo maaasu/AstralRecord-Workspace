@@ -43,6 +43,27 @@ public sealed partial class P2StorageService
         return [.. result.OrderByDescending(x => x.CreatedAtUtc)];
     }
 
+    public async Task<BackupManifest?> GetCompletedBackupAsync(ServerConfig server, CreateBackupPayload payload, CancellationToken cancellationToken = default)
+    {
+        RequireId(payload.BackupId);
+        RequireId(payload.BackupProfileId);
+        if (payload.ProfileRevision < 1) throw new ArgumentException("Invalid backup profile revision.", nameof(payload));
+        if (!File.Exists(BackupIndex(payload.BackupId))) return null;
+        var stored = LoadBackup(server, payload.BackupId);
+        var manifest = stored.Manifest;
+        if (manifest.State is BackupState.Failed or BackupState.Creating) return null;
+        if (manifest.State != BackupState.Completed || manifest.HostId != server.HostId || manifest.ServerKind != server.Kind ||
+            manifest.ConfigRevision != server.Revision || manifest.BackupProfileId != payload.BackupProfileId ||
+            manifest.ProfileRevision != payload.ProfileRevision)
+            throw new InvalidDataException("Completed backup identity does not match the requested operation.");
+        var destination = BackupDestination(server, stored.DestinationRootId, payload.BackupId);
+        await VerifyStoredBackupAsync(destination, manifest, cancellationToken);
+        var onDisk = ReadJson<BackupManifest>(Path.Combine(destination, "manifest.json"));
+        if (ControlJson.Serialize(onDisk) != ControlJson.Serialize(manifest with { Protected = onDisk.Protected }))
+            throw new InvalidDataException("Backup index and stored manifest differ.");
+        return manifest;
+    }
+
     public async Task<BackupManifest> CreateBackupAsync(ServerConfig server, BackupProfile profile, CreateBackupPayload payload, Guid operationId, Func<CancellationToken, Task> verifyGuard, CancellationToken cancellationToken = default)
     {
         RequireId(operationId);
