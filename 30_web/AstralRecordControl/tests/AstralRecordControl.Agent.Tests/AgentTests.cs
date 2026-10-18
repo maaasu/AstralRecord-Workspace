@@ -186,7 +186,7 @@ public sealed class AgentTests
     }
 
     [Fact]
-    public async Task AttemptedDispatchWithMissingRunnerLedgerNeedsAttentionWithoutReplay()
+    public async Task AttemptedDispatchWithMissingRunnerLedgerResendsOriginalCommand()
     {
         using var fixture = new Fixture();
         var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = fixture.Configuration.HostId, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.ConsoleCommand, ConfigRevision = 1, ExpectedStateRevision = 2, ExpectedServerSessionId = Guid.NewGuid(), StartBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(1), Payload = ControlJson.Element(new { command = "say test" }) };
@@ -197,23 +197,87 @@ public sealed class AgentTests
         var runner = new OperationRunner();
         var epoch = Guid.NewGuid();
         var result = await new AgentOperationHandler(fixture.Configuration, store, runner).DispatchAsync(new DispatchOperationRequest(1, epoch, command.OperationId, json, ControlProtocol.Hash(json)), epoch, CancellationToken.None);
-        Assert.Equal(OperationStatus.NeedsAttention, result.Status);
+        Assert.Equal(OperationStatus.Running, result.Status);
+        Assert.Equal(1, runner.ExecuteCount);
+        Assert.Equal(ControlProtocol.Hash(json), result.CommandSha256);
+    }
+
+    [Fact]
+    public async Task AttemptedDispatchWithMissingRunnerLedgerExpiresAfterDeadline()
+    {
+        using var fixture = new Fixture();
+        var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = fixture.Configuration.HostId, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 2, StartBeforeUtc = DateTimeOffset.UtcNow.AddSeconds(-1) };
+        var json = ControlJson.Serialize(command);
+        using var store = fixture.Open();
+        store.AcceptOperation(new ExecuteRequest(command.OperationId, json, ControlProtocol.Hash(json)));
+        store.MarkDispatchAttempted(command.OperationId);
+        var runner = new OperationRunner();
+        var epoch = Guid.NewGuid();
+        var result = await new AgentOperationHandler(fixture.Configuration, store, runner).DispatchAsync(new DispatchOperationRequest(1, epoch, command.OperationId, json, ControlProtocol.Hash(json)), epoch, CancellationToken.None);
+        Assert.Equal(OperationStatus.Expired, result.Status);
         Assert.Equal(0, runner.ExecuteCount);
+    }
+
+    [Fact]
+    public async Task UnknownRunnerIoKeepsAcceptedForLaterLedgerInspection()
+    {
+        using var fixture = new Fixture();
+        var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = fixture.Configuration.HostId, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 2, StartBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(1) };
+        var json = ControlJson.Serialize(command);
+        var runner = new OperationRunner { FailIo = true };
+        using var store = fixture.Open();
+        var epoch = Guid.NewGuid();
+        var result = await new AgentOperationHandler(fixture.Configuration, store, runner).DispatchAsync(new DispatchOperationRequest(1, epoch, command.OperationId, json, ControlProtocol.Hash(json)), epoch, CancellationToken.None);
+        Assert.Equal(OperationStatus.Accepted, result.Status);
+        Assert.Equal(OperationStatus.Accepted, store.GetOperation(command.OperationId)!.Status);
+        Assert.Equal(1, runner.ExecuteCount);
+    }
+
+    [Fact]
+    public async Task SnapshotWaitsForInFlightPrepareBeforeReportingHolds()
+    {
+        using var fixture = new Fixture(); using var store = fixture.Open();
+        var runner = new BlockingHoldRunner();
+        var handler = new AgentOperationHandler(fixture.Configuration, store, runner);
+        var epoch = Guid.NewGuid();
+        var reservationId = Guid.NewGuid(); var workflowId = Guid.NewGuid();
+        var holdRequest = new AcquireHoldRequest(reservationId, workflowId, ["server:" + Guid.NewGuid().ToString("D")], HoldMode.Maintenance);
+        var prepare = handler.PrepareHoldAsync(new PrepareHoldRequest(epoch, holdRequest), epoch, CancellationToken.None);
+        await runner.AcquireEntered.Task;
+        var snapshot = handler.SnapshotAsync(new AgentSnapshotRequest(epoch), epoch, CancellationToken.None);
+        await Task.Yield();
+        Assert.False(snapshot.IsCompleted);
+        runner.CompleteAcquire(new ResourceHold { ReservationId = reservationId, OwnerWorkflowId = workflowId, ResourceKeys = holdRequest.ResourceKeys, Mode = holdRequest.Mode, Fence = 1 });
+        await prepare;
+        Assert.Contains((await snapshot).Holds, x => x.ReservationId == reservationId);
     }
 
     private sealed class OperationRunner : IRunnerClient
     {
         public int ExecuteCount { get; private set; }
+        public bool FailIo { get; set; }
         private ExecutionSnapshot state = null!;
         public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => Task.FromResult(new RunnerSnapshot { RunnerEpoch = Guid.NewGuid() });
         public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<ExecutionSnapshot> ExecuteAsync(ExecuteRequest request, CancellationToken cancellationToken)
         {
             ExecuteCount++;
+            if (FailIo) throw new IOException("Runner response unknown.");
             state = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256, Status = OperationStatus.Running, StatusVersion = 2, UpdatedAtUtc = DateTimeOffset.UtcNow };
             return Task.FromResult(state);
         }
-        public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => state is null ? throw new AgentFault(ErrorCode.StateConflict) : Task.FromResult(state);
+        public Task<ExecutionSnapshot> GetExecutionAsync(Guid operationId, CancellationToken cancellationToken) => FailIo ? throw new IOException("Runner query unavailable.") : state is null ? throw new AgentFault(ErrorCode.StateConflict) : Task.FromResult(state);
+    }
+
+    private sealed class BlockingHoldRunner : IRunnerClient
+    {
+        private readonly TaskCompletionSource<ResourceHold> acquired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private ResourceHold? hold;
+        public TaskCompletionSource AcquireEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<ResourceHold> AcquireHoldAsync(AcquireHoldRequest request, CancellationToken cancellationToken) { AcquireEntered.SetResult(); hold = await acquired.Task.WaitAsync(cancellationToken); return hold; }
+        public void CompleteAcquire(ResourceHold value) => acquired.SetResult(value);
+        public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => Task.FromResult(new RunnerSnapshot { RunnerEpoch = Guid.NewGuid(), Holds = hold is null ? [] : [hold] });
+        public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class FakeRunner : IRunnerClient

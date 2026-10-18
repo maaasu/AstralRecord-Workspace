@@ -4,6 +4,7 @@ using System.Text;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Inventory;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordControl.Web.Operations;
@@ -45,7 +46,9 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             if (inherited)
             {
                 var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
-                if (request.Kind != OperationKind.Start || lease.AdapterId is not ("01" or "16") || workflow.Status != WorkflowStatus.WaitingForStartup) throw new InventoryFault(409, "ReservationConflict");
+                var history = await db.ReservationLeases.AsNoTracking().SingleAsync(x => x.ReservationId == lease.ReservationId);
+                var original = ControlJson.Deserialize<ReservationAcquireRequest>(workflow.RequestJson);
+                if (request.Kind != OperationKind.Start || lease.AdapterId is not ("01" or "03" or "16") || workflow.Status != WorkflowStatus.WaitingForStartup || history.LastStepKey != "WaitForStartup" || !original.ServerConditions.Any(x => x.ServerId == serverId && x.RequiredState == ProcessRequirement.Stopped)) throw new InventoryFault(409, "ReservationConflict");
             }
             var fence = lease.Fences.SingleOrDefault(x => x.HostId == server.HostId);
             if (fence == null || lease.Status != ReservationStatus.Prepared) throw new InventoryFault(409, "RecoveryRequired");
@@ -133,6 +136,16 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 ? await agents.DispatchAsync(row.HostId, row.OperationId, row.CommandJson, row.CommandSha256, token)
                 : await agents.QueryAsync(row.HostId, operationId, token);
         }
+        catch (InventoryFault fault) when (fault.Code is "OperationConflict" or "RecoveryRequired")
+        {
+            await MarkAttentionAsync(operationId);
+            return await GetAsync(operationId);
+        }
+        catch (HubException fault) when (fault.Message is "OperationConflict" or "RecoveryRequired")
+        {
+            await MarkAttentionAsync(operationId);
+            return await GetAsync(operationId);
+        }
         catch { return row; }
         return await ApplyExecutionAsync(operationId, execution);
     }
@@ -151,18 +164,26 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         if (lease.Status != ReservationStatus.RecoveryRequired) throw new InventoryFault(409, "StateConflict");
         var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
         if (workflow.Kind != "SingleOperation") throw new InventoryFault(409, "UnsupportedCapability");
+        if (request.Action is WorkflowRecoveryAction.Resume or WorkflowRecoveryAction.AbortAfterInspection)
+        {
+            var children = await db.Operations.AsNoTracking().Where(x => x.WorkflowId == workflowId).ToArrayAsync();
+            if (children.Length == 0 || children.Select(x => x.ServerId).Distinct().Count() != 1 || children[0].ServerId is not Guid inspectedServerId) throw new InventoryFault(409, "RecoveryRequired");
+            foreach (var child in children)
+                if (!OperationValidation.IsTerminal((await RefreshAsync(child.OperationId, token)).Status)) throw new InventoryFault(409, "RecoveryRequired");
+            var inspectedServer = await db.Servers.AsNoTracking().SingleAsync(x => x.ServerId == inspectedServerId);
+            var inspected = await agents.InspectRecoveryAsync(inspectedServer.HostId, inspectedServerId, token);
+            if (inspected.Runtime.ServerId != inspectedServerId || inspected.RecoveryRequired ||
+                (inspected.ProcessAlive && (!inspected.IdentityMatches || inspected.Runtime.ProcessState != ProcessState.Running || inspected.Runtime.CurrentSessionId != inspected.Session?.ServerSessionId)) ||
+                (!inspected.ProcessAlive && (inspected.Runtime.ProcessState != ProcessState.Stopped || inspected.Runtime.CurrentSessionId != null))) throw new InventoryFault(409, "RecoveryRequired");
+            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, GateOutcome.Failed, token);
+            return null;
+        }
         var oldStop = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId && (x.Kind == OperationKind.Stop || x.Kind == OperationKind.Restart)) ?? throw new InventoryFault(409, "RecoveryRequired");
         var serverId = oldStop.ServerId ?? throw new InventoryFault(409, "RecoveryRequired");
         var server = await db.Servers.AsNoTracking().SingleAsync(x => x.ServerId == serverId);
         var inspection = await agents.InspectRecoveryAsync(server.HostId, serverId, token);
         if (inspection.Runtime.ServerId != serverId) throw new InventoryFault(409, "RecoveryRequired");
         oldStop = await RefreshAsync(oldStop.OperationId, token);
-        if (request.Action is WorkflowRecoveryAction.Resume or WorkflowRecoveryAction.AbortAfterInspection)
-        {
-            if (inspection.ProcessAlive || oldStop.Status == OperationStatus.NeedsAttention || !OperationValidation.IsTerminal(oldStop.Status)) throw new InventoryFault(409, "RecoveryRequired");
-            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, GateOutcome.Failed, token);
-            return null;
-        }
         if (request.Action != WorkflowRecoveryAction.KillAfterInspection || !inspection.ProcessAlive || !inspection.IdentityMatches || inspection.Runtime.CurrentSessionId is null) throw new InventoryFault(409, "RecoveryRequired");
         if (oldStop.Status != OperationStatus.NeedsAttention) throw new InventoryFault(409, "StateConflict");
         var fence = lease.Fences.SingleOrDefault(x => x.HostId == server.HostId) ?? throw new InventoryFault(409, "RecoveryRequired");

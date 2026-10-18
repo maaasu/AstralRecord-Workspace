@@ -84,6 +84,8 @@ public sealed class ControlReservationLease
     public string ResourceKeysJson { get; set; } = "[]";
     public string FencesJson { get; set; } = "[]";
     public bool PreparedOnce { get; set; }
+    public string? LastStepKey { get; set; }
+    public GateOutcome? ReleaseOutcome { get; set; }
     public ReservationStatus Status { get; set; } = ReservationStatus.Preparing;
     public string? AdapterId { get; set; }
     public string? RunReference { get; set; }

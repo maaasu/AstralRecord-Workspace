@@ -35,9 +35,11 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
             catch (Exception exception) when (exception is IOException or OperationCanceledException or AgentFault)
             {
                 try { return await RefreshAsync(accepted, cancellationToken); }
-                catch (Exception query) when (query is IOException or OperationCanceledException or AgentFault)
+                catch (Exception query) when (query is IOException or OperationCanceledException)
                 {
-                    return store.SaveOperation(accepted with { Status = OperationStatus.NeedsAttention, StatusVersion = accepted.StatusVersion + 1, Phase = ExecutionPhase.Unknown, ErrorCode = ErrorCode.RecoveryRequired.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow });
+                    // Neither transport call established what the Runner did. Keep the
+                    // durable Accepted command for a later authoritative ledger query.
+                    return accepted;
                 }
             }
         }
@@ -61,17 +63,35 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
         RequireEpoch(request.ConnectionEpoch, activeEpoch);
         if (processGate?.Enabled == false) throw new AgentFault(ErrorCode.UnsupportedCapability);
         if (request.Hold.ReservationId == Guid.Empty || request.Hold.OwnerWorkflowId == Guid.Empty || request.Hold.ResourceKeys.Length == 0) throw new AgentFault(ErrorCode.ReservationConflict);
-        var hold = await runner.AcquireHoldAsync(request.Hold, cancellationToken);
-        if (hold.ReservationId != request.Hold.ReservationId || hold.OwnerWorkflowId != request.Hold.OwnerWorkflowId || hold.Fence < 1) throw new AgentFault(ErrorCode.RecoveryRequired);
-        var snapshot = await runner.GetSnapshotAsync(cancellationToken);
-        return new PreparedHold(hold, snapshot);
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var hold = await runner.AcquireHoldAsync(request.Hold, cancellationToken);
+            if (hold.ReservationId != request.Hold.ReservationId || hold.OwnerWorkflowId != request.Hold.OwnerWorkflowId || hold.Fence < 1) throw new AgentFault(ErrorCode.RecoveryRequired);
+            return new PreparedHold(hold, await runner.GetSnapshotAsync(cancellationToken));
+        }
+        finally { gate.Release(); }
     }
 
     public async Task<ReleasePreparedHoldResponse> ReleaseHoldAsync(ReleasePreparedHoldRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
         RequireEpoch(request.ConnectionEpoch, activeEpoch);
-        var released = await runner.ReleaseHoldAsync(request.Hold, cancellationToken);
-        return new ReleasePreparedHoldResponse(request.Hold.ReservationId, released);
+        await gate.WaitAsync(cancellationToken);
+        try { return new ReleasePreparedHoldResponse(request.Hold.ReservationId, await runner.ReleaseHoldAsync(request.Hold, cancellationToken)); }
+        finally { gate.Release(); }
+    }
+
+    public async Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken);
+        try { return await runner.GetSnapshotAsync(cancellationToken); }
+        finally { gate.Release(); }
+    }
+
+    public Task<RunnerSnapshot> SnapshotAsync(AgentSnapshotRequest request, Guid activeEpoch, CancellationToken cancellationToken)
+    {
+        RequireEpoch(request.ConnectionEpoch, activeEpoch);
+        return GetSnapshotAsync(cancellationToken);
     }
 
     public async Task<LogBatch> ReadLogsAsync(AgentReadLogsRequest request, Guid activeEpoch, CancellationToken cancellationToken)
@@ -110,12 +130,14 @@ public sealed class AgentOperationHandler(AgentConfiguration configuration, Agen
         catch (AgentFault fault) when (fault.Code == ErrorCode.StateConflict)
         {
             var dispatch = store.GetDispatch(existing.OperationId);
-            if (dispatch.DispatchAttempted)
-                return store.SaveOperation(existing with { Status = OperationStatus.NeedsAttention, StatusVersion = existing.StatusVersion + 1, Phase = ExecutionPhase.Unknown, ErrorCode = ErrorCode.RecoveryRequired.ToString(), UpdatedAtUtc = DateTimeOffset.UtcNow });
+            // StateConflict from GetExecution means this ID is absent from the Runner
+            // ledger. A transport failure never enters this branch. Execute with the
+            // original ID/hash so a concurrent acceptance remains idempotent.
             var command = OperationValidation.Read(dispatch.Command, configuration.HostId);
             if (DateTimeOffset.UtcNow > command.StartBeforeUtc) return Expire(existing);
             store.MarkDispatchAttempted(existing.OperationId);
-            runnerState = await runner.ExecuteAsync(dispatch.Command, cancellationToken);
+            try { runnerState = await runner.ExecuteAsync(dispatch.Command, cancellationToken); }
+            catch (AgentFault error) when (error.Code == ErrorCode.DeadlineExpired) { return Expire(existing); }
         }
         if (runnerState.OperationId != existing.OperationId || runnerState.CommandSha256 != existing.CommandSha256) throw new AgentFault(ErrorCode.RecoveryRequired);
         return store.SaveOperation(runnerState);

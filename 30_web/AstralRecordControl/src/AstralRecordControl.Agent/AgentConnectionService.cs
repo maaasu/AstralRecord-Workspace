@@ -17,7 +17,7 @@ public static class ReconnectBackoff
     public static TimeSpan Delay(int failureCount, double jitter) => TimeSpan.FromSeconds(Seconds[Math.Clamp(failureCount, 0, Seconds.Length - 1)] * (1 + Math.Clamp(jitter, 0, 1) * .2));
 }
 
-public sealed class AgentConnectionService(AgentConfiguration configuration, AgentStore store, IRunnerClient runner,
+public sealed class AgentConnectionService(AgentConfiguration configuration, AgentStore store,
     InventoryApplier applier, AgentOperationHandler operations, AgentProcessControlGate processGate, ProtectedTokenFile tokenFile, ILogger<AgentConnectionService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,17 +67,21 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
             .AddJsonProtocol(options => options.PayloadSerializerOptions = ControlJson.CreateOptions())
             .Build();
         hub.Closed += _ => { closed.TrySetResult(); return Task.CompletedTask; };
-        hub.On<DispatchOperationRequest, ExecutionSnapshot>("DispatchOperation", request => operations.DispatchAsync(request, epoch, stoppingToken));
+        hub.On<DispatchOperationRequest, ExecutionSnapshot>("DispatchOperation", async request =>
+        {
+            try { return await operations.DispatchAsync(request, epoch, stoppingToken); }
+            catch (AgentFault fault) { throw new HubException(fault.Code.ToString()); }
+        });
         hub.On<PrepareHoldRequest, PreparedHold>("PrepareHold", request => operations.PrepareHoldAsync(request, epoch, stoppingToken));
         hub.On<ReleasePreparedHoldRequest, ReleasePreparedHoldResponse>("ReleaseHold", request => operations.ReleaseHoldAsync(request, epoch, stoppingToken));
-        hub.On<AgentExecutionRequest, ExecutionSnapshot>("GetExecution", request => operations.QueryAsync(request, epoch, stoppingToken));
+        hub.On<AgentExecutionRequest, ExecutionSnapshot>("GetExecution", async request =>
+        {
+            try { return await operations.QueryAsync(request, epoch, stoppingToken); }
+            catch (AgentFault fault) { throw new HubException(fault.Code.ToString()); }
+        });
         hub.On<AgentReadLogsRequest, LogBatch>("ReadLogs", request => operations.ReadLogsAsync(request, epoch, stoppingToken));
         hub.On<AgentInspectRecoveryRequest, RecoveryInspection>("InspectRecovery", request => operations.InspectRecoveryAsync(request, epoch, stoppingToken));
-        hub.On<AgentSnapshotRequest, RunnerSnapshot>("GetSnapshot", async request =>
-        {
-            if (request.ConnectionEpoch != epoch || epoch == Guid.Empty) throw new AgentFault(ErrorCode.StateConflict);
-            return await runner.GetSnapshotAsync(stoppingToken);
-        });
+        hub.On<AgentSnapshotRequest, RunnerSnapshot>("GetSnapshot", request => operations.SnapshotAsync(request, epoch, stoppingToken));
         hub.On<JsonElement>("InventoryChanged", message =>
         {
             var change = ControlJson.Deserialize<InventoryChanged>(message.GetRawText());
@@ -86,7 +90,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         using var handler = new HttpClientHandler { AllowAutoRedirect = false };
         using var http = new HttpClient(handler) { BaseAddress = origin, Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var snapshot = await runner.GetSnapshotAsync(stoppingToken);
+        var snapshot = await operations.GetSnapshotAsync(stoppingToken);
         await hub.StartAsync(stoppingToken);
         var state = store.GetState();
         var hello = await InvokeAsync<HelloAck>(hub, "Hello", new AgentHello
@@ -128,7 +132,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
                 store.Acknowledge(ack.AckEventSeq);
             }
             var runnerAvailable = true;
-            try { snapshot = await runner.GetSnapshotAsync(stoppingToken); }
+            try { snapshot = await operations.GetSnapshotAsync(stoppingToken); }
             catch (Exception exception) when (exception is IOException or OperationCanceledException) { runnerAvailable = false; }
             await hub.InvokeAsync("Heartbeat", new AgentHeartbeat
             {

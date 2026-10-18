@@ -61,8 +61,11 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         Enabled = configuration.GetValue<bool>("Control:EnableProcessControl") && host.ConnectionState == HostConnectionState.Online && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate") && Runtime != null && Server.AppliedRevision == Server.DesiredRevision;
         Recent = (await db.Operations.AsNoTracking().Where(x => x.ServerId == serverId).ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(20).ToArray();
         var active = await db.Reservations.AsNoTracking().Where(x => x.ResourceKey == ReservationService.ServerKey(serverId) && x.State == ReservationStatus.Prepared).Select(x => x.ReservationId).ToArrayAsync();
-        var waiting = await db.Workflows.AsNoTracking().Where(x => x.Status == WorkflowStatus.WaitingForStartup).Select(x => x.WorkflowId).ToArrayAsync();
-        MaintenanceLeases = (await Task.WhenAll(active.Select(id => reservations.GetByReservationAsync(id)))).Where(x => x.AdapterId is "01" or "16" && waiting.Contains(x.WorkflowId)).ToArray();
+        var waiting = (await db.Workflows.AsNoTracking().Where(x => x.Status == WorkflowStatus.WaitingForStartup).ToArrayAsync())
+            .Where(x => ControlJson.Deserialize<ReservationAcquireRequest>(x.RequestJson).ServerConditions.Any(c => c.ServerId == serverId && c.RequiredState == ProcessRequirement.Stopped))
+            .Select(x => x.WorkflowId).ToArray();
+        var ready = await db.ReservationLeases.AsNoTracking().Where(x => x.LastStepKey == "WaitForStartup").Select(x => x.ReservationId).ToArrayAsync();
+        MaintenanceLeases = (await Task.WhenAll(active.Select(id => reservations.GetByReservationAsync(id)))).Where(x => x.AdapterId is "01" or "03" or "16" && waiting.Contains(x.WorkflowId) && ready.Contains(x.ReservationId)).ToArray();
         try { Logs = await operations.ReadLogsAsync(serverId, new ReadLogsRequest { ServerId = serverId, AfterSequence = afterSequence, Limit = 200 }, HttpContext.RequestAborted); }
         catch (Exception exception) when (exception is InventoryFault or IOException or OperationCanceledException) { }
     }
