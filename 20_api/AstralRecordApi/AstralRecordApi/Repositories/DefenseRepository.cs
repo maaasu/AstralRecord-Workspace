@@ -417,39 +417,43 @@ public sealed class DefenseRepository(
     private async Task MaterializeDailyAsync(string serverId)
     {
         var channel = await management.DefenseChannels.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == serverId);
-        if (channel is null || !channel.DailyEnabled || !TimeOnly.TryParseExact(channel.DailyStartTimeJst, "HH:mm", out var time)) return;
-        var now = clock.GetUtcNow();
-        var jst = TimeZoneInfo.ConvertTime(now, Japan);
-        var localDate = jst.Date;
-        var scheduled = TimeZoneInfo.ConvertTimeToUtc(localDate.Add(time.ToTimeSpan()), Japan);
-        var configuration = Configuration(channel.ConfigurationJson);
-        var lead = configuration.RegistrationLeadSeconds ?? 0;
-        if (now.UtcDateTime < scheduled.AddSeconds(-lead)) return;
-        await WriteAsync(async () =>
+        if (channel is null || !channel.DailyEnabled) return;
+        var today = TimeZoneInfo.ConvertTime(clock.GetUtcNow(), Japan).Date;
+        // 深夜の開始は前日中に受付を発行し、日付変更直後は前日分のスキップも確定する。
+        foreach (var localDate in new[] { today.AddDays(-1), today, today.AddDays(1) })
         {
-            var locked = await LockedChannelAsync(serverId);
-            if (locked is null || !locked.DailyEnabled) return false;
-            if (await management.DefenseRuns.AnyAsync(x => x.ServerId == serverId && x.Source == "DAILY"
-                && x.ScheduledDateJst == localDate)) return false;
-            var active = await ActiveRunAsync(serverId);
-            var missing = Missing(configuration);
-            var missed = Now() > scheduled.AddSeconds(30);
-            var online = locked.LastRuntimePollAtUtc is DateTime seen && seen >= Now().AddSeconds(-30);
-            if (!missed && !online) return false;
-            var reason = active is not null ? "前回の開催が継続中です。"
-                : missing.Count > 0 ? $"設定不足: {string.Join(", ", missing)}"
-                : missed ? "実行サーバーが定刻に接続していません。" : null;
-            var run = NewRun(serverId, "DAILY", Guid.NewGuid(), scheduled, localDate, locked.ConfigurationJson);
-            if (reason is not null)
+            if (localDate < today && channel.UpdatedAtUtc >= TimeZoneInfo.ConvertTimeToUtc(today, Japan))
+                continue;
+            await WriteAsync(async () =>
             {
-                run.Status = "SKIPPED";
-                run.EndedAtUtc = Now();
-                run.Reason = reason;
-            }
-            management.DefenseRuns.Add(run);
-            await management.SaveChangesAsync();
-            return true;
-        });
+                var locked = await LockedChannelAsync(serverId);
+                if (locked is null || !locked.DailyEnabled
+                    || !TimeOnly.TryParseExact(locked.DailyStartTimeJst, "HH:mm", out var time)) return false;
+                var configuration = Configuration(locked.ConfigurationJson);
+                var scheduled = TimeZoneInfo.ConvertTimeToUtc(localDate.Add(time.ToTimeSpan()), Japan);
+                if (Now() < scheduled.AddSeconds(-(configuration.RegistrationLeadSeconds ?? 0))) return false;
+                if (await management.DefenseRuns.AnyAsync(x => x.ServerId == serverId && x.Source == "DAILY"
+                    && x.ScheduledDateJst == localDate)) return false;
+                var active = await ActiveRunAsync(serverId);
+                var missing = Missing(configuration);
+                var missed = Now() > scheduled.AddSeconds(30);
+                var online = locked.LastRuntimePollAtUtc is DateTime seen && seen >= Now().AddSeconds(-30);
+                if (!missed && !online) return false;
+                var reason = active is not null ? "前回の開催が継続中です。"
+                    : missing.Count > 0 ? $"設定不足: {string.Join(", ", missing)}"
+                    : missed ? "実行サーバーが定刻に接続していません。" : null;
+                var run = NewRun(serverId, "DAILY", Guid.NewGuid(), scheduled, localDate, locked.ConfigurationJson);
+                if (reason is not null)
+                {
+                    run.Status = "SKIPPED";
+                    run.EndedAtUtc = Now();
+                    run.Reason = reason;
+                }
+                management.DefenseRuns.Add(run);
+                await management.SaveChangesAsync();
+                return true;
+            });
+        }
     }
 
     private async Task ExpireStaleAsync(string serverId)
