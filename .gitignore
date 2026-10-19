@@ -41,6 +41,7 @@ appsettings.Development.json
 appsettings.Local.json
 token.txt
 60_tool/maintenance/*.local.json
+60_tool/player-patch-migration/*.local.json
 60_tool/maintenance/runs/
 60_tool/deploy-debug/*.local.json
 60_tool/deploy-debug/runs/

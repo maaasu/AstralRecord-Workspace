@@ -2,6 +2,8 @@
 
 .NET 10 SDK / PowerShell 7 / Windows x64を使用します。`Publish-Control.ps1`はテストと自己完結型publishまで、`Install-Control.ps1`は指定PCでのWindowsサービス登録を行います。リポジトリから実サーバーへの自動配置はしません。
 
+APP-01 / MC-01 / DEV-01の配置と移行時の確認事項は[新環境への導入](APP-01-MC-01-DEV-01.md)を参照してください。
+
 ## パッケージ作成
 
 ```powershell
