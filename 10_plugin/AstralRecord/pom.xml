@@ -6,7 +6,7 @@
 
     <groupId>io.github.maaasu</groupId>
     <artifactId>AstralRecord</artifactId>
-    <version>18.27.0</version>
+    <version>18.27.1</version>
     <packaging>jar</packaging>
 
     <name>AstralRecord</name>
