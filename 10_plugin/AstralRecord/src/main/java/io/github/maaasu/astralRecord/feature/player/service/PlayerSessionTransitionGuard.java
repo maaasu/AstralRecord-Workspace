@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiPredicate;
 
 /**
  * プレイヤー単位で、セッションを解放し得る遷移を一つだけ許可します。
@@ -12,6 +13,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class PlayerSessionTransitionGuard {
     private final ConcurrentHashMap<UUID, Transition> activeTransitions = new ConcurrentHashMap<>();
+    private volatile @Nullable BiPredicate<UUID, Transition> additionalTransitionGuard;
+
+    /**
+     * セッション遷移の所有権を取得する前に実行する追加判定を設定します。
+     * 判定が {@code false} の場合は所有権を取得しません。{@code null} は全遷移を許可します。
+     * 判定は {@link #tryBegin(UUID, Transition)} の呼び出しスレッドで実行されます。
+     *
+     * @param guard 追加判定。解除する場合は {@code null}
+     */
+    public void setAdditionalTransitionGuard(@Nullable BiPredicate<UUID, Transition> guard) {
+        additionalTransitionGuard = guard;
+    }
 
     /**
      * 対象プレイヤーの遷移所有権を取得します。
@@ -21,6 +34,10 @@ public final class PlayerSessionTransitionGuard {
      * @return 他の遷移が進行中でなく、所有権を取得できた場合 {@code true}
      */
     public boolean tryBegin(@NotNull UUID playerId, @NotNull Transition transition) {
+        BiPredicate<UUID, Transition> guard = additionalTransitionGuard;
+        if (guard != null && !guard.test(playerId, transition)) {
+            return false;
+        }
         return activeTransitions.putIfAbsent(playerId, transition) == null;
     }
 
