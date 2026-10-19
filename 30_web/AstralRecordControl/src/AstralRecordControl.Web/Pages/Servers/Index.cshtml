@@ -1,15 +1,20 @@
 @page "/Servers"
 @model AstralRecordControl.Web.Pages.Servers.IndexModel
-@{ ViewData["Title"] = "Servers"; }
-<h1>Servers</h1>
+@{ ViewData["Title"] = "サーバー台帳"; }
+<h1>サーバー台帳</h1>
 <p>操作は共通 gate と Host の準備が完了した環境で有効です。</p>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
-<table><thead><tr><th>Server</th><th>Host</th><th>希望 / 適用</th><th></th></tr></thead><tbody>
+<table><thead><tr><th>サーバー</th><th>配置PC</th><th>種類</th><th>希望 / 適用</th><th>管理</th></tr></thead><tbody>
 @foreach (var server in Model.Servers) {
-    <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a> <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a> <a asp-page="Schedules" asp-route-serverId="@server.ServerId">予約</a> <a asp-page="Metrics" asp-route-serverId="@server.ServerId">監視</a></td></tr>
+    var kind = Model.Configuration(server).Kind;
+    <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@kind</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a>
+    @if (kind == AstralRecordControl.Contracts.ServerKind.Java) {
+        <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a> <a asp-page="Schedules" asp-route-serverId="@server.ServerId">予約</a> <a asp-page="Metrics" asp-route-serverId="@server.ServerId">監視</a>
+    } else { <span class="muted">台帳のみ · 起動・停止は未対応</span> }
+    </td></tr>
 }
 </tbody></table>
-<h2>Server を登録</h2>
+<h2>サーバーを登録</h2>
 <p>dev-pc → dev、mc-pc → channel1 / channel2 のように割り当てます。root と実行ファイルは接続済み Agent の報告から選択します。</p>
 <form method="post" asp-page-handler="Create">
     <input type="hidden" name="requestKey" value="@Model.RequestKey" /><input type="hidden" name="serverId" value="@Model.ServerId" />

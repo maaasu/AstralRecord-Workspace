@@ -3,8 +3,12 @@
 @{ ViewData["Title"] = Model.Server.DisplayName; }
 <h1>@Model.Server.DisplayName (@Model.Server.ServerKey)</h1>
 <p>希望 config @Model.Server.DesiredRevision / 適用 @Model.Server.AppliedRevision。保存後の適用結果は概要画面で確認します。</p>
-<p><a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId">操作・ログを開く</a></p>
-<p><a asp-page="Files" asp-route-serverId="@Model.Server.ServerId">ファイル</a> / <a asp-page="Backups" asp-route-serverId="@Model.Server.ServerId">バックアップ・復元</a></p>
+@if (Model.Config.Kind == AstralRecordControl.Contracts.ServerKind.Java) {
+    <p><a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId">操作・ログを開く</a></p>
+    <p><a asp-page="Files" asp-route-serverId="@Model.Server.ServerId">ファイル</a> / <a asp-page="Backups" asp-route-serverId="@Model.Server.ServerId">バックアップ・復元</a></p>
+} else {
+    <p class="notice">この種類は台帳登録のみ対応しています。Controlからの起動・停止・バックアップは未対応です。台帳の表示を実サーバーの停止確認には使用できません。</p>
+}
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 <form method="post">
     <input type="hidden" name="serverId" value="@Model.Server.ServerId" /><input type="hidden" name="revision" value="@Model.Server.DesiredRevision" />

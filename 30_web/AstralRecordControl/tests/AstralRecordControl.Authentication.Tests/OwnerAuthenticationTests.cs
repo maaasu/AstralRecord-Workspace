@@ -141,6 +141,64 @@ public sealed class OwnerAuthenticationTests
     }
 
     [Fact]
+    public async Task LoginAndPendingMfaUseDarkCanvasWithoutManagementNavigation()
+    {
+        await using var factory = new AuthFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        await CreateOwner(factory);
+        var login = await client.GetStringAsync("/Login");
+        Assert.Contains("name=\"color-scheme\" content=\"dark\"", login);
+        Assert.DoesNotContain("class=\"main-tabs\"", login);
+        await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
+        var pending = await client.GetStringAsync("/Mfa/Enroll");
+        Assert.DoesNotContain("class=\"main-tabs\"", pending);
+        Assert.DoesNotContain("control-navigation.css", pending);
+    }
+
+    [Fact]
+    public async Task EnrolledOwnerSeesOnlyCurrentNavigationTabMarkedActive()
+    {
+        await using var factory = new AuthFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        await CreateOwner(factory);
+        await LoginEnrolled(factory, client);
+        var html = await client.GetStringAsync("/Hosts");
+        Assert.Contains("class=\"main-tabs\"", html);
+        Assert.Contains("control-navigation.css", html);
+        var active = Assert.Single(Regex.Matches(html, "<a[^>]+aria-current=\"page\"[^>]*>"));
+        Assert.Contains("href=\"/Hosts\"", active.Value);
+        Assert.DoesNotContain("P3 ·", html);
+    }
+
+    [Fact]
+    public async Task VelocityLedgerDoesNotAdvertiseUnsupportedManagementActions()
+    {
+        await using var factory = new AuthFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        await CreateOwner(factory);
+        await LoginEnrolled(factory, client);
+        var hostId = Guid.NewGuid();
+        var serverId = Guid.NewGuid();
+        var config = new ServerConfig { HostId = hostId, ServerId = serverId, Revision = 1, Kind = ServerKind.Velocity, ManagedRootId = Guid.NewGuid(), ExecutableId = Guid.NewGuid(), ServerDirectory = "00_Proxy" };
+        var json = ControlJson.Serialize(config);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+            db.Hosts.Add(new InventoryHost { HostId = hostId, HostKey = "mc-01", DisplayName = "MC-01" });
+            db.Servers.Add(new InventoryServer { ServerId = serverId, HostId = hostId, ServerKey = "proxy", DisplayName = "Proxy", DesiredRevision = 1, DesiredConfigJson = json, ConfigSha256 = ControlProtocol.Hash(json) });
+            await db.SaveChangesAsync();
+        }
+        var list = await client.GetStringAsync("/Servers");
+        Assert.Contains("Velocity", list);
+        Assert.DoesNotContain($"/Servers/{serverId}/Operations", list);
+        Assert.DoesNotContain($"/Servers/{serverId}/Schedules", list);
+        var settings = await client.GetStringAsync($"/Servers/{serverId}");
+        Assert.Contains("起動・停止・バックアップは未対応", WebUtility.HtmlDecode(settings));
+        Assert.DoesNotContain($"/Servers/{serverId}/Files", settings);
+        Assert.DoesNotContain($"/Servers/{serverId}/Operations", settings);
+    }
+
+    [Fact]
     public async Task ResetRevokesExistingCookieAndRecoveryCodeAndRequiresEnrollmentAgain()
     {
         await using var factory = new AuthFactory();

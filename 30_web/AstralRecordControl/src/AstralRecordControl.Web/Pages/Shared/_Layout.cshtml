@@ -1,27 +1,48 @@
+@{
+    var path = Context.Request.Path;
+    var authenticated = User.HasClaim("amr", "mfa");
+    var authenticationPage = path.StartsWithSegments("/Mfa") || path.StartsWithSegments("/Login") || path.StartsWithSegments("/Logout");
+    (string Path, string Label)[] tabs = [("/", "概要"), ("/Hosts", "PC台帳"), ("/Servers", "サーバー台帳"), ("/Workflows", "運転・保守履歴"), ("/Transfers", "転送"), ("/Notifications", "通知"), ("/Security", "認証設定")];
+    bool IsCurrent(string target) => target == "/" ? path == "/" : path.StartsWithSegments(target, StringComparison.OrdinalIgnoreCase);
+}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0d1420" />
     <title>@ViewData["Title"] | AstralRecordControl</title>
     <link rel="stylesheet" href="~/css/control.css" asp-append-version="true" />
+    @if (authenticated && !authenticationPage)
+    {
+        <link rel="stylesheet" href="~/css/control-navigation.css" asp-append-version="true" />
+    }
 </head>
 <body>
-    <header>
-        <a class="brand" href="/">AstralRecordControl</a>
-        <span class="badge">P3 · 予約・監視・通知</span>
-        @if (User.Identity?.IsAuthenticated == true)
+    <a class="skip-link" href="#main">本文へ移動</a>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-top">
+                <a class="brand" href="/">AstralRecord<span>Control</span></a>
+                <span class="badge">管理コンソール</span>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="account-action" href="/Logout">ログアウト</a>
+                }
+            </div>
+        @if (authenticated)
         {
-            <nav aria-label="管理メニュー">
-                <a href="/">概要</a><a href="/Hosts">PC台帳</a><a href="/Servers">サーバー台帳</a>
-                <a href="/Workflows">運転・保守履歴</a>
-                <a href="/Transfers">転送</a>
-                <a href="/Notifications">通知</a>
-                <a href="/Security">認証設定</a><a href="/Logout">ログアウト</a>
+            <nav class="main-tabs" aria-label="管理メニュー">
+                @foreach (var tab in tabs)
+                {
+                    <a class="nav-tab @(IsCurrent(tab.Path) ? "is-active" : "")" href="@tab.Path" aria-current="@(IsCurrent(tab.Path) ? "page" : null)">@tab.Label</a>
+                }
             </nav>
         }
+        </div>
     </header>
-    <main id="main">
+    <main id="main" class="app-main @(authenticationPage ? "auth-main" : "")" tabindex="-1">
         @RenderBody()
     </main>
     <footer>接続が切れたPCの状態は最終確認時点の情報です。操作結果が不明な場合は保守履歴を確認してください。</footer>

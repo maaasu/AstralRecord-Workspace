@@ -39,4 +39,5 @@ public sealed class IndexModel(ControlDbContext db, InventoryStore store, Invent
         Environments = await db.Environments.AsNoTracking().OrderBy(x => x.EnvironmentKey).ToArrayAsync();
     }
     public HostResources Resources(InventoryHost host) => ControlJson.Deserialize<HostResources>(host.ResourcesJson);
+    public ServerConfig Configuration(InventoryServer server) => ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
 }

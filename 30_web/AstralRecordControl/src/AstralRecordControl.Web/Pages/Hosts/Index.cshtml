@@ -1,12 +1,12 @@
 @page "/Hosts"
 @model AstralRecordControl.Web.Pages.Hosts.IndexModel
-@{ ViewData["Title"] = "Hosts"; }
-<h1>Hosts / Environments</h1>
+@{ ViewData["Title"] = "PC台帳"; }
+<h1>PC台帳</h1>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 @if (Model.Issued != null) {
     <section role="status"><h2>Agent トークン</h2><p>この応答で一度だけ表示します。Agent の対話設定へコピーしてください。</p><p>credentialId: @Model.Issued.CredentialId</p><pre>@Model.Issued.Token</pre></section>
 }
-<h2>Host を登録</h2>
+<h2>PCを登録</h2>
 <p>例: dev-pc、mc-pc。ゲームPCごとに異なる Host を作成します。</p>
 <form method="post" asp-page-handler="Create">
     <input type="hidden" name="requestKey" value="@Model.RequestKey" />
