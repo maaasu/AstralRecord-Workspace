@@ -121,7 +121,7 @@ function Request([Net.Http.HttpClient]$Client, [string]$Method, [string]$Path, [
         if ($Method -eq 'POST') { $request.Headers.Add('Origin', $Client.BaseAddress.GetLeftPart([UriPartial]::Authority)) }
         if ($Csrf) { $request.Headers.Add('X-CSRF-TOKEN', $Csrf) }
         if ($Key -ne [guid]::Empty) { $request.Headers.Add('Idempotency-Key', $Key.ToString('D')); $request.Headers.TryAddWithoutValidation('If-None-Match', '*') | Out-Null }
-        if ($Path -in @('/Login','/Mfa/Verify')) {
+        if ($Method -eq 'POST' -and $Path -in @('/Login','/Mfa/Verify')) {
             if ($Body -isnot [System.Collections.IDictionary]) { throw 'Login form body is invalid.' }
             $fields = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
             foreach ($name in $Body.Keys) { $fields.Add([string]$name, [string]$Body[$name]) }

@@ -80,6 +80,7 @@ public sealed class InventoryFakeHandler : HttpMessageHandler
     public string Key = "";
     public string IfNoneMatch = "";
     public string Body = "";
+    public string ContentType = "";
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Method = request.Method.Method;
@@ -89,8 +90,12 @@ public sealed class InventoryFakeHandler : HttpMessageHandler
         if (request.Headers.TryGetValues("X-CSRF-TOKEN", out values)) Csrf = string.Join("", values);
         if (request.Headers.TryGetValues("Idempotency-Key", out values)) Key = string.Join("", values);
         if (request.Headers.TryGetValues("If-None-Match", out values)) IfNoneMatch = string.Join("", values);
-        Body = request.Content!.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Created) { Content = new StringContent("{}") });
+        Body = request.Content is null ? "" : request.Content.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+        ContentType = request.Content?.Headers.ContentType?.MediaType ?? "";
+        var isGet = request.Method == HttpMethod.Get;
+        return Task.FromResult(new HttpResponseMessage(isGet ? HttpStatusCode.OK : HttpStatusCode.Created) {
+            Content = new StringContent(isGet ? "<input name=\"__RequestVerificationToken\" type=\"hidden\" value=\"fixture-csrf\" />" : "{}")
+        });
     }
 }
 '@
@@ -98,11 +103,17 @@ public sealed class InventoryFakeHandler : HttpMessageHandler
     $client = [Net.Http.HttpClient]::new($fake)
     try {
         $client.BaseAddress = [uri]'https://control.example.test'
+        foreach ($path in @('/Login', '/Mfa/Verify')) {
+            $page = Request $client GET $path
+            if ($page.Status -ne 200 -or $fake.Method -cne 'GET' -or $fake.Path -cne $path -or $fake.Body -cne '' -or $fake.ContentType -cne '' -or (Form-Token $page.Text) -cne 'fixture-csrf') { throw 'HTTP authentication page GET contract fixture failed.' }
+        }
         $key = [guid]::NewGuid()
         $response = Request $client POST '/api/control/v1/hosts' ([ordered]@{ hostKey = 'dev-01'; displayName = 'DEV-01' }) 'csrf-fixture' $key
-        if ($response.Status -ne 201 -or $fake.Method -cne 'POST' -or $fake.Path -cne '/api/control/v1/hosts' -or $fake.Origin -cne 'https://control.example.test' -or $fake.Csrf -cne 'csrf-fixture' -or $fake.Key -cne $key.ToString('D') -or $fake.IfNoneMatch -cne '*' -or $fake.Body -notmatch '"hostKey":"dev-01"') { throw 'HTTP owner JSON create contract fixture failed.' }
+        if ($response.Status -ne 201 -or $fake.Method -cne 'POST' -or $fake.Path -cne '/api/control/v1/hosts' -or $fake.Origin -cne 'https://control.example.test' -or $fake.Csrf -cne 'csrf-fixture' -or $fake.Key -cne $key.ToString('D') -or $fake.IfNoneMatch -cne '*' -or $fake.Body -notmatch '"hostKey":"dev-01"' -or $fake.ContentType -cne 'application/json') { throw 'HTTP owner JSON create contract fixture failed.' }
         $null = Request $client POST '/Login' ([ordered]@{ UserName = 'fixture'; Password = 'fixture'; __RequestVerificationToken = 'fixture' })
-        if ($fake.Path -cne '/Login' -or $fake.Body -notmatch 'UserName=fixture&Password=fixture' -or $fake.Origin -cne 'https://control.example.test') { throw 'HTTP owner login form contract fixture failed.' }
+        if ($fake.Path -cne '/Login' -or $fake.Body -notmatch 'UserName=fixture&Password=fixture' -or $fake.Origin -cne 'https://control.example.test' -or $fake.ContentType -cne 'application/x-www-form-urlencoded') { throw 'HTTP owner login form contract fixture failed.' }
+        $null = Request $client POST '/Mfa/Verify' ([ordered]@{ Code = '123456'; __RequestVerificationToken = 'fixture' })
+        if ($fake.Path -cne '/Mfa/Verify' -or $fake.Body -cne 'Code=123456&__RequestVerificationToken=fixture' -or $fake.Origin -cne 'https://control.example.test' -or $fake.ContentType -cne 'application/x-www-form-urlencoded') { throw 'HTTP owner MFA form contract fixture failed.' }
     } finally { $client.Dispose(); $fake.Dispose() }
     Write-Host 'Control inventory plan fixture checks passed.'
 } finally {
