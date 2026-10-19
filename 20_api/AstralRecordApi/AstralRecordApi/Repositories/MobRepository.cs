@@ -39,6 +39,7 @@ public class MobRepository(MasterDataDbContext dbContext) : IMobRepository
                 Category = mob.Category,
                 Name = mob.Name,
                 Level = ResolveDefaultLevel(mob),
+                DefenseEligible = mob.DefenseEligible,
                 EntityType = mob.EntityType,
                 Icon = mob.Icon,
                 IconTexture = mob.IconTexture,

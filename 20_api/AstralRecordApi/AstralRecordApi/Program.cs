@@ -141,6 +141,8 @@ builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 builder.Services.AddScoped<IPlayerActivityRepository, PlayerActivityRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
 builder.Services.AddScoped<INetworkManagementRepository, NetworkManagementRepository>();
+builder.Services.AddScoped<IDefenseRepository, DefenseRepository>();
+builder.Services.AddHostedService<DefenseRewardDeliveryHostedService>();
 builder.Services.AddScoped<IWebPlayerProfileRepository, WebPlayerProfileRepository>();
 builder.Services.AddScoped<IWebBestiaryRepository, WebBestiaryRepository>();
 builder.Services.AddScoped<IReleaseNoteRepository, ReleaseNoteRepository>();

@@ -14,6 +14,11 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
     public DbSet<WebCredentialEntity> WebCredentials => Set<WebCredentialEntity>();
     public DbSet<WebCredentialLoginAttemptEntity> WebCredentialLoginAttempts => Set<WebCredentialLoginAttemptEntity>();
     public DbSet<WebTrustedBrowserEntity> WebTrustedBrowsers => Set<WebTrustedBrowserEntity>();
+    public DbSet<DefenseChannelEntity> DefenseChannels => Set<DefenseChannelEntity>();
+    public DbSet<DefenseRunEntity> DefenseRuns => Set<DefenseRunEntity>();
+    public DbSet<DefenseParticipantEntity> DefenseParticipants => Set<DefenseParticipantEntity>();
+    public DbSet<DefenseRewardEntity> DefenseRewards => Set<DefenseRewardEntity>();
+    public DbSet<DefenseReportEntity> DefenseReports => Set<DefenseReportEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +41,7 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
         });
         DonationMapping.Configure(modelBuilder);
         DonationDiscordMapping.Configure(modelBuilder);
+        DefenseMapping.Configure(modelBuilder);
         modelBuilder.Entity<ManagedNetworkSettingsEntity>(entity =>
         {
             entity.ToTable("network_settings", "dbo");

@@ -24,6 +24,9 @@ public class MobResponse
 
     public int Level { get; init; }
 
+    /// <summary>防衛戦への参加可否。旧マスタでは false です。</summary>
+    public bool DefenseEligible { get; init; }
+
     /// <summary>
     /// 同一 Mob マスタ内のレベルプロファイル。各要素は共通定義に対する部分上書きです。
     /// JsonElement のまま保持し、未指定項目を API の再シリアライズで補完しないようにします。
@@ -78,6 +81,8 @@ public class MobSummaryResponse
     public required string Name { get; init; }
 
     public int Level { get; init; }
+
+    public bool DefenseEligible { get; init; }
 
     public required string EntityType { get; init; }
 
