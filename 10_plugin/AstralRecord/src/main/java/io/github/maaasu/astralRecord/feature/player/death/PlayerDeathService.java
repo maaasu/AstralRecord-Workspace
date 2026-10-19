@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
@@ -32,8 +34,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 /**
@@ -55,6 +59,8 @@ public final class PlayerDeathService {
     private final String joinSpawnWorldId;
     private final Map<UUID, DeathState> deaths = new ConcurrentHashMap<>();
     private Consumer<UUID> deathStartedListener = ignored -> { };
+    private BiPredicate<AstPlayer, Location> additionalDeathHandler = (ignoredPlayer, ignoredLocation) -> false;
+    private Consumer<UUID> immediateRecoveryListener = ignored -> { };
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private BukkitTask task;
 
@@ -106,6 +112,30 @@ public final class PlayerDeathService {
     }
 
     /**
+     * 通常死亡開始より先に呼ぶ追加の死亡処理を設定します。
+     * {@code true} を返した場合は通常の死亡状態を開始しません。
+     * 呼び出し側と handler は Bukkit のメインスレッドで実行してください。
+     * 維持時間等を指定する {@link #startDeath(AstPlayer, Location, long, boolean, Runnable)} は
+     * この handler を呼ばないため、handler 内から使用できます。
+     *
+     * @param handler プレイヤーと死亡地点を受け取り、処理済みなら {@code true} を返す処理
+     */
+    public void setAdditionalDeathHandler(@NotNull BiPredicate<AstPlayer, Location> handler) {
+        this.additionalDeathHandler = Objects.requireNonNull(handler);
+    }
+
+    /**
+     * オンラインプレイヤーの即時復帰が完了した後の通知先を設定します。
+     * 通常の待機復帰やオフラインの次回ログイン復帰では通知しません。
+     * 呼び出し側と listener は Bukkit のメインスレッドで実行してください。
+     *
+     * @param listener 即時復帰したプレイヤー UUID を受け取る処理
+     */
+    public void setImmediateRecoveryListener(@NotNull Consumer<UUID> listener) {
+        this.immediateRecoveryListener = Objects.requireNonNull(listener);
+    }
+
+    /**
      * 死亡状態の定期更新を開始します。
      */
     public void start() {
@@ -130,13 +160,28 @@ public final class PlayerDeathService {
     }
 
     /**
-     * プレイヤーを死亡状態にします。既に死亡中の場合は何もしません。
+     * 追加死亡処理へ先に委譲し、未処理なら通常の死亡状態にします。
+     * 既に死亡中の場合は何もしません。Bukkit のメインスレッドで呼び出してください。
      *
      * @param astPlayer 死亡したプレイヤー
      * @param deathLocation 死亡地点
      * @return 新しく死亡状態へ遷移した場合は {@code true}
      */
     public boolean startDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        UUID playerId = astPlayer.getBukkit().getUniqueId();
+        if (deaths.containsKey(playerId)) {
+            return false;
+        }
+        try {
+            if (additionalDeathHandler.test(astPlayer, deathLocation)) {
+                return true;
+            }
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_3002, exception, "additional_death_handler:" + playerId);
+            if (deaths.containsKey(playerId)) {
+                return true;
+            }
+        }
         return startDeath(astPlayer, deathLocation, DEATH_DURATION_MILLIS, true, null);
     }
 
@@ -191,7 +236,8 @@ public final class PlayerDeathService {
     }
 
     /**
-     * オンラインの指定プレイヤーは死亡状態を直ちに解除して全リソースを回復します。
+     * オンラインの指定プレイヤーは死亡状態を直ちに解除して全リソースを回復し、
+     * 完了後に即時復帰 listener へ通知します。Bukkit のメインスレッドで呼び出してください。
      * オフラインの場合は次回ログイン時の通常復帰へ切り替えます。
      * オンライン時は通常スポーンへの転送や登録済み復帰処理を実行しません。
      *
@@ -209,7 +255,14 @@ public final class PlayerDeathService {
             destroyVisuals(state);
             return true;
         }
-        completeDeath(player, state, false);
+        if (!completeDeath(player, state, false)) {
+            return false;
+        }
+        try {
+            immediateRecoveryListener.accept(playerId);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_3002, exception, "immediate_recovery_listener:" + playerId);
+        }
         return true;
     }
 
@@ -310,13 +363,13 @@ public final class PlayerDeathService {
         completeDeath(player, state, true);
     }
 
-    private void completeDeath(@NotNull Player player, @NotNull DeathState state, boolean runRecovery) {
+    private boolean completeDeath(@NotNull Player player, @NotNull DeathState state, boolean runRecovery) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
-            return;
+            return false;
         }
         if (!deaths.remove(player.getUniqueId(), state)) {
-            return;
+            return false;
         }
         destroyVisuals(state);
         setPlayerInvulnerable(player, false);
@@ -324,7 +377,7 @@ public final class PlayerDeathService {
         showToOtherPlayers(player);
         player.resetTitle();
         if (!runRecovery) {
-            return;
+            return true;
         }
         Runnable recoveryAction = state.recoveryAction();
         if (recoveryAction != null) {
@@ -332,6 +385,7 @@ public final class PlayerDeathService {
         } else {
             teleportToJoinSpawn(player);
         }
+        return true;
     }
 
     private void teleportToJoinSpawn(@NotNull Player player) {
