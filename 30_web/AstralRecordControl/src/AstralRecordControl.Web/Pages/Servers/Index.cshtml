@@ -1,34 +1,49 @@
 @page "/Servers"
 @model AstralRecordControl.Web.Pages.Servers.IndexModel
-@{ ViewData["Title"] = "サーバー台帳"; }
-<h1>サーバー台帳</h1>
-<p>操作は共通 gate と Host の準備が完了した環境で有効です。</p>
-@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
-<table><thead><tr><th>サーバー</th><th>配置PC</th><th>種類</th><th>希望 / 適用</th><th>管理</th></tr></thead><tbody>
-@foreach (var server in Model.Servers) {
-    var kind = Model.Configuration(server).Kind;
-    <tr><td>@server.DisplayName (@server.ServerKey)</td><td>@Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.HostKey</td><td>@kind</td><td>@server.DesiredRevision / @server.AppliedRevision</td><td><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a>
-    @if (kind == AstralRecordControl.Contracts.ServerKind.Java) {
-        <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a> <a asp-page="Schedules" asp-route-serverId="@server.ServerId">予約</a> <a asp-page="Metrics" asp-route-serverId="@server.ServerId">監視</a>
-    } else { <span class="muted">台帳のみ · 起動・停止は未対応</span> }
-    </td></tr>
+@using AstralRecordControl.Web.Pages.Shared
+@{
+    ViewData["Title"] = "サーバー台帳";
+    var showCreateError = Model.Error != null
+        && string.Equals(Model.Request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(Model.Request.Query["handler"].ToString(), "Create", StringComparison.OrdinalIgnoreCase);
 }
-</tbody></table>
-<h2>サーバーを登録</h2>
-<p>dev-pc → dev、mc-pc → channel1 / channel2 のように割り当てます。root と実行ファイルは接続済み Agent の報告から選択します。</p>
-<form method="post" asp-page-handler="Create">
-    <input type="hidden" name="requestKey" value="@Model.RequestKey" /><input type="hidden" name="serverId" value="@Model.ServerId" />
-    <label>Host <select name="hostId" required><option value="">選択</option>@foreach (var host in Model.Hosts.Where(h => h.Enabled)) { <option value="@host.HostId">@host.HostKey</option> }</select></label>
-    <label>Server key <input name="serverKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
-    <label>表示名 <input name="displayName" required maxlength="128" /></label>
-    <label>Environment <select name="environmentId"><option value="">なし</option>@foreach (var environment in Model.Environments) { <option value="@environment.EnvironmentId">@environment.DisplayName</option> }</select></label>
-    <label>runtimeServerId (任意) <input name="runtimeServerId" maxlength="128" /></label>
-    <label>種類 <select name="kind"><option>Java</option><option>Bedrock</option><option>Velocity</option></select></label>
-    <label>登録root <select name="managedRootId" required><option value="">選択</option>@foreach (var host in Model.Hosts) { @foreach (var root in Model.Resources(host).Roots) { <option value="@root.Id">@host.HostKey / @root.DisplayName</option> } }</select></label>
-    <label>登録実行ファイル <select name="executableId" required><option value="">選択</option>@foreach (var host in Model.Hosts) { @foreach (var executable in Model.Resources(host).Executables) { <option value="@executable.Id">@host.HostKey / @executable.DisplayName (@executable.Kind)</option> } }</select></label>
-    <label>root 内の相対ディレクトリ <input name="serverDirectory" required placeholder="servers/dev" maxlength="512" /></label>
-    <label>引数 (1行につき1引数) <textarea name="arguments" rows="5" placeholder="-jar&#10;server.jar&#10;nogui"></textarea></label>
-    <label>Listen port (任意) <input type="number" name="listenPort" min="1" max="65535" /></label>
-    <label>停止コマンド <input name="stopCommand" value="stop" required maxlength="4096" /></label>
-    <button type="submit">登録</button>
-</form>
+
+<div class="page-heading"><div><h1>サーバー台帳</h1><p>登録済みサーバーの設定と利用できる操作を確認します。</p></div><a class="text-action" href="/">ダッシュボードへ</a></div>
+<p class="snapshot-note">ゲームの起動・停止などは共通gateとPCの準備が完了した場合だけ利用できます。未接続を停止中と判断しないでください。</p>
+@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+
+<section class="page-section" aria-labelledby="server-list-heading">
+    <div class="section-heading"><div><h2 id="server-list-heading">登録済みサーバー</h2><p>@Model.Servers.Length 件を登録しています。</p></div></div>
+    @if (Model.Servers.Length == 0) {
+        <div class="empty-state"><strong>サーバーはまだ登録されていません</strong><p>PCが接続し、rootと実行ファイルが報告された後に登録できます。</p></div>
+    } else {
+        <div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">サーバー</th><th scope="col">配置PC</th><th scope="col">種類</th><th scope="col">設定</th><th scope="col">利用できる画面</th></tr></thead><tbody>
+        @foreach (var server in Model.Servers) {
+            var kind = Model.Configuration(server).Kind;
+            <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")</td><td>@ControlDisplay.Kind(kind)</td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span><details class="inline-details"><summary>版を表示</summary>希望 @server.DesiredRevision / 適用 @server.AppliedRevision</details></td><td><div class="table-actions"><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a>
+            @if (kind == ServerKind.Java) { <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a><a asp-page="Schedules" asp-route-serverId="@server.ServerId">予約</a><a asp-page="Metrics" asp-route-serverId="@server.ServerId">監視</a> }
+            else { <span class="secondary-text">台帳のみ · 起動・停止は未対応</span> }
+            </div></td></tr>
+        }
+        </tbody></table></div>
+    }
+</section>
+
+<details class="setup-details" open="@(showCreateError ? "open" : null)"><summary>サーバーを登録する</summary><div class="details-body"><p>登録済みPCと、そのAgentが報告したroot・実行ファイルを選択します。VelocityとBedrockは現段階では台帳のみです。</p>
+    <form method="post" asp-page-handler="Create">
+        <input type="hidden" name="requestKey" value="@Model.RequestKey" /><input type="hidden" name="serverId" value="@Model.ServerId" />
+        <label>配置PC <select name="hostId" required><option value="">選択</option>@foreach (var host in Model.Hosts.Where(h => h.Enabled)) { <option value="@host.HostId">@host.DisplayName (@host.HostKey)</option> }</select></label>
+        <label>サーバーキー <input name="serverKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
+        <label>表示名 <input name="displayName" required maxlength="128" /></label>
+        <label>Environment <select name="environmentId"><option value="">なし</option>@foreach (var environment in Model.Environments) { <option value="@environment.EnvironmentId">@environment.DisplayName</option> }</select></label>
+        <label>既存システムのサーバーID（任意） <input name="runtimeServerId" maxlength="128" /></label>
+        <label>種類 <select name="kind"><option>Java</option><option>Bedrock</option><option>Velocity</option></select></label>
+        <label>登録root <select name="managedRootId" required><option value="">選択</option>@foreach (var host in Model.Hosts) { @foreach (var root in Model.Resources(host).Roots) { <option value="@root.Id">@host.HostKey / @root.DisplayName</option> } }</select></label>
+        <label>登録実行ファイル <select name="executableId" required><option value="">選択</option>@foreach (var host in Model.Hosts) { @foreach (var executable in Model.Resources(host).Executables) { <option value="@executable.Id">@host.HostKey / @executable.DisplayName (@executable.Kind)</option> } }</select></label>
+        <label>root内の相対ディレクトリ <input name="serverDirectory" required placeholder="servers/dev" maxlength="512" /></label>
+        <label>引数（1行につき1引数） <textarea name="arguments" rows="5" placeholder="-jar&#10;server.jar&#10;nogui"></textarea></label>
+        <label>待受ポート（任意） <input type="number" name="listenPort" min="1" max="65535" /></label>
+        <label>停止コマンド <input name="stopCommand" value="stop" required maxlength="4096" /></label>
+        <button type="submit">サーバーを登録</button>
+    </form>
+</div></details>

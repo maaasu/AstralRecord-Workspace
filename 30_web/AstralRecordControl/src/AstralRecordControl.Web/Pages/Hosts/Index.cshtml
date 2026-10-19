@@ -1,41 +1,56 @@
 @page "/Hosts"
 @model AstralRecordControl.Web.Pages.Hosts.IndexModel
-@{ ViewData["Title"] = "PC台帳"; }
-<h1>PC台帳</h1>
+@using AstralRecordControl.Web.Pages.Shared
+@{
+    ViewData["Title"] = "PC台帳";
+    var failedHandler = Model.Error != null && string.Equals(Model.Request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        ? Model.Request.Query["handler"].ToString()
+        : null;
+}
+
+<div class="page-heading"><div><h1>PC台帳</h1><p>接続状態とAgentの登録を管理します。未接続でもゲームの稼働状態は判断できません。</p></div><a class="text-action" href="/">ダッシュボードへ</a></div>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 @if (Model.Issued != null) {
-    <section role="status"><h2>Agent トークン</h2><p>この応答で一度だけ表示します。Agent の対話設定へコピーしてください。</p><p>credentialId: @Model.Issued.CredentialId</p><pre>@Model.Issued.Token</pre></section>
+    <section class="token-result" role="status"><h2>Agent トークンを発行しました</h2><p>この画面で一度だけ表示します。対象PCのAgent対話設定に入力してください。</p><pre>@Model.Issued.Token</pre><details><summary>発行情報</summary><p>Credential ID: @Model.Issued.CredentialId</p></details></section>
 }
-<h2>PCを登録</h2>
-<p>例: dev-pc、mc-pc。ゲームPCごとに異なる Host を作成します。</p>
-<form method="post" asp-page-handler="Create">
-    <input type="hidden" name="requestKey" value="@Model.RequestKey" />
-    <label>Host key <input name="hostKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
-    <label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">登録</button>
-</form>
-@foreach (var host in Model.Hosts) {
-    <section><h2>@host.DisplayName (@host.HostKey)</h2>
-    <p>Host ID: @host.HostId / 接続: @host.ConnectionState / inventory 希望 @host.DesiredInventoryRevision ・適用 @host.AppliedInventoryRevision</p>
-    <form method="post" asp-page-handler="Update">
-        <input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="revision" value="@host.Revision" />
-        <label>表示名 <input name="displayName" value="@host.DisplayName" required maxlength="128" /></label>
-        <label><input type="checkbox" name="enabled" value="true" checked="@host.Enabled" />有効</label><button type="submit">保存</button>
-    </form>
-    <form method="post" asp-page-handler="Issue"><input type="hidden" name="hostId" value="@host.HostId" /><button type="submit">Agent トークンを発行</button></form>
-    @foreach (var credential in Model.Credentials.Where(c => c.HostId == host.HostId)) {
-        <p>@credential.CredentialId / 発行 @credential.IssuedAtUtc / @(credential.RevokedAtUtc.HasValue ? "失効済み" : "有効")</p>
-        @if (!credential.RevokedAtUtc.HasValue) {
-            <form method="post" asp-page-handler="Revoke"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="credentialId" value="@credential.CredentialId" /><button type="submit">失効して接続を切断</button></form>
-        }
+
+<section class="page-section" aria-labelledby="host-list-heading">
+    <div class="section-heading"><div><h2 id="host-list-heading">登録済みPC</h2><p>@Model.Hosts.Length 台を登録しています。</p></div></div>
+    @if (Model.Hosts.Length == 0) {
+        <div class="empty-state"><strong>PCはまだ登録されていません</strong><p>下の「PCを登録する」から最初のPCを追加してください。</p></div>
+    } else {
+        <div class="host-grid">
+            @foreach (var host in Model.Hosts) {
+                <article class="host-card">
+                    <div class="entity-heading"><div><h3>@host.DisplayName</h3><span class="entity-key">@host.HostKey</span></div><span class="state-badge @ControlDisplay.HostStateClass(host.ConnectionState)">@ControlDisplay.HostState(host.ConnectionState)</span></div>
+                    <p class="secondary-text">最終報告: @ControlDisplay.LastSeen(host.LastSeenAtUtc)</p>
+                    @if (host.RecoveryRequired) { <p class="status-note is-warning">再登録または状態の照合が必要です。</p> }
+                    else if (host.InventoryErrorCode != null) { <p class="status-note is-warning">設定の適用に問題があります。</p> }
+                    else if (host.DesiredInventoryRevision != host.AppliedInventoryRevision) { <p class="status-note">設定の適用を待っています。</p> }
+                    <div class="card-actions"><form method="post" asp-page-handler="Issue"><input type="hidden" name="hostId" value="@host.HostId" /><button type="submit">Agent トークンを発行</button></form></div>
+                    <details class="compact-details"><summary>PCの設定と資格情報</summary>
+                        <dl><dt>Host ID</dt><dd><code>@host.HostId</code></dd><dt>希望 / 適用版</dt><dd>@host.DesiredInventoryRevision / @host.AppliedInventoryRevision</dd><dt>報告コード</dt><dd>@(host.InventoryErrorCode ?? "なし")</dd></dl>
+                        <form method="post" asp-page-handler="Update"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="revision" value="@host.Revision" /><label>表示名 <input name="displayName" value="@host.DisplayName" required maxlength="128" /></label><label><input type="checkbox" name="enabled" value="true" checked="@host.Enabled" />このPCを有効にする</label><button type="submit">PCの設定を保存</button></form>
+                        <h4>Agent 資格情報</h4>
+                        @if (!Model.Credentials.Any(c => c.HostId == host.HostId)) { <p class="secondary-text">発行済みの資格情報はありません。</p> }
+                        @foreach (var credential in Model.Credentials.Where(c => c.HostId == host.HostId)) {
+                            <div class="credential-row"><span>@(credential.RevokedAtUtc.HasValue ? "失効済み" : "有効") · @ControlDisplay.LastSeen(credential.IssuedAtUtc)</span><code>@credential.CredentialId</code>
+                            @if (!credential.RevokedAtUtc.HasValue) { <form method="post" asp-page-handler="Revoke"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="credentialId" value="@credential.CredentialId" /><button type="submit">失効して接続を切断</button></form> }</div>
+                        }
+                        <details><summary>Agentが報告したroot・実行ファイル</summary><pre>@host.ResourcesJson</pre></details>
+                    </details>
+                </article>
+            }
+        </div>
     }
-    <details><summary>Agent が報告した登録root / 実行ファイル</summary><pre>@host.ResourcesJson</pre></details>
-    </section>
-}
-<h2>Environment を登録</h2>
-<p>共有 API / master の範囲を明示します。Dev / チャンネルの名前から自動分離しません。</p>
-<form method="post" asp-page-handler="Environment">
-    <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
-    <label>Environment key <input name="environmentKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label>
-    <label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">登録</button>
-</form>
-<ul>@foreach (var environment in Model.Environments) { <li>@environment.EnvironmentKey: @environment.DisplayName (@environment.EnvironmentId)</li> }</ul>
+</section>
+
+<details class="setup-details" open="@(string.Equals(failedHandler, "Create", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>PCを登録する</summary><div class="details-body"><p>ゲームPCごとに別のPCを登録します。キーは登録後の識別子です。</p>
+    <form method="post" asp-page-handler="Create"><input type="hidden" name="requestKey" value="@Model.RequestKey" /><label>PCキー <input name="hostKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label><label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">PCを登録</button></form>
+</div></details>
+
+<details class="setup-details" open="@(string.Equals(failedHandler, "Environment", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>Environmentを管理する</summary><div class="details-body"><p>共有API・マスターデータの利用範囲を明示します。PC名だけでは自動分離されません。</p>
+    @if (Model.Environments.Length == 0) { <p class="secondary-text">Environmentはまだ登録されていません。</p> }
+    else { <ul class="simple-list">@foreach (var environment in Model.Environments) { <li><strong>@environment.DisplayName</strong> <span class="entity-key">@environment.EnvironmentKey</span><details><summary>IDを表示</summary><code>@environment.EnvironmentId</code></details></li> }</ul> }
+    <form method="post" asp-page-handler="Environment"><input type="hidden" name="requestKey" value="@Guid.NewGuid()" /><label>Environmentキー <input name="environmentKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label><label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">Environmentを登録</button></form>
+</div></details>
