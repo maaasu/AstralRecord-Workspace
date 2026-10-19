@@ -1,5 +1,5 @@
 {
-  "sourceApiAppsettingsPath": "\\\\192.168.0.88\\server\\AstralRecordApi\\appsettings.json",
+  "sourceApiAppsettingsPath": "\\\\192.168.0.88\\app-01\\AstralRecordApi\\appsettings.json",
   "connectionStringName": "History",
   "expectedDatabase": "HistoryDB",
   "connectionStrings": {

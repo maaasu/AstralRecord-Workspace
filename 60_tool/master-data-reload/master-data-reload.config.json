@@ -1,13 +1,13 @@
 {
   "filebase": {
-    "sourcePath": "E:\\AstralRecord-Workspace\\40_filebase",
-    "deployPath": "\\\\192.168.0.88\\server\\FileDatabase\\file",
+    "sourcePath": "C:\\AstralRecord-Workspace\\40_filebase",
+    "deployPath": "\\\\192.168.0.88\\app-01\\workspace\\40_filebase",
     "excludeDirectories": [
       "99.work"
     ]
   },
   "api": {
-    "baseUrl": "http://localhost:5261",
+    "baseUrl": "https://app-01:444",
     "apiKey": "",
     "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
     "verifySsl": true

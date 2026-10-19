@@ -123,7 +123,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 `01-deploy-debug.bat` と `10-release-management-deploy.bat` は API を有効にしている場合、API/Webを停止・配置する前にゲーム用 `db-migrate`、HistoryDB用migration、ManagementDB専用migrationを順に実行します。どれかの適用・スキーマ検査に失敗した場合、IIS停止、`app_offline.htm`、バイナリコピーを行わずに配置を中止します。`02-deploy-debug-plugin-only.bat` では API とDB migrationを実行しません。個別にゲーム用migrationだけを実行する場合は `13-db-migrate.bat`、ManagementDBだけを実行する場合は `14-management-db-migrate.bat`、HistoryDBだけを実行する場合は `15-history-db-migrate.bat` を使用します。各runnerはmanifestに明示されたmigrationだけを対象にし、DB再構築や既存データの削除は行いません。
 
-`10-release-management-deploy.bat` は API と Web だけをデプロイします。初回実行前にAPI配置先へ既存DiscordSRV Botのトークンを `token.txt` として安全に配置してください。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。現在の本番API接続先は `https://device_server:444` です。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
+`10-release-management-deploy.bat` は API と Web だけをデプロイします。初回実行前にAPI配置先へ既存DiscordSRV Botのトークンを `token.txt` として安全に配置してください。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。APP-01 の配置済み Web 設定が参照するAPI接続先は `https://app-01:444` です。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
 
 デプロイ前には、`token.txt` の存在・非空、Webの本番API接続先、APIキーの一致、`ReleaseNotes:SyncOnStartup` が有効であることを検証します。トークンとAPIキーの値は表示せず、バックアップにも `token.txt` を複製しません。配置せず検証だけを行う場合は、次を実行します。
 
@@ -180,25 +180,25 @@ API key は `master-data-reload/master-data-reload.config.json` の `api.apiKey`
 
 ```powershell
 $env:ASTRALRECORD_API_KEY = 'your-api-key'
-powershell -NoProfile -File E:\AstralRecord-Workspace\60_tool\master-data-reload\master-data-reload.ps1
+powershell -NoProfile -File C:\AstralRecord-Workspace\60_tool\master-data-reload\master-data-reload.ps1
 ```
 
 DB 再構築で確認を省略する場合は次のように実行します。
 
 ```powershell
-E:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --yes
+C:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --yes
 ```
 
 リリースノートの公開・送信情報を保持したまま、`AstralRecord`、`MasterDataDB`、`HistoryDB` を最新 `init.sql` から再作成する場合は次を実行します。既定では `RESET` の確認入力が必要です。
 
 ```powershell
-E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
+C:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
 ```
 
 確認を省略する場合は `--yes` を付けます。
 
 ```powershell
-E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes
+C:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes
 ```
 
 この操作はSQL Serverのセッションロックで同時実行を防ぎ、API/Webへ実行ID付きの `app_offline.htm` を配置した上で、Release Note 2表を同一トランザクションで一時DBへ退避します。対象DBは `SINGLE_USER WITH ROLLBACK IMMEDIATE` で削除して再作成します。完了後はAPI起動時のSeederまたは `03-master-data-reload.bat` で `MasterDataDB` を再投入してください。復元まで成功した場合だけ一時DBと同じ実行IDの保守マーカーを削除し、途中失敗時は `AstralRecord` を `OFFLINE` にして一時DBと `--restore-backup` 復旧コマンドを残します。`--yes` を付けた場合はBAT終了時の `pause` も省略します。詳細は `db-reset-except-release-notes/README.md` を参照してください。

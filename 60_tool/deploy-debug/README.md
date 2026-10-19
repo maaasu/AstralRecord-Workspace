@@ -48,7 +48,7 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 | `pollIntervalSeconds` | 起動確認の間隔。既定設定は5秒 |
 | `seedMasterData` | Filebase同期後にAPIのdiff seedを実行。PluginOnlyでは省略 |
 
-初期設定のserverIdsは空です。対象サーバーを推測で決めないため、設定が揃うまでは配置前に停止します。共通APIキーとmigrationキーは異なる値にします。Devで公開したパッチは同じAPI・DBを使う他チャンネルにも影響し、古い設定のチャンネルへの参加が制限されます。Devと本番を別の公開段階に保つ場合はAPI・DBを分離してください。
+この環境のserverIdsはDevの `plugins/AstralRecord/config.yml` にある `api.serverId` に合わせて `Dev` に設定します。API接続先はAPP-01の配置済みWeb設定で確認した `https://app-01:444`、キーの参照先はAPP-01のAPI `appsettings.json` です。共通APIキーとmigrationキーは異なる値にします。Devで公開したパッチは同じAPI・DBを使う他チャンネルにも影響し、古い設定のチャンネルへの参加が制限されます。Devと本番を別の公開段階に保つ場合はAPI・DBを分離してください。
 
 ## 入口の整理
 
