@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord;
 
+import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadResult;
+import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadResult.ActivationTarget;
 import io.github.maaasu.astralRecord.feature.builder.gui.BuilderGui;
 import io.github.maaasu.astralRecord.feature.builder.event.BuilderGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.builder.service.BuilderService;
@@ -690,7 +692,7 @@ public final class AstralRecord extends JavaPlugin {
     private DungeonService dungeonService;
     private ChallengeWaitingHubArrivalGuard arrivalGuard;
     private String joinSpawnWorldId;
-    private final AtomicReference<CompletableFuture<Integer>> masterDataReloadInFlight = new AtomicReference<>();
+    private final AtomicReference<CompletableFuture<MasterDataReloadResult>> masterDataReloadInFlight = new AtomicReference<>();
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
     private MasterDataAutoReloadService masterDataAutoReloadService;
 
@@ -908,7 +910,7 @@ public final class AstralRecord extends JavaPlugin {
             chatBridge.close();
         }
         masterDataReloadGeneration.incrementAndGet();
-        CompletableFuture<Integer> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
+        CompletableFuture<MasterDataReloadResult> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
         if (pendingMasterDataReload != null && !pendingMasterDataReload.isDone()) {
             pendingMasterDataReload.completeExceptionally(
                 new IllegalStateException("マスターデータ再読込中にプラグインが停止しました")
@@ -3574,12 +3576,14 @@ public final class AstralRecord extends JavaPlugin {
      * <p>Repository/file I/O は非同期 task で実行し、Bukkit API と実行時キャッシュへの公開だけを
      * メインスレッドへ戻します。同時に実行できる再読込は 1 件だけです。</p>
      *
-     * @return 開始結果と完了 future
+     * 個別の実行時反映失敗は警告ログと完了結果へ記録し、残りの反映を継続します。
+     *
+     * @return 開始結果と、公開件数・反映失敗対象を返す完了 future
      */
     public @org.jetbrains.annotations.NotNull MasterDataReloadStart reloadMasterData() {
-        CompletableFuture<Integer> completion = new CompletableFuture<>();
+        CompletableFuture<MasterDataReloadResult> completion = new CompletableFuture<>();
         while (true) {
-            CompletableFuture<Integer> current = masterDataReloadInFlight.get();
+            CompletableFuture<MasterDataReloadResult> current = masterDataReloadInFlight.get();
             if (current != null && !current.isDone()) {
                 return new MasterDataReloadStart(false, current);
             }
@@ -3677,7 +3681,7 @@ public final class AstralRecord extends JavaPlugin {
         var petSnapshot=petService.loadMasterSnapshot();
         loaded+=petSnapshot.speciesIds().size();
         publications.add(()->petService.publishMasterSnapshot(petSnapshot));
-        activations.add(new MasterDataActivation("pet",()->AstPlayerCache.getAll().forEach(petRuntimeService::refresh)));
+        activations.add(new MasterDataActivation(ActivationTarget.PET,()->AstPlayerCache.getAll().forEach(petRuntimeService::refresh)));
 
         var skillDefinitions = skillService.loadDefinitions();
         loaded += skillDefinitions.size();
@@ -3704,7 +3708,7 @@ public final class AstralRecord extends JavaPlugin {
         var npcSnapshot = npcPlacementService.loadPlacementSnapshot();
         loaded += npcSnapshot.size();
         publications.add(() -> npcPlacementService.replacePlacementSnapshot(npcSnapshot));
-        activations.add(new MasterDataActivation("npc", npcPlacementService::activatePlacementSnapshot));
+        activations.add(new MasterDataActivation(ActivationTarget.NPC, npcPlacementService::activatePlacementSnapshot));
 
         var mobSpawnerSnapshot = mobSpawnerService.loadMasterDataSnapshot();
         loaded += mobSpawnerSnapshot.definitions().size();
@@ -3713,7 +3717,7 @@ public final class AstralRecord extends JavaPlugin {
         var gatheringSnapshot = gatheringService.loadDefinitionSnapshot();
         loaded += gatheringSnapshot.size();
         publications.add(() -> gatheringService.replaceDefinitionSnapshot(gatheringSnapshot));
-        activations.add(new MasterDataActivation("gathering", gatheringService::activateDefinitionSnapshot));
+        activations.add(new MasterDataActivation(ActivationTarget.GATHERING, gatheringService::activateDefinitionSnapshot));
 
         var gatheringSpawnerSnapshot = gatheringSpawnerService.loadMasterDataSnapshot();
         loaded += gatheringSpawnerSnapshot.definitions().size();
@@ -3731,7 +3735,7 @@ public final class AstralRecord extends JavaPlugin {
         loaded += worldSnapshot.worlds().size();
         publications.add(() -> worldService.replaceDefinitionSnapshot(worldSnapshot));
         activations.add(new MasterDataActivation(
-            "world",
+            ActivationTarget.WORLD,
             () -> worldService.activateDefinitionSnapshot(worldSnapshot)
         ));
 
@@ -3769,8 +3773,16 @@ public final class AstralRecord extends JavaPlugin {
         }
     }
 
+    /**
+     * 準備済みマスタをメインスレッドで公開し、反映失敗の対象を完了結果へまとめます。
+     * 個別の反映失敗後も残りを試行し、全試行後にrevisionを進めます。
+     *
+     * @param completion 公開件数と反映失敗対象を通知するfuture。公開失敗時は例外完了
+     * @param generation 開始時の再読込世代
+     * @param plan 公開・反映処理を保持した準備済み計画
+     */
     private void publishMasterDataReload(
-        @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion,
+        @org.jetbrains.annotations.NotNull CompletableFuture<MasterDataReloadResult> completion,
         long generation,
         @org.jetbrains.annotations.NotNull MasterDataReloadPlan plan
     ) {
@@ -3807,15 +3819,17 @@ public final class AstralRecord extends JavaPlugin {
             } finally {
                 skillTreeService.endMasterDataPublication();
             }
+            List<ActivationTarget> failedActivations = new ArrayList<>();
             for (MasterDataActivation activation : plan.activations()) {
                 try {
                     activation.action().run();
                 } catch (RuntimeException activationFailure) {
-                    Logger.log(LogId.W_1550, activationFailure, activation.target());
+                    failedActivations.add(activation.target());
+                    Logger.log(LogId.W_1550, activationFailure, activation.target().logName());
                 }
             }
             skillTreeService.recordCompletedMasterDataReload();
-            completion.complete(plan.loadedCount());
+            completion.complete(new MasterDataReloadResult(plan.loadedCount(), failedActivations));
         } catch (RuntimeException publicationFailure) {
             completion.completeExceptionally(publicationFailure);
         } finally {
@@ -3823,18 +3837,30 @@ public final class AstralRecord extends JavaPlugin {
         }
     }
 
+    /**
+     * 停止や別の再読込によって失効していない処理かを確認します。
+     *
+     * @param completion 判定する再読込の完了future
+     * @param generation 開始時の再読込世代
+     * @return 現在の処理と世代が一致する場合はtrue
+     */
     private boolean isCurrentMasterDataReload(
-        @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion,
+        @org.jetbrains.annotations.NotNull CompletableFuture<MasterDataReloadResult> completion,
         long generation
     ) {
         return masterDataReloadGeneration.get() == generation
             && masterDataReloadInFlight.get() == completion;
     }
 
-    /** マスターデータ再読込の開始結果です。 */
+    /**
+     * マスターデータ再読込の開始結果です。
+     *
+     * @param started 新しい再読込を開始した場合はtrue。実行中の処理へ合流した場合はfalse
+     * @param completion 公開件数と部分反映失敗の対象を返す共通の完了future
+     */
     public record MasterDataReloadStart(
         boolean started,
-        @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion
+        @org.jetbrains.annotations.NotNull CompletableFuture<MasterDataReloadResult> completion
     ) {
     }
 
@@ -3848,7 +3874,7 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     private record MasterDataActivation(
-        @org.jetbrains.annotations.NotNull String target,
+        @org.jetbrains.annotations.NotNull ActivationTarget target,
         @org.jetbrains.annotations.NotNull Runnable action
     ) {
     }

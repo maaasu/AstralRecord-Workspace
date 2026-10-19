@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.core.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadNotification;
+import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadResult;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
@@ -41,7 +43,7 @@ public final class MasterDataCommand extends AstCommand {
         Logger.log(LogId.I_1554, sender.getName());
         sendInfo(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5095.getId()));
         UUID playerId = sender instanceof Player player ? player.getUniqueId() : null;
-        reload.completion().whenComplete((loaded, throwable) -> {
+        reload.completion().whenComplete((result, throwable) -> {
             Throwable cause = unwrapCompletionFailure(throwable);
             if (cause != null) {
                 Logger.log(LogId.E_1551, cause, failureMessage(cause));
@@ -49,17 +51,25 @@ public final class MasterDataCommand extends AstCommand {
                 Logger.log(LogId.I_1555);
             }
             try {
-                AsyncTaskUtil.runSync(plugin, () -> notifyCompletion(sender, playerId, loaded, cause));
+                AsyncTaskUtil.runSync(plugin, () -> notifyCompletion(sender, playerId, result, cause));
             } catch (RuntimeException schedulingFailure) {
                 Logger.log(LogId.E_1551, schedulingFailure, failureMessage(schedulingFailure));
             }
         });
     }
 
+    /**
+     * 実行者を再解決し、公開失敗または部分反映失敗を含む完了結果を通知します。
+     *
+     * @param originalSender 開始時の送信者
+     * @param playerId プレイヤー実行者のUUID。コンソールの場合はnull
+     * @param result 公開完了結果。公開失敗時はnull
+     * @param failure 公開失敗の原因。完了時はnull
+     */
     private void notifyCompletion(
         @NotNull CommandSender originalSender,
         UUID playerId,
-        Integer loaded,
+        MasterDataReloadResult result,
         Throwable failure
     ) {
         CommandSender currentSender = originalSender;
@@ -74,7 +84,7 @@ public final class MasterDataCommand extends AstCommand {
             sendError(currentSender, PlayerMsgResource.getMessage(PlayerMsgId.P_5098.getId()));
             return;
         }
-        sendSuccess(currentSender, PlayerMsgResource.format(PlayerMsgId.P_5097.getId(), loaded));
+        MasterDataReloadNotification.sendCompletion(plugin.getPlayerMessageService(), currentSender, result);
     }
 
     private @NotNull String failureMessage(@NotNull Throwable throwable) {

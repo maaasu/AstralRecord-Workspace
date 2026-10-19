@@ -28,6 +28,8 @@ The plugin reloads API/filebase-backed master caches, including SkillTree node/s
 
 `/masterdata reload` with permission level 99 remains available for manual recovery and operational checks.
 
+After all master snapshots are published, the plugin attempts each runtime activation (pets, NPCs, gathering, and worlds). An individual activation failure is logged without stopping subsequent activations. The reload completion result includes the published count and failed activation targets. A partial failure replaces the manual sender's normal success message with one warning listing all failed targets. For an automatic reload, one summary is sent to each online administrator with effective permission level 99. Detailed exceptions remain in the warning log. A partial activation failure still completes the reload and advances its revision; it does not cause the automatic monitor to retry the same Seeder run.
+
 ## Plugin polling
 
 The Plugin uses `X-Api-Key` and the shared API transport settings to poll `/api/master-data/health` without blocking the Bukkit main thread. Polling is configured in the Plugin `config.yml`:

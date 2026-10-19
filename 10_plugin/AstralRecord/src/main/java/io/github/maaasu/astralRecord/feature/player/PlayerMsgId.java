@@ -164,7 +164,15 @@ public enum PlayerMsgId {
     P_5065(5065),
     // endregion
 
-    // region /core/command/MasterDataCommand.java 5095-5099
+    // region マスターデータ再読込 5090-5099
+    /** ペットの反映失敗。 */
+    P_5090(5090),
+    /** NPCの反映失敗。 */
+    P_5091(5091),
+    /** 採集の反映失敗。 */
+    P_5092(5092),
+    /** ワールドの反映失敗。 */
+    P_5093(5093),
     /**
      * マスターデータの再読込を開始しました。完了までお待ちください。
      */
@@ -181,6 +189,8 @@ public enum PlayerMsgId {
      * マスターデータの再読込に失敗しました。詳細はサーバーログを確認してください。
      */
     P_5098(5098),
+    /** 再読込完了時の部分的な反映失敗。 */
+    P_5099(5099),
     // endregion
 
     // region /feature/status/command/StatusCommand.java 5100-5149

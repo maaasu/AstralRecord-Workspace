@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadNotification;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
@@ -201,7 +202,7 @@ public final class MasterDataAutoReloadService {
         if (!ownedReload) {
             Logger.log(LogId.W_1605, seedRunId);
         }
-        reload.completion().whenComplete((loadedCount, throwable) -> {
+        reload.completion().whenComplete((result, throwable) -> {
             Throwable cause = throwable == null ? null : unwrap(throwable);
             boolean succeeded = cause == null;
             boolean deferred;
@@ -212,7 +213,20 @@ public final class MasterDataAutoReloadService {
                 deferred = coordinator.reloadCompleted(seedRunId, ownedReload, succeeded);
             }
             if (ownedReload && succeeded) {
-                Logger.log(LogId.I_1605, seedRunId, loadedCount);
+                Logger.log(LogId.I_1605, seedRunId, result.loadedCount());
+                if (!result.failedActivations().isEmpty()) {
+                    try {
+                        AsyncTaskUtil.runSync(plugin, () -> {
+                            if (running.get() && plugin.isEnabled()) {
+                                MasterDataReloadNotification.notifyAdminsIfPartial(
+                                    plugin.getPlayerMessageService(), result
+                                );
+                            }
+                        });
+                    } catch (RuntimeException schedulingFailure) {
+                        Logger.log(LogId.E_1601, schedulingFailure, failureMessage(schedulingFailure));
+                    }
+                }
             } else if (cause != null) {
                 Logger.log(LogId.E_1603, cause, seedRunId, failureMessage(cause));
             }
