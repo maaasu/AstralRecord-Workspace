@@ -529,7 +529,7 @@ public class MobAiService {
         double distSq = target.getLocation().distanceSquared(instance.currentLocation());
         boolean tauntedTarget = tauntService != null
                 && target.getUniqueId().equals(tauntService.activeTaunter(instance));
-        if (!tauntedTarget && distSq > deaggroSq) {
+        if (!mobCombatService.isDefenseEnemy(instance) && !tauntedTarget && distSq > deaggroSq) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
             mobService.stopPathfinding(instance);
@@ -651,6 +651,10 @@ public class MobAiService {
      * @param instance 対象 Mob
      */
     private void tickLeashed(@NotNull MobInstance instance) {
+        if (mobCombatService.isDefenseEnemy(instance)) {
+            instance.state(MobState.AGGRO);
+            return;
+        }
         Location spawn = instance.spawnLocation();
         Location current = instance.currentLocation();
         if (isVerticallyTooFarFromSpawn(current, spawn)) {
@@ -681,13 +685,18 @@ public class MobAiService {
     /**
      * 追跡中のターゲットを解決します。
      *
-     * <p>既存ターゲットが deaggroRange 内にいる間は維持し、いなければ新規選定します。</p>
+     * <p>通常 Mob は既存ターゲットが deaggroRange 内にいる間は維持します。
+     * 防衛戦の敵は挑発・反撃期限を反映するため毎回選定します。</p>
      *
      * @param instance 対象 Mob
      * @return 追跡対象。存在しなければ {@code null}
      */
     @Nullable
     private LivingEntity resolveChaseTarget(@NotNull MobInstance instance) {
+        if (mobCombatService.isDefenseEnemy(instance)) {
+            // 防衛戦では反撃期限と挑発が tick ごとに変化するため、既存 targetId を固定しない。
+            return selectTarget(instance);
+        }
         UUID taunterId = tauntService == null ? null : tauntService.activeTaunter(instance);
         if (taunterId != null) {
             Player taunter = Bukkit.getPlayer(taunterId);
@@ -720,6 +729,7 @@ public class MobAiService {
      * @return leashRange 超過なら {@code true}
      */
     private boolean isLeashed(@NotNull MobInstance instance) {
+        if (mobCombatService.isDefenseEnemy(instance)) return false;
         MobTargetingConfig targeting = instance.template().targeting();
         if (targeting == null) return false;
         Location current = instance.currentLocation();

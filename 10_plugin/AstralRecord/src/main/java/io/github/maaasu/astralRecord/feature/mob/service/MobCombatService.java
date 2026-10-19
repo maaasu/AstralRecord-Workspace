@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.defense.DefenseService;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
@@ -85,19 +86,42 @@ public class MobCombatService {
     private BiConsumer<AstPlayer, String> mobDefeatedListener;
     private BiConsumer<AstPlayer, MobDefeated> mobDefeatedLevelListener;
     private PetRuntimeService petRuntimeService;
+    private @Nullable DefenseService defenseService;
+
+    /**
+     * 防衛戦の敵選定と防衛対象の解決に使うサービスを設定します。
+     * Bukkit のメインスレッドで Mob AI を動かす前に設定してください。
+     *
+     * @param defenseService 防衛戦サービス。未設定時は通常の Mob 選定だけを使います
+     */
+    public void setDefenseService(@Nullable DefenseService defenseService) {
+        this.defenseService = defenseService;
+    }
+
+    /**
+     * 指定個体が現在の防衛戦の敵かを返します。
+     *
+     * @param instance 判定する Mob 個体
+     * @return 防衛戦の敵として参加中なら {@code true}
+     */
+    public boolean isDefenseEnemy(@NotNull MobInstance instance) {
+        return defenseService != null && defenseService.isEnemy(instance);
+    }
 
     /** @param runtime ペット標的・活動経験値・全敵共通卵抽選の連携先 */
     public void setPetRuntimeService(@Nullable PetRuntimeService runtime) { this.petRuntimeService = runtime; }
 
     /**
      * @param id 標的 UUID
-     * @return 現在有効なプレイヤーまたは召喚ペット。存在しなければ null
+     * @return 現在有効なプレイヤー、召喚ペット、または防衛対象。存在しなければ null
      */
     public @Nullable LivingEntity resolveTarget(@Nullable UUID id) {
         if (id == null) return null;
         Player player = Bukkit.getPlayer(id);
         if (player != null && player.isOnline() && isGameplayTargetPlayer(player) && !isPlayerDead(player)) return player;
-        return petRuntimeService == null ? null : petRuntimeService.target(id);
+        LivingEntity pet = petRuntimeService == null ? null : petRuntimeService.target(id);
+        if (pet != null) return pet;
+        return defenseService == null ? null : defenseService.objectiveTarget(id);
     }
 
     /**
@@ -189,10 +213,16 @@ public class MobCombatService {
      * Mob のターゲットを選定して {@link MobInstance#targetId(UUID)} に設定します。
      *
      * @param instance 対象 Mob
-     * @return 選定されたプレイヤーまたはペット（候補なしなら {@code null}）
+     * @return 選定されたプレイヤー、ペット、または防衛対象（候補なしなら {@code null}）
      */
     @Nullable
     public LivingEntity selectTarget(@NotNull MobInstance instance) {
+        DefenseService defense = defenseService;
+        if (defense != null && defense.isEnemy(instance)) {
+            LivingEntity selected = defense.selectTarget(instance);
+            if (selected == null) instance.targetId(null);
+            return selected;
+        }
         MobTemplate template = instance.template();
         MobTargetingConfig targeting = template.targeting();
         if (targeting == null || template.category() == MobCategory.NPC) {
