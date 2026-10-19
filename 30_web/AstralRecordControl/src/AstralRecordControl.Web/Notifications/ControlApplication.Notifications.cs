@@ -22,9 +22,8 @@ public static partial class ControlApplication
         });
 
         owner.MapPost("/notification-destinations", async (JsonElement body, HttpContext http,
-            Notifications.NotificationService notifications, OwnerAuthService auth) =>
+            Notifications.NotificationService notifications) =>
         {
-            if (!await auth.HasRecentAuthenticationAsync(http.User)) throw new InventoryFault(403, "RecentAuthenticationRequired");
             RequireCreate(http);
             var request = Read<NotificationDestinationRequest>(body);
             var row = await notifications.SaveDestinationAsync(Idempotency(http), 0, request.DisplayName, request.Url, request.Enabled);
@@ -33,9 +32,8 @@ public static partial class ControlApplication
         });
 
         owner.MapPut("/notification-destinations/{destinationId:guid}", async (Guid destinationId, JsonElement body,
-            HttpContext http, Notifications.NotificationService notifications, OwnerAuthService auth) =>
+            HttpContext http, Notifications.NotificationService notifications) =>
         {
-            if (!await auth.HasRecentAuthenticationAsync(http.User)) throw new InventoryFault(403, "RecentAuthenticationRequired");
             var request = Read<NotificationDestinationRequest>(body);
             var row = await notifications.SaveDestinationAsync(destinationId, Match(http), request.DisplayName, request.Url, request.Enabled);
             http.Response.Headers.ETag = Quote(row.Revision);

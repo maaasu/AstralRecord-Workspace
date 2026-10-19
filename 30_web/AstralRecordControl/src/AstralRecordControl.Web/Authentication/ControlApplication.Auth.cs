@@ -10,7 +10,6 @@ public static partial class ControlApplication
         builder.Services.AddRazorPages(o =>
         {
             o.Conventions.AuthorizePage("/Security", "OwnerOnly");
-            o.Conventions.AuthorizeFolder("/Mfa", "OwnerPending");
         });
     }
 

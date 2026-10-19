@@ -12,7 +12,7 @@ namespace AstralRecordControl.Web.Pages;
 [Authorize(Policy = "OwnerOnly")]
 [ValidateAntiForgeryToken]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class NotificationsModel(ControlDbContext db, NotificationService notifications, OwnerAuthService auth) : PageModel
+public sealed class NotificationsModel(ControlDbContext db, NotificationService notifications) : PageModel
 {
     public sealed record DestinationView(Guid Id, string Name, long Revision, bool Enabled);
     public sealed record DeliveryView(Guid EventId, string EventType, DateTimeOffset OccurredAtUtc, string DestinationName, int Attempt, string State, string? ErrorCode);
@@ -26,11 +26,6 @@ public sealed class NotificationsModel(ControlDbContext db, NotificationService 
 
     public async Task<IActionResult> OnPostSaveAsync(Guid? destinationId, long revision, string displayName, string? url, bool enabled)
     {
-        if (!await auth.HasRecentAuthenticationAsync(User))
-        {
-            Error = "通知先の変更前にセキュリティ画面で再認証してください。";
-            await LoadAsync(); return Page();
-        }
         try
         {
             var id = destinationId ?? Guid.NewGuid();

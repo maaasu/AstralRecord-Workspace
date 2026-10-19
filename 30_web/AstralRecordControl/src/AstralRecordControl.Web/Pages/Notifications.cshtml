@@ -2,7 +2,7 @@
 @model NotificationsModel
 @{ ViewData["Title"] = "通知"; }
 <h1>通知</h1>
-<p>通知先の登録・変更には<a asp-page="/Security">直近5分以内の再認証</a>が必要です。Webhook URL は保存後に再表示しません。</p>
+<p>Webhook URL は保存後に再表示しません。</p>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 @if (Model.Message != null) { <p>@Model.Message</p> }
 <h2>Webhook 通知先</h2>

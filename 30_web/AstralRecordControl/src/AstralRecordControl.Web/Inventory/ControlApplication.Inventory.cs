@@ -75,14 +75,12 @@ public static partial class ControlApplication
             var host = await store.HostAsync(hostId);
             return Results.Ok(new { hostId, resources = ControlJson.Deserialize<HostResources>(host.ResourcesJson), capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson), host.LastSeenAtUtc });
         });
-        owner.MapPost("/hosts/{hostId:guid}/credentials", async (Guid hostId, HttpContext http, AgentCredentialService credentials, OwnerAuthService auth) =>
+        owner.MapPost("/hosts/{hostId:guid}/credentials", async (Guid hostId, AgentCredentialService credentials) =>
         {
-            if (!await auth.HasRecentAuthenticationAsync(http.User)) throw new InventoryFault(403, "RecentAuthenticationRequired");
             var issued = await credentials.IssueAsync(hostId); return Results.Created($"/api/control/v1/hosts/{hostId}/credentials/{issued.CredentialId}", issued);
         });
-        owner.MapDelete("/hosts/{hostId:guid}/credentials/{credentialId:guid}", async (Guid hostId, Guid credentialId, HttpContext http, AgentCredentialService credentials, OwnerAuthService auth) =>
+        owner.MapDelete("/hosts/{hostId:guid}/credentials/{credentialId:guid}", async (Guid hostId, Guid credentialId, AgentCredentialService credentials) =>
         {
-            if (!await auth.HasRecentAuthenticationAsync(http.User)) throw new InventoryFault(403, "RecentAuthenticationRequired");
             await credentials.RevokeAsync(hostId, credentialId); return Results.NoContent();
         });
         owner.MapGet("/environments", async (ControlDbContext db) => await db.Environments.AsNoTracking().OrderBy(x => x.EnvironmentKey).ToArrayAsync());

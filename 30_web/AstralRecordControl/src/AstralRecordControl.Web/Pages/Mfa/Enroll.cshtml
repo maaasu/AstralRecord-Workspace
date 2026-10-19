@@ -1,23 +1,2 @@
 @page
 @model AstralRecordControl.Web.Pages.Mfa.EnrollModel
-@{ ViewData["Title"] = "認証アプリ登録"; }
-<h1>認証アプリ登録</h1>
-@if (Model.RecoveryCodes.Length > 0)
-{
-    <p>回復コードを安全な場所に保存してください。この画面で一度だけ表示します。各コードは一度だけ使えます。</p>
-    <ul>@foreach (var code in Model.RecoveryCodes) { <li><code>@code</code></li> }</ul>
-    <a href="/">管理画面へ</a>
-}
-else
-{
-    <p>認証アプリへ次のキーを登録してください。</p>
-    <code>@Model.SharedKey</code>
-    <p><a href="@Model.AuthenticatorUri">認証アプリで開く</a></p>
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="All"></div>
-        <label>6桁のコード <input name="Code" autocomplete="one-time-code" inputmode="numeric" maxlength="20" required /></label>
-        <button type="submit">登録する</button>
-    </form>
-    <a href="/Logout">ログアウト</a>
-}

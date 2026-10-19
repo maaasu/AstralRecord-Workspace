@@ -13,7 +13,6 @@ namespace AstralRecordControl.Web.Authentication;
 public static class OwnerAuthentication
 {
     public const string Scheme = "OwnerCookie";
-    public const string PendingScheme = "OwnerPendingMfa";
     public const string SessionClaim = "control_session";
     public const string StampClaim = "control_stamp";
     public const string LoginLimit = "OwnerLogin";
@@ -50,23 +49,17 @@ public static class OwnerAuthentication
                 ConfigureCookie(o, CookieName);
                 o.ExpireTimeSpan = TimeSpan.FromHours(8);
                 o.EventsType = typeof(OwnerCookieEvents);
-            })
-            .AddCookie(PendingScheme, o =>
-            {
-                ConfigureCookie(o, "__Host-ControlPending");
-                o.ExpireTimeSpan = TimeSpan.FromMinutes(5);
             });
         services.AddAuthorization(o =>
         {
-            o.AddPolicy("OwnerOnly", p => p.AddAuthenticationSchemes(Scheme).RequireAuthenticatedUser().RequireClaim("amr", "mfa").RequireClaim(SessionClaim));
-            o.AddPolicy("OwnerPending", p => p.AddAuthenticationSchemes(PendingScheme).RequireAuthenticatedUser());
+            o.AddPolicy("OwnerOnly", p => p.AddAuthenticationSchemes(Scheme).RequireAuthenticatedUser().RequireClaim("amr", "pwd").RequireClaim(SessionClaim));
         });
         services.AddAntiforgery(o => { o.Cookie.Name = "__Host-ControlCsrf"; o.Cookie.SecurePolicy = CookieSecurePolicy.Always; o.HeaderName = "X-CSRF-TOKEN"; });
         services.AddRateLimiter(o =>
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                HttpMethods.IsPost(context.Request.Method) && (context.Request.Path.StartsWithSegments("/Login") || context.Request.Path.StartsWithSegments("/Mfa") || context.Request.Path.StartsWithSegments("/Security"))
+                HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments("/Login")
                 ? RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true })
                 : RateLimitPartition.GetNoLimiter("other"));
             o.AddPolicy(LoginLimit, context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions

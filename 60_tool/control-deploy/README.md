@@ -140,6 +140,6 @@ pwsh -NoProfile -File ./60_tool/control-deploy/tests/deployment-preflight.ps1
 
 Web/Agent/Runner/CLIを`phase=P3`のパッケージへ更新します。Runner更新の全Server停止・Session/holdなし条件と、P1の管理運用marker/共通gateを引き続き満たしてください。P3のSchedule変更操作はWebの`Control:EnableSchedules`とAgentの`enableSchedules`をともに`true`へ明示変更した後に有効になります。どちらも初期値はfalseです。Agentが`P3.Schedules`を広告し、Webの希望inventory版とAgent適用ACK版が一致することを確認してから予定を有効化します。P2のバックアップstepを使う場合はWeb/Agent/RunnerのEnableFileControlと`P2.Backups`能力も必要です。
 
-Once/Interval/CronとRun Nowは`/Servers/{id}/Schedules`で設定・確認します。Run Nowの通信結果が不明なら、表示された要求IDと照会先を使い、別のIDで再実行しません。`/Servers/{id}/Metrics`はHost/プロセスと取得できたJava人数を表示し、欠測を0として扱いません。`/Notifications`のWebhook送信先はownerの再認証後に登録します。URL全体が保護され画面へ再表示されないため、編集時に秘密を保持するならURL欄を空にします。送信先は公開IPへ到達するHTTPS/443に限定され、外部Webhookへの配信は初回送信と最大3回の再試行です。
+Once/Interval/CronとRun Nowは`/Servers/{id}/Schedules`で設定・確認します。Run Nowの通信結果が不明なら、表示された要求IDと照会先を使い、別のIDで再実行しません。`/Servers/{id}/Metrics`はHost/プロセスと取得できたJava人数を表示し、欠測を0として扱いません。`/Notifications`のWebhook送信先はownerのログイン後に登録します。URL全体が保護され画面へ再表示されないため、編集時に秘密を保持するならURL欄を空にします。送信先は公開IPへ到達するHTTPS/443に限定され、外部Webhookへの配信は初回送信と最大3回の再試行です。
 
 P3の検証は一時DB・ローカルfixture・fake HTTP handlerを使用します。実Minecraft、実NAS、外部Webhookへの送信やWindowsサービス登録は開発テストに含めません。

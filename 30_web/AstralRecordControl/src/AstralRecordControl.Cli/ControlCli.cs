@@ -28,9 +28,9 @@ public static class ControlCli
                 if (Console.IsInputRedirected || Console.IsOutputRedirected) throw new InvalidOperationException("InteractiveTerminalRequired");
                 var origin = ValidateOrigin(Required(options, "server-url"));
                 Console.Error.Write("管理者名: "); var name = Console.ReadLine() ?? "";
-                var password = ReadSecret("パスワード: "); var code = ReadSecret("TOTP または回復コード: ");
+                var password = ReadSecret("パスワード: ");
                 using var client = CreateClient(origin);
-                var issued = await SendAsync<CliTokenIssued>(client, HttpMethod.Post, "/api/control/v1/auth/cli-token", new CliLoginRequest(name, password, code));
+                var issued = await SendAsync<CliTokenIssued>(client, HttpMethod.Post, "/api/control/v1/auth/cli-token", new CliLoginRequest(name, password));
                 SecureFiles.Write(sessionPath, ControlJson.Serialize(new CliSession(origin.AbsoluteUri, issued.CredentialId, issued.Token, issued.ExpiresAtUtc)), protect: true);
                 Console.WriteLine("CLI認証完了。有効期限15分。資格情報は現在のWindowsユーザーにDPAPIで保存しました。");
                 return 0;

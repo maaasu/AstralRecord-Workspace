@@ -29,7 +29,7 @@ public static class CliAuthentication
             options.AddPolicy(OperatorPolicy, p => p.AddAuthenticationSchemes(OwnerAuthentication.Scheme, Scheme).RequireAuthenticatedUser().RequireAssertion(context =>
                 context.User.Identities.Any(identity => identity.IsAuthenticated &&
                     (identity.AuthenticationType == Scheme && identity.HasClaim(c => c.Type == "control_cli") ||
-                     identity.AuthenticationType == OwnerAuthentication.Scheme && identity.HasClaim("amr", "mfa") && identity.HasClaim(c => c.Type == OwnerAuthentication.SessionClaim)))));
+                     identity.AuthenticationType == OwnerAuthentication.Scheme && identity.HasClaim("amr", "pwd") && identity.HasClaim(c => c.Type == OwnerAuthentication.SessionClaim)))));
         });
     }
     public static void Map(WebApplication app)
@@ -60,12 +60,9 @@ public sealed class CliCredentialService(ControlDbContext db, OwnerAuthService o
 {
     public async Task<CliTokenIssued?> IssueAsync(CliLoginRequest input)
     {
-        if (input.LoginName is null || input.Password is null || input.TotpOrRecoveryCode is null || input.LoginName.Length > 256 || input.Password.Length is < 1 or > 1024 || input.TotpOrRecoveryCode.Length is < 1 or > 100) return null;
+        if (input.LoginName is null || input.Password is null || input.LoginName.Length > 256 || input.Password.Length is < 1 or > 1024) return null;
         var user = await owner.CheckPasswordAsync(input.LoginName, input.Password);
-        if (user is null || !user.TwoFactorEnabled) return null;
-        var code = input.TotpOrRecoveryCode.Replace(" ", "");
-        var recovery = !(code.Length == 6 && code.All(char.IsAsciiDigit));
-        if (!await owner.VerifyMfaAsync(user, input.TotpOrRecoveryCode, recovery)) return null;
+        if (user is null) return null;
         var now = clock.GetUtcNow();
         var token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         var credential = new CliCredential { CredentialId = Guid.NewGuid(), OwnerUserId = user.Id, SecurityStamp = await users.GetSecurityStampAsync(user), TokenHashHex = ControlProtocol.Hash(token), CreatedAtUtc = now.UtcDateTime, ExpiresAtUtc = now.AddMinutes(15).UtcDateTime };
@@ -79,7 +76,7 @@ public sealed class CliCredentialService(ControlDbContext db, OwnerAuthService o
         var row = await db.CliCredentials.AsNoTracking().SingleOrDefaultAsync(c => c.TokenHashHex == hash);
         if (row is null || row.RevokedAtUtc.HasValue || row.ExpiresAtUtc <= clock.GetUtcNow().UtcDateTime) return null;
         var user = await users.FindByIdAsync(row.OwnerUserId.ToString());
-        return user is not null && user.TwoFactorEnabled && user.SecurityStamp == row.SecurityStamp && await db.OwnerSettings.AnyAsync(s => s.OwnerUserId == user.Id) ? row : null;
+        return user is not null && user.SecurityStamp == row.SecurityStamp && await db.OwnerSettings.AnyAsync(s => s.OwnerUserId == user.Id) ? row : null;
     }
     public async Task RevokeAsync(Guid credentialId) => await db.CliCredentials.Where(c => c.CredentialId == credentialId).ExecuteUpdateAsync(update => update.SetProperty(c => c.RevokedAtUtc, clock.GetUtcNow().UtcDateTime));
 }
@@ -92,7 +89,7 @@ public sealed class CliBearerHandler(IOptionsMonitor<AuthenticationSchemeOptions
         if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return AuthenticateResult.NoResult();
         var credential = await credentials.AuthenticateAsync(header[7..]);
         if (credential is null) return AuthenticateResult.Fail("Invalid CLI credential.");
-        var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, credential.OwnerUserId.ToString()), new Claim("control_cli", credential.CredentialId.ToString()), new Claim("amr", "mfa")], CliAuthentication.Scheme));
+        var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, credential.OwnerUserId.ToString()), new Claim("control_cli", credential.CredentialId.ToString()), new Claim("amr", "pwd")], CliAuthentication.Scheme));
         return AuthenticateResult.Success(new AuthenticationTicket(principal, CliAuthentication.Scheme));
     }
 }

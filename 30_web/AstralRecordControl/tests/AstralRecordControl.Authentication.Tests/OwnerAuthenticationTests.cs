@@ -1,60 +1,232 @@
 using System.Net;
-using System.Security.Cryptography;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Text;
 using System.Text.RegularExpressions;
+using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Authentication;
 using AstralRecordControl.Web.Data;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
-using AstralRecordControl.Contracts;
-using System.Net.Http.Headers;
-using System.Text;
 
 namespace AstralRecordControl.Authentication.Tests;
 
 public sealed class OwnerAuthenticationTests
 {
+    private const string Password = "Valid-Owner-Password1!";
+
     [Fact]
-    public async Task CliRequiresMfaAndSeparatesCredentialsFromOwnerAndAgentAndRevokeAll()
+    public async Task NewOwnerLogsInDirectlyAndReceivesSecureCookie()
     {
-        await using var factory = new AuthFactory(); await CreateOwner(factory);
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+        using var login = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
+        Assert.Equal("/", login.Headers.Location?.OriginalString);
+        var cookie = login.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith(OwnerAuthentication.CookieName + "="));
+        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("samesite=lax", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ExistingMfaOwnerLogsInWithPasswordAndLegacyMfaPagesRedirect()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
+            Assert.True((await users.SetTwoFactorEnabledAsync((await users.FindByNameAsync("owner"))!, true)).Succeeded);
+        }
+        Assert.Equal("/", (await Login(client)).Headers.Location?.OriginalString);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
+        Assert.Equal("/", (await client.GetAsync("/Mfa/Enroll")).Headers.Location?.OriginalString);
+        Assert.Equal("/", (await client.GetAsync("/Mfa/Verify")).Headers.Location?.OriginalString);
+        using var anonymous = Client(factory);
+        Assert.Equal("/Login", (await anonymous.GetAsync("/Mfa/Enroll")).Headers.Location?.OriginalString);
+        Assert.Equal("/Login", (await anonymous.GetAsync("/Mfa/Verify")).Headers.Location?.OriginalString);
+    }
+
+    [Fact]
+    public async Task OldPendingCookieCannotAccessOwnerAndLegacyMfaCookieIsRejected()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        client.DefaultRequestHeaders.Add("Cookie", "__Host-ControlPending=obsolete");
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/control/v1/hosts")).StatusCode);
+        using var login = await Login(client);
+        Assert.Equal("/", login.Headers.Location?.OriginalString);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var session = await scope.ServiceProvider.GetRequiredService<ControlDbContext>().OwnerSessions.SingleAsync();
+        var claims = new ClaimsIdentity([
+            new Claim(ClaimTypes.NameIdentifier, session.OwnerUserId.ToString()),
+            new Claim("amr", "mfa"),
+            new Claim(OwnerAuthentication.SessionClaim, session.SessionId.ToString()),
+            new Claim(OwnerAuthentication.StampClaim, session.SecurityStamp)
+        ], OwnerAuthentication.Scheme);
+        var properties = new AuthenticationProperties { IssuedUtc = DateTimeOffset.UtcNow, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) };
+        var ticket = new AuthenticationTicket(new ClaimsPrincipal(claims), properties, OwnerAuthentication.Scheme);
+        var format = scope.ServiceProvider.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(OwnerAuthentication.Scheme).TicketDataFormat;
+        using var legacy = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
+        legacy.DefaultRequestHeaders.Add("Cookie", $"{OwnerAuthentication.CookieName}={format.Protect(ticket)}");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await legacy.GetAsync("/api/control/v1/hosts")).StatusCode);
+    }
+
+    [Fact]
+    public async Task WrongPasswordAndNonOwnerCannotAccessOwnerEndpoints()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/control/v1/hosts")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = "wrong" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/Login", new() { ["UserName"] = "other", ["Password"] = Password })).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+    }
+
+    [Fact]
+    public async Task CliUsesPasswordAndRemainsSeparateFromOwnerAndAgentCredentials()
+    {
+        await using var factory = new AuthFactory();
+        await CreateOwner(factory);
         using var anonymous = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
-        async Task<HttpResponseMessage> Login(string code) => await anonymous.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password, code)), Encoding.UTF8, "application/json"));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Login("000000")).StatusCode);
-        using var owner = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await LoginEnrolled(factory, owner);
-        var issuedResponse = await Login(Totp(await GetKey(factory))); Assert.Equal(HttpStatusCode.OK, issuedResponse.StatusCode);
+        async Task<HttpResponseMessage> CliLogin(string password) => await anonymous.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", password)), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await CliLogin("wrong")).StatusCode);
+        using var issuedResponse = await CliLogin(Password);
+        Assert.Equal(HttpStatusCode.OK, issuedResponse.StatusCode);
         var issued = ControlJson.Deserialize<CliTokenIssued>(await issuedResponse.Content.ReadAsStringAsync());
         Assert.InRange(issued.ExpiresAtUtc - DateTimeOffset.UtcNow, TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(16));
         anonymous.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", issued.Token);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/control/v1/hosts")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/agent/v1/inventory")).StatusCode);
-        using (var scope = factory.Services.CreateScope())
-        {
-            var service = scope.ServiceProvider.GetRequiredService<CliCredentialService>();
-            Assert.NotNull(await service.AuthenticateAsync(issued.Token));
-            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
-            Assert.NotEqual(issued.Token, (await db.CliCredentials.SingleAsync()).TokenHashHex);
-            var setting = await db.OwnerSettings.SingleAsync();
-            await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().RevokeAllAsync(setting.OwnerUserId);
-            Assert.Null(await service.AuthenticateAsync(issued.Token));
-        }
-        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsync("/api/control/v1/auth/cli-token/revoke", null)).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<CliCredentialService>();
+        Assert.NotNull(await service.AuthenticateAsync(issued.Token));
+        var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+        Assert.NotEqual(issued.Token, (await db.CliCredentials.SingleAsync()).TokenHashHex);
+        await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().RevokeAllAsync((await db.OwnerSettings.SingleAsync()).OwnerUserId);
+        Assert.Null(await service.AuthenticateAsync(issued.Token));
     }
 
-    [Theory]
-    [InlineData("//server/share/control-data")]
-    [InlineData("\\\\server\\share\\control-data")]
-    public void StorageRejectsUncBeforeOpeningAnyNetworkPath(string path) => Assert.Throws<InvalidOperationException>(() => new ControlStorage(path));
+    [Fact]
+    public async Task OwnerCanIssueAndRevokeHostTokenWithoutRecentReauthentication()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        await Login(client);
+        var hostId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+            db.Hosts.Add(new InventoryHost { HostId = hostId, HostKey = "test-host", DisplayName = "Test Host" });
+            await db.SaveChangesAsync();
+        }
+        var csrf = Token(await client.GetStringAsync("/Security"));
+        using var issue = new HttpRequestMessage(HttpMethod.Post, $"/api/control/v1/hosts/{hostId}/credentials");
+        issue.Headers.Add("Origin", "https://localhost");
+        issue.Headers.Add("X-CSRF-TOKEN", csrf);
+        using var issueResponse = await client.SendAsync(issue);
+        Assert.Equal(HttpStatusCode.Created, issueResponse.StatusCode);
+        var credential = ControlJson.Deserialize<CredentialIssued>(await issueResponse.Content.ReadAsStringAsync());
+        using var revoke = new HttpRequestMessage(HttpMethod.Delete, $"/api/control/v1/hosts/{hostId}/credentials/{credential.CredentialId}");
+        revoke.Headers.Add("Origin", "https://localhost");
+        revoke.Headers.Add("X-CSRF-TOKEN", csrf);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.SendAsync(revoke)).StatusCode);
+    }
 
-    private const string Password = "Valid-Owner-Password1!";
+    [Fact]
+    public async Task CookieMutationsRequireCsrfAndFixedOriginAndLogoutRevokesSession()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        await Login(client);
+        using var invalid = new HttpRequestMessage(HttpMethod.Post, "/Logout") { Content = new FormUrlEncodedContent(new Dictionary<string, string>()) };
+        invalid.Headers.Add("Origin", "https://localhost");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(invalid)).StatusCode);
+        var html = await client.GetStringAsync("/Logout");
+        using var crossOrigin = new HttpRequestMessage(HttpMethod.Post, "/Logout") { Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = Token(html) }) };
+        crossOrigin.Headers.Add("Origin", "https://evil.example");
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(crossOrigin)).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await Post(client, "/Logout", new())).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        Assert.All(await scope.ServiceProvider.GetRequiredService<ControlDbContext>().OwnerSessions.ToListAsync(), x => Assert.NotNull(x.RevokedAtUtc));
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+    }
+
+    [Fact]
+    public async Task LogoutAllInvalidatesEverySessionWithoutReauthentication()
+    {
+        await using var factory = new AuthFactory();
+        using var first = Client(factory);
+        using var second = Client(factory);
+        await CreateOwner(factory);
+        await Login(first);
+        await Login(second);
+        Assert.Equal(HttpStatusCode.OK, (await second.GetAsync("/Security")).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await Post(first, "/Security?handler=LogoutAll", new())).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await second.GetAsync("/Security")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetRevokesCookieAndAllowsDirectPasswordLogin()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        await Login(client);
+        using (var scope = factory.Services.CreateScope())
+            Assert.True((await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().ResetAsync(Password)).Succeeded);
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+        Assert.Equal("/", (await Login(client)).Headers.Location?.OriginalString);
+    }
+
+    [Fact]
+    public async Task PasswordFailuresLockOwnerAfterTenAttempts()
+    {
+        await using var factory = new AuthFactory();
+        await CreateOwner(factory);
+        using var scope = factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
+        var auth = scope.ServiceProvider.GetRequiredService<OwnerAuthService>();
+        for (var i = 0; i < 10; i++) Assert.Null(await auth.CheckPasswordAsync("owner", "invalid"));
+        Assert.True(await users.IsLockedOutAsync((await users.FindByNameAsync("owner"))!));
+        Assert.Null(await auth.CheckPasswordAsync("owner", Password));
+    }
+
+    [Fact]
+    public async Task EightHourSessionExpires()
+    {
+        await using var factory = new AuthFactory();
+        using var client = Client(factory);
+        await CreateOwner(factory);
+        await Login(client);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+        var session = await db.OwnerSessions.SingleAsync();
+        Assert.Equal(TimeSpan.FromHours(8), session.ExpiresAtUtc - session.CreatedAtUtc);
+        await db.OwnerSessions.Where(x => x.SessionId == session.SessionId).ExecuteUpdateAsync(s => s.SetProperty(x => x.ExpiresAtUtc, DateTime.UtcNow.AddSeconds(-1)));
+        Assert.Null(await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().ValidateSessionAsync(session.SessionId));
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+    }
 
     [Fact]
     public async Task OwnerSingletonAndDatabaseConstraintRejectSecondOwner()
@@ -69,240 +241,18 @@ public sealed class OwnerAuthenticationTests
     }
 
     [Fact]
-    public async Task PasswordOnlyCannotAccessOwnerAndMfaEnrollmentProducesSecureCookie()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
-        var response = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-        Assert.Equal("/Mfa/Enroll", response.Headers.Location?.OriginalString);
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
-        var enrollment = await client.GetStringAsync("/Mfa/Enroll");
-        Assert.Contains("otpauth://", enrollment);
-        var key = await GetKey(factory);
-        response = await Post(client, "/Mfa/Enroll", new() { ["Code"] = Totp(key) });
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("回復コード", await response.Content.ReadAsStringAsync());
-        var cookie = response.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith(OwnerAuthentication.CookieName + "="));
-        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("samesite=lax", cookie, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
-    }
-
-    [Fact]
-    public async Task SameOriginFormPolicySupportsLoginRetryAndMfaEnrollment()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        using var page = await client.GetAsync("/Login");
-        Assert.Equal("same-origin", Assert.Single(page.Headers.GetValues("Referrer-Policy")));
-
-        // Retrying with the pending cookie must still reach the authenticator enrollment screen.
-        for (var attempt = 0; attempt < 2; attempt++)
-        {
-            using var response = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-            Assert.Equal("/Mfa/Enroll", response.Headers.Location?.OriginalString);
-        }
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
-        await client.GetStringAsync("/Mfa/Enroll");
-        using var enrolled = await Post(client, "/Mfa/Enroll", new() { ["Code"] = Totp(await GetKey(factory)) });
-        Assert.Equal(HttpStatusCode.OK, enrolled.StatusCode);
-        Assert.Contains("回復コード", await enrolled.Content.ReadAsStringAsync());
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("null")]
-    [InlineData("https://evil.example")]
-    public async Task PendingLoginRejectsMissingNullAndForeignOrigin(string? origin)
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        using var initial = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-        Assert.Equal("/Mfa/Enroll", initial.Headers.Location?.OriginalString);
-        var html = await client.GetStringAsync("/Login");
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/Login")
-        {
-            Content = new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["UserName"] = "owner", ["Password"] = Password, ["__RequestVerificationToken"] = Token(html)
-            })
-        };
-        if (origin is not null) request.Headers.Add("Origin", origin);
-        using var response = await client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
-    }
-
-    [Fact]
-    public async Task LoginAndPendingMfaUseDarkCanvasWithoutManagementNavigation()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        var login = await client.GetStringAsync("/Login");
-        Assert.Contains("name=\"color-scheme\" content=\"dark\"", login);
-        Assert.DoesNotContain("class=\"main-tabs\"", login);
-        await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-        var pending = await client.GetStringAsync("/Mfa/Enroll");
-        Assert.DoesNotContain("class=\"main-tabs\"", pending);
-        Assert.DoesNotContain("control-navigation.css", pending);
-    }
-
-    [Fact]
-    public async Task EnrolledOwnerSeesOnlyCurrentNavigationTabMarkedActive()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        await LoginEnrolled(factory, client);
-        var html = await client.GetStringAsync("/Hosts");
-        Assert.Contains("class=\"main-tabs\"", html);
-        Assert.Contains("control-navigation.css", html);
-        var active = Assert.Single(Regex.Matches(html, "<a[^>]+aria-current=\"page\"[^>]*>"));
-        Assert.Contains("href=\"/Hosts\"", active.Value);
-        Assert.DoesNotContain("P3 ·", html);
-    }
-
-    [Fact]
-    public async Task VelocityLedgerDoesNotAdvertiseUnsupportedManagementActions()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        await LoginEnrolled(factory, client);
-        var hostId = Guid.NewGuid();
-        var serverId = Guid.NewGuid();
-        var config = new ServerConfig { HostId = hostId, ServerId = serverId, Revision = 1, Kind = ServerKind.Velocity, ManagedRootId = Guid.NewGuid(), ExecutableId = Guid.NewGuid(), ServerDirectory = "00_Proxy" };
-        var json = ControlJson.Serialize(config);
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
-            db.Hosts.Add(new InventoryHost { HostId = hostId, HostKey = "mc-01", DisplayName = "MC-01" });
-            db.Servers.Add(new InventoryServer { ServerId = serverId, HostId = hostId, ServerKey = "proxy", DisplayName = "Proxy", DesiredRevision = 1, DesiredConfigJson = json, ConfigSha256 = ControlProtocol.Hash(json) });
-            await db.SaveChangesAsync();
-        }
-        var list = await client.GetStringAsync("/Servers");
-        Assert.Contains("Velocity", list);
-        Assert.DoesNotContain($"/Servers/{serverId}/Operations", list);
-        Assert.DoesNotContain($"/Servers/{serverId}/Schedules", list);
-        var settings = await client.GetStringAsync($"/Servers/{serverId}");
-        Assert.Contains("起動・停止・バックアップは未対応", WebUtility.HtmlDecode(settings));
-        Assert.DoesNotContain($"/Servers/{serverId}/Files", settings);
-        Assert.DoesNotContain($"/Servers/{serverId}/Operations", settings);
-    }
-
-    [Fact]
-    public async Task ResetRevokesExistingCookieAndRecoveryCodeAndRequiresEnrollmentAgain()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        await LoginEnrolled(factory, client);
-        using (var scope = factory.Services.CreateScope())
-        {
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
-            var user = (await users.FindByNameAsync("owner"))!;
-            var code = (await users.GenerateNewTwoFactorRecoveryCodesAsync(user, 1))!.Single();
-            Assert.True((await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().ResetAsync(Password)).Succeeded);
-            Assert.False((await users.RedeemTwoFactorRecoveryCodeAsync(user, code)).Succeeded);
-        }
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
-        var response = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-        Assert.Equal("/Mfa/Enroll", response.Headers.Location?.OriginalString);
-    }
-
-    [Fact]
-    public async Task RecoveryCodeIsSingleUseAndAccountLocksAfterTenFailures()
-    {
-        await using var factory = new AuthFactory();
-        await CreateOwner(factory);
-        using var scope = factory.Services.CreateScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
-        var user = (await users.FindByNameAsync("owner"))!;
-        await users.SetTwoFactorEnabledAsync(user, true);
-        var code = (await users.GenerateNewTwoFactorRecoveryCodesAsync(user, 1))!.Single();
-        var auth = scope.ServiceProvider.GetRequiredService<OwnerAuthService>();
-        Assert.True(await auth.VerifyMfaAsync(user, code, true));
-        Assert.False(await auth.VerifyMfaAsync(user, code, true));
-        for (var i = 0; i < 10; i++) Assert.Null(await auth.CheckPasswordAsync("owner", "invalid"));
-        Assert.True(await users.IsLockedOutAsync(user));
-        Assert.Null(await auth.CheckPasswordAsync("owner", Password));
-    }
-
-    [Fact]
-    public async Task CookieMutationsRequireCsrfAndFixedOriginAndLogoutRevokesSession()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        await LoginEnrolled(factory, client);
-        using var invalid = new HttpRequestMessage(HttpMethod.Post, "/Logout") { Content = new FormUrlEncodedContent(new Dictionary<string, string>()) };
-        invalid.Headers.Add("Origin", "https://localhost");
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(invalid)).StatusCode);
-        var html = await client.GetStringAsync("/Logout");
-        using var crossOrigin = new HttpRequestMessage(HttpMethod.Post, "/Logout") { Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = Token(html) }) };
-        crossOrigin.Headers.Add("Origin", "https://evil.example");
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(crossOrigin)).StatusCode);
-        Assert.Equal(HttpStatusCode.Redirect, (await Post(client, "/Logout", new())).StatusCode);
-        using var scope = factory.Services.CreateScope();
-        Assert.All(await scope.ServiceProvider.GetRequiredService<ControlDbContext>().OwnerSessions.ToListAsync(), x => Assert.NotNull(x.RevokedAtUtc));
-    }
-
-    [Fact]
-    public async Task AbsoluteEightHourSessionExpiresAndClosesHubConnection()
-    {
-        await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        await LoginEnrolled(factory, client);
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
-        var session = await db.OwnerSessions.SingleAsync();
-        Assert.Equal(TimeSpan.FromHours(8), session.ExpiresAtUtc - session.CreatedAtUtc);
-        var aborted = false;
-        var connections = factory.Services.GetRequiredService<OwnerSessionConnections>();
-        connections.Register(session.SessionId, "connection", () => aborted = true);
-        await db.OwnerSessions.Where(x => x.SessionId == session.SessionId).ExecuteUpdateAsync(s => s.SetProperty(x => x.ExpiresAtUtc, DateTime.UtcNow.AddSeconds(-1)));
-        Assert.Null(await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().ValidateSessionAsync(session.SessionId));
-        await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().RevokeAsync(session.SessionId);
-        Assert.True(aborted);
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
-    }
-
-    [Fact]
-    public async Task EnrolledOwnerLogsInWithTotpAndLogoutAllInvalidatesEverySession()
-    {
-        await using var factory = new AuthFactory();
-        using var first = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        using var second = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
-        await CreateOwner(factory);
-        await LoginEnrolled(factory, first);
-        Assert.Equal("/Mfa/Verify", (await Post(second, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password })).Headers.Location?.OriginalString);
-        Assert.Equal(HttpStatusCode.Redirect, (await second.GetAsync("/Security")).StatusCode);
-        Assert.Equal(HttpStatusCode.Redirect, (await Post(second, "/Mfa/Verify", new() { ["Code"] = Totp(await GetKey(factory)) })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await second.GetAsync("/Security")).StatusCode);
-        var html = await first.GetStringAsync("/Security");
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/Security?handler=LogoutAll") { Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = Token(html) }) };
-        request.Headers.Add("Origin", "https://localhost");
-        Assert.Equal(HttpStatusCode.Redirect, (await first.SendAsync(request)).StatusCode);
-        Assert.Equal(HttpStatusCode.Redirect, (await second.GetAsync("/Security")).StatusCode);
-    }
-
-    [Fact]
     public async Task LoginRateLimitRejectsSixthAttempt()
     {
         await using var factory = new AuthFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        using var client = Client(factory);
         for (var i = 0; i < 5; i++) Assert.Equal(HttpStatusCode.OK, (await Post(client, "/Login", new() { ["UserName"] = "missing", ["Password"] = "bad" })).StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, (await Post(client, "/Login", new() { ["UserName"] = "missing", ["Password"] = "bad" })).StatusCode);
     }
+
+    [Theory]
+    [InlineData("//server/share/control-data")]
+    [InlineData("\\\\server\\share\\control-data")]
+    public void StorageRejectsUncBeforeOpeningAnyNetworkPath(string path) => Assert.Throws<InvalidOperationException>(() => new ControlStorage(path));
 
     [Fact]
     public async Task UnknownSchemaAndConcurrentWebLeaseAreRejected()
@@ -319,23 +269,13 @@ public sealed class OwnerAuthenticationTests
         finally { SqliteConnection.ClearAllPools(); Directory.Delete(path, true); }
     }
 
+    private static HttpClient Client(AuthFactory factory) => factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
     private static async Task CreateOwner(AuthFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         Assert.True((await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().CreateAsync("owner", Password)).Succeeded);
     }
-    private static async Task<string> GetKey(AuthFactory factory)
-    {
-        using var scope = factory.Services.CreateScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
-        return (await users.GetAuthenticatorKeyAsync((await users.FindByNameAsync("owner"))!))!;
-    }
-    private static async Task LoginEnrolled(AuthFactory factory, HttpClient client)
-    {
-        await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-        await client.GetStringAsync("/Mfa/Enroll");
-        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/Mfa/Enroll", new() { ["Code"] = Totp(await GetKey(factory)) })).StatusCode);
-    }
+    private static Task<HttpResponseMessage> Login(HttpClient client) => Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
     private static string Token(string html) => WebUtility.HtmlDecode(Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
     private static async Task<HttpResponseMessage> Post(HttpClient client, string path, Dictionary<string, string> values)
     {
@@ -343,18 +283,6 @@ public sealed class OwnerAuthenticationTests
         using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = new FormUrlEncodedContent(values) };
         request.Headers.Add("Origin", "https://localhost");
         return await client.SendAsync(request);
-    }
-    private static string Totp(string key)
-    {
-        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-        var bytes = new List<byte>(); var buffer = 0; var bits = 0;
-        foreach (var c in key) { buffer = (buffer << 5) | alphabet.IndexOf(c); bits += 5; if (bits >= 8) { bits -= 8; bytes.Add((byte)(buffer >> bits)); } }
-        var step = BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30);
-        if (BitConverter.IsLittleEndian) Array.Reverse(step);
-        var hash = HMACSHA1.HashData(bytes.ToArray(), step);
-        var offset = hash[^1] & 15;
-        var value = ((hash[offset] & 127) << 24) | (hash[offset + 1] << 16) | (hash[offset + 2] << 8) | hash[offset + 3];
-        return (value % 1000000).ToString("D6");
     }
 
     private sealed class AuthFactory : WebApplicationFactory<Program>

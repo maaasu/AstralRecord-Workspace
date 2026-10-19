@@ -43,14 +43,14 @@ try
     if (password != ReadSecret("新しいパスワード（確認）: ")) { Console.Error.WriteLine("パスワードが一致しません。"); return 1; }
     if (args[1] == "reset")
     {
-        Console.Write("全セッションとMFAを失効します。RESETと入力: ");
+        Console.Write("全セッションを失効します。RESETと入力: ");
         if (Console.ReadLine() != "RESET") return 1;
     }
     var owner = scope.ServiceProvider.GetRequiredService<OwnerAuthService>();
     var result = args[1] == "create" ? await owner.CreateAsync(name, password) : await owner.ResetAsync(password);
     if (!result.Succeeded)
     { foreach (var error in result.Errors) Console.Error.WriteLine(error.Description); return 1; }
-    Console.WriteLine("完了しました。Webを起動し、パスワードでログインして認証アプリを登録してください。");
+    Console.WriteLine("完了しました。Webを起動し、パスワードでログインしてください。");
     return 0;
 }
 catch (IOException) { Console.Error.WriteLine("Webが起動中、またはデータフォルダにアクセスできません。Webを停止してから再実行してください。"); return 1; }

@@ -15,7 +15,7 @@ public sealed class LogoutModel(OwnerAuthService auth) : PageModel
         var session = await auth.ValidateSessionAsync(User);
         if (session is not null) await auth.RevokeAsync(session.SessionId);
         await HttpContext.SignOutAsync(OwnerAuthentication.Scheme);
-        await HttpContext.SignOutAsync(OwnerAuthentication.PendingScheme);
+        Response.Cookies.Delete("__Host-ControlPending", new CookieOptions { Secure = true, Path = "/" });
         return RedirectToPage("/Login");
     }
 }

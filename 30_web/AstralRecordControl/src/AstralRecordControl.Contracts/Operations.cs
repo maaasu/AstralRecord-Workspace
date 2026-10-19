@@ -129,7 +129,7 @@ public sealed record GateLease
 public sealed record GateValidateRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, string StepKey, string RunReference);
 public sealed record GateReleaseRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, GateOutcome Outcome, string RunReference);
 public sealed record WorkflowRecoveryRequest(WorkflowRecoveryAction Action, string Reason);
-public sealed record CliLoginRequest(string LoginName, string Password, string TotpOrRecoveryCode);
+public sealed record CliLoginRequest(string LoginName, string Password);
 public sealed record CliTokenIssued(Guid CredentialId, string Token, DateTimeOffset ExpiresAtUtc);
 
 public static class OperationValidation

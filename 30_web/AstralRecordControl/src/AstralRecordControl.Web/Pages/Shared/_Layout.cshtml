@@ -1,8 +1,8 @@
 @{
     var path = Context.Request.Path;
-    var authenticated = User.HasClaim("amr", "mfa");
+    var authenticated = User.HasClaim("amr", "pwd");
     var authenticationPage = path.StartsWithSegments("/Mfa") || path.StartsWithSegments("/Login") || path.StartsWithSegments("/Logout");
-    (string Path, string Label)[] tabs = [("/", "概要"), ("/Hosts", "PC台帳"), ("/Servers", "サーバー台帳"), ("/Workflows", "運転・保守履歴"), ("/Transfers", "転送"), ("/Notifications", "通知"), ("/Security", "認証設定")];
+    (string Path, string Label)[] tabs = [("/", "ダッシュボード"), ("/Hosts", "PC台帳"), ("/Servers", "サーバー台帳"), ("/Workflows", "運転・保守履歴"), ("/Transfers", "転送"), ("/Notifications", "通知"), ("/Security", "アカウント")];
     bool IsCurrent(string target) => target == "/" ? path == "/" : path.StartsWithSegments(target, StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>

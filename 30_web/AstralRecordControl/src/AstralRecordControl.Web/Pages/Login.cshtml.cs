@@ -17,7 +17,7 @@ public sealed class LoginModel(OwnerAuthService auth) : PageModel
         if (!ModelState.IsValid) return Page();
         var user = await auth.CheckPasswordAsync(UserName, Password);
         if (user is null) { ModelState.AddModelError("", "ログインできませんでした。"); return Page(); }
-        await auth.BeginMfaAsync(HttpContext, user);
-        return RedirectToPage(user.TwoFactorEnabled ? "/Mfa/Verify" : "/Mfa/Enroll");
+        await auth.SignInAsync(HttpContext, user);
+        return LocalRedirect("/");
     }
 }

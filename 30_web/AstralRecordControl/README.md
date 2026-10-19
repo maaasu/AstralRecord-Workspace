@@ -4,7 +4,7 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 
 ## 実装済みの機能（P0・P1・P2・P3）
 
-- 単一ownerのパスワード＋TOTP、使い捨て回復コード、8時間の固定セッション、全セッション失効、停止中のローカルCLIによるowner作成/リセット。
+- 単一ownerのパスワード認証、8時間の固定セッション、全セッション失効、停止中のローカルCLIによるowner作成/リセット。
 - PC・Server・Environment台帳、Agentトークンの一度限り表示/失効、希望設定版と適用版の区別。
 - 各PCからHTTPS/WSSで接続するAgent。Hello/Reconcile/heartbeat、再接続、設定snapshotのhash検証と同期、イベントACK、storeId/巻戻り検出。
 - 同一PCのRunnerへのACL付きnamed pipe。設定の原子的適用、snapshot、永続hold/fence。
@@ -46,24 +46,24 @@ node --test tests/WebScript.Tests/sha256.test.cjs
 
 ## 認証と経路
 
-管理者は`/Login`でパスワード認証後、初回は`/Mfa/Enroll`で認証アプリを登録、以後は`/Mfa/Verify`でTOTPまたは回復コードを確認します。MFA前のCookieで台帳へ入れません。`/Security`で再認証と全セッション失効、`/Logout`で現在のセッションを失効します。回復コードは登録時の表示を安全に保管します。
+管理者は`/Login`でパスワード認証すると直接ログインします。`/Security`で全セッションを、`/Logout`で現在のセッションを失効します。旧MFA画面はログイン画面または管理画面へ転送し、旧MFAセッションは再ログインが必要です。未完了の旧MFA Cookieではowner操作を許可しません。
 
 台帳画面は`/`、`/Hosts`、`/Servers`です。HTTPSを必須とし、`Control:PublicOrigin`はAgentからも到達できる固定originです。TLSはKestrelで終端します。転送ヘッダを無条件に信頼しません。VPN経由を標準とし、Agent/Runnerの待受ポートを外部公開しません。
 
 | 経路 | 認証 / 用途 |
 |---|---|
-| `/api/control/v1/overview`、`hosts`、`environments`、`servers` | MFA済みOwner Cookie。更新はCSRF、作成はIdempotency-Key + If-None-Match、更新はIf-Match |
-| `/api/control/v1/hosts/{id}/credentials` | 再認証済みOwner。発行はPOST、失効はDELETE `/{credentialId}` |
+| `/api/control/v1/overview`、`hosts`、`environments`、`servers` | パスワード認証済みOwner Cookie。更新はCSRF、作成はIdempotency-Key + If-None-Match、更新はIf-Match |
+| `/api/control/v1/hosts/{id}/credentials` | Owner Cookie。発行はPOST、失効はDELETE `/{credentialId}` |
 | `/hubs/control-ui/v1` | Owner Cookie、セッション失効で切断 |
 | `/hubs/control-agent/v1` | Agent専用Bearer、Hello→Reconcile→heartbeat |
 | `/api/agent/v1/inventory` | Agent専用Bearer + X-Control-Connection-Epoch |
 | `/health/live` | 機密を含まない生存確認。通常環境ではHTTPSのみ |
 | `/api/control/v1/servers/{id}/operations`、`operations/{id}`、`servers/{id}/logs` | Owner Cookie。変更はCSRF、操作作成はIdempotency-Key + If-None-Match |
 | `/api/control/v1/reservations`、`reservations/{id}/validate`、`release`、`gate/catalog` | Owner Cookieまたは15分CLI Bearer。Cookie変更はCSRF |
-| `/api/control/v1/auth/cli-token`、`cli-token/revoke` | パスワード＋TOTP/回復コードで発行、CLI Bearerで自己失効 |
+| `/api/control/v1/auth/cli-token`、`cli-token/revoke` | 管理者名＋パスワードで発行、CLI Bearerで自己失効 |
 | `/api/control/v1/schedules`、`schedules/{id}`、`schedules/{id}/run-now`、`schedules/{id}/requests/{operationId}` | Owner Cookie。変更はCSRF、作成/Run NowはIdempotency-Key、更新はIf-Match。Run Nowは永続受付後202、要求IDで照会・再送 |
 | `/api/control/v1/servers/{id}/metrics` | Owner Cookie。期間とminute/hour粒度を指定して時系列を取得 |
-| `/api/control/v1/notification-destinations`、`notification-destinations/{id}`、`notifications` | Owner Cookie。送信先変更は再認証/CSRF/Idempotency-Key/条件付きrevision、URLは応答しない。配信履歴は最大100件 |
+| `/api/control/v1/notification-destinations`、`notification-destinations/{id}`、`notifications` | Owner Cookie。送信先変更はCSRF/Idempotency-Key/条件付きrevision、URLは応答しない。配信履歴は最大100件 |
 
 JSONはcamelCase/定義済み文字列enumで、未知フィールド、重複フィールド、不正な型を拒否します。メッセージ上限1MiB、inventory JSON上限512KiBです。inventoryは保存済みの文字列そのもののSHA-256を検証し、Runner保存→Agent保存→Web ACKの順で適用します。
 
@@ -75,7 +75,7 @@ Agent tokenをOwner Cookieとして使うことも、その逆もできません
 
 Web/Agent/Runnerの現行schemaは4です。旧schemaからは各サービスのSQLite backupを作成してtransaction内で移行します。未知版や版情報のない既存schemaを持つDBは起動を拒否し、自動破棄/自動採用しません。Agent DBのstoreId変更やACKより古い状態への巻戻りは要復旧です。トークンの再発行だけで台帳のstoreIdを変更しません。同じHostへの自動再登録は提供せず、旧Hostを無効化して新しいHost IDへ明示登録し直します。
 
-DPAPI鍵/トークンを別PCへコピーするだけでは復旧できません。Webは停止中CLIでowner/MFAを再設定し、Agentは新規Hostとして再登録します。既存ServerのPC間移送は後続段階です。
+DPAPI鍵/トークンを別PCへコピーするだけでは復旧できません。Webは停止中CLIでownerパスワードを再設定し、Agentは新規Hostとして再登録します。既存ServerのPC間移送は後続段階です。
 
 ## 操作・gate・復旧
 

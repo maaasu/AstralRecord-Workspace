@@ -263,19 +263,11 @@ public sealed partial class LiveTransportTests
         public async Task LoginOwnerAsync(HttpClient owner)
         {
             var response = await Form(owner, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
-            Assert.Equal("/Mfa/Enroll", response.Headers.Location?.OriginalString);
-            await owner.GetStringAsync("/Mfa/Enroll");
-            using var scope = app.Services.CreateScope();
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
-            var key = (await users.GetAuthenticatorKeyAsync((await users.FindByNameAsync("owner"))!))!;
-            Assert.Equal(HttpStatusCode.OK, (await Form(owner, "/Mfa/Enroll", new() { ["Code"] = Totp(key) })).StatusCode);
+            Assert.Equal("/", response.Headers.Location?.OriginalString);
         }
         public async Task<CliTokenIssued> IssueCliAsync(HttpClient cli)
         {
-            using var scope = app.Services.CreateScope();
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<ControlUser>>();
-            var key = (await users.GetAuthenticatorKeyAsync((await users.FindByNameAsync("owner"))!))!;
-            using var response = await cli.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password, Totp(key))), Encoding.UTF8, "application/json"));
+            using var response = await cli.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password)), Encoding.UTF8, "application/json"));
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             return ControlJson.Deserialize<CliTokenIssued>(await response.Content.ReadAsStringAsync());
         }
@@ -314,16 +306,6 @@ public sealed partial class LiveTransportTests
             return await client.SendAsync(request);
         }
         private static string Token(string html) => WebUtility.HtmlDecode(Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
-        private static string Totp(string key)
-        {
-            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-            var bytes = new List<byte>(); var buffer = 0; var bits = 0;
-            foreach (var character in key) { buffer = (buffer << 5) | alphabet.IndexOf(character); bits += 5; if (bits >= 8) { bits -= 8; bytes.Add((byte)(buffer >> bits)); } }
-            var step = BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30); if (BitConverter.IsLittleEndian) Array.Reverse(step);
-            var hash = HMACSHA1.HashData(bytes.ToArray(), step); var offset = hash[^1] & 15;
-            var value = ((hash[offset] & 127) << 24) | (hash[offset + 1] << 16) | (hash[offset + 2] << 8) | hash[offset + 3];
-            return (value % 1000000).ToString("D6");
-        }
         public async ValueTask DisposeAsync()
         {
             await app.StopAsync(); await app.DisposeAsync(); SqliteConnection.ClearAllPools(); Directory.Delete(Root, true);
