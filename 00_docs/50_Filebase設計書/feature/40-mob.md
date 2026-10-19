@@ -15,6 +15,12 @@ Mob は、戦闘対象、案内役、商業・機能提供者など、ワール�
 - 使用可能なステータスは `StatusType.kt` を正とします。
 - `drops.items[].luckAffected` は、特別な設計理由がない限り `true` とし、幸運補正を反映します。`false` にする場合は、個別定義または関連設計書へ理由を残します。
 
+## 防衛戦への参加
+
+- `ENEMY` の共通定義に `defenseEligible: true` を明示した Mob だけが防衛戦の敵候補です。未指定は `false` と扱い、`BOSS` / `NPC` には `true` を指定できません。
+- フラグは Mob 単位で、`levels[]` では上書きしません。防衛戦で選べるレベルは定義済みプロファイルのレベル、プロファイルがない場合は共通の `level` に限ります。
+- このフラグは防衛戦の候補選択だけに使い、通常の AI・ドロップ・スポーンの意味は変えません。既存 Mob を有効化する際は対象を個別に選びます。
+
 ## アイコンの指定
 
 - 冒険記録の対象となる `ENEMY` / `BOSS` の `icon` は、モデルの `entityType` に対応するスポーンエッグへ統一します。例: `SHEEP` → `SHEEP_SPAWN_EGG`、`IRON_GOLEM` → `IRON_GOLEM_SPAWN_EGG`、`PARCHED` → `PARCHED_SPAWN_EGG`。

@@ -36,6 +36,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `iconTexture`   | String       | ×  | Null      | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は公式 texture URL に限定し、`levels[]`でも上書き可能 |
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
 | `tags`          | List<String> | ×  | emptyList | 共有タグカタログの`MOB`対象ID（例: `undead`, `humanoid`, `fire`）  |
+| `defenseEligible` | Boolean | × | false | 防衛戦の敵候補に含めるか。`ENEMY` のみ `true` を許可する。未指定は参加不可。Mob 単位の指定で、`levels[]` では上書きできない |
 | `shield`        | Map          | ×  | Null      | シールド定義。未定義または `enabled: false` の場合は従来どおりシールドなし。      |
 
 ### icon（作成時の指定方針）
@@ -54,6 +55,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 
 スポナー・クエスト・ガイド・ダンジョンなどでレベルを指定した場合は一致するプロファイルを使用し、未指定または存在しないレベルの場合は `levels` の最小レベルを使用します。
 `levels` がない従来形式は、従来どおりトップレベルの `level` と各フィールドを使用します。
+防衛戦で使うレベルは `levels[]` に定義された実在レベル、または `levels[]` がない場合のトップレベル `level` に限ります。`defenseEligible` は共通定義から全レベルへ引き継がれます。
 
 | キー | 型 | 必須 | 説明 |
 |:--|:--|:--:|:--|

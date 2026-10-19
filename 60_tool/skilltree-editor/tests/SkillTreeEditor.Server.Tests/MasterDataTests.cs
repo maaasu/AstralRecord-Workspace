@@ -28,6 +28,25 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task MobDefenseEligibilityUsesDocumentedBooleanAndEnemyOnlyRule()
+    {
+        const string path = "40.features.mob/enemy/v1.test.yml";
+        Write("40.features.mob/docs.mob.YAMLスキーマ定義.md", "| キー | 型 | 必須 | デフォルト | 説明 |\n|:--|:--|:--:|:--|:--|\n| `defenseEligible` | Boolean | × | false | 防衛戦への参加を許可 |\n");
+
+        var metadata = await _catalog.GetAsync("40.features.mob/enemy", CancellationToken.None);
+        Assert.Contains(metadata.Fields, field => field.Path == "/defenseEligible" && field.Type == "Boolean");
+
+        var valid = await _validation.ValidateAsync(path, "id: test\ncategory: ENEMY\ndefenseEligible: true\n", CancellationToken.None);
+        Assert.True(valid.IsValid);
+        var wrongType = await _validation.ValidateAsync(path, "id: test\ncategory: ENEMY\ndefenseEligible: 'true'\n", CancellationToken.None);
+        Assert.Contains(wrongType.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == "/defenseEligible");
+        var wrongCategory = await _validation.ValidateAsync("40.features.mob/boss/v1.test.yml", "id: test\ncategory: BOSS\ndefenseEligible: true\n", CancellationToken.None);
+        Assert.Contains(wrongCategory.Issues, issue => issue.Code == "MOB_DEFENSE_CATEGORY");
+        var levelOverride = await _validation.ValidateAsync(path, "id: test\ncategory: ENEMY\nlevels:\n  - level: 2\n    defenseEligible: true\n", CancellationToken.None);
+        Assert.Contains(levelOverride.Issues, issue => issue.Code == "MOB_DEFENSE_LEVEL_OVERRIDE");
+    }
+
+    [Fact]
     public async Task WorldRefRejectsMissingTargetWithoutTreatingDescriptiveTextAsReference()
     {
         Write("config.yml", "referenceResolver:\n  - prefix: 'world:'\n    database: world\n    aliases: [wd]\n");

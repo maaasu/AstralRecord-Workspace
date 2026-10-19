@@ -38,6 +38,7 @@ import java.util.Objects;
  * @param challenge     ボス挑戦設定（BOSS 以外では {@code null}）
  * @param levelProfiles 同一マスタ内のレベル別プロファイル
  * @param commonDisplayName レベルプロファイルを適用しない共通表示名
+ * @param defenseEligible 防衛戦への参加を許可するか。Mob 単位で指定する
  */
 public record MobTemplate(
         int schemaVersion,
@@ -67,7 +68,8 @@ public record MobTemplate(
         @Nullable BossChallengeConfig challenge,
         @NotNull List<MobLevelProfile> levelProfiles,
         @Nullable String iconTexture,
-        @NotNull String commonDisplayName
+        @NotNull String commonDisplayName,
+        boolean defenseEligible
 ) {
 
     /**
@@ -118,7 +120,7 @@ public record MobTemplate(
         this(schemaVersion, id, category, displayName, title, level, entityType, requestedEntityType,
                 blockMaterial, nameVisible, icon, lore, tags, skin, variant, equipment, baseStats, shield,
                 idle, damageImmune, interactions, targeting, combat, drops, challenge, levelProfiles,
-                iconTexture, displayName);
+                iconTexture, displayName, false);
     }
 
     /** iconTexture 導入前の完全コンストラクタ互換。 */
@@ -285,6 +287,7 @@ public record MobTemplate(
 
     public MobTemplate {
         level = Math.max(1, level);
+        defenseEligible = defenseEligible && category == MobCategory.ENEMY;
         lore = lore == null ? List.of() : List.copyOf(lore);
         tags = tags == null ? List.of() : List.copyOf(tags);
         baseStats = baseStats == null ? List.of() : List.copyOf(baseStats);
@@ -318,6 +321,22 @@ public record MobTemplate(
         commonDisplayName = commonDisplayName == null || commonDisplayName.isBlank()
                 ? displayName
                 : commonDisplayName;
+    }
+
+    /**
+     * 防衛戦参加フラグを設定したテンプレートを返します。
+     *
+     * @param eligible 防衛戦への参加を許可する場合は {@code true}
+     * @return フラグを適用したテンプレート
+     */
+    public @NotNull MobTemplate withDefenseEligible(boolean eligible) {
+        return new MobTemplate(
+                schemaVersion, id, category, displayName, title, level, entityType,
+                requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
+                variant, equipment, baseStats, shield, idle, damageImmune, interactions,
+                targeting, combat, drops, challenge, levelProfiles, iconTexture,
+                commonDisplayName, eligible
+        );
     }
 
     /**
@@ -371,7 +390,8 @@ public record MobTemplate(
             schemaVersion, id, category, displayName, title, level, entityType,
             requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
             variant, equipment, baseStats, shield, idle, damageImmune, interactions,
-            targeting, combat, drops, challenge, profiles, iconTexture, commonDisplayName
+            targeting, combat, drops, challenge, profiles, iconTexture, commonDisplayName,
+            defenseEligible
         );
     }
 
@@ -382,7 +402,8 @@ public record MobTemplate(
             profile.lore(), profile.tags(), profile.skin(), profile.variant(), profile.equipment(),
             profile.baseStats(), profile.shield(), profile.idle(), profile.damageImmune(),
             profile.interactions(), profile.targeting(), profile.combat(), profile.drops(),
-            profile.challenge(), levelProfiles, profile.iconTexture(), commonDisplayName
+            profile.challenge(), levelProfiles, profile.iconTexture(), commonDisplayName,
+            defenseEligible
         );
     }
 }

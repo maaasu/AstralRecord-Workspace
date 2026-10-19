@@ -209,7 +209,11 @@ public class MobRepository {
                 category == MobCategory.BOSS ? parseChallenge(getObject(obj, "challenge")) : null,
                 List.of(),
                 optionalString(obj, "iconTexture")
-        );
+        ).withDefenseEligible(category == MobCategory.ENEMY
+                && obj.has("defenseEligible")
+                && obj.get("defenseEligible").isJsonPrimitive()
+                && obj.get("defenseEligible").getAsJsonPrimitive().isBoolean()
+                && obj.get("defenseEligible").getAsBoolean());
     }
 
     private @NotNull List<MobLevelProfile> parseLevelProfiles(

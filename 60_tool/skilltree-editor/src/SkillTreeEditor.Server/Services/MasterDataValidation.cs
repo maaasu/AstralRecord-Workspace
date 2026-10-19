@@ -49,6 +49,18 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         }
         if (content is JsonObject obj)
         {
+            if (path.StartsWith("40.features.mob/", MasterDataPaths.Comparison))
+            {
+                if (obj["defenseEligible"]?.GetValueKind() == JsonValueKind.True
+                    && (Text(obj["category"]) != "ENEMY" || !path.StartsWith("40.features.mob/enemy/", MasterDataPaths.Comparison)))
+                    issues.Add(new("error", "MOB_DEFENSE_CATEGORY", "/defenseEligible",
+                        "防衛戦に参加できるのは enemy フォルダ内の ENEMY だけです。"));
+                if (obj["levels"] is JsonArray mobLevels)
+                    for (var levelIndex = 0; levelIndex < mobLevels.Count; levelIndex++)
+                        if (mobLevels[levelIndex] is JsonObject mobLevel && mobLevel.ContainsKey("defenseEligible"))
+                            issues.Add(new("error", "MOB_DEFENSE_LEVEL_OVERRIDE", $"/levels/{levelIndex}/defenseEligible",
+                                "防衛戦の参加可否は Mob 単位で指定してください。"));
+            }
             if (path.StartsWith("65.features.dungeon/", MasterDataPaths.Comparison)
                 && obj["theme"] is JsonObject dungeonTheme && dungeonTheme.ContainsKey("landscape")
                 && Text(dungeonTheme["landscape"]) is not ("INDOOR" or "PLAINS"))
