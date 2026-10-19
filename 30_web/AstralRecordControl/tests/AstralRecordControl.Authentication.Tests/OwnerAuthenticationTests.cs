@@ -92,6 +92,55 @@ public sealed class OwnerAuthenticationTests
     }
 
     [Fact]
+    public async Task SameOriginFormPolicySupportsLoginRetryAndMfaEnrollment()
+    {
+        await using var factory = new AuthFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        await CreateOwner(factory);
+        using var page = await client.GetAsync("/Login");
+        Assert.Equal("same-origin", Assert.Single(page.Headers.GetValues("Referrer-Policy")));
+
+        // Retrying with the pending cookie must still reach the authenticator enrollment screen.
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var response = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+            Assert.Equal("/Mfa/Enroll", response.Headers.Location?.OriginalString);
+        }
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+        await client.GetStringAsync("/Mfa/Enroll");
+        using var enrolled = await Post(client, "/Mfa/Enroll", new() { ["Code"] = Totp(await GetKey(factory)) });
+        Assert.Equal(HttpStatusCode.OK, enrolled.StatusCode);
+        Assert.Contains("回復コード", await enrolled.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("null")]
+    [InlineData("https://evil.example")]
+    public async Task PendingLoginRejectsMissingNullAndForeignOrigin(string? origin)
+    {
+        await using var factory = new AuthFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        await CreateOwner(factory);
+        using var initial = await Post(client, "/Login", new() { ["UserName"] = "owner", ["Password"] = Password });
+        Assert.Equal("/Mfa/Enroll", initial.Headers.Location?.OriginalString);
+        var html = await client.GetStringAsync("/Login");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/Login")
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["UserName"] = "owner", ["Password"] = Password, ["__RequestVerificationToken"] = Token(html)
+            })
+        };
+        if (origin is not null) request.Headers.Add("Origin", origin);
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);
+    }
+
+    [Fact]
     public async Task ResetRevokesExistingCookieAndRecoveryCodeAndRequiresEnrollmentAgain()
     {
         await using var factory = new AuthFactory();

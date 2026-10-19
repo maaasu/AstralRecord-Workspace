@@ -45,7 +45,8 @@ public static partial class ControlApplication
         {
             context.Response.Headers.CacheControl = "no-store";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-            context.Response.Headers["Referrer-Policy"] = "no-referrer";
+            // Keep Origin on same-origin form POSTs so the cookie origin check can validate them.
+            context.Response.Headers["Referrer-Policy"] = "same-origin";
             context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'; base-uri 'none'";
             await next(context);
         });
