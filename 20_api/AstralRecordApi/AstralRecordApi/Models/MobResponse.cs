@@ -10,6 +10,8 @@ namespace AstralRecordApi.Models;
 /// </summary>
 public class MobResponse
 {
+    private bool defenseEligible;
+
     public required int SchemaVersion { get; init; }
 
     public required string Id { get; init; }
@@ -24,8 +26,12 @@ public class MobResponse
 
     public int Level { get; init; }
 
-    /// <summary>防衛戦への参加可否。旧マスタでは false です。</summary>
-    public bool DefenseEligible { get; init; }
+    /// <summary>防衛戦への参加可否。ENEMY 以外と旧マスタでは false です。</summary>
+    public bool DefenseEligible
+    {
+        get => string.Equals(Category, "ENEMY", StringComparison.OrdinalIgnoreCase) && defenseEligible;
+        init => defenseEligible = value;
+    }
 
     /// <summary>
     /// 同一 Mob マスタ内のレベルプロファイル。各要素は共通定義に対する部分上書きです。
