@@ -34,6 +34,7 @@
 | エンドポイント | 役割 | ドキュメント |
 |---|---|---|
 | GET `/api/health` | ヘルスチェック | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
+| `/api/defense/admin/*`・`/api/defense/runtime/*` | 防衛戦のチャンネル設定・開催管理・Plugin報告・段階報酬 | `00_docs/20_API設計書/feature/42-defense/42_README.md` |
 | GET `/api/geyser/heads` | Geyser Extension 起動用のカスタムヘッドテクスチャ・未削除ユーザー UUID 一括取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/user/{uuid}` | ユーザー情報取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |
 | GET `/api/user/mcid/{mcid}` | Minecraft ID 指定ユーザー情報取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |

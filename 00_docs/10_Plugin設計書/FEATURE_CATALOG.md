@@ -44,7 +44,7 @@
 | 37 | [[37_0-概要]] | ペット卵、成長・配合個体、召喚・支援戦闘、孵化・復活施設 | `feature/pet` |
 | 38 | [[38_0-概要]] | WorldEditの日本語ビルダーGUI、範囲・素材選択、確認付き編集 | `feature/builder` |
 | 40 | [[40_0-概要]] | Web管理編集の参加制限、ゲーム操作凍結、最終保存・退出確認 | `feature/playeradmin` |
-| 42 | [[42_0-概要]] | 防衛戦の設計検討。チャンネル別開催、既存Mobによる耐久戦、参加者・オーブ報酬 | 未実装。実装所有パスは未割当 |
+| 42 | [[42_0-概要]] | チャンネル別防衛戦の受付・戦闘・帰還・API報告 | `feature/defense` |
 
 ## 更新規則
 
@@ -398,4 +398,4 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 
 ### [[42_0-概要|42-defense]]
 
-現時点で実装所有パスはない。採用した機能方針は [[42_8-防衛戦の実装予定]]、仮置き数値と判断待ちは [[42_9-未決事項]] に置く。既存Mob・戦闘・ワールド・ネットワーク等の主所有権は移管しない。
+防衛戦の実装所有パスは `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/defense/*`、`src/main/resources/config.yml` の `defense.runtimeKey`、`plugin.yml` の `/defense`、`player.properties`（`P_7900`～`P_7918`）、`logger.properties`（`E_7900`～`E_7902`）である。既存Mob・戦闘・ワールド・ネットワーク等はそれぞれの主所有者を維持する。設定値の未決は [[42_9-未決事項]] を参照する。
