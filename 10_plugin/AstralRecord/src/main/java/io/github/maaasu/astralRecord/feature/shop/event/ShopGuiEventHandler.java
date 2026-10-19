@@ -173,6 +173,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
     /**
      * 購入確認画面の操作を処理し、非同期購入の完了までは同一プレイヤーの再操作を拒否します。
      * 保存成功後にだけ村人の取引音と購入チャイムを購入者へ再生します。
+     * 最新の対価不足と容量不足は個別に通知し、購入完了後にも不足理由を再計算します。
      *
      * @param event 対象のクリックイベント
      * @param player 操作したプレイヤー
@@ -220,14 +221,13 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (!preview.canPurchase()) {
-            sendMissingMaterials(player, preview);
+            if (!preview.missingItems().isEmpty()) {
+                sendMissingMaterials(player, preview);
+            }
+            if (preview.inventoryFull()) {
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5935);
+            }
             shopGui.openConfirm(player, shop, entry, quantity, preview, pageIndex);
-            GuiSound.DENY.play(player);
-            return;
-        }
-        if (isInventoryFull(astPlayer, entry, preview)) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5241);
-            shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
             GuiSound.DENY.play(player);
             return;
         }
@@ -250,7 +250,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
                         if (!currentPreview.missingItems().isEmpty()) {
                             sendMissingMaterials(player, currentPreview);
                         }
-                        if (failure != null && currentPreview.missingItems().isEmpty()) {
+                        if (currentPreview.inventoryFull()) {
+                            PlayerMessageService.getInstance().send(current, PlayerMsgId.P_5935);
+                        }
+                        if (failure != null && currentPreview.missingItems().isEmpty() && !currentPreview.inventoryFull()) {
                             PlayerMessageService.getInstance().send(current, PlayerMsgId.P_5252);
                         }
                         if (refreshConfirm) {
@@ -286,19 +289,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         MissingMaterialMessage.send(player, PlayerMsgId.P_5931, preview.missingItems().stream()
             .map(cost -> new MissingMaterialMessage.MissingItem(shopService.resolveCostItem(cost), cost.amount()))
             .toList(), AstralRecord.getInstance().getItemStackFactory());
-    }
-
-    private boolean isInventoryFull(
-        @NotNull AstPlayer astPlayer,
-        @NotNull ShopEntry entry,
-        @NotNull io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview preview
-    ) {
-        var model = shopService.resolveItem(entry);
-        if (model == null) {
-            return false;
-        }
-        int amount = Math.max(1, entry.amount()) * Math.max(1, preview.quantity());
-        return !inventoryService.canAddItemToNormalInventory(astPlayer, model, amount);
     }
 
     private boolean isQuantitySlot(int rawSlot) {

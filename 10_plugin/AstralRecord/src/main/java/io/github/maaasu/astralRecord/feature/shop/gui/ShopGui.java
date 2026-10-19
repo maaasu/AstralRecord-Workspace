@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.shop.gui;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
@@ -310,6 +312,14 @@ public final class ShopGui {
         return itemStack;
     }
 
+    /**
+     * 対価・容量を含むプレビューに従って購入ボタンと不足理由を表示します。
+     * @param shop 表示元ショップ
+     * @param entry 購入対象商品
+     * @param preview 現在の購入条件
+     * @param player 所持素材の表示対象
+     * @return 購入可否に応じた色・名前・説明を持つボタン
+     */
     private @NotNull ItemStack buyItem(
         @NotNull ShopDefinition shop,
         @NotNull ShopEntry entry,
@@ -601,12 +611,21 @@ public final class ShopGui {
         return "• 対価なしで受け取ります";
     }
 
+    /**
+     * 容量不足を対価不足と区別した購入・両替操作の案内を返します。
+     * @param exchange 両替ショップの場合 true
+     * @param preview 現在の購入条件
+     * @return 操作案内、または容量・対価不足の理由
+     */
     private @NotNull String purchaseActionText(
         boolean exchange,
         @NotNull ShopPurchasePreview preview
     ) {
         if (preview.canPurchase()) {
             return exchange ? "◆ クリックして両替する ◆" : "◆ クリックして購入する ◆";
+        }
+        if (preview.inventoryFull()) {
+            return ColorCodeUtil.stripColor(PlayerMsgResource.getMessage(PlayerMsgId.P_5935.getId()));
         }
         if (exchange) {
             return "◆ 通貨不足で両替できません ◆";
@@ -619,10 +638,19 @@ public final class ShopGui {
             : "◆ 必要な対価が不足して購入できません ◆";
     }
 
+    /**
+     * 容量不足を対価不足と区別した購入不可ボタン名を返します。
+     * @param exchange 両替ショップの場合 true
+     * @param preview 現在の購入条件
+     * @return 購入できない理由を示すボタン名
+     */
     private @NotNull String purchaseUnavailableLabel(
         boolean exchange,
         @NotNull ShopPurchasePreview preview
     ) {
+        if (preview.inventoryFull()) {
+            return ColorCodeUtil.stripColor(PlayerMsgResource.getMessage(PlayerMsgId.P_5935.getId()));
+        }
         if (exchange) {
             return "通貨が不足しています";
         }

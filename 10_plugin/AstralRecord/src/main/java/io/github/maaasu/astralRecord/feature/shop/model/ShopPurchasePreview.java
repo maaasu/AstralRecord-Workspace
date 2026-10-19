@@ -10,5 +10,6 @@ public record ShopPurchasePreview(
     long ownedGold,
     @NotNull List<ShopCostItem> requiredItems,
     @NotNull List<ShopCostItem> missingItems,
+    boolean inventoryFull,
     boolean canPurchase
 ) { }

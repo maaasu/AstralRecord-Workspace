@@ -176,6 +176,13 @@ public final class ShopService {
         return model != null ? model : itemService.loadItem(cost.itemId(), cost.category());
     }
 
+    /**
+     * 現在の対価と商品全量の収納可否から購入条件を計算します。
+     * @param player 読み込み済みの購入者
+     * @param entry 購入対象の商品
+     * @param quantity 購入口数。1未満は1へ補正
+     * @return 対価不足と支払い前の容量不足を含む購入可否。所持品の消費・付与は行わない
+     */
     public @NotNull ShopPurchasePreview preview(
         @NotNull AstPlayer player,
         @NotNull ShopEntry entry,
@@ -183,7 +190,7 @@ public final class ShopService {
     ) {
         int safeQuantity = Math.max(1, quantity);
         if (!AccountModeGuard.isGameplayPlayer(player)) {
-            return new ShopPurchasePreview(safeQuantity, 0L, 0L, List.of(), List.of(), false);
+            return new ShopPurchasePreview(safeQuantity, 0L, 0L, List.of(), List.of(), false, false);
         }
         UUID accountId = player.getAccount().getUuid();
         long ownedGold = currencyService.getGoldAmount(accountId);
@@ -206,13 +213,18 @@ public final class ShopService {
                 ));
             }
         }
+        ItemModel model = resolveItem(entry);
+        int amount = Math.max(1, entry.amount()) * safeQuantity;
+        boolean inventoryFull = model != null
+            && !inventoryService.canAddItemToNormalInventory(player, model, amount);
         return new ShopPurchasePreview(
             safeQuantity,
             requiredGold,
             ownedGold,
             requiredItems,
             missingItems,
-            missingItems.isEmpty()
+            inventoryFull,
+            model != null && missingItems.isEmpty() && !inventoryFull
         );
     }
 
