@@ -134,6 +134,28 @@ main, .ar-footer { position: relative; }
 .ar-network-user-list span, .ar-network-candidates span { display: grid; min-width: 0; }
 .ar-network-user-list small, .ar-network-candidates small { overflow-wrap: anywhere; color: var(--ar-text-muted); font-size: .72rem; }
 .ar-network-save { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .8rem; color: var(--ar-text-muted); }
+.ar-defense-selector { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
+.ar-defense-selector select, .ar-defense-form select, .ar-defense-actions input { color: var(--ar-text); background: #07101de6; border: 1px solid #91c9e24d; border-radius: 7px; padding: .58rem .68rem; }
+.ar-defense-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.ar-defense-summary .ar-panel { margin: 0; }
+.ar-defense-facts { display: grid; gap: .65rem; }
+.ar-defense-facts div { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: .5rem; border-bottom: 1px solid #91c9e222; }
+.ar-defense-facts dt { color: var(--ar-text-muted); font-weight: 400; }
+.ar-defense-facts dd { margin: 0; overflow-wrap: anywhere; text-align: right; }
+.ar-defense-missing { columns: 2; margin-bottom: 0; }
+.ar-defense-ready { color: #a1e7cf; }
+.ar-defense-actions { display: grid; gap: .75rem; }
+.ar-defense-actions form { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
+.ar-defense-actions span { color: var(--ar-text-muted); font-size: .85rem; }
+.ar-defense-actions label { display: grid; gap: .35rem; color: var(--ar-text-muted); font-size: .85rem; }
+.ar-defense-form h3 { font-size: 1rem; margin: 1.5rem 0 .8rem; }
+.ar-defense-row { display: flex; flex-wrap: wrap; align-items: end; gap: .7rem; padding: .75rem 0; border-bottom: 1px solid #91c9e222; }
+.ar-defense-row .ar-network-grid { flex: 1 1 600px; }
+.ar-defense-history { overflow-x: auto; }
+.ar-defense-history table { width: 100%; min-width: 800px; border-collapse: collapse; }
+.ar-defense-history th, .ar-defense-history td { padding: .65rem; border-bottom: 1px solid #91c9e222; text-align: left; vertical-align: top; }
+.ar-defense-history th { color: var(--ar-text-muted); font-weight: 500; }
+.ar-defense-history td small { display: block; color: var(--ar-text-muted); overflow-wrap: anywhere; }
 .ar-ban-management { border-color: #d9997852; }
 .ar-ban-state, .ar-ban-confirm { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0; }
 .ar-ban-state div, .ar-ban-confirm div { padding: .7rem; border-radius: 7px; background: #07101d9e; }
@@ -189,7 +211,7 @@ main, .ar-footer { position: relative; }
     .ar-portal { padding-top: 2rem; } .ar-portal-heading, .ar-visibility { align-items: start; flex-direction: column; }
     .ar-profile-facts, .ar-player-grid { grid-template-columns: 1fr; } .ar-player-emblem { flex-basis: 60px; height: 60px; font-size: 2rem; }
     .ar-stats { grid-template-columns: repeat(2, 1fr); gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
-    .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; } .ar-network-grid, .ar-network-access-lists, .ar-network-search, .ar-ban-state, .ar-ban-confirm { grid-template-columns: 1fr; } .ar-network-channels > header, .ar-network-channel > header { align-items: flex-start; flex-direction: column; }
+    .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; } .ar-network-grid, .ar-network-access-lists, .ar-network-search, .ar-ban-state, .ar-ban-confirm, .ar-defense-summary { grid-template-columns: 1fr; } .ar-network-channels > header, .ar-network-channel > header { align-items: flex-start; flex-direction: column; } .ar-defense-missing { columns: 1; }
     .ar-cosmos span { filter: blur(40px); } .ar-meteor { width: 100px; }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -27,6 +27,7 @@
         {
             <div class="ar-alert" role="alert">@Model.ErrorMessage</div>
         }
+        <p><a asp-page="/Admin/Defense">防衛戦の開催設定と状態を開く →</a></p>
 
         <form method="post" class="ar-network-form" data-network-admin data-player-search-url="@Url.Page("/Admin/Network", "SearchPlayers")">
             <input type="hidden" name="Input.Revision" value="@Model.Input.Revision" />

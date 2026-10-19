@@ -147,6 +147,16 @@ builder.Services.AddHttpClient<NetworkManagementApiClient>((serviceProvider, htt
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
 });
+builder.Services.AddHttpClient<DefenseManagementApiClient>((serviceProvider, httpClient) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    httpClient.BaseAddress = new Uri(options.BaseUrl);
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+    var defenseWebKey = serviceProvider.GetRequiredService<IConfiguration>()["Defense:WebKey"];
+    if (!string.IsNullOrWhiteSpace(defenseWebKey))
+        httpClient.DefaultRequestHeaders.Add("X-Defense-Web-Key", defenseWebKey);
+});
 builder.Services.AddHttpClient<PlayerAdminApiClient>((serviceProvider, httpClient) =>
 {
     var api = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;

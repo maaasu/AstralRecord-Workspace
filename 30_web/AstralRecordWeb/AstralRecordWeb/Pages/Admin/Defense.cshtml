@@ -1,0 +1,212 @@
+@page
+@model AstralRecordWeb.Pages.Admin.DefenseModel
+@{
+    ViewData["Title"] = "防衛戦管理";
+    var run = Model.State?.ActiveRun;
+}
+
+<section class="ar-page-hero ar-page-hero--town ar-admin-hero">
+    <div class="ar-section-overlay"></div>
+    <div class="container position-relative">
+        <p class="ar-kicker">Defense Management</p>
+        <h1 class="ar-page-hero-title">防衛戦管理</h1>
+        <p class="ar-page-hero-sub">チャンネルごとの予定と戦況を確認し、防衛戦の開催設定を管理します。</p>
+    </div>
+</section>
+
+<section class="ar-section ar-section-dark ar-defense-admin-page">
+    <div class="container">
+        @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
+        @if (Model.ErrorMessage is not null) { <div class="ar-alert" role="alert">@Model.ErrorMessage</div> }
+        <form method="get" class="ar-panel ar-defense-selector">
+            <label for="serverId">対象チャンネル</label>
+            <select id="serverId" name="serverId">
+                @foreach (var channel in Model.Channels)
+                {
+                    <option value="@channel.ServerId" selected="@(channel.ServerId == Model.ServerId)">@channel.DisplayName（@channel.ServerId）</option>
+                }
+            </select>
+            <button type="submit" class="btn ar-btn-outline">表示する</button>
+            <a asp-page="/Admin/Network">ネットワーク設定</a>
+        </form>
+        @if (Model.Channels.Count == 0 && Model.ErrorMessage is null)
+        {
+            <div class="ar-panel">ゲームチャンネルがありません。ネットワーク設定でチャンネルを追加してください。</div>
+        }
+        @if (Model.State is not null)
+        {
+            <div class="ar-defense-summary">
+                <section class="ar-panel">
+                    <h2>開催予定</h2>
+                    <dl class="ar-defense-facts">
+                        <div><dt>日次開催</dt><dd>@(Model.State.DailyEnabled ? "有効" : "無効")</dd></div>
+                        <div><dt>毎日の開始時刻</dt><dd>@(Model.State.DailyStartTimeJst is null ? "未設定" : Model.State.DailyStartTimeJst + " JST")</dd></div>
+                        <div><dt>次回予定</dt><dd>@Model.Jst(Model.State.NextScheduledAtUtc)</dd></div>
+                        <div><dt>受付状態</dt><dd>@Model.RegistrationLabel(Model.State.RegistrationStatus) @if (Model.State.RegisteredCount is not null) { <span>（@Model.State.RegisteredCount 人）</span> }</dd></div>
+                    </dl>
+                    <p class="ar-portal-sub">予定時刻は日本時間です。開始準備を経て、ゲームサーバーが開始を報告した時点で防衛中になります。</p>
+                </section>
+                <section class="ar-panel">
+                    <h2>現在の状態</h2>
+                    <dl class="ar-defense-facts">
+                        <div><dt>状態</dt><dd>@Model.StatusLabel(run?.Status)</dd></div>
+                        <div><dt>開催ID</dt><dd>@(run?.RunId.ToString("D") ?? "―")</dd></div>
+                        <div><dt>要求を受理</dt><dd>@Model.Jst(run?.CreatedAtUtc)</dd></div>
+                        <div><dt>実際の開始</dt><dd>@Model.Jst(run?.StartedAtUtc)</dd></div>
+                        <div><dt>開始時参加人数</dt><dd>@(run?.ParticipantCount?.ToString() ?? "―")</dd></div>
+                        <div><dt>到達防衛Lv</dt><dd>@(run?.DefenseLevel?.ToString() ?? "―")</dd></div>
+                        <div><dt>理由・見送り理由</dt><dd>@(run?.Reason ?? Model.State.LatestRun?.Reason ?? "―")</dd></div>
+                    </dl>
+                    @if (Model.State.LatestRun is not null && run is null)
+                    {
+                        <p class="ar-portal-sub">直近の結果: @Model.StatusLabel(Model.State.LatestRun.Status)（@Model.Jst(Model.State.LatestRun.EndedAtUtc)）</p>
+                    }
+                </section>
+            </div>
+
+            <section class="ar-panel" aria-labelledby="defense-readiness-title">
+                <h2 id="defense-readiness-title">開始準備</h2>
+                <p class="ar-portal-sub">防衛Lvは全チャンネル共通でLv.1から30秒ごとに+1。開始時参加人数は最大30人で固定します。個人の3回目の死亡で脱落し、1・2回目は蘇生が成立しなければ15秒後に復活します。</p>
+                @if (Model.State.MissingSettings.Count == 0)
+                {
+                    <p class="ar-defense-ready">必須設定は揃っています。ゲームサーバー側の受付と参加者も開始時に確認されます。</p>
+                }
+                else
+                {
+                    <p class="ar-alert" role="status">開始できません。次の設定・実行条件が不足しています。</p>
+                    <ul class="ar-defense-missing">
+                        @foreach (var missing in Model.State.MissingSettings.Distinct()) { <li>@Model.MissingLabel(missing)</li> }
+                    </ul>
+                }
+            </section>
+
+            <div class="ar-defense-actions">
+                <form method="post" asp-page-handler="Start" asp-route-serverId="@Model.ServerId">
+                    <input type="hidden" name="Input.Revision" value="@Model.Input.Revision" />
+                    <input type="hidden" name="StartOperationId" value="@Model.StartOperationId" />
+                    <button type="submit" class="btn ar-btn-primary" disabled="@(Model.State.MissingSettings.Count > 0 || run is not null || Model.State.RegistrationStatus != "OPEN" || Model.State.RegisteredCount is not > 0)">今すぐ開始を要求</button>
+                    <span>受付済みの参加者を使います。要求受理後、実際の開始は状態表示で確認してください。</span>
+                </form>
+                @if (run is not null)
+                {
+                    <form method="post" asp-page-handler="Stop" asp-route-serverId="@Model.ServerId">
+                        <input type="hidden" name="StopOperationId" value="@Model.StopOperationId" />
+                        <input type="hidden" name="StopRunId" value="@run.RunId" />
+                        <label>停止理由<input name="StopReason" value="@Model.StopReason" maxlength="200" required /></label>
+                        <button type="submit" class="btn ar-btn-outline">この開催の停止を要求</button>
+                    </form>
+                }
+            </div>
+
+            <form method="post" asp-page-handler="Save" asp-route-serverId="@Model.ServerId" class="ar-network-form ar-defense-form">
+                <input type="hidden" asp-for="Input.Revision" />
+                <section class="ar-panel">
+                    <h2>開催予定</h2>
+                    <div class="ar-network-grid">
+                        <label>日次開催<select asp-for="Input.DailyEnabled"><option value="false">無効</option><option value="true">有効</option></select></label>
+                        <label>毎日の開始時刻（日本時間）<input asp-for="Input.DailyStartTimeJst" type="time" /></label>
+                    </div>
+                    <p class="ar-portal-sub">時刻は戦闘開始予定です。受付は設定した先行秒数だけ前に開始します。</p>
+                </section>
+
+                <section class="ar-panel">
+                    <h2>専用ワールドと防衛対象</h2>
+                    <div class="ar-network-grid">
+                        <label>ワールド名・ID<input asp-for="Input.WorldName" maxlength="100" /></label>
+                        <label>防衛対象 X<input asp-for="Input.CoreX" type="number" step="any" /></label>
+                        <label>防衛対象 Y<input asp-for="Input.CoreY" type="number" step="any" /></label>
+                        <label>防衛対象 Z<input asp-for="Input.CoreZ" type="number" step="any" /></label>
+                        <label>入場地点 X<input asp-for="Input.EntryX" type="number" step="any" /></label>
+                        <label>入場地点 Y<input asp-for="Input.EntryY" type="number" step="any" /></label>
+                        <label>入場地点 Z<input asp-for="Input.EntryZ" type="number" step="any" /></label>
+                        <label>防衛対象の最大HP<input asp-for="Input.CoreMaxHealth" type="number" step="any" min="0" /></label>
+                        <label>防衛対象の防御力<input asp-for="Input.CoreDefense" type="number" step="any" min="0" /></label>
+                    </div>
+                    <h3>敵の出現地点</h3>
+                    @for (var i = 0; i < Model.Input.SpawnPoints.Count; i++)
+                    {
+                        <div class="ar-defense-row">
+                            <div class="ar-network-grid">
+                                <label>地点 @(i + 1) X<input asp-for="Input.SpawnPoints[i].X" type="number" step="any" /></label>
+                                <label>Y<input asp-for="Input.SpawnPoints[i].Y" type="number" step="any" /></label>
+                                <label>Z<input asp-for="Input.SpawnPoints[i].Z" type="number" step="any" /></label>
+                            </div>
+                            <button type="submit" class="btn ar-btn-outline" formaction="?handler=RemoveSpawn&amp;serverId=@Model.ServerId&amp;index=@i" formnovalidate>地点を削除</button>
+                        </div>
+                    }
+                    <button type="submit" class="btn ar-btn-outline" formaction="?handler=AddSpawn&amp;serverId=@Model.ServerId" formnovalidate>出現地点を追加</button>
+                </section>
+
+                <section class="ar-panel">
+                    <h2>出現量と反撃</h2>
+                    <div class="ar-network-grid">
+                        <label>基本出現数<input asp-for="Input.BaseSpawnCount" type="number" min="1" /></label>
+                        <label>増援間隔（秒）<input asp-for="Input.SpawnIntervalSeconds" type="number" min="1" /></label>
+                        <label>1回の増援上限<input asp-for="Input.MaxSpawnsPerWave" type="number" min="1" /></label>
+                        <label>1 tickの出現上限<input asp-for="Input.MaxSpawnsPerTick" type="number" min="1" /></label>
+                        <label>同時生存数上限<input asp-for="Input.MaxAliveEnemies" type="number" min="1" /></label>
+                        <label>反撃継続（秒）<input asp-for="Input.RetaliationSeconds" type="number" min="1" /></label>
+                        <label>反撃範囲（ブロック）<input asp-for="Input.RetaliationRange" type="number" step="any" min="0" /></label>
+                    </div>
+                </section>
+
+                <section class="ar-panel">
+                    <h2>人数と最高登録Lv後の補正</h2>
+                    <p class="ar-portal-sub">人数補正は開始時人数の11人目以降に適用します。係数は参加者増加ごとの加算値です。</p>
+                    <div class="ar-network-grid">
+                        <label>出現量係数<input asp-for="Input.PlayerSpawnCoefficient" type="number" step="any" min="0" /></label>
+                        <label>HP係数<input asp-for="Input.PlayerHealthCoefficient" type="number" step="any" min="0" /></label>
+                        <label>攻撃力係数<input asp-for="Input.PlayerDamageCoefficient" type="number" step="any" min="0" /></label>
+                        <label>最高登録Lv後のHP係数<input asp-for="Input.PostMaxLevelHealthCoefficient" type="number" step="any" min="0" /></label>
+                        <label>最高登録Lv後の攻撃力係数<input asp-for="Input.PostMaxLevelDamageCoefficient" type="number" step="any" min="0" /></label>
+                    </div>
+                </section>
+
+                <section class="ar-panel">
+                    <h2>受付と報酬</h2>
+                    <div class="ar-network-grid">
+                        <label>受付開始の先行秒数<input asp-for="Input.RegistrationLeadSeconds" type="number" min="1" /></label>
+                        <label>切断復帰猶予（秒）<input asp-for="Input.ReconnectGraceSeconds" type="number" min="1" /></label>
+                        <label>自動復活後の無敵秒数<input asp-for="Input.ReviveProtectionSeconds" type="number" min="0" /></label>
+                        <label>自動復活時のシールド<select asp-for="Input.ReviveShieldMode"><option value="">未設定</option><option value="EMPTY">空</option><option value="FULL">全回復</option></select></label>
+                        <label>報酬確定のLv間隔<input asp-for="Input.RewardEveryLevels" type="number" min="1" /></label>
+                        <label>報酬に必要な参加時間（秒）<input asp-for="Input.MinimumActiveSeconds" type="number" min="0" /></label>
+                    </div>
+                    <h3>到達Lv別のオーブ報酬</h3>
+                    <p class="ar-portal-sub">各段階は、そのLv以上で適用するオーブの種類と数量です。既存のオーブIDを指定します。</p>
+                    @for (var i = 0; i < Model.Input.RewardTiers.Count; i++)
+                    {
+                        <div class="ar-defense-row">
+                            <div class="ar-network-grid">
+                                <label>適用開始の防衛Lv<input asp-for="Input.RewardTiers[i].RequiredDefenseLevel" type="number" min="1" /></label>
+                                <label>オーブのアイテムID<input asp-for="Input.RewardTiers[i].OrbItemId" maxlength="100" /></label>
+                                <label>数量<input asp-for="Input.RewardTiers[i].OrbQuantity" type="number" min="1" /></label>
+                            </div>
+                            <button type="submit" class="btn ar-btn-outline" formaction="?handler=RemoveReward&amp;serverId=@Model.ServerId&amp;index=@i" formnovalidate>段階を削除</button>
+                        </div>
+                    }
+                    <button type="submit" class="btn ar-btn-outline" formaction="?handler=AddReward&amp;serverId=@Model.ServerId" formnovalidate>報酬段階を追加</button>
+                </section>
+                <div class="ar-network-save"><button type="submit" class="btn ar-btn-primary">設定を保存する</button><span>空欄も保存できますが、必須設定が揃うまで開始できません。保存時に設定の版を照合します。</span></div>
+            </form>
+
+            <section class="ar-panel">
+                <h2>開催履歴</h2>
+                @if (Model.HistoryError is not null) { <p class="ar-alert" role="alert">@Model.HistoryError</p> }
+                else if (Model.Runs.Count == 0) { <p class="ar-portal-sub">開催履歴はまだありません。</p> }
+                else
+                {
+                    <div class="ar-defense-history">
+                        <table><thead><tr><th scope="col">予定・要求</th><th scope="col">状態</th><th scope="col">実際の開始</th><th scope="col">終了</th><th scope="col">参加人数 / 到達Lv</th><th scope="col">結果・理由</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in Model.Runs)
+                            {
+                                <tr><td>@Model.Jst(item.ScheduledAtUtc ?? item.CreatedAtUtc)<small>@Model.SourceLabel(item.Source) / @item.RunId</small></td><td>@Model.StatusLabel(item.Status)</td><td>@Model.Jst(item.StartedAtUtc)</td><td>@Model.Jst(item.EndedAtUtc)</td><td>@(item.ParticipantCount?.ToString() ?? "―") / @(item.DefenseLevel?.ToString() ?? "―")</td><td>@(item.Reason ?? "―")</td></tr>
+                            }
+                        </tbody></table>
+                    </div>
+                }
+            </section>
+        }
+    </div>
+</section>
