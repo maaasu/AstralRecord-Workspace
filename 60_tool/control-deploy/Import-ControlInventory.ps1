@@ -121,7 +121,7 @@ function Request([Net.Http.HttpClient]$Client, [string]$Method, [string]$Path, [
         if ($Method -eq 'POST') { $request.Headers.Add('Origin', $Client.BaseAddress.GetLeftPart([UriPartial]::Authority)) }
         if ($Csrf) { $request.Headers.Add('X-CSRF-TOKEN', $Csrf) }
         if ($Key -ne [guid]::Empty) { $request.Headers.Add('Idempotency-Key', $Key.ToString('D')); $request.Headers.TryAddWithoutValidation('If-None-Match', '*') | Out-Null }
-        if ($Method -eq 'POST' -and $Path -in @('/Login','/Mfa/Verify')) {
+        if ($Method -eq 'POST' -and $Path -eq '/Login') {
             if ($Body -isnot [System.Collections.IDictionary]) { throw 'Login form body is invalid.' }
             $fields = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
             foreach ($name in $Body.Keys) { $fields.Add([string]$name, [string]$Body[$name]) }
@@ -190,20 +190,12 @@ try {
     $loginPage = Request $client GET '/Login'
     Require-Status $loginPage 200 'Login page'
     $loginToken = Form-Token $loginPage.Text
-    $userName = Read-Host 'Control owner name'
-    $password = Read-Secret 'Control owner password'
+    $userName = Read-Host '管理者名'
+    $password = Read-Secret 'パスワード'
     try { $login = Request $client POST '/Login' ([ordered]@{ UserName = $userName; Password = $password; __RequestVerificationToken = $loginToken }) }
     finally { $password = $null }
     Require-Status $login 302 'Password authentication'
-    if ($login.Location.OriginalString -notmatch '^/Mfa/Verify(?:\?|$)') { throw 'MFA enrollment or an unexpected login route requires the normal browser UI.' }
-    $mfaPage = Request $client GET '/Mfa/Verify'
-    Require-Status $mfaPage 200 'MFA page'
-    $mfaToken = Form-Token $mfaPage.Text
-    $code = Read-Secret 'Current TOTP code'
-    try { $mfa = Request $client POST '/Mfa/Verify' ([ordered]@{ Code = $code; __RequestVerificationToken = $mfaToken }) }
-    finally { $code = $null }
-    Require-Status $mfa 302 'MFA authentication'
-    if ($mfa.Location.OriginalString -notmatch '^/(?:\?|$)') { throw 'MFA did not complete the owner session.' }
+    if ($null -eq $login.Location -or $login.Location.OriginalString -cne '/') { throw 'Password-only login did not complete. Update Control Web before using this importer.' }
     $hostPage = Request $client GET '/Hosts'
     Require-Status $hostPage 200 'Owner session'
     $csrf = Form-Token $hostPage.Text

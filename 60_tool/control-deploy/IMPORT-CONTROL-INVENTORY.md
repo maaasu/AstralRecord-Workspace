@@ -1,6 +1,6 @@
 # Control 台帳の対話登録
 
-`Import-ControlInventory.ps1` は既存の Control Web に owner としてログインし、2 Host と 5 Server を通常の HTTP API から登録します。Web の DB や Agent の token ファイルを直接編集しません。パスワードと登録済み TOTP は実行端末で入力し、計画 JSON に含めません。HTTPS の証明書検証を省略しません。通信するフェーズでは、コマンドで指定する `-ExpectedPublicOrigin` と計画の `publicOrigin` を接続・秘密入力前に照合し、宛先を表示します。
+`Import-ControlInventory.ps1` はパスワード認証の Control Web に owner としてログインし、2 Host と 5 Server を通常の HTTP API から登録します。管理者名とパスワードだけを実行端末で入力します。先にWebをパスワード認証版へ更新してください。Web の DB や Agent の token ファイルを直接編集しません。パスワードは計画 JSON に含めません。HTTPS の証明書検証を省略しません。通信するフェーズでは、コマンドで指定する `-ExpectedPublicOrigin` と計画の `publicOrigin` を接続・秘密入力前に照合し、宛先を表示します。
 
 計画は Git 管理外のアクセス制限された場所に保存します。`publicOrigin` は Control Web に設定済みの完全な HTTPS origin と一致させます。`managedRoots` と `executables` には各 PC の Agent と Runner に設定するものと同じ GUID、ローカル絶対パス、kind を記入します。Proxy 用には Java と同じ実行ファイルパスでも別 GUID の `Velocity` executable を登録します。次の値は構造例であり、実 Java パスと GUID を現地で確定してください。
 
@@ -42,7 +42,7 @@ pwsh -NoProfile -File .\60_tool\control-deploy\Import-ControlInventory.ps1 -Plan
 
 Host phase は token・Cookie を含まない `{"schemaVersion":1,"publicOrigin":"...","hosts":[{"hostKey":"dev-01","hostId":"..."},{"hostKey":"mc-01","hostId":"..."}]}` の receipt を原子的に作成します。既存 receipt の内容が違う場合は上書きしません。
 
-Host ID が表示されたら、通常の `/Hosts` 画面で再認証して Host ごとの Agent token を発行し、各 PC の Agent `--configure` へ対話入力します。Agent と Runner の `localResources`、Host ID、Runner の Agent SID、pipe 名を揃え、両サービスの `-PreflightOnly` が成功した後、Runner と Agent を起動します。Host が Online になってから次を実行します。
+Host ID が表示されたら、通常の `/Hosts` 画面で Host ごとの Agent token を発行し、各 PC の Agent `--configure` へ対話入力します。追加の再認証は不要です。Agent と Runner の `localResources`、Host ID、Runner の Agent SID、pipe 名を揃え、両サービスの `-PreflightOnly` が成功した後、Runner と Agent を起動します。Host が Online になってから次を実行します。
 
 ```powershell
 pwsh -NoProfile -File .\60_tool\control-deploy\Import-ControlInventory.ps1 -PlanPath 'C:\private\control-inventory.json' -Phase Servers -ExpectedPublicOrigin 'https://control.example.test'

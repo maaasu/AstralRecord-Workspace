@@ -59,7 +59,7 @@ C:\ControlPackages\p1-001\Cli\AstralRecordControl.Cli.exe owner create
 Start-Service AstralRecordControl.Web
 ```
 
-固定URLからログインし、MFA登録と回復コードの保管を完了します。`/Hosts`で`dev-pc`、`mc-pc`を登録し、Hostごとのtokenを発行します。再認証が必要な場合は`/Security`を使用します。パスワードやMFAを失った場合はWeb停止後に`owner reset`を使用します。全セッションと以前のMFA/回復コードが失効します。
+固定URLから管理者名とパスワードでログインします。二段階認証の登録・コード入力は不要です。`/Hosts`で`dev-pc`、`mc-pc`を登録し、追加の再認証なしでHostごとのtokenを発行します。`/Security`で全セッションを失効できます。パスワードを失った場合はWeb停止後に`owner reset`を使用します。全セッションが失効します。旧版からの更新ではownerやパスワードの作り直しは不要です。
 
 ## 各PCのAgent/Runner設定
 
