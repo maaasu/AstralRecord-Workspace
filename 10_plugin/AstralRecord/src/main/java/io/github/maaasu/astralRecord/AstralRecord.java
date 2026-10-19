@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.builder.service.BuilderService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 
 import io.github.maaasu.astralRecord.core.CommandRegister;
+import io.github.maaasu.astralRecord.feature.defense.DefenseListener;
+import io.github.maaasu.astralRecord.feature.defense.DefenseService;
 import io.github.maaasu.astralRecord.core.event.EventManager;
 import io.github.maaasu.astralRecord.feature.adventurerecord.event.AdventureRecordGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.adventurerecord.gui.AdventureRecordGui;
@@ -506,6 +508,7 @@ public final class AstralRecord extends JavaPlugin {
     private AirActionService airActionService;
     private PlayerHudService playerHudService;
     private PlayerDeathService playerDeathService;
+    private DefenseService defenseService;
     private InvulnerabilityVisualService invulnerabilityVisualService;
     private ResourcePackService resourcePackService;
     private GuideService guideService;
@@ -830,6 +833,7 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (defenseService != null) defenseService.stop();
         RuntimeException shadeHedgehogStopFailure = null;
         try {
             if (shadeHedgehogMobSkillExecutor != null) shadeHedgehogMobSkillExecutor.stop();
@@ -2577,6 +2581,17 @@ public final class AstralRecord extends JavaPlugin {
         worldService.loadAll();
         dungeonService.loadAll();
         dungeonService.start();
+        defenseService = new DefenseService(this, mobService, worldService, playerDeathService, statusService,
+            afkService, invulnerabilityVisualService, challengeParticipationRegistry, mobTauntService,
+            playerSessionTransitionGuard);
+        playerSessionTransitionGuard.setAdditionalTransitionGuard((id, transition) ->
+            transition == PlayerSessionTransitionGuard.Transition.PLAYER_STATE_RECOVERY
+                || !defenseService.isTransitionBlocked(id));
+        mobCombatService.setDefenseService(defenseService);
+        damageService.setDefenseService(defenseService);
+        playerDeathService.setAdditionalDeathHandler(defenseService::handleParticipantDeath);
+        playerDeathService.setImmediateRecoveryListener(defenseService::waivePendingDeathForRevival);
+        getServer().getPluginManager().registerEvents(new DefenseListener(defenseService), this);
         mobAiService = new MobAiService(
             mobService,
             mobCombatService,
@@ -3240,6 +3255,7 @@ public final class AstralRecord extends JavaPlugin {
         overheadDisplayService.start(this);
         invulnerabilityVisualService.start();
         playerDeathService.start();
+        defenseService.start();
         conditionTickTask.start(this);
         conditionDisplayTask.start(this);
         conditionCleanupTask.start(this);
@@ -3885,6 +3901,11 @@ public final class AstralRecord extends JavaPlugin {
 
     public DungeonService getDungeonService() {
         return dungeonService;
+    }
+
+    /** @return チャンネルの防衛戦サービス。初期化前はnullです */
+    public DefenseService getDefenseService() {
+        return defenseService;
     }
 
     /**

@@ -124,6 +124,33 @@ public sealed class DefenseRepositoryTests
             f.Report(owner, "STARTED", 1, f.Participant())));
     }
 
+    [Fact]
+    public async Task UndeliverableFirstPageDoesNotBlockLaterValidRewards()
+    {
+        await using var f = await Fixture.Create();
+        var (runId, owner) = await f.StartRunningAsync();
+        await f.HeartbeatAsync(runId, owner, 5, 120);
+        var missingAccount = Guid.NewGuid();
+        f.Management.DefenseParticipants.Add(new DefenseParticipantEntity
+        {
+            RunId = runId, AccountId = missingAccount, UserUuid = Guid.NewGuid(),
+        });
+        for (var index = 1; index <= 50; index++)
+            f.Management.DefenseRewards.Add(new DefenseRewardEntity
+            {
+                RunId = runId, AccountId = missingAccount, UserUuid = Guid.NewGuid(),
+                DefenseLevel = index, OrbItemId = "orb-low", OrbQuantity = 1,
+                MailId = "unavailable-" + index, CreatedAtUtc = f.Clock.UtcNow.UtcDateTime.AddMinutes(-1),
+            });
+        await f.Management.SaveChangesAsync();
+
+        Assert.Single(await f.Repository.RewardsAsync(ServerId, runId, f.Reward(owner, 5, 120)));
+        Assert.Single(await f.Game.PlayerMailDeliveries.ToListAsync());
+        Assert.Equal(50, await f.Management.DefenseRewards.CountAsync(x => x.DeliveredAtUtc == null));
+        Assert.Equal(0, await f.Repository.DeliverPendingAsync(CancellationToken.None));
+        Assert.Single(await f.Game.PlayerMailDeliveries.ToListAsync());
+    }
+
     private static DefenseConfiguration Configuration() => new()
     {
         WorldName = "world", CoreX = 0, CoreY = 64, CoreZ = 0,

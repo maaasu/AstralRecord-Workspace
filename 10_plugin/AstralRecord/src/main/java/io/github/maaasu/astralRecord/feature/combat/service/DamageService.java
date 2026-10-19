@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.model.SkillAttackWear;
 import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.defense.DefenseService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossMechanicService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
@@ -102,6 +103,7 @@ public final class DamageService {
     private final SuperStarCriticalProjectileService superStarCriticalProjectileService;
     private BossChallengeService bossChallengeService;
     private DungeonService dungeonService;
+    private DefenseService defenseService;
     private ConditionService conditionService;
     private EquipmentDurabilityService equipmentDurabilityService;
     private final ThreadLocal<SkillAttackWear> skillAttackWear = new ThreadLocal<>();
@@ -316,6 +318,11 @@ public final class DamageService {
      */
     public void setDungeonService(@Nullable DungeonService dungeonService) {
         this.dungeonService = dungeonService;
+    }
+
+    /** @param defenseService 防衛戦の所属・生存境界と反撃通知先。nullで連携を解除します */
+    public void setDefenseService(@Nullable DefenseService defenseService) {
+        this.defenseService = defenseService;
     }
 
     /**
@@ -897,6 +904,7 @@ public final class DamageService {
     public @NotNull DamageResult applyLethalMechanicDamage(
             @NotNull AstEntity attacker, @NotNull AstEntity victim
     ) {
+        if (defenseService != null && !defenseService.canDamage(attacker, victim)) return new DamageResult(0.0D);
         if (!victim.isPlayer() || victim.player() == null || isPlayerDead(victim.id())
                 || !isMobCombatTarget(victim.player().getBukkit()) || isInvulnerable(victim)
                 || !canApplyPlayerDamage(attacker, victim)
@@ -1813,6 +1821,7 @@ public final class DamageService {
             @NotNull AttackType attackType,
             boolean knockback
     ) {
+        if (defenseService != null && !defenseService.canDamage(attacker, victim)) return;
         if (victim.isMob() && victim.mob() != null && victim.mob().state() == MobState.DEAD) {
             return;
         }
@@ -1820,6 +1829,7 @@ public final class DamageService {
         recordEncounterDamage(attacker, victim, effectiveHealthDamage(victim, result) + result.shieldDamage());
 
         if (result.shieldDamage() > 0.0D || effectiveHealthDamage(victim, result) > 0.0D) {
+            if (defenseService != null) defenseService.recordDamage(attacker, victim);
             long currentTick = Bukkit.getCurrentTick();
             if (attacker != null && attacker.isMob() && attacker.mob() != null) {
                 attacker.mob().lastCombatActivityTick(currentTick);
@@ -2626,8 +2636,9 @@ public final class DamageService {
         return entityId == null ? null : Bukkit.getEntity(entityId);
     }
 
-    /** 釣り魚の所有権と接水・終了状態を、通常攻撃と状態異常の両入口で再検査します。 */
+    /** 釣り魚の所有権・接水・終了状態と防衛戦の所属境界を、通常攻撃と状態異常の両入口で再検査します。 */
     private boolean canDamageFishing(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (defenseService != null && !defenseService.canDamage(attacker, victim)) return false;
         var bridge = mobService.fishingCombat();
         return bridge == null || bridge.canDamage(attacker, victim);
     }

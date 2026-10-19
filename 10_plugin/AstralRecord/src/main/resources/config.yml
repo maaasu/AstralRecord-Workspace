@@ -153,6 +153,10 @@ chat:
     bypassMarker: "$"
 
 
+# 防衛戦API専用キー。APIの Defense:RuntimeKey と一致させる（空欄では開始しない）。
+defense:
+  runtimeKey: ""
+
 # Logging Settings
 logging:
   # ANSIカラーコードを使用するか否か（標準ターミナル向け）

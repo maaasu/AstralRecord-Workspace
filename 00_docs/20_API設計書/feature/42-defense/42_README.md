@@ -49,9 +49,11 @@
 
 日次開催は設定時刻の `registrationLeadSeconds` 前からPENDINGを発行し、Pluginは事前受付と準備を行う。STARTEDは定刻以降、本人とアカウントの組が実在する異なる1～30人を固定する。0人と途中参加は拒否。Pluginは同じ起動世代 `instanceId` を使う。`HEARTBEAT` では防衛レベルと各参加者の `activeSeconds,isAfk,eliminated` を送る。停止要求はruntime GETでSTOP_REQUESTEDとして見える。ENDED/ABORTEDで終端し、旧世代の確定済み段階報酬の再送は終端後も受ける。報告が途絶えたrunは復帰猶予以上かつ最低60秒でABORTEDにし、過去戦闘を新世代へ再開させない。
 
-報酬の `rewards` 要素は `{userUuid,accountId,requiredDefenseLevel,activeSeconds,isAfk}`。`requiredDefenseLevel` は実際の到達段階Lvで、`1 + k × rewardEveryLevels` だけ許可する。固定参加者、報告済み防衛レベル以下、必要参加秒数、非AFKを検証する。各段階では最大の `requiredDefenseLevel <= 到達段階` のtierを選び、run/account/段階の一意キーで一度だけ保存する。受取メールIDとオーブ種類・数量を固定し、再送で再抽選しない。通常Mob報酬はPluginで抑止する。
+報酬の `rewards` 要素は `{userUuid,accountId,requiredDefenseLevel,activeSeconds,isAfk}`。`requiredDefenseLevel` は実際の到達段階Lvで、`N,2N,3N,...`（N=`rewardEveryLevels`）だけ許可する。固定参加者、報告済み防衛レベル以下、必要参加秒数、非AFK・未脱落を検証する。保存済みの同一段階は脱落後も冪等に返す。各段階では最大の `requiredDefenseLevel <= 到達段階` のtierを選び、run/account/段階の一意キーで一度だけ保存する。受取メールIDとオーブ種類・数量を固定し、再送で再抽選しない。通常Mob報酬はPluginで抑止する。
 
-確定報酬はManagementDBに保存後、既存の `player_mail_delivery` に期限なしの実item添付メールを固定IDで配送する。配送失敗はバックグラウンドで再試行し、切断・満杯で報酬を消さない。メールの既存の未受取・受取原子処理を利用する。
+指示GETでPENDINGを起動世代に予約する。所有者が保存していたSTARTED・HEARTBEAT・終了報告は、失効や管理停止の後でも同一所有者に限り受理する。終端状態をRUNNINGへ戻さず、固定参加者と到達済み進捗・報酬を確定するための再送として処理する。新世代へ旧戦闘を引き継がない。管理画面の受付鮮度と手動開始には受付報告・runtime pollの双方が30秒以内であることを要する。
+
+確定報酬はManagementDBに保存後、既存の `player_mail_delivery` に期限なしの実item添付メールを固定IDで配送する。配送失敗はバックグラウンドで再試行し、切断・満杯で報酬を消さない。作成日時と一意なmail IDのカーソルで50件ずつ走査し、一回の配送成功を50件までに抑える。削除・不在アカウントの行もカーソルを進め、後続の有効なアカウント宛ての報酬を塞がない。メールの既存の未受取・受取原子処理を利用する。
 
 ## 競合と失敗
 

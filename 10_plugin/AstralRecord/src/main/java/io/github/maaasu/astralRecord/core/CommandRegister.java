@@ -293,6 +293,8 @@ public class CommandRegister {
         cm.registerCommand("bg", builderCommand);
         cm.registerCommand("boss", new BossCommand());
         cm.registerCommand("dungeon", new DungeonCommand());
+        cm.registerCommand("defense", new io.github.maaasu.astralRecord.feature.defense.DefenseCommand(
+            AstralRecord.getInstance().getDefenseService()));
         cm.registerCommand("bosstp", new InstanceTeleportCommand("bosstp", InstanceTeleportFilter.BOSS));
         cm.registerCommand("dungeontp", new InstanceTeleportCommand("dungeontp", InstanceTeleportFilter.DUNGEON));
         cm.registerCommand("instancetp", new InstanceTeleportCommand("instancetp", InstanceTeleportFilter.ALL));

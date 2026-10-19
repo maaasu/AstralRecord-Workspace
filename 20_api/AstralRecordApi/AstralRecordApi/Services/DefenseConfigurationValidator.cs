@@ -14,7 +14,7 @@ public static class DefenseConfigurationValidator
         Position(value.CoreX, "coreX"); Position(value.CoreY, "coreY"); Position(value.CoreZ, "coreZ");
         Position(value.EntryX, "entryX"); Position(value.EntryY, "entryY"); Position(value.EntryZ, "entryZ");
         if (value.SpawnPoints is null || value.SpawnPoints.Count == 0 || value.SpawnPoints.Any(p =>
-            p.X is null || p.Y is null || p.Z is null
+            p is null || p.X is null || p.Y is null || p.Z is null
             || !double.IsFinite(p.X.Value) || !double.IsFinite(p.Y.Value) || !double.IsFinite(p.Z.Value)))
             missing.Add("configuration.spawnPoints");
         PositiveDouble(value.CoreMaxHealth, "coreMaxHealth"); NonNegativeDouble(value.CoreDefense, "coreDefense");
@@ -34,7 +34,7 @@ public static class DefenseConfigurationValidator
         Positive(value.RewardEveryLevels, "rewardEveryLevels");
         NonNegative(value.MinimumActiveSeconds, "minimumActiveSeconds");
         if (value.RewardTiers is null || value.RewardTiers.Count == 0 ||
-            value.RewardTiers.Any(t => t.RequiredDefenseLevel is null or < 1 || t.OrbQuantity is null or < 1
+            value.RewardTiers.Any(t => t is null || t.RequiredDefenseLevel is null or < 1 || t.OrbQuantity is null or < 1
                 || string.IsNullOrWhiteSpace(t.OrbItemId)) ||
             value.RewardTiers.Select(t => t.RequiredDefenseLevel).Distinct().Count() != value.RewardTiers.Count ||
             value.RewardTiers.Min(t => t.RequiredDefenseLevel) > 1)

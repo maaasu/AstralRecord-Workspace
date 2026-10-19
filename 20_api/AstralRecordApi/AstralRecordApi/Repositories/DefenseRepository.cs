@@ -27,7 +27,8 @@ public sealed class DefenseRepository(
             .OrderByDescending(x => x.CreatedAtUtc).Take(30).ToListAsync();
         var configuration = Configuration(channel?.ConfigurationJson);
         var registrationCurrent = channel?.RegistrationReportedAtUtc is DateTime reported
-            && reported >= Now().AddSeconds(-30) && channel.LastRuntimeInstanceId is not null;
+            && reported >= Now().AddSeconds(-30) && channel.LastRuntimeInstanceId is not null
+            && channel.LastRuntimePollAtUtc is DateTime poll && poll >= Now().AddSeconds(-30);
         return new DefenseChannelResponse(serverId, channel?.Revision ?? 0, channel?.DailyEnabled ?? false,
             channel?.DailyStartTimeJst, configuration, Missing(configuration),
             NextSchedule(channel, runs), runs.FirstOrDefault(x => ActiveStatuses.Contains(x.Status)) is { } active ? Map(active) : null,
@@ -87,7 +88,8 @@ public sealed class DefenseRepository(
             if (missing.Count > 0) throw new DefenseConflictException($"開始設定が不足しています: {string.Join(", ", missing)}");
             if (channel.RegistrationStatus != "OPEN" || channel.RegisteredCount is null or < 1
                 || channel.RegistrationReportedAtUtc is not DateTime registration
-                || registration < Now().AddSeconds(-30))
+                || registration < Now().AddSeconds(-30)
+                || channel.LastRuntimePollAtUtc is not DateTime poll || poll < Now().AddSeconds(-30))
                 throw new DefenseConflictException("受付中の参加者がいません。実行サーバーの受付状態を確認してください。");
             if (await ActiveRunAsync(serverId) is not null) throw new DefenseConflictException("このチャンネルでは開催が進行中です。");
             var run = NewRun(serverId, "MANUAL", request.OperationId, null, null, channel.ConfigurationJson);
@@ -162,13 +164,18 @@ public sealed class DefenseRepository(
         await MaterializeDailyAsync(serverId);
         var channel = await management.DefenseChannels.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == serverId);
         var configuration = Configuration(channel?.ConfigurationJson);
-        var active = await management.DefenseRuns.AsNoTracking().Where(x => x.ServerId == serverId && ActiveStatuses.Contains(x.Status))
-            .OrderByDescending(x => x.CreatedAtUtc).FirstOrDefaultAsync();
-        // 他の起動世代が所有する開催はPluginへ渡さず、再起動後の旧戦闘を再開しません。
-        if (active?.InstanceId is Guid owner && owner != instanceId) active = null;
+        // 指示を初めて取得した起動世代が所有します。STARTEDの応答喪失でも所有者を変えません。
+        var active = await WriteAsync(async () =>
+        {
+            await LockedChannelAsync(serverId);
+            var run = await ActiveRunAsync(serverId);
+            if (run is null || run.InstanceId is Guid owner && owner != instanceId) return null;
+            if (run.InstanceId is null) { run.InstanceId = instanceId; await management.SaveChangesAsync(); }
+            return Map(run);
+        });
         return new DefenseRuntimeResponse(serverId, configuration,
-            active?.Status == "PENDING" ? Map(active) : null,
-            active?.Status is "RUNNING" or "STOP_REQUESTED" ? Map(active) : null,
+            active?.Status == "PENDING" ? active : null,
+            active?.Status is "RUNNING" or "STOP_REQUESTED" ? active : null,
             Missing(configuration), Now());
     }
 
@@ -215,7 +222,9 @@ public sealed class DefenseRepository(
                 throw new DefenseConflictException("別のサーバー起動世代が所有する開催です。");
             if (request.Event == "STARTED")
             {
-                if (run.Status != "PENDING") throw new DefenseConflictException("開始待ちの開催ではありません。");
+                var late = run.Status is "ABORTED" or "SKIPPED";
+                if (run.Status != "PENDING" && !(late && run.InstanceId == request.InstanceId && run.StartedAtUtc is null))
+                    throw new DefenseConflictException("開始待ちの開催ではありません。");
                 if (request.Participants.Count is < 1 or > 30 || request.Participants.Any(x => x.AccountId == Guid.Empty || x.UserUuid == Guid.Empty)
                     || request.Participants.Select(x => x.AccountId).Distinct().Count() != request.Participants.Count
                     || request.Participants.Select(x => x.UserUuid).Distinct().Count() != request.Participants.Count)
@@ -227,7 +236,7 @@ public sealed class DefenseRepository(
                     .Select(x => new { x.Uuid, x.UserId }).ToListAsync();
                 if (request.Participants.Any(x => !accounts.Any(a => a.Uuid == x.AccountId && a.UserId == x.UserUuid)))
                     throw new ArgumentException("参加アカウントと本人UUIDが一致しません。");
-                run.Status = "RUNNING";
+                run.Status = late ? "ABORTED" : "RUNNING";
                 run.InstanceId = request.InstanceId;
                 run.StartedAtUtc = Now();
                 run.LastHeartbeatAtUtc = Now();
@@ -241,13 +250,13 @@ public sealed class DefenseRepository(
             }
             else if (request.Event == "HEARTBEAT")
             {
-                if (run.Status is not ("RUNNING" or "STOP_REQUESTED"))
+                if (run.Status is not ("RUNNING" or "STOP_REQUESTED" or "ENDED" or "ABORTED") || run.StartedAtUtc is null)
                     throw new DefenseConflictException("進行中の開催ではありません。");
                 if (run.InstanceId != request.InstanceId) throw new DefenseConflictException("開催の起動世代が一致しません。");
                 if (request.DefenseLevel is null || request.DefenseLevel < run.DefenseLevel)
                     throw new ArgumentException("防衛レベルを下げることはできません。");
                 run.DefenseLevel = request.DefenseLevel;
-                run.LastHeartbeatAtUtc = Now();
+                if (run.Status is "RUNNING" or "STOP_REQUESTED") run.LastHeartbeatAtUtc = Now();
                 var participants = await management.DefenseParticipants.Where(x => x.RunId == runId).ToDictionaryAsync(x => x.AccountId);
                 foreach (var value in request.Participants)
                 {
@@ -260,7 +269,7 @@ public sealed class DefenseRepository(
             }
             else
             {
-                if (request.Event == "ABORTED" && run.Status == "ABORTED")
+                if (run.Status is "ABORTED" or "ENDED" or "SKIPPED")
                 {
                     management.DefenseReports.Add(new DefenseReportEntity
                     {
@@ -313,17 +322,19 @@ public sealed class DefenseRepository(
             var result = new List<DefenseRewardReceipt>();
             foreach (var entry in request.Rewards)
             {
+                var existing = await management.DefenseRewards.SingleOrDefaultAsync(x => x.RunId == runId
+                    && x.AccountId == entry.AccountId && x.DefenseLevel == entry.RequiredDefenseLevel);
                 if (!participants.TryGetValue(entry.AccountId, out var participant) || participant.UserUuid != entry.UserUuid
                     || entry.RequiredDefenseLevel < 1 || entry.RequiredDefenseLevel > run.DefenseLevel || every < 1
-                    || (entry.RequiredDefenseLevel - 1) % every != 0 || entry.IsAfk || participant.IsAfk
+                    || entry.RequiredDefenseLevel % every != 0)
+                    throw new ArgumentException("段階または本人を確認してください。");
+                if (existing is null && (participant.Eliminated || entry.IsAfk || participant.IsAfk
                     || entry.ActiveSeconds < (configuration.MinimumActiveSeconds ?? int.MaxValue)
-                    || entry.ActiveSeconds > participant.ActiveSeconds)
+                    || entry.ActiveSeconds > participant.ActiveSeconds))
                     throw new ArgumentException("段階、本人、AFK、参加時間を確認してください。");
                 var tier = configuration.RewardTiers.Where(x => x.RequiredDefenseLevel <= entry.RequiredDefenseLevel)
                     .OrderByDescending(x => x.RequiredDefenseLevel).FirstOrDefault()
                     ?? throw new DefenseConflictException("この段階の報酬が設定されていません。");
-                var existing = await management.DefenseRewards.SingleOrDefaultAsync(x => x.RunId == runId
-                    && x.AccountId == entry.AccountId && x.DefenseLevel == entry.RequiredDefenseLevel);
                 if (existing is null)
                 {
                     existing = new DefenseRewardEntity
@@ -353,52 +364,65 @@ public sealed class DefenseRepository(
 
     public async Task<int> DeliverPendingAsync(CancellationToken cancellationToken)
     {
-        var pending = await management.DefenseRewards.AsNoTracking().Where(x => x.DeliveredAtUtc == null)
-            .OrderBy(x => x.CreatedAtUtc).Take(50).ToListAsync(cancellationToken);
         var delivered = 0;
-        foreach (var reward in pending)
+        DateTime? cursorTime = null;
+        string? cursorMail = null;
+        while (delivered < 50)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var account = await game.Accounts.AsNoTracking().SingleOrDefaultAsync(x => x.Uuid == reward.AccountId && !x.IsDeleted,
-                cancellationToken);
-            if (account is null || account.UserId != reward.UserUuid) continue;
-            await game.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            var query = management.DefenseRewards.AsNoTracking().Where(x => x.DeliveredAtUtc == null);
+            if (cursorTime is DateTime after)
+                query = query.Where(x => x.CreatedAtUtc > after
+                    || x.CreatedAtUtc == after && string.Compare(x.MailId, cursorMail) > 0);
+            var pending = await query.OrderBy(x => x.CreatedAtUtc).ThenBy(x => x.MailId)
+                .Take(50).ToListAsync(cancellationToken);
+            if (pending.Count == 0) break;
+            foreach (var reward in pending)
             {
-                game.ChangeTracker.Clear();
-                await using var tx = await game.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-                var exists = await game.PlayerMailDeliveries.AnyAsync(x => x.AccountId == reward.AccountId && x.MailId == reward.MailId,
+                // 配達不能行もカーソルを進め、後続の有効アカウントを塞ぎません。
+                cursorTime = reward.CreatedAtUtc; cursorMail = reward.MailId;
+                cancellationToken.ThrowIfCancellationRequested();
+                var account = await game.Accounts.AsNoTracking().SingleOrDefaultAsync(x => x.Uuid == reward.AccountId && !x.IsDeleted,
                     cancellationToken);
-                if (!exists)
+                if (account is null || account.UserId != reward.UserUuid) continue;
+                await game.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
                 {
-                    var mail = new MailResponse
+                    game.ChangeTracker.Clear();
+                    await using var tx = await game.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+                    var exists = await game.PlayerMailDeliveries.AnyAsync(x => x.AccountId == reward.AccountId && x.MailId == reward.MailId,
+                        cancellationToken);
+                    if (!exists)
                     {
-                        SchemaVersion = 1, Id = reward.MailId, Icon = "ENDER_EYE", Title = "防衛戦の段階報酬",
-                        Body = $"防衛レベル {reward.DefenseLevel} 到達報酬です。",
-                        PublishFrom = reward.CreatedAtUtc, PublishTo = null, ReceiveOnRead = true,
-                        Rewards = [new MailRewardResponse
+                        var mail = new MailResponse
                         {
-                            ItemId = reward.OrbItemId, Category = "orb", Amount = reward.OrbQuantity,
-                        }],
-                    };
-                    game.PlayerMailDeliveries.Add(new PlayerMailDeliveryEntity
-                    {
-                        PlayerMailDeliveryId = Guid.NewGuid(), AccountId = reward.AccountId,
-                        MailId = reward.MailId, PayloadJson = JsonSerializer.Serialize(mail, MasterDataPayloadJson.Options),
-                        Version = 1, CreatedAt = Now(), UpdatedAt = Now(), CreatedBy = reward.UserUuid,
-                        UpdatedBy = reward.UserUuid,
-                    });
-                    await game.SaveChangesAsync(cancellationToken);
+                            SchemaVersion = 1, Id = reward.MailId, Icon = "ENDER_EYE", Title = "防衛戦の段階報酬",
+                            Body = $"防衛レベル {reward.DefenseLevel} 到達報酬です。",
+                            PublishFrom = reward.CreatedAtUtc, PublishTo = null, ReceiveOnRead = true,
+                            Rewards = [new MailRewardResponse
+                            {
+                                ItemId = reward.OrbItemId, Category = "orb", Amount = reward.OrbQuantity,
+                            }],
+                        };
+                        game.PlayerMailDeliveries.Add(new PlayerMailDeliveryEntity
+                        {
+                            PlayerMailDeliveryId = Guid.NewGuid(), AccountId = reward.AccountId,
+                            MailId = reward.MailId, PayloadJson = JsonSerializer.Serialize(mail, MasterDataPayloadJson.Options),
+                            Version = 1, CreatedAt = Now(), UpdatedAt = Now(), CreatedBy = reward.UserUuid,
+                            UpdatedBy = reward.UserUuid,
+                        });
+                        await game.SaveChangesAsync(cancellationToken);
+                    }
+                    await tx.CommitAsync(cancellationToken);
+                });
+                var row = await management.DefenseRewards.SingleAsync(x => x.RunId == reward.RunId
+                    && x.AccountId == reward.AccountId && x.DefenseLevel == reward.DefenseLevel, cancellationToken);
+                if (row.DeliveredAtUtc is null)
+                {
+                    row.DeliveredAtUtc = Now();
+                    await management.SaveChangesAsync(cancellationToken);
                 }
-                await tx.CommitAsync(cancellationToken);
-            });
-            var row = await management.DefenseRewards.SingleAsync(x => x.RunId == reward.RunId
-                && x.AccountId == reward.AccountId && x.DefenseLevel == reward.DefenseLevel, cancellationToken);
-            if (row.DeliveredAtUtc is null)
-            {
-                row.DeliveredAtUtc = Now();
-                await management.SaveChangesAsync(cancellationToken);
+                delivered++;
+                if (delivered == 50) break;
             }
-            delivered++;
         }
         return delivered;
     }
@@ -501,7 +525,7 @@ public sealed class DefenseRepository(
         {
             var orbs = items.GetAllSummaries().Where(x => string.Equals(x.Category, "orb", StringComparison.OrdinalIgnoreCase))
                 .Select(x => x.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (configuration.RewardTiers.Any(x => x.OrbItemId is null || !orbs.Contains(x.OrbItemId)))
+            if (configuration.RewardTiers.Any(x => x is null || x.OrbItemId is null || !orbs.Contains(x.OrbItemId)))
                 missing.Add("configuration.rewardTiers.orbItemId");
         }
         return missing;
