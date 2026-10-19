@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.quest.gui;
 
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardEntry;
@@ -28,6 +29,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,6 +51,7 @@ public final class QuestGui {
     public static final int NEXT_PAGE_SLOT = 53;
 
     private final QuestService questService;
+    private final Plugin plugin;
     private final NamespacedKey questIdKey;
 
     /**
@@ -58,14 +61,32 @@ public final class QuestGui {
      * @param questService クエストの表示状態と進行度を取得するサービス
      */
     public QuestGui(@NotNull Plugin plugin, @NotNull QuestService questService) {
+        this.plugin = plugin;
         this.questService = questService;
         this.questIdKey = new NamespacedKey(plugin, "quest_id");
     }
 
+    /**
+     * ボードの先頭ページをメインスレッドで開き、不足item名は非同期取得します。
+     *
+     * @param player 表示先のオンラインプレイヤー
+     * @param astPlayer 現在のプレイヤーセッション
+     * @param board 表示するボード
+     * @param npcId 受領元NPC。指定がなければnull
+     */
     public void openBoard(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull QuestBoardDefinition board, @Nullable String npcId) {
         openBoard(player, astPlayer, board, npcId, 0);
     }
 
+    /**
+     * 指定ページをキャッシュだけでメインスレッド上に描画し、不足item名を非同期取得します。
+     *
+     * @param player 表示先のオンラインプレイヤー
+     * @param astPlayer 現在のプレイヤーセッション
+     * @param board 表示するボード
+     * @param npcId 受領元NPC。指定がなければnull
+     * @param pageIndex 0始まりのページ番号。ボードの有効範囲へ補正する
+     */
     public void openBoard(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull QuestBoardDefinition board, @Nullable String npcId, int pageIndex) {
         int page = normalizeBoardPage(board, pageIndex);
         Inventory inventory = Bukkit.createInventory(
@@ -74,11 +95,13 @@ public final class QuestGui {
             LEGACY.deserialize(ColorCodeUtil.toLegacyText(board.name(), board.id()) + pageSuffix(totalBoardPages(board), page))
         );
         renderBoard(inventory, astPlayer, board, page);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(
+            player, inventory, () -> refreshBoard(player, astPlayer, board.id()));
     }
 
     /**
      * 現在表示中の同一クエストボードを最新状態で再描画します。
+     * メインスレッドで呼び出し、不足item名の取得は非同期で継続します。
      *
      * @param player 再描画対象のプレイヤー
      * @param astPlayer クエスト状態を参照するプレイヤー
@@ -100,6 +123,7 @@ public final class QuestGui {
             return false;
         }
         renderBoard(inventory, astPlayer, board, normalizeBoardPage(board, holder.pageIndex()));
+        preloadItemNames(player, astPlayer, inventory);
         return true;
     }
 
@@ -123,6 +147,12 @@ public final class QuestGui {
         renderPagination(inventory, page, totalBoardPages(board));
     }
 
+    /**
+     * 受領中一覧をメインスレッドで開き、不足item名は非同期取得します。
+     *
+     * @param player 表示先のオンラインプレイヤー
+     * @param astPlayer 現在のプレイヤーセッション
+     */
     public void openList(@NotNull Player player, @NotNull AstPlayer astPlayer) {
         Inventory inventory = Bukkit.createInventory(
             new ListHolder(),
@@ -130,11 +160,13 @@ public final class QuestGui {
             Component.text("受領中のクエスト", NamedTextColor.DARK_GREEN, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false)
         );
         renderList(inventory, astPlayer);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(
+            player, inventory, () -> refreshList(player, astPlayer));
     }
 
     /**
      * 現在表示中のクエスト一覧を最新状態で再描画します。
+     * メインスレッドで呼び出し、不足item名の取得は非同期で継続します。
      *
      * @param player 再描画対象のプレイヤー
      * @param astPlayer クエスト状態を参照するプレイヤー
@@ -146,7 +178,50 @@ public final class QuestGui {
             return false;
         }
         renderList(inventory, astPlayer);
+        preloadItemNames(player, astPlayer, inventory);
         return true;
+    }
+
+    /**
+     * 描画済み項目の不足名を非同期取得し、同じプレイヤーセッション・画面だけをメインスレッドで再描画します。
+     * 取得失敗時は再描画を連鎖させず、次の表示操作で再試行します。
+     *
+     * @param player 表示先プレイヤー
+     * @param astPlayer 描画時のプレイヤーセッション
+     * @param inventory メインスレッドで描画済みのInventory個体
+     */
+    private void preloadItemNames(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull Inventory inventory) {
+        List<QuestDefinition> displayed = new ArrayList<>();
+        for (ItemStack item : inventory.getContents()) {
+            String questId = getQuestId(item);
+            QuestDefinition quest = questId == null ? null : questService.findQuest(questId);
+            if (quest != null) {
+                displayed.add(quest);
+            }
+        }
+        questService.preloadItemDisplayNames(displayed).thenAccept(loaded -> {
+            if (!loaded || !plugin.isEnabled()) {
+                return;
+            }
+            try {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (!plugin.isEnabled() || !player.isOnline() || AstPlayerCache.get(player) != astPlayer
+                        || player.getOpenInventory().getTopInventory() != inventory) {
+                        return;
+                    }
+                    if (inventory.getHolder() instanceof BoardHolder holder) {
+                        QuestBoardDefinition board = questService.findBoard(holder.boardId());
+                        if (board != null) {
+                            renderBoard(inventory, astPlayer, board, normalizeBoardPage(board, holder.pageIndex()));
+                        }
+                    } else if (inventory.getHolder() instanceof ListHolder) {
+                        renderList(inventory, astPlayer);
+                    }
+                });
+            } catch (IllegalPluginAccessException ignored) {
+                // 停止と予約が競合した場合は、終了済みプラグインへGUI更新を予約しません。
+            }
+        });
     }
 
     private void renderList(@NotNull Inventory inventory, @NotNull AstPlayer astPlayer) {

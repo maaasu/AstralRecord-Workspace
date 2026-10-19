@@ -54,8 +54,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -97,6 +99,7 @@ public final class QuestService {
     private final Set<UUID> releaseWhenAcknowledged = ConcurrentHashMap.newKeySet();
     private final Map<RewardClaimKey, UUID> pendingRewardClaims = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Void>> rewardProcessingTails = new ConcurrentHashMap<>();
+    private final Map<DisplayItemKey, CompletableFuture<Boolean>> displayItemLoads = new ConcurrentHashMap<>();
     private BiConsumer<AstPlayer, String> questAcceptedListener = (player, questId) -> { };
     private BiConsumer<AstPlayer, String> questCompletedListener = (player, questId) -> { };
     private BukkitTask saveTask;
@@ -1192,13 +1195,13 @@ public final class QuestService {
 
     /**
      * クエストGUI向けにitemの表示名を解決します。
-     * 未ロードのitemはitemServiceのロード経路から取得し、解決できない場合は内部IDを表示しません。
+     * ロード済みキャッシュだけを参照し、API通信は行いません。
      *
      * @param item 表示するitem定義。item IDとカテゴリを持つ必要があり、{@code null}は不可
      * @return 色コードを除去したitem表示名。解決できない場合は汎用の未登録表示
      */
     public @NotNull String resolveItemDisplayName(@NotNull QuestItemStackDefinition item) {
-        ItemModel model = resolveItem(item);
+        ItemModel model = itemService.findLoadedById(item.itemId());
         if (model == null || model.getName() == null || model.getName().isBlank()) {
             return UNREGISTERED_ITEM_DISPLAY_NAME;
         }
@@ -1208,19 +1211,88 @@ public final class QuestService {
 
     /**
      * クエスト報酬GUI向けにitemの表示名をカラーコード対応Componentへ変換します。
-     * 未ロードのitemはitemServiceのロード経路から取得し、解決できない場合は汎用の未登録表示を返します。
+     * ロード済みキャッシュだけを参照し、未取得・解決不能の場合は汎用の未登録表示を返します。
      *
      * @param item 表示するitem定義。item IDとカテゴリを持つ必要があり、{@code null}は不可
      * @return item名のカラーコードを反映したComponent
      */
     public @NotNull Component resolveItemDisplayComponent(@NotNull QuestItemStackDefinition item) {
-        ItemModel model = resolveItem(item);
+        ItemModel model = itemService.findLoadedById(item.itemId());
         if (model == null || model.getName() == null || model.getName().isBlank()) {
             return Component.text(UNREGISTERED_ITEM_DISPLAY_NAME);
         }
         return ColorCodeUtil.toComponent(model.getName(), UNREGISTERED_ITEM_DISPLAY_NAME);
     }
 
+    /**
+     * 表示中クエストの受領条件・報酬から不足itemを非同期取得します。
+     * 同じID・カテゴリの通信中要求は共有し、失敗は未登録表示を維持して次回表示時に再試行します。
+     * プレイヤー状態・Bukkit APIには触れず、完了を呼出スレッドで待機しません。
+     *
+     * @param displayedQuests メインスレッドで確定した表示対象クエスト
+     * @return 不足itemが一件以上取得できた場合にtrueで完了するFuture。停止中・不足なし・全件失敗はfalse
+     */
+    public @NotNull CompletableFuture<Boolean> preloadItemDisplayNames(
+        @NotNull Collection<QuestDefinition> displayedQuests
+    ) {
+        if (stopping) {
+            return CompletableFuture.completedFuture(false);
+        }
+        Map<DisplayItemKey, QuestItemStackDefinition> missing = new LinkedHashMap<>();
+        for (QuestDefinition quest : displayedQuests) {
+            List<QuestItemStackDefinition> items = new ArrayList<>(quest.rewards().items());
+            quest.requirements().forEach(requirement -> items.add(requirement.item()));
+            for (QuestItemStackDefinition item : items) {
+                if (itemService.findLoadedById(item.itemId()) == null) {
+                    missing.putIfAbsent(new DisplayItemKey(
+                        item.itemId().trim().toLowerCase(Locale.ROOT),
+                        item.category().trim().toLowerCase(Locale.ROOT)
+                    ), item);
+                }
+            }
+        }
+        List<CompletableFuture<Boolean>> loads = new ArrayList<>();
+        missing.forEach((key, item) -> loads.add(loadDisplayItem(key, item)));
+        return CompletableFuture.allOf(loads.toArray(CompletableFuture<?>[]::new))
+            .thenApply(ignored -> loads.stream().anyMatch(load -> load.getNow(false)));
+    }
+
+    /**
+     * 不足itemの取得を非同期executorへ渡し、成功・失敗のどちらでも通信中要求を解除します。
+     *
+     * @param key 取得を共有するID・カテゴリ
+     * @param item 取得するitem定義
+     * @return 取得できた場合だけtrueで完了する共有Future
+     */
+    private @NotNull CompletableFuture<Boolean> loadDisplayItem(
+        @NotNull DisplayItemKey key,
+        @NotNull QuestItemStackDefinition item
+    ) {
+        CompletableFuture<Boolean> load = new CompletableFuture<>();
+        CompletableFuture<Boolean> existing = displayItemLoads.putIfAbsent(key, load);
+        if (existing != null) {
+            return existing;
+        }
+        load.whenComplete((loaded, failure) -> displayItemLoads.remove(key, load));
+        try {
+            asyncExecutor.execute(() -> {
+                try {
+                    load.complete(!stopping && resolveItem(item) != null);
+                } catch (RuntimeException exception) {
+                    Logger.log(LogId.E_5200, exception, exception.getMessage());
+                    load.complete(false);
+                }
+            });
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_5200, exception, exception.getMessage());
+            load.complete(false);
+        }
+        return load;
+    }
+
+    private record DisplayItemKey(String itemId, String category) { }
+
+    /** 非同期の報酬準備・表示名事前取得からだけ呼び、キャッシュ不足時はAPIで補完します。 */
     private @Nullable ItemModel resolveItem(@NotNull QuestItemStackDefinition item) {
         ItemModel model = itemService.findLoadedById(item.itemId());
         return model != null ? model : itemService.loadItem(item.itemId(), item.category());
