@@ -1081,6 +1081,8 @@ public enum LogId {
      * ショップ購入失敗を補償しました: player=%s, shopId=%s, itemId=%s, amount=%d, reason=%s
      */
     W_6300(6300),
+    /** 指定SHOPレシピが見つからないため販売を停止しました: entryId=%s, itemId=%s, recipeId=%s */
+    W_6301(6301),
     // endregion
 
     // region /feature/market/ 6320-6329

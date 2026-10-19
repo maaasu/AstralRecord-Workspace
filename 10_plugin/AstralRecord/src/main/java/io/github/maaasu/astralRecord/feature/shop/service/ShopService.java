@@ -26,9 +26,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 public final class ShopService {
@@ -39,6 +41,7 @@ public final class ShopService {
     private final ItemService itemService;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
+    private final Set<ShopEntry> reportedMissingRecipes = ConcurrentHashMap.newKeySet();
     private BiConsumer<AstPlayer, String> purchaseListener = (player, entryId) -> { };
     private BiConsumer<AstPlayer, String> purchaseSavedListener = (player, entryId) -> { };
 
@@ -105,12 +108,17 @@ public final class ShopService {
 
     /**
      * 構築済みのショップ・レシピを同じメインスレッド処理内で公開します。
+     * 指定レシピがない商品は警告し、他の商品は引き続き販売できます。
      *
      * @param snapshot 公開するキャッシュスナップショット
      */
     public void replaceCacheSnapshot(@NotNull CacheSnapshot snapshot) {
         shopRepository.replaceCache(snapshot.shops());
         recipeRepository.replaceCache(snapshot.recipes());
+        reportedMissingRecipes.clear();
+        for (ShopDefinition shop : snapshot.shops()) {
+            shop.entries().forEach(this::isRecipeAvailable);
+        }
     }
 
     public @Nullable ShopDefinition findById(@NotNull String shopId) {
@@ -177,11 +185,12 @@ public final class ShopService {
     }
 
     /**
-     * 現在の対価と商品全量の収納可否から購入条件を計算します。
+     * 指定レシピの存在・現在の対価・商品全量の収納可否から購入条件を計算します。
      * @param player 読み込み済みの購入者
      * @param entry 購入対象の商品
      * @param quantity 購入口数。1未満は1へ補正
      * @return 対価不足と支払い前の容量不足を含む購入可否。所持品の消費・付与は行わない
+     * @implNote レシピは一度だけ解決し、存在判定と費用計算で共有する。未解決なら公開ごと・商品ごとに一度警告し、所持状態は変更しない
      */
     public @NotNull ShopPurchasePreview preview(
         @NotNull AstPlayer player,
@@ -192,10 +201,14 @@ public final class ShopService {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             return new ShopPurchasePreview(safeQuantity, 0L, 0L, List.of(), List.of(), false, false);
         }
+        ShopRecipeCost recipe = resolveRecipe(entry);
+        if (!isRecipeAvailable(entry, recipe)) {
+            return new ShopPurchasePreview(safeQuantity, 0L, 0L, List.of(), List.of(), false, false);
+        }
         UUID accountId = player.getAccount().getUuid();
         long ownedGold = currencyService.getGoldAmount(accountId);
-        long requiredGold = (long) resolveGoldCost(entry) * safeQuantity;
-        List<ShopCostItem> requiredItems = resolveRequiredItems(entry).stream()
+        long requiredGold = (long) resolveGoldCost(entry, recipe) * safeQuantity;
+        List<ShopCostItem> requiredItems = resolveRequiredItems(entry, recipe).stream()
             .map(cost -> cost.multiplied(safeQuantity))
             .toList();
         boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
@@ -349,8 +362,17 @@ public final class ShopService {
     }
 
     public int resolveGoldCost(@NotNull ShopEntry entry) {
+        return resolveGoldCost(entry, resolveRecipe(entry));
+    }
+
+    /**
+     * 解決済みの同じレシピから1口分のGold費用を計算します。
+     * @param entry 商品定義
+     * @param recipe 存在判定に使用したレシピ。未指定時は null
+     * @return 直接費用とレシピ費用の合計
+     */
+    private int resolveGoldCost(@NotNull ShopEntry entry, @Nullable ShopRecipeCost recipe) {
         int cost = Math.max(0, entry.priceGold());
-        ShopRecipeCost recipe = resolveRecipe(entry);
         if (recipe != null) {
             cost += Math.max(0, recipe.requiredCurrency());
         }
@@ -358,9 +380,18 @@ public final class ShopService {
     }
 
     public @NotNull List<ShopCostItem> resolveRequiredItems(@NotNull ShopEntry entry) {
+        return resolveRequiredItems(entry, resolveRecipe(entry));
+    }
+
+    /**
+     * 解決済みの同じレシピから1口分の必要素材を合算します。
+     * @param entry 商品定義
+     * @param recipe 存在判定に使用したレシピ。未指定時は null
+     * @return 直接素材とレシピ素材を同じカテゴリ・IDごとに合算した一覧
+     */
+    private @NotNull List<ShopCostItem> resolveRequiredItems(@NotNull ShopEntry entry, @Nullable ShopRecipeCost recipe) {
         Map<String, ShopCostItem> merged = new LinkedHashMap<>();
         mergeCosts(merged, entry.requiredItems());
-        ShopRecipeCost recipe = resolveRecipe(entry);
         if (recipe != null) {
             mergeCosts(merged, recipe.ingredients());
         }
@@ -372,6 +403,32 @@ public final class ShopService {
             return null;
         }
         return recipeRepository.findShopRecipeById(entry.recipeId());
+    }
+
+    /**
+     * 商品に指定された SHOP レシピが解決できるか判定します。
+     * @param entry 判定する商品
+     * @return レシピ未指定、または指定レシピが存在する場合は true
+     * @implNote 未解決の場合はマスタ公開ごと・商品ごとに一度だけ管理者向け警告を出力する
+     */
+    public boolean isRecipeAvailable(@NotNull ShopEntry entry) {
+        return isRecipeAvailable(entry, resolveRecipe(entry));
+    }
+
+    /**
+     * 解決済みレシピの有無を検証し、未解決商品は重複を抑制して警告します。
+     * @param entry 商品定義
+     * @param recipe 判定に使用する解決済みレシピ
+     * @return 未指定・空白または解決可能なら true
+     */
+    private boolean isRecipeAvailable(@NotNull ShopEntry entry, @Nullable ShopRecipeCost recipe) {
+        if (entry.recipeId() == null || entry.recipeId().isBlank() || recipe != null) {
+            return true;
+        }
+        if (reportedMissingRecipes.add(entry)) {
+            Logger.log(LogId.W_6301, entry.id(), entry.itemId(), entry.recipeId());
+        }
+        return false;
     }
 
     private void mergeCosts(@NotNull Map<String, ShopCostItem> target, @NotNull List<ShopCostItem> costs) {

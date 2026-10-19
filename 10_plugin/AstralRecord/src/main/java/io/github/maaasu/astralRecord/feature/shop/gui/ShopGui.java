@@ -272,6 +272,14 @@ public final class ShopGui {
         return itemStack.getItemMeta().getPersistentDataContainer().get(entryIdKey, PersistentDataType.STRING);
     }
 
+    /**
+     * 商品一覧の表示を作成し、指定レシピが未解決なら費用を隠して販売停止を案内します。
+     * @param model 商品のマスタ
+     * @param shop 表示元ショップ
+     * @param entry 商品定義
+     * @param player 所持数の表示対象
+     * @return 商品表示アイテム。プレイヤーの所持状態は変更しない
+     */
     private @NotNull ItemStack createShopItem(
         @NotNull ItemModel model,
         @NotNull ShopDefinition shop,
@@ -292,6 +300,13 @@ public final class ShopGui {
         lore.add(Component.text(exchange ? "受取数: " : "販売数: ", NamedTextColor.GRAY)
             .append(Component.text(quantityText(displayAmount), NamedTextColor.AQUA, TextDecoration.BOLD))
             .decoration(TextDecoration.ITALIC, false));
+        if (!shopService.isRecipeAvailable(entry)) {
+            lore.addAll(unavailableRecipeLore());
+            meta.lore(lore);
+            meta.getPersistentDataContainer().set(entryIdKey, PersistentDataType.STRING, entry.id());
+            itemStack.setItemMeta(meta);
+            return itemStack;
+        }
         int requiredGold = shopService.resolveGoldCost(entry);
         List<ShopCostItem> requiredItems = shopService.resolveRequiredItems(entry);
         if (requiredGold > 0) {
@@ -313,7 +328,7 @@ public final class ShopGui {
     }
 
     /**
-     * 対価・容量を含むプレビューに従って購入ボタンと不足理由を表示します。
+     * 対価・容量を含むプレビューに従って購入ボタンを作成し、未解決レシピは販売停止を案内します。
      * @param shop 表示元ショップ
      * @param entry 購入対象商品
      * @param preview 現在の購入条件
@@ -326,6 +341,11 @@ public final class ShopGui {
         @NotNull ShopPurchasePreview preview,
         @NotNull Player player
     ) {
+        if (!shopService.isRecipeAvailable(entry)) {
+            return actionItem(Material.RED_TERRACOTTA,
+                Component.text("販売停止中", NamedTextColor.RED, TextDecoration.BOLD)
+                    .decoration(TextDecoration.ITALIC, false), unavailableRecipeLore());
+        }
         boolean exchange = isExchange(shop);
         Material material = preview.canPurchase() ? Material.GREEN_TERRACOTTA : Material.RED_TERRACOTTA;
         List<Component> lore = new ArrayList<>();
@@ -373,6 +393,19 @@ public final class ShopGui {
                 preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false), lore);
+    }
+
+    /**
+     * レシピの内部IDを出さず、販売停止の理由と問い合わせ先を案内します。
+     * @return 販売停止表示に使う説明文
+     */
+    private @NotNull List<Component> unavailableRecipeLore() {
+        return List.of(
+            Component.text("販売設定に不備があるため購入できません", NamedTextColor.RED)
+                .decoration(TextDecoration.ITALIC, false),
+            Component.text("管理者へお問い合わせください", NamedTextColor.GRAY)
+                .decoration(TextDecoration.ITALIC, false)
+        );
     }
 
     private int toGuiSlot(@NotNull ShopEntry entry) {
