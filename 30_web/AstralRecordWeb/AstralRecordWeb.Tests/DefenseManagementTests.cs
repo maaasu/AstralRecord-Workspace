@@ -98,6 +98,35 @@ public sealed class DefenseManagementTests
         Assert.Equal(1, api.Saves);
     }
 
+    [Fact]
+    public async Task LostStartResponseRetriesSameOperationAfterRegistrationClosesAndRunIsPending()
+    {
+        var api = new DefenseHandler { Admin = true, LoseFirstStartResponse = true };
+        await using var factory = new DefenseFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        var html = await client.GetStringAsync(PagePath);
+        var operationId = Guid.NewGuid();
+        using var first = await client.PostAsync(PagePath + "&handler=Start", Form(
+            new("__RequestVerificationToken", Token(html)), new("Input.Revision", "7"),
+            new("StartOperationId", operationId.ToString())));
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        var retryHtml = WebUtility.HtmlDecode(await first.Content.ReadAsStringAsync());
+        Assert.Contains("同じ開始要求を再試行", retryHtml);
+        Assert.Contains("開始要求を受理（ゲーム内開始待ち）", retryHtml);
+        Assert.Contains($"name=\"StartOperationId\" value=\"{operationId:D}\"", retryHtml);
+        Assert.Contains("name=\"RetryStart\" value=\"true\"", retryHtml);
+        Assert.DoesNotContain("disabled=\"disabled\">同じ開始要求を再試行", retryHtml);
+
+        using var second = await client.PostAsync(PagePath + "&handler=Start", Form(
+            new("__RequestVerificationToken", Token(retryHtml)), new("Input.Revision", "7"),
+            new("StartOperationId", operationId.ToString()), new("RetryStart", "true")));
+        Assert.Equal(HttpStatusCode.Found, second.StatusCode);
+        Assert.Equal(2, api.Starts);
+        Assert.Equal(new[] { operationId, operationId }, api.StartOperationIds);
+        Assert.Equal(1, api.AcceptedRuns);
+    }
+
     private static FormUrlEncodedContent Form(params KeyValuePair<string, string>[] fields) => new(fields);
     private static string Token(string html) => WebUtility.HtmlDecode(Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
     private static HttpClient Client(DefenseFactory factory) => factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
@@ -132,6 +161,12 @@ public sealed class DefenseManagementTests
         public bool Admin { get; set; }
         public bool Missing { get; set; }
         public bool SaveConflict { get; set; }
+        public bool LoseFirstStartResponse { get; set; }
+        public bool StartPending { get; private set; }
+        public int AcceptedRuns { get; private set; }
+        public List<Guid> StartOperationIds { get; } = [];
+        private Guid? acceptedStartOperationId;
+        private readonly Guid acceptedRunId = Guid.NewGuid();
         public int DefenseGets { get; private set; }
         public int Starts { get; private set; }
         public int Saves { get; private set; }
@@ -168,8 +203,9 @@ public sealed class DefenseManagementTests
                 {
                     serverId = "game", revision = 7, dailyEnabled = false, dailyStartTimeJst = "09:00",
                     configuration = new { worldName = (string?)null, coreMaxHealth = (double?)null },
-                    missingSettings = Missing ? new[] { "configuration.coreMaxHealth", "eligibleMobs" } : Array.Empty<string>(),
-                    registrationStatus = "OPEN", registeredCount = 5,
+                    missingSettings = Missing || StartPending ? new[] { "configuration.coreMaxHealth", "eligibleMobs" } : Array.Empty<string>(),
+                    registrationStatus = StartPending ? "CLOSED" : "OPEN", registeredCount = StartPending ? 0 : 5,
+                    activeRun = StartPending ? new { runId = acceptedRunId, serverId = "game", status = "PENDING" } : null,
                     nextScheduledAtUtc = (DateTimeOffset?)null,
                 });
             }
@@ -178,7 +214,22 @@ public sealed class DefenseManagementTests
             {
                 Starts++;
                 LastStartBody = await request.Content!.ReadAsStringAsync(ct);
-                return Json(new { runId = Guid.NewGuid(), serverId = "game", status = "PENDING" });
+                using var startBody = JsonDocument.Parse(LastStartBody);
+                var operationId = startBody.RootElement.GetProperty("operationId").GetGuid();
+                StartOperationIds.Add(operationId);
+                if (acceptedStartOperationId is Guid accepted && accepted != operationId)
+                    return new(HttpStatusCode.Conflict);
+                if (acceptedStartOperationId is null)
+                {
+                    acceptedStartOperationId = operationId;
+                    AcceptedRuns++;
+                    if (LoseFirstStartResponse)
+                    {
+                        StartPending = true;
+                        throw new HttpRequestException("開始は受理されたが応答が失われた");
+                    }
+                }
+                return Json(new { runId = acceptedRunId, serverId = "game", status = "PENDING" });
             }
             return new(HttpStatusCode.NotFound);
         }

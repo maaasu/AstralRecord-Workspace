@@ -18,6 +18,7 @@ public sealed class DefenseModel(NetworkManagementApiClient networkApi, DefenseM
     [BindProperty(SupportsGet = true)] public string? ServerId { get; set; }
     [BindProperty] public DefenseSettingsInput Input { get; set; } = new();
     [BindProperty] public Guid StartOperationId { get; set; }
+    [BindProperty] public bool RetryStart { get; set; }
     [BindProperty] public Guid StopOperationId { get; set; }
     [BindProperty] public Guid StopRunId { get; set; }
     [BindProperty] public string StopReason { get; set; } = string.Empty;
@@ -72,16 +73,23 @@ public sealed class DefenseModel(NetworkManagementApiClient networkApi, DefenseM
     public async Task<IActionResult> OnPostStartAsync(CancellationToken ct)
     {
         var expectedRevision = Input.Revision;
+        var requestedOperationId = StartOperationId;
         var prepared = await PreparePostAsync(ct);
         if (prepared.Action is not null) return prepared.Action;
         Input = DefenseSettingsInput.From(State!);
         ModelState.Clear();
-        if (State?.MissingSettings.Count > 0)
+        if (RetryStart && requestedOperationId == Guid.Empty)
+        {
+            RetryStart = false;
+            ErrorMessage = "再試行する開始操作IDがありません。画面を読み直してください。";
+            return Page();
+        }
+        if (!RetryStart && State?.MissingSettings.Count > 0)
         {
             ErrorMessage = "必須設定が不足しています。設定を保存し、不足項目を解消してから開始してください。";
             return Page();
         }
-        if (State?.RegistrationStatus != "OPEN" || State.RegisteredCount is not > 0)
+        if (!RetryStart && (State?.RegistrationStatus != "OPEN" || State.RegisteredCount is not > 0))
         {
             ErrorMessage = "受付中の参加者を確認できません。ゲームサーバーの最新の受付状態を確認してください。";
             return Page();
@@ -91,6 +99,18 @@ public sealed class DefenseModel(NetworkManagementApiClient networkApi, DefenseM
         {
             StatusMessage = "開始要求を受け付けました。実際に開始したか、状態が「防衛中」に変わったことを確認してください。";
             return RedirectToPage(new { serverId = ServerId });
+        }
+        RetryStart = (int)result.Status >= 500 || result.Status == HttpStatusCode.RequestTimeout;
+        if (RetryStart)
+        {
+            var latest = await defenseApi.GetChannelAsync(prepared.Actor, ServerId!, ct);
+            if (latest.Succeeded)
+            {
+                State = latest.Value;
+                Input = DefenseSettingsInput.From(State!);
+                await LoadRunsAsync(prepared.Actor, ct);
+            }
+            Input.Revision = expectedRevision;
         }
         ErrorMessage = ErrorFor(result.Status, result.ErrorMessage, "開始要求の結果を確認できませんでした。同じ操作IDで再試行できます。");
         return Page();

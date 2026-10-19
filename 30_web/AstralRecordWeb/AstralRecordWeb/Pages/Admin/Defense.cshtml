@@ -66,7 +66,7 @@
 
             <section class="ar-panel" aria-labelledby="defense-readiness-title">
                 <h2 id="defense-readiness-title">開始準備</h2>
-                <p class="ar-portal-sub">防衛Lvは全チャンネル共通でLv.1から30秒ごとに+1。開始時参加人数は最大30人で固定します。個人の3回目の死亡で脱落し、1・2回目は蘇生が成立しなければ15秒後に復活します。</p>
+                <p class="ar-portal-sub">防衛Lvは全チャンネル共通でLv.1から30秒ごとに+1。開始時参加人数は最大30人で固定します。個人の1・2回目の死亡は蘇生が成立しなければ15秒後に復活します。3回目も15秒の蘇生猶予があり、成立すれば今回の死亡を取り消し、成立しなければ脱落します。</p>
                 @if (Model.State.MissingSettings.Count == 0)
                 {
                     <p class="ar-defense-ready">必須設定は揃っています。ゲームサーバー側の受付と参加者も開始時に確認されます。</p>
@@ -84,8 +84,9 @@
                 <form method="post" asp-page-handler="Start" asp-route-serverId="@Model.ServerId">
                     <input type="hidden" name="Input.Revision" value="@Model.Input.Revision" />
                     <input type="hidden" name="StartOperationId" value="@Model.StartOperationId" />
-                    <button type="submit" class="btn ar-btn-primary" disabled="@(Model.State.MissingSettings.Count > 0 || run is not null || Model.State.RegistrationStatus != "OPEN" || Model.State.RegisteredCount is not > 0)">今すぐ開始を要求</button>
-                    <span>受付済みの参加者を使います。要求受理後、実際の開始は状態表示で確認してください。</span>
+                    <input type="hidden" name="RetryStart" value="@Model.RetryStart.ToString().ToLowerInvariant()" />
+                    <button type="submit" class="btn ar-btn-primary" disabled="@(!Model.RetryStart && (Model.State.MissingSettings.Count > 0 || run is not null || Model.State.RegistrationStatus != "OPEN" || Model.State.RegisteredCount is not > 0))">@(Model.RetryStart ? "同じ開始要求を再試行" : "今すぐ開始を要求")</button>
+                    <span>@(Model.RetryStart ? "前回の受理結果が不明です。同じ操作IDで照会します。" : "受付済みの参加者を使います。要求受理後、実際の開始は状態表示で確認してください。")</span>
                 </form>
                 @if (run is not null)
                 {
