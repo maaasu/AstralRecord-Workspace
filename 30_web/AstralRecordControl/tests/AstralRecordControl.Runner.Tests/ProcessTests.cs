@@ -10,6 +10,54 @@ namespace AstralRecordControl.Runner.Tests;
 public sealed class ProcessTests
 {
     [Fact]
+    public async Task ChildRetainsWindowsNetworkingAndPrivateWritableTempWithoutParentEnvironment()
+    {
+        var previous = Environment.GetEnvironmentVariable("ASTRAL_CONTROL_PARENT_ONLY_FIXTURE");
+        Environment.SetEnvironmentVariable("ASTRAL_CONTROL_PARENT_ONLY_FIXTURE", "fixture-only");
+        try
+        {
+            using var fixture = new Fixture();
+            using var runner = fixture.Open();
+            runner.ApplyInventory(fixture.Envelope());
+            var hold = fixture.Hold(runner);
+            var start = fixture.Request(runner, hold, OperationKind.Start);
+            Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(start).OperationId)).Status);
+            fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+            var session = runner.GetSnapshot().Servers.Single().CurrentSessionId;
+            var probe = fixture.Request(runner, hold, OperationKind.ConsoleCommand, new { command = "environment-probe" });
+            Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(probe).OperationId)).Status);
+            ReadLogsRequest logs = new() { ServerId = fixture.Server.ServerId, SessionId = session, Limit = 200 };
+            await WaitUntil(() => runner.ReadLogs(logs).Rows.Any(row => row.Text == "environment-io-ready"));
+            var lines = runner.ReadLogs(logs).Rows.Select(row => row.Text).ToArray();
+            Assert.Contains("environment-system-root:" + Environment.GetFolderPath(Environment.SpecialFolder.Windows), lines);
+            Assert.Contains("environment-temp:" + Path.TrimEndingDirectorySeparator(fixture.TemporaryDirectory) + Path.DirectorySeparatorChar, lines);
+            Assert.Contains("environment-parent-only:absent", lines);
+            var stop = fixture.Request(runner, hold, OperationKind.Stop);
+            Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(stop).OperationId)).Status);
+            runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        }
+        finally { Environment.SetEnvironmentVariable("ASTRAL_CONTROL_PARENT_ONLY_FIXTURE", previous); }
+    }
+
+    [Fact]
+    public async Task InvalidTemporaryDirectoryRefusesLaunchAndLeavesNoOwnedProcess()
+    {
+        using var fixture = new Fixture();
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        Directory.CreateDirectory(Path.GetDirectoryName(fixture.TemporaryDirectory)!);
+        File.WriteAllText(fixture.TemporaryDirectory, "not a directory");
+        var hold = fixture.Hold(runner);
+        var start = fixture.Request(runner, hold, OperationKind.Start);
+        Assert.Equal(OperationStatus.NeedsAttention, (await WaitTerminal(runner, runner.Execute(start).OperationId)).Status);
+        var state = Assert.Single(runner.GetSnapshot().Servers);
+        Assert.Equal(ProcessState.Stopped, state.ProcessState);
+        Assert.Null(state.CurrentSessionId);
+        Assert.Empty(runner.ReadMetrics().Processes);
+        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence))).Code);
+    }
+
+    [Fact]
     public async Task OwnedFixtureProcessReportsMetricsAndExpectedExit()
     {
         using var fixture = new Fixture();
@@ -405,6 +453,7 @@ public sealed class ProcessTests
         public ServerConfig Server { get; }
         public ServerConfig? SecondServer { get; }
         public string DatabasePath => Path.Combine(root, "runner", "runner.db");
+        public string TemporaryDirectory => Path.Combine(root, "runner", "process-temp", Server.ServerId.ToString("N"));
         public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false)
         {
             var managed = Path.Combine(root, "managed");

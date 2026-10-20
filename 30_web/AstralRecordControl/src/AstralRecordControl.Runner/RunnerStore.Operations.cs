@@ -188,7 +188,7 @@ public sealed partial class RunnerStore
         try
         {
             var startInfo = new ProcessStartInfo(executable) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = directory, CreateNoWindow = true };
-            startInfo.Environment.Clear();
+            PrepareProcessEnvironment(startInfo, serverId);
             foreach (var arg in config.ArgumentList) startInfo.ArgumentList.Add(arg);
             process = Process.Start(startInfo) ?? throw new RunnerFault(ErrorCode.RecoveryRequired);
             var created = process.StartTime.ToUniversalTime();
@@ -223,6 +223,29 @@ public sealed partial class RunnerStore
             }
             throw;
         }
+    }
+
+    private void PrepareProcessEnvironment(ProcessStartInfo startInfo, Guid serverId)
+    {
+        var temporary = Path.Combine(dataRoot, "process-temp", serverId.ToString("N"));
+        LocalResourceBoundary.ValidateLocalPath(temporary);
+        Directory.CreateDirectory(temporary);
+        LocalResourceBoundary.ValidateLocalPath(temporary);
+        // Check the Runner identity can create files before launching native libraries.
+        using (var probe = new FileStream(Path.Combine(temporary, ".write-test-" + Guid.NewGuid().ToString("N")),
+            FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose)) { }
+        startInfo.Environment.Clear();
+        if (OperatingSystem.IsWindows())
+        {
+            var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            if (string.IsNullOrWhiteSpace(windows)) throw new RunnerFault(ErrorCode.RecoveryRequired);
+            // Winsock providers require SystemRoot; do not inherit arbitrary service secrets or JVM options.
+            startInfo.Environment["SystemRoot"] = windows;
+            startInfo.Environment["windir"] = windows;
+        }
+        startInfo.Environment["TMP"] = temporary;
+        startInfo.Environment["TEMP"] = temporary;
+        startInfo.Environment["TMPDIR"] = temporary;
     }
 
     private static async Task WaitForPortAsync(Process process, int port, CancellationToken cancellationToken)
