@@ -1,4 +1,6 @@
 /* Bounded chunk hashing and transfer; no file-sized arrayBuffer is used. */
+(() => {
+"use strict";
 class ControlSha256 {
     constructor() { this.h = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]); this.b = new Uint8Array(64); this.n = 0; this.length = 0n; }
     update(bytes) {
@@ -33,23 +35,50 @@ class ControlSha256 {
 }
 ControlSha256.k = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
 
-if (typeof document !== "undefined") (() => {
-    "use strict";
+if (typeof module !== "undefined" && module.exports) module.exports = ControlSha256;
+if (typeof document !== "undefined") {
     const panel = document.getElementById("p2-control"); if (!panel) return;
     const byId = id => document.getElementById(id), status = byId("p2-status"), output = byId("p2-result");
     const api = "/api/control/v1", chunkSize = 4 * 1024 * 1024, csrf = panel.querySelector('input[name="__RequestVerificationToken"]').value;
     let profiles = [], nextCursor = null, nextBackup = null;
-    const setStatus = value => { status.textContent = value; };
+    let active = true, busy = false;
+    const controllers = new Set(), listeners = [];
+    const listen = (element, type, handler) => { element.addEventListener(type, handler); listeners.push([element, type, handler]); };
+    const setStatus = value => { if (active) status.textContent = value; };
+    const beforeNavigate = event => {
+        if (!busy) return;
+        event.preventDefault();
+        setStatus("処理中です。完了するまで画面を移動できません。");
+    };
+    const stop = () => {
+        if (!active) return;
+        active = false;
+        for (const controller of controllers) controller.abort();
+        for (const [element, type, handler] of listeners) element.removeEventListener(type, handler);
+        listeners.length = 0;
+        window.removeEventListener("control:before-navigate", beforeNavigate);
+        window.removeEventListener("control:before-page-change", stop);
+        window.removeEventListener("pagehide", stop);
+    };
+    window.addEventListener("control:before-navigate", beforeNavigate);
+    window.addEventListener("control:before-page-change", stop);
+    window.addEventListener("pagehide", stop);
     async function request(path, method = "GET", body, extra = {}) {
+        if (!active) throw new Error("画面が切り替わりました。");
         const headers = { ...extra };
         if (method !== "GET") headers["X-CSRF-TOKEN"] = csrf;
         if (body !== undefined && !(body instanceof Blob) && !(body instanceof Uint8Array)) { headers["Content-Type"] = "application/json"; body = JSON.stringify(body); }
-        const response = await fetch(api + path, { method, headers, body, cache: "no-store", credentials: "same-origin", redirect: "error" });
-        if (!response.ok) { let error; try { error = await response.json(); } catch { error = {}; } throw new Error(error.errorCode || error.title || `HTTP ${response.status}`); }
-        if (response.status === 204) return null;
-        const result = await response.json();
-        const check = value => { if (typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("安全に表示できる整数範囲を超えています。"); if (value && typeof value === "object") Object.values(value).forEach(check); };
-        check(result); return result;
+        const controller = new AbortController();
+        controllers.add(controller);
+        try {
+            const response = await fetch(api + path, { method, headers, body, cache: "no-store", credentials: "same-origin", redirect: "error", signal: controller.signal });
+            if (!response.ok) { let error; try { error = await response.json(); } catch { error = {}; } throw new Error(error.errorCode || error.title || `HTTP ${response.status}`); }
+            if (response.status === 204) return null;
+            const result = await response.json();
+            if (!active) throw new Error("画面が切り替わりました。");
+            const check = value => { if (typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("安全に表示できる整数範囲を超えています。"); if (value && typeof value === "object") Object.values(value).forEach(check); };
+            check(result); return result;
+        } finally { controllers.delete(controller); }
     }
     const keyHeaders = id => ({ "Idempotency-Key": id });
     function target(value = byId("file-path")?.value.trim() || "") { return { managedRootId: panel.dataset.rootId, relativePath: panel.dataset.directory + (value ? "/" + value : "") }; }
@@ -141,7 +170,7 @@ if (typeof document !== "undefined") (() => {
         const table = byId("file-entries"); if (!append) table.replaceChildren();
         for (const entry of data.entries) {
             const tr = table.insertRow(), cell = tr.insertCell(), button = document.createElement("button"); button.type = "button"; button.textContent = entry.name;
-            button.addEventListener("click", () => { byId("file-path").value = basePath + (basePath ? "/" : "") + entry.name; byId("file-etag").value = entry.etag || "absent"; }); cell.append(button);
+            listen(button, "click", () => { byId("file-path").value = basePath + (basePath ? "/" : "") + entry.name; byId("file-etag").value = entry.etag || "absent"; }); cell.append(button);
             tr.insertCell().textContent = entry.isDirectory ? "フォルダ" : "ファイル"; tr.insertCell().textContent = `${entry.bytes} bytes`;
         }
         nextCursor = data.nextCursor; byId("list-next").hidden = !nextCursor;
@@ -178,13 +207,18 @@ if (typeof document !== "undefined") (() => {
     };
     function mutate(action) { if (action === "Delete" && !confirm(`退避削除する対象: ${byId("file-path").value}`)) return; return operate("FileMutation", { action, source: target(), destination: action === "Delete" ? null : target(byId("file-destination").value.trim()), expectedEtag: byId("file-etag").value }); }
     async function run(action) {
+        if (!active || busy) return;
+        busy = true;
         const buttons = panel.querySelectorAll("button"); buttons.forEach(b => b.disabled = true);
-        try { await action(); } catch (error) { setStatus(error.message); } finally { buttons.forEach(b => b.disabled = panel.dataset.enabled === "false"); }
+        try { await action(); } catch (error) { setStatus(error.message); } finally {
+            busy = false;
+            if (active) buttons.forEach(b => b.disabled = panel.dataset.enabled === "false");
+        }
     }
-    for (const button of panel.querySelectorAll("[data-action]")) button.addEventListener("click", () => run(actions[button.dataset.action]));
-    byId("backup-profile")?.addEventListener("change", () => { const p = profiles.find(p => p.backupProfileId === byId("backup-profile").value); if (!p) return; byId("backup-destination").value = p.destinationRootId; byId("backup-format").value = p.format; byId("retention-count").value = p.retentionCount; byId("retention-days").value = p.retentionDays; byId("exclude-patterns").value = p.excludePatterns.join("\n"); byId("backup-restart").checked = p.restartIfPreviouslyRunning; });
+    for (const button of panel.querySelectorAll("[data-action]")) listen(button, "click", () => run(actions[button.dataset.action]));
+    if (byId("backup-profile")) listen(byId("backup-profile"), "change", () => { const p = profiles.find(p => p.backupProfileId === byId("backup-profile").value); if (!p) return; byId("backup-destination").value = p.destinationRootId; byId("backup-format").value = p.format; byId("retention-count").value = p.retentionCount; byId("retention-days").value = p.retentionDays; byId("exclude-patterns").value = p.excludePatterns.join("\n"); byId("backup-restart").checked = p.restartIfPreviouslyRunning; });
     if (panel.dataset.enabled === "false") panel.querySelectorAll("button").forEach(b => b.disabled = true);
-    else if (panel.dataset.mode === "backups") run(async () => { await loadProfiles(); await loadBackups(); });
+    else if (panel.dataset.mode === "backups") loadProfiles().then(() => loadBackups()).catch(error => setStatus(error.message));
     else if (panel.dataset.mode === "transfers") initializeTransfers();
 
     async function initializeTransfers() {
@@ -194,12 +228,13 @@ if (typeof document !== "undefined") (() => {
                 const row = table.insertRow();
                 for (const value of [t.transferId, t.status, `${t.committedOffset} / ${t.sizeBytes ?? "未確定"}`, new Date(t.expiresAtUtc).toLocaleString()]) row.insertCell().textContent = value;
                 const cell = row.insertCell();
-                if (t.destinationHostId === null && t.status === "Verified") { const b = document.createElement("button"); b.textContent = "保存"; b.addEventListener("click", () => download(t)); cell.append(b); }
-                if (t.sourceHostId === null && t.status === "Uploading") { const input = document.createElement("input"); input.type = "file"; input.setAttribute("aria-label", "再開する同じファイル"); const b = document.createElement("button"); b.textContent = "転送を再開"; b.addEventListener("click", () => run(async () => { if (!input.files[0]) throw new Error("同じファイルを選択してください。"); await upload(input.files[0], t); await refresh(); })); cell.append(input, b); }
+                if (t.destinationHostId === null && t.status === "Verified") { const b = document.createElement("button"); b.textContent = "保存"; listen(b, "click", () => run(() => download(t))); cell.append(b); }
+                if (t.sourceHostId === null && t.status === "Uploading") { const input = document.createElement("input"); input.type = "file"; input.setAttribute("aria-label", "再開する同じファイル"); const b = document.createElement("button"); b.textContent = "転送を再開"; listen(b, "click", () => run(async () => { if (!input.files[0]) throw new Error("同じファイルを選択してください。"); await upload(input.files[0], t); await refresh(); })); cell.append(input, b); }
                 if (t.destinationHostId && t.status === "Verified") { const link = document.createElement("a"); link.href = `/Servers/${t.serverId}/Files`; link.textContent = "取り込み先を開く（同じファイルの選択で再開）"; cell.append(link); }
             }
         };
-        byId("transfers-refresh").addEventListener("click", () => run(refresh)); await run(refresh);
+        listen(byId("transfers-refresh"), "click", () => run(refresh));
+        try { await refresh(); } catch (error) { setStatus(error.message); }
     }
     async function download(transfer) {
         let writer = null;
@@ -223,4 +258,5 @@ if (typeof document !== "undefined") (() => {
             setStatus("SHA-256を確認して保存しました。");
         } catch (error) { if (writer) await writer.abort(); setStatus(error.message); }
     }
+}
 })();

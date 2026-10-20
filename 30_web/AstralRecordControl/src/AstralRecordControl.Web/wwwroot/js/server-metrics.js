@@ -62,15 +62,33 @@
     if (!range) return;
     const id = range.dataset.serverId;
     const status = document.getElementById('metrics-status');
+    let active = true, generation = 0, controller = null;
+    const stop = () => {
+        if (!active) return;
+        active = false;
+        generation++;
+        controller?.abort();
+        range.removeEventListener('change', refresh);
+        window.removeEventListener('control:before-page-change', stop);
+        window.removeEventListener('pagehide', stop);
+    };
+    window.addEventListener('control:before-page-change', stop);
+    window.addEventListener('pagehide', stop);
     async function refresh() {
+        if (!active) return;
+        const current = ++generation;
+        controller?.abort();
+        const requestController = new AbortController();
+        controller = requestController;
         try {
             const to = new Date();
             const from = new Date(to.getTime() - Number(range.value) * 3600000);
             const granularity = Number(range.value) <= 24 ? 'minute' : 'hour';
             const query = new URLSearchParams({ fromUtc: from.toISOString(), toUtc: to.toISOString(), granularity });
-            const response = await fetch('/api/control/v1/servers/' + encodeURIComponent(id) + '/metrics?' + query, { credentials: 'same-origin', cache: 'no-store' });
+            const response = await fetch('/api/control/v1/servers/' + encodeURIComponent(id) + '/metrics?' + query, { credentials: 'same-origin', cache: 'no-store', signal: requestController.signal });
             if (!response.ok) throw new Error('取得に失敗しました (' + response.status + ')');
             const data = await response.json();
+            if (!active || current !== generation || !range.isConnected) return;
             document.getElementById('host-state').textContent = data.connectionState;
             document.getElementById('process-state').textContent = data.processState || '状態未取得';
             const specs = [
@@ -90,7 +108,11 @@
             document.getElementById('host-uptime').textContent = hostUptime === null ? '欠測' : Math.round(hostUptime) + '秒';
             document.getElementById('server-uptime').textContent = serverUptime === null ? '欠測' : Math.round(serverUptime) + '秒';
             status.textContent = data.host.length || data.server.length ? '時系列を更新しました。' : 'この期間の計測値はありません。';
-        } catch (error) { status.textContent = error.message; }
+        } catch (error) {
+            if (active && current === generation && status.isConnected && !requestController.signal.aborted) status.textContent = error.message;
+        } finally {
+            if (controller === requestController) controller = null;
+        }
     }
     range.addEventListener('change', refresh);
     refresh();
