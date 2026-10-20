@@ -5,8 +5,8 @@
     ViewData["Title"] = Model.Server.DisplayName + " · 操作・ログ";
     ViewData["ServerTab"] = "Operations";
     ViewData["ServerManaged"] = true;
-    var stopped = Model.Runtime?.ProcessState == ProcessState.Stopped && Model.Runtime.CurrentSessionId is null;
-    var running = Model.Runtime?.ProcessState == ProcessState.Running && Model.Runtime.CurrentSessionId is not null;
+    var stopped = !Model.OperationPending && Model.Runtime?.ProcessState == ProcessState.Stopped && Model.Runtime.CurrentSessionId is null;
+    var running = !Model.OperationPending && Model.Runtime?.ProcessState == ProcessState.Running && Model.Runtime.CurrentSessionId is not null;
 }
 <h1>@Model.Server.DisplayName · 操作・ログ</h1>
 <partial name="_ServerTabs" model="Model.Server.ServerId" />
@@ -65,7 +65,7 @@
 <section class="server-console">
     <h2>操作履歴</h2>
     <div class="table-scroll"><table class="data-table"><thead><tr><th>日時</th><th>種別</th><th>状態</th><th>エラー</th></tr></thead><tbody id="server-operation-history">
-        @foreach (var operation in Model.Recent) { <tr><td>@operation.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</td><td>@operation.Kind</td><td>@operation.Status</td><td>@operation.ErrorCode</td></tr> }
+        @foreach (var operation in Model.Recent) { <tr><td>@operation.CreatedAtUtc.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</td><td>@operation.Kind</td><td>@operation.Status</td><td>@operation.ErrorCode</td></tr> }
     </tbody></table></div>
 </section>
 @section Scripts { <script src="~/js/server-logs.js" asp-append-version="true" defer></script> }

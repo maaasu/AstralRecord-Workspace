@@ -19,12 +19,14 @@
     let state = null;
     const connected = () => root.isConnected && log.isConnected && logStatus.isConnected;
     const setButtons = () => {
-        const enabled = !stopped && !pending && state?.enabled === true;
+        const processing = pending || state?.operationPending === true;
+        const enabled = !stopped && !processing && state?.enabled === true;
         const processState = state?.processState;
         const running = processState === "Running" && !!state.currentSessionId;
         const stoppedState = processState === "Stopped" && !state.currentSessionId;
         for (const button of buttons) button.disabled = !enabled || (button.value === "Start" ? !stoppedState : !running);
-        availability.hidden = enabled || pending;
+        availability.hidden = enabled;
+        availability.textContent = processing ? "操作を処理中、または要確認の操作が残っています。履歴を確認してください。" : "操作は現在利用できません。PC接続・共通gate・設定適用を確認してください。";
     };
     const stop = () => {
         if (stopped) return;
@@ -47,7 +49,8 @@
         const fragment = document.createDocumentFragment();
         for (const row of rows) {
             const tr = document.createElement("tr");
-            for (const value of [row.createdAtUtc ? new Date(row.createdAtUtc).toLocaleString("ja-JP") : "", kindNames[row.kind] || row.kind, statusNames[row.status] || row.status, row.errorCode || ""]) {
+            const occurred = row.createdAtUtc ? new Date(row.createdAtUtc).toISOString().slice(0, 19).replace("T", " ") + " UTC" : "";
+            for (const value of [occurred, kindNames[row.kind] || row.kind, statusNames[row.status] || row.status, row.errorCode || ""]) {
                 const td = document.createElement("td");
                 td.textContent = value || "";
                 tr.append(td);
@@ -57,7 +60,7 @@
         history.replaceChildren(fragment);
     };
     const updateState = snapshot => {
-        if (!snapshot || typeof snapshot.enabled !== "boolean" || !Array.isArray(snapshot.recent)
+        if (!snapshot || typeof snapshot.enabled !== "boolean" || typeof snapshot.operationPending !== "boolean" || !Array.isArray(snapshot.recent)
             || !Number.isSafeInteger(snapshot.configRevision) || snapshot.configRevision < 1
             || (snapshot.stateRevision !== null && (!Number.isSafeInteger(snapshot.stateRevision) || snapshot.stateRevision < 0))) throw new Error("Invalid status");
         state = snapshot;

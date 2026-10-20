@@ -19,6 +19,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
     public GateLease[] MaintenanceLeases { get; private set; } = [];
     public LogBatch? Logs { get; private set; }
     public bool Enabled { get; private set; }
+    public bool OperationPending { get; private set; }
     public string? Error { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(Guid serverId, long? afterSequence)
@@ -42,13 +43,13 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
             && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate")
             && config.Kind == ServerKind.Java && config.DependencyReadiness != DependencyReadiness.AstralReady
             && runtime is not null && server.AppliedRevision == server.DesiredRevision && runtime.ConfigRevision == server.AppliedRevision;
-        var recent = (await db.Operations.AsNoTracking().Where(x => x.ServerId == serverId).ToArrayAsync())
-            .OrderByDescending(x => x.CreatedAtUtc).Take(20)
+        var recent = (await ReadRecentOperationsAsync(serverId))
             .Select(x => new { createdAtUtc = x.CreatedAtUtc, kind = x.Kind.ToString(), status = x.Status.ToString(), errorCode = x.ErrorCode }).ToArray();
         return new JsonResult(new
         {
             enabled, processState = runtime?.ProcessState.ToString(), stateRevision = runtime?.StateRevision,
             currentSessionId = runtime?.CurrentSessionId, configRevision = server.AppliedRevision,
+            operationPending = await HasPendingOperationAsync(serverId),
             recent
         });
     }
@@ -92,7 +93,8 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
             && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate")
             && config.Kind == ServerKind.Java && config.DependencyReadiness != DependencyReadiness.AstralReady
             && Runtime != null && Runtime.ConfigRevision == Server.AppliedRevision && Server.AppliedRevision == Server.DesiredRevision;
-        Recent = (await db.Operations.AsNoTracking().Where(x => x.ServerId == serverId).ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(20).ToArray();
+        Recent = await ReadRecentOperationsAsync(serverId);
+        OperationPending = await HasPendingOperationAsync(serverId);
         var active = await db.Reservations.AsNoTracking().Where(x => x.ResourceKey == ReservationService.ServerKey(serverId) && x.State == ReservationStatus.Prepared).Select(x => x.ReservationId).ToArrayAsync();
         var waiting = (await db.Workflows.AsNoTracking().Where(x => x.Status == WorkflowStatus.WaitingForStartup).ToArrayAsync())
             .Where(x => ControlJson.Deserialize<ReservationAcquireRequest>(x.RequestJson).ServerConditions.Any(c => c.ServerId == serverId && c.RequiredState == ProcessRequirement.Stopped))
@@ -105,4 +107,18 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
             catch (Exception exception) when (exception is InventoryFault or IOException or OperationCanceledException) { }
         }
     }
+
+    private async Task<ControlOperation[]> ReadRecentOperationsAsync(Guid serverId)
+    {
+        // Operations are written as UTC. SQLite can order their stored TEXT values without EF's DateTimeOffset translation.
+        var recent = await db.Operations
+            .FromSqlInterpolated($"SELECT * FROM \"Operations\" WHERE \"ServerId\" = {serverId} ORDER BY \"CreatedAtUtc\" DESC, \"OperationId\" DESC LIMIT 20")
+            .AsNoTracking()
+            .Select(x => new ControlOperation { OperationId = x.OperationId, CreatedAtUtc = x.CreatedAtUtc, Kind = x.Kind, Status = x.Status, ErrorCode = x.ErrorCode })
+            .ToArrayAsync();
+        return recent.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.OperationId).ToArray();
+    }
+
+    private Task<bool> HasPendingOperationAsync(Guid serverId) => db.Operations.AsNoTracking().AnyAsync(x => x.ServerId == serverId
+        && (x.Status == OperationStatus.Queued || x.Status == OperationStatus.Accepted || x.Status == OperationStatus.Running || x.Status == OperationStatus.NeedsAttention));
 }

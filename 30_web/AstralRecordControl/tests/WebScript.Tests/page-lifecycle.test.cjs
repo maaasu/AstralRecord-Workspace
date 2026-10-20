@@ -42,7 +42,7 @@ test('console polling aborts status fetch and ignores late results on page chang
     assert.equal(fixture.buttons.every(button => button.disabled), true);
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
     assert.equal(signal.aborted, true);
-    resolveFetch({ ok: true, json: async () => ({ enabled: true, configRevision: 1, stateRevision: 1, processState: 'Running', currentSessionId: 'new', recent: [] }) });
+    resolveFetch({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 1, stateRevision: 1, processState: 'Running', currentSessionId: 'new', recent: [] }) });
     await flush();
     assert.equal(fixture.process.textContent, '');
     assert.equal(fixture.timers.size, 0);
@@ -52,7 +52,7 @@ test('console follows new session, updates hidden revisions/history, and preserv
     const requests = [];
     const fixture = consoleFixture((url, options) => {
         requests.push({ url: String(url), signal: options.signal });
-        if (String(url).includes('handler=Status')) return Promise.resolve({ ok: true, json: async () => ({ enabled: true, configRevision: 4, stateRevision: 9, processState: 'Running', currentSessionId: 'new', recent: [{ createdAtUtc: '2026-10-20T00:00:00Z', kind: 'Start', status: 'Succeeded', errorCode: null }] }) });
+        if (String(url).includes('handler=Status')) return Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 4, stateRevision: 9, processState: 'Running', currentSessionId: 'new', recent: [{ createdAtUtc: '2026-10-20T00:00:00Z', kind: 'Start', status: 'Succeeded', errorCode: null }] }) });
         return Promise.resolve({ ok: true, json: async () => ({ sessionId: 'new', nextCursor: 2, rows: [{ occurredAtUtc: 'now', stream: 'stdout', text: '<unsafe>', truncated: false }] }) });
     });
     fixture.log.scrollHeight = 500;
@@ -65,6 +65,7 @@ test('console follows new session, updates hidden revisions/history, and preserv
     assert.equal(fixture.buttons[0].disabled, true);
     assert.equal(fixture.buttons[1].disabled, false);
     assert.equal(fixture.history.rows[0].children[1].textContent, '起動');
+    assert.equal(fixture.history.rows[0].children[0].textContent, '2026-10-20 00:00:00 UTC');
     assert.match(fixture.log.textContent, /<unsafe>/);
     assert.equal(fixture.log.scrollTop, 10);
     assert.match(requests[1].url, /sessionId=new&afterSequence=0/);
@@ -77,7 +78,7 @@ test('console disables operations when status cannot be checked', async () => {
     const fixture = consoleFixture(() => {
         calls++;
         return calls === 1
-            ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, configRevision: 1, stateRevision: 1, processState: 'Stopped', currentSessionId: null, recent: [] }) })
+            ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 1, stateRevision: 1, processState: 'Stopped', currentSessionId: null, recent: [] }) })
             : Promise.reject(new Error('offline'));
     });
     await new Promise(setImmediate);
@@ -93,7 +94,7 @@ test('console disables operations when status cannot be checked', async () => {
 
 test('console follows log bottom and locks controls after submit', async () => {
     const fixture = consoleFixture(url => String(url).includes('handler=Status')
-        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, configRevision: 2, stateRevision: 4, processState: 'Running', currentSessionId: 'old', recent: [] }) })
+        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 2, stateRevision: 4, processState: 'Running', currentSessionId: 'old', recent: [] }) })
         : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: 1, rows: [{ occurredAtUtc: 'now', stream: 'stdout', text: 'line' }] }) }));
     fixture.log.scrollHeight = 200;
     fixture.log.scrollTop = 100;
@@ -105,6 +106,19 @@ test('console follows log bottom and locks controls after submit', async () => {
     await flush();
     assert.equal(fixture.buttons.every(button => button.disabled), true);
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
+
+test('console stays disabled after redirect while an accepted operation awaits a state update', async () => {
+    for (const processState of ['Stopped', 'Running']) {
+        const fixture = consoleFixture(url => String(url).includes('handler=Status')
+            ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: true, configRevision: 2, stateRevision: 4, processState, currentSessionId: processState === 'Running' ? 'old' : null, recent: [] }) })
+            : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: 0, rows: [] }) }));
+        await new Promise(setImmediate);
+        assert.equal(fixture.buttons.every(button => button.disabled), true);
+        assert.equal(fixture.availability.hidden, false);
+        assert.match(fixture.availability.textContent, /操作を処理中/);
+        fixture.window.dispatchEvent(new Event('control:before-page-change'));
+    }
 });
 
 test('metrics range change aborts the previous request and departure ignores late data', async () => {

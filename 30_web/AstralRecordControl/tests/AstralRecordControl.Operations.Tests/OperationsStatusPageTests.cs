@@ -4,6 +4,7 @@ using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Pages.Servers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -48,6 +49,7 @@ public sealed class OperationsStatusPageTests
         {
             var root = json.RootElement;
             Assert.True(root.GetProperty("enabled").GetBoolean());
+            Assert.False(root.GetProperty("operationPending").GetBoolean());
             Assert.Equal("Running", root.GetProperty("processState").GetString());
             Assert.Equal(8, root.GetProperty("stateRevision").GetInt64());
             Assert.Equal(sessionId, root.GetProperty("currentSessionId").GetGuid());
@@ -57,6 +59,32 @@ public sealed class OperationsStatusPageTests
             Assert.Equal(now.AddMinutes(-1), rows[0].GetProperty("createdAtUtc").GetDateTimeOffset());
             Assert.Equal(now.AddMinutes(-20), rows[^1].GetProperty("createdAtUtc").GetDateTimeOffset());
         }
+
+        var pending = new ControlOperation { OperationId = Guid.NewGuid(), IdempotencyKey = Guid.NewGuid(), HostId = hostId, ServerId = serverId, WorkflowId = workflowId, ReservationId = Guid.NewGuid(), Kind = OperationKind.Start, CreatedAtUtc = now.AddDays(-10) };
+        db.Operations.Add(pending);
+        foreach (var status in new[] { OperationStatus.Queued, OperationStatus.Accepted, OperationStatus.Running, OperationStatus.NeedsAttention })
+        {
+            pending.Status = status;
+            await db.SaveChangesAsync();
+            using var processing = JsonDocument.Parse(JsonSerializer.Serialize(((JsonResult)await page.OnGetStatusAsync(serverId)).Value, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+            Assert.True(processing.RootElement.GetProperty("operationPending").GetBoolean());
+            Assert.Equal(20, processing.RootElement.GetProperty("recent").GetArrayLength());
+            Assert.DoesNotContain(processing.RootElement.GetProperty("recent").EnumerateArray(), row => row.GetProperty("createdAtUtc").GetDateTimeOffset() == pending.CreatedAtUtc);
+        }
+        pending.Status = OperationStatus.Succeeded;
+        await db.SaveChangesAsync();
+        using var completed = JsonDocument.Parse(JsonSerializer.Serialize(((JsonResult)await page.OnGetStatusAsync(serverId)).Value, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.False(completed.RootElement.GetProperty("operationPending").GetBoolean());
+
+        var server = await db.Servers.SingleAsync(x => x.ServerId == serverId);
+        server.DesiredConfigJson = ControlJson.Serialize(config with { Kind = ServerKind.Velocity });
+        await db.SaveChangesAsync();
+        Assert.IsType<PageResult>(await page.OnGetAsync(serverId, null));
+        Assert.Equal(20, page.Recent.Length);
+        Assert.Equal(now.AddMinutes(-1), page.Recent[0].CreatedAtUtc);
+        Assert.Equal(now.AddMinutes(-20), page.Recent[^1].CreatedAtUtc);
+        server.DesiredConfigJson = ControlJson.Serialize(config);
+        await db.SaveChangesAsync();
 
         host.ConnectionState = HostConnectionState.Offline;
         await db.SaveChangesAsync();
