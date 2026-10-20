@@ -6,9 +6,13 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
+        Console.InputEncoding = new System.Text.UTF8Encoding(false);
+        Console.OutputEncoding = new System.Text.UTF8Encoding(false);
         var ignoreStop = args.Contains("ignore-stop", StringComparer.Ordinal);
         Console.WriteLine("fixture-ready");
         Console.Error.WriteLine("fixture-stderr");
+        Console.WriteLine("fixture-utf8-stdout:日本語😀\u001b[90m灰色\u001b[0m");
+        Console.Error.WriteLine("fixture-utf8-stderr:警告⚠️\u001b[31m赤色\u001b[0m");
         if (args.Contains("no-read", StringComparer.Ordinal)) await Task.Delay(Timeout.InfiniteTimeSpan);
         while (true)
         {

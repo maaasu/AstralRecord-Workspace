@@ -187,7 +187,19 @@ public sealed partial class RunnerStore
         Process? process = null;
         try
         {
-            var startInfo = new ProcessStartInfo(executable) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = directory, CreateNoWindow = true };
+            var utf8 = new UTF8Encoding(false);
+            var startInfo = new ProcessStartInfo(executable)
+            {
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardInputEncoding = utf8,
+                StandardOutputEncoding = utf8,
+                StandardErrorEncoding = utf8,
+                WorkingDirectory = directory,
+                CreateNoWindow = true
+            };
             PrepareProcessEnvironment(startInfo, serverId);
             foreach (var arg in config.ArgumentList) startInfo.ArgumentList.Add(arg);
             process = Process.Start(startInfo) ?? throw new RunnerFault(ErrorCode.RecoveryRequired);

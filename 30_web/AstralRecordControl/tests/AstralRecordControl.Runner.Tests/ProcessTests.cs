@@ -114,6 +114,35 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public async Task Utf8ChildOutputAndConsoleInputRoundTripWithoutLosingAnsiSequences()
+    {
+        using var fixture = new Fixture();
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        var start = fixture.Request(runner, hold, OperationKind.Start);
+        var session = Assert.IsType<Guid>((await WaitTerminal(runner, runner.Execute(start).OperationId)).ServerSessionId);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+
+        const string commandText = "say 日本語😀";
+        var command = fixture.Request(runner, hold, OperationKind.ConsoleCommand, new { command = commandText });
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(command).OperationId)).Status);
+
+        var request = new ReadLogsRequest { ServerId = fixture.Server.ServerId, SessionId = session, Limit = 200 };
+        await WaitUntil(() =>
+        {
+            var rows = runner.ReadLogs(request).Rows;
+            return rows.Any(row => row.Stream == "stdout" && row.Text == "fixture-utf8-stdout:日本語😀\u001b[90m灰色\u001b[0m")
+                && rows.Any(row => row.Stream == "stderr" && row.Text == "fixture-utf8-stderr:警告⚠️\u001b[31m赤色\u001b[0m")
+                && rows.Any(row => row.Stream == "stdout" && row.Text == "echo:" + commandText);
+        });
+
+        var stop = fixture.Request(runner, hold, OperationKind.Stop);
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(stop).OperationId)).Status);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    [Fact]
     public async Task StopTimeoutPreservesHoldAndNeverEscalatesToKill()
     {
         using var fixture = new Fixture(ignoreStop: true);
