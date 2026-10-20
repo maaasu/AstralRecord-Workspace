@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Authentication;
 using AstralRecordControl.Web.Data;
+using AstralRecordControl.Web.Inventory;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Hosting;
@@ -37,6 +38,7 @@ public sealed class OwnerAuthenticationTests
         Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=lax", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expires=", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Security")).StatusCode);
     }
 
@@ -112,7 +114,7 @@ public sealed class OwnerAuthenticationTests
         using var issuedResponse = await CliLogin(Password);
         Assert.Equal(HttpStatusCode.OK, issuedResponse.StatusCode);
         var issued = ControlJson.Deserialize<CliTokenIssued>(await issuedResponse.Content.ReadAsStringAsync());
-        Assert.InRange(issued.ExpiresAtUtc - DateTimeOffset.UtcNow, TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(16));
+        Assert.Equal(DateTimeOffset.MaxValue, issued.ExpiresAtUtc);
         anonymous.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", issued.Token);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/control/v1/hosts")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/agent/v1/inventory")).StatusCode);
@@ -123,6 +125,51 @@ public sealed class OwnerAuthenticationTests
         Assert.NotEqual(issued.Token, (await db.CliCredentials.SingleAsync()).TokenHashHex);
         await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().RevokeAllAsync((await db.OwnerSettings.SingleAsync()).OwnerUserId);
         Assert.Null(await service.AuthenticateAsync(issued.Token));
+    }
+
+    [Fact]
+    public async Task CliCanEnrollARegisteredHostWithoutAWebCookieAndRevokeTheIssuedAgentCredential()
+    {
+        await using var factory = new AuthFactory();
+        await CreateOwner(factory);
+        var hostId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+            db.Hosts.Add(new InventoryHost { HostId = hostId, HostKey = "cli-host", DisplayName = "CLI Host" });
+            await db.SaveChangesAsync();
+        }
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
+        var path = $"/api/control/v1/hosts/{hostId:D}/enrollment";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync(path, null)).StatusCode);
+        using var login = await client.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password)), Encoding.UTF8, "application/json"));
+        var session = ControlJson.Deserialize<CliTokenIssued>(await login.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.Token);
+        using var issue = await client.PostAsync(path, null);
+        Assert.Equal(HttpStatusCode.Created, issue.StatusCode);
+        var issued = ControlJson.Deserialize<CredentialIssued>(await issue.Content.ReadAsStringAsync());
+        Assert.False(string.IsNullOrWhiteSpace(issued.Token));
+        using (var scope = factory.Services.CreateScope())
+            Assert.Equal(hostId, (await scope.ServiceProvider.GetRequiredService<AgentCredentialService>().AuthenticateAsync(issued.Token))?.HostId);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"{path}/{issued.CredentialId:D}")).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+            Assert.Null(await scope.ServiceProvider.GetRequiredService<AgentCredentialService>().AuthenticateAsync(issued.Token));
+    }
+
+    [Fact]
+    public async Task CliLogoutRevokesRememberedCredential()
+    {
+        await using var factory = new AuthFactory();
+        await CreateOwner(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
+        using var login = await client.PostAsync("/api/control/v1/auth/cli-token", new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password)), Encoding.UTF8, "application/json"));
+        var issued = ControlJson.Deserialize<CliTokenIssued>(await login.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", issued.Token);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/control/v1/auth/cli-token")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/control/v1/auth/cli-token/revoke", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/control/v1/auth/cli-token")).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        Assert.Null(await scope.ServiceProvider.GetRequiredService<CliCredentialService>().AuthenticateAsync(issued.Token));
     }
 
     [Fact]
@@ -213,7 +260,7 @@ public sealed class OwnerAuthenticationTests
     }
 
     [Fact]
-    public async Task EightHourSessionExpires()
+    public async Task RememberedSessionRemainsValidUntilRevoked()
     {
         await using var factory = new AuthFactory();
         using var client = Client(factory);
@@ -222,7 +269,9 @@ public sealed class OwnerAuthenticationTests
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
         var session = await db.OwnerSessions.SingleAsync();
-        Assert.Equal(TimeSpan.FromHours(8), session.ExpiresAtUtc - session.CreatedAtUtc);
+        Assert.Equal(DateTime.MaxValue, session.ExpiresAtUtc);
+        await db.OwnerSessions.Where(x => x.SessionId == session.SessionId).ExecuteUpdateAsync(s => s.SetProperty(x => x.CreatedAtUtc, DateTime.UtcNow.AddDays(-2)));
+        Assert.NotNull(await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().ValidateSessionAsync(session.SessionId));
         await db.OwnerSessions.Where(x => x.SessionId == session.SessionId).ExecuteUpdateAsync(s => s.SetProperty(x => x.ExpiresAtUtc, DateTime.UtcNow.AddSeconds(-1)));
         Assert.Null(await scope.ServiceProvider.GetRequiredService<OwnerAuthService>().ValidateSessionAsync(session.SessionId));
         Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Security")).StatusCode);

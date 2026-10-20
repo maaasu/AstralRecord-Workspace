@@ -1,43 +1,68 @@
 @page "/Hosts"
 @model AstralRecordControl.Web.Pages.Hosts.IndexModel
 @using AstralRecordControl.Web.Pages.Shared
+@inject Microsoft.Extensions.Configuration.IConfiguration ControlConfiguration
+
 @{
-    ViewData["Title"] = "PC台帳";
+    ViewData["Title"] = "接続PC";
     var failedHandler = Model.Error != null && string.Equals(Model.Request.Method, "POST", StringComparison.OrdinalIgnoreCase)
         ? Model.Request.Query["handler"].ToString()
         : null;
+    var controlOrigin = ControlConfiguration["Control:PublicOrigin"]!.TrimEnd('/');
 }
 
-<div class="page-heading"><div><h1>PC台帳</h1><p>接続状態とAgentの登録を管理します。未接続でもゲームの稼働状態は判断できません。</p></div><a class="text-action" href="/">ダッシュボードへ</a></div>
-@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+<div class="page-heading"><div><span class="eyebrow">CONNECTIONS</span><h1>接続PC</h1><p>ゲームを動かすPCを登録し、接続状態を確認します。</p></div><a class="text-action" href="/">概要へ戻る</a></div>
+@if (Model.Error != null) { <p class="status-note is-warning" role="alert">@Model.Error</p> }
 @if (Model.Issued != null) {
-    <section class="token-result" role="status"><h2>Agent トークンを発行しました</h2><p>この画面で一度だけ表示します。対象PCのAgent対話設定に入力してください。</p><pre>@Model.Issued.Token</pre><details><summary>発行情報</summary><p>Credential ID: @Model.Issued.CredentialId</p></details></section>
+    <section class="token-result" role="status"><h2>手動用のAgentトークンを発行しました</h2><p>この値は一度だけ表示されます。自動接続が使えない場合の復旧用です。</p><pre>@Model.Issued.Token</pre><details><summary>発行情報</summary><p>Credential ID: @Model.Issued.CredentialId</p></details></section>
 }
+
+<details class="setup-details" open="@(Model.Hosts.Length == 0 || Model.Hosts.Any(host => !host.LastSeenAtUtc.HasValue) ? "open" : null)">
+<summary>PCを追加・接続する手順</summary>
+<section class="connection-guide" aria-labelledby="connection-guide-title">
+    <div class="connection-guide-heading"><span class="eyebrow">GET CONNECTED</span><h2 id="connection-guide-title">PCを接続する</h2><p>PCを登録し、対象PCで初回ログインとAgent登録を行います。</p></div>
+    <div class="connection-steps">
+        <div class="connection-step"><span class="step-number">01</span><div><h3>PCを登録</h3><p>この画面で表示名と識別用キーを登録します。登録後にPCごとのIDが表示されます。</p></div></div>
+        <div class="connection-step"><span class="step-number">02</span><div><h3>対象PCで接続</h3><p>そのPCの管理者PowerShellでCLIへ一度ログインし、Agentを登録します。資格情報は画面からコピーする必要がありません。</p></div></div>
+    </div>
+    <p class="connection-guide-note">接続先: <code>@controlOrigin</code> · AgentとCLIは接続するPC上で実行します。</p>
+</section>
+</details>
 
 <section class="page-section" aria-labelledby="host-list-heading">
-    <div class="section-heading"><div><h2 id="host-list-heading">登録済みPC</h2><p>@Model.Hosts.Length 台を登録しています。</p></div></div>
+    <div class="section-heading"><div><span class="eyebrow">REGISTERED PCS</span><h2 id="host-list-heading">登録済みPC</h2><p>@Model.Hosts.Length 台を登録しています。</p></div></div>
     @if (Model.Hosts.Length == 0) {
-        <div class="empty-state"><strong>PCはまだ登録されていません</strong><p>下の「PCを登録する」から最初のPCを追加してください。</p></div>
+        <div class="empty-state"><strong>まだPCがありません</strong><p>下の登録フォームから最初のPCを追加してください。</p><a href="#new-host">PCを登録する <span aria-hidden="true">→</span></a></div>
     } else {
         <div class="host-grid">
             @foreach (var host in Model.Hosts) {
                 <article class="host-card">
                     <div class="entity-heading"><div><h3>@host.DisplayName</h3><span class="entity-key">@host.HostKey</span></div><span class="state-badge @ControlDisplay.HostStateClass(host.ConnectionState)">@ControlDisplay.HostState(host.ConnectionState)</span></div>
                     <p class="secondary-text">最終報告: @ControlDisplay.LastSeen(host.LastSeenAtUtc)</p>
-                    @if (host.RecoveryRequired) { <p class="status-note is-warning">再登録または状態の照合が必要です。</p> }
+                    @if (host.RecoveryRequired) { <p class="status-note is-warning">接続状態を照合し、必要なら再登録してください。</p> }
                     else if (host.InventoryErrorCode != null) { <p class="status-note is-warning">設定の適用に問題があります。</p> }
                     else if (host.DesiredInventoryRevision != host.AppliedInventoryRevision) { <p class="status-note">設定の適用を待っています。</p> }
-                    <div class="card-actions"><form method="post" asp-page-handler="Issue"><input type="hidden" name="hostId" value="@host.HostId" /><button type="submit">Agent トークンを発行</button></form></div>
-                    <details class="compact-details"><summary>PCの設定と資格情報</summary>
+                    else if (!host.LastSeenAtUtc.HasValue) { <p class="status-note">対象PCでAgentの接続を完了してください。</p> }
+                    <details class="connection-command" open="@(!host.LastSeenAtUtc.HasValue ? "open" : null)"><summary>このPCの接続手順</summary>
+                        <div class="connection-command-body"><p>対象PCの管理者PowerShellで、同じWindowsユーザーとして実行します。初回だけCLIへログインしてください。</p>
+                            <div class="command-line"><span>最初の一度</span><code>&amp; "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" login --server-url @controlOrigin</code></div>
+                            <div class="command-line"><span>Agentを登録</span><code>&amp; "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" agent enroll --host-id @host.HostId</code></div>
+                            <p class="secondary-text">登録後にこの画面を再読み込みし、接続状態と設定の適用を確認してください。</p>
+                        </div>
+                    </details>
+                    <details class="compact-details"><summary>設定・診断</summary>
+                        <p class="secondary-text">標準外のAgent配置では、登録コマンドに <code>--agent-path &lt;対象PC上のAgent.exe&gt;</code> と、必要な場合だけ <code>--data-root &lt;対象PC上の保存先&gt;</code> を追加します。</p>
                         <dl><dt>Host ID</dt><dd><code>@host.HostId</code></dd><dt>希望 / 適用版</dt><dd>@host.DesiredInventoryRevision / @host.AppliedInventoryRevision</dd><dt>報告コード</dt><dd>@(host.InventoryErrorCode ?? "なし")</dd></dl>
                         <form method="post" asp-page-handler="Update"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="revision" value="@host.Revision" /><label>表示名 <input name="displayName" value="@host.DisplayName" required maxlength="128" /></label><label><input type="checkbox" name="enabled" value="true" checked="@host.Enabled" />このPCを有効にする</label><button type="submit">PCの設定を保存</button></form>
-                        <h4>Agent 資格情報</h4>
-                        @if (!Model.Credentials.Any(c => c.HostId == host.HostId)) { <p class="secondary-text">発行済みの資格情報はありません。</p> }
-                        @foreach (var credential in Model.Credentials.Where(c => c.HostId == host.HostId)) {
-                            <div class="credential-row"><span>@(credential.RevokedAtUtc.HasValue ? "失効済み" : "有効") · @ControlDisplay.LastSeen(credential.IssuedAtUtc)</span><code>@credential.CredentialId</code>
-                            @if (!credential.RevokedAtUtc.HasValue) { <form method="post" asp-page-handler="Revoke"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="credentialId" value="@credential.CredentialId" /><button type="submit">失効して接続を切断</button></form> }</div>
-                        }
-                        <details><summary>Agentが報告したroot・実行ファイル</summary><pre>@host.ResourcesJson</pre></details>
+                        <details class="advanced-details"><summary>手動資格情報と復旧</summary><p>通常の接続は上のCLI登録を使います。手動発行は復旧時のみ使用してください。</p>
+                            <form method="post" asp-page-handler="Issue"><input type="hidden" name="hostId" value="@host.HostId" /><button type="submit">手動用トークンを発行</button></form>
+                            @if (!Model.Credentials.Any(c => c.HostId == host.HostId)) { <p class="secondary-text">発行済みの資格情報はありません。</p> }
+                            @foreach (var credential in Model.Credentials.Where(c => c.HostId == host.HostId)) {
+                                <div class="credential-row"><span>@(credential.RevokedAtUtc.HasValue ? "失効済み" : "有効") · @ControlDisplay.LastSeen(credential.IssuedAtUtc)</span><code>@credential.CredentialId</code>
+                                @if (!credential.RevokedAtUtc.HasValue) { <form method="post" asp-page-handler="Revoke"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="credentialId" value="@credential.CredentialId" /><button type="submit">失効して接続を切断</button></form> }</div>
+                            }
+                        </details>
+                        <details class="advanced-details"><summary>Agentが報告したroot・実行ファイル</summary><pre>@host.ResourcesJson</pre></details>
                     </details>
                 </article>
             }
@@ -45,11 +70,11 @@
     }
 </section>
 
-<details class="setup-details" open="@(string.Equals(failedHandler, "Create", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>PCを登録する</summary><div class="details-body"><p>ゲームPCごとに別のPCを登録します。キーは登録後の識別子です。</p>
-    <form method="post" asp-page-handler="Create"><input type="hidden" name="requestKey" value="@Model.RequestKey" /><label>PCキー <input name="hostKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label><label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">PCを登録</button></form>
+<details id="new-host" class="setup-details" open="@(Model.Hosts.Length == 0 || string.Equals(failedHandler, "Create", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>PCを登録する</summary><div class="details-body"><p>接続するPCごとに登録します。キーは小文字の英数字とハイフンで指定してください。</p>
+    <form method="post" asp-page-handler="Create"><input type="hidden" name="requestKey" value="@Model.RequestKey" /><label>PCキー <input name="hostKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" placeholder="mc-01" /></label><label>表示名 <input name="displayName" required maxlength="128" placeholder="MinecraftサーバーPC" /></label><button type="submit">PCを登録する</button></form>
 </div></details>
 
-<details class="setup-details" open="@(string.Equals(failedHandler, "Environment", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>Environmentを管理する</summary><div class="details-body"><p>共有API・マスターデータの利用範囲を明示します。PC名だけでは自動分離されません。</p>
+<details class="setup-details" open="@(string.Equals(failedHandler, "Environment", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>共有環境の設定</summary><div class="details-body"><p>同じAPI・マスターデータを使うサーバーをEnvironmentでまとめます。必要な場合に設定してください。</p>
     @if (Model.Environments.Length == 0) { <p class="secondary-text">Environmentはまだ登録されていません。</p> }
     else { <ul class="simple-list">@foreach (var environment in Model.Environments) { <li><strong>@environment.DisplayName</strong> <span class="entity-key">@environment.EnvironmentKey</span><details><summary>IDを表示</summary><code>@environment.EnvironmentId</code></details></li> }</ul> }
     <form method="post" asp-page-handler="Environment"><input type="hidden" name="requestKey" value="@Guid.NewGuid()" /><label>Environmentキー <input name="environmentKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" /></label><label>表示名 <input name="displayName" required maxlength="128" /></label><button type="submit">Environmentを登録</button></form>

@@ -70,7 +70,10 @@ try {
     @{schemaVersion=1;toolRoot=$toolRoot;hashes=$hashes} | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 -LiteralPath $marker
     if ((Get-ControlGameMarkerAction $marker $toolRoot) -ne 'Reuse') { throw 'Marker reuse state expected.' }
     'Write-Output changed' | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $toolRoot $files[0])
-    if ((Get-ControlGameMarkerAction $marker $toolRoot) -ne 'Renew') { throw 'Marker renew state expected.' }
+    if ((Get-ControlGameMarkerAction $marker $toolRoot) -ne 'Reuse') { throw 'An ordinary tool update must reuse the installation.' }
+    'function Broken {' | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $toolRoot $files[0])
+    Assert-Throws { Get-ControlGameMarkerAction $marker $toolRoot | Out-Null } 'ManagedToolSyntaxError'
+    'Write-Output repaired' | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $toolRoot $files[0])
     Assert-Throws { Get-ControlGameMarkerAction $marker (Join-Path $root 'other') | Out-Null } 'MarkerRootMismatch'
 
     $data = Join-Path $root 'runner-data'

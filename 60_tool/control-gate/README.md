@@ -1,8 +1,8 @@
 # 既存ツールのControl gate
 
-CLI資格情報の期限は15分です。長い保守で期限切れになった場合は、同じWindowsユーザーの別ターミナルで再度`login`し、同じrunを再開してください。期限切れだけで予約を解放したり新しいworkflowIdへ切り替えたりしません。各gate呼出は`--expected-server-url`で設定先originを検証します。
+更新版CLIは、管理PCのWindowsユーザーごとに一度`login`すると、明示的なlogout・全セッション失効・ownerパスワード変更までログインを保持します。認証情報はCLIが管理し、運用者がトークンをコピーする必要はありません。各gate呼出は`--expected-server-url`で設定先originを確認します。旧CLIの15分資格情報が残っている場合は、更新後に一度ログインし直してください。同じrunの予約やworkflowIdは維持します。
 
-01/02/03/16/17のBATと対応するPowerShell入口は、同じ`Control.Gate.psm1`を使用します。既存設定に`controlGate`がなければ、Control管理を有効化する前のLegacy動作です。`%ProgramData%\AstralRecordControl\managed-operations.enabled`があるPCではLegacy入口を拒否します。このmarkerはP1のRunner導入時に`-EnableManagedOperations`で作成します。Controlの変更操作は全対象PCの入口・marker・Runnerを導入し、Webの有効化条件を確認してから有効にします。
+01/02/03/16/17のBATと対応するPowerShell入口は、同じ`Control.Gate.psm1`を使用します。既存設定に`controlGate`がなければ、Control管理を有効化する前のLegacy動作です。`%ProgramData%\AstralRecordControl\managed-operations.enabled`があるPCではLegacy入口を拒否します。このmarkerはP1のRunner導入時に`-EnableManagedOperations`で一度作成し、Tool rootを記録します。通常のスクリプト更新ごとに管理者の再承認やmarkerの再発行は不要です。既存schema 1のhashesは互換性のため保持しますが、ログインや更新後の実行条件には使いません。
 
 Managedでは設定の`controlGate`に`mode`、Control CLIの絶対パス、固定HTTPS origin、Environment GUID、登録済みServerと管理rootの対応を指定します。例:
 

@@ -19,7 +19,7 @@ public sealed class OwnerSessionMonitor(IServiceScopeFactory scopes, OwnerSessio
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Checking each second covers the exact absolute expiration as well as the 60-second revalidation bound.
+        // Recheck revocation and owner security-stamp changes for open Hub connections.
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {

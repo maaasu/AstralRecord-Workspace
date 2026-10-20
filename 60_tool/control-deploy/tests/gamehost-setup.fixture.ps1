@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 $script = Join-Path $PSScriptRoot '..\Initialize-ControlGameHost.ps1'
 $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
 $fixture = Join-Path $tempRoot ("control-gamehost-fixture-" + [Guid]::NewGuid().ToString('N'))
+$priorProgramData=$env:ProgramData
 if (-not $fixture.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe fixture path.' }
 
 function Write-Json([string]$Path, $Value) {
@@ -26,9 +27,10 @@ try {
     $root = Join-Path $fixture 'game'
     $java = Join-Path $fixture 'java.exe'
     New-Item -ItemType Directory -Path $release, $root -Force | Out-Null
+    $env:ProgramData=Join-Path $fixture 'program-data'
     Set-Content -LiteralPath $java -Value 'fixture only' -Encoding UTF8
     $files = @{}
-    foreach ($component in @('Agent', 'Runner')) {
+    foreach ($component in @('Agent', 'Runner', 'Cli')) {
         $folder = Join-Path $release "Control\$component"
         New-Item -ItemType Directory -Path $folder -Force | Out-Null
         foreach ($name in @("AstralRecordControl.$component.exe", "AstralRecordControl.$component.dll", "AstralRecordControl.$component.runtimeconfig.json")) {
@@ -38,7 +40,7 @@ try {
     }
     $toolFolder = Join-Path $release 'Tools\60_tool\control-deploy'
     New-Item -ItemType Directory -Path $toolFolder -Force | Out-Null
-    foreach ($name in @('Install-Control.ps1', 'Control.Deployment.psm1')) {
+    foreach ($name in @('Install-Control.ps1', 'Install-ControlCli.ps1', 'Control.Deployment.psm1')) {
         Set-Content -LiteralPath (Join-Path $toolFolder $name) -Value '# fixture only' -Encoding UTF8
     }
     foreach ($file in Get-ChildItem -LiteralPath $release -Recurse -File) {
@@ -69,6 +71,16 @@ try {
     }
     $result = & $script -PlanPath $planPath -HostReceiptPath $receiptPath -PackageDirectory $release -ExpectedManifestSha256 $seal -PreflightOnly
     if ($result[-1] -notlike 'Fixture-safe preflight passed*') { throw 'Passive preflight did not complete.' }
+    # An internally consistent seal must not hide a missing CLI installer until service setup starts.
+    $installerKey='Tools/60_tool/control-deploy/Install-ControlCli.ps1'
+    $missingInstaller=$files.Clone(); $missingInstaller.Remove($installerKey)
+    Remove-Item -LiteralPath (Join-Path $release $installerKey)
+    Write-Json (Join-Path $release 'release-manifest.json') @{ containsRuntimeConfiguration=$false;sha256=$missingInstaller }
+    $missingSeal=(Get-FileHash -LiteralPath (Join-Path $release 'release-manifest.json') -Algorithm SHA256).Hash
+    Expect-Failure { & $script -PlanPath $planPath -HostReceiptPath $receiptPath -PackageDirectory $release -ExpectedManifestSha256 $missingSeal -PreflightOnly } 'missing CLI installer'
+    Set-Content -LiteralPath (Join-Path $release $installerKey) -Value '# fixture only' -Encoding UTF8
+    Write-Json (Join-Path $release 'release-manifest.json') @{ containsRuntimeConfiguration=$false;sha256=$files }
+    $seal=(Get-FileHash -LiteralPath (Join-Path $release 'release-manifest.json') -Algorithm SHA256).Hash
     if ($RealPackageDirectory) {
         if ($ExpectedManifestSha256 -notmatch '^[a-fA-F0-9]{64}$') { throw 'A sealed package hash is required.' }
         $realResult = & $script -PlanPath $planPath -HostReceiptPath $receiptPath -PackageDirectory $RealPackageDirectory -ExpectedManifestSha256 $ExpectedManifestSha256 -PreflightOnly
@@ -137,6 +149,7 @@ try {
         $script:stopOrder[0] -ne $runnerName) { throw 'Runner timeout rollback did not stop and confirm the requested service.' }
     Write-Output 'Game host setup fixture passed: Java and Velocity preflight, three refusals, and two startup rollback cases.'
 } finally {
+    $env:ProgramData=$priorProgramData
     if ($fixture.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $fixture)) {
         Remove-Item -LiteralPath $fixture -Recurse -Force
     }

@@ -101,9 +101,10 @@ function Get-ControlGameMarkerAction([string]$MarkerPath, [string]$Root) {
     foreach ($file in $files) {
         $path = Join-Path $Root $file
         if (!(Test-Path -LiteralPath $path -PathType Leaf) -or ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'ManagedToolMissing' }
-        if (!$marker.hashes.ContainsKey($file) -or $marker.hashes[$file] -cne (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash) { return 'Renew' }
+        $parseErrors=$null
+        [Management.Automation.Language.Parser]::ParseFile($path,[ref]$null,[ref]$parseErrors) | Out-Null
+        if ($parseErrors.Count) { throw 'ManagedToolSyntaxError' }
     }
-    if ($marker.hashes.Count -ne $files.Count) { return 'Renew' }
     return 'Reuse'
 }
 
@@ -231,10 +232,8 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         Test-ControlConfiguration $runnerData Runner
         if ($markerAction -eq 'Create') {
             & (Join-Path $PSScriptRoot 'Enable-ManagedOperations.ps1') -ToolRoot $root -RunnerDataRoot $runnerData | Out-Null
-        } elseif ($markerAction -eq 'Renew') {
-            & (Join-Path $PSScriptRoot 'Enable-ManagedOperations.ps1') -ToolRoot $root -RunnerDataRoot $runnerData -Renew -CliPath $CliPath | Out-Null
         }
-        if ((Get-ControlGameMarkerAction $marker $root) -ne 'Reuse') { throw 'MarkerAttestationFailed' }
+        if ((Get-ControlGameMarkerAction $marker $root) -ne 'Reuse') { throw 'MarkerRegistrationFailed' }
         $report.stage = 'RunnerRestart'
         Assert-ControlGameNoExternalJava
         $snapshot = Get-ControlGameSnapshot $CliPath $pipeName
@@ -264,7 +263,7 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         $known = @('WindowsRequired','AdministratorRequired','ReportDirectoryMissing','InvalidCli','InvalidPipe','UnsafeRunnerSnapshot','EmptyRunnerInventory',
             'ExternalJavaRunning','UnexpectedServiceIdentity','UnexpectedServicePath','UnexpectedDataRoot','ServiceNotRunning','PersistedInventoryMismatch',
             'PendingAutomaticStart','InvalidPersistedConfig','AutomaticStartConfigured','RunnerLedgerUnavailable','InvalidMarker','MarkerRootMismatch',
-            'ManagedToolMissing','UnprotectedConfigAcl','UnsupportedHostConfiguration','AgentSidMismatch','PipeMismatch','InventoryChanged','MarkerAttestationFailed')
+            'ManagedToolMissing','ManagedToolSyntaxError','UnprotectedConfigAcl','UnsupportedHostConfiguration','AgentSidMismatch','PipeMismatch','InventoryChanged','MarkerRegistrationFailed')
         $report.failureType = if ($_.Exception.Message -in $known) { $_.Exception.Message } else { 'OperationFailed' }
         if ($startupModesChanged) {
             try {

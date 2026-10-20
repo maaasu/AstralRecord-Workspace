@@ -47,7 +47,7 @@ public static class OwnerAuthentication
             .AddCookie(Scheme, o =>
             {
                 ConfigureCookie(o, CookieName);
-                o.ExpireTimeSpan = TimeSpan.FromHours(8);
+                o.ExpireTimeSpan = TimeSpan.FromDays(365);
                 o.EventsType = typeof(OwnerCookieEvents);
             });
         services.AddAuthorization(o =>
@@ -74,7 +74,7 @@ public static class OwnerAuthentication
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.Path = "/";
-        options.SlidingExpiration = false;
+        options.SlidingExpiration = true;
         options.LoginPath = "/Login";
         options.AccessDeniedPath = "/Login";
         options.Events.OnRedirectToLogin = context =>

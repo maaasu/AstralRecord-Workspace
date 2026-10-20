@@ -2,7 +2,7 @@
     var path = Context.Request.Path;
     var authenticated = User.HasClaim("amr", "pwd");
     var authenticationPage = path.StartsWithSegments("/Mfa") || path.StartsWithSegments("/Login") || path.StartsWithSegments("/Logout");
-    (string Path, string Label)[] tabs = [("/", "ダッシュボード"), ("/Hosts", "PC台帳"), ("/Servers", "サーバー台帳"), ("/Workflows", "運転・保守履歴"), ("/Transfers", "転送"), ("/Notifications", "通知"), ("/Security", "アカウント")];
+    (string Path, string Label)[] tabs = [("/", "概要"), ("/Servers", "サーバー"), ("/Hosts", "接続PC"), ("/Workflows", "履歴・復旧"), ("/Transfers", "転送"), ("/Notifications", "通知"), ("/Security", "アカウント")];
     bool IsCurrent(string target) => target == "/" ? path == "/" : path.StartsWithSegments(target, StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
@@ -11,7 +11,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0d1420" />
+    <meta name="theme-color" content="#101923" />
     <title>@ViewData["Title"] | AstralRecordControl</title>
     <link rel="stylesheet" href="~/css/control.css" asp-append-version="true" />
     @if (authenticated && !authenticationPage)
@@ -26,8 +26,8 @@
     <header class="app-header">
         <div class="header-content">
             <div class="header-top">
-                <a class="brand" href="/">AstralRecord<span>Control</span></a>
-                <span class="badge">管理コンソール</span>
+                <a class="brand" href="/" aria-label="AstralRecord Control の概要へ"><span class="brand-mark" aria-hidden="true">A</span><span class="brand-name">AstralRecord<small>CONTROL</small></span></a>
+                <span class="badge">サーバー運用</span>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <a class="account-action" href="/Logout">ログアウト</a>
@@ -38,7 +38,7 @@
             <nav class="main-tabs" aria-label="管理メニュー">
                 @foreach (var tab in tabs)
                 {
-                    <a class="nav-tab @(IsCurrent(tab.Path) ? "is-active" : "")" href="@tab.Path" aria-current="@(IsCurrent(tab.Path) ? "page" : null)">@tab.Label</a>
+                    <a class="nav-tab @(tab.Path == "/Workflows" ? "nav-tab--secondary" : "") @(IsCurrent(tab.Path) ? "is-active" : "")" href="@tab.Path" aria-current="@(IsCurrent(tab.Path) ? "page" : null)">@tab.Label</a>
                 }
             </nav>
         }
@@ -48,7 +48,7 @@
     <main id="main" class="app-main @(authenticationPage ? "auth-main" : "")" data-control-page="@(authenticated && !authenticationPage ? "true" : "false")" tabindex="-1">
         @RenderBody()
     </main>
-    <footer>接続が切れたPCの状態は最終確認時点の情報です。操作結果が不明な場合は保守履歴を確認してください。</footer>
+    <footer><span>AstralRecord Control</span>@if (authenticated) { <span>接続が切れたPCの状態は最終報告時点です。結果が不明な操作は<a href="/Workflows">履歴・復旧</a>で確認してください。</span> } else { <span>管理者専用の操作画面</span> }</footer>
     <div id="page-scripts">@await RenderSectionAsync("Scripts", required: false)</div>
 </body>
 </html>

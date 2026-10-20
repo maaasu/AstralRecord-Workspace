@@ -12,6 +12,17 @@ pwsh -File ./60_tool/control-deploy/Publish-Control.ps1 -OutputDirectory C:\Cont
 
 出力は`Web`、`Agent`、`Runner`、`Cli`の4ディレクトリです。バイナリだけを配布し、ProgramData・DB・鍵・ローカル設定を混在させません。現行publish成果物のmanifestは`phase=P3`です。秘密を含むパッケージや許可外のphaseは配布前検査で拒否します。
 
+## 管理PCのCLI
+
+Agentの新規サービス登録と`Initialize-ControlGameHost.ps1`は、Cliパッケージも同じ管理者の`%LOCALAPPDATA%\AstralRecordControl\Cli\bin`へ配置します。CLIをPATHへ追加する操作は不要です。既存PCの更新、またはWebを操作するだけのPCでは次を一度実行します。通常ユーザーのPowerShellでもCLIの配置は可能で、Agent登録時の管理者PowerShellも同じWindowsユーザーを使用してください。
+
+```powershell
+./60_tool/control-deploy/Install-ControlCli.ps1 -PackageDirectory C:\ControlPackages\p1-001\Cli
+& "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" login --server-url https://control.example.test:5443
+```
+
+ログイン済みなら同じ接続先の資格情報を再利用します。更新時も`session.bin`は保持し、旧バイナリを同じCLIフォルダの`bin.before-*`へ退避します。
+
 ## サービス登録と保存先
 
 対象PCの管理者PowerShellで、管理PCはWeb、開発PCとMC用PCはRunner/Agentをそれぞれ登録します。登録だけではサービスを開始しません。
@@ -59,15 +70,18 @@ C:\ControlPackages\p1-001\Cli\AstralRecordControl.Cli.exe owner create
 Start-Service AstralRecordControl.Web
 ```
 
-固定URLから管理者名とパスワードでログインします。二段階認証の登録・コード入力は不要です。`/Hosts`で`dev-pc`、`mc-pc`を登録し、追加の再認証なしでHostごとのtokenを発行します。`/Security`で全セッションを失効できます。パスワードを失った場合はWeb停止後に`owner reset`を使用します。全セッションが失効します。旧版からの更新ではownerやパスワードの作り直しは不要です。
+固定URLから管理者名とパスワードでログインします。ログイン状態を保持し、日常操作で追加の認証を求めません。`/Hosts`でPCを登録し、表示される接続手順を対象PCで実行します。`/Security`で全セッションを失効できます。パスワードを失った場合はWeb停止後に`owner reset`を使用します。旧版からの更新ではownerやパスワードの作り直しは不要です。
 
 ## 各PCのAgent/Runner設定
 
-サービス登録済みのAgent実行ファイルで、管理者として次を実行します。URL、Host ID、tokenを対話入力します。tokenはLocalMachine DPAPIで保護し、credentialsのACLをAgent/SYSTEM/Administratorsへ制限します。
+対象PCの管理者PowerShellで、一度だけCLIへログインし、画面に表示されたHost IDで登録します。接続用資格情報はCLIが自動発行・保存するため、手動のトークン発行・コピーは不要です。既存のAgent設定・資格情報は自動上書きしません。標準導入ではサービス登録済みAgentの実パスとdata rootを自動検出し、設定後にAgentサービスを起動します。
 
 ```powershell
-& '<Agent配置先>\AstralRecordControl.Agent.exe' --configure --data-root "$env:ProgramData\AstralRecordControl\Agent"
+& "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" login --server-url https://control.example.test:5443
+& "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" agent enroll --host-id '<登録したHost ID>'
 ```
+
+CLIの成功はローカル設定とサービス起動の完了です。管理画面で接続中と設定の適用を確認します。段階導入スクリプトは`--start-agent false`で設定だけ済ませ、Runner→Agentの順で起動します。手動のAgent `--configure`は旧版との互換・復旧用に残しています。
 
 `Agent\config.json`の`localResources`と`Runner\config.json`の`localResources`に同じ許可リストを設定します。root/executable IDは各PCで作成するGUIDです。ここに実在するローカルのディレクトリと実行ファイルを登録し、junction/symlinkを含むパスを使用しません。Webから任意のOSパスを追加できません。
 
@@ -112,12 +126,12 @@ Runnerの更新はControl CLIによる`runner check-update`が全ServerのStoppe
 ./60_tool/control-deploy/Update-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p1-002\Runner -CliPath C:\ControlPackages\p1-002\Cli\AstralRecordControl.Cli.exe
 ```
 
-01/02/03/16/17をControlと共存させるPCでは、P1ツール入口を導入し、新規Runner登録時は`Install-Control.ps1 -Component Runner -EnableManagedOperations`、既存Runner更新後は`Enable-ManagedOperations.ps1`で管理運用markerを作成します。markerにはgateと各PowerShell入口のSHA-256を記録し、SYSTEM/Administratorsだけに変更権限を与えます。marker導入後、旧Legacy入口は停止します。各ツール設定の`controlGate`とCLI対話ログインは[既存ツールgate](../control-gate/README.md)を参照してください。Control Web側の変更操作は導入確認後に明示的に有効化します。
+01/02/03/16/17をControlと共存させるPCでは、P1ツール入口を導入し、新規Runner登録時は`Install-Control.ps1 -Component Runner -EnableManagedOperations`、既存Runnerへの初回導入は`Enable-ManagedOperations.ps1`で管理運用markerを作成します。markerはTool rootと管理運用の導入を一度記録し、導入後は旧Legacy入口を停止します。通常のTool更新でmarkerの再発行は不要です。既存schema 1のSHA-256記録は互換性のため残しますが、更新後の再承認には使いません。各ツール設定の`controlGate`と初回CLIログインは[既存ツールgate](../control-gate/README.md)を参照してください。Control Web側の変更操作は導入確認後に明示的に有効化します。
 
-導入済みツールを更新した後は、Runnerの全Serverを停止し、holdがない状態で管理者PowerShellからmarkerを再発行します。`-Renew`は既存markerと同じツールrootだけを対象にし、P1 Runnerパッケージと`enableProcessControl=true`の設定を確認します。CLIによるRunnerの`check-update`を再発行直前にも実行し、旧markerを同じ保護ディレクトリに`.backup`として退避してから原子的に置き換えます。状態不明、Unmanaged、稼働中、holdありは拒否します。旧markerは調査・復旧のため保持してください。
+旧版との互換運用などで登録記録を明示的に更新する場合だけ、次の`-Renew`を使用します。同じTool root、全Server停止、Session/holdなしを確認し、旧markerを`.backup`へ退避して置き換えます。Runner本体の更新では引き続き停止確認が必要です。
 
 ```powershell
-./60_tool/control-deploy/Enable-ManagedOperations.ps1 -Renew -CliPath 'C:\Program Files\AstralRecordControl\Cli\AstralRecordControl.Cli.exe'
+./60_tool/control-deploy/Enable-ManagedOperations.ps1 -Renew -CliPath "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe"
 ```
 
 Web/Agent/Runnerの現行schemaは4です。旧schemaからは各サービスのSQLite backupを作成してtransaction内で移行します。未知schemaは起動を拒否します。更新前snapshotとmigration前backupを保持してください。

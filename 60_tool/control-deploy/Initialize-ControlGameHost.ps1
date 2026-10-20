@@ -59,7 +59,7 @@ function Assert-Package([string]$Root, [string]$ExpectedHash) {
     if ($manifest.containsRuntimeConfiguration -ne $false -or $manifest.sha256 -isnot [System.Collections.IDictionary]) {
         throw 'Release manifest is missing its binary-only hash catalog.'
     }
-    $sections = @('Control/Agent', 'Control/Runner', 'Tools/60_tool/control-deploy')
+    $sections = @('Control/Agent', 'Control/Runner', 'Control/Cli', 'Tools/60_tool/control-deploy')
     foreach ($section in $sections) {
         $directory = Assert-LocalPath (Join-Path $Root ($section.Replace('/', '\'))) 'Container'
         $files = @(Get-ChildItem -LiteralPath $directory -Recurse -File -Force)
@@ -82,7 +82,7 @@ function Assert-Package([string]$Root, [string]$ExpectedHash) {
         }
     }
     $phase = ''
-    foreach ($component in @('Agent', 'Runner')) {
+    foreach ($component in @('Agent', 'Runner', 'Cli')) {
         $componentRoot = Join-Path $Root "Control\$component"
         foreach ($file in @("AstralRecordControl.$component.exe", "AstralRecordControl.$component.dll", "AstralRecordControl.$component.runtimeconfig.json", 'control-package.json')) {
             if (-not (Test-Path -LiteralPath (Join-Path $componentRoot $file) -PathType Leaf)) { throw "Incomplete $component package." }
@@ -91,10 +91,10 @@ function Assert-Package([string]$Root, [string]$ExpectedHash) {
         if ($package.component -ne $component -or $package.protocolVersion -ne 1 -or $package.phase -notin @('P1','P2','P3')) {
             throw "Unsupported $component package."
         }
-        if ($phase -and $package.phase -ne $phase) { throw 'Agent and Runner package phases differ.' }
+        if ($phase -and $package.phase -ne $phase) { throw 'Control package phases differ.' }
         $phase = $package.phase
     }
-    foreach ($file in @('Install-Control.ps1', 'Control.Deployment.psm1')) {
+    foreach ($file in @('Install-Control.ps1', 'Install-ControlCli.ps1', 'Control.Deployment.psm1')) {
         if (-not (Test-Path -LiteralPath (Join-Path $Root "Tools\60_tool\control-deploy\$file") -PathType Leaf)) {
             throw "Required deployment tool is missing: $file"
         }
@@ -314,7 +314,7 @@ Set-AdminOnlyAcl $bootstrapRoot
 $stage = Join-Path $bootstrapRoot ([Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stage | Out-Null
 Set-AdminOnlyAcl $stage
-foreach ($relative in @('Control\Agent', 'Control\Runner', 'Tools\60_tool\control-deploy')) {
+foreach ($relative in @('Control\Agent', 'Control\Runner', 'Control\Cli', 'Tools\60_tool\control-deploy')) {
     $destination = Join-Path $stage $relative
     New-Item -ItemType Directory -Path $destination -Force | Out-Null
     Get-ChildItem -LiteralPath (Join-Path $packageRoot $relative) -Force |
@@ -322,6 +322,10 @@ foreach ($relative in @('Control\Agent', 'Control\Runner', 'Tools\60_tool\contro
 }
 Copy-Item -LiteralPath (Join-Path $packageRoot 'release-manifest.json') -Destination $stage
 $null = Assert-Package $stage $ExpectedManifestSha256
+if ($services['Agent']) {
+    & (Join-Path $stage 'Tools\60_tool\control-deploy\Install-ControlCli.ps1') -PackageDirectory (Join-Path $stage 'Control\Cli')
+}
+$cliPath=Join-Path $env:LOCALAPPDATA 'AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe'
 $install = Join-Path $stage 'Tools\60_tool\control-deploy\Install-Control.ps1'
 $validated = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $attemptedInstall = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -338,6 +342,7 @@ try {
         $null = $validated.Add($component)
         Set-ManualStart $component
     }
+    if (!(Test-Path -LiteralPath $cliPath -PathType Leaf)) { throw 'The Control CLI was not installed.' }
     $agentSid = [Security.Principal.NTAccount]::new('NT SERVICE\AstralRecordControl.Agent').Translate([Security.Principal.SecurityIdentifier]).Value
     $runnerSid = [Security.Principal.NTAccount]::new('NT SERVICE\AstralRecordControl.Runner').Translate([Security.Principal.SecurityIdentifier]).Value
     $pipeName = 'AstralRecordControl.Runner.v1'
@@ -362,13 +367,10 @@ try {
     }
     $credential = Join-Path $agentData 'credentials\token.bin'
     if (-not (Test-Path -LiteralPath $credential -PathType Leaf)) {
-        $agentService = Get-ServiceDefinition 'Agent'
-        $match = [regex]::Match([string]$agentService.PathName, '^\s*"([^"]+\.exe)"')
-        if (-not $match.Success) { throw 'Agent executable path is invalid.' }
-        $agentExe = Assert-LocalPath $match.Groups[1].Value 'Leaf'
-        Write-Output "Enter Host ID $hostId and Control HTTPS origin $origin in the standard Agent prompt, then enter the token locally."
-        & $agentExe --configure --data-root $agentData
-        if ($LASTEXITCODE -ne 0) { throw 'Agent configuration did not complete.' }
+        & $cliPath login --server-url $origin
+        if ($LASTEXITCODE -ne 0) { throw 'The initial Control login did not complete.' }
+        & $cliPath agent enroll --host-id $hostId --expected-server-url $origin --start-agent false
+        if ($LASTEXITCODE -ne 0) { throw 'Agent enrollment did not complete.' }
     }
     if (-not (Test-Path -LiteralPath $credential -PathType Leaf)) { throw 'Agent credential was not created.' }
     Assert-CredentialFile $credential $agentSid

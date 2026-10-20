@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
+using AstralRecordControl.Web.Inventory;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
@@ -48,6 +49,21 @@ public static class CliAuthentication
             if (!Guid.TryParse(context.User.FindFirstValue("control_cli"), out var id)) return Results.Unauthorized();
             await service.RevokeAsync(id); return Results.NoContent();
         }).RequireAuthorization("CliOnly");
+        app.MapGet("/api/control/v1/auth/cli-token", () => Results.NoContent()).RequireAuthorization("CliOnly");
+        app.MapPost("/api/control/v1/hosts/{hostId:guid}/enrollment", async (Guid hostId, AgentCredentialService credentials) =>
+        {
+            try
+            {
+                var issued = await credentials.IssueAsync(hostId);
+                return Results.Created($"/api/control/v1/hosts/{hostId}/credentials/{issued.CredentialId}", issued);
+            }
+            catch (InventoryFault fault) { return Results.Problem(statusCode: fault.Status, title: fault.Code); }
+        }).RequireAuthorization("CliOnly");
+        app.MapDelete("/api/control/v1/hosts/{hostId:guid}/enrollment/{credentialId:guid}", async (Guid hostId, Guid credentialId, AgentCredentialService credentials) =>
+        {
+            try { await credentials.RevokeAsync(hostId, credentialId); return Results.NoContent(); }
+            catch (InventoryFault fault) { return Results.Problem(statusCode: fault.Status, title: fault.Code); }
+        }).RequireAuthorization("CliOnly");
     }
     public static async Task ValidateCookieCsrfAsync(HttpContext context)
     {
@@ -65,7 +81,7 @@ public sealed class CliCredentialService(ControlDbContext db, OwnerAuthService o
         if (user is null) return null;
         var now = clock.GetUtcNow();
         var token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
-        var credential = new CliCredential { CredentialId = Guid.NewGuid(), OwnerUserId = user.Id, SecurityStamp = await users.GetSecurityStampAsync(user), TokenHashHex = ControlProtocol.Hash(token), CreatedAtUtc = now.UtcDateTime, ExpiresAtUtc = now.AddMinutes(15).UtcDateTime };
+        var credential = new CliCredential { CredentialId = Guid.NewGuid(), OwnerUserId = user.Id, SecurityStamp = await users.GetSecurityStampAsync(user), TokenHashHex = ControlProtocol.Hash(token), CreatedAtUtc = now.UtcDateTime, ExpiresAtUtc = DateTime.MaxValue };
         db.CliCredentials.Add(credential); await db.SaveChangesAsync();
         return new(credential.CredentialId, token, new DateTimeOffset(credential.ExpiresAtUtc, TimeSpan.Zero));
     }

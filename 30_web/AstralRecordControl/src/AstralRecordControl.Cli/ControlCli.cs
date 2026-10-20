@@ -1,11 +1,16 @@
 using System.Buffers.Binary;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO.Pipes;
+using System.ServiceProcess;
 using System.Net.Http.Headers;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using System.Text.Json;
+using Microsoft.Win32;
 using AstralRecordControl.Contracts;
 
 namespace AstralRecordControl.Cli;
@@ -25,14 +30,29 @@ public static class ControlCli
             if (args[0] == "login")
             {
                 RequireOptions(options, "server-url", "session-file");
-                if (Console.IsInputRedirected || Console.IsOutputRedirected) throw new InvalidOperationException("InteractiveTerminalRequired");
                 var origin = ValidateOrigin(Required(options, "server-url"));
+                var localSessionPath = SecureFiles.LocalPath(sessionPath);
+                if (File.Exists(localSessionPath))
+                {
+                    var previous = ControlJson.Deserialize<CliSession>(SecureFiles.Read(localSessionPath, protect: true));
+                    ValidateExpectedOrigin(previous.ServerUrl, origin.AbsoluteUri);
+                    if (previous.ExpiresAtUtc > DateTimeOffset.UtcNow)
+                    {
+                        using var probe = CreateClient(origin);
+                        probe.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", previous.Token);
+                        using var response = await probe.GetAsync("/api/control/v1/auth/cli-token", HttpCompletionOption.ResponseHeadersRead);
+                        if (response.IsSuccessStatusCode) { Console.WriteLine("CLIはこのControlにログイン済みです。"); return 0; }
+                        if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized) throw new HttpRequestException();
+                    }
+                    File.Delete(localSessionPath);
+                }
+                if (Console.IsInputRedirected || Console.IsOutputRedirected) throw new InvalidOperationException("InteractiveTerminalRequired");
                 Console.Error.Write("管理者名: "); var name = Console.ReadLine() ?? "";
                 var password = ReadSecret("パスワード: ");
                 using var client = CreateClient(origin);
                 var issued = await SendAsync<CliTokenIssued>(client, HttpMethod.Post, "/api/control/v1/auth/cli-token", new CliLoginRequest(name, password));
                 SecureFiles.Write(sessionPath, ControlJson.Serialize(new CliSession(origin.AbsoluteUri, issued.CredentialId, issued.Token, issued.ExpiresAtUtc)), protect: true);
-                Console.WriteLine("CLI認証完了。有効期限15分。資格情報は現在のWindowsユーザーにDPAPIで保存しました。");
+                Console.WriteLine("CLI認証完了。資格情報は現在のWindowsユーザーにDPAPIで保存しました。logout または owner 資格変更まで利用できます。");
                 return 0;
             }
             if (args[0] == "runner")
@@ -70,6 +90,17 @@ public static class ControlCli
                 File.Delete(SecureFiles.LocalPath(sessionPath)); Console.WriteLine("CLI認証を失効しました。"); return 0;
             }
             if (cached.ExpiresAtUtc <= DateTimeOffset.UtcNow) throw new InvalidOperationException("CliSessionExpired");
+            if (args[0] == "agent" && subcommand == "enroll")
+            {
+                RequireOptions(options, "session-file", "host-id", "agent-path", "data-root", "expected-server-url", "start-agent");
+                if (options.TryGetValue("expected-server-url", out var expectedOrigin)) ValidateExpectedOrigin(cached.ServerUrl, expectedOrigin);
+                var startAgent = !options.TryGetValue("start-agent", out var startValue) || startValue switch { "true" => true, "false" => false, _ => throw new ArgumentException("InvalidStartAgent") };
+                var started = await EnrollAgentAsync(http, options, startAgent);
+                Console.WriteLine(started
+                    ? "Agentサービスを起動しました。Control画面でHostの接続と設定適用を確認してください。"
+                    : "Agent設定を保存しました。導入手順でAgentサービスを起動し、Control画面で接続を確認してください。");
+                return 0;
+            }
             if (args[0] == "gate")
             {
                 RequireOptions(options, "session-file", "request-file", "lease-file", "step", "outcome", "run-reference", "expected-server-url");
@@ -110,7 +141,7 @@ public static class ControlCli
             }
             throw new ArgumentException();
         }
-        catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException)
+        catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException or Win32Exception or System.ServiceProcess.TimeoutException)
         {
             // Remote bodies, commands, credentials and exception messages are never echoed.
             Console.Error.WriteLine("Control CLI処理を拒否しました。設定、認証期限、予約状態を確認してください。"); return 1;
@@ -126,6 +157,156 @@ public static class ControlCli
     private static void RequireOptions(Dictionary<string, string> options, params string[] allowed)
     { if (options.Keys.Any(k => !allowed.Contains(k, StringComparer.Ordinal))) throw new ArgumentException(); }
     private static string Required(Dictionary<string, string> options, string key) => options.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value) ? value : throw new ArgumentException("MissingArgument");
+    private static async Task<bool> EnrollAgentAsync(HttpClient http, Dictionary<string, string> options, bool startAgent)
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator)) throw new UnauthorizedAccessException();
+        var hostId = Guid.Parse(Required(options, "host-id"));
+        if (hostId == Guid.Empty) throw new ArgumentException("HostIdRequired");
+        var installation = ResolveAgentInstallation(options);
+        var agentPath = installation.AgentPath;
+        var dataRoot = installation.DataRoot;
+        using var enrollmentLock = AcquireAgentEnrollmentLock(dataRoot);
+        var credentialPath = ValidateAgentEnrollmentState(dataRoot, hostId, http.BaseAddress!);
+        var endpoint = $"/api/control/v1/hosts/{hostId:D}/enrollment";
+        var issued = await SendAsync<CredentialIssued>(http, HttpMethod.Post, endpoint, null);
+        Process? process = null;
+        try
+        {
+            var start = new ProcessStartInfo(agentPath) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+            start.ArgumentList.Add("--configure");
+            start.ArgumentList.Add("--data-root");
+            start.ArgumentList.Add(dataRoot);
+            process = Process.Start(start) ?? throw new InvalidOperationException("AgentConfigureStartFailed");
+            try
+            {
+                await WriteAgentConfigurationInputAsync(process.StandardInput, hostId, http.BaseAddress!, issued.Token);
+                process.StandardInput.Close();
+                using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+                await Task.WhenAll(process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, timeout.Token),
+                    process.StandardError.BaseStream.CopyToAsync(Stream.Null, timeout.Token), process.WaitForExitAsync(timeout.Token));
+                if (process.ExitCode != 0) throw new InvalidOperationException("AgentConfigureFailed");
+            }
+            catch (OperationCanceledException)
+            {
+                throw new InvalidOperationException("AgentConfigureTimedOut");
+            }
+        }
+        catch
+        {
+            if (process is not null && await EnsureConfigureStoppedAsync(process) && File.Exists(credentialPath))
+            {
+                // This credential did not exist before this enrollment. A matching config can remain
+                // as a prepared config so the same Host may be retried without discarding resources.
+                try { File.Delete(credentialPath); }
+                catch (IOException) { Console.Error.WriteLine("Agent資格ファイルの後片付けを確認してください。"); }
+                catch (UnauthorizedAccessException) { Console.Error.WriteLine("Agent資格ファイルの後片付けを確認してください。"); }
+            }
+            else if (process is not null && !process.HasExited)
+                Console.Error.WriteLine("Agent設定処理の終了を確認できません。資格ファイルの状態を確認してください。");
+            try { await SendEmptyAsync(http, HttpMethod.Delete, $"{endpoint}/{issued.CredentialId:D}", null); }
+            catch { Console.Error.WriteLine("Agent設定に失敗しました。Controlで発行済みHost資格情報の失効を確認してください。"); }
+            throw;
+        }
+        finally { process?.Dispose(); }
+        if (installation.HasService && startAgent)
+        {
+            try
+            {
+                using var service = new ServiceController("AstralRecordControl.Agent");
+                service.Refresh();
+                if (service.Status == ServiceControllerStatus.Stopped) service.Start();
+                else if (service.Status is not (ServiceControllerStatus.Running or ServiceControllerStatus.StartPending)) throw new InvalidOperationException("AgentServiceNotSettled");
+                service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(60));
+            }
+            catch
+            {
+                Console.Error.WriteLine("Agent設定は保存済みですがサービス起動を確認できません。AstralRecordControl.Agentの状態を確認してください。");
+                throw;
+            }
+        }
+        return installation.HasService && startAgent;
+    }
+    private sealed record AgentInstallation(string AgentPath, string DataRoot, bool HasService);
+
+    public static FileStream AcquireAgentEnrollmentLock(string dataRoot)
+    {
+        var localRoot = SecureFiles.LocalPath(dataRoot);
+        Directory.CreateDirectory(localRoot);
+        var path = SecureFiles.LocalPath(Path.Combine(localRoot, "enrollment.lock"));
+        return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+    }
+
+    public static string ValidateAgentEnrollmentState(string dataRoot, Guid hostId, Uri origin)
+    {
+        if (hostId == Guid.Empty) throw new ArgumentException("HostIdRequired");
+        var configPath = SecureFiles.LocalPath(Path.Combine(dataRoot, "config.json"));
+        var tokenFile = "credentials/token.bin";
+        if (File.Exists(configPath))
+        {
+            var config = ReadBounded(configPath);
+            ControlJson.ValidateJson(config);
+            using var document = JsonDocument.Parse(config);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("hostId", out var configuredHost) ||
+                configuredHost.ValueKind != JsonValueKind.String || !Guid.TryParse(configuredHost.GetString(), out var existingHost) ||
+                existingHost != hostId || !root.TryGetProperty("serverUrl", out var configuredOrigin) ||
+                configuredOrigin.ValueKind != JsonValueKind.String || configuredOrigin.GetString() is not { } url ||
+                ValidateOrigin(url) != ValidateOrigin(origin.AbsoluteUri)) throw new InvalidOperationException("AgentPreparedConfigMismatch");
+            if (!root.TryGetProperty("tokenFile", out var configuredToken) || configuredToken.ValueKind != JsonValueKind.String)
+                throw new InvalidOperationException("AgentPreparedTokenPathMissing");
+            tokenFile = configuredToken.GetString()!;
+        }
+        if (!ControlProtocol.IsRelativePath(tokenFile)) throw new InvalidOperationException("AgentTokenPathInvalid");
+        var credentialPath = SecureFiles.LocalPath(Path.Combine(dataRoot, tokenFile.Replace('/', Path.DirectorySeparatorChar)));
+        if (File.Exists(credentialPath)) throw new InvalidOperationException("AgentAlreadyConfigured");
+        return credentialPath;
+    }
+
+    private static async Task<bool> EnsureConfigureStoppedAsync(Process? process)
+    {
+        if (process is null) return true;
+        try
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await process.WaitForExitAsync(timeout.Token);
+            return true;
+        }
+        catch (InvalidOperationException) { return process.HasExited; }
+        catch (Exception exception) when (exception is Win32Exception or OperationCanceledException) { return false; }
+    }
+
+    private static AgentInstallation ResolveAgentInstallation(Dictionary<string, string> options)
+    {
+        using var serviceKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\AstralRecordControl.Agent");
+        var imagePath = serviceKey?.GetValue("ImagePath") as string;
+        var hasService = serviceKey is not null;
+        var installed = hasService ? ParseAgentServiceImagePath(imagePath ?? "") : (AgentPath: "", DataRoot: "");
+        if (!hasService && !options.ContainsKey("agent-path")) throw new InvalidOperationException("AgentServiceRequired");
+        var installedAgent = hasService ? SecureFiles.LocalPath(installed.AgentPath) : null;
+        var installedRoot = hasService ? SecureFiles.LocalPath(installed.DataRoot) : null;
+        var agentPath = SecureFiles.LocalPath(options.GetValueOrDefault("agent-path", installedAgent!));
+        var dataRoot = SecureFiles.LocalPath(options.GetValueOrDefault("data-root", installedRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AstralRecordControl", "Agent")));
+        if (!File.Exists(agentPath) || !string.Equals(Path.GetFileName(agentPath), "AstralRecordControl.Agent.exe", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("AgentPathRequired");
+        if (hasService && (!string.Equals(agentPath, installedAgent, StringComparison.OrdinalIgnoreCase) || !string.Equals(dataRoot, installedRoot, StringComparison.OrdinalIgnoreCase))) throw new InvalidOperationException("AgentServiceMismatch");
+        return new AgentInstallation(agentPath, dataRoot, hasService);
+    }
+    public static (string AgentPath, string DataRoot) ParseAgentServiceImagePath(string imagePath)
+    {
+        var parts = imagePath.Split('"');
+        if (parts.Length != 5 || parts[0].Length != 0 || parts[2].Trim() != "--data-root" || parts[4].Length != 0 ||
+            !string.Equals(Path.GetFileName(parts[1]), "AstralRecordControl.Agent.exe", StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(parts[3])) throw new InvalidOperationException("AgentServicePathInvalid");
+        return (parts[1], parts[3]);
+    }
+    public static async Task WriteAgentConfigurationInputAsync(TextWriter input, Guid hostId, Uri origin, string token)
+    {
+        if (hostId == Guid.Empty || string.IsNullOrWhiteSpace(token)) throw new ArgumentException("InvalidAgentEnrollment");
+        await input.WriteLineAsync(hostId.ToString("D"));
+        await input.WriteLineAsync(ValidateOrigin(origin.AbsoluteUri).AbsoluteUri);
+        await input.WriteLineAsync(token);
+    }
     public static Uri ValidateOrigin(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == "https" && uri.AbsolutePath == "/" && uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0 ? uri : throw new ArgumentException("FixedHttpsOriginRequired");
     public static void ValidateExpectedOrigin(string actual, string expected)
     {

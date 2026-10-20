@@ -38,7 +38,7 @@ public sealed class OwnerAuthService(ControlDbContext db, UserManager<ControlUse
     public async Task SignInAsync(HttpContext context, ControlUser user)
     {
         var now = clock.GetUtcNow();
-        var session = new OwnerSession { SessionId = Guid.NewGuid(), OwnerUserId = user.Id, SecurityStamp = await users.GetSecurityStampAsync(user), CreatedAtUtc = now.UtcDateTime, ExpiresAtUtc = now.AddHours(8).UtcDateTime, ReauthenticatedAtUtc = now.UtcDateTime };
+        var session = new OwnerSession { SessionId = Guid.NewGuid(), OwnerUserId = user.Id, SecurityStamp = await users.GetSecurityStampAsync(user), CreatedAtUtc = now.UtcDateTime, ExpiresAtUtc = DateTime.MaxValue, ReauthenticatedAtUtc = now.UtcDateTime };
         db.OwnerSessions.Add(session);
         await db.SaveChangesAsync();
         var identity = new ClaimsIdentity([
@@ -48,7 +48,7 @@ public sealed class OwnerAuthService(ControlDbContext db, UserManager<ControlUse
         ], OwnerAuthentication.Scheme);
         context.Response.Cookies.Delete("__Host-ControlPending", new CookieOptions { Secure = true, Path = "/" });
         await context.SignInAsync(OwnerAuthentication.Scheme, new ClaimsPrincipal(identity), new AuthenticationProperties
-        { IsPersistent = false, IssuedUtc = now, ExpiresUtc = now.AddHours(8), AllowRefresh = false });
+        { IsPersistent = true, IssuedUtc = now, ExpiresUtc = now.AddDays(365), AllowRefresh = true });
     }
 
     public async Task<OwnerSession?> ValidateSessionAsync(ClaimsPrincipal? principal)

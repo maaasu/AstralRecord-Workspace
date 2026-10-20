@@ -1,6 +1,20 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Get-DeploymentGateRuntimeServerIds {
+    param($Configuration,[string[]]$RuntimeServerIds,[switch]$PluginOnly,[switch]$MasterDataOnly,[switch]$ServerAlreadyRunning)
+    $gate=$Configuration['controlGate']
+    $hasShared=$gate -and $gate['mode'] -ceq 'Managed' -and $gate.ContainsKey('sharedApiRuntimeServerIds')
+    $changesSharedApi=!$PluginOnly -and ($Configuration['fileDatabase']['enabled'] -or (!$MasterDataOnly -and $Configuration['api']['enabled']))
+    if (!$changesSharedApi -or !$hasShared) { return $RuntimeServerIds }
+    $shared=@($gate['sharedApiRuntimeServerIds'])
+    if ($shared.Count -lt 2 -or @($shared | Sort-Object -Unique).Count -ne $shared.Count -or
+        @($shared | Where-Object { $_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_) }).Count -or
+        @($RuntimeServerIds | Where-Object { $_ -cnotin $shared }).Count) { throw 'sharedApiRuntimeServerIds must be a nonempty set of at least two distinct runtime IDs and include every workflow target.' }
+    if ($ServerAlreadyRunning) { throw 'This API is shared by multiple RPG servers. Use stopped mode for 03, then start every shared server before patch publication.' }
+    return @($shared | Sort-Object -Unique)
+}
+
 function Get-ControlGateMode {
     param([Parameter(Mandatory)]$Configuration)
     $mode = if ($Configuration.ContainsKey('controlGate') -and $Configuration.controlGate -and $Configuration.controlGate.mode) { [string]$Configuration.controlGate.mode } else { 'Legacy' }
@@ -8,22 +22,16 @@ function Get-ControlGateMode {
     $marker = Join-Path $env:ProgramData 'AstralRecordControl\managed-operations.enabled'
     if (Test-Path -LiteralPath $marker) {
         if ($mode -eq 'Legacy') { throw 'Control management is enabled on this PC; legacy entry points are disabled.' }
-        $attestation=Get-Content -Raw -Encoding UTF8 -LiteralPath $marker | ConvertFrom-Json -AsHashtable
+        if (!(Test-Path -LiteralPath $marker -PathType Leaf) -or
+            ((Get-Item -LiteralPath $marker -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Invalid management installation marker.' }
+        $installation=Get-Content -Raw -Encoding UTF8 -LiteralPath $marker | ConvertFrom-Json -AsHashtable
         $toolRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')).TrimEnd('\','/')
-        if ($attestation.schemaVersion -ne 1 -or !$attestation.toolRoot -or
-            [IO.Path]::GetFullPath([string]$attestation.toolRoot).TrimEnd('\','/') -ine $toolRoot) { throw 'Managed tool attestation does not match this installation.' }
-        $required=@('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
-            'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
-            'master-data-reload\master-data-reload.ps1')
-        foreach ($file in $required) { if (!$attestation.hashes.ContainsKey($file)) { throw 'Managed tool attestation is incomplete.' } }
-        foreach ($entry in $attestation.hashes.GetEnumerator()) {
-            $path=Join-Path $toolRoot $entry.Key
-            if (!(Test-Path -LiteralPath $path -PathType Leaf) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -cne $entry.Value) {
-                throw 'Managed tool attestation hash differs from the installed entry points.'
-            }
-        }
+        if ($installation.schemaVersion -ne 1 -or !$installation.toolRoot -or
+            [IO.Path]::GetFullPath([string]$installation.toolRoot).TrimEnd('\','/') -ine $toolRoot) { throw 'Managed tool registration does not match this installation.' }
+        # The marker records the one-time installation. Local tool updates do not require another OS-admin approval.
+        # Existing schema-1 hashes are retained for compatibility with older installers, not used as authentication.
     } elseif ($mode -eq 'Managed') {
-        throw 'Control management requires a verified installation marker.'
+        throw 'Control management requires an installed management marker.'
     }
     return $mode
 }
@@ -299,4 +307,4 @@ function Complete-ControlGate {
     [Environment]::SetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE', $null, 'Process')
 }
 
-Export-ModuleMember -Function Get-ControlGateMode, Get-ControlGateResumeIdentity, New-ControlGateRunReference, Enter-ControlGate, Assert-ControlGateStep, Complete-ControlGate
+Export-ModuleMember -Function Get-ControlGateMode, Get-ControlGateResumeIdentity, New-ControlGateRunReference, Enter-ControlGate, Assert-ControlGateStep, Complete-ControlGate, Get-DeploymentGateRuntimeServerIds

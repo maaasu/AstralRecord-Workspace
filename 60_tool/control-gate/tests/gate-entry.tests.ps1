@@ -61,6 +61,13 @@ $global:LASTEXITCODE=0
     foreach ($file in $files) { $hashes[$file]=(Get-FileHash -LiteralPath (Join-Path $toolRoot $file) -Algorithm SHA256).Hash }
     @{schemaVersion=1;toolRoot=$toolRoot;hashes=$hashes} | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $markerRoot 'managed-operations.enabled')
     Assert-Throws { Get-ControlGateMode @{} }
+    # A routine update must reuse the existing installation without reapproval of every script hash.
+    $hashes['control-gate\Control.Gate.psm1']='0'*64
+    @{schemaVersion=1;toolRoot=$toolRoot;hashes=$hashes} | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $markerRoot 'managed-operations.enabled')
+    if ((Get-ControlGateMode $config) -cne 'Managed') { throw 'A routine local tool update required reapproval.' }
+    @{schemaVersion=1;toolRoot=(Join-Path $temp 'another-installation');hashes=$hashes} | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $markerRoot 'managed-operations.enabled')
+    Assert-Throws { Get-ControlGateMode $config }
+    @{schemaVersion=1;toolRoot=$toolRoot;hashes=$hashes} | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $markerRoot 'managed-operations.enabled')
     $bad=$config.Clone(); $bad.controlGate=$config.controlGate.Clone(); $bad.controlGate.bindings=$config.controlGate.bindings.Clone()
     $bad.controlGate.bindings.paths=@()
     Assert-Throws { Enter-ControlGate $bad '01' @('dev') @($path) 'Stopped' }

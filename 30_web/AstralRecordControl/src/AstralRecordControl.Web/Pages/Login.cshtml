@@ -1,11 +1,23 @@
 @page
 @model AstralRecordControl.Web.Pages.LoginModel
 @{ ViewData["Title"] = "ログイン"; }
-<h1>管理者ログイン</h1>
-<form method="post">
-    @Html.AntiForgeryToken()
-    <div asp-validation-summary="All"></div>
-    <label>管理者名 <input name="UserName" value="@Model.UserName" autocomplete="username" maxlength="256" required /></label>
-    <label>パスワード <input name="Password" type="password" autocomplete="current-password" maxlength="1024" required /></label>
-    <button type="submit">ログイン</button>
-</form>
+<div class="login-shell">
+    <div class="login-intro">
+        <span class="eyebrow">ASTRALRECORD CONTROL</span>
+        <h1>サーバーを管理する</h1>
+        <p>接続状況、運転、履歴をひとつの場所で確認できます。管理者としてこの端末でログインしてください。</p>
+        <div class="login-intro-note"><span aria-hidden="true">●</span> このブラウザでログイン状態を保持します。</div>
+    </div>
+    <section class="login-card" aria-labelledby="login-title">
+        <span class="eyebrow">管理者専用</span>
+        <h2 id="login-title">ログイン</h2>
+        <p>初回に設定した管理者名とパスワードを入力してください。</p>
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All"></div>
+            <label>管理者名 <input name="UserName" value="@Model.UserName" autocomplete="username" maxlength="256" required autofocus /></label>
+            <label>パスワード <input name="Password" type="password" autocomplete="current-password" maxlength="1024" required /></label>
+            <button class="button-primary" type="submit">管理画面を開く <span aria-hidden="true">→</span></button>
+        </form>
+    </section>
+</div>

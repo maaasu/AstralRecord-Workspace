@@ -4,8 +4,8 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 
 ## 実装済みの機能（P0・P1・P2・P3）
 
-- 単一ownerのパスワード認証、8時間の固定セッション、全セッション失効、停止中のローカルCLIによるowner作成/リセット。
-- PC・Server・Environment台帳、Agentトークンの一度限り表示/失効、希望設定版と適用版の区別。
+- 単一ownerのパスワード認証とログイン保持、明示logout・全セッション失効、停止中のローカルCLIによるowner作成/リセット。
+- PC・Server・Environment台帳、初回CLIログインからのAgent自動登録、希望設定版と適用版の区別。手動トークン操作は復旧用の診断内に配置。
 - 各PCからHTTPS/WSSで接続するAgent。Hello/Reconcile/heartbeat、再接続、設定snapshotのhash検証と同期、イベントACK、storeId/巻戻り検出。
 - 同一PCのRunnerへのACL付きnamed pipe。設定の原子的適用、snapshot、永続hold/fence。
 
@@ -23,7 +23,7 @@ P1のプロセス運転はJavaの独立した基本運転です。P3では同一
 |---|---|
 | `src/AstralRecordControl.Contracts` | protocol v1、厳密JSON、inventory/operation/gate DTOと検証 |
 | `src/AstralRecordControl.Web` | owner認証/CLI資格情報、台帳、予約と操作、画面とログ取得 |
-| `src/AstralRecordControl.Cli` | 停止中owner管理、15分認証、gate、ローカルRunner点検/復旧 |
+| `src/AstralRecordControl.Cli` | 停止中owner管理、初回ログインの保持、Agent登録、gate、ローカルRunner点検/復旧 |
 | `src/AstralRecordControl.Agent` | outbound接続、Inbox/Outbox、Runner IPC、設定/操作照合 |
 | `src/AstralRecordControl.Runner` | ローカル設定/hold/実行台帳、プロセス所有、ログ、named pipe |
 | `tests` | 一時SQLite/HTTP/IPCを使う境界・状態・永続化検証 |
@@ -59,8 +59,9 @@ node --test tests/WebScript.Tests/*.test.cjs
 | `/api/agent/v1/inventory` | Agent専用Bearer + X-Control-Connection-Epoch |
 | `/health/live` | 機密を含まない生存確認。通常環境ではHTTPSのみ |
 | `/api/control/v1/servers/{id}/operations`、`operations/{id}`、`servers/{id}/logs` | Owner Cookie。変更はCSRF、操作作成はIdempotency-Key + If-None-Match |
-| `/api/control/v1/reservations`、`reservations/{id}/validate`、`release`、`gate/catalog` | Owner Cookieまたは15分CLI Bearer。Cookie変更はCSRF |
+| `/api/control/v1/reservations`、`reservations/{id}/validate`、`release`、`gate/catalog` | Owner CookieまたはCLI Bearer。Cookie変更はCSRF |
 | `/api/control/v1/auth/cli-token`、`cli-token/revoke` | 管理者名＋パスワードで発行、CLI Bearerで自己失効 |
+| `/api/control/v1/auth/cli-token` GET、`hosts/{id}/enrollment` POST/DELETE | CLIログインの有効性確認、Agent資格情報の内部発行・登録失敗時の失効 |
 | `/api/control/v1/schedules`、`schedules/{id}`、`schedules/{id}/run-now`、`schedules/{id}/requests/{operationId}` | Owner Cookie。変更はCSRF、作成/Run NowはIdempotency-Key、更新はIf-Match。Run Nowは永続受付後202、要求IDで照会・再送 |
 | `/api/control/v1/servers/{id}/metrics` | Owner Cookie。期間とminute/hour粒度を指定して時系列を取得 |
 | `/api/control/v1/notification-destinations`、`notification-destinations/{id}`、`notifications` | Owner Cookie。送信先変更はCSRF/Idempotency-Key/条件付きrevision、URLは応答しない。配信履歴は最大100件 |
@@ -83,7 +84,9 @@ DPAPI鍵/トークンを別PCへコピーするだけでは復旧できません
 
 Runnerはshellを介さず登録済み実行ファイルをArgumentListで起動します。WebやAgentが停止してもプロセスとログ読取を継続します。Runnerが再起動した場合、生きている旧SessionはUnmanagedです。PID・生成時刻・実行ファイルfingerprintが一致しても標準入出力を再取得できないため、自動再採用しません。停止タイムアウトでは自動Killせず、同じWorkflowの要確認状態とholdを保持します。
 
-CLIは`login --server-url https://control.example:5443`で対話認証し、15分の専用資格情報を現在のWindowsユーザーのDPAPI/限定ACLへ保存します。gateの各コマンドには`--expected-server-url`を必須とし、設定先とsessionのoriginを照合します。leaseファイルも限定ACLです。完全な実行例とbindingは[共通gate手順](../../60_tool/control-gate/README.md)を参照してください。
+CLIは各管理PCのWindowsユーザーで一度`login --server-url https://control.example:5443`を実行し、ログインをDPAPIで保持します。同じControlへの再実行は有効なログインを再利用します。`agent enroll --host-id <GUID>`は登録済みサービスからAgentの実パスを検出し、接続用資格情報を自動配置してAgentを起動します。運用者によるtokenコピーは不要です。段階導入では`--start-agent false`で設定だけ行います。gateの各コマンドは`--expected-server-url`で接続先を照合します。CLIの配置・初回登録は[導入手順](../../60_tool/control-deploy/README.md)、bindingは[共通gate手順](../../60_tool/control-gate/README.md)を参照してください。
+
+WebのCookieは365日で利用時に延長し、サーバー側セッションとCLI資格は明示失効・owner資格変更まで有効です。旧8時間Cookie・旧15分CLI資格は更新前の期限を引き継ぐため、期限後の初回ログインで新方式へ移ります。既存Agentの設定・資格情報を作り直す必要はありません。
 
 ```powershell
 AstralRecordControl.Cli.exe runner snapshot

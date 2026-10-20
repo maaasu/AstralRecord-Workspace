@@ -3,6 +3,7 @@
 param(
     [Parameter(Mandatory)][ValidateSet('Web','Agent','Runner')][string]$Component,
     [Parameter(Mandatory)][string]$PackageDirectory,
+    [string]$CliPackageDirectory = '',
     [string]$InstallRoot = (Join-Path $env:ProgramFiles 'AstralRecordControl'),
     [string]$DataRoot = '',
     [switch]$Start,
@@ -28,6 +29,10 @@ if (-not [Security.Principal.WindowsPrincipal]::new($identity).IsInRole([Securit
 $existing = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if ($existing) { throw 'Service already exists. Use Update-Control.ps1.' }
 if (-not $PSCmdlet.ShouldProcess($serviceName, 'Stage binaries, create service and restrict ACLs')) { return }
+if ($Component -eq 'Agent') {
+    if (!$CliPackageDirectory) { $CliPackageDirectory=Join-Path ([IO.Path]::GetDirectoryName($source)) 'Cli' }
+    & (Join-Path $PSScriptRoot 'Install-ControlCli.ps1') -PackageDirectory $CliPackageDirectory
+}
 New-Item -ItemType Directory -Path $binaryRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $data -Force | Out-Null
 $release = Join-Path $binaryRoot ([Guid]::NewGuid().ToString('N'))

@@ -1,41 +1,56 @@
 @page
 @model AstralRecordControl.Web.Pages.IndexModel
 @using AstralRecordControl.Web.Pages.Shared
-@{ ViewData["Title"] = "ダッシュボード"; }
+@{
+    ViewData["Title"] = "概要";
+    var onlineHosts = Model.Hosts.Count(host => host.ConnectionState == HostConnectionState.Online);
+    var attentionHosts = Model.Hosts.Count(host => host.Enabled &&
+        (host.ConnectionState != HostConnectionState.Online || host.RecoveryRequired ||
+         host.InventoryErrorCode != null || host.DesiredInventoryRevision != host.AppliedInventoryRevision));
+}
 
-<div class="page-heading">
-    <div><h1>ダッシュボード</h1><p>PCの接続と登録済みサーバーを確認します。表示は取得時点の情報です。</p></div>
-    <a class="text-action" href="/Servers">サーバー台帳を開く</a>
+<div class="overview-hero">
+    <div>
+        <span class="eyebrow">OPERATIONS OVERVIEW</span>
+        <h1>今日の運用</h1>
+        <p>接続中のPCと登録サーバーを確認して、対象の操作へ進みます。</p>
+    </div>
+    <div class="overview-hero-actions"><a class="button-link button-link--primary" href="/Servers">サーバーを開く <span aria-hidden="true">→</span></a><a class="button-link" href="/Hosts">接続PCを確認</a></div>
 </div>
-<p class="snapshot-note">最終更新: <time datetime="@Model.ObservedAtUtc.ToString("O")">@Model.ObservedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm:ss 'JST'")</time> <span>最新の情報は画面を再読み込みしてください。</span></p>
+
+<div class="overview-metrics" role="group" aria-label="現在の登録状況">
+    <div class="metric-card"><span>登録サーバー</span><strong>@Model.Servers.Length</strong><a href="/Servers">一覧を見る <span aria-hidden="true">→</span></a></div>
+    <div class="metric-card"><span>接続中のPC</span><strong>@onlineHosts <small>/ @Model.Hosts.Length</small></strong><a href="/Hosts">接続状態を見る <span aria-hidden="true">→</span></a></div>
+    <div class="metric-card @(attentionHosts > 0 ? "metric-card--attention" : "")"><span>確認が必要なPC</span><strong>@attentionHosts</strong><span class="metric-caption">@(attentionHosts > 0 ? "登録・設定の状態を確認してください" : "報告された問題はありません")</span></div>
+</div>
+<p class="snapshot-note">最終更新 <time datetime="@Model.ObservedAtUtc.ToString("O")">@Model.ObservedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm:ss 'JST'")</time> · 最新の状態は再読み込みで確認できます。</p>
+
+<section class="page-section" aria-labelledby="servers-heading">
+    <div class="section-heading"><div><span class="eyebrow">SERVERS</span><h2 id="servers-heading">サーバー</h2><p>設定と操作の入口です。</p></div><a href="/Servers">すべて見る <span aria-hidden="true">→</span></a></div>
+    @if (Model.Servers.Length == 0) {
+        <div class="empty-state"><strong>サーバーはまだありません</strong><p>接続PCを登録してからサーバーを追加できます。</p><a href="/Hosts">接続PCを設定する</a></div>
+    } else {
+        <div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">サーバー</th><th scope="col">配置PC</th><th scope="col">設定</th><th scope="col">操作</th></tr></thead><tbody>
+            @foreach (var server in Model.Servers) {
+                <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")</td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span></td><td><a asp-page="/Servers/Edit" asp-route-serverId="@server.ServerId">詳細を見る <span aria-hidden="true">→</span></a></td></tr>
+            }
+        </tbody></table></div>
+    }
+</section>
 
 <section class="page-section" aria-labelledby="hosts-heading">
-    <div class="section-heading"><div><h2 id="hosts-heading">PCの接続状況</h2><p>未接続はゲームプロセスの停止を意味しません。</p></div><a href="/Hosts">PC台帳を開く</a></div>
+    <div class="section-heading"><div><span class="eyebrow">CONNECTIONS</span><h2 id="hosts-heading">接続PC</h2><p>未接続のPCでもゲームが停止したとは判断できません。</p></div><a href="/Hosts">接続設定を見る <span aria-hidden="true">→</span></a></div>
     @if (Model.Hosts.Length == 0) {
-        <div class="empty-state"><strong>PCはまだ登録されていません</strong><p>PC台帳で管理するPCを登録すると、ここに接続状況が表示されます。</p><a href="/Hosts">PC台帳へ</a></div>
+        <div class="empty-state"><strong>接続PCはまだありません</strong><p>まず管理するPCを登録しましょう。</p><a href="/Hosts">PCを登録する</a></div>
     } else {
         <div class="host-grid">
             @foreach (var host in Model.Hosts) {
                 <article class="host-card">
                     <div class="entity-heading"><div><h3>@host.DisplayName</h3><span class="entity-key">@host.HostKey</span></div><span class="state-badge @ControlDisplay.HostStateClass(host.ConnectionState)">@ControlDisplay.HostState(host.ConnectionState)</span></div>
-                    <p class="host-message">@if (host.RecoveryRequired) { <text>再登録または状態の照合が必要です。</text> } else if (host.InventoryErrorCode != null) { <text>設定の適用を確認してください。</text> } else if (host.DesiredInventoryRevision != host.AppliedInventoryRevision) { <text>新しい設定はまだ適用されていません。</text> } else if (!host.LastSeenAtUtc.HasValue) { <text>Agentからの報告はまだありません。</text> } else if (host.ConnectionState != HostConnectionState.Online) { <text>現在の設定適用状況は確認できません。</text> } else { <text>設定は適用済みです。</text> }</p>
+                    <p class="host-message">@if (host.RecoveryRequired) { <text>再登録または状態の照合が必要です。</text> } else if (host.InventoryErrorCode != null) { <text>設定の適用を確認してください。</text> } else if (host.DesiredInventoryRevision != host.AppliedInventoryRevision) { <text>新しい設定はまだ適用されていません。</text> } else if (!host.LastSeenAtUtc.HasValue) { <text>PCからの報告を待っています。</text> } else if (host.ConnectionState != HostConnectionState.Online) { <text>現在の設定適用状況は確認できません。</text> } else { <text>設定は適用済みです。</text> }</p>
                     <p class="secondary-text">最終報告: @ControlDisplay.LastSeen(host.LastSeenAtUtc)</p>
-                    <details class="compact-details"><summary>接続と設定の詳細</summary><dl><dt>台帳キー</dt><dd>@host.HostKey</dd><dt>希望 / 適用版</dt><dd>@host.DesiredInventoryRevision / @host.AppliedInventoryRevision</dd><dt>報告コード</dt><dd>@(host.InventoryErrorCode ?? "なし")</dd></dl></details>
                 </article>
             }
         </div>
-    }
-</section>
-
-<section class="page-section" aria-labelledby="servers-heading">
-    <div class="section-heading"><div><h2 id="servers-heading">サーバー</h2><p>登録済みの一覧です。接続が切れたPCのサーバーを停止中とは判断しません。</p></div><a href="/Servers">サーバー台帳を開く</a></div>
-    @if (Model.Servers.Length == 0) {
-        <div class="empty-state"><strong>サーバーはまだ登録されていません</strong><p>PCを登録してAgentが接続した後、サーバー台帳から追加できます。</p><a href="/Servers">サーバー台帳へ</a></div>
-    } else {
-        <div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">サーバー</th><th scope="col">配置PC</th><th scope="col">設定</th><th scope="col">詳細</th></tr></thead><tbody>
-            @foreach (var server in Model.Servers) {
-                <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")</td><td>@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</td><td><a asp-page="/Servers/Edit" asp-route-serverId="@server.ServerId">設定を見る</a></td></tr>
-            }
-        </tbody></table></div>
     }
 </section>

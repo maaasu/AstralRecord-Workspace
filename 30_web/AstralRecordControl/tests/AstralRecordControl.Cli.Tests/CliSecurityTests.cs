@@ -1,6 +1,7 @@
 using System.Security.AccessControl;
 using System.Security.Principal;
 using AstralRecordControl.Cli;
+using AstralRecordControl.Contracts;
 using Xunit;
 
 namespace AstralRecordControl.Cli.Tests;
@@ -50,4 +51,68 @@ public sealed class CliSecurityTests
     [Fact]
     public async Task MalformedServerIdIsRejectedWithoutOpeningRunnerPipe()
         => Assert.Equal(1, await ControlCli.RunAsync(["runner", "inspect", "--server-id", "not-a-guid"]));
+
+    [Fact]
+    public async Task AgentEnrollmentWritesHostOriginAndTokenInAgentPromptOrder()
+    {
+        var host = Guid.NewGuid();
+        const string token = "fixture-secret-token";
+        using var input = new StringWriter();
+        await ControlCli.WriteAgentConfigurationInputAsync(input, host, new Uri("https://control.example/"), token);
+        Assert.Equal(new[] { host.ToString("D"), "https://control.example/", token },
+            input.ToString().Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void AgentEnrollmentResolvesInstallerReleasePathWithoutAssumingAgentRootExecutable()
+    {
+        var image = "\"C:\\Program Files\\AstralRecordControl\\Agent\\release-id\\AstralRecordControl.Agent.exe\" --data-root \"C:\\ProgramData\\AstralRecordControl\\Agent\"";
+        var parsed = ControlCli.ParseAgentServiceImagePath(image);
+        Assert.EndsWith(@"Agent\release-id\AstralRecordControl.Agent.exe", parsed.AgentPath, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(@"C:\ProgramData\AstralRecordControl\Agent", parsed.DataRoot);
+        Assert.Throws<InvalidOperationException>(() => ControlCli.ParseAgentServiceImagePath("C:\\other.exe --data-root C:\\data"));
+    }
+
+    [Fact]
+    public void AgentEnrollmentAcceptsOnlyMatchingPreparedConfigWithoutCredential()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "control-enroll-" + Guid.NewGuid().ToString("N"));
+        var host = Guid.NewGuid();
+        var origin = new Uri("https://control.example/");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var credential = ControlCli.ValidateAgentEnrollmentState(root, host, origin);
+            Assert.Equal(Path.Combine(root, "credentials", "token.bin"), credential);
+
+            File.WriteAllText(Path.Combine(root, "config.json"), ControlJson.Serialize(new
+            {
+                hostId = host, serverUrl = origin.AbsoluteUri, tokenFile = "private/agent.bin",
+                localResources = new { directoryRoots = Array.Empty<object>() }, enableFileControl = false
+            }));
+            credential = ControlCli.ValidateAgentEnrollmentState(root, host, origin);
+            Assert.Equal(Path.Combine(root, "private", "agent.bin"), credential);
+            Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateAgentEnrollmentState(root, Guid.NewGuid(), origin));
+            Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateAgentEnrollmentState(root, host, new Uri("https://other.example/")));
+
+            Directory.CreateDirectory(Path.GetDirectoryName(credential)!);
+            File.WriteAllText(credential, "existing protected credential fixture");
+            Assert.Throws<InvalidOperationException>(() => ControlCli.ValidateAgentEnrollmentState(root, host, origin));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public void ConcurrentAgentEnrollmentsCannotShareOneDataRoot()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "control-enroll-lock-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using (ControlCli.AcquireAgentEnrollmentLock(root))
+                Assert.Throws<IOException>(() => ControlCli.AcquireAgentEnrollmentLock(root));
+            using (var retry = ControlCli.AcquireAgentEnrollmentLock(root))
+                Assert.True(retry.CanWrite);
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
 }
