@@ -170,7 +170,7 @@ if (typeof document !== "undefined") {
         const table = byId("file-entries"); if (!append) table.replaceChildren();
         for (const entry of data.entries) {
             const tr = table.insertRow(), cell = tr.insertCell(), button = document.createElement("button"); button.type = "button"; button.textContent = entry.name;
-            listen(button, "click", () => { byId("file-path").value = basePath + (basePath ? "/" : "") + entry.name; byId("file-etag").value = entry.etag || "absent"; }); cell.append(button);
+            button.addEventListener("click", () => { byId("file-path").value = basePath + (basePath ? "/" : "") + entry.name; byId("file-etag").value = entry.etag || "absent"; }); cell.append(button);
             tr.insertCell().textContent = entry.isDirectory ? "フォルダ" : "ファイル"; tr.insertCell().textContent = `${entry.bytes} bytes`;
         }
         nextCursor = data.nextCursor; byId("list-next").hidden = !nextCursor;
@@ -228,8 +228,8 @@ if (typeof document !== "undefined") {
                 const row = table.insertRow();
                 for (const value of [t.transferId, t.status, `${t.committedOffset} / ${t.sizeBytes ?? "未確定"}`, new Date(t.expiresAtUtc).toLocaleString()]) row.insertCell().textContent = value;
                 const cell = row.insertCell();
-                if (t.destinationHostId === null && t.status === "Verified") { const b = document.createElement("button"); b.textContent = "保存"; listen(b, "click", () => run(() => download(t))); cell.append(b); }
-                if (t.sourceHostId === null && t.status === "Uploading") { const input = document.createElement("input"); input.type = "file"; input.setAttribute("aria-label", "再開する同じファイル"); const b = document.createElement("button"); b.textContent = "転送を再開"; listen(b, "click", () => run(async () => { if (!input.files[0]) throw new Error("同じファイルを選択してください。"); await upload(input.files[0], t); await refresh(); })); cell.append(input, b); }
+                if (t.destinationHostId === null && t.status === "Verified") { const b = document.createElement("button"); b.textContent = "保存"; b.addEventListener("click", () => run(() => download(t))); cell.append(b); }
+                if (t.sourceHostId === null && t.status === "Uploading") { const input = document.createElement("input"); input.type = "file"; input.setAttribute("aria-label", "再開する同じファイル"); const b = document.createElement("button"); b.textContent = "転送を再開"; b.addEventListener("click", () => run(async () => { if (!input.files[0]) throw new Error("同じファイルを選択してください。"); await upload(input.files[0], t); await refresh(); })); cell.append(input, b); }
                 if (t.destinationHostId && t.status === "Verified") { const link = document.createElement("a"); link.href = `/Servers/${t.serverId}/Files`; link.textContent = "取り込み先を開く（同じファイルの選択で再開）"; cell.append(link); }
             }
         };

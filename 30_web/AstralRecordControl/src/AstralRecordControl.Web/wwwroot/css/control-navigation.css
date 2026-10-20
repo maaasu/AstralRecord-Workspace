@@ -1,14 +1,5 @@
-/* Native navigation preserves each page's script and authentication lifecycle. */
-@view-transition { navigation: auto; }
-:root { view-transition-name: none; }
-.app-header { view-transition-name: app-header; }
-.app-main { view-transition-name: app-content; }
-::view-transition-group(app-header) { animation-duration: 0s; }
-::view-transition-old(app-content) { animation: content-out 80ms ease-out both; }
-::view-transition-new(app-content) { animation: content-in 120ms ease-out both; }
-@keyframes content-out { to { opacity: 0; } }
-@keyframes content-in { from { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) {
-    @view-transition { navigation: none; }
-    ::view-transition-group(*) { animation-duration: 0s; }
-}
+/* Keep the document and header mounted; only completed page responses replace main. */
+.navigation-status { position: fixed; right: 1rem; bottom: 1rem; z-index: 20; margin: 0; padding: .75rem 1rem; max-width: calc(100vw - 2rem); color: #d5e3f3; background: #16263a; border: 1px solid #45627e; border-radius: .5rem; box-shadow: 0 4px 16px #0006; }
+.navigation-status[hidden] { display: none; }
+.app-main[aria-busy="true"] { cursor: progress; }
+.main-tabs .nav-tab[aria-busy="true"] { box-shadow: inset 0 -3px #82b8e3; }

@@ -39,7 +39,7 @@ DevのHostは開発PC、チャンネルのHostはMC用PCです。どちらもAge
 dotnet test AstralRecordControl.slnx -c Release
 pwsh -NoProfile -File ../../60_tool/control-deploy/tests/deployment-preflight.ps1
 pwsh -NoProfile -File ../../60_tool/control-gate/tests/gate-entry.tests.ps1
-node --test tests/WebScript.Tests/sha256.test.cjs
+node --test tests/WebScript.Tests/*.test.cjs
 ```
 
 実際の登録/設定は [導入手順](../../60_tool/control-deploy/README.md) を使用します。テスト用`Testing`環境は一時データルートを明示した自動テスト専用です。通常導入で指定しません。

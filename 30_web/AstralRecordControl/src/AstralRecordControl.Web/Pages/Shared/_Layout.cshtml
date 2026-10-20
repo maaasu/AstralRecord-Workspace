@@ -17,6 +17,7 @@
     @if (authenticated && !authenticationPage)
     {
         <link rel="stylesheet" href="~/css/control-navigation.css" asp-append-version="true" />
+        <script src="~/js/control-navigation.js" asp-append-version="true" defer></script>
     }
 </head>
 <body>
@@ -42,10 +43,11 @@
         }
         </div>
     </header>
-    <main id="main" class="app-main @(authenticationPage ? "auth-main" : "")" tabindex="-1">
+    <p id="navigation-status" class="navigation-status" role="status" aria-live="polite" hidden></p>
+    <main id="main" class="app-main @(authenticationPage ? "auth-main" : "")" data-control-page="@(authenticated && !authenticationPage ? "true" : "false")" tabindex="-1">
         @RenderBody()
     </main>
     <footer>接続が切れたPCの状態は最終確認時点の情報です。操作結果が不明な場合は保守履歴を確認してください。</footer>
-    @await RenderSectionAsync("Scripts", required: false)
+    <div id="page-scripts">@await RenderSectionAsync("Scripts", required: false)</div>
 </body>
 </html>
