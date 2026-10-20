@@ -137,6 +137,12 @@ public sealed class ProcessTests
                 && rows.Any(row => row.Stream == "stdout" && row.Text == "echo:" + commandText);
         });
 
+        request = request with { AfterSequence = runner.ReadLogs(request).NextCursor };
+        var boundary = fixture.Request(runner, hold, OperationKind.ConsoleCommand, new { command = "unicode-boundary" });
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(boundary).OperationId)).Status);
+        await WaitUntil(() => runner.ReadLogs(request).Rows.Any(row => row.Text == "日本語"));
+        Assert.Equal(new string('x', 32767) + "😀日本語", string.Concat(runner.ReadLogs(request).Rows.Where(row => row.Stream == "stdout").Select(row => row.Text)));
+
         var stop = fixture.Request(runner, hold, OperationKind.Stop);
         Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(stop).OperationId)).Status);
         runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));

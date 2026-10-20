@@ -201,6 +201,12 @@ public sealed partial class RunnerStore
                 CreateNoWindow = true
             };
             PrepareProcessEnvironment(startInfo, serverId);
+            if (Path.GetFileNameWithoutExtension(executable).Equals("java", StringComparison.OrdinalIgnoreCase))
+            {
+                // Java can use the Windows native code page for redirected stdout/stderr.
+                startInfo.ArgumentList.Add("-Dstdout.encoding=UTF-8");
+                startInfo.ArgumentList.Add("-Dstderr.encoding=UTF-8");
+            }
             foreach (var arg in config.ArgumentList) startInfo.ArgumentList.Add(arg);
             process = Process.Start(startInfo) ?? throw new RunnerFault(ErrorCode.RecoveryRequired);
             var created = process.StartTime.ToUniversalTime();
@@ -292,7 +298,7 @@ public sealed partial class RunnerStore
                 {
                     if (buffer[i] == '\n') { AppendLog(serverId, sessionId, stream, line.ToString().TrimEnd('\r')); line.Clear(); }
                     else line.Append(buffer[i]);
-                    if (line.Length >= 32768) { AppendLog(serverId, sessionId, stream, line.ToString(), true); line.Clear(); }
+                    if (line.Length >= 32768 && !char.IsHighSurrogate(line[^1])) { AppendLog(serverId, sessionId, stream, line.ToString(), true); line.Clear(); }
                 }
             }
             if (line.Length > 0) AppendLog(serverId, sessionId, stream, line.ToString());

@@ -34,6 +34,7 @@ public static class Program
                 Console.WriteLine("environment-io-ready");
             }
             if (line == "long-line") Console.WriteLine(new string('x', 70 * 1024));
+            else if (line == "unicode-boundary") Console.WriteLine(new string('x', 32767) + "😀日本語");
             else Console.WriteLine("echo:" + line);
         }
     }

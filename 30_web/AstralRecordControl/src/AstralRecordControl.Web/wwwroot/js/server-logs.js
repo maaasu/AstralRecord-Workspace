@@ -14,6 +14,15 @@
     const statusNames = { Queued: "受付", Accepted: "受理", Running: "実行中", Succeeded: "成功", Failed: "失敗", Rejected: "拒否", Expired: "期限切れ", Cancelled: "取消", NeedsAttention: "要確認" };
     const forms = [...root.querySelectorAll("[data-operation-form]"), ...document.querySelectorAll(".console-command-form")];
     const buttons = forms.flatMap(form => [...form.querySelectorAll('button[name="kind"]')]);
+    const trimLog = value => {
+        const text = value.slice(-262144);
+        return /^[\uDC00-\uDFFF]/.test(text) ? text.slice(1) : text;
+    };
+    let logText = trimLog(log.textContent);
+    const renderLog = () => {
+        if (window.ControlConsoleLog) window.ControlConsoleLog.render(log, logText);
+        else log.textContent = logText;
+    };
     let cursor = Number(log.dataset.cursor) || 0;
     let stopped = false, pending = false, timer = null, controller = null;
     let state = null;
@@ -87,7 +96,8 @@
         if (snapshot.currentSessionId && snapshot.currentSessionId !== log.dataset.sessionId) {
             log.dataset.sessionId = snapshot.currentSessionId;
             log.dataset.cursor = "0";
-            log.textContent = "";
+            logText = "";
+            renderLog();
             cursor = 0;
             logStatus.textContent = "新しいSessionのログに切り替えました。";
         }
@@ -103,12 +113,16 @@
         if (stopped || !connected()) return;
         if (batch.sessionId !== log.dataset.sessionId || !Number.isSafeInteger(batch.nextCursor) || batch.nextCursor < cursor || !Array.isArray(batch.rows)) throw new Error("Invalid log batch");
         const follow = log.scrollHeight - log.scrollTop - log.clientHeight <= 32;
+        const scrollTop = log.scrollTop;
         const appended = batch.rows.map(row => `[${row.occurredAtUtc}] ${row.stream}: ${row.text}${row.truncated ? " [分割]" : ""}\n`).join("");
-        // Console output is always text, never browser markup.
-        log.textContent = (log.textContent + appended).slice(-262144);
+        if (appended) {
+            logText = trimLog(logText + appended);
+            renderLog();
+            if (follow) log.scrollTop = log.scrollHeight;
+            else log.scrollTop = scrollTop;
+        }
         cursor = batch.nextCursor;
         log.dataset.cursor = String(cursor);
-        if (follow) log.scrollTop = log.scrollHeight;
         logStatus.textContent = batch.gap ? "保持期間を過ぎたログがあります。取得可能な位置から再開しました。" : "ログを更新しました。";
     };
     const poll = async () => {
@@ -136,6 +150,7 @@
     };
     state = null;
     setButtons();
+    renderLog();
     log.scrollTop = log.scrollHeight;
     poll();
 })();

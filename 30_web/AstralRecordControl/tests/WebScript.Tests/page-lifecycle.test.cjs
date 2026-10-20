@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const script = name => fs.readFileSync(path.join(__dirname, '../../src/AstralRecordControl.Web/wwwroot/js', name), 'utf8');
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 
-const consoleFixture = fetch => {
+const consoleFixture = (fetch, renderer) => {
     const fields = Object.fromEntries(['configRevision', 'expectedStateRevision', 'expectedServerSessionId'].map(name => [name, { name, value: '' }]));
     const buttons = ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand'].map(value => ({ name: 'kind', value, disabled: false }));
     const form = new EventTarget();
@@ -22,6 +22,7 @@ const consoleFixture = fetch => {
     const history = { rows: [], replaceChildren(fragment) { this.rows = fragment.children; } };
     const elements = { 'server-console': root, 'server-log': log, 'log-status': status, 'server-process-state': process, 'server-session': session, 'server-availability': availability, 'server-operation-history': history };
     const window = new EventTarget();
+    if (renderer) window.ControlConsoleLog = renderer;
     const timers = new Map();
     let nextTimer = 0;
     window.setTimeout = callback => { const id = ++nextTimer; timers.set(id, callback); return id; };
@@ -91,6 +92,29 @@ test('console disables operations when status cannot be checked', async () => {
     await new Promise(setImmediate);
     assert.equal(fixture.buttons.every(button => button.disabled), true);
     assert.match(fixture.status.textContent, /操作を停止/);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
+
+test('console keeps its rendered log unchanged on an empty poll and renders new text once', async () => {
+    let renders = 0, rows = [];
+    const fixture = consoleFixture(url => String(url).includes('handler=Status')
+        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 2, stateRevision: 4, processState: 'Running', currentSessionId: 'old', recent: [] }) })
+        : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: rows.length, rows }) }),
+        { render(element, text) { renders++; element.textContent = text; } });
+    await new Promise(setImmediate);
+    assert.equal(renders, 1);
+    const pollAgain = async () => {
+        const [timerId, callback] = [...fixture.timers][0];
+        fixture.timers.delete(timerId);
+        callback();
+        await new Promise(setImmediate);
+    };
+    await pollAgain();
+    assert.equal(renders, 1);
+    rows = [{ occurredAtUtc: 'now', stream: 'stdout', text: '日本語' }];
+    await pollAgain();
+    assert.equal(renders, 2);
+    assert.match(fixture.log.textContent, /日本語/);
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
 });
 
