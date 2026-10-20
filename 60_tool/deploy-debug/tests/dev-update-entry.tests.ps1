@@ -8,6 +8,9 @@ Start-Transcript -LiteralPath (Join-Path $fixture 'verification.log') | Out-Null
 function Assert($Condition,$Message) { if (!$Condition) { throw $Message } }
 function Write-TestFile($Path,$Content) { New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($Path)) -Force | Out-Null; [IO.File]::WriteAllText($Path,$Content) }
 try {
+    # Do not let an installed Control marker on the test PC affect legacy fixtures.
+    $env:ProgramData=Join-Path $fixture 'programdata'
+    New-Item -ItemType Directory -Path $env:ProgramData -Force | Out-Null
     $toolsRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
     foreach ($relative in @('deploy-debug/dev-update.ps1','deploy-debug/PluginTestSelection.ps1','maintenance/maintenance.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/DeploymentSelection.ps1','maintenance/SkillTreeMigration.ps1','control-gate/Control.Gate.psm1')) {
         $destination=Join-Path $fixture $relative
@@ -23,7 +26,7 @@ if ($WorkflowFingerprint) {
     $mode=if ($PluginOnly) { 'PluginOnly' } elseif ($MasterDataOnly) { 'MasterDataOnly' } else { 'Full' }
     if ((Get-DevDeploymentFingerprint -ConfigPath $ConfigPath -Mode $mode -TestSelection $selection) -cne $WorkflowFingerprint) { throw 'Entry/backend test fingerprints differ.' }
 }
-@{pluginOnly=[bool]$PluginOnly;masterDataOnly=[bool]$MasterDataOnly;release=[bool]$ReleaseManagementOnly;preflight=[bool]$PreflightOnly;testMode=$TestMode;tests=$Tests;fingerprint=$WorkflowFingerprint} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Split-Path $ConfigPath) 'backend-result.json')
+@{pluginOnly=[bool]$PluginOnly;masterDataOnly=[bool]$MasterDataOnly;release=[bool]$ReleaseManagementOnly;preflight=[bool]$PreflightOnly;testMode=$TestMode;tests=$Tests;fingerprint=$WorkflowFingerprint;powerShellMajor=$PSVersionTable.PSVersion.Major} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Split-Path $ConfigPath) 'backend-result.json')
 '@
     Write-TestFile (Join-Path $fixture 'maintenance/UpdateWorkflow.ps1') @'
 function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFingerprint,$ServerRoots,$DeployAction,[switch]$ServersStopped,[switch]$AdmissionClosed,$Label,$Recovery,[switch]$RecoveryChecked,$PrepareRunAction,$RestoreAction,[switch]$ServerAlreadyRunning,[switch]$AutomaticWritersStopped,[switch]$AllowSameSessionPublication,$GateContext,$PreferredRunDirectory) {
@@ -53,6 +56,7 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
         & pwsh @arguments
         Assert ($LASTEXITCODE -eq 0) "Dev routing failed: $mode"
         $result=Get-Content -Raw -Encoding UTF8 -LiteralPath "$fixture/backend-result.json" | ConvertFrom-Json
+        Assert ($result.powerShellMajor -ge 7) 'Deployment backend must run on PowerShell 7.'
         Assert ($result.pluginOnly -eq ($mode -eq 'PluginOnly') -and $result.masterDataOnly -eq ($mode -eq 'MasterDataOnly')) 'Wrong backend flags.'
         $expectedTestMode=if ($mode -eq 'PluginOnly') { 'Skip' } elseif ($mode -eq 'Full') { 'All' } else { '' }
         Assert ($result.testMode -ceq $expectedTestMode) 'Default test mode changed.'
@@ -97,6 +101,7 @@ function Invoke-UpdateWorkflow($WorkflowConfig,$MigrationConfig,$ConfigurationFi
     Assert ($LASTEXITCODE -eq 0) 'Release preflight must bypass Dev workflow.'
     $result=Get-Content -Raw -LiteralPath "$fixture/backend-result.json" | ConvertFrom-Json
     Assert ($result.release -and $result.preflight) 'Release flags were lost.'
+    Assert ($result.powerShellMajor -ge 7) 'Release backend must run on PowerShell 7.'
     $channelConfig=@{schemaVersion=1;workflow=@{runRoot="$fixture/channel-runs";startupTimeoutSeconds=10;pollIntervalSeconds=1;seedMasterData=$true};migration=$migration;servers=@(@{id='dev';enabled=$true;rootPath=$dev},@{id='channel';enabled=$true;rootPath=$channel});distributions=@(@{enabled=$true;kind='Jar';source='dev';relativePath='plugins/AstralRecord.jar';targets=@('channel')})}
     $channelPath=Join-Path $fixture 'channel.json'
     $channelConfig | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $channelPath

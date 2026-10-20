@@ -81,3 +81,5 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 01/02/03/09/10/16/17はPowerShell 7を使用します。PATHに`pwsh`がない場合は、Git管理外の`powershell7.local.json`に`{"executablePath":"C:\\path\\to\\pwsh.exe"}`を設定します。bootstrapはOSのPATH変更・インストールを行いません。
 
 設定の優先順位、APP-01/MC-01/DEV-01の配置、秘密値の参照先、移行未完了事項は [CONFIGURATION.md](CONFIGURATION.md) にまとめています。各ツールの細かい引数・テスト・復旧方法は、上表から担当ディレクトリのREADMEを参照してください。
+
+Filebase・証明書・Controlの切替準備は [新環境への切替](environment-cutover/README.md) にまとめています。

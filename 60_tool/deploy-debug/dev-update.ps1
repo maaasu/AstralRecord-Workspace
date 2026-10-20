@@ -20,6 +20,8 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $gateContext=$null
 try {
+    # Keep child backends on the same PowerShell 7 runtime as this entry point.
+    $backendPowerShell=Join-Path $PSHOME 'pwsh.exe'
     . (Join-Path $PSScriptRoot 'PluginTestSelection.ps1')
     $testSelection=Resolve-PluginTestSelection -TestMode $TestMode -Tests $Tests -PluginOnly:$PluginOnly `
         -TestsSpecified:($PSBoundParameters.ContainsKey('Tests')) `
@@ -36,7 +38,7 @@ try {
         if ($ReleaseManagementOnly) { $arguments+='-ReleaseManagementOnly' }
         if ($PreflightOnly) { $arguments+='-PreflightOnly' }
         if ($PluginOnly) { $arguments+='-PluginOnly' }
-        & powershell.exe @arguments
+        & $backendPowerShell @arguments
         exit $LASTEXITCODE
     }
     if ($PluginOnly -and $MasterDataOnly) { throw 'Choose PluginOnly or MasterDataOnly, not both.' }
@@ -135,7 +137,7 @@ try {
             if ($testSelection.Tests) { $arguments+=@('-Tests',$testSelection.Tests) }
         }
         $log=Join-Path $RunDirectory 'dev-deploy.log'
-        & powershell.exe @arguments 2>&1 | Tee-Object -FilePath $log | Out-Host
+        & $backendPowerShell @arguments 2>&1 | Tee-Object -FilePath $log | Out-Host
         if ($LASTEXITCODE -ne 0) {
             $recoveryInstruction = if ($MasterDataOnly) { 'Keep player admission closed.' } else { 'Keep Dev stopped.' }
             throw "Dev deployment failed. $recoveryInstruction See $log"

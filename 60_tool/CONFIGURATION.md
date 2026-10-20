@@ -82,11 +82,11 @@ Controlのbindingがない状態では01/02/03/16/17はLegacyとして拒否さ�
 
 10も管理markerがあるPCではLegacy設定のまま実行できません。Managed設定の10は`-PreflightOnly`だけを使用し、実配布は01の管理workflowで行います。現backendはManagedの直接配布を拒否するためです。
 
-01/02/03の既存frontendは配布backendをWindows PowerShell 5.1で起動しますが、backendにはPowerShell 7専用の`ConvertFrom-Json -AsHashtable`が残っています。gate設定後もこの互換性問題の解消が必要です。今回10はBATのbootstrapでPowerShell 7へ統一しました。01系の修正は管理markerの更新を伴うため、停止を確認できるControl更新時に行います。
+01/02/03の配布backend起動は、frontend自身と同じ`$PSHOME/pwsh.exe`を使うよう修正しました。通常配布とReleaseManagement分岐の両方をPowerShell 7で実行するfixtureを追加しています。常設Toolへの反映は管理markerの正規更新と同じ停止期間に行います。準備中の手順と実台帳は[新環境への切替](environment-cutover/README.md)を参照してください。
 
-Filebaseの`.yml/.yaml/.json`（`99.work`除外）を比較すると、新配置はリポジトリの2,185件と全件一致しました。旧配置は2,195件で、旧だけにEriva mob8件・dungeon2件があり、共通ファイル34件は改行・末尾空白以外にも本文差があります。残る980件のバイト差は改行だけです。旧の追加10件と本文差34件の扱いを確認してから移行します。
+Filebaseの`.yml/.yaml/.json`（`99.work`除外）を比較すると、新配置はリポジトリの2,185件と全件一致しました。旧配置は2,195件で、旧だけにEriva mob8件・dungeon2件があり、共通ファイル34件は改行・末尾空白以外にも本文差があります。残る980件のバイト差は改行だけです。リポジトリを正として切り替えることはユーザー確認済みです。実機反映は管理者実行と接続復旧を待っています。
 
-今回の整理はControlのハッシュ対象スクリプトを変更しません。将来更新するときは、[Control更新手順](control-deploy/README.md)に従って全対象停止・holdなしを確認し、管理者PowerShellで`Enable-ManagedOperations.ps1 -Renew`を実施します。
+01の修正はControlのハッシュ対象スクリプトを変更します。[Control更新手順](control-deploy/README.md)に従って全対象停止・holdなしを確認し、管理者PowerShellで`Enable-ManagedOperations.ps1 -Renew`を実施するまで常設Toolへ反映しません。
 
 ## 配置しない確認
 
