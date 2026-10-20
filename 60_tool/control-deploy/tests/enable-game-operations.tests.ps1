@@ -75,17 +75,42 @@ try {
 
     $data = Join-Path $root 'runner-data'
     New-Item -ItemType Directory -Path $data | Out-Null
+    $fixtureSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $directoryAcl=[Security.AccessControl.DirectorySecurity]::new()
+    $directoryAcl.SetAccessRuleProtection($true,$false)
+    foreach ($sid in @('S-1-5-18','S-1-5-32-544',$fixtureSid) | Select-Object -Unique) {
+        $directoryAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+    }
+    Set-Acl -LiteralPath $data -AclObject $directoryAcl
     $configPath = Join-Path $data 'config.json'
     '{"hostId":"test","enableProcessControl":false,"enableFileControl":false,"pipeName":"fixture"}' | Set-Content -Encoding UTF8 -LiteralPath $configPath
+    if ((Get-Acl -LiteralPath $configPath).AreAccessRulesProtected) { throw 'Fixture must reproduce inherited configuration ACL.' }
+    $inheritedSddl=(Get-Acl -LiteralPath $configPath).Sddl
+    $backup=Set-ControlGameRunnerFlag $data $fixtureSid
+    if ((Get-Acl -LiteralPath $configPath).Sddl -cne $inheritedSddl) { throw 'Inherited configuration ACL changed.' }
+    Restore-ControlGameRunnerFlag $data $backup
     $acl = Get-Acl -LiteralPath $configPath
     $acl.SetAccessRuleProtection($true, $true)
     Set-Acl -LiteralPath $configPath -AclObject $acl
-    $backup = Set-ControlGameRunnerFlag $data
+    $backup = Set-ControlGameRunnerFlag $data $fixtureSid
     $changed = Get-Content -Raw -Encoding UTF8 -LiteralPath $configPath | ConvertFrom-Json -AsHashtable
     if ($changed.enableProcessControl -ne $true -or $changed.pipeName -ne 'fixture' -or !(Get-Acl -LiteralPath $configPath).AreAccessRulesProtected) { throw 'Runner flag update failed.' }
     Restore-ControlGameRunnerFlag $data $backup
     $restored = Get-Content -Raw -Encoding UTF8 -LiteralPath $configPath | ConvertFrom-Json -AsHashtable
     if ($restored.enableProcessControl -ne $false -or $restored.pipeName -ne 'fixture') { throw 'Runner flag restore failed.' }
+
+    # Model pending SCM states without querying or changing an actual service.
+    function Get-Service { param([string]$Name) return $script:fakeService }
+    try {
+        foreach ($initial in @('StopPending','StartPending','Running','Stopped')) {
+            $script:fakeService=[pscustomobject]@{Status=$initial;Waits=0}
+            $script:fakeService | Add-Member ScriptMethod WaitForStatus { param($target,$timeout) $this.Status=$target; $this.Waits++ }
+            $script:fakeService | Add-Member ScriptMethod Refresh { }
+            $settled=Wait-ControlGameServiceSettled 'FixtureOnly'
+            $expected=if ($initial -eq 'StopPending') {'Stopped'} elseif ($initial -eq 'StartPending') {'Running'} else {$initial}
+            if ($settled -cne $expected) { throw 'Pending service state was not settled.' }
+        }
+    } finally { Remove-Item Function:\Get-Service }
 
     $report = @{schemaVersion=1;computerName='TESTHOST';hostId=$id;success=$true;processControlEnabled=$true;
         appliedInventoryRevision=3;registeredServerCount=1;markerToolRoot=$toolRoot;runnerStatus='Running';agentStatus='Running';

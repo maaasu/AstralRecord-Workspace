@@ -128,6 +128,10 @@ pwsh -NoProfile -File ./60_tool/control-deploy/tests/deployment-preflight.ps1
 
 このテストは一時ディレクトリのpackage/config検査だけを実行し、サービス登録、証明書設定、実PCへのデプロイを行いません。
 
+## 既存サービスの基本運転
+
+P1の基本運転だけを先に有効化する手順は[基本運転への切り替え](BASIC-OPERATIONS.md)を参照してください。旧ToolのLegacy実行を制限したまま、ゲームPCの停止確認・marker・Runner設定、最後にWeb設定の順で切り替えます。
+
 ## P2の有効化
 
 新しいpublish成果物はphase=P2です。P1の導入markerと共通gateを維持し、Web/Agent/Runner/CLIをP2版へ更新します。Webは`Control.EnableFileControl`、Agent/Runnerは`enableFileControl`をtrueにして再起動します。初期値はfalseです。Runner更新は従来と同じく全Server停止・Session/holdなしを必須とします。

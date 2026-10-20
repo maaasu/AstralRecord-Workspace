@@ -72,7 +72,7 @@ $env:PATH = (Join-Path $tools 'dotnet') + ';' + (Join-Path $env:JAVA_HOME 'bin')
 4. API/Webを更新し、新Filebaseの参照先・TLS・必要なDBスキーマを確認する。Pluginはテスト済みJARを停止中の各RPGサーバーへ配布する。ProxyにはAstralRecord本体を配布しない。
 5. [通常のControl導入手順](README.md)に沿い、APP-01でWebと配布資源保護用Agent/Runner、DEV-01/MC-01で各1組のAgent/Runnerを停止状態で登録する。APP-01にはMinecraft定義を作らず、`C:\app-01`内のAPI/Web/Filebaseに対応するlocal rootを登録する。owner作成と各PCのAgent token入力は対話で行い、秘密を引数やこのメモへ保存しない。管理Webは管理者名とパスワードだけでログインする。
 6. 各PCのローカルroot・Java・Host ID・Agent SIDを設定し、`-PreflightOnly`後に接続する。希望版と適用ACK版の一致を確認する。最初はプロセス/ファイル/予約の変更機能をfalseに保つ。
-7. 01/02/03/16/17の`controlGate`を登録済みGUIDと配布元/先へ対応付け、全入口の導入確認と3台の管理運用markerを作成した後に変更機能を有効化する。01/03のAPI/Web/Filebase配布先bindingはAPP-01のHost/rootへ対応させる。16のProxy/Geyser配布は上記制約に従って無効のままにする。
+7. 01/02/03/16/17を併用する場合は`controlGate`を登録済みGUIDと配布元/先へ対応付け、全入口の導入確認と3台の管理運用markerを作成した後に変更機能を有効化する。01/03のAPI/Web/Filebase配布先bindingはAPP-01のHost/rootへ対応させる。16のProxy/Geyser配布は上記制約に従って無効のままにする。WebのJava基本運転だけを先行する場合は[基本運転への切り替え](BASIC-OPERATIONS.md)に従い、DEV-01/MC-01のmarker導入と停止確認を行う。この段階では旧ToolのLegacy実行は拒否したままとし、配布処理の共存まで完了したとは扱わない。
 8. Devを先に検証し、その後にMC-01の各Javaサーバーへ広げる。バックアップは同PCでは`E:\mc-01\90_Backup`、DEV-01ではUNCのbackupOnly rootを使う。Dev側のサービスから共有へアクセスできるWindows認証/共有権限は別途確認する。バックアップの対象はMinecraftのServerFilesであり、APP-01のSQL/API/公開状態は含まない。
 
 ## 検証記録

@@ -107,14 +107,21 @@ function Get-ControlGameMarkerAction([string]$MarkerPath, [string]$Root) {
     return 'Reuse'
 }
 
-function Set-ControlGameRunnerFlag([string]$DataRoot) {
+function Set-ControlGameRunnerFlag([string]$DataRoot, [string]$RunnerSid) {
     $path = Join-Path $DataRoot 'config.json'
     $raw = Get-Content -Raw -Encoding UTF8 -LiteralPath $path
     $config = $raw | ConvertFrom-Json -AsHashtable
     if ($config.ContainsKey('enableProcessControl') -and $config.enableProcessControl -eq $true) { return $null }
     $backup = Join-Path $DataRoot ('config.before-process-control.' + [DateTimeOffset]::UtcNow.ToString('yyyyMMddTHHmmssfffZ') + '.' + [Guid]::NewGuid().ToString('N') + '.backup')
     $acl = Get-Acl -LiteralPath $path
-    if (!$acl.AreAccessRulesProtected) { throw 'UnprotectedConfigAcl' }
+    $parentAcl=Get-Acl -LiteralPath $DataRoot
+    if (!$parentAcl.AreAccessRulesProtected -or !$RunnerSid) { throw 'UnprotectedConfigAcl' }
+    $allowed=@('S-1-5-18','S-1-5-32-544',$RunnerSid)
+    foreach ($candidate in @($parentAcl,$acl)) {
+        foreach ($rule in $candidate.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) {
+            if ($rule.AccessControlType -eq 'Allow' -and $rule.IdentityReference.Value -notin $allowed) { throw 'UnprotectedConfigAcl' }
+        }
+    }
     [IO.File]::Copy($path, $backup, $false)
     Set-Acl -LiteralPath $backup -AclObject $acl
     $config['enableProcessControl'] = $true
@@ -125,6 +132,14 @@ function Set-ControlGameRunnerFlag([string]$DataRoot) {
         [IO.File]::Move($temporary, $path, $true)
     } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
     return $backup
+}
+
+function Wait-ControlGameServiceSettled([string]$Name) {
+    $service=Get-Service -Name $Name
+    if ($service.Status -eq 'StopPending') { $service.WaitForStatus('Stopped',[TimeSpan]::FromSeconds(30)) }
+    elseif ($service.Status -eq 'StartPending') { $service.WaitForStatus('Running',[TimeSpan]::FromSeconds(30)) }
+    $service.Refresh()
+    return [string]$service.Status
 }
 
 function Restore-ControlGameRunnerFlag([string]$DataRoot, [string]$Backup) {
@@ -160,7 +175,7 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         runnerStatus='Unknown'; agentStatus='Unknown'; collectedUtc=$null; stage='Preflight'; failureType=$null }
     $runnerBackup = $null
     $agentWasStopped = $false
-    $runnerWasStopped = $false
+    $runnerRestartRequested = $false
     $startupModesChanged = $false
     $runnerStartMode = $null
     $agentStartMode = $null
@@ -189,6 +204,7 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
             ($agentConfig.ContainsKey('enableFileControl') -and $agentConfig.enableFileControl -eq $true) -or
             ($agentConfig.ContainsKey('enableSchedules') -and $agentConfig.enableSchedules -eq $true)) { throw 'UnsupportedHostConfiguration' }
         $agentSid = [Security.Principal.NTAccount]::new('NT SERVICE\AstralRecordControl.Agent').Translate([Security.Principal.SecurityIdentifier]).Value
+        $runnerSid = [Security.Principal.NTAccount]::new('NT SERVICE\AstralRecordControl.Runner').Translate([Security.Principal.SecurityIdentifier]).Value
         if ($runnerConfig.agentSid -cne $agentSid) { throw 'AgentSidMismatch' }
         $report.hostId = [string]$runnerConfig.hostId
         $pipeName = if ($runnerConfig.ContainsKey('pipeName') -and $runnerConfig.pipeName) { [string]$runnerConfig.pipeName } else { 'AstralRecordControl.Runner.v1' }
@@ -202,8 +218,8 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         $report.registeredServerCount = @($snapshot.servers).Count
         $markerAction = Get-ControlGameMarkerAction $marker $root
         $report.stage = 'AgentStopped'
-        Stop-Service -Name $agent.Name
         $agentWasStopped = $true
+        Stop-Service -Name $agent.Name
         (Get-Service -Name $agent.Name).WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
         $report.agentStatus = 'Stopped'
         Assert-ControlGameNoExternalJava
@@ -211,7 +227,7 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         Assert-ControlGamePersistedState $runner.Package $runnerData $snapshot
         if (@($snapshot.servers).Count -ne $report.registeredServerCount) { throw 'InventoryChanged' }
         $report.stage = 'RunnerConfigured'
-        $runnerBackup = Set-ControlGameRunnerFlag $runnerData
+        $runnerBackup = Set-ControlGameRunnerFlag $runnerData $runnerSid
         Test-ControlConfiguration $runnerData Runner
         if ($markerAction -eq 'Create') {
             & (Join-Path $PSScriptRoot 'Enable-ManagedOperations.ps1') -ToolRoot $root -RunnerDataRoot $runnerData | Out-Null
@@ -223,12 +239,12 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         Assert-ControlGameNoExternalJava
         $snapshot = Get-ControlGameSnapshot $CliPath $pipeName
         Assert-ControlGamePersistedState $runner.Package $runnerData $snapshot
+        $runnerRestartRequested = $true
         Stop-Service -Name $runner.Name
         (Get-Service -Name $runner.Name).WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
-        $runnerWasStopped = $true
         Start-Service -Name $runner.Name
         (Get-Service -Name $runner.Name).WaitForStatus('Running', [TimeSpan]::FromSeconds(60))
-        $runnerWasStopped = $false
+        $runnerRestartRequested = $false
         $report.runnerStatus = 'Running'
         $snapshot = Get-ControlGameSnapshot $CliPath $pipeName
         Assert-ControlGamePersistedState $runner.Package $runnerData $snapshot
@@ -259,16 +275,16 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
             } catch { $report.failureType = 'RecoveryIncomplete' }
         }
         # Never stop a running Runner during recovery. Restore only while it is already stopped or before a restart.
-        if ($runnerBackup) {
+        if ($runnerBackup -or $runnerRestartRequested) {
             try {
-                $currentRunner = (Get-Service -Name 'AstralRecordControl.Runner').Status
-                if ($currentRunner -eq 'Stopped') {
+                $currentRunner = Wait-ControlGameServiceSettled 'AstralRecordControl.Runner'
+                if ($currentRunner -eq 'Stopped' -and $runnerRestartRequested) {
                     Assert-ControlGameNoExternalJava
                     Restore-ControlGameRunnerFlag $RunnerDataRoot $runnerBackup
                     Start-Service -Name 'AstralRecordControl.Runner'
                     (Get-Service -Name 'AstralRecordControl.Runner').WaitForStatus('Running', [TimeSpan]::FromSeconds(60))
-                    $runnerWasStopped = $false
-                } elseif ($currentRunner -eq 'Running' -and $report.stage -ne 'RunnerRestart' -and $report.stage -ne 'StartupMode') {
+                    $runnerRestartRequested = $false
+                } elseif ($currentRunner -eq 'Running' -and $runnerBackup -and $report.stage -ne 'RunnerRestart' -and $report.stage -ne 'StartupMode') {
                     $safe = Get-ControlGameSnapshot $CliPath $pipeName
                     Assert-ControlGamePersistedState $runner.Package $RunnerDataRoot $safe
                     Restore-ControlGameRunnerFlag $RunnerDataRoot $runnerBackup
@@ -277,8 +293,10 @@ function Invoke-ControlGameOperations([string]$ToolRoot, [string]$CliPath, [stri
         }
         if ($agentWasStopped) {
             try {
-                if ((Get-Service -Name 'AstralRecordControl.Runner').Status -ne 'Running') { throw 'RunnerUnavailable' }
-                Start-Service -Name 'AstralRecordControl.Agent'
+                if ((Wait-ControlGameServiceSettled 'AstralRecordControl.Runner') -ne 'Running') { throw 'RunnerUnavailable' }
+                $agentState=Wait-ControlGameServiceSettled 'AstralRecordControl.Agent'
+                if ($agentState -eq 'Stopped') { Start-Service -Name 'AstralRecordControl.Agent' }
+                elseif ($agentState -ne 'Running') { throw 'AgentUnavailable' }
                 (Get-Service -Name 'AstralRecordControl.Agent').WaitForStatus('Running', [TimeSpan]::FromSeconds(60))
                 $agentWasStopped = $false
             } catch { $report.failureType = 'RecoveryIncomplete' }
