@@ -52,6 +52,10 @@ Devを動かしたまま実行する場合も、プレイヤーの入場を閉�
 
 ## 入口の整理
 
+01/02/03/10のBATは、明示`-ConfigPath`、`deploy-debug.local.json`、`deploy-debug.config.json`の順に設定を選びます。10はPowerShell 7上でAPI/Web専用backendを実行し、Dev workflowは開始しません。新環境の配置とControl/TLS/Filebaseの未完了事項は[設定一覧](../CONFIGURATION.md)を参照してください。
+
+Control管理markerがあるPCの10はManaged設定と`-PreflightOnly`を使用します。Managedの直接配布はbackendが拒否するため、実配布は01の管理workflowで行います。現在の環境ではgate設定と01 backendのPowerShell互換性にも未完了事項があります。上記設定一覧を確認してから実行してください。
+
 - `01`：有効なAPI/Web/Plugin/Filebaseを従来どおりビルド・配置し、Dev起動待ちとパッチ公開まで実行。
 - `02`：`01 -PluginOnly` のショートカット。既定ではPluginテストを省略し、`-TestMode` で変更できる。Filebase/seedは実行しない。
 - `03`：`01 -MasterDataOnly` のショートカット。JARはビルドせず、01と同じ設定のFilebaseを同期してseed・起動または稼働中Pluginの再読込を待ち、パッチ公開。稼働中利用ではプレイヤー入場と他の自動書込を止める。

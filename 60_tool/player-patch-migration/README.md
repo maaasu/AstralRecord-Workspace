@@ -13,9 +13,9 @@ Control管理を有効にしたPCでは、[既存ツールgate](../control-gate/
 
 ```powershell
 # 事前確認のみ（Phaseを省略してもPreview）
-.\60_tool\17-player-patch-migration.bat -Phase Preview -AdmissionClosed -RunDirectory E:\AstralRecord-Maintenance\player-patch-20260930
+.\60_tool\17-player-patch-migration.bat -Phase Preview -AdmissionClosed -RunDirectory C:\AstralRecord-Maintenance\player-patch-20260930
 # 上で確認した同じ対象へ反映
-.\60_tool\17-player-patch-migration.bat -Phase Commit -AdmissionClosed -RunDirectory E:\AstralRecord-Maintenance\player-patch-20260930
+.\60_tool\17-player-patch-migration.bat -Phase Commit -AdmissionClosed -RunDirectory C:\AstralRecord-Maintenance\player-patch-20260930
 ```
 
 通常起動ではCommitになりません。`-AdmissionClosed` はログアウトと入場制限を運用者が確認した宣言です。APIも接続中の対象を拒否します。途中で通信が失敗した場合は、**同じ設定ファイルと同じRunDirectory**を指定して再実行してください。成功済みの結果と要求ごとのIDを保持し、応答が不明な要求も同じIDで再送します。起動sessionや設定世代が変わると停止するため、作業中の再起動・再読込は避けてください。

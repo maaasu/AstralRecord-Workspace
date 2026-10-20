@@ -46,6 +46,11 @@ token.txt
 60_tool/deploy-debug/*.local.json
 60_tool/deploy-debug/runs/
 60_tool/powershell7.local.json
+60_tool/astralarchitect-deploy/*.local.json
+60_tool/db-rebuild/*.local.json
+60_tool/db-migrate/*.local.json
+60_tool/management-db-migrate/*.local.json
+60_tool/db-reset-except-release-notes/*.local.json
 
 # ASP.NET Web Deploy generated artifacts
 *.deploy.cmd

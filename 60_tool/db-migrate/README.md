@@ -9,8 +9,8 @@
 ## 実行
 
 ```powershell
-E:\AstralRecord-Workspace\60_tool\13-db-migrate.bat
-E:\AstralRecord-Workspace\60_tool\15-history-db-migrate.bat
+C:\AstralRecord-Workspace\60_tool\13-db-migrate.bat
+C:\AstralRecord-Workspace\60_tool\15-history-db-migrate.bat
 ```
 
 ゲームDB用manifestは、設定の `connectionStrings.sqlServer` が空の場合、`sourceApiAppsettingsPath` の `ConnectionStrings:SqlServer` から解決する。HistoryDB用manifestは `connectionStringName: History` と `expectedDatabase: HistoryDB` を明示し、`connectionStrings.history` または `ConnectionStrings:History` から解決する。接続文字列や秘密情報は画面へ表示しない。

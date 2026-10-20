@@ -94,7 +94,7 @@ npm --version
 ## 初回セットアップ
 
 ```powershell
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
 npm ci
 ```
 
@@ -105,14 +105,14 @@ npm ci
 ターミナル1でバックエンドを起動します。
 
 ```powershell
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Server
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Server
 dotnet watch run
 ```
 
 ターミナル2でViteを起動します。
 
 ```powershell
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
 npm run dev
 ```
 
@@ -121,12 +121,12 @@ npm run dev
 ## 検証
 
 ```powershell
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
 npm run lint
 npm test
 npm run build
 
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor
 dotnet test SkillTreeEditor.slnx
 dotnet build SkillTreeEditor.slnx
 ```
@@ -154,13 +154,13 @@ BAT起動時の `PATH` にnpmが含まれていない場合は、Node.jsの標�
 Reactだけをビルドする場合は、次のBATを実行します。起動済みのASP.NET Coreは通常そのままでよく、ビルド後にブラウザを再読み込みしてください。
 
 ```powershell
-E:\AstralRecord-Workspace\60_tool\06-master-data-editor-build.bat
+C:\AstralRecord-Workspace\60_tool\06-master-data-editor-build.bat
 ```
 
 通常ビルド後にASP.NET Coreから静的ファイルを配信する場合:
 
 ```powershell
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor\src\SkillTreeEditor.Client
 npm ci
 npm run build
 
@@ -173,7 +173,7 @@ dotnet run
 配布用publishではフロントエンドの `npm ci` / `npm run build` を自動実行し、成果物をpublish先の `wwwroot` へ格納します。
 
 ```powershell
-cd E:\AstralRecord-Workspace\60_tool\skilltree-editor
+cd C:\AstralRecord-Workspace\60_tool\skilltree-editor
 dotnet publish src\SkillTreeEditor.Server\SkillTreeEditor.Server.csproj -c Release -o publish
 .\publish\SkillTreeEditor.Server.exe
 ```

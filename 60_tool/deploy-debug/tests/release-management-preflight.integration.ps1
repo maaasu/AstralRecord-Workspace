@@ -74,7 +74,8 @@ function Invoke-Preflight {
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = "Continue"
-        $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath -ReleaseManagementOnly -PreflightOnly -ConfigPath $ConfigPath 2>&1
+        $bootstrapPath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'invoke-powershell7.ps1'
+        $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $bootstrapPath $scriptPath -ReleaseManagementOnly -PreflightOnly -ConfigPath $ConfigPath 2>&1
         $exitCode = $LASTEXITCODE
     }
     finally {

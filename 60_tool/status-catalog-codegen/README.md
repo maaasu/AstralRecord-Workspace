@@ -8,7 +8,7 @@
 .\60_tool\generate-status-types.ps1
 ```
 
-エクスプローラーやコマンドプロンプトから実行する場合は`E:\AstralRecord-Workspace\60_tool\07-generate-status-types.bat`も利用できます。
+エクスプローラーやコマンドプロンプトから実行する場合は`C:\AstralRecord-Workspace\60_tool\07-generate-status-types.bat`も利用できます。
 
 生成物がYAMLと一致するかだけを確認する場合:
 

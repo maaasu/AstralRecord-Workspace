@@ -25,7 +25,7 @@
 通常は確認入力が必要です。
 
 ```bat
-E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
+C:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
 ```
 
 表示された内容を確認し、`RESET` と入力してください。
@@ -33,19 +33,19 @@ E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
 確認を省略する場合は `--yes` を付けます。
 
 ```bat
-E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes
+C:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes
 ```
 
 別の設定ファイルを使う場合は `--config` を指定できます。
 
 ```powershell
-dotnet run --project E:\AstralRecord-Workspace\60_tool\db-reset-except-release-notes\DbResetExceptReleaseNotesTool.csproj -- --config E:\path\to\db-reset-except-release-notes.config.json --yes
+dotnet run --project C:\AstralRecord-Workspace\60_tool\db-reset-except-release-notes\DbResetExceptReleaseNotesTool.csproj -- --config E:\path\to\db-reset-except-release-notes.config.json --yes
 ```
 
 途中失敗時は、エラーに表示された一時退避DBを指定して再作成と復元を再実行します。
 
 ```bat
-E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes --restore-backup AstralRecord_ReleaseNotesBackup_<表示された識別子>
+C:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes --restore-backup AstralRecord_ReleaseNotesBackup_<表示された識別子>
 ```
 
 未完了の一時退避DBが残っている場合、通常モードは新しい退避を開始せず、`--restore-backup` の指定を求めて停止します。
@@ -53,7 +53,7 @@ E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes --r
 保持対象表が存在せず一時退避DBを作らない処理で途中失敗した場合は、表示された実行IDを指定して隔離を引き継ぎます。`--resume-operation` は、設定した全API/Webルートに同じ実行IDの保守マーカーが既に残っている場合だけ実行できます。
 
 ```bat
-E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes --resume-operation <表示された実行ID>
+C:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes --resume-operation <表示された実行ID>
 ```
 
 ## 接続設定
@@ -80,7 +80,7 @@ E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes --r
 `MasterDataDB` は空で作成されます。API起動時のSeeder、またはAPI起動後に次のコマンドを実行してfilebaseから再投入してください。
 
 ```bat
-E:\AstralRecord-Workspace\60_tool\03-master-data-reload.bat
+C:\AstralRecord-Workspace\60_tool\03-master-data-reload.bat
 ```
 
 Plugin側でMasterDataをキャッシュしている場合は、既存のMasterData再読込手順を実行してください。
@@ -90,5 +90,5 @@ Plugin側でMasterDataをキャッシュしている場合は、既存のMasterD
 次のテストは、設定されたSQL Serverにランダムな `_Integration_<識別子>` 付きの3DBだけを作成します。実行排他、保守マーカーの所有権、最新 `init.sql` の実行、旧 `datetime2(7)` を含むRelease Noteの退避・現行精度への復元、一般データの消去、取消receipt列、途中失敗時の `OFFLINE` 隔離、`--restore-backup` による復旧を確認し、最後にテストDBと一時マーカーを削除します。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\60_tool\db-reset-except-release-notes\tests\db-reset-except-release-notes.integration.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\AstralRecord-Workspace\60_tool\db-reset-except-release-notes\tests\db-reset-except-release-notes.integration.ps1
 ```

@@ -131,7 +131,7 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 実行中の待機バッチを終了し、関係サーバーを再び停止するとファイルを戻せます。起動待ち・公開中は同じrunの詳細操作を排他で拒否します。復元済みのrunから起動待ちや公開を再開することも拒否します。公開済みパッチの番号やプレイヤーの更新状態はファイルRestoreでは戻りません。古いファイルへ戻しただけで入場制限を解除しないでください。
 
 ```powershell
-.\60_tool\16-maintenance.bat -Phase Restore -ServersStopped -RunDirectory E:\AstralRecord-Maintenance\release-20260922
+.\60_tool\16-maintenance.bat -Phase Restore -ServersStopped -RunDirectory C:\AstralRecord-Maintenance\release-20260922
 ```
 
 Restoreは適用済み/途中の項目を逆順で復元し、新しい側も `displaced` として残します。旧版または17で同じrunの一括更新Commitを開始した場合は、実際にDBへ届いたか不明な場合もファイルだけのRestoreを拒否します。更新結果とDBを確認して別途復旧してください。APIのマスタ更新・パッチ公開・DBバックアップ/復元はこのファイルRestoreの対象外です。

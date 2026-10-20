@@ -2,7 +2,9 @@
 setlocal
 
 set "TOOL_DIR=%~dp0db-rebuild"
-dotnet run --project "%TOOL_DIR%\DbRebuildTool.csproj" -- %*
+set "CONFIG_PATH=%TOOL_DIR%\db-rebuild.config.json"
+if exist "%TOOL_DIR%\db-rebuild.local.json" set "CONFIG_PATH=%TOOL_DIR%\db-rebuild.local.json"
+dotnet run --project "%TOOL_DIR%\DbRebuildTool.csproj" -- --config "%CONFIG_PATH%" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

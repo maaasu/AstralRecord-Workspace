@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$BuildOnly,
-    [string]$PluginsDirectory = ''
+    [string]$PluginsDirectory = '',
+    [string]$ConfigPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -152,7 +153,10 @@ $toolDirectory = Split-Path -Parent $PSScriptRoot
 $workspaceRoot = Split-Path -Parent $toolDirectory
 $projectDirectory = Join-Path $workspaceRoot '10_plugin\AstralArchitect'
 $distDirectory = Join-Path $projectDirectory 'dist'
-$configPath = Join-Path $PSScriptRoot 'astralarchitect-deploy.config.json'
+if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $localPath = Join-Path $PSScriptRoot 'astralarchitect-deploy.local.json'
+    $ConfigPath = if (Test-Path -LiteralPath $localPath -PathType Leaf) { $localPath } else { Join-Path $PSScriptRoot 'astralarchitect-deploy.config.json' }
+}
 
 if (-not (Test-Path -LiteralPath $projectDirectory -PathType Container)) {
     throw "AstralArchitect project directory does not exist: $projectDirectory"

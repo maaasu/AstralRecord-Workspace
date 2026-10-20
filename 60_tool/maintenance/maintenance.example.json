@@ -7,10 +7,10 @@
     "seedMasterData": true
   },
   "servers": [
-    { "id": "dev", "enabled": false, "rootPath": "" },
-    { "id": "build", "enabled": false, "rootPath": "" },
-    { "id": "channel1", "enabled": false, "rootPath": "" },
-    { "id": "channel2", "enabled": false, "rootPath": "" }
+    { "id": "dev", "enabled": false, "rootPath": "C:\\server\\AstralRecord-Dev\\10_Dev" },
+    { "id": "build", "enabled": false, "rootPath": "\\\\MC-01\\mc-01\\20_Build" },
+    { "id": "channel1", "enabled": false, "rootPath": "\\\\MC-01\\mc-01\\11_Channel1" },
+    { "id": "channel2", "enabled": false, "rootPath": "\\\\MC-01\\mc-01\\12_Channel2" }
   ],
   "distributions": [
     { "enabled": false, "kind": "Jar", "source": "dev", "relativePath": "plugins/AstralRecord.jar", "targets": ["build", "channel1", "channel2"] },
@@ -31,11 +31,11 @@
   },
   "migration": {
     "enabled": false,
-    "baseUrl": "https://device_server:444",
+    "baseUrl": "https://app-01:444",
     "allowPrivateApiInsecureTls": false,
     "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
     "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
-    "apiSettingsPath": "",
-    "serverIds": ["channel1", "channel2"]
+    "apiSettingsPath": "\\\\192.168.0.88\\app-01\\AstralRecordApi\\appsettings.json",
+    "serverIds": ["Build", "Channel1", "Channel2"]
   }
 }
