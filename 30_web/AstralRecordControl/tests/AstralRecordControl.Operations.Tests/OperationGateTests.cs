@@ -2,6 +2,10 @@ using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Inventory;
 using AstralRecordControl.Web.Operations;
+using AstralRecordControl.Web.Pages.Servers;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +15,53 @@ namespace AstralRecordControl.Operations.Tests;
 
 public sealed class OperationGateTests
 {
+    [Theory]
+    [InlineData(OperationKind.Stop)]
+    [InlineData(OperationKind.Restart)]
+    [InlineData(OperationKind.ConsoleCommand)]
+    [InlineData(OperationKind.Kill)]
+    public async Task ConsolePageDispatchesTheSelectedRunningOperation(OperationKind kind)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("console");
+        var state = fixture.Agent.States[server.HostId] with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        fixture.Agent.States[server.HostId] = state;
+        var host = await fixture.Db.Hosts.SingleAsync(x => x.HostId == server.HostId);
+        host.RuntimeSnapshotJson = ControlJson.Serialize(new[] { state });
+        await fixture.Db.SaveChangesAsync();
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true" }).Build();
+        var page = new OperationsModel(fixture.Db, fixture.Operations, fixture.Reservations, config, TimeProvider.System)
+        { PageContext = new PageContext { HttpContext = new DefaultHttpContext() } };
+
+        var result = await page.OnPostOperateAsync(server.ServerId, Guid.NewGuid(), kind, "say fixture", "fixture force stop", null, 1, state.StateRevision, state.CurrentSessionId, confirmKill: true);
+
+        Assert.IsType<RedirectToPageResult>(result);
+        var operation = await fixture.Db.Operations.SingleAsync();
+        Assert.Equal(kind, operation.Kind);
+        Assert.Equal(kind, ControlJson.Deserialize<OperationCommand>(operation.CommandJson).Kind);
+        Assert.Equal(1, fixture.Agent.DispatchCount);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData((OperationKind)999)]
+    public async Task ConsolePageNeverTreatsMissingOrUndefinedKindAsStart(OperationKind? kind)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("console");
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true" }).Build();
+        var page = new OperationsModel(fixture.Db, fixture.Operations, fixture.Reservations, config, TimeProvider.System)
+        { PageContext = new PageContext { HttpContext = new DefaultHttpContext() } };
+
+        var result = await page.OnPostOperateAsync(server.ServerId, Guid.NewGuid(), kind, null, null, null, 1, 1, null);
+
+        Assert.IsType<PageResult>(result);
+        Assert.Contains("操作種別", page.Error);
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+        Assert.Equal(0, fixture.Agent.PrepareCount);
+        Assert.Equal(0, fixture.Agent.DispatchCount);
+    }
+
     [Fact]
     public async Task ReservationTakesAllResourcesAndReusesTheSameLease()
     {
@@ -363,7 +414,7 @@ public sealed class OperationGateTests
             return Task.FromResult(new ExecutionSnapshot { OperationId = operationId, CommandSha256 = hash, Status = OperationStatus.Accepted, StatusVersion = 1, UpdatedAtUtc = DateTimeOffset.UtcNow });
         }
         public Task<ExecutionSnapshot> QueryAsync(Guid hostId, Guid operationId, CancellationToken token) => QueryResult is null ? throw new IOException("Query unavailable.") : Task.FromResult(QueryResult);
-        public Task<LogBatch> ReadLogsAsync(Guid hostId, ReadLogsRequest request, CancellationToken token) => throw new NotImplementedException();
+        public Task<LogBatch> ReadLogsAsync(Guid hostId, ReadLogsRequest request, CancellationToken token) => Task.FromResult(new LogBatch { ServerId = request.ServerId, SessionId = States[hostId].CurrentSessionId });
         public Task<RecoveryInspection> InspectRecoveryAsync(Guid hostId, Guid serverId, CancellationToken token) => Inspection is null ? throw new IOException("Inspection unavailable.") : Task.FromResult(Inspection);
     }
 }

@@ -38,10 +38,23 @@
     };
     window.addEventListener("control:before-page-change", stop);
     window.addEventListener("pagehide", stop);
-    for (const form of forms) form.addEventListener("submit", () => {
-        if (pending) return;
+    for (const form of forms) form.addEventListener("submit", event => {
+        const submitter = event.submitter;
+        if (pending || !submitter || submitter.name !== "kind" || submitter.disabled || !form.contains(submitter) || !Object.hasOwn(kindNames, submitter.value)) {
+            event.preventDefault();
+            return;
+        }
+        // A native event can run microtasks before the document listener builds FormData.
+        // Keep the selected action in a successful control after buttons become disabled.
+        let selectedKind = form.querySelector('input[name="kind"]');
+        if (!selectedKind) {
+            selectedKind = document.createElement("input");
+            selectedKind.type = "hidden";
+            selectedKind.name = "kind";
+            form.append(selectedKind);
+        }
+        selectedKind.value = submitter.value;
         pending = true;
-        // Navigation reads FormData synchronously on document before controls are disabled.
         queueMicrotask(setButtons);
     });
 

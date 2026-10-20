@@ -8,11 +8,13 @@ const script = name => fs.readFileSync(path.join(__dirname, '../../src/AstralRec
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 
 const consoleFixture = fetch => {
-    const fields = Object.fromEntries(['configRevision', 'expectedStateRevision', 'expectedServerSessionId'].map(name => [name, { value: '' }]));
-    const buttons = ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand'].map(value => ({ value, disabled: false }));
+    const fields = Object.fromEntries(['configRevision', 'expectedStateRevision', 'expectedServerSessionId'].map(name => [name, { name, value: '' }]));
+    const buttons = ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand'].map(value => ({ name: 'kind', value, disabled: false }));
     const form = new EventTarget();
     form.querySelector = selector => fields[selector.match(/name="([^"]+)/)[1]];
     form.querySelectorAll = () => buttons;
+    form.contains = button => buttons.includes(button);
+    form.append = field => { fields[field.name] = field; };
     const root = { dataset: { serverId: 'server' }, isConnected: true, querySelectorAll: () => [form] };
     const log = { dataset: { sessionId: 'old', cursor: '0' }, textContent: '', isConnected: true, scrollHeight: 100, scrollTop: 0, clientHeight: 100 };
     const status = { textContent: 'initial', isConnected: true };
@@ -102,10 +104,39 @@ test('console follows log bottom and locks controls after submit', async () => {
     await new Promise(setImmediate);
     assert.equal(fixture.log.scrollTop, 200);
     assert.equal(fixture.buttons[1].disabled, false);
-    fixture.form.dispatchEvent(new Event('submit'));
+    const submission = new Event('submit', { cancelable: true });
+    Object.defineProperty(submission, 'submitter', { value: fixture.buttons[1] });
+    fixture.form.dispatchEvent(submission);
     await flush();
     assert.equal(fixture.buttons.every(button => button.disabled), true);
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
+
+test('console preserves the selected operation when form data is collected after buttons are disabled', async () => {
+    for (const kind of ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand']) {
+        const running = kind !== 'Start';
+        const fixture = consoleFixture(url => String(url).includes('handler=Status')
+            ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 2, stateRevision: 4, processState: running ? 'Running' : 'Stopped', currentSessionId: running ? 'old' : null, recent: [] }) })
+            : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: 0, rows: [] }) }));
+        await new Promise(setImmediate);
+        const submitter = fixture.buttons.find(button => button.value === kind);
+        const submission = new Event('submit', { cancelable: true });
+        Object.defineProperty(submission, 'submitter', { value: submitter });
+        fixture.form.dispatchEvent(submission);
+        assert.equal(submission.defaultPrevented, false);
+        // Model the native event checkpoint before navigation/FormData entry collection.
+        await flush();
+        assert.equal(submitter.disabled, true);
+        const data = new URLSearchParams(Object.values(fixture.fields).filter(field => !field.disabled).map(field => [field.name, field.value]));
+        if (!submitter.disabled) data.append(submitter.name, submitter.value);
+        assert.deepEqual(data.getAll('kind'), [kind]);
+        const duplicate = new Event('submit', { cancelable: true });
+        Object.defineProperty(duplicate, 'submitter', { value: submitter });
+        fixture.form.dispatchEvent(duplicate);
+        assert.equal(duplicate.defaultPrevented, true);
+        assert.equal(fixture.fields.kind.value, kind);
+        fixture.window.dispatchEvent(new Event('control:before-page-change'));
+    }
 });
 
 test('console stays disabled after redirect while an accepted operation awaits a state update', async () => {

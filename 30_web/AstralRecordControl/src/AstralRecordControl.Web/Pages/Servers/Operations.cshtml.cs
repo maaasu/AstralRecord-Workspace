@@ -53,10 +53,11 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
             recent
         });
     }
-    public async Task<IActionResult> OnPostOperateAsync(Guid serverId, Guid requestKey, OperationKind kind, string? command, string? reason, Guid? reservationId, long configRevision, long expectedStateRevision, Guid? expectedServerSessionId, bool confirmKill = false)
+    public async Task<IActionResult> OnPostOperateAsync(Guid serverId, Guid requestKey, OperationKind? kind, string? command, string? reason, Guid? reservationId, long configRevision, long expectedStateRevision, Guid? expectedServerSessionId, bool confirmKill = false)
     {
         try
         {
+            if (!kind.HasValue || !Enum.IsDefined(kind.Value)) throw new InventoryFault(400, "操作種別を確認できません。画面を再読み込みして操作してください。");
             await LoadAsync(serverId, 0);
             if (!Enabled || Runtime is null) throw new InventoryFault(409, "UnsupportedCapability");
             if (!ModelState.IsValid || (kind == OperationKind.Kill && !confirmKill)) throw new InventoryFault(400, "Killには対象Sessionと強制終了の確認が必要です。");
@@ -68,7 +69,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
             };
             var lease = reservationId.HasValue ? MaintenanceLeases.SingleOrDefault(x => x.ReservationId == reservationId.Value) ?? throw new InventoryFault(409, "ReservationConflict") : null;
             if (lease != null && kind != OperationKind.Start) throw new InventoryFault(409, "ReservationConflict");
-            var request = new ServerOperationRequest { Kind = kind, Payload = payload, ConfigRevision = configRevision, ExpectedStateRevision = expectedStateRevision, ExpectedServerSessionId = expectedServerSessionId, WorkflowId = lease?.WorkflowId, ReservationId = lease?.ReservationId };
+            var request = new ServerOperationRequest { Kind = kind.Value, Payload = payload, ConfigRevision = configRevision, ExpectedStateRevision = expectedStateRevision, ExpectedServerSessionId = expectedServerSessionId, WorkflowId = lease?.WorkflowId, ReservationId = lease?.ReservationId };
             await operations.CreateAsync(serverId, request, requestKey, HttpContext.RequestAborted);
             return RedirectToPage(new { serverId });
         }
