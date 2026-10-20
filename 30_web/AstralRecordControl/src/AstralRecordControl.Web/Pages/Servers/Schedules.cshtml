@@ -1,7 +1,8 @@
 @page "/Servers/{serverId:guid}/Schedules"
 @model AstralRecordControl.Web.Pages.Servers.SchedulesModel
-@{ ViewData["Title"] = "予約実行"; }
+@{ ViewData["Title"] = "予約実行"; ViewData["ServerTab"] = "Schedules"; ViewData["ServerManaged"] = true; }
 <h1>@Model.Server.DisplayName — 予約実行</h1>
+<partial name="_ServerTabs" model="Model.Server.ServerId" />
 <p>適用済みの予約は管理Webに接続できなくても、このPC内で実行します。開始が60秒を超えて遅れた予約はスキップします。</p>
 @if (!Model.Available) { <p>予約実行は無効です。導入手順に従って有効化してください。</p> }
 @if (Model.Message != null) { <p role="status">@Model.Message</p> }

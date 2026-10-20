@@ -1,8 +1,8 @@
 @page "/Servers/{serverId:guid}/Backups"
 @model AstralRecordControl.Web.Pages.Servers.BackupsModel
-@{ ViewData["Title"] = Model.Server.DisplayName + " · バックアップ"; }
+@{ ViewData["Title"] = Model.Server.DisplayName + " · バックアップ"; ViewData["ServerTab"] = "Backups"; ViewData["ServerManaged"] = true; }
 <h1>@Model.Server.DisplayName · バックアップ</h1>
-<p><a asp-page="Edit" asp-route-serverId="@Model.Server.ServerId">設定</a> / <a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId">運転</a> / <a asp-page="Files" asp-route-serverId="@Model.Server.ServerId">ファイル</a></p>
+<partial name="_ServerTabs" model="Model.Server.ServerId" />
 <p><strong>復元範囲: ServerFiles</strong>。このサーバーのファイルが対象です。SQL・API・マスターデータ・公開状態は含みません。</p>
 @if (!Model.Enabled) { <p role="alert">PCの接続とP2機能の有効化が必要です。</p> }
 <section id="p2-control" data-mode="backups" data-server-id="@Model.Server.ServerId" data-host-id="@Model.Server.HostId" data-root-id="@Model.Config.ManagedRootId" data-directory="@Model.Config.ServerDirectory" data-enabled="@Model.Enabled.ToString().ToLowerInvariant()">

@@ -1,0 +1,16 @@
+@model Guid
+@{
+    var active = ViewData["ServerTab"] as string;
+    var managed = ViewData["ServerManaged"] is true;
+}
+<nav class="server-tabs" aria-label="このサーバーの画面">
+    <a asp-page="/Servers/Edit" asp-route-serverId="@Model" class="@(active == "Edit" ? "is-active" : null)" aria-current="@(active == "Edit" ? "page" : null)">設定</a>
+    @if (managed)
+    {
+        <a asp-page="/Servers/Operations" asp-route-serverId="@Model" class="@(active == "Operations" ? "is-active" : null)" aria-current="@(active == "Operations" ? "page" : null)">操作・ログ</a>
+        <a asp-page="/Servers/Schedules" asp-route-serverId="@Model" class="@(active == "Schedules" ? "is-active" : null)" aria-current="@(active == "Schedules" ? "page" : null)">予約</a>
+        <a asp-page="/Servers/Metrics" asp-route-serverId="@Model" class="@(active == "Metrics" ? "is-active" : null)" aria-current="@(active == "Metrics" ? "page" : null)">監視</a>
+        <a asp-page="/Servers/Files" asp-route-serverId="@Model" class="@(active == "Files" ? "is-active" : null)" aria-current="@(active == "Files" ? "page" : null)">ファイル</a>
+        <a asp-page="/Servers/Backups" asp-route-serverId="@Model" class="@(active == "Backups" ? "is-active" : null)" aria-current="@(active == "Backups" ? "page" : null)">バックアップ</a>
+    }
+</nav>

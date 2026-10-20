@@ -72,3 +72,17 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 24px}dd{margin:0;o
 .simple-list{list-style:none;padding:0;margin:12px 0 22px}.simple-list li{padding:10px 0;border-bottom:1px solid var(--line)}.simple-list details{margin:0}.simple-list summary{padding:2px 0}
 .token-result{border-color:#426582}.token-result pre{user-select:all}
 @media(max-width:700px){.page-heading,.section-heading{display:block}.page-heading .text-action,.section-heading>a{margin-top:10px}.page-section{padding:18px}.host-grid{grid-template-columns:1fr}.entity-heading{gap:12px}.state-badge{font-size:.74rem}.snapshot-note span{display:block;margin-left:0}.empty-state{padding:20px}.details-body{padding:4px 18px 18px}}
+
+.server-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid var(--line);margin:16px 0 24px;padding-bottom:8px}
+.server-tabs a{flex:0 0 auto;min-height:44px;display:inline-flex;align-items:center;padding:8px 15px;border-radius:8px;color:var(--muted);text-decoration:none;font-weight:650}
+.server-tabs a:hover{background:#1a293d;color:var(--text)}.server-tabs a.is-active{background:#203a56;color:#d4ebff;border:1px solid #426582}
+.server-console{margin:20px 0}.server-console h2{margin-top:0}.server-console form{margin:16px 0}
+.operation-actions{display:flex;flex-wrap:wrap;gap:8px}.operation-actions button{margin:0}
+.operation-start{background:#216847;border-color:#438968}.operation-start:hover:not(:disabled){background:#2b8058}
+.operation-stop{background:#775725;border-color:#a47b3c}.operation-stop:hover:not(:disabled){background:#90692e}
+.operation-restart{background:#28638f}.operation-kill{background:#7e3540;border-color:#ac5863}.operation-kill:hover:not(:disabled){background:#9b414e}
+.kill-details{border-top:1px solid var(--line);padding-top:8px}.kill-details summary{color:#ffb4b4;font-weight:650}.kill-details p{max-width:760px}
+#server-log{height:clamp(280px,48vh,650px);overflow:auto;overscroll-behavior:contain;white-space:pre-wrap;margin:12px 0 0;scrollbar-width:thin}
+.console-command-form{margin-top:10px!important}.console-command-form>label{margin-bottom:6px}.console-command-row{display:flex;align-items:stretch;gap:10px;max-width:900px}
+.console-command-row input{flex:1;min-width:0;width:auto!important}.console-command-row button{flex:0 0 auto;margin:0}
+@media(max-width:700px){.console-command-row{flex-direction:column}.console-command-row button{width:100%}}

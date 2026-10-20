@@ -1,8 +1,9 @@
 @page "/Servers/{serverId:guid}/Metrics"
 @model AstralRecordControl.Web.Pages.Servers.MetricsModel
 @using AstralRecordControl.Contracts
-@{ ViewData["Title"] = "Server メトリクス"; }
+@{ ViewData["Title"] = "Server メトリクス"; ViewData["ServerTab"] = "Metrics"; ViewData["ServerManaged"] = true; }
 <h1>@Model.Server.DisplayName のメトリクス</h1>
+<partial name="_ServerTabs" model="Model.Server.ServerId" />
 <p>Host 接続: <span id="host-state">@Model.ConnectionState</span> / プロセス: <span id="process-state">@(Model.ProcessState ?? "状態未取得")</span></p>
 <p>Agent がオフラインの間は最後の値を現在値として表示しません。線のない区間は欠測です。</p>
 <label>期間 <select id="metrics-range" data-server-id="@Model.Server.ServerId">

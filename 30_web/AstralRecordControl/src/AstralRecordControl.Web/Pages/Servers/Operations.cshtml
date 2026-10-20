@@ -1,51 +1,71 @@
 @page "/Servers/{serverId:guid}/Operations"
 @model AstralRecordControl.Web.Pages.Servers.OperationsModel
-@{ ViewData["Title"] = "Server 操作"; }
-<h1>@Model.Server.DisplayName</h1>
-<p>プロセス: @(Model.Runtime?.ProcessState.ToString() ?? "状態未取得") / Session: @(Model.Runtime?.CurrentSessionId.ToString() ?? "なし") / 設定: @Model.Server.AppliedRevision</p>
-@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
-@if (!Model.Enabled) { <p>操作は現在利用できません。共通 gate、Host 接続、設定適用を確認してください。</p> }
-else
-{
-    <form method="post" asp-page-handler="Operate">
+@using AstralRecordControl.Contracts
+@{
+    ViewData["Title"] = Model.Server.DisplayName + " · 操作・ログ";
+    ViewData["ServerTab"] = "Operations";
+    ViewData["ServerManaged"] = true;
+    var stopped = Model.Runtime?.ProcessState == ProcessState.Stopped && Model.Runtime.CurrentSessionId is null;
+    var running = Model.Runtime?.ProcessState == ProcessState.Running && Model.Runtime.CurrentSessionId is not null;
+}
+<h1>@Model.Server.DisplayName · 操作・ログ</h1>
+<partial name="_ServerTabs" model="Model.Server.ServerId" />
+<section class="server-console" id="server-console" data-server-id="@Model.Server.ServerId" data-enabled="@Model.Enabled.ToString().ToLowerInvariant()">
+    <h2>運転状態</h2>
+    <p id="server-operation-status" role="status" aria-live="polite">プロセス: <strong id="server-process-state">@(Model.Runtime?.ProcessState switch { ProcessState.Stopped => "停止中", ProcessState.Starting => "起動中", ProcessState.Running => "稼働中", ProcessState.Stopping => "停止処理中", ProcessState.Unmanaged => "管理外", _ => "状態未取得" })</strong> · Session: <span id="server-session">@(Model.Runtime?.CurrentSessionId.ToString() ?? "なし")</span></p>
+    @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
+    <p id="server-availability" class="status-note" hidden="@Model.Enabled">操作は現在利用できません。PC接続・共通gate・設定適用を確認してください。</p>
+    <form method="post" asp-page-handler="Operate" data-operation-form>
         <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
-        <input type="hidden" name="requestKey" value="@Model.RequestKey" />
-        <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" />
-        <input type="hidden" name="expectedStateRevision" value="@Model.Runtime!.StateRevision" />
-        <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime.CurrentSessionId" />
-        <button type="submit" name="kind" value="Start">Start</button>
-        <button type="submit" name="kind" value="Stop">Stop</button>
-        <button type="submit" name="kind" value="Restart">Restart</button>
-        <label>Kill 理由 <input name="reason" maxlength="1024" /></label>
-        <label><input type="checkbox" name="confirmKill" value="true" /> 表示中のサーバーとSessionを確認し、保存せず強制終了することを了承しました</label>
-        <button type="submit" name="kind" value="Kill">Kill</button>
-        <label>Console 命令 <input name="command" maxlength="4096" /></label>
-        <button type="submit" name="kind" value="ConsoleCommand">送信</button>
+        <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+        <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" data-server-state-field />
+        <input type="hidden" name="expectedStateRevision" value="@Model.Runtime?.StateRevision" data-server-state-field />
+        <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime?.CurrentSessionId" data-server-state-field />
+        <div class="operation-actions">
+            <button type="submit" name="kind" value="Start" class="operation-start" disabled="@(!Model.Enabled || !stopped)">起動</button>
+            <button type="submit" name="kind" value="Stop" class="operation-stop" disabled="@(!Model.Enabled || !running)">正常停止</button>
+            <button type="submit" name="kind" value="Restart" class="operation-restart" disabled="@(!Model.Enabled || !running)">再起動</button>
+        </div>
+        <details class="kill-details">
+            <summary>強制終了（保存せず終了）</summary>
+            <p>ゲームサーバーのプロセスを強制終了します。プレイヤーのKick/Kill操作ではありません。未保存データが失われる可能性があります。通常は「正常停止」を使ってください。</p>
+            <label>強制終了の理由 <input name="reason" maxlength="1024" /></label>
+            <label><input type="checkbox" name="confirmKill" value="true" /> 表示中のサーバーとSessionを確認し、保存せず強制終了することを了承しました</label>
+            <button type="submit" name="kind" value="Kill" class="operation-kill" disabled="@(!Model.Enabled || !running)">プロセスを強制終了</button>
+        </details>
     </form>
-    @foreach (var lease in Model.MaintenanceLeases.Where(_ => Model.Runtime!.ProcessState == AstralRecordControl.Contracts.ProcessState.Stopped))
+    @foreach (var lease in Model.MaintenanceLeases.Where(_ => stopped))
     {
-        <form method="post" asp-page-handler="Operate">
+        <form method="post" asp-page-handler="Operate" data-operation-form>
             <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
             <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
             <input type="hidden" name="reservationId" value="@lease.ReservationId" />
-            <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" />
-            <input type="hidden" name="expectedStateRevision" value="@Model.Runtime!.StateRevision" />
-            <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime.CurrentSessionId" />
-            <button type="submit" name="kind" value="Start">@lease.AdapterId 保守 Workflow の Start</button>
+            <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" data-server-state-field />
+            <input type="hidden" name="expectedStateRevision" value="@Model.Runtime?.StateRevision" data-server-state-field />
+            <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime?.CurrentSessionId" data-server-state-field />
+            <button type="submit" name="kind" value="Start" class="operation-start" disabled="@(!Model.Enabled || !stopped)">@lease.AdapterId 保守 Workflow の起動</button>
         </form>
     }
-}
-<h2>操作履歴</h2>
-<table><thead><tr><th>日時</th><th>種別</th><th>状態</th><th>エラー</th></tr></thead><tbody>
-@foreach (var operation in Model.Recent) { <tr><td>@operation.CreatedAtUtc</td><td>@operation.Kind</td><td>@operation.Status</td><td>@operation.ErrorCode</td></tr> }
-</tbody></table>
-<h2>ログ</h2>
-@if (Model.Logs is null) { <p>ログは現在取得できません。</p> }
-else
-{
-    @if (Model.Logs.Gap) { <p>保持期間を超えた行があります。最古 cursor: @Model.Logs.EarliestAvailableCursor</p> }
-    <p id="log-status" role="status">ログは3秒ごとに更新します。</p>
-    <pre id="server-log" data-server-id="@Model.Server.ServerId" data-session-id="@Model.Logs.SessionId" data-cursor="@Model.Logs.NextCursor">@foreach (var row in Model.Logs.Rows) { @($"[{row.OccurredAtUtc:O}] {row.Stream}: {row.Text}\n") }</pre>
-    <a asp-page="Operations" asp-route-serverId="@Model.Server.ServerId" asp-route-afterSequence="@Model.Logs.NextCursor">次のログ</a>
-}
+</section>
+<section class="server-console">
+    <h2>ライブログ</h2>
+    <p id="log-status" role="status" aria-live="polite">ログと運転状態を3秒ごとに更新します。</p>
+    @if (Model.Logs?.Gap == true) { <p>保持期間を超えた行があります。最古 cursor: @Model.Logs.EarliestAvailableCursor</p> }
+    <pre id="server-log" tabindex="0" aria-label="サーバーログ" data-server-id="@Model.Server.ServerId" data-session-id="@Model.Logs?.SessionId" data-cursor="@(Model.Logs?.NextCursor ?? 0)">@if (Model.Logs is not null) { foreach (var row in Model.Logs.Rows) { @($"[{row.OccurredAtUtc:O}] {row.Stream}: {row.Text}\n") } }</pre>
+    <form method="post" asp-page-handler="Operate" data-operation-form class="console-command-form">
+        <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
+        <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+        <input type="hidden" name="configRevision" value="@Model.Server.AppliedRevision" data-server-state-field />
+        <input type="hidden" name="expectedStateRevision" value="@Model.Runtime?.StateRevision" data-server-state-field />
+        <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime?.CurrentSessionId" data-server-state-field />
+        <label for="server-command">コンソールコマンド</label>
+        <div class="console-command-row"><input id="server-command" name="command" maxlength="4096" autocomplete="off" required placeholder="例: say メンテナンスを開始します" /><button type="submit" name="kind" value="ConsoleCommand" disabled="@(!Model.Enabled || !running)">送信</button></div>
+    </form>
+</section>
+<section class="server-console">
+    <h2>操作履歴</h2>
+    <div class="table-scroll"><table class="data-table"><thead><tr><th>日時</th><th>種別</th><th>状態</th><th>エラー</th></tr></thead><tbody id="server-operation-history">
+        @foreach (var operation in Model.Recent) { <tr><td>@operation.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</td><td>@operation.Kind</td><td>@operation.Status</td><td>@operation.ErrorCode</td></tr> }
+    </tbody></table></div>
+</section>
 @section Scripts { <script src="~/js/server-logs.js" asp-append-version="true" defer></script> }

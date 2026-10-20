@@ -7,35 +7,104 @@ const vm = require('node:vm');
 const script = name => fs.readFileSync(path.join(__dirname, '../../src/AstralRecordControl.Web/wwwroot/js', name), 'utf8');
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 
-test('log polling clears its timer, aborts fetch, and ignores a late result on page change', async () => {
-    const log = { dataset: { sessionId: 'session', serverId: 'server', cursor: '0' }, textContent: '', isConnected: true };
-    const status = { textContent: '', isConnected: true };
+const consoleFixture = fetch => {
+    const fields = Object.fromEntries(['configRevision', 'expectedStateRevision', 'expectedServerSessionId'].map(name => [name, { value: '' }]));
+    const buttons = ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand'].map(value => ({ value, disabled: false }));
+    const form = new EventTarget();
+    form.querySelector = selector => fields[selector.match(/name="([^"]+)/)[1]];
+    form.querySelectorAll = () => buttons;
+    const root = { dataset: { serverId: 'server' }, isConnected: true, querySelectorAll: () => [form] };
+    const log = { dataset: { sessionId: 'old', cursor: '0' }, textContent: '', isConnected: true, scrollHeight: 100, scrollTop: 0, clientHeight: 100 };
+    const status = { textContent: 'initial', isConnected: true };
+    const process = { textContent: '' }, session = { textContent: '' }, availability = { hidden: false };
+    const history = { rows: [], replaceChildren(fragment) { this.rows = fragment.children; } };
+    const elements = { 'server-console': root, 'server-log': log, 'log-status': status, 'server-process-state': process, 'server-session': session, 'server-availability': availability, 'server-operation-history': history };
     const window = new EventTarget();
     const timers = new Map();
-    let nextTimer = 0, signal, resolveFetch;
+    let nextTimer = 0;
     window.setTimeout = callback => { const id = ++nextTimer; timers.set(id, callback); return id; };
     window.clearTimeout = id => timers.delete(id);
-    const context = vm.createContext({
-        document: { getElementById: id => ({ 'server-log': log, 'log-status': status })[id] },
-        window, AbortController, URLSearchParams,
-        fetch: (_url, options) => { signal = options.signal; return new Promise(resolve => { resolveFetch = resolve; }); }
+    const document = {
+        getElementById: id => elements[id], querySelectorAll: () => [],
+        createDocumentFragment: () => ({ children: [], append(row) { this.children.push(row); } }),
+        createElement: () => ({ children: [], textContent: '', append(cell) { this.children.push(cell); } })
+    };
+    vm.runInContext(script('server-logs.js'), vm.createContext({ document, window, AbortController, URLSearchParams, fetch, queueMicrotask }));
+    return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers };
+};
+
+test('console polling aborts status fetch and ignores late results on page change', async () => {
+    let signal, resolveFetch;
+    const fixture = consoleFixture((_url, options) => {
+        signal = options.signal;
+        return new Promise(resolve => { resolveFetch = resolve; });
     });
-
-    vm.runInContext(script('server-logs.js'), context);
-    assert.equal(timers.size, 1);
-    const [timerId, poll] = [...timers][0];
-    timers.delete(timerId);
-    poll();
-    assert.equal(signal.aborted, false);
-    window.dispatchEvent(new Event('control:before-page-change'));
+    assert.equal(fixture.buttons.every(button => button.disabled), true);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
     assert.equal(signal.aborted, true);
-    assert.equal(timers.size, 0);
-
-    resolveFetch({ ok: true, json: async () => ({ sessionId: 'session', nextCursor: 1, rows: [{ text: 'late' }] }) });
+    resolveFetch({ ok: true, json: async () => ({ enabled: true, configRevision: 1, stateRevision: 1, processState: 'Running', currentSessionId: 'new', recent: [] }) });
     await flush();
-    assert.equal(log.textContent, '');
-    assert.equal(status.textContent, '');
-    assert.equal(timers.size, 0);
+    assert.equal(fixture.process.textContent, '');
+    assert.equal(fixture.timers.size, 0);
+});
+
+test('console follows new session, updates hidden revisions/history, and preserves scroll away from bottom', async () => {
+    const requests = [];
+    const fixture = consoleFixture((url, options) => {
+        requests.push({ url: String(url), signal: options.signal });
+        if (String(url).includes('handler=Status')) return Promise.resolve({ ok: true, json: async () => ({ enabled: true, configRevision: 4, stateRevision: 9, processState: 'Running', currentSessionId: 'new', recent: [{ createdAtUtc: '2026-10-20T00:00:00Z', kind: 'Start', status: 'Succeeded', errorCode: null }] }) });
+        return Promise.resolve({ ok: true, json: async () => ({ sessionId: 'new', nextCursor: 2, rows: [{ occurredAtUtc: 'now', stream: 'stdout', text: '<unsafe>', truncated: false }] }) });
+    });
+    fixture.log.scrollHeight = 500;
+    fixture.log.scrollTop = 10;
+    fixture.log.clientHeight = 100;
+    await new Promise(setImmediate);
+    assert.equal(fixture.log.dataset.sessionId, 'new');
+    assert.equal(fixture.fields.expectedStateRevision.value, '9');
+    assert.equal(fixture.fields.expectedServerSessionId.value, 'new');
+    assert.equal(fixture.buttons[0].disabled, true);
+    assert.equal(fixture.buttons[1].disabled, false);
+    assert.equal(fixture.history.rows[0].children[1].textContent, '起動');
+    assert.match(fixture.log.textContent, /<unsafe>/);
+    assert.equal(fixture.log.scrollTop, 10);
+    assert.match(requests[1].url, /sessionId=new&afterSequence=0/);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+    assert.equal(fixture.timers.size, 0);
+});
+
+test('console disables operations when status cannot be checked', async () => {
+    let calls = 0;
+    const fixture = consoleFixture(() => {
+        calls++;
+        return calls === 1
+            ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, configRevision: 1, stateRevision: 1, processState: 'Stopped', currentSessionId: null, recent: [] }) })
+            : Promise.reject(new Error('offline'));
+    });
+    await new Promise(setImmediate);
+    assert.equal(fixture.buttons[0].disabled, false);
+    const [timerId, callback] = [...fixture.timers][0];
+    fixture.timers.delete(timerId);
+    callback();
+    await new Promise(setImmediate);
+    assert.equal(fixture.buttons.every(button => button.disabled), true);
+    assert.match(fixture.status.textContent, /操作を停止/);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
+
+test('console follows log bottom and locks controls after submit', async () => {
+    const fixture = consoleFixture(url => String(url).includes('handler=Status')
+        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, configRevision: 2, stateRevision: 4, processState: 'Running', currentSessionId: 'old', recent: [] }) })
+        : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: 1, rows: [{ occurredAtUtc: 'now', stream: 'stdout', text: 'line' }] }) }));
+    fixture.log.scrollHeight = 200;
+    fixture.log.scrollTop = 100;
+    fixture.log.clientHeight = 100;
+    await new Promise(setImmediate);
+    assert.equal(fixture.log.scrollTop, 200);
+    assert.equal(fixture.buttons[1].disabled, false);
+    fixture.form.dispatchEvent(new Event('submit'));
+    await flush();
+    assert.equal(fixture.buttons.every(button => button.disabled), true);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
 });
 
 test('metrics range change aborts the previous request and departure ignores late data', async () => {
