@@ -660,8 +660,10 @@ if ($gateMode -eq 'Managed' -and !$PreflightOnly) {
     }
     if ($config.fileDatabase.enabled -and !$PluginOnly) { $backendPaths+=[IO.Path]::GetFullPath([string]$config.fileDatabase.sourcePath) }
     $backendAdapter=if ($PluginOnly) { '02' } elseif ($MasterDataOnly) { '03' } else { '01' }
+    $backendServerIds=@(Get-DeploymentGateRuntimeServerIds -Configuration $gateConfiguration `
+        -RuntimeServerIds @($gateConfiguration.devWorkflow.migration.serverIds) -PluginOnly:$PluginOnly -MasterDataOnly:$MasterDataOnly)
     $backendGate=Enter-ControlGate -Configuration $gateConfiguration -Operation $backendAdapter `
-        -RuntimeServerIds @($gateConfiguration.devWorkflow.migration.serverIds) -AffectedPaths $backendPaths `
+        -RuntimeServerIds $backendServerIds -AffectedPaths $backendPaths `
         -RequiredState 'Stopped' -RunReference $WorkflowRunDirectory
 }
 if (!$config.plugin.enabled -and ($TestMode -or $PSBoundParameters.ContainsKey('Tests'))) { throw 'TestMode/Tests require plugin.enabled=true.' }

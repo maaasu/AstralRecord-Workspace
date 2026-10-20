@@ -4,16 +4,20 @@ Control管理を有効にしたPCで01/02/03を実行するときは、[既存�
 
 通常は `60_tool/01-deploy-debug.bat` を実行します。PowerShell 7が必要です。01はDevの停止・再起動を運用者が行います。Filebaseとマスタだけを更新する03は、APIとPluginを更新済みでマスタ自動再読込が有効なら、Devを起動したまま実行できます。
 
-1. Devのプレイヤーを退出させ、保存完了を待ってDevを停止する。更新中は入場させない。
+DevとChannelがAPI・DBを共用する環境では、Managed設定の`controlGate.sharedApiRuntimeServerIds`へ共用する全RPGのruntime IDを登録します。今回の新配置は`["Dev","Build","Channel1","Channel2"]`です。01と03のAPI/Filebase更新は全対象の停止を確認し、起動段階で全対象を起動してからDevのready確認とパッチ公開を完了します。`devWorkflow.migration.serverIds`はDevのままです。02のPluginOnlyはDevだけを予約します。共有構成の03は`-ServerAlreadyRunning`を拒否します。
+
+1. Devのプレイヤーを退出させ、保存完了を待ってDevを停止する。共通APIを更新する場合は共用する全RPGも同様に停止する。更新中は入場させない。
 2. `01-deploy-debug.bat` を実行し、停止・入場制限の確認に応答する。
 3. バッチがビルド・配置・必要なseedを終えると、Devの起動案内を表示して待機する。
-4. Devを起動する。まだ入室しない。
+4. Devを起動する。共通APIの場合は他の共用RPGを先に起動し、最後にDevを起動する。まだ入室しない。
 5. 新しい起動sessionのready、スキルツリー世代を確認し、その設定をパッチとして公開する。プレイヤーの一括更新は行わない。
 6. バッチの完了表示を確認して入室する。
 
 JARコピーだけでは完了扱いにしません。API障害、起動待ちタイムアウト、世代不一致、公開拒否は非0終了です。サーバーを強制起動したり入場制限を自動解除したりしません。各プレイヤーの更新は次回ログイン時に行います。
 
 ## 03で稼働中のDevを使う
+
+この節はAPIがDev専用の構成に適用します。`sharedApiRuntimeServerIds`を設定した共通API環境では稼働中モードを使用せず、上記の全対象停止・起動手順を使用してください。
 
 03はFilebase同期とAPI seedの後、Dev Pluginの再読込処理とactivation試行が終了したことをruntimeの`publicationRevision`で確認します。個別activation失敗はPlugin既存仕様に従い警告扱いとなるため、この確認だけでworld/NPC等の全activation成功を保証するものではありません。Devのプロセスsessionが変わらなくても、seed後にrevisionが進み、runtimeがreadyかつ安定していればパッチ公開へ進みます。マスタの変更でスキルツリー世代IDが変わる場合も、その新世代を確認します。
 

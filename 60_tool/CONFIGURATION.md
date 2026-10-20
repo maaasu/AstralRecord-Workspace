@@ -78,15 +78,15 @@ API用Filebaseには2種類のパスが必要です。Toolの`fileDatabase.deplo
 | DEV-01のControl | Agent/Runnerは稼働、管理markerあり。一方Tool設定3種に`controlGate`なし | 管理WebのJava基本運転とToolの共存は別工程。APP-01のAPI/Web/Filebaseを含む登録済みHost/root/Serverのbindingが必要 |
 | 16/17 | localの配置先・runtime IDは新配置に一致。migrationはfalse。16はJAR配布だけ有効 | TLS、共有範囲、gate連携の完了後に必要な処理だけ有効化 |
 
-Controlのbindingがない状態では01/02/03/16/17はLegacyとして拒否されます。markerを削除して回避せず、[gateの設定](control-gate/README.md)と[基本運転からの切替](control-deploy/BASIC-OPERATIONS.md)に従います。APP-01/MC-01の現在のmarkerやControlの最新台帳GUIDは、共有の導入レポートだけでは確定できません。
+Controlのbindingがない状態では01/02/03/16/17はLegacyとして拒否されます。[gateの設定](control-gate/README.md)と[基本運転からの切替](control-deploy/BASIC-OPERATIONS.md)に従います。実台帳のGUIDと各PCの管理者レポートは[切替記録](environment-cutover/README.md)に整理しました。
 
 10も管理markerがあるPCではLegacy設定のまま実行できません。Managed設定の10は`-PreflightOnly`だけを使用し、実配布は01の管理workflowで行います。現backendはManagedの直接配布を拒否するためです。
 
-01/02/03の配布backend起動は、frontend自身と同じ`$PSHOME/pwsh.exe`を使うよう修正しました。通常配布とReleaseManagement分岐の両方をPowerShell 7で実行するfixtureを追加しています。常設Toolへの反映は管理markerの正規更新と同じ停止期間に行います。準備中の手順と実台帳は[新環境への切替](environment-cutover/README.md)を参照してください。
+01/02/03の配布backend起動は、frontend自身と同じ`$PSHOME/pwsh.exe`を使うよう修正しました。通常配布とReleaseManagement分岐の両方をPowerShell 7で実行するfixtureを追加しています。準備中の手順と実台帳は[新環境への切替](environment-cutover/README.md)を参照してください。
 
 Filebaseの`.yml/.yaml/.json`（`99.work`除外）を比較すると、新配置はリポジトリの2,185件と全件一致しました。旧配置は2,195件で、旧だけにEriva mob8件・dungeon2件があり、共通ファイル34件は改行・末尾空白以外にも本文差があります。残る980件のバイト差は改行だけです。リポジトリを正として切り替えることはユーザー確認済みです。実機反映は管理者実行と接続復旧を待っています。
 
-01の修正はControlのハッシュ対象スクリプトを変更します。[Control更新手順](control-deploy/README.md)に従って全対象停止・holdなしを確認し、管理者PowerShellで`Enable-ManagedOperations.ps1 -Renew`を実施するまで常設Toolへ反映しません。
+Toolの管理登録は初回だけです。通常更新で管理者によるハッシュ再承認は不要になりました。更新版CLIも初回ログインを保持し、15分ごとの再ログインは不要です。Runner本体の更新とAPI/Filebase変更に必要な停止・同時書込防止は引き続き確認します。
 
 ## 配置しない確認
 

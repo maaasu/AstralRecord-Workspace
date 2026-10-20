@@ -1,0 +1,20 @@
+{
+  "controlGate": {
+    "mode": "Managed",
+    "cliPath": "C:\\app-01\\DeploymentPackages\\20261019-47a3e3e7e\\Control\\Cli\\AstralRecordControl.Cli.exe",
+    "serverUrl": "https://control.astralrecord.com",
+    "environmentId": "f97e8617-b7df-4980-adbd-36918949bf79",
+    "bindings": {
+      "servers": [
+        {"runtimeServerId":"Dev","serverId":"bf33c4ed-8b58-4c3c-99b7-6fcd08360697"},
+        {"runtimeServerId":"Build","serverId":"4c0ca2c4-a943-4ad2-aaf4-cef78f3d3824"},
+        {"runtimeServerId":"Channel1","serverId":"c242cc49-17d2-4543-bb15-aa67eb3e8be4"},
+        {"runtimeServerId":"Channel2","serverId":"108487e9-51e4-4166-81b1-f2dba4adf80b"}
+      ],
+      "paths": [
+        {"path":"C:\\app-01\\AstralRecordApi","accessRoot":"C:\\app-01","hostId":"4ff81871-2069-4a9a-9c98-43421de3b7e8","managedRootId":"99a1c3c4-dafc-4fc8-9a8b-b3aad1c1ecee","relativePath":"AstralRecordApi"},
+        {"path":"C:\\app-01\\workspace\\40_filebase","accessRoot":"C:\\app-01","hostId":"4ff81871-2069-4a9a-9c98-43421de3b7e8","managedRootId":"99a1c3c4-dafc-4fc8-9a8b-b3aad1c1ecee","relativePath":"workspace/40_filebase"}
+      ]
+    }
+  }
+}

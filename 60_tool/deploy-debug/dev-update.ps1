@@ -50,6 +50,7 @@ try {
     . (Join-Path $PSScriptRoot '../maintenance/SkillTreeMigration.ps1')
     . (Join-Path $PSScriptRoot '../maintenance/UpdateWorkflow.ps1')
     $config=Get-Content -Raw -Encoding UTF8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
+    Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
     if (!$config.plugin.enabled -and ($TestMode -or $PSBoundParameters.ContainsKey('Tests'))) { throw 'TestMode/Tests require plugin.enabled=true.' }
     if (!$config.ContainsKey('devWorkflow')) { throw 'Add devWorkflow to the deployment config. See deploy-debug/README.md for one-time setup.' }
     $workflow=$config.devWorkflow
@@ -62,6 +63,8 @@ try {
     $workflow.runRoot=Get-MaintenanceAbsolutePath $workflow.runRoot
     $mode=if ($PluginOnly) { 'PluginOnly' } elseif ($MasterDataOnly) { 'MasterDataOnly' } else { 'Full' }
     if ($MasterDataOnly -and !$config.fileDatabase.enabled) { throw 'MasterDataOnly requires fileDatabase.enabled=true.' }
+    $gateServerIds=@(Get-DeploymentGateRuntimeServerIds -Configuration $config -RuntimeServerIds @($normalized.ServerIds) `
+        -PluginOnly:$PluginOnly -MasterDataOnly:$MasterDataOnly -ServerAlreadyRunning:$ServerAlreadyRunning)
     if ($ServerAlreadyRunning -and !$workflow.seedMasterData) { throw 'A running Dev requires devWorkflow.seedMasterData=true so its automatic master reload can be confirmed.' }
     if ($PluginOnly -and !$config.plugin.enabled) { throw 'PluginOnly requires plugin.enabled=true.' }
     if ($mode -eq 'Full' -and !$config.plugin.enabled -and !$config.fileDatabase.enabled -and !$config.api.enabled -and !$config.web.enabled) { throw 'No enabled deployment component.' }
@@ -80,6 +83,7 @@ try {
             if ($testSelection.Tests) { Write-Host "Selected tests: $($testSelection.Tests)" }
         }
         Write-Host "Target runtime: $($normalized.ServerIds[0]); register the current patch after startup. Player data is updated at login."
+        if ($gateServerIds.Count -gt $normalized.ServerIds.Count) { Write-Host "Shared API: stop all of [$($gateServerIds -join ', ')], then start all of them before patch publication. Runtime readiness/publication target remains $($normalized.ServerIds[0])." }
         Write-Host "API endpoint: $($normalized.BaseUrl)"
         Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
         if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
@@ -104,7 +108,8 @@ try {
     $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
     $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
     $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
-    $gateContext=Enter-ControlGate -Configuration $config -Operation $adapterId -RuntimeServerIds @($normalized.ServerIds) `
+    if ($gateServerIds.Count -gt $normalized.ServerIds.Count) { Write-Host "Shared API maintenance: stop all of [$($gateServerIds -join ', ')]; start all of them in the startup phase before Dev patch publication." }
+    $gateContext=Enter-ControlGate -Configuration $config -Operation $adapterId -RuntimeServerIds $gateServerIds `
         -AffectedPaths $affected -RequiredState $requiredState -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
         -ReservationId $(if ($resume) { $resume.ReservationId } else { '' }) -CompletedRun:([bool]($resume -and $resume.Completed)) `
         -InitialStep $(if ($resume) { 'Resume' } else { 'Deploy' })
