@@ -63,6 +63,8 @@ pwsh -NoProfile -File .\Get-EnvironmentFacts.ps1 -CliPath '<現行CLIの絶対�
 
 DEV/MCは`Install-ApiTrust.ps1 -Phase Install`でWindowsと登録済みJavaの信頼を自動更新します。標準JDKの公開CAストアを使用し、証明書への確認質問やパスワード入力を求めません。独自パスワードで管理されたストアでは変更せず停止します。両PCの`TrustInstalled`成功後、APP-01で`-Phase Bind -ExpectedCurrentThumbprint <現在の旧証明書>`を実行します。続いて両PCで`-Phase Verify`を実行し、Windowsと実Javaの両URLで通常TLSが成功したことを確認します。Pluginの検証省略設定は、この確認後に停止中の4台で解除します。
 
+HTTP.sysのJSON取得中だけコンソール出力をUTF-8へ合わせ、終了・失敗時には元の文字コードへ戻します。日本語WindowsのCP932によるJSON破損を避け、標準エラー・終了コード・JSONの内容を検証します。表示メッセージの文字化けを理由にbinding情報を推測して切り替えることはありません。
+
 CAは10年、API証明書は1年で、今回のAPI証明書は2027-10-20 UTCまでです。期限前にAPP-01で証明書を更新し、CAを失った場合は新CAへの入替が必要です。自動更新タスクはこの作業では作成していません。
 
 ## Filebase切替スクリプト

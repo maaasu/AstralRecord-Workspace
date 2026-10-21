@@ -173,10 +173,22 @@ function Assert-ApiTlsHttpBindingRestored($Expected,$Actual,[string]$NewThumbpri
     if ($before -cne $after) { throw 'HTTP.sys binding policy differs from the expected complete snapshot.' }
 }
 
+function Invoke-ApiTlsNativeUtf8([string]$Executable,[string[]]$Arguments) {
+    # netsh JSON depends on its console code page as well as the capture decoder.
+    # ProcessStartInfo redirection alone can already produce broken JSON in netsh.
+    $previousEncoding=[Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false,$true)
+        $response=@(& $Executable @Arguments 2>&1)
+        $exitCode=$LASTEXITCODE
+        if ($exitCode -ne 0 -or @($response | Where-Object { $_ -is [Management.Automation.ErrorRecord] }).Count) { throw 'Unable to inspect existing HTTP.sys SSL binding.' }
+        return ($response -join "`n")
+    } finally { [Console]::OutputEncoding=$previousEncoding }
+}
+
 function Get-ApiTlsHttpBinding {
-    $response=& netsh.exe http show sslcert "ipport=$script:ApiBindingKey" 'json=enable' 2>&1
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect existing HTTP.sys SSL binding.' }
-    return ConvertFrom-ApiTlsHttpBindingJson ($response -join "`n")
+    $response=Invoke-ApiTlsNativeUtf8 (Join-Path $env:windir 'System32/netsh.exe') @('http','show','sslcert',"ipport=$script:ApiBindingKey",'json=enable')
+    return ConvertFrom-ApiTlsHttpBindingJson $response
 }
 
 function Assert-ApiTlsIisBinding {

@@ -72,6 +72,37 @@ try {
     $wrongEndpoint.IpPort='0.0.0.0:445'
     Assert-Throws { ConvertTo-ApiTlsHttpBindingJson $wrongEndpoint $nextThumbprint } 'A different HTTP.sys endpoint was accepted.'
     Assert-Throws { ConvertFrom-ApiTlsHttpBindingJson '{"SslCertificateBindings":[]}' } 'Missing HTTP.sys binding was accepted.'
+    # Reproduce netsh UTF-8 JSON under a Japanese Windows console (CP932).
+    # Implicit native capture can consume the message's closing quote as well.
+    $module=Get-Module ApiTls
+    $oldEncoding=[Console]::OutputEncoding
+    try {
+        [Text.Encoding]::RegisterProvider([Text.CodePagesEncodingProvider]::Instance)
+        [Console]::OutputEncoding=[Text.Encoding]::GetEncoding(932)
+        $nativeJson=$httpJson | ConvertFrom-Json -AsHashtable
+        $nativeJson['message']='正常に終了しました。'
+        $nativeJson['status']=0
+        $bytes=[Text.Encoding]::UTF8.GetBytes(($nativeJson | ConvertTo-Json -Depth 8))
+        $encodedBytes=[Convert]::ToBase64String($bytes)
+        $nativeCommand="[Console]::OpenStandardOutput().Write([Convert]::FromBase64String('$encodedBytes'))"
+        $encodedCommand=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($nativeCommand))
+        $nativeArgs=@('-NoProfile','-EncodedCommand',$encodedCommand)
+        $response=& $module { param($exe,$nativeArgs) Invoke-ApiTlsNativeUtf8 $exe $nativeArgs } (Join-Path $PSHOME 'pwsh.exe') $nativeArgs
+        $nativeParsed=$response | ConvertFrom-Json -AsHashtable
+        if ($nativeParsed.message -cne '正常に終了しました。' -or $nativeParsed.status -ne 0) { throw 'UTF-8 native JSON was corrupted by the console encoding.' }
+        Assert-ApiTlsHttpBindingRestored $binding (ConvertFrom-ApiTlsHttpBindingJson $response) ''
+        if ([Console]::OutputEncoding.CodePage -ne 932) { throw 'The native helper did not restore the caller console encoding.' }
+        # Use the real Windows command as well: a redirected fake process does not
+        # reproduce netsh's own console-dependent JSON generation.
+        $realJson=& $module { Invoke-ApiTlsNativeUtf8 (Join-Path $env:windir 'System32/netsh.exe') @('http','show','sslcert','ipport=0.0.0.0:444','json=enable') }
+        $realParsed=$realJson | ConvertFrom-Json -AsHashtable
+        if (!$realParsed.ContainsKey('SslCertificateBindings') -or $realParsed.status -ne 0) { throw 'Real netsh did not return valid JSON under CP932.' }
+        $errorCommand=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('[Console]::Error.Write("diagnostic"); exit 0'))
+        Assert-Throws { & $module { param($exe,$argsForChild) Invoke-ApiTlsNativeUtf8 $exe $argsForChild } (Join-Path $PSHOME 'pwsh.exe') @('-NoProfile','-EncodedCommand',$errorCommand) } 'Native stderr was mixed into a successful JSON response.'
+        $failureCommand=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('exit 3'))
+        Assert-Throws { & $module { param($exe,$argsForChild) Invoke-ApiTlsNativeUtf8 $exe $argsForChild } (Join-Path $PSHOME 'pwsh.exe') @('-NoProfile','-EncodedCommand',$failureCommand) } 'A failing native command was accepted.'
+        if ([Console]::OutputEncoding.CodePage -ne 932) { throw 'Native failure did not restore the caller console encoding.' }
+    } finally { [Console]::OutputEncoding=$oldEncoding }
     $sample=Join-Path ([IO.Path]::GetTempPath()) ('api-ca-'+[Guid]::NewGuid().ToString('N')+'.cer')
     $snapshot=Join-Path ([IO.Path]::GetTempPath()) ('api-ca-snapshot-'+[Guid]::NewGuid().ToString('N')+'.cer')
     try {
@@ -84,7 +115,7 @@ try {
     } finally {
         Remove-Item -LiteralPath $sample,$snapshot,($sample+'.bad') -Force -ErrorAction SilentlyContinue
     }
-    Write-Host 'PASS: X.509 validation, pinned certificate snapshot, and complete HTTP.sys policy roundtrip.'
+    Write-Host 'PASS: X.509 validation, pinned certificate snapshot, HTTP.sys policy roundtrip, and UTF-8 native JSON under CP932.'
 } finally {
     $leaf.certificate.Dispose(); $leaf.key.Dispose(); $root.certificate.Dispose(); $root.key.Dispose()
 }
