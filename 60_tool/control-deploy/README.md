@@ -134,6 +134,18 @@ Runnerの更新はControl CLIによる`runner check-update`が全ServerのStoppe
 ./60_tool/control-deploy/Enable-ManagedOperations.ps1 -Renew -CliPath "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe"
 ```
 
+既存の管理運用markerがあるPCでToolだけを更新するときは、管理者PowerShell 7で`Install-ControlTools.ps1`を実行します。初回導入のPCは先に上記の`Enable-ManagedOperations.ps1`（`-Renew`なし）で現在のTool rootを登録してください。更新前に、同じTool rootを使う01/02/03/16/17等の番号付きToolと、別の管理者によるTool更新が実行中でないことを確認します。このTool更新だけを理由にゲームサービスを停止する必要はありません。配布物の`files.sha256.json`を別経路で照合したSHA-256値を指定し、`-ToolRoot`にはmarkerに登録した同じ絶対パスを指定します。まず`-WhatIf`で対象を確認します。
+
+```powershell
+$release = 'C:\ControlPackages\p1-002'
+$toolRoot = 'C:\ControlDeployment\Operations\Package\Tools\60_tool'
+$manifestHash = '<配布元で確認したfiles.sha256.jsonの64桁SHA-256>'
+pwsh -NoProfile -File ./60_tool/control-deploy/Install-ControlTools.ps1 -PackageDirectory $release -ToolRoot $toolRoot -ExpectedManifestSha256 $manifestHash -WhatIf
+pwsh -NoProfile -File ./60_tool/control-deploy/Install-ControlTools.ps1 -PackageDirectory $release -ToolRoot $toolRoot -ExpectedManifestSha256 $manifestHash -Confirm:$false
+```
+
+manifest内の`Tools/60_tool`だけを検証して変更分を上書きし、対象の旧ファイルだけをTool rootと同じ親フォルダに退避します。余分なファイルや`.local.json`等のローカル設定は削除・上書きせず、markerも変更しません。失敗時は今回変更したファイルの復元を試み、復旧エラーがあれば退避フォルダを残して停止します。サービスの停止・起動やControl設定の変更は行いません。
+
 Web/Agent/Runnerの現行schemaは4です。旧schemaからは各サービスのSQLite backupを作成してtransaction内で移行します。未知schemaは起動を拒否します。更新前snapshotとmigration前backupを保持してください。
 
 ```powershell
