@@ -15,6 +15,8 @@ $report=[ordered]@{schemaVersion=1;computer='APP-01';phase=$Phase;runId=$runId;s
 try {
 Assert-ApiTlsMachine @('APP-01')
 Assert-ApiTlsIisBinding
+if (![IO.Path]::IsPathFullyQualified($ReportDirectory) -or $ReportDirectory.StartsWith('\\')) { throw 'A local report directory is required.' }
+New-Item -ItemType Directory -Path $ReportDirectory -Force | Out-Null
 
 $caSubject='CN=AstralRecord API Internal CA'
 $leafSubject='CN=app-01'
@@ -97,6 +99,7 @@ if ($before.thumbprint -ceq $leaf.Thumbprint) {
     return
 }
 $backup=Join-Path $env:ProgramData ('AstralRecordControl\api-tls-'+[Guid]::NewGuid().ToString('N'))
+$null=New-ApiTlsHttpUpdateArguments $before.raw $leaf.Thumbprint
 New-ApiTlsPrivateDirectory $backup
 $backupPath=Join-Path $backup 'http-sys-before.json'
 $afterPath=Join-Path $backup 'http-sys-after.json'
@@ -105,9 +108,9 @@ ConvertTo-ApiTlsHttpBindingJson $before.raw $leaf.Thumbprint | Set-Content -Enco
 $changed=$false
 try {
     $report.stage='UpdatingBinding'
+    $report['nativeUpdateOutput']='APP-01-api-tls-'+$runId+'-update.txt'
     $changed=$true
-    & netsh.exe http update sslcert "json=$afterPath" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'HTTP.sys certificate update failed.' }
+    Set-ApiTlsHttpBinding $before.raw $leaf.Thumbprint (Join-Path $ReportDirectory $report.nativeUpdateOutput)
     $after=Get-ApiTlsHttpBinding
     if ($after.thumbprint -cne $leaf.Thumbprint) { throw 'HTTP.sys did not bind the selected API leaf.' }
     Assert-ApiTlsHttpBindingRestored $before $after $leaf.Thumbprint
@@ -121,10 +124,14 @@ try {
     $original=$_.Exception.Message
     if ($changed) {
         $report.stage='RollingBackBinding'
-        & netsh.exe http update sslcert "json=$backupPath" | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "API TLS failed and automatic rollback failed; inspect $backupPath. Cause: $original" }
-        $restored=Get-ApiTlsHttpBinding
-        try { Assert-ApiTlsHttpBindingRestored $before $restored '' } catch { throw "API TLS failed and binding policy did not fully return to its snapshot; inspect $backupPath. Cause: $original" }
+        $report['nativeRestoreOutput']='APP-01-api-tls-'+$runId+'-restore.txt'
+        $report['rollbackVerified']=$false
+        try { Restore-ApiTlsHttpBinding $before (Join-Path $ReportDirectory $report.nativeRestoreOutput) }
+        catch {
+            $report.stage='RollbackUnverified'
+            throw "API TLS failed and automatic rollback could not be verified; inspect $backupPath and the current binding before retrying. Cause: $original"
+        }
+        $report['rollbackVerified']=$true
     }
     throw "API TLS binding was not accepted; previous certificate restored if changed. Cause: $original"
 }

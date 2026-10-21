@@ -173,7 +173,7 @@ function Assert-ApiTlsHttpBindingRestored($Expected,$Actual,[string]$NewThumbpri
     if ($before -cne $after) { throw 'HTTP.sys binding policy differs from the expected complete snapshot.' }
 }
 
-function Invoke-ApiTlsNativeUtf8([string]$Executable,[string[]]$Arguments) {
+function Invoke-ApiTlsNativeUtf8([string]$Executable,[string[]]$Arguments,[string]$DiagnosticPath='') {
     # netsh JSON depends on its console code page as well as the capture decoder.
     # ProcessStartInfo redirection alone can already produce broken JSON in netsh.
     $previousEncoding=[Console]::OutputEncoding
@@ -181,14 +181,60 @@ function Invoke-ApiTlsNativeUtf8([string]$Executable,[string[]]$Arguments) {
         [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false,$true)
         $response=@(& $Executable @Arguments 2>&1)
         $exitCode=$LASTEXITCODE
+        $text=$response -join "`n"
+        if ($DiagnosticPath) { [IO.File]::WriteAllText($DiagnosticPath,$text,[Text.UTF8Encoding]::new($false)) }
         if ($exitCode -ne 0 -or @($response | Where-Object { $_ -is [Management.Automation.ErrorRecord] }).Count) { throw 'Unable to inspect existing HTTP.sys SSL binding.' }
-        return ($response -join "`n")
+        return $text
     } finally { [Console]::OutputEncoding=$previousEncoding }
 }
 
 function Get-ApiTlsHttpBinding {
     $response=Invoke-ApiTlsNativeUtf8 (Join-Path $env:windir 'System32/netsh.exe') @('http','show','sslcert',"ipport=$script:ApiBindingKey",'json=enable')
     return ConvertFrom-ApiTlsHttpBindingJson $response
+}
+
+function New-ApiTlsHttpUpdateArguments($Binding,[string]$Thumbprint) {
+    # The installed Windows build supports JSON for show, but not for update.
+    # This cutover only accepts the observed default policy; refuse custom policy
+    # before issuing a command rather than resetting an unspecified option.
+    $known=@('IpPort','ConfigType','GuidString','SslHash','SslCertStoreName',
+        'DefaultCertCheckMode','DefaultRevocationFreshnessTime','DefaultRevocationUrlRetrievalTimeout',
+        'DefaultSslCtlIdentifier','DefaultSslCtlStoreName','DefaultFlags')
+    if (@($Binding.Keys | Where-Object { $_ -cnotin $known }).Count -or
+        @($known | Where-Object { !$Binding.Contains($_) }).Count -or
+        $Binding.ConfigType -ne 1 -or $Binding.DefaultCertCheckMode -ne 0 -or
+        $Binding.DefaultRevocationFreshnessTime -ne 0 -or $Binding.DefaultRevocationUrlRetrievalTimeout -ne 0 -or
+        $null -ne $Binding.DefaultSslCtlIdentifier -or $null -ne $Binding.DefaultSslCtlStoreName -or
+        $Binding.DefaultFlags -ne 0) { throw 'The API binding has nondefault policy; inspect it before updating the certificate.' }
+    $null=ConvertTo-ApiTlsHttpBindingJson $Binding $Thumbprint
+    return @('http','update','sslcert',"ipport=$script:ApiBindingKey",("certhash="+$Thumbprint.ToUpperInvariant()),
+        ("appid="+$Binding.GuidString),("certstorename="+$Binding.SslCertStoreName),
+        'verifyclientcertrevocation=enable','verifyrevocationwithcachedclientcertonly=disable','usagecheck=enable',
+        'revocationfreshnesstime=0','urlretrievaltimeout=0','dsmapperusage=disable','clientcertnegotiation=disable')
+}
+
+function Set-ApiTlsHttpBinding($Binding,[string]$Thumbprint,[string]$DiagnosticPath) {
+    $arguments=New-ApiTlsHttpUpdateArguments $Binding $Thumbprint
+    $text=Invoke-ApiTlsNativeUtf8 (Join-Path $env:windir 'System32/netsh.exe') $arguments $DiagnosticPath
+    if ($text -match '(?im)^\s*(?:Usage|使用法)\s*:') { throw 'HTTP.sys rejected the certificate-update syntax; inspect the saved native output.' }
+    # The caller must still re-read and compare the complete binding. netsh can
+    # return exit code zero for a rejected command, so its exit code is not proof.
+}
+
+function Restore-ApiTlsHttpBinding($Before,[string]$DiagnosticPath) {
+    $alreadyOriginal=$false
+    try {
+        $current=Get-ApiTlsHttpBinding
+        Assert-ApiTlsHttpBindingRestored $Before $current ''
+        $alreadyOriginal=$true
+    } catch { }
+    if (!$alreadyOriginal) {
+        # An update was issued by this operation. A failed re-read must not skip
+        # restoring its saved certificate. This does not delete or recreate a binding.
+        Set-ApiTlsHttpBinding $Before.raw $Before.thumbprint $DiagnosticPath
+        $current=Get-ApiTlsHttpBinding
+        Assert-ApiTlsHttpBindingRestored $Before $current ''
+    }
 }
 
 function Assert-ApiTlsIisBinding {
@@ -206,4 +252,4 @@ function Test-ApiTlsHealth {
     }
 }
 
-Export-ModuleMember -Function Assert-ApiTlsMachine,New-ApiTlsKeyAcl,New-ApiTlsPrivateDirectory,Get-ApiTlsCertificates,Get-ApiTlsSha256,Copy-ApiTlsPinnedCertificate,Assert-ApiTlsRoot,Assert-ApiTlsLeaf,Assert-ApiTlsPrivateKeyAcl,ConvertFrom-ApiTlsHttpBindingJson,ConvertTo-ApiTlsHttpBindingJson,Assert-ApiTlsHttpBindingRestored,Get-ApiTlsHttpBinding,Assert-ApiTlsIisBinding,Test-ApiTlsHealth
+Export-ModuleMember -Function Assert-ApiTlsMachine,New-ApiTlsKeyAcl,New-ApiTlsPrivateDirectory,Get-ApiTlsCertificates,Get-ApiTlsSha256,Copy-ApiTlsPinnedCertificate,Assert-ApiTlsRoot,Assert-ApiTlsLeaf,Assert-ApiTlsPrivateKeyAcl,ConvertFrom-ApiTlsHttpBindingJson,ConvertTo-ApiTlsHttpBindingJson,Assert-ApiTlsHttpBindingRestored,Get-ApiTlsHttpBinding,New-ApiTlsHttpUpdateArguments,Set-ApiTlsHttpBinding,Restore-ApiTlsHttpBinding,Assert-ApiTlsIisBinding,Test-ApiTlsHealth

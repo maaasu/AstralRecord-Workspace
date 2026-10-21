@@ -72,6 +72,48 @@ try {
     $wrongEndpoint.IpPort='0.0.0.0:445'
     Assert-Throws { ConvertTo-ApiTlsHttpBindingJson $wrongEndpoint $nextThumbprint } 'A different HTTP.sys endpoint was accepted.'
     Assert-Throws { ConvertFrom-ApiTlsHttpBindingJson '{"SslCertificateBindings":[]}' } 'Missing HTTP.sys binding was accepted.'
+    $defaultPolicy=[ordered]@{IpPort='0.0.0.0:444';ConfigType=1;GuidString='{4dc3e181-e14b-4a21-b022-59fc669b0914}';
+        SslHash=[Convert]::ToBase64String([byte[]](1..20));SslCertStoreName='My';DefaultCertCheckMode=0;
+        DefaultRevocationFreshnessTime=0;DefaultRevocationUrlRetrievalTimeout=0;
+        DefaultSslCtlIdentifier=$null;DefaultSslCtlStoreName=$null;DefaultFlags=0}
+    $updateArguments=@(New-ApiTlsHttpUpdateArguments $defaultPolicy $nextThumbprint)
+    if ('certhash=ABCDEF0123456789ABCDEF0123456789ABCDEF01' -cnotin $updateArguments -or
+        'ipport=0.0.0.0:444' -cnotin $updateArguments -or @($updateArguments | Where-Object { $_ -like 'json=*' }).Count) { throw 'The update arguments did not use the supported certificate parameters.' }
+    $customPolicy=$defaultPolicy | ConvertTo-Json | ConvertFrom-Json -AsHashtable
+    $customPolicy.DefaultFlags=1
+    Assert-Throws { New-ApiTlsHttpUpdateArguments $customPolicy $nextThumbprint } 'A nondefault policy would have been overwritten.'
+    $customPolicy.DefaultFlags=0; $customPolicy['UnknownPolicy']=1
+    Assert-Throws { New-ApiTlsHttpUpdateArguments $customPolicy $nextThumbprint } 'An unknown policy field would have been ignored.'
+    # Isolate recovery fault injection from Windows. Native calls are forbidden
+    # in this module even if a mock is accidentally bypassed.
+    $restoreBody=(Get-Command Restore-ApiTlsHttpBinding).Definition
+    $restoreFixture=New-Module -ArgumentList $restoreBody -ScriptBlock {
+        param($body)
+        Invoke-Expression ('function Restore-ApiTlsHttpBinding {'+$body+'}')
+        $script:reads=0; $script:writes=0; $script:failFirst=$false; $script:failAlways=$false
+        function Get-ApiTlsHttpBinding {
+            $script:reads++
+            if ($script:failAlways -or ($script:failFirst -and $script:reads -eq 1)) { throw 'InjectedReadFailure' }
+            return @{verified=$true}
+        }
+        function Set-ApiTlsHttpBinding { param($binding,$thumbprint,$diagnosticPath) $script:writes++ }
+        function Assert-ApiTlsHttpBindingRestored { param($before,$after,$thumbprint) if (!$after.verified) { throw 'InjectedMismatch' } }
+        function Invoke-ApiTlsNativeUtf8 { throw 'Real native operations are forbidden in the recovery fixture.' }
+        Export-ModuleMember -Function Restore-ApiTlsHttpBinding
+    }
+    & $restoreFixture {
+        $before=@{raw=@{};thumbprint='fixture'}
+        $script:failFirst=$true
+        Restore-ApiTlsHttpBinding $before 'fixture-output'
+        if ($script:writes -ne 1 -or $script:reads -ne 2) { throw 'A failed re-read skipped restoration.' }
+        $script:reads=0; $script:writes=0; $script:failFirst=$false
+        Restore-ApiTlsHttpBinding $before 'fixture-output'
+        if ($script:writes -ne 0 -or $script:reads -ne 1) { throw 'An unchanged binding was unnecessarily restored.' }
+        $script:reads=0; $script:writes=0; $script:failAlways=$true
+        $threw=$false
+        try { Restore-ApiTlsHttpBinding $before 'fixture-output' } catch { $threw=$true }
+        if (!$threw -or $script:writes -ne 1) { throw 'An unverified rollback was reported as successful.' }
+    }
     # Reproduce netsh UTF-8 JSON under a Japanese Windows console (CP932).
     # Implicit native capture can consume the message's closing quote as well.
     $module=Get-Module ApiTls
@@ -97,6 +139,10 @@ try {
         $realJson=& $module { Invoke-ApiTlsNativeUtf8 (Join-Path $env:windir 'System32/netsh.exe') @('http','show','sslcert','ipport=0.0.0.0:444','json=enable') }
         $realParsed=$realJson | ConvertFrom-Json -AsHashtable
         if (!$realParsed.ContainsKey('SslCertificateBindings') -or $realParsed.status -ne 0) { throw 'Real netsh did not return valid JSON under CP932.' }
+        $updateHelp=& $module { Invoke-ApiTlsNativeUtf8 (Join-Path $env:windir 'System32/netsh.exe') @('http','update','sslcert','?') }
+        foreach ($argumentName in @('ipport=','certhash=','appid=','certstorename=')) {
+            if (!$updateHelp.Contains($argumentName)) { throw 'The real Windows update help does not advertise a required argument.' }
+        }
         $errorCommand=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('[Console]::Error.Write("diagnostic"); exit 0'))
         Assert-Throws { & $module { param($exe,$argsForChild) Invoke-ApiTlsNativeUtf8 $exe $argsForChild } (Join-Path $PSHOME 'pwsh.exe') @('-NoProfile','-EncodedCommand',$errorCommand) } 'Native stderr was mixed into a successful JSON response.'
         $failureCommand=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('exit 3'))
