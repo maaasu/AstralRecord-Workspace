@@ -15,7 +15,7 @@ try {
     $env:ProgramData=$temp; $env:LOCALAPPDATA=$temp
     $environmentId=[Guid]::NewGuid().ToString('D'); $serverId=[Guid]::NewGuid().ToString('D')
     $hostId=[Guid]::NewGuid().ToString('D'); $rootId=[Guid]::NewGuid().ToString('D')
-    $path=Join-Path $temp 'server\plugins'
+    $path=Join-Path $temp 'server\Plugins'
     $mock=Join-Path $temp 'mock-cli.ps1'
     @'
 $ErrorActionPreference='Stop'
@@ -28,7 +28,9 @@ if ($command -eq 'gate acquire') {
     $requestFile=$args[[array]::IndexOf($args,'--request-file')+1]
     $request=Get-Content -Raw -Encoding UTF8 -LiteralPath $requestFile | ConvertFrom-Json
     Copy-Item -LiteralPath $requestFile -Destination (Join-Path (Split-Path $log) 'request.json') -Force
-    $lease=@{workflowId=$request.workflowId;reservationId=[Guid]::NewGuid().ToString('D');resourceKeys=$request.resourceKeys;fences=@(@{hostId=$env:MOCK_GATE_HOST;fence=1});status='Prepared';adapterId=$request.adapterId;runReference=$request.runReference}
+    # Match the real ReservationService canonicalization of Windows resource keys.
+    $canonicalKeys=@($request.resourceKeys | ForEach-Object { $_.Trim().ToLowerInvariant() } | Sort-Object -CaseSensitive)
+    $lease=@{workflowId=$request.workflowId;reservationId=[Guid]::NewGuid().ToString('D');resourceKeys=$canonicalKeys;fences=@(@{hostId=$env:MOCK_GATE_HOST;fence=1});status='Prepared';adapterId=$request.adapterId;runReference=$request.runReference}
     $central=Join-Path (Split-Path $log) ("central-$($lease.reservationId).json")
     $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath $leaseFile
     $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath $central
@@ -54,7 +56,7 @@ $global:LASTEXITCODE=0
     $env:MOCK_GATE_HOST=$hostId
     $config=@{controlGate=@{mode='Managed';cliPath=$mock;serverUrl='https://control.example.test';environmentId=$environmentId;bindings=@{
         servers=@(@{runtimeServerId='dev';serverId=$serverId})
-        paths=@(@{path=$path;accessRoot=$temp;hostId=$hostId;managedRootId=$rootId;relativePath='server/plugins'})
+        paths=@(@{path=$path;accessRoot=$temp;hostId=$hostId;managedRootId=$rootId;relativePath='server/Plugins'})
     }}}
     Assert-Throws { Enter-ControlGate $config '01' @('dev') @($path) 'Stopped' }
     $markerRoot=Join-Path $temp 'AstralRecordControl'; New-Item -ItemType Directory -Path $markerRoot | Out-Null
@@ -79,6 +81,8 @@ $global:LASTEXITCODE=0
     if (@($context).Count -ne 1) { throw 'CLI output contaminated the acquired gate context.' }
     if (!$context.Owner -or !(Test-Path -LiteralPath $context.LeaseFile)) { throw 'Gate lease was not acquired.' }
     $request=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $temp 'request.json') | ConvertFrom-Json
+    $directoryKey='directory:'+$hostId+':'+$rootId+':server/plugins'
+    if ($directoryKey -cnotin @($request.resourceKeys) -or $directoryKey -cnotin @($context.ResourceKeys)) { throw 'Mixed-case directory bindings were not canonicalized like Control.' }
     if ($request.adapterId -cne '01' -or $request.mode -cne 'Maintenance' -or $request.serverConditions[0].requiredState -cne 'Stopped' -or
         @($request.resourceKeys).Count -ne 3 -or ('environment:'+$environmentId) -cnotin @($request.resourceKeys) -or
         ('server:'+$serverId) -cnotin @($request.resourceKeys)) { throw 'Reservation did not cover Environment, Server and directory.' }

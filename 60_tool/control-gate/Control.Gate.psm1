@@ -82,7 +82,8 @@ function Resolve-ControlGateResources {
         if (![IO.Path]::IsPathFullyQualified($accessRoot)) { throw 'Managed gate binding requires an absolute accessRoot.' }
         $expected=[IO.Path]::GetFullPath((Join-Path $accessRoot $relative)).TrimEnd('\','/')
         if ($expected -ine $canonical) { throw 'Managed gate path does not match accessRoot plus relativePath.' }
-        $keys.Add('directory:' + $hostId.ToString('D') + ':' + $rootId.ToString('D') + ':' + ($relative -replace '\\','/'))
+        # ReservationService stores Windows directory resource keys in invariant lower case.
+        $keys.Add(('directory:' + $hostId.ToString('D') + ':' + $rootId.ToString('D') + ':' + ($relative -replace '\\','/')).ToLowerInvariant())
     }
     return [pscustomobject]@{ Keys=@($keys | Sort-Object -Unique); Conditions=@($conditions) }
 }

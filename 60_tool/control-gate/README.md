@@ -33,4 +33,6 @@ Control CLIは先に`login --server-url <HTTPS origin>`で対話ログインし�
 
 `Enter-ControlGate`の戻り値は単一のcontextです。CLIの取得結果や検証・解放の確認文は戻り値へ流さず、inspectだけJSONを取得します。予約取得後に呼出し側が失敗した場合も、再取得を繰り返さず、保護leaseと実予約を照合してから復旧します。
 
+Windowsディレクトリの資源キーは、Control側と同じく区切りを`/`、文字をinvariant小文字へ正規化します。実パスの設定は元の表記を保持し、資源キーだけを照合に使用します。
+
 Managedの停止条件はRunnerのsnapshotで確認します。01/02/16と03停止モードはStopped、03稼働中モードと17はRunningが必要です。`-ServersStopped`等は従来の運用者宣言として残し、gateの停止証明には使用しません。RunnerがUnmanaged、Hostがオフライン、Control CLIやbindingが未設定、予約状態が不明なら配布やAPI変更を開始しません。
