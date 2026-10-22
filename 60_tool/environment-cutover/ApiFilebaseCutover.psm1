@@ -79,6 +79,16 @@ function ConvertFrom-CutoverUtcTimestamp($Value) {
         [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal)
 }
 
+function Restore-CutoverFileAcl([string]$Path,[Security.AccessControl.FileSecurity]$OriginalAcl) {
+    $section=[Security.AccessControl.AccessControlSections]::Access
+    $expected=$OriginalAcl.GetSecurityDescriptorSddlForm($section)
+    # Inherited ACEs must be applied at the destination, not in the private staging directory.
+    Set-Acl -LiteralPath $Path -AclObject $OriginalAcl
+    if ((Get-Acl -LiteralPath $Path).GetSecurityDescriptorSddlForm($section) -cne $expected) {
+        throw 'The destination file access rules differ from the original.'
+    }
+}
+
 function New-CutoverPrivateDirectory([string]$Path) {
     Assert-CutoverLocalPath $Path
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
@@ -91,4 +101,4 @@ function New-CutoverPrivateDirectory([string]$Path) {
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
-Export-ModuleMember -Function Assert-CutoverLocalPath,Get-CutoverFileManifest,Assert-CutoverFileManifest,ConvertTo-CutoverApiSettings,Assert-CutoverPoolIdentity,Assert-CutoverAccessRules,ConvertFrom-CutoverUtcTimestamp,New-CutoverPrivateDirectory
+Export-ModuleMember -Function Assert-CutoverLocalPath,Get-CutoverFileManifest,Assert-CutoverFileManifest,ConvertTo-CutoverApiSettings,Assert-CutoverPoolIdentity,Assert-CutoverAccessRules,ConvertFrom-CutoverUtcTimestamp,Restore-CutoverFileAcl,New-CutoverPrivateDirectory

@@ -59,6 +59,7 @@ try {
     $expected=Get-Content -Raw -Encoding UTF8 -LiteralPath $ManifestPath | ConvertFrom-Json -AsHashtable
     Assert-CutoverFileManifest $expected (Get-CutoverFileManifest $newRoot)
     $originalBytes=[IO.File]::ReadAllBytes($settingsPath)
+    $originalAcl=Get-Acl -LiteralPath $settingsPath
     $originalJson=Get-Content -Raw -Encoding UTF8 -LiteralPath $settingsPath
     $updatedJson=ConvertTo-CutoverApiSettings $originalJson
     $settings=$originalJson | ConvertFrom-Json -AsHashtable
@@ -111,9 +112,9 @@ try {
     $hasBom=$originalBytes.Length -ge 3 -and $originalBytes[0] -eq 239 -and $originalBytes[1] -eq 187 -and $originalBytes[2] -eq 191
     $temporary=Join-Path $runDirectory 'appsettings.updated.json'
     [IO.File]::WriteAllText($temporary,$updatedJson,[Text.UTF8Encoding]::new($hasBom))
-    Set-Acl -LiteralPath $temporary -AclObject (Get-Acl -LiteralPath $settingsPath)
     [IO.File]::Replace($temporary,$settingsPath,(Join-Path $runDirectory 'appsettings.replaced.json'))
     $settingsChanged=$true
+    Restore-CutoverFileAcl $settingsPath $originalAcl
     $report.stage='StartingApiPoolAndSeed'
     $startedAt=[DateTimeOffset]::UtcNow
     Assert-ControlGateStep $gate 'Seed'
@@ -126,7 +127,7 @@ try {
     } while ($true)
     if ($health.status -cne 'ok') { throw 'The API health check failed.' }
     $master=Invoke-LocalApi 'master-data/health'
-    $runs=@(Invoke-LocalApi 'master-data/seed-runs?limit=20')
+    $runs=Invoke-LocalApi 'master-data/seed-runs?limit=20'
     $seed=@($runs | Where-Object { $_.seedRunId -eq $master.lastSeedRunId })
     if ($master.status -cne 'ok' -or $master.lastSeedRunStatus -cne 'SUCCEEDED' -or $seed.Count -ne 1 -or $seed[0].sourceRootPath -ine $newRoot -or (ConvertFrom-CutoverUtcTimestamp $seed[0].startedAt) -lt $startedAt.AddSeconds(-5) -or $seed[0].triggerType -cne 'STARTUP') { throw 'The new Filebase startup seed could not be confirmed.' }
     Assert-CutoverFileManifest $expected (Get-CutoverFileManifest $newRoot)
@@ -152,6 +153,7 @@ try {
         try { $null=$pool.Stop(); Wait-Pool 'Stopped'; $poolStopped=$true } catch { $report['poolStopFailed']=$true }
     } elseif ($poolStopped -and $settingsChanged) {
         [IO.File]::WriteAllBytes($settingsPath,$originalBytes)
+        Restore-CutoverFileAcl $settingsPath $originalAcl
     }
     Write-Host 'Cutover stopped. Review the sanitized report and protected backup; keep admission closed.'
     throw [InvalidOperationException]::new('API Filebase cutover failed; see the sanitized stage/errorType report.')

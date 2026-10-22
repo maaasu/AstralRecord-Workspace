@@ -21,6 +21,30 @@ try {
     try { Assert-CutoverFileManifest $expected (Get-CutoverFileManifest (Join-Path $root 'target')) } catch { $rejected=$true }
     if (!$rejected) { throw 'An extra master file was accepted.' }
     if ($IsWindows) {
+        $site=Join-Path $root 'acl-site'; $private=Join-Path $root 'acl-private'
+        New-Item -ItemType Directory -Path $site,$private | Out-Null
+        $currentSid=[Security.Principal.WindowsIdentity]::GetCurrent().User
+        foreach ($directory in @($site,$private)) {
+            $acl=[Security.AccessControl.DirectorySecurity]::new()
+            $acl.SetAccessRuleProtection($true,$false)
+            $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($currentSid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+            if ($directory -ceq $site) {
+                $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new('S-1-5-32-545'),'ReadAndExecute','ContainerInherit,ObjectInherit','None','Allow'))
+            }
+            Set-Acl -LiteralPath $directory -AclObject $acl
+        }
+        $destination=Join-Path $site 'settings.json'; $staged=Join-Path $private 'staged.json'; $backup=Join-Path $private 'original.json'
+        [IO.File]::WriteAllText($destination,'original')
+        [IO.File]::WriteAllText($staged,'updated')
+        $originalAcl=Get-Acl -LiteralPath $destination
+        $access=[Security.AccessControl.AccessControlSections]::Access
+        $originalSddl=$originalAcl.GetSecurityDescriptorSddlForm($access)
+        [IO.File]::Replace($staged,$destination,$backup)
+        if ((Get-Acl -LiteralPath $destination).GetSecurityDescriptorSddlForm($access) -ceq $originalSddl) { throw 'ACL fixture did not reproduce private staging inheritance.' }
+        Restore-CutoverFileAcl $destination $originalAcl
+        Restore-CutoverFileAcl $destination (Get-Acl -LiteralPath $backup)
+        if ((Get-Acl -LiteralPath $destination).GetSecurityDescriptorSddlForm($access) -cne $originalSddl -or
+            [IO.File]::ReadAllText($destination) -cne 'updated' -or [IO.File]::ReadAllText($backup) -cne 'original') { throw 'Original ACL or atomic replacement contents were not retained.' }
         $link=Join-Path $root 'target/link'
         New-Item -ItemType Junction -Path $link -Target (Join-Path $root 'source') | Out-Null
         try {
@@ -67,6 +91,28 @@ try {
     foreach ($value in @('2026-10-20T12:00:02',[DateTime]::new(2026,10,20,12,0,2,[DateTimeKind]::Unspecified),'2026-10-20T21:00:02+09:00')) {
         if ((ConvertFrom-CutoverUtcTimestamp $value) -ne $expectedUtc) { throw 'UTC seed timestamp was interpreted as local time.' }
     }
+    # Invoke-RestMethod emits a JSON array as one pipeline item. Execute the actual
+    # cutover assignment/verification against that response shape, without HTTP/IIS.
+    $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '../Set-ApiFilebaseRoot.ps1'),[ref]$null,[ref]$null)
+    $apiFunction=$ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-LocalApi'},$true)[0]
+    . ([scriptblock]::Create($apiFunction.Extent.Text))
+    function Invoke-RestMethod { param($Uri,$Headers,$TimeoutSec,$MaximumRedirection,[switch]$NoProxy) Write-Output -NoEnumerate $fixtureRuns }
+    $headers=@{}
+    $runsAssignment=$ast.FindAll({param($node) $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -ceq '$runs'},$true)[0]
+    $seedAssignment=$ast.FindAll({param($node) $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -ceq '$seed'},$true)[0]
+    $guard=$ast.FindAll({param($node) $node -is [Management.Automation.Language.IfStatementAst] -and $node.Clauses[0].Item1.Extent.Text.StartsWith('$master.status')},$true)[0]
+    $newRoot='C:\app-01\workspace\40_filebase';$startedAt=[DateTimeOffset]::UtcNow
+    $master=[pscustomobject]@{status='ok';lastSeedRunStatus='SUCCEEDED';lastSeedRunId='current'}
+    $currentSeed=[pscustomobject]@{seedRunId='current';sourceRootPath=$newRoot;triggerType='STARTUP';startedAt=$startedAt.UtcDateTime.ToString('s')}
+    $fixtureRuns=@([pscustomobject]@{seedRunId='old';sourceRootPath='C:\server\FileDatabase\file';triggerType='STARTUP';startedAt='2026-10-20T00:00:00'},$currentSeed)
+    . ([scriptblock]::Create($runsAssignment.Extent.Text))
+    . ([scriptblock]::Create($seedAssignment.Extent.Text))
+    . ([scriptblock]::Create($guard.Extent.Text))
+    if ($seed.Count -ne 1 -or $seed[0].seedRunId -cne 'current') { throw 'The current startup seed was not selected from the JSON array.' }
+    $currentSeed.sourceRootPath='C:\wrong'
+    $rejected=$false
+    try { . ([scriptblock]::Create($guard.Extent.Text)) } catch { $rejected=$true }
+    if (!$rejected) { throw 'A startup seed from the wrong root was accepted.' }
     Write-Host 'PASS: file manifest detects drift, work drafts are excluded, only the intended setting changes, and unexpected roots are rejected.'
 } finally {
     if ([IO.Path]::GetFullPath($root).StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -and [IO.Path]::GetFileName($root).StartsWith('astral-filebase-cutover-')) { Remove-Item -LiteralPath $root -Recurse -Force }

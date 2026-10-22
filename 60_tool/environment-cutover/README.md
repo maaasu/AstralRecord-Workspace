@@ -87,6 +87,10 @@ IISの`manualGroupMembership`は`ProcessModel.GetAttributeValue`から取得し�
 
 起動後の検証失敗ではAPI poolを停止してControl予約を保持します。旧設定を自動で戻して再起動すると旧マスタのseedを再実行するため、DB状態の確認前には行いません。API検証成功後にControl解放の応答・記録だけが失敗した場合は、正常なAPIを維持して`reservationReleaseUncertain`を記録し、Controlの実予約状態を確認します。レポートは共有側の`ControlDeployment\EnvironmentCutover`へ秘密を含めず保存します。
 
+設定ファイルはprivate領域で作成し、置換前に取得したACLを置換後の宛先で再適用してDACLを読み戻します。private領域で継承ACLを適用すると元のAPIディレクトリの継承権限が失われるため、API poolの起動前に宛先で確認します。失敗した実行を復旧するときも、同じ予約・runと保護された置換前ファイルを照合し、旧rootへ戻さずに元ACLを復元して新rootの起動時seedを検証します。
+
+seed履歴のJSON配列は余分な配列へ包まず、各履歴からMasterData healthの`lastSeedRunId`に一致する1件を検証します。古いrootの履歴が残っていても、最新の起動時seedが成功し、新root・起動時刻・triggerに一致すれば確認を通します。
+
 ## 共通APIを使う01/03
 
 01/03のManaged local設定に`controlGate.sharedApiRuntimeServerIds`として`Dev`、`Build`、`Channel1`、`Channel2`を登録します。API/Filebaseを更新するときは全4台の停止を予約で確認し、起動段階で全4台を起動してからDevのパッチを公開します。`devWorkflow.migration.serverIds`は`Dev`のまま維持し、runtime ready確認とパッチ公開対象を増やしません。Channel側はControlのプロセス稼働確認に加えて、運用者がPluginの起動成功を確認します。
