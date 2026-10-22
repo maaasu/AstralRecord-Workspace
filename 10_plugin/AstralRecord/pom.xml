@@ -14,7 +14,6 @@
     <properties>
         <java.version>21</java.version>
         <kotlin.version>2.2.0</kotlin.version>
-        <exposed.version>1.1.1</exposed.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
@@ -216,37 +215,6 @@
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
             <scope>provided</scope>
-        </dependency>
-
-        <!-- Connection pool -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>5.1.0</version>
-        </dependency>
-
-        <!-- Microsoft SQL Server JDBC driver -->
-        <dependency>
-            <groupId>com.microsoft.sqlserver</groupId>
-            <artifactId>mssql-jdbc</artifactId>
-            <version>12.10.2.jre11</version>
-        </dependency>
-
-        <!-- Exposed: Kotlin ORM framework -->
-        <dependency>
-            <groupId>org.jetbrains.exposed</groupId>
-            <artifactId>exposed-core</artifactId>
-            <version>${exposed.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.exposed</groupId>
-            <artifactId>exposed-dao</artifactId>
-            <version>${exposed.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.exposed</groupId>
-            <artifactId>exposed-jdbc</artifactId>
-            <version>${exposed.version}</version>
         </dependency>
 
         <!-- Force a safe version of Apache Commons Lang to avoid CVE-2025-48924 -->

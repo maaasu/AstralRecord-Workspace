@@ -57,29 +57,6 @@ instanceLimits:
     normalLimit: 3
     reservedLimit: 1
 
-# Database Settings
-database:
-  # SQL Server Settings
-  sqlserver:
-    enabled: true
-    ipAddress: "localhost"
-    port: 1433
-    database: "AstralRecord"
-    encrypt: true
-    trustServerCertificate: true
-    user: "sa"
-    password: "your_password"
-
-  # File Database Settings
-  file:
-    rootPath: "filebase"
-
-  # Connection Pool Settings
-  pool:
-    maxPoolSize: 10
-    minIdle: 5
-    connectionTimeout: 30000
-
 # AstralRecord API Settings
 api:
   # APIのベースURL

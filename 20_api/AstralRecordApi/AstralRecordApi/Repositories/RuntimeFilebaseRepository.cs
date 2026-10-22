@@ -90,7 +90,8 @@ public sealed class RuntimeFilebaseRepository(IOptions<FileDatabaseOptions> opti
                 continue;
             }
             if (entry is not FileInfo file
-                || !file.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase)
+                || !file.Extension.Equals(extension, extension == ".json"
+                    ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
                 || file.Name.StartsWith("docs.", StringComparison.OrdinalIgnoreCase)
                 || file.Name.Contains("YAML", StringComparison.Ordinal)
                 || file.Name.EndsWith("定義.yml", StringComparison.Ordinal))

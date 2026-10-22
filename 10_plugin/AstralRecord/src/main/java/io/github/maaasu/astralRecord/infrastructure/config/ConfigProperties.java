@@ -41,24 +41,6 @@ public class ConfigProperties {
     private volatile long playerJoinSkillTreeRetryInitialDelayMillis = DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_INITIAL_DELAY_MILLIS;
     private volatile long playerJoinSkillTreeRetryMaxDelayMillis = DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS;
 
-    // SQL Server 関連
-    private boolean sqlserverEnabled;
-    private String sqlserverIpAddress;
-    private int sqlserverPort;
-    private String sqlserverDatabaseName;
-    private boolean sqlserverEncrypt;
-    private boolean sqlserverTrustServerCertificate;
-    private String sqlserverUser;
-    private String sqlserverPassword;
-
-    // フォルダ型データベース関連
-    private String fileDatabaseRootPath;
-
-    // データベース接続プール関連
-    private int databasePoolMaxPoolSize;
-    private int databasePoolMinIdle;
-    private long databasePoolConnectionTimeout;
-
     // ログ関連
     private boolean loggingAuditEnabled;
     private boolean loggingEntryConsoleLogEntryEnabled;
@@ -193,24 +175,6 @@ public class ConfigProperties {
                         DEFAULT_PLAYER_JOIN_SKILL_TREE_RETRY_MAX_DELAY_MILLIS
                 )
         );
-
-        // SQL Server 関連
-        this.sqlserverEnabled = configManager.getConfig().getBoolean(ConfigKeys.SQLSERVER_ENABLED, true);
-        this.sqlserverIpAddress = configManager.getConfig().getString(ConfigKeys.SQLSERVER_IP_ADDRESS);
-        this.sqlserverPort = configManager.getConfig().getInt(ConfigKeys.SQLSERVER_PORT);
-        this.sqlserverDatabaseName = configManager.getConfig().getString(ConfigKeys.SQLSERVER_DATABASE);
-        this.sqlserverEncrypt = configManager.getConfig().getBoolean(ConfigKeys.SQLSERVER_ENCRYPT);
-        this.sqlserverTrustServerCertificate = configManager.getConfig().getBoolean(ConfigKeys.SQLSERVER_TRUST_SERVER_CERTIFICATE);
-        this.sqlserverUser = configManager.getConfig().getString(ConfigKeys.SQLSERVER_USER);
-        this.sqlserverPassword = configManager.getConfig().getString(ConfigKeys.SQLSERVER_PASSWORD);
-
-        // フォルダ型データベース関連
-        this.fileDatabaseRootPath = configManager.getConfig().getString(ConfigKeys.FILE_DATABASE_ROOT_PATH, "filebase.path");
-
-        // データベース接続プール関連
-        this.databasePoolMaxPoolSize = configManager.getConfig().getInt(ConfigKeys.DATABASE_POOL_MAX_POOL_SIZE);
-        this.databasePoolMinIdle = configManager.getConfig().getInt(ConfigKeys.DATABASE_POOL_MIN_IDLE);
-        this.databasePoolConnectionTimeout = configManager.getConfig().getLong(ConfigKeys.DATABASE_POOL_CONNECTION_TIMEOUT);
 
         // ログ関連
         this.loggingAuditEnabled = configManager.getConfig().getBoolean(ConfigKeys.LOGGING_AUDIT_ENABLED, true);
@@ -415,57 +379,6 @@ public class ConfigProperties {
         return playerJoinSkillTreeRetryMaxDelayMillis;
     }
 
-    // SQL Server 関連のゲッター
-    public boolean isSqlserverEnabled() {
-        return sqlserverEnabled;
-    }
-
-    public String getSqlserverIpAddress() {
-        return sqlserverIpAddress;
-    }
-
-    public int getSqlserverPort() {
-        return sqlserverPort;
-    }
-
-    public String getSqlserverDatabaseName() {
-        return sqlserverDatabaseName;
-    }
-
-    public boolean isSqlserverEncrypt() {
-        return sqlserverEncrypt;
-    }
-
-    public boolean isSqlserverTrustServerCertificate() {
-        return sqlserverTrustServerCertificate;
-    }
-
-    public String getSqlserverUser() {
-        return sqlserverUser;
-    }
-
-    public String getSqlserverPassword() {
-        return sqlserverPassword;
-    }
-
-    // フォルダ型データベース関連のゲッター
-    public String getFileDatabaseRootPath() {
-        return fileDatabaseRootPath;
-    }
-
-    // データベース接続プール関連のゲッター
-    public int getDatabasePoolMaxPoolSize() {
-        return databasePoolMaxPoolSize;
-    }
-
-    public int getDatabasePoolMinIdle() {
-        return databasePoolMinIdle;
-    }
-
-    public long getDatabasePoolConnectionTimeout() {
-        return databasePoolConnectionTimeout;
-    }
-
     // ログ関連のゲッター
     public boolean isLoggingAuditEnabled() {
         return loggingAuditEnabled;
@@ -481,22 +394,6 @@ public class ConfigProperties {
 
     public boolean isLoggingCraftyControllerColors() {
         return loggingCraftyControllerColors;
-    }
-
-    /**
-     * SQL Server接続文字列を構築して返します。
-     */
-    public String buildSqlServerConnectionString() {
-        return String.format(
-                "jdbc:sqlserver://%s:%d;databaseName=%s;encrypt=%s;trustServerCertificate=%s;user=%s;password=%s",
-                sqlserverIpAddress,
-                sqlserverPort,
-                sqlserverDatabaseName,
-                sqlserverEncrypt,
-                sqlserverTrustServerCertificate,
-                sqlserverUser,
-                sqlserverPassword
-        );
     }
 
     // AstralRecord API 関連のゲッター

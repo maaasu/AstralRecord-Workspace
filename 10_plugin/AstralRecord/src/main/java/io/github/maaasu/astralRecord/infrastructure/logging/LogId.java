@@ -35,28 +35,14 @@ public enum LogId {
      * 基盤セットアップに失敗しました
      */
     E_900(900),
+    /** 起動用マスタのAPI取得に失敗しました。 */
+    E_901(901),
+    /** 起動用マスタの解析または機能初期化に失敗しました。 */
+    E_902(902),
     // endregion
 
     // ==================== infrastructure ====================
 
-    // region /util/YamlLoaderUtil.java
-    /**
-     * 指定されたYAMLファイルが見つかりませんでした: %s
-     */
-    W_1000(1000),
-    /**
-     * YAMLファイルの読み込みに失敗しました: %s
-     */
-    E_1000(1000),
-    /**
-     * ディレクトリが存在しないか、読み取り権限がありません: %s
-     */
-    E_1001(1001),
-    /**
-     * YAMLファイルのセーブに失敗しました: %s
-     */
-    E_1002(1002),
-    // endregion
 
     // region /infrastructure/logging/AuditLoggerRegistry.java
     /**
@@ -123,53 +109,6 @@ public enum LogId {
      * イベントハンドラーが無効のため登録をスキップしました: %s
      */
     D_3001(3001),
-    // endregion
-
-    // region /database/sqlserver/SqlServerManager.java
-    /**
-     * SQL Serverへの接続を初期化しています
-     */
-    I_1100(1100),
-    /**
-     * SQL Serverへの接続テストに成功しました
-     */
-    I_1101(1101),
-    /**
-     * SQL Serverが正常に初期化されました
-     */
-    I_1102(1102),
-    /**
-     * SQL Serverが正常にシャットダウンされました
-     */
-    I_1103(1103),
-    I_1104(1104),
-    /**
-     * SQL Serverの接続テストに失敗しました: %s
-     */
-    E_1100(1100),
-    /**
-     * SQL Serverが初期化されていません
-     */
-    E_1101(1101),
-    // endregion
-
-    // region /database/file/yaml/config/YamlDbConfigUtil.kt
-    /**
-     * FileDatabaseのルートディレクトリの取得に失敗しました
-     */
-    W_1400(1400),
-    /**
-     * YAMLデータベースの設定ファイルが見つかりません: %s
-     */
-    W_1401(1401),
-    /**
-     * YAMLデータベースの設定がロードされました
-     */
-    I_1400(1400),
-    /**
-     * YAMLデータベースの設定のパースに失敗しました: %s
-     */
-    E_1400(1400),
     // endregion
 
     // region /infrastructure/command/CommandManager.java

@@ -129,6 +129,8 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 
 ### APIマスタ原稿スナップショット
 
+- 起動時はAPI取得・解析・機能登録の完了まで参加と手動再読込を拒否し、自動再読込監視も初期マスタ公開後に開始する。初期化前の参加イベントを取りこぼさず、初期読込と再読込を並走させない。取得・解析・初期化失敗時はエラーを記録してPluginを停止する。
+
 - `GET /api/master-data/runtime-filebase` の一括応答を既存 parser に渡す間は、準備済みデータを呼出スレッドの thread-local にだけ公開し、共有済み snapshot を変更しない。
 - 正常終了・例外終了にかかわらず、準備処理後は直前の thread-local を復元し、直前値がない場合は除去する。
 - 全対象の取得・解析・検証に成功した場合だけ共有 snapshot を公開する。失敗時に空の成功結果へ置き換えず、共有 cache を変更せずに直前の公開済み snapshot を保つ。

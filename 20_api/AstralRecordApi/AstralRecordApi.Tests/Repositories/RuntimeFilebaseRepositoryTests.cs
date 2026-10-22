@@ -44,6 +44,9 @@ public sealed class RuntimeFilebaseRepositoryTests
         fixture.Write("45.features.shop/other.json", "{}\n");
         fixture.Write("45.features.shop/nested/hidden.yml", "id: hidden\n");
         fixture.Write("99.work/private.yml", "private\n");
+        fixture.Write("45.features.shop/ignored.YML", "id: ignored\n");
+        fixture.Write("35.features.skilltree/nodes/uppercase.JSON", "{}\n");
+        expected.Add("35.features.skilltree/nodes/uppercase.JSON", "{}\n");
 
         var snapshot = await fixture.Repository.GetSnapshotAsync();
 

@@ -435,10 +435,8 @@ import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.api.ApiHealthChecker;
 import io.github.maaasu.astralRecord.infrastructure.api.MasterDataAutoReloadService;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
-import io.github.maaasu.astralRecord.infrastructure.database.file.yaml.config.YamlDbConfig;
-import io.github.maaasu.astralRecord.infrastructure.database.file.yaml.config.YamlDbConfigUtil;
-import io.github.maaasu.astralRecord.infrastructure.database.sqlserver.SqlServerManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLogger;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLoggerRegistry;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -466,6 +464,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class AstralRecord extends JavaPlugin {
+    private volatile boolean startupMastersReady;
 
     private static AstralRecord instance;
 
@@ -780,6 +779,7 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        startupMastersReady = false;
         // AuditLogger を初期化
         AuditLogger.initDefault();
 
@@ -791,6 +791,54 @@ public final class AstralRecord extends JavaPlugin {
             return;
         }
 
+        getServer().getPluginManager().registerEvents(
+                new io.github.maaasu.astralRecord.feature.player.event.MasterDataStartupEventHandler(
+                        () -> startupMastersReady), this);
+
+        // API取得中は機能を開始せず、メインスレッドを通信待ちさせない。
+        getServer().getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                RuntimeFilebaseSnapshot snapshot = RuntimeFilebaseRepository.getInstance().loadSnapshot();
+                getServer().getScheduler().runTask(this, () -> {
+                    if (!isEnabled()) return;
+                    RuntimeFilebaseRepository.getInstance().replaceSnapshot(snapshot);
+                    try {
+                        enableFeatures();
+                    } catch (RuntimeException failure) {
+                        failMasterStartup(failure);
+                    }
+                });
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_901, failure);
+                if (isEnabled()) {
+                    getServer().getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
+                }
+            }
+        });
+    }
+
+    /** 起動時のマスタ解析・公開失敗を記録し、メインスレッドで機能を停止します。 */
+    private void failMasterStartup(RuntimeException failure) {
+        startupMastersReady = false;
+        Logger.log(LogId.E_902, failure);
+        if (isEnabled()) getServer().getScheduler().runTask(this,
+                () -> getServer().getPluginManager().disablePlugin(this));
+    }
+
+    /** 初期マスタの公開完了後にだけ自動再読込監視を開始します。メインスレッド専用です。 */
+    private void startMasterDataAutoReload() {
+        ConfigProperties config = ConfigProperties.getInstance();
+        if (config.isMasterDataAutoReloadEnabled()) {
+            masterDataAutoReloadService = new MasterDataAutoReloadService(
+                this,
+                config.getMasterDataAutoReloadPollIntervalSeconds()
+            );
+            masterDataAutoReloadService.start();
+        }
+    }
+
+    /** APIから起動マスタを取得した後、メインスレッドで機能とイベントを開始します。 */
+    private void enableFeatures() {
         // 3. feature を初期化
         eventManager = new EventManager(this);
         eventManager.registerHandler(
@@ -821,14 +869,7 @@ public final class AstralRecord extends JavaPlugin {
         channelBoostService.start();
         onlinePaidOperationService.start();
 
-        ConfigProperties config = ConfigProperties.getInstance();
-        if (config.isMasterDataAutoReloadEnabled()) {
-            masterDataAutoReloadService = new MasterDataAutoReloadService(
-                this,
-                config.getMasterDataAutoReloadPollIntervalSeconds()
-            );
-            masterDataAutoReloadService.start();
-        }
+
     }
 
     @Override
@@ -1232,14 +1273,11 @@ public final class AstralRecord extends JavaPlugin {
         // コマンドマネージャーをシャットダウン
         CommandManager.getInstance().shutdown();
         getServer().getScheduler().cancelTasks(this);
-        if (ConfigProperties.getInstance().isSqlserverEnabled()) {
-            SqlServerManager.getInstance().shutdown();
-        }
         if (shadeHedgehogStopFailure != null) throw shadeHedgehogStopFailure;
     }
 
     /**
-     * 設定ファイル、データベース接続、基盤サービス初期化をセットアップします。
+     * 設定ファイルとAPI通信に必要な基盤サービスを初期化します。
      *
      * @return 成功した場合は true
      */
@@ -1252,19 +1290,6 @@ public final class AstralRecord extends JavaPlugin {
                 playerCapacityService.applyConfiguredMaximum(getServer());
             }
 
-
-            // DB を初期化
-            if (ConfigProperties.getInstance().isSqlserverEnabled()) {
-                SqlServerManager.getInstance().initialize();
-            } else {
-                Logger.log(LogId.I_1104);
-            }
-
-            // フォルダ型データベースを初期化
-            FileDatabaseManager.getInstance();
-
-            // YamlDB 設定を初期化
-            YamlDbConfigUtil.INSTANCE.reload();
 
             // AstralRecord API 疎通確認を非同期で開始
             ApiHealthChecker.checkAsync();
@@ -2551,20 +2576,30 @@ public final class AstralRecord extends JavaPlugin {
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
-            lootService.loadAll();
-            itemService.loadAll();
-            fishingMasterService.loadAll();
-            petService.reloadMaster();
-            var skillDefinitions = skillService.loadDefinitions();
-            var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
-            playerClassService.loadAll();
-            guideService.loadAll();
-            shopService.warmCaches();
-            getServer().getScheduler().runTask(this, () -> {
-                skillService.replaceDefinitions(skillDefinitions);
-                skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot);
-                inventoryService.reconcileUnavailableItemMasterEntries();
-            });
+            try {
+                lootService.loadAll();
+                itemService.loadAll();
+                fishingMasterService.loadAll();
+                petService.reloadMaster();
+                var skillDefinitions = skillService.loadDefinitions();
+                var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
+                playerClassService.loadAll();
+                guideService.loadAll();
+                shopService.warmCaches();
+                getServer().getScheduler().runTask(this, () -> {
+                    try {
+                        skillService.replaceDefinitions(skillDefinitions);
+                        skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot);
+                        inventoryService.reconcileUnavailableItemMasterEntries();
+                        startupMastersReady = true;
+                        startMasterDataAutoReload();
+                    } catch (RuntimeException failure) {
+                        failMasterStartup(failure);
+                    }
+                });
+            } catch (RuntimeException failure) {
+                failMasterStartup(failure);
+            }
         });
 
         // mob
@@ -3587,9 +3622,9 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * API/filebase 由来のマスターデータ再読込を開始します。
+     * API由来のマスターデータ再読込を開始します。
      *
-     * <p>Repository/file I/O は非同期 task で実行し、Bukkit API と実行時キャッシュへの公開だけを
+     * <p>RepositoryのAPI I/O は非同期 task で実行し、Bukkit API と実行時キャッシュへの公開だけを
      * メインスレッドへ戻します。同時に実行できる再読込は 1 件だけです。</p>
      *
      * 個別の実行時反映失敗は警告ログと完了結果へ記録し、残りの反映を継続します。
@@ -3597,6 +3632,10 @@ public final class AstralRecord extends JavaPlugin {
      * @return 開始結果と、公開件数・反映失敗対象を返す完了 future
      */
     public @org.jetbrains.annotations.NotNull MasterDataReloadStart reloadMasterData() {
+        if (!startupMastersReady) {
+            return new MasterDataReloadStart(false, CompletableFuture.failedFuture(
+                    new IllegalStateException("Startup masters are not ready")));
+        }
         CompletableFuture<MasterDataReloadResult> completion = new CompletableFuture<>();
         while (true) {
             CompletableFuture<MasterDataReloadResult> current = masterDataReloadInFlight.get();
@@ -3647,35 +3686,20 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     private @org.jetbrains.annotations.NotNull MasterDataReloadPlan prepareMasterDataReload() {
-        FileDatabaseManager fileDatabaseManager = FileDatabaseManager.getInstance();
-        FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot = fileDatabaseManager.loadReloadSnapshot();
-        YamlDbConfig yamlDbConfig = YamlDbConfigUtil.INSTANCE.loadSnapshot(
-            fileDatabaseSnapshot.rootDirectory()
-        );
-        if (yamlDbConfig == null) {
-            throw new IllegalStateException("filebase.config");
-        }
-
-        return fileDatabaseManager.withReloadSnapshot(
-            fileDatabaseSnapshot,
-            () -> YamlDbConfigUtil.INSTANCE.withSnapshot(
-                yamlDbConfig,
-                () -> loadMasterDataReloadPlan(fileDatabaseSnapshot, yamlDbConfig)
-            )
-        );
+        RuntimeFilebaseRepository repository = RuntimeFilebaseRepository.getInstance();
+        RuntimeFilebaseSnapshot snapshot = repository.loadSnapshot();
+        return repository.withSnapshot(snapshot, () -> loadMasterDataReloadPlan(snapshot));
     }
 
     /**
      * マスタのスナップショットと公開・有効化処理を準備します。
      * アイテム公開時は、表示用および次回付与用のバフ定義キャッシュも破棄します。
      *
-     * @param fileDatabaseSnapshot 準備中のファイルマスタスナップショット
-     * @param yamlDbConfig 準備中のファイルマスタ設定
+     * @param runtimeFilebaseSnapshot APIから取得した準備中のマスタスナップショット
      * @return メインスレッドで公開する再読込計画
      */
     private @org.jetbrains.annotations.NotNull MasterDataReloadPlan loadMasterDataReloadPlan(
-        @org.jetbrains.annotations.NotNull FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot,
-        @org.jetbrains.annotations.NotNull YamlDbConfig yamlDbConfig
+        @org.jetbrains.annotations.NotNull RuntimeFilebaseSnapshot runtimeFilebaseSnapshot
     ) {
         var lootSnapshot = lootService.loadSnapshot();
         int loaded = lootSnapshot.size();
@@ -3767,8 +3791,7 @@ public final class AstralRecord extends JavaPlugin {
         publications.add(() -> shopService.replaceCacheSnapshot(shopSnapshot));
         return new MasterDataReloadPlan(
             loaded,
-            fileDatabaseSnapshot,
-            yamlDbConfig,
+            runtimeFilebaseSnapshot,
             List.copyOf(publications),
             List.copyOf(activations)
         );
@@ -3818,8 +3841,7 @@ public final class AstralRecord extends JavaPlugin {
                 try {
                     for (Runnable publication : plan.publications()) publication.run();
                     inventoryService.reconcileUnavailableItemMasterEntries();
-                    FileDatabaseManager.getInstance().replaceReloadSnapshot(plan.fileDatabaseSnapshot());
-                    YamlDbConfigUtil.INSTANCE.replaceSnapshot(plan.yamlDbConfig());
+                    RuntimeFilebaseRepository.getInstance().replaceSnapshot(plan.runtimeFilebaseSnapshot());
                 } catch (RuntimeException failure) {
                     playerClassService.replaceSnapshot(previousClasses);
                     skillService.replaceDefinitions(previousSkills);
@@ -3882,8 +3904,7 @@ public final class AstralRecord extends JavaPlugin {
 
     private record MasterDataReloadPlan(
         int loadedCount,
-        @org.jetbrains.annotations.NotNull FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot,
-        @org.jetbrains.annotations.NotNull YamlDbConfig yamlDbConfig,
+        @org.jetbrains.annotations.NotNull RuntimeFilebaseSnapshot runtimeFilebaseSnapshot,
         @org.jetbrains.annotations.NotNull List<Runnable> publications,
         @org.jetbrains.annotations.NotNull List<MasterDataActivation> activations
     ) {
