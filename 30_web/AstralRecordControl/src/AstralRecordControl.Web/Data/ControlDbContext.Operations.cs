@@ -58,6 +58,7 @@ public sealed class ControlWorkflow
     public string ResourceKeysJson { get; set; } = "[]";
     public long Revision { get; set; } = 1;
     public bool RecoveryRequired { get; set; }
+    public DateTimeOffset? HiddenAtUtc { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
 }

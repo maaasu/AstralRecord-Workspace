@@ -118,6 +118,7 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
         if (request.Events == null || request.Events.Length > 128) throw new InventoryFault(400, "InvalidInput");
         foreach (var item in request.Events)
         {
+            var hiddenOperation = false;
             if (item.EventSeq < 1 || item.OccurredAtUtc.Offset != TimeSpan.Zero || item.Body.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(item.EventType) || item.EventType.Length > 128 || System.Text.Encoding.UTF8.GetByteCount(item.Body.GetRawText()) > 8192) throw new InventoryFault(400, "InvalidEvent");
             if (item.EventType is not ("AgentConnected" or "InventoryApplied" or "InventoryApplyFailed" or "Diagnostic" or "OperationChanged" or "ScheduleOccurrenceChanged" or "RuntimeChanged")) throw new InventoryFault(409, "UnsupportedCapability");
             if (item.EventType == "ScheduleOccurrenceChanged")
@@ -135,7 +136,8 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
                 if (item.OperationId is null || item.StatusVersion is null or < 1) throw new InventoryFault(400, "InvalidEvent");
                 var operation = await db.Operations.SingleOrDefaultAsync(x => x.OperationId == item.OperationId && x.HostId == identity.HostId) ?? throw new InventoryFault(409, "OperationConflict");
                 var body = ControlJson.Deserialize<OperationEventBody>(item.Body.GetRawText());
-                if (item.StatusVersion > operation.StatusVersion)
+                hiddenOperation = await db.Workflows.AnyAsync(w => w.WorkflowId == operation.WorkflowId && w.HiddenAtUtc != null);
+                if (!hiddenOperation && item.StatusVersion > operation.StatusVersion)
                 {
                     if (OperationValidation.IsTerminal(operation.Status) && body.Status != operation.Status) throw new InventoryFault(409, "RecoveryRequired");
                     operation.Status = body.Status; operation.StatusVersion = item.StatusVersion.Value; operation.EventSeq = item.EventSeq;
@@ -168,7 +170,7 @@ public sealed class AgentProtocolService(ControlDbContext db, InventoryStore sto
                 var row = db.ScheduleOccurrences.Local.SingleOrDefault(r => r.OperationId == report.OperationId) ?? await db.ScheduleOccurrences.FindAsync(report.OperationId);
                 if (row != null && row.ReportJson == ControlJson.Serialize(report)) row.AckedAgentEventSeq = item.EventSeq;
             }
-            if (notifications != null) await notifications.StageAgentEventAsync(identity.HostId, item);
+            if (notifications != null && !hiddenOperation) await notifications.StageAgentEventAsync(identity.HostId, item);
             host.AckAgentEventSeq = item.EventSeq;
         }
         host.LastSeenAtUtc = clock.GetUtcNow(); return new EventAck(host.AckAgentEventSeq);

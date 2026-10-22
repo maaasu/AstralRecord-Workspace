@@ -19,7 +19,7 @@ public sealed class OperationResultStore(IConfiguration configuration, ControlDb
     {
         var row = await db.Operations.AsNoTracking().SingleOrDefaultAsync(o => o.OperationId == operationId) ?? throw new InventoryFault(404, "NotFound");
         if (row.HostId != hostId) throw new InventoryFault(403, "HostScopeMismatch");
-        if (row.CommandJson.Length == 0 && row.FinishedAtUtc.HasValue) throw new InventoryFault(410, "HistoryExpired");
+        if (row.CommandJson.Length == 0 && row.FinishedAtUtc.HasValue || await db.Workflows.AsNoTracking().AnyAsync(w => w.WorkflowId == row.WorkflowId && w.HiddenAtUtc != null, token)) throw new InventoryFault(410, "HistoryExpired");
         if (!OperationValidation.IsP2Kind(row.Kind) || row.CommandSha256 != commandHash || !ControlProtocol.IsHash(resultHash) || row.Status is OperationStatus.Rejected or OperationStatus.Cancelled or OperationStatus.Expired or OperationStatus.Failed) throw new InventoryFault(409, "OperationConflict");
         Directory.CreateDirectory(Root);
         var temporary = Path.Combine(Root, Guid.NewGuid().ToString("N") + ".part");
@@ -46,6 +46,9 @@ public sealed class OperationResultStore(IConfiguration configuration, ControlDb
             await WriteGate.WaitAsync(token);
             try
             {
+                // Deletion may commit while a result upload is still streaming.
+                if (await db.Workflows.AsNoTracking().AnyAsync(w => w.WorkflowId == row.WorkflowId && w.HiddenAtUtc != null, token)
+                    || await db.Operations.AsNoTracking().AnyAsync(o => o.OperationId == operationId && o.CommandJson == "" && o.FinishedAtUtc != null, token)) throw new InventoryFault(410, "HistoryExpired");
                 var target = ResultPath(operationId);
                 if (File.Exists(target))
                 {
@@ -61,6 +64,7 @@ public sealed class OperationResultStore(IConfiguration configuration, ControlDb
 
     public async Task<string?> ReadAsync(Guid operationId, CancellationToken token = default)
     {
+        if (await db.Operations.AsNoTracking().AnyAsync(o => o.OperationId == operationId && db.Workflows.Any(w => w.WorkflowId == o.WorkflowId && w.HiddenAtUtc != null), token)) throw new InventoryFault(404, "NotFound");
         var path = ResultPath(operationId);
         if (!File.Exists(path)) return null;
         if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 || new FileInfo(path).Length > MaxResultBytes) throw new InventoryFault(409, "RecoveryRequired");

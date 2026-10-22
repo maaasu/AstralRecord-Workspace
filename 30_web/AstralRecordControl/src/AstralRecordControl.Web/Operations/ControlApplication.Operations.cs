@@ -19,13 +19,15 @@ public static partial class ControlApplication
             var row = await operations.CreateAsync(serverId, Read<ServerOperationRequest>(body), Idempotency(http), http.RequestAborted);
             return Results.Accepted($"/api/control/v1/operations/{row.OperationId}", new { row.OperationId, row.Status });
         });
-        owner.MapGet("/operations/{operationId:guid}", async (Guid operationId, Operations.ControlOperationsService operations) =>
+        owner.MapGet("/operations/{operationId:guid}", async (Guid operationId, Operations.ControlOperationsService operations, ControlDbContext db) =>
         {
+            if (await db.Operations.AsNoTracking().AnyAsync(o => o.OperationId == operationId && db.Workflows.Any(w => w.WorkflowId == o.WorkflowId && w.HiddenAtUtc != null))) throw new InventoryFault(404, "NotFound");
             var row = await operations.RefreshAsync(operationId);
             return Results.Ok(new { row.OperationId, row.HostId, row.ServerId, row.WorkflowId, row.Kind, row.Status, row.StatusVersion, row.CreatedAtUtc, row.AcceptedAtUtc, row.StartedAtUtc, row.FinishedAtUtc, row.ErrorCode });
         });
-        owner.MapGet("/operations/{operationId:guid}/result", async (Guid operationId, Operations.ControlOperationsService operations, Operations.OperationResultStore results, HttpContext http) =>
+        owner.MapGet("/operations/{operationId:guid}/result", async (Guid operationId, Operations.ControlOperationsService operations, Operations.OperationResultStore results, ControlDbContext db, HttpContext http) =>
         {
+            if (await db.Operations.AsNoTracking().AnyAsync(o => o.OperationId == operationId && db.Workflows.Any(w => w.WorkflowId == o.WorkflowId && w.HiddenAtUtc != null))) throw new InventoryFault(404, "NotFound");
             var row = await operations.GetAsync(operationId);
             if (!OperationValidation.IsTerminal(row.Status)) throw new InventoryFault(409, "StateConflict");
             var stored = row.Status == OperationStatus.Succeeded ? await results.ReadAsync(operationId, http.RequestAborted) : null;
@@ -39,10 +41,10 @@ public static partial class ControlApplication
             var server = await store.ServerAsync(serverId);
             return Results.Ok((await agents.SnapshotAsync(server.HostId, http.RequestAborted)).Servers.SingleOrDefault(s => s.ServerId == serverId) ?? throw new InventoryFault(409, "StateConflict"));
         });
-        owner.MapGet("/workflows", async (ControlDbContext db) => (await db.Workflows.AsNoTracking().ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(100).ToArray());
+        owner.MapGet("/workflows", async (ControlDbContext db) => (await db.Workflows.AsNoTracking().Where(x => x.HiddenAtUtc == null).ToArrayAsync()).OrderByDescending(x => x.CreatedAtUtc).Take(100).ToArray());
         owner.MapGet("/workflows/{workflowId:guid}", async (Guid workflowId, ControlDbContext db, Operations.ReservationService reservations) =>
         {
-            var workflow = await db.Workflows.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId) ?? throw new InventoryFault(404, "NotFound");
+            var workflow = await db.Workflows.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId && x.HiddenAtUtc == null) ?? throw new InventoryFault(404, "NotFound");
             var lease = await reservations.GetAsync(workflowId);
             var operations = await db.Operations.AsNoTracking().Where(x => x.WorkflowId == workflowId).Select(x => new { x.OperationId, x.Status, x.ErrorCode }).ToArrayAsync();
             return Results.Ok(new { workflow.WorkflowId, workflow.Kind, workflow.Status, workflow.RecoveryRequired, lease, operations });

@@ -115,7 +115,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
     {
         // Operations are written as UTC. SQLite can order their stored TEXT values without EF's DateTimeOffset translation.
         var recent = await db.Operations
-            .FromSqlInterpolated($"SELECT * FROM \"Operations\" WHERE \"ServerId\" = {serverId} ORDER BY \"CreatedAtUtc\" DESC, \"OperationId\" DESC LIMIT 20")
+            .FromSqlInterpolated($"SELECT o.* FROM \"Operations\" AS o JOIN \"Workflows\" AS w ON w.\"WorkflowId\" = o.\"WorkflowId\" WHERE o.\"ServerId\" = {serverId} AND w.\"HiddenAtUtc\" IS NULL ORDER BY o.\"CreatedAtUtc\" DESC, o.\"OperationId\" DESC LIMIT 20")
             .AsNoTracking()
             .Select(x => new ControlOperation { OperationId = x.OperationId, CreatedAtUtc = x.CreatedAtUtc, Kind = x.Kind, Status = x.Status, ErrorCode = x.ErrorCode })
             .ToArrayAsync();

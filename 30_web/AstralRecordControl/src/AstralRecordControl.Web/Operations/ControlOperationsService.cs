@@ -160,6 +160,8 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
     {
         var row = await db.Operations.SingleOrDefaultAsync(x => x.OperationId == operationId) ?? throw new InventoryFault(404, "NotFound");
         if (execution.OperationId != operationId || execution.CommandSha256 != row.CommandSha256) throw new InventoryFault(409, "OperationConflict");
+        // A retired operation remains as an identity/hash tombstone for Agent replay.
+        if (await db.Workflows.AnyAsync(w => w.WorkflowId == row.WorkflowId && w.HiddenAtUtc != null)) return row;
         if (execution.StatusVersion <= row.StatusVersion) return row;
         if (OperationValidation.IsTerminal(row.Status) && execution.Status != row.Status) throw new InventoryFault(409, "RecoveryRequired");
         row.Status = execution.Status; row.StatusVersion = execution.StatusVersion; row.ErrorCode = execution.ErrorCode;
@@ -176,7 +178,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         }
         return row;
         });
-        await FinalizeArtifactAsync(applied);
+        if (applied.CommandJson.Length != 0) await FinalizeArtifactAsync(applied);
         return applied;
     }
 

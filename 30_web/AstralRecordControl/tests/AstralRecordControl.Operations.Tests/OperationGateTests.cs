@@ -350,7 +350,7 @@ public sealed class OperationGateTests
                 await db.Database.OpenConnectionAsync();
                 await using var versionCommand = db.Database.GetDbConnection().CreateCommand();
                 versionCommand.CommandText = "PRAGMA user_version;";
-                Assert.Equal(4L, Convert.ToInt64(await versionCommand.ExecuteScalarAsync()));
+                Assert.Equal(5L, Convert.ToInt64(await versionCommand.ExecuteScalarAsync()));
                 await db.Database.CloseConnectionAsync();
             }
             Assert.True(File.Exists(path + ".before-v2.bak"));

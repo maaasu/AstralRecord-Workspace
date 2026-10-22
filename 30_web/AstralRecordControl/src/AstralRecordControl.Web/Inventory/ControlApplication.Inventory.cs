@@ -28,6 +28,7 @@ public static partial class ControlApplication
         builder.Services.AddScoped<ReservationService>();
         builder.Services.AddScoped<ControlOperationsService>();
         builder.Services.AddScoped<OperationResultStore>();
+        builder.Services.AddScoped<ControlHistoryDeletionService>();
         builder.Services.AddScoped<ControlHistoryRetention>();
         builder.Services.AddHostedService<ControlHistoryRetentionWorker>();
         builder.Services.AddScoped<MetricsStore>();

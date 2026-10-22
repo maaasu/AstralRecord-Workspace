@@ -6,7 +6,7 @@ namespace AstralRecordControl.Web.Data;
 
 public static class ControlDatabase
 {
-    public const int SchemaVersion = 4;
+    public const int SchemaVersion = 5;
     public static async Task InitializeAsync(ControlDbContext db, CancellationToken cancellationToken = default)
     {
         await db.Database.OpenConnectionAsync(cancellationToken);
@@ -79,6 +79,19 @@ public static class ControlDatabase
                 await db.Database.ExecuteSqlRawAsync(MetricsSchema.Sql, cancellationToken);
                 await db.Database.ExecuteSqlRawAsync(NotificationSchema.Sql, cancellationToken);
                 await db.Database.ExecuteSqlRawAsync("PRAGMA user_version=4;", cancellationToken);
+                await migration.CommitAsync(cancellationToken);
+                version = 4;
+            }
+            if (version == 4)
+            {
+                if (connection is not SqliteConnection source) throw new InvalidOperationException("control.db requires SQLite.");
+                await using (var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = source.DataSource + ".before-v5." + Guid.NewGuid().ToString("N") + ".bak", Pooling = false }.ToString()))
+                {
+                    await backup.OpenAsync(cancellationToken);
+                    source.BackupDatabase(backup);
+                }
+                await using var migration = await db.Database.BeginTransactionAsync(cancellationToken);
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Workflows ADD COLUMN HiddenAtUtc TEXT NULL; PRAGMA user_version=5;", cancellationToken);
                 await migration.CommitAsync(cancellationToken);
                 return;
             }

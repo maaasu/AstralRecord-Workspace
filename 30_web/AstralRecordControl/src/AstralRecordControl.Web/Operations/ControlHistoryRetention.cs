@@ -42,9 +42,19 @@ public sealed class ControlHistoryRetention(ControlDbContext db, InventoryStore 
                 if (manual != null) manual.DefinitionJson = "";
             }
             foreach (var request in (await db.ScheduleManualRequests.Where(r => r.RejectionCode != null && r.DefinitionJson != "").ToArrayAsync(token)).Where(r => r.CreatedAtUtc < cutoff)) request.DefinitionJson = "";
-            return ids;
+            ids.AddRange(await db.Operations.Where(o => db.Workflows.Any(w => w.WorkflowId == o.WorkflowId && w.HiddenAtUtc != null)).Select(o => o.OperationId).ToArrayAsync(token));
+            return ids.Distinct().ToList();
         });
-        foreach (var id in retired) await results.RemoveRetiredAsync(id, token);
+        var cleanupPending = false;
+        foreach (var id in retired)
+        {
+            try { await results.RemoveRetiredAsync(id, token); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InventoryFault)
+            {
+                cleanupPending = true;
+            }
+        }
+        if (cleanupPending) throw new InventoryFault(503, "HistoryCleanupPending");
     }
 }
 
@@ -61,7 +71,7 @@ public sealed class ControlHistoryRetentionWorker(IServiceScopeFactory scopes, T
                 await scope.ServiceProvider.GetRequiredService<ControlHistoryRetention>().RunAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-            catch (Exception error) when (error is IOException or DbUpdateException or InventoryFault)
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or DbUpdateException or InventoryFault)
             { logger.LogWarning("Control history retention could not finish ({ErrorCode}).", "RetentionUnavailable"); }
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
