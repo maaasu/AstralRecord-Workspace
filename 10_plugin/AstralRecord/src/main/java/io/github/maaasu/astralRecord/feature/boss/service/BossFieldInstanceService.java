@@ -41,6 +41,7 @@ import java.util.stream.Stream;
  * Creates and destroys per-challenge boss field worlds.
  */
 public final class BossFieldInstanceService {
+    private static final String ASTRAIOS_FIELD_ID = "astral_observatory";
     private static final long FAILED_FIELD_CLEANUP_RETRY_TICKS = 20L;
     private static final long WORLD_LOAD_RETRY_DELAY_TICKS = 1L;
     private static final long WORLD_LOAD_SLOT_RELEASE_DELAY_TICKS = 1L;
@@ -57,8 +58,9 @@ public final class BossFieldInstanceService {
     }
 
     /**
-     * パス検証・ディレクトリ作成・ボスフィールドコピーを非同期で行い、
+     * パス検証・ディレクトリ作成・既存フィールドのコピーを非同期で行い、
      * Bukkit ワールドロードだけメインスレッドへ戻した後、必要チャンクを非同期準備します。
+     * 天文台フィールドだけはコピー元を使わず、チャンク準備後に平坦な会場を構築します。
      *
      * @param challenge challenge runtime state
      * @param worldData field world master data
@@ -77,7 +79,9 @@ public final class BossFieldInstanceService {
             PreparedField prepared = null;
             try {
                 prepared = prepareField(challenge, worldData, worldContainer);
-                copyDirectory(prepared.source(), prepared.target(), pending.cancelled());
+                if (!isGeneratedField(worldData)) {
+                    copyDirectory(prepared.source(), prepared.target(), pending.cancelled());
+                }
             } catch (Throwable ex) {
                 if (prepared != null) {
                     completeAfterPreparedTargetCleanup(prepared.target(), ex, result);
@@ -217,6 +221,10 @@ public final class BossFieldInstanceService {
             throw new IOException("Boss field target already exists: " + target);
         }
 
+        if (isGeneratedField(worldData)) {
+            // 専用 generator が Bukkit.createWorld 時にフォルダを作成する。
+            return new PreparedField(target, target);
+        }
         Path source = resolvePath(worldData.baseWorldPath(), worldContainer);
         if (!Files.isDirectory(source) || !Files.isRegularFile(source.resolve("level.dat"))) {
             Logger.log(LogId.W_6501, worldData.id(), source.toString());
@@ -278,10 +286,13 @@ public final class BossFieldInstanceService {
             releaseWorldLoadSlotNextTick();
         }
 
-        List<Location> requiredLocations = List.of(
+        List<Location> requiredLocations = new ArrayList<>(List.of(
                 challenge.config().playerSpawnLocation().toLocation(field.world()),
                 challenge.config().bossSpawnLocation().toLocation(field.world())
-        );
+        ));
+        if (isGeneratedField(worldData)) {
+            requiredLocations.addAll(AstraiosFieldGenerator.requiredChunkCenters(field.world()));
+        }
         prepareRequiredChunksAsync(
                 challenge.challengeId(),
                 field.world(),
@@ -290,8 +301,21 @@ public final class BossFieldInstanceService {
         ).whenComplete((ignored, throwable) -> {
             Runnable completion = () -> {
                 if (throwable == null && !pending.cancelled().get() && plugin.isEnabled()) {
-                    result.complete(field);
-                    return;
+                    try {
+                        if (isGeneratedField(worldData)) {
+                            AstraiosFieldGenerator.build(field.world());
+                            // 開始時にチャンクチケットを解除しても、再ロード時に床を失わないよう保存する。
+                            field.world().save();
+                        }
+                        if (!pending.cancelled().get() && plugin.isEnabled()) {
+                            result.complete(field);
+                            return;
+                        }
+                    } catch (Throwable generationFailure) {
+                        releaseStartupChunkTickets(challenge.challengeId());
+                        cleanupFailedPreparedFieldUntilDone(field, generationFailure, result);
+                        return;
+                    }
                 }
 
                 Throwable failure = throwable == null
@@ -363,12 +387,20 @@ public final class BossFieldInstanceService {
         try {
             worldService.prepareWorldLoad(worldName, worldData);
             pendingRegistered = true;
-            world = Bukkit.createWorld(new WorldCreator(worldName));
+            WorldCreator creator = new WorldCreator(worldName);
+            if (isGeneratedField(worldData)) {
+                creator.generator(new AstraiosFieldGenerator()).generateStructures(false);
+            }
+            world = Bukkit.createWorld(creator);
             if (world == null) {
                 throw new IOException("Bukkit could not load boss field world: " + target);
             }
             worldService.registerRuntimeWorld(world, worldData);
             worldService.applyRpgGameRules(world);
+            if (isGeneratedField(worldData)) {
+                world.setAutoSave(false);
+                world.setSpawnLocation(0, 64, -18);
+            }
             return new BossFieldInstance(challenge.challengeId(), world.getName(), target, world);
         } catch (Throwable ex) {
             if (world != null) {
@@ -796,6 +828,14 @@ public final class BossFieldInstanceService {
     }
 
     private record PreparedField(@NotNull Path source, @NotNull Path target) {
+    }
+
+    /**
+     * @param worldData 判定対象のワールドマスタ
+     * @return コピー元を持たずに生成する天文台フィールドなら true
+     */
+    private static boolean isGeneratedField(@NotNull WorldMasterData worldData) {
+        return ASTRAIOS_FIELD_ID.equals(worldData.id());
     }
 
     private record PendingFieldCreation(@NotNull AtomicBoolean cancelled) {
