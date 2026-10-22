@@ -1,4 +1,6 @@
 using System.Net.Http.Headers;
+using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using AstralRecordControl.Agent.Transfers;
@@ -37,7 +39,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
                 logger.LogCritical("Agent recovery is required. Automatic connection has stopped ({ErrorCode}).", fault.Code);
                 await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
             }
-            catch (Exception exception) when (exception is IOException or HttpRequestException or HubException or OperationCanceledException or AgentFault or JsonException or ArgumentException or InvalidOperationException)
+            catch (Exception exception) when (exception is IOException or HttpRequestException or WebSocketException or SocketException or HubException or OperationCanceledException or AgentFault or JsonException or ArgumentException or InvalidOperationException)
             {
                 // Never log remote exception text, Authorization headers, token values or snapshot arguments.
                 logger.LogWarning("Agent connection interrupted; retrying ({ErrorCode}).", exception is AgentFault fault ? fault.Code : ErrorCode.HostOffline);

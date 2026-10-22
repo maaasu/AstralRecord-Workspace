@@ -7,6 +7,7 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 - 単一ownerのパスワード認証とログイン保持、明示logout・全セッション失効、停止中のローカルCLIによるowner作成/リセット。
 - PC・Server・Environment台帳、初回CLIログインからのAgent自動登録、希望設定版と適用版の区別。手動トークン操作は復旧用の診断内に配置。
 - 各PCからHTTPS/WSSで接続するAgent。Hello/Reconcile/heartbeat、再接続、設定snapshotのhash検証と同期、イベントACK、storeId/巻戻り検出。
+- WebSocket/socket通信の切断も再接続待ちへ移り、通信例外だけでAgentサービスを終了しません。Runnerのプロセス・予約holdは維持します。storeの巻戻り等で`RecoveryRequired`となった場合は自動再接続を停止します。
 - 同一PCのRunnerへのACL付きnamed pipe。設定の原子的適用、snapshot、永続hold/fence。
 
 - Java/Velocityプロセスの起動・通常停止・再起動・理由付きKill・1行コンソール、Sessionと実行台帳、標準出力/標準エラーの永続ログとcursor取得。Velocityは既存のJava実行ファイルを利用でき、停止の標準値は`shutdown`。旧定義の`stop`も実行時に`shutdown`へ補正する。
