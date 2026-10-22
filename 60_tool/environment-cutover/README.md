@@ -6,11 +6,19 @@
 
 2026-10-20の実管理画面で、共有Environment `astralrecord-shared`（`f97e8617-b7df-4980-adbd-36918949bf79`）を登録しました。Devを対応付け、ユーザーの登録許可を受けてChannel1/Channel2/Buildも実配置へ登録しました。Dev・Build・Channel1・Channel2・Lobby・Proxyの6件すべてで設定適用を確認済みです。23:08 JSTにAPP-01/DEV-01/MC-01の接続中と、APP-01の希望/適用版1/1、root報告を確認しました。
 
-2026-10-22にAPP-01／MC-01のRunner・Agentを起動して、3台の接続を管理画面で確認しました。Dev・Build・Channel1・Channel2はStopped、Sessionなしです。DEV-01の追加workspace rootは同日17:23 JSTに適用成功を確認済みです。以下の値と実行記録は確認時点の結果として扱い、運用時には現在状態を再確認します。
+2026-10-22にAPP-01／MC-01のRunner・Agentを起動して、3台の接続を管理画面で確認しました。切替前にはDev・Build・Channel1・Channel2のStoppedとSessionなしを確認しています。DEV-01の追加workspace rootは同日17:23 JSTに適用成功を確認済みです。以下の値と実行記録は確認時点の結果として扱い、運用時には現在状態を再確認します。
 
 同日17:57 JSTにAPI証明書の切替が成功しました。`APP-01-api-tls-20261022T085715579Z-d6b90d9e88e9498c989afe7363208ebb.json`は`BoundAndVerified`、新leafは`925424304CBDDF2FB4D40FCB00D0BF708DC437B3`です。DEV-01は17:59、MC-01は17:58 JSTに`TrustVerified`となり、Windowsと登録済みJavaでDNS名・IP双方の通常TLS検証が成功しています。APP-01の初回markerとTools更新、CLIログインも完了しました。19:12 JSTの再確認ではFilebase全2,185件、IIS権限、認証付きTLSの事前確認が成功しています。
 
-同日19:12 JSTのApplyは、予約取得後のcontextにCLI標準出力が混入する不具合で、API停止前に失敗しました。API設定は旧rootのままです。共通gateはinspect以外のCLI標準出力を戻り値から除外し、新規取得・継承・再開・解放の回帰検査を追加しました。実行済みの予約は保護leaseとControlを照合し、設定原本との一致と旧APIの正常稼働を確認してから失敗として解放し、新しい事前確認に基づいて切替を行います。切替完了までは入場・自動更新の停止を続けます。
+同日19:12 JST以降の失敗を受け、共通gateへのCLI標準出力混入とディレクトリ資源キーの大文字小文字照合を修正しました。また、Agentのheartbeatで発生したWebSocket切断例外がサービスを終了させていたため、WebSocketExceptionとSocketExceptionを既存の再接続処理へ追加しました。21:07〜21:08 JSTに3台のAgentだけを更新し、Runner epoch・Session・holdを維持したまま再接続を確認しました。Control全263テストとAgentの配布ビルドが成功しています。
+
+同日21:46 JSTにFilebase切替が完了しました。`APP-01-filebase-20261022T124624222Z.json`は`success=true`、`stage=Verified`、`aclRestored=true`、`apiVerified=true`です。APIの参照先は`C:\app-01\workspace\40_filebase`、全2,185件のmanifestが一致し、通常TLS・認証付きAPI health・MasterData healthが正常でした。起動時seed `14e0101b-fea0-426b-9cef-9148020a6df6`は新rootからの`STARTUP`で`SUCCEEDED`となり、切替予約も解放済みです。
+
+途中のIIS起動失敗はprivate領域からの設定置換で継承ACLが変化したことが原因でした。同じ予約内で保護バックアップの元ACLを宛先へ復元し、設定内容を保持して回復しました。seed履歴のJSON配列を二重に包む誤判定も修正済みです。旧rootへ戻す再seedは行っていません。4サーバーのPlugin設定も、元ACLを維持して`api.ssl.verifyEnabled=true`へ変更し、専用予約の解放まで確認しています。
+
+21:59 JSTのDev起動確認では、配布済みPlugin `18.33.0`が旧ローカルroot `C:\server\FileDatabase\file`のSkillTree nodeを直接読み、ディレクトリ不足で初期化に失敗しました。現在のリポジトリ版はAPIの`runtime-filebase`取得へ移行済みですが、配布済みAPIは同エンドポイントに404を返します。今回のAPI設定切替と、Plugin/API本体の配布完了は区別します。ユーザーは「今回は設定切替まで。配布は後で行う」を選択しました。DevはControlから正常停止してSessionなしへ戻し、22:02 JSTにAPP-01・DEV-01・MC-01の接続中を再確認しました。Build・Channel1・Channel2の起動、パッチ公開、プレイヤー一括更新は行っていません。
+
+再開時は入場と他の更新を止めたまま、現行のPlugin/APIを通常のManaged配布手順で揃え、Devの新しいruntime readyとパッチ公開を確認してからChannelへ展開します。旧PluginのためのFilebaseコピーやSMBへの暫定参照変更は行いません。今回の完了報告だけで入場再開可能とは判断しません。
 
 | 項目 | 実台帳で確認した値 |
 |---|---|
