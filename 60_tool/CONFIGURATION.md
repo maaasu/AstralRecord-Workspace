@@ -90,6 +90,23 @@ Toolの管理登録は初回だけです。通常更新で管理者によるハ�
 
 ## 配置しない確認
 
+### 2026-10-22のManaged設定見直し
+
+DEV-01の`deploy-debug.local.json`を作成し、01/02/03/10に共通のManaged設定を用意しました。16/17のlocalにも同じControl originと共有Environmentを設定しました。localはGit管理外なので、別PCや再作成したチェックアウトへ自動では引き継がれません。
+
+- 01/03は共有APIを使う`Dev`/`Build`/`Channel1`/`Channel2`を対象にし、02はDevだけを対象にします。Plugin、API、Web、Filebaseの配布元・先を管理rootに対応付けました。
+- 16は既存のJAR配布3件を維持し、通常Workflowに必要な`migration.enabled=true`へ変更しました。これは起動後のパッチ公開用で、全員分の一括更新ではありません。JARだけを配る構成なので`workflow.seedMasterData=false`とし、共有マスタの再seedは行いません。Filebase配布を追加する場合はseedの要否を見直してください。未設定のnetwork配布先は空のままです。
+- 17はbindingを準備しましたが、明示的な一括更新・復旧用なので`migration.enabled=false`を維持しました。必要なときに対象とPreview結果を確認して使用します。
+- 10はManagedでも`-PreflightOnly`専用です。実配布には01を使用します。
+
+同日の実管理画面ではAPP-01とDEV-01が接続中、MC-01は未接続（最終報告2026-10-21 17:11 JST）でした。Server GUID、共有Environment、APP/MC/DEVの既存rootは切替記録と一致しています。一方、DEV-01の追加root `f9c06531-2e7e-40f2-b03a-ee2ee9ebe5aa`（`C:\AstralRecord-Workspace`）は未報告でした。01/03のFilebase配布元と16のnetwork配布元のbindingには、この追加rootを使用しています。
+
+実行再開には、Dev停止・Session/holdなしを確認後、管理者として`environment-cutover/Update-ControlCutoverHost.ps1 -Phase ConfigureResources`でDEV追加rootを導入し、管理画面のroot報告を確認します。MC-01の接続復旧も必要です。DEV-01の通常Windowsユーザーでは、正式インストール済みの`%LOCALAPPDATA%\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe`でログイン再利用の成功を確認し、3設定の`cliPath`をこの実体に揃えました。ブラウザのログインはCLIのログインと別です。管理markerを削除したりLegacyへ戻したりして解消しないでください。
+
+通常フォルダーへlocal3件を反映した後、管理markerとのTool root一致とManaged判定、01/02/03のBATの`-Plan`、16のBATのPlan、10のBATの`-PreflightOnly`は成功しました。実配布や予約取得は行っていません。同日のAPIへの通常TLS接続では証明書名不一致と信頼チェーンエラーが継続し、配置済み設定の`FileDatabase:RootPath`も旧`C:\server\FileDatabase\file`でした。01/03の再開には[切替手順](environment-cutover/README.md)に従った証明書とFilebase参照先の切替も必要です。
+
+設定のbinding整合とPlanの成功は、実台帳へのroot登録・接続状態・停止状態・APIのTLS/Filebase切替完了を保証しません。下記の検査と[切替手順](environment-cutover/README.md)を区別します。
+
 ```powershell
 # APIへの要求や配置を行わない計画
 .\60_tool\01-deploy-debug.bat -Plan
