@@ -111,8 +111,10 @@ test('page script is reloaded after old page cleanup, while unknown scripts neve
     const b = browser(); let cleaned = 0; b.win.addEventListener('control:before-page-change', () => cleaned++);
     b.respond = () => b.response('transfers', '/Transfers', { scripts: ['/js/p2-control.js?v=1'] });
     b.click('/Transfers'); await settle(); assert.equal(cleaned, 1); assert.equal(b.scriptLoads, 1);
+    b.respond = () => b.response('history', '/Workflows', { scripts: ['/js/history-selection.js?v=1'] });
+    b.click('/Workflows'); await settle(); assert.equal(b.main.label, 'history'); assert.equal(b.scriptLoads, 2);
     b.respond = () => b.response('invalid', '/Servers', { scripts: ['https://other.example/code.js'] });
-    b.click('/Servers'); await settle(); assert.equal(b.main.label, 'transfers'); assert.equal(b.scriptLoads, 1);
+    b.click('/Servers'); await settle(); assert.equal(b.main.label, 'history'); assert.equal(b.scriptLoads, 2);
 });
 
 test('busy page may prevent navigation, modified clicks and auth links remain native', async () => {

@@ -9,7 +9,7 @@
     if (typeof document === "undefined" || document.getElementById("main")?.dataset.controlPage !== "true") return;
 
     const status = document.getElementById("navigation-status");
-    const scriptPaths = new Set(["/js/server-logs.js", "/js/server-metrics.js", "/js/p2-control.js"]);
+    const scriptPaths = new Set(["/js/server-logs.js", "/js/server-metrics.js", "/js/p2-control.js", "/js/history-selection.js"]);
     const shellVersion = doc => [...doc.querySelectorAll('head link[rel="stylesheet"], head script[src]')].map(el => el.getAttribute("href") || el.getAttribute("src")).join("\n");
     const version = shellVersion(document);
     let currentUrl = location.href, request = null, sequence = 0, submitting = false, installing = false;

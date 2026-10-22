@@ -12,8 +12,9 @@ namespace AstralRecordControl.Web.Pages.Hosts;
 
 [Authorize(Policy = "OwnerOnly")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class IndexModel(ControlDbContext db, InventoryStore store, AgentCredentialService credentials, AgentConnectionRegistry connections, InventoryNotifier notifier) : PageModel
+public sealed class IndexModel(ControlDbContext db, InventoryStore store, AgentCredentialService credentials, AgentConnectionRegistry connections, InventoryNotifier notifier, TimeProvider clock) : PageModel
 {
+    public Dictionary<Guid, int> ServerCounts { get; private set; } = [];
     public InventoryHost[] Hosts { get; private set; } = [];
     public InventoryEnvironment[] Environments { get; private set; } = [];
     public CredentialView[] Credentials { get; private set; } = [];
@@ -55,6 +56,10 @@ public sealed class IndexModel(ControlDbContext db, InventoryStore store, AgentC
     private async Task LoadAsync()
     {
         Hosts = await db.Hosts.AsNoTracking().OrderBy(x => x.HostKey).ToArrayAsync();
+        foreach (var host in Hosts)
+            if (host.Enabled && host.ConnectionState is HostConnectionState.Online or HostConnectionState.Reconciling &&
+                (!host.LastSeenAtUtc.HasValue || clock.GetUtcNow() - host.LastSeenAtUtc > TimeSpan.FromSeconds(30))) host.ConnectionState = HostConnectionState.Offline;
+        ServerCounts = await db.Servers.AsNoTracking().GroupBy(x => x.HostId).ToDictionaryAsync(x => x.Key, x => x.Count());
         Environments = await db.Environments.AsNoTracking().OrderBy(x => x.EnvironmentKey).ToArrayAsync();
         Credentials = await db.AgentCredentials.AsNoTracking().Select(x => new CredentialView(x.HostId, x.CredentialId, x.IssuedAtUtc, x.RevokedAtUtc)).ToArrayAsync();
     }

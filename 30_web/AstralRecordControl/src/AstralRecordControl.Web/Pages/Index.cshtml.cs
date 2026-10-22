@@ -15,6 +15,8 @@ public sealed class IndexModel(ControlDbContext db, TimeProvider clock) : PageMo
     public InventoryHost[] Hosts { get; private set; } = [];
     public InventoryServer[] Servers { get; private set; } = [];
     public DateTimeOffset ObservedAtUtc { get; private set; }
+    public int PendingWorkflows { get; private set; }
+    public int RecoveryWorkflows { get; private set; }
     public async Task OnGetAsync()
     {
         ObservedAtUtc = clock.GetUtcNow();
@@ -22,5 +24,7 @@ public sealed class IndexModel(ControlDbContext db, TimeProvider clock) : PageMo
         foreach (var host in Hosts)
             if (host.Enabled && host.ConnectionState is HostConnectionState.Online or HostConnectionState.Reconciling && (host.LastSeenAtUtc == null || ObservedAtUtc - host.LastSeenAtUtc > TimeSpan.FromSeconds(30))) host.ConnectionState = HostConnectionState.Offline;
         Servers = await db.Servers.AsNoTracking().OrderBy(x => x.ServerKey).ToArrayAsync();
+        PendingWorkflows = await db.Workflows.CountAsync(x => x.Status == WorkflowStatus.Planned || x.Status == WorkflowStatus.Reserving || x.Status == WorkflowStatus.Running || x.Status == WorkflowStatus.WaitingForStartup);
+        RecoveryWorkflows = await db.Workflows.CountAsync(x => x.RecoveryRequired || x.Status == WorkflowStatus.RecoveryRequired);
     }
 }

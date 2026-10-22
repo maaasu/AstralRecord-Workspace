@@ -182,6 +182,7 @@ public sealed partial class LiveTransportTests
         public Uri Origin { get; }
         public CookieContainer OwnerCookies { get; } = new();
         public HostResources Resources { get; }
+        public IServiceProvider Services => app.Services;
         private LiveFixture(WebApplication app, string root, Uri origin, string thumbprint, HostResources resources)
         { this.app = app; Root = root; Origin = origin; this.thumbprint = thumbprint; Resources = resources; }
 

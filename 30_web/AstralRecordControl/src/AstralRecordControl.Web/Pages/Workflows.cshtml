@@ -1,51 +1,105 @@
 @page "/Workflows"
 @model WorkflowsModel
+@using AstralRecordControl.Web.Pages.Shared
 @{ ViewData["Title"] = "運転・保守履歴"; }
-<h1>運転・保守履歴</h1>
-<p>復旧操作の前に対象 Host の Runner 状態と実プロセスを点検してください。</p>
-@if (Model.Error != null) { <p role="alert">@Model.Error</p> }
-@foreach (var item in Model.Recent)
+
+<div class="page-heading"><div><h1>運転・保守履歴</h1><p>処理の結果や予約の詳細を確認し、完了した履歴を整理します。</p></div><a class="button-link" asp-page="Workflows" asp-route-historyPage="@Model.HistoryPage">一覧を更新</a></div>
+@if (Model.Error != null) { <p class="status-note is-warning" role="alert">@Model.Error</p> }
+@if (Model.Notice != null) { <p class="status-note" role="status">@Model.Notice</p> }
+
+@if (Model.DeletionCandidates.Length > 0)
 {
-    <section>
-        <h2><a asp-page="Workflows" asp-route-workflowId="@item.Workflow.WorkflowId">@item.Workflow.WorkflowId</a></h2>
-        <p>種別: @item.Workflow.Kind / 状態: @item.Workflow.Status / 作成: @item.Workflow.CreatedAtUtc.ToLocalTime()</p>
-        @if (item.Lease != null)
-        {
-            <p>予約: @item.Lease.ReservationId / @item.Lease.Status / Adapter: @(item.Lease.AdapterId ?? "なし") / run: @(item.Lease.RunReference ?? "なし")</p>
-            <p>Host fence: @string.Join(", ", item.Fences.Select(x => $"{x.HostId:D}:{x.Fence}"))</p>
-        }
-        @foreach (var child in item.Operations)
-        {
-            <p>操作: @child.Kind / @child.Status / @child.OperationId / エラー: @(child.ErrorCode ?? "なし")
-                @if (child.ServerId.HasValue) { <a asp-page="/Servers/Operations" asp-route-serverId="@child.ServerId">Server 操作</a> }
-            </p>
-        }
-        @if (item.Lease?.Status == ReservationStatus.RecoveryRequired)
-        {
-            <form method="post" asp-page-handler="Recover">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="workflowId" value="@item.Workflow.WorkflowId" />
-                <label>点検理由 <input name="reason" required maxlength="1024" /></label>
-                @if (item.Workflow.Kind == "Maintenance" && !item.Lease.PreparedOnce)
-                {
-                    <button type="submit" name="action" value="Resume">同じ run を再開</button>
-                    <button type="submit" name="action" value="AbortAfterInspection">点検後に中断</button>
-                }
-                else if (item.Workflow.Kind == "SingleOperation")
-                {
-                    @if (item.Operations.Any(x => x.Kind is OperationKind.RestoreBackup or OperationKind.CreateBackup && x.Status == OperationStatus.NeedsAttention))
-                    {
-                        <p>バックアップ・復元処理の中断です。同じ操作と保存済みデータを照合して再開します。起動禁止と退避コピーは完了まで保持します。</p>
-                        <button type="submit" name="action" value="Resume">同じ処理を再開</button>
-                    }
-                    else { <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button> }
-                    @if (item.Operations.Any(x => x.Kind is OperationKind.Stop or OperationKind.Restart && x.Status == OperationStatus.NeedsAttention))
-                    {
-                        <label><input type="checkbox" name="killConfirmed" value="true" /> 対象 Session と実プロセスを確認した</label>
-                        <button type="submit" name="action" value="KillAfterInspection">確認後 Kill</button>
-                    }
-                }
-            </form>
-        }
+    <section class="page-section deletion-confirmation" aria-labelledby="delete-title">
+        <h2 id="delete-title">@Model.DeletionCandidates.Length 件の履歴を削除します</h2>
+        <p>次の履歴の本文と、管理Webに保存した操作結果ファイルを削除します。元に戻せません。</p>
+        <ul>@foreach (var item in Model.DeletionCandidates) { <li>@Model.Title(item) · @Model.Target(item) · @ControlDisplay.LastSeen(item.Workflow.CreatedAtUtc)</li> }</ul>
+        <p class="secondary-text">ゲームのコンソールログ、バックアップ本体、実行PCの復旧ファイルはこの操作の対象外です。再送の照合に必要な識別子と状態は保持します。</p>
+        <form method="post" asp-page-handler="Delete">
+            <input type="hidden" name="historyPage" value="@Model.HistoryPage" />
+            @foreach (var item in Model.DeletionCandidates) { <input type="hidden" name="workflowIds" value="@item.Workflow.WorkflowId" /> }
+            <label><input type="checkbox" name="confirmDelete" value="true" required />対象の履歴と付随ファイルを削除することを確認しました</label>
+            <div class="table-actions"><button class="button-danger" type="submit">@Model.DeletionCandidates.Length 件を削除</button><a class="button-link" asp-page="Workflows" asp-route-historyPage="@Model.HistoryPage">キャンセル</a></div>
+        </form>
     </section>
 }
+
+@if (Model.Selected is { } selected)
+{
+    <section class="page-section workflow-detail" aria-labelledby="workflow-detail-title">
+        <div class="section-heading"><div><span class="eyebrow">HISTORY DETAIL</span><h2 id="workflow-detail-title">@Model.Title(selected) の詳細</h2><p>@Model.Target(selected)</p></div><a class="button-link" asp-page="Workflows" asp-route-historyPage="@Model.HistoryPage">詳細を閉じる</a></div>
+        <span class="state-badge @ControlDisplay.WorkflowStateClass(selected.Workflow.Status)">@ControlDisplay.WorkflowState(selected.Workflow.Status)</span>
+        <dl class="history-facts"><dt>作成</dt><dd>@ControlDisplay.LastSeen(selected.Workflow.CreatedAtUtc)</dd><dt>最終更新</dt><dd>@ControlDisplay.LastSeen(selected.Workflow.UpdatedAtUtc)</dd></dl>
+        @foreach (var child in selected.Operations)
+        {
+            <article class="history-operation">
+                <div class="section-heading"><h3>@ControlDisplay.OperationName(child.Kind) · @ControlDisplay.OperationState(child.Status)</h3>@if (child.ServerId.HasValue) { <a class="button-link" asp-page="/Servers/Operations" asp-route-serverId="@child.ServerId">サーバーを開く</a> }</div>
+                <dl class="history-facts"><dt>受付 / 開始 / 終了</dt><dd>@ControlDisplay.LastSeen(child.AcceptedAtUtc) / @ControlDisplay.LastSeen(child.StartedAtUtc) / @ControlDisplay.LastSeen(child.FinishedAtUtc)</dd><dt>エラー</dt><dd>@(child.ErrorCode ?? "なし")</dd></dl>
+                @if (!string.IsNullOrEmpty(child.ResultJson)) { <details class="compact-details" open><summary>操作結果</summary><pre>@child.ResultJson</pre></details> }
+                else { <p class="secondary-text">操作結果の本文はありません。保存期間を過ぎた本文は削除されます。</p> }
+                @if (child.Status == OperationStatus.Succeeded && child.ResultJson?.Contains("\"resultStored\":true", StringComparison.Ordinal) == true) { <a class="button-link" href="/api/control/v1/operations/@child.OperationId/result" download="operation-@(child.OperationId).json">結果ファイルを保存</a> }
+                <details class="compact-details"><summary>操作の識別情報</summary><code>@child.OperationId</code></details>
+            </article>
+        }
+        <details class="compact-details"><summary>予約・診断情報</summary>
+            <dl class="history-facts"><dt>履歴ID</dt><dd><code>@selected.Workflow.WorkflowId</code></dd></dl>
+            @if (selected.Lease is { } lease)
+            {
+                <dl class="history-facts"><dt>予約状態</dt><dd>@lease.Status</dd><dt>予約ID</dt><dd><code>@lease.ReservationId</code></dd><dt>処理手順</dt><dd>@(lease.LastStepKey ?? "なし")</dd><dt>配布処理 / 実行記録</dt><dd>@(lease.AdapterId ?? "なし") / @(lease.RunReference ?? "なし")</dd></dl>
+                <pre>@lease.ResourceKeysJson</pre><p>@string.Join(", ", selected.Fences.Select(x => $"{x.HostId:D}:{x.Fence}"))</p>
+            }
+        </details>
+        @if (selected.Lease?.Status == ReservationStatus.RecoveryRequired)
+        {
+            <div class="recovery-panel"><h3>点検・復旧</h3><p>復旧操作の前に、対象PCのRunner状態と実プロセスを点検してください。</p>
+            <form method="post" asp-page-handler="Recover">
+                <input type="hidden" name="workflowId" value="@selected.Workflow.WorkflowId" />
+                <label>点検理由 <input name="reason" required maxlength="1024" /></label>
+                @if (selected.Workflow.Kind == "Maintenance" && !selected.Lease.PreparedOnce)
+                {
+                    <button type="submit" name="action" value="Resume">同じrunを再開</button><button type="submit" name="action" value="AbortAfterInspection">点検後に中断</button>
+                }
+                else if (selected.Workflow.Kind == "SingleOperation")
+                {
+                    @if (selected.Operations.Any(x => x.Kind is (OperationKind.RestoreBackup or OperationKind.CreateBackup) && x.Status == OperationStatus.NeedsAttention))
+                    {
+                        <p>バックアップ・復元処理の中断です。同じ操作と保存済みデータを照合して再開します。起動禁止と退避コピーは完了まで保持します。</p><button type="submit" name="action" value="Resume">同じ処理を再開</button>
+                    }
+                    else { <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button> }
+                    @if (selected.Operations.Any(x => x.Kind is (OperationKind.Stop or OperationKind.Restart) && x.Status == OperationStatus.NeedsAttention))
+                    {
+                        <label><input type="checkbox" name="killConfirmed" value="true" />対象Sessionと実プロセスを確認した</label><button class="button-danger" type="submit" name="action" value="KillAfterInspection">確認後に強制終了</button>
+                    }
+                }
+            </form></div>
+        }
+        @if (selected.CanDelete)
+        {
+            <form method="post" asp-page-handler="ConfirmDelete"><input type="hidden" name="historyPage" value="@Model.HistoryPage" /><input type="hidden" name="workflowIds" value="@selected.Workflow.WorkflowId" /><button class="button-danger" type="submit">この履歴を削除…</button></form>
+        }
+        else { <p class="secondary-text">処理中・要復旧・予約未解放の履歴は削除できません。</p> }
+    </section>
+}
+
+<section class="page-section" aria-labelledby="history-list-title">
+    <div class="section-heading"><div><h2 id="history-list-title">履歴一覧</h2><p>新しい順に50件ずつ表示します。「詳細を開く」で処理結果・予約・復旧操作を確認できます。</p></div></div>
+    @if (Model.Recent.Length == 0) { <div class="empty-state"><strong>表示する履歴はありません</strong></div> }
+    else
+    {
+        <form method="post" asp-page-handler="ConfirmDelete" id="history-selection">
+            <input type="hidden" name="historyPage" value="@Model.HistoryPage" />
+            <div class="history-toolbar"><label><input type="checkbox" id="select-all-history" />削除可能な履歴をすべて選択</label><span id="history-selection-count" role="status" aria-live="polite">0 件選択</span><button class="button-danger" type="submit">選択した履歴を削除…</button></div>
+            <div class="table-scroll"><table class="data-table history-table"><thead><tr><th scope="col">選択</th><th scope="col">処理 / 対象</th><th scope="col">状態</th><th scope="col">作成日時</th><th scope="col">詳細</th></tr></thead><tbody>
+            @foreach (var item in Model.Recent)
+            {
+                <tr class="@(Model.Selected?.Workflow.WorkflowId == item.Workflow.WorkflowId ? "is-selected" : null)"><td><label class="history-choice"><input type="checkbox" name="workflowIds" value="@item.Workflow.WorkflowId" disabled="@(!item.CanDelete)" /><span class="visually-hidden">@Model.Title(item) @Model.Target(item) @ControlDisplay.LastSeen(item.Workflow.CreatedAtUtc) を選択</span></label>@if (!item.CanDelete) { <small>保護中</small> }</td><td><strong>@Model.Title(item)</strong><span class="entity-key">@Model.Target(item)</span></td><td><span class="state-badge @ControlDisplay.WorkflowStateClass(item.Workflow.Status)">@ControlDisplay.WorkflowState(item.Workflow.Status)</span></td><td>@ControlDisplay.LastSeen(item.Workflow.CreatedAtUtc)</td><td><a class="button-link" asp-page="Workflows" asp-route-workflowId="@item.Workflow.WorkflowId" asp-route-historyPage="@Model.HistoryPage">詳細を開く</a></td></tr>
+            }
+            </tbody></table></div>
+        </form>
+    }
+    <nav class="table-actions history-pagination" aria-label="履歴のページ切替">
+        @if (Model.HistoryPage > 1) { <a class="button-link" asp-page="Workflows" asp-route-historyPage="@(Model.HistoryPage - 1)">前の50件</a> }
+        <span>@Model.HistoryPage ページ</span>
+        @if (Model.HasNextPage) { <a class="button-link" asp-page="Workflows" asp-route-historyPage="@(Model.HistoryPage + 1)">次の50件</a> }
+    </nav>
+</section>
+@section Scripts { <script src="~/js/history-selection.js" asp-append-version="true"></script> }

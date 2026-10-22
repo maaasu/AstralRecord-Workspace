@@ -2,6 +2,7 @@ using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Hubs;
 using AstralRecordControl.Web.Inventory;
+using AstralRecordControl.Web.Pages.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -11,8 +12,10 @@ namespace AstralRecordControl.Web.Pages.Servers;
 
 [Authorize(Policy = "OwnerOnly")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class IndexModel(ControlDbContext db, InventoryStore store, InventoryNotifier notifier) : PageModel
+public sealed class IndexModel(ControlDbContext db, InventoryStore store, InventoryNotifier notifier, TimeProvider clock) : PageModel
 {
+    private Dictionary<Guid, ServerRuntimeSnapshot> runtime = [];
+    public DateTimeOffset ObservedAtUtc { get; private set; }
     public InventoryHost[] Hosts { get; private set; } = [];
     public InventoryServer[] Servers { get; private set; } = [];
     public InventoryEnvironment[] Environments { get; private set; } = [];
@@ -34,10 +37,13 @@ public sealed class IndexModel(ControlDbContext db, InventoryStore store, Invent
     }
     private async Task LoadAsync()
     {
+        ObservedAtUtc = clock.GetUtcNow();
         Hosts = await db.Hosts.AsNoTracking().OrderBy(x => x.HostKey).ToArrayAsync();
+        runtime = Hosts.SelectMany(h => ControlJson.Deserialize<ServerRuntimeSnapshot[]>(h.RuntimeSnapshotJson)).ToDictionary(x => x.ServerId);
         Servers = await db.Servers.AsNoTracking().OrderBy(x => x.ServerKey).ToArrayAsync();
         Environments = await db.Environments.AsNoTracking().OrderBy(x => x.EnvironmentKey).ToArrayAsync();
     }
     public HostResources Resources(InventoryHost host) => ControlJson.Deserialize<HostResources>(host.ResourcesJson);
     public ServerConfig Configuration(InventoryServer server) => ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+    public ControlDisplay.RuntimeStatus Status(InventoryServer server) => ControlDisplay.ServerState(Hosts.FirstOrDefault(h => h.HostId == server.HostId), runtime.GetValueOrDefault(server.ServerId), ObservedAtUtc);
 }

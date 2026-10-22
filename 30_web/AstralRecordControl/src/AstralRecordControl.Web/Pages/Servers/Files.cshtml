@@ -22,7 +22,7 @@
     <label>取り込み方法 <select id="import-mode"><option value="File">単体ファイル</option><option value="ExtractZip">ZIP展開</option><option value="Provision">空のサーバーへZIPから新規配置</option></select></label>
     <label><input type="checkbox" id="eula-accepted" /> 新規配置時、MinecraftのEULAに同意する</label>
     <button type="button" data-action="upload">転送して取り込む</button>
-    <p><a href="/Transfers">転送の進捗・再開・ダウンロード</a></p>
+    <p><a class="button-link" href="/Transfers">転送の進捗・再開・ダウンロード</a></p>
     <p id="p2-status" role="status" aria-live="polite"></p><pre id="p2-result"></pre>
 </section>
 @section Scripts { <script src="~/js/p2-control.js" asp-append-version="true" defer></script> }

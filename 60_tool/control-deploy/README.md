@@ -160,7 +160,7 @@ pwsh -NoProfile -File ./60_tool/control-deploy/Install-ControlTools.ps1 -Package
 
 manifest内の`Tools/60_tool`だけを検証して変更分を上書きし、対象の旧ファイルだけをTool rootと同じ親フォルダに退避します。余分なファイルや`.local.json`等のローカル設定は削除・上書きせず、markerも変更しません。失敗時は今回変更したファイルの復元を試み、復旧エラーがあれば退避フォルダを残して停止します。サービスの停止・起動やControl設定の変更は行いません。
 
-Web/Agent/Runnerの現行schemaは4です。旧schemaからは各サービスのSQLite backupを作成してtransaction内で移行します。未知schemaは起動を拒否します。更新前snapshotとmigration前backupを保持してください。
+Webの現行schemaは5、Agent/Runnerは4です。旧schemaからは各サービスのSQLite backupを作成してtransaction内で移行します。未知schemaは起動を拒否します。更新前snapshotとmigration前backupを保持してください。
 
 ```powershell
 pwsh -NoProfile -File ./60_tool/control-deploy/tests/deployment-preflight.ps1

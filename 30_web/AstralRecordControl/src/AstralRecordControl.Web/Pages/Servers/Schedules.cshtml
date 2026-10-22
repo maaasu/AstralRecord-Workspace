@@ -21,7 +21,7 @@
     <section>
         <h2>@definition.ScheduleId</h2>
         <p>@definition.Trigger.Kind / @(definition.Enabled ? "有効" : "無効") / 希望版 @definition.Revision / 適用版 @(row.AppliedRevision?.ToString() ?? "未適用")</p>
-        <p><a asp-page="/Servers/Schedules" asp-route-serverId="@Model.Server.ServerId" asp-route-edit="@definition.ScheduleId">編集</a></p>
+        <p><a class="button-link" asp-page="/Servers/Schedules" asp-route-serverId="@Model.Server.ServerId" asp-route-edit="@definition.ScheduleId">編集</a></p>
         <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@definition.ScheduleId">
             <input type="hidden" name="RequestKey" value="@Guid.NewGuid()" />
             <button disabled="@(!Model.Available || !definition.Enabled || row.AppliedRevision != definition.Revision)">今すぐ実行</button>
@@ -48,4 +48,4 @@
     <p>告知の例：<code>{"stepKey":"announce","kind":"ConsoleCommand","payload":{"command":"say サーバーを再起動します"},"delaySeconds":0}</code></p>
     <button disabled="@(!Model.Available)">保存</button>
 </form>
-<p><a asp-page="/Servers/Index">サーバー一覧</a></p>
+<p><a class="button-link" asp-page="/Servers/Index">サーバー一覧へ戻る</a></p>

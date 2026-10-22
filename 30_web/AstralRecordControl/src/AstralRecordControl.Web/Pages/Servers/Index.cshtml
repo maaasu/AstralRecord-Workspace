@@ -8,8 +8,8 @@
         && string.Equals(Model.Request.Query["handler"].ToString(), "Create", StringComparison.OrdinalIgnoreCase);
 }
 
-<div class="page-heading"><div><h1>サーバー台帳</h1><p>登録済みサーバーの設定と利用できる操作を確認します。</p></div><a class="text-action" href="/">ダッシュボードへ</a></div>
-<p class="snapshot-note">ゲームの起動・停止などは共通gateとPCの準備が完了した場合だけ利用できます。未接続を停止中と判断しないでください。</p>
+<div class="page-heading"><div><h1>サーバー台帳</h1><p>稼働状態を一覧で確認し、対象サーバーの操作へ進みます。</p></div><div class="table-actions"><a class="button-link" asp-page="Index">状態を更新</a><a class="button-link" href="/">概要へ戻る</a></div></div>
+<p class="snapshot-note">最終更新 @ControlDisplay.LastSeen(Model.ObservedAtUtc) · PCから30秒以内に届いた状態を表示します。</p>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 
 <section class="page-section" aria-labelledby="server-list-heading">
@@ -17,13 +17,14 @@
     @if (Model.Servers.Length == 0) {
         <div class="empty-state"><strong>サーバーはまだ登録されていません</strong><p>PCが接続し、rootと実行ファイルが報告された後に登録できます。</p></div>
     } else {
-        <div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">サーバー</th><th scope="col">配置PC</th><th scope="col">種類</th><th scope="col">設定</th><th scope="col">利用できる画面</th></tr></thead><tbody>
+        <div class="table-scroll"><table class="data-table server-register"><thead><tr><th scope="col">サーバー</th><th scope="col">稼働状態</th><th scope="col">配置PC / 種類</th><th scope="col">設定</th><th scope="col">操作</th></tr></thead><tbody>
         @foreach (var server in Model.Servers) {
             var kind = Model.Configuration(server).Kind;
-            <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")</td><td>@ControlDisplay.Kind(kind)</td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span><details class="inline-details"><summary>版を表示</summary>希望 @server.DesiredRevision / 適用 @server.AppliedRevision</details></td><td><div class="table-actions"><a asp-page="Edit" asp-route-serverId="@server.ServerId">設定</a>
-            @if (kind == ServerKind.Java) { <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a><a asp-page="Schedules" asp-route-serverId="@server.ServerId">予約</a><a asp-page="Metrics" asp-route-serverId="@server.ServerId">監視</a> }
-            else if (kind == ServerKind.Velocity) { <a asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a> }
+            var status = Model.Status(server);
+            <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td><span class="state-badge @status.CssClass">@status.Label</span><span class="entity-key">@status.Detail</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")<span class="entity-key">@ControlDisplay.Kind(kind)</span></td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span><details class="inline-details"><summary>版を表示</summary>希望 @server.DesiredRevision / 適用 @server.AppliedRevision</details></td><td><div class="table-actions">
+            @if (kind is ServerKind.Java or ServerKind.Velocity) { <a class="button-link button-link--primary" asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a> }
             else { <span class="secondary-text">台帳のみ · 起動・停止は未対応</span> }
+            <a class="button-link" asp-page="Edit" asp-route-serverId="@server.ServerId">設定・詳細</a>
             </div></td></tr>
         }
         </tbody></table></div>

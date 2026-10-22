@@ -29,7 +29,7 @@
     <label>削除理由 <input id="backup-delete-reason" maxlength="1024" /></label>
     <label><input type="checkbox" id="backup-delete-confirm" /> 選択したバックアップ世代を削除する</label>
     <button type="button" data-action="delete-backup">世代を削除</button>
-    <p>復元が中断した場合は起動を禁止します。<a href="/Workflows">保守履歴</a>から同じ処理を再開してください。</p>
-    <p><a href="/Transfers">転送・ダウンロード</a></p><p id="p2-status" role="status" aria-live="polite"></p><pre id="p2-result"></pre>
+    <p>復元が中断した場合は起動を禁止します。保守履歴から同じ処理を再開してください。</p>
+    <div class="table-actions"><a class="button-link" href="/Workflows">保守履歴を開く</a><a class="button-link" href="/Transfers">転送・ダウンロード</a></div><p id="p2-status" role="status" aria-live="polite"></p><pre id="p2-result"></pre>
 </section>
 @section Scripts { <script src="~/js/p2-control.js" asp-append-version="true" defer></script> }
