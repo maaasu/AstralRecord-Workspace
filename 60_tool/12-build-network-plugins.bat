@@ -2,7 +2,7 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0network-plugin-build"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\build-network-plugins.ps1" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0invoke-powershell7.ps1" -ScriptPath "%SCRIPT_DIR%\build-network-plugins.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

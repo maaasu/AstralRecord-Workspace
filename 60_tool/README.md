@@ -71,14 +71,16 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 | `status-catalog-codegen/` / `tag-catalog-codegen/` | 共有カタログから型生成 | 07/08の直下PS1 |
 | `control-deploy/` / `control-gate/` | Controlの導入・共通gate | 管理者手順・保守入口 |
 | `master-data-reload/` | **旧詳細操作**のFilebase同期・API seed。03は使用しない | PS1直接実行のみ |
-| `invoke-powershell7.ps1` | PowerShell 7の検出・起動 | 01/02/03/09/10/16/17 |
+| `invoke-powershell7.ps1` | PowerShell 7の検出・起動とビルド環境の設定 | 01/02/03/09/10/12/16/17 |
 | `tests/` | 複数のDBツールにまたがる保護・移行検証 | 開発時 |
 
 公開BAT名・実装パスは、外部参照と既存runの復旧に対応しています。用途分類はこの表を正本とし、単なる整理のために移動・改名しません。
 
 ## 実行環境と設定
 
-01/02/03/09/10/16/17はPowerShell 7を使用します。PATHに`pwsh`がない場合は、Git管理外の`powershell7.local.json`に`{"executablePath":"C:\\path\\to\\pwsh.exe"}`を設定します。bootstrapはOSのPATH変更・インストールを行いません。
+01/02/03/09/10/12/16/17はPowerShell 7を使用します。PATHに`pwsh`がない場合は、Git管理外の`powershell7.local.json`に`{"executablePath":"C:\\path\\to\\pwsh.exe"}`を設定します。bootstrapはOSのPATH変更・インストールを行いません。
+
+同じ入口のビルド用Java・Maven・.NET SDKがPATHにない場合は、`build-tools.example.json`を`build-tools.local.json`へコピーし、導入済みツールの絶対ディレクトリを指定します。`javaHome`は`bin/java.exe`と`bin/javac.exe`を持つJDK、`mavenHome`は`bin/mvn.cmd`を持つMaven、`dotnetRoot`はSDKを導入した`dotnet.exe`のディレクトリです。必要な項目だけ指定できます。bootstrapは指定内容をすべて検査してから、そのプロセスと子プロセスだけのPATHへ追加し、JAVA_HOME/DOTNET_ROOTも合わせます。Windowsのユーザー・システム環境変数や配布設定は変更しません。runtimeだけの.NET配置ではビルドできないため、`dotnet --list-sdks`でも確認してください。
 
 設定の優先順位、APP-01/MC-01/DEV-01の配置、秘密値の参照先、移行未完了事項は [CONFIGURATION.md](CONFIGURATION.md) にまとめています。各ツールの細かい引数・テスト・復旧方法は、上表から担当ディレクトリのREADMEを参照してください。
 

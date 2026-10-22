@@ -14,6 +14,31 @@ try {
         $executable=$command.Source
     }
     if ([string]::IsNullOrWhiteSpace($ScriptPath) -or !(Test-Path -LiteralPath $ScriptPath -PathType Leaf)) { throw 'The update entry script was not found.' }
+    # Only this launcher process and its children receive the configured build tools.
+    $buildConfig=Join-Path $PSScriptRoot 'build-tools.local.json'
+    if (Test-Path -LiteralPath $buildConfig -PathType Leaf) {
+        $buildSettings=Get-Content -Raw -Encoding UTF8 -LiteralPath $buildConfig | ConvertFrom-Json
+        if ($buildSettings -isnot [pscustomobject]) { throw 'build-tools.local.json must contain an object.' }
+        $requiredFiles=@{javaHome=@('bin/java.exe','bin/javac.exe'); mavenHome=@('bin/mvn.cmd'); dotnetRoot=@('dotnet.exe')}
+        $buildPaths=@()
+        foreach ($property in $buildSettings.PSObject.Properties) {
+            if (!$requiredFiles.ContainsKey($property.Name)) { throw 'Unknown setting in build-tools.local.json. Use javaHome, mavenHome, or dotnetRoot.' }
+            if ($property.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($property.Value) -or
+                ![IO.Path]::IsPathRooted($property.Value) -or
+                $property.Value -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+(?:[\\/]|$))') {
+                throw "build-tools.local.json $($property.Name) must be an absolute directory path."
+            }
+            foreach ($relativeFile in $requiredFiles[$property.Name]) {
+                if (!(Test-Path -LiteralPath (Join-Path $property.Value $relativeFile) -PathType Leaf)) {
+                    throw "build-tools.local.json $($property.Name) is missing $relativeFile."
+                }
+            }
+            $buildPaths+=if ($property.Name -eq 'dotnetRoot') { $property.Value } else { Join-Path $property.Value 'bin' }
+        }
+        if ($buildSettings.PSObject.Properties['javaHome']) { $env:JAVA_HOME=$buildSettings.javaHome }
+        if ($buildSettings.PSObject.Properties['dotnetRoot']) { $env:DOTNET_ROOT=$buildSettings.dotnetRoot }
+        if ($buildPaths.Count -gt 0) { $env:PATH=($buildPaths -join [IO.Path]::PathSeparator)+[IO.Path]::PathSeparator+$env:PATH }
+    }
     & $executable -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @args
     exit $LASTEXITCODE
 } catch {
