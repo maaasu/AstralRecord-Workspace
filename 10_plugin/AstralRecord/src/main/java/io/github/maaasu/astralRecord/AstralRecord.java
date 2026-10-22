@@ -1869,7 +1869,7 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.WAYSTONE_TELEPORTED, waystoneId)
         );
         guideActionService = new GuideActionService(this, mobService, npcPlacementService, playerMessageService);
-        guideReminderTask = new GuideReminderTask(playerMessageService, guideService);
+        guideReminderTask = new GuideReminderTask(playerMessageService, guideService, playerSettingService);
 
         // menu
         guiSessionTransitionService = new GuiSessionTransitionService();

@@ -45,6 +45,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int NIGHT_VISION_SLOT = 38;
     public static final int RANDOM_STATUS_RANGE_DISPLAY_SLOT = 39;
     public static final int COMBAT_DPS_DISPLAY_SLOT = 40;
+    public static final int GUIDE_REMINDER_SLOT = 41;
     public static final int SAVE_GUIDE_SLOT = 13;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
@@ -79,6 +80,12 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         return inventory != null && inventory.getHolder() instanceof Holder;
     }
 
+    /**
+     * 定期ガイド通知を含む通常の設定項目をGUIスロットから解決します。
+     *
+     * @param rawSlot 設定GUI内のスロット番号
+     * @return 対応する設定キー。設定項目以外はnull
+     */
     public @Nullable PlayerSettingKey getKeyAtSlot(int rawSlot) {
         return switch (rawSlot) {
             case DAMAGE_LOG_SLOT -> PlayerSettingKey.DAMAGE_LOG_DISPLAY;
@@ -94,6 +101,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case NIGHT_VISION_SLOT -> PlayerSettingKey.NIGHT_VISION;
             case RANDOM_STATUS_RANGE_DISPLAY_SLOT -> PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY;
             case COMBAT_DPS_DISPLAY_SLOT -> PlayerSettingKey.COMBAT_DPS_DISPLAY;
+            case GUIDE_REMINDER_SLOT -> PlayerSettingKey.GUIDE_REMINDER;
             default -> null;
         };
     }
@@ -105,6 +113,13 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         return null;
     }
 
+    /**
+     * 定期ガイド通知を含む設定項目を、保存済み値または下書きから主スレッドで描画します。
+     *
+     * @param inventory 描画先の設定GUI
+     * @param userId 設定を所有するユーザーUUID
+     * @param draftValues 未保存の変更予定値。nullなら保存済み値を使用
+     */
     private void render(
         @NotNull Inventory inventory,
         @NotNull UUID userId,
@@ -185,6 +200,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.CLOCK,
             PlayerSettingKey.COMBAT_DPS_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.COMBAT_DPS_DISPLAY, draftValues)
+        ));
+        inventory.setItem(GUIDE_REMINDER_SLOT, createBooleanItem(
+            Material.KNOWLEDGE_BOOK,
+            PlayerSettingKey.GUIDE_REMINDER,
+            (Boolean) resolveValue(userId, PlayerSettingKey.GUIDE_REMINDER, draftValues)
         ));
         markDraftValues(inventory, userId, draftValues);
     }

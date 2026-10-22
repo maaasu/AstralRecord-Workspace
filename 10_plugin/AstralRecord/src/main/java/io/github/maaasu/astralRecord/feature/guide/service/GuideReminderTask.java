@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,14 +19,24 @@ public final class GuideReminderTask {
 
     private final PlayerMessageService playerMessageService;
     private final GuideService guideService;
+    private final PlayerSettingService playerSettingService;
     private @Nullable BukkitTask task;
 
+    /**
+     * 定期ガイド案内を生成します。
+     *
+     * @param playerMessageService ガイド画面への導線通知
+     * @param guideService 読込済み進行と次手順の案内
+     * @param playerSettingService 定期通知のユーザー設定
+     */
     public GuideReminderTask(
         @NotNull PlayerMessageService playerMessageService,
-        @NotNull GuideService guideService
+        @NotNull GuideService guideService,
+        @NotNull PlayerSettingService playerSettingService
     ) {
         this.playerMessageService = playerMessageService;
         this.guideService = guideService;
+        this.playerSettingService = playerSettingService;
     }
 
     /**
@@ -54,9 +65,11 @@ public final class GuideReminderTask {
         }
     }
 
+    /** 読込済みの未完了進行がある通知有効ユーザーへ、主スレッドで導線と次手順を送ります。 */
     void sendReminder() {
         for (var astPlayer : AstPlayerCache.getAll()) {
-            if (!guideService.hasIncompleteGuide(astPlayer.getAccount().getUuid())) {
+            if (!playerSettingService.isGuideReminderEnabled(astPlayer.getBukkit().getUniqueId())
+                || !guideService.hasIncompleteGuide(astPlayer.getAccount().getUuid())) {
                 continue;
             }
             playerMessageService.sendClickable(
@@ -64,6 +77,7 @@ public final class GuideReminderTask {
                 PlayerMsgId.P_5600,
                 GUIDE_COMMAND
             );
+            guideService.sendNextStepHint(astPlayer);
         }
     }
 }

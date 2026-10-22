@@ -499,17 +499,40 @@ public class GuideService {
             }
         }
 
-        CompletedStep last = completedSteps.getLast();
+        sendNextStepHint(player, completedSteps.getLast().guide());
+    }
+
+    /**
+     * 表示順で最初の案内可能な未完了ガイドと、その未完了手順を1件通知します。
+     * 進行未読込・解放済み、または候補がない場合は通知しません。主スレッドから呼び出してください。
+     *
+     * @param player 案内を受け取るオンラインプレイヤー
+     */
+    public void sendNextStepHint(@NotNull AstPlayer player) {
+        sendNextStepHint(player, null);
+    }
+
+    /**
+     * 達成直後は同じガイドの残りを優先し、なければ表示順で次の手順を通知します。
+     *
+     * @param player 案内を受け取るプレイヤー
+     * @param preferredGuide 優先するガイド。定期案内ではnull
+     */
+    private void sendNextStepHint(@NotNull AstPlayer player, @Nullable GuideEntry preferredGuide) {
+        UUID accountId = player.getAccount().getUuid();
         ProgressState state = progressByAccount.get(accountId);
         if (state == null) {
             return;
         }
         Set<GuideStepKey> completed;
         synchronized (state) {
+            if (state.released) {
+                return;
+            }
             completed = Set.copyOf(state.completed);
         }
-        GuideStep nextStep = firstIncompleteStep(last.guide(), completed);
-        GuideEntry nextGuide = nextStep == null ? null : last.guide();
+        GuideStep nextStep = preferredGuide == null ? null : firstIncompleteStep(preferredGuide, completed);
+        GuideEntry nextGuide = nextStep == null ? null : preferredGuide;
         if (nextStep == null) {
             for (GuideEntry guide : getAll()) {
                 if (REPAIR_GUIDE_ID.equals(guide.id())

@@ -22,6 +22,7 @@ public enum PlayerSettingKey {
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),
     COMBAT_DPS_DISPLAY("COMBAT_DPS_DISPLAY", "戦闘DPS表示", true),
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
+    GUIDE_REMINDER("GUIDE_REMINDER", "定期ガイド通知", true),
     BUFF_SIDEBAR_DISPLAY("BUFF_SIDEBAR_DISPLAY", "バフ情報のサイドバー表示", false),
     NIGHT_VISION("NIGHT_VISION", "ナイトビジョン", false),
     RANDOM_STATUS_RANGE_DISPLAY("RANDOM_STATUS_RANGE_DISPLAY", "ランダムステータス範囲表示", false),

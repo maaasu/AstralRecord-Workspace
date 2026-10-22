@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import org.bukkit.entity.Player;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -359,7 +360,7 @@ class GuideServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
      * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 全完了と空マスターでは定期ガイド促しを止め、後日追加したガイドがある時だけ再開する。
+     * 検証契約: 全完了・空マスター・通知OFFでは定期通知を止め、未完了進行と通知ONが揃うと次手順を1件案内する。
      */
     @Test
     void reminderStopsAtCompletionAndResumesForAddedGuide() {
@@ -367,7 +368,11 @@ class GuideServiceTest {
         UUID accountId = UUID.randomUUID();
         AstPlayer player = fixture.player(accountId);
         Player bukkit = player.getBukkit();
-        GuideReminderTask reminder = new GuideReminderTask(fixture.messages, fixture.service);
+        UUID userId = UUID.randomUUID();
+        when(bukkit.getUniqueId()).thenReturn(userId);
+        PlayerSettingService settings = mock(PlayerSettingService.class);
+        when(settings.isGuideReminderEnabled(userId)).thenReturn(true);
+        GuideReminderTask reminder = new GuideReminderTask(fixture.messages, fixture.service, settings);
         GuideEntry first = guide("first", "First", "Start", GuideConditionType.SHOP_PURCHASED, 1);
         GuideEntry later = guide("later", "Later", "Later action", GuideConditionType.QUEST_COMPLETED, 2);
         when(fixture.progressRepository.findByAccountId(accountId)).thenReturn(Set.of());
@@ -384,8 +389,14 @@ class GuideServiceTest {
             reminder.sendReminder();
             fixture.service.replaceEntrySnapshot(List.of(first, later));
             reminder.sendReminder();
+            when(settings.isGuideReminderEnabled(userId)).thenReturn(false);
+            reminder.sendReminder();
+            when(settings.isGuideReminderEnabled(userId)).thenReturn(true);
+            reminder.sendReminder();
         }
-        verify(fixture.messages, times(2)).sendClickable(bukkit, PlayerMsgId.P_5600, "/menu guide");
+        verify(fixture.messages, times(3)).sendClickable(bukkit, PlayerMsgId.P_5600, "/menu guide");
+        verify(fixture.messages).send(player, PlayerMsgId.P_5186, "Start");
+        verify(fixture.messages, times(2)).send(player, PlayerMsgId.P_5186, "Later action");
     }
 
     /**

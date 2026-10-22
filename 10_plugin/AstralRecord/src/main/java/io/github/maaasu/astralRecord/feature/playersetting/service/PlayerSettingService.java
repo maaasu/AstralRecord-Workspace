@@ -195,6 +195,16 @@ public final class PlayerSettingService {
     public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, false); }
     public boolean isDropLogDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.DROP_LOG_DISPLAY, true); }
     public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, false); }
+
+    /**
+     * 定期ガイド通知の設定をロード済みcacheだけから返します。API通信は行いません。
+     *
+     * @param userId 設定を所有するユーザーUUID
+     * @return 定期通知が有効ならtrue。未読込・型不正時は既定値のtrue
+     */
+    public boolean isGuideReminderEnabled(@NotNull UUID userId) {
+        return cachedBooleanSetting(userId, PlayerSettingKey.GUIDE_REMINDER, true);
+    }
     /**
      * ナイトビジョン設定を、ロード済み cache から参照します。
      *
