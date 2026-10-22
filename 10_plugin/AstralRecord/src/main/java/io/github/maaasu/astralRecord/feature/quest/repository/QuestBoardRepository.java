@@ -2,13 +2,13 @@ package io.github.maaasu.astralRecord.feature.quest.repository;
 
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardEntry;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,23 +17,28 @@ public final class QuestBoardRepository {
     private static final String RELATIVE_PATH = "52.features.quest_board";
 
     public @NotNull List<QuestBoardDefinition> findAll() {
-        File root = FileDatabaseManager.getInstance().getRootDirectory();
-        if (root == null) {
-            return List.of();
-        }
-        File directory = new File(root, RELATIVE_PATH);
-        File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null || files.length == 0) {
-            return List.of();
-        }
         List<QuestBoardDefinition> result = new ArrayList<>();
-        for (File file : files) {
-            QuestBoardDefinition board = parse(YamlConfiguration.loadConfiguration(file));
+        for (RuntimeFilebaseSnapshot.Entry entry : RuntimeFilebaseRepository.getInstance()
+                .currentSnapshot().files(RELATIVE_PATH)) {
+            if (!entry.name().endsWith(".yml") || !isDirectChild(entry.path())) {
+                continue;
+            }
+            QuestBoardDefinition board = parse(entry.yaml());
             if (board != null) {
                 result.add(board);
             }
         }
         return result;
+    }
+
+    /**
+     * 対象マスタディレクトリ直下のファイルか確認します。
+     *
+     * @param path filebase からの相対パス
+     * @return 対象ディレクトリ直下なら真
+     */
+    private boolean isDirectChild(@NotNull String path) {
+        return path.substring(RELATIVE_PATH.length() + 1).indexOf('/') < 0;
     }
 
     private @Nullable QuestBoardDefinition parse(@NotNull YamlConfiguration yaml) {

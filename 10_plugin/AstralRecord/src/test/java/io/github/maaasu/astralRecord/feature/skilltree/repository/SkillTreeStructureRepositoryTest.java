@@ -1,21 +1,17 @@
 package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
 import io.github.maaasu.astralRecord.feature.skilltree.config.SkillTreePluginConfig;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SkillTreeStructureRepositoryTest {
-    @TempDir
-    Path filebaseRoot;
+    private String structureJson;
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
@@ -23,7 +19,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: 相対座標へcenterを加算し無向edge両端をcanonical順へ正規化する。
      */
     @Test
-    void loadsRelativeCoordinatesAndCanonicalUndirectedEdges() throws IOException {
+    void loadsRelativeCoordinatesAndCanonicalUndirectedEdges() {
         writeStructure(structureJson(
                 "1000",
                 """
@@ -35,7 +31,7 @@ class SkillTreeStructureRepositoryTest {
                 "[{\"sourceNodeId\": \"1001\", \"targetNodeId\": \"1000\"}]"
         ));
 
-        var snapshot = new SkillTreeStructureRepository(filebaseRoot.toFile()).load(config());
+        var snapshot = repository().load(config());
 
         assertEquals("1000", snapshot.rootNodeId());
         assertEquals(100, snapshot.positions().getFirst().x());
@@ -54,7 +50,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: 相対座標は0.1ブロック刻みを許可し、centerへ加算して保持する。
      */
     @Test
-    void loadsTenthBlockRelativeCoordinates() throws IOException {
+    void loadsTenthBlockRelativeCoordinates() {
         writeStructure(structureJson(
                 "1000",
                 """
@@ -66,7 +62,7 @@ class SkillTreeStructureRepositoryTest {
                 "[{\"sourceNodeId\": \"1000\", \"targetNodeId\": \"1001\"}]"
         ));
 
-        var snapshot = new SkillTreeStructureRepository(filebaseRoot.toFile()).load(config());
+        var snapshot = repository().load(config());
 
         assertEquals(97.9D, snapshot.positions().get(1).x());
         assertEquals(67.2D, snapshot.positions().get(1).y());
@@ -79,7 +75,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: 重複node座標をstructure load失敗にする。
      */
     @Test
-    void rejectsDuplicateCoordinates() throws IOException {
+    void rejectsDuplicateCoordinates() {
         assertInvalid(
                 """
                         [
@@ -98,7 +94,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: node自身へ接続するself edgeを拒否する。
      */
     @Test
-    void rejectsSelfConnections() throws IOException {
+    void rejectsSelfConnections() {
         assertInvalid(
                 "[{\"nodeId\": \"1000\", \"x\": 0, \"y\": 0, \"z\": 0}]",
                 "[{\"sourceNodeId\": \"1000\", \"targetNodeId\": \"1000\"}]",
@@ -112,7 +108,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: 向きだけ違うものを含む同一無向edge重複を拒否する。
      */
     @Test
-    void rejectsDuplicateUndirectedEdges() throws IOException {
+    void rejectsDuplicateUndirectedEdges() {
         assertInvalid(
                 connectedNodes(),
                 """
@@ -131,7 +127,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: 配置されていないnodeを参照するedgeを拒否する。
      */
     @Test
-    void rejectsReferencesToUnplacedNodes() throws IOException {
+    void rejectsReferencesToUnplacedNodes() {
         assertInvalid(
                 "[{\"nodeId\": \"1000\", \"x\": 0, \"y\": 0, \"z\": 0}]",
                 "[{\"sourceNodeId\": \"1000\", \"targetNodeId\": \"9999\"}]",
@@ -145,7 +141,7 @@ class SkillTreeStructureRepositoryTest {
      * 検証契約: rootから到達不能な配置nodeを拒否する。
      */
     @Test
-    void rejectsNodesUnreachableFromRoot() throws IOException {
+    void rejectsNodesUnreachableFromRoot() {
         assertInvalid(
                 """
                         [
@@ -159,12 +155,12 @@ class SkillTreeStructureRepositoryTest {
         );
     }
 
-    private void assertInvalid(String nodes, String edges, String message) throws IOException {
+    private void assertInvalid(String nodes, String edges, String message) {
         writeStructure(structureJson("1000", nodes, edges));
 
         IllegalStateException error = assertThrows(
                 IllegalStateException.class,
-                () -> new SkillTreeStructureRepository(filebaseRoot.toFile()).load(config())
+                () -> repository().load(config())
         );
 
         assertTrue(error.getMessage().contains(message));
@@ -187,10 +183,13 @@ class SkillTreeStructureRepositoryTest {
         );
     }
 
-    private void writeStructure(String json) throws IOException {
-        Path directory = filebaseRoot.resolve("35.features.skilltree").resolve("structures");
-        Files.createDirectories(directory);
-        Files.writeString(directory.resolve("starter.json"), json, StandardCharsets.UTF_8);
+    private void writeStructure(String json) {
+        structureJson = json;
+    }
+
+    private SkillTreeStructureRepository repository() {
+        return new SkillTreeStructureRepository(() -> new RuntimeFilebaseSnapshot(List.of(
+                new RuntimeFilebaseSnapshot.Entry("35.features.skilltree/structures/starter.json", structureJson))));
     }
 
     private String structureJson(String rootNodeId, String nodes, String edges) {

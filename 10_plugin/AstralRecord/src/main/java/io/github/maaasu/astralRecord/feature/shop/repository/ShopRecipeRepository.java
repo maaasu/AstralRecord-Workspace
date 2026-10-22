@@ -2,13 +2,13 @@ package io.github.maaasu.astralRecord.feature.shop.repository;
 
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopRecipeCost;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,26 +52,19 @@ public final class ShopRecipeRepository {
                 return current;
             }
             current = loadRecipes();
-            if (FileDatabaseManager.getInstance().getRootDirectory() != null) {
-                cachedRecipes = current;
-            }
+            cachedRecipes = current;
             return current;
         }
     }
 
     private @NotNull Map<String, ShopRecipeCost> loadRecipes() {
-        File root = FileDatabaseManager.getInstance().getRootDirectory();
-        if (root == null) {
-            return Map.of();
-        }
-        File directory = new File(root, RELATIVE_PATH);
-        File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null) {
-            return Map.of();
-        }
         Map<String, ShopRecipeCost> result = new LinkedHashMap<>();
-        for (File file : files) {
-            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+        for (RuntimeFilebaseSnapshot.Entry entry : RuntimeFilebaseRepository.getInstance()
+                .currentSnapshot().files(RELATIVE_PATH)) {
+            if (!entry.name().endsWith(".yml") || !isDirectChild(entry.path())) {
+                continue;
+            }
+            YamlConfiguration yaml = entry.yaml();
             String recipeId = yaml.getString("id");
             if (recipeId == null || recipeId.isBlank()) {
                 continue;
@@ -87,6 +80,16 @@ public final class ShopRecipeRepository {
             ));
         }
         return Map.copyOf(result);
+    }
+
+    /**
+     * 対象マスタディレクトリ直下のファイルか確認します。
+     *
+     * @param path filebase からの相対パス
+     * @return 対象ディレクトリ直下なら真
+     */
+    private boolean isDirectChild(@NotNull String path) {
+        return path.substring(RELATIVE_PATH.length() + 1).indexOf('/') < 0;
     }
 
     private @NotNull List<ShopCostItem> parseIngredients(@NotNull YamlConfiguration yaml) {

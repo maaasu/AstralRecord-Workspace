@@ -6,7 +6,8 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -14,13 +15,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -38,29 +33,32 @@ public final class DungeonDefinitionRepository {
      * @throws IllegalArgumentException いずれかの定義が不正な場合
      */
     public @NotNull List<DungeonDefinition> findAll() {
-        File root = FileDatabaseManager.getInstance().getRootDirectory();
-        if (root == null) {
-            return List.of();
-        }
-        File directory = new File(root, RELATIVE_PATH);
-        File[] files = directory.listFiles((ignored, name) ->
-                name.endsWith(".yml") && !name.endsWith("定義.yml"));
-        if (files == null || files.length == 0) {
-            return List.of();
-        }
-        Arrays.sort(files, Comparator.comparing(File::getName));
-
-        List<DungeonDefinition> definitions = new ArrayList<>(files.length);
-        for (File file : files) {
+        List<DungeonDefinition> definitions = new ArrayList<>();
+        for (RuntimeFilebaseSnapshot.Entry entry : RuntimeFilebaseRepository.getInstance()
+                .currentSnapshot().files(RELATIVE_PATH)) {
+            if (!entry.name().endsWith(".yml") || entry.name().endsWith("定義.yml")
+                    || !isDirectChild(entry.path())) {
+                continue;
+            }
             try {
                 definitions.add(parse(
-                        YamlConfiguration.loadConfiguration(file),
-                        hasExplicitNullTimeLimit(file)));
-            } catch (RuntimeException | IOException ex) {
-                throw new IllegalArgumentException("Invalid dungeon master: " + file.getPath(), ex);
+                        entry.yaml(),
+                        hasExplicitNullTimeLimit(entry.content())));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException("Invalid dungeon master: " + entry.path(), ex);
             }
         }
         return List.copyOf(definitions);
+    }
+
+    /**
+     * 対象マスタディレクトリ直下のファイルか確認します。
+     *
+     * @param path filebase からの相対パス
+     * @return 対象ディレクトリ直下なら真
+     */
+    private boolean isDirectChild(@NotNull String path) {
+        return path.substring(RELATIVE_PATH.length() + 1).indexOf('/') < 0;
     }
 
     /** 最小構成を既定値で補完し、一つの YAML を実行時定義へ変換します。 */
@@ -366,8 +364,8 @@ public final class DungeonDefinitionRepository {
     }
 
     /** YAML Configuration が保持しない明示 {@code null} の秒数設定を検出します。 */
-    private boolean hasExplicitNullTimeLimit(@NotNull File file) throws IOException {
-        return NULL_TIME_LIMIT.matcher(Files.readString(file.toPath(), StandardCharsets.UTF_8)).find();
+    private boolean hasExplicitNullTimeLimit(@NotNull String content) {
+        return NULL_TIME_LIMIT.matcher(content).find();
     }
 
     /** 省略可能な数値を読み、未定義なら既定値を返します。 */

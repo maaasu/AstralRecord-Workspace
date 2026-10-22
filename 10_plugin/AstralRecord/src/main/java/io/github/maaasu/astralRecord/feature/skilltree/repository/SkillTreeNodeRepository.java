@@ -11,25 +11,24 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffe
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockCondition;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /** filebase のJSONスキルツリーノード定義を読み込むリポジトリです。 */
 public class SkillTreeNodeRepository {
-    private static final String RELATIVE_PATH = "35.features.skilltree" + File.separator + "nodes";
+    private static final String RELATIVE_PATH = "35.features.skilltree/nodes";
     private static final String SCHEMA_REFERENCE = "../schemas/node.v1.schema.json";
     private static final Set<String> NODE_KEYS = Set.of(
             "$schema", "schemaVersion", "nodeId", "name", "icon", "tags",
@@ -41,23 +40,35 @@ public class SkillTreeNodeRepository {
             "type", "status", "modifierType", "value"
     );
 
-    private final File fixedRootDirectory;
+    private final Supplier<RuntimeFilebaseSnapshot> snapshotSupplier;
     private final Predicate<Material> usableIconPredicate;
 
+    /** 現在公開中の API スナップショットを使うリポジトリを作成します。 */
     public SkillTreeNodeRepository() {
-        this.fixedRootDirectory = null;
-        this.usableIconPredicate = material -> material != Material.AIR && material.isItem();
+        this(RuntimeFilebaseRepository.getInstance()::currentSnapshot,
+                material -> material != Material.AIR && material.isItem());
     }
 
-    SkillTreeNodeRepository(@NotNull File rootDirectory) {
-        this(rootDirectory, material -> material != Material.AIR && material.isItem());
+    /**
+     * 指定したスナップショット供給元を使うリポジトリを作成します。
+     *
+     * @param snapshotSupplier 読み込み時点のスナップショット供給元
+     */
+    SkillTreeNodeRepository(@NotNull Supplier<RuntimeFilebaseSnapshot> snapshotSupplier) {
+        this(snapshotSupplier, material -> material != Material.AIR && material.isItem());
     }
 
+    /**
+     * スナップショット供給元とアイコン判定を指定します。
+     *
+     * @param snapshotSupplier 読み込み時点のスナップショット供給元
+     * @param usableIconPredicate 使用可能なアイコン素材の判定
+     */
     SkillTreeNodeRepository(
-            @NotNull File rootDirectory,
+            @NotNull Supplier<RuntimeFilebaseSnapshot> snapshotSupplier,
             @NotNull Predicate<Material> usableIconPredicate
     ) {
-        this.fixedRootDirectory = rootDirectory;
+        this.snapshotSupplier = snapshotSupplier;
         this.usableIconPredicate = usableIconPredicate;
     }
 
@@ -65,26 +76,18 @@ public class SkillTreeNodeRepository {
      * ノードJSONをすべて読み込み、ファイル名順の不変スナップショットを返します。
      *
      * @return 検証済みノード定義
-     * @throws IllegalStateException ディレクトリ、JSON、IDまたは効果定義が不正な場合
+     * @throws IllegalStateException スナップショット未公開、JSON、IDまたは効果定義が不正な場合
      */
     public @NotNull List<SkillTreeNodeDefinition> findAll() {
-        File root = fixedRootDirectory == null
-                ? FileDatabaseManager.getInstance().getRootDirectory()
-                : fixedRootDirectory;
-        if (root == null) {
-            throw new IllegalStateException("filebase root is not configured");
-        }
-        File directory = new File(root, RELATIVE_PATH);
-        File[] files = directory.listFiles((ignored, name) -> name.toLowerCase(Locale.ROOT).endsWith(".json"));
-        if (files == null) {
-            throw new IllegalStateException("Skilltree node directory is missing: " + directory.getAbsolutePath());
-        }
-        Arrays.sort(files, Comparator.comparing(File::getName));
-
         Map<String, SkillTreeNodeDefinition> definitions = new LinkedHashMap<>();
         Map<String, String> skillPermissionNodes = new LinkedHashMap<>();
-        for (File file : files) {
-            SkillTreeNodeDefinition definition = parse(file);
+        for (RuntimeFilebaseSnapshot.Entry entry : snapshotSupplier.get().files(RELATIVE_PATH)) {
+            if (!entry.name().toLowerCase(Locale.ROOT).endsWith(".json")
+                    || entry.path().substring(RELATIVE_PATH.length() + 1).indexOf('/') >= 0) {
+                continue;
+            }
+            String file = entry.path();
+            SkillTreeNodeDefinition definition = parse(entry);
             if (definitions.putIfAbsent(definition.nodeId(), definition) != null) {
                 throw SkillTreeJsonReader.invalid(file, "duplicate nodeId '" + definition.nodeId() + "'");
             }
@@ -95,7 +98,7 @@ public class SkillTreeNodeRepository {
 
     private void validateUniqueSkillPermissions(
             @NotNull SkillTreeNodeDefinition definition,
-            @NotNull File file,
+            @NotNull String file,
             @NotNull Map<String, String> skillPermissionNodes
     ) {
         String classId = definition.unlockCondition().classId();
@@ -115,8 +118,9 @@ public class SkillTreeNodeRepository {
         }
     }
 
-    private @NotNull SkillTreeNodeDefinition parse(@NotNull File file) {
-        JsonObject node = SkillTreeJsonReader.readObject(file);
+    private @NotNull SkillTreeNodeDefinition parse(@NotNull RuntimeFilebaseSnapshot.Entry entry) {
+        String file = entry.path();
+        JsonObject node = SkillTreeJsonReader.readObject(entry);
         SkillTreeJsonReader.requireOnlyKeys(node, NODE_KEYS, file, "node");
         String schemaReference = SkillTreeJsonReader.requiredString(node, "$schema", file, "node");
         if (!SCHEMA_REFERENCE.equals(schemaReference)) {
@@ -150,7 +154,7 @@ public class SkillTreeNodeRepository {
         );
     }
 
-    private @NotNull SkillTreeUnlockCondition parseUnlockCondition(@NotNull JsonObject node, @NotNull File file) {
+    private @NotNull SkillTreeUnlockCondition parseUnlockCondition(@NotNull JsonObject node, @NotNull String file) {
         if (!node.has("unlockCondition") || node.get("unlockCondition").isJsonNull()) {
             return SkillTreeUnlockCondition.NONE;
         }
@@ -190,7 +194,7 @@ public class SkillTreeNodeRepository {
         return new SkillTreeUnlockCondition(classId, playerLevel);
     }
 
-    private @NotNull List<SkillTreeNodeEffect> parseEffects(JsonObject node, File file) {
+    private @NotNull List<SkillTreeNodeEffect> parseEffects(JsonObject node, String file) {
         JsonArray effects = SkillTreeJsonReader.requiredArray(node, "effects", file, "node");
         List<SkillTreeNodeEffect> result = new ArrayList<>();
         for (int index = 0; index < effects.size(); index++) {
@@ -214,7 +218,7 @@ public class SkillTreeNodeRepository {
         return List.copyOf(result);
     }
 
-    private @NotNull SkillTreeStatusEffect parseStatusEffect(JsonObject effect, File file, String path) {
+    private @NotNull SkillTreeStatusEffect parseStatusEffect(JsonObject effect, String file, String path) {
         String rawStatus = SkillTreeJsonReader.requiredString(effect, "status", file, path);
         String rawModifier = SkillTreeJsonReader.requiredString(effect, "modifierType", file, path);
         try {
@@ -228,7 +232,7 @@ public class SkillTreeNodeRepository {
         }
     }
 
-    private @NotNull List<String> stringArray(JsonObject object, String key, File file) {
+    private @NotNull List<String> stringArray(JsonObject object, String key, String file) {
         JsonArray values = SkillTreeJsonReader.requiredArray(object, key, file, "node");
         List<String> result = new ArrayList<>();
         for (int index = 0; index < values.size(); index++) {
@@ -241,7 +245,7 @@ public class SkillTreeNodeRepository {
         return List.copyOf(result);
     }
 
-    private @NotNull List<String> tags(JsonObject object, File file) {
+    private @NotNull List<String> tags(JsonObject object, String file) {
         List<String> tags = stringArray(object, "tags", file);
         Set<String> unique = new java.util.LinkedHashSet<>();
         for (int index = 0; index < tags.size(); index++) {
@@ -256,7 +260,7 @@ public class SkillTreeNodeRepository {
         return tags;
     }
 
-    private @NotNull String digitId(JsonObject object, String key, File file, String path) {
+    private @NotNull String digitId(JsonObject object, String key, String file, String path) {
         String value = SkillTreeJsonReader.requiredString(object, key, file, path).trim();
         if (value.length() > 100 || !value.matches("0|[1-9][0-9]*")) {
             throw SkillTreeJsonReader.invalid(
@@ -267,7 +271,7 @@ public class SkillTreeNodeRepository {
         return value;
     }
 
-    private @NotNull Material parseMaterial(String raw, File file) {
+    private @NotNull Material parseMaterial(String raw, String file) {
         Material material = MaterialNameResolver.match(raw);
         if (material == null || !usableIconPredicate.test(material)) {
             throw SkillTreeJsonReader.invalid(file, "node.icon is not a usable item material: " + raw);
@@ -275,7 +279,7 @@ public class SkillTreeNodeRepository {
         return material;
     }
 
-    private @NotNull SkillTreePointType parsePointType(String raw, File file) {
+    private @NotNull SkillTreePointType parsePointType(String raw, String file) {
         return switch (raw) {
             case "CP" -> SkillTreePointType.CLASS_POINT;
             case "PP" -> SkillTreePointType.PASSIVE_POINT;

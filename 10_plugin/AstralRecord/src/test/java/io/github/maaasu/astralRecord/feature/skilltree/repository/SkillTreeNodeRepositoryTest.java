@@ -4,14 +4,12 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffec
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -19,8 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SkillTreeNodeRepositoryTest {
-    @TempDir
-    Path filebaseRoot;
+    private final List<RuntimeFilebaseSnapshot.Entry> entries = new ArrayList<>();
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
@@ -28,7 +25,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: schema v1 JSONのskill/status typed effectを対応modelへ変換する。
      */
     @Test
-    void loadsSchemaV1TypedEffects() throws IOException {
+    void loadsSchemaV1TypedEffects() {
         writeNode("1000.json", nodeJson(
                 "1000",
                 """
@@ -64,7 +61,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: 削除されたloreを未知のnode propertyとして拒否する。
      */
     @Test
-    void rejectsRemovedLore() throws IOException {
+    void rejectsRemovedLore() {
         writeNode("1000.json", nodeJson("1000", "[]").replace(
                 "  \"tags\": [\"root\"],",
                 "  \"lore\": [],\n  \"tags\": [\"root\"],"
@@ -81,7 +78,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: 複数file間で重複するnode IDを全体load失敗にする。
      */
     @Test
-    void rejectsDuplicateNodeIdsAcrossFiles() throws IOException {
+    void rejectsDuplicateNodeIdsAcrossFiles() {
         writeNode("first.json", nodeJson("1000", "[]"));
         writeNode("second.json", nodeJson("1000", "[]"));
 
@@ -99,7 +96,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: 同じclass条件で同じskill使用許可を複数nodeへ定義できない。
      */
     @Test
-    void rejectsDuplicateSkillPermissionsWithSameClassCondition() throws IOException {
+    void rejectsDuplicateSkillPermissionsWithSameClassCondition() {
         String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"adventurer_astral_edge\"}]";
         writeNode("1000.json", nodeJson("1000", skillEffect));
         writeNode("1001.json", nodeJson("1001", skillEffect));
@@ -119,7 +116,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: class条件が異なるnodeには同じskill使用許可を定義できる。
      */
     @Test
-    void allowsSameSkillPermissionForDifferentClassConditions() throws IOException {
+    void allowsSameSkillPermissionForDifferentClassConditions() {
         String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"adventurer_astral_edge\"}]";
         writeNode("1000.json", nodeJson("1000", skillEffect).replace(
                 "\"effects\":",
@@ -141,7 +138,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: schema外legacy propertyと先頭0付きnode IDを拒否する。
      */
     @Test
-    void rejectsLegacyPropertiesAndLeadingZeroIds() throws IOException {
+    void rejectsLegacyPropertiesAndLeadingZeroIds() {
         writeNode("legacy.json", nodeJson("01000", "[]").replace(
                 "\"name\": \"Root\"",
                 "\"positionId\": \"root\",\n  \"name\": \"Root\""
@@ -161,7 +158,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: 0単独を除く先頭0付き数字node IDを拒否する。
      */
     @Test
-    void rejectsNodeIdWithLeadingZero() throws IOException {
+    void rejectsNodeIdWithLeadingZero() {
         writeNode("invalid-id.json", nodeJson("01000", "[]"));
 
         IllegalStateException error = assertThrows(
@@ -178,7 +175,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: 任意current class/player level unlock conditionをmodelへ変換する。
      */
     @Test
-    void loadsOptionalCurrentClassAndPlayerLevelCondition() throws IOException {
+    void loadsOptionalCurrentClassAndPlayerLevelCondition() {
         writeNode("1000.json", nodeJson("1000", "[]").replace(
                 "\"effects\": []",
                 "\"unlockCondition\": {\"classId\": \"hunter\", \"playerLevel\": 25},\n  \"effects\": []"
@@ -196,7 +193,7 @@ class SkillTreeNodeRepositoryTest {
      * 検証契約: 現schemaにないclass level conditionを未知propertyとして拒否する。
      */
     @Test
-    void rejectsClassLevelAsNodeUnlockCondition() throws IOException {
+    void rejectsClassLevelAsNodeUnlockCondition() {
         writeNode("1000.json", nodeJson("1000", "[]").replace(
                 "\"effects\": []",
                 "\"unlockCondition\": {\"classId\": \"hunter\", \"classLevel\": 25},\n  \"effects\": []"
@@ -207,15 +204,13 @@ class SkillTreeNodeRepositoryTest {
         assertTrue(error.getMessage().contains("classLevel"));
     }
 
-    private void writeNode(String fileName, String json) throws IOException {
-        Path directory = filebaseRoot.resolve("35.features.skilltree").resolve("nodes");
-        Files.createDirectories(directory);
-        Files.writeString(directory.resolve(fileName), json, StandardCharsets.UTF_8);
+    private void writeNode(String fileName, String json) {
+        entries.add(new RuntimeFilebaseSnapshot.Entry("35.features.skilltree/nodes/" + fileName, json));
     }
 
     private SkillTreeNodeRepository repository() {
         return new SkillTreeNodeRepository(
-                filebaseRoot.toFile(),
+                () -> new RuntimeFilebaseSnapshot(entries),
                 material -> material != Material.AIR
         );
     }

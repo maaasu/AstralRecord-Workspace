@@ -3,13 +3,13 @@ package io.github.maaasu.astralRecord.feature.spawner.repository;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerDefinition;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerEntry;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerTimeWindow;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -28,24 +28,29 @@ public class MobSpawnerDefinitionRepository {
      */
     @NotNull
     public List<MobSpawnerDefinition> findAll() {
-        File root = FileDatabaseManager.getInstance().getRootDirectory();
-        if (root == null) {
-            return List.of();
-        }
-        File directory = new File(root, RELATIVE_PATH);
-        File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") && !name.endsWith("定義.yml"));
-        if (files == null || files.length == 0) {
-            return List.of();
-        }
-
         List<MobSpawnerDefinition> result = new ArrayList<>();
-        for (File file : files) {
-            MobSpawnerDefinition definition = parse(YamlConfiguration.loadConfiguration(file));
+        for (RuntimeFilebaseSnapshot.Entry entry : RuntimeFilebaseRepository.getInstance()
+                .currentSnapshot().files(RELATIVE_PATH)) {
+            if (!entry.name().endsWith(".yml") || entry.name().endsWith("定義.yml")
+                    || !isDirectChild(entry.path())) {
+                continue;
+            }
+            MobSpawnerDefinition definition = parse(entry.yaml());
             if (definition != null) {
                 result.add(definition);
             }
         }
         return result;
+    }
+
+    /**
+     * 対象マスタディレクトリ直下のファイルか確認します。
+     *
+     * @param path filebase からの相対パス
+     * @return 対象ディレクトリ直下なら真
+     */
+    private boolean isDirectChild(@NotNull String path) {
+        return path.substring(RELATIVE_PATH.length() + 1).indexOf('/') < 0;
     }
 
     /**

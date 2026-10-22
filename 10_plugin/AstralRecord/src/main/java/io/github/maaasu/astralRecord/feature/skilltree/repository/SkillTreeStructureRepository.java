@@ -5,10 +5,10 @@ import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.skilltree.config.SkillTreePluginConfig;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
+import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,10 +16,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /** filebase の読取専用スキルツリー構造JSONリポジトリです。 */
 public class SkillTreeStructureRepository {
-    private static final String RELATIVE_PATH = "35.features.skilltree" + File.separator + "structures";
+    private static final String RELATIVE_PATH = "35.features.skilltree/structures";
     private static final String SCHEMA_REFERENCE = "../schemas/structure.v1.schema.json";
     private static final Set<String> STRUCTURE_KEYS = Set.of(
             "$schema", "schemaVersion", "structureId", "name", "rootNodeId", "nodes", "edges"
@@ -27,14 +28,20 @@ public class SkillTreeStructureRepository {
     private static final Set<String> NODE_KEYS = Set.of("nodeId", "x", "y", "z");
     private static final Set<String> EDGE_KEYS = Set.of("sourceNodeId", "targetNodeId");
 
-    private final File fixedRootDirectory;
+    private final Supplier<RuntimeFilebaseSnapshot> snapshotSupplier;
 
+    /** 現在公開中の API スナップショットを使うリポジトリを作成します。 */
     public SkillTreeStructureRepository() {
-        this.fixedRootDirectory = null;
+        this(RuntimeFilebaseRepository.getInstance()::currentSnapshot);
     }
 
-    SkillTreeStructureRepository(@NotNull File rootDirectory) {
-        this.fixedRootDirectory = rootDirectory;
+    /**
+     * 指定したスナップショット供給元を使うリポジトリを作成します。
+     *
+     * @param snapshotSupplier 読み込み時点のスナップショット供給元
+     */
+    SkillTreeStructureRepository(@NotNull Supplier<RuntimeFilebaseSnapshot> snapshotSupplier) {
+        this.snapshotSupplier = snapshotSupplier;
     }
 
     /**
@@ -42,20 +49,18 @@ public class SkillTreeStructureRepository {
      *
      * @param config 構造選択と配置中心のplugin設定
      * @return 検証済み構造スナップショット
-     * @throws IllegalStateException JSON、座標、参照または到達性が不正な場合
+     * @throws IllegalStateException スナップショット未公開、JSON、座標、参照または到達性が不正な場合
      */
     public @NotNull StructureSnapshot load(@NotNull SkillTreePluginConfig config) {
-        File root = fixedRootDirectory == null
-                ? FileDatabaseManager.getInstance().getRootDirectory()
-                : fixedRootDirectory;
-        if (root == null) {
-            throw new IllegalStateException("filebase root is not configured");
+        String file = RELATIVE_PATH + "/" + config.structureId() + ".json";
+        RuntimeFilebaseSnapshot snapshot = snapshotSupplier.get();
+        RuntimeFilebaseSnapshot.Entry entry;
+        try {
+            entry = snapshot.require(file);
+        } catch (IllegalStateException missing) {
+            throw new IllegalStateException("Skilltree structure is missing: " + file, missing);
         }
-        File file = new File(new File(root, RELATIVE_PATH), config.structureId() + ".json");
-        if (!file.isFile()) {
-            throw new IllegalStateException("Skilltree structure is missing: " + file.getAbsolutePath());
-        }
-        JsonObject structure = SkillTreeJsonReader.readObject(file);
+        JsonObject structure = SkillTreeJsonReader.readObject(entry);
         SkillTreeJsonReader.requireOnlyKeys(structure, STRUCTURE_KEYS, file, "structure");
         String schemaReference = SkillTreeJsonReader.requiredString(structure, "$schema", file, "structure");
         if (!SCHEMA_REFERENCE.equals(schemaReference)) {
@@ -90,7 +95,7 @@ public class SkillTreeStructureRepository {
 
     private Map<String, SkillTreePosition> parsePositions(
             JsonObject structure,
-            File file,
+            String file,
             SkillTreePluginConfig config
     ) {
         JsonArray nodes = SkillTreeJsonReader.requiredArray(structure, "nodes", file, "structure");
@@ -127,7 +132,7 @@ public class SkillTreeStructureRepository {
 
     private Map<String, SkillTreeEdge> parseEdges(
             JsonObject structure,
-            File file,
+            String file,
             Set<String> placedNodeIds
     ) {
         JsonArray edgeRows = SkillTreeJsonReader.requiredArray(structure, "edges", file, "structure");
@@ -153,7 +158,7 @@ public class SkillTreeStructureRepository {
     }
 
     private void validateReachability(
-            File file,
+            String file,
             String rootNodeId,
             Set<String> placedNodeIds,
             Iterable<SkillTreeEdge> edges
@@ -182,7 +187,7 @@ public class SkillTreeStructureRepository {
         }
     }
 
-    private @NotNull String digitId(JsonObject object, String key, File file, String path) {
+    private @NotNull String digitId(JsonObject object, String key, String file, String path) {
         String value = SkillTreeJsonReader.requiredString(object, key, file, path).trim();
         if (value.length() > 100 || !value.matches("0|[1-9][0-9]*")) {
             throw SkillTreeJsonReader.invalid(
