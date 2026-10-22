@@ -1,0 +1,24 @@
+# design:
+#   motif: "天体 / 星図と環状の観測台"
+#   progression: 50
+schemaVersion: 1
+id: astral_observatory
+displayName: "星環の観測台"
+worldType: BOSS_FIELD
+# このIDだけは専用generatorがインスタンスを構築し、原本ワールドの配置を必要としない。
+baseWorldPath: "plugins/AstralRecord/worlds/boss_field/astral_observatory"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss_field/astral_observatory"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 6
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: -18.5
+  yaw: 0.0
+  pitch: 0.0
+description: "星環の観測者との戦いごとに生成される、四方の観測円を持つ円形闘技場。"

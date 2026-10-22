@@ -1,0 +1,83 @@
+# design:
+#   motif: "天体 / 星図と環状の観測台"
+#   progression: 50
+schemaVersion: 1
+id: astraios_star_warden
+type: MOB
+category: BOSS
+name: "&b&l星環の観測者 アストライオス"
+title: "&9―― 星の巡りを測る者 ――"
+level: 50
+entityType: STRAY
+variant:
+  age: ADULT
+  scale: 1.5
+icon: STRAY_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7観測台に星図を刻み、侵入者の足取りを読み取る番人。"
+  - "&7白灯と文字が示す安全域へ移動し、星の裁定を避けよう。"
+  - "&7残り四分の三・半分・四分の一で、無敵の連続観測を行う。"
+  - "&7四方の白灯円、東西と南北の通路、内円と外環を渡れ。"
+  - "&7終盤は対角の安全区画も切り替わる。次の予告を確認しよう。"
+  - "&7観測が終わると十秒間の反撃機会が訪れる。"
+tags:
+  - boss
+  - undead
+  - magic
+equipment:
+  mainHand: END_ROD
+  offHand: AMETHYST_SHARD
+# Lv.50の既存標準敵HP70,400・攻撃8,432・防御7,800を起点とする。
+# ソロHPは8倍、攻撃は約1.2倍、防御は1.15倍。人数HP補正は共通基盤へ委譲する。
+baseStats:
+  - status: MAX_HEALTH
+    value: 563200
+  - status: ATTACK
+    value: 10120
+  - status: DEFENSE
+    value: 8970
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 90
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 40
+    deaggroRange: 48
+    leashRange: 56
+  combat:
+    style: MAGIC
+    preferredRange: 8
+challenge:
+  fieldWorldId: astral_observatory
+  entryLocation:
+    worldId: boss2
+    x: 0.5
+    y: 64.0
+    z: 0.5
+  entryRadius: 3.0
+  playerSpawnLocation:
+    x: 0.5
+    y: 64.0
+    z: -18.5
+  bossSpawnLocation:
+    x: 0.5
+    y: 64.0
+    z: 0.5
+  partyMin: 1
+  partyMax: 6
+  timeLimitSeconds: 900
+  deathLimit: 5
+  reviveDelaySeconds: 5
+drops:
+  exp: 30000

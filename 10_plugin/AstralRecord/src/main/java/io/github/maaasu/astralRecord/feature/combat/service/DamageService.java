@@ -965,7 +965,7 @@ public final class DamageService {
         damage *= temporaryDamageMultiplier(attacker, victim);
         damage *= finalDamageMultiplier(attacker);
 
-        DamageResult result = new DamageResult(damage, false);
+        DamageResult result = capBossBoundaryDamage(victim, new DamageResult(damage, false));
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
         spawnDamageDisplay(attacker, victim, result);
         return result;
@@ -1331,7 +1331,7 @@ public final class DamageService {
                 && calculated.finalDamage() <= 0.0D
                 && isDirectDamage(source)
                 && !hasActiveShield(victim)) {
-            double fixedHealthDamage = fixedHealthDamage(attacker) * seleneaSupportDamageMultiplier(victim);
+            double fixedHealthDamage = fixedHealthDamage(attacker) * bossIncomingDamageMultiplier(victim);
             if (fixedHealthDamage > 0.0D) {
                 justDodgeDamage = calculated.withAddedFixedHealthDamage(
                         fixedHealthDamage);
@@ -1367,8 +1367,9 @@ public final class DamageService {
                 shieldBreakRatio);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(
-                    fixedHealthDamage(attacker) * seleneaSupportDamageMultiplier(victim));
+                    fixedHealthDamage(attacker) * bossIncomingDamageMultiplier(victim));
         }
+        result = capBossBoundaryDamage(victim, result);
         double rawFixedHealthDamage = result.fixedHealthDamage();
         PaladinGuardianProtectRuntimeService.DamageShare protectionShare = null;
         if (victim.isPlayer() && victim.player() != null && paladinGuardianProtectRuntimeService != null) {
@@ -1621,7 +1622,7 @@ public final class DamageService {
             @NotNull AstEntity victim
     ) {
         double reduction = damageReductionMultiplier(victim.statValue(StatusType.DAMAGE_REDUCTION_RATE))
-                * seleneaSupportDamageMultiplier(victim);
+                * bossIncomingDamageMultiplier(victim);
         if (temporarySkillEffectService == null) {
             return reduction;
         }
@@ -1631,9 +1632,9 @@ public final class DamageService {
         return reduction * outgoing * temporarySkillEffectService.incomingMultiplier(victim);
     }
 
-    /** @return 専用魔女の生存写本守による被ダメージ倍率。それ以外は1 */
-    private double seleneaSupportDamageMultiplier(@NotNull AstEntity victim) {
-        return bossMechanicService == null ? 1.0D : bossMechanicService.seleneaSupportDamageMultiplier(victim);
+    /** @return ボス大技中は0、専用魔女の生存写本守に応じた倍率、それ以外は1 */
+    private double bossIncomingDamageMultiplier(@NotNull AstEntity victim) {
+        return bossMechanicService == null ? 1.0D : bossMechanicService.incomingDamageMultiplier(victim);
     }
 
     /**
@@ -1905,16 +1906,11 @@ public final class DamageService {
         var mob = victim.mob();
         if (mob == null) return;
         double healthBefore = mob.currentHealth();
-        double effectiveLifeStealDamage = mob.nonLethal()
-                ? Math.min(
-                        Math.max(0.0D, healthBefore - 1.0D),
-                        Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage())
-                )
-                : Math.min(healthBefore, Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage()));
+        double minimumHealth = minimumMobHealth(mob);
+        double effectiveLifeStealDamage = Math.min(Math.max(0.0D, healthBefore - minimumHealth),
+                Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage()));
         double remainingHealth = healthBefore - result.finalDamage();
-        mob.currentHealth(mob.nonLethal()
-                ? Math.max(1.0D, remainingHealth)
-                : Math.max(0.0D, remainingHealth));
+        mob.currentHealth(Math.max(Math.min(healthBefore, minimumHealth), remainingHealth));
         if (mob.currentHealth() > 0.0D && mobService.fishingCombat() != null)
             mobService.fishingCombat().healthChanged(mob);
         applyLifeSteal(attacker, effectiveLifeStealDamage);
@@ -2427,13 +2423,34 @@ public final class DamageService {
             return Math.min(Math.max(0.0D, victim.currentHealth()), result.finalDamage());
         }
         if (victim.isMob() && victim.mob() != null) {
-            double minimumHealth = victim.mob().nonLethal() ? 1.0D : 0.0D;
+            double minimumHealth = minimumMobHealth(victim.mob());
             return Math.min(
                     Math.max(0.0D, victim.mob().currentHealth() - minimumHealth),
                     result.finalDamage()
             );
         }
         return 0.0D;
+    }
+
+    /**
+     * 非致死とボス大技のHP境界を一か所で解決し、実ダメージ集計・吸収・実HPへ同じ下限を適用します。
+     * @param mob 被弾個体 @return 許容する最小HP。対象外の通常Mobは0
+     */
+    private double minimumMobHealth(@NotNull io.github.maaasu.astralRecord.feature.mob.model.MobInstance mob) {
+        return Math.max(mob.nonLethal() ? 1.0D : 0.0D,
+            bossMechanicService == null ? 0.0D : bossMechanicService.minimumHealthAfterDamage(mob));
+    }
+
+    /**
+     * 観測のHP境界を超える成分を適用・表示前に除き、HUD・脅威値・固定成分も実被害へ揃えます。
+     * @param victim 被弾者 @param result シールド処理と固定成分加算後の結果
+     * @return 対象外では元の結果、境界で止まる場合はHP成分だけを縮小した結果
+     */
+    private DamageResult capBossBoundaryDamage(@NotNull AstEntity victim, @NotNull DamageResult result) {
+        if (!victim.isMob() || victim.mob() == null || bossMechanicService == null || result.finalDamage() <= 0
+            || bossMechanicService.minimumHealthAfterDamage(victim.mob()) <= 0) return result;
+        double applied = effectiveHealthDamage(victim, result);
+        return applied >= result.finalDamage() ? result : result.withScaledHealthDamage(applied / result.finalDamage());
     }
 
     private void completeShieldRechargeIfReady(@NotNull AstEntity victim, long nowMs) {

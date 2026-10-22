@@ -168,6 +168,8 @@ public final class BossMechanicService {
     private final KnockerEncounterController knockerEncounterController;
     private final SeleneaEncounterController seleneaEncounterController;
     private final SeleneaSupportController seleneaSupportController;
+    private final AstraiosEncounterController astraiosEncounterController;
+    private final Map<UUID, Set<UUID>> astraiosDirectParticipants = new HashMap<>();
     private final Map<UUID, Set<UUID>> seleneaDirectParticipants = new HashMap<>();
     private final Map<UUID, Long> seleneaRangeNoticeUntil = new HashMap<>();
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
@@ -245,6 +247,10 @@ public final class BossMechanicService {
             this::knockerParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MELEE, DamageElement.NONE, ratio)
         );
+        this.astraiosEncounterController = new AstraiosEncounterController(
+            mobService, particleDisplayService, this::astraiosParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio, 1000.0D)
+        );
         this.seleneaEncounterController = new SeleneaEncounterController(
             mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio),
@@ -275,12 +281,13 @@ public final class BossMechanicService {
     }
 
     /**
-     * 大技の開始待ち・発動中は無敵、生存写本守がある場合はその割合で軽減します。
+     * ボス大技の開始待ち・発動中は無敵、生存写本守がある場合はその割合で軽減します。
      * @param victim 被弾対象
-     * @return 専用魔女では0〜1、それ以外では1
+     * @return 大技保護中は0、専用魔女では0〜1、それ以外では1
      */
-    public double seleneaSupportDamageMultiplier(@NotNull AstEntity victim) {
+    public double incomingDamageMultiplier(@NotNull AstEntity victim) {
         if (!victim.isMob() || victim.mob() == null) return 1.0D;
+        if (astraiosEncounterController.protectedNow(victim.mob())) return 0.0D;
         if (seleneaEncounterController.ultimateProtected(victim.mob())) return 0.0D;
         try {
             return seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks);
@@ -288,6 +295,14 @@ public final class BossMechanicService {
             Logger.log(LogId.E_6509, exception, victim.id());
             return 1.0D;
         }
+    }
+
+    /**
+     * 未完了の観測儀式を一撃で飛ばさないため、共通ダメージ処理へHP下限を渡します。
+     * @param boss 被弾個体 @return アストライオスの次の境界HP、対象外は0
+     */
+    public double minimumHealthAfterDamage(@NotNull MobInstance boss) {
+        return astraiosEncounterController.healthFloor(boss);
     }
 
     /**
@@ -358,6 +373,8 @@ public final class BossMechanicService {
         seleneaEncounterController.clear(bossInstanceId);
         seleneaSupportController.clear(bossInstanceId);
         seleneaDirectParticipants.remove(bossInstanceId);
+        astraiosEncounterController.clear(bossInstanceId);
+        astraiosDirectParticipants.remove(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -397,6 +414,8 @@ public final class BossMechanicService {
         seleneaEncounterController.clearAll();
         seleneaSupportController.clearAll();
         seleneaDirectParticipants.clear();
+        astraiosEncounterController.clearAll();
+        astraiosDirectParticipants.clear();
         seleneaRangeNoticeUntil.clear();
     }
 
@@ -417,6 +436,7 @@ public final class BossMechanicService {
         Set<UUID> activeGreatroots = new HashSet<>();
         Set<UUID> activeKnockers = new HashSet<>();
         Set<UUID> activeSeleneas = new HashSet<>();
+        Set<UUID> activeAstraioses = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
@@ -425,12 +445,29 @@ public final class BossMechanicService {
             boolean selenea = SeleneaEncounterController.BOSS_ID.equals(boss.template().id());
             boolean ventos = VentosEncounterController.BOSS_ID.equals(boss.template().id());
             boolean greatroot = GreatrootEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot)
+            boolean astraios = AstraiosEncounterController.BOSS_ID.equals(boss.template().id());
+            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot && !astraios)
                 || boss.currentHealth() <= 0.0D) {
                 continue;
             }
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                continue;
+            }
+
+            if (astraios) {
+                activeAstraioses.add(boss.instanceId());
+                if (!bossChallengeService.isBossMob(boss.instanceId())
+                    && (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE)) {
+                    astraiosEncounterController.clear(boss.instanceId());
+                    astraiosDirectParticipants.remove(boss.instanceId());
+                } else {
+                    boolean canAct = conditionService.canRunAi(AstEntity.mob(boss))
+                        && conditionService.canCastSkill(AstEntity.mob(boss))
+                        && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId()));
+                    astraiosEncounterController.tick(boss, entity, clockTicks, canAct,
+                        bossChallengeService.isBossMob(boss.instanceId()) || dungeonService.isDungeonMob(boss.instanceId()));
+                }
                 continue;
             }
 
@@ -627,6 +664,8 @@ public final class BossMechanicService {
         seleneaEncounterController.retain(activeSeleneas);
         seleneaSupportController.retain(activeSeleneas);
         seleneaDirectParticipants.keySet().retainAll(activeSeleneas);
+        astraiosEncounterController.retain(activeAstraioses);
+        astraiosDirectParticipants.keySet().retainAll(activeAstraioses);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -2677,6 +2716,21 @@ public final class BossMechanicService {
      * @return 専用会場制約のないMobはtrue。対象ボスでは場内参加者または直接召喚の初撃だけtrue
      */
     public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (victim.isMob() && AstraiosEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (owner == null || !damageService.isMobCombatTarget(owner.getBukkit())
+                || owner.getBukkit().getGameMode() == org.bukkit.GameMode.CREATIVE
+                || owner.getBukkit().getGameMode() == org.bukkit.GameMode.SPECTATOR
+                || !AstraiosArena.contains(owner.getBukkit().getLocation(), victim.mob().spawnLocation())) return false;
+            MobInstance boss = victim.mob();
+            if (!bossChallengeService.isBossMob(boss.instanceId()) && !dungeonService.isDungeonMob(boss.instanceId())) {
+                astraiosDirectParticipants.computeIfAbsent(boss.instanceId(), ignored -> {
+                    Party party = partyService.findParty(owner.getBukkit().getUniqueId());
+                    return party == null ? Set.of(owner.getBukkit().getUniqueId()) : Set.copyOf(party.members());
+                });
+            }
+            return astraiosParticipants(boss).contains(owner.getBukkit());
+        }
         if (victim.isMob() && greatrootEncounterController.ownsAdd(victim.id())) {
             MobInstance ownerBoss = greatrootEncounterController.ownerForAdd(victim.id());
             var owner = attacker == null ? null : attacker.combatOwner();
@@ -2790,6 +2844,27 @@ public final class BossMechanicService {
             .filter(player -> player.getGameMode() != org.bukkit.GameMode.CREATIVE
                 && player.getGameMode() != org.bukkit.GameMode.SPECTATOR)
             .filter(player -> GreatrootArena.contains(player.getLocation(), boss.spawnLocation())).toList();
+    }
+
+    /**
+     * 観測台の確定参加者を返します。場外への逃走者も境界判定のため40m・高さ±8mまで追跡します。
+     * @param boss 所有個体 @return 生存する戦闘参加者。見学者・別world・別ダンジョン部屋は除外
+     */
+    private @NotNull List<Player> astraiosParticipants(@NotNull MobInstance boss) {
+        Set<UUID> ids = bossChallengeService.isBossMob(boss.instanceId())
+            ? bossChallengeService.participantIdsForBossMob(boss.instanceId())
+            : dungeonService.isDungeonMob(boss.instanceId())
+                ? dungeonService.resolveMobRewardRecipients(boss.instanceId()).stream()
+                    .map(p -> p.getBukkit().getUniqueId()).collect(java.util.stream.Collectors.toSet())
+                : astraiosDirectParticipants.getOrDefault(boss.instanceId(), Set.of());
+        Location center = boss.spawnLocation();
+        return ids.stream().map(Bukkit::getPlayer).filter(java.util.Objects::nonNull)
+            .filter(damageService::isMobCombatTarget)
+            .filter(p -> p.getGameMode() != org.bukkit.GameMode.CREATIVE && p.getGameMode() != org.bukkit.GameMode.SPECTATOR)
+            .filter(p -> p.getWorld() == center.getWorld() && Math.abs(p.getY() - center.getY()) <= 8.0D
+                && horizontalDistanceSquared(p.getLocation(), center) <= 40.0D * 40.0D)
+            .filter(p -> !dungeonService.isDungeonMob(boss.instanceId())
+                || dungeonService.canApplyCombatDamage(damageService.resolveEntity(p), AstEntity.mob(boss))).toList();
     }
 
     /**
