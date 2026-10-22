@@ -207,10 +207,11 @@ function New-ApiTlsHttpUpdateArguments($Binding,[string]$Thumbprint) {
         $null -ne $Binding.DefaultSslCtlIdentifier -or $null -ne $Binding.DefaultSslCtlStoreName -or
         $Binding.DefaultFlags -ne 0) { throw 'The API binding has nondefault policy; inspect it before updating the certificate.' }
     $null=ConvertTo-ApiTlsHttpBindingJson $Binding $Thumbprint
+    # Send only the certificate selectors. The invocation with explicit policy
+    # switches was rejected on APP-01. Accept only defaults above, then require
+    # the caller's full binding comparison before accepting this update.
     return @('http','update','sslcert',"ipport=$script:ApiBindingKey",("certhash="+$Thumbprint.ToUpperInvariant()),
-        ("appid="+$Binding.GuidString),("certstorename="+$Binding.SslCertStoreName),
-        'verifyclientcertrevocation=enable','verifyrevocationwithcachedclientcertonly=disable','usagecheck=enable',
-        'revocationfreshnesstime=0','urlretrievaltimeout=0','dsmapperusage=disable','clientcertnegotiation=disable')
+        ("appid="+$Binding.GuidString),("certstorename="+$Binding.SslCertStoreName))
 }
 
 function Set-ApiTlsHttpBinding($Binding,[string]$Thumbprint,[string]$DiagnosticPath) {
@@ -247,7 +248,8 @@ function Assert-ApiTlsIisBinding {
 
 function Test-ApiTlsHealth {
     foreach ($url in @('https://app-01:444/api/health','https://192.168.0.88:444/api/health')) {
-        $response=Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck -TimeoutSec 10 -NoProxy -ErrorAction Stop
+        # The first request can start IIS and the startup master-data seed.
+        $response=Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck -TimeoutSec 120 -NoProxy -ErrorAction Stop
         if ($response.StatusCode -notin @(200,401)) { throw "TLS health endpoint returned unexpected status for $url." }
     }
 }

@@ -48,6 +48,14 @@ function ConvertTo-CutoverApiSettings([string]$Json) {
     return $document.ToJsonString([Text.Json.JsonSerializerOptions]@{WriteIndented=$true})
 }
 
+function Assert-CutoverPoolIdentity($ProcessModel) {
+    # IIS exposes manualGroupMembership through ConfigurationElement's attribute
+    # API, not as an ApplicationPoolProcessModel CLR property.
+    $manualMembership=$ProcessModel.GetAttributeValue('manualGroupMembership')
+    if ($ProcessModel.IdentityType.ToString() -cne 'ApplicationPoolIdentity' -or
+        $manualMembership -isnot [bool] -or $manualMembership) { throw 'A nonstandard API pool identity requires an access review.' }
+}
+
 function Assert-CutoverAccessRules($Rules,[string[]]$IdentitySids) {
     $allowed=[Security.AccessControl.FileSystemRights]0
     foreach ($rule in $Rules) {
@@ -83,4 +91,4 @@ function New-CutoverPrivateDirectory([string]$Path) {
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
-Export-ModuleMember -Function Assert-CutoverLocalPath,Get-CutoverFileManifest,Assert-CutoverFileManifest,ConvertTo-CutoverApiSettings,Assert-CutoverAccessRules,ConvertFrom-CutoverUtcTimestamp,New-CutoverPrivateDirectory
+Export-ModuleMember -Function Assert-CutoverLocalPath,Get-CutoverFileManifest,Assert-CutoverFileManifest,ConvertTo-CutoverApiSettings,Assert-CutoverPoolIdentity,Assert-CutoverAccessRules,ConvertFrom-CutoverUtcTimestamp,New-CutoverPrivateDirectory

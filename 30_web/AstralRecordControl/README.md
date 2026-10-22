@@ -17,6 +17,8 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 
 P1のプロセス運転はJava/Velocityの独立した基本運転です。VelocityはWeb/Agent/Runnerを対応版へ更新し、Hostの`P1.Velocity`能力を確認してから使用します。画面の「サーバー台帳」→Proxy→「操作・ログ」から起動できます。Velocityのタブは設定と操作・ログです。P3では同一Host/Serverの予約実行、監視、Webhook通知を追加しました。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrockのプロセス運転、更新Adapter・別PCへのServer複製/移送はP4以降です。非対応設定や操作を開始済みとして扱いません。
 
+CLIの`login`にはControl管理画面と同じ管理者アカウントを使います。パスワードは入力した文字数だけ`*`を表示し、Backspaceで修正できます。失敗時はHTTPステータスや接続・ローカル権限の区分だけを表示し、応答本文、資格情報、例外メッセージは出力しません。
+
 ## プロジェクト
 
 | 配置 | 責務 |

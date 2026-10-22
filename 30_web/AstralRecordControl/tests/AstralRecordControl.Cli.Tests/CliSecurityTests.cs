@@ -9,6 +9,48 @@ namespace AstralRecordControl.Cli.Tests;
 public sealed class CliSecurityTests
 {
     [Fact]
+    public void PasswordInputMasksCharactersAndSupportsCorrectionWithoutEchoingSecret()
+    {
+        var keys = new Queue<ConsoleKeyInfo>([
+            new('\0', ConsoleKey.Backspace, false, false, false),
+            new('a', ConsoleKey.A, false, false, false),
+            new('x', ConsoleKey.X, false, false, false),
+            new('\b', ConsoleKey.Backspace, false, false, false),
+            new('\t', ConsoleKey.Tab, false, false, false),
+            new('b', ConsoleKey.B, false, false, false),
+            new('\r', ConsoleKey.Enter, false, false, false)]);
+        using var output = new StringWriter();
+        Assert.Equal("ab", ControlCli.ReadMaskedSecret(() => keys.Dequeue(), output));
+        Assert.Equal("**\b \b*" + Environment.NewLine, output.ToString());
+    }
+
+    [Fact]
+    public void PasswordInputKeepsExistingLengthLimit()
+    {
+        var count = 0;
+        using var output = new StringWriter();
+        var password = ControlCli.ReadMaskedSecret(() => ++count <= 1025
+            ? new('s', ConsoleKey.S, false, false, false)
+            : new('\r', ConsoleKey.Enter, false, false, false), output);
+        Assert.Equal(1024, password.Length);
+        Assert.Equal(new string('*', 1024) + Environment.NewLine, output.ToString());
+    }
+
+    [Theory]
+    [InlineData(401)][InlineData(403)][InlineData(429)]
+    public void HttpFailureDiagnosticsExposeOnlyStatus(int status)
+        => Assert.Equal("HTTP_" + status, ControlCli.GetSafeFailureCode(
+            new HttpRequestException("sensitive-fixture-body", null, (System.Net.HttpStatusCode)status)));
+
+    [Fact]
+    public void TransportAndLocalFailureDiagnosticsDoNotExposeExceptionMessages()
+    {
+        Assert.Equal("HTTPS_CONNECTION", ControlCli.GetSafeFailureCode(new HttpRequestException("sensitive-fixture-body")));
+        Assert.Equal("LOCAL_ACCESS", ControlCli.GetSafeFailureCode(new UnauthorizedAccessException("sensitive-fixture-path")));
+        Assert.Equal("LOCAL_CREDENTIAL", ControlCli.GetSafeFailureCode(new System.Security.Cryptography.CryptographicException("sensitive-fixture-value")));
+    }
+
+    [Fact]
     public void ProtectedSessionRoundTripsWithRestrictedAclAndCannotBeReadAsPlaintext()
     {
         var root = Path.Combine(Path.GetTempPath(), "control-cli-" + Guid.NewGuid().ToString("N"));

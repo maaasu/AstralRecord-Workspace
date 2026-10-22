@@ -71,7 +71,7 @@ try {
     $pool=$serverManager.ApplicationPools['AstralRecordApiPool']
     if (!$site -or !$pool -or $site.Applications['/'].ApplicationPoolName -ne $pool.Name -or [Environment]::ExpandEnvironmentVariables($site.Applications['/'].VirtualDirectories['/'].PhysicalPath).TrimEnd('\') -ine $apiRoot) { throw 'The IIS site, pool, or physical path differs.' }
     if ($pool.State.ToString() -ne 'Started') { throw 'The API pool must be healthy and started before cutover.' }
-    if ($pool.ProcessModel.IdentityType.ToString() -ne 'ApplicationPoolIdentity' -or $pool.ProcessModel.ManualGroupMembership) { throw 'A nonstandard API pool identity requires an access review.' }
+    Assert-CutoverPoolIdentity $pool.ProcessModel
     $poolSid=[Security.Principal.NTAccount]::new('IIS AppPool\AstralRecordApiPool').Translate([Security.Principal.SecurityIdentifier]).Value
     $aclPaths=@($newRoot)+@($expected.files.Keys | ForEach-Object { Join-Path $newRoot $_ })+@(Get-ChildItem -LiteralPath $newRoot -Directory -Recurse | ForEach-Object { $_.FullName })
     foreach ($path in $aclPaths) {
@@ -138,6 +138,10 @@ try {
     $report.success=$true
 } catch {
     $report.errorType=$_.Exception.GetType().FullName
+    # Keep diagnostics actionable without reporting HTTP bodies, settings, or keys.
+    $report['errorScript']=[IO.Path]::GetFileName($_.InvocationInfo.ScriptName)
+    $report['errorLine']=$_.InvocationInfo.ScriptLineNumber
+    $report['errorStack']=$_.ScriptStackTrace
     # Once startup seed may have run, restoring settings would silently seed old data.
     # Keep the API stopped and retain the reservation for deliberate recovery instead.
     if ($apiVerified) {

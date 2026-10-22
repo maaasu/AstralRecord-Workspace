@@ -79,11 +79,41 @@ try {
     $updateArguments=@(New-ApiTlsHttpUpdateArguments $defaultPolicy $nextThumbprint)
     if ('certhash=ABCDEF0123456789ABCDEF0123456789ABCDEF01' -cnotin $updateArguments -or
         'ipport=0.0.0.0:444' -cnotin $updateArguments -or @($updateArguments | Where-Object { $_ -like 'json=*' }).Count) { throw 'The update arguments did not use the supported certificate parameters.' }
+    $expectedArguments=@('http','update','sslcert','ipport=0.0.0.0:444',
+        'certhash=ABCDEF0123456789ABCDEF0123456789ABCDEF01',
+        'appid={4dc3e181-e14b-4a21-b022-59fc669b0914}','certstorename=My')
+    if (($updateArguments -join '|') -cne ($expectedArguments -join '|')) { throw 'The certificate update unexpectedly supplied optional policy switches.' }
     $customPolicy=$defaultPolicy | ConvertTo-Json | ConvertFrom-Json -AsHashtable
     $customPolicy.DefaultFlags=1
     Assert-Throws { New-ApiTlsHttpUpdateArguments $customPolicy $nextThumbprint } 'A nondefault policy would have been overwritten.'
     $customPolicy.DefaultFlags=0; $customPolicy['UnknownPolicy']=1
     Assert-Throws { New-ApiTlsHttpUpdateArguments $customPolicy $nextThumbprint } 'An unknown policy field would have been ignored.'
+    $healthBody=(Get-Command Test-ApiTlsHealth).Definition
+    $healthFixture=New-Module -ArgumentList $healthBody -ScriptBlock {
+        param($body)
+        Invoke-Expression ('function Test-ApiTlsHealth {'+$body+'}')
+        $script:requests=[Collections.Generic.List[string]]::new()
+        $script:status=200; $script:transportFailure=$false
+        function Invoke-WebRequest {
+            param($Uri,$Method,[switch]$SkipHttpErrorCheck,$TimeoutSec,[switch]$NoProxy,$ErrorAction)
+            if ($Method -cne 'Get' -or !$SkipHttpErrorCheck -or !$NoProxy -or $TimeoutSec -ne 120 -or $ErrorAction -cne 'Stop') { throw 'Incorrect health request policy.' }
+            $script:requests.Add($Uri)
+            if ($script:transportFailure) { throw 'Injected TLS failure' }
+            return @{StatusCode=$script:status}
+        }
+        Export-ModuleMember -Function Test-ApiTlsHealth
+    }
+    & $healthFixture {
+        Test-ApiTlsHealth
+        if (($script:requests -join ',') -cne 'https://app-01:444/api/health,https://192.168.0.88:444/api/health') { throw 'Both API identities were not checked.' }
+        $script:status=401; Test-ApiTlsHealth
+        $script:status=500
+        $rejected=$false; try { Test-ApiTlsHealth } catch { $rejected=$true }
+        if (!$rejected) { throw 'An unhealthy API was accepted.' }
+        $script:status=200; $script:transportFailure=$true
+        $rejected=$false; try { Test-ApiTlsHealth } catch { $rejected=$true }
+        if (!$rejected) { throw 'A failed TLS connection was accepted.' }
+    }
     # Isolate recovery fault injection from Windows. Native calls are forbidden
     # in this module even if a mock is accidentally bypassed.
     $restoreBody=(Get-Command Restore-ApiTlsHttpBinding).Definition

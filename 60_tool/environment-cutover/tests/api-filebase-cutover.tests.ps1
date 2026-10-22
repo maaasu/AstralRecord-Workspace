@@ -39,6 +39,20 @@ try {
     $rejected=$false
     try { $null=ConvertTo-CutoverApiSettings ($original.Replace('C:\\server\\FileDatabase\\file','D:\\unknown')) } catch { $rejected=$true }
     if (!$rejected) { throw 'An unexpected active root was accepted.' }
+    $processModel=[pscustomobject]@{IdentityType='ApplicationPoolIdentity';ManualMembership=$false}
+    $processModel | Add-Member ScriptMethod GetAttributeValue {
+        param($name)
+        if ($name -cne 'manualGroupMembership') { throw 'Unexpected IIS attribute name.' }
+        return $this.ManualMembership
+    }
+    Assert-CutoverPoolIdentity $processModel
+    foreach ($case in @(@{identity='ApplicationPoolIdentity';manual=$true},
+        @{identity='LocalSystem';manual=$false},@{identity='ApplicationPoolIdentity';manual=$null})) {
+        $processModel.IdentityType=$case.identity; $processModel.ManualMembership=$case.manual
+        $rejected=$false
+        try { Assert-CutoverPoolIdentity $processModel } catch { $rejected=$true }
+        if (!$rejected) { throw 'An unverified application pool identity was accepted.' }
+    }
     $readRule=[pscustomobject]@{IdentityReference=@{Value='pool'};FileSystemRights=[Security.AccessControl.FileSystemRights]::ReadAndExecute;AccessControlType='Allow';PropagationFlags=[Security.AccessControl.PropagationFlags]::None}
     $rejected=$false
     try { Assert-CutoverAccessRules @($readRule) @('pool') } catch { $rejected=$true }

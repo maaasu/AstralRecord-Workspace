@@ -99,7 +99,7 @@ if ($before.thumbprint -ceq $leaf.Thumbprint) {
     return
 }
 $backup=Join-Path $env:ProgramData ('AstralRecordControl\api-tls-'+[Guid]::NewGuid().ToString('N'))
-$null=New-ApiTlsHttpUpdateArguments $before.raw $leaf.Thumbprint
+$report['nativeUpdateArguments']=@(New-ApiTlsHttpUpdateArguments $before.raw $leaf.Thumbprint)
 New-ApiTlsPrivateDirectory $backup
 $backupPath=Join-Path $backup 'http-sys-before.json'
 $afterPath=Join-Path $backup 'http-sys-after.json'

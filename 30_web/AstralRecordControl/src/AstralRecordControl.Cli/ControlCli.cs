@@ -42,7 +42,7 @@ public static class ControlCli
                         probe.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", previous.Token);
                         using var response = await probe.GetAsync("/api/control/v1/auth/cli-token", HttpCompletionOption.ResponseHeadersRead);
                         if (response.IsSuccessStatusCode) { Console.WriteLine("CLIはこのControlにログイン済みです。"); return 0; }
-                        if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized) throw new HttpRequestException();
+                        if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized) throw new HttpRequestException(null, null, response.StatusCode);
                     }
                     File.Delete(localSessionPath);
                 }
@@ -144,9 +144,22 @@ public static class ControlCli
         catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException or Win32Exception or System.ServiceProcess.TimeoutException)
         {
             // Remote bodies, commands, credentials and exception messages are never echoed.
-            Console.Error.WriteLine("Control CLI処理を拒否しました。設定、認証期限、予約状態を確認してください。"); return 1;
+            Console.Error.WriteLine($"Control CLI処理を拒否しました ({GetSafeFailureCode(exception)})。設定、認証期限、予約状態を確認してください。"); return 1;
         }
     }
+    public static string GetSafeFailureCode(Exception exception) => exception switch
+    {
+        HttpRequestException { StatusCode: { } status } => "HTTP_" + (int)status,
+        HttpRequestException => "HTTPS_CONNECTION",
+        OperationCanceledException => "TIMEOUT",
+        UnauthorizedAccessException or System.Security.SecurityException => "LOCAL_ACCESS",
+        CryptographicException => "LOCAL_CREDENTIAL",
+        IOException => "LOCAL_IO",
+        JsonException => "INVALID_RESPONSE",
+        ArgumentException or FormatException => "INVALID_ARGUMENT",
+        Win32Exception => "WINDOWS_OPERATION",
+        _ => "STATE_CHECK"
+    };
     public static Dictionary<string, string> ParseOptions(string[] args)
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -335,7 +348,7 @@ public static class ControlCli
         if (body is not null) message.Content = new StringContent(ControlJson.Serialize(body), Encoding.UTF8, "application/json");
         if (requestId.HasValue) { message.Headers.Add("Idempotency-Key", requestId.Value.ToString()); message.Headers.IfNoneMatch.Add(EntityTagHeaderValue.Any); }
         var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead);
-        if (!response.IsSuccessStatusCode) { response.Dispose(); throw new HttpRequestException(); }
+        if (!response.IsSuccessStatusCode) { var status = response.StatusCode; response.Dispose(); throw new HttpRequestException(null, null, status); }
         return response;
     }
     public static async Task<T> RunnerAsync<T>(string pipeName, string method, object body)
@@ -359,8 +372,25 @@ public static class ControlCli
     }
     private static string ReadSecret(string prompt)
     {
-        Console.Error.Write(prompt); var input = new StringBuilder();
-        while (true) { var key = Console.ReadKey(true); if (key.Key == ConsoleKey.Enter) { Console.Error.WriteLine(); return input.ToString(); } if (key.Key == ConsoleKey.Backspace) { if (input.Length > 0) input.Length--; } else if (!char.IsControl(key.KeyChar) && input.Length < 1024) input.Append(key.KeyChar); }
+        Console.Error.Write(prompt);
+        return ReadMaskedSecret(() => Console.ReadKey(true), Console.Error);
+    }
+    public static string ReadMaskedSecret(Func<ConsoleKeyInfo> readKey, TextWriter output)
+    {
+        var input = new StringBuilder();
+        while (true)
+        {
+            var key = readKey();
+            if (key.Key == ConsoleKey.Enter) { output.WriteLine(); return input.ToString(); }
+            if (key.Key == ConsoleKey.Backspace)
+            {
+                if (input.Length > 0) { input.Length--; output.Write("\b \b"); }
+            }
+            else if (!char.IsControl(key.KeyChar) && input.Length < 1024)
+            {
+                input.Append(key.KeyChar); output.Write('*');
+            }
+        }
     }
 }
 

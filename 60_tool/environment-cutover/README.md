@@ -6,7 +6,9 @@
 
 2026-10-20の実管理画面で、共有Environment `astralrecord-shared`（`f97e8617-b7df-4980-adbd-36918949bf79`）を登録しました。Devを対応付け、ユーザーの登録許可を受けてChannel1/Channel2/Buildも実配置へ登録しました。Dev・Build・Channel1・Channel2・Lobby・Proxyの6件すべてで設定適用を確認済みです。23:08 JSTにAPP-01/DEV-01/MC-01の接続中と、APP-01の希望/適用版1/1、root報告を確認しました。
 
-管理者レポートではMC-01は22:17 JSTに全ゲーム停止・Session/holdなし、DEV-01は22:19 JSTにDev稼働中でした。その後両PCのAgentを復旧し、APP-01は23:05 JSTに受動Runner/Agentの設定と起動が成功しました。APP-01の初回markerとDEV-01の追加rootは未導入です。APIの起動時seedは有効で、参照先とIIS証明書の切替は未実行です。これらは確認時点の事実であり、切替時には再確認します。
+2026-10-22にAPP-01／MC-01のRunner・Agentを起動して、3台の接続を管理画面で確認しました。Dev・Build・Channel1・Channel2はStopped、Sessionなしです。DEV-01の追加workspace rootは同日17:23 JSTに適用成功を確認済みです。以下の値と実行記録は確認時点の結果として扱い、運用時には現在状態を再確認します。
+
+同日17:57 JSTにAPI証明書の切替が成功しました。`APP-01-api-tls-20261022T085715579Z-d6b90d9e88e9498c989afe7363208ebb.json`は`BoundAndVerified`、新leafは`925424304CBDDF2FB4D40FCB00D0BF708DC437B3`です。DEV-01は17:59、MC-01は17:58 JSTに`TrustVerified`となり、Windowsと登録済みJavaでDNS名・IP双方の通常TLS検証が成功しています。APP-01の初回markerとTools更新も完了しました。18:12 JSTにはFilebase全2,185件、IIS権限、認証付きTLSの事前確認が成功しました。参照先のApplyはCLI初回ログイン待ちです。
 
 | 項目 | 実台帳で確認した値 |
 |---|---|
@@ -22,7 +24,7 @@
 | Build Server | `4c0ca2c4-a943-4ad2-aaf4-cef78f3d3824` |
 | Channel1 Server | `c242cc49-17d2-4543-bb15-aa67eb3e8be4` |
 | Channel2 Server | `108487e9-51e4-4166-81b1-f2dba4adf80b` |
-| DEV追加root（準備値） | `f9c06531-2e7e-40f2-b03a-ee2ee9ebe5aa` → `C:\AstralRecord-Workspace` |
+| DEV追加root（適用済み） | `f9c06531-2e7e-40f2-b03a-ee2ee9ebe5aa` → `C:\AstralRecord-Workspace` |
 | APP追加root（報告済み） | `99a1c3c4-dafc-4fc8-9a8b-b3aad1c1ecee` → `C:\app-01` |
 
 旧`astral-servers.plan.json`のServer GUIDは現在の実台帳と異なるため、実設定へ流用しません。登録済みサーバーを同名で作り直さず、現在のIDと適用ACKを確認して設定します。
@@ -43,7 +45,7 @@ pwsh -NoProfile -File .\Get-EnvironmentFacts.ps1 -CliPath '<現行CLIの絶対�
 - MC-01: `E:\mc-01\ControlDeployment\EnvironmentCutover\MC-01-environment-facts.json`
 - DEV-01: `C:\AstralRecord-Worktrees\logs\EnvironmentCutover\DEV-01-environment-facts.json`
 
-部分的に収集できない項目は`errorType`だけを記録し、終了コード1を返します。エラーを無視して切替を始めません。既存のCLI候補はDEV-01の`C:\AstralRecord-Worktrees\.tools\control-password-simplification\Release\Cli\AstralRecordControl.Cli.exe`です。APP/MCでは、現地に配置した現行パッケージ内のCLIを使用します。
+部分的に収集できない項目は`errorType`だけを記録し、終了コード1を返します。エラーを無視して切替を始めません。DEV-01の現行CLIは`C:\AstralRecord-Worktrees\.tools\managed-tool-setup\Cli\AstralRecordControl.Cli.exe`です。APP-01の今回の切替では`C:\app-01\ControlDeployment\Cutover-20261022\CliVisible\AstralRecordControl.Cli.exe`を使用します。管理者から見えないユーザープロファイル内の実行ファイルをlocal設定へ指定しません。
 
 ## 反映の順序
 
@@ -67,6 +69,8 @@ HTTP.sysのJSON取得中だけコンソール出力をUTF-8へ合わせ、終了
 
 証明書の更新・復元は実機helpで対応している`ipport`・`certhash`・`appid`等の引数を使います。今回確認した既定policy以外の値や未知の項目がある場合は変更前に停止します。更新コマンドの出力を保存し、終了コード0だけでは成功と判断せず、再取得したbinding全体と通常TLSの接続結果を確認します。
 
+APP-01では既定policyを明示する旧コマンドが引数エラーになったため、更新には証明書選択に必要な7引数だけを使用します。17:54 JSTの実機実行では更新後のbinding全体の一致と、後続のhealthタイムアウト後の旧binding復元が確認できました。初回IIS起動とstartup seedが10秒を超えたため、通常TLS healthの応答待ちを120秒へ延長しています。レポートには公開値だけの`nativeUpdateArguments`も記録します。
+
 CAは10年、API証明書は1年で、今回のAPI証明書は2027-10-20 UTCまでです。期限前にAPP-01で証明書を更新し、CAを失った場合は新CAへの入替が必要です。自動更新タスクはこの作業では作成していません。
 
 ## Filebase切替スクリプト
@@ -74,6 +78,8 @@ CAは10年、API証明書は1年で、今回のAPI証明書は2027-10-20 UTCま�
 `New-FilebaseCutoverManifest.ps1`はリポジトリのYAML/JSONをSHA-256で固定します。`99.work`は配布と同じく除外します。生成したmanifest自体のSHA-256をAPP-01の呼出しへ指定します。
 
 `Set-ApiFilebaseRoot.ps1`はAPP-01管理者PowerShell 7専用です。既定の`-Phase Preflight`では、新配置のハッシュ、IIS pool identityとFilebaseの読書き権限、設定上書き、通常TLSとAPIキー認証を確認します。`api-filebase-cutover.example.json`は今回の実台帳IDを記載したControl設定例で、APP追加rootとmarkerの正規導入・全Hostの適用ACK確認後に使用します。
+
+IISの`manualGroupMembership`は`ProcessModel.GetAttributeValue`から取得し、標準ApplicationPoolIdentityかつBooleanのfalseの場合だけ共通グループのアクセス権を確認します。取得不能・不明値では進みません。失敗レポートには原因のスクリプト名・行番号・PowerShellの呼出し位置を残し、HTTP本文・設定値・APIキー・例外メッセージは出力しません。
 
 `-Phase Apply -AdmissionClosed -AutomaticWritersStopped`は、利用者入場と自動書込を運用者が止めた後だけ指定します。全4RPGのStoppedを正規Control予約で再確認してからAPI poolを停止し、秘密を含む設定原本を`%ProgramData%\AstralRecordEnvironmentCutover`のSYSTEM/Administrators専用領域へ退避します。変更する設定値は`FileDatabase.RootPath`だけです。再起動後は新rootからの起動時seed、成功したseed run ID、MasterData health、同じFilebaseハッシュを確認します。
 
