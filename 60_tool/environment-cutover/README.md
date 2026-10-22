@@ -8,7 +8,9 @@
 
 2026-10-22にAPP-01／MC-01のRunner・Agentを起動して、3台の接続を管理画面で確認しました。Dev・Build・Channel1・Channel2はStopped、Sessionなしです。DEV-01の追加workspace rootは同日17:23 JSTに適用成功を確認済みです。以下の値と実行記録は確認時点の結果として扱い、運用時には現在状態を再確認します。
 
-同日17:57 JSTにAPI証明書の切替が成功しました。`APP-01-api-tls-20261022T085715579Z-d6b90d9e88e9498c989afe7363208ebb.json`は`BoundAndVerified`、新leafは`925424304CBDDF2FB4D40FCB00D0BF708DC437B3`です。DEV-01は17:59、MC-01は17:58 JSTに`TrustVerified`となり、Windowsと登録済みJavaでDNS名・IP双方の通常TLS検証が成功しています。APP-01の初回markerとTools更新も完了しました。18:12 JSTにはFilebase全2,185件、IIS権限、認証付きTLSの事前確認が成功しました。参照先のApplyはCLI初回ログイン待ちです。
+同日17:57 JSTにAPI証明書の切替が成功しました。`APP-01-api-tls-20261022T085715579Z-d6b90d9e88e9498c989afe7363208ebb.json`は`BoundAndVerified`、新leafは`925424304CBDDF2FB4D40FCB00D0BF708DC437B3`です。DEV-01は17:59、MC-01は17:58 JSTに`TrustVerified`となり、Windowsと登録済みJavaでDNS名・IP双方の通常TLS検証が成功しています。APP-01の初回markerとTools更新、CLIログインも完了しました。19:12 JSTの再確認ではFilebase全2,185件、IIS権限、認証付きTLSの事前確認が成功しています。
+
+同日19:12 JSTのApplyは、予約取得後のcontextにCLI標準出力が混入する不具合で、API停止前に失敗しました。API設定は旧rootのままです。共通gateはinspect以外のCLI標準出力を戻り値から除外し、新規取得・継承・再開・解放の回帰検査を追加しました。実行済みの予約は保護leaseとControlを照合し、設定原本との一致と旧APIの正常稼働を確認してから失敗として解放し、新しい事前確認に基づいて切替を行います。切替完了までは入場・自動更新の停止を続けます。
 
 | 項目 | 実台帳で確認した値 |
 |---|---|

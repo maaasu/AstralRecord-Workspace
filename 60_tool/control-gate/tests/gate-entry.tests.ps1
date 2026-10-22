@@ -32,6 +32,9 @@ if ($command -eq 'gate acquire') {
     $central=Join-Path (Split-Path $log) ("central-$($lease.reservationId).json")
     $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath $leaseFile
     $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath $central
+    $lease | ConvertTo-Json -Depth 8
+} elseif ($command -eq 'gate validate') {
+    Write-Output 'Gate validated.'
 } elseif ($command -in @('gate inspect','gate release')) {
     $lease=Get-Content -Raw -Encoding UTF8 -LiteralPath $leaseFile | ConvertFrom-Json
     $central=Join-Path (Split-Path $log) ("central-$($lease.reservationId).json")
@@ -42,6 +45,7 @@ if ($command -eq 'gate acquire') {
         if ($env:MOCK_GATE_RELEASE_RESPONSE_LOST -eq '1') { $global:LASTEXITCODE=1; return }
         $lease.status='Released'
         $lease | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -LiteralPath $leaseFile
+        Write-Output 'Gate released.'
     } else { $current | ConvertTo-Json -Depth 8 }
 }
 $global:LASTEXITCODE=0
@@ -72,6 +76,7 @@ $global:LASTEXITCODE=0
     $bad.controlGate.bindings.paths=@()
     Assert-Throws { Enter-ControlGate $bad '01' @('dev') @($path) 'Stopped' }
     $context=Enter-ControlGate $config '01' @('dev') @($path) 'Stopped' -RunReference 'run-1'
+    if (@($context).Count -ne 1) { throw 'CLI output contaminated the acquired gate context.' }
     if (!$context.Owner -or !(Test-Path -LiteralPath $context.LeaseFile)) { throw 'Gate lease was not acquired.' }
     $request=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $temp 'request.json') | ConvertFrom-Json
     if ($request.adapterId -cne '01' -or $request.mode -cne 'Maintenance' -or $request.serverConditions[0].requiredState -cne 'Stopped' -or
@@ -80,11 +85,12 @@ $global:LASTEXITCODE=0
     $lines=@(Get-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG)
     if (@($lines | Where-Object { $_ -like 'gate|acquire|*' }).Count -ne 1) { throw 'Expected one central acquire.' }
     $child=Enter-ControlGate $config '01' @('dev') @($path) 'Stopped'
+    if (@($child).Count -ne 1) { throw 'CLI output contaminated the inherited gate context.' }
     if ($child.Owner) { throw 'Child reacquired a reservation.' }
-    Assert-ControlGateStep $child 'Deploy'
+    if (@(Assert-ControlGateStep $child 'Deploy').Count) { throw 'Gate validation leaked CLI output.' }
     Complete-ControlGate $child 'run-1'
     if (!(Test-Path -LiteralPath $context.LeaseFile)) { throw 'Child removed the parent lease.' }
-    Complete-ControlGate $context 'run-1'
+    if (@(Complete-ControlGate $context 'run-1').Count) { throw 'Gate release leaked CLI output.' }
     $lines=@(Get-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG)
     if (@($lines | Where-Object { $_ -like 'gate|release|*' }).Count -ne 1) { throw 'Expected one release.' }
     $running=Enter-ControlGate $config '03' @('dev') @($path) 'Running' -RunReference 'run-03' -InitialStep 'Seed'
@@ -98,6 +104,11 @@ $global:LASTEXITCODE=0
     $runRoot=Join-Path $temp 'runs'; New-Item -ItemType Directory -Path $runRoot | Out-Null
     $run=New-ControlGateRunReference $runRoot
     $lost=Enter-ControlGate $config '01' @('dev') @($path) 'Stopped' -RunReference $run
+    [Environment]::SetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE',$null,'Process')
+    $resumed=Enter-ControlGate $config '01' @('dev') @($path) 'Stopped' -RunReference $run `
+        -WorkflowId $lost.WorkflowId -ReservationId $lost.ReservationId
+    if (@($resumed).Count -ne 1 -or $resumed.WorkflowId -cne $lost.WorkflowId -or
+        $resumed.ReservationId -cne $lost.ReservationId) { throw 'CLI output contaminated the resumed gate context.' }
     New-Item -ItemType Directory -Path $run | Out-Null
     $savedLease=Get-Content -Raw -Encoding UTF8 -LiteralPath $lost.LeaseFile | ConvertFrom-Json
     @{schemaVersion=1;relativeRunDirectory=[IO.Path]::GetFileName($run);status='Completed'} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $runRoot 'active-run.json')

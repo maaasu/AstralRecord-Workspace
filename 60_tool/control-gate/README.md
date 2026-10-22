@@ -31,4 +31,6 @@ Managedでは設定の`controlGate`に`mode`、Control CLIの絶対パス、固�
 
 Control CLIは先に`login --server-url <HTTPS origin>`で対話ログインします。password/tokenをBAT引数や設定ファイルへ入れません。gateは全資源の中央予約とRunner holdを取得し、各段階で再検証します。子プロセスは同じleaseを継承します。leaseはユーザー専用の`%LOCALAPPDATA%\AstralRecordControl\GateLeases`に保存し、失敗や状態不明では解放しません。01/16は開始前にrun pathを決めて予約へ渡し、再開時は同じworkflowId/予約と既存run記録を照合します。17のPreview/Commitは同じRunDirectoryとAPI要求IDを使い、各段階で別のControl予約を取得します。
 
+`Enter-ControlGate`の戻り値は単一のcontextです。CLIの取得結果や検証・解放の確認文は戻り値へ流さず、inspectだけJSONを取得します。予約取得後に呼出し側が失敗した場合も、再取得を繰り返さず、保護leaseと実予約を照合してから復旧します。
+
 Managedの停止条件はRunnerのsnapshotで確認します。01/02/16と03停止モードはStopped、03稼働中モードと17はRunningが必要です。`-ServersStopped`等は従来の運用者宣言として残し、gateの停止証明には使用しません。RunnerがUnmanaged、Hostがオフライン、Control CLIやbindingが未設定、予約状態が不明なら配布やAPI変更を開始しません。
