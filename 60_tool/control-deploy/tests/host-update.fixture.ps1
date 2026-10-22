@@ -7,14 +7,17 @@ $source = Join-Path $PSScriptRoot '..\Update-ControlHost.ps1'
 $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$parseErrors)
 if ($parseErrors.Count) { throw 'Host updater has parse errors.' }
-$function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-ControlHostUpdate' }, $true)
-. ([scriptblock]::Create($function.Extent.Text))
+foreach ($functionName in @('Resolve-ControlHostPackage','Invoke-ControlHostUpdate')) {
+    $function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $functionName }, $true)
+    . ([scriptblock]::Create($function.Extent.Text))
+}
 $global:ControlHostFixtureCalls = [Collections.Generic.List[string]]::new()
 $global:ControlHostFixturePreflights = [Collections.Generic.List[string]]::new()
 $script:missingPackage = ''
 $global:ControlHostFixtureFailure = ''
 $global:ControlHostFixtureBadRegistration = ''
 $global:ControlHostFixtureExitCode = 0
+$global:ControlHostFixturePaths = [Collections.Generic.List[string]]::new()
 function Get-ControlAbsolutePath([string]$Path) { [IO.Path]::GetFullPath($Path) }
 function Assert-ControlPackage([string]$Path, [string]$Component) {
     if ($Component -eq $script:missingPackage) { throw 'Incomplete fixture package.' }
@@ -33,6 +36,8 @@ param([string]$Component,[string]$PackageDirectory,[string]$CliPath)
 if ($Component -eq $global:ControlHostFixtureBadRegistration) { throw 'Unexpected fixture service identity.' }
 if ($Component -eq $global:ControlHostFixtureFailure) { throw 'Running fixture server refused.' }
 if ($Component -eq 'Runner' -and !$CliPath) { throw 'Runner CLI was not passed.' }
+$global:ControlHostFixturePaths.Add($PackageDirectory)
+if ($CliPath) { $global:ControlHostFixturePaths.Add($CliPath) }
 if ($WhatIfPreference) { $global:ControlHostFixturePreflights.Add($Component); return }
 $global:ControlHostFixtureCalls.Add($Component)
 $global:LASTEXITCODE = $global:ControlHostFixtureExitCode
@@ -46,6 +51,26 @@ function Assert-Refusal([scriptblock]$Action,[string]$Message) {
     catch { if ($_.Exception.Message -ne $Message) { throw } }
 }
 try {
+    $binding = Join-Path $root 'update-host.json'
+    $deployment = Join-Path $root 'Deployment'
+    New-Item -ItemType Directory -Path $deployment | Out-Null
+    Copy-Item -LiteralPath (Join-Path $root 'Update-Control.ps1') -Destination $deployment
+    $localPackage = Join-Path $root 'Package'
+    @{ computerName='APP-01'; localPackageDirectory=$localPackage } | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $binding
+    $sharedPackage = '\\APP-01\app-01\ControlDeployment\ControlUpdate-20261022\Package'
+    if ((Resolve-ControlHostPackage $sharedPackage APP-01 $deployment) -ne $localPackage) { throw 'Same-host UNC package was not mapped to its local path.' }
+    try { Resolve-ControlHostPackage $sharedPackage DEV-01 $deployment; throw 'Wrong-host update was accepted.' }
+    catch { if ($_.Exception.Message -notlike '*APP-01用*DEV-01上*共有先のPCでは自動実行されません*') { throw } }
+    Assert-Calls ''
+    if ((Resolve-ControlHostPackage $localPackage APP-01 $deployment) -ne $localPackage) { throw 'Local package path was changed.' }
+    Invoke-ControlHostUpdate -PackageDirectory $sharedPackage -ComputerName APP-01 -DeploymentDirectory $deployment
+    Assert-Calls 'Runner,Agent,Web'
+    if ($global:ControlHostFixturePaths.Where({ $_.StartsWith('\\') }).Count) { throw 'UNC reached the component updater.' }
+    $global:ControlHostFixtureCalls.Clear()
+    @{ computerName='APP-01'; localPackageDirectory='\\APP-01\app-01\Package' } | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $binding
+    Assert-Refusal { Resolve-ControlHostPackage $sharedPackage APP-01 $deployment } 'update-host.jsonの対象PC・ローカル配置先を確認してください。'
+    Remove-Item -LiteralPath $binding
+    Assert-Refusal { Resolve-ControlHostPackage $sharedPackage APP-01 $deployment } '共有パスから実行されています。更新対象PCに接続し、そのPC内のUpdate-Control.batを管理者として実行してください。'
     foreach ($hostName in @('APP-01','MC-01','DEV-01')) {
         $global:ControlHostFixtureCalls.Clear()
         $global:ControlHostFixturePreflights.Clear()

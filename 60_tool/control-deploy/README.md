@@ -118,6 +118,8 @@ Hello→Reconcile後にHostがOnlineになり、登録root/executableが表示�
 
 `Update-Control.bat`はPowerShell 7とパッケージを同梱した配置フォルダの入口です。フォルダ直下にBAT、`Runtime/PowerShell/pwsh.exe`とその配布ファイル、`Deployment/Update-ControlHost.ps1`・`Update-Control.ps1`・`Control.Deployment.psm1`、`Package/Web|Agent|Runner|Cli`を配置します。BATを右クリックして「管理者として実行」するだけで、APP-01はRunner→Agent→Web、MC-01/DEV-01はRunner→Agentの順に更新します。作業ディレクトリやPATHに依存しません。
 
+配置先ごとに直下の`update-host.json`へ`computerName`とPC内の絶対パス`localPackageDirectory`を保存します。別PCから共有上のBATを開いても、その共有先PCでは実行されません。対象PCが違う場合は更新前にPC名と正しいローカルBATパスを案内して拒否します。対象PC自身で共有パスから開いた場合は登録済みのPC内パスへ解決し、既存UpdaterへUNCを渡しません。登録がない共有パスは日本語でPC内からの実行を案内します。
+
 更新開始前に対象サービス・全対象パッケージ・既存設定を検査します。Runnerは既存の停止確認を使用するため、全管理サーバーがStopped、Session/holdなしの場合だけ更新します。ゲームの自動停止や強制終了は行いません。失敗時は後続の更新を中断し、BATの終了コードと配置フォルダ内の`Logs`に結果を残します。初回登録、パスワード、トークンの再入力は不要です。
 
 ### コンポーネント別の更新

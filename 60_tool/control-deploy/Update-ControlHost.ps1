@@ -4,6 +4,28 @@ param([Parameter(Mandatory)][string]$PackageDirectory)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Resolve-ControlHostPackage {
+    param([string]$PackageDirectory, [string]$ComputerName, [string]$DeploymentDirectory)
+    $binding = Join-Path (Split-Path -Parent $DeploymentDirectory) 'update-host.json'
+    if (Test-Path -LiteralPath $binding -PathType Leaf) {
+        $settings = Get-Content -Raw -Encoding UTF8 -LiteralPath $binding | ConvertFrom-Json -AsHashtable
+        if ($settings -isnot [Collections.IDictionary] -or !$settings.Contains('computerName') -or !$settings.Contains('localPackageDirectory') -or
+            $settings.computerName -notin @('APP-01','MC-01','DEV-01') -or
+            ![IO.Path]::IsPathFullyQualified([string]$settings.localPackageDirectory) -or ([string]$settings.localPackageDirectory).StartsWith('\\')) {
+            throw 'update-host.jsonの対象PC・ローカル配置先を確認してください。'
+        }
+        if ($ComputerName -ine $settings.computerName) {
+            $bat = [IO.Path]::Combine([IO.Path]::GetDirectoryName([string]$settings.localPackageDirectory), 'Update-Control.bat')
+            throw "このBATは$($settings.computerName)用ですが、現在は$($ComputerName)上で実行されています。$($settings.computerName)に接続し、$bat を管理者として実行してください。共有先のPCでは自動実行されません。"
+        }
+        if ($PackageDirectory.StartsWith('\\')) { return Get-ControlAbsolutePath ([string]$settings.localPackageDirectory) }
+    }
+    if ($PackageDirectory.StartsWith('\\')) {
+        throw '共有パスから実行されています。更新対象PCに接続し、そのPC内のUpdate-Control.batを管理者として実行してください。'
+    }
+    return Get-ControlAbsolutePath $PackageDirectory
+}
+
 function Invoke-ControlHostUpdate {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -17,7 +39,7 @@ function Invoke-ControlHostUpdate {
         'DEV-01' { @('Runner', 'Agent') }
         default { throw 'この更新はAPP-01・MC-01・DEV-01用です。' }
     }
-    $package = Get-ControlAbsolutePath $PackageDirectory
+    $package = Resolve-ControlHostPackage $PackageDirectory $ComputerName $DeploymentDirectory
     $cli = Join-Path $package 'Cli\AstralRecordControl.Cli.exe'
     $null = Assert-ControlPackage (Join-Path $package 'Cli') 'Cli'
     $update = Join-Path $DeploymentDirectory 'Update-Control.ps1'
@@ -55,16 +77,19 @@ if ($MyInvocation.InvocationName -ne '.') {
         if (-not [Security.Principal.WindowsPrincipal]::new($identity).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
             throw 'Update-Control.batを右クリックし「管理者として実行」を選択してください。'
         }
+        Import-Module (Join-Path $PSScriptRoot 'Control.Deployment.psm1') -Force
+        $computerName = [Environment]::MachineName
+        $PackageDirectory = Resolve-ControlHostPackage $PackageDirectory $computerName $PSScriptRoot
+        $deploymentDirectory = Join-Path (Split-Path -Parent $PackageDirectory) 'Deployment'
         $logDirectory = Join-Path (Split-Path -Parent $PackageDirectory) 'Logs'
         New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
-        $log = Join-Path $logDirectory ($env:COMPUTERNAME + '-' + [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss-fff') + '.log')
+        $log = Join-Path $logDirectory ($computerName + '-' + [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss-fff') + '.log')
         Start-Transcript -LiteralPath $log -ErrorAction Stop | Out-Null
         $transcribing = $true
-        Import-Module (Join-Path $PSScriptRoot 'Control.Deployment.psm1') -Force
-        Invoke-ControlHostUpdate -PackageDirectory $PackageDirectory -ComputerName $env:COMPUTERNAME -DeploymentDirectory $PSScriptRoot -WhatIf:$WhatIfPreference
+        Invoke-ControlHostUpdate -PackageDirectory $PackageDirectory -ComputerName $computerName -DeploymentDirectory $deploymentDirectory -WhatIf:$WhatIfPreference
     } catch {
         Write-Host "更新を中断しました: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host 'Runner更新には全管理サーバーの正常停止が必要です。稼働中・管理外・保守中の場合はControl画面で状態を確認してください。'
+        Write-Host 'サーバーの起動・停止はControlの「サーバー」→対象サーバー→「操作・ログ」から行います。'
         exit 1
     } finally {
         if ($transcribing) { Stop-Transcript | Out-Null }
