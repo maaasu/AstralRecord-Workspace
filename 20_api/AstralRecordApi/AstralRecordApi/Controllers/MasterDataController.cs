@@ -11,8 +11,17 @@ namespace AstralRecordApi.Controllers;
 public class MasterDataController(
     IMasterDataSeeder seeder,
     IMasterDataRepository repository,
-    IMasterDataFileService files) : ControllerBase
+    IMasterDataFileService files,
+    IRuntimeFilebaseRepository runtimeFilebase) : ControllerBase
 {
+    /// <summary>Plugin 実行時に必要な filebase 定義を一括取得する</summary>
+    /// <response code="200">定義ファイルの一貫したスナップショット</response>
+    [HttpGet("runtime-filebase")]
+    [ProducesResponseType<RuntimeFilebaseSnapshotResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RuntimeFilebaseSnapshotResponse>> GetRuntimeFilebase(
+        CancellationToken cancellationToken)
+        => Ok(await runtimeFilebase.GetSnapshotAsync(cancellationToken));
+
     [HttpGet("files")]
     public ActionResult<IReadOnlyList<MasterDataFileSummaryResponse>> ListFiles([FromQuery] string? directory)
         => Ok(files.List(directory));

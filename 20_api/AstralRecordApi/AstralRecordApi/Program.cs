@@ -150,6 +150,7 @@ builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IMarketPriceService, MarketPriceService>();
 builder.Services.AddScoped<IMarketListingLimitService, MarketListingLimitService>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
+builder.Services.AddScoped<IRuntimeFilebaseRepository, RuntimeFilebaseRepository>();
 builder.Services.AddScoped<IMasterDataSeeder, MasterDataSeeder>();
 builder.Services.AddSingleton<IMasterDataFileService, MasterDataFileService>();
 builder.Services.AddSingleton(TimeProvider.System);
