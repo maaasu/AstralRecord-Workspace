@@ -101,11 +101,19 @@ DEV-01の`deploy-debug.local.json`を作成し、01/02/03/10に共通のManaged�
 
 同日の実管理画面ではAPP-01とDEV-01が接続中、MC-01は未接続（最終報告2026-10-21 17:11 JST）でした。Server GUID、共有Environment、APP/MC/DEVの既存rootは切替記録と一致しています。一方、DEV-01の追加root `f9c06531-2e7e-40f2-b03a-ee2ee9ebe5aa`（`C:\AstralRecord-Workspace`）は未報告でした。01/03のFilebase配布元と16のnetwork配布元のbindingには、この追加rootを使用しています。
 
-実行再開には、Dev停止・Session/holdなしを確認後、管理者として`environment-cutover/Update-ControlCutoverHost.ps1 -Phase ConfigureResources`でDEV追加rootを導入し、管理画面のroot報告を確認します。MC-01の接続復旧も必要です。DEV-01の通常Windowsユーザーでは、正式インストール済みの`%LOCALAPPDATA%\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe`でログイン再利用の成功を確認し、3設定の`cliPath`をこの実体に揃えました。ブラウザのログインはCLIのログインと別です。管理markerを削除したりLegacyへ戻したりして解消しないでください。
+実行再開には、Dev停止・Session/holdなしを確認後、管理者として`environment-cutover/Update-ControlCutoverHost.ps1 -Phase ConfigureResources`でDEV追加rootを導入し、管理画面のroot報告を確認します。MC-01の接続復旧も必要です。DEV-01の通常Windowsユーザーでは、正式インストール済みの`%LOCALAPPDATA%\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe`でログイン再利用の成功を確認しました。その後の管理者側でのCLI参照先とroot登録の確認結果は下記を参照してください。ブラウザのログインはCLIのログインと別です。管理markerを削除したりLegacyへ戻したりして解消しないでください。
 
 通常フォルダーへlocal3件を反映した後、管理markerとのTool root一致とManaged判定、01/02/03のBATの`-Plan`、16のBATのPlan、10のBATの`-PreflightOnly`は成功しました。実配布や予約取得は行っていません。同日のAPIへの通常TLS接続では証明書名不一致と信頼チェーンエラーが継続し、配置済み設定の`FileDatabase:RootPath`も旧`C:\server\FileDatabase\file`でした。01/03の再開には[切替手順](environment-cutover/README.md)に従った証明書とFilebase参照先の切替も必要です。
 
 設定のbinding整合とPlanの成功は、実台帳へのroot登録・接続状態・停止状態・APIのTLS/Filebase切替完了を保証しません。下記の検査と[切替手順](environment-cutover/README.md)を区別します。
+
+#### 同日17:33 JSTの追跡確認
+
+管理者実行時の`InvalidCliPath`は、上記ユーザープロファイル内のCLIが管理者側から確認できなかったことが原因でした。正規CLIパッケージを`C:\AstralRecord-Worktrees\.tools\managed-tool-setup\Cli`へ配置し、全357ファイルのSHA-256一致と通常ユーザーでのログイン再利用を確認しました。パッケージへ資格情報をコピーせず、local3件の`controlGate.cliPath`と管理者用セットアップのCLI参照先をこの配置へ揃えました。
+
+続く`RunnerSafetyCheckFailed`では、読み取り専用snapshotがDevの`Running`、Sessionあり、holdなしを返しました。Agentを起動してControlとの接続を戻し、17:10:11 JSTにDevの正常停止成功とSessionなしを確認しました。17:23:44 JSTの`DEV-01-control-cutover-ConfigureResources.json`は`success=true`、`stage=Completed`となり、17:33 JSTのControl画面でも追加root `f9c06531-2e7e-40f2-b03a-ee2ee9ebe5aa`の報告、希望/適用版4/4、DEV-01接続中を確認しています。Agent/Runnerの両サービスも稼働中です。
+
+同じ画面ではAPP-01（最終報告16:19 JST）とMC-01（同14:10 JST）は未接続でした。APIの通常TLS接続は証明書名不一致・信頼チェーンエラーが継続し、配置済み設定のFilebase参照先も旧パスのままです。DEV追加rootの登録完了だけで、共有APIを更新する01/03や全体配布16の再開可能とは扱いません。
 
 ```powershell
 # APIへの要求や配置を行わない計画
