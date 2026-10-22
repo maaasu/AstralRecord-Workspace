@@ -23,7 +23,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 - `structures/`: ノード ID と中心座標からの相対座標、接続を管理する。
 - `schemas/`: JSON Schema Draft 2020-12 による構文検証契約を管理する。
 - `node-id-sequence.json`: エディターが最後に発行したノード ID を管理する。Plugin は読み込まない。
-- `40_filebase/config.yml` の `database[]` には SkillTree を登録しない。MasterDataDB Seeder は YAML を対象としており、Plugin と開発者用エディターが本ディレクトリを直接読み込む。
+- `40_filebase/config.yml` の `database[]` には SkillTree を登録しない。MasterDataDB Seeder は YAML を対象とする。開発者用エディターは本ディレクトリを読み書きし、稼働 Plugin は API の `GET /api/master-data/runtime-filebase` で `nodes/` と `structures/` の JSON テキストを取得する。
 
 ## 共通ルール
 
@@ -178,7 +178,7 @@ JSON Schema による型・必須項目検証に加え、エディターのバ�
 - ステータス候補とタグ候補の日本語表示は各共有カタログのTypeScript生成物、スキル情報は`30.features.skill`の読取結果を使用し、JSONにはIDだけを保存する。
 - キャンバス上のノード表示サイズはWeb UIのローカル設定とし、構造JSONには保存しない。
 - ノード定義、配置、接続の編集と JSON 書き込みはエディターだけが行う。
-- エディターが更新する Plugin 設定はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` とし、稼働環境の `plugins/AstralRecord/config.yml` へ直接書き込まない。稼働環境へ filebase と設定をデプロイまたは同期した後、`/masterdata reload` で反映する。
-- Plugin は選択された node/structure JSON を読み取り専用で使用し、ゲーム内操作から構造ファイルを書き換えない。
-- Plugin の `/masterdata reload` は node/structure JSON を再読込し、検証済みスナップショットを一括反映する。
+- エディターが更新する Plugin 設定はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` とし、稼働環境の `plugins/AstralRecord/config.yml` へ直接書き込まない。filebase は API の `FileDatabase:RootPath` 配下へ配置し、Plugin 設定を稼働環境へ反映した後、`/masterdata reload` で取得する。各 Minecraft サーバーへの filebase 配布は不要とする。
+- Plugin は API から取得した node/structure JSON をメモリ上で読み取り専用で使用し、ゲーム内操作から構造ファイルを書き換えない。
+- Plugin の `/masterdata reload` は API から node/structure JSON を再取得し、他の移行対象マスタとともに検証済みスナップショットを一括反映する。失敗時は旧スナップショットを維持する。
 - プレイヤー別の解放ノードと CP 消費元クラスは `account-skilltree` API/DB に保存し、構造 JSON や Plugin ローカルファイルには保存しない。

@@ -8,13 +8,12 @@
 |:--|:--|
 | 言語 | Java / Kotlin |
 | API | PaperAPI および関連ライブラリ |
-| データベース | SQL Server（T-SQL） |
-| ORM | JetBrains Exposed |
+| データベース | AstralRecord API を介した SQL Server（T-SQL） |
 | 外部 Web API | AstralRecord API (`E:\AstralRecord-Workspace\20_api\AstralRecordApi`) |
 
 ## データ管理方針
 
-データの性質に応じて保存先を厳格に区別します。ただし、DB への直接接続・直接アクセスは原則禁止し、AstralRecord API 経由でデータを操作することを基本方針とします。
+データの性質に応じて保存先を厳格に区別します。Plugin は SQL Server に直接接続せず、動的データも静的マスタも AstralRecord API 経由で取得・更新します。
 
 | データ種別 | 内容例 | 管理場所 | ディレクトリパス |
 |:--|:--|:--|:--|
@@ -24,6 +23,10 @@
 - SQL Server 定義は `E:\AstralRecord-Workspace\00_docs\40_Database設計書` を参照する。
 - file 系マスタデータは `E:\AstralRecord-Workspace\40_filebase` を参照する。
 - API 仕様は [API_GUIDE.md](API_GUIDE.md) と `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` を参照する。
+
+移行対象の SkillTree node/structure、shop、recipe、quest/quest_board、gathering/gathering spawner、mob spawner、dungeon は API の `GET /api/master-data/runtime-filebase` から一括取得する。Plugin は起動時に非同期で取得し、マスタ再読込時にも取得し直す。元の YAML/JSON テキストをメモリ上で既存 parser に渡し、Plugin 側へマスタのファイルコピーを作らない。取得・解析・検証を終えた準備 snapshot だけを一括公開し、失敗時は旧 snapshot を維持する。Plugin 自身の `config.yml`、world/map、管理者が設置した配置情報などのローカルファイルは引き続き Plugin が管理する。
+
+Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQL/File/YamlDb 接続基盤は使用しない。API 側の `FileDatabase:RootPath` は維持し、先に API と filebase を配置してから Plugin を展開する。各 Minecraft サーバーへ移行対象マスタを配布する必要はない。item/skill の既存 API と、Plugin が公開済み SkillTree runtime snapshot を API へ登録する世代運用は維持する。
 
 ## マスターデータ自動再読込
 
@@ -59,7 +62,7 @@
 ## コーディングルール
 
 - 機能追加は `feature/<feature>/` 配下に閉じる。
-- DB アクセスは repository 層に閉じる。生 SQL や ORM を feature 側に直接書かない。
+- データアクセスは repository 層に閉じる。Plugin から SQL Server へ直接接続せず、生 SQL や ORM を使用しない。
 - API・DB 契約に関わる変更は、関連プロジェクト（`20_api/AstralRecordApi` / `00_docs/40_Database設計書` / `40_filebase`）との同期更新の要否を必ず確認する。
 - enum で管理済みの値（種別名・表示名・コードなど）の文字列ハードコーディングは禁止。
 - `System.out.println` の使用は禁止。ログ出力は既存の logger 経由で行う。
@@ -124,12 +127,11 @@
 
 ## 共通基盤の設定スナップショットと入力正規化
 
-### Filebase YAML 設定スナップショット
+### APIマスタ原稿スナップショット
 
-- `YamlDbConfigUtil.loadSnapshot(rootDir)` は `<rootDir>/config.yml` を読み、共有 cache へ公開しない。
-- `YamlDbConfigUtil.withSnapshot` は準備済み `YamlDbConfig` を呼出スレッドと action の実行中だけ公開し、共有済み cache を変更しない。
-- action の正常終了・例外終了にかかわらず、実行後は直前の thread-local snapshot を復元し、直前値がない場合は thread-local を除去する。
-- `getConfig` は action 中の準備済み snapshot、共有 cache、再読込の順で解決する。
+- `GET /api/master-data/runtime-filebase` の一括応答を既存 parser に渡す間は、準備済みデータを呼出スレッドの thread-local にだけ公開し、共有済み snapshot を変更しない。
+- 正常終了・例外終了にかかわらず、準備処理後は直前の thread-local を復元し、直前値がない場合は除去する。
+- 全対象の取得・解析・検証に成功した場合だけ共有 snapshot を公開する。失敗時に空の成功結果へ置き換えず、共有 cache を変更せずに直前の公開済み snapshot を保つ。
 
 ### Legacy color code 正規化
 

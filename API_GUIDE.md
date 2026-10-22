@@ -16,7 +16,7 @@
 - `ConnectionStrings:MasterData`: MasterDataDB 接続文字列
 - `ConnectionStrings:History`: HistoryDB 接続文字列
 - `ConnectionStrings:Management`: 長期保持用ManagementDB接続文字列。空ならSqlServerのDB名だけManagementDBへ変更する。ゲームDBリセットの対象に含めない。
-- `FileDatabase:RootPath`: 静的データファイルのルートパス
+- `FileDatabase:RootPath`: API 側の静的データファイルのルートパス。runtime filebase 配信にも使用する
 - `Network:AuthoritySyncKey`: Proxyの旧YAML初回bootstrap用専用キー（移行前だけ旧authorities PUTも許可）
 - `Network:ModerationKey`: RPG `/ban` の更新専用キー。RPG `api.networkModerationKey`と一致させ、共通APIキーと分離する
 - `SkillTreeRuntime:MigrationKey`: スキルツリー世代の定義確認・候補取得・明示移行専用キー。Plugin runtimeキー、共通APIキーと分離する
@@ -34,6 +34,7 @@
 | エンドポイント | 役割 | ドキュメント |
 |---|---|---|
 | GET `/api/health` | ヘルスチェック | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
+| GET `/api/master-data/runtime-filebase` | Plugin 用の移行対象 YAML/JSON を一括配信 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.01-取得系.md` |
 | `/api/defense/admin/*`・`/api/defense/runtime/*` | 防衛戦のチャンネル設定・開催管理・Plugin報告・段階報酬 | `00_docs/20_API設計書/feature/42-defense/42_README.md` |
 | GET `/api/geyser/heads` | Geyser Extension 起動用のカスタムヘッドテクスチャ・未削除ユーザー UUID 一括取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/user/{uuid}` | ユーザー情報取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |

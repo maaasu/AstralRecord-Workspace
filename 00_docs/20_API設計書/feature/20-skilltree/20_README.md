@@ -5,7 +5,7 @@
 
 CP / PP の残高は永続化しない。API は解放ノードごとに CP の消費元クラスを保持し、Plugin がプレイヤーレベル・クラス別レベルから残高を導出する。
 
-ノード定義と配置・接続構造は、それぞれ filebase `40_filebase/35.features.skilltree/nodes/*.json` と `structures/*.json` を正本とします。これらは Plugin が直接読み込む静的マスタです。成功して公開した関連定義の完全snapshotはAstralRecord DBに世代別保存し、Webはその世代のPlugin評価viewを使用します。MasterDataDBへのノード定義追加は行いません。
+ノード定義と配置・接続構造は、それぞれ filebase `40_filebase/35.features.skilltree/nodes/*.json` と `structures/*.json` を正本とします。Plugin は API の `GET /api/master-data/runtime-filebase` から元の JSON テキストを取得して読み込みます。成功して公開した関連定義の完全snapshotはAstralRecord DBに世代別保存し、Webはその世代のPlugin評価viewを使用します。MasterDataDBへのノード定義追加は行いません。
 
 skill effectはスキル個体を習得させず、現在クラス条件を満たしてノード効果が有効な間だけ使用許可を追加する。所持はスキルマネージャーが skill master の `learnRequiredItems` / `levelUpRequiredItems` に従って作成・強化する習得済み個体を正本とする。
 
