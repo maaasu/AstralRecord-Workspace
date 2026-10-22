@@ -261,6 +261,8 @@ function Start-PassiveServices {
                 throw "$name did not reach Running."
             }
         }
+        Set-ControlServiceStartup Runner
+        Set-ControlServiceStartup Agent
     } catch {
         $startupError = $_
         $rollbackErrors = @()
@@ -322,6 +324,7 @@ foreach ($relative in @('Control\Agent', 'Control\Runner', 'Control\Cli', 'Tools
 }
 Copy-Item -LiteralPath (Join-Path $packageRoot 'release-manifest.json') -Destination $stage
 $null = Assert-Package $stage $ExpectedManifestSha256
+Import-Module (Join-Path $stage 'Tools\60_tool\control-deploy\Control.Deployment.psm1') -Force
 if ($services['Agent']) {
     & (Join-Path $stage 'Tools\60_tool\control-deploy\Install-ControlCli.ps1') -PackageDirectory (Join-Path $stage 'Control\Cli')
 }
@@ -329,11 +332,12 @@ $cliPath=Join-Path $env:LOCALAPPDATA 'AstralRecordControl\Cli\bin\AstralRecordCo
 $install = Join-Path $stage 'Tools\60_tool\control-deploy\Install-Control.ps1'
 $validated = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $attemptedInstall = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$initialized = $false
 try {
     foreach ($component in @('Runner', 'Agent')) {
         if ($null -eq $services[$component]) {
             $null = $attemptedInstall.Add($component)
-            & $install -Component $component -PackageDirectory (Join-Path $stage "Control\$component") -InstallRoot $installRoot
+            & $install -Component $component -PackageDirectory (Join-Path $stage "Control\$component") -InstallRoot $installRoot -KeepManual
             if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "Installer failed for $component." }
         }
         $data = if ($component -eq 'Agent') { $agentData } else { $runnerData }
@@ -392,6 +396,7 @@ try {
     & $install -Component Agent -PackageDirectory (Join-Path $stage 'Control\Agent') -InstallRoot $installRoot -PreflightOnly
     if (Test-Path -LiteralPath $marker) { throw 'Managed operations marker appeared during initialization.' }
     Start-PassiveServices
+    $initialized = $true
     Write-Output "Passive Runner and Agent started for $hostKey. Host ID: $hostId; origin: $origin."
 } finally {
     foreach ($component in @($validated) + @($attemptedInstall) | Select-Object -Unique) {
@@ -399,7 +404,7 @@ try {
         if ($null -ne $service) {
             $data = if ($component -eq 'Agent') { $agentData } else { $runnerData }
             Assert-StoppedService $service $component $installRoot $data -AllowRunning
-            Set-ManualStart $component
+            if (-not $initialized) { Set-ManualStart $component }
         }
     }
 }

@@ -39,6 +39,7 @@ if ($Component -eq 'Runner') {
     Get-SafeRunnerSnapshot
 }
 if (-not $PSCmdlet.ShouldProcess($name, 'Stop only this service, snapshot data and switch to new binaries')) { return }
+Set-ControlServiceStartup $Component
 $sid = [Security.Principal.NTAccount]::new("NT SERVICE\$name").Translate([Security.Principal.SecurityIdentifier]).Value
 $release = Join-Path $binaryRoot ([Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $release | Out-Null

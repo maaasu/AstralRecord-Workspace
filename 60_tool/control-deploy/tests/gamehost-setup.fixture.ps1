@@ -101,6 +101,12 @@ try {
     $parseErrors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$parseErrors)
     if ($parseErrors.Count -ne 0) { throw 'Initializer PowerShell parse failed.' }
+    $installerSource = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $PSScriptRoot '..\Install-Control.ps1')
+    if (-not $ast.Extent.Text.Contains('-InstallRoot $installRoot -KeepManual') -or
+        -not $installerSource.Contains("'start=' 'demand'") -or
+        -not $installerSource.Contains('if (-not $KeepManual)')) {
+        throw 'Passive initialization no longer keeps newly registered services Manual until completion.'
+    }
     foreach ($functionName in @('Assert-LocalPath', 'Assert-Guid', 'New-Resources', 'Stop-ServiceAndConfirm', 'Start-PassiveServices')) {
         $definition = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $functionName }, $false) | Select-Object -First 1
         if ($null -eq $definition) { throw "Missing startup function: $functionName" }
@@ -117,7 +123,9 @@ try {
     $agentName = 'AstralRecordControl.Agent'
     $script:states = @{}
     $script:stopOrder = [Collections.Generic.List[string]]::new()
+    $script:startupOrder = [Collections.Generic.List[string]]::new()
     $script:failAt = $agentName
+    $script:failStartupAt = ''
     function Start-Service {
         param([string]$Name)
         $script:states[$Name] = if ($Name -eq $script:failAt) { 'StartPending' } else { 'Running' }
@@ -133,6 +141,11 @@ try {
         $script:states[$Name] = 'Stopped'
     }
     function Start-Sleep { param([int]$Milliseconds) }
+    function Set-ControlServiceStartup {
+        param([string]$Component)
+        $script:startupOrder.Add($Component)
+        if ($Component -eq $script:failStartupAt) { throw "Simulated $Component startup configuration failure." }
+    }
 
     $script:states[$runnerName] = 'Stopped'
     $script:states[$agentName] = 'Stopped'
@@ -147,7 +160,29 @@ try {
     Expect-Failure { Start-PassiveServices } 'Runner start timeout rollback'
     if ($script:states[$runnerName] -ne 'Stopped' -or $script:stopOrder.Count -ne 1 -or
         $script:stopOrder[0] -ne $runnerName) { throw 'Runner timeout rollback did not stop and confirm the requested service.' }
-    Write-Output 'Game host setup fixture passed: Java and Velocity preflight, three refusals, and two startup rollback cases.'
+
+    $script:states[$runnerName] = 'Stopped'
+    $script:states[$agentName] = 'Stopped'
+    $script:stopOrder.Clear()
+    $script:failAt = ''
+    $script:failStartupAt = 'Agent'
+    Expect-Failure { Start-PassiveServices } 'Agent automatic startup configuration rollback'
+    if ($script:states[$runnerName] -ne 'Stopped' -or $script:states[$agentName] -ne 'Stopped' -or
+        ($script:stopOrder -join ',') -ne "$agentName,$runnerName" -or ($script:startupOrder -join ',') -ne 'Runner,Agent') {
+        throw 'Automatic startup configuration failure did not roll back both services.'
+    }
+
+    $script:states[$runnerName] = 'Stopped'
+    $script:states[$agentName] = 'Stopped'
+    $script:stopOrder.Clear()
+    $script:startupOrder.Clear()
+    $script:failStartupAt = ''
+    Start-PassiveServices
+    if ($script:states[$runnerName] -ne 'Running' -or $script:states[$agentName] -ne 'Running' -or
+        $script:stopOrder.Count -ne 0 -or ($script:startupOrder -join ',') -ne 'Runner,Agent') {
+        throw 'Successful passive startup did not configure Runner then Agent for automatic startup.'
+    }
+    Write-Output 'Game host setup fixture passed: Java and Velocity preflight, three refusals, three rollback cases, and automatic startup.'
 } finally {
     $env:ProgramData=$priorProgramData
     if ($fixture.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $fixture)) {

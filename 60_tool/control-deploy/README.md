@@ -36,6 +36,8 @@ Agentの新規サービス登録と`Initialize-ControlGameHost.ps1`は、Cliパ�
 
 既定のbinary配置は`%ProgramFiles%\AstralRecordControl\<Component>\<releaseId>`、データは`%ProgramData%\AstralRecordControl\<Component>`。専用仮想サービスアカウント`NT SERVICE\AstralRecordControl.<Component>`で動作し、通常の管理者権限を付与しません。データは該当サービス/SYSTEM/Administratorsのみ、バイナリはサービスに読取/実行だけを付与します。登録結果に表示されたAgent SIDをRunnerへ設定します。
 
+Web/Runner/AgentはWindows起動時に自動起動します。Agentは同じPCのRunnerをサービス依存先とするため、Runnerを先に登録してください。初回登録後は設定・owner・資格情報を整えてから起動します。
+
 `-WhatIf`は計画のみ、`-PreflightOnly`は設定検査のみです。異なるdata rootを使用するときは、登録・CLI・Agent設定に同じ値を指定します。
 
 ## Webの初回設定
@@ -118,6 +120,10 @@ Hello→Reconcile後にHostがOnlineになり、登録root/executableが表示�
 ```
 
 Web更新はWebだけ、Agent更新はAgentだけを停止します。サービス停止後に排他leaseを取得し、SQLite本体/WAL/SHMを一組として同じdata root内の`updates/<id>`へ退避してから新binaryへ切り替えます。旧binaryと旧サービスパスを残し、設定・鍵・credentialsを上書きしません。失敗時は退避先とサービス状態を確認し、DBを単純に上書きしてACKを巻き戻さないでください。
+
+更新時にもAutomatic起動を設定し直し、既存AgentにはRunner依存を追加します。Agent更新でRunnerやゲームプロセスは停止しません。Webが一時的に到達不能でも、Agentは復旧後に保存済み資格情報で再接続するため、更新ごとの`agent enroll`は不要です。
+
+`Initialize-ControlGameHost.ps1`の段階導入では設定中だけRunner/AgentをManualにし、正常完了後にAutomaticを確定します。導入が失敗した場合はManualのまま残るため、原因を解消して再実行してください。
 
 Runnerの更新はControl CLIによる`runner check-update`が全ServerのStopped、Sessionなし、holdなしを返した場合だけ行います。Unmanagedや状態不明も拒否します。Agentを停止した後に再検査し、Runnerを更新してから元々稼働していたAgentを起動します。`-CliPath`にはP1 CLIの絶対パスを指定します。
 更新途中に失敗した場合は、Agent/Runnerの実際のサービス状態と旧binary・snapshotを確認してから復旧します。

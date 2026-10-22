@@ -51,6 +51,17 @@ function Set-ControlAcl([string]$Path, [string]$ServiceSid, [switch]$ReadOnly) {
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
+function Set-ControlServiceStartup([ValidateSet('Web','Agent','Runner')][string]$Component) {
+    $name = "AstralRecordControl.$Component"
+    if ($Component -eq 'Agent' -and -not (Get-Service -Name 'AstralRecordControl.Runner' -ErrorAction SilentlyContinue)) {
+        throw 'Register AstralRecordControl.Runner before configuring Agent startup.'
+    }
+    $configArguments = @('config', $name, 'start=', 'auto')
+    if ($Component -eq 'Agent') { $configArguments += @('depend=', 'AstralRecordControl.Runner') }
+    & sc.exe @configArguments | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Automatic startup configuration failed for $name." }
+}
+
 function Test-ControlConfiguration([string]$DataRoot, [string]$Component) {
     $root = Get-ControlAbsolutePath $DataRoot
     $configPath = Join-Path $root 'config.json'
@@ -171,4 +182,4 @@ function Assert-ControlRunnerStoppedSnapshot($Snapshot) {
     }
 }
 
-Export-ModuleMember -Function Get-ControlAbsolutePath, Assert-ControlSeparatePaths, Assert-ControlPackage, Set-ControlAcl, Test-ControlConfiguration, Assert-ControlRunnerStoppedSnapshot, Assert-ControlRunnerUpdateReady, Enable-ControlManagedOperations
+Export-ModuleMember -Function Get-ControlAbsolutePath, Assert-ControlSeparatePaths, Assert-ControlPackage, Set-ControlAcl, Set-ControlServiceStartup, Test-ControlConfiguration, Assert-ControlRunnerStoppedSnapshot, Assert-ControlRunnerUpdateReady, Enable-ControlManagedOperations
