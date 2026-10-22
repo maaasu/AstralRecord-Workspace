@@ -12,6 +12,7 @@
 }
 
 <div class="page-heading"><div><span class="eyebrow">CONNECTIONS</span><h1>接続PC</h1><p>ゲームを動かすPCを登録し、接続状態を確認します。</p></div><a class="text-action" href="/">概要へ戻る</a></div>
+<p class="snapshot-note">接続手順は初回のみです。導入後はPCの起動時や通信復帰時に自動接続するため、毎回のログイン・Agent登録は不要です。対象PCの電源を入れ、スリープを解除してください。</p>
 @if (Model.Error != null) { <p class="status-note is-warning" role="alert">@Model.Error</p> }
 @if (Model.Issued != null) {
     <section class="token-result" role="status"><h2>手動用のAgentトークンを発行しました</h2><p>この値は一度だけ表示されます。自動接続が使えない場合の復旧用です。</p><pre>@Model.Issued.Token</pre><details><summary>発行情報</summary><p>Credential ID: @Model.Issued.CredentialId</p></details></section>

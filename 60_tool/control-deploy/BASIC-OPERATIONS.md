@@ -6,7 +6,7 @@
 
 - DEV-01: Dev。Javaは`C:\Program Files\AstralRecordControl\Java\jdk-21.0.12.1+1\bin\java.exe`。
 - MC-01: Lobby / Channel1 / Channel2。Javaは`C:\Program Files\Java\jdk-21.0.10\bin\java.exe`。
-- Velocityは台帳登録のみ。現行P1では起動・停止できない。旧Craftyで起動したプロセスもRunnerへ引き継げない。
+- Velocityは対応版Web/Agent/Runnerで基本運転とログを利用できる。Hostの`P1.Velocity`能力、Java実行ファイル、実際のVelocity JARを含む引数を確認する。停止コマンドは`shutdown`。旧Craftyで起動したプロセスはRunnerへ引き継げない。
 - P2のファイル操作・バックアップ、P3の予定実行は今回有効化しない。
 
 ## ゲームPC

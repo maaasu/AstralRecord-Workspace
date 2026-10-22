@@ -79,6 +79,18 @@ public sealed class OperationsStatusPageTests
         var server = await db.Servers.SingleAsync(x => x.ServerId == serverId);
         server.DesiredConfigJson = ControlJson.Serialize(config with { Kind = ServerKind.Velocity });
         await db.SaveChangesAsync();
+        using (var unsupported = JsonDocument.Parse(JsonSerializer.Serialize(((JsonResult)await page.OnGetStatusAsync(serverId)).Value)))
+            Assert.False(unsupported.RootElement.GetProperty("enabled").GetBoolean());
+        host.CapabilitiesJson = ControlJson.Serialize(new[] { "P1.Operations", "P1.LegacyGate", ServerProcessSupport.VelocityCapability });
+        await db.SaveChangesAsync();
+        using (var velocity = JsonDocument.Parse(JsonSerializer.Serialize(((JsonResult)await page.OnGetStatusAsync(serverId)).Value)))
+            Assert.True(velocity.RootElement.GetProperty("enabled").GetBoolean());
+        server.DesiredConfigJson = ControlJson.Serialize(config with { Kind = ServerKind.Velocity, DependsOnServerIds = [Guid.NewGuid()] });
+        await db.SaveChangesAsync();
+        using (var dependency = JsonDocument.Parse(JsonSerializer.Serialize(((JsonResult)await page.OnGetStatusAsync(serverId)).Value)))
+            Assert.False(dependency.RootElement.GetProperty("enabled").GetBoolean());
+        server.DesiredConfigJson = ControlJson.Serialize(config with { Kind = ServerKind.Bedrock });
+        await db.SaveChangesAsync();
         Assert.IsType<PageResult>(await page.OnGetAsync(serverId, null));
         Assert.Equal(20, page.Recent.Length);
         Assert.Equal(now.AddMinutes(-1), page.Recent[0].CreatedAtUtc);

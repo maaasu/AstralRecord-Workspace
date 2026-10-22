@@ -123,10 +123,10 @@ public sealed partial class InventoryStore(ControlDbContext db, InventoryWriteGa
         if (config.AutoStart || config.RestartOnCrash)
         {
             var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
-            if (!ProcessControlEnabled || !capabilities.Contains("P1.Operations") || !capabilities.Contains("P1.LegacyGate") || config.Kind != ServerKind.Java) throw new InventoryFault(409, "UnsupportedCapability");
+            if (!ProcessControlEnabled || !capabilities.Contains("P1.Operations") || !capabilities.Contains("P1.LegacyGate") || !ServerProcessSupport.HasKindCapability(config.Kind, capabilities)) throw new InventoryFault(409, "UnsupportedCapability");
         }
         var resources = ControlJson.Deserialize<HostResources>(host.ResourcesJson);
-        if (!resources.Roots.Any(r => r.Id == config.ManagedRootId && !r.BackupOnly) || !resources.Executables.Any(e => e.Id == config.ExecutableId && e.Kind == config.Kind)) throw new InventoryFault(400, "PathOutsideRoot");
+        if (!resources.Roots.Any(r => r.Id == config.ManagedRootId && !r.BackupOnly) || !resources.Executables.Any(e => e.Id == config.ExecutableId && ServerProcessSupport.IsExecutableCompatible(config.Kind, e.Kind))) throw new InventoryFault(400, "PathOutsideRoot");
         if (server.EnvironmentId.HasValue && !await db.Environments.AnyAsync(x => x.EnvironmentId == server.EnvironmentId)) throw new InventoryFault(404, "NotFound");
         if (server.RuntimeServerId is { Length: > 128 } || server.RuntimeServerId?.Any(char.IsControl) == true) throw new InventoryFault(400, "InvalidInput");
         foreach (var dependency in config.DependsOnServerIds)

@@ -14,6 +14,7 @@ namespace AstralRecordControl.Web.Pages.Servers;
 public sealed class OperationsModel(ControlDbContext db, ControlOperationsService operations, ReservationService reservations, IConfiguration configuration, TimeProvider clock) : PageModel
 {
     public InventoryServer Server { get; private set; } = null!;
+    public ServerKind Kind { get; private set; }
     public ServerRuntimeSnapshot? Runtime { get; private set; }
     public ControlOperation[] Recent { get; private set; } = [];
     public GateLease[] MaintenanceLeases { get; private set; } = [];
@@ -41,7 +42,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         var enabled = configuration.GetValue<bool>("Control:EnableProcessControl") && host.Enabled && !host.RecoveryRequired
             && hostFresh
             && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate")
-            && config.Kind == ServerKind.Java && config.DependencyReadiness != DependencyReadiness.AstralReady
+            && ServerProcessSupport.HasKindCapability(config.Kind, capabilities) && config.DependencyReadiness == DependencyReadiness.Running && config.DependsOnServerIds.Length == 0
             && runtime is not null && server.AppliedRevision == server.DesiredRevision && runtime.ConfigRevision == server.AppliedRevision;
         var recent = (await ReadRecentOperationsAsync(serverId))
             .Select(x => new { createdAtUtc = x.CreatedAtUtc, kind = x.Kind.ToString(), status = x.Status.ToString(), errorCode = x.ErrorCode }).ToArray();
@@ -89,10 +90,11 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         Runtime = hostFresh ? ControlJson.Deserialize<ServerRuntimeSnapshot[]>(host.RuntimeSnapshotJson).SingleOrDefault(x => x.ServerId == serverId) : null;
         var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
         var config = ControlJson.Deserialize<ServerConfig>(Server.DesiredConfigJson);
+        Kind = config.Kind;
         Enabled = configuration.GetValue<bool>("Control:EnableProcessControl") && host.Enabled && !host.RecoveryRequired
             && hostFresh
             && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate")
-            && config.Kind == ServerKind.Java && config.DependencyReadiness != DependencyReadiness.AstralReady
+            && ServerProcessSupport.HasKindCapability(config.Kind, capabilities) && config.DependencyReadiness == DependencyReadiness.Running && config.DependsOnServerIds.Length == 0
             && Runtime != null && Runtime.ConfigRevision == Server.AppliedRevision && Server.AppliedRevision == Server.DesiredRevision;
         Recent = await ReadRecentOperationsAsync(serverId);
         OperationPending = await HasPendingOperationAsync(serverId);
@@ -102,7 +104,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
             .Select(x => x.WorkflowId).ToArray();
         var ready = await db.ReservationLeases.AsNoTracking().Where(x => x.LastStepKey == "WaitForStartup").Select(x => x.ReservationId).ToArrayAsync();
         MaintenanceLeases = (await Task.WhenAll(active.Select(id => reservations.GetByReservationAsync(id)))).Where(x => x.AdapterId is "01" or "03" or "16" && waiting.Contains(x.WorkflowId) && ready.Contains(x.ReservationId)).ToArray();
-        if (config.Kind == ServerKind.Java)
+        if (ServerProcessSupport.IsSupported(config.Kind))
         {
             try { Logs = await operations.ReadLogsAsync(serverId, new ReadLogsRequest { ServerId = serverId, AfterSequence = afterSequence, Limit = 200 }, HttpContext.RequestAborted); }
             catch (Exception exception) when (exception is InventoryFault or IOException or OperationCanceledException) { }

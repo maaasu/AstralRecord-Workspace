@@ -80,10 +80,12 @@ public sealed class ProcessTests
         runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
     }
 
-    [Fact]
-    public async Task StartConsoleLogsStopAndIdempotentReplayUseOneSession()
+    [Theory]
+    [InlineData(ServerKind.Java)]
+    [InlineData(ServerKind.Velocity)]
+    public async Task StartConsoleLogsStopAndIdempotentReplayUseOneSession(ServerKind kind)
     {
-        using var fixture = new Fixture();
+        using var fixture = new Fixture(kind: kind);
         using var runner = fixture.Open();
         runner.ApplyInventory(fixture.Envelope());
         var hold = fixture.Hold(runner);
@@ -234,10 +236,12 @@ public sealed class ProcessTests
         fixture.KillFixtureProcess(inspection);
     }
 
-    [Fact]
-    public async Task RestartCreatesNewSessionAndCrashRestartUsesLocalHold()
+    [Theory]
+    [InlineData(ServerKind.Java)]
+    [InlineData(ServerKind.Velocity)]
+    public async Task RestartCreatesNewSessionAndCrashRestartUsesLocalHold(ServerKind kind)
     {
-        using var fixture = new Fixture(restartOnCrash: true);
+        using var fixture = new Fixture(restartOnCrash: true, kind: kind);
         using var runner = fixture.Open();
         runner.ApplyInventory(fixture.Envelope());
         var hold = fixture.Hold(runner);
@@ -489,7 +493,7 @@ public sealed class ProcessTests
         public ServerConfig? SecondServer { get; }
         public string DatabasePath => Path.Combine(root, "runner", "runner.db");
         public string TemporaryDirectory => Path.Combine(root, "runner", "process-temp", Server.ServerId.ToString("N"));
-        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false)
+        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false, ServerKind kind = ServerKind.Java)
         {
             var managed = Path.Combine(root, "managed");
             Directory.CreateDirectory(Path.Combine(managed, "server"));
@@ -498,6 +502,7 @@ public sealed class ProcessTests
             var host = Guid.NewGuid(); var managedId = Guid.NewGuid(); var executableId = Guid.NewGuid();
             Configuration = new RunnerConfiguration { HostId = host, EnableProcessControl = true, LocalResources = new HostResources { Roots = [new ManagedRoot { Id = managedId, Path = managed }], Executables = [new ManagedExecutable { Id = executableId, Path = executable, Kind = ServerKind.Java }] } };
             Server = new ServerConfig { ServerId = Guid.NewGuid(), HostId = host, Revision = 1, Kind = ServerKind.Java, ManagedRootId = managedId, ExecutableId = executableId, ServerDirectory = "server", ArgumentList = ignoreStop ? [typeof(Marker).Assembly.Location, "ignore-stop"] : [typeof(Marker).Assembly.Location], AutoStart = autoStart, RestartOnCrash = restartOnCrash, RestartDelaySeconds = 1 };
+            if (kind == ServerKind.Velocity) Server = Server with { Kind = kind, ArgumentList = [.. Server.ArgumentList, "velocity"] };
             if (noRead) Server = Server with { ArgumentList = [typeof(Marker).Assembly.Location, "no-read"], StopCommand = new string('x', 4096) };
             if (twoServers)
             {

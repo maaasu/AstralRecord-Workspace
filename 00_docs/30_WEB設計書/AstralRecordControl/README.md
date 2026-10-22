@@ -1,6 +1,6 @@
 # AstralRecordControl 設計書
 
-- 設計状態: 採用済み。P0の台帳・認証・通信基盤、P1のRunner・Java基本運転・共通gate、P2のファイル操作・転送・停止バックアップ・journal復元、P3の同一Host予約実行・監視・Webhook通知を実装。P4以降は未実装。
+- 設計状態: 採用済み。P0の台帳・認証・通信基盤、P1のRunner・Java/Velocity基本運転・共通gate、P2のファイル操作・転送・停止バックアップ・journal復元、P3の同一Host予約実行・監視・Webhook通知を実装。Velocityは基本運転・ログに対応。P4以降は未実装。
 - 初版: 2026-10-18。v1の対象OSはWindows、実装基盤は.NET 10。
 - 目的: Craftyを使わず、単一の管理Webから複数PC上のMinecraftを運用する。
 - 配置: Devは開発PC、チャンネルはMC用PC。管理Webはそれらと独立したWeb管理用PCに置く。

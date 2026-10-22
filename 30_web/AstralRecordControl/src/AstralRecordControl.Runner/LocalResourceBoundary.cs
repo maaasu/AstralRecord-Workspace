@@ -33,7 +33,7 @@ public static class LocalResourceBoundary
                 ?? throw new RunnerFault(ErrorCode.PathOutsideRoot);
             if (root.BackupOnly) throw new RunnerFault(ErrorCode.PathOutsideRoot);
             var executable = resources.Executables.SingleOrDefault(e => e.Id == server.ExecutableId);
-            if (executable is null || executable.Kind != server.Kind) throw new RunnerFault(ErrorCode.PathOutsideRoot);
+            if (executable is null || !ServerProcessSupport.IsExecutableCompatible(server.Kind, executable.Kind)) throw new RunnerFault(ErrorCode.PathOutsideRoot);
             var directory = Resolve(root.Path, server.ServerDirectory);
             if (File.Exists(directory) || !directories.Add(directory)) throw new RunnerFault(ErrorCode.PathOutsideRoot);
             for (var index = 0; index < server.ArgumentList.Length; index++)

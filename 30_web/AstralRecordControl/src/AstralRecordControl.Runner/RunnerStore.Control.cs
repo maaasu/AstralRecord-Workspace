@@ -30,7 +30,7 @@ public sealed partial class RunnerStore
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(config.StopTimeoutSeconds, command.ExecutionTimeoutSeconds)));
         try
         {
-            await process.StandardInput.WriteLineAsync(config.StopCommand.AsMemory(), timeout.Token);
+            await process.StandardInput.WriteLineAsync(ServerProcessSupport.EffectiveStopCommand(config).AsMemory(), timeout.Token);
             await process.StandardInput.FlushAsync(timeout.Token);
         }
         catch

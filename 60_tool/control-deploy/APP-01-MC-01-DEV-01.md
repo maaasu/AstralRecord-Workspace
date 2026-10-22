@@ -25,7 +25,7 @@ Agent/RunnerはDEV-01・MC-01に加え、APP-01にも各1組導入する。APP-0
 | サーバー | 種別 | listen port | 既存runtime serverId |
 |---|---|---|---|
 | Dev | Purpur Java | 25567 | `Dev` |
-| Proxy | Velocity | 25565 | Controlのプロセス運転対象外（P4以降） |
+| Proxy | Velocity | 25565 | 基本運転にruntime連携は不要。対応版Web/Agent/Runnerと`P1.Velocity`能力が必要 |
 | Lobby | Purpur Java | 25569 | `Lobby` |
 | Channel1 | Purpur Java | 25570 | `Channel1` |
 | Channel2 | Purpur Java | 25571 | `Channel2` |
@@ -41,7 +41,7 @@ PurpurのJARは`purpur-1.21.11-2560.jar`。既存起動BATには`E:\PurpurServer
 
 今回のローカル設定はDev→Build/Channel1/Channel2のJARだけを配布対象とし、配置データ・Filebase・World・network配布は無効にしている。API証明書と共有範囲が未確定のため、16の公開処理と17の一括移行は`migration.enabled=false`に保つ。16の`-Phase Plan -WorldCopy Skip -NetworkPlugins Skip`は配布先の確認に使用できる。Control GUIDの登録とAPI接続確認が済んでから、必要な機能だけを有効化する。
 
-P4までProxyとProxy上のGeyserへのManaged network配布を有効化しない。16の対応する`networkPlugins.destinations[].deployDirectory`は空にし、今回の導入では`-NetworkPlugins Skip`を使用する。外部起動したProxyを台帳へ登録して初期`Stopped`を停止証明に使うことはできない。Proxyの対応が済むまで、その配布をControlのManaged運用へ含めない。
+P4までProxyとProxy上のGeyserへのManaged network配布を有効化しない。16の対応する`networkPlugins.destinations[].deployDirectory`は空にし、今回の導入では`-NetworkPlugins Skip`を使用する。Velocityの基本運転対応だけではnetwork配布の起動確認Adapterは完成しない。外部起動したProxyを台帳へ登録して初期`Stopped`を停止証明に使うことはできず、その配布をControlのManaged運用へ含めない。
 
 DEV-01の通常PATHには開発ツールがなく、検証用SDKとチェックサム検証済みJDK/Mavenは`C:\AstralRecord-Worktrees\.tools`に保存している。Toolを実行するPowerShellセッションにだけPATHを追加できる。OS全体のPATHは変更しない。
 

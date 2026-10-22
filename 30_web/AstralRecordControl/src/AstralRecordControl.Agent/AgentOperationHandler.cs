@@ -92,6 +92,13 @@ public sealed partial class AgentOperationHandler(AgentConfiguration configurati
         finally { gate.Release(); }
     }
 
+    public async Task<string[]> GetRunnerCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken);
+        try { return await runner.GetCapabilitiesAsync(cancellationToken); }
+        finally { gate.Release(); }
+    }
+
     public Task<RunnerSnapshot> SnapshotAsync(AgentSnapshotRequest request, Guid activeEpoch, CancellationToken cancellationToken)
     {
         RequireEpoch(request.ConnectionEpoch, activeEpoch);

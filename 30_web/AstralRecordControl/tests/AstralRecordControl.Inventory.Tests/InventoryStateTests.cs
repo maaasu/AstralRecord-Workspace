@@ -53,8 +53,10 @@ public sealed class InventoryStateTests
         }
     }
 
-    [Fact]
-    public async Task SnapshotApplicationKeepsOldRevisionAfterFailureAndOriginalBytes()
+    [Theory]
+    [InlineData(ServerKind.Java)]
+    [InlineData(ServerKind.Velocity)]
+    public async Task SnapshotApplicationKeepsOldRevisionAfterFailureAndOriginalBytes(ServerKind kind)
     {
         await using var f = await Fixture.CreateAsync(); var host = await f.HostAsync("dev-pc"); var hello = f.Hello();
         var ack = await f.Protocol.HelloAsync(f.Identity(host), hello, "c1", () => { });
@@ -64,7 +66,7 @@ public sealed class InventoryStateTests
         await f.Protocol.ReconcileAsync(f.Identity(host), new() { ConnectionEpoch = ack.ConnectionEpoch, RunnerEpoch = hello.RunnerEpoch }, "c1");
         var envelope = await f.Store.InventoryAsync(host.HostId);
         await f.Protocol.ApplyAckAsync(f.Identity(host), new(ack.ConnectionEpoch, envelope.Revision, envelope.Sha256, true), "c1");
-        var config = f.Config(host, hello); var raw = " \n" + ControlJson.Serialize(config) + "\n ";
+        var config = f.Config(host, hello) with { Kind = kind }; var raw = " \n" + ControlJson.Serialize(config) + "\n ";
         var request = new ServerCreateRequest(host.HostId, "dev", "Dev", null, null, config);
         var server = await f.Store.CreateServerAsync(request, Guid.NewGuid(), ControlJson.Serialize(request), raw);
         var next = await f.Store.InventoryAsync(host.HostId);

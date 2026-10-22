@@ -102,6 +102,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         await schedules.RefreshHeldReportsAsync(stoppingToken);
         var snapshot = await operations.GetSnapshotAsync(stoppingToken);
+        var runnerCapabilities = await operations.GetRunnerCapabilitiesAsync(stoppingToken);
         await hub.StartAsync(stoppingToken);
         var state = store.GetState();
         var hello = await InvokeAsync<HelloAck>(hub, "Hello", new AgentHello
@@ -114,7 +115,8 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
                 ? configuration.EnableFileControl
                     ? ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P2.Files", "P2.Backups"]
                     : ["P0.Inventory", "P1.Operations", "P1.LegacyGate"]
-                : new[] { "P0.Inventory" }).Concat(processGate.Enabled && configuration.EnableSchedules ? ["P3.Schedules"] : Array.Empty<string>()).Append("P3.Metrics").ToArray()
+                : new[] { "P0.Inventory" }).Concat(processGate.Enabled && runnerCapabilities.Contains(ServerProcessSupport.VelocityCapability) ? [ServerProcessSupport.VelocityCapability] : Array.Empty<string>())
+                .Concat(processGate.Enabled && configuration.EnableSchedules ? ["P3.Schedules"] : Array.Empty<string>()).Append("P3.Metrics").ToArray()
         }, stoppingToken);
         if (hello.ProtocolVersion != ControlProtocol.Version || hello.ConnectionEpoch == Guid.Empty || hello.HeartbeatSeconds is < 1 or > 60) throw new AgentFault(ErrorCode.ProtocolMismatch);
         store.Acknowledge(hello.ControllerAckEventSeq);

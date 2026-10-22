@@ -4,7 +4,8 @@
 @{
     ViewData["Title"] = Model.Server.DisplayName + " · 操作・ログ";
     ViewData["ServerTab"] = "Operations";
-    ViewData["ServerManaged"] = true;
+    ViewData["ServerManaged"] = Model.Kind == ServerKind.Java;
+    ViewData["ServerProcessManaged"] = ServerProcessSupport.IsSupported(Model.Kind);
     var stopped = !Model.OperationPending && Model.Runtime?.ProcessState == ProcessState.Stopped && Model.Runtime.CurrentSessionId is null;
     var running = !Model.OperationPending && Model.Runtime?.ProcessState == ProcessState.Running && Model.Runtime.CurrentSessionId is not null;
 }
@@ -14,7 +15,7 @@
     <h2>運転状態</h2>
     <p id="server-operation-status" role="status" aria-live="polite">プロセス: <strong id="server-process-state">@(Model.Runtime?.ProcessState switch { ProcessState.Stopped => "停止中", ProcessState.Starting => "起動中", ProcessState.Running => "稼働中", ProcessState.Stopping => "停止処理中", ProcessState.Unmanaged => "管理外", _ => "状態未取得" })</strong> · Session: <span id="server-session">@(Model.Runtime?.CurrentSessionId.ToString() ?? "なし")</span></p>
     @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
-    <p id="server-availability" class="status-note" hidden="@Model.Enabled">操作は現在利用できません。PC接続・共通gate・設定適用を確認してください。</p>
+    <p id="server-availability" class="status-note" hidden="@Model.Enabled">操作は現在利用できません。PC接続・共通gate・設定適用を確認してください。Velocityには対応版のAgentとRunnerが必要です。</p>
     <form method="post" asp-page-handler="Operate" data-operation-form>
         <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
         <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />

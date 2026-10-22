@@ -9,13 +9,13 @@ Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していても
 - 各PCからHTTPS/WSSで接続するAgent。Hello/Reconcile/heartbeat、再接続、設定snapshotのhash検証と同期、イベントACK、storeId/巻戻り検出。
 - 同一PCのRunnerへのACL付きnamed pipe。設定の原子的適用、snapshot、永続hold/fence。
 
-- Javaプロセスの起動・通常停止・再起動・理由付きKill・1行コンソール、Sessionと実行台帳、標準出力/標準エラーの永続ログとcursor取得。
+- Java/Velocityプロセスの起動・通常停止・再起動・理由付きKill・1行コンソール、Sessionと実行台帳、標準出力/標準エラーの永続ログとcursor取得。Velocityは既存のJava実行ファイルを利用でき、停止の標準値は`shutdown`。旧定義の`stop`も実行時に`shutdown`へ補正する。
 - 全資源の中央予約、各Hostの永続hold/fence、Agentのdurable Inbox/Outbox、CLIと01/02/03/16/17の共通gate。
 - 停止タイムアウトの要確認保持、同じ予約内の救済Kill、Runner再起動時の残存プロセス照合とローカル管理者の緊急復旧。
 
 変更操作は既定で無効です。`Control:EnableProcessControl=true`、Runnerの`EnableProcessControl=true`に加え、対象Hostすべての`P1.Operations`/`P1.LegacyGate` capabilityが必要です。Runner/Agentの本番起動は固定`%ProgramData%\AstralRecordControl\managed-operations.enabled`を確認します。markerは既存ツールの共通gate導入を検査したinstallerの`-EnableManagedOperations`で作成します。詳しくは[導入手順](../../60_tool/control-deploy/README.md)と[既存ツールgate](../../60_tool/control-gate/README.md)を参照してください。
 
-P1のプロセス運転はJavaの独立した基本運転です。P3では同一Host/Serverの予約実行、監視、Webhook通知を追加しました。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrock/Velocityのプロセス運転、更新Adapter・別PCへのServer複製/移送はP4以降です。非対応設定や操作を開始済みとして扱いません。
+P1のプロセス運転はJava/Velocityの独立した基本運転です。VelocityはWeb/Agent/Runnerを対応版へ更新し、Hostの`P1.Velocity`能力を確認してから使用します。画面の「サーバー台帳」→Proxy→「操作・ログ」から起動できます。Velocityのタブは設定と操作・ログです。P3では同一Host/Serverの予約実行、監視、Webhook通知を追加しました。依存チェーンの自動起動/停止（`dependsOnServerIds`）、`AstralReady`依存判定、Bedrockのプロセス運転、更新Adapter・別PCへのServer複製/移送はP4以降です。非対応設定や操作を開始済みとして扱いません。
 
 ## プロジェクト
 

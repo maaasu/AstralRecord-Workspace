@@ -15,8 +15,10 @@ namespace AstralRecordControl.Integration.Tests;
 
 public sealed partial class LiveTransportTests
 {
-    [Fact]
-    public async Task OwnerOperationsCrossHttpsAgentAndRunnerAndMaintenanceKeepsItsHold()
+    [Theory]
+    [InlineData(ServerKind.Java)]
+    [InlineData(ServerKind.Velocity)]
+    public async Task OwnerOperationsCrossHttpsAgentAndRunnerAndMaintenanceKeepsItsHold(ServerKind kind)
     {
         await using var fixture = await LiveFixture.StartAsync(enableProcessControl: true);
         using var owner = fixture.CreateClient(fixture.OwnerCookies);
@@ -53,8 +55,10 @@ public sealed partial class LiveTransportTests
         {
             await hub.StartAsync(timeout.Token);
             var initial = await runnerClient.GetSnapshotAsync(timeout.Token);
+            var runnerCapabilities = await runnerClient.GetCapabilitiesAsync(timeout.Token);
+            Assert.Contains(ServerProcessSupport.VelocityCapability, runnerCapabilities);
             var hello = await Invoke<HelloAck>(hub, "Hello", new AgentHello
-            { AgentVersion = "p1-fixture", AgentStoreId = agentStore.GetState().StoreId, RunnerEpoch = initial.RunnerEpoch, LocalResources = fixture.Resources, Capabilities = ["P0.Inventory", "P1.Operations", "P1.LegacyGate"] }, timeout.Token);
+            { AgentVersion = "p1-fixture", AgentStoreId = agentStore.GetState().StoreId, RunnerEpoch = initial.RunnerEpoch, LocalResources = fixture.Resources, Capabilities = ["P0.Inventory", "P1.Operations", "P1.LegacyGate", .. runnerCapabilities] }, timeout.Token);
             epoch = hello.ConnectionEpoch;
             await Invoke<ReconcileAck>(hub, "Reconcile", new ReconcileRequest { ConnectionEpoch = epoch, RunnerEpoch = initial.RunnerEpoch }, timeout.Token);
             using var agent = fixture.CreateClient();
@@ -62,10 +66,19 @@ public sealed partial class LiveTransportTests
             agent.DefaultRequestHeaders.Add("X-Control-Connection-Epoch", epoch.ToString());
             var serverId = Guid.NewGuid();
             var config = new ServerConfig
-            { ServerId = serverId, HostId = host.HostId, Revision = 1, Kind = ServerKind.Java, ManagedRootId = fixture.Resources.Roots.Single().Id, ExecutableId = fixture.Resources.Executables.Single().Id, ServerDirectory = "dev", ArgumentList = [typeof(TestProcess.Marker).Assembly.Location] };
+            { ServerId = serverId, HostId = host.HostId, Revision = 1, Kind = kind, ManagedRootId = fixture.Resources.Roots.Single().Id, ExecutableId = fixture.Resources.Executables.Single().Id, ServerDirectory = "dev", ArgumentList = kind == ServerKind.Velocity ? [typeof(TestProcess.Marker).Assembly.Location, "velocity"] : [typeof(TestProcess.Marker).Assembly.Location] };
             await fixture.OwnerApiAsync<InventoryServer>(owner, HttpMethod.Post, "/api/control/v1/servers", new { hostId = host.HostId, serverKey = "dev", displayName = "Dev", config }, create: true);
             await ApplyAndAck(agent, hub, epoch, applier, agentStore, runnerClient, timeout.Token);
             await Heartbeat(hub, epoch, await runnerClient.GetSnapshotAsync(timeout.Token), timeout.Token);
+
+            using (var serversPage = await owner.GetAsync("/Servers", timeout.Token))
+                Assert.Contains($"/Servers/{serverId}/Operations", await serversPage.Content.ReadAsStringAsync(timeout.Token));
+            using (var settingsPage = await owner.GetAsync($"/Servers/{serverId}", timeout.Token))
+            {
+                var html = await settingsPage.Content.ReadAsStringAsync(timeout.Token);
+                Assert.Contains($"value=\"{config.ExecutableId}\"", html);
+                Assert.Contains($"value=\"{ServerProcessSupport.DefaultStopCommand(kind)}\"", html);
+            }
 
             // A maintenance workflow remains reserved while the UI starts/stops its child process.
             var workflowId = Guid.NewGuid();

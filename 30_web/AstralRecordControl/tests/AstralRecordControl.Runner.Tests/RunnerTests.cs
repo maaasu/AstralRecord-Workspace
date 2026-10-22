@@ -12,6 +12,31 @@ namespace AstralRecordControl.Runner.Tests;
 
 public sealed class RunnerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CapabilitiesRequireProcessControlAndAnEmptyRequest(bool enabled)
+    {
+        using var fixture = new Fixture();
+        using var store = new RunnerStore(Path.Combine(fixture.Root, "capability-runner"), fixture.Configuration with { EnableProcessControl = enabled });
+        var dispatcher = new RunnerDispatcher(store);
+        var request = new IpcRequest(1, Guid.NewGuid(), "GetCapabilities", ControlJson.Element(new { }));
+        var response = dispatcher.Dispatch(request);
+        Assert.True(response.Ok);
+        Assert.Equal(enabled, ControlJson.Deserialize<string[]>(response.Body.GetRawText()).Contains(ServerProcessSupport.VelocityCapability));
+        Assert.Equal("ProtocolMismatch", dispatcher.Dispatch(request with { Body = ControlJson.Element(new { unknown = true }) }).ErrorCode);
+    }
+
+    [Fact]
+    public void JavaExecutableAcceptsVelocityButStillRejectsBedrock()
+    {
+        using var fixture = new Fixture();
+        var inventory = new InventorySnapshot { HostId = fixture.Configuration.HostId, Servers = [fixture.Server with { Kind = ServerKind.Velocity }] };
+        LocalResourceBoundary.ValidateInventory(inventory, fixture.Configuration.LocalResources);
+        var invalid = inventory with { Servers = [fixture.Server with { Kind = ServerKind.Bedrock }] };
+        Assert.Equal(ErrorCode.PathOutsideRoot, Assert.Throws<RunnerFault>(() => LocalResourceBoundary.ValidateInventory(invalid, fixture.Configuration.LocalResources)).Code);
+    }
+
     [Fact]
     public void ReleasedReservationCannotBeResurrectedAfterRestartAndReleaseReplayIsIdempotent()
     {

@@ -46,7 +46,12 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             if (transfer.ServerId != serverId || transfer.DestinationHostId != server.HostId) throw new InventoryFault(403, "HostScopeMismatch");
             if (transfer.Status != TransferStatus.Verified || transfer.SizeBytes != artifact.SizeBytes || transfer.Sha256 != artifact.Sha256) throw new InventoryFault(409, "HashMismatch");
         }
-        if (!dataOperation && (config.Kind != ServerKind.Java || config.DependencyReadiness == DependencyReadiness.AstralReady)) throw new InventoryFault(409, "UnsupportedCapability");
+        if (!dataOperation)
+        {
+            var operationHost = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);
+            var processCapabilities = ControlJson.Deserialize<string[]>(operationHost.CapabilitiesJson);
+            if (!ServerProcessSupport.HasKindCapability(config.Kind, processCapabilities) || config.DependencyReadiness != DependencyReadiness.Running || config.DependsOnServerIds.Length != 0) throw new InventoryFault(409, "UnsupportedCapability");
+        }
         if (dataOperation)
         {
             var host = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);

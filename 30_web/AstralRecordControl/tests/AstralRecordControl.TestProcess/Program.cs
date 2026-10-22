@@ -9,6 +9,7 @@ public static class Program
         Console.InputEncoding = new System.Text.UTF8Encoding(false);
         Console.OutputEncoding = new System.Text.UTF8Encoding(false);
         var ignoreStop = args.Contains("ignore-stop", StringComparer.Ordinal);
+        var stopCommand = args.Contains("velocity", StringComparer.Ordinal) ? "shutdown" : "stop";
         Console.WriteLine("fixture-ready");
         Console.Error.WriteLine("fixture-stderr");
         Console.WriteLine("fixture-utf8-stdout:日本語😀\u001b[90m灰色\u001b[0m");
@@ -18,7 +19,7 @@ public static class Program
         {
             var line = await Console.In.ReadLineAsync();
             if (line is null) { await Task.Delay(100); continue; }
-            if (line == "stop" && !ignoreStop) return;
+            if (line == stopCommand && !ignoreStop) return;
             if (line == "crash") Environment.Exit(17);
             if (line == "environment-probe")
             {

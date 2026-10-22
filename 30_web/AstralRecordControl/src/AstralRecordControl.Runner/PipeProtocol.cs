@@ -38,6 +38,7 @@ public sealed class RunnerDispatcher(RunnerStore store)
             var body = request.Method switch
             {
                 "GetSnapshot" => Snapshot(request),
+                "GetCapabilities" => Capabilities(request),
                 "ReadMetrics" => ControlJson.Element(store.ReadMetrics()),
                 "ApplyInventory" => ControlJson.Element(store.ApplyInventory(ControlJson.Deserialize<ApplyInventoryRequest>(request.Body.GetRawText()).Inventory)),
                 "AcquireHold" => ControlJson.Element(store.AcquireHold(ControlJson.Deserialize<AcquireHoldRequest>(request.Body.GetRawText()))),
@@ -62,6 +63,11 @@ public sealed class RunnerDispatcher(RunnerStore store)
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception) { return Failure(request.RequestId, ErrorCode.RecoveryRequired); }
         catch (Exception exception) when (exception is ArgumentException or System.Text.Json.JsonException or NullReferenceException or InvalidOperationException or OverflowException)
         { return Failure(request.RequestId, ErrorCode.ProtocolMismatch); }
+    }
+    private System.Text.Json.JsonElement Capabilities(IpcRequest request)
+    {
+        if (request.Body.ValueKind != System.Text.Json.JsonValueKind.Object || request.Body.EnumerateObject().Any()) throw new RunnerFault(ErrorCode.ProtocolMismatch);
+        return ControlJson.Element(store.ProcessControlEnabled ? new[] { ServerProcessSupport.VelocityCapability } : Array.Empty<string>());
     }
     private System.Text.Json.JsonElement Snapshot(IpcRequest request)
     {

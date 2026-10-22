@@ -16,17 +16,23 @@ namespace AstralRecordControl.Operations.Tests;
 public sealed class OperationGateTests
 {
     [Theory]
-    [InlineData(OperationKind.Stop)]
-    [InlineData(OperationKind.Restart)]
-    [InlineData(OperationKind.ConsoleCommand)]
-    [InlineData(OperationKind.Kill)]
-    public async Task ConsolePageDispatchesTheSelectedRunningOperation(OperationKind kind)
+    [InlineData(OperationKind.Stop, ServerKind.Java)]
+    [InlineData(OperationKind.Restart, ServerKind.Java)]
+    [InlineData(OperationKind.ConsoleCommand, ServerKind.Java)]
+    [InlineData(OperationKind.Kill, ServerKind.Java)]
+    [InlineData(OperationKind.Stop, ServerKind.Velocity)]
+    [InlineData(OperationKind.Restart, ServerKind.Velocity)]
+    [InlineData(OperationKind.ConsoleCommand, ServerKind.Velocity)]
+    [InlineData(OperationKind.Kill, ServerKind.Velocity)]
+    public async Task ConsolePageDispatchesTheSelectedRunningOperation(OperationKind kind, ServerKind serverKind)
     {
         await using var fixture = await Fixture.CreateAsync();
         var server = await fixture.ServerAsync("console");
         var state = fixture.Agent.States[server.HostId] with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
         fixture.Agent.States[server.HostId] = state;
         var host = await fixture.Db.Hosts.SingleAsync(x => x.HostId == server.HostId);
+        server.DesiredConfigJson = ControlJson.Serialize(ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { Kind = serverKind });
+        host.CapabilitiesJson = ControlJson.Serialize(new[] { "P1.Operations", "P1.LegacyGate", ServerProcessSupport.VelocityCapability });
         host.RuntimeSnapshotJson = ControlJson.Serialize(new[] { state });
         await fixture.Db.SaveChangesAsync();
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true" }).Build();
@@ -39,6 +45,24 @@ public sealed class OperationGateTests
         var operation = await fixture.Db.Operations.SingleAsync();
         Assert.Equal(kind, operation.Kind);
         Assert.Equal(kind, ControlJson.Deserialize<OperationCommand>(operation.CommandJson).Kind);
+        Assert.Equal(1, fixture.Agent.DispatchCount);
+    }
+
+    [Fact]
+    public async Task VelocityStartRequiresUpdatedAgentCapabilityBeforeTakingAnyHold()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("proxy");
+        server.DesiredConfigJson = ControlJson.Serialize(ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { Kind = ServerKind.Velocity });
+        await fixture.Db.SaveChangesAsync();
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 1 };
+        await Fault("UnsupportedCapability", () => fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid()));
+        Assert.Equal(0, fixture.Agent.PrepareCount);
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+        var host = await fixture.Db.Hosts.SingleAsync(x => x.HostId == server.HostId);
+        host.CapabilitiesJson = ControlJson.Serialize(new[] { "P1.Operations", "P1.LegacyGate", ServerProcessSupport.VelocityCapability });
+        await fixture.Db.SaveChangesAsync();
+        Assert.Equal(OperationStatus.Accepted, (await fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid())).Status);
         Assert.Equal(1, fixture.Agent.DispatchCount);
     }
 
