@@ -50,6 +50,7 @@ public final class BossFieldInstanceService {
     private final WorldService worldService;
     private final Map<UUID, PendingFieldCreation> pendingCreations = new ConcurrentHashMap<>();
     private final Map<UUID, List<Chunk>> startupChunkTicketsByChallengeId = new ConcurrentHashMap<>();
+    private final Set<UUID> generatedFieldChallenges = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean worldLoadSlotInUse = new AtomicBoolean(false);
 
     public BossFieldInstanceService(@NotNull AstralRecord plugin, @NotNull WorldService worldService) {
@@ -304,8 +305,10 @@ public final class BossFieldInstanceService {
                     try {
                         if (isGeneratedField(worldData)) {
                             AstraiosFieldGenerator.build(field.world());
-                            // 開始時にチャンクチケットを解除しても、再ロード時に床を失わないよう保存する。
+                            // 予期しないチャンク再ロード時にも床を失わないよう保存する。
                             field.world().save();
+                            // 歩行経路の床検査が会場全域で成立するよう、挑戦終了まで読み込みを維持する。
+                            generatedFieldChallenges.add(challenge.challengeId());
                         }
                         if (!pending.cancelled().get() && plugin.isEnabled()) {
                             result.complete(field);
@@ -542,11 +545,24 @@ public final class BossFieldInstanceService {
     }
 
     /**
-     * フィールド開始準備中だけ保持していたチャンクチケットを解除します。
+     * 通常フィールドの開始準備用チャンクチケットを解除します。
+     * 生成した天文台は歩行経路を常時検査するため、フィールド破棄まで保持します。
      *
      * @param challengeId 対象の挑戦 ID
      */
     public void releaseStartupChunkTickets(@NotNull UUID challengeId) {
+        if (generatedFieldChallenges.contains(challengeId)) {
+            return;
+        }
+        releaseRetainedChunkTickets(challengeId);
+    }
+
+    /**
+     * フィールド破棄時には生成会場の全チャンクチケットも必ず解除します。
+     * @param challengeId 破棄対象の挑戦 ID
+     */
+    private void releaseRetainedChunkTickets(@NotNull UUID challengeId) {
+        generatedFieldChallenges.remove(challengeId);
         List<Chunk> retainedChunks = startupChunkTicketsByChallengeId.remove(challengeId);
         if (retainedChunks == null) {
             return;
@@ -668,7 +684,7 @@ public final class BossFieldInstanceService {
      * @return アンロード済み、または既に未ロードなら {@code true}
      */
     private boolean unloadField(@NotNull BossFieldInstance field) {
-        releaseStartupChunkTickets(field.challengeId());
+        releaseRetainedChunkTickets(field.challengeId());
         World loaded = Bukkit.getWorld(field.world().getUID());
         if (loaded != null && !Bukkit.unloadWorld(loaded, false)) {
             Logger.log(LogId.E_6503, field.worldName(), field.worldFolder().toString());
