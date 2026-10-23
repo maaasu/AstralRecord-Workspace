@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "description": "SkillMechanicsGoldenHarness.java がPluginの実クラスから出力した固定ケース。Bukkitサーバーは起動しない。",
+  "sources": [
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/condition/service/ConditionService.java", "sha256": "f6e57fca753bc10e15cd220172f98ac4c4fc3411674416260ff50eac9336eb2d" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/condition/service/ConditionTickService.java", "sha256": "0291f5b3ba739a6376d7566f708638089f739b60eb2a4ed4346a83c3fab1f776" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/condition/model/ActiveCondition.java", "sha256": "ea9789bfd081a6f1103b8d8188b73db7e1b2e0f66b1755e3a1cc56b52c2f6344" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/model/SkillProjectileSpec.java", "sha256": "0d10cc1a2a42c3b1d561826a92520f724aade1596a063703981287e589550a14" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillTargetingService.java", "sha256": "cadc6da571356c2148e56455cc67e262cb504f88bae7a5c05340885da80698f8" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillProjectileService.java", "sha256": "f34142a929dfdad78e98f40ce493592a89eb5dc0ac8a85a07c7e946a473844b5" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/service/DamageCalculator.java", "sha256": "8151d376fd2a7f71d89d2c56213c830f3a7c5900613780d0d4035a98cacadcf6" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageContext.java", "sha256": "8b786e9b2b6f2fdeb0f80bc0d54b8f03327d26d565d7295f468c45f662af0d54" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageComponent.java", "sha256": "17306128fdde270ffbdf8191f43b41b193ea48fe680d7c0d7775ac9fe349d12d" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/service/BuffService.java", "sha256": "4724ecf9c2a1ffcec58a37eaf206225a3f3017ed80c8a3b6f0d68f145ffa6b5a" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffType.kt", "sha256": "b4cd79fcb89f635838322d7ea6a70e9ddfeb3ee204354d3412491d315e87a52f" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffModifier.kt", "sha256": "6cb7ce6b4370948759a77f654f1e411d1fa0906669fdf07eda182172344567a7" }
+  ],
+  "cases": [
+    { "id": "condition_chance", "input": { "burningChance": 24.5, "applyIncrease": 20, "resistance": 25, "capChance": 50, "capIncrease": 150, "fullResistance": 150 }, "expected": { "adjusted": 22.049999999999997, "capped": 100.0, "resisted": 0.0 } },
+    { "id": "projectile_collision", "input": { "targetBounds": [-0.3, 1, 4.1, 0.3, 2, 4.7], "originY": 1.6, "originOffset": 0.8, "speed": 1.6, "hitRadius": 0.6, "range": 16 }, "expected": { "standardDistance": 3.4999999999999996, "offsetDistance": 2.6999999999999993, "standardTick": 2, "offsetTick": 1, "maxTicks": 10 } },
+    { "id": "burning_ticks", "input": { "nextTickAtMs": 1000, "intervalTicks": 20, "snapshotPower": 8, "timesMs": [999, 1000, 1999, 2000] }, "expected": { "beforeDueMs": 1000, "afterFirstMs": 2000, "afterSecondMs": 3000, "damagePerTick": 8, "damageCalls": 2 } },
+    { "id": "thermal_components", "input": { "rangedAttack": 40, "mobDefense": 8, "components": [{ "element": "FIRE", "ratio": 0.6 }, { "element": "ICE", "ratio": 0.6 }], "neutralRatio": 1.2 }, "expected": { "compositeDamage": 42.865153262248725, "singleDamage": 42.865153262248725, "hitChance": 100.0 } },
+    { "id": "build_up_scalar", "input": { "baseAttack": 40, "modifierType": "SCALAR", "modifier": 0.11, "buffDurationTicks": 200 }, "expected": { "baseAttack": 40, "modifier": 0.11, "bonus": 4.4, "activeCount": 1 } }
+  ]
+}

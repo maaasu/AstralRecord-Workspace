@@ -24,6 +24,9 @@ public static class BalanceLabRunner
                 throw new ArgumentException("各ビルドに重複しないIDを指定してください。");
             RequireInteger(build, "playerLevel", 1, 200);
             RequireInteger(build, "classLevel", 1, 10000);
+            if (build["normalAttacks"] is not null && build["normalAttacks"]!.GetValueKind() is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+                throw new ArgumentException("normalAttacks は真偽値で指定してください。");
+            if (build["initialShield"] is not null) RequireNumber(build, "initialShield", 0, 1e9);
             if (build["equipment"] is not JsonArray equipment || equipment.Count > 20)
                 throw new ArgumentException("装備構成は20件以内の配列で指定してください。");
             if (build["skillIds"] is not JsonArray skills || skills.Count > 20)
@@ -58,6 +61,8 @@ public static class BalanceLabRunner
             throw new ArgumentException("敵マスターを指定してください。");
         RequireInteger(enemy, "level", 1, 10000);
         if (enemy["attackIntervalTicks"] is not null) RequireInteger(enemy, "attackIntervalTicks", 0, 100000);
+        if (enemy["distanceBlocks"] is not null) RequireNumber(enemy, "distanceBlocks", double.Epsilon, 128);
+        if (enemy["targetHalfDepth"] is not null) RequireNumber(enemy, "targetHalfDepth", double.Epsilon, 16);
         if (request["economy"] is JsonObject economy)
         {
             foreach (var field in new[] { "quantity", "fromEnhanceLevel", "targetEnhanceLevel", "transcendenceRank", "orbOwned", "playerLevel", "targetPlayerLevel", "classLevel", "targetClassLevel" })
@@ -114,7 +119,7 @@ public static class BalanceLabRunner
                     trial["index"] = index;
                     trial["seed"] = seed;
                     // Resource traces are for the first specified trial, never a selected successful run.
-                    if (index > 0) trial["resources"] = new JsonArray();
+                    if (index > 0) { trial["resources"] = new JsonArray(); trial["skillTimeline"] = new JsonArray(); }
                     else if (trial["resources"] is JsonArray trace && trace.Count > 301)
                     {
                         var interval = (int)Math.Ceiling((trace.Count - 1) / 300.0);

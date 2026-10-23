@@ -1,11 +1,18 @@
 export type JsonObject = Record<string, unknown>
 
 export interface BalanceMaster { path: string; kind: string; revision?: string; content: JsonObject }
+export interface BalanceSkillCatalogEntry {
+  id: string; implementationId: string; path: string; name: string; supported: boolean; kind: 'active' | 'passive'
+  reasons: string[]; assumptions: string[]; sources: string[]
+  classLinks: { classId: string; kind: 'class' | 'node'; path: string; nodeId?: string | number; requirements?: unknown }[]
+  cooldownTicks?: number; castTimeTicks?: number; resourceType?: string; resourceCost?: number; maxLevel?: number
+}
 export interface BalanceCatalog {
   masters: BalanceMaster[]
   masterHash: string
   sourceHash?: string
   supportedSkillIds?: string[]
+  skillCatalog?: BalanceSkillCatalogEntry[]
   modelVersion: string
   sources: { path: string; hash: string }[]
   diagnostics: { path: string; message: string }[]
@@ -15,6 +22,7 @@ export interface BalanceEquipment { itemId: string; enhanceLevel: number; [key: 
 export interface BalanceBuild {
   id: string; name: string; classId: string; playerLevel: number; classLevel: number
   equipment: BalanceEquipment[]; skillIds: string[]; baseStats?: Record<string, number>
+  normalAttacks?: boolean; initialShield?: number
 }
 export interface BalanceEconomy {
   targetItemId: string; quantity: number; enhanceItemId: string; fromEnhanceLevel: number
@@ -25,7 +33,7 @@ export interface BalanceEconomy {
 export interface BalanceScenario {
   schemaVersion: 1; masterHash?: string; sourceHash?: string; modelVersion?: string; seed: number; trials: number
   maxSeconds: number; mode: 'strict' | 'approximate'; builds: BalanceBuild[]
-  enemy: { mobId: string; level: number; attackIntervalTicks?: number }
+  enemy: { mobId: string; level: number; attackIntervalTicks?: number; distanceBlocks?: number; targetHalfDepth?: number }
   overrides: { path: string; content: unknown }[]; economy?: BalanceEconomy
 }
 export interface BalanceTrial {
@@ -69,6 +77,26 @@ export const numberValue = (value: unknown, fallback = 0): number => typeof valu
 export const masterId = (master: BalanceMaster): string => textValue(master.content.id) || master.path
 export const masterName = (master: BalanceMaster): string => textValue(master.content.displayName) || textValue(master.content.name) || masterId(master)
 
+export function skillCatalogForMasters(catalog: BalanceCatalog): BalanceSkillCatalogEntry[] {
+  const byPath = new Map(catalog.skillCatalog?.map(entry => [entry.path, entry]) ?? [])
+  return classifyMasters(catalog).skills.map(master => {
+    const entry = byPath.get(master.path)
+    return entry && entry.id === masterId(master) ? entry : {
+      id: masterId(master), implementationId: textValue(master.content.implementationId), path: master.path,
+      name: masterName(master), supported: false, kind: master.content.passive ? 'passive' as const : 'active' as const,
+      reasons: ['計算対応情報がないため、実行時の診断を確認してください。'], assumptions: [], sources: [], classLinks: [],
+    }
+  })
+}
+
+export function skillIsClassCandidate(entry: BalanceSkillCatalogEntry, classMaster?: BalanceMaster): boolean {
+  if (!classMaster) return false
+  const classId = masterId(classMaster)
+  const direct = Array.isArray(classMaster.content.usableSkills) && classMaster.content.usableSkills.some(
+    value => typeof value === 'string' && value.replace(/^skill:/, '') === entry.id)
+  return Boolean(direct || entry.classLinks.some(link => link.classId === classId))
+}
+
 export function classifyMasters(catalog: BalanceCatalog) {
   const is = (master: BalanceMaster, pattern: RegExp) => pattern.test(`${master.kind} ${master.path}`)
   return {
@@ -85,8 +113,8 @@ export function createScenario(catalog?: BalanceCatalog): BalanceScenario {
   return {
     schemaVersion: 1, masterHash: catalog?.masterHash, sourceHash: catalog?.sourceHash, modelVersion: catalog?.modelVersion,
     seed: 1, trials: 1, maxSeconds: 120, mode: 'strict',
-    builds: [{ id: 'build-1', name: 'ビルド1', classId: groups?.classes[0] ? masterId(groups.classes[0]) : '', playerLevel: 1, classLevel: 1, equipment: [], skillIds: [] }],
-    enemy: { mobId: groups?.mobs[0] ? masterId(groups.mobs[0]) : '', level: 1 }, overrides: [],
+    builds: [{ id: 'build-1', name: 'ビルド1', classId: groups?.classes[0] ? masterId(groups.classes[0]) : '', playerLevel: 1, classLevel: 1, equipment: [], skillIds: [], normalAttacks: true, initialShield: 0 }],
+    enemy: { mobId: groups?.mobs[0] ? masterId(groups.mobs[0]) : '', level: 1, distanceBlocks: 3, targetHalfDepth: 0.3 }, overrides: [],
   }
 }
 
@@ -94,9 +122,22 @@ export function validateScenario(value: unknown): BalanceScenario {
   const input = asRecord(value)
   if (input.schemaVersion !== 1 || !Array.isArray(input.builds) || !Array.isArray(input.overrides)) throw new Error('シナリオの形式が違います。schemaVersion 1 のJSONを選択してください。')
   const scenario = value as BalanceScenario
+  if (scenario.builds.some(value => {
+    const build = asRecord(value)
+    return !Array.isArray(build.equipment) || build.equipment.some(value => !textValue(asRecord(value).itemId))
+      || !Array.isArray(build.skillIds) || build.skillIds.some(value => typeof value !== 'string' || !value)
+  })) throw new Error('各ビルドの装備とスキルを配列で指定してください。')
+  if (scenario.overrides.some(value => {
+    const entry = asRecord(value)
+    return !textValue(entry.path) || !entry.content || typeof entry.content !== 'object' || Array.isArray(entry.content)
+  })) throw new Error('調整案のパスとマスター内容を指定してください。')
   if (!scenario.builds.length || scenario.builds.some(build => !build.id || !build.classId || !Number.isInteger(build.playerLevel) || !Number.isInteger(build.classLevel))) throw new Error('各ビルドの職業とレベルを指定してください。')
   if (!scenario.enemy?.mobId || !Number.isInteger(scenario.enemy.level)) throw new Error('敵と敵レベルを指定してください。')
-  if (!Number.isInteger(scenario.seed) || scenario.seed < 0 || !Number.isInteger(scenario.trials) || scenario.trials < 1 || scenario.trials > 500 || !Number.isInteger(scenario.maxSeconds) || scenario.maxSeconds < 1 || scenario.maxSeconds > 600) throw new Error('seed、試行回数（1～500）、最大秒数（1～600）を確認してください。')
+  if (scenario.builds.some(build => (build.normalAttacks !== undefined && typeof build.normalAttacks !== 'boolean')
+    || (build.initialShield !== undefined && (!Number.isFinite(build.initialShield) || build.initialShield < 0)))) throw new Error('通常攻撃と初期シールドの入力を確認してください。')
+  if ((scenario.enemy.distanceBlocks !== undefined && (!Number.isFinite(scenario.enemy.distanceBlocks) || scenario.enemy.distanceBlocks <= 0))
+    || (scenario.enemy.targetHalfDepth !== undefined && (!Number.isFinite(scenario.enemy.targetHalfDepth) || scenario.enemy.targetHalfDepth <= 0))) throw new Error('敵との距離と当たり判定の奥行きを正数で指定してください。')
+  if (!Number.isInteger(scenario.seed) || scenario.seed < -2147483648 || scenario.seed > 2147483647 || !Number.isInteger(scenario.trials) || scenario.trials < 1 || scenario.trials > 500 || !Number.isInteger(scenario.maxSeconds) || scenario.maxSeconds < 1 || scenario.maxSeconds > 600) throw new Error('seed、試行回数（1～500）、最大秒数（1～600）を確認してください。')
   if (scenario.mode !== 'strict' && scenario.mode !== 'approximate') throw new Error('計算モードを確認してください。')
   return scenario
 }

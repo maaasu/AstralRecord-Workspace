@@ -10,6 +10,8 @@
 .balance-fields input, .balance-fields select, .balance-trial-choice select, .balance-lab textarea { background: #101c29; border: 1px solid #43566b; border-radius: 5px; color: #f0f5fa; padding: 8px; }
 .balance-fields input[type=number] { width: 125px; }
 .balance-fields input:not([type=number]), .balance-fields select { min-width: 210px; max-width: 360px; }
+.balance-lab .balance-toggle { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.balance-lab .balance-toggle input[type=checkbox] { flex: 0 0 16px; width: 16px; height: 16px; min-width: 16px; max-width: 16px; margin: 0; padding: 0; }
 .balance-lab textarea { width: 100%; min-height: 150px; font-family: Consolas, monospace; font-size: 12px; resize: vertical; }
 .balance-lab details { margin: 12px 0; }
 .balance-lab details summary { cursor: pointer; }
@@ -21,6 +23,15 @@
 .balance-check-name { grid-column: 2; display: block; min-width: 0; line-height: 1.45; overflow-wrap: anywhere; }
 .balance-check-name > span { display: block; min-width: 0; overflow-wrap: anywhere; }
 .balance-check-name small, .balance-selected-name small { display: block; overflow-wrap: anywhere; color: #9aafc3; }
+.balance-skill-checks { grid-template-columns: repeat(auto-fill, minmax(min(100%, 275px), 1fr)); max-height: 360px; }
+.balance-skill-row { min-width: 0; padding: 0 0 7px; background: #243346; border: 1px solid #3a4e62; border-radius: 4px; }
+.balance-skill-row .balance-check-item { border: 0; background: transparent; padding-bottom: 4px; }
+.balance-skill-meta { display: flex; flex-wrap: wrap; gap: 3px 9px; padding: 0 9px; color: #a9bdcf; font-size: 11px; }
+.balance-skill-supported { color: #a8dec0; }
+.balance-skill-unsupported { color: #f1c689; }
+.balance-skill-counts { margin: 8px 0; font-size: 13px; color: #b9cfe0; }
+.balance-skill-details { margin: 5px 9px 0 !important; padding-top: 5px; border-top: 1px solid #3a4e62; font-size: 11px; }
+.balance-skill-details p { margin: 6px 0; line-height: 1.5; overflow-wrap: anywhere; }
 .balance-skill-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin: 12px 0; font-size: 12px; }
 .balance-skill-controls > label:not(.balance-filter-toggle), .balance-search { display: grid; gap: 5px; min-width: min(100%, 240px); }
 .balance-skill-controls input[type=search], .balance-search input[type=search] { min-width: 0; width: 100%; background: #101c29; border: 1px solid #43566b; border-radius: 5px; color: #f0f5fa; padding: 8px; }

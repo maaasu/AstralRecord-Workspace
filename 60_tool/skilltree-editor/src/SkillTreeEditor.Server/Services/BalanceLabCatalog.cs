@@ -7,7 +7,7 @@ namespace SkillTreeEditor.Server.Services;
 /// <summary>Captures the existing editor's parsed masters without exposing a write path.</summary>
 public sealed class BalanceLabCatalog(MasterDataPaths paths, MasterDataService masters, WorkspacePaths workspace, MasterDataValidation validation)
 {
-    public const string ModelVersion = "astral-balance/1.0.0";
+    public const string ModelVersion = "astral-balance/2.0.0";
     public static JsonObject Limits => new()
     {
         ["maxTrials"] = 500, ["maxSeconds"] = 600, ["maxBuilds"] = 4,
@@ -52,18 +52,19 @@ public sealed class BalanceLabCatalog(MasterDataPaths paths, MasterDataService m
                     ["hash"] = Hash(await File.ReadAllBytesAsync(file, token))
                 });
             }
-        return new JsonObject
+        var result = new JsonObject
         {
             ["modelVersion"] = ModelVersion,
             ["masterHash"] = Hash(Encoding.UTF8.GetBytes(manifest.ToJsonString())),
             ["sourceHash"] = Hash(Encoding.UTF8.GetBytes(sources.ToJsonString())),
             ["manifest"] = manifest, ["masters"] = documents, ["sources"] = sources,
-            ["diagnostics"] = diagnostics, ["limits"] = Limits,
-            ["supportedSkillIds"] = new JsonArray(documents.OfType<JsonObject>()
-                .Where(document => document["kind"]?.ToString() == "skill"
-                    && document["content"] is JsonObject definition && BalanceCombat.SupportsSkill(definition))
-                .Select(document => JsonValue.Create(document["content"]!["id"]!.ToString())).ToArray())
+            ["diagnostics"] = diagnostics, ["limits"] = Limits
         };
+        var skills = BalanceSkills.Catalog(result);
+        result["skillCatalog"] = skills;
+        result["supportedSkillIds"] = new JsonArray(skills.OfType<JsonObject>()
+            .Where(skill => skill["supported"]!.GetValue<bool>()).Select(skill => skill["id"]!.DeepClone()).ToArray());
+        return result;
     }
 
     public static JsonObject ApplyProposal(JsonObject catalog, JsonArray overrides, out JsonArray changes)

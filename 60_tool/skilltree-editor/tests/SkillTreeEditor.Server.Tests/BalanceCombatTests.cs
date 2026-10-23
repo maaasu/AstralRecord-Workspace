@@ -62,7 +62,7 @@ public sealed class BalanceCombatTests
     {
         var catalog = Catalog();
         catalog["masters"]!.AsArray().Add(JsonNode.Parse("""
-            {"kind":"skill","path":"test/mana_burst.yml","content":{"id":"adventurer_mana_burst","implementationId":"adventurer_mana_burst","name":"マナバースト","cooldownTicks":60,"resourceType":"MANA","resourceCost":13,"castTimeTicks":2,"params":{"damageRatio":1.32}}}
+            {"kind":"skill","path":"test/mana_burst.yml","content":{"id":"adventurer_mana_burst","implementationId":"adventurer_mana_burst","name":"マナバースト","cooldownTicks":60,"resourceType":"MANA","resourceCost":13,"castTimeTicks":2,"params":{"damageRatio":1.32,"range":7,"angle":60,"maxTargets":6}}}
             """));
         var build = Build();
         build["skillIds"] = new JsonArray("adventurer_mana_burst");
@@ -77,7 +77,7 @@ public sealed class BalanceCombatTests
     {
         var catalog = Catalog();
         catalog["masters"]!.AsArray().Add(JsonNode.Parse("""
-            {"kind":"skill","path":"test/smash.yml","content":{"id":"adventurer_smash","implementationId":"adventurer_smash","name":"スマッシュ","cooldownTicks":150,"resourceType":"ENERGY","resourceCost":30,"castTimeTicks":12,"params":{"damageRatio":3.6,"impactDelayTicks":8}}}
+            {"kind":"skill","path":"test/smash.yml","content":{"id":"adventurer_smash","implementationId":"adventurer_smash","name":"スマッシュ","cooldownTicks":150,"resourceType":"ENERGY","resourceCost":30,"castTimeTicks":12,"params":{"damageRatio":3.6,"impactDelayTicks":8,"primaryRadius":4,"impactRadius":2,"secondaryRatio":0.576,"secondaryKnockback":1,"maxSecondaryTargets":8}}}
             """));
         var build = Build();
         build["skillIds"] = new JsonArray("adventurer_smash");
@@ -139,7 +139,7 @@ public sealed class BalanceCombatTests
         {"masters":[
           {"kind":"class","path":"test/class.yml","content":{"id":"adventurer","maxLevel":30,"baseStats":[{"status":"ATTACK","value":20}]}},
           {"kind":"item","path":"test/weapon.yml","content":{"id":"sword","name":"剣","equipment":{"slot":"WEAPON","tag":"SWORD","stats":[{"status":"ATTACK","type":"FLAT","value":10}]}}},
-          {"kind":"mob","path":"test/mob.yml","content":{"id":"boar","level":1,"baseStats":[{"status":"MAX_HEALTH","value":100},{"status":"ATTACK","value":5},{"status":"DEFENSE","value":8},{"status":"ACCURACY","value":95}],"ai":{"combat":{"style":"MELEE","normalAttack":{"intervalTicks":30}}}}}
+          {"kind":"mob","path":"test/mob.yml","content":{"id":"boar","level":1,"baseStats":[{"status":"MAX_HEALTH","value":100},{"status":"ATTACK","value":5},{"status":"DEFENSE","value":8},{"status":"ACCURACY","value":95}],"ai":{"combat":{"style":"MELEE","normalAttack":{"range":3,"intervalTicks":30}}}}}
         ],"sources":[],"modelVersion":"test","masterHash":"test"}
         """)!.AsObject();
 

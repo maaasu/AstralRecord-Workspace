@@ -1,0 +1,129 @@
+{
+  "modelVersion": "skill-executor-trace-v1",
+  "note": "実Plugin executorと仮想tickを実行。Bukkit依存の表示定数のみハーネスで置換。",
+  "sources": [
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/swordsman/SwordsmanFlameRushExecutor.java",
+      "sha256": "68fd7d954aebfaffbba4d2161beaabe819940830604be767a9a7771574b9f8fb"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/swordmaster/SwordmasterBladeTempestExecutor.java",
+      "sha256": "3a19bfce3a5f256791181db7d9867caee887d7208389fd07d53eed5d66b12217"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/swordmaster/SwordmasterCrescentDuetExecutor.java",
+      "sha256": "b98a66142ac2269c62a18688b682762b9c87f93f85a25a1c95cfa153cb5ace8e"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/swordmaster/SwordmasterSkillSupport.java",
+      "sha256": "bbe253db2940565fa70e8bd5aa9b6a4ef6670c25d3d54970281103c5036740e8"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/support/PlayerActiveSkillContext.java",
+      "sha256": "fee730ae2f681cf6339de3de5aeaa272ad36a2e1e5fe9f387e26ca154a73b3d4"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/ActiveSkillServices.java",
+      "sha256": "220c6b821b5c01e0cfbd8b2cf562929a2a9e2e9ec430a5f666b6a367101fab0f"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillTaskService.java",
+      "sha256": "c31dd0be6904340c09bf2b4c550367667306e79f01a490638d1b83dc62e59850"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillCombatService.java",
+      "sha256": "b53b85a7619eac44e51355060656910b3e4eaa2587a342c87979bae692ef3c2f"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillTargetingService.java",
+      "sha256": "cadc6da571356c2148e56455cc67e262cb504f88bae7a5c05340885da80698f8"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/SkillParamReader.java",
+      "sha256": "cc350e23bc2633b4d7093a6c1906065f79ba5243210917ad74a4c0ca6292692f"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/SkillDefinition.kt",
+      "sha256": "190bc097fe1875ea04960e259006976f7ed32d21bcb1fea00d55ba876bfe6378"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/PlayerSkillCaster.java",
+      "sha256": "65796227bbac4a82f30f60e9840f55296777c223c12eaf3002154a1edde119fd"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageResult.java",
+      "sha256": "b8b9d63ae401770d1469c48fe8b393fb1b5db7e5ac5fe52652b65f7450523d05"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/AstEntity.java",
+      "sha256": "43156d17235e0d9dd5ef9a21bc597527d481a04215c7508f593290fe33867bc4"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/support/PlayerActiveSkillExecutor.java",
+      "sha256": "56e57318517bd4aae6030d3500972c343af1fd17a47e1ab006e87103ee02c033"
+    }
+  ],
+  "cases": [
+    {
+      "id": "swordsman_flame_rush",
+      "expected": {
+        "hits": [
+          {
+            "tick": 0,
+            "ratio": 0.78,
+            "element": "FIRE"
+          },
+          {
+            "tick": 4,
+            "ratio": 0.9,
+            "element": "FIRE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "swordmaster_blade_tempest",
+      "expected": {
+        "hits": [
+          {
+            "tick": 1,
+            "ratio": 1.5,
+            "element": "NONE"
+          },
+          {
+            "tick": 5,
+            "ratio": 1.5,
+            "element": "NONE"
+          },
+          {
+            "tick": 9,
+            "ratio": 1.5,
+            "element": "NONE"
+          },
+          {
+            "tick": 13,
+            "ratio": 1.5,
+            "element": "NONE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "swordmaster_crescent_duet",
+      "expected": {
+        "hits": [
+          {
+            "tick": 1,
+            "ratio": 2.0,
+            "element": "NONE"
+          },
+          {
+            "tick": 5,
+            "ratio": 3.2,
+            "element": "NONE"
+          }
+        ]
+      }
+    }
+  ]
+}

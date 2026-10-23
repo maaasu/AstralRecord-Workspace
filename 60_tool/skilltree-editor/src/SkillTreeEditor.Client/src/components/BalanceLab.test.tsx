@@ -5,6 +5,13 @@ import { BalanceLab } from './BalanceLab'
 const catalog = {
   masterHash: 'master-a', sourceHash: 'source-a', modelVersion: 'model-1', sources: [], diagnostics: [],
   supportedSkillIds: ['bolt', 'slash'],
+  skillCatalog: [
+    { id: 'bolt', implementationId: 'bolt', path: '30.features.skill/v1.bolt.yml', name: '雷撃', supported: true, kind: 'active', reasons: [], assumptions: ['直線上の単体'], sources: [], classLinks: [{ classId: 'mage', kind: 'class', path: '20.features.class/v1.mage.yml' }] },
+    { id: 'slash', implementationId: 'slash', path: '30.features.skill/v1.slash.yml', name: '斬撃', supported: true, kind: 'active', reasons: [], assumptions: [], sources: [], classLinks: [{ classId: 'mage', kind: 'class', path: '20.features.class/v1.mage.yml' }] },
+    { id: 'unsupported', implementationId: 'unsupported', path: '30.features.skill/v1.unsupported.yml', name: '未対応魔法', supported: false, kind: 'passive', reasons: ['発動トリガーを再現できません。'], assumptions: [], sources: [], classLinks: [{ classId: 'mage', kind: 'node', path: '35.features.skilltree/mage.yml', nodeId: 'mage-1' }] },
+    { id: 'other', implementationId: 'other', path: '30.features.skill/v1.other.yml', name: '他職スキル', supported: false, kind: 'active', reasons: ['効果を再現できません。'], assumptions: [], sources: [], classLinks: [] },
+    { id: 'tree', implementationId: 'tree', path: '30.features.skill/v1.tree.yml', name: 'ツリー魔法', supported: true, kind: 'active', reasons: [], assumptions: [], sources: [], classLinks: [{ classId: 'mage', kind: 'node', path: '35.features.skilltree/mage.yml', nodeId: 'mage-2' }] },
+  ],
   limits: { maxTrials: 500, maxSeconds: 600, maxBuilds: 4, maxTickWork: 2000000, wallSeconds: 30 },
   masters: [
     { path: '20.features.class/v1.mage.yml', kind: 'class', content: { id: 'mage', name: '&d魔法使い', baseStats: [], usableSkills: ['skill:bolt', 'skill:slash', 'skill:unsupported'] } },
@@ -15,6 +22,7 @@ const catalog = {
     { path: '30.features.skill/v1.slash.yml', kind: 'skill', content: { id: 'slash', name: '斬撃' } },
     { path: '30.features.skill/v1.unsupported.yml', kind: 'skill', content: { id: 'unsupported', name: '未対応魔法' } },
     { path: '30.features.skill/v1.other.yml', kind: 'skill', content: { id: 'other', name: '他職スキル' } },
+    { path: '30.features.skill/v1.tree.yml', kind: 'skill', content: { id: 'tree', name: 'ツリー魔法' } },
   ],
 }
 
@@ -22,8 +30,8 @@ beforeEach(() => { localStorage.clear(); sessionStorage.clear() })
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 
 describe('BalanceLab', () => {
-  it('filters skill candidates using catalog metadata and preserves selected priority order', async () => {
-    let submitted: { builds: { skillIds: string[] }[] } | undefined
+  it('shows all master skills and submits skill priority with combat geometry', async () => {
+    let submitted: { builds: { skillIds: string[]; normalAttacks: boolean; initialShield: number }[]; enemy: { distanceBlocks: number; targetHalfDepth: number } } | undefined
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/catalog')) return { ok: true, json: async () => catalog }
       if (init?.method === 'POST') {
@@ -34,9 +42,12 @@ describe('BalanceLab', () => {
     }))
     render(<BalanceLab />)
     await screen.findByText(/マスター指紋/)
+    expect(screen.getByText('全 5件 · 計算対応 3件 · 未対応 2件')).toBeInTheDocument()
     expect(screen.getByLabelText(/雷撃/)).toBeInTheDocument()
     expect(screen.getByLabelText(/斬撃/)).toBeInTheDocument()
-    expect(screen.queryByLabelText(/未対応魔法/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/未対応魔法/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/他職スキル/)).toBeInTheDocument()
+    expect(screen.getByText('発動トリガーを再現できません。')).toBeInTheDocument()
     fireEvent.change(screen.getByRole('searchbox', { name: 'スキル検索' }), { target: { value: '雷撃' } })
     expect(screen.getByLabelText(/雷撃/)).toBeInTheDocument()
     expect(screen.queryByLabelText(/斬撃/)).not.toBeInTheDocument()
@@ -44,19 +55,27 @@ describe('BalanceLab', () => {
     fireEvent.click(screen.getByLabelText(/雷撃/))
     fireEvent.click(screen.getByLabelText(/斬撃/))
     fireEvent.click(screen.getByRole('button', { name: 'slashの優先順位を上げる' }))
+    fireEvent.click(screen.getByLabelText('通常攻撃も使う'))
+    fireEvent.change(screen.getByLabelText('初期シールド'), { target: { value: '12' } })
+    fireEvent.change(screen.getByLabelText('敵との距離（ブロック）'), { target: { value: '5.5' } })
+    fireEvent.change(screen.getByLabelText('敵の当たり判定半奥行き'), { target: { value: '0.4' } })
     fireEvent.click(screen.getByRole('button', { name: 'この条件で実行' }))
     await waitFor(() => expect(submitted?.builds[0].skillIds).toEqual(['slash', 'bolt']))
+    expect(submitted?.builds[0]).toMatchObject({ normalAttacks: false, initialShield: 12 })
+    expect(submitted?.enemy).toMatchObject({ distanceBlocks: 5.5, targetHalfDepth: 0.4 })
   })
 
-  it('shows unsupported and other-class skills only after relaxing candidate filters', async () => {
+  it('uses both class defaults and skill-tree links for the optional class filter', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => catalog }))
     render(<BalanceLab />)
     await screen.findByText(/マスター指紋/)
-    fireEvent.click(screen.getByLabelText('計算対応スキルのみ'))
+    fireEvent.click(screen.getByLabelText('職業の潜在候補のみ'))
     expect(screen.getByLabelText(/未対応魔法/)).toBeInTheDocument()
     expect(screen.queryByLabelText(/他職スキル/)).not.toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText('職業の使用候補のみ'))
-    expect(screen.getByLabelText(/他職スキル/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/ツリー魔法/)).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('計算対応のみ'))
+    expect(screen.queryByLabelText(/未対応魔法/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/ツリー魔法/)).toBeInTheDocument()
   })
 
   it('keeps the sell-item list compact and searchable', async () => {

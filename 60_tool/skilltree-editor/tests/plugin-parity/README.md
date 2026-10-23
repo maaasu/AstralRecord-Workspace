@@ -19,7 +19,7 @@
 | `LevelDifferenceCalculator` / `StatusRateCalculator` | レベル差による経験値減衰と経験値獲得率125%、端数0.5の丸めの2件 |
 | `OrbLocalMutationCalculator` | 強化成功、失敗時`NONE`/`DECREASE_ONE`/`SET_LEVEL`の4件 |
 
-Javaハーネスは `StatusRegenTask`、戦闘AI、スキルexecutorの空間判定・詠唱中断・実際のBukkit tick、盾ダメージ経路、1戦闘全体の勝敗を呼んでいない。経済側もドロップ候補の抽選全体、強化の0%と100%以外の乱数判定、Orbの条件・費用・消費を照合していない。これらは別のモデル前提または未対応境界であり、固定ケースの照合済み範囲には含めない。
+従来の`CombatGoldenHarness`は `StatusRegenTask`、戦闘AI、スキルexecutorの空間判定・詠唱中断・実際のBukkit tick、盾ダメージ経路、1戦闘全体の勝敗を呼んでいない。経済側もドロップ候補の抽選全体、強化の0%と100%以外の乱数判定、Orbの条件・費用・消費を照合していない。これらは別のモデル前提または未対応境界であり、固定ケースの照合済み範囲には含めない。
 
 ```powershell
 & '60_tool/skilltree-editor/tests/plugin-parity/run-parity.ps1' `
@@ -36,7 +36,17 @@ JavaハーネスのMockitoは固定ケースのテスト補助のみ。ラボ稼
 
 武器の通常攻撃間隔は `ItemWeaponAttackService.java` のタグ別基礎tickを使う。単発近接武器 `SWORD` と `HAMMER` はモデル範囲内。`SPEAR`, `BOW`, `SHORTBOW`, `LONGBOW`, `WAND`, `STAFF` の多段・飛翔体挙動は厳密モードで停止する。Mobは `MobCombatService.java` の通常攻撃間隔・攻撃種別を使う。盾は `DamageService.java:1709-1804` のHPダメージ遮断と盾減少を計算する。再充填は停止する。
 
-対応する実在スキルは `adventurer_smash`（近接主対象、詠唱後8 tick遅延）、`adventurer_quick_shot`（遠隔1発）、`adventurer_mana_burst`（魔法1発）、`wizard_self_heal`（自己回復）。スキルは記載順で使用し、成功時にMP/ENGを消費しクールダウンを開始する。単体戦闘のため、扇形/範囲攻撃の副対象、弾道遮蔽、ノックバックと移動、詠唱中断、継承などの周辺効果は計算しない。`skillIds` はLv1・習得/装着/使用許可済みとして扱う。その他executor、指定されたパッシブ・バフ・状態異常・追撃、付与スキル付き装備、Mobスキル、再充填盾、個体値範囲未確定、超越による能力値上書きは厳密モードで停止し、近似モードでは理由を `diagnostics` と `assumptions` に示す。超越の名称・強化上限のみの上書きは、指定済み強化レベルの能力値計算に影響しないため許容する。
+対応スキルはモデル2.0で47件へ拡張した。[スキル対応表](../../docs/BALANCE_SKILLS.md)を参照。全120件をマスターから自動取得し、実装IDで効果計画を解決する。多段攻撃、複合属性、対応投射、炎上・感電・凍結・冷気・衰弱、一部の時限buff/魔法陣、HP/MP/ENG/盾回復を扱う。スキルは記載順で使用し、Pluginの`executor.cast`同様、即時効果の後に共通消費とCD開始を処理する。遅延攻撃の攻撃側能力値は発動時のスナップショット、敵条件は命中時に参照する。
+
+`skillIds` はLv1・シジル未装着・習得/装着/使用許可済みとして扱う。レベル差分・シジル指定、未知の追加パラメーター、未検証のルート効果・実装IDを検出する。単体戦闘のため扇形/範囲攻撃の副対象は存在しない。移動、弾道遮蔽、詠唱中断、継承・専用資源・パッシブ連動等が必要な残り73件は理由付きで停止する。付与スキル付き装備、Mobスキル、再充填盾、個体値範囲未確定、超越による能力値上書きも厳密モードで停止し、近似モードでは省略理由を残す。超越の名称・強化上限のみの上書きは、指定済み強化レベルの能力値計算に影響しないため許容する。
+
+追加の`SkillExecutorGoldenHarness.java`は実executorを仮想tickで動かし、FlameRush、BladeTempest、CrescentDuetの命中tick・倍率・属性を取得する。空間検索・演出・ダメージサービスはMockitoで固定するため、空間判定や全戦闘の実測照合ではない。`skill-executor-golden.json`は3ケース・依存15ソース指紋を保持する。`SkillMechanicsGoldenHarness.java`は実`DamageCalculator`の火氷成分、`ConditionService`の付与率、`ConditionTickService`の炎上周期、`BuffService`のSCALAR、`SkillTargetingService`の箱交差を呼び、`skill-mechanics-golden.json`に5ケース・12ソース指紋を保持する。C#テストはこれらの期待値を参照する。乱数の固定値照合と統計分布検査を区別する。275件のスキル/状態/buffソース指紋は各アダプターと共通依存の変更検出用であり、275ファイルの全動作を照合したという意味ではない。
+
+```powershell
+& '60_tool/skilltree-editor/tests/plugin-parity/run-skill-parity.ps1' `
+  -JavaHome 'C:\path\to\jdk-21' -MavenHome 'C:\path\to\maven' -Check
+dotnet test 60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests --filter FullyQualifiedName~BalanceSkill
+```
 
 実在マスタの最小例は `adventurer`（`40_filebase/20.features.class/v1.0.adventurer.yml`）、`20a00001`（`40_filebase/10.features.item/20.equipment/v1.20a00001.simple_weapon.yml`）、`eriva_grassboar` Lv15（`40_filebase/40.features.mob/enemy/v1.eriva_grassboar.yml`）。`build.equipment[]` は `itemId`, `enhanceLevel`, 固定個体値 `statRolls:[{status,min,max}]`, `enchants:[{status,type,value}]`, `runes:[itemId|{itemId}]`, `transcendRank` を受け取る。マスタ上の乱数範囲を個体値なしで使う場合、厳密モードは停止する。`build.baseStats` は派生能力値の計算前に基礎値を上書きする。
 
