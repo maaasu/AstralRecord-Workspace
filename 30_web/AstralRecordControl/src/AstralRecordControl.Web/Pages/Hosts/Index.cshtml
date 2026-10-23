@@ -11,7 +11,8 @@
     var controlOrigin = ControlConfiguration["Control:PublicOrigin"]!.TrimEnd('/');
 }
 
-<div class="page-heading"><div><span class="eyebrow">CONNECTIONS</span><h1>接続PC</h1><p>PCごとの接続・設定状況と、配置したサーバー数を確認します。</p></div><div class="table-actions"><a class="button-link" asp-page="Index">状態を更新</a><a class="button-link" href="/">概要へ戻る</a></div></div>
+<div class="page-heading"><div><span class="eyebrow">CONNECTIONS</span><h1>接続PC</h1><p>PCごとの接続・設定状況と、配置したサーバー数を確認します。</p></div><a class="button-link button-link--back" href="/">概要へ戻る</a></div>
+<p class="snapshot-note" id="inventory-live-status" role="status">3秒ごとに自動更新します。</p>
 <p class="snapshot-note">接続手順は初回のみです。導入後はPCの起動時や通信復帰時に自動接続するため、毎回のログイン・Agent登録は不要です。対象PCの電源を入れ、スリープを解除してください。</p>
 @if (Model.Error != null) { <p class="status-note is-warning" role="alert">@Model.Error</p> }
 @if (Model.Issued != null) {
@@ -31,13 +32,16 @@
 </details>
 
 <section class="page-section" aria-labelledby="host-list-heading">
-    <div class="section-heading"><div><span class="eyebrow">REGISTERED PCS</span><h2 id="host-list-heading">登録済みPC</h2><p>@Model.Hosts.Length 台を登録しています。</p></div></div>
+    <div class="section-heading"><div><span class="eyebrow">REGISTERED PCS</span><h2 id="host-list-heading">登録済みPC</h2><p data-live-region="host-count">@Model.Hosts.Length 台を登録しています。</p></div></div>
+    <div data-live-region="host-empty">
     @if (Model.Hosts.Length == 0) {
         <div class="empty-state"><strong>まだPCがありません</strong><p>下の登録フォームから最初のPCを追加してください。</p><a class="button-link" href="#new-host">PCを登録する</a></div>
-    } else {
-        <div class="host-grid">
+    }
+    </div>
+        <div class="host-grid" data-live-collection="hosts">
             @foreach (var host in Model.Hosts) {
-                <article class="host-card">
+                <article class="host-card" data-live-item="@host.HostId">
+                    <div data-live-region="@($"host-{host.HostId}-status")">
                     <div class="entity-heading"><div><h3>@host.DisplayName</h3><span class="entity-key">@host.HostKey</span></div><span class="state-badge @ControlDisplay.HostStateClass(host.ConnectionState)">@ControlDisplay.HostState(host.ConnectionState)</span></div>
                     <p class="secondary-text">最終報告: @ControlDisplay.LastSeen(host.LastSeenAtUtc)</p>
                     <p>配置サーバー <strong>@Model.ServerCounts.GetValueOrDefault(host.HostId) 台</strong> · 設定の適用記録 @(host.DesiredInventoryRevision == host.AppliedInventoryRevision ? "適用済み" : "適用待ち")</p>
@@ -45,16 +49,17 @@
                     else if (host.InventoryErrorCode != null) { <p class="status-note is-warning">設定の適用に問題があります。</p> }
                     else if (host.DesiredInventoryRevision != host.AppliedInventoryRevision) { <p class="status-note">設定の適用を待っています。</p> }
                     else if (!host.LastSeenAtUtc.HasValue) { <p class="status-note">対象PCでAgentの接続を完了してください。</p> }
+                    </div>
                     <details class="connection-command" open="@(!host.LastSeenAtUtc.HasValue ? "open" : null)"><summary>このPCの接続手順</summary>
                         <div class="connection-command-body"><p>対象PCの管理者PowerShellで、同じWindowsユーザーとして実行します。初回だけCLIへログインしてください。</p>
                             <div class="command-line"><span>最初の一度</span><code>&amp; "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" login --server-url @controlOrigin</code></div>
                             <div class="command-line"><span>Agentを登録</span><code>&amp; "$env:LOCALAPPDATA\AstralRecordControl\Cli\bin\AstralRecordControl.Cli.exe" agent enroll --host-id @host.HostId</code></div>
-                            <p class="secondary-text">登録後にこの画面を再読み込みし、接続状態と設定の適用を確認してください。</p>
+                            <p class="secondary-text">登録後は接続状態と設定の適用が自動で反映されます。</p>
                         </div>
                     </details>
                     <details class="compact-details"><summary>設定・診断</summary>
                         <p class="secondary-text">標準外のAgent配置では、登録コマンドに <code>--agent-path &lt;対象PC上のAgent.exe&gt;</code> と、必要な場合だけ <code>--data-root &lt;対象PC上の保存先&gt;</code> を追加します。</p>
-                        <dl><dt>Host ID</dt><dd><code>@host.HostId</code></dd><dt>希望 / 適用版</dt><dd>@host.DesiredInventoryRevision / @host.AppliedInventoryRevision</dd><dt>報告コード</dt><dd>@(host.InventoryErrorCode ?? "なし")</dd></dl>
+                        <dl data-live-region="@($"host-{host.HostId}-diagnostics")"><dt>Host ID</dt><dd><code>@host.HostId</code></dd><dt>希望 / 適用版</dt><dd>@host.DesiredInventoryRevision / @host.AppliedInventoryRevision</dd><dt>報告コード</dt><dd>@(host.InventoryErrorCode ?? "なし")</dd></dl>
                         <form method="post" asp-page-handler="Update"><input type="hidden" name="hostId" value="@host.HostId" /><input type="hidden" name="revision" value="@host.Revision" /><label>表示名 <input name="displayName" value="@host.DisplayName" required maxlength="128" /></label><label><input type="checkbox" name="enabled" value="true" checked="@host.Enabled" />このPCを有効にする</label><button type="submit">PCの設定を保存</button></form>
                         <details class="advanced-details"><summary>手動資格情報と復旧</summary><p>通常の接続は上のCLI登録を使います。手動発行は復旧時のみ使用してください。</p>
                             <form method="post" asp-page-handler="Issue"><input type="hidden" name="hostId" value="@host.HostId" /><button type="submit">手動用トークンを発行</button></form>
@@ -69,12 +74,12 @@
                 </article>
             }
         </div>
-    }
 </section>
 
 <details id="new-host" class="setup-details" open="@(Model.Hosts.Length == 0 || string.Equals(failedHandler, "Create", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>PCを登録する</summary><div class="details-body"><p>接続するPCごとに登録します。キーは小文字の英数字とハイフンで指定してください。</p>
     <form method="post" asp-page-handler="Create"><input type="hidden" name="requestKey" value="@Model.RequestKey" /><label>PCキー <input name="hostKey" required pattern="[a-z0-9][a-z0-9-]{0,47}" maxlength="48" placeholder="mc-01" /></label><label>表示名 <input name="displayName" required maxlength="128" placeholder="MinecraftサーバーPC" /></label><button type="submit">PCを登録する</button></form>
 </div></details>
+@section Scripts { <script src="~/js/inventory-live.js" asp-append-version="true" defer></script> }
 
 <details class="setup-details" open="@(string.Equals(failedHandler, "Environment", StringComparison.OrdinalIgnoreCase) ? "open" : null)"><summary>共有環境の設定</summary><div class="details-body"><p>同じAPI・マスターデータを使うサーバーをEnvironmentでまとめます。必要な場合に設定してください。</p>
     @if (Model.Environments.Length == 0) { <p class="secondary-text">Environmentはまだ登録されていません。</p> }

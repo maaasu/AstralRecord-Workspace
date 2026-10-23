@@ -8,11 +8,12 @@
         && string.Equals(Model.Request.Query["handler"].ToString(), "Create", StringComparison.OrdinalIgnoreCase);
 }
 
-<div class="page-heading"><div><h1>サーバー台帳</h1><p>稼働状態を一覧で確認し、対象サーバーの操作へ進みます。</p></div><div class="table-actions"><a class="button-link" asp-page="Index">状態を更新</a><a class="button-link" href="/">概要へ戻る</a></div></div>
-<p class="snapshot-note">最終更新 @ControlDisplay.LastSeen(Model.ObservedAtUtc) · PCから30秒以内に届いた状態を表示します。</p>
+<div class="page-heading"><div><h1>サーバー台帳</h1><p>稼働状態を確認し、一覧から起動・正常停止できます。</p></div><a class="button-link button-link--back" href="/">概要へ戻る</a></div>
+<p class="snapshot-note" data-live-region="server-updated">最終更新 @ControlDisplay.LastSeen(Model.ObservedAtUtc) · PCから30秒以内に届いた状態を表示します。</p>
+<p class="snapshot-note" id="inventory-live-status" role="status">3秒ごとに自動更新します。</p>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 
-<section class="page-section" aria-labelledby="server-list-heading">
+<section class="page-section" aria-labelledby="server-list-heading" data-live-region="server-list">
     <div class="section-heading"><div><h2 id="server-list-heading">登録済みサーバー</h2><p>@Model.Servers.Length 件を登録しています。</p></div></div>
     @if (Model.Servers.Length == 0) {
         <div class="empty-state"><strong>サーバーはまだ登録されていません</strong><p>PCが接続し、rootと実行ファイルが報告された後に登録できます。</p></div>
@@ -21,10 +22,23 @@
         @foreach (var server in Model.Servers) {
             var kind = Model.Configuration(server).Kind;
             var status = Model.Status(server);
-            <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td><span class="state-badge @status.CssClass">@status.Label</span><span class="entity-key">@status.Detail</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")<span class="entity-key">@ControlDisplay.Kind(kind)</span></td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span><details class="inline-details"><summary>版を表示</summary>希望 @server.DesiredRevision / 適用 @server.AppliedRevision</details></td><td><div class="table-actions">
-            @if (kind is ServerKind.Java or ServerKind.Velocity) { <a class="button-link button-link--primary" asp-page="Operations" asp-route-serverId="@server.ServerId">操作・ログ</a> }
+            var actions = Model.Actions(server);
+            <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td><span class="state-badge @status.CssClass">@status.Label</span><span class="entity-key">@status.Detail</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")<span class="entity-key">@ControlDisplay.Kind(kind)</span></td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span><details class="inline-details" data-live-detail="@server.ServerId"><summary data-live-focus="@($"{server.ServerId}-revision")">版を表示</summary>希望 @server.DesiredRevision / 適用 @server.AppliedRevision</details></td><td><div class="table-actions">
+            @if (kind is ServerKind.Java or ServerKind.Velocity) {
+                <form method="post" asp-page-handler="Operate" class="register-operation-form" data-list-operation-form>
+                    <input type="hidden" name="serverId" value="@server.ServerId" />
+                    <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
+                    <input type="hidden" name="configRevision" value="@server.AppliedRevision" />
+                    <input type="hidden" name="expectedStateRevision" value="@actions.Runtime?.StateRevision" />
+                    <input type="hidden" name="expectedServerSessionId" value="@actions.Runtime?.CurrentSessionId" />
+                    <button type="submit" name="kind" value="Start" class="operation-start" disabled="@(!actions.CanStart)" data-live-focus="@($"{server.ServerId}-start")" aria-label="@(server.DisplayName + "を起動")">起動</button>
+                    <button type="submit" name="kind" value="Stop" class="operation-stop" disabled="@(!actions.CanStop)" data-live-focus="@($"{server.ServerId}-stop")" aria-label="@(server.DisplayName + "を正常停止")">正常停止</button>
+                </form>
+                <a class="button-link button-link--primary" asp-page="Operations" asp-route-serverId="@server.ServerId" data-live-focus="@($"{server.ServerId}-logs")">操作・ログ</a>
+            }
             else { <span class="secondary-text">台帳のみ · 起動・停止は未対応</span> }
-            <a class="button-link" asp-page="Edit" asp-route-serverId="@server.ServerId">設定・詳細</a>
+            <a class="button-link" asp-page="Edit" asp-route-serverId="@server.ServerId" data-live-focus="@($"{server.ServerId}-edit")">設定・詳細</a>
+            @if (actions.Pending) { <span class="secondary-text">操作・保守の処理中、または要確認</span> }
             </div></td></tr>
         }
         </tbody></table></div>
@@ -49,3 +63,4 @@
         <button type="submit">サーバーを登録</button>
     </form>
 </div></details>
+@section Scripts { <script src="~/js/inventory-live.js" asp-append-version="true" defer></script> }

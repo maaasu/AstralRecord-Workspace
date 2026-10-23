@@ -24,8 +24,8 @@
         <input type="hidden" name="expectedServerSessionId" value="@Model.Runtime?.CurrentSessionId" data-server-state-field />
         <div class="operation-actions">
             <button type="submit" name="kind" value="Start" class="operation-start" disabled="@(!Model.Enabled || !stopped)">起動</button>
-            <button type="submit" name="kind" value="Stop" class="operation-stop" disabled="@(!Model.Enabled || !running)">正常停止</button>
             <button type="submit" name="kind" value="Restart" class="operation-restart" disabled="@(!Model.Enabled || !running)">再起動</button>
+            <button type="submit" name="kind" value="Stop" class="operation-stop" disabled="@(!Model.Enabled || !running)">正常停止</button>
         </div>
         <details class="kill-details">
             <summary>強制終了（保存せず終了）</summary>

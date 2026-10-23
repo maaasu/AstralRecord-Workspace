@@ -2,6 +2,7 @@ using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Inventory;
 using AstralRecordControl.Web.Operations;
+using AstralRecordControl.Web.Pages.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -37,13 +38,7 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         var hostFresh = host.ConnectionState == HostConnectionState.Online && host.LastSeenAtUtc.HasValue
             && clock.GetUtcNow() - host.LastSeenAtUtc.Value <= TimeSpan.FromSeconds(30);
         var runtime = hostFresh ? ControlJson.Deserialize<ServerRuntimeSnapshot[]>(host.RuntimeSnapshotJson).SingleOrDefault(x => x.ServerId == serverId) : null;
-        var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
-        var config = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
-        var enabled = configuration.GetValue<bool>("Control:EnableProcessControl") && host.Enabled && !host.RecoveryRequired
-            && hostFresh
-            && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate")
-            && ServerProcessSupport.HasKindCapability(config.Kind, capabilities) && config.DependencyReadiness == DependencyReadiness.Running && config.DependsOnServerIds.Length == 0
-            && runtime is not null && server.AppliedRevision == server.DesiredRevision && runtime.ConfigRevision == server.AppliedRevision;
+        var enabled = ProcessControlAvailability.For(server, host, runtime, clock.GetUtcNow(), configuration.GetValue<bool>("Control:EnableProcessControl")).Enabled;
         var recent = (await ReadRecentOperationsAsync(serverId))
             .Select(x => new { createdAtUtc = x.CreatedAtUtc, kind = x.Kind.ToString(), status = x.Status.ToString(), errorCode = x.ErrorCode }).ToArray();
         return new JsonResult(new
@@ -88,14 +83,9 @@ public sealed class OperationsModel(ControlDbContext db, ControlOperationsServic
         var hostFresh = host.ConnectionState == HostConnectionState.Online && host.LastSeenAtUtc.HasValue
             && clock.GetUtcNow() - host.LastSeenAtUtc.Value <= TimeSpan.FromSeconds(30);
         Runtime = hostFresh ? ControlJson.Deserialize<ServerRuntimeSnapshot[]>(host.RuntimeSnapshotJson).SingleOrDefault(x => x.ServerId == serverId) : null;
-        var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
         var config = ControlJson.Deserialize<ServerConfig>(Server.DesiredConfigJson);
         Kind = config.Kind;
-        Enabled = configuration.GetValue<bool>("Control:EnableProcessControl") && host.Enabled && !host.RecoveryRequired
-            && hostFresh
-            && capabilities.Contains("P1.Operations") && capabilities.Contains("P1.LegacyGate")
-            && ServerProcessSupport.HasKindCapability(config.Kind, capabilities) && config.DependencyReadiness == DependencyReadiness.Running && config.DependsOnServerIds.Length == 0
-            && Runtime != null && Runtime.ConfigRevision == Server.AppliedRevision && Server.AppliedRevision == Server.DesiredRevision;
+        Enabled = ProcessControlAvailability.For(Server, host, Runtime, clock.GetUtcNow(), configuration.GetValue<bool>("Control:EnableProcessControl")).Enabled;
         Recent = await ReadRecentOperationsAsync(serverId);
         OperationPending = await HasPendingOperationAsync(serverId);
         var active = await db.Reservations.AsNoTracking().Where(x => x.ResourceKey == ReservationService.ServerKey(serverId) && x.State == ReservationStatus.Prepared).Select(x => x.ReservationId).ToArrayAsync();

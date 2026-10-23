@@ -462,7 +462,7 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
         }
     }
 
-    private static bool Conflicts(string left, string right)
+    public static bool Conflicts(string left, string right)
     {
         if (left == right) return true;
         if (!left.StartsWith("directory:", StringComparison.Ordinal) || !right.StartsWith("directory:", StringComparison.Ordinal)) return false;

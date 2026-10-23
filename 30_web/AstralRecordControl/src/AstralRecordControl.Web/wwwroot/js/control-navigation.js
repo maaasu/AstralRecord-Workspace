@@ -9,7 +9,7 @@
     if (typeof document === "undefined" || document.getElementById("main")?.dataset.controlPage !== "true") return;
 
     const status = document.getElementById("navigation-status");
-    const scriptPaths = new Set(["/js/server-logs.js", "/js/server-metrics.js", "/js/p2-control.js", "/js/history-selection.js"]);
+    const scriptPaths = new Set(["/js/server-logs.js", "/js/server-metrics.js", "/js/p2-control.js", "/js/history-selection.js", "/js/inventory-live.js"]);
     const shellVersion = doc => [...doc.querySelectorAll('head link[rel="stylesheet"], head script[src]')].map(el => el.getAttribute("href") || el.getAttribute("src")).join("\n");
     const version = shellVersion(document);
     let currentUrl = location.href, request = null, sequence = 0, submitting = false, installing = false;
@@ -89,6 +89,7 @@
         } catch (error) {
             if (id !== sequence || error.name === "AbortError") return;
             message(method === "POST" ? "送信結果を確認できません。自動再送信はしていません。保守履歴や台帳で結果を確認してください。" : "画面を読み込めませんでした。もう一度タブを選択するか、再読み込みしてください。");
+            window.dispatchEvent(new Event("control:navigation-failed"));
         } finally {
             if (id === sequence) { request = null; submitting = false; installing = false; busy(false, url); }
         }

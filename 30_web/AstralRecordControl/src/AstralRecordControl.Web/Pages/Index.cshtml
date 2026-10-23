@@ -10,15 +10,16 @@
     var pendingServers = Model.Servers.Count(server => server.DesiredRevision != server.AppliedRevision);
 }
 
-<div class="page-heading"><div><span class="eyebrow">OPERATIONS OVERVIEW</span><h1>運用の概要</h1><p>全体の状況と、確認が必要なことをまとめています。</p></div><a class="button-link" asp-page="Index">状態を更新</a></div>
-<div class="overview-metrics" role="group" aria-label="全体の状況">
+<div class="page-heading"><div><span class="eyebrow">OPERATIONS OVERVIEW</span><h1>運用の概要</h1><p>全体の状況と、確認が必要なことをまとめています。</p></div></div>
+<p class="snapshot-note" id="inventory-live-status" role="status">3秒ごとに自動更新します。</p>
+<div class="overview-metrics" role="group" aria-label="全体の状況" data-live-region="overview-metrics">
     <div class="metric-card"><span>登録サーバー</span><strong>@Model.Servers.Length <small>台</small></strong><span class="metric-caption">設定の適用待ち @pendingServers 台</span></div>
     <div class="metric-card"><span>接続中のPC</span><strong>@onlineHosts <small>/ @Model.Hosts.Length 台</small></strong><span class="metric-caption">接続状態・設定は接続PCで確認</span></div>
     <div class="metric-card @((attentionHosts + Model.RecoveryWorkflows) > 0 ? "metric-card--attention" : "")"><span>確認が必要</span><strong>@(attentionHosts + Model.RecoveryWorkflows) <small>件</small></strong><span class="metric-caption">PC @attentionHosts 台 · 要復旧の保守 @Model.RecoveryWorkflows 件</span></div>
 </div>
-<p class="snapshot-note">最終更新 @ControlDisplay.LastSeen(Model.ObservedAtUtc) · 取得時点の状況です。</p>
+<p class="snapshot-note" data-live-region="overview-updated">最終更新 @ControlDisplay.LastSeen(Model.ObservedAtUtc)</p>
 
-<section class="page-section overview-summary" aria-labelledby="summary-heading">
+<section class="page-section overview-summary" aria-labelledby="summary-heading" data-live-region="overview-summary">
     <div class="section-heading"><div><h2 id="summary-heading">運用状況</h2><p>詳細と日常の操作は、それぞれの管理画面から行えます。</p></div></div>
     <div class="overview-summary-grid">
         <article class="summary-card"><h3>サーバー</h3><p>登録済み @Model.Servers.Length 台。稼働中・停止中の一覧と、操作・ログを確認できます。</p><a class="button-link button-link--primary" href="/Servers">サーバー台帳を開く</a></article>
@@ -26,3 +27,4 @@
         <article class="summary-card"><h3>運転・保守</h3><p>進行中 @Model.PendingWorkflows 件 · 要復旧 @Model.RecoveryWorkflows 件。処理の結果と詳細は履歴で確認できます。</p><a class="button-link" href="/Workflows">運転・保守履歴を開く</a></article>
     </div>
 </section>
+@section Scripts { <script src="~/js/inventory-live.js" asp-append-version="true" defer></script> }

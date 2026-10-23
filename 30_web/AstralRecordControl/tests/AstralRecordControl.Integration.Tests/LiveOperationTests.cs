@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Principal;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using AstralRecordControl.Agent;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Runner;
@@ -9,6 +10,8 @@ using AstralRecordControl.Web.Data;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace AstralRecordControl.Integration.Tests;
@@ -99,11 +102,11 @@ public sealed partial class LiveTransportTests
             var held = ControlJson.Deserialize<GateLease>(await owner.GetStringAsync($"/api/control/v1/reservations/{lease.ReservationId}", timeout.Token));
             Assert.Equal(ReservationStatus.Prepared, held.Status);
             await fixture.OwnerApiAsync<object>(owner, HttpMethod.Post, $"/api/control/v1/reservations/{lease.ReservationId}/release", new GateReleaseRequest(workflowId, lease.Fences, GateOutcome.Succeeded, "fixture-run"), expectedStatus: HttpStatusCode.NoContent);
-            var stop = await SendOperation(OperationKind.Stop, new { });
+            var stop = await SendListOperation(OperationKind.Stop);
             Assert.Equal(OperationStatus.Succeeded, await AwaitOperation(stop));
             await WaitForNoHolds();
 
-            var secondStart = await SendOperation(OperationKind.Start, new { });
+            var secondStart = await SendListOperation(OperationKind.Start);
             Assert.Equal(OperationStatus.Succeeded, await AwaitOperation(secondStart));
             await WaitForNoHolds();
             var session = Assert.Single((await runnerClient.GetSnapshotAsync(timeout.Token)).Servers).CurrentSessionId;
@@ -124,6 +127,60 @@ public sealed partial class LiveTransportTests
             // Revoking the Agent connection does not own or terminate the running process.
             await fixture.OwnerApiAsync<object>(owner, HttpMethod.Delete, $"/api/control/v1/hosts/{host.HostId}/credentials/{credential.CredentialId}", null);
             Assert.Equal(ProcessState.Running, Assert.Single((await runnerClient.GetSnapshotAsync(timeout.Token)).Servers).ProcessState);
+
+            async Task<Guid> SendListOperation(OperationKind action)
+            {
+                await Heartbeat(hub, epoch, await runnerClient.GetSnapshotAsync(timeout.Token), timeout.Token);
+                using var otherBrowser = fixture.CreateClient(new CookieContainer());
+                await fixture.LoginOwnerAsync(otherBrowser);
+                using var page = await otherBrowser.GetAsync("/Servers", timeout.Token);
+                Assert.Contains("no-store", page.Headers.CacheControl?.ToString());
+                var html = await page.Content.ReadAsStringAsync(timeout.Token);
+                Assert.Contains("inventory-live.js", html);
+                Assert.DoesNotContain("状態を更新", html);
+                var form = Regex.Match(html, "<form[^>]*data-list-operation-form[^>]*>(.*?)</form>", RegexOptions.Singleline).Groups[1].Value;
+                Assert.NotEqual(string.Empty, form);
+                var values = Regex.Matches(form, "<input[^>]*name=\"([^\"]+)\"[^>]*value=\"([^\"]*)\"")
+                    .ToDictionary(x => x.Groups[1].Value, x => WebUtility.HtmlDecode(x.Groups[2].Value));
+                values["kind"] = action.ToString();
+                using (var missingRequest = new HttpRequestMessage(HttpMethod.Post, "/Servers?handler=Operate") { Content = new FormUrlEncodedContent(values.Where(x => x.Key != "__RequestVerificationToken")) })
+                {
+                    missingRequest.Headers.Add("Origin", fixture.Origin.GetLeftPart(UriPartial.Authority));
+                    using var missingCsrf = await otherBrowser.SendAsync(missingRequest, timeout.Token);
+                    Assert.Equal(HttpStatusCode.BadRequest, missingCsrf.StatusCode);
+                }
+                using var request = new HttpRequestMessage(HttpMethod.Post, "/Servers?handler=Operate") { Content = new FormUrlEncodedContent(values) };
+                request.Headers.Add("Origin", fixture.Origin.GetLeftPart(UriPartial.Authority));
+                using var response = await otherBrowser.SendAsync(request, timeout.Token);
+                Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+                using (var replay = await PostList(values)) Assert.Equal(HttpStatusCode.Redirect, replay.StatusCode);
+                var changed = new Dictionary<string, string>(values) { ["kind"] = action == OperationKind.Start ? "Stop" : "Start" };
+                using (var conflict = await PostList(changed))
+                {
+                    Assert.Equal(HttpStatusCode.OK, conflict.StatusCode);
+                    Assert.Contains("OperationConflict", await conflict.Content.ReadAsStringAsync(timeout.Token));
+                }
+                var stale = new Dictionary<string, string>(values) { ["requestKey"] = Guid.NewGuid().ToString() };
+                using (var rejected = await PostList(stale))
+                {
+                    Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
+                    using var checkScope = fixture.Services.CreateScope();
+                    var checkDb = checkScope.ServiceProvider.GetRequiredService<ControlDbContext>();
+                    var staleKey = Guid.Parse(stale["requestKey"]);
+                    Assert.False(await checkDb.Operations.AnyAsync(x => x.IdempotencyKey == staleKey, timeout.Token));
+                }
+                using var scope = fixture.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+                var key = Guid.Parse(values["requestKey"]);
+                return (await db.Operations.AsNoTracking().SingleAsync(x => x.IdempotencyKey == key, timeout.Token)).OperationId;
+
+                async Task<HttpResponseMessage> PostList(Dictionary<string, string> body)
+                {
+                    using var message = new HttpRequestMessage(HttpMethod.Post, "/Servers?handler=Operate") { Content = new FormUrlEncodedContent(body) };
+                    message.Headers.Add("Origin", fixture.Origin.GetLeftPart(UriPartial.Authority));
+                    return await otherBrowser.SendAsync(message, timeout.Token);
+                }
+            }
 
             async Task<Guid> SendOperation(OperationKind kind, object payload, Guid? workflow = null, Guid? reservation = null)
             {
