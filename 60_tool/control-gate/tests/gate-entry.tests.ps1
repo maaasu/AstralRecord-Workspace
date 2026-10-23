@@ -97,6 +97,30 @@ $global:LASTEXITCODE=0
     if (@(Complete-ControlGate $context 'run-1').Count) { throw 'Gate release leaked CLI output.' }
     $lines=@(Get-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG)
     if (@($lines | Where-Object { $_ -like 'gate|release|*' }).Count -ne 1) { throw 'Expected one release.' }
+    $auto=$config.Clone(); $auto.controlGate=$config.controlGate.Clone(); $auto.controlGate.bindings=$config.controlGate.bindings.Clone()
+    $auto.api=@{enabled=$true}; $auto.fileDatabase=@{enabled=$true}
+    $auto.controlGate.sharedApiRuntimeServerIds=@('Dev','Build','Channel1','Channel2')
+    $auto.controlGate.bindings.servers=@(@{runtimeServerId='Dev';serverId=$serverId})
+    $paths=@($path)
+    $bindings=@($config.controlGate.bindings.paths)
+    foreach ($relative in @('app/api','app/web','app/filebase','source/filebase')) {
+        $affected=Join-Path $temp $relative
+        $paths+=$affected
+        $bindings+=@{path=$affected;accessRoot=$temp;hostId=$hostId;managedRootId=$rootId;relativePath=$relative}
+    }
+    $auto.controlGate.bindings.paths=$bindings
+    $targets=@(Get-DeploymentGateRuntimeServerIds $auto @('Dev'))
+    $devOnly=Enter-ControlGate $auto '01' $targets $paths 'Stopped' -RunReference 'run-dev-only' -InitialStep StopForDeploy -DevLifecycleServerId $serverId
+    $request=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $temp 'request.json') | ConvertFrom-Json
+    if (@($request.serverConditions).Count -ne 1 -or $request.serverConditions[0].serverId -cne $serverId -or
+        $request.devLifecycleServerId -cne $serverId -or @($request.resourceKeys | Where-Object {$_ -like 'server:*'}).Count -ne 1 -or
+        @($request.resourceKeys | Where-Object {$_ -like 'directory:*'}).Count -ne 5 -or ('environment:'+$environmentId) -cnotin $request.resourceKeys) {
+        throw '01 must reserve only the Dev process while retaining Environment and every changed directory.'
+    }
+    $backendTargets=@(Get-DeploymentGateRuntimeServerIds $auto @('Dev'))
+    $backend=Enter-ControlGate $auto '01' $backendTargets $paths 'Stopped' -RunReference 'run-dev-only'
+    if ($backend.Owner -or $backend.LeaseFile -cne $devOnly.LeaseFile) { throw 'The backend must inherit the same Dev-only reservation.' }
+    Complete-ControlGate $devOnly 'run-dev-only'
     $running=Enter-ControlGate $config '03' @('dev') @($path) 'Running' -RunReference 'run-03' -InitialStep 'Seed'
     $request=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $temp 'request.json') | ConvertFrom-Json
     if ($request.adapterId -cne '03' -or $request.serverConditions[0].requiredState -cne 'Running') { throw '03 running reload gate condition is wrong.' }

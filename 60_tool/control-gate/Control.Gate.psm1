@@ -11,6 +11,9 @@ function Get-DeploymentGateRuntimeServerIds {
     if ($shared.Count -lt 2 -or @($shared | Sort-Object -Unique).Count -ne $shared.Count -or
         @($shared | Where-Object { $_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_) }).Count -or
         @($RuntimeServerIds | Where-Object { $_ -cnotin $shared }).Count) { throw 'sharedApiRuntimeServerIds must be a nonempty set of at least two distinct runtime IDs and include every workflow target.' }
+    # 01 operates the Dev process only. Environment and affected API/Web/Filebase paths
+    # remain reserved by Resolve-ControlGateResources; running peers are not stop conditions.
+    if (!$MasterDataOnly -and $RuntimeServerIds.Count -eq 1 -and $RuntimeServerIds[0] -ceq 'Dev') { return $RuntimeServerIds }
     if ($ServerAlreadyRunning) { throw 'This API is shared by multiple RPG servers. Use stopped mode for 03, then start every shared server before patch publication.' }
     return @($shared | Sort-Object -Unique)
 }

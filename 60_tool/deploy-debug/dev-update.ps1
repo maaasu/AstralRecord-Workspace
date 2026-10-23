@@ -84,6 +84,9 @@ try {
             if ($testSelection.Tests) { Write-Host "Selected tests: $($testSelection.Tests)" }
         }
         Write-Host "Target runtime: $($normalized.ServerIds[0]); register the current patch after startup. Player data is updated at login."
+        if ($mode -ceq 'Full' -and $gateServerIds.Count -eq 1 -and $gateServerIds[0] -ceq 'Dev') {
+            Write-Host '01: Devだけを停止・起動の対象とします。他サーバーの稼働中も実行できます。Environmentと配布先の予約は維持します。'
+        }
         if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
             if ($devLifecycle) { Write-Host "Shared API: other servers [$(@($gateServerIds | Where-Object { $_ -cne 'Dev' }) -join ', ')] must remain stopped throughout this run. Only Dev receives Stop/Start." }
             else { Write-Host "Shared API: stop all of [$($gateServerIds -join ', ')], then start all of them before patch publication. Runtime readiness/publication target remains $($normalized.ServerIds[0])." }
@@ -114,6 +117,9 @@ try {
     $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
     $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
     $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
+    if ($mode -ceq 'Full' -and $gateServerIds.Count -eq 1 -and $gateServerIds[0] -ceq 'Dev') {
+        Write-Host '01の停止・起動対象はDevだけです。他サーバーの停止は要求しません。'
+    }
     if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
         if ($devLifecycle) { Write-Host 'Shared API maintenance: Dev以外の共有サーバーは実行中ずっと停止してください。自動停止・起動はDevだけです。' }
         else { Write-Host "Shared API maintenance: stop all of [$($gateServerIds -join ', ')]; start all of them in the startup phase before Dev patch publication." }

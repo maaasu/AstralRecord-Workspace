@@ -363,6 +363,70 @@ public sealed class OperationGateTests
     }
 
     [Fact]
+    public async Task DevOnlyDeploymentKeepsSharedDirectoriesReservedWhilePeersRemainRunning()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var dev = await fixture.ServerAsync("dev");
+        dev.RuntimeServerId = "Dev";
+        var peer = await fixture.ServerAsync("channel1");
+        peer.EnvironmentId = dev.EnvironmentId;
+        await fixture.Db.SaveChangesAsync();
+        var peerSession = Guid.NewGuid();
+        fixture.Agent.States[peer.HostId] = fixture.Agent.States[peer.HostId] with
+        {
+            ProcessState = ProcessState.Running, CurrentSessionId = peerSession
+        };
+        fixture.Agent.States[dev.HostId] = fixture.Agent.States[dev.HostId] with
+        {
+            ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid()
+        };
+        var directory = ReservationService.DirectoryKey(peer.HostId, Guid.NewGuid(), "api");
+        var lease = await fixture.Reservations.AcquireAsync(new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), AdapterId = "01", RunReference = "run-dev-only",
+            DevLifecycleServerId = dev.ServerId,
+            ResourceKeys = [ReservationService.ServerKey(dev.ServerId), directory],
+            ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped)]
+        });
+        Assert.Equal(ReservationStatus.Prepared, lease.Status);
+        Assert.Contains(ReservationService.EnvironmentKey(dev.EnvironmentId!.Value), lease.ResourceKeys);
+        Assert.Contains(directory, fixture.Agent.Holds[peer.HostId].ResourceKeys);
+        Assert.DoesNotContain(ReservationService.ServerKey(peer.ServerId), lease.ResourceKeys);
+        var validate = (string step) => fixture.Reservations.ValidateAsync(lease.ReservationId,
+            new GateValidateRequest(lease.WorkflowId, lease.Fences, step, "run-dev-only"));
+        await validate("StopForDeploy");
+        var running = fixture.Agent.States[dev.HostId];
+        var stop = new ServerOperationRequest
+        {
+            Kind = OperationKind.Stop, ConfigRevision = 1, ExpectedStateRevision = running.StateRevision,
+            ExpectedServerSessionId = running.CurrentSessionId, WorkflowId = lease.WorkflowId, ReservationId = lease.ReservationId
+        };
+        Assert.Equal(OperationStatus.Accepted, (await fixture.Operations.CreateAsync(dev.ServerId, stop, Guid.NewGuid())).Status);
+        await Fault("StateConflict", () => validate("Deploy"));
+        fixture.Agent.States[dev.HostId] = running with
+        {
+            ProcessState = ProcessState.Stopped, CurrentSessionId = null, StateRevision = running.StateRevision + 1
+        };
+        await validate("Deploy");
+        await validate("Seed");
+        await validate("WaitForStartup");
+        var start = stop with { Kind = OperationKind.Start, ExpectedServerSessionId = null,
+            ExpectedStateRevision = fixture.Agent.States[dev.HostId].StateRevision };
+        Assert.Equal(OperationStatus.Accepted, (await fixture.Operations.CreateAsync(dev.ServerId, start, Guid.NewGuid())).Status);
+        fixture.Agent.States[dev.HostId] = fixture.Agent.States[dev.HostId] with
+        {
+            ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid(),
+            StateRevision = fixture.Agent.States[dev.HostId].StateRevision + 1
+        };
+        await validate("Publish");
+        Assert.Equal(ProcessState.Running, fixture.Agent.States[peer.HostId].ProcessState);
+        Assert.Equal(peerSession, fixture.Agent.States[peer.HostId].CurrentSessionId);
+        Assert.Contains(directory, fixture.Agent.Holds[peer.HostId].ResourceKeys);
+        Assert.Equal(2, fixture.Agent.DispatchCount);
+        Assert.All(await fixture.Db.Operations.ToArrayAsync(), operation => Assert.Equal(dev.ServerId, operation.ServerId));
+    }
+
+    [Fact]
     public async Task DevLifecycleRequiresExactStoppedConditionsAndRuntimeIdentity()
     {
         Assert.DoesNotContain("devLifecycleServerId", ControlJson.Serialize(new ReservationAcquireRequest()), StringComparison.Ordinal);

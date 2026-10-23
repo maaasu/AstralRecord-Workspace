@@ -12,7 +12,7 @@
 | マスタを編集する | `05-master-data-editor.bat` | 独立したローカルアプリをビルド・起動。[エディタ](skilltree-editor/README.md) |
 | Dev/Buildから各サーバーへ配布する | `16-maintenance.bat` | JAR・配置データ・World等の配布、起動待ち、パッチ公開。[メンテナンス配布](maintenance/README.md) |
 
-01/02/03/16では、サーバー停止・起動と入場制限は運用者が行います。03はDev専用APIと自動再読込が有効な構成で、入場・他の書込を止めた稼働中Devも使用できます。Dev・Build・ChannelでAPIを共有する現在の構成では、全RPGを止める更新を使用します。プレイヤーの更新は次回ログイン時です。
+01/02のプロセス対象はDevだけです。01はBuild・Channelが稼働中でも実行でき、`devWorkflow.controlDevLifecycle.enabled=true`ならDevの正常停止・起動をControlで自動実行します。共有API・DB・Filebaseを更新する範囲は従来と同じです。入場制限は運用者が維持します。03の共有API構成は共有RPGの停止確認を維持し、Dev専用APIと自動再読込が有効なら稼働中Devも使用できます。16の停止・起動は運用者が行います。プレイヤーの更新は次回ログイン時です。
 
 ## 限定した配布・復旧
 

@@ -21,18 +21,18 @@ WebとCLIをこの機能に対応する版へ更新し、既存のControlログ�
 
 新起動の確認にはAPI runtimeの`serverStartedAtUtc`応答が必要です。API更新を含む01を先に実施してください。02/03で旧APIを使う場合、起動時刻が確認できず公開へ進みません。Pluginの起動時刻と同じDev PCのUTC時計でStart要求時刻を保存し、APP PCのheartbeat受信時計を新起動の証明には使いません。
 
-共有API/Filebaseを変える01/03では、他の共有RPGを事前に停止し、完了まで停止を維持してください。Controlは各段階で確認し、Build/Channel1/Channel2へ停止・起動命令を送りません。02はJARだけを更新するため、従来どおりDevのみを予約します。
+01はAPI/Filebaseを共有していてもプロセス対象をDevだけとし、Build/Channel1/Channel2が稼働中でも実行できます。Environmentと変更対象のAPI/Web/Filebaseディレクトリは予約したまま、Devだけを正常停止・起動します。手動運転でも01の停止確認対象はDevだけです。共有API・DB・Filebaseを更新する範囲は従来と同じです。02もDevのみを対象とします。03の共有構成は従来どおり他の共有RPGを事前に停止し、完了まで停止を維持してください。どのモードも非Devへの自動停止・起動命令は送りません。
 
 停止タイムアウト・通信断・要確認状態では配布を止め、同じ予約と操作IDを保持します。自動Killや別IDでの停止・起動のやり直しは行いません。同じ設定とバッチで再開してください。ビルド/DB/配置失敗時はDevを停止したまま既存の復旧手順へ進み、配布失敗を成功扱いで起動しません。`-Plan`はAPIやプロセスを操作せず、自動運転の予定を表示します。非対話実行では`-AdmissionClosed`で入場停止を確認します。
 
 ## 手動運転を使う場合
 
-DevとChannelがAPI・DBを共用する環境では、Managed設定の`controlGate.sharedApiRuntimeServerIds`へ共用する全RPGのruntime IDを登録します。今回の新配置は`["Dev","Build","Channel1","Channel2"]`です。01と03のAPI/Filebase更新は全対象の停止を確認し、起動段階で全対象を起動してからDevのready確認とパッチ公開を完了します。`devWorkflow.migration.serverIds`はDevのままです。02のPluginOnlyはDevだけを予約します。共有構成の03は`-ServerAlreadyRunning`を拒否します。
+DevとChannelがAPI・DBを共用する環境では、Managed設定の`controlGate.sharedApiRuntimeServerIds`へ共用する全RPGのruntime IDを登録します。現在の配置は`["Dev","Build","Channel1","Channel2"]`です。01/02はこの宣言でプロセス対象を拡大せず、Devだけの停止・起動を確認します。03の共有API/Filebase更新は全対象の停止を確認し、手動運転では起動段階で全対象を起動してからDevのready確認とパッチ公開を完了します。`devWorkflow.migration.serverIds`はDevのままです。共有構成の03は`-ServerAlreadyRunning`を拒否します。
 
-1. Devのプレイヤーを退出させ、保存完了を待ってDevを停止する。共通APIを更新する場合は共用する全RPGも同様に停止する。更新中は入場させない。
+1. Devのプレイヤーを退出させ、保存完了を待ってDevを停止する。01/02では他サーバーの停止は要求しない。共有構成の03では共用する全RPGも停止する。更新中はDevへ入場させない。
 2. `01-deploy-debug.bat` を実行し、停止・入場制限の確認に応答する。
 3. バッチがビルド・配置・必要なseedを終えると、Devの起動案内を表示して待機する。
-4. Devを起動する。共通APIの場合は他の共用RPGを先に起動し、最後にDevを起動する。まだ入室しない。
+4. Devを起動する。共有構成の03の手動運転では他の共用RPGを先に起動し、最後にDevを起動する。まだ入室しない。
 5. 新しい起動sessionのready、スキルツリー世代を確認し、その設定をパッチとして公開する。プレイヤーの一括更新は行わない。
 6. バッチの完了表示を確認して入室する。
 

@@ -3,10 +3,10 @@ $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot '../../control-gate/Control.Gate.psm1') -Force
 $config=@{api=@{enabled=$true};fileDatabase=@{enabled=$true};controlGate=@{mode='Managed';sharedApiRuntimeServerIds=@('Dev','Build','Channel1','Channel2')}}
 $runtimes=@('Dev')
-foreach ($masterOnly in @($true,$false)) {
-    $ids=@(Get-DeploymentGateRuntimeServerIds $config $runtimes -MasterDataOnly:$masterOnly)
-    if ($ids.Count -ne 4 -or 'Dev' -cnotin $ids -or 'Channel2' -cnotin $ids) { throw 'A shared API write did not require all RPG servers.' }
-}
+$ids=@(Get-DeploymentGateRuntimeServerIds $config $runtimes)
+if ($ids.Count -ne 1 -or $ids[0] -cne 'Dev') { throw '01 must not require peer servers to stop, even when API/Filebase are shared.' }
+$ids=@(Get-DeploymentGateRuntimeServerIds $config $runtimes -MasterDataOnly)
+if ($ids.Count -ne 4 -or 'Dev' -cnotin $ids -or 'Channel2' -cnotin $ids) { throw '03 shared maintenance scope changed.' }
 $ids=@(Get-DeploymentGateRuntimeServerIds $config $runtimes -PluginOnly)
 if ($ids.Count -ne 1 -or $ids[0] -cne 'Dev') { throw 'A plugin-only deployment unnecessarily reserves other servers.' }
 $rejected=$false
@@ -29,4 +29,4 @@ if ($runtimes.Count -ne 1 -or $runtimes[0] -cne 'Dev') { throw 'The publication 
 $config.controlGate=@{mode='Managed'}
 $ids=@(Get-DeploymentGateRuntimeServerIds $config $runtimes)
 if ($ids.Count -ne 1 -or $ids[0] -cne 'Dev') { throw 'A dedicated API configuration changed.' }
-Write-Host 'PASS: shared API writes require every RPG server, plugin-only remains Dev-only, running shared updates are rejected, and publication targets remain unchanged.'
+Write-Host 'PASS: 01 and 02 require Dev only; 03 shared maintenance, declaration validation, Legacy routing and publication targets remain unchanged.'

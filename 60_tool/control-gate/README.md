@@ -37,6 +37,6 @@ Windowsディレクトリの資源キーは、Control側と同じく区切りを
 
 Managedの停止条件はRunnerのsnapshotで確認します。01/02/16と03停止モードはStopped、03稼働中モードと17はRunningが必要です。`-ServersStopped`等は従来の運用者宣言として残し、gateの停止証明には使用しません。RunnerがUnmanaged、Hostがオフライン、Control CLIやbindingが未設定、予約状態が不明なら配布やAPI変更を開始しません。
 
-01/02/03のDev自動運転では、取得要求の任意項目`devLifecycleServerId`で登録済みruntime `Dev`を一台だけ指定します。取得時はDevのみStopped/Runningを許可し、他の予約対象はStoppedに限ります。`StopForDeploy`→正常Stop→`Deploy`/`Seed`（全対象Stopped）→`WaitForStartup`→Dev Start→`Publish`（Dev Running、他Stopped）の順に同じ保守予約とfenceを継承します。02は共有APIを変えないためDevだけが対象です。
+01/02/03のDev自動運転では、取得要求の任意項目`devLifecycleServerId`で登録済みruntime `Dev`を一台だけ指定します。01/02のserver資源・状態条件はDevだけです。01は共有API/Filebaseを更新する場合も他サーバーの起動状態を条件にせず、Environmentと変更対象の全ディレクトリを予約します。手動運転の01も同じ対象範囲です。03では共有構成の他serverも予約しStoppedを維持します。`StopForDeploy`→正常Stop→`Deploy`/`Seed`（予約対象serverはStopped）→`WaitForStartup`→Dev Start→`Publish`（Dev Running、03の他予約serverはStopped）の順に同じ保守予約とfenceを継承します。
 
 CLIの`gate dev-runtime`、`gate dev-operate --request-file <ServerOperationRequest JSON> --idempotency-key <GUID>`、`gate dev-operation --operation-id <GUID>`はすべて`--lease-file`と`--expected-server-url`が必須です。対象を任意入力せず、保守予約に保存したDevから導出します。汎用owner操作APIのCLI公開やConsole/Kill権限の追加はありません。ツールは要求全体とkeyをrunへ保存してから送信し、応答喪失時は同じ要求、操作ID取得後は同じ操作IDを追跡します。`Control.DevLifecycle.ps1`もTool packageへ含めて更新してください。
