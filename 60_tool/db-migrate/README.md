@@ -17,6 +17,10 @@ C:\AstralRecord-Workspace\60_tool\15-history-db-migrate.bat
 
 同じDBに対する並行実行は `sp_getapplock` で直列化し、最大120秒待機する。`dbo.schema_migration` にmigration IDとSQL本文のSHA-256を記録するため、適用済みSQLは再実行せず、適用済みIDの内容変更は失敗させる。migration SQL は `GO` バッチに分割して実行するが、各SQLのトランザクション境界はmigration自身の定義に従う。
 
+SQL本文のハッシュには改行も含むため、各DBの`migrations/*.sql`はルートの`.gitattributes`でLF checkoutに固定する。2026-10-23のDEV-01では`core.autocrlf=true`によるCRLF checkoutが既存履歴との不一致を起こしていた。ゲームDBの適用済み20件はGit原本のLF本文と全件一致し、DB履歴やSQL本文を変更せずcheckoutを原本へ揃えて解消する。別環境で不一致が出た場合も、履歴のハッシュを書き換えたり内容確認なしに照合を省略したりしない。
+
+属性を追加しただけでは既存checkoutのCRLFが残る場合がある。今回のDEV-01では、既存ファイルとGit原本の差がCRLFだけで、ステージ済みのSQL変更もないことを全件確認してから、SQL31件をGit原本のバイト列へ揃える。内容変更があるファイルは上書きせず調査する。`tests/migration-text-io.tests.ps1 -DotNetPath <SDKのdotnet.exe>`は一時Gitリポジトリの`core.autocrlf=true`で新しいcheckoutがLFになることと、CP932から起動した配布チェーンの日本語ログ・終了コード・元コードページの復元を検査する。本番DBへは接続しない。
+
 manifestの `preExistingMigrationFileNames` には、過去に適用済みでこのrunnerから再実行しないSQLを明示する。migrationディレクトリに未登録のSQLがあれば終了コード1で停止するため、新規SQLのmanifest登録漏れを検出できる。このツールはDBを削除せず、適用またはスキーマ検査が失敗した場合は終了コード1を返す。`--validate-only` はDBへ接続せず、manifestとSQLファイルだけを検査する。
 
 `20260923_rename_archer_shared_skill_ids.sql` はプレイヤーの習得スキルIDと旧形式バインド参照を移行する。ゲームサーバーを停止して入場を閉じた状態でDB migrationを適用し、Filebaseの配置とMasterDataDBのseedが完了するまでサーバーを再開しない。途中で習得スキルのAPI整合処理が走らないようにする。

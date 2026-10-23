@@ -80,6 +80,8 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 
 01/02/03/09/10/12/16/17はPowerShell 7を使用します。PATHに`pwsh`がない場合は、Git管理外の`powershell7.local.json`に`{"executablePath":"C:\\path\\to\\pwsh.exe"}`を設定します。bootstrapはOSのPATH変更・インストールを行いません。
 
+bootstrapは子PowerShellを起動する間だけコンソール出力とPowerShellの外部コマンド出力をUTF-8へ揃え、終了時に元の設定へ戻します。CP932のコンソールから実行しても、.NETの日本語パスや診断を捕捉する配布ログが文字化けしないようにします。既存ログやSQLファイルの文字コードを再変換する処理は行いません。
+
 同じ入口のビルド用Java・Maven・.NET SDKがPATHにない場合は、`build-tools.example.json`を`build-tools.local.json`へコピーし、導入済みツールの絶対ディレクトリを指定します。`javaHome`は`bin/java.exe`と`bin/javac.exe`を持つJDK、`mavenHome`は`bin/mvn.cmd`を持つMaven、`dotnetRoot`はSDKを導入した`dotnet.exe`のディレクトリです。必要な項目だけ指定できます。bootstrapは指定内容をすべて検査してから、そのプロセスと子プロセスだけのPATHへ追加し、JAVA_HOME/DOTNET_ROOTも合わせます。Windowsのユーザー・システム環境変数や配布設定は変更しません。runtimeだけの.NET配置ではビルドできないため、`dotnet --list-sdks`でも確認してください。
 
 設定の優先順位、APP-01/MC-01/DEV-01の配置、秘密値の参照先、移行未完了事項は [CONFIGURATION.md](CONFIGURATION.md) にまとめています。各ツールの細かい引数・テスト・復旧方法は、上表から担当ディレクトリのREADMEを参照してください。

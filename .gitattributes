@@ -1,0 +1,3 @@
+# Migration history hashes the exact SQL text; keep checkout bytes stable on Windows.
+.gitattributes text eol=lf
+00_docs/40_Database設計書/table-definitions/*/migrations/*.sql text eol=lf

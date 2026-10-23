@@ -1,7 +1,14 @@
 # Windows PowerShell 5 compatible bootstrap; remaining arguments are forwarded without evaluation.
 param([string]$ScriptPath)
 $ErrorActionPreference='Stop'
+$previousConsoleEncoding=[Console]::OutputEncoding
+$previousOutputEncoding=$OutputEncoding
 try {
+    # Native .NET/Java output is UTF-8. Set the console before child PowerShell starts
+    # so its native-output decoder agrees even when the calling console used CP932.
+    $utf8=[Text.UTF8Encoding]::new($false)
+    [Console]::OutputEncoding=$utf8
+    $OutputEncoding=$utf8
     $localConfig=Join-Path $PSScriptRoot 'powershell7.local.json'
     if (Test-Path -LiteralPath $localConfig -PathType Leaf) {
         $settings=Get-Content -Raw -Encoding UTF8 -LiteralPath $localConfig | ConvertFrom-Json
@@ -44,4 +51,7 @@ try {
 } catch {
     Write-Error $_.Exception.Message
     exit 1
+} finally {
+    [Console]::OutputEncoding=$previousConsoleEncoding
+    $OutputEncoding=$previousOutputEncoding
 }
