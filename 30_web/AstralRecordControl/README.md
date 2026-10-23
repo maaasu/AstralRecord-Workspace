@@ -91,6 +91,8 @@ Runnerはshellを介さず登録済み実行ファイルをArgumentListで起動
 
 CLIは各管理PCのWindowsユーザーで一度`login --server-url https://control.example:5443`を実行し、ログインをDPAPIで保持します。同じControlへの再実行は有効なログインを再利用します。`agent enroll --host-id <GUID>`は登録済みサービスからAgentの実パスを検出し、接続用資格情報を自動配置してAgentを起動します。運用者によるtokenコピーは不要です。段階導入では`--start-agent false`で設定だけ行います。gateの各コマンドは`--expected-server-url`で接続先を照合します。CLIの配置・初回登録は[導入手順](../../60_tool/control-deploy/README.md)、bindingは[共通gate手順](../../60_tool/control-gate/README.md)を参照してください。
 
+Dev配布01/02/03は、`devLifecycleServerId`を指定したMaintenance予約に限り、`gate dev-runtime/dev-operate/dev-operation`でDev一台の正常停止・起動・操作照会を行えます。StopForDeployからDeploy/Seed、WaitForStartup、Publishまで同じhold/fenceを継承し、他の共有RPGは停止条件の検証だけを行います。Console/Killや任意ServerのCLI操作は許可しません。既存ツール内のDev運転連携に限定し、Web起点の配布WorkflowはP4のままです。
+
 WebのCookieは365日で利用時に延長し、サーバー側セッションとCLI資格は明示失効・owner資格変更まで有効です。旧8時間Cookie・旧15分CLI資格は更新前の期限を引き継ぐため、期限後の初回ログインで新方式へ移ります。既存Agentの設定・資格情報を作り直す必要はありません。
 
 ```powershell

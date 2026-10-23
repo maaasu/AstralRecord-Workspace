@@ -180,7 +180,17 @@ public sealed class SkillTreeOperationRepositoryTests
             ServerSessionId = laterBoot, ServerStartedAtUtc = first.ServerStartedAtUtc.AddSeconds(1), PublicationRevision = 1,
             DefinitionGenerationId = f.Generation, CanonicalSnapshotJson = f.Canonical, PluginVersion = "new", CompatibilityVersion = "skilltree-operation-v1", Ready = true,
         };
-        Assert.NotNull(await f.Repository.RegisterServerAsync(f.Server, next));
+        var registered = await f.Repository.RegisterServerAsync(f.Server, next);
+        Assert.NotNull(registered);
+        Assert.Equal(next.ServerStartedAtUtc, registered.ServerStartedAtUtc);
+        Assert.Equal(DateTimeKind.Utc, registered.ServerStartedAtUtc.Kind);
+        var heartbeat = await f.Repository.HeartbeatServerAsync(f.Server, new()
+        {
+            ServerSessionId = laterBoot, DefinitionGenerationId = f.Generation, Ready = true,
+        });
+        Assert.NotNull(heartbeat);
+        Assert.Equal(next.ServerStartedAtUtc, heartbeat.ServerStartedAtUtc);
+        Assert.Equal(next.ServerStartedAtUtc, (await f.Repository.GetServerRuntimeAsync(f.Server))!.ServerStartedAtUtc);
         Assert.Null(await f.Repository.RegisterServerAsync(f.Server, first));
         Assert.False(await f.Repository.ValidateRuntimeStateSaveAsync(f.Account, f.Server, f.Boot, f.Generation, f.Session, f.Token));
     }

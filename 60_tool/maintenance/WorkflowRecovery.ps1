@@ -14,7 +14,7 @@ function Test-UpdateWorkflowUndeployedRun([string]$RunDirectory, [string]$Label,
         $state.status -cne 'AwaitingDeployment' -or $state.seedStatus -cne 'PENDING') { return $false }
     if (Test-UpdateWorkflowMigrationEvidence $RunDirectory) { return $false }
     # Deploying is persisted before invoking any deployment action. Contradictory evidence blocks automatic archival.
-    foreach ($name in @('dev-deployment-progress.json','dev-deploy.log','deploy-action-success.json','deployment.json','patch-publication-result.json')) {
+    foreach ($name in @('control-dev-stop.json','control-dev-start.json','dev-deployment-progress.json','dev-deploy.log','deploy-action-success.json','deployment.json','patch-publication-result.json')) {
         if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { return $false }
     }
     return $true

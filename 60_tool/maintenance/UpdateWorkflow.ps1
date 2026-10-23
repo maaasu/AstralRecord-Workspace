@@ -1,5 +1,5 @@
 #requires -Version 7.0
-# Shared deployment workflow. This module never stops or starts a Minecraft server.
+# Shared workflow; optional Dev-only callbacks use the existing Control reservation.
 Set-StrictMode -Version Latest
 
 . (Join-Path $PSScriptRoot 'Distribution.ps1')
@@ -115,6 +115,15 @@ function Invoke-UpdateWorkflowRequest {
     return [pscustomobject]@{ StatusCode=$numericStatus; Body=(Get-UpdateWorkflowValue $result 'Body') }
 }
 
+function ConvertTo-UpdateWorkflowInstant {
+    param($Value)
+    # ConvertFrom-Json can materialize ISO dates as DateTime; do not stringify away their UTC kind.
+    if ($Value -is [DateTimeOffset]) { return $Value.ToUniversalTime() }
+    if ($Value -is [DateTime]) { return [DateTimeOffset][DateTime]::SpecifyKind($Value.ToUniversalTime(),[DateTimeKind]::Utc) }
+    return [DateTimeOffset]::Parse([string]$Value,[Globalization.CultureInfo]::InvariantCulture,
+        ([Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal))
+}
+
 function Get-UpdateWorkflowRuntime {
     param([Parameter(Mandatory)] $Migration, [Parameter(Mandatory)][string] $ServerId, [Parameter(Mandatory)][scriptblock] $Invoker, [Parameter(Mandatory)][hashtable] $Headers)
 
@@ -145,7 +154,13 @@ function Get-UpdateWorkflowRuntime {
         catch { throw "Runtime response for '$ServerId' has an invalid lastSeenUtc." }
         if ($seen.UtcDateTime -gt [DateTime]::UtcNow.AddMinutes(5)) { throw "Runtime response for '$ServerId' has a future lastSeenUtc." }
     }
-    return [pscustomobject]@{ ServerId=$ServerId; Ready=$true; ServerSessionId=$session; DefinitionGenerationId=$generation; PublicationRevision=$publicationRevision }
+    $startedValue=Get-UpdateWorkflowValue $runtime 'serverStartedAtUtc'
+    $started=$null
+    if ($startedValue) {
+        try { $started=(ConvertTo-UpdateWorkflowInstant $startedValue).ToString('o') }
+        catch { throw "Runtime response for '$ServerId' has an invalid serverStartedAtUtc." }
+    }
+    return [pscustomobject]@{ ServerId=$ServerId; Ready=$true; ServerSessionId=$session; DefinitionGenerationId=$generation; PublicationRevision=$publicationRevision; ServerStartedAtUtc=$started }
 }
 
 function Test-UpdateWorkflowDeploymentEvidence {
@@ -169,6 +184,7 @@ function Wait-UpdateWorkflowRuntimes {
         [Parameter(Mandatory)][hashtable] $Headers,
         [Parameter(Mandatory)][int] $TimeoutSeconds,
         [Parameter(Mandatory)][int] $PollIntervalSeconds,
+        $MinimumServerStartedAtUtc=$null,
         [scriptblock] $SleepAction
     )
 
@@ -181,6 +197,8 @@ function Wait-UpdateWorkflowRuntimes {
             $runtime = Get-UpdateWorkflowRuntime $Migration $serverId $Invoker $Headers
             Write-MaintenanceDiagnostic 'startup.poll' @{server=$serverId; ready=($null -ne $runtime -and $runtime.Ready)}
             if ($null -eq $runtime -or !$runtime.Ready) { $usable=$false; break }
+            if ($MinimumServerStartedAtUtc -and (!$runtime.ServerStartedAtUtc -or
+                (ConvertTo-UpdateWorkflowInstant $runtime.ServerStartedAtUtc) -lt (ConvertTo-UpdateWorkflowInstant $MinimumServerStartedAtUtc))) { $usable=$false; break }
             $baseline = $BaselineRuntimes[$serverId]
             if ($baseline -and $runtime.ServerSessionId -eq $baseline.ServerSessionId) {
                 if (!$baseline.Ready) { $usable=$false; break }
@@ -240,6 +258,8 @@ function Invoke-UpdateWorkflow {
         [Parameter(Mandatory)][scriptblock] $DeployAction,
         [scriptblock] $PrepareRunAction,
         [scriptblock] $RestoreAction,
+        [scriptblock] $StopDevAction,
+        [scriptblock] $StartDevAction,
         [ValidateSet('Auto','Restart','Restore')][string] $Recovery = 'Auto',
         [switch] $RecoveryChecked,
         [switch] $ServersStopped,
@@ -255,9 +275,15 @@ function Invoke-UpdateWorkflow {
     )
 
     $maintenanceDiagnosticFile = $null
+    $automaticDev=[bool]$StopDevAction -and [bool]$StartDevAction
+    if ([bool]$StopDevAction -ne [bool]$StartDevAction -or ($automaticDev -and
+        ($Label -cne 'Dev' -or $ServerAlreadyRunning -or !$GateContext -or $GateContext.Mode -cne 'Managed'))) {
+        throw 'Automatic Dev stop/start requires both callbacks and a managed Dev workflow in stopped mode.'
+    }
     if ($ServersStopped -and $ServerAlreadyRunning) { throw 'Choose ServersStopped or ServerAlreadyRunning, not both.' }
     if ($ServerAlreadyRunning -and !$AllowSameSessionPublication) { throw 'ServerAlreadyRunning is only supported for a master-data-only update.' }
     $validated = Assert-UpdateWorkflowInputs $WorkflowConfig $MigrationConfig $ConfigurationFingerprint $ServerRoots
+    if ($automaticDev -and ($validated.Migration.ServerIds.Count -ne 1 -or $validated.Migration.ServerIds[0] -cne 'Dev')) { throw 'Automatic lifecycle is restricted to runtime Dev.' }
     if (!$HttpInvoker) {
         $workflowTransportBaseUrl=$validated.Migration.BaseUrl
         $workflowTransportPrivateTls=$validated.Migration.AllowPrivateApiInsecureTls
@@ -400,14 +426,24 @@ function Invoke-UpdateWorkflow {
             if ($AllowSameSessionPublication -and !$runningModeAvailable) {
                 Write-Host '稼働中Devは使用できません。更新前runtimeがreadyでpublicationRevisionを返すことを確認できないため、Devを停止してから実行してください。'
             }
-            $stoppedConfirmed = $ServersStopped -and $AdmissionClosed
+            $stoppedConfirmed = ($ServersStopped -or $automaticDev) -and $AdmissionClosed
             $runningConfirmed = $ServerAlreadyRunning -and $AutomaticWritersStopped -and $runningModeAvailable -and $AdmissionClosed
             if (!$stoppedConfirmed -and !$runningConfirmed) {
-                if ([Console]::IsInputRedirected) { throw 'Non-interactive execution requires -ServersStopped and -AdmissionClosed, or for supported master-data-only updates -ServerAlreadyRunning, -AdmissionClosed, and -AutomaticWritersStopped.' }
-                $condition = if ($runningModeAvailable) { "$Label is stopped, or remains running with player admission closed, automatic writers stopped, and no other master reload in progress" } else { "$Label is stopped, player admission remains closed, and automatic writers are stopped" }
+                if ([Console]::IsInputRedirected) { throw 'Non-interactive execution requires -AdmissionClosed and either automatic Dev control or -ServersStopped (running master reload also requires -AutomaticWritersStopped).' }
+                $condition = if ($automaticDev) { 'player admission is closed, players have left, other automatic writers are stopped; Control will normally stop and start Dev only' } elseif ($runningModeAvailable) { "$Label is stopped, or remains running with player admission closed, automatic writers stopped, and no other master reload in progress" } else { "$Label is stopped, player admission remains closed, and automatic writers are stopped" }
                 $answer = Read-Host "Confirm $condition. Type DEPLOY to continue"
                 if ($answer -cne 'DEPLOY') { throw 'Deployment was not confirmed.' }
             }
+            $state.status=if ($automaticDev) { 'StoppingDev' } else { 'ReadyToDeploy' }
+            Save-UpdateWorkflowJson $state $statePath
+        }
+        if ($state.status -eq 'StoppingDev') {
+            if (!$automaticDev) { throw 'This run requires its original automatic Dev lifecycle configuration.' }
+            if ($GateContext) { Assert-ControlGateStep $GateContext 'StopForDeploy' }
+            $null=& $StopDevAction $runDirectory
+            $state.status='ReadyToDeploy'; Save-UpdateWorkflowJson $state $statePath
+        }
+        if ($state.status -eq 'ReadyToDeploy') {
             $state.status='Deploying'; Save-UpdateWorkflowJson $state $statePath
             try {
                 if ($GateContext) { Assert-ControlGateStep $GateContext 'Deploy' }
@@ -452,12 +488,21 @@ function Invoke-UpdateWorkflow {
                 $state.seedStatus='SUCCEEDED'; $state.seededAtUtc=[DateTime]::UtcNow.ToString('o'); Save-UpdateWorkflowJson $state $statePath
                 Write-MaintenanceDiagnostic 'seed.end'
             }
-            if ($AllowSameSessionPublication) {
+            if ($automaticDev) {
+                Write-Host 'ControlでDevを起動し、新しいsessionのreadyを確認します。入場制限は維持してください。'
+            } elseif ($AllowSameSessionPublication) {
                 Write-Host '対象サーバーを起動するか、稼働中サーバーのマスタ再読込を待ちます。入場制限を維持してください。'
             } else {
                 Write-Host '対象サーバーを起動してください。入場制限を維持したまま、起動を自動確認しています。'
             }
             if ($GateContext) { Assert-ControlGateStep $GateContext 'WaitForStartup' }
+            if ($automaticDev) {
+                if (!$state.Contains('devStartRequestedAtUtc')) {
+                    $state.devStartRequestedAtUtc=[DateTimeOffset]::UtcNow.ToString('o')
+                    Save-UpdateWorkflowJson $state $statePath
+                }
+                & $StartDevAction $runDirectory
+            }
             Write-MaintenanceDiagnostic 'startup.wait.begin'
             $baselineRuntimes = if ($state.Contains('baselineRuntimes')) { $state.baselineRuntimes } else { $null }
             if ($null -eq $baselineRuntimes) {
@@ -470,6 +515,7 @@ function Invoke-UpdateWorkflow {
             $runtimes = Wait-UpdateWorkflowRuntimes -Migration $validated.Migration -BaselineRuntimes $baselineRuntimes `
                 -AllowSameSessionPublication:$AllowSameSessionPublication -Invoker $HttpInvoker -Headers $headers `
                 -TimeoutSeconds $WorkflowConfig.startupTimeoutSeconds -PollIntervalSeconds $WorkflowConfig.pollIntervalSeconds `
+                -MinimumServerStartedAtUtc $(if ($automaticDev) { $state.devStartRequestedAtUtc } else { '' }) `
                 -SleepAction $SleepAction
             $state.deployedRuntimes=@($runtimes); $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath
             Write-MaintenanceDiagnostic 'startup.wait.end'
@@ -490,7 +536,7 @@ function Invoke-UpdateWorkflow {
             if ($GateContext) { Assert-ControlGateStep $GateContext 'Publish' }
             # Only publish after every configured server agrees. No account enumeration or
             # player-data write is performed by this workflow, including on a retry.
-            $expectedRuntimes = @(Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers -AllowRestart)
+            $expectedRuntimes = @(Assert-UpdateWorkflowExpectedRuntimes $validated.Migration $state.deployedRuntimes $HttpInvoker $headers -AllowRestart:(!$automaticDev))
             $target=$expectedRuntimes[0]
             $uri="$($validated.Migration.BaseUrl)/api/skilltree/runtime/servers/$([Uri]::EscapeDataString($target.ServerId))/patches/publish?server_session_id=$($target.ServerSessionId)"
             try {

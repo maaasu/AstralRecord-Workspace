@@ -228,7 +228,8 @@ function Enter-ControlGate {
         [string]$WorkflowId = '',
         [string]$ReservationId = '',
         [switch]$CompletedRun,
-        [ValidateSet('Deploy','Restore','Seed','WaitForStartup','Publish','Preview','Commit','Resume')][string]$InitialStep='Deploy'
+        [ValidateSet('Deploy','Restore','Seed','WaitForStartup','Publish','Preview','Commit','Resume','StopForDeploy')][string]$InitialStep='Deploy',
+        [string]$DevLifecycleServerId=''
     )
     $mode = Get-ControlGateMode $Configuration
     if ($mode -eq 'Legacy') { return [pscustomobject]@{ Mode='Legacy'; Owner=$false; LeaseFile=''; CliPath=''; ServerUrl='' } }
@@ -238,6 +239,12 @@ function Enter-ControlGate {
     if (!$RuntimeServerIds.Count -or @($RuntimeServerIds | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count) { throw 'Managed gate requires every affected runtime server.' }
     if (!$AffectedPaths) { $AffectedPaths=@() }
     $resources = Resolve-ControlGateResources $gate $RuntimeServerIds $AffectedPaths $RequiredState
+    if ($DevLifecycleServerId) {
+        $dev=@($gate.bindings.servers | Where-Object { $_.runtimeServerId -ceq 'Dev' -and $_.serverId -eq $DevLifecycleServerId })
+        if ($Operation -cnotin @('01','02','03') -or $RequiredState -cne 'Stopped' -or $dev.Count -ne 1 -or 'Dev' -cnotin $RuntimeServerIds) {
+            throw 'Automatic lifecycle requires the bound Dev and stopped maintenance conditions for 01/02/03.'
+        }
+    }
     if ($WorkflowId) {
         if (!$ReservationId -or !$RunReference) { throw 'Control gate resume requires the saved reservation and run reference.' }
         $lease=Find-ControlGateResumeLease $WorkflowId $ReservationId $Operation $RunReference
@@ -266,6 +273,7 @@ function Enter-ControlGate {
         mode='Maintenance'; adapterId=$Operation; runReference=$RunReference
         serverConditions=$resources.Conditions
     }
+    if ($DevLifecycleServerId) { $request.devLifecycleServerId=([Guid]::Parse($DevLifecycleServerId)).ToString('D') }
     $requestFile = [IO.Path]::ChangeExtension($lease, '.request.json')
     try {
         [IO.File]::WriteAllText($requestFile, ($request | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
@@ -309,4 +317,6 @@ function Complete-ControlGate {
     [Environment]::SetEnvironmentVariable('ASTRALRECORD_CONTROL_GATE_LEASE', $null, 'Process')
 }
 
-Export-ModuleMember -Function Get-ControlGateMode, Get-ControlGateResumeIdentity, New-ControlGateRunReference, Enter-ControlGate, Assert-ControlGateStep, Complete-ControlGate, Get-DeploymentGateRuntimeServerIds
+. (Join-Path $PSScriptRoot 'Control.DevLifecycle.ps1')
+
+Export-ModuleMember -Function Get-ControlGateMode, Get-ControlGateResumeIdentity, New-ControlGateRunReference, Enter-ControlGate, Assert-ControlGateStep, Complete-ControlGate, Get-DeploymentGateRuntimeServerIds, Get-ControlDevLifecycleConfiguration, Invoke-ControlDevLifecycle

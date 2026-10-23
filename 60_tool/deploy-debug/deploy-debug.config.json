@@ -4,6 +4,12 @@
     "startupTimeoutSeconds": 900,
     "pollIntervalSeconds": 5,
     "seedMasterData": true,
+    "controlDevLifecycle": {
+      "enabled": false,
+      "stopTimeoutSeconds": 120,
+      "startTimeoutSeconds": 900,
+      "pollIntervalSeconds": 2
+    },
     "migration": {
       "enabled": true,
       "baseUrl": "https://app-01:444",

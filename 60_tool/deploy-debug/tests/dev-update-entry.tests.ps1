@@ -12,7 +12,7 @@ try {
     $env:ProgramData=Join-Path $fixture 'programdata'
     New-Item -ItemType Directory -Path $env:ProgramData -Force | Out-Null
     $toolsRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-    foreach ($relative in @('deploy-debug/dev-update.ps1','deploy-debug/PluginTestSelection.ps1','maintenance/maintenance.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/DeploymentSelection.ps1','maintenance/SkillTreeMigration.ps1','control-gate/Control.Gate.psm1')) {
+    foreach ($relative in @('deploy-debug/dev-update.ps1','deploy-debug/PluginTestSelection.ps1','maintenance/maintenance.ps1','maintenance/Distribution.ps1','maintenance/Diagnostics.ps1','maintenance/DeploymentSelection.ps1','maintenance/SkillTreeMigration.ps1','control-gate/Control.Gate.psm1','control-gate/Control.DevLifecycle.ps1')) {
         $destination=Join-Path $fixture $relative
         New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
         Copy-Item -LiteralPath (Join-Path $toolsRoot $relative) -Destination $destination

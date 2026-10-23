@@ -2,7 +2,30 @@
 
 Control管理を有効にしたPCで01/02/03を実行するときは、[既存ツールgate](../control-gate/README.md)の`controlGate`を同じ設定ファイルに追加し、事前にControl CLIへ対話ログインしてください。PowerShellの`dev-update.ps1`直接実行も同じgateを通ります。管理下のDev停止/稼働状態はRunnerが確認し、`-ServersStopped`/`-ServerAlreadyRunning`はその代替証明になりません。`deploy-debug.ps1`単独の直接配布は管理下で拒否します。
 
-通常は `60_tool/01-deploy-debug.bat` を実行します。PowerShell 7が必要です。01はDevの停止・再起動を運用者が行います。Filebaseとマスタだけを更新する03は、APIとPluginを更新済みでマスタ自動再読込が有効なら、Devを起動したまま実行できます。
+通常は `60_tool/01-deploy-debug.bat` を実行します。PowerShell 7が必要です。Control連携によるDevの自動停止・起動は、下記の`devWorkflow.controlDevLifecycle.enabled=true`で有効にします。未設定/falseは従来の手動運転です。Filebaseとマスタだけを更新する03の稼働中モードと、自動停止・起動は併用しません。
+
+## ControlでDevだけを自動停止・起動する
+
+WebとCLIをこの機能に対応する版へ更新し、既存のControlログイン、DevのP1運転設定、Managed bindingを利用します。Runner/Agentの更新は不要です。`devWorkflow.migration.serverIds`と`controlGate.bindings.servers[].runtimeServerId`の対象は正確に`Dev`とします。ローカル設定に追加してください。
+
+```json
+"controlDevLifecycle": {
+  "enabled": true,
+  "stopTimeoutSeconds": 120,
+  "startTimeoutSeconds": 900,
+  "pollIntervalSeconds": 2
+}
+```
+
+01/02/03の停止モードは、全資源の保守予約→Devの正常停止確認→ビルド・配置・必要なseed→Dev起動→新sessionのready/世代確認→パッチ公開→予約解放の順です。Devが既に停止していれば停止命令を省略します。起動確認はプロセス起動とPluginの準備完了を別々に確認します。入場制限は自動解除しません。
+
+新起動の確認にはAPI runtimeの`serverStartedAtUtc`応答が必要です。API更新を含む01を先に実施してください。02/03で旧APIを使う場合、起動時刻が確認できず公開へ進みません。Pluginの起動時刻と同じDev PCのUTC時計でStart要求時刻を保存し、APP PCのheartbeat受信時計を新起動の証明には使いません。
+
+共有API/Filebaseを変える01/03では、他の共有RPGを事前に停止し、完了まで停止を維持してください。Controlは各段階で確認し、Build/Channel1/Channel2へ停止・起動命令を送りません。02はJARだけを更新するため、従来どおりDevのみを予約します。
+
+停止タイムアウト・通信断・要確認状態では配布を止め、同じ予約と操作IDを保持します。自動Killや別IDでの停止・起動のやり直しは行いません。同じ設定とバッチで再開してください。ビルド/DB/配置失敗時はDevを停止したまま既存の復旧手順へ進み、配布失敗を成功扱いで起動しません。`-Plan`はAPIやプロセスを操作せず、自動運転の予定を表示します。非対話実行では`-AdmissionClosed`で入場停止を確認します。
+
+## 手動運転を使う場合
 
 DevとChannelがAPI・DBを共用する環境では、Managed設定の`controlGate.sharedApiRuntimeServerIds`へ共用する全RPGのruntime IDを登録します。今回の新配置は`["Dev","Build","Channel1","Channel2"]`です。01と03のAPI/Filebase更新は全対象の停止を確認し、起動段階で全対象を起動してからDevのready確認とパッチ公開を完了します。`devWorkflow.migration.serverIds`はDevのままです。02のPluginOnlyはDevだけを予約します。共有構成の03は`-ServerAlreadyRunning`を拒否します。
 

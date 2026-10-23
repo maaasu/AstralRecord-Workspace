@@ -65,6 +65,7 @@ try {
     if ($MasterDataOnly -and !$config.fileDatabase.enabled) { throw 'MasterDataOnly requires fileDatabase.enabled=true.' }
     $gateServerIds=@(Get-DeploymentGateRuntimeServerIds -Configuration $config -RuntimeServerIds @($normalized.ServerIds) `
         -PluginOnly:$PluginOnly -MasterDataOnly:$MasterDataOnly -ServerAlreadyRunning:$ServerAlreadyRunning)
+    $devLifecycle=Get-ControlDevLifecycleConfiguration -Configuration $config -RuntimeServerIds @($normalized.ServerIds) -ServerAlreadyRunning:$ServerAlreadyRunning
     if ($ServerAlreadyRunning -and !$workflow.seedMasterData) { throw 'A running Dev requires devWorkflow.seedMasterData=true so its automatic master reload can be confirmed.' }
     if ($PluginOnly -and !$config.plugin.enabled) { throw 'PluginOnly requires plugin.enabled=true.' }
     if ($mode -eq 'Full' -and !$config.plugin.enabled -and !$config.fileDatabase.enabled -and !$config.api.enabled -and !$config.web.enabled) { throw 'No enabled deployment component.' }
@@ -83,12 +84,17 @@ try {
             if ($testSelection.Tests) { Write-Host "Selected tests: $($testSelection.Tests)" }
         }
         Write-Host "Target runtime: $($normalized.ServerIds[0]); register the current patch after startup. Player data is updated at login."
-        if ($gateServerIds.Count -gt $normalized.ServerIds.Count) { Write-Host "Shared API: stop all of [$($gateServerIds -join ', ')], then start all of them before patch publication. Runtime readiness/publication target remains $($normalized.ServerIds[0])." }
+        if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
+            if ($devLifecycle) { Write-Host "Shared API: other servers [$(@($gateServerIds | Where-Object { $_ -cne 'Dev' }) -join ', ')] must remain stopped throughout this run. Only Dev receives Stop/Start." }
+            else { Write-Host "Shared API: stop all of [$($gateServerIds -join ', ')], then start all of them before patch publication. Runtime readiness/publication target remains $($normalized.ServerIds[0])." }
+        }
         Write-Host "API endpoint: $($normalized.BaseUrl)"
         Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
         if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
         else { Write-Host "Authentication source: environment variables $($normalized.ApiKeyEnvironmentVariable), $($normalized.MigrationKeyEnvironmentVariable)" }
-        if ($MasterDataOnly -and $workflow.seedMasterData) {
+        if ($devLifecycle) {
+            Write-Host 'Reserve all affected resources -> Control normal Stop Dev -> build/copy -> optional seed -> Control Start Dev -> wait for new ready runtime -> publish patch -> release.'
+        } elseif ($MasterDataOnly -and $workflow.seedMasterData) {
             Write-Host 'Stopped Dev or running Dev with admission closed -> sync Filebase -> seed -> wait for a new session or completed hot reload -> publish patch -> complete.'
         } else {
             Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> publish patch -> complete.'
@@ -108,11 +114,15 @@ try {
     $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
     $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
     $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
-    if ($gateServerIds.Count -gt $normalized.ServerIds.Count) { Write-Host "Shared API maintenance: stop all of [$($gateServerIds -join ', ')]; start all of them in the startup phase before Dev patch publication." }
+    if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
+        if ($devLifecycle) { Write-Host 'Shared API maintenance: Dev以外の共有サーバーは実行中ずっと停止してください。自動停止・起動はDevだけです。' }
+        else { Write-Host "Shared API maintenance: stop all of [$($gateServerIds -join ', ')]; start all of them in the startup phase before Dev patch publication." }
+    }
     $gateContext=Enter-ControlGate -Configuration $config -Operation $adapterId -RuntimeServerIds $gateServerIds `
         -AffectedPaths $affected -RequiredState $requiredState -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
         -ReservationId $(if ($resume) { $resume.ReservationId } else { '' }) -CompletedRun:([bool]($resume -and $resume.Completed)) `
-        -InitialStep $(if ($resume) { 'Resume' } else { 'Deploy' })
+        -InitialStep $(if ($resume) { 'Resume' } elseif ($devLifecycle) { 'StopForDeploy' } else { 'Deploy' }) `
+        -DevLifecycleServerId $(if ($devLifecycle) { $devLifecycle.ServerId } else { '' })
     if ($resume -and $resume.Completed) {
         $confirmed=Get-ControlGateResumeIdentity $workflow.runRoot
         if (!$confirmed -or !$confirmed.Completed -or $confirmed.WorkflowId -cne $resume.WorkflowId -or
@@ -149,7 +159,12 @@ try {
         }
         Write-MaintenanceJson @{ completedAtUtc=[DateTime]::UtcNow.ToString('o') } (Join-Path $RunDirectory 'deploy-action-success.json')
     }
-    $workflowResult=Invoke-UpdateWorkflow -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
+    $lifecycleActions=@{}
+    if ($devLifecycle) {
+        $lifecycleActions.StopDevAction={param($RunDirectory) Invoke-ControlDevLifecycle -Context $gateContext -Settings $devLifecycle -RunDirectory $RunDirectory -Kind Stop}
+        $lifecycleActions.StartDevAction={param($RunDirectory) Invoke-ControlDevLifecycle -Context $gateContext -Settings $devLifecycle -RunDirectory $RunDirectory -Kind Start}
+    }
+    $workflowResult=Invoke-UpdateWorkflow @lifecycleActions -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
         -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Dev' `
         -ServerAlreadyRunning:$ServerAlreadyRunning -AutomaticWritersStopped:$AutomaticWritersStopped `
         -AllowSameSessionPublication:($MasterDataOnly -and $workflow.seedMasterData) `

@@ -41,6 +41,8 @@ public sealed class SkillTreeServerRuntimeResponse
 {
     public required string ServerId { get; init; }
     public Guid ServerSessionId { get; init; }
+    /// <summary>Pluginが登録した起動時刻。heartbeat受信時刻と区別して新bootを照合する。</summary>
+    public DateTime ServerStartedAtUtc { get; init; }
     /// <summary>同一session内で完了したPluginマスタ再読込のrevision。</summary>
     public long PublicationRevision { get; init; }
     public required string DefinitionGenerationId { get; init; }
