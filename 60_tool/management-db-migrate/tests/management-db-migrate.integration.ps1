@@ -51,18 +51,36 @@ $databaseConnectionBuilder['Initial Catalog'] = $databaseName
         "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260917_web_credentials'",
         "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260920_trusted_admin_browser'",
         "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20260926_donations'",
+        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20261002_player_admin_edit'",
+        "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id=N'20261019_defense'",
         "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_request'",
         "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_ledger'",
         "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_grant'",
         "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_notification'",
         "SELECT COUNT(*) FROM sys.tables WHERE name=N'donation_discord_link'",
-        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.donation_grant') AND name=N'UX_donation_grant_account_total'"
+        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.donation_grant') AND name=N'UX_donation_grant_account_total'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'defense_channel'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'defense_run'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'defense_participant'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'defense_reward'",
+        "SELECT COUNT(*) FROM sys.tables WHERE name=N'defense_report'",
+        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.defense_run') AND name=N'UX_defense_run_active' AND has_filter=1",
+        "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.defense_reward') AND name=N'IX_defense_reward_pending' AND has_filter=1"
     )) {
         if ([int](Invoke-Sql $databaseName $sql -Scalar) -ne 1) { throw "Schema verification failed: $sql" }
     }
     & dotnet run --no-build --project $project -- --config $configPath
     if ($LASTEXITCODE -ne 0 -or
-        [int](Invoke-Sql $databaseName "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id IN (N'20260917_web_credentials', N'20260920_trusted_admin_browser', N'20260926_donations')" -Scalar) -ne 3) { throw 'Management migration rerun was not idempotent.' }
+        [int](Invoke-Sql $databaseName "SELECT COUNT(*) FROM dbo.schema_migration WHERE migration_id IN (N'20260917_web_credentials', N'20260920_trusted_admin_browser', N'20260926_donations', N'20261002_player_admin_edit', N'20261019_defense')" -Scalar) -ne 5) { throw 'Management migration rerun was not idempotent.' }
+
+    Invoke-Sql $databaseName 'DROP INDEX IX_defense_reward_pending ON dbo.defense_reward;'
+    Invoke-Sql $databaseName 'CREATE INDEX IX_defense_reward_pending ON dbo.defense_reward(created_at_utc);'
+    $previousErrorActionPreference = $ErrorActionPreference
+    try { $ErrorActionPreference = 'Continue'; $output = & dotnet run --no-build --project $project -- --config $configPath 2>&1; $exitCode = $LASTEXITCODE }
+    finally { $ErrorActionPreference = $previousErrorActionPreference }
+    if ($exitCode -eq 0 -or ($output -join [Environment]::NewLine) -notmatch 'Expected filtered index was not found: IX_defense_reward_pending') {
+        throw 'Unfiltered replacement of the defense reward index was not rejected.'
+    }
 
     $negativeRoot = Join-Path $temporaryRoot 'altered'
     [void][IO.Directory]::CreateDirectory($negativeRoot)

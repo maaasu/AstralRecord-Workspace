@@ -261,6 +261,407 @@
           "uniqueIndexes": []
         }
       ]
+    },
+    {
+      "id": "20261019_defense",
+      "fileName": "20261019_defense.sql",
+      "commandTimeoutSeconds": 120,
+      "tables": [
+        {
+          "name": "defense_channel",
+          "primaryKey": "PK_defense_channel",
+          "columns": [
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 128,
+              "isNullable": false
+            },
+            {
+              "name": "revision",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": false
+            },
+            {
+              "name": "daily_enabled",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            },
+            {
+              "name": "daily_start_time_jst",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 10,
+              "isNullable": true
+            },
+            {
+              "name": "configuration_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "updated_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "updated_by",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "last_runtime_poll_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            },
+            {
+              "name": "last_runtime_instance_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": true
+            },
+            {
+              "name": "registration_status",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": true
+            },
+            {
+              "name": "registered_count",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": true
+            },
+            {
+              "name": "registration_reported_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            }
+          ],
+          "checkConstraints": [
+            "CK_defense_channel_revision",
+            "CK_defense_channel_json",
+            "CK_defense_channel_daily",
+            "CK_defense_channel_registration",
+            "CK_defense_channel_registered_count"
+          ],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": [],
+          "foreignKeys": [],
+          "indexes": []
+        },
+        {
+          "name": "defense_run",
+          "primaryKey": "PK_defense_run",
+          "columns": [
+            {
+              "name": "run_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "server_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 128,
+              "isNullable": false
+            },
+            {
+              "name": "source",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "status",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "scheduled_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            },
+            {
+              "name": "scheduled_date_jst",
+              "sqlType": "date",
+              "maxLengthBytes": 3,
+              "isNullable": true
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "started_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            },
+            {
+              "name": "ended_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            },
+            {
+              "name": "last_heartbeat_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            },
+            {
+              "name": "instance_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": true
+            },
+            {
+              "name": "configuration_json",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": -1,
+              "isNullable": false
+            },
+            {
+              "name": "defense_level",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": true
+            },
+            {
+              "name": "participant_count",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": true
+            },
+            {
+              "name": "reason",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 1000,
+              "isNullable": true
+            }
+          ],
+          "checkConstraints": [
+            "CK_defense_run_source",
+            "CK_defense_run_status",
+            "CK_defense_run_json",
+            "CK_defense_run_participants"
+          ],
+          "filteredUniqueIndexes": [
+            "UX_defense_run_daily",
+            "UX_defense_run_active"
+          ],
+          "uniqueIndexes": [
+            "UX_defense_run_operation"
+          ],
+          "foreignKeys": [
+            "FK_defense_run_channel"
+          ],
+          "indexes": [
+            "IX_defense_run_history"
+          ]
+        },
+        {
+          "name": "defense_participant",
+          "primaryKey": "PK_defense_participant",
+          "columns": [
+            {
+              "name": "run_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "user_uuid",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "active_seconds",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": false
+            },
+            {
+              "name": "is_afk",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            },
+            {
+              "name": "eliminated",
+              "sqlType": "bit",
+              "maxLengthBytes": 1,
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [
+            "CK_defense_participant_active"
+          ],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": [
+            "UX_defense_participant_user"
+          ],
+          "foreignKeys": [
+            "FK_defense_participant_run"
+          ],
+          "indexes": []
+        },
+        {
+          "name": "defense_reward",
+          "primaryKey": "PK_defense_reward",
+          "columns": [
+            {
+              "name": "run_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "account_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "defense_level",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": false
+            },
+            {
+              "name": "user_uuid",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "orb_item_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 300,
+              "isNullable": false
+            },
+            {
+              "name": "orb_quantity",
+              "sqlType": "int",
+              "maxLengthBytes": 4,
+              "isNullable": false
+            },
+            {
+              "name": "mail_id",
+              "sqlType": "nvarchar",
+              "maxLengthBytes": 400,
+              "isNullable": false
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            },
+            {
+              "name": "delivered_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": true
+            }
+          ],
+          "checkConstraints": [
+            "CK_defense_reward_level",
+            "CK_defense_reward_quantity"
+          ],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": [
+            "UX_defense_reward_mail"
+          ],
+          "foreignKeys": [
+            "FK_defense_reward_participant"
+          ],
+          "filteredIndexes": [
+            "IX_defense_reward_pending"
+          ]
+        },
+        {
+          "name": "defense_report",
+          "primaryKey": "PK_defense_report",
+          "columns": [
+            {
+              "name": "operation_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "run_id",
+              "sqlType": "uniqueidentifier",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "kind",
+              "sqlType": "varchar",
+              "maxLengthBytes": 16,
+              "isNullable": false
+            },
+            {
+              "name": "request_hash",
+              "sqlType": "char",
+              "maxLengthBytes": 64,
+              "isNullable": false
+            },
+            {
+              "name": "created_at_utc",
+              "sqlType": "datetime2",
+              "precision": 23,
+              "scale": 3,
+              "isNullable": false
+            }
+          ],
+          "checkConstraints": [
+            "CK_defense_report_kind",
+            "CK_defense_report_hash"
+          ],
+          "filteredUniqueIndexes": [],
+          "uniqueIndexes": [],
+          "foreignKeys": [
+            "FK_defense_report_run"
+          ],
+          "indexes": []
+        }
+      ]
     }
   ]
 }

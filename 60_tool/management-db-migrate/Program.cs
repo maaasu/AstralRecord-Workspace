@@ -16,6 +16,9 @@ const string DonationsMigrationSha256 = "F6E363583BB0C2781A530FA6862098CBC0856B7
 const string PlayerAdminEditMigrationId = "20261002_player_admin_edit";
 const string PlayerAdminEditMigrationFileName = "20261002_player_admin_edit.sql";
 const string PlayerAdminEditMigrationSha256 = "A4623A4ED9E1B250354A1B7A347C549E4E4400EA17718FB4F0E7774CC610EA07";
+const string DefenseMigrationId = "20261019_defense";
+const string DefenseMigrationFileName = "20261019_defense.sql";
+const string DefenseMigrationSha256 = "598A16BB7F83440A7619347BB1B4F45C13CB347C4AF004233C1742A4C77AB38B";
 var options = CommandLineOptions.Parse(args);
 if (options.ShowHelp)
 {
@@ -141,7 +144,7 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
         throw new DirectoryNotFoundException("Management migration directory was not found.");
     if (config.Migrations.Count == 0)
         throw new InvalidOperationException("At least one explicit management migration must be configured.");
-    if (config.Migrations.Count != 4
+    if (config.Migrations.Count != 5
         || !string.Equals(config.Migrations[0].Id, WebCredentialsMigrationId, StringComparison.Ordinal)
         || !string.Equals(config.Migrations[0].FileName, WebCredentialsMigrationFileName, StringComparison.Ordinal)
         || !string.Equals(config.Migrations[1].Id, TrustedBrowserMigrationId, StringComparison.Ordinal)
@@ -149,8 +152,10 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
         || !string.Equals(config.Migrations[2].Id, DonationsMigrationId, StringComparison.Ordinal)
         || !string.Equals(config.Migrations[2].FileName, DonationsMigrationFileName, StringComparison.Ordinal)
         || !string.Equals(config.Migrations[3].Id, PlayerAdminEditMigrationId, StringComparison.Ordinal)
-        || !string.Equals(config.Migrations[3].FileName, PlayerAdminEditMigrationFileName, StringComparison.Ordinal))
-        throw new InvalidOperationException($"Only the reviewed ManagementDB migrations {WebCredentialsMigrationFileName}, {TrustedBrowserMigrationFileName}, {DonationsMigrationFileName}, {PlayerAdminEditMigrationFileName} may be applied by this runner.");
+        || !string.Equals(config.Migrations[3].FileName, PlayerAdminEditMigrationFileName, StringComparison.Ordinal)
+        || !string.Equals(config.Migrations[4].Id, DefenseMigrationId, StringComparison.Ordinal)
+        || !string.Equals(config.Migrations[4].FileName, DefenseMigrationFileName, StringComparison.Ordinal))
+        throw new InvalidOperationException($"Only the reviewed ManagementDB migrations {WebCredentialsMigrationFileName}, {TrustedBrowserMigrationFileName}, {DonationsMigrationFileName}, {PlayerAdminEditMigrationFileName}, {DefenseMigrationFileName} may be applied by this runner.");
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     foreach (var migration in config.Migrations)
@@ -167,6 +172,14 @@ static void ValidateManifest(ManagementMigrationConfig config, string migrations
         foreach (Match match in Regex.Matches(script, @"(?im)^\s*USE\s+\[?([A-Za-z0-9_]+)\]?\s*;?\s*$"))
             if (!string.Equals(match.Groups[1].Value, targetDatabase, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException($"Management migration may not change to another database: {migration.FileName}");
+    }
+    foreach (var path in Directory.EnumerateFiles(migrationsRoot, "*.sql"))
+    {
+        var fileName = Path.GetFileName(path);
+        if (Regex.IsMatch(fileName, @"\A\d{8}[_-][A-Za-z0-9_-]+\.sql\z", RegexOptions.IgnoreCase)
+            && string.CompareOrdinal(fileName[..8], WebCredentialsMigrationId[..8]) >= 0
+            && !files.Contains(fileName))
+            throw new InvalidOperationException($"Management migration file is not registered: {fileName}");
     }
 }
 
@@ -206,6 +219,7 @@ static string ExpectedMigrationHash(string fileName) => fileName switch
     TrustedBrowserMigrationFileName => TrustedBrowserMigrationSha256,
     DonationsMigrationFileName => DonationsMigrationSha256,
     PlayerAdminEditMigrationFileName => PlayerAdminEditMigrationSha256,
+    DefenseMigrationFileName => DefenseMigrationSha256,
     _ => throw new InvalidOperationException($"Migration file is not approved by this runner: {fileName}"),
 };
 
@@ -293,6 +307,15 @@ static async Task ValidateMigrationAsync(SqlConnection connection, SqlTransactio
         foreach (var name in table.UniqueIndexes)
             if (await ScalarIntAsync(connection, transaction, "SELECT COUNT(*) FROM sys.indexes WHERE object_id=@id AND name=@name AND is_disabled=0 AND is_unique=1 AND has_filter=0;", ("@id", objectId.Value), ("@name", name)) != 1)
                 throw new InvalidOperationException($"Expected unique index was not found: {name}");
+        foreach (var name in table.ForeignKeys)
+            if (await ScalarIntAsync(connection, transaction, "SELECT COUNT(*) FROM sys.foreign_keys WHERE parent_object_id=@id AND name=@name AND is_disabled=0;", ("@id", objectId.Value), ("@name", name)) != 1)
+                throw new InvalidOperationException($"Expected foreign key was not found: {name}");
+        foreach (var name in table.Indexes)
+            if (await ScalarIntAsync(connection, transaction, "SELECT COUNT(*) FROM sys.indexes WHERE object_id=@id AND name=@name AND is_disabled=0 AND is_unique=0 AND has_filter=0;", ("@id", objectId.Value), ("@name", name)) != 1)
+                throw new InvalidOperationException($"Expected index was not found: {name}");
+        foreach (var name in table.FilteredIndexes)
+            if (await ScalarIntAsync(connection, transaction, "SELECT COUNT(*) FROM sys.indexes WHERE object_id=@id AND name=@name AND is_disabled=0 AND is_unique=0 AND has_filter=1;", ("@id", objectId.Value), ("@name", name)) != 1)
+                throw new InvalidOperationException($"Expected filtered index was not found: {name}");
     }
     if (!await IsAppliedAsync(connection, transaction, migration.Id!))
         throw new InvalidOperationException($"Migration history row was not found: {migration.Id}");
@@ -309,6 +332,6 @@ static async Task<int?> ScalarIntAsync(SqlConnection connection, SqlTransaction 
 internal sealed class ManagementMigrationConfig { public string? SourceApiAppsettingsPath { get; init; } public string? ExpectedDatabase { get; init; } public ManagementConnections ConnectionStrings { get; init; } = new(); public string? MigrationsRootPath { get; init; } public List<ManagementMigration> Migrations { get; init; } = new(); }
 internal sealed class ManagementConnections { public string? Management { get; init; } }
 internal sealed class ManagementMigration { public string? Id { get; init; } public string? FileName { get; init; } public int? CommandTimeoutSeconds { get; init; } public List<TableExpectation> Tables { get; init; } = new(); }
-internal sealed class TableExpectation { public string? Name { get; init; } public string? PrimaryKey { get; init; } public List<ColumnExpectation> Columns { get; init; } = new(); public List<string> CheckConstraints { get; init; } = new(); public List<string> FilteredUniqueIndexes { get; init; } = new(); public List<string> UniqueIndexes { get; init; } = new(); }
+internal sealed class TableExpectation { public string? Name { get; init; } public string? PrimaryKey { get; init; } public List<ColumnExpectation> Columns { get; init; } = new(); public List<string> CheckConstraints { get; init; } = new(); public List<string> FilteredUniqueIndexes { get; init; } = new(); public List<string> UniqueIndexes { get; init; } = new(); public List<string> ForeignKeys { get; init; } = new(); public List<string> Indexes { get; init; } = new(); public List<string> FilteredIndexes { get; init; } = new(); }
 internal sealed class ColumnExpectation { public string? Name { get; init; } public string? SqlType { get; init; } public int? MaxLengthBytes { get; init; } public byte? Precision { get; init; } public byte? Scale { get; init; } public bool? IsNullable { get; init; } }
 internal sealed record CommandLineOptions(string? ConfigPath, bool ShowHelp, bool ValidateOnly) { public static CommandLineOptions Parse(string[] args) { string? config = null; var validate = false; for (var i=0;i<args.Length;i++) { if (args[i] is "--help" or "-h") return new(null, true, false); if (args[i].Equals("--config", StringComparison.OrdinalIgnoreCase)) { if (++i >= args.Length) throw new ArgumentException("A path is required after --config."); config=args[i]; continue; } if (args[i].Equals("--validate-only", StringComparison.OrdinalIgnoreCase)) { validate=true; continue; } throw new ArgumentException($"Unknown argument: {args[i]}"); } return new(config, false, validate); } }
