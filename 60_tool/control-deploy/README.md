@@ -142,6 +142,23 @@ Runnerの更新はControl CLIによる`runner check-update`が全ServerのStoppe
 ./60_tool/control-deploy/Update-Control.ps1 -Component Runner -PackageDirectory C:\ControlPackages\p1-002\Runner -CliPath C:\ControlPackages\p1-002\Cli\AstralRecordControl.Cli.exe
 ```
 
+### MC-01のJava実行資源をJava 25へ更新
+
+`Update-ControlJavaRuntime.ps1`はMC-01専用です。署名と配布元を別経路で確認したJDK 25 ZIPのSHA-256、既存のJava executable資源ID、Control CLI、閉域APIの公開CA証明書とそのDER SHA-256を指定します。Proxy用Velocity資源は別IDのまま残します。全管理サーバーのStopped・Sessionなし・holdなしを、Agent停止前と停止後にRunnerの`check-update`で確認します。ゲームを自動停止しません。公式ZIPの全entryを検査してMC-01ローカルの`%ProgramFiles%\AstralRecordControl\Java`に版・hash別のreleaseとして展開し、Agent/RunnerサービスSIDへ読取・実行ACLを設定して`java -version`で25系を確認します。新JDKの`cacerts`へ検証済みAPI公開CAを`astralrecord-api-root`として登録し、exportした証明書のSHA-256を再確認してからreleaseを確定します。両サービスの`%ProgramData%\AstralRecordControl\<Component>\config.json`を退避し、指定IDの`path`だけを同じ新`java.exe`へ変更します。Runner、元々稼働していたAgentの順で再開します。APIのTLS検証設定は変更しません。
+
+次の例のZIPとhashは2026-10-23に検証したTemurin 25.0.4.1+1です。MC-01上でZIPをローカル配置し、管理者PowerShell 7から先に`-WhatIf`を実行します。既存の`Update-Control.bat`はControlバイナリを更新しますがJava資源は変更しないため、バイナリ更新を先に完了してからこの手順を実行します。
+
+```powershell
+$zip = 'C:\ControlDeployment\Runtime\Java\OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.zip'
+$ca = 'C:\ControlDeployment\Runtime\Java\AstralRecord-Api-Root.cer'
+$cli = 'C:\ControlDeployment\Package\Cli\AstralRecordControl.Cli.exe'
+$arguments = @{ JdkArchive = $zip; ExpectedArchiveSha256 = '00c847d804f4a78e9f04f2683faf14fed898535b177b7fc704486cb0284e9283'; ExecutableId = '233fe4fc-6564-4f56-a616-b123e8db9f7d'; CliPath = $cli; TrustedCertificatePath = $ca; ExpectedCertificateSha256 = '868027974e20d5f52d736b6a394f0aee8d40f503c4b32cf3c6438cb733b52164' }
+& .\60_tool\control-deploy\Update-ControlJavaRuntime.ps1 @arguments -WhatIf
+& .\60_tool\control-deploy\Update-ControlJavaRuntime.ps1 @arguments -Confirm:$false
+```
+
+`-WhatIf`はZIP/hash、公開CA、両設定の資源ID・kind・path一致と最初の停止状態を確認し、サービスやファイルを変更しません。更新失敗時は両設定のbackupから復元し、元のAgent/Runner稼働状態へ戻します。復旧にも失敗した場合はbackup pathを表示して停止するため、状態を確認してから再試行します。同じZIP/hashと資源IDでの再実行は登録済みreleaseと公開CAを確認して終了します。新規ZIPまたは異なるJDK root名を使う場合は検証したhashと`-JdkRootName`を更新してください。
+
 01/02/03/16/17をControlと共存させるPCでは、P1ツール入口を導入し、新規Runner登録時は`Install-Control.ps1 -Component Runner -EnableManagedOperations`、既存Runnerへの初回導入は`Enable-ManagedOperations.ps1`で管理運用markerを作成します。markerはTool rootと管理運用の導入を一度記録し、導入後は旧Legacy入口を停止します。通常のTool更新でmarkerの再発行は不要です。既存schema 1のSHA-256記録は互換性のため残しますが、更新後の再承認には使いません。各ツール設定の`controlGate`と初回CLIログインは[既存ツールgate](../control-gate/README.md)を参照してください。Control Web側の変更操作は導入確認後に明示的に有効化します。
 
 旧版との互換運用などで登録記録を明示的に更新する場合だけ、次の`-Renew`を使用します。同じTool root、全Server停止、Session/holdなしを確認し、旧markerを`.backup`へ退避して置き換えます。Runner本体の更新では引き続き停止確認が必要です。
