@@ -128,6 +128,101 @@ public sealed class OwnerAuthenticationTests
     }
 
     [Fact]
+    public async Task DevGateRequiresAuthenticationAndCookieCsrfWhileCliCannotUseOwnerOperations()
+    {
+        await using var factory = new AuthFactory();
+        await CreateOwner(factory);
+        var reservationId = Guid.NewGuid();
+        var path = $"/api/control/v1/reservations/{reservationId:D}/dev-runtime";
+        var scope = new GateDevScopeRequest(Guid.NewGuid(), [], "fixture-run");
+        using var anonymous = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsync(path,
+            new StringContent(ControlJson.Serialize(scope), Encoding.UTF8, "application/json"))).StatusCode);
+        using var login = await anonymous.PostAsync("/api/control/v1/auth/cli-token",
+            new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password)), Encoding.UTF8, "application/json"));
+        var issued = ControlJson.Deserialize<CliTokenIssued>(await login.Content.ReadAsStringAsync());
+        anonymous.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", issued.Token);
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.PostAsync(path,
+            new StringContent(ControlJson.Serialize(scope), Encoding.UTF8, "application/json"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsync($"/api/control/v1/servers/{Guid.NewGuid():D}/operations",
+            new StringContent(ControlJson.Serialize(new ServerOperationRequest { Kind = OperationKind.Start }), Encoding.UTF8, "application/json"))).StatusCode);
+
+        using var owner = Client(factory);
+        await Login(owner);
+        using var cookieRequest = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = new StringContent(ControlJson.Serialize(scope), Encoding.UTF8, "application/json")
+        };
+        cookieRequest.Headers.Add("Origin", "https://localhost");
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.SendAsync(cookieRequest)).StatusCode);
+    }
+
+    [Fact]
+    public async Task CliDevOperationIsLimitedToTheExactLeaseScopeAndDevOperation()
+    {
+        await using var factory = new AuthFactory();
+        await CreateOwner(factory);
+        var hostId = Guid.NewGuid();
+        var devId = Guid.NewGuid();
+        var reservationId = Guid.NewGuid();
+        var workflowId = Guid.NewGuid();
+        var operationId = Guid.NewGuid();
+        var fences = new[] { new HostReservationFence(hostId, 3) };
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
+            db.Hosts.Add(new InventoryHost { HostId = hostId, HostKey = "dev-gate", DisplayName = "Dev Gate" });
+            db.Servers.Add(new InventoryServer { ServerId = devId, HostId = hostId, ServerKey = "dev-gate", DisplayName = "Dev Gate", RuntimeServerId = "Dev" });
+            db.Workflows.Add(new ControlWorkflow
+            {
+                WorkflowId = workflowId, Kind = "Maintenance", Status = WorkflowStatus.Running,
+                RequestJson = ControlJson.Serialize(new ReservationAcquireRequest
+                {
+                    WorkflowId = workflowId, AdapterId = "01", RunReference = "fixture-run", DevLifecycleServerId = devId,
+                    ResourceKeys = ["server:" + devId.ToString("D")], ServerConditions = [new(devId, ProcessRequirement.Stopped)]
+                })
+            });
+            db.ReservationLeases.Add(new ControlReservationLease
+            {
+                ReservationId = reservationId, WorkflowId = workflowId, Status = ReservationStatus.Prepared,
+                AdapterId = "01", RunReference = "fixture-run", ResourceKeysJson = ControlJson.Serialize(new[] { "server:" + devId.ToString("D") }),
+                FencesJson = ControlJson.Serialize(fences)
+            });
+            db.Operations.Add(new ControlOperation
+            {
+                OperationId = operationId, IdempotencyKey = Guid.NewGuid(), HostId = hostId, ServerId = devId,
+                WorkflowId = workflowId, ReservationId = reservationId, Kind = OperationKind.Stop,
+                Status = OperationStatus.Succeeded, StatusVersion = 2, CommandJson = "{}"
+            });
+            await db.SaveChangesAsync();
+        }
+        using var cli = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false });
+        using var login = await cli.PostAsync("/api/control/v1/auth/cli-token",
+            new StringContent(ControlJson.Serialize(new CliLoginRequest("owner", Password)), Encoding.UTF8, "application/json"));
+        var issued = ControlJson.Deserialize<CliTokenIssued>(await login.Content.ReadAsStringAsync());
+        cli.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", issued.Token);
+        var path = $"/api/control/v1/reservations/{reservationId:D}/dev-operation";
+        Task<HttpResponseMessage> Query(GateDevOperationRequest request) => cli.PostAsync(path,
+            new StringContent(ControlJson.Serialize(request), Encoding.UTF8, "application/json"));
+        var query = new GateDevOperationRequest(workflowId, fences, "fixture-run", operationId);
+        using var success = await Query(query);
+        Assert.Equal(HttpStatusCode.OK, success.StatusCode);
+        Assert.Equal(operationId, ControlJson.Deserialize<GateDevOperationStatus>(await success.Content.ReadAsStringAsync()).OperationId);
+        Assert.Equal(HttpStatusCode.Conflict, (await Query(query with { RunReference = "other-run" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await Query(query with { ExpectedFences = [new(hostId, 4)] })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await Query(query with { OperationId = Guid.NewGuid() })).StatusCode);
+
+        var operationKey = Guid.NewGuid();
+        using var deniedKind = new HttpRequestMessage(HttpMethod.Post, $"/api/control/v1/reservations/{reservationId:D}/dev-operate")
+        {
+            Content = new StringContent(ControlJson.Serialize(new GateDevOperateRequest(workflowId, fences, "fixture-run",
+                new ServerOperationRequest { Kind = OperationKind.Kill, WorkflowId = workflowId, ReservationId = reservationId }, operationKey)), Encoding.UTF8, "application/json")
+        };
+        deniedKind.Headers.Add("Idempotency-Key", operationKey.ToString("D"));
+        Assert.Equal(HttpStatusCode.BadRequest, (await cli.SendAsync(deniedKind)).StatusCode);
+    }
+
+    [Fact]
     public async Task CliCanEnrollARegisteredHostWithoutAWebCookieAndRevokeTheIssuedAgentCredential()
     {
         await using var factory = new AuthFactory();
