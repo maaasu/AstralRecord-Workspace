@@ -288,6 +288,106 @@ public sealed class OperationGateTests
         await Fault("ReservationConflict", () => fixture.Reservations.ValidateAsync(lease.ReservationId, new GateValidateRequest(lease.WorkflowId, lease.Fences, "WaitForStartup", "run-03")));
     }
 
+    [Theory]
+    [InlineData("01")]
+    [InlineData("02")]
+    [InlineData("03")]
+    public async Task DevLifecycleUsesOnlyTheOwnedDevServerAndReplaysOperations(string adapter)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var dev = await fixture.ServerAsync("dev");
+        dev.RuntimeServerId = "Dev";
+        var other = await fixture.ServerAsync("other");
+        await fixture.Db.SaveChangesAsync();
+        var firstSession = Guid.NewGuid();
+        fixture.Agent.States[dev.HostId] = fixture.Agent.States[dev.HostId] with
+        {
+            ProcessState = ProcessState.Running, CurrentSessionId = firstSession
+        };
+        var request = new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), AdapterId = adapter, RunReference = "run-dev",
+            DevLifecycleServerId = dev.ServerId,
+            ResourceKeys = [ReservationService.ServerKey(dev.ServerId), ReservationService.ServerKey(other.ServerId)],
+            ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped), new(other.ServerId, ProcessRequirement.Stopped)]
+        };
+        var lease = await fixture.Reservations.AcquireAsync(request);
+        var scope = new GateDevScopeRequest(lease.WorkflowId, lease.Fences, "run-dev");
+        Assert.Equal(dev.ServerId, await fixture.Reservations.GetDevLifecycleServerIdAsync(lease.ReservationId, scope));
+        await Fault("ReservationConflict", () => fixture.Reservations.GetDevLifecycleServerIdAsync(lease.ReservationId,
+            scope with { ExpectedFences = [new HostReservationFence(lease.Fences[0].HostId, lease.Fences[0].Fence + 1), .. lease.Fences.Skip(1)] }));
+        await Fault("ReservationConflict", () => fixture.Reservations.GetDevLifecycleServerIdAsync(lease.ReservationId,
+            scope with { RunReference = "another-run" }));
+        var validate = (string step) => fixture.Reservations.ValidateAsync(lease.ReservationId,
+            new GateValidateRequest(lease.WorkflowId, lease.Fences, step, "run-dev"));
+        await Fault("ReservationConflict", () => validate("Deploy"));
+        await validate("StopForDeploy");
+        var running = fixture.Agent.States[dev.HostId];
+        var stop = new ServerOperationRequest
+        {
+            Kind = OperationKind.Stop, ConfigRevision = 1, ExpectedStateRevision = running.StateRevision,
+            ExpectedServerSessionId = firstSession, WorkflowId = lease.WorkflowId, ReservationId = lease.ReservationId
+        };
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(other.ServerId,
+            stop with { Kind = OperationKind.Start, ExpectedStateRevision = fixture.Agent.States[other.HostId].StateRevision,
+                ExpectedServerSessionId = null }, Guid.NewGuid()));
+        var otherStopped = fixture.Agent.States[other.HostId];
+        fixture.Agent.States[other.HostId] = otherStopped with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        await Fault("StateConflict", () => fixture.Operations.CreateAsync(dev.ServerId, stop, Guid.NewGuid()));
+        fixture.Agent.States[other.HostId] = otherStopped;
+        var stopKey = Guid.NewGuid();
+        var stopped = await fixture.Operations.CreateAsync(dev.ServerId, stop, stopKey);
+        Assert.Equal(OperationStatus.Accepted, stopped.Status);
+        Assert.Equal(stopped.OperationId, (await fixture.Operations.CreateAsync(dev.ServerId, stop, stopKey)).OperationId);
+        Assert.Equal(1, fixture.Agent.DispatchCount);
+        fixture.Agent.States[dev.HostId] = running with { ProcessState = ProcessState.Stopped, CurrentSessionId = null, StateRevision = running.StateRevision + 1 };
+        await validate("Deploy");
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(dev.ServerId,
+            stop with { ExpectedServerSessionId = null, ExpectedStateRevision = fixture.Agent.States[dev.HostId].StateRevision }, Guid.NewGuid()));
+        await validate("Seed");
+        await validate("WaitForStartup");
+        var start = stop with { Kind = OperationKind.Start, ExpectedServerSessionId = null,
+            ExpectedStateRevision = fixture.Agent.States[dev.HostId].StateRevision };
+        fixture.Agent.States[other.HostId] = otherStopped with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        await Fault("StateConflict", () => fixture.Operations.CreateAsync(dev.ServerId, start, Guid.NewGuid()));
+        fixture.Agent.States[other.HostId] = otherStopped;
+        Assert.Equal(OperationStatus.Accepted, (await fixture.Operations.CreateAsync(dev.ServerId, start, Guid.NewGuid())).Status);
+        Assert.Equal(2, fixture.Agent.DispatchCount);
+        await Fault("StateConflict", () => validate("Publish"));
+        fixture.Agent.States[dev.HostId] = fixture.Agent.States[dev.HostId] with
+        {
+            ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid(),
+            StateRevision = fixture.Agent.States[dev.HostId].StateRevision + 1
+        };
+        await validate("Publish");
+    }
+
+    [Fact]
+    public async Task DevLifecycleRequiresExactStoppedConditionsAndRuntimeIdentity()
+    {
+        Assert.DoesNotContain("devLifecycleServerId", ControlJson.Serialize(new ReservationAcquireRequest()), StringComparison.Ordinal);
+        await using var fixture = await Fixture.CreateAsync();
+        var dev = await fixture.ServerAsync("dev");
+        var other = await fixture.ServerAsync("other");
+        var request = new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), AdapterId = "01", RunReference = "run-dev", DevLifecycleServerId = dev.ServerId,
+            ResourceKeys = [ReservationService.ServerKey(dev.ServerId), ReservationService.ServerKey(other.ServerId)],
+            ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped), new(other.ServerId, ProcessRequirement.Stopped)]
+        };
+        await Fault("InvalidInput", () => fixture.Reservations.AcquireAsync(request));
+        dev.RuntimeServerId = "Dev";
+        await fixture.Db.SaveChangesAsync();
+        await Fault("InvalidInput", () => fixture.Reservations.AcquireAsync(request with { AdapterId = "17" }));
+        await Fault("InvalidInput", () => fixture.Reservations.AcquireAsync(request with { Mode = HoldMode.Exclusive }));
+        await Fault("InvalidInput", () => fixture.Reservations.AcquireAsync(request with { ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped)] }));
+        await Fault("InvalidInput", () => fixture.Reservations.AcquireAsync(request with
+        {
+            ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped), new(other.ServerId, ProcessRequirement.Running)]
+        }));
+        Assert.Empty(await fixture.Db.ReservationLeases.ToArrayAsync());
+    }
+
     [Fact]
     public async Task ReleaseRetriesSameOutcomeAfterPartialHostFailure()
     {

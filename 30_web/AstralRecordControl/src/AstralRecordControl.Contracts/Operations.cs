@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AstralRecordControl.Contracts;
 
@@ -114,6 +115,8 @@ public sealed record ReservationAcquireRequest
     public string? AdapterId { get; init; }
     public string? RunReference { get; init; }
     public GateServerCondition[] ServerConditions { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? DevLifecycleServerId { get; init; }
 }
 public sealed record HostReservationFence(Guid HostId, long Fence);
 public sealed record GateLease
@@ -128,6 +131,11 @@ public sealed record GateLease
 }
 public sealed record GateValidateRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, string StepKey, string RunReference);
 public sealed record GateReleaseRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, GateOutcome Outcome, string RunReference);
+public sealed record GateDevScopeRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, string RunReference);
+public sealed record GateDevOperateRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, string RunReference, ServerOperationRequest Operation, Guid IdempotencyKey);
+public sealed record GateDevOperationRequest(Guid WorkflowId, HostReservationFence[] ExpectedFences, string RunReference, Guid OperationId);
+public sealed record GateDevRuntimeSnapshot(Guid ServerId, long ConfigRevision, long StateRevision, Guid? CurrentSessionId, ProcessState ProcessState);
+public sealed record GateDevOperationStatus(Guid OperationId, OperationStatus Status, string? ErrorCode, long StatusVersion);
 public sealed record WorkflowRecoveryRequest(WorkflowRecoveryAction Action, string Reason);
 public sealed record CliLoginRequest(string LoginName, string Password);
 public sealed record CliTokenIssued(Guid CredentialId, string Token, DateTimeOffset ExpiresAtUtc);

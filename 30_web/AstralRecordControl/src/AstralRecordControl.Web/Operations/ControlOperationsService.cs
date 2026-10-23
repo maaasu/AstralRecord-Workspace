@@ -101,7 +101,18 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
                 var history = await db.ReservationLeases.AsNoTracking().SingleAsync(x => x.ReservationId == lease.ReservationId);
                 var original = ControlJson.Deserialize<ReservationAcquireRequest>(workflow.RequestJson);
-                if (request.Kind != OperationKind.Start || lease.AdapterId is not ("01" or "03" or "16") || workflow.Status != WorkflowStatus.WaitingForStartup || history.LastStepKey != "WaitForStartup" || !original.ServerConditions.Any(x => x.ServerId == serverId && x.RequiredState == ProcessRequirement.Stopped)) throw new InventoryFault(409, "ReservationConflict");
+                if (original.DevLifecycleServerId is Guid devId)
+                {
+                    if (devId != serverId || lease.AdapterId is not ("01" or "02" or "03") ||
+                        !original.ServerConditions.Any(x => x.ServerId == serverId && x.RequiredState == ProcessRequirement.Stopped) ||
+                        !(request.Kind == OperationKind.Stop && workflow.Status == WorkflowStatus.Running && history.LastStepKey == "StopForDeploy" ||
+                          request.Kind == OperationKind.Start && workflow.Status == WorkflowStatus.WaitingForStartup && history.LastStepKey == "WaitForStartup"))
+                        throw new InventoryFault(409, "ReservationConflict");
+                    await reservations.ValidateAsync(lease.ReservationId,
+                        new GateValidateRequest(workflowId, lease.Fences,
+                            request.Kind == OperationKind.Stop ? "StopForDeploy" : "WaitForStartup", lease.RunReference ?? ""), token);
+                }
+                else if (request.Kind != OperationKind.Start || lease.AdapterId is not ("01" or "02" or "03" or "16") || workflow.Status != WorkflowStatus.WaitingForStartup || history.LastStepKey != "WaitForStartup" || !original.ServerConditions.Any(x => x.ServerId == serverId && x.RequiredState == ProcessRequirement.Stopped)) throw new InventoryFault(409, "ReservationConflict");
             }
             var fence = lease.Fences.SingleOrDefault(x => x.HostId == server.HostId);
             if (fence == null || lease.Status != ReservationStatus.Prepared) throw new InventoryFault(409, "RecoveryRequired");

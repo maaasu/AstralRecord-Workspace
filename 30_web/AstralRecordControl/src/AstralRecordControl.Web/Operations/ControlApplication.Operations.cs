@@ -100,5 +100,39 @@ public static partial class ControlApplication
             await reservations.ReleaseAsync(reservationId, Read<GateReleaseRequest>(body), http.RequestAborted);
             return Results.NoContent();
         });
+        gate.MapPost("/reservations/{reservationId:guid}/dev-runtime", async (Guid reservationId, JsonElement body,
+            Operations.ReservationService reservations, InventoryStore store, Operations.IAgentOperationTransport agents, HttpContext http) =>
+        {
+            var scope = Read<GateDevScopeRequest>(body);
+            var serverId = await reservations.GetDevLifecycleServerIdAsync(reservationId, scope, allowRecovery: true);
+            var server = await store.ServerAsync(serverId);
+            var runtime = (await agents.SnapshotAsync(server.HostId, http.RequestAborted)).Servers.SingleOrDefault(x => x.ServerId == serverId)
+                ?? throw new InventoryFault(409, "StateConflict");
+            return Results.Ok(new { serverId, runtime.ConfigRevision, runtime.StateRevision, runtime.CurrentSessionId, runtime.ProcessState });
+        });
+        gate.MapPost("/reservations/{reservationId:guid}/dev-operate", async (Guid reservationId, JsonElement body,
+            Operations.ReservationService reservations, Operations.ControlOperationsService operations, HttpContext http) =>
+        {
+            var request = Read<GateDevOperateRequest>(body);
+            var serverId = await reservations.GetDevLifecycleServerIdAsync(reservationId,
+                new GateDevScopeRequest(request.WorkflowId, request.ExpectedFences, request.RunReference));
+            if (request.IdempotencyKey == Guid.Empty || Idempotency(http) != request.IdempotencyKey || request.Operation is null || request.Operation.Kind is not (OperationKind.Stop or OperationKind.Start) ||
+                request.Operation.WorkflowId != request.WorkflowId || request.Operation.ReservationId != reservationId)
+                throw new InventoryFault(400, "InvalidInput");
+            var row = await operations.CreateAsync(serverId, request.Operation, request.IdempotencyKey, http.RequestAborted);
+            return Results.Accepted($"/api/control/v1/reservations/{reservationId:D}/dev-operation", new { row.OperationId, row.Status, row.ErrorCode, row.StatusVersion });
+        });
+        gate.MapPost("/reservations/{reservationId:guid}/dev-operation", async (Guid reservationId, JsonElement body,
+            Operations.ReservationService reservations, Operations.ControlOperationsService operations, HttpContext http) =>
+        {
+            var request = Read<GateDevOperationRequest>(body);
+            var serverId = await reservations.GetDevLifecycleServerIdAsync(reservationId,
+                new GateDevScopeRequest(request.WorkflowId, request.ExpectedFences, request.RunReference), allowRecovery: true);
+            var row = await operations.GetAsync(request.OperationId);
+            if (row.WorkflowId != request.WorkflowId || row.ReservationId != reservationId || row.ServerId != serverId ||
+                row.Kind is not (OperationKind.Stop or OperationKind.Start)) throw new InventoryFault(404, "NotFound");
+            row = await operations.RefreshAsync(row.OperationId, http.RequestAborted);
+            return Results.Ok(new { row.OperationId, row.Status, row.ErrorCode, row.StatusVersion });
+        });
     }
 }

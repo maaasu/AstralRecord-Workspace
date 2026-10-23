@@ -103,7 +103,7 @@ public static class ControlCli
             }
             if (args[0] == "gate")
             {
-                RequireOptions(options, "session-file", "request-file", "lease-file", "step", "outcome", "run-reference", "expected-server-url");
+                RequireOptions(options, "session-file", "request-file", "lease-file", "step", "outcome", "run-reference", "expected-server-url", "idempotency-key", "operation-id");
                 var leasePath = Required(options, "lease-file");
                 if (subcommand == "acquire")
                 {
@@ -122,6 +122,28 @@ public static class ControlCli
                 var local = ControlJson.Deserialize<GateLease>(SecureFiles.Read(leasePath, protect: false));
                 var reference = options.GetValueOrDefault("run-reference", local.RunReference ?? "");
                 var prefix = "/api/control/v1/reservations/" + local.ReservationId;
+                if (subcommand is "dev-runtime" or "dev-operate" or "dev-operation")
+                {
+                    if (options.ContainsKey("run-reference") || local.WorkflowId == Guid.Empty || local.ReservationId == Guid.Empty ||
+                        string.IsNullOrWhiteSpace(local.RunReference) || local.Fences.Length == 0) throw new ArgumentException();
+                    var scope = new GateDevScopeRequest(local.WorkflowId, local.Fences, local.RunReference);
+                    if (subcommand == "dev-runtime")
+                        Console.WriteLine(ControlJson.Serialize(await SendAsync<GateDevRuntimeSnapshot>(http, HttpMethod.Post, prefix + "/dev-runtime", scope)));
+                    else if (subcommand == "dev-operate")
+                    {
+                        var request = ControlJson.Deserialize<ServerOperationRequest>(ReadBounded(Required(options, "request-file")));
+                        var key = Guid.Parse(Required(options, "idempotency-key"));
+                        Console.WriteLine(ControlJson.Serialize(await SendAsync<GateDevOperationStatus>(http, HttpMethod.Post, prefix + "/dev-operate",
+                            new GateDevOperateRequest(local.WorkflowId, local.Fences, local.RunReference, request, key), key)));
+                    }
+                    else
+                    {
+                        var id = Guid.Parse(Required(options, "operation-id"));
+                        Console.WriteLine(ControlJson.Serialize(await SendAsync<GateDevOperationStatus>(http, HttpMethod.Post, prefix + "/dev-operation",
+                            new GateDevOperationRequest(local.WorkflowId, local.Fences, local.RunReference, id))));
+                    }
+                    return 0;
+                }
                 if (subcommand == "validate")
                 {
                     await SendEmptyAsync(http, HttpMethod.Post, prefix + "/validate", new GateValidateRequest(local.WorkflowId, local.Fences, Required(options, "step"), reference));
