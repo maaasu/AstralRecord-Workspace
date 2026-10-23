@@ -45,7 +45,7 @@ public final class MageFrostBlizzardExecutor extends PlayerActiveSkillExecutor {
     private static final double SPAWN_DISTANCE = 2.0D;
     private static final double BLOCK_CLEARANCE = 0.55D;
     private static final int DISPLAY_COUNT = 7;
-    private static final int PARTICLE_POINT_COUNT = 18;
+    private static final int PARTICLE_POINT_COUNT = 36;
 
     /** 共有発動スキルサービスで初期化します。 */
     public MageFrostBlizzardExecutor(@NotNull ActiveSkillServices services) {
@@ -211,12 +211,12 @@ public final class MageFrostBlizzardExecutor extends PlayerActiveSkillExecutor {
                 .setY(Math.max(0.0D, verticalVelocity));
     }
 
-    /** 水色の上昇螺旋を構成するparticle位置を返します。 */
+    /** 密度設定で間引けるよう、標準の倍の候補点で水色の上昇螺旋を返します。 */
     static @NotNull List<Location> particleLocations(@NotNull Location center, int tick) {
         List<Location> locations = new ArrayList<>(PARTICLE_POINT_COUNT);
         for (int index = 0; index < PARTICLE_POINT_COUNT; index++) {
             double fraction = (double) index / (PARTICLE_POINT_COUNT - 1);
-            double angle = tick * 0.30D + index * Math.PI * 0.48D;
+            double angle = tick * 0.30D + index * Math.PI * 0.24D;
             double radius = 0.30D + fraction * 1.25D;
             locations.add(center.clone().add(
                     Math.cos(angle) * radius,

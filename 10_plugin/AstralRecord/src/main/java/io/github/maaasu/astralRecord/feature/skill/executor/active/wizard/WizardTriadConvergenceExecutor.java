@@ -71,9 +71,9 @@ public final class WizardTriadConvergenceExecutor extends WizardSkillSupport {
         List<SharedParticleDefinition> particles = List.of(SharedParticleDefinitions.WIZARD_PRISM_FIRE_DUST,
                 SharedParticleDefinitions.WIZARD_PRISM_ICE_DUST, SharedParticleDefinitions.WIZARD_LIGHTNING_STRIKE_CORE);
         for (int element = 0; element < particles.size(); element++) {
-            var points = new ArrayList<Location>(40);
-            for (int index = 0; index < 40; index++) {
-                double progress = index / 39.0D;
+            var points = new ArrayList<Location>(80);
+            for (int index = 0; index < 80; index++) {
+                double progress = index / 79.0D;
                 double angle = element * Math.PI * 2.0D / 3.0D + progress * Math.PI * 1.5D;
                 double distance = radius * (1.0D - progress);
                 points.add(center.clone().add(Math.cos(angle) * distance,

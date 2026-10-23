@@ -165,10 +165,10 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
         }
         forward.normalize();
         Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
-        List<Location> points = new ArrayList<>(54);
+        List<Location> points = new ArrayList<>(106);
         for (int band = 0; band < 2; band++) {
-            for (int step = 0; step <= 26; step++) {
-                double angle = Math.toRadians(-65.0D + step * 5.0D);
+            for (int step = 0; step <= 52; step++) {
+                double angle = Math.toRadians(-65.0D + step * 2.5D);
                 Vector offset = forward.clone().multiply(Math.cos(angle) * radius)
                         .add(right.clone().multiply(Math.sin(angle) * radius));
                 points.add(center.clone().add(offset).add(0.0D,
@@ -195,12 +195,14 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
         }
         forward.normalize();
         Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
-        List<Location> points = new ArrayList<>(50);
-        for (int step = 0; step <= 24; step++) {
-            double progress = step / 24.0D * 2.0D - 1.0D;
-            Vector lateral = right.clone().multiply(progress * halfWidth);
-            points.add(center.clone().add(lateral).add(0.0D, progress * halfHeight, 0.0D));
-            points.add(center.clone().add(lateral).add(0.0D, -progress * halfHeight, 0.0D));
+        List<Location> points = new ArrayList<>(98);
+        for (int diagonal = 0; diagonal < 2; diagonal++) {
+            for (int step = 0; step <= 48; step++) {
+                double progress = step / 48.0D * 2.0D - 1.0D;
+                Vector lateral = right.clone().multiply(progress * halfWidth);
+                points.add(center.clone().add(lateral).add(0.0D,
+                        (diagonal == 0 ? progress : -progress) * halfHeight, 0.0D));
+            }
         }
         context.services().effects().points(center, points, SharedParticleDefinitions.SWORDMASTER_GOLD);
     }
@@ -214,15 +216,16 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
         if (impacts.isEmpty()) {
             return;
         }
-        List<Location> points = new ArrayList<>(impacts.size() * 24);
+        List<Location> points = new ArrayList<>(impacts.size() * 48);
         for (Location impact : impacts) {
-            for (int step = 0; step < 24; step++) {
-                double angle = step * Math.PI * 2.0D / 24.0D;
+            for (int step = 0; step < 48; step++) {
+                double angle = step * Math.PI * 2.0D / 48.0D;
                 points.add(impact.clone().add(Math.cos(angle) * 0.8D, 0.0D,
                         Math.sin(angle) * 0.8D));
             }
         }
-        context.services().effects().pointsNearViewers(points, SharedParticleDefinitions.SWORDMASTER_GOLD);
+        context.services().effects().points(context.player().getLocation(), points,
+                SharedParticleDefinitions.SWORDMASTER_GOLD);
     }
 
     /** 二本の剣閃と細い螺旋で前進経路を描きます。 */
@@ -231,13 +234,15 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
         Vector delta = to.toVector().subtract(from.toVector());
         Vector side = new Vector(-delta.getZ(), 0.0D, delta.getX());
         if (side.lengthSquared() > 1.0E-8D) side.normalize().multiply(0.3D);
-        List<Location> points = new ArrayList<>(96);
-        for (int i = 0; i <= 28; i++) {
-            double t = i / 28.0D;
-            Location point = from.clone().add(delta.clone().multiply(t));
-            points.add(point.clone().add(side));
-            points.add(point.clone().subtract(side));
-            points.add(point.clone().add(0.0D, Math.sin(t * Math.PI * 4.0D) * 0.4D, 0.0D));
+        List<Location> points = new ArrayList<>(171);
+        for (int lane = 0; lane < 3; lane++) {
+            for (int i = 0; i <= 56; i++) {
+                double t = i / 56.0D;
+                Location point = from.clone().add(delta.clone().multiply(t));
+                if (lane == 0) points.add(point.add(side));
+                else if (lane == 1) points.add(point.subtract(side));
+                else points.add(point.add(0.0D, Math.sin(t * Math.PI * 4.0D) * 0.4D, 0.0D));
+            }
         }
         context.services().effects().points(from, points, color);
         context.services().effects().sound(to, Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.85F, 1.3F);
@@ -246,13 +251,13 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
     /** 放射状の八枚の剣閃を一括表示します。常時タスクや画面全体の閃光は使いません。 */
     protected static void burst(PlayerActiveSkillContext context, Location center, double radius,
                                 SharedParticleDefinition color) {
-        List<Location> points = new ArrayList<>(80);
+        List<Location> points = new ArrayList<>(128);
         for (int arm = 0; arm < 8; arm++) {
             double angle = arm * Math.PI / 4.0D;
-            for (int i = 1; i <= 8; i++) {
-                double r = radius * i / 8.0D;
+            for (int i = 1; i <= 16; i++) {
+                double r = radius * i / 16.0D;
                 points.add(center.clone().add(Math.cos(angle) * r,
-                        Math.sin(i * Math.PI / 8.0D) * 0.35D, Math.sin(angle) * r));
+                        Math.sin(i * Math.PI / 16.0D) * 0.35D, Math.sin(angle) * r));
             }
         }
         context.services().effects().points(center, points, color);

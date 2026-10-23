@@ -17,8 +17,8 @@ import java.util.concurrent.ThreadLocalRandom;
 final class WizardStormChainEffects {
     private static final int STEP_TICKS = 2;
     private static final int LINK_HOLD_TICKS = 6;
-    private static final int MAX_BOLT_POINTS = 128;
-    private static final int HALO_POINTS = 20;
+    private static final int MAX_BOLT_POINTS = 256;
+    private static final int HALO_POINTS = 40;
 
     private WizardStormChainEffects() {
     }
@@ -52,7 +52,7 @@ final class WizardStormChainEffects {
         effects.sound(origin, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.65F, 1.6F);
         effects.sound(origin, Sound.ENTITY_BREEZE_SHOOT, 0.7F, 1.4F);
         // 最初の雷は有償パッシブ判定と同じtickに表示し、以後は演出のみ進めます。
-        draw(effects, bolts, 0);
+        draw(effects, origin, bolts, 0);
         int durationTicks = (bolts.size() - 1) * STEP_TICKS + LINK_HOLD_TICKS;
         String scope = "wizard-storm-chain:" + UUID.randomUUID();
         context.services().tasks().repeat(
@@ -65,7 +65,7 @@ final class WizardStormChainEffects {
                         context.services().tasks().cancel(context.player().getUniqueId(), scope);
                         return;
                     }
-                    draw(effects, bolts, (index + 1) * STEP_TICKS);
+                    draw(effects, origin, bolts, (index + 1) * STEP_TICKS);
                 }
         );
     }
@@ -75,10 +75,11 @@ final class WizardStormChainEffects {
      * 一つの雷は最大4回だけ描き、音と命中火花はその雷の開始時だけ再生します。
      *
      * @param effects 共有描画サービス
+     * @param origin viewer探索の中心となる発動位置
      * @param bolts 命中地点間の固定経路
      * @param elapsedTicks 演出開始からの経過tick
      */
-    private static void draw(SkillEffectService effects, List<Bolt> bolts, int elapsedTicks) {
+    private static void draw(SkillEffectService effects, Location origin, List<Bolt> bolts, int elapsedTicks) {
         List<Location> core = new ArrayList<>();
         List<Location> glow = new ArrayList<>();
         List<Location> afterglow = new ArrayList<>();
@@ -116,10 +117,10 @@ final class WizardStormChainEffects {
                 }
             }
         }
-        effects.pointsNearViewers(glow, SharedParticleDefinitions.WIZARD_STORM_CHAIN_GLOW);
-        effects.pointsNearViewers(core, SharedParticleDefinitions.WIZARD_STORM_CHAIN_CORE);
-        effects.pointsNearViewers(afterglow, SharedParticleDefinitions.WIZARD_STORM_CHAIN_AFTERGLOW);
-        effects.pointsNearViewers(sparks, SharedParticleDefinitions.WIZARD_STORM_CHAIN_SPARK);
+        effects.points(origin, glow, SharedParticleDefinitions.WIZARD_STORM_CHAIN_GLOW);
+        effects.points(origin, core, SharedParticleDefinitions.WIZARD_STORM_CHAIN_CORE);
+        effects.points(origin, afterglow, SharedParticleDefinitions.WIZARD_STORM_CHAIN_AFTERGLOW);
+        effects.points(origin, sparks, SharedParticleDefinitions.WIZARD_STORM_CHAIN_SPARK);
     }
 
     /**
@@ -139,13 +140,17 @@ final class WizardStormChainEffects {
      * @param radius 放電リングの半径
      */
     private static void halo(List<Location> points, Location center, double radius) {
-        for (int index = 0; index < HALO_POINTS; index++) {
-            double angle = Math.PI * 2.0D * index / HALO_POINTS;
-            double a = Math.cos(angle) * radius;
-            double b = Math.sin(angle) * radius;
-            points.add(center.clone().add(a, 0.0D, b));
-            points.add(center.clone().add(a, b, 0.0D));
-            points.add(center.clone().add(0.0D, a, b));
+        for (int plane = 0; plane < 3; plane++) {
+            for (int index = 0; index < HALO_POINTS; index++) {
+                double angle = Math.PI * 2.0D * index / HALO_POINTS;
+                double a = Math.cos(angle) * radius;
+                double b = Math.sin(angle) * radius;
+                points.add(switch (plane) {
+                    case 0 -> center.clone().add(a, 0.0D, b);
+                    case 1 -> center.clone().add(a, b, 0.0D);
+                    default -> center.clone().add(0.0D, a, b);
+                });
+            }
         }
     }
 
@@ -196,7 +201,7 @@ final class WizardStormChainEffects {
                 }
                 nodes.add(node);
             }
-            int stepsPerSegment = Math.max(1, Math.min(6, (MAX_BOLT_POINTS - 1) / corners));
+            int stepsPerSegment = Math.max(1, Math.min(12, (MAX_BOLT_POINTS - 1) / corners));
             for (int segment = 0; segment < corners; segment++) {
                 Location start = nodes.get(segment);
                 Vector edge = nodes.get(segment + 1).toVector().subtract(start.toVector());

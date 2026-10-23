@@ -415,18 +415,19 @@ public final class ElementalPrismRuntimeService {
         }
 
         private @NotNull List<Location> sideLights(double x, int tick) {
-            List<Location> lights = new ArrayList<>(5);
-            for (int index = 0; index < 5; index++) {
-                lights.add(base.clone().add(x, 1.0D + index * 0.25D,
-                        Math.sin(tick * 0.04D + index) * 0.10D));
+            List<Location> lights = new ArrayList<>(10);
+            for (int index = 0; index < 10; index++) {
+                double progress = index / 2.0D;
+                lights.add(base.clone().add(x, 1.0D + progress * 0.25D,
+                        Math.sin(tick * 0.04D + progress) * 0.10D));
             }
             return lights;
         }
 
         private @NotNull List<Location> sideSparks(int tick) {
-            List<Location> sparks = new ArrayList<>(4);
-            for (int index = 0; index < 4; index++) {
-                double angle = tick * 0.035D + Math.PI * 2.0D * index / 4.0D;
+            List<Location> sparks = new ArrayList<>(8);
+            for (int index = 0; index < 8; index++) {
+                double angle = tick * 0.035D + Math.PI * 2.0D * index / 8.0D;
                 sparks.add(base.clone().add(Math.cos(angle) * 1.25D, 0.85D,
                         Math.sin(angle) * 1.25D));
             }

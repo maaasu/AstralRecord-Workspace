@@ -241,7 +241,7 @@ final class AstraiosEncounterController {
             sound(state.center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.4F);
         } else {
             List<Location> impacts = new ArrayList<>();
-            for (int i = 0; i < cast.danger.size() && impacts.size() < 24; i += 12) impacts.add(cast.danger.get(i));
+            for (int i = 0; i < cast.danger.size() && impacts.size() < 48; i += 6) impacts.add(cast.danger.get(i));
             particles.spawnForNearbyViewers(impacts, SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION, true);
             sound(state.center, Sound.ENTITY_GENERIC_EXPLODE, 0.7F);
         }
@@ -307,20 +307,22 @@ final class AstraiosEncounterController {
             if (!ids.contains(player.getUniqueId())) cast.bar.removePlayer(player);
     }
 
-    /** 有限の地表サンプルで安全面と危険面を同じ判定から描きます。 */
+    /** 最大密度向けの有限地表候補点で安全面と危険面を同じ判定から描きます。 */
     private void draw(Cast cast) {
         particles.spawnForNearbyViewers(cast.danger, SharedParticleDefinitions.BOSS_ATTACK_WARNING, true);
         particles.spawnForNearbyViewers(cast.safe, SharedParticleDefinitions.CHARON_SAFE_LIGHT, true);
     }
 
     /**
-     * 安全域は白灯、危険域は橙の小片で補強します。粒子OFFでも文字・実体表示を維持します。
+     * 安全域は白灯、危険域は橙の小片で補強し、最大密度向け粒子候補点を作ります。粒子OFFでも文字・実体表示を維持します。
      * @param cast 生成した表示を所有する詠唱 @param label 安全条件を説明する文言
      */
     private void buildVisuals(Cast cast, String label) {
         Location center = cast.zone.center();
-        for (double x = -21; x <= 21; x += 3) {
-            for (double z = -21; z <= 21; z += 3) {
+        for (int xIndex = -10; xIndex <= 10; xIndex++) {
+            for (int zIndex = -10; zIndex <= 10; zIndex++) {
+                double x = xIndex * 2.1D;
+                double z = zIndex * 2.1D;
                 Location point = center.clone().add(x, 0.15D, z);
                 if (!AstraiosArena.contains(point, center)) continue;
                 (cast.zone.safe(point) ? cast.safe : cast.danger).add(point);

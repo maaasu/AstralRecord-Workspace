@@ -167,7 +167,7 @@ public final class WaystonePacketView {
         entitiesByPlayer.clear();
     }
 
-    /** 近距離表示を同期し、同期済みのBE表示だけに状態色付き粒子を送信します。 */
+    /** 近距離表示を同期し、BEの解除状態ごとに独立した目印の粒子を一括送信します。 */
     private void tickViews() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             syncForPlayer(player);
@@ -176,11 +176,15 @@ public final class WaystonePacketView {
             if (astPlayer == null || !astPlayer.isBedrock() || displayed == null) {
                 continue;
             }
+            List<Location> unlockedMarkers = new ArrayList<>();
+            List<Location> lockedMarkers = new ArrayList<>();
             for (DisplayEntry entry : displayed.values()) {
                 DisplayState state = entry.state();
                 Location marker = new Location(player.getWorld(), state.x() + 0.5D, state.y() + 1.65D, state.z() + 0.5D);
-                particleDisplayService.spawnForViewer(astPlayer, marker, waystoneParticle(state.unlocked()));
+                (state.unlocked() ? unlockedMarkers : lockedMarkers).add(marker);
             }
+            particleDisplayService.spawnBurstsForViewer(player, unlockedMarkers, waystoneParticle(true));
+            particleDisplayService.spawnBurstsForViewer(player, lockedMarkers, waystoneParticle(false));
         }
     }
 

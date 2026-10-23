@@ -97,6 +97,15 @@ public final class PaladinGuardianChainExecutor extends PlayerActiveSkillExecuto
         }
     }
 
+    /**
+     * 二次曲線の鎖を標準密度の倍の候補点で描き、地点数を4096以下へ抑えます。
+     *
+     * @param context 発動者と演出サービス
+     * @param start 鎖の開始位置
+     * @param end 鎖の終了位置
+     * @param curveHeight 曲線頂点の高さ
+     * @param curvePoints 標準密度での描画点数
+     */
     private void renderChain(
             @NotNull PlayerActiveSkillContext context,
             @NotNull Location start,
@@ -104,12 +113,17 @@ public final class PaladinGuardianChainExecutor extends PlayerActiveSkillExecuto
             double curveHeight,
             int curvePoints
     ) {
+        if (curvePoints == 1) {
+            context.services().effects().point(end, SharedParticleDefinitions.SKILL_PALADIN_GUARDIAN_CHAIN_LINE);
+            return;
+        }
         Vector first = start.toVector();
         Vector third = end.toVector();
         Vector control = first.clone().add(third).multiply(0.5D).add(new Vector(0.0D, curveHeight, 0.0D));
-        List<Location> points = new ArrayList<>(curvePoints);
-        for (int index = 0; index < curvePoints; index++) {
-            double t = curvePoints == 1 ? 1.0D : (double) index / (curvePoints - 1);
+        int candidatePoints = Math.min(2048, Math.max(1, curvePoints)) * 2;
+        List<Location> points = new ArrayList<>(candidatePoints);
+        for (int index = 0; index < candidatePoints; index++) {
+            double t = candidatePoints == 1 ? 1.0D : (double) index / (candidatePoints - 1);
             double inverse = 1.0D - t;
             Vector point = first.clone().multiply(inverse * inverse)
                     .add(control.clone().multiply(2.0D * inverse * t))

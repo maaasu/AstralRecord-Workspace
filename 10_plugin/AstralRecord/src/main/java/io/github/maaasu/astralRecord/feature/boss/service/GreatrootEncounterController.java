@@ -376,11 +376,11 @@ final class GreatrootEncounterController {
         };
     }
 
-    /** 一波につき最大192点を計算し、描画周期中に床探索を繰り返しません。 */
+    /** 一波につき最大384候補点を計算し、通常密度で従来の描画間隔を保ちます。 */
     private @NotNull List<Location> sample(Cast cast, boolean dangerous) {
-        List<Location> points = new ArrayList<>(192);
-        for (double x = -GreatrootArena.RADIUS; x <= GreatrootArena.RADIUS && points.size() < 192; x += 1.5D) {
-            for (double z = -GreatrootArena.RADIUS; z <= GreatrootArena.RADIUS && points.size() < 192; z += 1.5D) {
+        List<Location> points = new ArrayList<>(384);
+        for (double x = -GreatrootArena.RADIUS; x <= GreatrootArena.RADIUS && points.size() < 384; x += 1.06D) {
+            for (double z = -GreatrootArena.RADIUS; z <= GreatrootArena.RADIUS && points.size() < 384; z += 1.06D) {
                 Location surface = GreatrootArena.ground(cast.center.clone().add(x, 0, z));
                 if (surface == null || !GreatrootArena.contains(surface, cast.center)
                     || danger(cast, surface) != dangerous || !GreatrootArena.sight(cast.center, surface)) continue;
@@ -394,26 +394,26 @@ final class GreatrootEncounterController {
         return List.copyOf(points);
     }
 
-    /** 攻撃予見・現在の安全輪・次の移動先を異なる共通定義でまとめて表示します。 */
+    /** 攻撃予見・現在の安全輪・次の移動先を高密度候補点でまとめて表示します。 */
     private void draw(Cast cast) {
         particles.spawnForNearbyViewers(cast.center, cast.dangerPoints, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         if (!cast.safePoints.isEmpty()) BossParticleEffect.safeArea(particles, cast.center, cast.safePoints);
-        else for (Location safe : cast.safeSpots) BossParticleEffect.safeArea(particles, safe, GreatrootArena.ring(safe, 0.65D, 16));
+        else for (Location safe : cast.safeSpots) BossParticleEffect.safeArea(particles, safe, GreatrootArena.ring(safe, 0.65D, 32));
         if (cast.move == Move.CYCLE && cast.wave + 1 < cast.shelters.size()) {
-            particles.spawnForNearbyViewers(cast.center, GreatrootArena.ring(cast.shelters.get(cast.wave + 1), 2.8D, 24),
+            particles.spawnForNearbyViewers(cast.center, GreatrootArena.ring(cast.shelters.get(cast.wave + 1), 2.8D, 48),
                 SharedParticleDefinitions.BOSS_SAFE_BEACON);
         }
         if (cast.move == Move.ROOT_LINE) {
-            List<Location> line = new ArrayList<>(12);
-            for (int i = 1; i <= 12; i++) line.add(cast.center.clone().add(cast.direction.clone().multiply(i)).add(0, 0.4D, 0));
+            List<Location> line = new ArrayList<>(24);
+            for (int i = 1; i <= 24; i++) line.add(cast.center.clone().add(cast.direction.clone().multiply(i * 0.5D)).add(0, 0.4D, 0));
             particles.spawnForNearbyViewers(cast.center, line, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         }
         if (cast.move == Move.SPIRAL) {
-            List<Location> roots = new ArrayList<>(72);
+            List<Location> roots = new ArrayList<>(144);
             double facing = Math.atan2(cast.direction.getZ(), cast.direction.getX());
             for (int arm = 0; arm < 3; arm++) {
-                for (int i = 0; i < 24; i++) {
-                    double radius = 2.0D + i * 0.35D;
+                for (int i = 0; i < 48; i++) {
+                    double radius = 2.0D + i * 0.175D;
                     double angle = facing + arm * Math.PI * 2 / 3 + radius * 0.35D;
                     Location point = GreatrootArena.ground(cast.center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
                     if (point != null && danger(cast, point)) roots.add(point.add(0, 0.35D, 0));
@@ -484,20 +484,20 @@ final class GreatrootEncounterController {
         }
     }
 
-    /** 死亡/期限判定を共通の残り時間Barと、中心から各芽への根脈表示に反映します。 */
+    /** 死亡/期限判定をBarへ反映し、中心から各芽への根脈を半分の間隔で描きます。 */
     private void drawLink(Encounter state, List<Player> players, long tick) {
         if (state.linkBar != null) {
             state.linkBar.setTitle(PlayerMsgResource.format(PlayerMsgId.P_6748.getId(), state.buds.size()));
             state.linkBar.setProgress(Math.clamp((double) (state.linkUntil - tick) / LINK_TICKS, 0.0D, 1.0D));
             syncBar(state.linkBar, players);
         }
-        List<Location> roots = new ArrayList<>(96);
+        List<Location> roots = new ArrayList<>(192);
         for (Map.Entry<UUID, Location> entry : state.buds.entrySet()) {
             MobInstance bud = mobs.getInstance(entry.getKey());
             if (bud != null) mobs.holdPosition(bud, entry.getValue());
             Vector delta = entry.getValue().toVector().subtract(state.center.toVector());
-            for (int i = 0; i <= 20; i++) roots.add(state.center.clone().add(delta.clone().multiply(i / 20.0D)).add(0, 0.3D, 0));
-            roots.addAll(GreatrootArena.ring(entry.getValue(), 0.8D, 10));
+            for (int i = 0; i <= 40; i++) roots.add(state.center.clone().add(delta.clone().multiply(i / 40.0D)).add(0, 0.3D, 0));
+            roots.addAll(GreatrootArena.ring(entry.getValue(), 0.8D, 20));
         }
         particles.spawnForNearbyViewers(state.center, roots, SharedParticleDefinitions.MOB_ERIVA_ROOT_WARNING);
     }

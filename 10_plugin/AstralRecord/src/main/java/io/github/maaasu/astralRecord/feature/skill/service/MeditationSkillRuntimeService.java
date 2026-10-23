@@ -240,6 +240,7 @@ public final class MeditationSkillRuntimeService {
         );
     }
 
+    /** 最大密度の候補点で発動リングを一括描画します。 */
     private void renderActivation(@NotNull Player player) {
         Location base = player.getLocation();
         if (base == null || base.getWorld() == null) return;
@@ -253,11 +254,12 @@ public final class MeditationSkillRuntimeService {
         world.playSound(base, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.55F, 1.15F);
     }
 
+    /** 標準密度の倍の候補点で、発動中の円形の光を一括描画します。 */
     private void renderActive(@NotNull Player player, long activeTicks) {
         Location base = player.getLocation();
         if (base == null || base.getWorld() == null) return;
         Location center = base.clone().add(0.0D, 1.0D, 0.0D);
-        int points = 6;
+        int points = 12;
         double phase = activeTicks * 0.16D;
         ArrayList<Location> locations = new ArrayList<>(points);
         for (int index = 0; index < points; index++) {
@@ -288,10 +290,12 @@ public final class MeditationSkillRuntimeService {
         );
     }
 
+    /** 標準密度で指定点数となるよう、その倍のリング候補点を返します。 */
     private ArrayList<Location> ringLocations(@NotNull Location center, double radius, int points) {
-        ArrayList<Location> locations = new ArrayList<>(points);
-        for (int index = 0; index < points; index++) {
-            double angle = Math.PI * 2.0D * index / points;
+        int candidatePoints = Math.min(2048, Math.max(1, points)) * 2;
+        ArrayList<Location> locations = new ArrayList<>(candidatePoints);
+        for (int index = 0; index < candidatePoints; index++) {
+            double angle = Math.PI * 2.0D * index / candidatePoints;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.0D, Math.sin(angle) * radius));
         }
         return locations;

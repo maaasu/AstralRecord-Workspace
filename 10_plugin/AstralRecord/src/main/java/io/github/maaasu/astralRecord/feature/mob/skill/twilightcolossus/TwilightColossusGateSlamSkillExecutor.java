@@ -47,9 +47,10 @@ public final class TwilightColossusGateSlamSkillExecutor implements MobSkillExec
         }
         return true;
     }
+    /** 最大密度向けに円周56候補点を描き、中心の単発爆発を重ねます。 */
     private void renderImpact(@NotNull Location center) {
-        List<Location> points = new ArrayList<>();
-        for (int index = 0; index < 28; index++) { double angle = Math.PI * 2.0D * index / 28; points.add(center.clone().add(Math.cos(angle) * RANGE, 0.15D, Math.sin(angle) * RANGE)); }
+        List<Location> points = new ArrayList<>(56);
+        for (int index = 0; index < 56; index++) { double angle = Math.PI * 2.0D * index / 56; points.add(center.clone().add(Math.cos(angle) * RANGE, 0.15D, Math.sin(angle) * RANGE)); }
         particleDisplayService.spawnForNearbyViewers(center, points, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION);
         particleDisplayService.spawnForNearbyViewers(center, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION);
     }

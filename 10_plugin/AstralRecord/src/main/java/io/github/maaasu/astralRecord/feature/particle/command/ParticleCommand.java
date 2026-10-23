@@ -161,6 +161,14 @@ public final class ParticleCommand extends AstCommand {
         }.runTaskTimer(plugin, DISPLAY_INTERVAL_TICKS, DISPLAY_INTERVAL_TICKS);
     }
 
+    /**
+     * 指定量を標準密度の表示点数として、最大密度向け候補点を表示します。
+     *
+     * @param particleDisplayService 表示サービス
+     * @param center 表示の中心
+     * @param definition 粒子定義
+     * @param amount 標準密度での表示点数
+     */
     private void display(
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull Location center,
@@ -175,6 +183,13 @@ public final class ParticleCommand extends AstCommand {
         );
     }
 
+    /**
+     * 標準密度の指定量から最大密度の散布候補点を作ります。
+     *
+     * @param center 散布中心
+     * @param amount 標準密度の点数
+     * @return 散布候補点
+     */
     private @NotNull List<Location> createLocations(@NotNull Location center, int amount) {
         if (amount <= 1) {
             return List.of(center.clone());
@@ -184,9 +199,10 @@ public final class ParticleCommand extends AstCommand {
                 MAX_DISTRIBUTION_RADIUS,
                 MIN_DISTRIBUTION_RADIUS + Math.sqrt(amount) * RADIUS_PER_SQRT_COUNT
         );
-        List<Location> locations = new ArrayList<>(amount);
+        int candidateCount = amount * 2;
+        List<Location> locations = new ArrayList<>(candidateCount);
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        for (int index = 0; index < amount; index++) {
+        for (int index = 0; index < candidateCount; index++) {
             double x;
             double y;
             double z;

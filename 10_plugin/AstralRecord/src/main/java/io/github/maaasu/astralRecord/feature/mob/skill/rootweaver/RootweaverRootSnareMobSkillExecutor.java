@@ -48,7 +48,7 @@ public final class RootweaverRootSnareMobSkillExecutor implements MobSkillExecut
     private static final Set<String> PARAMETER_KEYS = Set.of(
             "radius", "damageRatio", "chilledDurationTicks", "chilledChance"
     );
-    private static final int WARNING_POINTS = 24;
+    private static final int WARNING_POINTS = 48;
     private static final int WARNING_INTERVAL_TICKS = 5;
     private static final int IMPACT_DELAY_TICKS = 20;
     private final MobService mobService;
@@ -216,7 +216,12 @@ public final class RootweaverRootSnareMobSkillExecutor implements MobSkillExecut
                 BossParticleEffect.attackWarning(caster, SharedParticleDefinitions.MOB_FOREST_SPIDER_WEB_TRAIL));
     }
 
-    /** 固定された中心の外周24点を地面の少し上へ配置します。 */
+    /**
+     * 固定された中心の外周に最大密度向け48候補点を配置します。
+     * @param center 固定中心
+     * @param radius 警告半径
+     * @return 地面の少し上の円周候補点
+     */
     private @NotNull List<Location> circlePoints(@NotNull Location center, double radius) {
         List<Location> points = new ArrayList<>(WARNING_POINTS);
         for (int index = 0; index < WARNING_POINTS; index++) {

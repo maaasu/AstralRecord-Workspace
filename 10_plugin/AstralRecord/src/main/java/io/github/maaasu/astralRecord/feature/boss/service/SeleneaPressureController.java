@@ -35,8 +35,8 @@ final class SeleneaPressureController {
     private static final long BOLT_LIFETIME = 300L;
     private static final int MAX_BOLTS = 108;
     private static final int MAX_WAVES = 3;
-    private static final int MAX_WAVE_POINTS = 512;
-    private static final double WAVE_POINT_SPACING = 0.75D;
+    private static final int MAX_WAVE_POINTS = 1024;
+    private static final double WAVE_POINT_SPACING = 0.375D;
     private static final double WAVE_SPEED = 0.2D;
     private static final double WAVE_HALF_WIDTH = 0.55D;
     private static final double JUMP_CLEARANCE = 0.65D;
@@ -112,7 +112,8 @@ final class SeleneaPressureController {
                     launch(state, source, volley.aim, volley.targetId, tick);
                     flashes.add(source);
                 }
-                particles.spawnForNearbyViewers(flashes, SharedParticleDefinitions.SELENEA_VOLLEY_RELEASE, true);
+                particles.spawnBurstsForNearbyViewers(entity.getLocation(), flashes,
+                    SharedParticleDefinitions.SELENEA_VOLLEY_RELEASE, true);
                 entity.getWorld().playSound(entity.getLocation().add(0, LAUNCH_HEIGHT, 0), Sound.ENTITY_EVOKER_CAST_SPELL, 0.8F, 1.6F);
             } else if (tick >= volley.nextRenderAt) {
                 volley.nextRenderAt = tick + RENDER_INTERVAL;
@@ -128,13 +129,13 @@ final class SeleneaPressureController {
     /** 発射点に収束するオレンジの輪と白い光球を一括描画し、発射直前ほど高い音で予告します。 */
     private void drawVolley(Volley volley, Entity boss, long tick) {
         double progress = Math.clamp((tick - volley.startedAt) / (double) VOLLEY_CHARGE, 0, 1);
-        List<Location> ring = new ArrayList<>(96);
+        List<Location> ring = new ArrayList<>(192);
         List<Location> orbs = new ArrayList<>(18);
         for (Entity caster : volley.casters) {
             if (!caster.isValid() || caster.isDead() || caster.getWorld() != boss.getWorld()) continue;
             Location source = caster.getLocation().add(0, LAUNCH_HEIGHT, 0);
-            for (int index = 0; index < 16; index++) {
-                double angle = tick * 0.12D + index * Math.PI * 2.0D / 16.0D;
+            for (int index = 0; index < 32; index++) {
+                double angle = tick * 0.12D + index * Math.PI * 2.0D / 32.0D;
                 Location point = source.clone().add(Math.cos(angle) * (0.95D - progress * 0.6D), 0,
                     Math.sin(angle) * (0.95D - progress * 0.6D));
                 if (SeleneaArena.loaded(point)) ring.add(point);
@@ -287,7 +288,7 @@ final class SeleneaPressureController {
             wave.previousFeet.keySet().retainAll(present);
             if (tick >= wave.nextRenderAt) {
                 wave.nextRenderAt = tick + RENDER_INTERVAL;
-                int count = Math.clamp((int) Math.ceil(Math.PI * 2.0D * radius / WAVE_POINT_SPACING), 24, MAX_WAVE_POINTS);
+                int count = Math.clamp((int) Math.ceil(Math.PI * 2.0D * radius / WAVE_POINT_SPACING), 48, MAX_WAVE_POINTS);
                 for (int index = 0; index < count; index++) {
                     double angle = index * Math.PI * 2.0D / count;
                     Location floor = SeleneaArena.ground(wave.center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));

@@ -56,8 +56,8 @@ final class SeleneaSupportController {
     private static final double GATE_CENTER_HEIGHT = 3.2D;
     private static final double GATE_INTERACTION_RADIUS = 1.4D;
     private static final double DETONATION_RADIUS = 60.0D;
-    private static final int MAX_SURFACE_POINTS = 288;
-    private static final int MAX_FLOOR_POINTS = 160;
+    private static final int MAX_SURFACE_POINTS = 576;
+    private static final int MAX_FLOOR_POINTS = 320;
     private static final double DETONATION_RADIUS_SQUARED = 60.0D * 60.0D;
     private static final double HEAL_RATIO = 0.03D;
     private static final int MAX_ORBS = 5;
@@ -628,8 +628,8 @@ final class SeleneaSupportController {
             }
             Location destination = target.currentLocation().add(0, 1.2D, 0);
             double progress = Math.clamp((double) (tick - orb.startedAt) / ORB_DURATION, 0.0D, 1.0D);
-            for (int index = 0; index < 3; index++) {
-                double tailProgress = Math.max(0.0D, progress - index * 0.025D);
+            for (int index = 0; index < 6; index++) {
+                double tailProgress = Math.max(0.0D, progress - index * 0.0125D);
                 points.add(arc(orb.origin, destination, tailProgress));
             }
             if (progress >= 1.0D) {
@@ -715,10 +715,10 @@ final class SeleneaSupportController {
         refreshBuffs(state);
     }
 
-    /** 球形の水平・二方向の垂直大円だけをなぞり、体積を埋めずに最大288点で半径を示します。 */
+    /** 球形の水平・二方向の垂直大円だけをなぞり、体積を埋めずに最大576候補点で半径を示します。 */
     private static List<Location> detonationSurface(Location center, double areaPerPoint) {
         int count = Math.min(MAX_SURFACE_POINTS / 3, (int) Math.ceil(2.0D * Math.PI
-                * DETONATION_RADIUS / Math.sqrt(areaPerPoint)));
+                * DETONATION_RADIUS * 2.0D / Math.sqrt(areaPerPoint)));
         List<Location> points = new ArrayList<>(count * 3);
         for (int index = 0; index < count; index++) {
             double angle = Math.PI * 2.0D * index / count;
@@ -730,17 +730,17 @@ final class SeleneaSupportController {
         return points;
     }
 
-    /** 外周を優先し、内部48点の刻印と合わせて最大160点で広範囲を示します。 */
+    /** 外周を優先し、内部96候補点の刻印と合わせて最大320候補点で広範囲を示します。 */
     private static List<Location> detonationFloor(Location center, double spacing) {
-        int count = Math.min(MAX_FLOOR_POINTS - 48, (int) Math.ceil(2.0D * Math.PI * DETONATION_RADIUS / spacing));
-        List<Location> points = new ArrayList<>(count + 48);
+        int count = Math.min(MAX_FLOOR_POINTS - 96, (int) Math.ceil(4.0D * Math.PI * DETONATION_RADIUS / spacing));
+        List<Location> points = new ArrayList<>(count + 96);
         for (int index = 0; index < count; index++) {
             double angle = Math.PI * 2.0D * index / count;
             points.add(center.clone().add(DETONATION_RADIUS * Math.cos(angle), 0.25D, DETONATION_RADIUS * Math.sin(angle)));
         }
         double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
-        for (int index = 0; index < 48; index++) {
-            double radius = DETONATION_RADIUS * Math.sqrt((index + 0.5D) / 48.0D);
+        for (int index = 0; index < 96; index++) {
+            double radius = DETONATION_RADIUS * Math.sqrt((index + 0.5D) / 96.0D);
             double angle = goldenAngle * index;
             points.add(center.clone().add(radius * Math.cos(angle), 0.25D, radius * Math.sin(angle)));
         }
@@ -802,12 +802,12 @@ final class SeleneaSupportController {
     private void renderGates(Encounter state) {
         if (state.summoning || state.detonating || state.center.getWorld() == null
                 || state.center.getWorld().getPlayers().isEmpty()) return;
-        List<Location> accents = new ArrayList<>(32);
+        List<Location> accents = new ArrayList<>(64);
         double rotation = currentTick * Math.PI / 120.0D;
         for (Role role : Role.values()) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!state.openedGates.contains(role)) continue;
-            List<Location> points = new ArrayList<>(108);
+            List<Location> points = new ArrayList<>(216);
             if (isAlive(state.adds.get(role))) {
                 portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
             }
@@ -818,21 +818,24 @@ final class SeleneaSupportController {
         particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SUPPORT_ORB, true);
     }
 
-    /** 主輪28点・回転する副輪14点・四本の放射線12点で、役割色の輪郭と動きを残します。 */
+    /** 主輪56点・回転する副輪28点・四本の放射線24点を最大密度候補として役割色の輪郭と動きを残します。 */
     private static void portalRing(Location base, Role role, double rotation,
             List<Location> points, List<Location> accents) {
-        for (int index = 0; index < 28; index++) {
-            double angle = Math.PI * 2.0D * index / 28.0D;
+        for (int index = 0; index < 56; index++) {
+            double angle = Math.PI * 2.0D * index / 56.0D;
             points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS));
         }
-        for (int index = 0; index < 14; index++) {
-            points.add(portalPoint(base, role, rotation + Math.PI * 2.0D * index / 14.0D, GATE_VISUAL_RADIUS - 0.35D));
+        for (int index = 0; index < 28; index++) {
+            points.add(portalPoint(base, role, rotation + Math.PI * 2.0D * index / 28.0D, GATE_VISUAL_RADIUS - 0.35D));
         }
         for (int spoke = 0; spoke < 4; spoke++) {
             double angle = rotation + Math.PI * 2.0D * spoke / 4.0D;
-            for (int index = 1; index <= 3; index++) {
-                points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS * index / 3.0D));
+            for (int index = 1; index <= 6; index++) {
+                points.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS * index / 6.0D));
             }
+        }
+        for (int accent = 0; accent < 8; accent++) {
+            double angle = rotation + Math.PI * 2.0D * accent / 8.0D;
             accents.add(portalPoint(base, role, angle, GATE_VISUAL_RADIUS));
         }
     }

@@ -57,7 +57,7 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
     private static final double MAX_RADIUS = 8.0D;
     private static final double DEFAULT_DAMAGE_RATIO = 0.85D;
     private static final double LEAP_HEIGHT = 1.7D;
-    private static final int WARNING_RING_POINTS = 24;
+    private static final int WARNING_RING_POINTS = 48;
     private static final int LEAP_DISPLAY_COUNT = 10;
 
     private final MobService mobService;
@@ -302,6 +302,13 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         }
     }
 
+    /**
+     * 着地点を囲む最大密度向け円周候補点を作ります。
+     * @param center 着地点
+     * @param radius 警告半径
+     * @param height 地面からの表示高さ
+     * @return 円周上の候補点
+     */
     private @NotNull List<Location> circlePoints(@NotNull Location center, double radius, double height) {
         List<Location> points = new ArrayList<>(WARNING_RING_POINTS);
         for (int index = 0; index < WARNING_RING_POINTS; index++) {

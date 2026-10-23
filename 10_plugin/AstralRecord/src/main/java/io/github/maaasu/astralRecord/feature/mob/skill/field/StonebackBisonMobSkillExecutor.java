@@ -237,10 +237,12 @@ public final class StonebackBisonMobSkillExecutor implements MobSkillExecutor, L
             double halfWidth = (Math.max(box.getWidthX(), box.getWidthZ())
                     + Math.max(targetBox.getWidthX(), targetBox.getWidthZ())) * 0.5D + 0.15D;
             Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(halfWidth);
-            for (int point = 0; point <= 8; point++) {
-                Location center = start.clone().add(direction.clone().multiply(point)).add(0, 0.08D, 0);
-                warning.add(center.clone().add(side));
-                warning.add(center.clone().subtract(side));
+            for (int lane : new int[] {-1, 1}) {
+                for (int point = 0; point <= 17; point++) {
+                    Location center = start.clone().add(direction.clone().multiply(point * 8.0D / 17.0D))
+                            .add(0, 0.08D, 0);
+                    warning.add(center.add(side.clone().multiply(lane)));
+                }
             }
         }
 

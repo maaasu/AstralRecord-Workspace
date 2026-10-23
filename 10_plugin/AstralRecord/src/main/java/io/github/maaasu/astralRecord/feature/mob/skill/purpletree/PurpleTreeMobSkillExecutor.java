@@ -39,7 +39,7 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
 
     private static final int WARNING_TICKS = 20;
     private static final int WARNING_STEP_TICKS = 5;
-    private static final int RING_POINTS = 32;
+    private static final int RING_POINTS = 64;
     private static final int PROJECTILE_LIFETIME_TICKS = 24;
     private static final String ROOT_BIND_DEBUFF_ID = "purple_tree_root_bind";
 
@@ -311,7 +311,13 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         particles.spawnForNearbyViewers(center, SharedParticleDefinitions.MOB_PURPLE_TREE_FLASH);
     }
 
-    /** 指定半径の円周を、同じ閲覧者解決で描画できる地点群にします。 */
+    /**
+     * 指定半径の円周を最大密度向け候補点として生成します。
+     * @param center 円の中心
+     * @param radius 円の半径
+     * @param height 地面からの表示高さ
+     * @return 円周上の候補点
+     */
     private List<Location> ringPoints(Location center, double radius, double height) {
         List<Location> points = new ArrayList<>(RING_POINTS);
         for (int i = 0; i < RING_POINTS; i++) {
@@ -321,13 +327,13 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         return points;
     }
 
-    /** 前方扇形の境界と弧を描く地点群を返します。 */
+    /** 前方扇形の境界と弧を描く最大密度候補地点群を返します。 */
     private List<Location> fanPoints(Location center, Vector facing, double radius) {
         List<Location> points = new ArrayList<>();
         double angle = Math.atan2(facing.getZ(), facing.getX());
         for (double distance = 1.5D; ; distance += 1.5D) {
             double arcRadius = Math.min(distance, radius);
-            for (int degree = -60; degree <= 60; degree += 10) {
+            for (int degree = -60; degree <= 60; degree += 5) {
                 double direction = angle + Math.toRadians(degree);
                 points.add(center.clone().add(Math.cos(direction) * arcRadius, 0.15D,
                         Math.sin(direction) * arcRadius));
@@ -339,10 +345,10 @@ public final class PurpleTreeMobSkillExecutor implements MobSkillExecutor {
         return points;
     }
 
-    /** 突進方向の予告線を返します。 */
+    /** 突進方向の最大密度向け予告線候補を返します。 */
     private List<Location> linePoints(Location center, Vector direction, double length) {
         List<Location> points = new ArrayList<>();
-        for (double distance = 0.5D; distance <= length; distance += 0.5D) {
+        for (double distance = 0.25D; distance <= length; distance += 0.25D) {
             points.add(center.clone().add(direction.clone().multiply(distance)).add(0, 0.15D, 0));
         }
         return points;

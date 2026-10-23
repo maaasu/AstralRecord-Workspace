@@ -199,10 +199,11 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
             services.effects().points(center, gold, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_GOLD);
         }
 
-        /** 水平な同心円の点を追加します。 */
+        /** 水平な同心円へ標準密度の倍の候補点を追加します。 */
         private void ring(List<Location> points, double radius, int count) {
-            for (int index = 0; index < count; index++) {
-                dot(points, TWO_PI * index / count, radius);
+            int candidates = count * 2;
+            for (int index = 0; index < candidates; index++) {
+                dot(points, TWO_PI * index / candidates, radius);
             }
         }
 
@@ -210,12 +211,13 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
         private void leaf(List<Location> points, double angle, double distance, double length, double width) {
             double ux = Math.cos(angle);
             double uz = Math.sin(angle);
-            for (int index = 0; index <= 8; index++) {
-                double t = index / 8.0D;
-                double along = distance + length * t;
-                double side = width * Math.sin(Math.PI * t);
-                point(points, ux * along - uz * side, uz * along + ux * side);
-                point(points, ux * along + uz * side, uz * along - ux * side);
+            for (int sign : new int[] {-1, 1}) {
+                for (int index = 0; index <= 16; index++) {
+                    double t = index / 16.0D;
+                    double along = distance + length * t;
+                    double side = sign * width * Math.sin(Math.PI * t);
+                    point(points, ux * along - uz * side, uz * along + ux * side);
+                }
             }
         }
 
@@ -226,8 +228,8 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
             for (int edge = 0; edge < 4; edge++) {
                 double from = edge * Math.PI / 2.0D;
                 double to = (edge + 1) * Math.PI / 2.0D;
-                for (int step = 0; step < 3; step++) {
-                    double t = step / 3.0D;
+                for (int step = 0; step < 6; step++) {
+                    double t = step / 6.0D;
                     double along = distance + size * ((1.0D - t) * Math.cos(from) + t * Math.cos(to));
                     double side = size * ((1.0D - t) * Math.sin(from) + t * Math.sin(to));
                     point(points, ux * along - uz * side, uz * along + ux * side);
@@ -239,9 +241,12 @@ public final class ArchmageHealCircleExecutor extends PlayerActiveSkillExecutor 
         private void cross(List<Location> points, double angle, double distance, double arm) {
             double ux = Math.cos(angle);
             double uz = Math.sin(angle);
-            for (int index = -3; index <= 3; index++) {
-                double offset = arm * index / 3.0D;
+            for (int index = -6; index <= 6; index++) {
+                double offset = arm * index / 6.0D;
                 point(points, ux * (distance + offset), uz * (distance + offset));
+            }
+            for (int index = -6; index <= 6; index++) {
+                double offset = arm * index / 6.0D;
                 point(points, ux * distance - uz * offset, uz * distance + ux * offset);
             }
         }

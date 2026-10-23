@@ -31,22 +31,25 @@ public final class SharpshooterSignatureEffects {
                                    @NotNull Location origin, @NotNull Vector direction) {
         if (origin.getWorld() == null) return;
         Basis basis = basis(direction);
-        List<Location> gold = new ArrayList<>(50);
-        List<Location> white = new ArrayList<>(35);
-        for (int i = 0; i < 24; i++) {
-            double angle = TAU * i / 24.0D;
+        List<Location> gold = new ArrayList<>(88);
+        List<Location> white = new ArrayList<>(96);
+        for (int i = 0; i < 48; i++) {
+            double angle = TAU * i / 48.0D;
             gold.add(at(origin, basis, 0.65D, Math.cos(angle) * 0.62D,
                     Math.sin(angle) * 0.62D));
         }
-        for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i < 7; i++) {
-                double radius = 0.18D + i * 0.095D;
-                white.add(at(origin, basis, 0.65D, side * radius, 0.0D));
-                white.add(at(origin, basis, 0.65D, 0.0D, side * radius));
+        for (int axis = 0; axis < 2; axis++) {
+            for (int side : new int[] {-1, 1}) {
+                for (int i = 0; i < 14; i++) {
+                    double radius = 0.18D + i * 0.0475D;
+                    white.add(at(origin, basis, 0.65D,
+                            axis == 0 ? side * radius : 0.0D,
+                            axis == 1 ? side * radius : 0.0D));
+                }
             }
         }
-        for (int i = 0; i < 20; i++) {
-            double t = i / 19.0D;
+        for (int i = 0; i < 40; i++) {
+            double t = i / 39.0D;
             double angle = TAU * t * 1.5D;
             double radius = 0.42D * (1.0D - t);
             gold.add(at(origin, basis, 0.8D + 1.7D * t,
@@ -72,10 +75,10 @@ public final class SharpshooterSignatureEffects {
         if (frame == null) return;
         double length = from.distance(to);
         double phase = from.toVector().dot(frame.forward()) * 3.2D;
-        List<Location> gold = new ArrayList<>(16);
-        List<Location> white = new ArrayList<>(16);
-        for (int i = 0; i < 16; i++) {
-            double along = length * i / 15.0D;
+        List<Location> gold = new ArrayList<>(32);
+        List<Location> white = new ArrayList<>(32);
+        for (int i = 0; i < 32; i++) {
+            double along = length * i / 31.0D;
             double angle = phase + along * 3.2D;
             white.add(at(from, frame, along, 0.0D, 0.0D));
             gold.add(at(from, frame, along,
@@ -97,17 +100,18 @@ public final class SharpshooterSignatureEffects {
         if (impact.getWorld() == null) return;
         int index = Math.max(0, Math.min(hitIndex, 7));
         double radius = 0.5D + index * 0.07D;
-        List<Location> ring = new ArrayList<>(18);
-        List<Location> shards = new ArrayList<>(24);
-        for (int i = 0; i < 18; i++) {
-            double angle = TAU * i / 18.0D;
+        List<Location> ring = new ArrayList<>(36);
+        List<Location> shards = new ArrayList<>(48);
+        for (int i = 0; i < 36; i++) {
+            double angle = TAU * i / 36.0D;
             ring.add(impact.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
         }
         for (int ray = 0; ray < 6; ray++) {
             double angle = TAU * ray / 6.0D;
-            for (int step = 1; step <= 4; step++) {
-                shards.add(impact.clone().add(Math.cos(angle) * step * 0.16D,
-                        step * 0.09D, Math.sin(angle) * step * 0.16D));
+            for (int step = 1; step <= 8; step++) {
+                double progress = step / 2.0D;
+                shards.add(impact.clone().add(Math.cos(angle) * progress * 0.16D,
+                        progress * 0.09D, Math.sin(angle) * progress * 0.16D));
             }
         }
         show(context.services().effects(), impact, ring, SharedParticleDefinitions.SHARPSHOOTER_HORIZON_GOLD);
@@ -127,10 +131,10 @@ public final class SharpshooterSignatureEffects {
                                    @NotNull Location origin, @NotNull Vector direction) {
         if (origin.getWorld() == null) return;
         Basis basis = basis(direction);
-        List<Location> fire = new ArrayList<>(28);
-        List<Location> ice = new ArrayList<>(28);
-        for (int i = 0; i < 28; i++) {
-            double t = i / 27.0D;
+        List<Location> fire = new ArrayList<>(56);
+        List<Location> ice = new ArrayList<>(56);
+        for (int i = 0; i < 56; i++) {
+            double t = i / 55.0D;
             double angle = TAU * t * 2.0D;
             double radius = 0.34D * (1.0D - 0.55D * t);
             double forward = 0.25D + 2.6D * t;
@@ -158,10 +162,10 @@ public final class SharpshooterSignatureEffects {
         if (frame == null) return;
         double length = from.distance(to);
         double phase = from.toVector().dot(frame.forward()) * 4.1D;
-        List<Location> fire = new ArrayList<>(16);
-        List<Location> ice = new ArrayList<>(16);
-        for (int i = 0; i < 16; i++) {
-            double along = length * i / 15.0D;
+        List<Location> fire = new ArrayList<>(32);
+        List<Location> ice = new ArrayList<>(32);
+        for (int i = 0; i < 32; i++) {
+            double along = length * i / 31.0D;
             double angle = phase + along * 4.1D;
             double right = Math.cos(angle) * 0.25D;
             double up = Math.sin(angle) * 0.25D;
@@ -180,13 +184,13 @@ public final class SharpshooterSignatureEffects {
      */
     public static void paradoxImpact(@NotNull PlayerActiveSkillContext context, @NotNull Location impact) {
         if (impact.getWorld() == null) return;
-        List<Location> fire = new ArrayList<>(32);
-        List<Location> ice = new ArrayList<>(32);
+        List<Location> fire = new ArrayList<>(48);
+        List<Location> ice = new ArrayList<>(48);
         for (int ray = 0; ray < 8; ray++) {
             double angle = TAU * ray / 8.0D;
             List<Location> points = ray % 2 == 0 ? fire : ice;
-            for (int step = 1; step <= 6; step++) {
-                double t = step / 6.0D;
+            for (int step = 1; step <= 12; step++) {
+                double t = step / 12.0D;
                 points.add(impact.clone().add(Math.cos(angle) * t * 1.15D,
                         0.12D + Math.sin(Math.PI * t) * 0.65D,
                         Math.sin(angle) * t * 1.15D));
@@ -209,15 +213,16 @@ public final class SharpshooterSignatureEffects {
                                    @NotNull Location origin, @NotNull Vector direction) {
         if (origin.getWorld() == null) return;
         Basis basis = basis(direction);
-        List<Location> shaft = new ArrayList<>(18);
-        List<Location> head = new ArrayList<>(12);
-        for (int i = 0; i < 18; i++) {
-            shaft.add(at(origin, basis, 0.2D + i * 0.1D, 0.0D, 0.0D));
+        List<Location> shaft = new ArrayList<>(36);
+        List<Location> head = new ArrayList<>(24);
+        for (int i = 0; i < 36; i++) {
+            shaft.add(at(origin, basis, 0.2D + i * 0.05D, 0.0D, 0.0D));
         }
         for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i < 6; i++) {
-                head.add(at(origin, basis, 1.9D - i * 0.11D,
-                        side * i * 0.08D, side * i * 0.04D));
+            for (int i = 0; i < 12; i++) {
+                double progress = i / 2.0D;
+                head.add(at(origin, basis, 1.9D - progress * 0.11D,
+                        side * progress * 0.08D, side * progress * 0.04D));
             }
         }
         show(context.services().effects(), origin, shaft, SharedParticleDefinitions.SHARPSHOOTER_REFRAIN_GOLD);
@@ -237,14 +242,14 @@ public final class SharpshooterSignatureEffects {
         Basis frame = segmentBasis(from, to);
         if (frame == null) return;
         double length = from.distance(to);
-        List<Location> shaft = new ArrayList<>(12);
-        List<Location> head = new ArrayList<>(12);
-        for (int i = 0; i < 12; i++) {
-            shaft.add(at(from, frame, length * i / 11.0D, 0.0D, 0.0D));
+        List<Location> shaft = new ArrayList<>(24);
+        List<Location> head = new ArrayList<>(24);
+        for (int i = 0; i < 24; i++) {
+            shaft.add(at(from, frame, length * i / 23.0D, 0.0D, 0.0D));
         }
         for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i < 6; i++) {
-                double t = i / 5.0D;
+            for (int i = 0; i < 12; i++) {
+                double t = i / 11.0D;
                 head.add(at(from, frame, length * (0.56D + 0.44D * t),
                         side * (1.0D - t) * 0.2D, side * (1.0D - t) * 0.08D));
             }
@@ -279,10 +284,10 @@ public final class SharpshooterSignatureEffects {
         Vector span = to.toVector().subtract(from.toVector());
         if (!Double.isFinite(span.lengthSquared()) || span.lengthSquared() <= 1.0E-8D) return;
         int index = Math.max(1, Math.min(bounceIndex, 4));
-        List<Location> gold = new ArrayList<>(15);
-        List<Location> green = new ArrayList<>(15);
-        for (int i = 0; i <= 28; i++) {
-            double t = i / 28.0D;
+        List<Location> gold = new ArrayList<>(30);
+        List<Location> green = new ArrayList<>(30);
+        for (int i = 0; i < 60; i++) {
+            double t = i / 59.0D;
             Location point = from.clone().add(span.clone().multiply(t))
                     .add(0.0D, Math.sin(Math.PI * t) * 0.35D, 0.0D);
             (i % 2 == 0 ? gold : green).add(point);
@@ -329,18 +334,18 @@ public final class SharpshooterSignatureEffects {
                                   @NotNull Location center, double radius) {
         if (center.getWorld() == null) return;
         double size = clamp(radius, 1.0D, 6.0D, 3.0D);
-        List<Location> petals = new ArrayList<>(54);
-        List<Location> spires = new ArrayList<>(36);
+        List<Location> petals = new ArrayList<>(108);
+        List<Location> spires = new ArrayList<>(72);
         for (int ray = 0; ray < 6; ray++) {
             double angle = TAU * ray / 6.0D;
-            for (int i = 1; i <= 9; i++) {
-                double t = i / 9.0D;
+            for (int i = 1; i <= 18; i++) {
+                double t = i / 18.0D;
                 petals.add(center.clone().add(Math.cos(angle) * size * t,
                         0.12D + Math.sin(Math.PI * t) * 0.65D,
                         Math.sin(angle) * size * t));
             }
-            for (int i = 1; i <= 6; i++) {
-                double t = i / 6.0D;
+            for (int i = 1; i <= 12; i++) {
+                double t = i / 12.0D;
                 spires.add(center.clone().add(Math.cos(angle) * size * 0.68D,
                         0.15D + 1.3D * t,
                         Math.sin(angle) * size * 0.68D));
@@ -357,27 +362,28 @@ public final class SharpshooterSignatureEffects {
     /** 雪結晶の輪郭と枝を、予兆の段階に応じて描きます。 */
     private static void snowflake(SkillEffectService effects, Location center, double radius, int stage) {
         double reach = radius * (0.42D + stage * 0.23D);
-        List<Location> branches = new ArrayList<>(54);
-        List<Location> rim = new ArrayList<>(24);
+        List<Location> branches = new ArrayList<>(132);
+        List<Location> rim = new ArrayList<>(48);
         for (int ray = 0; ray < 6; ray++) {
             double angle = TAU * ray / 6.0D;
-            for (int i = 1; i <= 7; i++) {
-                double t = i / 7.0D;
+            for (int i = 1; i <= 14; i++) {
+                double t = i / 14.0D;
                 branches.add(center.clone().add(Math.cos(angle) * reach * t,
                         0.08D, Math.sin(angle) * reach * t));
             }
             for (int side : new int[] {-1, 1}) {
                 double branchAngle = angle + side * Math.PI / 3.0D;
-                for (int i = 1; i <= 2; i++) {
+                for (int i = 1; i <= 4; i++) {
+                    double progress = i / 2.0D;
                     branches.add(center.clone().add(
-                            Math.cos(angle) * reach * 0.66D + Math.cos(branchAngle) * i * reach * 0.13D,
+                            Math.cos(angle) * reach * 0.66D + Math.cos(branchAngle) * progress * reach * 0.13D,
                             0.08D,
-                            Math.sin(angle) * reach * 0.66D + Math.sin(branchAngle) * i * reach * 0.13D));
+                            Math.sin(angle) * reach * 0.66D + Math.sin(branchAngle) * progress * reach * 0.13D));
                 }
             }
         }
-        for (int i = 0; i < 24; i++) {
-            double angle = TAU * i / 24.0D;
+        for (int i = 0; i < 48; i++) {
+            double angle = TAU * i / 48.0D;
             rim.add(center.clone().add(Math.cos(angle) * reach, 0.08D, Math.sin(angle) * reach));
         }
         show(effects, center, branches, SharedParticleDefinitions.SHARPSHOOTER_FROST_GARDEN_WHITE);

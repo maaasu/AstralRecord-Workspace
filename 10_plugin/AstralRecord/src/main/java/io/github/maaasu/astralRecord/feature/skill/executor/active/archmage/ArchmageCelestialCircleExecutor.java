@@ -126,15 +126,16 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
         visual.draw(context.services(), snapshot.progress(), snapshot.complete());
     }
 
-    /** 半径に応じて円周の点を増やし、隣接点の間隔を約0.42m以下に抑えます。 */
+    /** 半径に応じて標準密度で約0.42m以下となる円周点数を返します。 */
     private static int ringSamples(double radius, int minimum) {
         return Math.max(minimum, (int) Math.ceil(Math.PI * 2.0D * radius / 0.42D));
     }
 
-    /** 半径方向へ広がる円周の点を追加します。 */
+    /** 半径方向へ広がる円周に標準密度の倍の候補点を追加します。 */
     private static void ring(Location center, double radius, int count, List<Location> output) {
-        for (int index = 0; index < count; index++) {
-            double angle = index * Math.PI * 2.0D / count;
+        int candidates = Math.min(2048, Math.max(1, count)) * 2;
+        for (int index = 0; index < candidates; index++) {
+            double angle = index * Math.PI * 2.0D / candidates;
             point(center, radius, angle, output);
         }
     }
@@ -144,7 +145,8 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
                              double toRadius, double toAngle, List<Location> output) {
         double dx = Math.cos(toAngle) * toRadius - Math.cos(fromAngle) * fromRadius;
         double dz = Math.sin(toAngle) * toRadius - Math.sin(fromAngle) * fromRadius;
-        int segments = Math.max(5, (int) Math.ceil(Math.hypot(dx, dz) / 0.45D));
+        int segments = Math.min(2048,
+                Math.max(5, (int) Math.ceil(Math.hypot(dx, dz) / 0.45D))) * 2;
         for (int index = 0; index <= segments; index++) {
             double ratio = (double) index / segments;
             point(center, fromRadius + (toRadius - fromRadius) * ratio,
@@ -162,8 +164,8 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
             double b = (index + 1) * Math.PI / 4.0D;
             double aRadius = index % 2 == 0 ? size : size * 0.34D;
             double bRadius = (index + 1) % 2 == 0 ? size : size * 0.34D;
-            for (int step = 0; step < 2; step++) {
-                double ratio = step / 2.0D;
+            for (int step = 0; step < 4; step++) {
+                double ratio = step / 4.0D;
                 double px = x + Math.cos(a) * aRadius * (1.0D - ratio) + Math.cos(b) * bRadius * ratio;
                 double pz = z + Math.sin(a) * aRadius * (1.0D - ratio) + Math.sin(b) * bRadius * ratio;
                 cartesian(center, px, pz, output);
@@ -176,10 +178,13 @@ public final class ArchmageCelestialCircleExecutor extends PlayerActiveSkillExec
                                  List<Location> output) {
         double x = Math.cos(angle) * offsetRadius;
         double z = Math.sin(angle) * offsetRadius;
-        for (int index = 0; index <= 8; index++) {
-            double sweep = -Math.PI * 0.65D + index * Math.PI * 1.3D / 8.0D;
+        for (int index = 0; index <= 16; index++) {
+            double sweep = -Math.PI * 0.65D + index * Math.PI * 1.3D / 16.0D;
             cartesian(center, x + Math.cos(sweep) * size, z + Math.sin(sweep) * size,
                     output);
+        }
+        for (int index = 0; index <= 16; index++) {
+            double sweep = -Math.PI * 0.65D + index * Math.PI * 1.3D / 16.0D;
             cartesian(center, x + size * 0.35D + Math.cos(sweep) * size * 0.72D,
                     z + Math.sin(sweep) * size * 0.72D, output);
         }

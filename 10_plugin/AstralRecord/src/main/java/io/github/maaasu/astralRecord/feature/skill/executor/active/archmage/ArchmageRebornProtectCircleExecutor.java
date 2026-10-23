@@ -228,17 +228,19 @@ public final class ArchmageRebornProtectCircleExecutor extends PlayerActiveSkill
             services.effects().points(center, amber, SharedParticleDefinitions.SKILL_REBORN_PROTECT_AMBER);
         }
 
-        /** 水平な同心円を点群へ変換します。 */
+        /** 水平な同心円を標準密度の倍の候補点群へ変換します。 */
         private void ring(@NotNull List<Location> points, double radius, int count) {
-            for (int index = 0; index < count; index++) {
-                dot(points, TWO_PI * index / count, radius);
+            int candidates = count * 2;
+            for (int index = 0; index < candidates; index++) {
+                dot(points, TWO_PI * index / candidates, radius);
             }
         }
 
         /** 放射線を中心から外へ等間隔で配置します。 */
         private void line(@NotNull List<Location> points, double angle, double from, double to, int steps) {
-            for (int index = 0; index <= steps; index++) {
-                dot(points, angle, from + (to - from) * index / steps);
+            int candidateSteps = steps * 2;
+            for (int index = 0; index <= candidateSteps; index++) {
+                dot(points, angle, from + (to - from) * index / candidateSteps);
             }
         }
 
@@ -249,8 +251,8 @@ public final class ArchmageRebornProtectCircleExecutor extends PlayerActiveSkill
             for (int arm = 0; arm < 4; arm++) {
                 double armAngle = angle + arm * Math.PI / 2.0D;
                 double nextAngle = angle + (arm + 1) * Math.PI / 2.0D;
-                for (int step = 0; step <= 4; step++) {
-                    double t = step / 4.0D;
+                for (int step = 0; step <= 8; step++) {
+                    double t = step / 8.0D;
                     point(points,
                             x + size * ((1.0D - t) * Math.cos(armAngle)
                                     + t * Math.cos(nextAngle) * 0.27D),
@@ -264,11 +266,16 @@ public final class ArchmageRebornProtectCircleExecutor extends PlayerActiveSkill
         private void crescent(@NotNull List<Location> points, double angle, double distance, double size) {
             double ux = Math.cos(angle);
             double uz = Math.sin(angle);
-            for (int index = 0; index <= 12; index++) {
-                double t = -1.0D + 2.0D * index / 12.0D;
+            for (int index = 0; index <= 24; index++) {
+                double t = -1.0D + 2.0D * index / 24.0D;
                 double along = distance + size * (1.0D - t * t);
                 double across = size * t;
                 point(points, ux * along - uz * across, uz * along + ux * across);
+            }
+            for (int index = 0; index <= 24; index++) {
+                double t = -1.0D + 2.0D * index / 24.0D;
+                double along = distance + size * (1.0D - t * t);
+                double across = size * t;
                 point(points, ux * (along - size * 0.38D) - uz * across,
                         uz * (along - size * 0.38D) + ux * across);
             }

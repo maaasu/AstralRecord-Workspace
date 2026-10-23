@@ -53,9 +53,9 @@ final class SkillTreeVisualizer {
     static final double NODE_BEAM_Y_OFFSET = 2.95D;
     private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
-    private static final double BEDROCK_EDGE_PARTICLE_SPACING = 1.5D;
-    private static final int BEDROCK_EDGE_PARTICLE_MIN_COUNT = 3;
-    private static final int BEDROCK_EDGE_PARTICLE_MAX_COUNT = 8;
+    private static final double BEDROCK_EDGE_PARTICLE_SPACING = 0.75D;
+    private static final int BEDROCK_EDGE_PARTICLE_MIN_COUNT = 6;
+    private static final int BEDROCK_EDGE_PARTICLE_MAX_COUNT = 16;
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final double NODE_TEXT_Y_OFFSET = 1.65D;
     private static final float NODE_ITEM_SCALE = 0.72F;
@@ -790,10 +790,10 @@ final class SkillTreeVisualizer {
     }
 
     /**
-     * edge の長さに応じた Bedrock 向け粒子数を返します。
+     * edge の長さに応じた Bedrock 向けの最大密度候補点数を返します。
      *
      * @param edgeLength edge の両端間の距離
-     * @return 表示する粒子点数。無効または長さ0以下の場合は {@code 0}
+     * @return 最大密度向け候補点数。無効または長さ0以下の場合は {@code 0}
      */
     static int bedrockEdgeParticleCount(double edgeLength) {
         if (!Double.isFinite(edgeLength) || edgeLength <= 0.0D) {
@@ -809,7 +809,7 @@ final class SkillTreeVisualizer {
     }
 
     /**
-     * edge の両端のノード表示に重ならない Bedrock 向け粒子位置を生成します。
+     * edge の両端のノード表示に重ならない Bedrock 向け最大密度候補位置を生成します。
      *
      * @param left edge の一方の端点
      * @param right edge のもう一方の端点

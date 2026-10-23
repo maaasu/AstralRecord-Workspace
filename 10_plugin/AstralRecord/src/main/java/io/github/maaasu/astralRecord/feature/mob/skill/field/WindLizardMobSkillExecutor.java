@@ -140,13 +140,13 @@ public final class WindLizardMobSkillExecutor implements MobSkillExecutor {
             this.context = context;
             this.center = center.clone();
             this.direction = direction.clone();
-            for (int point = 0; point <= 12; point++) {
-                Vector ray = direction.clone().rotateAroundY(-HALF_ANGLE + 2 * HALF_ANGLE * point / 12);
+            for (int point = 0; point <= 24; point++) {
+                Vector ray = direction.clone().rotateAroundY(-HALF_ANGLE + 2 * HALF_ANGLE * point / 24);
                 warningPoints.add(center.clone().add(ray.multiply(RADIUS)).add(0, 0.1D, 0));
             }
-            for (int point = 1; point <= 4; point++) {
-                for (double angle : new double[] {-HALF_ANGLE, HALF_ANGLE}) {
-                    warningPoints.add(center.clone().add(direction.clone().rotateAroundY(angle).multiply(RADIUS * point / 5))
+            for (double angle : new double[] {-HALF_ANGLE, HALF_ANGLE}) {
+                for (int point = 1; point <= 8; point++) {
+                    warningPoints.add(center.clone().add(direction.clone().rotateAroundY(angle).multiply(RADIUS * point / 10))
                             .add(0, 0.1D, 0));
                 }
             }

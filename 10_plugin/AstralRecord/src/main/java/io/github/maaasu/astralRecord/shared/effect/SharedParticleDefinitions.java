@@ -111,7 +111,7 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition SELENEA_ATTACK_SPARK =
         new SharedParticleDefinition("selenea_attack_spark", Particle.ELECTRIC_SPARK, 2, 0.05D, 0.2D, 0.05D, 0.02D);
 
-    /** 全ボスの攻撃予見。最低密度でも一点一粒を残し、粒子OFF設定は尊重します。 */
+    /** 全ボスの攻撃予見。密度に応じて輪郭の点間隔を変え、各地点は一粒だけ表示します。 */
     public static final SharedParticleDefinition BOSS_ATTACK_WARNING =
         new SharedParticleDefinition("boss_attack_warning", Particle.ANGRY_VILLAGER, 4, 0, 0, 0, 0);
     /** 全ボスの安全地帯の輪郭。緑の粒子と白い縦装飾を組み合わせます。 */
@@ -121,7 +121,7 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition BOSS_SAFE_BEACON =
         new SharedParticleDefinition("boss_safe_beacon", Particle.END_ROD, 4, 0, 0, 0, 0);
 
-    /** 館主の危険面。最低密度でも一点一粒を残す幽翠色。 */
+    /** 館主の危険面。点間隔で密度を表す幽翠色。 */
     public static final SharedParticleDefinition VESPERALA_WARNING =
         new SharedParticleDefinition("vesperala_warning", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(65, 225, 140), 1.15F));

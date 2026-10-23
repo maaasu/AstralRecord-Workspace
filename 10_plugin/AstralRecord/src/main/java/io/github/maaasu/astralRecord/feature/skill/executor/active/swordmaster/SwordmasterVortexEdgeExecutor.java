@@ -44,10 +44,10 @@ public final class SwordmasterVortexEdgeExecutor extends SwordmasterSkillSupport
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         Location center = context.player().getLocation().add(0.0D, 0.8D, 0.0D);
-        List<Location> spiral = new ArrayList<>(96);
+        List<Location> spiral = new ArrayList<>(192);
         for (int arm = 0; arm < 3; arm++) {
-            for (int point = 0; point < 32; point++) {
-                double progress = point / 31.0D;
+            for (int point = 0; point < 64; point++) {
+                double progress = point / 63.0D;
                 double angle = arm * Math.PI * 2.0D / 3.0D + progress * Math.PI * 1.5D;
                 double radius = value(context, "radius") * (1.0D - progress * 0.85D);
                 spiral.add(center.clone().add(Math.cos(angle) * radius,

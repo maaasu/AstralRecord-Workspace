@@ -65,7 +65,7 @@ final class ErivaForestSkillSupport {
      * @param conditionService 行動不能状態の判定先
      * @param particles 閲覧者単位の描画先
      * @param center 描画中心
-     * @param points 最大24点の固定予告座標
+     * @param points 最大48候補点の固定予告座標
      * @param warning 予告粒子
      * @param impact 20tick後に一度だけ実行する効果
      */

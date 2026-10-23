@@ -57,7 +57,7 @@ public final class ErivaBarkRootSweepMobSkillExecutor implements MobSkillExecuto
     /** @return 4m・120tick再使用・24tick詠唱 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(4.0D, 120L, 24L); }
 
-    /** @param context 詠唱開始時の方向と主対象 @return 固定扇形の予告を開始できた場合true */
+    /** @param context 詠唱開始時の方向と主対象 @return 高密度候補の固定扇形予告を開始できた場合true */
     @Override
     public boolean cast(@NotNull MobSkillContext context) {
         Entity entity = ErivaForestSkillSupport.activeCaster(context, mobService, damageService, conditionService, false);
@@ -67,11 +67,11 @@ public final class ErivaBarkRootSweepMobSkillExecutor implements MobSkillExecuto
         }
         direction.normalize();
         Location center = entity.getLocation();
-        List<Location> points = new ArrayList<>(24);
+        List<Location> points = new ArrayList<>(48);
         double facing = Math.atan2(direction.getZ(), direction.getX());
         for (int row = 1; row <= 3; row++) {
-            for (int column = 0; column < 8; column++) {
-                double angle = facing - Math.PI / 4.0D + Math.PI / 2.0D * column / 7.0D;
+            for (int column = 0; column < 16; column++) {
+                double angle = facing - Math.PI / 4.0D + Math.PI / 2.0D * column / 15.0D;
                 double radius = 4.0D * row / 3.0D;
                 points.add(center.clone().add(Math.cos(angle) * radius, 0.1D, Math.sin(angle) * radius));
             }

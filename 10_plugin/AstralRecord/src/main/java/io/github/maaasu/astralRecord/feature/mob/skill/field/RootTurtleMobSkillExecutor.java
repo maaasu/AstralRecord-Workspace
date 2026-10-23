@@ -251,17 +251,17 @@ public final class RootTurtleMobSkillExecutor implements MobSkillExecutor {
             particles.spawnForNearbyViewers(center, points(), SharedParticleDefinitions.MOB_ERIVA_ROOT_WARNING);
         }
 
-        /** 当たり判定の境界と同じ円、および根筋を最大36点で表現します。 */
+        /** 当たり判定の境界と同じ円、および根筋を最大72候補点で表現します。 */
         private List<Location> points() {
-            List<Location> result = new ArrayList<>(36);
-            for (int i = 0; i < 24; i++) {
-                double angle = Math.PI * 2 * i / 24;
+            List<Location> result = new ArrayList<>(72);
+            for (int i = 0; i < 48; i++) {
+                double angle = Math.PI * 2 * i / 48;
                 result.add(center.clone().add(Math.cos(angle) * RADIUS, 0.08D, Math.sin(angle) * RADIUS));
             }
             for (int arm = 0; arm < 4; arm++) {
                 double angle = Math.PI * arm / 2;
-                for (int j = 1; j <= 3; j++) result.add(center.clone().add(
-                        Math.cos(angle) * j * 0.4D, 0.08D, Math.sin(angle) * j * 0.4D));
+                for (int j = 1; j <= 6; j++) result.add(center.clone().add(
+                        Math.cos(angle) * j * 0.2D, 0.08D, Math.sin(angle) * j * 0.2D));
             }
             return result;
         }

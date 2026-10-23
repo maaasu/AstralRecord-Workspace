@@ -13,8 +13,8 @@ import java.util.List;
 
 /** ボスの攻撃予見と、安全地帯の輪郭・立体的な標識を共通化します。 */
 public final class BossParticleEffect {
-    private static final int MAX_SAFE_POINTS = 512;
-    private static final int MAX_BEACON_ANCHORS = 16;
+    private static final int MAX_SAFE_POINTS = 1024;
+    private static final int MAX_BEACON_ANCHORS = 32;
 
     private BossParticleEffect() {}
 
@@ -32,7 +32,7 @@ public final class BossParticleEffect {
     }
 
     /**
-     * 判定側が用意した安全地点を緑で示し、輪郭上の最大16地点に白い縦装飾を加えます。
+     * 判定側が用意した安全地点を緑で示し、輪郭上の最大32候補地点に白い縦装飾を加えます。
      * Bukkitメインスレッドから呼び出し、既存の粒子密度・近傍閲覧者判定を適用します。
      * @param particles 共通の粒子表示サービス
      * @param center 閲覧者判定の中心
@@ -52,6 +52,9 @@ public final class BossParticleEffect {
         for (int index = 0; index < anchors; index++) {
             Location point = outline.get(index * outline.size() / anchors);
             beacons.add(point.clone().add(0.0D, 0.55D, 0.0D));
+        }
+        for (int index = 0; index < anchors; index++) {
+            Location point = outline.get(index * outline.size() / anchors);
             beacons.add(point.clone().add(0.0D, 1.1D, 0.0D));
         }
         particles.spawnForNearbyViewers(center, beacons, SharedParticleDefinitions.BOSS_SAFE_BEACON);

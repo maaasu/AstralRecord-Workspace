@@ -25,7 +25,7 @@ final class WizardArcaneOverloadEffects {
 
     /**
      * 詠唱進捗に合わせ、発動者の周囲から三本の螺旋を魔力核へ収束させます。
-     * 4tickごとに最大66点を一括描画し、音は8tickごとに限定します。
+     * 4tickごとに最大132候補点を一括描画し、音は8tickごとに限定します。
      * 設置物や別タスクを持たないため、詠唱中断後に演出を継続しません。
      *
      * @param effects 共通演出サービス
@@ -39,20 +39,24 @@ final class WizardArcaneOverloadEffects {
         double progress = Math.clamp((double) elapsedTicks / Math.max(1L, totalTicks), 0.0D, 1.0D);
         Location core = caster.getLocation().add(0.0D, 1.05D, 0.0D);
         double radius = 1.15D - progress * 0.75D;
-        List<Location> ribbons = new ArrayList<>(54);
-        List<Location> motes = new ArrayList<>(6);
+        List<Location> ribbons = new ArrayList<>(108);
+        List<Location> motes = new ArrayList<>(12);
         for (int arm = 0; arm < 3; arm++) {
-            for (int step = 0; step < 18; step++) {
-                double fraction = (double) step / 17;
+            for (int step = 0; step < 36; step++) {
+                double fraction = (double) step / 35;
                 double angle = arm * Math.PI * 2.0D / 3.0D + elapsedTicks * 0.15D + fraction * Math.PI;
                 double orbit = radius * (1.0D - fraction * 0.55D);
                 ribbons.add(core.clone().add(Math.cos(angle) * orbit,
                         (fraction - 0.5D) * 1.25D, Math.sin(angle) * orbit));
             }
             double angle = arm * Math.PI * 2.0D / 3.0D + elapsedTicks * 0.15D;
-            motes.add(core.clone().add(Math.cos(angle) * radius, -0.5D, Math.sin(angle) * radius));
-            motes.add(core.clone().add(Math.cos(angle + Math.PI) * radius * 0.45D,
-                    0.5D, Math.sin(angle + Math.PI) * radius * 0.45D));
+            Location lower = core.clone().add(Math.cos(angle) * radius, -0.5D, Math.sin(angle) * radius);
+            Location upper = core.clone().add(Math.cos(angle + Math.PI) * radius * 0.45D,
+                    0.5D, Math.sin(angle + Math.PI) * radius * 0.45D);
+            motes.add(lower);
+            motes.add(lower.clone().add(0.0D, 0.06D, 0.0D));
+            motes.add(upper);
+            motes.add(upper.clone().add(0.0D, 0.06D, 0.0D));
         }
         effects.points(core, ribbons, SharedParticleDefinitions.WIZARD_OVERLOAD_ARC);
         effects.ring(core, 0.15D + progress * 0.18D, 6, SharedParticleDefinitions.WIZARD_OVERLOAD_CORE);
@@ -79,13 +83,14 @@ final class WizardArcaneOverloadEffects {
         SkillEffectService effects = context.services().effects();
         Location core = center.clone().add(0.0D, 0.65D, 0.0D);
         effects.line(context.eyeLocation(), core, 0.45D, SharedParticleDefinitions.WIZARD_OVERLOAD_ARC);
-        List<Location> rays = new ArrayList<>(48);
+        List<Location> rays = new ArrayList<>(96);
         for (int arm = 0; arm < 6; arm++) {
             double angle = arm * Math.PI / 3.0D;
-            for (int step = 1; step <= 8; step++) {
-                double distance = radius * step / 8.0D;
+            for (int step = 1; step <= 16; step++) {
+                double progress = step / 2.0D;
+                double distance = radius * progress / 8.0D;
                 rays.add(center.clone().add(Math.cos(angle) * distance,
-                        0.12D + Math.sin(step * Math.PI / 8.0D) * 0.3D, Math.sin(angle) * distance));
+                        0.12D + Math.sin(progress * Math.PI / 8.0D) * 0.3D, Math.sin(angle) * distance));
             }
         }
         effects.points(center, rays, SharedParticleDefinitions.WIZARD_OVERLOAD_ARC);
@@ -124,7 +129,7 @@ final class WizardArcaneOverloadEffects {
 
     /**
      * 地表の衝撃輪と上半球の二本の弧を一括描画します。
-     * 増幅時の追加弧を含め最大128点で、拡大半径は実際の攻撃半径以内です。
+     * 増幅時の追加弧を含め最大256候補点で、拡大半径は実際の攻撃半径以内です。
      *
      * @param effects 共通演出サービス
      * @param center 固定した攻撃中心
@@ -134,11 +139,11 @@ final class WizardArcaneOverloadEffects {
      */
     private static void shockwave(@NotNull SkillEffectService effects, @NotNull Location center,
                                   double radius, int frame, boolean empowered) {
-        List<Location> shell = new ArrayList<>(64);
+        List<Location> shell = new ArrayList<>(128);
         for (int arc = 0; arc < 2; arc++) {
             double plane = arc * Math.PI / 2.0D + frame * 0.12D;
-            for (int point = 0; point < 32; point++) {
-                double angle = Math.PI * point / 31.0D;
+            for (int point = 0; point < 64; point++) {
+                double angle = Math.PI * point / 63.0D;
                 shell.add(center.clone().add(Math.cos(plane) * Math.cos(angle) * radius,
                         0.12D + Math.sin(angle) * radius, Math.sin(plane) * Math.cos(angle) * radius));
             }
@@ -146,9 +151,9 @@ final class WizardArcaneOverloadEffects {
         effects.points(center, shell, SharedParticleDefinitions.WIZARD_OVERLOAD_ARC);
         effects.ring(center, radius, RING_POINTS, SharedParticleDefinitions.WIZARD_OVERLOAD_CORE);
         if (empowered) {
-            List<Location> crown = new ArrayList<>(32);
-            for (int point = 0; point < 32; point++) {
-                double angle = Math.PI * 2.0D * point / 32.0D;
+            List<Location> crown = new ArrayList<>(64);
+            for (int point = 0; point < 64; point++) {
+                double angle = Math.PI * 2.0D * point / 64.0D;
                 crown.add(center.clone().add(Math.cos(angle) * radius * 0.7D,
                         0.12D + radius * 0.7D, Math.sin(angle) * radius * 0.7D));
             }

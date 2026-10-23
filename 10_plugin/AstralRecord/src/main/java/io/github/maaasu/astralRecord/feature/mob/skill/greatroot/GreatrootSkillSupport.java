@@ -127,7 +127,7 @@ public final class GreatrootSkillSupport {
     }
 
     /**
-     * 最大24点を閲覧者一括で描画し、予告だけ共通の警告色を適用します。
+     * 最大48候補点を閲覧者一括で描画し、予告だけ共通の警告色を適用します。
      * @param context 発動文脈
      * @param center 閲覧者を検索する中心
      * @param points 固定描画点
@@ -136,20 +136,20 @@ public final class GreatrootSkillSupport {
      */
     void draw(MobSkillContext context, Location center, List<Location> points,
             SharedParticleDefinition definition, boolean warning) {
-        particles.spawnForNearbyViewers(center, points.subList(0, Math.min(24, points.size())),
+        particles.spawnForNearbyViewers(center, points.subList(0, Math.min(48, points.size())),
                 warning ? BossParticleEffect.attackWarning(context.mob(), definition) : definition);
     }
 
     /**
-     * 足元に固定する最大24点の円周を作成します。
+     * 足元に固定する最大48候補点の円周を作成します。
      * @param center 固定中心
      * @param radius 半径
-     * @param count 希望点数。3から24へ補正
+     * @param count 標準密度での希望点数。3から24へ補正
      * @return 足元から0.1m上の円周点
      */
     static List<Location> circle(Location center, double radius, int count) {
         List<Location> points = new ArrayList<>();
-        int capped = Math.min(24, Math.max(3, count));
+        int capped = Math.min(24, Math.max(3, count)) * 2;
         for (int i = 0; i < capped; i++) {
             double angle = Math.PI * 2 * i / capped;
             points.add(center.clone().add(Math.cos(angle) * radius, 0.1, Math.sin(angle) * radius));

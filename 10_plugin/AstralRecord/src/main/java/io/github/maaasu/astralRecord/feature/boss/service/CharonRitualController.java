@@ -62,7 +62,7 @@ final class CharonRitualController {
     private static final double SAFE_RADIUS = 4.0D;
     private static final long FIRST_WAVE_TICKS = 70L;
     private static final long RECOVERY_TICKS = 60L;
-    private static final int MAX_PARTICLE_POINTS = 512;
+    private static final int MAX_PARTICLE_POINTS = 1024;
     private static final Color VIOLET = Color.fromRGB(180, 75, 235);
     private static final Color CYAN = Color.fromRGB(80, 235, 255);
 
@@ -451,18 +451,18 @@ final class CharonRitualController {
             if (sequence.step + 1 < sequence.safeCenters.size()) {
                 List<Location> route = new ArrayList<>();
                 Beam path = new Beam(sequence.safeCenters.get(sequence.step), sequence.safeCenters.get(sequence.step + 1));
-                for (int index = 0; index <= 16; index++) {
-                    route.add(interpolate(path, index / 16.0D).add(0, 0.2D, 0));
+                for (int index = 0; index <= 32; index++) {
+                    route.add(interpolate(path, index / 32.0D).add(0, 0.2D, 0));
                 }
                 ring(route, path.to, SAFE_RADIUS, 32);
                 draw(sequence.center, route, SharedParticleDefinitions.BOSS_SAFE_BEACON);
             }
         }
         List<Location> spiral = new ArrayList<>();
-        for (int index = 0; index < 40; index++) {
-            double angle = tick * 0.07D + index * Math.PI / 10.0D;
-            double radius = 2.0D + index * 0.1D;
-            spiral.add(sequence.center.clone().add(Math.cos(angle) * radius, 1.0D + index * 0.1D, Math.sin(angle) * radius));
+        for (int index = 0; index < 80; index++) {
+            double angle = tick * 0.07D + index * Math.PI / 20.0D;
+            double radius = 2.0D + index * 0.05D;
+            spiral.add(sequence.center.clone().add(Math.cos(angle) * radius, 1.0D + index * 0.05D, Math.sin(angle) * radius));
         }
         draw(sequence.center, danger, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         if (sequence.kind == Kind.RIVER) {
@@ -813,10 +813,10 @@ final class CharonRitualController {
         return beam.from.clone().add(beam.to.toVector().subtract(beam.from.toVector()).multiply(t));
     }
 
-    /** ビーム中央と両側の境界を、1ブロック以下の間隔・有限の点数で描きます。 */
+    /** ビーム中央と両側の境界を、0.5ブロック以下の最大密度候補間隔で描きます。 */
     private static void appendBeam(@NotNull List<Location> points, @NotNull Beam beam, double halfWidth) {
         Vector direction = beam.to.toVector().subtract(beam.from.toVector()).setY(0);
-        int count = Math.clamp((int) Math.ceil(direction.length()), 1, 52);
+        int count = Math.clamp((int) Math.ceil(direction.length() * 2.0D), 2, 104);
         if (direction.lengthSquared() < 0.001D) {
             return;
         }
@@ -836,15 +836,16 @@ final class CharonRitualController {
         return dx * dx + dz * dz;
     }
 
-    /** 有限点数の円周を、地面より少し上へ追加します。 */
+    /** 標準密度の指定点数の2倍で、地面より少し上へ円周候補を追加します。 */
     private static void ring(@NotNull List<Location> points, @NotNull Location center, double radius, int count) {
-        for (int index = 0; index < count; index++) {
-            double angle = index * Math.PI * 2.0D / count;
+        int candidateCount = count * 2;
+        for (int index = 0; index < candidateCount; index++) {
+            double angle = index * Math.PI * 2.0D / candidateCount;
             points.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
         }
     }
 
-    /** 全域から均等に最大512点を取り、後半の河道や灯を落とさず閲覧者解決をバッチ化します。 */
+    /** 全域から均等に最大1024候補点を取り、後半の河道や灯を落とさず閲覧者解決をバッチ化します。 */
     private void draw(@NotNull Location center, @NotNull List<Location> points, @NotNull SharedParticleDefinition definition) {
         List<Location> selected = points;
         if (points.size() > MAX_PARTICLE_POINTS) {

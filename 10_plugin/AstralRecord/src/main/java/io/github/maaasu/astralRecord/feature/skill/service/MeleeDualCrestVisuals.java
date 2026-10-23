@@ -31,22 +31,24 @@ final class MeleeDualCrestVisuals {
             double[][] vertices = {{-0.22D, 0.20D}, {0.22D, 0.20D}, {0.18D, -0.10D},
                     {0.0D, -0.34D}, {-0.18D, -0.10D}, {-0.22D, 0.20D}};
             for (int edge = 1; edge < vertices.length; edge++) {
-                for (int step = 0; step < 5; step++) {
-                    double t = step / 5.0D;
+                for (int step = 0; step < 10; step++) {
+                    double t = step / 10.0D;
                     double x = vertices[edge - 1][0] * (1.0D - t) + vertices[edge][0] * t;
                     double y = vertices[edge - 1][1] * (1.0D - t) + vertices[edge][1] * t;
                     points.add(crest.clone().add(right.clone().multiply(x)).add(0.0D, y, 0.0D));
                 }
             }
         } else {
-            for (int step = 0; step < 13; step++) {
-                double y = -0.35D + step * 0.055D;
-                double width = step > 8 ? (12 - step) * 0.022D : 0.04D;
-                points.add(crest.clone().add(right.clone().multiply(width)).add(0.0D, y, 0.0D));
-                points.add(crest.clone().add(right.clone().multiply(-width)).add(0.0D, y, 0.0D));
+            for (int side : new int[] {-1, 1}) {
+                for (int step = 0; step < 26; step++) {
+                    double progress = step / 2.0D;
+                    double y = -0.35D + progress * 0.055D;
+                    double width = progress > 8 ? (12 - progress) * 0.022D : 0.04D;
+                    points.add(crest.clone().add(right.clone().multiply(side * width)).add(0.0D, y, 0.0D));
+                }
             }
-            for (int step = 0; step < 7; step++) {
-                points.add(crest.clone().add(right.clone().multiply(-0.18D + step * 0.06D))
+            for (int step = 0; step < 14; step++) {
+                points.add(crest.clone().add(right.clone().multiply(-0.18D + step * 0.03D))
                         .add(0.0D, -0.15D, 0.0D));
             }
         }
@@ -64,7 +66,7 @@ final class MeleeDualCrestVisuals {
         Vector up = right.clone().crossProduct(forward).normalize();
         List<Location> silver = new ArrayList<>();
         List<Location> gold = new ArrayList<>();
-        int points = 25;
+        int points = 49;
         for (int index = 0; index < points; index++) {
             double t = index / (double) (points - 1);
             double angle = t * Math.PI * 3.0D;
@@ -75,8 +77,8 @@ final class MeleeDualCrestVisuals {
             silver.add(middle.clone().add(twist));
             gold.add(middle.clone().subtract(twist));
         }
-        effects.pointsNearViewers(silver, SharedParticleDefinitions.SWORDMASTER_SILVER);
-        effects.pointsNearViewers(gold, SharedParticleDefinitions.SWORDMASTER_GOLD);
+        effects.points(origin, silver, SharedParticleDefinitions.SWORDMASTER_SILVER);
+        effects.points(origin, gold, SharedParticleDefinitions.SWORDMASTER_GOLD);
         effects.sound(origin, Sound.ITEM_SHIELD_BLOCK, 0.35F, 1.5F);
         effects.sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.42F, 1.4F);
     }
@@ -90,8 +92,8 @@ final class MeleeDualCrestVisuals {
         Vector up = right.clone().crossProduct(direction).normalize();
         List<Location> silver = new ArrayList<>();
         List<Location> gold = new ArrayList<>();
-        for (int index = 0; index < 25; index++) {
-            double angle = -Math.PI * 0.8D + index / 24.0D * Math.PI * 1.6D;
+        for (int index = 0; index < 49; index++) {
+            double angle = -Math.PI * 0.8D + index / 48.0D * Math.PI * 1.6D;
             double x = Math.cos(angle) * 0.85D;
             double y = Math.sin(angle) * 0.85D;
             silver.add(target.clone().add(right.clone().multiply(x * 0.7D - y * 0.7D))
@@ -99,8 +101,8 @@ final class MeleeDualCrestVisuals {
             gold.add(target.clone().add(right.clone().multiply(x * 0.7D + y * 0.7D))
                     .add(up.clone().multiply(-x * 0.7D + y * 0.7D)));
         }
-        for (int index = 0; index < 16; index++) {
-            double angle = index / 16.0D * Math.PI * 2.0D;
+        for (int index = 0; index < 32; index++) {
+            double angle = index / 32.0D * Math.PI * 2.0D;
             double x = Math.cos(angle), y = Math.sin(angle);
             double radius = 0.35D / (Math.abs(x) + Math.abs(y));
             gold.add(target.clone().add(right.clone().multiply(x * radius)).add(up.clone().multiply(y * radius)));

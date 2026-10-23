@@ -189,22 +189,24 @@ public final class ReedHoundMobSkillExecutor implements MobSkillExecutor, Listen
     private final class Charge extends BukkitRunnable {
         private final MobSkillContext context;
         private final Vector direction;
-        private final List<Location> warning = new ArrayList<>(16);
+        private final List<Location> warning = new ArrayList<>(32);
         private Location position;
         private BukkitTask task;
         private int elapsed;
         private int steps;
 
-        /** 固定照準と16点の予告線を保存します。 */
+        /** 固定照準と32候補点の予告線を保存します。 */
         private Charge(MobSkillContext context, Location start, Vector direction) {
             this.context = context;
             this.position = start.clone();
             this.direction = direction.clone();
             Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX()).multiply(0.4D);
-            for (int row = 0; row <= 7; row++) {
-                Location point = start.clone().add(direction.clone().multiply(row * 0.75D)).add(0, 0.1D, 0);
-                warning.add(point.clone().add(side));
-                warning.add(point.clone().subtract(side));
+            for (int lane : new int[] {-1, 1}) {
+                for (int row = 0; row < 16; row++) {
+                    Location point = start.clone().add(direction.clone().multiply(row * 5.25D / 15.0D))
+                            .add(0, 0.1D, 0);
+                    warning.add(point.add(side.clone().multiply(lane)));
+                }
             }
         }
 

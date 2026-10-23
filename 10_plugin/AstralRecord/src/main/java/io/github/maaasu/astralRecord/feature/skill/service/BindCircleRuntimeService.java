@@ -187,10 +187,10 @@ public final class BindCircleRuntimeService {
                 displays.get(index).teleport(base.clone().add(
                         Math.cos(angle) * 0.8D, 0.95D, Math.sin(angle) * 0.8D));
             }
-            List<Location> points = new ArrayList<>(32);
-            for (int index = 0; index < 16; index++) {
-                double angle = index * Math.PI * 2.0D / 16.0D;
-                for (double height : new double[]{0.35D, 1.55D}) {
+            List<Location> points = new ArrayList<>(64);
+            for (double height : new double[]{0.35D, 1.55D}) {
+                for (int index = 0; index < 32; index++) {
+                    double angle = index * Math.PI * 2.0D / 32.0D;
                     points.add(base.clone().add(Math.cos(angle) * 0.85D, height, Math.sin(angle) * 0.85D));
                 }
             }

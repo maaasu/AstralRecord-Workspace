@@ -28,6 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +41,7 @@ public final class ReturnToBaseService {
     private static final long BASE_GOLD_COST = 100L;
     private static final long RETURN_DELAY_TICKS = 60L;
     private static final long EFFECT_PERIOD_TICKS = 5L;
-    private static final int RING_POINTS = 10;
+    private static final int RING_POINTS = 20;
     private static final Title.Times COUNTDOWN_TITLE_TIMES =
         Title.Times.times(Duration.ZERO, Duration.ofMillis(1100L), Duration.ofMillis(150L));
     private static final Title.Times RESULT_TITLE_TIMES =
@@ -428,19 +430,23 @@ public final class ReturnToBaseService {
         playChargeEffects(player, 0L);
     }
 
+    /**
+     * 帰還詠唱中のリングを最大密度向け候補点で表示します。
+     * @param player 詠唱中のプレイヤー
+     * @param elapsedTicks 詠唱開始からの経過tick
+     */
     private void playChargeEffects(@NotNull Player player, long elapsedTicks) {
         Location base = player.getLocation().clone();
         double radius = 0.8D + (Math.sin(elapsedTicks * 0.18D) * 0.08D);
+        List<Location> ring = new ArrayList<>(RING_POINTS);
         for (int index = 0; index < RING_POINTS; index++) {
             double angle = (elapsedTicks * 0.2D) + ((Math.PI * 2.0D * index) / RING_POINTS);
             double x = Math.cos(angle) * radius;
             double z = Math.sin(angle) * radius;
             double y = 0.25D + (Math.sin(angle + (elapsedTicks * 0.12D)) * 0.12D);
-            particleDisplayService.spawnForNearbyViewers(
-                base.clone().add(x, y, z),
-                SharedParticleDefinitions.BASE_RETURN_RING_END_ROD
-            );
+            ring.add(base.clone().add(x, y, z));
         }
+        particleDisplayService.spawnForNearbyViewers(base, ring, SharedParticleDefinitions.BASE_RETURN_RING_END_ROD);
         particleDisplayService.spawnForNearbyViewers(
             base.clone().add(0.0D, 1.0D, 0.0D),
             SharedParticleDefinitions.BASE_RETURN_PORTAL
@@ -450,21 +456,25 @@ public final class ReturnToBaseService {
         }
     }
 
+    /**
+     * 帰還後のリングと中心の効果を最大密度向け候補点で表示します。
+     * @param player 帰還したプレイヤー
+     */
     private void playArrivalEffects(@NotNull Player player) {
         Location base = player.getLocation().clone();
         particleDisplayService.spawnForNearbyViewers(
             base.clone().add(0.0D, 1.0D, 0.0D),
             SharedParticleDefinitions.BASE_RETURN_PORTAL.withCount(24)
         );
-        for (int index = 0; index < RING_POINTS + 2; index++) {
-            double angle = (Math.PI * 2.0D * index) / (RING_POINTS + 2);
+        int arrivalPoints = RING_POINTS + 4;
+        List<Location> ring = new ArrayList<>(arrivalPoints);
+        for (int index = 0; index < arrivalPoints; index++) {
+            double angle = (Math.PI * 2.0D * index) / arrivalPoints;
             double x = Math.cos(angle) * 1.2D;
             double z = Math.sin(angle) * 1.2D;
-            particleDisplayService.spawnForNearbyViewers(
-                base.clone().add(x, 0.35D, z),
-                SharedParticleDefinitions.BASE_RETURN_RING_END_ROD
-            );
+            ring.add(base.clone().add(x, 0.35D, z));
         }
+        particleDisplayService.spawnForNearbyViewers(base, ring, SharedParticleDefinitions.BASE_RETURN_RING_END_ROD);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 0.9F, 1.05F);
     }
 

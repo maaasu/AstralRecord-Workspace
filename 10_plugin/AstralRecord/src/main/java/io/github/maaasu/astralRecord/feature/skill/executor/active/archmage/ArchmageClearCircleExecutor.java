@@ -184,10 +184,11 @@ public final class ArchmageClearCircleExecutor extends PlayerActiveSkillExecutor
             services.effects().points(center, gold, SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_GOLD);
         }
 
-        /** 水平な円を追加します。 */
+        /** 水平な円へ標準密度の倍の候補点を追加します。 */
         private void ring(@NotNull List<Location> points, double radius, int count) {
-            for (int index = 0; index < count; index++) {
-                dot(points, TWO_PI * index / count, radius);
+            int candidates = count * 2;
+            for (int index = 0; index < candidates; index++) {
+                dot(points, TWO_PI * index / candidates, radius);
             }
         }
 
@@ -196,8 +197,8 @@ public final class ArchmageClearCircleExecutor extends PlayerActiveSkillExecutor
             for (int edge = 0; edge < 4; edge++) {
                 double from = edge * Math.PI / 2.0D;
                 double to = (edge + 1) * Math.PI / 2.0D;
-                for (int step = 0; step < 5; step++) {
-                    double t = step / 5.0D;
+                for (int step = 0; step < 10; step++) {
+                    double t = step / 10.0D;
                     double along = distance + size * (Math.cos(from) * (1.0D - t) + Math.cos(to) * t);
                     double side = size * (Math.sin(from) * (1.0D - t) + Math.sin(to) * t);
                     point(points, Math.cos(angle) * along - Math.sin(angle) * side,
@@ -216,17 +217,21 @@ public final class ArchmageClearCircleExecutor extends PlayerActiveSkillExecutor
         private void cross(@NotNull List<Location> points, double angle, double distance, double arm) {
             double x = Math.cos(angle) * distance;
             double z = Math.sin(angle) * distance;
-            for (int index = -4; index <= 4; index++) {
-                double offset = arm * index / 4.0D;
+            for (int index = -8; index <= 8; index++) {
+                double offset = arm * index / 8.0D;
                 point(points, x + Math.cos(angle) * offset, z + Math.sin(angle) * offset);
+            }
+            for (int index = -8; index <= 8; index++) {
+                double offset = arm * index / 8.0D;
                 point(points, x - Math.sin(angle) * offset, z + Math.cos(angle) * offset);
             }
         }
 
         /** 四方の紋様に沿う短い弧を追加します。 */
         private void arc(@NotNull List<Location> points, double angle, double distance, double width, int count) {
-            for (int index = 0; index < count; index++) {
-                double t = (index / (double) (count - 1) - 0.5D) * Math.PI;
+            int candidates = count * 2 - 1;
+            for (int index = 0; index < candidates; index++) {
+                double t = (index / (double) (candidates - 1) - 0.5D) * Math.PI;
                 double along = distance + width * Math.cos(t);
                 double across = width * Math.sin(t);
                 point(points, Math.cos(angle) * along - Math.sin(angle) * across,

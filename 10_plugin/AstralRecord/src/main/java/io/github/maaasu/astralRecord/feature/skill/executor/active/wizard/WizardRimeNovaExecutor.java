@@ -142,19 +142,19 @@ public final class WizardRimeNovaExecutor extends WizardSkillSupport {
 
         /** 六本の枝と小枝を持つ雪の結晶を発動地点の足元へ一度描画します。 */
         private void drawSigil(ActiveSkillServices services) {
-            List<Location> points = new ArrayList<>(144);
+            List<Location> points = new ArrayList<>(288);
             for (int ray = 0; ray < CRYSTAL_COUNT; ray++) {
                 double angle = ray * Math.PI / 3.0D;
-                for (int step = 1; step <= 8; step++) {
-                    double distance = step * 0.22D;
+                for (int step = 1; step <= 16; step++) {
+                    double distance = step * 0.11D;
                     points.add(point(angle, distance, -0.52D));
-                    if (step == 4 || step == 6) {
+                    if (step == 8 || step == 12) {
                         Location branch = point(angle, distance, -0.52D);
                         for (int side : new int[]{-1, 1}) {
-                            for (int twig = 1; twig <= 4; twig++) {
+                            for (int twig = 1; twig <= 8; twig++) {
                                 double branchAngle = angle + side * Math.PI / 3.0D;
-                                points.add(branch.clone().add(Math.cos(branchAngle) * twig * 0.14D,
-                                        0.0D, Math.sin(branchAngle) * twig * 0.14D));
+                                points.add(branch.clone().add(Math.cos(branchAngle) * twig * 0.07D,
+                                        0.0D, Math.sin(branchAngle) * twig * 0.07D));
                             }
                         }
                     }
@@ -171,9 +171,9 @@ public final class WizardRimeNovaExecutor extends WizardSkillSupport {
                     SharedParticleDefinitions.WIZARD_RIME_WAVE);
             services.effects().ring(center.clone().add(0.0D, 0.2D, 0.0D), waveRadius, 48,
                     SharedParticleDefinitions.WIZARD_RIME_SIGIL);
-            List<Location> flakes = new ArrayList<>(24);
-            for (int index = 0; index < 24; index++) {
-                flakes.add(point(Math.PI * 2.0D * index / 24.0D + frame * 0.08D, waveRadius, 0.15D));
+            List<Location> flakes = new ArrayList<>(48);
+            for (int index = 0; index < 48; index++) {
+                flakes.add(point(Math.PI * 2.0D * index / 48.0D + frame * 0.08D, waveRadius, 0.15D));
             }
             services.effects().points(center, flakes, SharedParticleDefinitions.WIZARD_RIME_SNOW);
         }

@@ -166,15 +166,15 @@ public final class ShadeHedgehogMobSkillExecutor implements MobSkillExecutor {
                 && loadedInside(caster.getLocation()) && loadedInside(context.target().getLocation()) ? caster : null;
     }
 
-    /** 外周24点と内側4点で円内全体が危険なことを示します。 */
+    /** 外周48候補点と内側8候補点で円内全体が危険なことを示します。 */
     private List<Location> outline(Location center) {
-        List<Location> points = new ArrayList<>(28);
-        for (int i = 0; i < 24; i++) {
-            double angle = Math.PI * 2.0D * i / 24.0D;
+        List<Location> points = new ArrayList<>(56);
+        for (int i = 0; i < 48; i++) {
+            double angle = Math.PI * 2.0D * i / 48.0D;
             points.add(center.clone().add(Math.cos(angle) * RADIUS, 0.12D, Math.sin(angle) * RADIUS));
         }
-        for (int i = 0; i < 4; i++) {
-            double angle = Math.PI * 0.5D * i;
+        for (int i = 0; i < 8; i++) {
+            double angle = Math.PI * 0.25D * i;
             points.add(center.clone().add(Math.cos(angle) * 1.5D, 0.12D, Math.sin(angle) * 1.5D));
         }
         return List.copyOf(points);
@@ -265,10 +265,10 @@ public final class ShadeHedgehogMobSkillExecutor implements MobSkillExecutor {
 
         /** 放出は主対象1体だけへ行い、同じ対象へ多段命中・残留接触を作りません。 */
         private void releaseNeedles() {
-            List<Location> needles = new ArrayList<>(48);
-            for (int i = 0; i < 12; i++) {
-                double angle = Math.PI * 2.0D * i / 12.0D;
-                for (int step = 1; step <= 4; step++) {
+            List<Location> needles = new ArrayList<>(96);
+            for (int step = 1; step <= 4; step++) {
+                for (int i = 0; i < 24; i++) {
+                    double angle = Math.PI * 2.0D * i / 24.0D;
                     double distance = RADIUS * step / 4.0D;
                     needles.add(center.clone().add(Math.cos(angle) * distance, 0.45D, Math.sin(angle) * distance));
                 }

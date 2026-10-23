@@ -138,7 +138,7 @@ public final class DungeonService {
     private static final long DUNGEON_MOB_POSITION_CHECK_PERIOD_TICKS = 1L;
     private static final long ROOM_BOSS_BAR_UPDATE_PERIOD_TICKS = 5L;
     private static final long MOB_RETURN_SEARCH_RETRY_TICKS = 20L;
-    private static final int ENTRY_FRAME_POINTS = 20;
+    private static final int ENTRY_FRAME_POINTS = 39;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
     private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
@@ -5102,7 +5102,7 @@ public final class DungeonService {
     }
 
     /**
-     * Boss の円環と区別できる門型パーティクル座標を生成します。
+     * Boss の円環と区別できる門型パーティクルを最大密度向け候補点で生成します。
      *
      * @param center 受付中心と向き
      * @param halfWidth 門の半幅
@@ -5119,16 +5119,16 @@ public final class DungeonService {
         double rightX = Math.cos(yaw);
         double rightZ = Math.sin(yaw);
         for (int side : List.of(-1, 1)) {
-            for (int i = 0; i <= 6; i++) {
+            for (int i = 0; i <= 12; i++) {
                 points.add(center.clone().add(
                         rightX * halfWidth * side,
-                        0.2D + (i * 0.38D) + pulse,
+                        0.2D + (i * 0.19D) + pulse,
                         rightZ * halfWidth * side
                 ));
             }
         }
-        for (int i = 0; i <= 6; i++) {
-            double offset = -halfWidth + ((halfWidth * 2.0D * i) / 6.0D);
+        for (int i = 0; i <= 12; i++) {
+            double offset = -halfWidth + ((halfWidth * 2.0D * i) / 12.0D);
             points.add(center.clone().add(
                     rightX * offset,
                     2.48D + pulse,

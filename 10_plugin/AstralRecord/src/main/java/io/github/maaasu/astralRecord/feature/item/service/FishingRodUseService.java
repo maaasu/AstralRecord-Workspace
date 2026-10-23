@@ -64,8 +64,8 @@ public final class FishingRodUseService {
     static final int ROPE_SEGMENT_COUNT = 20;
     static final int ROPE_NODE_COUNT = ROPE_SEGMENT_COUNT + 1;
     static final int LINE_PARTICLE_INTERVAL_TICKS = 2;
-    static final int MAX_LINE_POINTS_PER_SEGMENT = 4;
-    private static final double LINE_PARTICLE_SPACING = 0.15D;
+    static final int MAX_LINE_POINTS_PER_SEGMENT = 8;
+    private static final double LINE_PARTICLE_SPACING = 0.075D;
     private static final double MAX_LINE_SAG = 0.35D;
     static final double MIN_VECTOR_LENGTH_SQUARED = 1.0E-8D;
     static final Sound CAST_SOUND = Sound.ENTITY_FISHING_BOBBER_THROW;
@@ -674,7 +674,7 @@ public final class FishingRodUseService {
     }
 
     /**
-     * 表示ノード間に小さい黒色dustを配置します。各区間は最大4点とし、viewer探索をまとめます。
+     * 表示ノード間に小さい黒色dustの最大密度候補を配置します。各区間は最大8点とし、viewer探索をまとめます。
      * 長さゼロの区間やviewerのいないworldでは粒子を生成しません。
      *
      * @param active 表示位置となる曲線ノードを保持するキャスト状態

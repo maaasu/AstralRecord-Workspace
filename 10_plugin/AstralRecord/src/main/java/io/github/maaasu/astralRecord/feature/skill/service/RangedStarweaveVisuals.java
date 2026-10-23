@@ -24,11 +24,11 @@ final class RangedStarweaveVisuals {
      */
     void launch(Location origin, Vector direction) {
         Frame frame = frame(direction);
-        List<Location> gold = new ArrayList<>(24);
-        List<Location> cyan = new ArrayList<>(12);
+        List<Location> gold = new ArrayList<>(48);
+        List<Location> cyan = new ArrayList<>(24);
         for (int strand = 0; strand < 3; strand++) {
-            for (int step = 0; step < 12; step++) {
-                double progress = step / 11.0D;
+            for (int step = 0; step < 24; step++) {
+                double progress = step / 23.0D;
                 double angle = strand * Math.PI * 2.0D / 3.0D + progress * Math.PI;
                 double width = Math.sin(progress * Math.PI) * 0.42D;
                 Location point = point(origin, frame, progress * 1.25D,
@@ -36,7 +36,7 @@ final class RangedStarweaveVisuals {
                 (strand == 1 ? cyan : gold).add(point);
             }
         }
-        show(gold, cyan);
+        show(origin, gold, cyan);
         sound(origin, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.45F, 1.65F);
         sound(origin, Sound.ENTITY_ARROW_SHOOT, 0.35F, 1.35F);
     }
@@ -52,10 +52,10 @@ final class RangedStarweaveVisuals {
         double length = segment.length();
         if (length < 1.0E-8D) return;
         Frame frame = frame(segment);
-        List<Location> gold = new ArrayList<>(20);
-        List<Location> cyan = new ArrayList<>(20);
-        for (int index = 0; index < 18; index++) {
-            double progress = index / 17.0D;
+        List<Location> gold = new ArrayList<>(38);
+        List<Location> cyan = new ArrayList<>(36);
+        for (int index = 0; index < 36; index++) {
+            double progress = index / 35.0D;
             double angle = (step + progress) * Math.PI * 2.0D;
             double width = 0.16D * Math.sin(progress * Math.PI);
             gold.add(point(from, frame, progress * length, Math.cos(angle) * width, Math.sin(angle) * width));
@@ -63,7 +63,7 @@ final class RangedStarweaveVisuals {
         }
         gold.add(point(to, frame, -0.25D, 0.14D, 0.0D));
         gold.add(point(to, frame, -0.25D, -0.14D, 0.0D));
-        show(gold, cyan);
+        show(from, gold, cyan);
     }
 
     /**
@@ -73,35 +73,36 @@ final class RangedStarweaveVisuals {
      */
     void impact(Location center, Vector direction) {
         Frame frame = frame(direction);
-        List<Location> gold = new ArrayList<>(32);
-        List<Location> cyan = new ArrayList<>(16);
+        List<Location> gold = new ArrayList<>(64);
+        List<Location> cyan = new ArrayList<>(32);
         for (int arm = 0; arm < 4; arm++) {
             double angle = arm * Math.PI * 0.5D;
-            for (int step = 0; step < 8; step++) {
-                double radius = 0.12D + step * 0.1D;
+            for (int step = 0; step < 16; step++) {
+                double radius = 0.12D + step * 0.05D;
                 gold.add(point(center, frame, 0.0D, Math.cos(angle) * radius, Math.sin(angle) * radius));
             }
-            for (int step = 0; step < 4; step++) {
-                double progress = step / 4.0D;
+            for (int step = 0; step < 8; step++) {
+                double progress = step / 8.0D;
                 double next = angle + Math.PI * 0.5D;
                 cyan.add(point(center, frame, 0.0D,
                         0.34D * (Math.cos(angle) * (1.0D - progress) + Math.cos(next) * progress),
                         0.34D * (Math.sin(angle) * (1.0D - progress) + Math.sin(next) * progress)));
             }
         }
-        show(gold, cyan);
+        show(center, gold, cyan);
         sound(center, Sound.ENTITY_ARROW_HIT, 0.4F, 1.5F);
         sound(center, Sound.BLOCK_AMETHYST_BLOCK_BREAK, 0.3F, 1.8F);
     }
 
     /**
      * 同色の点をまとめて送り、点ごとの閲覧者走査を避けます。
+     * @param center viewer探索の中心
      * @param gold 金色の点群
      * @param cyan 青緑の点群
      */
-    private void show(List<Location> gold, List<Location> cyan) {
-        particles.spawnForNearbyViewers(gold, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_GOLD);
-        particles.spawnForNearbyViewers(cyan, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
+    private void show(Location center, List<Location> gold, List<Location> cyan) {
+        particles.spawnForNearbyViewers(center, gold, SharedParticleDefinitions.SKILL_ARCHMAGE_HEAL_CIRCLE_GOLD);
+        particles.spawnForNearbyViewers(center, cyan, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
     }
 
     /**

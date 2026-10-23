@@ -106,29 +106,29 @@ public final class WizardManaVeilExecutor extends WizardSkillSupport {
     /** 身体に追従する三段の魔力殻と、上昇する回復光を5tickごとに一括描画します。 */
     private static void drawVeil(PlayerActiveSkillContext context, int frame) {
         Location base = context.player().getLocation();
-        List<Location> shell = new ArrayList<>(60);
+        List<Location> shell = new ArrayList<>(120);
         double rotation = frame * 0.16D;
         for (int band = 0; band < 3; band++) {
             double radius = band == 1 ? 0.95D : 0.68D;
-            for (int point = 0; point < 12; point++) {
-                double angle = rotation + Math.PI * 2.0D * point / 12;
+            for (int point = 0; point < 24; point++) {
+                double angle = rotation + Math.PI * 2.0D * point / 24;
                 shell.add(base.clone().add(Math.cos(angle) * radius, 0.25D + band * 0.65D, Math.sin(angle) * radius));
             }
         }
         for (int arc = 0; arc < 4; arc++) {
             double angle = rotation + Math.PI * 0.5D * arc;
-            for (int point = 0; point < 6; point++) {
-                double latitude = -Math.PI * 0.4D + Math.PI * 0.8D * point / 5;
+            for (int point = 0; point < 12; point++) {
+                double latitude = -Math.PI * 0.4D + Math.PI * 0.8D * point / 11;
                 double radius = Math.cos(latitude) * 0.95D;
                 shell.add(base.clone().add(Math.cos(angle) * radius, 0.9D + Math.sin(latitude) * 0.85D,
                         Math.sin(angle) * radius));
             }
         }
         context.services().effects().points(base, shell, SharedParticleDefinitions.WIZARD_MANA_VEIL_SHELL);
-        List<Location> lights = new ArrayList<>(8);
-        for (int point = 0; point < 8; point++) {
-            double angle = -rotation * 2.0D + Math.PI * 2.0D * point / 8;
-            double height = ((frame + point * 3) % 20) / 20.0D * 1.8D;
+        List<Location> lights = new ArrayList<>(16);
+        for (int point = 0; point < 16; point++) {
+            double angle = -rotation * 2.0D + Math.PI * 2.0D * point / 16;
+            double height = ((frame + point * 1.5D) % 20) / 20.0D * 1.8D;
             lights.add(base.clone().add(Math.cos(angle) * 0.78D, height, Math.sin(angle) * 0.78D));
         }
         context.services().effects().points(base, lights, SharedParticleDefinitions.WIZARD_MANA_VEIL_RECOVERY);

@@ -73,7 +73,7 @@ public final class WitchForestSkillSupport {
     }
 
     /**
-     * 24点以下の固定予告を5tickごとに表示し、20tick後に一度だけ効果を実行します。
+     * 最大48候補点の固定予告を5tickごとに表示し、20tick後に一度だけ効果を実行します。
      * 予告中は通常AIを停止し、終了・中断・破棄時に解除します。
      */
     void warnThenImpact(@NotNull MobSkillContext context, @NotNull Location center,

@@ -56,20 +56,23 @@ final class AstralRayParticleVisual {
         }
         double progress = Math.min(1.0D, (double) (age + 2) / fireTick);
         double scale = age <= fireTick ? 1.0D : (double) (lifetime - age) / (lifetime - fireTick);
-        List<Location> rings = new ArrayList<>(72);
-        List<Location> runes = new ArrayList<>(48);
-        int points = (int) Math.ceil(36 * progress);
+        List<Location> rings = new ArrayList<>(144);
+        List<Location> runes = new ArrayList<>(96);
+        int points = (int) Math.ceil(72 * progress);
         for (int index = 0; index < points; index++) {
-            double angle = Math.PI * 2.0D * index / 36;
+            double angle = Math.PI * 2.0D * index / 72;
             rings.add(point(Math.cos(angle) * 1.35D * scale, Math.sin(angle) * 1.35D * scale));
+        }
+        for (int index = 0; index < points; index++) {
+            double angle = Math.PI * 2.0D * index / 72;
             rings.add(point(Math.cos(angle) * 1.05D * scale, Math.sin(angle) * 1.05D * scale));
         }
-        int steps = (int) Math.ceil(8 * progress);
+        int steps = (int) Math.ceil(16 * progress);
         for (int vertex = 0; vertex < 6; vertex++) {
             double start = Math.PI * vertex / 3.0D;
             double end = start + Math.PI * 2.0D / 3.0D;
             for (int step = 0; step < steps; step++) {
-                double fraction = (double) step / 7;
+                double fraction = (double) step / 15;
                 runes.add(point(((1.0D - fraction) * Math.cos(start) + fraction * Math.cos(end)) * scale,
                         ((1.0D - fraction) * Math.sin(start) + fraction * Math.sin(end)) * scale));
             }

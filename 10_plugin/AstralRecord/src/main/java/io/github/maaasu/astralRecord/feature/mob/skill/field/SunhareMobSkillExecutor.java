@@ -143,14 +143,16 @@ public final class SunhareMobSkillExecutor implements MobSkillExecutor {
             this.position = start.clone();
             this.direction = direction.clone();
             Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(0.35D);
-            for (int point = 0; point <= 8; point++) {
-                Location along = start.clone().add(direction.clone().multiply(point * 0.5D)).add(0, 0.1D, 0);
-                warningPoints.add(along.clone().add(side));
-                warningPoints.add(along.clone().subtract(side));
+            for (int lane : new int[] {-1, 1}) {
+                for (int point = 0; point <= 17; point++) {
+                    Location along = start.clone().add(direction.clone().multiply(point * 4.0D / 17.0D))
+                            .add(0, 0.1D, 0);
+                    warningPoints.add(along.add(side.clone().multiply(lane)));
+                }
             }
         }
 
-        /** 18点の固定進路を、既存共通の危険予告表現で示します。 */
+        /** 36候補点の固定進路を、既存共通の危険予告表現で示します。 */
         private void warn() {
             particles.spawnForNearbyViewers(start, warningPoints,
                     BossParticleEffect.attackWarning(context.mob(), SharedParticleDefinitions.MOB_ERIVA_ROOT_WARNING));

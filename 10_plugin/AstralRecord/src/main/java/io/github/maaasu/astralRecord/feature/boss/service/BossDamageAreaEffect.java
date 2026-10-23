@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 
 /** ボス攻撃の命中面を、発動時の粒子用に有限個の地点へ変換します。 */
 final class BossDamageAreaEffect {
-    private static final int MAX_POINTS = 96;
+    private static final int MAX_POINTS = 192;
 
     private BossDamageAreaEffect() {}
 
@@ -22,7 +22,7 @@ final class BossDamageAreaEffect {
      * @param extent 中心から走査する水平距離
      * @param spacing 格子の間隔
      * @param contains 実際の攻撃面に入るかを判定する関数
-     * @return 近傍の床面へ投影した最大96地点
+     * @return 近傍の床面へ投影した最大192候補地点
      */
     static @NotNull List<Location> sampleArea(
         @NotNull Location center,
@@ -40,7 +40,7 @@ final class BossDamageAreaEffect {
      * @param spacing 格子間隔
      * @param contains 水平形状の条件。中心の高さと投影後の高さで判定する
      * @param surfaceFilter 床面でだけ評価する追加条件
-     * @return 攻撃形状内かつ追加条件を満たす最大96地点
+     * @return 攻撃形状内かつ追加条件を満たす最大192候補地点
      */
     static @NotNull List<Location> sampleArea(
         @NotNull Location center,
@@ -53,7 +53,7 @@ final class BossDamageAreaEffect {
         if (world == null || extent <= 0.0D || spacing <= 0.0D) {
             return List.of();
         }
-        int steps = (int) Math.ceil(extent / spacing);
+        int steps = (int) Math.ceil(extent * Math.sqrt(2.0D) / spacing);
         double step = extent / steps;
         List<Location> candidates = new ArrayList<>();
         for (int x = -steps; x <= steps; x++) {
@@ -98,7 +98,7 @@ final class BossDamageAreaEffect {
     }
 
     /**
-     * 形状から得た候補地点を全域に分散する最大96地点へ縮めます。
+     * 形状から得た候補地点を全域に分散する最大192候補地点へ縮めます。
      *
      * @param candidates 攻撃面内の候補地点
      * @return 間引いた変更不能な地点一覧

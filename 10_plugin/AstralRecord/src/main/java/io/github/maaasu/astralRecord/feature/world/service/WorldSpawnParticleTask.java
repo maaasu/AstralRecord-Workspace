@@ -27,7 +27,8 @@ import java.util.Set;
 public class WorldSpawnParticleTask {
 
     private static final long PERIOD_TICKS = 5L;
-    private static final int RING_POINTS = 6;
+    // NORMAL 密度で従来の6点を維持し、高密度では円周の間隔を狭める。
+    private static final int RING_POINTS = 12;
     private static final double PROMPT_Y_OFFSET = 2.25D;
     private static final double VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
     private static final String BASE_WORLD_PROMPT = "&eスニーク&fでオーバーワールドへ移動";
@@ -103,6 +104,13 @@ public class WorldSpawnParticleTask {
         frame++;
     }
 
+    /**
+     * スポーン地点の回転リングを最大密度の候補点で描画します。
+     *
+     * @param spawn リングの中心
+     * @param baseAngle 現在フレームの基準角度
+     * @return 近傍に閲覧者がいて描画処理を行った場合true
+     */
     private boolean renderSpawnAnimation(@NotNull Location spawn, double baseAngle) {
         World world = spawn.getWorld();
         if (world == null || !hasNearbyViewer(spawn, world)) {

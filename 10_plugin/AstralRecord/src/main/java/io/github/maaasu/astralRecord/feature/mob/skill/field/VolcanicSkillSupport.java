@@ -57,7 +57,7 @@ abstract class VolcanicSkillSupport implements MobSkillExecutor {
         this.warningSound = warningSound;
     }
 
-    /** 最大40点の固定輪郭を返します。位置・方向は開始後に追尾しません。 */
+    /** 最大80候補点の固定輪郭を返します。位置・方向は開始後に追尾しません。 */
     protected abstract @NotNull List<Location> warningPoints(Location origin, Vector direction);
 
     /** 固定した攻撃形状へ対象の足元が入るかを判定します。 */
@@ -99,7 +99,7 @@ abstract class VolcanicSkillSupport implements MobSkillExecutor {
         if (direction.lengthSquared() < 0.0001D) direction = new Vector(1.0D, 0.0D, 0.0D);
         direction.normalize();
         List<Location> points = warningPoints(origin, direction);
-        if (points.isEmpty() || points.size() > 40 || points.stream().anyMatch(p -> !loadedInside(p))) return false;
+        if (points.isEmpty() || points.size() > 80 || points.stream().anyMatch(p -> !loadedInside(p))) return false;
         VolcanicCast cast = new VolcanicCast(context, origin, direction, points);
         casts.put(context.mob().instanceId(), cast);
         context.mob().scriptedAction(true);

@@ -250,8 +250,8 @@ public final class StormRaptorMobSkillExecutor implements MobSkillExecutor, List
             // 双方の矩形hitboxを含む外接円。足元の中心を輪の外へ出せば回避できます。
             double radius = Math.hypot((box.getWidthX() + targetBox.getWidthX()) * 0.5D + 0.15D,
                     (box.getWidthZ() + targetBox.getWidthZ()) * 0.5D + 0.15D);
-            for (int point = 0; point < 16; point++) {
-                double angle = point * Math.PI * 2.0D / 16;
+            for (int point = 0; point < 32; point++) {
+                double angle = point * Math.PI * 2.0D / 32;
                 warning.add(landing.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
             }
         }

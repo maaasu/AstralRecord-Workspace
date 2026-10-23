@@ -46,18 +46,18 @@ public final class AshDrakeMobSkillExecutor extends VolcanicSkillSupport {
     /** @return 射程7m、再使用12秒、Executor自身で2秒予告 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(RANGE, 240L, 0L); }
 
-    /** 扇の二辺と中央筋21点、外周弧13点で予告するため横と背後が安全になります。 */
+    /** 扇の二辺と中央筋42候補点、外周弧25候補点で予告するため横と背後が安全になります。 */
     @Override protected @NotNull List<Location> warningPoints(Location origin, Vector direction) {
         double centerAngle = Math.atan2(direction.getZ(), direction.getX());
-        List<Location> points = new ArrayList<>(34);
+        List<Location> points = new ArrayList<>(67);
         for (double offset : new double[]{-HALF_ANGLE, 0.0D, HALF_ANGLE}) {
-            for (int i = 1; i <= 7; i++) {
-                points.add(origin.clone().add(Math.cos(centerAngle + offset) * i, 0.12D,
-                        Math.sin(centerAngle + offset) * i));
+            for (int i = 1; i <= 14; i++) {
+                points.add(origin.clone().add(Math.cos(centerAngle + offset) * i * 0.5D, 0.12D,
+                        Math.sin(centerAngle + offset) * i * 0.5D));
             }
         }
-        for (int i = 0; i <= 12; i++) {
-            double angle = centerAngle - HALF_ANGLE + 2.0D * HALF_ANGLE * i / 12.0D;
+        for (int i = 0; i <= 24; i++) {
+            double angle = centerAngle - HALF_ANGLE + 2.0D * HALF_ANGLE * i / 24.0D;
             points.add(origin.clone().add(Math.cos(angle) * RANGE, 0.12D, Math.sin(angle) * RANGE));
         }
         return points;
@@ -74,9 +74,10 @@ public final class AshDrakeMobSkillExecutor extends VolcanicSkillSupport {
     /** 地上の炎輪郭と胴高の灰煙を別に描き、熱い灰の広がりを一回だけ示します。 */
     @Override protected void impact(Location origin, Vector direction, List<Location> outline) {
         particles.spawnForNearbyViewers(origin, outline, SharedParticleDefinitions.BOSS_MECHANIC_FLAME);
-        List<Location> smoke = new ArrayList<>(15);
+        List<Location> smoke = new ArrayList<>(30);
         double angle = Math.atan2(direction.getZ(), direction.getX());
-        for (int distance = 1; distance <= 5; distance++) {
+        for (int step = 1; step <= 10; step++) {
+            double distance = step * 0.5D;
             for (double offset : new double[]{-HALF_ANGLE * 0.7D, 0.0D, HALF_ANGLE * 0.7D}) {
                 smoke.add(origin.clone().add(Math.cos(angle + offset) * distance, 0.65D,
                         Math.sin(angle + offset) * distance));

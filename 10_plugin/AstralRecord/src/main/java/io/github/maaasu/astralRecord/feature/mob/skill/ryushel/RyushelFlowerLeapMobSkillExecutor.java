@@ -53,7 +53,7 @@ public final class RyushelFlowerLeapMobSkillExecutor implements MobSkillExecutor
     private static final double DEFAULT_DAMAGE_RATIO = 0.75D;
     private static final double EXPOSED_DEFENSE_MULTIPLIER = 0.60D;
     private static final double EXPOSED_EVASION_MULTIPLIER = 0.15D;
-    private static final int RING_POINTS = 24;
+    private static final int RING_POINTS = 48;
 
     private final MobService mobService;
     private final DamageService damageService;
@@ -213,6 +213,12 @@ public final class RyushelFlowerLeapMobSkillExecutor implements MobSkillExecutor
         }
     }
 
+    /**
+     * 着地予告の円周を最大密度向け候補点で作ります。
+     * @param center 着地地点
+     * @param radius 警告半径
+     * @return 円周上の候補点
+     */
     private @NotNull List<Location> ring(@NotNull Location center, double radius) {
         List<Location> points = new ArrayList<>(RING_POINTS);
         for (int index = 0; index < RING_POINTS; index++) {

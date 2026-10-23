@@ -145,7 +145,7 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
         private final MobSkillContext context;
         private final Location origin;
         private final List<Vector> rays;
-        private final List<Location> points = new ArrayList<>(33);
+        private final List<Location> points = new ArrayList<>(63);
         private final List<Location> loadedPath;
         private int elapsed;
         private boolean scheduled;
@@ -156,14 +156,16 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
             this.context = context;
             this.origin = origin;
             this.rays = rays;
+            List<Location> checks = new ArrayList<>(33);
             for (Vector ray : rays) {
-                for (int distance = 0; distance <= 10; distance++) points.add(origin.clone().add(ray.clone().multiply(distance)));
+                for (int distance = 0; distance <= 10; distance++)
+                    checks.add(origin.clone().add(ray.clone().multiply(distance)));
             }
             // 予告後に壁が壊れても、未読込chunkへrayTraceしないよう全長の検査点を保持します。
-            loadedPath = List.copyOf(points);
+            loadedPath = List.copyOf(checks);
         }
 
-        /** 最大33点の射線を、近傍閲覧者を一括取得して表示します。 */
+        /** 最大63候補点の射線を、近傍閲覧者を一括取得して表示します。 */
         private void warn() {
             particles.spawnForNearbyViewers(origin, points,
                     BossParticleEffect.attackWarning(context.mob(), SharedParticleDefinitions.MOB_ERIVA_ROOT_WARNING));
@@ -175,7 +177,7 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
             for (Vector ray : rays) {
                 RayTraceResult wall = FieldMobRayTrace.trace(origin.getWorld(), origin, ray, SHOT_RANGE, FluidCollisionMode.NEVER, true);
                 double length = wall == null ? SHOT_RANGE : wall.getHitPosition().distance(origin.toVector());
-                for (double distance = 0; distance <= length; distance += 1.0D)
+                for (double distance = 0; distance <= length; distance += 0.5D)
                     points.add(origin.clone().add(ray.clone().multiply(distance)));
             }
         }
@@ -195,7 +197,7 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
             Set<UUID> struck = new HashSet<>();
             // 3射線で候補取得を共用し、プレイヤーと召喚ペットだけを選びます。
             List<LivingEntity> candidates = damageService.mobCombatTargets(origin, SHOT_RANGE + 1, SHOT_RANGE + 1);
-            List<Location> trails = new ArrayList<>(33);
+            List<Location> trails = new ArrayList<>(63);
             for (Vector ray : rays) {
                 RayTraceResult wall = FieldMobRayTrace.trace(origin.getWorld(), origin, ray, SHOT_RANGE, FluidCollisionMode.NEVER, true);
                 double nearest = wall == null ? SHOT_RANGE : wall.getHitPosition().distance(origin.toVector());
@@ -204,7 +206,7 @@ public final class BarkBeetleMobSkillExecutor implements MobSkillExecutor {
                     double distance = hitDistance(candidate.getBoundingBox(), origin.toVector(), ray);
                     if (distance < nearest) { nearest = distance; victim = candidate; }
                 }
-                for (double distance = 0; distance <= nearest; distance += 1.0D)
+                for (double distance = 0; distance <= nearest; distance += 0.5D)
                     trails.add(origin.clone().add(ray.clone().multiply(distance)));
                 if (victim != null && struck.add(victim.getUniqueId())) {
                     damageService.attack(AstEntity.mob(context.mob()), damageService.resolveEntity(victim), AttackType.RANGED,

@@ -210,12 +210,20 @@ public final class PaladinDivineChaserRuntimeService {
         return Double.isFinite(value) ? Math.max(0.0D, value) : 0.0D;
     }
 
+    /**
+     * 標準密度で指定点数となるよう、球面の最大密度候補点を生成します。
+     *
+     * @param center 球の中心
+     * @param radius 球の半径
+     * @param pointCount 標準密度での点数
+     * @return 最大4096点の球面候補点
+     */
     private @NotNull List<Location> sphere(
             @NotNull Location center,
             double radius,
             int pointCount
     ) {
-        int safePointCount = Math.max(4, pointCount);
+        int safePointCount = (int) Math.min(4096L, Math.max(4L, (long) pointCount) * 2L);
         List<Location> points = new ArrayList<>(safePointCount);
         double goldenAngle = Math.PI * (3.0D - Math.sqrt(5.0D));
         for (int index = 0; index < safePointCount; index++) {

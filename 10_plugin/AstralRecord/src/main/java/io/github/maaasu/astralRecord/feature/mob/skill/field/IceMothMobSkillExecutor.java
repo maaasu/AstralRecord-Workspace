@@ -249,17 +249,17 @@ public final class IceMothMobSkillExecutor implements MobSkillExecutor {
             particles.spawnForNearbyViewers(center, points(), SharedParticleDefinitions.WIZARD_RIME_SIGIL);
         }
 
-        /** 円周24点と六方筋12点、合計36点の固定予告です。 */
+        /** 円周48候補点と六方筋24候補点、合計72点の固定予告です。 */
         private List<Location> points() {
-            List<Location> points = new ArrayList<>(36);
-            for (int i = 0; i < 24; i++) {
-                double angle = Math.PI * 2 * i / 24;
+            List<Location> points = new ArrayList<>(72);
+            for (int i = 0; i < 48; i++) {
+                double angle = Math.PI * 2 * i / 48;
                 points.add(center.clone().add(Math.cos(angle) * RADIUS, 0.08D, Math.sin(angle) * RADIUS));
             }
             for (int i = 0; i < 6; i++) {
                 double angle = Math.PI * i / 3;
-                for (int j = 1; j <= 2; j++) points.add(center.clone().add(
-                        Math.cos(angle) * j * 0.6D, 0.08D, Math.sin(angle) * j * 0.6D));
+                for (int j = 1; j <= 4; j++) points.add(center.clone().add(
+                        Math.cos(angle) * j * 0.3D, 0.08D, Math.sin(angle) * j * 0.3D));
             }
             return points;
         }

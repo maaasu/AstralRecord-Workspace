@@ -81,11 +81,12 @@ public final class PlainRamMobSkillExecutor implements MobSkillExecutor {
         direction.normalize();
         Location center = entity.getLocation();
         Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(HALF_WIDTH);
-        List<Location> points = new ArrayList<>(12);
-        for (int i = 1; i <= 6; i++) {
-            Location point = center.clone().add(direction.clone().multiply(REACH * i / 6.0D)).add(0, 0.1D, 0);
-            points.add(point.clone().add(side));
-            points.add(point.clone().subtract(side));
+        List<Location> points = new ArrayList<>(24);
+        for (int sign : new int[]{-1, 1}) {
+            for (int i = 1; i <= 12; i++) {
+                Location point = center.clone().add(direction.clone().multiply(REACH * i / 12.0D)).add(0, 0.1D, 0);
+                points.add(point.clone().add(side.clone().multiply(sign)));
+            }
         }
         Warning warning = new Warning(context, center, direction, points);
         warnings.put(context.mob().instanceId(), warning);

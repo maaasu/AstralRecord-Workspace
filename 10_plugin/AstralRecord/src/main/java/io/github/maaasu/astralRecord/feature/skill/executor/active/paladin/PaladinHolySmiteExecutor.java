@@ -251,7 +251,7 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
         private static final int CROWN_SEGMENT_COUNT = 8;
         private static final int DISPLAY_UPDATE_INTERVAL_TICKS = 4;
         private static final int MAX_PARTICLE_VIEWERS = 32;
-        private static final int MAX_SHAFT_PARTICLE_POINTS = 64;
+        private static final int MAX_SHAFT_PARTICLE_POINTS = 128;
         private static final double ALTAR_RADIUS = 1.15D;
         private static final double LANTERN_HEIGHT = 1.88D;
         private static final float LANTERN_SIZE = 0.36F;
@@ -350,7 +350,7 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
             }
             double shaftHeight = pillarHeight - 0.84D * ornamentHeightScale;
             int shaftPoints = (int) Math.min(MAX_SHAFT_PARTICLE_POINTS,
-                    Math.max(2.0D, Math.ceil(shaftHeight / 0.35D) + 1.0D));
+                    Math.max(2.0D, Math.ceil(shaftHeight / 0.175D) + 1.0D));
             List<Location> white = new ArrayList<>(shaftPoints + 24);
             for (int index = 0; index < shaftPoints; index++) {
                 double progress = (double) index / (shaftPoints - 1);
@@ -358,14 +358,14 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
                         0.42D * ornamentHeightScale + shaftHeight * progress, 0.0D));
             }
             if (tick % DISPLAY_UPDATE_INTERVAL_TICKS == 0) {
-                List<Location> gold = new ArrayList<>(88);
+                List<Location> gold = new ArrayList<>(176);
                 addRing(gold, 1.98D, 0.12D * ornamentHeightScale, 48);
                 addRing(gold, 0.75D, pillarHeight - 0.23D * ornamentHeightScale, 24);
-                for (int index = 0; index < 8; index++) {
-                    double progress = (double) index / 8;
-                    double angle = progress * Math.PI * 2.0D + tick * 0.025D;
-                    double y = 0.42D * ornamentHeightScale + shaftHeight * progress;
-                    for (int strand = 0; strand < 2; strand++) {
+                for (int strand = 0; strand < 2; strand++) {
+                    for (int index = 0; index < 16; index++) {
+                        double progress = (double) index / 16;
+                        double angle = progress * Math.PI * 2.0D + tick * 0.025D;
+                        double y = 0.42D * ornamentHeightScale + shaftHeight * progress;
                         double strandAngle = angle + strand * Math.PI;
                         gold.add(center.clone().add(Math.cos(strandAngle) * 0.42D,
                                 y, Math.sin(strandAngle) * 0.42D));
@@ -381,14 +381,14 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
                                 (LANTERN_HEIGHT + lanternBob(tick) + 0.21D) * ornamentHeightScale,
                                 Math.sin(angle) * ALTAR_RADIUS));
                     }
-                    effects.pointsForViewers(viewers, sparks, SharedParticleDefinitions.SKILL_PALADIN_HOLY_PILLAR_SPARK);
+                    effects.burstsForViewers(viewers, sparks, SharedParticleDefinitions.SKILL_PALADIN_HOLY_PILLAR_SPARK);
                 }
             }
             effects.pointsForViewers(viewers, white, SharedParticleDefinitions.SKILL_PALADIN_HOLY_SMITE_DUST);
         }
 
         /**
-         * 円周上の確定座標を追加し、粒子のランダム拡散に依存しない光輪を組み立てます。
+         * 円周上へ標準密度の倍の候補点を追加し、粒子のランダム拡散に依存しない光輪を組み立てます。
          *
          * @param points 追加先の描画座標一覧
          * @param radius 水平半径
@@ -396,8 +396,9 @@ public final class PaladinHolySmiteExecutor extends PlayerActiveSkillExecutor {
          * @param count 円周の分割数
          */
         private void addRing(@NotNull List<Location> points, double radius, double height, int count) {
-            for (int index = 0; index < count; index++) {
-                double angle = Math.PI * 2.0D * index / count;
+            int candidateCount = Math.min(2048, Math.max(1, count)) * 2;
+            for (int index = 0; index < candidateCount; index++) {
+                double angle = Math.PI * 2.0D * index / candidateCount;
                 points.add(center.clone().add(Math.cos(angle) * radius, height, Math.sin(angle) * radius));
             }
         }

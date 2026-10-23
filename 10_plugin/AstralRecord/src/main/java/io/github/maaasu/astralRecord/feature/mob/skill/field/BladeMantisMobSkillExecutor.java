@@ -82,11 +82,11 @@ public final class BladeMantisMobSkillExecutor implements MobSkillExecutor {
                 || context.mob().scriptedAction() || direction.lengthSquared() < 0.01D) return false;
         direction.normalize();
         Location center = entity.getLocation();
-        List<Location> points = new ArrayList<>(21);
+        List<Location> points = new ArrayList<>(42);
         double facing = Math.atan2(direction.getZ(), direction.getX());
         for (int row = 1; row <= 3; row++) {
-            for (int column = 0; column < 7; column++) {
-                double angle = facing - HALF_ANGLE + 2.0D * HALF_ANGLE * column / 6.0D;
+            for (int column = 0; column < 14; column++) {
+                double angle = facing - HALF_ANGLE + 2.0D * HALF_ANGLE * column / 13.0D;
                 double radius = REACH * row / 3.0D;
                 points.add(center.clone().add(Math.cos(angle) * radius, 0.1D, Math.sin(angle) * radius));
             }

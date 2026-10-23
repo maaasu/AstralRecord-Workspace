@@ -196,19 +196,19 @@ public final class CanopyOwlMobSkillExecutor implements MobSkillExecutor {
         private final MobSkillContext context;
         private final Location origin;
         private final Location center;
-        private final List<Location> outline = new ArrayList<>(24);
+        private final List<Location> outline = new ArrayList<>(48);
         private @Nullable BukkitTask task;
         private int elapsed;
         private int pulses;
         private boolean finished;
 
-        /** 発動時の中心・外周を複製し、以降の対象移動から分離します。 */
+        /** 発動時の中心・最大密度向け外周候補を複製し、以降の対象移動から分離します。 */
         private VortexCast(MobSkillContext context, Location origin, Location center) {
             this.context = context;
             this.origin = origin.clone();
             this.center = center.clone();
-            for (int i = 0; i < 24; i++) {
-                double angle = Math.PI * 2 * i / 24;
+            for (int i = 0; i < 48; i++) {
+                double angle = Math.PI * 2 * i / 48;
                 outline.add(center.clone().add(Math.cos(angle) * RADIUS, 0.12D, Math.sin(angle) * RADIUS));
             }
         }
@@ -245,24 +245,24 @@ public final class CanopyOwlMobSkillExecutor implements MobSkillExecutor {
             }
         }
 
-        /** 緑の外周と内側の葉8点で危険円を示します。閲覧者走査は形状ごとに一回です。 */
+        /** 緑の外周と内側の葉16候補点で危険円を示します。閲覧者走査は形状ごとに一回です。 */
         private void warn() {
             particles.spawnForNearbyViewers(center, outline, SharedParticleDefinitions.MOB_ERIVA_STARHORN_WARNING);
-            List<Location> leaves = new ArrayList<>(8);
-            for (int i = 0; i < 8; i++) {
-                double angle = Math.PI * 2 * i / 8 + elapsed * 0.08D;
+            List<Location> leaves = new ArrayList<>(16);
+            for (int i = 0; i < 16; i++) {
+                double angle = Math.PI * 2 * i / 16 + elapsed * 0.08D;
                 leaves.add(center.clone().add(Math.cos(angle) * 1.6D, 0.3D, Math.sin(angle) * 1.6D));
             }
             particles.spawnForNearbyViewers(center, leaves,
                     SharedParticleDefinitions.SHARPSHOOTER_SPREADING_AMBITION_LEAVES.withCount(1).withOffsets(0, 0, 0));
         }
 
-        /** 同じ円内の上昇螺旋を一括描画します。葉の高度は命中の高さを拡張しません。 */
+        /** 同じ円内の最大密度向け上昇螺旋を一括描画します。葉の高度は命中の高さを拡張しません。 */
         private void spiral() {
-            List<Location> leaves = new ArrayList<>(24);
-            for (int i = 0; i < 24; i++) {
-                double angle = Math.PI * 4 * i / 24 + pulses;
-                Location at = center.clone().add(Math.cos(angle) * (RADIUS - 0.3D), 0.2D + i * 0.045D,
+            List<Location> leaves = new ArrayList<>(48);
+            for (int i = 0; i < 48; i++) {
+                double angle = Math.PI * 4 * i / 48 + pulses;
+                Location at = center.clone().add(Math.cos(angle) * (RADIUS - 0.3D), 0.2D + i * 0.0225D,
                         Math.sin(angle) * (RADIUS - 0.3D));
                 if (loadedInside(at)) leaves.add(at);
             }

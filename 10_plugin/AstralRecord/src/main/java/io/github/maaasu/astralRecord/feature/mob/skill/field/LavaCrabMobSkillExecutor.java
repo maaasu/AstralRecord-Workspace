@@ -45,15 +45,15 @@ public final class LavaCrabMobSkillExecutor extends VolcanicSkillSupport {
     /** @return 射程3m、再使用9秒、Executor自身で1.5秒予告 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(RADIUS, 180L, 0L); }
 
-    /** 外周24点と四方向の中点で、接近し過ぎた時の危険円を示します。 */
+    /** 外周48候補点と八方向の中点で、接近し過ぎた時の危険円を示します。 */
     @Override protected @NotNull List<Location> warningPoints(Location origin, Vector direction) {
-        List<Location> points = new ArrayList<>(28);
-        for (int i = 0; i < 24; i++) {
-            double angle = Math.PI * 2.0D * i / 24.0D;
+        List<Location> points = new ArrayList<>(56);
+        for (int i = 0; i < 48; i++) {
+            double angle = Math.PI * 2.0D * i / 48.0D;
             points.add(origin.clone().add(Math.cos(angle) * RADIUS, 0.12D, Math.sin(angle) * RADIUS));
         }
-        for (int i = 0; i < 4; i++) {
-            double angle = Math.PI * 0.5D * i;
+        for (int i = 0; i < 8; i++) {
+            double angle = Math.PI * 0.25D * i;
             points.add(origin.clone().add(Math.cos(angle) * 1.5D, 0.12D, Math.sin(angle) * 1.5D));
         }
         return points;

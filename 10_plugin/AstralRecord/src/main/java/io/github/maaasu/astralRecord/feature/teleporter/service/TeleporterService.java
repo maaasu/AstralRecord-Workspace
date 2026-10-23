@@ -53,7 +53,8 @@ import java.util.function.BiConsumer;
  */
 public final class TeleporterService {
     private static final DateTimeFormatter ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneOffset.UTC);
-    private static final int UNLOCK_RING_POINTS = 10;
+    // NORMAL 密度で従来の10点を維持する最大密度の候補点数。
+    private static final int UNLOCK_RING_POINTS = 20;
     private static final double UNLOCK_RING_RADIUS = 0.85D;
     private static final int VIEW_CELL_SIZE = 64;
 
@@ -769,6 +770,12 @@ public final class TeleporterService {
         releaseWhenAcknowledgedAccounts.remove(accountId);
     }
 
+    /**
+     * 解放したウェイストーンのリングと中心の効果を表示します。
+     *
+     * @param player 解放したプレイヤー。中心が無効な場合の音源に使用します
+     * @param definition 解放したウェイストーン
+     */
     private void playUnlockEffects(@NotNull Player player, @NotNull WaystoneDefinition definition) {
         Location center = definition.centerLocation();
         if (center == null || center.getWorld() == null) {

@@ -55,9 +55,9 @@ final class SeleneaEncounterController {
     private static final double BOSS_SCALE = 1.25D;
     private static final String GUARD = "selenea_sealed_grimoire";
     private static final String EXPOSURE = "selenea_unbound_grimoire";
-    private static final int MAX_POINTS = 1024;
-    private static final int MAX_IMPACT_POINTS = 512;
-    private static final double EDGE_POINT_SPACING = 0.75D;
+    private static final int MAX_POINTS = 2048;
+    private static final int MAX_IMPACT_POINTS = 1024;
+    private static final double EDGE_POINT_SPACING = 0.375D;
     private static final int MAX_DISPLAYS = 16;
     private static final double RUNE_RADIUS = 3.0D;
     private static final long RUNE_HOLD = 30L;
@@ -789,7 +789,7 @@ final class SeleneaEncounterController {
     }
 
     /**
-     * 0.75m間隔の輪郭を優先し、内部は疎な刻印のまま最大1024地点まで床へ投影します。
+     * 0.375m間隔の最大密度向け輪郭を優先し、内部は疎な刻印のまま最大2048候補地点まで床へ投影します。
      * @param cast 凍結した形状。描画と命中で同じcontains判定を使います
      */
     private static void buildDanger(Cast cast) {
@@ -799,14 +799,14 @@ final class SeleneaEncounterController {
             for (int ray = -1; ray <= 1; ray++) {
                 Vector aim = cast.direction.clone().rotateAroundY(ray * Math.PI / 6.0D);
                 Vector side = new Vector(-aim.getZ(), 0, aim.getX());
-                int steps = Math.max(12, (int) Math.ceil(cast.radius / EDGE_POINT_SPACING));
-                for (int i = 0; i <= steps; i++) {
-                    for (double across : new double[]{-1.24D, 1.24D}) {
+                int steps = Math.max(24, (int) Math.ceil(cast.radius / EDGE_POINT_SPACING));
+                for (double across : new double[]{-1.24D, 1.24D}) {
+                    for (int i = 0; i <= steps; i++) {
                         dangerPoint(cast, cast.center.clone().add(aim.clone().multiply((cast.radius - 0.1D) * i / steps))
                             .add(side.clone().multiply(across)), true);
                     }
                 }
-                int fillSteps = Math.max(12, (int) Math.ceil(cast.radius / 2.0D));
+                int fillSteps = Math.max(24, (int) Math.ceil(cast.radius));
                 for (int i = 0; i <= fillSteps; i++) {
                     dangerPoint(cast, cast.center.clone().add(aim.clone().multiply((cast.radius - 0.1D) * i / fillSteps)), false);
                 }
@@ -820,9 +820,9 @@ final class SeleneaEncounterController {
             Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
             double halfWidth = passageWidth(cast) + 0.05D;
             double length = Math.sqrt(cast.radius * cast.radius - halfWidth * halfWidth) - 0.05D;
-            int steps = Math.max(24, (int) Math.ceil(length * 2.0D / EDGE_POINT_SPACING));
-            for (int i = 0; i <= steps; i++) {
-                for (double across : new double[]{-halfWidth, halfWidth}) {
+            int steps = Math.max(48, (int) Math.ceil(length * 2.0D / EDGE_POINT_SPACING));
+            for (double across : new double[]{-halfWidth, halfWidth}) {
+                for (int i = 0; i <= steps; i++) {
                     dangerPoint(cast, cast.center.clone().add(cast.direction.clone().multiply(-length + length * 2 * i / steps))
                         .add(side.clone().multiply(across)), true);
                 }
@@ -851,9 +851,9 @@ final class SeleneaEncounterController {
         }
     }
 
-    /** @param cast 詠唱 @param center 円中心 @param radius 輪郭半径 @param count 0.75m間隔・最大512点へ補正する最小点数 */
+    /** @param cast 詠唱 @param center 円中心 @param radius 輪郭半径 @param count 標準密度の最小点数。最大1024候補点へ補正します */
     private static void dangerRing(Cast cast, Location center, double radius, int count) {
-        count = Math.clamp(Math.max(count, (int) Math.ceil(Math.PI * 2.0D * radius / EDGE_POINT_SPACING)), 1, 512);
+        count = Math.clamp(Math.max(count * 2, (int) Math.ceil(Math.PI * 2.0D * radius / EDGE_POINT_SPACING)), 1, 1024);
         for (int i = 0; i < count; i++) {
             double angle = i * Math.PI * 2.0D / count;
             dangerPoint(cast, center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius), true);
@@ -861,11 +861,11 @@ final class SeleneaEncounterController {
     }
 
     /**
-     * 黄金角の疎な刻印で円・環の内部を示し、面積40平方mにつき一点、最大160点を配置します。
-     * @param cast 詠唱 @param center 円中心 @param inner 内側半径 @param outer 外側半径 @param count 有限点数
+     * 黄金角の疎な刻印で円・環の内部を示し、面積20平方mにつき一点、最大320候補点を配置します。
+     * @param cast 詠唱 @param center 円中心 @param inner 内側半径 @param outer 外側半径 @param count 標準密度の有限点数
      */
     private static void dangerDisc(Cast cast, Location center, double inner, double outer, int count) {
-        count = Math.clamp(Math.max(count, (int) Math.ceil(Math.PI * (outer * outer - inner * inner) / 40.0D)), 1, 160);
+        count = Math.clamp(Math.max(count * 2, (int) Math.ceil(Math.PI * (outer * outer - inner * inner) / 20.0D)), 1, 320);
         for (int i = 0; i < count; i++) {
             double radius = Math.sqrt(inner * inner + (outer * outer - inner * inner) * (i + 0.5D) / count);
             double angle = i * Math.PI * (3.0D - Math.sqrt(5.0D));
@@ -943,14 +943,14 @@ final class SeleneaEncounterController {
     private void draw(Cast cast) {
         particles.spawnForNearbyViewers(cast.edges, SharedParticleDefinitions.SELENEA_WARNING_EDGE, true);
         particles.spawnForNearbyViewers(cast.fill, SharedParticleDefinitions.SELENEA_SUPPORT_WARNING, true);
-        List<Location> sneak = new ArrayList<>(96);
+        List<Location> sneak = new ArrayList<>(192);
         for (Rune rune : cast.runes) if (!rune.done) ring(rune.point, RUNE_RADIUS, 24, sneak);
         particles.spawnForNearbyViewers(sneak, SharedParticleDefinitions.SELENEA_SNEAK_RING, true);
-        List<Location> accents = new ArrayList<>(144);
+        List<Location> accents = new ArrayList<>(288);
         for (Rune rune : cast.runes) if (!rune.done) ring(rune.point, RUNE_RADIUS, 48, accents);
         particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SNEAK_ACCENT, true);
         if (cast.teleportDestination != null) {
-            List<Location> destination = new ArrayList<>(32);
+            List<Location> destination = new ArrayList<>(64);
             ring(cast.teleportDestination, 1.5D, 32, destination);
             particles.spawnForNearbyViewers(destination, SharedParticleDefinitions.SELENEA_TELEPORT_RING, true);
         }
@@ -962,7 +962,7 @@ final class SeleneaEncounterController {
         List<Location> sparks = new ArrayList<>(sparkCount);
         for (int i = 0; i < sparkCount; i++) sparks.add(cast.danger.get(i * cast.danger.size() / sparkCount));
         particles.spawnForNearbyViewers(sparks, SharedParticleDefinitions.SELENEA_ATTACK_SPARK, true);
-        int count = Math.min(cast.danger.size(), Math.clamp(cast.danger.size() / 8, 12, 48));
+        int count = Math.min(cast.danger.size(), Math.clamp(cast.danger.size() / 8, 24, 96));
         List<Location> bursts = new ArrayList<>(count);
         for (int i = 0; i < count; i++) bursts.add(cast.danger.get(i * cast.danger.size() / count));
         particles.spawnForNearbyViewers(bursts, SharedParticleDefinitions.SELENEA_ATTACK_BURST, true);
@@ -992,9 +992,9 @@ final class SeleneaEncounterController {
         for (Player player : active(state.boss)) PlayerMessageService.getInstance().send(player, id, args);
     }
 
-    /** @param center 輪の中心 @param radius 半径 @param count 0.75m間隔・最大512点へ補正する最小点数 @param out 出力先 */
+    /** @param center 輪の中心 @param radius 半径 @param count 標準密度の最小点数。最大1024候補点へ補正します @param out 出力先 */
     private static void ring(Location center, double radius, int count, List<Location> out) {
-        count = Math.clamp(Math.max(count, (int) Math.ceil(Math.PI * 2.0D * radius / EDGE_POINT_SPACING)), 1, 512);
+        count = Math.clamp(Math.max(count * 2, (int) Math.ceil(Math.PI * 2.0D * radius / EDGE_POINT_SPACING)), 1, 1024);
         for (int i = 0; i < count; i++) {
             double angle = i * Math.PI * 2 / count;
             Location point = center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius);

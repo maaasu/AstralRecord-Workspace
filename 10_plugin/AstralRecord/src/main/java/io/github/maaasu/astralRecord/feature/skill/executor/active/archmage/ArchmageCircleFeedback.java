@@ -23,11 +23,11 @@ final class ArchmageCircleFeedback {
      */
     static void heal(@NotNull SkillEffectService effects, @NotNull Location base) {
         var viewers = effects.nearbyViewers(base, null, 16);
-        List<Location> mint = new ArrayList<>(24);
-        List<Location> cyan = new ArrayList<>(24);
-        for (int index = 0; index < 24; index++) {
-            double angle = index * Math.PI / 6.0D;
-            double height = 0.25D + index * 0.075D;
+        List<Location> mint = new ArrayList<>(48);
+        List<Location> cyan = new ArrayList<>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = index * Math.PI / 12.0D;
+            double height = 0.25D + index * 0.0375D;
             mint.add(base.clone().add(Math.cos(angle) * 0.65D, height, Math.sin(angle) * 0.65D));
             cyan.add(base.clone().add(Math.cos(angle + Math.PI) * 0.65D,
                     height, Math.sin(angle + Math.PI) * 0.65D));
@@ -48,10 +48,10 @@ final class ArchmageCircleFeedback {
      */
     static void clear(@NotNull SkillEffectService effects, @NotNull Location base) {
         var viewers = effects.nearbyViewers(base, null, 16);
-        List<Location> cyan = new ArrayList<>(24);
-        List<Location> white = new ArrayList<>(24);
-        for (int index = 0; index < 24; index++) {
-            double angle = index * Math.PI / 12.0D;
+        List<Location> cyan = new ArrayList<>(48);
+        List<Location> white = new ArrayList<>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = index * Math.PI / 24.0D;
             cyan.add(base.clone().add(Math.cos(angle) * 0.78D, 0.45D, Math.sin(angle) * 0.78D));
             white.add(base.clone().add(Math.cos(angle) * 0.78D, 1.65D, Math.sin(angle) * 0.78D));
         }
@@ -69,15 +69,15 @@ final class ArchmageCircleFeedback {
      */
     static void reborn(@NotNull SkillEffectService effects, @NotNull Location base) {
         var viewers = effects.nearbyViewers(base, null, 16);
-        List<Location> gold = new ArrayList<>(32);
-        List<Location> bright = new ArrayList<>(24);
-        for (int index = 0; index < 32; index++) {
-            double angle = index * Math.PI / 8.0D;
+        List<Location> gold = new ArrayList<>(64);
+        List<Location> bright = new ArrayList<>(48);
+        for (int index = 0; index < 64; index++) {
+            double angle = index * Math.PI / 16.0D;
             gold.add(base.clone().add(Math.cos(angle) * 0.7D,
-                    0.2D + index * 0.07D, Math.sin(angle) * 0.7D));
+                    0.2D + index * 0.035D, Math.sin(angle) * 0.7D));
         }
-        for (int index = 0; index < 24; index++) {
-            double angle = index * Math.PI / 12.0D;
+        for (int index = 0; index < 48; index++) {
+            double angle = index * Math.PI / 24.0D;
             bright.add(base.clone().add(Math.cos(angle) * 0.9D, 2.35D, Math.sin(angle) * 0.9D));
         }
         effects.pointsForViewers(viewers, gold, SharedParticleDefinitions.SKILL_REBORN_PROTECT_GOLD);
@@ -98,10 +98,10 @@ final class ArchmageCircleFeedback {
         for (Location base : bases) {
             var viewers = effects.nearbyViewers(base, null, 16);
             if (viewers.isEmpty()) { continue; }
-            List<Location> azure = new ArrayList<>(16);
-            List<Location> violet = new ArrayList<>(8);
-            for (int index = 0; index < 16; index++) {
-                double angle = index * Math.PI / 8.0D;
+            List<Location> azure = new ArrayList<>(32);
+            List<Location> violet = new ArrayList<>(16);
+            for (int index = 0; index < 32; index++) {
+                double angle = index * Math.PI / 16.0D;
                 azure.add(base.clone().add(Math.cos(angle) * 0.75D, 1.9D,
                         Math.sin(angle) * 0.75D));
                 if (index % 2 == 0) {

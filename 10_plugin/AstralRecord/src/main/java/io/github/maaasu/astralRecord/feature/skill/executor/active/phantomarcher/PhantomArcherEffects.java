@@ -28,7 +28,7 @@ public final class PhantomArcherEffects {
 
     /**
      * 敵の頭上へ層数と同じ個数の菱形を所有者だけに描き、3層では外輪を加えます。
-     * 所有者へ正面を向け、1回あたり最大48点を共有表示設定に従って送信します。
+     * 所有者へ正面を向け、標準密度時は最大48点、最大密度時は最大96候補点を送信します。
      * Bukkitメインスレッドで呼び、繰り返しの効果音は再生しません。
      * @param particles 所有者の粒子設定を尊重する共有表示サービス
      * @param owner 印の所有者。頭上位置と同じworldであること
@@ -41,11 +41,11 @@ public final class PhantomArcherEffects {
                 || owner.getBukkit().getWorld() != center.getWorld()) return;
         int layers = Math.min(stacks, PhantomArcherRuntime.MAX_MARKS);
         Basis basis = basis(center.toVector().subtract(owner.getBukkit().getEyeLocation().toVector()));
-        List<Location> seals = new ArrayList<>(layers * 8);
+        List<Location> seals = new ArrayList<>(layers * 16);
         for (int layer = 0; layer < layers; layer++) {
             double offset = (layer - (PhantomArcherRuntime.MAX_MARKS - 1) / 2.0D) * 0.5D;
-            for (int i = 0; i < 8; i++) {
-                double angle = TAU * i / 8.0D;
+            for (int i = 0; i < 16; i++) {
+                double angle = TAU * i / 16.0D;
                 // L1正規化により円ではなく輪郭のはっきりした菱形にする。
                 double x = Math.cos(angle);
                 double y = Math.sin(angle);
@@ -55,9 +55,9 @@ public final class PhantomArcherEffects {
         }
         particles.spawnForViewer(owner, seals, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
         if (layers == PhantomArcherRuntime.MAX_MARKS) {
-            List<Location> halo = new ArrayList<>(24);
-            for (int i = 0; i < 24; i++) {
-                double angle = TAU * i / 24.0D;
+            List<Location> halo = new ArrayList<>(48);
+            for (int i = 0; i < 48; i++) {
+                double angle = TAU * i / 48.0D;
                 halo.add(at(center, basis, 0.0D, Math.cos(angle) * 0.88D, Math.sin(angle) * 0.38D));
             }
             particles.spawnForViewer(owner, halo, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE);
@@ -91,32 +91,31 @@ public final class PhantomArcherEffects {
             preparationSound(context, origin, profile);
             return;
         }
-        List<Location> bow = new ArrayList<>(25);
-        List<Location> string = new ArrayList<>(19);
-        List<Location> arrow = new ArrayList<>(22);
+        List<Location> bow = new ArrayList<>(49);
+        List<Location> string = new ArrayList<>(37);
+        List<Location> arrow = new ArrayList<>(43);
 
         // 弓身は上下の先端から中央へ湾曲し、弦は両端を引き絞り点へ結ぶ。
-        for (int i = 0; i <= 24; i++) {
-            double y = -1.0D + i / 12.0D;
+        for (int i = 0; i <= 48; i++) {
+            double y = -1.0D + i / 24.0D;
             double x = 0.18D + 0.42D * (1.0D - y * y);
             bow.add(at(origin, basis, x * size, 0.0D, y * size));
         }
-        for (int i = 0; i <= 9; i++) {
-            double t = i / 9.0D;
-            string.add(at(origin, basis, (0.18D - 0.32D * t) * size,
-                    0.0D, (1.0D - t) * size));
-            if (i > 0) {
+        for (int side : new int[] {1, -1}) {
+            for (int i = side == -1 ? 1 : 0; i <= 18; i++) {
+                double t = i / 18.0D;
                 string.add(at(origin, basis, (0.18D - 0.32D * t) * size,
-                        0.0D, -(1.0D - t) * size));
+                        0.0D, side * (1.0D - t) * size));
             }
         }
-        for (int i = 0; i <= 14; i++) {
-            arrow.add(at(origin, basis, (-0.15D + i * 0.105D) * size, 0.0D, 0.0D));
+        for (int i = 0; i <= 28; i++) {
+            arrow.add(at(origin, basis, (-0.15D + i * 0.0525D) * size, 0.0D, 0.0D));
         }
         for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i < 3; i++) {
-                arrow.add(at(origin, basis, (1.32D - i * 0.10D) * size,
-                        side * i * 0.085D * size, side * i * 0.035D * size));
+            for (int i = 0; i < 6; i++) {
+                double progress = i / 2.0D;
+                arrow.add(at(origin, basis, (1.32D - progress * 0.10D) * size,
+                        side * progress * 0.085D * size, side * progress * 0.035D * size));
             }
         }
         show(context, origin, bow, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
@@ -153,33 +152,38 @@ public final class PhantomArcherEffects {
             launchSound(context, origin, profile);
             return;
         }
-        List<Location> core = new ArrayList<>(28);
-        List<Location> spiral = new ArrayList<>(56);
+        List<Location> core = new ArrayList<>(56);
+        List<Location> spiral = new ArrayList<>(100);
         double length = empowered ? 5.0D : 3.8D;
-        for (int i = 0; i <= 24; i++) {
-            double t = i / 24.0D;
+        for (int i = 0; i <= 48; i++) {
+            double t = i / 48.0D;
             double along = 0.35D + length * t;
             core.add(at(origin, basis, along, 0.0D, 0.0D));
-            double radius = 0.20D * (1.0D - 0.55D * t);
-            double angle = t * TAU * 2.0D;
-            spiral.add(at(origin, basis, along,
-                    Math.cos(angle) * radius, Math.sin(angle) * radius));
-            spiral.add(at(origin, basis, along,
-                    -Math.cos(angle) * radius, -Math.sin(angle) * radius));
+        }
+        for (int side : new int[] {-1, 1}) {
+            for (int i = 0; i <= 48; i++) {
+                double t = i / 48.0D;
+                double along = 0.35D + length * t;
+                double radius = 0.20D * (1.0D - 0.55D * t);
+                double angle = t * TAU * 2.0D;
+                spiral.add(at(origin, basis, along,
+                        side * Math.cos(angle) * radius, side * Math.sin(angle) * radius));
+            }
         }
         // 矢尻の二方向の刃先。
         for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i < 3; i++) {
-                core.add(at(origin, basis, 0.35D + length - i * 0.14D,
-                        side * i * 0.12D, 0.0D));
+            for (int i = 0; i < 6; i++) {
+                double progress = i / 2.0D;
+                core.add(at(origin, basis, 0.35D + length - progress * 0.14D,
+                        side * progress * 0.12D, 0.0D));
             }
         }
         show(context, origin, core, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
         show(context, origin, spiral, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
         if (empowered) {
-            List<Location> halo = new ArrayList<>(16);
-            for (int i = 0; i < 16; i++) {
-                double angle = TAU * i / 16.0D;
+            List<Location> halo = new ArrayList<>(32);
+            for (int i = 0; i < 32; i++) {
+                double angle = TAU * i / 32.0D;
                 halo.add(at(origin, basis, 1.5D,
                         Math.cos(angle) * 0.48D, Math.sin(angle) * 0.48D));
             }
@@ -212,24 +216,28 @@ public final class PhantomArcherEffects {
             impactSound(context, impact, profile);
             return;
         }
-        List<Location> ring = new ArrayList<>(empowered ? 48 : 24);
-        List<Location> shards = new ArrayList<>(36);
-        for (int i = 0; i < 24; i++) {
-            double angle = TAU * i / 24.0D;
+        List<Location> ring = new ArrayList<>(empowered ? 96 : 48);
+        List<Location> shards = new ArrayList<>(64);
+        for (int i = 0; i < 48; i++) {
+            double angle = TAU * i / 48.0D;
             ring.add(impact.clone().add(Math.cos(angle) * 0.8D,
                     0.1D + Math.sin(angle * 2.0D) * 0.12D,
                     Math.sin(angle) * 0.8D));
-            if (empowered) {
+        }
+        if (empowered) {
+            for (int i = 0; i < 48; i++) {
+                double angle = TAU * i / 48.0D;
                 ring.add(impact.clone().add(Math.cos(angle) * 1.3D,
                         0.22D, Math.sin(angle) * 1.3D));
             }
         }
         for (int ray = 0; ray < 8; ray++) {
             double angle = TAU * ray / 8.0D;
-            for (int step = 1; step <= 4; step++) {
-                double radius = step * 0.22D;
+            for (int step = 1; step <= 8; step++) {
+                double progress = step / 2.0D;
+                double radius = progress * 0.22D;
                 shards.add(impact.clone().add(Math.cos(angle) * radius,
-                        step * 0.085D, Math.sin(angle) * radius));
+                        progress * 0.085D, Math.sin(angle) * radius));
             }
         }
         show(context, impact, ring, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
@@ -250,20 +258,20 @@ public final class PhantomArcherEffects {
     ) {
         if (center.getWorld() == null) return;
         double size = finiteClamp(radius, 0.5D, 8.0D, 1.0D);
-        List<Location> petals = new ArrayList<>(75);
-        List<Location> stamens = new ArrayList<>(25);
+        List<Location> petals = new ArrayList<>(145);
+        List<Location> stamens = new ArrayList<>(50);
         for (int petal = 0; petal < 5; petal++) {
             double direction = TAU * petal / 5.0D;
-            for (int i = 0; i <= 14; i++) {
-                double t = i / 14.0D;
+            for (int i = 0; i <= 28; i++) {
+                double t = i / 28.0D;
                 double angle = direction + Math.sin(Math.PI * t) * 0.29D;
                 double spread = size * (0.1D + 0.85D * t);
                 petals.add(center.clone().add(Math.cos(angle) * spread,
                         0.1D + Math.sin(Math.PI * t) * 0.72D,
                         Math.sin(angle) * spread));
             }
-            for (int i = 1; i <= 5; i++) {
-                double t = i / 5.0D;
+            for (int i = 1; i <= 10; i++) {
+                double t = i / 10.0D;
                 stamens.add(center.clone().add(Math.cos(direction) * size * t * 0.45D,
                         0.18D + t * 0.6D,
                         Math.sin(direction) * size * t * 0.45D));
@@ -289,25 +297,25 @@ public final class PhantomArcherEffects {
     ) {
         if (center.getWorld() == null) return;
         Basis basis = basis(direction);
-        List<Location> body = new ArrayList<>(29);
-        List<Location> sight = new ArrayList<>(32);
-        for (int i = 0; i <= 20; i++) {
-            double y = -0.8D + i * 0.08D;
+        List<Location> body = new ArrayList<>(57);
+        List<Location> sight = new ArrayList<>(64);
+        for (int i = 0; i <= 40; i++) {
+            double y = -0.8D + i * 0.04D;
             body.add(at(center, basis, 0.32D * (1.0D - y * y), 0.0D, y));
         }
-        for (int i = 0; i <= 7; i++) {
-            double t = i / 7.0D;
+        for (int i = 0; i <= 14; i++) {
+            double t = i / 14.0D;
             body.add(at(center, basis, -0.25D * t, 0.0D, 0.8D * (1.0D - t)));
             if (i > 0) body.add(at(center, basis, -0.25D * t, 0.0D, -0.8D * (1.0D - t)));
         }
         double focus = 1.1D + Math.floorMod(index, 3) * 0.12D;
-        for (int i = 0; i < 24; i++) {
-            double angle = TAU * i / 24.0D;
+        for (int i = 0; i < 48; i++) {
+            double angle = TAU * i / 48.0D;
             sight.add(at(center, basis, focus,
                     Math.cos(angle) * 0.46D, Math.sin(angle) * 0.46D));
         }
-        for (int i = 0; i < 8; i++) {
-            sight.add(at(center, basis, focus + i * 0.13D, 0.0D, 0.0D));
+        for (int i = 0; i < 16; i++) {
+            sight.add(at(center, basis, focus + i * 0.065D, 0.0D, 0.0D));
         }
         show(context, center, body, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);
         show(context, center, sight, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
@@ -327,20 +335,20 @@ public final class PhantomArcherEffects {
     ) {
         if (center.getWorld() == null) return;
         Basis basis = basis(direction);
-        List<Location> silhouettes = new ArrayList<>(54);
-        List<Location> wake = new ArrayList<>(24);
+        List<Location> silhouettes = new ArrayList<>(108);
+        List<Location> wake = new ArrayList<>(48);
         for (int echo = 0; echo < 3; echo++) {
             double back = echo * 0.55D;
             double width = 0.44D - echo * 0.08D;
-            for (int i = 0; i < 18; i++) {
-                double angle = TAU * i / 18.0D;
+            for (int i = 0; i < 36; i++) {
+                double angle = TAU * i / 36.0D;
                 silhouettes.add(at(center, basis, -back,
                         Math.cos(angle) * width,
                         Math.sin(angle) * (0.82D - echo * 0.13D)));
             }
         }
-        for (int i = 0; i < 24; i++) {
-            double t = i / 23.0D;
+        for (int i = 0; i < 48; i++) {
+            double t = i / 47.0D;
             double angle = TAU * t * 2.0D;
             wake.add(at(center, basis, -1.6D * t,
                     Math.cos(angle) * (0.18D + 0.35D * t),
@@ -376,20 +384,21 @@ public final class PhantomArcherEffects {
     ) {
         if (center.getWorld() == null || stacks <= 0) return;
         int layers = Math.min(stacks, 5);
-        List<Location> rings = new ArrayList<>(layers * 16);
-        List<Location> arrows = new ArrayList<>(layers * 6);
+        List<Location> rings = new ArrayList<>(layers * 32);
+        List<Location> arrows = new ArrayList<>(layers * 12);
         for (int layer = 0; layer < layers; layer++) {
             double height = 0.15D + layer * 0.28D;
             double radius = 0.48D + layer * 0.10D;
-            for (int i = 0; i < 16; i++) {
-                double angle = TAU * i / 16.0D + layer * 0.21D;
+            for (int i = 0; i < 32; i++) {
+                double angle = TAU * i / 32.0D + layer * 0.21D;
                 rings.add(center.clone().add(Math.cos(angle) * radius,
                         height, Math.sin(angle) * radius));
             }
             for (int side : new int[] {-1, 1}) {
-                for (int i = 0; i < 3; i++) {
-                    arrows.add(center.clone().add(side * (0.23D - i * 0.08D),
-                            height + 0.12D + i * 0.08D, 0.0D));
+                for (int i = 0; i < 6; i++) {
+                    double progress = i / 2.0D;
+                    arrows.add(center.clone().add(side * (0.23D - progress * 0.08D),
+                            height + 0.12D + progress * 0.08D, 0.0D));
                 }
             }
         }
@@ -413,14 +422,14 @@ public final class PhantomArcherEffects {
 
     /** 縫い矢の細い弓と長い針先を描きます。 */
     private static void drawStitchBow(PlayerActiveSkillContext context, Location origin, Basis basis, double size) {
-        List<Location> bow = new ArrayList<>(19);
-        List<Location> needle = new ArrayList<>(30);
-        for (int i = 0; i <= 18; i++) {
-            double y = -0.82D + i * 0.091D;
+        List<Location> bow = new ArrayList<>(37);
+        List<Location> needle = new ArrayList<>(56);
+        for (int i = 0; i <= 36; i++) {
+            double y = -0.82D + i * 0.0455D;
             bow.add(at(origin, basis, (0.12D + 0.25D * (1.0D - y * y)) * size, 0.0D, y * size));
         }
-        for (int i = 0; i <= 25; i++) {
-            needle.add(at(origin, basis, (-0.38D + i * 0.075D) * size, 0.0D, 0.0D));
+        for (int i = 0; i <= 50; i++) {
+            needle.add(at(origin, basis, (-0.38D + i * 0.0375D) * size, 0.0D, 0.0D));
         }
         for (int side : new int[] {-1, 1}) {
             needle.add(at(origin, basis, 1.35D * size, 0.0D, side * 0.13D * size));
@@ -432,16 +441,16 @@ public final class PhantomArcherEffects {
 
     /** 連射の主弓の左右に、小さな幻影弓と短い矢を置きます。 */
     private static void drawVolleyBows(PlayerActiveSkillContext context, Location origin, Basis basis, double size) {
-        List<Location> bows = new ArrayList<>(30);
-        List<Location> arrows = new ArrayList<>(28);
+        List<Location> bows = new ArrayList<>(58);
+        List<Location> arrows = new ArrayList<>(56);
         for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i <= 14; i++) {
-                double y = -0.55D + i * 0.079D;
+            for (int i = 0; i <= 28; i++) {
+                double y = -0.55D + i * 0.0395D;
                 bows.add(at(origin, basis, (0.18D + 0.24D * (1.0D - y * y)) * size,
                         side * 0.65D * size, y * size));
             }
-            for (int i = 0; i < 14; i++) {
-                arrows.add(at(origin, basis, (0.18D + i * 0.08D) * size,
+            for (int i = 0; i < 28; i++) {
+                arrows.add(at(origin, basis, (0.18D + i * 0.04D) * size,
                         side * 0.65D * size, 0.0D));
             }
         }
@@ -451,9 +460,9 @@ public final class PhantomArcherEffects {
 
     /** 貫通矢の先端に霊気を巻き、槍の柄を延長します。 */
     private static void drawPierceCharge(PlayerActiveSkillContext context, Location origin, Basis basis, double size) {
-        List<Location> spiral = new ArrayList<>(30);
-        for (int i = 0; i < 30; i++) {
-            double t = i / 29.0D;
+        List<Location> spiral = new ArrayList<>(60);
+        for (int i = 0; i < 60; i++) {
+            double t = i / 59.0D;
             double angle = TAU * t * 1.5D;
             spiral.add(at(origin, basis, (0.25D + 1.55D * t) * size,
                     Math.cos(angle) * 0.18D * size, Math.sin(angle) * 0.18D * size));
@@ -463,16 +472,16 @@ public final class PhantomArcherEffects {
 
     /** 日蝕矢の張った二重弧、太い矢尻、影の暈を加えます。 */
     private static void drawEclipseCharge(PlayerActiveSkillContext context, Location origin, Basis basis, double size) {
-        List<Location> outer = new ArrayList<>(31);
-        List<Location> head = new ArrayList<>(24);
-        for (int i = 0; i <= 30; i++) {
-            double y = -1.3D + i * (2.6D / 30.0D);
+        List<Location> outer = new ArrayList<>(61);
+        List<Location> head = new ArrayList<>(48);
+        for (int i = 0; i <= 60; i++) {
+            double y = -1.3D + i * (2.6D / 60.0D);
             outer.add(at(origin, basis, (0.13D + 0.57D * (1.0D - y * y / 1.69D)) * size,
                     0.0D, y * size));
         }
         for (int side : new int[] {-1, 1}) {
-            for (int i = 0; i < 12; i++) {
-                double t = i / 11.0D;
+            for (int i = 0; i < 24; i++) {
+                double t = i / 23.0D;
                 head.add(at(origin, basis, (1.72D - t * 0.52D) * size,
                         side * t * 0.26D * size, side * t * 0.08D * size));
             }
@@ -483,17 +492,18 @@ public final class PhantomArcherEffects {
 
     /** 縫い矢の針軸と、それを追う二本の暗い糸を描きます。 */
     private static void launchNeedle(PlayerActiveSkillContext context, Location origin, Basis basis) {
-        List<Location> needle = new ArrayList<>(34);
-        List<Location> threads = new ArrayList<>(36);
-        for (int i = 0; i < 34; i++) {
-            double t = i / 33.0D;
+        List<Location> needle = new ArrayList<>(68);
+        List<Location> threads = new ArrayList<>(72);
+        for (int i = 0; i < 68; i++) {
+            double t = i / 67.0D;
             needle.add(at(origin, basis, 0.25D + 4.8D * t, 0.0D, 0.0D));
         }
-        for (int i = 0; i < 18; i++) {
-            double t = i / 17.0D;
-            double side = 0.13D * Math.sin(Math.PI * t);
-            threads.add(at(origin, basis, 0.3D + 4.2D * t, side, side));
-            threads.add(at(origin, basis, 0.3D + 4.2D * t, -side, -side));
+        for (int strand : new int[] {-1, 1}) {
+            for (int i = 0; i < 36; i++) {
+                double t = i / 35.0D;
+                double side = strand * 0.13D * Math.sin(Math.PI * t);
+                threads.add(at(origin, basis, 0.3D + 4.2D * t, side, side));
+            }
         }
         show(context, origin, needle, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE);
         show(context, origin, threads, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);
@@ -501,17 +511,17 @@ public final class PhantomArcherEffects {
 
     /** 連射ごとに短い中央矢と左右の残響を描きます。 */
     private static void launchEcho(PlayerActiveSkillContext context, Location origin, Basis basis) {
-        List<Location> arrows = new ArrayList<>(39);
-        List<Location> echoes = new ArrayList<>(20);
+        List<Location> arrows = new ArrayList<>(78);
+        List<Location> echoes = new ArrayList<>(40);
         for (int lane = -1; lane <= 1; lane++) {
-            for (int i = 0; i < 13; i++) {
-                double t = i / 12.0D;
+            for (int i = 0; i < 26; i++) {
+                double t = i / 25.0D;
                 arrows.add(at(origin, basis, 0.3D + t * (lane == 0 ? 2.8D : 1.9D),
                         lane * 0.34D, 0.0D));
             }
         }
-        for (int i = 0; i < 20; i++) {
-            double t = i / 19.0D;
+        for (int i = 0; i < 40; i++) {
+            double t = i / 39.0D;
             echoes.add(at(origin, basis, 0.2D + t * 2.2D,
                     Math.sin(t * TAU * 2.0D) * 0.22D, Math.cos(t * TAU * 2.0D) * 0.22D));
         }
@@ -521,17 +531,17 @@ public final class PhantomArcherEffects {
 
     /** 日蝕矢の太い二重軌道と前方の影輪を描きます。 */
     private static void launchEclipse(PlayerActiveSkillContext context, Location origin, Basis basis) {
-        List<Location> shaft = new ArrayList<>(84);
-        List<Location> halo = new ArrayList<>(32);
-        for (int i = 0; i < 28; i++) {
-            double t = i / 27.0D;
-            double ahead = 0.3D + 5.2D * t;
-            shaft.add(at(origin, basis, ahead, 0.0D, 0.0D));
-            shaft.add(at(origin, basis, ahead, 0.19D * (1.0D - t), 0.0D));
-            shaft.add(at(origin, basis, ahead, -0.19D * (1.0D - t), 0.0D));
+        List<Location> shaft = new ArrayList<>(168);
+        List<Location> halo = new ArrayList<>(64);
+        for (int lane = -1; lane <= 1; lane++) {
+            for (int i = 0; i < 56; i++) {
+                double t = i / 55.0D;
+                double ahead = 0.3D + 5.2D * t;
+                shaft.add(at(origin, basis, ahead, lane * 0.19D * (1.0D - t), 0.0D));
+            }
         }
-        for (int i = 0; i < 32; i++) {
-            double angle = TAU * i / 32.0D;
+        for (int i = 0; i < 64; i++) {
+            double angle = TAU * i / 64.0D;
             halo.add(at(origin, basis, 2.3D, Math.cos(angle) * 0.64D, Math.sin(angle) * 0.64D));
         }
         show(context, origin, shaft, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
@@ -540,17 +550,18 @@ public final class PhantomArcherEffects {
 
     /** 命中した影を二本の斜めの糸で留め、端に縫い針を置きます。 */
     private static void impactStitch(PlayerActiveSkillContext context, Location impact) {
-        List<Location> threads = new ArrayList<>(50);
-        List<Location> pins = new ArrayList<>(24);
-        for (int i = 0; i < 25; i++) {
-            double t = -1.0D + i / 12.0D;
-            threads.add(impact.clone().add(t * 0.95D, 0.12D, t * 0.95D));
-            threads.add(impact.clone().add(t * 0.95D, 0.12D, -t * 0.95D));
+        List<Location> threads = new ArrayList<>(98);
+        List<Location> pins = new ArrayList<>(48);
+        for (int side : new int[] {-1, 1}) {
+            for (int i = 0; i < 49; i++) {
+                double t = -1.0D + i / 24.0D;
+                threads.add(impact.clone().add(t * 0.95D, 0.12D, side * t * 0.95D));
+            }
         }
         for (int corner = 0; corner < 4; corner++) {
             double x = corner < 2 ? -0.95D : 0.95D;
             double z = corner % 2 == 0 ? -0.95D : 0.95D;
-            for (int i = 0; i < 6; i++) pins.add(impact.clone().add(x, 0.08D + i * 0.10D, z));
+            for (int i = 0; i < 12; i++) pins.add(impact.clone().add(x, 0.08D + i * 0.05D, z));
         }
         show(context, impact, threads, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);
         show(context, impact, pins, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE);
@@ -558,18 +569,22 @@ public final class PhantomArcherEffects {
 
     /** 貫通した場所に二重霊印と放射状の槍片を描きます。 */
     private static void impactPierce(PlayerActiveSkillContext context, Location impact) {
-        List<Location> seals = new ArrayList<>(48);
-        List<Location> lances = new ArrayList<>(40);
-        for (int i = 0; i < 24; i++) {
-            double angle = TAU * i / 24.0D;
+        List<Location> seals = new ArrayList<>(96);
+        List<Location> lances = new ArrayList<>(80);
+        for (int i = 0; i < 48; i++) {
+            double angle = TAU * i / 48.0D;
             seals.add(impact.clone().add(Math.cos(angle) * 0.62D, 0.14D, Math.sin(angle) * 0.62D));
+        }
+        for (int i = 0; i < 48; i++) {
+            double angle = TAU * i / 48.0D;
             seals.add(impact.clone().add(Math.cos(angle) * 1.05D, 0.29D, Math.sin(angle) * 1.05D));
         }
         for (int ray = 0; ray < 8; ray++) {
             double angle = TAU * ray / 8.0D;
-            for (int i = 1; i <= 5; i++) {
-                double r = 0.2D + i * 0.23D;
-                lances.add(impact.clone().add(Math.cos(angle) * r, i * 0.09D, Math.sin(angle) * r));
+            for (int i = 1; i <= 10; i++) {
+                double progress = i / 2.0D;
+                double r = 0.2D + progress * 0.23D;
+                lances.add(impact.clone().add(Math.cos(angle) * r, progress * 0.09D, Math.sin(angle) * r));
             }
         }
         show(context, impact, seals, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
@@ -578,10 +593,10 @@ public final class PhantomArcherEffects {
 
     /** 連射の命中には小さな輪とずれた残響の二重像を描きます。 */
     private static void impactEcho(PlayerActiveSkillContext context, Location impact) {
-        List<Location> rings = new ArrayList<>(32);
+        List<Location> rings = new ArrayList<>(64);
         for (int echo = 0; echo < 2; echo++) {
-            for (int i = 0; i < 16; i++) {
-                double angle = TAU * i / 16.0D;
+            for (int i = 0; i < 32; i++) {
+                double angle = TAU * i / 32.0D;
                 rings.add(impact.clone().add(Math.cos(angle) * 0.4D + echo * 0.42D,
                         0.1D + echo * 0.13D, Math.sin(angle) * 0.4D));
             }
@@ -591,23 +606,24 @@ public final class PhantomArcherEffects {
 
     /** 日蝕輪の暗い中心、青緑の外輪、放射破裂を描きます。 */
     private static void impactEclipse(PlayerActiveSkillContext context, Location impact) {
-        List<Location> dark = new ArrayList<>(36);
-        List<Location> corona = new ArrayList<>(40);
-        List<Location> rays = new ArrayList<>(60);
-        for (int i = 0; i < 36; i++) {
-            double angle = TAU * i / 36.0D;
+        List<Location> dark = new ArrayList<>(72);
+        List<Location> corona = new ArrayList<>(80);
+        List<Location> rays = new ArrayList<>(120);
+        for (int i = 0; i < 72; i++) {
+            double angle = TAU * i / 72.0D;
             dark.add(impact.clone().add(Math.cos(angle) * 0.58D, 0.24D, Math.sin(angle) * 0.58D));
         }
-        for (int i = 0; i < 40; i++) {
-            double angle = TAU * i / 40.0D;
+        for (int i = 0; i < 80; i++) {
+            double angle = TAU * i / 80.0D;
             corona.add(impact.clone().add(Math.cos(angle) * 1.18D, 0.34D, Math.sin(angle) * 1.18D));
         }
         for (int ray = 0; ray < 12; ray++) {
             double angle = TAU * ray / 12.0D;
-            for (int i = 1; i <= 5; i++) {
-                double r = 1.1D + i * 0.23D;
+            for (int i = 1; i <= 10; i++) {
+                double progress = i / 2.0D;
+                double r = 1.1D + progress * 0.23D;
                 rays.add(impact.clone().add(Math.cos(angle) * r,
-                        0.32D + i * 0.05D, Math.sin(angle) * r));
+                        0.32D + progress * 0.05D, Math.sin(angle) * r));
             }
         }
         show(context, impact, dark, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);

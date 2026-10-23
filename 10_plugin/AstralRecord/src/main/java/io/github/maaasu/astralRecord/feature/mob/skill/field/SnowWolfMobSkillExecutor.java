@@ -250,12 +250,12 @@ public final class SnowWolfMobSkillExecutor implements MobSkillExecutor {
             }
         }
 
-        /** 当たり判定の周囲を二本の氷筋と横棒で予告します。追尾しません。 */
+        /** 当たり判定の周囲を最大密度向け二本の氷筋と横棒で予告します。追尾しません。 */
         private void warn() {
-            List<Location> points = new ArrayList<>(33);
+            List<Location> points = new ArrayList<>(63);
             Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(0.8D);
-            for (int i = 0; i <= 10; i++) {
-                Location point = start.clone().add(direction.clone().multiply(i * SPEED)).add(0, 0.08D, 0);
+            for (int i = 0; i <= 20; i++) {
+                Location point = start.clone().add(direction.clone().multiply(i * SPEED / 2.0D)).add(0, 0.08D, 0);
                 points.add(point.clone().add(side));
                 points.add(point.clone().subtract(side));
                 points.add(point);

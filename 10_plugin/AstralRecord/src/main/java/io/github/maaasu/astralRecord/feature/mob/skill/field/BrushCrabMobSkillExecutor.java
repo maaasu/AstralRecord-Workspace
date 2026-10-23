@@ -160,11 +160,11 @@ public final class BrushCrabMobSkillExecutor implements MobSkillExecutor, Listen
         private final Location center;
         private final List<Location> starts = new ArrayList<>(2);
         private final Location end;
-        private final List<Location> points = new ArrayList<>(14);
+        private final List<Location> points = new ArrayList<>(26);
         private BukkitTask task;
         private int elapsed;
 
-        /** 固定した足元と、左右のはさみの斜線を保存します。 */
+        /** 固定した足元と、左右のはさみの斜線に最大密度向け候補点を保存します。 */
         private Pincer(MobSkillContext context, Location center, Vector direction) {
             this.context = context;
             this.center = center.clone();
@@ -175,8 +175,8 @@ public final class BrushCrabMobSkillExecutor implements MobSkillExecutor, Listen
                         .add(side.clone().multiply(1.5D * sign)).add(0, 0.5D, 0);
                 starts.add(start);
                 Vector delta = end.toVector().subtract(start.toVector());
-                for (int point = 0; point <= 6; point++) {
-                    points.add(start.clone().add(delta.clone().multiply(point / 6.0D)).add(0, -0.4D, 0));
+                for (int point = 0; point <= 12; point++) {
+                    points.add(start.clone().add(delta.clone().multiply(point / 12.0D)).add(0, -0.4D, 0));
                 }
             }
         }

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param id 定義 ID
  * @param particle パーティクル種別
- * @param count 表示個数
+ * @param count 単発散布の基準個数。点群では各候補点の個数とし、固定座標は一粒に制限します
  * @param offsetX X 方向の拡散量
  * @param offsetY Y 方向の拡散量
  * @param offsetZ Z 方向の拡散量
@@ -34,7 +34,7 @@ public record SharedParticleDefinition(
      *
      * @param id 定義 ID
      * @param particle パーティクル種別
-     * @param count 表示個数
+     * @param count 単発散布の基準個数。点群では各候補点の個数とし、固定座標は一粒に制限します
      * @param offsetX X 方向の拡散量
      * @param offsetY Y 方向の拡散量
      * @param offsetZ Z 方向の拡散量
@@ -59,7 +59,7 @@ public record SharedParticleDefinition(
      *
      * @param id 定義 ID
      * @param particle パーティクル種別
-     * @param count 表示個数
+     * @param count 単発散布の基準個数。点群では各候補点の個数とし、固定座標は一粒に制限します
      * @param offsetX X 方向の拡散量
      * @param offsetY Y 方向の拡散量
      * @param offsetZ Z 方向の拡散量

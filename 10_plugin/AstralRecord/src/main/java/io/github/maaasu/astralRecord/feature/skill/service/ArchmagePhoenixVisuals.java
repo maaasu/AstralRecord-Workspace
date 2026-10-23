@@ -24,7 +24,7 @@ final class ArchmagePhoenixVisuals {
     private static final double VIEW_DISTANCE = 32.0D;
     private static final double DETAIL_DISTANCE_SQUARED = 16.0D * 16.0D;
     private static final int MAX_VIEWERS = 16;
-    private static final int MAX_POINTS = 80;
+    private static final int MAX_POINTS = 160;
     private final ParticleDisplayService particles;
 
     /** 共有表示サービスを受け取ります。 */
@@ -81,23 +81,23 @@ final class ArchmagePhoenixVisuals {
 
     /** 卵の外周へ火の粉を回し、正面へ不死鳥の翼と尾を描きます。 */
     void renderEgg(Location base, long tick) {
-        List<Location> sparks = new ArrayList<>(32);
-        List<Location> emblem = new ArrayList<>(25);
-        for (int index = 0; index < 24; index++) {
-            double angle = index * Math.PI / 12.0D + tick * 0.025D;
-            double height = 0.18D + (index % 8) * 0.24D;
+        List<Location> sparks = new ArrayList<>(48);
+        List<Location> emblem = new ArrayList<>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = index * Math.PI / 24.0D + tick * 0.025D;
+            double height = 0.18D + (index % 16) * 0.12D;
             sparks.add(base.clone().add(Math.cos(angle) * 0.82D, height,
                     Math.sin(angle) * 0.82D));
         }
         for (int side : new int[] {-1, 1}) {
-            for (int point = 0; point < 8; point++) {
-                double u = point / 7.0D;
+            for (int point = 0; point < 16; point++) {
+                double u = point / 15.0D;
                 emblem.add(base.clone().add(side * (0.10D + u * 0.45D),
                         0.95D + Math.sin(u * Math.PI) * 0.35D, 0.72D));
             }
         }
-        for (int point = 0; point < 8; point++) {
-            emblem.add(base.clone().add(0.0D, 0.83D - point * 0.08D, 0.75D));
+        for (int point = 0; point < 16; point++) {
+            emblem.add(base.clone().add(0.0D, 0.83D - point * 0.04D, 0.75D));
         }
         particles.spawnForNearbyViewers(base, sparks, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_EMBER);
         particles.spawnForNearbyViewers(base, emblem, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_ORANGE);
@@ -105,83 +105,92 @@ final class ArchmagePhoenixVisuals {
 
     /** 攻撃中に前方へ伸びる炎の軌跡を描きます。 */
     void renderAttack(Location body, long tick) {
-        List<Location> flames = new ArrayList<>(15);
+        List<Location> flames = new ArrayList<>(30);
         Vector forward = body.getDirection().normalize();
-        for (int index = 0; index < 15; index++) {
-            double distance = 0.3D + index * 0.11D;
-            double wobble = Math.sin(tick * 0.55D + index * 1.3D) * 0.18D;
+        for (int index = 0; index < 30; index++) {
+            double distance = 0.3D + index * 0.055D;
+            double wobble = Math.sin(tick * 0.55D + index * 0.65D) * 0.18D;
             flames.add(body.clone().add(forward.clone().multiply(distance))
-                    .add(wobble, 0.15D + Math.sin(index) * 0.12D, -wobble));
+                    .add(wobble, 0.15D + Math.sin(index / 2.0D) * 0.12D, -wobble));
         }
         particles.spawnForNearbyViewers(body, flames, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_FLAME);
     }
 
     /** 命中地点に赤橙の炎を短く噴き上げます。 */
     void renderAttackImpact(Location impact) {
-        List<Location> burst = new ArrayList<>(24);
-        for (int index = 0; index < 24; index++) {
-            double angle = index * Math.PI / 12.0D;
-            burst.add(impact.clone().add(Math.cos(angle) * 0.55D, 0.3D + index % 4 * 0.22D,
+        List<Location> burst = new ArrayList<>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = index * Math.PI / 24.0D;
+            burst.add(impact.clone().add(Math.cos(angle) * 0.55D, 0.3D + index % 8 * 0.11D,
                     Math.sin(angle) * 0.55D));
         }
         particles.spawnForNearbyViewers(impact, burst, SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_FLAME);
     }
 
-    /** 羽根40点・尾18点・胸元6点・火の粉4点・翼端の金色4点・青炎2点の計74点に旧DUSTと炎を混ぜます。 */
+    /** 標準描画時に74点となるよう、羽根・尾・胸元の最大密度候補点を計148点作ります。 */
     static Map<SharedParticleDefinition, List<Location>> createFrame(Location body, long tick, int phase, double speed) {
         Vector forward = body.getDirection().setY(0.0D).normalize();
         Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
         double animation = (tick + phase * 4L) * Math.PI / 12.0D;
         double flap = Math.sin(animation) * 0.48D;
         double sweep = 0.12D + Math.min(0.3D, Math.max(0.0D, speed) * 0.4D);
-        List<Location> flame = new ArrayList<>(29);
-        List<Location> small = new ArrayList<>(35);
-        List<Location> gold = new ArrayList<>(20);
-        List<Location> orange = new ArrayList<>(10);
-        List<Location> red = new ArrayList<>(10);
-        List<Location> embers = new ArrayList<>(4);
-        List<Location> blue = new ArrayList<>(2);
+        List<Location> flame = new ArrayList<>(58);
+        List<Location> small = new ArrayList<>(70);
+        List<Location> gold = new ArrayList<>(40);
+        List<Location> orange = new ArrayList<>(20);
+        List<Location> red = new ArrayList<>(20);
+        List<Location> embers = new ArrayList<>(8);
+        List<Location> blue = new ArrayList<>(4);
         for (int side : new int[] {-1, 1}) {
             for (int feather = 0; feather < 5; feather++) {
                 double span = 1.1D + feather * 0.23D;
                 double trail = sweep + feather * 0.25D;
                 Location tip = null;
-                for (int segment = 1; segment <= 4; segment++) {
-                    double u = segment / 4.0D;
+                for (int segment = 1; segment <= 8; segment++) {
+                    double u = segment / 8.0D;
                     double lift = (0.65D - feather * 0.08D) * u
                             + Math.sin(flap) * span * u + Math.sin(u * Math.PI) * 0.12D;
                     tip = point(body, right, forward, side * (0.18D + span * u * Math.cos(flap)),
                             0.28D + lift, -trail * u);
-                    if (segment == 1 || segment == 3) {
+                    int colorSegment = (segment + 1) / 2;
+                    if (colorSegment == 1 || colorSegment == 3) {
                         (feather <= 1 ? gold : feather <= 3 ? orange : red).add(tip);
                     } else {
-                        (segment == 2 ? flame : small).add(tip);
+                        (colorSegment == 2 ? flame : small).add(tip);
                     }
                 }
-                if (feather == 0 || feather == 4) gold.add(tip.clone());
-                if (feather == 2 || feather == 4) embers.add(tip.clone());
+                if (feather == 0 || feather == 4) {
+                    gold.add(tip.clone());
+                    gold.add(tip.clone().add(0.0D, 0.05D, 0.0D));
+                }
+                if (feather == 2 || feather == 4) {
+                    embers.add(tip.clone());
+                    embers.add(tip.clone().add(0.0D, 0.05D, 0.0D));
+                }
             }
             blue.add(point(body, right, forward, side * 0.25D, 0.28D, -0.12D));
+            blue.add(point(body, right, forward, side * 0.25D, 0.33D, -0.12D));
         }
         for (int strand = -1; strand <= 1; strand++) {
-            for (int segment = 1; segment <= 6; segment++) {
-                double u = segment / 6.0D;
+            for (int segment = 1; segment <= 12; segment++) {
+                double u = segment / 12.0D;
                 double wave = Math.sin(animation * 0.8D - u * 4.0D + strand * 0.5D);
                 Location location = point(body, right, forward,
                         strand * (0.12D + 0.45D * u) + wave * 0.16D * u,
                         0.15D - 1.25D * u + Math.cos(animation - u * 3.0D) * 0.09D * u,
                         -(2.4D + sweep) * u);
-                if (segment % 2 == 1) {
-                    (segment <= 2 ? gold : segment <= 4 ? orange : red).add(location);
+                int colorSegment = (segment + 1) / 2;
+                if (colorSegment % 2 == 1) {
+                    (colorSegment <= 2 ? gold : colorSegment <= 4 ? orange : red).add(location);
                 } else {
-                    (segment == 2 ? flame : small).add(location);
+                    (colorSegment == 2 ? flame : small).add(location);
                 }
             }
         }
-        for (int index = 0; index < 6; index++) {
-            double angle = animation * 0.35D + index * Math.PI / 3.0D;
+        for (int index = 0; index < 12; index++) {
+            double angle = animation * 0.35D + index * Math.PI / 6.0D;
             small.add(point(body, right, forward, Math.cos(angle) * 0.22D,
-                    0.30D + index * 0.055D, Math.sin(angle) * 0.18D));
+                    0.30D + index * 0.0275D, Math.sin(angle) * 0.18D));
         }
         Map<SharedParticleDefinition, List<Location>> frame = new LinkedHashMap<>();
         frame.put(SharedParticleDefinitions.SKILL_ARCHMAGE_PHOENIX_FLAME, flame);

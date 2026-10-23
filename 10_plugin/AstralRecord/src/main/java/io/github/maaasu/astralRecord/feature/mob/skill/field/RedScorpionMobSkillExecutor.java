@@ -43,17 +43,17 @@ public final class RedScorpionMobSkillExecutor extends MesaDebuffSkillSupport {
     /** @return 3.5m、再使用9秒、Executor内予告のため詠唱0 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(LENGTH, 180L, 0L); }
 
-    /** 二本の外枠と中央筋、終端の横棒で細い刺突領域を27点以内に示します。 */
+    /** 二本の外枠と中央筋、終端の横棒で細い刺突領域を最大54候補点で示します。 */
     @Override protected @NotNull List<Location> warningPoints(Location origin, Vector direction) {
         Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX());
-        List<Location> points = new ArrayList<>(27);
-        for (int i = 0; i <= 7; i++) {
+        List<Location> points = new ArrayList<>(54);
+        for (int i = 0; i <= 15; i++) {
             for (double width : new double[]{-HALF_WIDTH, 0.0D, HALF_WIDTH}) {
-                points.add(origin.clone().add(direction.clone().multiply(i * 0.5D))
+                points.add(origin.clone().add(direction.clone().multiply(LENGTH * i / 15.0D))
                         .add(side.clone().multiply(width)).add(0.0D, 0.08D, 0.0D));
             }
         }
-        for (double width : new double[]{-0.16D, 0.0D, 0.16D}) points.add(origin.clone()
+        for (double width : new double[]{-0.16D, -0.096D, -0.032D, 0.032D, 0.096D, 0.16D}) points.add(origin.clone()
                 .add(direction.clone().multiply(LENGTH)).add(side.clone().multiply(width)).add(0.0D, 0.08D, 0.0D));
         return points;
     }

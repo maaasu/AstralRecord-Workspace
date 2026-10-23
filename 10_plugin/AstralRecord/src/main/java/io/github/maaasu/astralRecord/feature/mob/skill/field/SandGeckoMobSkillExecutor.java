@@ -43,19 +43,19 @@ public final class SandGeckoMobSkillExecutor extends MesaDebuffSkillSupport {
     /** @return 5m、再使用11秒、Executor内予告のため詠唱0 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(RANGE, 220L, 0L); }
 
-    /** 扇の二辺・中央筋と円弧を31点で示し、細い毒針の予告と区別します。 */
+    /** 扇の二辺・中央筋と円弧を最大61候補点で示し、細い毒針の予告と区別します。 */
     @Override protected @NotNull List<Location> warningPoints(Location origin, Vector direction) {
         double baseAngle = Math.atan2(direction.getZ(), direction.getX());
-        List<Location> points = new ArrayList<>(31);
+        List<Location> points = new ArrayList<>(61);
         for (double angle : new double[]{-HALF_ANGLE, 0.0D, HALF_ANGLE}) {
-            for (int i = 1; i <= 6; i++) {
-                double distance = RANGE * i / 6.0D;
+            for (int i = 1; i <= 12; i++) {
+                double distance = RANGE * i / 12.0D;
                 points.add(origin.clone().add(Math.cos(baseAngle + angle) * distance, 0.08D,
                         Math.sin(baseAngle + angle) * distance));
             }
         }
-        for (int i = 0; i <= 12; i++) {
-            double angle = baseAngle - HALF_ANGLE + HALF_ANGLE * 2.0D * i / 12.0D;
+        for (int i = 0; i <= 24; i++) {
+            double angle = baseAngle - HALF_ANGLE + HALF_ANGLE * 2.0D * i / 24.0D;
             points.add(origin.clone().add(Math.cos(angle) * RANGE, 0.08D, Math.sin(angle) * RANGE));
         }
         return points;

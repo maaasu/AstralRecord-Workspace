@@ -72,10 +72,10 @@ public final class PotionUseService {
     private static final long DEFAULT_COOLDOWN_TICKS = 40L;
     private static final long MILLIS_PER_TICK = 50L;
     private static final long EFFECT_PERIOD_TICKS = 5L;
-    private static final int RING_POINTS = 8;
+    private static final int RING_POINTS = 16;
     private static final double MINIMUM_MOVE_ALLOWANCE_PARTICLE_RADIUS = 1.0D;
-    private static final int MINIMUM_MOVE_ALLOWANCE_RING_POINTS = 12;
-    private static final int MAXIMUM_MOVE_ALLOWANCE_RING_POINTS = 48;
+    private static final int MINIMUM_MOVE_ALLOWANCE_RING_POINTS = 24;
+    private static final int MAXIMUM_MOVE_ALLOWANCE_RING_POINTS = 96;
     private static final Title.Times COUNTDOWN_TITLE_TIMES =
         Title.Times.times(Duration.ZERO, Duration.ofMillis(900L), Duration.ofMillis(120L));
     private static final Title.Times RESULT_TITLE_TIMES =
@@ -408,6 +408,7 @@ public final class PotionUseService {
         displayMovementAllowanceRing(pending, 0L);
     }
 
+    /** 使用中の輪郭を最大密度向け16候補点として一括表示します。 */
     private void playUseChargeEffects(
         @NotNull Player player,
         long elapsedTicks,
@@ -416,16 +417,15 @@ public final class PotionUseService {
     ) {
         Location base = player.getLocation().clone();
         double radius = 0.55D + (progress * 0.25D) + (Math.sin(elapsedTicks * 0.22D) * 0.04D);
+        List<Location> ring = new ArrayList<>(RING_POINTS);
         for (int index = 0; index < RING_POINTS; index++) {
             double angle = (elapsedTicks * 0.24D) + ((Math.PI * 2.0D * index) / RING_POINTS);
             double x = Math.cos(angle) * radius;
             double z = Math.sin(angle) * radius;
             double y = 0.85D + (Math.sin(angle + (elapsedTicks * 0.10D)) * 0.12D);
-            particleDisplayService.spawnForNearbyViewers(
-                base.clone().add(x, y, z),
-                SharedParticleDefinitions.POTION_USE_RING_DUST
-            );
+            ring.add(base.clone().add(x, y, z));
         }
+        particleDisplayService.spawnForNearbyViewers(base, ring, SharedParticleDefinitions.POTION_USE_RING_DUST);
         particleDisplayService.spawnForNearbyViewers(
             base.clone().add(0.0D, 1.05D, 0.0D),
             SharedParticleDefinitions.POTION_USE_ENCHANT
@@ -435,6 +435,7 @@ public final class PotionUseService {
         }
     }
 
+    /** 移動許容境界の候補点間隔を半分にして一括表示します。 */
     private void displayMovementAllowanceRing(@NotNull PendingPotionUse pending, long elapsedTicks) {
         double radius = pending.movementAllowanceBlocks();
         if (!shouldDisplayMovementAllowanceRing(radius)) {
@@ -443,7 +444,7 @@ public final class PotionUseService {
         Location center = pending.useStartLocation();
         int pointCount = Math.max(
             MINIMUM_MOVE_ALLOWANCE_RING_POINTS,
-            Math.min(MAXIMUM_MOVE_ALLOWANCE_RING_POINTS, (int) Math.ceil(Math.PI * 2.0D * radius * 2.0D))
+            Math.min(MAXIMUM_MOVE_ALLOWANCE_RING_POINTS, (int) Math.ceil(Math.PI * 2.0D * radius * 4.0D))
         );
         List<Location> points = new ArrayList<>(pointCount);
         for (int index = 0; index < pointCount; index++) {

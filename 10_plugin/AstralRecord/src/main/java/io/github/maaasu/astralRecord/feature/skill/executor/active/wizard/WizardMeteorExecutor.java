@@ -511,21 +511,22 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             displays.clear();
         }
 
-        /** 指定半径の魔法陣外周を均等な粒子点として追加します。 */
+        /** 指定半径の魔法陣外周へ標準密度の倍の候補点を追加します。 */
         private void addRing(@NotNull List<Location> points, double radius, int count) {
-            for (int index = 0; index < count; index++) {
-                double angle = Math.PI * 2.0D * index / count;
+            int candidates = count * 2;
+            for (int index = 0; index < candidates; index++) {
+                double angle = Math.PI * 2.0D * index / candidates;
                 points.add(sigilPoint(Math.cos(angle) * radius, Math.sin(angle) * radius));
             }
         }
 
-        /** 魔法陣中央の五芒星を線分群として追加します。 */
+        /** 魔法陣中央の五芒星を標準密度の倍の線分候補点として追加します。 */
         private void addStar(@NotNull List<Location> points, double radius) {
             for (int edge = 0; edge < 5; edge++) {
                 double fromAngle = -Math.PI / 2.0D + Math.PI * 2.0D * edge / 5.0D;
                 double toAngle = -Math.PI / 2.0D + Math.PI * 2.0D * ((edge + 2) % 5) / 5.0D;
-                for (int step = 0; step <= 10; step++) {
-                    double progress = step / 10.0D;
+                for (int step = 0; step <= 20; step++) {
+                    double progress = step / 20.0D;
                     points.add(sigilPoint(
                             ((1.0D - progress) * Math.cos(fromAngle) + progress * Math.cos(toAngle)) * radius,
                             ((1.0D - progress) * Math.sin(fromAngle) + progress * Math.sin(toAngle)) * radius

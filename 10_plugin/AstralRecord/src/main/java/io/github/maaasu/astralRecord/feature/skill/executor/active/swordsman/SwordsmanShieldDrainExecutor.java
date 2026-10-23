@@ -156,7 +156,7 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
                 Vector travel = arrival.toVector().subtract(start.toVector());
                 particles.add(start.clone().add(travel.multiply((frame + 1.0D) / 4.0D)));
             }
-            context.services().effects().points(
+            context.services().effects().bursts(
                     arrival,
                     particles,
                     SharedParticleDefinitions.SHIELD_DRAIN_ABSORB_END_ROD

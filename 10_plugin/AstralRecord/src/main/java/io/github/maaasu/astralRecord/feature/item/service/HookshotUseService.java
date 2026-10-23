@@ -70,7 +70,7 @@ public final class HookshotUseService {
     private static final double MIN_VECTOR_LENGTH_SQUARED = 1.0E-6D;
     private static final double ANCHOR_SURFACE_OFFSET = 0.03D;
     private static final int TRAIL_INTERVAL_TICKS = 2;
-    private static final int MAX_TETHER_PARTICLE_POINTS = 12;
+    private static final int MAX_TETHER_PARTICLE_POINTS = 24;
     private static final int LOAD_ACTION_BAR_LENGTH = 16;
     private static final Title.Times FIRE_FEEDBACK_TITLE_TIMES = Title.Times.times(
         Duration.ZERO,
@@ -605,6 +605,11 @@ public final class HookshotUseService {
         });
     }
 
+    /**
+     * 使用者とフック先の間に最大密度向け牽引線候補を表示します。
+     * @param player 使用者
+     * @param active 現在のフック状態
+     */
     private void renderTether(@NotNull Player player, @NotNull ActiveHook active) {
         Location start = player.getEyeLocation();
         List<Location> points = tetherPoints(start, active.anchor);
@@ -615,6 +620,12 @@ public final class HookshotUseService {
         );
     }
 
+    /**
+     * フックの線分に最大密度向け候補点を等間隔で配置します。
+     * @param start 使用者側の始点
+     * @param anchor フック先
+     * @return 線分内の候補地点
+     */
     private @NotNull List<Location> tetherPoints(@NotNull Location start, @NotNull Location anchor) {
         Vector delta = anchor.toVector().subtract(start.toVector());
         double distance = delta.length();
@@ -623,7 +634,7 @@ public final class HookshotUseService {
         }
         int pointCount = Math.min(
             MAX_TETHER_PARTICLE_POINTS,
-            Math.max(1, (int) Math.ceil(distance / 2.5D))
+            Math.max(2, (int) Math.ceil(distance / 1.25D))
         );
         List<Location> points = new ArrayList<>(pointCount);
         for (int index = 1; index <= pointCount; index++) {

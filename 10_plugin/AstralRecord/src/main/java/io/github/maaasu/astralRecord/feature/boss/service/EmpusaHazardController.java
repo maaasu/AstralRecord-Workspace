@@ -213,7 +213,7 @@ final class EmpusaHazardController {
         }
     }
 
-    /** 結界の軌道と生存魔女からの魔力線で、撃破すべき雑魚と防御の関係を示します。 */
+    /** 結界の軌道と生存魔女からの最大密度向け魔力線で、撃破すべき雑魚と防御の関係を示します。 */
     private void drawWard(Encounter state, Location origin) {
         List<Location> points = new ArrayList<>();
         addRing(points, origin, 1.8D, 12, 1.3D);
@@ -221,8 +221,8 @@ final class EmpusaHazardController {
             MobInstance summon = mobs.getInstance(id);
             if (summon == null) continue;
             Location source = summon.currentLocation();
-            for (int index = 0; index < 8; index++) {
-                double fraction = index / 8.0D;
+            for (int index = 0; index < 16; index++) {
+                double fraction = index / 16.0D;
                 points.add(source.clone().add(origin.toVector().subtract(source.toVector()).multiply(fraction)).add(0, 1.4D, 0));
             }
         }
@@ -248,7 +248,7 @@ final class EmpusaHazardController {
         if (wave.previousRadius == 0.0D) sound(wave.origin, "entity.warden.sonic_boom", 1.0F, 0.65F);
         double radius = Math.min(WAVE_REACH, (tick - wave.releaseAt + 5L) * WAVE_SPEED);
         List<Location> ring = new ArrayList<>();
-        int samples = Math.clamp((int) Math.ceil(2.0D * Math.PI * radius / 0.8D), 32, 96);
+        int samples = Math.clamp((int) Math.ceil(2.0D * Math.PI * radius / 0.4D), 64, 192);
         for (int index = 0; index < samples; index++) {
             double angle = index * Math.PI * 2.0D / samples;
             Location point = waveGround(wave, wave.origin.clone().add(
@@ -306,10 +306,11 @@ final class EmpusaHazardController {
             && EmpusaSpellController.clearSight(wave.origin, ground) ? ground : null;
     }
 
-    /** 読込済みの円周点だけを描画候補へ追加し、未ロードchunkを触りません。 */
+    /** 読込済みの最大密度向け円周候補点だけを追加し、未ロードchunkを触りません。 */
     private static void addRing(List<Location> points, Location center, double radius, int count, double height) {
-        for (int index = 0; index < count; index++) {
-            double angle = index * Math.PI * 2.0D / count;
+        int candidateCount = count * 2;
+        for (int index = 0; index < candidateCount; index++) {
+            double angle = index * Math.PI * 2.0D / candidateCount;
             Location point = center.clone().add(Math.cos(angle) * radius, height, Math.sin(angle) * radius);
             if (point.getWorld() != null && point.getWorld().isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)) {
                 points.add(point);

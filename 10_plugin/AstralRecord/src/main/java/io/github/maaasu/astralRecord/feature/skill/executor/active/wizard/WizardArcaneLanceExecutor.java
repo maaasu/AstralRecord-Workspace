@@ -93,7 +93,7 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
                                    @NotNull Vector forward, @NotNull Vector right, @NotNull Vector up,
                                    double front, int frame) {
         double start = Math.max(0.0D, front - TRAIL_LENGTH);
-        int samples = Math.max(1, (int) Math.ceil((front - start) / SAMPLE_INTERVAL));
+        int samples = Math.max(1, (int) Math.ceil((front - start) / (SAMPLE_INTERVAL / 2.0D)));
         for (int strand = 0; strand < STRANDS.length; strand++) {
             List<Location> points = new ArrayList<>(samples + 1);
             for (int sample = 0; sample <= samples; sample++) {
@@ -109,9 +109,9 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
             }
             context.services().effects().points(origin, points, STRANDS[strand]);
         }
-        List<Location> sparks = new ArrayList<>(4);
-        for (int spark = 0; spark < 4; spark++) {
-            double along = Math.max(start, front - spark * 0.28D);
+        List<Location> sparks = new ArrayList<>(8);
+        for (int spark = 0; spark < 8; spark++) {
+            double along = Math.max(start, front - spark * 0.14D);
             addVisible(sparks, origin.clone().add(forward.clone().multiply(along)));
         }
         context.services().effects().points(origin, sparks, SharedParticleDefinitions.WIZARD_ARCANE_LANCE_SPARK);
@@ -121,27 +121,27 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
         }
     }
 
-    /** 射線に垂直な24点の光輪を一括表示します。瞬間演出のため魔法陣には登録しません。 */
+    /** 射線に垂直な48候補点の光輪を一括表示します。瞬間演出のため魔法陣には登録しません。 */
     private static void drawRing(@NotNull PlayerActiveSkillContext context, @NotNull Location origin,
                                  @NotNull Vector right, @NotNull Vector up, double along,
                                  double radius, double rotation, @NotNull SharedParticleDefinition particle) {
         Vector forward = up.clone().crossProduct(right).normalize();
         Location center = origin.clone().add(forward.multiply(along));
-        List<Location> points = new ArrayList<>(24);
-        for (int point = 0; point < 24; point++) {
-            double angle = rotation + Math.PI * 2.0D * point / 24.0D;
+        List<Location> points = new ArrayList<>(48);
+        for (int point = 0; point < 48; point++) {
+            double angle = rotation + Math.PI * 2.0D * point / 48.0D;
             addVisible(points, center.clone().add(right.clone().multiply(Math.cos(angle) * radius))
                     .add(up.clone().multiply(Math.sin(angle) * radius)));
         }
         context.services().effects().points(center, points, particle);
     }
 
-    /** 終端の白い火花を八方向へ配置し、地形とchunkを確認して一括表示します。 */
+    /** 終端の白い火花を16候補方向へ配置し、地形とchunkを確認して一括表示します。 */
     private static void drawBurst(@NotNull PlayerActiveSkillContext context, @NotNull Location center,
                                   @NotNull Vector right, @NotNull Vector up) {
-        List<Location> points = new ArrayList<>(8);
-        for (int point = 0; point < 8; point++) {
-            double angle = Math.PI * 2.0D * point / 8.0D;
+        List<Location> points = new ArrayList<>(16);
+        for (int point = 0; point < 16; point++) {
+            double angle = Math.PI * 2.0D * point / 16.0D;
             addVisible(points, center.clone().add(right.clone().multiply(Math.cos(angle) * 0.12D))
                     .add(up.clone().multiply(Math.sin(angle) * 0.12D)));
         }

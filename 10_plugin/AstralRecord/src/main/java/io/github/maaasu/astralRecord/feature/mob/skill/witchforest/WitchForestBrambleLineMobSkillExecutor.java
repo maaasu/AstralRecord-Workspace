@@ -51,7 +51,7 @@ public final class WitchForestBrambleLineMobSkillExecutor implements MobSkillExe
     /** @return 発動距離5m・140tick再使用・20tick詠唱 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(5.0D, 140L, 20L); }
 
-    /** @param context 詠唱開始時の方向と主対象 @return 三つの固定茨輪を予告できた場合true */
+    /** @param context 詠唱開始時の方向と主対象 @return 三つの高密度候補による固定茨輪を予告できた場合true */
     @Override public boolean cast(@NotNull MobSkillContext context) {
         Entity caster = support.activeCaster(context);
         Vector direction = context.direction().clone().setY(0.0D);
@@ -59,12 +59,12 @@ public final class WitchForestBrambleLineMobSkillExecutor implements MobSkillExe
         direction.normalize();
         Location origin = caster.getLocation();
         List<Location> centers = new ArrayList<>(3);
-        List<Location> points = new ArrayList<>(24);
+        List<Location> points = new ArrayList<>(48);
         for (int row = 1; row <= 3; row++) {
             Location center = origin.clone().add(direction.clone().multiply(1.5D * row));
             centers.add(center);
-            for (int index = 0; index < 8; index++) {
-                double angle = Math.PI * 2.0D * index / 8.0D;
+            for (int index = 0; index < 16; index++) {
+                double angle = Math.PI * 2.0D * index / 16.0D;
                 points.add(center.clone().add(Math.cos(angle) * 0.85D, 0.08D, Math.sin(angle) * 0.85D));
             }
         }

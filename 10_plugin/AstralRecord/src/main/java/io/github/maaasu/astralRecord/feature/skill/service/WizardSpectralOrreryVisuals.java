@@ -41,13 +41,13 @@ final class WizardSpectralOrreryVisuals {
         Vector right = new Vector(-forward.getZ(), 0.0D, forward.getX());
         Location center = eye.clone().add(right.clone().multiply(0.6D)).add(0.0D, -0.15D, 0.0D);
         int index = switch (element) { case FIRE -> 0; case ICE -> 1; default -> 2; };
-        List<Location> facet = new ArrayList<>(24);
+        List<Location> facet = new ArrayList<>(48);
         for (int edge = 0; edge < 3; edge++) {
             Vector a = vertex(edge, 0.28D, right);
             Vector b = vertex((edge + 1) % 3, 0.28D, right);
-            for (int point = 0; point < 8; point++) {
-                facet.add(center.clone().add(a.clone().multiply(1.0D - point / 8.0D))
-                        .add(b.clone().multiply(point / 8.0D)));
+            for (int point = 0; point < 16; point++) {
+                facet.add(center.clone().add(a.clone().multiply(1.0D - point / 16.0D))
+                        .add(b.clone().multiply(point / 16.0D)));
             }
         }
         services.effects().points(center, facet, ELEMENTS.get(index));
@@ -83,7 +83,7 @@ final class WizardSpectralOrreryVisuals {
      * @param center 敵の実命中地点
      */
     void impact(@NotNull Location center) {
-        List<Location> edges = new ArrayList<>(72);
+        List<Location> edges = new ArrayList<>(144);
         for (int side = 0; side < 4; side++) {
             double angle = Math.PI * 0.5D * side;
             Vector equator = new Vector(Math.cos(angle) * 0.38D, 0.0D, Math.sin(angle) * 0.38D);
@@ -91,8 +91,8 @@ final class WizardSpectralOrreryVisuals {
                     0.0D, Math.sin(angle + Math.PI * 0.5D) * 0.38D);
             for (Vector endpoint : List.of(new Vector(0.0D, 0.65D, 0.0D),
                     new Vector(0.0D, -0.45D, 0.0D), next)) {
-                for (int point = 0; point < 6; point++) {
-                    double t = point / 5.0D;
+                for (int point = 0; point < 12; point++) {
+                    double t = point / 11.0D;
                     edges.add(center.clone().add(equator.clone().multiply(1.0D - t))
                             .add(endpoint.clone().multiply(t)));
                 }
@@ -106,15 +106,15 @@ final class WizardSpectralOrreryVisuals {
     /** @param id 停止する発動者UUID。表示Entityや魔法陣登録はありません */
     void clear(@NotNull UUID id) { services.tasks().cancel(id, VISUAL_SCOPE); }
 
-    /** 最大三軌道各28点と三放射線各12点を一括描画し、12tickで終了します。 */
+    /** 最大三軌道各56候補点と三放射線各24候補点を一括描画し、12tickで終了します。 */
     private void frame(Location center, double radius, int frame) {
         double progress = frame / 6.0D;
         double shellRadius = radius * (0.35D + progress * 0.65D);
         for (int element = 0; element < 3; element++) {
-            List<Location> orbit = new ArrayList<>(40);
+            List<Location> orbit = new ArrayList<>(80);
             double turn = element * Math.PI * 2.0D / 3.0D + progress * Math.PI * 0.75D;
-            for (int point = 0; point < 28; point++) {
-                double angle = point * Math.PI * 2.0D / 28.0D;
+            for (int point = 0; point < 56; point++) {
+                double angle = point * Math.PI * 2.0D / 56.0D;
                 // 異なる軸の傾斜円を同じ核へ交差させる。終盤は一部を欠き、消えゆく軌道を表す。
                 if (frame >= 5 && point % 3 != 0) continue;
                 Vector offset = new Vector(Math.cos(angle) * shellRadius,
@@ -123,8 +123,8 @@ final class WizardSpectralOrreryVisuals {
                 orbit.add(center.clone().add(offset));
             }
             Vector direction = new Vector(Math.cos(turn), 0.25D, Math.sin(turn));
-            for (int point = 0; point < 12; point++) {
-                double distance = shellRadius * point / 11.0D;
+            for (int point = 0; point < 24; point++) {
+                double distance = shellRadius * point / 23.0D;
                 orbit.add(center.clone().add(direction.clone().multiply(distance)));
             }
             services.effects().points(center, orbit, ELEMENTS.get(element));

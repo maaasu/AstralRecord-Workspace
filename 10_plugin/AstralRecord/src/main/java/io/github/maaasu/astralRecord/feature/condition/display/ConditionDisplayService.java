@@ -24,7 +24,9 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,7 +56,7 @@ public final class ConditionDisplayService {
         pulse(condition);
     }
 
-    /** 状態異常対象の継続表示を更新します。 */
+    /** 状態異常対象の継続表示を更新し、同じ位置・定義の粒子を一括送信します。 */
     public void refreshTargetDisplay(
             @NotNull AstEntity target,
             @NotNull Collection<ActiveCondition> activeConditions
@@ -64,12 +66,18 @@ public final class ConditionDisplayService {
             return;
         }
 
+        Set<SharedParticleDefinition> recurringParticles = new LinkedHashSet<>();
         for (ActiveCondition condition : activeConditions) {
             applyVanillaVisual(condition);
             if (condition.type() == ConditionType.FROZEN) {
                 refreshFrozenDisplay(target);
             }
-            spawnRecurringParticle(condition);
+            SharedParticleDefinition particle = particle(condition.type());
+            if (particle != null) recurringParticles.add(particle);
+        }
+        if (!recurringParticles.isEmpty()) {
+            Location location = target.location().clone().add(0.0D, 0.8D, 0.0D);
+            particleDisplayService.spawnForNearbyViewers(location, recurringParticles);
         }
     }
 
@@ -200,15 +208,6 @@ public final class ConditionDisplayService {
         if (display != null) {
             display.remove();
         }
-    }
-
-    private void spawnRecurringParticle(@NotNull ActiveCondition condition) {
-        SharedParticleDefinition particle = particle(condition.type());
-        if (particle == null) {
-            return;
-        }
-        Location location = condition.target().location().clone().add(0.0D, 0.8D, 0.0D);
-        particleDisplayService.spawnForNearbyViewers(location, particle);
     }
 
     private @Nullable SharedParticleDefinition particle(@NotNull ConditionType type) {

@@ -99,6 +99,22 @@ public final class SkillEffectService {
     }
 
     /**
+     * 解決済み閲覧者へ独立した各発生源の演出を送り、フレームの32人上限を維持します。
+     * @param viewers 同一フレームで一度だけ解決した閲覧者
+     * @param locations それぞれ独立した発生源
+     * @param definition 各発生源の単発演出
+     */
+    public void burstsForViewers(@NotNull List<Player> viewers, @NotNull List<Location> locations,
+                                 @NotNull SharedParticleDefinition definition) {
+        if (locations.isEmpty()) return;
+        int limit = Math.min(MAX_FRAME_VIEWERS, viewers.size());
+        for (int index = 0; index < limit; index++) {
+            Player viewer = viewers.get(index);
+            if (viewer.isOnline()) particleDisplayService.spawnBurstsForViewer(viewer, locations, definition);
+        }
+    }
+
+    /**
      * 広範囲に散った点群を、地点ごとの近傍viewerだけへ一括表示します。
      *
      * @param locations 同一worldに属する表示地点
@@ -110,6 +126,23 @@ public final class SkillEffectService {
     ) {
         if (!locations.isEmpty()) {
             particleDisplayService.spawnForNearbyViewers(locations, definition);
+        }
+    }
+
+    /**
+     * 独立した各地点の単発演出を、中心近傍のviewerへ一括表示します。
+     *
+     * @param viewerCenter viewer探索の中心
+     * @param locations それぞれ独立した表示地点
+     * @param definition 表示する共通パーティクル定義
+     */
+    public void bursts(
+            @NotNull Location viewerCenter,
+            @NotNull List<Location> locations,
+            @NotNull SharedParticleDefinition definition
+    ) {
+        if (!locations.isEmpty()) {
+            particleDisplayService.spawnBurstsForNearbyViewers(viewerCenter, locations, definition);
         }
     }
 
@@ -131,7 +164,7 @@ public final class SkillEffectService {
         );
     }
 
-    /** 線分へ等間隔で particle を表示します。 */
+    /** 密度設定に応じて間引けるよう、線分へ標準密度の倍の候補点を等間隔に配置します。 */
     public void line(
             @NotNull Location start,
             @NotNull Location end,
@@ -147,7 +180,8 @@ public final class SkillEffectService {
             point(start, definition);
             return;
         }
-        int points = Math.max(1, (int) Math.ceil(distance / Math.max(0.15D, interval)));
+        int points = Math.max(1, Math.min(4095,
+                (int) Math.ceil(distance / Math.max(0.075D, interval / 2.0D))));
         List<Location> locations = new ArrayList<>(points + 1);
         for (int index = 0; index <= points; index++) {
             locations.add(start.clone().add(offset.clone().multiply((double) index / points)));
@@ -160,7 +194,7 @@ public final class SkillEffectService {
      *
      * @param viewerCenter viewer探索の中心
      * @param segments 描画する線分
-     * @param interval particle間隔
+     * @param interval 標準密度でのparticle間隔。候補点はその半分の間隔で配置する
      * @param definition particle定義
      */
     public void lines(
@@ -178,24 +212,27 @@ public final class SkillEffectService {
             }
             Vector offset = end.toVector().subtract(start.toVector());
             double distance = offset.length();
-            int points = Math.max(1, (int) Math.ceil(distance / Math.max(0.15D, interval)));
+            int points = Math.max(1, Math.min(4095,
+                    (int) Math.ceil(distance / Math.max(0.075D, interval / 2.0D))));
             for (int index = 0; index <= points; index++) {
+                if (locations.size() >= 4096) break;
                 locations.add(start.clone().add(offset.clone().multiply((double) index / points)));
             }
+            if (locations.size() >= 4096) break;
         }
         if (!locations.isEmpty()) {
             particleDisplayService.spawnForNearbyViewers(viewerCenter, locations, definition);
         }
     }
 
-    /** 水平リングを表示します。 */
+    /** 標準密度の倍の候補点で水平リングを描き、共有表示サービスへ渡します。 */
     public void ring(
             @NotNull Location center,
             double radius,
             int points,
             @NotNull SharedParticleDefinition definition
     ) {
-        int safePoints = Math.max(4, points);
+        int safePoints = Math.min(2048, Math.max(4, points)) * 2;
         List<Location> locations = new ArrayList<>(safePoints);
         for (int index = 0; index < safePoints; index++) {
             double angle = Math.PI * 2.0D * index / safePoints;
@@ -216,7 +253,7 @@ public final class SkillEffectService {
         arcSegment(origin, direction, radius, -angleDegrees / 2.0D, angleDegrees / 2.0D, points, definition);
     }
 
-    /** 指定した角度範囲の水平円弧を表示します。 */
+    /** 両端を含む標準密度の倍の候補点で水平円弧を表示します。 */
     public void arcSegment(
             @NotNull Location origin,
             @NotNull Vector direction,
@@ -231,7 +268,7 @@ public final class SkillEffectService {
             horizontal.setZ(1.0D);
         }
         horizontal.normalize();
-        int safePoints = Math.max(2, points);
+        int safePoints = Math.min(2048, Math.max(2, points)) * 2 - 1;
         List<Location> locations = new ArrayList<>(safePoints);
         for (int index = 0; index < safePoints; index++) {
             double fraction = (double) index / (safePoints - 1);
@@ -251,7 +288,7 @@ public final class SkillEffectService {
      * @param radius 円弧の半径
      * @param startAngleDegrees 開始角度。正の角度は視線から見て右側
      * @param endAngleDegrees 終了角度
-     * @param points 表示点数
+     * @param points 標準密度での表示点数。候補点は端点を共有して約2倍にする
      * @param definition パーティクル定義
      */
     public void viewArcSegment(
@@ -274,7 +311,7 @@ public final class SkillEffectService {
         } else {
             right.normalize();
         }
-        int safePoints = Math.max(2, points);
+        int safePoints = Math.min(2048, Math.max(2, points)) * 2 - 1;
         List<Location> locations = new ArrayList<>(safePoints);
         for (int index = 0; index < safePoints; index++) {
             double fraction = (double) index / (safePoints - 1);

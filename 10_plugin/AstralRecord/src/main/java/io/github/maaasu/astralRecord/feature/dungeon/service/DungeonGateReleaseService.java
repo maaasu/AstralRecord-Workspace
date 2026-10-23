@@ -13,8 +13,10 @@ import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /** 閉鎖ゲートと通行遮断バリアを解放し、近傍の参加者へ解除演出を表示します。 */
@@ -30,7 +32,7 @@ final class DungeonGateReleaseService {
     }
 
     /**
-     * 表示ゲートと奥側のバリアを同時に除去し、表示ゲート位置で破壊演出を再生します。
+     * 表示ゲートと奥側のバリアを同時に除去し、破片のブロック種別ごとに独立した発生点を一括表示します。
      *
      * @param world ゲートを配置したインスタンスワールド
      * @param visualBlocks 見た目として表示したゲート座標
@@ -59,12 +61,13 @@ final class DungeonGateReleaseService {
         }
 
         Location center = effects.getFirst().location();
+        Map<BlockData, List<Location>> locationsByBlock = new LinkedHashMap<>();
         for (GateReleaseEffect effect : effects) {
-            particleDisplayService.spawnForNearbyViewers(
-                    center,
-                    List.of(effect.location()),
-                    SharedParticleDefinitions.dungeonGateReleaseBlock(effect.blockData())
-            );
+            locationsByBlock.computeIfAbsent(effect.blockData(), ignored -> new ArrayList<>()).add(effect.location());
+        }
+        for (Map.Entry<BlockData, List<Location>> group : locationsByBlock.entrySet()) {
+            particleDisplayService.spawnBurstsForNearbyViewers(center, group.getValue(),
+                    SharedParticleDefinitions.dungeonGateReleaseBlock(group.getKey()), false);
         }
         world.playSound(center, RELEASE_SOUND, SoundCategory.BLOCKS, RELEASE_SOUND_VOLUME, RELEASE_SOUND_PITCH);
     }

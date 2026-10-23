@@ -235,15 +235,15 @@ public final class WizardPrismConditionRuntimeService {
     private void render(@NotNull Field field) {
         Location center = field.center;
         double radius = field.configuration.radius;
-        int outerPoints = Math.max(24, (int) Math.ceil(radius * 16.0D));
+        int outerPoints = Math.max(48, (int) Math.ceil(radius * 32.0D));
         List<Location> locations = new ArrayList<>(outerPoints);
-        List<Location> runes = new ArrayList<>(30);
+        List<Location> runes = new ArrayList<>(60);
         for (int index = 0; index < outerPoints; index++) {
             double angle = 2.0D * Math.PI * index / outerPoints;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.0D, Math.sin(angle) * radius));
         }
-        for (int index = 0; index < 12; index++) {
-            double angle = 2.0D * Math.PI * index / 12 + field.ageTicks * 0.035D;
+        for (int index = 0; index < 24; index++) {
+            double angle = 2.0D * Math.PI * index / 24 + field.ageTicks * 0.035D;
             runes.add(center.clone().add(
                     Math.cos(angle) * radius * 0.45D,
                     0.0D,
@@ -252,8 +252,8 @@ public final class WizardPrismConditionRuntimeService {
         }
         for (int spoke = 0; spoke < 6; spoke++) {
             double angle = 2.0D * Math.PI * spoke / 6 - field.ageTicks * 0.025D;
-            for (int step = 1; step <= 3; step++) {
-                double distance = radius * (0.55D + step * 0.10D);
+            for (int step = 1; step <= 6; step++) {
+                double distance = radius * (0.60D + step * 0.05D);
                 runes.add(center.clone().add(
                         Math.cos(angle) * distance,
                         0.0D,

@@ -220,9 +220,10 @@ public final class WizardEmulateSparkExecutor extends PlayerActiveSkillExecutor 
                 runtime.pendingCasts.clear();
             }
         }
-        runtime.services.effects().pointsNearViewers(visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK);
-        runtime.services.effects().pointsNearViewers(
-                visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK_FIREWORK
+        Location viewerCenter = runtime.player.getLocation();
+        runtime.services.effects().bursts(viewerCenter, visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK);
+        runtime.services.effects().bursts(
+                viewerCenter, visible, SharedParticleDefinitions.WIZARD_EMULATE_SPARK_FIREWORK
         );
         if (runtime.casts.isEmpty()) {
             runtime.services.tasks().cancel(runtime.casterId, runtime.scope);

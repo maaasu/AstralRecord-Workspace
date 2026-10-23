@@ -30,9 +30,9 @@ final class WizardSpellPresentation {
         forward.normalize();
         Vector right = perpendicular(forward);
         Vector up = right.clone().crossProduct(forward).normalize();
-        var points = new ArrayList<Location>(24);
-        for (int index = 0; index < 24; index++) {
-            double angle = Math.PI * 2.0D * index / 24.0D;
+        var points = new ArrayList<Location>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = Math.PI * 2.0D * index / 48.0D;
             points.add(center.clone().add(right.clone().multiply(Math.cos(angle) * radius))
                     .add(up.clone().multiply(Math.sin(angle) * radius)));
         }
@@ -40,7 +40,7 @@ final class WizardSpellPresentation {
     }
 
     /**
-     * 実際の射線を包む、終端へ細くなる二本の螺旋を最大96点で表示します。
+     * 実際の射線を包む、終端へ細くなる二本の螺旋を最大192候補点で表示します。
      * @param context 発動者と共有演出サービス
      * @param start 射線始点
      * @param end 地形判定後の終端
@@ -54,10 +54,10 @@ final class WizardSpellPresentation {
         Vector forward = offset.clone().normalize();
         Vector right = perpendicular(forward);
         Vector up = right.clone().crossProduct(forward).normalize();
-        var points = new ArrayList<Location>(96);
+        var points = new ArrayList<Location>(192);
         for (int strand = 0; strand < 2; strand++) {
-            for (int index = 0; index < 48; index++) {
-                double progress = index / 47.0D;
+            for (int index = 0; index < 96; index++) {
+                double progress = index / 95.0D;
                 double angle = progress * Math.PI * 5.0D + strand * Math.PI;
                 double width = radius * (1.0D - progress);
                 points.add(start.clone().add(offset.clone().multiply(progress))
@@ -101,10 +101,10 @@ final class WizardSpellPresentation {
         Location origin = context.player().getLocation();
         animate(context, origin, 5, frame -> {
             Location feet = context.player().getLocation();
-            var points = new ArrayList<Location>(32);
+            var points = new ArrayList<Location>(64);
             for (int strand = 0; strand < 2; strand++) {
-                for (int index = 0; index < 16; index++) {
-                    double height = index / 15.0D * 1.7D;
+                for (int index = 0; index < 32; index++) {
+                    double height = index / 31.0D * 1.7D;
                     double angle = height * Math.PI * 2.0D + frame * 0.65D + strand * Math.PI;
                     double radius = 0.65D * (1.0D - frame * 0.10D);
                     points.add(feet.clone().add(Math.cos(angle) * radius, height, Math.sin(angle) * radius));

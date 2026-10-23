@@ -295,9 +295,10 @@ public final class ThornDeerMobSkillExecutor implements MobSkillExecutor {
             }
         }
 
-        /** 実体の投影幅・前後端を含む棘形の進路を予告します。斜め方向も実判定を覆います。 */
+        /** 実体の投影幅・前後端を含む棘形の進路を最大密度向け候補点で予告します。 */
         private void warn() {
-            List<Location> points = new ArrayList<>(39);
+            int visualSteps = MAX_STEPS * 2;
+            List<Location> points = new ArrayList<>((visualSteps + 1) * 3);
             Entity caster = activeCaster(context);
             if (caster == null) return;
             BoundingBox box = caster.getBoundingBox();
@@ -306,8 +307,8 @@ public final class ThornDeerMobSkillExecutor implements MobSkillExecutor {
             double halfLength = (box.getWidthX() * Math.abs(direction.getX())
                     + box.getWidthZ() * Math.abs(direction.getZ())) / 2 + HIT_PADDING;
             Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(halfWidth);
-            for (int i = 0; i <= MAX_STEPS; i++) {
-                double distance = -halfLength + (MAX_STEPS * SPEED + 2 * halfLength) * i / MAX_STEPS;
+            for (int i = 0; i <= visualSteps; i++) {
+                double distance = -halfLength + (MAX_STEPS * SPEED + 2 * halfLength) * i / visualSteps;
                 Location point = start.clone().add(direction.clone().multiply(distance)).add(0, 0.08D, 0);
                 addWarningPoint(points, point.clone().add(side));
                 addWarningPoint(points, point.clone().subtract(side));

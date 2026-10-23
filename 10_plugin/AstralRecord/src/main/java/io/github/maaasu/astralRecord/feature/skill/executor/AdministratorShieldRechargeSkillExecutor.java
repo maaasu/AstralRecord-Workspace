@@ -82,10 +82,10 @@ public final class AdministratorShieldRechargeSkillExecutor implements SkillExec
 
     private void renderRecharge(@NotNull PassiveSkillContext context) {
         Location center = context.player().getBukkit().getLocation().clone().add(0.0D, 1.0D, 0.0D);
-        List<Location> locations = new ArrayList<>(6);
+        List<Location> locations = new ArrayList<>(12);
         double phase = context.activeTicks() * 0.18D;
-        for (int index = 0; index < 6; index++) {
-            double angle = phase + Math.PI * 2.0D * index / 6.0D;
+        for (int index = 0; index < 12; index++) {
+            double angle = phase + Math.PI * 2.0D * index / 12.0D;
             locations.add(center.clone().add(Math.cos(angle) * 0.75D, Math.sin(angle) * 0.22D, Math.sin(angle) * 0.75D));
         }
         particleDisplayService.spawnForNearbyViewers(center, locations, SharedParticleDefinitions.SHIELD_RECHARGE_DUST);

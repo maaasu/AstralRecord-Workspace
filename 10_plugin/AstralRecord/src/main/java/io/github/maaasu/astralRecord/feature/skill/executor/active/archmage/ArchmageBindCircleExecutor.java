@@ -201,7 +201,7 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
         }
 
         /**
-         * 衝突を保つ水平速度で敵を引き寄せ、中心へ向かう速度を持つ対象を表示点へ加えます。
+         * 衝突を保つ水平速度で敵を引き寄せ、中心へ向かう速度を持つ対象から、標準四点の光線用に七候補点を加えます。
          *
          * @param mob 引き寄せる管理対象Mob
          * @param feedback 表示間隔の対象点。表示しないtickではnull
@@ -223,8 +223,8 @@ public final class ArchmageBindCircleExecutor extends PlayerActiveSkillExecutor 
             if (feedback != null && distance > 0.5D
                     && entity.getVelocity().dot(center.toVector().subtract(position.toVector())) > 0.0D) {
                 Vector toward = center.toVector().subtract(position.toVector()).setY(0.0D);
-                for (int index = 0; index < 4; index++) {
-                    feedback.add(position.clone().add(toward.clone().multiply((index + 1) / 5.0D))
+                for (int index = 0; index < 7; index++) {
+                    feedback.add(position.clone().add(toward.clone().multiply((index + 2) / 10.0D))
                             .add(0.0D, 1.0D, 0.0D));
                 }
             }

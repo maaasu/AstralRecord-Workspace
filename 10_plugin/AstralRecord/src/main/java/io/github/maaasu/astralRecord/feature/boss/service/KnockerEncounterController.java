@@ -57,7 +57,7 @@ final class KnockerEncounterController {
     private static final double SAFE_HALF_WIDTH = 2.4D;
     private static final long DRAW_PERIOD = 10L;
     private static final int MAX_ATTACK_DISPLAYS = 24;
-    private static final int MAX_IMPACT_POINTS = 192;
+    private static final int MAX_IMPACT_POINTS = 384;
     private static final String BELL_EFFECT = "knocker_bell_guard";
     private static final String STAGGER_EFFECT = "knocker_stagger";
 
@@ -530,9 +530,9 @@ final class KnockerEncounterController {
             FluidCollisionMode.NEVER, true) == null;
     }
 
-    /** 最大192点の予兆を10tick周期で一括送信します。 */
+    /** 最大384候補点の予兆を10tick周期で一括送信します。 */
     private void draw(@NotNull Cast cast) {
-        List<Location> danger = new ArrayList<>(192), safe = new ArrayList<>(48);
+        List<Location> danger = new ArrayList<>(384), safe = new ArrayList<>(96);
         switch (cast.stage) {
             case LINE, ECHO -> linePoints(cast, danger, LINE_HALF_WIDTH);
             case FALL -> { for (Location mark : cast.marks) circlePoints(mark, FALL_RADIUS, 24, danger); }
@@ -557,9 +557,9 @@ final class KnockerEncounterController {
             }
             default -> circlePoints(cast.center, 2.0D, 24, safe);
         }
-        if (!danger.isEmpty()) particles.spawnForNearbyViewers(cast.center, danger.subList(0, Math.min(192, danger.size())),
+        if (!danger.isEmpty()) particles.spawnForNearbyViewers(cast.center, danger.subList(0, Math.min(384, danger.size())),
             SharedParticleDefinitions.BOSS_ATTACK_WARNING);
-        BossParticleEffect.safeArea(particles, cast.center, safe.subList(0, Math.min(48, safe.size())));
+        BossParticleEffect.safeArea(particles, cast.center, safe.subList(0, Math.min(96, safe.size())));
     }
 
     /**
@@ -574,7 +574,7 @@ final class KnockerEncounterController {
     }
 
     /**
-     * 実際の範囲判定を通した着弾点を最大192点返します。表示密度は人数や経過tickで増加させません。
+     * 実際の範囲判定を通した着弾候補点を最大384点返します。表示密度は人数や経過tickで増加させません。
      * @param cast 確定済みの攻撃形状
      * @return 未ロードchunkと安全領域を除いた有限の点群
      */
@@ -582,7 +582,7 @@ final class KnockerEncounterController {
         List<Location> candidates = new ArrayList<>();
         if (cast.stage == Stage.LINE || cast.stage == Stage.ECHO) {
             Vector side = new Vector(-cast.direction.getZ(), 0.0D, cast.direction.getX());
-            for (double along = 0.0D; along < ARENA_RADIUS; along += 1.8D) {
+            for (double along = 0.0D; along < ARENA_RADIUS; along += 0.9D) {
                 for (double across : new double[]{-1.1D, 0.0D, 1.1D}) {
                     candidates.add(cast.center.clone().add(cast.direction.clone().multiply(along))
                         .add(side.clone().multiply(across)).add(0.0D, 0.15D, 0.0D));
@@ -599,7 +599,7 @@ final class KnockerEncounterController {
             double start = cast.stage == Stage.RETURN ? 20.0D : 2.0D;
             double end = cast.stage == Stage.RETURN ? ENGAGEMENT_RADIUS
                 : cast.stage == Stage.INNER ? RING_RADIUS : ARENA_RADIUS;
-            double step = cast.stage == Stage.RETURN ? 4.0D : 2.0D;
+            double step = cast.stage == Stage.RETURN ? 2.0D : 1.0D;
             for (double radius = start; radius <= end; radius += step) {
                 circlePoints(cast.center, radius, Math.min(32, (int) Math.ceil(radius * Math.PI)), candidates);
             }
@@ -701,45 +701,50 @@ final class KnockerEncounterController {
 
     /** フィールド半径を20tick間隔で表示します。 */
     private void drawBoundary(@NotNull Location center) {
-        List<Location> points = new ArrayList<>(48);
+        List<Location> points = new ArrayList<>(96);
         circlePoints(center, ARENA_RADIUS, 48, points);
         particles.spawnForNearbyViewers(center, points, SharedParticleDefinitions.KNOCKER_BOUNDARY);
     }
 
-    /** 線の両縁を当たり判定と同じ長さで作ります。 */
+    /** 線の両縁を当たり判定と同じ長さで最大密度向け候補点として作ります。 */
     private static void linePoints(@NotNull Cast cast, @NotNull List<Location> out, double width) {
         double edgeEnd = Math.sqrt(ARENA_RADIUS * ARENA_RADIUS - width * width);
-        for (int i = 0; i <= 18; i++) {
-            double d = -0.5D + i * (edgeEnd + 0.5D) / 18.0D;
+        for (int i = 0; i <= 36; i++) {
+            double d = -0.5D + i * (edgeEnd + 0.5D) / 36.0D;
             double x = cast.direction.getX(), z = cast.direction.getZ();
             out.add(cast.center.clone().add(x * d - z * width, 0.15D, z * d + x * width));
+        }
+        for (int i = 0; i <= 36; i++) {
+            double d = -0.5D + i * (edgeEnd + 0.5D) / 36.0D;
+            double x = cast.direction.getX(), z = cast.direction.getZ();
             out.add(cast.center.clone().add(x * d + z * width, 0.15D, z * d - x * width));
         }
         // 18m円で切られる前端を円弧で閉じ、描画も実際の危険領域に収める。
-        for (int i = -4; i <= 4; i++) {
-            double across = width * i / 4.0D;
+        for (int i = -8; i <= 8; i++) {
+            double across = width * i / 8.0D;
             double along = Math.sqrt(ARENA_RADIUS * ARENA_RADIUS - across * across);
             out.add(cast.center.clone().add(cast.direction.clone().multiply(along))
                 .add(-cast.direction.getZ() * across, 0.15D, cast.direction.getX() * across));
         }
     }
 
-    /** 円環の点を指定数だけ作ります。 */
+    /** 円環の最大密度向け候補点を、標準密度の指定数の2倍作ります。 */
     private static void circlePoints(@NotNull Location center, double radius, int count,
                                      @NotNull List<Location> out) {
-        for (int i = 0; i < count; i++) {
-            double angle = i * Math.PI * 2.0D / count;
+        int candidateCount = count * 2;
+        for (int i = 0; i < candidateCount; i++) {
+            double angle = i * Math.PI * 2.0D / candidateCount;
             out.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
         }
     }
 
-    /** 安全通路と外側の危険位置を同時に作ります。 */
+    /** 安全通路と外側の危険位置を最大密度向け候補点で同時に作ります。 */
     private static void corridorPoints(@NotNull Cast cast, @NotNull List<Location> safe,
                                        @NotNull List<Location> danger) {
         Vector side = new Vector(-cast.direction.getZ(), 0.0D, cast.direction.getX());
-        for (int i = -9; i <= 9; i++) {
-            double along = i * 2.0D;
-            for (double edge : new double[]{-SAFE_HALF_WIDTH, SAFE_HALF_WIDTH}) {
+        for (double edge : new double[]{-SAFE_HALF_WIDTH, SAFE_HALF_WIDTH}) {
+            for (int i = -18; i <= 18; i++) {
+                double along = i;
                 Location point = cast.center.clone().add(cast.direction.clone().multiply(along))
                     .add(side.clone().multiply(edge)).add(0.0D, 0.15D, 0.0D);
                 if (horizontalSquared(point, cast.center) <= ARENA_RADIUS * ARENA_RADIUS) safe.add(point);
@@ -747,8 +752,8 @@ final class KnockerEncounterController {
         }
         for (int ring = 1; ring <= 4; ring++) {
             double radius = ring * ARENA_RADIUS / 4.0D;
-            for (int i = 0; i < 24; i++) {
-                double angle = i * Math.PI * 2.0D / 24.0D;
+            for (int i = 0; i < 48; i++) {
+                double angle = i * Math.PI * 2.0D / 48.0D;
                 double x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
                 if (Math.abs(x * cast.direction.getZ() - z * cast.direction.getX()) > SAFE_HALF_WIDTH) {
                     danger.add(cast.center.clone().add(x, 0.15D, z));

@@ -121,7 +121,8 @@ public final class EmberSlugMobSkillExecutor implements MobSkillExecutor {
         private final Location origin;
         private final Vector direction;
         private final List<Location> footprint = new ArrayList<>(33);
-        private final List<Location> flame = new ArrayList<>(11);
+        private final List<Location> warningFootprint = new ArrayList<>(63);
+        private final List<Location> flame = new ArrayList<>(21);
         private BukkitTask task;
         private int elapsed;
         private boolean finished;
@@ -132,8 +133,15 @@ public final class EmberSlugMobSkillExecutor implements MobSkillExecutor {
             Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX());
             for (int i = 0; i <= 10; i++) {
                 Location center = origin.clone().add(direction.clone().multiply(i * 0.5D)).add(0.0D, 0.08D, 0.0D);
-                flame.add(center);
                 for (double width : new double[]{-HALF_WIDTH, 0.0D, HALF_WIDTH}) footprint.add(center.clone().add(side.clone().multiply(width)));
+            }
+            for (double width : new double[]{-HALF_WIDTH, 0.0D, HALF_WIDTH}) {
+                for (int i = 0; i <= 20; i++) {
+                    Location center = origin.clone().add(direction.clone().multiply(i * 0.25D))
+                            .add(0.0D, 0.08D, 0.0D);
+                    warningFootprint.add(center.clone().add(side.clone().multiply(width)));
+                    if (width == 0.0D) flame.add(center);
+                }
             }
         }
         private boolean areaClear() {
@@ -186,7 +194,7 @@ public final class EmberSlugMobSkillExecutor implements MobSkillExecutor {
                     List.of(new DamageComponent(DamageElement.FIRE, 0.35D)), DamageSource.SKILL);
         }
         private void render(boolean burning) {
-            particles.spawnForNearbyViewers(origin, footprint, SharedParticleDefinitions.KNOCKER_WARNING);
+            particles.spawnForNearbyViewers(origin, warningFootprint, SharedParticleDefinitions.KNOCKER_WARNING);
             if (burning) particles.spawnForNearbyViewers(origin, flame, SharedParticleDefinitions.CONDITION_BURNING_FLAME);
         }
         private void finish() {

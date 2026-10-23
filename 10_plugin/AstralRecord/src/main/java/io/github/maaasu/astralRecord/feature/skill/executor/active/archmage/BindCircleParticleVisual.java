@@ -13,9 +13,9 @@ import java.util.List;
 final class BindCircleParticleVisual {
 
     private static final double PLANE_HEIGHT = 0.10D;
-    private final List<Vector> red = new ArrayList<>(180);
-    private final List<Vector> white = new ArrayList<>(140);
-    private final List<Vector> magenta = new ArrayList<>(70);
+    private final List<Vector> red = new ArrayList<>(360);
+    private final List<Vector> white = new ArrayList<>(280);
+    private final List<Vector> magenta = new ArrayList<>(140);
     private final Location center;
     private final List<Location> redPoints;
     private final List<Location> whitePoints;
@@ -37,16 +37,23 @@ final class BindCircleParticleVisual {
             cross(red, polar(2.1D, angle + Math.PI / 4.0D), 0.15D);
         }
         // 中央の魔眼を赤い二本の弧と縦長の瞳孔で描きます。
-        for (int i = 0; i <= 24; i++) {
-            double x = -1.0D + i / 12.0D;
-            double z = 0.43D * Math.sin(Math.PI * i / 24.0D);
+        for (int i = 0; i <= 48; i++) {
+            double x = -1.0D + i / 24.0D;
+            double z = 0.43D * Math.sin(Math.PI * i / 48.0D);
             red.add(point(x, z));
+        }
+        for (int i = 0; i <= 48; i++) {
+            double x = -1.0D + i / 24.0D;
+            double z = 0.43D * Math.sin(Math.PI * i / 48.0D);
             red.add(point(x, -z));
         }
         line(red, point(0.0D, -0.43D), point(0.0D, 0.43D), 12);
-        for (int i = 0; i <= 20; i++) {
-            double angle = i * Math.PI / 20.0D;
+        for (int i = 0; i <= 40; i++) {
+            double angle = i * Math.PI / 40.0D;
             white.add(point(Math.cos(angle) * 1.1D, Math.sin(angle) * 0.53D));
+        }
+        for (int i = 0; i <= 40; i++) {
+            double angle = i * Math.PI / 40.0D;
             white.add(point(Math.cos(angle) * 1.1D, -Math.sin(angle) * 0.53D));
         }
         // 四象限の三日月と小さな十字を、左右対称の印として配置します。
@@ -54,8 +61,8 @@ final class BindCircleParticleVisual {
             for (int zSign : new int[]{-1, 1}) {
                 double cx = xSign * 1.8D;
                 double cz = zSign * 1.8D;
-                for (int i = 0; i <= 12; i++) {
-                    double angle = -Math.PI * 0.65D + i * Math.PI * 1.3D / 12.0D;
+                for (int i = 0; i <= 24; i++) {
+                    double angle = -Math.PI * 0.65D + i * Math.PI * 1.3D / 24.0D;
                     red.add(point(cx + Math.cos(angle) * 0.25D,
                             cz + Math.sin(angle) * 0.25D));
                 }
@@ -87,18 +94,19 @@ final class BindCircleParticleVisual {
         return List.copyOf(points);
     }
 
-    /** 指定半径の水平環を追加します。 */
+    /** 指定半径の水平環に、標準密度の倍の候補点を追加します。 */
     private void ring(List<Vector> target, double radius, int count) {
-        for (int i = 0; i < count; i++) {
-            target.add(polar(radius, i * Math.PI * 2.0D / count));
+        for (int i = 0; i < count * 2; i++) {
+            target.add(polar(radius, i * Math.PI * 2.0D / (count * 2)));
         }
     }
 
-    /** 二点間を等間隔の粒子点へ分割します。 */
+    /** 二点間を標準密度の倍の候補点へ等間隔に分割します。 */
     private void line(List<Vector> target, Vector from, Vector to, int segments) {
-        for (int i = 0; i <= segments; i++) {
-            target.add(from.clone().multiply(1.0D - (double) i / segments)
-                    .add(to.clone().multiply((double) i / segments)));
+        int candidateSegments = segments * 2;
+        for (int i = 0; i <= candidateSegments; i++) {
+            target.add(from.clone().multiply(1.0D - (double) i / candidateSegments)
+                    .add(to.clone().multiply((double) i / candidateSegments)));
         }
     }
 

@@ -96,12 +96,12 @@ public final class BossMechanicService {
     private static final long GRANBAL_PETAL_TELEGRAPH_TICKS = 36L;
     private static final double GRANBAL_PETAL_DAMAGE_RATIO = 0.75D;
     private static final double GRANBAL_PETAL_PUSH_STRENGTH = 0.45D;
-    private static final double GRANBAL_IMPACT_PARTICLE_SPACING = 1.2D;
+    private static final double GRANBAL_IMPACT_PARTICLE_SPACING = 0.85D;
     private static final long ALDA_EXPOSURE_DURATION_TICKS = 60L;
     private static final double ALDA_EXPOSURE_DAMAGE_MULTIPLIER = 1.50D;
     private static final int ALDA_EXPOSURE_DISPLAY_COUNT = 8;
     private static final String ALDA_EXPOSURE_EFFECT_ID = "forgotten-alda-shield-break";
-    private static final double LINE_PARTICLE_INTERVAL = 0.5D;
+    private static final double LINE_PARTICLE_INTERVAL = 0.25D;
     private static final double SUNBIRD_FLARE_RADIUS = 5.0D;
     private static final double SUNBIRD_SUNSTRIKE_RADIUS = 3.0D;
     private static final double SUNBIRD_BEAM_LENGTH = 24.0D;
@@ -113,14 +113,14 @@ public final class BossMechanicService {
     private static final int SUNBIRD_BIRD_METEOR_SAFE_RING_POINT_COUNT = 36;
     private static final int SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT = 3;
     private static final int SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT = 12;
-    private static final double SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING = 1.5D;
+    private static final double SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING = 1.06D;
     private static final double SUNBIRD_BIRD_METEOR_DAMAGE_RATIO = 30.0D;
     private static final double SUNBIRD_BIRD_METEOR_ACCURACY_BONUS = 1000.0D;
     private static final long SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS = 80L;
     private static final long SUNBIRD_BIRD_METEOR_CHARGE_TICKS = 100L;
     private static final double SUNBIRD_BIRD_METEOR_CHARGE_RADIUS = 2.5D;
-    private static final int SUNBIRD_BIRD_METEOR_CHARGE_RING_POINT_COUNT = 28;
-    private static final int SUNBIRD_BIRD_METEOR_CHARGE_SPIRAL_POINT_COUNT = 24;
+    private static final int SUNBIRD_BIRD_METEOR_CHARGE_RING_POINT_COUNT = 56;
+    private static final int SUNBIRD_BIRD_METEOR_CHARGE_SPIRAL_POINT_COUNT = 48;
     private static final double SUNBIRD_BIRD_METEOR_CHARGE_HEIGHT = 2.2D;
     private static final int SUNBIRD_NOVA_DISPLAY_COUNT = 12;
     private static final int SUNBIRD_NOVA_INNER_RING_POINT_COUNT = 36;
@@ -3140,7 +3140,7 @@ public final class BossMechanicService {
      * @param center 円の中心
      * @param radius 円の半径
      * @param particle 表示する共通パーティクル定義
-     * @param points 円周上の表示地点数
+     * @param points 標準密度での円周上の表示地点数
      */
     private void renderCircle(
         @NotNull Location center,
@@ -3156,17 +3156,18 @@ public final class BossMechanicService {
      *
      * @param center 円の中心
      * @param radius 円の半径
-     * @param points 円周上の地点数
-     * @return 中心から指定水平距離にある地点一覧
+     * @param points 標準密度での円周上の地点数
+     * @return 中心から指定水平距離にある最大密度向け候補地点一覧
      */
     static @NotNull List<Location> circleLocations(
         @NotNull Location center,
         double radius,
         int points
     ) {
-        List<Location> locations = new ArrayList<>(points);
-        for (int index = 0; index < points; index++) {
-            double angle = (Math.PI * 2.0D * index) / points;
+        int candidateCount = points * 2;
+        List<Location> locations = new ArrayList<>(candidateCount);
+        for (int index = 0; index < candidateCount; index++) {
+            double angle = (Math.PI * 2.0D * index) / candidateCount;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
         }
         return List.copyOf(locations);
@@ -3177,7 +3178,7 @@ public final class BossMechanicService {
      *
      * @param center 円の中心
      * @param radius 円の半径
-     * @param points 円周上の地点数
+     * @param points 標準密度での円周上の地点数
      * @return 位置揺らぎを加えた地点一覧
      */
     private static @NotNull List<Location> randomizedCircleLocations(
@@ -3276,7 +3277,7 @@ public final class BossMechanicService {
                 length
             );
         }
-        int arcPointCount = Math.max(16, boundedRayCount * 3);
+        int arcPointCount = Math.max(32, boundedRayCount * 6);
         for (int index = 0; index < arcPointCount; index++) {
             double progress = (double) index / (arcPointCount - 1);
             double angle = -halfAngle + angleDegrees * progress;
@@ -3349,7 +3350,16 @@ public final class BossMechanicService {
         particleDisplayService.spawnForNearbyViewers(center, locations, particle);
     }
 
-    /** 扇形の命中面全体へ、一定間隔でパーティクル表示地点を作成します。 */
+    /**
+     * 扇形の命中面全体へ最大密度向けの候補地点を作成します。
+     *
+     * @param origin 扇形の起点
+     * @param direction 扇形の中心方向
+     * @param length 扇形の長さ
+     * @param angleDegrees 扇形の全角度
+     * @param spacing 標準密度時に相当する格子間隔
+     * @return 扇形内の候補地点
+     */
     private static @NotNull List<Location> coneAreaParticleLocations(
         @NotNull Location origin,
         @NotNull Vector direction,
@@ -3362,11 +3372,12 @@ public final class BossMechanicService {
             return List.of();
         }
         centerDirection.normalize();
+        double candidateSpacing = spacing / Math.sqrt(2.0D);
         double angleRadians = Math.toRadians(angleDegrees);
         double halfAngle = angleDegrees / 2.0D;
         List<Location> locations = new ArrayList<>();
-        for (double radius = spacing * 0.5D; radius <= length; radius += spacing) {
-            int pointCount = Math.max(2, (int) Math.ceil(radius * angleRadians / spacing) + 1);
+        for (double radius = candidateSpacing * 0.5D; radius <= length; radius += candidateSpacing) {
+            int pointCount = Math.max(2, (int) Math.ceil(radius * angleRadians / candidateSpacing) + 1);
             for (int index = 0; index < pointCount; index++) {
                 double progress = (double) index / (pointCount - 1);
                 double angle = -halfAngle + angleDegrees * progress;
@@ -3378,7 +3389,14 @@ public final class BossMechanicService {
         return List.copyOf(locations);
     }
 
-    /** 円形の命中面全体へ、格子状にパーティクル表示地点を作成します。 */
+    /**
+     * 円形の命中面全体へ最大密度向けの格子候補地点を作成します。
+     *
+     * @param center 円形の中心
+     * @param radius 円形の半径
+     * @param spacing 標準密度時に相当する格子間隔
+     * @return 円内の候補地点
+     */
     private static @NotNull List<Location> circleAreaParticleLocations(
         @NotNull Location center,
         double radius,
@@ -3388,9 +3406,10 @@ public final class BossMechanicService {
             return List.of();
         }
         double radiusSquared = radius * radius;
+        double candidateSpacing = spacing / Math.sqrt(2.0D);
         List<Location> locations = new ArrayList<>();
-        for (double x = -radius; x <= radius; x += spacing) {
-            for (double z = -radius; z <= radius; z += spacing) {
+        for (double x = -radius; x <= radius; x += candidateSpacing) {
+            for (double z = -radius; z <= radius; z += candidateSpacing) {
                 if (x * x + z * z > radiusSquared) {
                     continue;
                 }

@@ -27,7 +27,7 @@ public final class ArcaneFlowSkillRuntimeService {
     /** Lv.5 の詠唱時間短縮率です。 */
     public static final double MAX_CAST_TIME_REDUCTION_PERCENT = 10.0D;
 
-    private static final int ACTIVATION_PARTICLE_POINTS = 16;
+    private static final int ACTIVATION_PARTICLE_POINTS = 32;
     private static final double ACTIVATION_PARTICLE_RADIUS = 0.72D;
     private static final double ACTIVATION_PARTICLE_HEIGHT = 1.0D;
 
@@ -147,6 +147,7 @@ public final class ArcaneFlowSkillRuntimeService {
         lastSuccessfulSkillIds.clear();
     }
 
+    /** 最大密度の候補点で発動円を描き、標準密度では従来の点数を維持します。 */
     private void renderActivation(@NotNull AstPlayer player) {
         Location base = player.getBukkit().getLocation();
         if (base.getWorld() == null) {

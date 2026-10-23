@@ -69,7 +69,7 @@ abstract class MesaDebuffSkillSupport implements MobSkillExecutor {
         this.impactSound = impactSound;
     }
 
-    /** 種ごとの固定予告点。最大40点まで、閲覧者解決を一括して描画します。 */
+    /** 種ごとの固定予告点。最大80候補点まで、閲覧者解決を一括して描画します。 */
     protected abstract @NotNull List<Location> warningPoints(Location origin, Vector direction);
 
     /** 主対象の足元が種ごとの固定攻撃形状に入っているかを判定します。 */
@@ -98,7 +98,7 @@ abstract class MesaDebuffSkillSupport implements MobSkillExecutor {
                 || !clearPath(origin, feet)) return false;
         direction.normalize();
         List<Location> points = warningPoints(origin, direction);
-        if (points.size() > 40 || points.stream().anyMatch(p -> !loadedInside(p))) return false;
+        if (points.size() > 80 || points.stream().anyMatch(p -> !loadedInside(p))) return false;
         FixedCast cast = new FixedCast(context, origin, direction, points);
         casts.put(context.mob().instanceId(), cast);
         context.mob().scriptedAction(true);

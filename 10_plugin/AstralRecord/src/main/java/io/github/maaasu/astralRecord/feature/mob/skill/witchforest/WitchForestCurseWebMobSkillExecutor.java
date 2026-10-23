@@ -58,16 +58,16 @@ public final class WitchForestCurseWebMobSkillExecutor implements MobSkillExecut
     /** @return 発動距離7m・120tick再使用・12tick詠唱 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(7.0D, 120L, 12L); }
 
-    /** @param context 詠唱開始時の主対象 @return 固定呪糸輪の予告を開始できた場合true */
+    /** @param context 詠唱開始時の主対象 @return 高密度候補の固定呪糸輪予告を開始できた場合true */
     @Override public boolean cast(@NotNull MobSkillContext context) {
         Entity caster = support.activeCaster(context);
         if (caster == null || caster.getLocation().distanceSquared(context.target().getLocation()) > 49.0D
                 || Math.abs(caster.getLocation().getY() - context.target().getLocation().getY()) > 1.25D
                 || !WitchForestSkillSupport.hasClearPath(caster.getLocation(), context.target())) return false;
         Location center = context.target().getLocation();
-        List<Location> points = new ArrayList<>(24);
-        for (int index = 0; index < 24; index++) {
-            double angle = Math.PI * 2.0D * index / 24.0D;
+        List<Location> points = new ArrayList<>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = Math.PI * 2.0D * index / 48.0D;
             points.add(center.clone().add(Math.cos(angle) * 2.0D, 0.08D, Math.sin(angle) * 2.0D));
         }
         center.getWorld().playSound(center, Sound.ENTITY_SPIDER_AMBIENT, 0.7F, 0.6F);

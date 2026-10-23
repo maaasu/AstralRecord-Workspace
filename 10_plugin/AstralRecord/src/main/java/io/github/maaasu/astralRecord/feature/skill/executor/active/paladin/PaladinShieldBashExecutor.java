@@ -140,6 +140,7 @@ public final class PaladinShieldBashExecutor extends PlayerActiveSkillExecutor {
         }
     }
 
+    /** 標準密度で盾の元の格子を残し、密度に応じて縁と芯の中間点を補います。 */
     private void renderShield(
             @NotNull PlayerActiveSkillContext context,
             @NotNull Location center,
@@ -154,7 +155,9 @@ public final class PaladinShieldBashExecutor extends PlayerActiveSkillExecutor {
                 double y = verticalIndex * height / 8.0D;
                 boolean border = Math.abs(horizontalIndex) == 2 || Math.abs(verticalIndex) == 4;
                 if (border || (horizontalIndex == 0 && verticalIndex % 2 == 0)) {
-                    points.add(center.clone().add(right.clone().multiply(x)).add(0.0D, y, 0.0D));
+                    Location original = center.clone().add(right.clone().multiply(x)).add(0.0D, y, 0.0D);
+                    points.add(original);
+                    points.add(original.clone().add(0.0D, height / 16.0D, 0.0D));
                 }
             }
         }

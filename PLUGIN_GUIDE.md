@@ -100,6 +100,7 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 - `Particle.valueOf(...)` による直接解決は行わず、共有 resolver を使う。
 - 固定の `Particle.*` 定数、共通の別名、既定値は `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` だけに定義する。
 - `SharedParticleDefinition.data` は `Particle#getDataType()` が `Void` の場合は `null`、それ以外では要求型の非 `null` instance とする。
+- 線・円・魔法陣などの点群は最大密度用の候補点を一括送信し、閲覧者の密度は地点数と点間隔へ反映する。形状順に点を並べ、同座標の重複を増やさない。密度契約は [プレイヤー設定モデル](00_docs/10_Plugin設計書/feature/11-player-setting/11_1-モデル定義.md) を参照する。
 
 ## メッセージ管理共通ルール
 

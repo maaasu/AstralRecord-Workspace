@@ -162,11 +162,12 @@ public final class AinurindaleFangWaveMobSkillExecutor implements MobSkillExecut
         );
     }
 
+    /** 三つの波の輪郭をそれぞれ32候補点で構築し、一括して表示します。 */
     private void renderWave(@NotNull List<Location> centers, double radius) {
-        List<Location> points = new ArrayList<>(centers.size() * 16);
+        List<Location> points = new ArrayList<>(centers.size() * 32);
         for (Location center : centers) {
-            for (int index = 0; index < 16; index++) {
-                double angle = Math.PI * 2.0D * index / 16.0D;
+            for (int index = 0; index < 32; index++) {
+                double angle = Math.PI * 2.0D * index / 32.0D;
                 points.add(center.clone().add(Math.cos(angle) * radius, 0.1D, Math.sin(angle) * radius));
             }
         }

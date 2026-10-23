@@ -114,29 +114,29 @@ public final class MossFoxMobSkillExecutor implements MobSkillExecutor {
     private final class Smoke extends BukkitRunnable {
         private final MobSkillContext context;
         private final Location center;
-        private final List<Location> border = new ArrayList<>(24);
-        private final List<Location> haze = new ArrayList<>(9);
+        private final List<Location> border = new ArrayList<>(48);
+        private final List<Location> haze = new ArrayList<>(17);
         private int elapsed;
         private boolean scheduled;
         private boolean finished;
         private boolean holdingAi = true;
 
-        /** @param context 発動文脈 @param center 発動者の足元。固定中心・境界・煙座標をコピーします */
+        /** @param context 発動文脈 @param center 発動者の足元。固定中心・最大密度向け境界・煙座標をコピーします */
         private Smoke(MobSkillContext context, Location center) {
             this.context = context;
             this.center = center.clone();
-            for (int point = 0; point < 24; point++) {
-                double angle = Math.PI * 2 * point / 24;
+            for (int point = 0; point < 48; point++) {
+                double angle = Math.PI * 2 * point / 48;
                 border.add(center.clone().add(Math.cos(angle) * RADIUS, 0.12D, Math.sin(angle) * RADIUS));
             }
             haze.add(center.clone().add(0, 0.6D, 0));
-            for (int point = 0; point < 8; point++) {
-                double angle = Math.PI * 2 * point / 8;
+            for (int point = 0; point < 16; point++) {
+                double angle = Math.PI * 2 * point / 16;
                 haze.add(center.clone().add(Math.cos(angle) * 1.65D, 0.6D, Math.sin(angle) * 1.65D));
             }
         }
 
-        /** @return 中心と境界24点のchunkが既に読込済みの場合true。chunkを新規読込しません */
+        /** @return 中心と境界48候補点のchunkが既に読込済みの場合true。chunkを新規読込しません */
         private boolean loaded() {
             return center.getWorld() != null
                     && center.getWorld().isChunkLoaded(center.getBlockX() >> 4, center.getBlockZ() >> 4)

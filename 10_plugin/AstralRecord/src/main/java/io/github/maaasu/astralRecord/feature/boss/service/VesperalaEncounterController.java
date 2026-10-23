@@ -316,7 +316,7 @@ final class VesperalaEncounterController {
         return stage == Stage.CORRIDOR || stage == Stage.LINE ? Material.SPRUCE_LOG : Material.MOSS_BLOCK;
     }
 
-    /** 命中判定と同じ形状から危険面・安全面を抽出し、10 tick周期の有限バッチで描画します。 */
+    /** 命中判定と同じ形状から最大密度向け危険面・安全面を抽出し、10 tick周期の有限バッチで描画します。 */
     private void draw(Cast cast) {
         if (!cast.stage.harmful) {
             List<Location> ring = new ArrayList<>();
@@ -334,7 +334,7 @@ final class VesperalaEncounterController {
         if (safeSpot != null) ringPoints(safeSpot, 0.7D, 16, safe);
         if (cast.stage == Stage.CORRIDOR) {
             Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
-            for (double distance = -15.0D; distance <= 15.0D; distance += 1.0D) {
+            for (double distance = -15.0D; distance <= 15.0D; distance += 0.5D) {
                 for (double across : new double[]{-1.8D, 0.0D, 1.8D}) {
                     Location point = cast.center.clone().add(cast.direction.clone().multiply(distance))
                         .add(side.clone().multiply(across)).add(0, 0.15D, 0);
@@ -345,7 +345,7 @@ final class VesperalaEncounterController {
         BossParticleEffect.safeArea(particles, cast.center, safe);
     }
 
-    /** 16mの戦闘会場を1秒周期・2層128地点で示し、会場外から攻撃できない境界を可視化します。 */
+    /** 16mの戦闘会場を1秒周期・2層256候補地点で示し、会場外から攻撃できない境界を可視化します。 */
     private void drawBoundary(Location center) {
         List<Location> points = new ArrayList<>();
         ringPoints(center, ARENA_RADIUS, 64, points);
@@ -353,7 +353,7 @@ final class VesperalaEncounterController {
         particles.spawnForNearbyViewers(center, points, SharedParticleDefinitions.VESPERALA_BOUNDARY);
     }
 
-    /** 技ごとの境界を正確な半径・幅・角度で描き、色以外でも形状を判別できるようにします。 */
+    /** 技ごとの境界を最大密度向け候補点で描き、色以外でも形状を判別できるようにします。 */
     private static List<Location> boundaryPoints(Cast cast) {
         List<Location> result = new ArrayList<>();
         if (cast.stage == Stage.THORNS) {
@@ -362,12 +362,12 @@ final class VesperalaEncounterController {
             ringPoints(cast.center, 5.5D, 64, result);
         } else if (cast.stage == Stage.FAN) {
             double facing = Math.atan2(cast.direction.getZ(), cast.direction.getX());
-            for (int degree = -35; degree <= 35; degree += 5) {
+            for (double degree = -35; degree <= 35; degree += 2.5D) {
                 double angle = facing + Math.toRadians(degree);
                 result.add(cast.center.clone().add(Math.cos(angle) * 10.0D, 0.15D, Math.sin(angle) * 10.0D));
             }
-            for (double distance = 0.5D; distance <= 10.0D; distance += 0.5D) {
-                for (int sign : new int[]{-1, 1}) {
+            for (int sign : new int[]{-1, 1}) {
+                for (double distance = 0.25D; distance <= 10.0D; distance += 0.25D) {
                     double angle = facing + sign * Math.toRadians(35.0D);
                     result.add(cast.center.clone().add(Math.cos(angle) * distance, 0.15D, Math.sin(angle) * distance));
                 }
@@ -375,20 +375,24 @@ final class VesperalaEncounterController {
         } else {
             double width = cast.stage == Stage.CORRIDOR ? 2.0D : cast.stage == Stage.CROSS ? 1.5D : 1.4D;
             Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
-            for (double distance = -16.0D; distance <= 16.0D; distance += 0.75D) {
-                for (int sign : new int[]{-1, 1}) {
+            for (int sign : new int[]{-1, 1}) {
+                for (double distance = -16.0D; distance <= 16.0D; distance += 0.375D) {
                     Location point = cast.center.clone().add(cast.direction.clone().multiply(distance))
                         .add(side.clone().multiply(width * sign)).add(0, 0.15D, 0);
                     if (inArena(point, cast.center)) result.add(point);
-                    if (cast.stage == Stage.CROSS) {
-                        point = cast.center.clone().add(side.clone().multiply(distance))
+                }
+            }
+            if (cast.stage == Stage.CROSS) {
+                for (int sign : new int[]{-1, 1}) {
+                    for (double distance = -16.0D; distance <= 16.0D; distance += 0.375D) {
+                        Location point = cast.center.clone().add(side.clone().multiply(distance))
                             .add(cast.direction.clone().multiply(width * sign)).add(0, 0.15D, 0);
                         if (inArena(point, cast.center)) result.add(point);
                     }
                 }
             }
         }
-        return result.stream().filter(point -> inArena(point, cast.center) && clearSight(cast, point)).limit(176).toList();
+        return result.stream().filter(point -> inArena(point, cast.center) && clearSight(cast, point)).limit(352).toList();
     }
 
     /** 波のBossBarと参加者集合を更新し、完了時刻に合わせて表示を減らします。 */
@@ -530,10 +534,17 @@ final class VesperalaEncounterController {
         return point.getWorld() != null && point.getWorld().isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4);
     }
 
-    /** 有限個の円周点を足元表示へ追加します。 */
+    /**
+     * 標準密度の点数から最大密度向け円周候補点を足元表示へ追加します。
+     * @param center 円の中心
+     * @param radius 円の半径
+     * @param count 標準密度での点数
+     * @param out 候補点の追加先
+     */
     private static void ringPoints(Location center, double radius, int count, List<Location> out) {
-        for (int i = 0; i < count; i++) {
-            double angle = 2.0D * Math.PI * i / count;
+        int candidateCount = count * 2;
+        for (int i = 0; i < candidateCount; i++) {
+            double angle = 2.0D * Math.PI * i / candidateCount;
             out.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
         }
     }

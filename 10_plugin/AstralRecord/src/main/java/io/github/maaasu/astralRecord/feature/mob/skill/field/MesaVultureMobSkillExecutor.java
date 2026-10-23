@@ -102,15 +102,16 @@ public final class MesaVultureMobSkillExecutor implements MobSkillExecutor {
         private final MobSkillContext context;
         private final Location origin;
         private final Location center;
-        private final List<Location> ring = new ArrayList<>(25);
+        private final List<Location> ring = new ArrayList<>(49);
         private BukkitTask task;
         private int elapsed;
         private boolean finished;
 
+        /** @param context 発動文脈 @param origin 射出元 @param center 着地点。48点の円周候補を固定します */
         private StoneCast(MobSkillContext context, Location origin, Location center) {
             this.context = context; this.origin = origin.clone(); this.center = center.clone();
-            for (int i = 0; i < 24; i++) {
-                double angle = 2.0D * Math.PI * i / 24.0D;
+            for (int i = 0; i < 48; i++) {
+                double angle = 2.0D * Math.PI * i / 48.0D;
                 ring.add(center.clone().add(Math.cos(angle) * RADIUS, 0.08D, Math.sin(angle) * RADIUS));
             }
             ring.add(center.clone().add(0.0D, 0.08D, 0.0D));

@@ -53,7 +53,7 @@ final class EmpusaSpellController {
     private static final long RITUAL_INTERVAL_TICKS = 25L;
     private static final long RITUAL_FIRST_WARNING_TICKS = 60L;
     private static final long RITUAL_NEXT_WARNING_TICKS = 35L;
-    private static final int MAX_DRAW_POINTS = 192;
+    private static final int MAX_DRAW_POINTS = 384;
 
     private final ParticleDisplayService particles;
     private final Function<Location, List<Player>> targets;
@@ -447,23 +447,23 @@ final class EmpusaSpellController {
             particles.spawnForNearbyViewers(danger.center, danger.points, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         }
         if (cast.safeSpot != null) {
-            List<Location> safeRing = new ArrayList<>(12);
-            for (int index = 0; index < 12; index++) {
-                double a = index * Math.PI / 6.0D;
+            List<Location> safeRing = new ArrayList<>(24);
+            for (int index = 0; index < 24; index++) {
+                double a = index * Math.PI / 12.0D;
                 safeRing.add(cast.safeSpot.clone().add(Math.cos(a) * 0.75D, 0.35D, Math.sin(a) * 0.75D));
             }
             BossParticleEffect.safeArea(particles, cast.safeSpot, safeRing);
         }
         double angle = tick * 0.14D;
-        List<Location> orbs = new ArrayList<>(12);
-        for (int i = 0; i < 8; i++) {
-            double a = angle + i * Math.PI / 4.0D;
+        List<Location> orbs = new ArrayList<>(24);
+        for (int i = 0; i < 16; i++) {
+            double a = angle + i * Math.PI / 8.0D;
             orbs.add(bossLocation.clone().add(Math.cos(a) * 1.5D, 1.35D + Math.sin(a * 2.0D) * 0.32D,
                 Math.sin(a) * 1.5D));
         }
         if (cast.spell.ritual) {
-            for (int i = 0; i < 4; i++) {
-                double a = i * Math.PI / 2.0D;
+            for (int i = 0; i < 8; i++) {
+                double a = i * Math.PI / 4.0D;
                 orbs.add(zone.center.clone().add(Math.cos(a) * 2.0D, 1.0D + (tick % 20L) / 10.0D,
                     Math.sin(a) * 2.0D));
             }
@@ -861,42 +861,52 @@ final class EmpusaSpellController {
             };
         }
 
-        /** 地表を格子状に塗り、外周と内部の双方を低密度でも識別可能にします。 */
+        /** 地表を最大密度向け候補格子で塗り、外周と内部の双方を低密度でも識別可能にします。 */
         private @NotNull List<Location> points() {
             List<Location> result = new ArrayList<>(MAX_DRAW_POINTS);
             if (shape == Shape.CIRCLE || shape == Shape.ANNULUS) {
-                for (int index = 0; index < 32; index++) {
-                    double angle = index * Math.PI / 16.0D;
+                for (int index = 0; index < 64; index++) {
+                    double angle = index * Math.PI / 32.0D;
                     addRingPoint(result, angle, reach);
                     if (shape == Shape.ANNULUS) addRingPoint(result, angle, secondary);
                 }
             } else if (shape == Shape.LINE) {
-                for (double distance = 0.0D; distance <= reach; distance += 0.75D) {
+                for (double distance = 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, distance, secondary);
+                }
+                for (double distance = 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, distance, -secondary);
                 }
-                for (double side = -secondary; side <= secondary; side += 0.45D) {
+                for (double side = -secondary; side <= secondary; side += 0.225D) {
                     addLocalPoint(result, reach, side);
                 }
             } else if (shape == Shape.FAN) {
-                for (double distance = 0.0D; distance <= reach; distance += 0.75D) {
+                for (double distance = 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, Math.cos(secondary) * distance, Math.sin(secondary) * distance);
+                }
+                for (double distance = 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, Math.cos(secondary) * distance, -Math.sin(secondary) * distance);
                 }
-                for (int index = -12; index <= 12; index++) {
-                    double angle = secondary * index / 12.0D;
+                for (int index = -24; index <= 24; index++) {
+                    double angle = secondary * index / 24.0D;
                     addLocalPoint(result, Math.cos(angle) * reach, Math.sin(angle) * reach);
                 }
             } else if (shape == Shape.CROSS) {
-                for (double distance = -reach; distance <= reach; distance += 0.9D) {
+                for (double distance = -reach; distance <= reach; distance += 0.45D) {
                     addLocalPoint(result, distance, secondary);
+                }
+                for (double distance = -reach; distance <= reach; distance += 0.45D) {
                     addLocalPoint(result, distance, -secondary);
+                }
+                for (double distance = -reach; distance <= reach; distance += 0.45D) {
                     addLocalPoint(result, secondary, distance);
+                }
+                for (double distance = -reach; distance <= reach; distance += 0.45D) {
                     addLocalPoint(result, -secondary, distance);
                 }
             }
             double extent = reach;
-            double step = shape == Shape.CROSS ? 1.35D : 1.2D;
+            double step = shape == Shape.CROSS ? 0.95D : 0.85D;
             for (double x = -extent; x <= extent && result.size() < MAX_DRAW_POINTS; x += step) {
                 for (double z = -extent; z <= extent && result.size() < MAX_DRAW_POINTS; z += step) {
                     Location point = center.clone().add(x, 0, z);

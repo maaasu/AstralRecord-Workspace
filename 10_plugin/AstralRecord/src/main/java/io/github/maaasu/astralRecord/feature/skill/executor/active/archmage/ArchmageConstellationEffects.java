@@ -18,7 +18,7 @@ import java.util.function.BiConsumer;
 /** 陣地を星座として編み、星術で解放するアークメイジ固有の有限演出です。 */
 final class ArchmageConstellationEffects {
     private static final double TWO_PI = Math.PI * 2.0D;
-    private static final int MAX_LAYER_POINTS = 144;
+    private static final int MAX_LAYER_POINTS = 288;
     private static final int MAX_RECIPIENTS = 4;
 
     /** 効果対象と、色以外でも判別できる魔法陣の意匠を対応させます。 */
@@ -62,7 +62,7 @@ final class ArchmageConstellationEffects {
 
     /**
      * 外周は実効果半径を保ち、内側の紋様と上昇点だけを10tick間隔で動かします。
-     * 1層144点、3層までに制限し、閲覧者がいなければ点群を生成しません。
+     * 1層288候補点（標準144点）、3層までに制限し、閲覧者がいなければ点群を生成しません。
      * @param context 発動サービス
      * @param center 固定された設置点
      * @param radius 実効果半径
@@ -85,23 +85,26 @@ final class ArchmageConstellationEffects {
                 polygon(motif, center, radius * 0.5D, 6, Math.PI / 6.0D);
                 for (int rib = 0; rib < 6; rib++) {
                     double angle = rib * TWO_PI / 6.0D;
-                    for (int step = 0; step < 7; step++) {
-                        double elevation = Math.PI * 0.5D * step / 6.0D;
+                    for (int step = 0; step < 13; step++) {
+                        double elevation = Math.PI * 0.5D * step / 12.0D;
                         polar(light, center, radius * Math.cos(elevation), angle,
                                 pulse ? radius * 0.6D * Math.sin(elevation) : 0.12D);
                     }
                 }
             }
             case RENEWAL -> {
-                for (int step = 0; step < 64; step++) {
-                    double angle = TWO_PI * step / 64.0D;
+                for (int step = 0; step < 128; step++) {
+                    double angle = TWO_PI * step / 128.0D;
                     polar(motif, center, radius * 0.78D * Math.abs(Math.sin(angle * 2.0D)), angle, 0.0D);
                 }
                 ring(light, center, radius * 0.32D, 16, pulse ? 0.55D : 0.1D);
+                List<Location> petals = new ArrayList<>(8);
                 for (int petal = 0; petal < 8; petal++) {
-                    polar(light, center, radius * 0.68D, petal * TWO_PI / 8.0D + phase,
+                    polar(petals, center, radius * 0.68D, petal * TWO_PI / 8.0D + phase,
                             0.2D + (1.0D + Math.sin(phase)) * 0.3D);
                 }
+                context.services().effects().burstsForViewers(viewers, petals,
+                        SharedParticleDefinitions.SKILL_ARCHMAGE_CLEAR_CIRCLE_GOLD);
             }
             case VIGOR -> {
                 for (int arrow = 0; arrow < 6; arrow++) {
@@ -112,9 +115,9 @@ final class ArchmageConstellationEffects {
                     Location tail = center.clone().add(radial.clone().multiply(radius * 0.35D));
                     segment(motif, tail.clone().add(side.clone().multiply(radius * 0.18D)), tip, 5);
                     segment(motif, tail.clone().subtract(side.clone().multiply(radius * 0.18D)), tip, 5);
-                    for (int step = 0; step < 4; step++) {
+                    for (int step = 0; step < 8; step++) {
                         polar(light, center, radius * 0.5D, angle + phase,
-                                0.2D + ((age / 10 + step) % 4) * 0.24D);
+                                0.2D + ((age / 10 + step / 2.0D) % 4) * 0.24D);
                     }
                 }
             }
@@ -260,15 +263,16 @@ final class ArchmageConstellationEffects {
             List<Location> core = new ArrayList<>();
             List<Location> helix = new ArrayList<>();
             segment(core, origin, end, 64);
-            for (int step = 0; step <= 48; step++) {
-                double fraction = step / 48.0D;
-                double angle = fraction * TWO_PI * (2 + circles) + frame * 0.3D;
-                double width = Math.sin(Math.PI * fraction) * (0.14D + circles * 0.05D);
-                Location axis = origin.clone().add(delta.clone().multiply(fraction));
-                Vector offset = side.clone().multiply(Math.cos(angle) * width)
-                        .add(up.clone().multiply(Math.sin(angle) * width));
-                helix.add(axis.clone().add(offset));
-                helix.add(axis.clone().subtract(offset));
+            for (int strand = 0; strand < 2; strand++) {
+                for (int step = 0; step <= 96; step++) {
+                    double fraction = step / 96.0D;
+                    double angle = fraction * TWO_PI * (2 + circles) + frame * 0.3D;
+                    double width = Math.sin(Math.PI * fraction) * (0.14D + circles * 0.05D);
+                    Location axis = origin.clone().add(delta.clone().multiply(fraction));
+                    Vector offset = side.clone().multiply(Math.cos(angle) * width)
+                            .add(up.clone().multiply(Math.sin(angle) * width));
+                    helix.add(strand == 0 ? axis.add(offset) : axis.subtract(offset));
+                }
             }
             Location base = end.clone().subtract(forward.clone().multiply(0.65D));
             segment(core, base.clone().add(side.clone().multiply(0.3D)), end, 5);
@@ -300,8 +304,8 @@ final class ArchmageConstellationEffects {
             List<Location> trail = new ArrayList<>();
             List<Location> stars = new ArrayList<>();
             Vector delta = end.toVector().subtract(origin.toVector());
-            for (int step = 0; step <= 28; step++) {
-                double t = step / 28.0D;
+            for (int step = 0; step <= 56; step++) {
+                double t = step / 56.0D;
                 trail.add(origin.clone().add(delta.clone().multiply(t)).add(0.0D, Math.sin(Math.PI * t) * 0.65D, 0.0D));
             }
             if (hit) { star(stars, end, 0.32D + frame * 0.06D, index); }
@@ -318,11 +322,14 @@ final class ArchmageConstellationEffects {
             List<Location> orbit = new ArrayList<>();
             List<Location> wave = new ArrayList<>();
             Location core = center.clone().add(0.0D, 0.6D, 0.0D);
-            for (int step = 0; step < 32; step++) {
-                double angle = TWO_PI * step / 32.0D;
-                double r = 0.65D * (1.0D - frame * 0.16D);
-                orbit.add(core.clone().add(Math.cos(angle) * r, Math.sin(angle) * r, 0.0D));
-                orbit.add(core.clone().add(0.0D, Math.cos(angle) * r, Math.sin(angle) * r));
+            for (int axis = 0; axis < 2; axis++) {
+                for (int step = 0; step < 64; step++) {
+                    double angle = TWO_PI * step / 64.0D;
+                    double r = 0.65D * (1.0D - frame * 0.16D);
+                    orbit.add(axis == 0
+                            ? core.clone().add(Math.cos(angle) * r, Math.sin(angle) * r, 0.0D)
+                            : core.clone().add(0.0D, Math.cos(angle) * r, Math.sin(angle) * r));
+                }
             }
             ring(wave, center, radius * (0.3D + frame * 0.175D), 48, 0.15D);
             for (Location impact : impacts) { ring(wave, impact, 0.5D, 8, 0.0D); }
@@ -363,11 +370,24 @@ final class ArchmageConstellationEffects {
         return context.services().effects().nearbyViewers(center, context.player(), 16);
     }
 
-    /** 1層の点数を制限し、一括送信でプレイヤーの粒子密度設定に従います。 */
+    /**
+     * 最大密度の候補上限を全パーツへ均等に適用し、後半の図形を切り落とさず一括送信します。
+     * @param context 発動サービス
+     * @param viewers 一フレームで解決済みの閲覧者
+     * @param points 最大密度用の全候補点
+     * @param particle 表示定義
+     */
     private static void display(PlayerActiveSkillContext context, List<Player> viewers,
                                 List<Location> points, SharedParticleDefinition particle) {
-        context.services().effects().pointsForViewers(viewers,
-                points.size() > MAX_LAYER_POINTS ? points.subList(0, MAX_LAYER_POINTS) : points, particle);
+        if (points.size() > MAX_LAYER_POINTS) {
+            List<Location> limited = new ArrayList<>(MAX_LAYER_POINTS);
+            for (int index = 0; index < MAX_LAYER_POINTS; index++) {
+                int source = (int) Math.round((double) index * (points.size() - 1) / (MAX_LAYER_POINTS - 1));
+                limited.add(points.get(source));
+            }
+            points = limited;
+        }
+        context.services().effects().pointsForViewers(viewers, points, particle);
     }
 
     /** 各陣の意味に対応する粒子層を返します。 */
@@ -414,15 +434,21 @@ final class ArchmageConstellationEffects {
         points.add(at(center, radius, angle, y));
     }
 
-    /** 有限点数の水平円を追加します。 */
+    /** 標準密度の倍の候補点で水平円を追加します。 */
     private static void ring(List<Location> points, Location center, double radius, int count, double y) {
-        for (int step = 0; step < count; step++) { polar(points, center, radius, TWO_PI * step / count, y); }
+        int candidates = count * 2;
+        for (int step = 0; step < candidates; step++) {
+            polar(points, center, radius, TWO_PI * step / candidates, y);
+        }
     }
 
-    /** 有限点数の線分を追加します。 */
+    /** 標準密度の倍の候補点で線分を追加します。 */
     private static void segment(List<Location> points, Location from, Location to, int steps) {
         Vector delta = to.toVector().subtract(from.toVector());
-        for (int step = 0; step <= steps; step++) { points.add(from.clone().add(delta.clone().multiply((double) step / steps))); }
+        int candidateSteps = steps * 2;
+        for (int step = 0; step <= candidateSteps; step++) {
+            points.add(from.clone().add(delta.clone().multiply((double) step / candidateSteps)));
+        }
     }
 
     /** 辺あたり6分割の多角形を追加します。 */

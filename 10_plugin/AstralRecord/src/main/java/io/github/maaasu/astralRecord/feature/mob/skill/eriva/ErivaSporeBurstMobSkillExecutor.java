@@ -56,7 +56,7 @@ public final class ErivaSporeBurstMobSkillExecutor implements MobSkillExecutor {
     /** @return 9m・50tick再使用・24tick詠唱 */
     @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(9.0D, 50L, 24L); }
 
-    /** @param context 詠唱開始時の主対象 @return 足元の固定予告を開始できた場合true */
+    /** @param context 詠唱開始時の主対象 @return 足元の高密度候補による固定予告を開始できた場合true */
     @Override
     public boolean cast(@NotNull MobSkillContext context) {
         Entity entity = ErivaForestSkillSupport.activeCaster(context, mobService, damageService, conditionService, false);
@@ -65,9 +65,9 @@ public final class ErivaSporeBurstMobSkillExecutor implements MobSkillExecutor {
             return false;
         }
         Location center = context.target().getLocation();
-        List<Location> points = new ArrayList<>(24);
-        for (int index = 0; index < 24; index++) {
-            double angle = Math.PI * 2.0D * index / 24.0D;
+        List<Location> points = new ArrayList<>(48);
+        for (int index = 0; index < 48; index++) {
+            double angle = Math.PI * 2.0D * index / 48.0D;
             points.add(center.clone().add(Math.cos(angle) * 2.5D, 0.1D, Math.sin(angle) * 2.5D));
         }
         center.getWorld().playSound(center, Sound.BLOCK_FUNGUS_PLACE, 0.9F, 0.65F);

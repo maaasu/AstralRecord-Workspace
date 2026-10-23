@@ -42,7 +42,7 @@ public final class ErivaStarhornGroveCircleMobSkillExecutor implements MobSkillE
     private static final Set<String> PARAMETER_KEYS = Set.of("radius", "damageRatio");
     private static final double DEFAULT_RADIUS = 2.5D;
     private static final double DEFAULT_DAMAGE_RATIO = 0.8D;
-    private static final int WARNING_POINTS = 24;
+    private static final int WARNING_POINTS = 48;
     private static final int WARNING_INTERVAL_TICKS = 5;
     private static final int IMPACT_DELAY_TICKS = 20;
 
@@ -161,6 +161,13 @@ public final class ErivaStarhornGroveCircleMobSkillExecutor implements MobSkillE
         );
     }
 
+    /**
+     * 森の円形予告を最大密度向け候補点で作ります。
+     * @param center 円の中心
+     * @param radius 円の半径
+     * @param height 地面からの表示高さ
+     * @return 円周上の候補点
+     */
     private @NotNull List<Location> circlePoints(@NotNull Location center, double radius, double height) {
         List<Location> points = new ArrayList<>(WARNING_POINTS);
         for (int index = 0; index < WARNING_POINTS; index++) {

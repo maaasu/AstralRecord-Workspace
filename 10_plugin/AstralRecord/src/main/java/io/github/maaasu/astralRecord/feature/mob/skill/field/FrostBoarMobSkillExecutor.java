@@ -280,16 +280,16 @@ public final class FrostBoarMobSkillExecutor implements MobSkillExecutor {
             }
         }
 
-        /** 当たり判定の周囲を実体幅の二本の霜筋と横棒で予告します。追尾しません。 */
+        /** 当たり判定の周囲を最大密度向け二本の霜筋と横棒で予告します。追尾しません。 */
         private void warn() {
-            List<Location> points = new ArrayList<>(33);
+            List<Location> points = new ArrayList<>(63);
             Entity caster = activeCaster(context);
             if (caster == null) return;
             BoundingBox box = caster.getBoundingBox();
             double halfWidth = Math.max(box.getWidthX(), box.getWidthZ()) / 2 + HIT_PADDING;
             Vector side = new Vector(-direction.getZ(), 0, direction.getX()).multiply(halfWidth);
-            for (int i = 0; i <= 10; i++) {
-                Location point = start.clone().add(direction.clone().multiply(i * SPEED)).add(0, 0.08D, 0);
+            for (int i = 0; i <= 20; i++) {
+                Location point = start.clone().add(direction.clone().multiply(i * SPEED / 2.0D)).add(0, 0.08D, 0);
                 addWarningPoint(points, point.clone().add(side));
                 addWarningPoint(points, point.clone().subtract(side));
                 // 横棒の中央点も示し、狼の二本の筋とは異なる梯子状の予告にします。

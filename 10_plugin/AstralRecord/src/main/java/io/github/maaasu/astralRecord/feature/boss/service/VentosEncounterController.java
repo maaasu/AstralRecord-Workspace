@@ -53,7 +53,7 @@ final class VentosEncounterController {
     private static final long RITUAL_INTERVAL_TICKS = 25L;
     private static final long RITUAL_FIRST_WARNING_TICKS = 70L;
     private static final long RITUAL_NEXT_WARNING_TICKS = 45L;
-    private static final int MAX_DRAW_POINTS = 192;
+    private static final int MAX_DRAW_POINTS = 384;
     private static final long DRAW_INTERVAL_TICKS = 10L;
     private static final double SHELTER_RADIUS = 2.5D;
     private static final double SHELTER_DISTANCE = 6.0D;
@@ -487,31 +487,31 @@ final class VentosEncounterController {
         SharedParticleDefinition color = SharedParticleDefinitions.VENTOS_DANGER;
         particles.spawnForNearbyViewers(zone.center, zone.points, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         if (cast.safeSpot != null) {
-            List<Location> safeRing = new ArrayList<>(24);
-            for (int index = 0; index < 24; index++) {
-                double a = index * Math.PI / 12.0D;
+            List<Location> safeRing = new ArrayList<>(48);
+            for (int index = 0; index < 48; index++) {
+                double a = index * Math.PI / 24.0D;
                 double radius = cast.move == Move.STORM_RITE ? SHELTER_RADIUS : 0.75D;
                 safeRing.add(cast.safeSpot.clone().add(Math.cos(a) * radius, 0.35D, Math.sin(a) * radius));
             }
             BossParticleEffect.safeArea(particles, cast.safeSpot, safeRing);
         }
         double angle = tick * 0.14D;
-        List<Location> orbs = new ArrayList<>(12);
-        for (int i = 0; i < 8; i++) {
-            double a = angle + i * Math.PI / 4.0D;
+        List<Location> orbs = new ArrayList<>(24);
+        for (int i = 0; i < 16; i++) {
+            double a = angle + i * Math.PI / 8.0D;
             orbs.add(bossLocation.clone().add(Math.cos(a) * 1.5D, 1.35D + Math.sin(a * 2.0D) * 0.32D,
                 Math.sin(a) * 1.5D));
         }
         if (cast.move.ritual) {
-            for (int i = 0; i < 4; i++) {
-                double a = i * Math.PI / 2.0D;
+            for (int i = 0; i < 8; i++) {
+                double a = i * Math.PI / 4.0D;
                 orbs.add(zone.center.clone().add(Math.cos(a) * 2.0D, 1.0D + (tick % 20L) / 10.0D,
                     Math.sin(a) * 2.0D));
             }
         }
         particles.spawnForNearbyViewers(bossLocation, orbs, color);
         if (cast.nextZone != null) {
-            particles.spawnForNearbyViewers(cast.nextZone.center, cast.nextZone.points.stream().limit(64).toList(),
+            particles.spawnForNearbyViewers(cast.nextZone.center, cast.nextZone.points.stream().limit(128).toList(),
                 SharedParticleDefinitions.BOSS_ATTACK_WARNING);
         }
         moveDisplays(cast, bossLocation, tick);
@@ -923,35 +923,39 @@ final class VentosEncounterController {
             };
         }
 
-        /** 地表を格子状に塗り、外周と内部の双方を低密度でも識別可能にします。 */
+        /** 地表を最大密度向け候補格子で塗り、外周と内部の双方を低密度でも識別可能にします。 */
         private @NotNull List<Location> points() {
             List<Location> result = new ArrayList<>(MAX_DRAW_POINTS);
             if (shape == Shape.CIRCLE || shape == Shape.ANNULUS || shape == Shape.STORM) {
-                for (int index = 0; index < 32; index++) {
-                    double angle = index * Math.PI / 16.0D;
+                for (int index = 0; index < 64; index++) {
+                    double angle = index * Math.PI / 32.0D;
                     addRingPoint(result, angle, reach);
                     if (shape == Shape.ANNULUS) addRingPoint(result, angle, secondary);
                 }
             } else if (shape == Shape.LINE || shape == Shape.WIND_LANE) {
-                for (double distance = shape == Shape.WIND_LANE ? -reach : 0.0D; distance <= reach; distance += 0.75D) {
+                for (double distance = shape == Shape.WIND_LANE ? -reach : 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, distance, secondary);
+                }
+                for (double distance = shape == Shape.WIND_LANE ? -reach : 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, distance, -secondary);
                 }
-                for (double side = -secondary; side <= secondary; side += 0.45D) {
+                for (double side = -secondary; side <= secondary; side += 0.225D) {
                     addLocalPoint(result, reach, side);
                 }
             } else if (shape == Shape.FAN) {
-                for (double distance = 0.0D; distance <= reach; distance += 0.75D) {
+                for (double distance = 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, Math.cos(secondary) * distance, Math.sin(secondary) * distance);
+                }
+                for (double distance = 0.0D; distance <= reach; distance += 0.375D) {
                     addLocalPoint(result, Math.cos(secondary) * distance, -Math.sin(secondary) * distance);
                 }
-                for (int index = -12; index <= 12; index++) {
-                    double angle = secondary * index / 12.0D;
+                for (int index = -24; index <= 24; index++) {
+                    double angle = secondary * index / 24.0D;
                     addLocalPoint(result, Math.cos(angle) * reach, Math.sin(angle) * reach);
                 }
             }
             double extent = reach;
-            double step = shape == Shape.STORM ? 2.1D : 1.2D;
+            double step = shape == Shape.STORM ? 1.49D : 0.85D;
             for (double x = -extent; x <= extent && result.size() < MAX_DRAW_POINTS; x += step) {
                 for (double z = -extent; z <= extent && result.size() < MAX_DRAW_POINTS; z += step) {
                     Location point = center.clone().add(x, 0, z);

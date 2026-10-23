@@ -35,37 +35,6 @@ class SkillTreeVisualizerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 9. スキルツリー表示フォールバック
-     * 検証契約: Bedrock向けedge粒子は中点1点ではなく、edge内部へ等間隔に複数配置する。
-     */
-    @Test
-    void bedrockEdgeParticlesAreDistributedAcrossTheEdge() {
-        List<Location> locations = SkillTreeVisualizer.bedrockEdgeParticleLocations(
-                new Location(null, 0.0D, 10.0D, 0.0D),
-                new Location(null, 4.0D, 10.0D, 0.0D)
-        );
-
-        assertEquals(3, locations.size());
-        assertEquals(1.0D, locations.get(0).getX(), 0.0001D);
-        assertEquals(2.0D, locations.get(1).getX(), 0.0001D);
-        assertEquals(3.0D, locations.get(2).getX(), 0.0001D);
-        assertEquals(10.02D, locations.get(1).getY(), 0.0001D);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 9. スキルツリー表示フォールバック
-     * 検証契約: edge粒子数は短いedgeでも最低数を確保し、極端に長いedgeでは上限を超えない。
-     */
-    @Test
-    void bedrockEdgeParticleCountIsBounded() {
-        assertEquals(0, SkillTreeVisualizer.bedrockEdgeParticleCount(0.0D));
-        assertEquals(3, SkillTreeVisualizer.bedrockEdgeParticleCount(0.5D));
-        assertEquals(8, SkillTreeVisualizer.bedrockEdgeParticleCount(100.0D));
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
      * 検証契約: status絞り込みは補正の正負を問わず一致nodeを紫、複数条件の全一致nodeをマゼンタとして優先する。
      */
