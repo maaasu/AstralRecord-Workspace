@@ -189,6 +189,19 @@ pwsh -NoProfile -File ./60_tool/control-deploy/tests/deployment-preflight.ps1
 
 ## 既存サービスの基本運転
 
+### MC-01のBedrock UDP許可を修復する
+
+Java 25への更新後、MC-01上でGeyserがUDP 19132を待ち受けているのに外部から応答しない場合に限り、管理者PowerShellで`Repair-ControlBedrockFirewall.ps1`を実行します。MC-01、実行ファイルの存在、UDP 19132の所有プロセス、診断済みの旧Java 21受信許可を確認してから、Java 25の実行ファイルに対するPublic受信UDP 19132だけの独立ルールを作ります。旧ルールやサービスには触れません。同名の正しいルールがあれば再実行しても追加しません。
+
+```powershell
+pwsh -NoProfile -File ./60_tool/control-deploy/Repair-ControlBedrockFirewall.ps1 -WhatIf
+pwsh -NoProfile -File ./60_tool/control-deploy/Repair-ControlBedrockFirewall.ps1 -Confirm:$false
+```
+
+Java実行ファイルが既定の`C:\Program Files\AstralRecordControl\Java\jdk-25.0.4.1+1-00c847d804f4\bin\java.exe`以外なら、`-NewJava 'C:\absolute\path\to\java.exe'`を付けます。結果は`status`（`WhatIf`、`Created`、`Existing`）、`ruleGroup`、実際の`ruleName`（WhatIf時はnull）、限定スコープを含む1行のJSONです。作成したルール名には一意の識別子が付きます。作成後の検証が失敗した場合は、この実行で追加したと確認できるルールだけを削除します。手動で戻すときは、成功時のJSONにある`ruleName`を確認し、MC-01の管理者PowerShellで`Remove-NetFirewallRule -Name '<成功時のruleName>' -PolicyStore PersistentStore`を使用します。旧Javaルールは削除しません。
+
+ローカルのモック検証は`pwsh -NoProfile -File ./60_tool/control-deploy/tests/bedrock-firewall.tests.ps1`です。実ファイアウォールは変更しません。
+
 P1の基本運転だけを先に有効化する手順は[基本運転への切り替え](BASIC-OPERATIONS.md)を参照してください。旧ToolのLegacy実行を制限したまま、ゲームPCの停止確認・marker・Runner設定、最後にWeb設定の順で切り替えます。
 
 ## P2の有効化
