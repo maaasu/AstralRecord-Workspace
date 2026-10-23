@@ -13,11 +13,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * プレイヤー参加、退出、ワールド移動時のウェイストーン表示を同期します。
+ * プレイヤー参加、退出、ワールド移動、リスポーン時のウェイストーン表示を同期します。
  */
 public final class TeleporterPlayerEventHandler extends AbstractEventHandler {
     private static final int JOIN_SYNC_MAX_ATTEMPTS = 12;
@@ -36,9 +37,29 @@ public final class TeleporterPlayerEventHandler extends AbstractEventHandler {
         runSafely(() -> scheduleJoinSync(event.getPlayer(), 0), LogId.E_5955, event.getPlayer().getName(), "join");
     }
 
+    /**
+     * 移動前の送信済み表示を破棄し、移動先ワールドの近距離表示を復元します。
+     *
+     * @param event ワールド移動完了イベント
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
-        runSafely(() -> teleporterService.syncView(event.getPlayer()), LogId.E_5955, event.getPlayer().getName(), "world");
+        runSafely(() -> teleporterService.resetView(event.getPlayer()), LogId.E_5955, event.getPlayer().getName(), "world");
+    }
+
+    /**
+     * リスポーンでクライアントから消去された表示を翌tickに復元します。
+     *
+     * @param event リスポーンイベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRespawn(@NotNull PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) {
+                runSafely(() -> teleporterService.resetView(player), LogId.E_5955, player.getName(), "respawn");
+            }
+        });
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

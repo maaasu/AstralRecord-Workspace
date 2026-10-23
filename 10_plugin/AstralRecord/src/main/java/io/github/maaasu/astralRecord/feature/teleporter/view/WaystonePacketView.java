@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 
@@ -31,15 +33,14 @@ import java.util.UUID;
  * プレイヤーごとの差分を packet-only Display entity として描画します。
  */
 public final class WaystonePacketView {
-    private static final long BEDROCK_FALLBACK_INTERVAL_TICKS = 10L;
-    private static final double BEDROCK_FALLBACK_VIEW_DISTANCE_SQUARED = 64.0D * 64.0D;
+    private static final long VIEW_SYNC_INTERVAL_TICKS = 10L;
 
     private final Plugin plugin;
     private final TeleporterService teleporterService;
     private final ParticleDisplayService particleDisplayService;
     private final WaystonePacketDisplay packetDisplay = new WaystonePacketDisplay();
-    private final Map<UUID, List<WaystonePacketDisplay.PacketEntity>> entitiesByPlayer = new HashMap<>();
-    private BukkitTask bedrockFallbackTask;
+    private final Map<UUID, Map<String, DisplayEntry>> entitiesByPlayer = new HashMap<>();
+    private BukkitTask viewSyncTask;
 
     public WaystonePacketView(
             @NotNull Plugin plugin,
@@ -51,56 +52,74 @@ public final class WaystonePacketView {
         this.particleDisplayService = particleDisplayService;
     }
 
-    /** Bedrock Edition 向けの粒子フォールバックを開始します。 */
+    /** メインスレッドで近距離の差分同期とBE粒子表示を10 tick間隔で開始します。重複開始は行いません。 */
     public void start() {
-        if (bedrockFallbackTask != null) {
+        if (viewSyncTask != null) {
             return;
         }
-        bedrockFallbackTask = plugin.getServer().getScheduler().runTaskTimer(
+        viewSyncTask = plugin.getServer().getScheduler().runTaskTimer(
                 plugin,
-                this::renderBedrockFallbacks,
+                this::tickViews,
                 1L,
-                BEDROCK_FALLBACK_INTERVAL_TICKS
+                VIEW_SYNC_INTERVAL_TICKS
         );
     }
 
-    /** 粒子フォールバックを停止し、送信済み packet 表示を破棄します。 */
+    /** 差分同期と粒子表示を停止し、送信済み packet 表示を破棄します。 */
     public void stop() {
-        if (bedrockFallbackTask != null) {
-            bedrockFallbackTask.cancel();
-            bedrockFallbackTask = null;
+        if (viewSyncTask != null) {
+            viewSyncTask.cancel();
+            viewSyncTask = null;
         }
         clearAll();
     }
 
     /**
-     * 指定プレイヤー向け表示を現在状態に同期します。
+     * 同一ワールドの64 block以内の表示を、ウェイストーン単位で差分同期します。
+     * メインスレッドから呼び出し、追加・表示状態変更・範囲外への退出だけを送信します。
      *
      * @param player 同期対象
      */
     public void syncForPlayer(@NotNull Player player) {
-        clearPlayer(player);
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || player.getWorld() == null) {
+        if (!player.isOnline() || player.isDead() || astPlayer == null) {
+            clearPlayer(player);
             return;
         }
-
-        List<WaystonePacketDisplay.PacketEntity> spawned = new ArrayList<>();
-        for (WaystoneDefinition definition : teleporterService.getAll()) {
-            if (!definition.worldName().equals(player.getWorld().getName())) {
-                continue;
-            }
+        Map<String, DisplayEntry> displayed = entitiesByPlayer.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>());
+        Set<String> nearbyIds = new HashSet<>();
+        for (WaystoneDefinition definition : teleporterService.getNearbyForView(player.getLocation())) {
             Location base = definition.toLocation();
-            if (base == null) {
+            if (base == null || base.getWorld() != player.getWorld()) {
                 continue;
             }
-            boolean unlocked = teleporterService.isUnlocked(astPlayer, definition);
-            for (WaystonePacketDisplay.PacketEntity entity : createEntities(definition, base, unlocked, astPlayer.isBedrock())) {
-                entity.spawn(player);
-                spawned.add(entity);
+            nearbyIds.add(definition.id());
+            boolean unlocked = teleporterService.isUnlockedForView(astPlayer, definition);
+            DisplayState state = new DisplayState(player.getWorld().getUID(), definition.x(), definition.y(), definition.z(),
+                    definition.name(), unlocked ? 0L : definition.unlockGold(), definition.displayIcon(), unlocked, astPlayer.isBedrock());
+            DisplayEntry previous = displayed.get(definition.id());
+            if (previous != null && previous.state().equals(state)) {
+                continue;
             }
+            if (previous != null) {
+                destroyEntry(player, previous);
+            }
+            List<WaystonePacketDisplay.PacketEntity> entities = List.copyOf(createEntities(definition, base, unlocked, astPlayer.isBedrock()));
+            for (WaystonePacketDisplay.PacketEntity entity : entities) {
+                entity.spawn(player);
+            }
+            displayed.put(definition.id(), new DisplayEntry(state, entities));
         }
-        entitiesByPlayer.put(player.getUniqueId(), spawned);
+        displayed.entrySet().removeIf(entry -> {
+            if (nearbyIds.contains(entry.getKey())) {
+                return false;
+            }
+            destroyEntry(player, entry.getValue());
+            return true;
+        });
+        if (displayed.isEmpty()) {
+            entitiesByPlayer.remove(player.getUniqueId());
+        }
     }
 
     /**
@@ -118,11 +137,22 @@ public final class WaystonePacketView {
      * @param player 破棄対象
      */
     public void clearPlayer(@NotNull Player player) {
-        List<WaystonePacketDisplay.PacketEntity> entities = entitiesByPlayer.remove(player.getUniqueId());
-        if (entities == null) {
-            return;
+        Map<String, DisplayEntry> entries = entitiesByPlayer.remove(player.getUniqueId());
+        if (entries != null) {
+            for (DisplayEntry entry : entries.values()) {
+                destroyEntry(player, entry);
+            }
         }
-        for (WaystonePacketDisplay.PacketEntity entity : entities) {
+    }
+
+    /**
+     * 指定ウェイストーンの送信済み表示だけを破棄します。
+     *
+     * @param player 閲覧者
+     * @param entry 破棄する表示一式
+     */
+    private void destroyEntry(@NotNull Player player, @NotNull DisplayEntry entry) {
+        for (WaystonePacketDisplay.PacketEntity entity : entry.entities()) {
             entity.destroy(player);
         }
     }
@@ -137,32 +167,27 @@ public final class WaystonePacketView {
         entitiesByPlayer.clear();
     }
 
-    private void renderBedrockFallbacks() {
-        Collection<WaystoneDefinition> definitions = teleporterService.getAll();
-        if (definitions.isEmpty()) {
-            return;
-        }
+    /** 近距離表示を同期し、同期済みのBE表示だけに状態色付き粒子を送信します。 */
+    private void tickViews() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            syncForPlayer(player);
             AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !astPlayer.isBedrock()) {
+            Map<String, DisplayEntry> displayed = entitiesByPlayer.get(player.getUniqueId());
+            if (astPlayer == null || !astPlayer.isBedrock() || displayed == null) {
                 continue;
             }
-            Location playerLocation = player.getLocation();
-            for (WaystoneDefinition definition : definitions) {
-                if (!definition.worldName().equals(player.getWorld().getName())) {
-                    continue;
-                }
-                Location base = definition.toLocation();
-                if (base == null || base.getWorld() != player.getWorld()
-                        || playerLocation.distanceSquared(base) > BEDROCK_FALLBACK_VIEW_DISTANCE_SQUARED) {
-                    continue;
-                }
-                boolean unlocked = teleporterService.isUnlocked(astPlayer, definition);
-                Location marker = base.clone().add(0.5D, 1.65D, 0.5D);
-                particleDisplayService.spawnForViewer(astPlayer, marker, waystoneParticle(unlocked));
+            for (DisplayEntry entry : displayed.values()) {
+                DisplayState state = entry.state();
+                Location marker = new Location(player.getWorld(), state.x() + 0.5D, state.y() + 1.65D, state.z() + 0.5D);
+                particleDisplayService.spawnForViewer(astPlayer, marker, waystoneParticle(state.unlocked()));
             }
         }
     }
+
+    private record DisplayState(UUID worldId, double x, double y, double z, String name, long unlockGold,
+                                Material icon, boolean unlocked, boolean bedrock) { }
+
+    private record DisplayEntry(DisplayState state, List<WaystonePacketDisplay.PacketEntity> entities) { }
 
     /**
      * ウェイストーン本体、名称、アイコンの packet-only Display 一式を作成します。

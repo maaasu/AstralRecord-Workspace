@@ -55,11 +55,13 @@ public final class TeleporterService {
     private static final DateTimeFormatter ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneOffset.UTC);
     private static final int UNLOCK_RING_POINTS = 10;
     private static final double UNLOCK_RING_RADIUS = 0.85D;
+    private static final int VIEW_CELL_SIZE = 64;
 
     private final Plugin plugin;
     private final WaystoneDefinitionRepository definitionRepository;
     private final AccountWaystoneRepository accountWaystoneRepository;
     private final Map<String, WaystoneDefinition> definitionsById = new LinkedHashMap<>();
+    private final Map<ViewCell, List<WaystoneDefinition>> definitionsByViewCell = new LinkedHashMap<>();
     private final Map<UUID, WaystoneUnlockState> unlockStatesByAccount = new LinkedHashMap<>();
     private final Map<UUID, LinkedHashMap<String, Long>> pendingUnlockRevisionsByAccount = new LinkedHashMap<>();
     private final Map<UUID, Long> unlockStateRevisionsByAccount = new LinkedHashMap<>();
@@ -149,6 +151,7 @@ public final class TeleporterService {
         for (WaystoneDefinition definition : snapshot) {
             definitionsById.put(definition.id(), definition);
         }
+        rebuildViewIndex();
     }
 
     /**
@@ -206,6 +209,7 @@ public final class TeleporterService {
             definitionsById.remove(definition.id());
             throw e;
         }
+        rebuildViewIndex();
         syncAllViews();
         Logger.log(LogId.I_5950, definition.id(), definition.name(), definition.worldName());
         return definition;
@@ -232,6 +236,7 @@ public final class TeleporterService {
             definitionsById.putAll(snapshot);
             throw e;
         }
+        rebuildViewIndex();
         syncAllViews();
         return true;
     }
@@ -243,6 +248,58 @@ public final class TeleporterService {
     public Collection<WaystoneDefinition> getAll() {
         return List.copyOf(definitionsById.values());
     }
+
+    /**
+     * 表示用の64 block以内の定義を、ワールド別の水平セル索引から取得します。
+     * Bukkit メインスレッドから呼び出してください。チャンクをロードしません。
+     *
+     * @param location 閲覧者の現在位置
+     * @return 同一ワールドかつ基準座標から三次元距離64 block以内の定義
+     */
+    @NotNull
+    public Collection<WaystoneDefinition> getNearbyForView(@NotNull Location location) {
+        if (location.getWorld() == null) {
+            return List.of();
+        }
+        String worldName = location.getWorld().getName();
+        int centerX = viewCell(location.getX());
+        int centerZ = viewCell(location.getZ());
+        List<WaystoneDefinition> nearby = new ArrayList<>();
+        for (int x = centerX - 1; x <= centerX + 1; x++) {
+            for (int z = centerZ - 1; z <= centerZ + 1; z++) {
+                for (WaystoneDefinition definition : definitionsByViewCell.getOrDefault(new ViewCell(worldName, x, z), List.of())) {
+                    double dx = definition.x() - location.getX();
+                    double dy = definition.y() - location.getY();
+                    double dz = definition.z() - location.getZ();
+                    if (dx * dx + dy * dy + dz * dz <= (double) VIEW_CELL_SIZE * VIEW_CELL_SIZE) {
+                        nearby.add(definition);
+                    }
+                }
+            }
+        }
+        return nearby;
+    }
+
+    /** 全定義の公開・保存成功後に、表示検索用の索引をメインスレッドで再構築します。 */
+    private void rebuildViewIndex() {
+        definitionsByViewCell.clear();
+        for (WaystoneDefinition definition : definitionsById.values()) {
+            ViewCell cell = new ViewCell(definition.worldName(), viewCell(definition.x()), viewCell(definition.z()));
+            definitionsByViewCell.computeIfAbsent(cell, ignored -> new ArrayList<>()).add(definition);
+        }
+    }
+
+    /**
+     * 負座標も含めて水平座標を64 block幅のセルへ変換します。
+     *
+     * @param coordinate ワールド座標
+     * @return セル番号
+     */
+    private static int viewCell(double coordinate) {
+        return (int) Math.floor(coordinate / VIEW_CELL_SIZE);
+    }
+
+    private record ViewCell(String worldName, int x, int z) { }
 
     /**
      * ID からウェイストーン定義を取得します。
@@ -262,6 +319,27 @@ public final class TeleporterService {
         synchronized (unlockStateLock) {
             WaystoneUnlockState state = unlockStatesByAccount.get(astPlayer.getAccount().getUuid());
             return state != null && state.isUnlocked(definition);
+        }
+    }
+
+    /**
+     * 表示同期に使用する、SQL ACK確定済みの解除状態を返します。
+     * 重要操作はACK前にキャッシュを更新するため、未受領の解除を表示へ公開しません。
+     *
+     * @param astPlayer 閲覧者
+     * @param definition 表示対象ウェイストーン
+     * @return 常時開放、または未受領解除を含まない解除済みの場合 true
+     */
+    public boolean isUnlockedForView(@NotNull AstPlayer astPlayer, @NotNull WaystoneDefinition definition) {
+        if (!definition.lockEnabled()) {
+            return true;
+        }
+        synchronized (unlockStateLock) {
+            UUID accountId = astPlayer.getAccount().getUuid();
+            Map<String, Long> pending = pendingUnlockRevisionsByAccount.get(accountId);
+            WaystoneUnlockState state = unlockStatesByAccount.get(accountId);
+            return state != null && state.isUnlocked(definition)
+                    && (pending == null || !pending.containsKey(definition.id()));
         }
     }
 
@@ -445,6 +523,20 @@ public final class TeleporterService {
         WaystonePacketView view = packetView;
         if (view != null && player.isOnline()) {
             view.syncForPlayer(player);
+        }
+    }
+
+    /**
+     * クライアントの表示消去後に、送信済み表示を破棄して近距離表示を復元します。
+     * Bukkit メインスレッドから呼び出してください。解除状態は保持します。
+     *
+     * @param player ワールド移動・リスポーン後のプレイヤー
+     */
+    public void resetView(@NotNull Player player) {
+        WaystonePacketView view = packetView;
+        if (view != null) {
+            view.clearPlayer(player);
+            syncView(player);
         }
     }
 
