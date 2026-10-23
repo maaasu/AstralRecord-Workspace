@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(EditorHostOptions.Create(args));
 builder.Services.Configure<EditorOptions>(builder.Configuration.GetSection(EditorOptions.SectionName));
 builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<MasterAnalyticsService>();
+builder.Services.AddSingleton<BalanceLabCatalog>();
+builder.Services.AddSingleton<BalanceLabJobs>();
 builder.Services.AddSingleton<WorkspacePaths>();
 builder.Services.AddSingleton<BackupService>();
 builder.Services.AddSingleton<FilebaseRepository>();
@@ -35,6 +37,7 @@ var app = builder.Build();
 app.UseMiddleware<LocalEditorRequestBoundaryMiddleware>();
 var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
 app.MapMasterAnalyticsEndpoints();
+app.MapBalanceLabEndpoints();
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {

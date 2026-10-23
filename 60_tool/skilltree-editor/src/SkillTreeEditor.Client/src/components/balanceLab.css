@@ -1,0 +1,77 @@
+.balance-lab { display: grid; gap: 16px; color: #dce5ef; }
+.balance-lab h2, .balance-lab h3, .balance-lab h4, .balance-lab h5 { margin: 0; }
+.balance-heading, .balance-section-heading, .balance-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.balance-heading h2 { font-size: 21px; }
+.balance-heading p, .balance-muted { color: #a5b4c5; line-height: 1.6; font-size: 13px; }
+.balance-panel, .balance-build, .balance-result-card { border: 1px solid #354357; border-radius: 7px; background: #17212f; padding: 17px; }
+.balance-build, .balance-result-card { margin-top: 14px; background: #1b2938; }
+.balance-fields { display: flex; flex-wrap: wrap; gap: 12px; margin: 15px 0; align-items: end; }
+.balance-fields label, .balance-trial-choice { display: grid; gap: 5px; color: #b7cadb; font-size: 12px; min-width: 130px; }
+.balance-fields input, .balance-fields select, .balance-trial-choice select, .balance-lab textarea { background: #101c29; border: 1px solid #43566b; border-radius: 5px; color: #f0f5fa; padding: 8px; }
+.balance-fields input[type=number] { width: 125px; }
+.balance-fields input:not([type=number]), .balance-fields select { min-width: 210px; max-width: 360px; }
+.balance-lab textarea { width: 100%; min-height: 150px; font-family: Consolas, monospace; font-size: 12px; resize: vertical; }
+.balance-lab details { margin: 12px 0; }
+.balance-lab details summary { cursor: pointer; }
+.balance-lab details pre, .balance-lab pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #101c29; border-radius: 4px; padding: 12px; max-height: 320px; overflow: auto; }
+.balance-subpanel { border-top: 1px solid #344559; padding-top: 14px; margin-top: 14px; }
+.balance-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; overflow: auto; max-height: 220px; padding: 2px; }
+.balance-checks .balance-check-item { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 9px; align-items: start; min-width: 0; background: #243346; border: 1px solid #3a4e62; border-radius: 4px; padding: 9px; font-size: 12px; cursor: pointer; }
+.balance-checks .balance-check-item input[type=checkbox] { grid-column: 1; width: 16px; height: 16px; min-width: 16px; margin: 2px 0 0; padding: 0; }
+.balance-check-name { grid-column: 2; display: block; min-width: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.balance-check-name > span { display: block; min-width: 0; overflow-wrap: anywhere; }
+.balance-check-name small, .balance-selected-name small { display: block; overflow-wrap: anywhere; color: #9aafc3; }
+.balance-skill-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin: 12px 0; font-size: 12px; }
+.balance-skill-controls > label:not(.balance-filter-toggle), .balance-search { display: grid; gap: 5px; min-width: min(100%, 240px); }
+.balance-skill-controls input[type=search], .balance-search input[type=search] { min-width: 0; width: 100%; background: #101c29; border: 1px solid #43566b; border-radius: 5px; color: #f0f5fa; padding: 8px; }
+.balance-filter-toggle { display: inline-flex; align-items: center; gap: 7px; }
+.balance-filter-toggle input[type=checkbox] { width: 16px; height: 16px; margin: 0; }
+.balance-selected-skills { margin: 12px 0; padding: 10px; border: 1px solid #3a4e62; border-radius: 5px; background: #162436; font-size: 12px; }
+.balance-selected-skills ol { display: grid; gap: 6px; margin: 8px 0 0; padding-left: 26px; }
+.balance-selected-skills li { padding-left: 4px; }
+.balance-selected-skills li::marker { color: #92caf0; }
+.balance-selected-skills li { display: list-item; }
+.balance-selected-skills li .balance-selected-name { display: inline-block; max-width: calc(100% - 100px); min-width: 0; vertical-align: middle; overflow-wrap: anywhere; }
+.balance-skill-order { display: inline-flex; gap: 4px; margin-left: 10px; vertical-align: middle; }
+.balance-skill-order button { min-width: 30px; padding: 2px 7px; }
+.balance-sell-picker { margin-top: 16px; }
+.balance-sell-picker summary { font-weight: 600; }
+.balance-search { margin: 12px 0; color: #b7cadb; font-size: 12px; }
+.balance-toggle { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+.balance-override { display: flex; gap: 8px; align-items: center; margin-top: 8px; overflow-wrap: anywhere; }
+.balance-override code { margin-right: auto; }
+.balance-error, .balance-warning, .balance-notice { padding: 12px; border-radius: 4px; }
+.balance-error { color: #ffb4af; background: #3e232c; }
+.balance-warning { color: #f7d99d; background: #3c3020; }
+.balance-notice { color: #b3e8c3; background: #20382b; }
+.balance-fingerprint { color: #a5b4c5; font-size: 12px; overflow-wrap: anywhere; }
+.balance-lab progress { width: 100%; height: 16px; }
+.balance-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.balance-result-card { margin: 0; }
+.balance-result-card header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.balance-result-card h3 small { font-size: 12px; color: #92caf0; }
+.balance-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+.balance-metrics div { background: #263b50; border-radius: 5px; padding: 10px; min-width: 0; }
+.balance-metrics strong, .balance-metrics span { display: block; }
+.balance-metrics strong { font-size: 17px; overflow-wrap: anywhere; }
+.balance-metrics span { font-size: 11px; color: #a8bbcd; }
+.balance-resource svg { display: block; width: 100%; max-height: 250px; background: #142232; }
+.balance-resource text { fill: #b9c9d9; font-size: 12px; }
+.balance-chart-legend { display: flex; gap: 13px; font-size: 12px; margin-top: 7px; }
+.balance-chart-legend i { display: inline-block; width: 15px; height: 3px; margin-right: 5px; vertical-align: middle; }
+.balance-scroll { overflow: auto; max-height: 350px; }
+.balance-lab table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.balance-lab th, .balance-lab td { padding: 8px; border-bottom: 1px solid #3a4a5c; text-align: left; }
+.balance-lab table caption { text-align: left; padding: 10px 0; }
+.balance-stat-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.balance-economy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
+.balance-economy-grid > section { background: #142232; border: 1px solid #34485e; border-radius: 5px; padding: 12px; }
+.balance-economy-grid h4 { margin-bottom: 8px; }
+.balance-economy-grid dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; font-size: 12px; }
+.balance-economy-grid dt { color: #a9bdcf; }
+.balance-economy-grid dd { margin: 0; text-align: right; }
+.balance-diagnostics { color: #f7d99d; font-size: 13px; }
+@media (max-width: 650px) { .balance-panel { padding: 12px; } .balance-metrics { grid-template-columns: repeat(2, 1fr); } .balance-fields label, .balance-fields select, .balance-fields input:not([type=number]) { width: 100%; max-width: none; } }
+
+.balance-build-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.balance-build-fields:disabled { opacity: .65; }

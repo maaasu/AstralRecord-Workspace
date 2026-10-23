@@ -4,6 +4,7 @@ import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber,
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 import './masterAnalytics.css'
 import { MinecraftText } from './MinecraftText'
+import { BalanceLab } from './BalanceLab'
 
 const colors = ['#65c7f7', '#f5ad6b', '#99d9a5', '#de9fe9', '#f0d278', '#fa8d99', '#8bd9d4', '#a9b6fa', '#dfb289', '#e2e8f0', '#8bb592', '#d6a9cb']
 const statusLabel = (id: string) => STATUS_TYPES.find(status => status.id === id)?.displayName ?? id
@@ -46,7 +47,9 @@ export function MasterAnalytics() {
   const [catalog, setCatalog] = useState<AnalyticsCatalog | null>(null)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
-  const [mode, setMode] = useState<'equipment' | 'growth'>('equipment')
+  const [mode, setMode] = useState<'equipment' | 'growth' | 'lab'>('equipment')
+  const [labOpened, setLabOpened] = useState(false)
+  const openLab = () => { setLabOpened(true); setMode('lab') }
   const [query, setQuery] = useState('')
   const [slot, setSlot] = useState('')
   const [tag, setTag] = useState('')
@@ -102,10 +105,11 @@ export function MasterAnalytics() {
     }),
   })) ?? []
 
-  if (!catalog) return <section className="master-analytics"><h1>比較・成長グラフ</h1><p role={error ? 'alert' : 'status'}>{error || 'マスターを読み込んでいます…'}</p><button className="button" onClick={() => setRevision(value => value + 1)}>再読込</button></section>
   return <section className="master-analytics">
     <header className="analytics-header"><div><h1>比較・成長グラフ</h1><p>保存済みのFilebaseから計算。変更後は再読込してください。</p></div><button className="button" onClick={() => { setRevision(value => value + 1); setSimulation(null) }}>マスター再読込</button></header>
-    <div role="tablist" aria-label="分析の種類" className="analytics-tabs"><button role="tab" aria-selected={mode === 'equipment'} className="button" onClick={() => setMode('equipment')}>装備を比較</button><button role="tab" aria-selected={mode === 'growth'} className="button" onClick={() => setMode('growth')}>クラス成長</button></div>
+    <div role="tablist" aria-label="分析の種類" className="analytics-tabs"><button role="tab" aria-selected={mode === 'equipment'} className="button" onClick={() => setMode('equipment')}>装備を比較</button><button role="tab" aria-selected={mode === 'growth'} className="button" onClick={() => setMode('growth')}>クラス成長</button><button role="tab" aria-selected={mode === 'lab'} className="button" onClick={openLab}>統合バランスラボ</button></div>
+    {labOpened && <div hidden={mode !== 'lab'}><BalanceLab /></div>}
+    {mode !== 'lab' && (!catalog ? <p role={error ? 'alert' : 'status'}>{error || 'マスターを読み込んでいます…'}</p> : <>
     {error && <p role="alert" className="analytics-error">{error}</p>}
     {catalog.diagnostics.length > 0 && <details><summary>読み込めないマスター {catalog.diagnostics.length}件</summary>{catalog.diagnostics.map(item => <p key={item.path}>{item.path}: {item.message}</p>)}</details>}
     {mode === 'equipment' ? <>
@@ -143,5 +147,6 @@ export function MasterAnalytics() {
         <details className="analytics-sources"><summary>計算の根拠と前提</summary><p>{simulation.assumption}</p><p>プレイヤー必要EXP = 500 + Lv²×120 + floor(Lv/10)×850 + 8段階wave + 5Lvごとの加算 + UUID由来の加算。クラス必要EXP = round((45 + Lv²×8 + 10Lvごとの加算) × max(expRate,10)/100)。クラス補正 = baseStats + growthPerLevel × (クラスLv−1)。</p>{simulation.sources.map(source => <code key={source}>{source}</code>)}<p>アカウントUUID: {simulation.accountUuid}。EXPERIENCE_GAIN_RATEは両方へ加算する前に適用されるため、この累積EXP対レベルの比較には影響しません。</p></details>
       </>}
     </>}
+    </>)}
   </section>
 }
