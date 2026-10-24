@@ -8,6 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "astralrecord-git-worktree-develop" / "scripts"))
+from merge_safety_check import ensure_merge_safe
+
 
 class GitError(RuntimeError):
     def __init__(self, args: list[str], returncode: int, stdout: str, stderr: str) -> None:
@@ -42,12 +45,6 @@ def git_ok(repo: Path, args: list[str]) -> bool:
 def ensure_repo(repo: Path) -> Path:
     root = Path(git_out(repo, ["rev-parse", "--show-toplevel"]))
     return root
-
-
-def ensure_clean(repo: Path) -> None:
-    status = git_out(repo, ["status", "--porcelain=v1", "-uall"])
-    if status:
-        raise RuntimeError("repository has uncommitted or staged changes")
 
 
 def local_branches(repo: Path, prefix: str) -> list[str]:
@@ -147,13 +144,17 @@ def main() -> int:
         return 2
 
     try:
-        ensure_clean(repo)
+        # Check every transition before changing HEAD so a later overlap does not
+        # leave a partially applied batch merely because local work was present.
+        ensure_merge_safe(repo, develop)
+        for branch in mergeable:
+            ensure_merge_safe(repo, branch)
         current = git_out(repo, ["branch", "--show-current"])
         if current != "develop":
             git(repo, ["checkout", "develop"])
-        ensure_clean(repo)
 
         for branch in mergeable:
+            ensure_merge_safe(repo, branch)
             git(repo, ["merge", "--ff-only", branch])
             merged.append(branch)
 

@@ -7,7 +7,7 @@ AstralRecord モノレポ全体のコミット運用ルールです。
 - 通常の作業コミット先ブランチは `develop` とする。
 - コミット前に `git status --short --branch` と差分を確認し、今回の作業に関係するファイルだけを stage する。
 - `git add .` や `git add -A` で無差別に stage しない。
-- 既に stage 済みの変更がある場合も内容を確認し、今回のコミットに含めるべきでないものは stage から外す。
+- 既に stage 済みの変更がある場合も内容を確認する。今回の対象外の変更は内容と stage 状態を保持し、[Git スキルの分離手順](.codex/skills/astralrecord-git-worktree-develop/references/unrelated-changes.md)で今回のコミットから除外する。今回誤って stage したものだけは stage から外してよい。
 - 複数の目的が混在している場合は、目的ごとにコミットを分ける。
 
 ## コミットしないもの

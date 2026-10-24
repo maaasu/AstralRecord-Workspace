@@ -9,7 +9,7 @@ description: AstralRecord ワークスペースの現在のブランチ／作業
 
 現在のブランチまたは作業ツリーで、依頼された変更に属するファイルだけをコミットする。このスキルではブランチの作成・切り替え・マージを行わない。`git add .` や `git add -A` は絶対に使わない。
 
-コミットメッセージの形式は `E:\AstralRecord-Workspace\COMMIT_RULES.md` を正本とする。無関係なユーザー変更はステージ解除のまま保持し、安全に分離できない場合は停止する。
+コミットメッセージの形式は `E:\AstralRecord-Workspace\COMMIT_RULES.md` を正本とする。無関係な未コミット差分は内容とステージ状態を保持して続行し、[分離手順](../astralrecord-git-worktree-develop/references/unrelated-changes.md)に従う。安全に分離できない場合は停止する。
 
 ## 手順
 
@@ -34,11 +34,12 @@ description: AstralRecord ワークスペースの現在のブランチ／作業
    - 生成物、ローカル設定、秘密情報、ログ、一時ファイル、無関係な変更を除外する。
    - 現在の差分に複数の独立作業が混在している場合、安全に分けられるならコミットを分割する。分離できない場合は競合するパスを報告して停止する。
 7. 安全にステージする。
+   - 対象外のステージ済み変更がある場合は、上記の分離手順による一時インデックスで、この手順からコミットまでを実行する。
    - 明示的なパスだけを使う: `git add -- <path1> <path2> ...`
    - `git diff --cached --stat` を実行する。
    - `git diff --cached --check` を実行する。
    - `python <current-worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <current-worktree-root>` を実行する。
-   - 無関係なファイルを誤ってステージした場合は `git restore --staged -- <path>` で外す。
+   - 今回誤ってステージした対象外ファイルだけを `git restore --staged -- <path>` で外す。操作前からのステージ状態は変更しない。
 8. コミットメッセージを作成する。
    - `E:\AstralRecord-Workspace\COMMIT_RULES.md` に従う。
    - 主目的に合う種別 `feat`、`fix`、`docs`、`refactor`、`test`、`build`、`chore` のいずれかを使う。
@@ -46,7 +47,7 @@ description: AstralRecord ワークスペースの現在のブランチ／作業
    - 処理ではなく実際の差分を記載する。
 9. コミットする。
    - `git commit -m "<type>: <summary>"`
-   - コミットハッシュ、ステージしたファイル、除外したファイル、残っているステージ解除パスを報告する。
+   - 対象外の内容とステージ状態が操作前と同じことを確認し、コミットハッシュ、コミット対象、除外したファイル、残った未コミット差分を報告する。
 
 ## 安全確認
 

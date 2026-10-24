@@ -22,6 +22,7 @@
 - 差分を作る実装・設計書・filebase・skill変更は、原則 `$astralrecord-code-version-commit-develop` を入口にする。既存 task worktree の差分commitだけなら `$astralrecord-commit-current-diff` を使う。
 - 例外として、指定filebaseを明示的な単一ライター作業で直接更新する場合は `$astralrecord-master-data-create-direct` の適用条件を確認する。コード変更・複数project変更・並列編集や、branch/worktree/merge方式の指定がある場合は統合入口を使う。
 - 並列編集では task ごとに専用 branch / git worktree を使う。worktreeを省略するために同じ作業ツリーを共有してはいけない。
+- 無関係な未コミット差分だけを理由にコミット・マージを停止しない。対象外の内容とステージ状態を保持し、[Git スキルの分離・競合確認](.codex/skills/astralrecord-git-worktree-develop/references/unrelated-changes.md)に従う。
 - skillを使うときは `.codex/skills/README.md` のカタログで候補を絞り、対象 `SKILL.md` と必要な参照だけを読む。無関係なskill、プロジェクトガイド、参照資料を先読みしない。
 - 詳細なレビュー、build、test、Git、filebase検証の規則は各skillを正本とする。ここに重複して書かない。
 - 実行環境や配置先が必要な場合だけ `\\DEVICE_SERVER\server` を確認し、アクセスできなければローカルで継続する。

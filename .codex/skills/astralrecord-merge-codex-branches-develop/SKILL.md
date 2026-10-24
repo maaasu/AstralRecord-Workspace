@@ -10,6 +10,8 @@ description: AstralRecord ワークスペースのローカル `codex/*` ブラ�
 名前が `codex/` で始まるローカルブランチだけをローカル `develop` にマージする。
 このスキルではフェッチ、プル、プッシュ、手動コミット、リモート追跡ブランチのマージを行わない。
 
+無関係な未コミット差分は内容とステージ状態を保持して続行する。[分離・競合確認](../astralrecord-git-worktree-develop/references/unrelated-changes.md)に従い、スクリプトは切り替え先・マージ先とのパス重複を変更前に検査する。
+
 既定では試行監査とする。候補一覧を確認した後、ユーザーが実行またはマージの適用を明示した場合だけ実際のマージを行う。
 
 作業ツリー管理ファイルと状態分類は `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を正本として扱う。
@@ -77,9 +79,9 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-merge-codex-branches
 
 次のいずれかに該当する場合は Git 状態を変更する前に停止する。
 
-- リポジトリに未コミットまたはステージ済みの変更がある。
+- 未コミット差分が切り替え・マージによる変更パスと重なる、競合している、または無関係と判断できず安全に保持できない。
 - ローカル `develop` が存在しない。
-- 現在のブランチを `develop` に変更のない状態に切り替えできない。
+- 対象外の内容とステージ状態を保持したまま、現在のブランチを `develop` に切り替えできない。
 - 対象ブランチに早送りできないマージが必要で、ユーザーが早送りできないブランチのスキップを明示していない。
 - マージコマンドが失敗する。
 
