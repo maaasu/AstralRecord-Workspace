@@ -113,6 +113,8 @@ public final class IluvatarFlameChargeMobSkillExecutor implements MobSkillExecut
                 MiddleEarthRushMotion.start(
                         mobService, damageService, caster, activeEntity, targetSnapshot, context.target(), speed,
                         damageRatio, DamageElement.FIRE,
+                        point -> particleDisplayService.spawnForNearbyViewers(
+                                point.add(0.0D, 1.0D, 0.0D), SharedParticleDefinitions.BOSS_ATTACK_WARNING),
                         hit -> particleDisplayService.spawnForNearbyViewers(
                                 hit, SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION),
                         () -> startNextCharge(caster, context, remainingCharges - 1, speed, damageRatio, holdTicks)

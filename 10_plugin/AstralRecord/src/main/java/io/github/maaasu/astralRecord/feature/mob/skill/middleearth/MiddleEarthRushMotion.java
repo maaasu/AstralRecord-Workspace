@@ -101,6 +101,40 @@ final class MiddleEarthRushMotion {
             @NotNull Consumer<Location> onHit,
             @NotNull Runnable onComplete
     ) {
+        start(mobService, damageService, caster, entity, targetLocation, target, speed, damageRatio,
+                damageElement, ignored -> { }, onHit, onComplete);
+    }
+
+    /**
+     * 突進中の実際の移動地点を二tickごとに通知し、命中判定と移動処理は従来どおり維持します。
+     *
+     * @param mobService Mobの存続確認と位置更新先
+     * @param damageService 命中ダメージの適用先
+     * @param caster 発動元Mob
+     * @param entity 発動開始時の実体
+     * @param targetLocation 突進先として固定した位置
+     * @param target 命中判定対象
+     * @param speed 1tickあたりの移動距離
+     * @param damageRatio 攻撃力倍率
+     * @param damageElement ダメージ属性
+     * @param onMove 突進中の移動地点通知
+     * @param onHit ダメージ適用直後の命中地点通知
+     * @param onComplete 正常終了・中断時の後続処理
+     */
+    static void start(
+            @NotNull MobService mobService,
+            @NotNull DamageService damageService,
+            @NotNull MobInstance caster,
+            @NotNull Entity entity,
+            @NotNull Location targetLocation,
+            @NotNull LivingEntity target,
+            double speed,
+            double damageRatio,
+            @NotNull DamageElement damageElement,
+            @NotNull Consumer<Location> onMove,
+            @NotNull Consumer<Location> onHit,
+            @NotNull Runnable onComplete
+    ) {
         if (!isTargetAvailable(entity, target, targetLocation, damageService)) {
             onComplete.run();
             return;
@@ -115,6 +149,7 @@ final class MiddleEarthRushMotion {
         new BukkitRunnable() {
             private Location position = start.clone();
             private double distanceLeft = remaining.length();
+            private int elapsedTicks;
 
             @Override
             public void run() {
@@ -150,6 +185,9 @@ final class MiddleEarthRushMotion {
                 }
                 activeEntity.teleport(next);
                 active.currentLocation(next);
+                if (elapsedTicks++ % 2 == 0) {
+                    onMove.accept(next.clone());
+                }
                 position = next;
                 distanceLeft -= step;
                 if (distanceLeft <= 0.01D) {
