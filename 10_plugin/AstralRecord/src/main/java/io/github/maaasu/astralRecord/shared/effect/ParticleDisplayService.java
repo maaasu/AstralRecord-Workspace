@@ -20,11 +20,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * パーティクル表示の共通サービスです。
+ * 統合版では同じ表示座標を小型ダストに変換し、一括表示は最大96地点、単発散布は最大4粒に抑えます。
  */
 public class ParticleDisplayService {
 
     private static final double PLUGIN_PARTICLE_DENSITY_SCALE = 1.0D;
     private static final double DEFAULT_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
+    private static final int BEDROCK_MAX_POINTS = 96;
+    private static final int BEDROCK_MAX_BURST_COUNT = 4;
 
     private final PlayerSettingService playerSettingService;
 
@@ -172,7 +175,8 @@ public class ParticleDisplayService {
     }
 
     /**
-     * 単発演出を表示します。固定点は一粒、散布は個数または表示頻度へ密度を適用します。
+     * 64m以内の閲覧者へ接続種別に合った単発演出を表示します。
+     * 固定点は一粒、散布は個数または表示頻度へ指定密度を適用します。
      * @param <T> 粒子追加データの型
      * @param world 表示先world。locationと同じworldを指定します
      * @param location 表示する一地点
@@ -197,11 +201,10 @@ public class ParticleDisplayService {
         double playerDensityScale,
         @Nullable T data
     ) {
-        int count = resolveEmissionCount(baseCount, playerDensityScale, offsetX, offsetY, offsetZ, extra);
-        if (count <= 0) {
-            return;
+        for (Player viewer : world.getNearbyPlayers(location, Math.sqrt(DEFAULT_VIEWER_DISTANCE_SQUARED))) {
+            spawnForViewer(viewer, location, particle, baseCount, offsetX, offsetY, offsetZ, extra,
+                playerDensityScale, data);
         }
-        world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data);
     }
 
     /**
@@ -786,6 +789,21 @@ public class ParticleDisplayService {
     private void spawnBurstBatch(Player viewer, List<Location> points, SharedParticleDefinition definition,
                                  double density, boolean longDistance, boolean checkDistance) {
         Location viewerLocation = checkDistance ? viewer.getLocation() : null;
+        boolean bedrock = isBedrock(viewer);
+        if (bedrock && viewerLocation != null) {
+            List<Location> nearby = new ArrayList<>();
+            for (Location point : points) {
+                if (viewerLocation.distanceSquared(point) <= DEFAULT_VIEWER_DISTANCE_SQUARED) nearby.add(point);
+            }
+            points = nearby;
+        }
+        if (bedrock && points.size() > BEDROCK_MAX_POINTS) {
+            List<Location> sampled = new ArrayList<>(BEDROCK_MAX_POINTS);
+            for (int ordinal = 0; ordinal < BEDROCK_MAX_POINTS; ordinal++) {
+                sampled.add(points.get(ParticlePointSampling.index(ordinal, points.size(), BEDROCK_MAX_POINTS)));
+            }
+            points = sampled;
+        }
         int checked = 0;
         for (Location point : points) {
             if (viewerLocation != null && viewerLocation.distanceSquared(point) > DEFAULT_VIEWER_DISTANCE_SQUARED) continue;
@@ -836,14 +854,17 @@ public class ParticleDisplayService {
             points = nearby;
         }
         int selected = ParticlePointSampling.count(points.size(), density * PLUGIN_PARTICLE_DENSITY_SCALE);
+        boolean bedrock = isBedrock(viewer);
+        if (bedrock) selected = Math.min(selected, BEDROCK_MAX_POINTS);
         if (selected == 0) return;
-        int count = isFixedPoint(definition.offsetX(), definition.offsetY(), definition.offsetZ(), definition.extra())
+        int count = bedrock || isFixedPoint(definition.offsetX(), definition.offsetY(), definition.offsetZ(), definition.extra())
                 ? 1 : definition.count();
         for (int ordinal = 0; ordinal < selected; ordinal++) {
             Location point = points.get(ParticlePointSampling.index(ordinal, points.size(), selected));
             spawnForViewerResolvedCount(viewer, point, definition.particle(), count,
-                    definition.offsetX(), definition.offsetY(), definition.offsetZ(),
-                    definition.extra(), definition.data(), longDistance);
+                    bedrock ? 0.0D : definition.offsetX(), bedrock ? 0.0D : definition.offsetY(),
+                    bedrock ? 0.0D : definition.offsetZ(),
+                    bedrock ? 0.0D : definition.extra(), definition.data(), longDistance);
         }
     }
 
@@ -906,9 +927,11 @@ public class ParticleDisplayService {
     }
 
     private boolean shouldSkipForBedrock(@NotNull Player viewer, boolean hideForBedrock) {
-        if (!hideForBedrock) {
-            return false;
-        }
+        return hideForBedrock && isBedrock(viewer);
+    }
+
+    /** 表示対象の登録済み接続種別を返します。未登録の接続は従来どおりJava版として扱います。 */
+    private boolean isBedrock(@NotNull Player viewer) {
         AstPlayer astPlayer = AstPlayerCache.get(viewer);
         return astPlayer != null && astPlayer.isBedrock();
     }
@@ -927,12 +950,18 @@ public class ParticleDisplayService {
         spawnForViewerResolvedCount(viewer, location, particle, count, offsetX, offsetY, offsetZ, extra, data, false);
     }
 
-    /** 解決済み個数と長距離フラグをBukkitの送信APIへそのまま渡します。 */
+    /** Java版は元の粒子、統合版は個数を抑えた小型ダストを同じ座標へ送信します。 */
     private <T> void spawnForViewerResolvedCount(
         @NotNull Player viewer, @NotNull Location location, @NotNull Particle particle, int count,
         double offsetX, double offsetY, double offsetZ, double extra, @Nullable T data, boolean longDistance
     ) {
         if (count <= 0 || location.getWorld() != viewer.getWorld()) {
+            return;
+        }
+        if (isBedrock(viewer)) {
+            viewer.spawnParticle(SharedParticleDefinitions.BEDROCK_NEUTRAL.particle(), location,
+                Math.min(count, BEDROCK_MAX_BURST_COUNT), offsetX, offsetY, offsetZ, 0.0D,
+                SharedParticleDefinitions.bedrockDust(particle, data), longDistance);
             return;
         }
         viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data, longDistance);

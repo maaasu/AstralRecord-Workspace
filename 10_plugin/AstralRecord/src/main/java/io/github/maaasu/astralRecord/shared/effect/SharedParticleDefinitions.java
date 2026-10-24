@@ -21,6 +21,19 @@ import java.util.Map;
  */
 public final class SharedParticleDefinitions {
 
+    public static final SharedParticleDefinition BEDROCK_WARNING =
+        new SharedParticleDefinition("bedrock_warning", Particle.DUST, 1, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 155, 45), 1.0F));
+    public static final SharedParticleDefinition BEDROCK_SAFE =
+        new SharedParticleDefinition("bedrock_safe", Particle.DUST, 1, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(70, 235, 120), 1.0F));
+    public static final SharedParticleDefinition BEDROCK_IMPACT =
+        new SharedParticleDefinition("bedrock_impact", Particle.DUST, 1, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 80, 65), 1.0F));
+    public static final SharedParticleDefinition BEDROCK_NEUTRAL =
+        new SharedParticleDefinition("bedrock_neutral", Particle.DUST, 1, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(210, 235, 255), 0.8F));
+
     /** 封護の写本守へ通じる水色の転送門です。 */
     public static final SharedParticleDefinition SELENEA_GATE_WARD =
         new SharedParticleDefinition("selenea_gate_ward", Particle.DUST, 2, 0, 0, 0, 0,
@@ -1765,7 +1778,7 @@ public final class SharedParticleDefinitions {
             0.0D,
             0.0D,
             new Particle.DustOptions(Color.fromRGB(35, 45, 55), 0.25F),
-            true
+            false
         );
     public static final SharedParticleDefinition CONDITION_WEAKNESS_DUST =
         new SharedParticleDefinition(
@@ -1793,6 +1806,28 @@ public final class SharedParticleDefinitions {
     private static final Map<String, SharedParticleDefinition> DEFINITIONS = buildDefinitionMap();
 
     private SharedParticleDefinitions() {}
+
+    /**
+     * 統合版の粒子を小型ダストへ変換する追加データを返します。
+     * 既存ダストの色を維持し、危険予告・安全地点・着弾を色で区別します。
+     * @param particle Java版の粒子種別
+     * @param data Java版の追加データ。不要な場合null
+     * @return 統合版用の非nullなダスト追加データ。サイズは最大1です
+     */
+    public static @NotNull Particle.DustOptions bedrockDust(
+        @NotNull Particle particle, @Nullable Object data
+    ) {
+        if (data instanceof Particle.DustOptions dust) {
+            return dust.getSize() <= 1.0F ? dust : new Particle.DustOptions(dust.getColor(), 1.0F);
+        }
+        SharedParticleDefinition fallback = switch (particle) {
+            case ANGRY_VILLAGER -> BEDROCK_WARNING;
+            case HAPPY_VILLAGER, HEART -> BEDROCK_SAFE;
+            case EXPLOSION, EXPLOSION_EMITTER, FLASH -> BEDROCK_IMPACT;
+            default -> BEDROCK_NEUTRAL;
+        };
+        return (Particle.DustOptions) fallback.data();
+    }
 
     /**
      * ダンジョンの表示ゲートを破壊した際の、ブロック材質に応じた破片パーティクル定義を返します。
