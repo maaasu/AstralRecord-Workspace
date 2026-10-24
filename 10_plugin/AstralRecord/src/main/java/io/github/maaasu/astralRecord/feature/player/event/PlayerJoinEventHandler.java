@@ -934,6 +934,22 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }, completionListener);
     }
 
+    /**
+     * 読込済み参加データをメインスレッドで公開し、通常ログイン時の後続処理を開始します。
+     * ログイン報酬の自動表示はサービス側でプレイヤーモードとゲームモードを確認します。
+     * 反映に失敗した場合は公開済み状態をロールバックします。
+     *
+     * @param attempt 現在の参加ロード試行
+     * @param playerName ログ記録用プレイヤー名
+     * @param joinData 読込済み参加データ
+     * @param skillTreeState 読込済みスキルツリー状態
+     * @param questState 読込済みクエスト状態
+     * @param skillBindPresets 読込済みスキル設定
+     * @param learnedSkills 読込済み習得スキル
+     * @param preparedMenuGrant 準備済み参加時メニュー付与
+     * @param hasSameIpUser 同一IPの他ユーザーが存在する場合は true
+     * @param completionListener 再ロード完了通知。通常ログイン時は null
+     */
     private void applyJoinData(
         JoinAttempt attempt,
         String playerName,
@@ -1033,7 +1049,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     });
             }
             if (completionListener == null) {
-                loginBonusService.openAfterDataLoaded(player);
+                loginBonusService.openOnLogin(player);
             }
             playerService.commitPlayerJoin(playerJoinApplication);
             if (appliedPlayer != null) {

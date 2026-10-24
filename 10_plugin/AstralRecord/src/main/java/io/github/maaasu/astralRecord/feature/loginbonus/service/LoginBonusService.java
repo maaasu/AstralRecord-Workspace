@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.loginbonus.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -17,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -90,6 +92,17 @@ public final class LoginBonusService {
     }
 
     /**
+     * データロード済みプレイヤーへ、ログイン時の報酬画面を自動表示します。
+     * 開始時と非同期取得後の表示直前に、プレイヤーモードとアドベンチャーを確認します。
+     * 条件を満たさない場合は表示せず、後からの再表示も予約しません。
+     *
+     * @param player メインスレッド上で処理する対象プレイヤー
+     */
+    public void openOnLogin(@NotNull Player player) {
+        open(player, YearMonth.now(DATE_ZONE), true);
+    }
+
+    /**
      * 保存不能の復旧時に、指定 account のログイン報酬未保存状態を保存せず破棄します。
      *
      * @param accountId 破棄対象 account ID
@@ -119,8 +132,21 @@ public final class LoginBonusService {
      * @param displayMonth 表示する年月
      */
     public void open(@NotNull Player player, @NotNull YearMonth displayMonth) {
+        open(player, displayMonth, false);
+    }
+
+    /**
+     * メインスレッドから非同期取得を開始し、条件を再確認して報酬画面を表示します。
+     *
+     * @param player 対象プレイヤー
+     * @param displayMonth 表示する年月
+     * @param automatic ログイン自動表示のモード制限を適用する場合は true
+     */
+    private void open(@NotNull Player player, @NotNull YearMonth displayMonth, boolean automatic) {
         var astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !player.isOnline()) {
+        if (astPlayer == null || !player.isOnline()
+            || (automatic && (astPlayer.getAccount().getMode() != AccountMode.PLAYER
+                || player.getGameMode() != GameMode.ADVENTURE))) {
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -141,7 +167,9 @@ public final class LoginBonusService {
                     Player online = plugin.getServer().getPlayer(playerId);
                     AstPlayer current = online == null ? null : AstPlayerCache.get(online);
                     if (online == null || !online.isOnline() || current == null
-                        || !current.getAccount().getUuid().equals(accountId)) {
+                        || !current.getAccount().getUuid().equals(accountId)
+                        || (automatic && (current.getAccount().getMode() != AccountMode.PLAYER
+                            || online.getGameMode() != GameMode.ADVENTURE))) {
                         return;
                     }
                     gui.open(
