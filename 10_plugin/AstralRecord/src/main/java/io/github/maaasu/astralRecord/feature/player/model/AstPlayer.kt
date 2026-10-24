@@ -276,7 +276,9 @@ data class AstPlayer(
     /**
      * [AccountModel] の mode を Bukkit プレイヤーへ反映します。
      * mode が [AccountMode.PLAYER] の場合、通常プレイヤー向け制限として
-     * GameMode を [GameMode.ADVENTURE]、エンティティ/ブロックの reach を 0 に設定します。
+     * GameMode を [GameMode.ADVENTURE]、エンティティの reach を 3、ブロックの reach を 0 に設定します。
+     * エンティティの reach は空手でも NPC 等への入力を送れるよう維持し、
+     * バニラのエンティティ操作・攻撃は共通入力ゲートウェイで抑止します。
      *
      * @param newAccount 反映対象の [AccountModel]
      */
@@ -292,7 +294,7 @@ data class AstPlayer(
         }
 
         GameModeChangeGuard.setGameMode(bukkit, GameMode.ADVENTURE)
-        applyReach(Attribute.ENTITY_INTERACTION_RANGE, 0.0)
+        applyReach(Attribute.ENTITY_INTERACTION_RANGE, 3.0)
         applyReach(Attribute.BLOCK_INTERACTION_RANGE, 0.0)
     }
 
