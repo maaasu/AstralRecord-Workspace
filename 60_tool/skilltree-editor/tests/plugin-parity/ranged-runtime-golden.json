@@ -8,7 +8,7 @@
     },
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/phantomarcher/PhantomArcherSkillExecutor.java",
-      "sha256": "d8bccf46f1b7061a345eb0283c76ba496c9b3210e90539c6eb0956dca58e2ae1"
+      "sha256": "246e147c345cb5dab207bed9a9ad9e211b7eb91b9af5c811bf5cf0a70e486c0a"
     },
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/phantomarcher/PhantomArcherPassiveExecutor.java",

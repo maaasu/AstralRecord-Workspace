@@ -2,7 +2,7 @@
 
 ラボは `40_filebase/30.features.skill` の保存済みマスターを既存parserで自動取得します。画面の候補は固定ID一覧ではありません。新規マスターも表示し、未登録の実装・未知の効果・参照切れは理由付きで診断します。
 
-以下は2026-10-24のカタログAPIによるスナップショットです。モデル `astral-balance/3.0.0`、マスターSHA-256 `1bedca845e5c4d8dfee13f54c9a05c7822de72333306cc7f955054cf0d75bf18`、PluginソースSHA-256 `7acdfd91edd8dc62a60a81e1b12c7a7f32d7362f6bd9ec5b68398f9a231a57fa`。変更後は `GET /api/balance-lab/catalog` を正とします。
+以下は2026-10-24のカタログAPIによるスナップショットです。モデル `astral-balance/3.0.0`、マスターSHA-256 `1bedca845e5c4d8dfee13f54c9a05c7822de72333306cc7f955054cf0d75bf18`、PluginソースSHA-256 `14093f5f259f1dc0b011f13df0bb54581ca31f08ac794a6c04d0d4a2dadbf8fd`。変更後は `GET /api/balance-lab/catalog` を正とします。
 
 | 全マスター | アクティブ | パッシブ | アダプターあり | うち追加条件あり | 未登録 |
 |---:|---:|---:|---:|---:|---:|

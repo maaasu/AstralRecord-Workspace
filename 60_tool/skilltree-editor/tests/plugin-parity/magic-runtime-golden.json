@@ -4,11 +4,11 @@
   "sources": [
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/ElementalPrismRuntimeService.java",
-      "sha256": "924c728d0d07e1eecfdad6c0d616a5d86dde5a8f69a4e37dd6fdc37f9360738d"
+      "sha256": "367ceb17acaa0a422f840e039b34b2a9cc58b7f563912e5bdfa5f9bef463201a"
     },
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/mage/MageFrostBlizzardExecutor.java",
-      "sha256": "fbe5118e6e76c880e89daf0db73b6f44c6a80b58b113a5ecb876f7620f55fc0a"
+      "sha256": "ff3bd7dc463c9d17bcb7e848421cf77b9b79d98afb6ce2411080d59054033499"
     },
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/mage/MageSparkingExecutor.java",
