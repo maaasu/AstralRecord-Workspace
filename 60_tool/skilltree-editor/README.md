@@ -151,7 +151,18 @@ dotnet build SkillTreeEditor.slnx
 
 `60_tool/05-master-data-editor.bat` はReactをビルドしてからASP.NET Coreを起動します。`node_modules` がない、またはTypeScript/Viteの実行ファイルが欠けている場合は `npm ci` を実行します。依存関係の部分破損などで最初のビルドに失敗した場合は、`node_modules` を削除して `npm ci` から1回だけ再試行し、それでも失敗した場合はサーバーを起動しません。
 
-BAT起動時の `PATH` にnpmが含まれていない場合は、Node.jsの標準インストール先（`C:\Program Files\nodejs` またはユーザー単位のインストール先）も自動検出します。ビルドまたはサーバー起動に失敗した場合は、原因を確認できるようウィンドウを閉じずに停止します。
+BATは `ASTRALRECORD_NODE_HOME` → `NODE_HOME` → `PATH` 上の `npm.cmd` → `C:\Program Files\nodejs` → `%LOCALAPPDATA%\Programs\nodejs` → `%LOCALAPPDATA%\AstralRecord\tools\node` の順でNode.jsを探します。`node.exe`、`npm.cmd`、`node_modules\npm\bin\npm-cli.js` が同じ配置先に揃ったものを採用し、そのNode.jsディレクトリをビルド用プロセスの `PATH` 先頭へ追加します。採用したNode.jsとnpmのパスは起動ログへ表示します。ビルドまたはサーバー起動に失敗した場合は、原因を確認できるようウィンドウを閉じずに停止します。
+
+`05`はフロントのビルド前に.NET SDKを確認します。`ASTRALRECORD_DOTNET_HOME` → `DOTNET_ROOT` → `PATH`上の`dotnet.exe` → `Program Files\dotnet`（32bit側を含む）→ `%USERPROFILE%\.dotnet` → `%LOCALAPPDATA%\Programs\dotnet` → `%LOCALAPPDATA%\AstralRecord\tools\dotnet`の順で探します。各候補の`dotnet --version`を`skilltree-editor`内で実行し、`global.json`のSDK解決に成功して10.xが選ばれる配置だけを採用します。現在の指定は`10.0.302`、`rollForward=latestFeature`、プレビュー不可です。10.0.100だけの配置はスキップし、例えば10.0.402を持つ後続候補へ進みます。
+
+PATHの先頭がruntime専用でも、後続候補に互換SDKがあればそちらで起動します。選択した`dotnet.exe`の絶対パスと`DOTNET_ROOT`を呼出元へ明示的に返します。`05`も`skilltree-editor`へ移動して同じホストでサーバーをビルド・起動するため、BATを実行した場所によらず同じ`global.json`を適用します。終了・エラー時は呼出元ディレクトリへ戻します。環境変数の変更は起動BATとその子プロセス内だけで、ユーザー・システムのPATHは変更しません。
+
+SDKを別の場所へ展開済みの場合は、起動するcmdで次のように指定できます。指定先がruntimeのみ・SDK不足なら後続候補も確認します。BATからのダウンロードやインストールは行いません。
+
+```bat
+set "ASTRALRECORD_DOTNET_HOME=C:\path\to\dotnet-sdk"
+call C:\AstralRecord-Workspace\60_tool\05-master-data-editor.bat
+```
 
 Reactだけをビルドする場合は、次のBATを実行します。起動済みのASP.NET Coreは通常そのままでよく、ビルド後にブラウザを再読み込みしてください。
 
@@ -276,7 +287,9 @@ JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合�
 
 ### `npm` / `node` が見つからない
 
-Node.js 24 LTSをインストールして新しいターミナルを開いてください。nvm利用時は本ディレクトリで `nvm use` を実行します。
+`node` だけが見つかりnpmがない環境でも、Node.js 24 LTSのWindows ZIP版を展開して利用できます。`%LOCALAPPDATA%\AstralRecord\tools\node\node.exe`、同じディレクトリの `npm.cmd`、`node_modules\npm\bin\npm-cli.js` が揃うよう配置した後、`05-master-data-editor.bat` または `06-master-data-editor-build.bat` を実行してください。ユーザー・システムの `PATH` 変更は不要です。
+
+別の配置先を使う場合は、起動するcmdで `set "ASTRALRECORD_NODE_HOME=C:\tools\node-v24.18.0-win-x64"`（または `NODE_HOME`）を指定します。BATはNode.jsのダウンロードやインストール、グローバルな環境変数変更を行いません。nvm利用時は本ディレクトリで `nvm use` を実行します。
 
 ### ASP.NET側で「frontend is not built」と表示される
 
