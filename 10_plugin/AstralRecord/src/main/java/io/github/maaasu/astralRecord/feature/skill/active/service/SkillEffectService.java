@@ -245,6 +245,7 @@ public final class SkillEffectService {
 
     /**
      * 統合版の近傍閲覧者だけへ表示エンティティの代替となる水平リングを描きます。
+     * 統合版を先に抽出し、Java版の人数で代替表示の32人上限を消費しません。
      *
      * @param center リングの中心
      * @param radius 水平半径
@@ -257,7 +258,17 @@ public final class SkillEffectService {
             int points,
             @NotNull SharedParticleDefinition definition
     ) {
-        List<Player> viewers = nearbyViewers(center, null, MAX_FRAME_VIEWERS);
+        World world = center.getWorld();
+        if (world == null) return;
+        List<Player> viewers = new ArrayList<>(MAX_FRAME_VIEWERS);
+        for (Player viewer : world.getNearbyPlayers(center, VIEWER_DISTANCE)) {
+            if (viewers.size() >= MAX_FRAME_VIEWERS) break;
+            if (!viewer.isOnline() || viewer.getWorld() != world
+                    || viewer.getLocation().distanceSquared(center) > VIEWER_DISTANCE * VIEWER_DISTANCE) continue;
+            AstPlayer astPlayer = AstPlayerCache.get(viewer);
+            if (astPlayer == null || !astPlayer.isBedrock()) continue;
+            viewers.add(viewer);
+        }
         if (viewers.isEmpty()) {
             return;
         }
@@ -268,10 +279,7 @@ public final class SkillEffectService {
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
         }
         for (Player viewer : viewers) {
-            AstPlayer astPlayer = AstPlayerCache.get(viewer);
-            if (astPlayer != null && astPlayer.isBedrock()) {
-                particleDisplayService.spawnForViewer(viewer, locations, definition);
-            }
+            particleDisplayService.spawnForViewer(viewer, locations, definition);
         }
     }
 
