@@ -17,12 +17,32 @@ internal static class BalanceSkills
         var implementation = BalanceCombatData.Text(definition["implementationId"]);
         try
         {
-            var profile = BalanceSkillMeleeProfiles.Resolve(definition) ?? BalanceSkillRangedProfiles.Resolve(definition)
+            var profile = BalanceMeleeRuntime.Resolve(definition) ?? BalanceMagicRuntime.Resolve(definition)
+                ?? BalanceSkillRangedProfiles.Resolve(definition) ?? BalanceSkillMeleeProfiles.Resolve(definition)
                 ?? BalanceSkillMagicProfiles.Resolve(definition) ?? BuiltIn(definition)
                 ?? new BalanceSkillProfile(implementation, [], [], [], [], ["この実行処理の計算アダプターは未実装です。"]);
             if (catalog is not null && profile.Supported) profile = BalanceSkillBuffs.Resolve(definition, catalog, profile);
             var reasons = profile.Reasons.ToList();
             var parameters = BalanceSkillParameters.Params(definition);
+            if (definition["passive"] is JsonObject passive)
+            {
+                foreach (var key in passive.Select(pair => pair.Key).Where(key => key != "bindRequired")) reasons.Add($"passive.{key} は未検証です。");
+                if (passive["bindRequired"]?.GetValueKind() is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)) reasons.Add("passive.bindRequired は真偽値です。");
+            }
+            else if (definition["passive"] is not null) reasons.Add("passive はオブジェクトです。");
+            if (parameters.ContainsKey("modifiers"))
+            {
+                if (parameters["modifiers"] is not JsonArray modifiers) reasons.Add("params.modifiers は配列です。");
+                else foreach (var node in modifiers)
+                {
+                    if (node is not JsonObject modifier) { reasons.Add("パッシブmodifierはオブジェクトです。"); continue; }
+                    if (modifier.Select(pair => pair.Key).Any(key => key is not ("status" or "type" or "value"))) reasons.Add("パッシブmodifierに未知の追加項目があります。");
+                    if (!BalanceCombat.SupportsStatus(BalanceCombatData.Text(modifier["status"]))) reasons.Add($"パッシブのステータス {modifier["status"]} は未対応です。");
+                    if (BalanceCombatData.Text(modifier["type"]) is not ("FLAT" or "SCALAR" or "FINAL_SCALAR")) reasons.Add("パッシブmodifierの補正種別は未対応です。");
+                    if (!modifier.ContainsKey("value")) reasons.Add("パッシブmodifier.valueがありません。");
+                    else BalanceSkillParameters.Number(modifier, "value");
+                }
+            }
             if (implementation is "adventurer_mana_burst" or "adventurer_smash")
             {
                 var positive = implementation == "adventurer_mana_burst" ? new[] { "range", "damageRatio", "angle" }
@@ -42,7 +62,7 @@ internal static class BalanceSkills
             foreach (var key in BalanceSkillParameters.Params(definition).Select(pair => pair.Key)
                          .Where(key => !profile.KnownParameters.Contains(key, StringComparer.Ordinal)))
                 reasons.Add($"実行処理で未検証のパラメーター params.{key} が指定されています。");
-            if (definition["passive"] is not null)
+            if (definition["passive"] is not null && !profile.Passive)
                 reasons.Add("パッシブのバインド・発動トリガーを通常の優先順位発動として再現できません。");
             if (definition["onCast"] is JsonObject onCast && onCast.Any(pair => pair.Key != "sound"))
                 reasons.Add("onCast.sound 以外の追加発動効果は未検証です。");
@@ -52,7 +72,7 @@ internal static class BalanceSkills
                     BalanceCombatData.Integer(level["level"], 2) <= 1))
                 reasons.Add("Lv1に適用される追加レベル効果は未対応です。基礎定義のみのLv1を扱います。");
             var resource = BalanceCombatData.Text(definition["resourceType"]);
-            if (resource is not ("MANA" or "ENERGY")) reasons.Add($"リソース {resource} の専用制御は未対応です。");
+            if (resource is not ("MANA" or "ENERGY") && !(profile.Runtime && resource == "GUARD") && !(profile.Passive && resource.Length == 0)) reasons.Add($"リソース {resource} の専用制御は未対応です。");
             foreach (var key in new[] { "resourceCost", "manaCost", "castTimeTicks", "cooldownTicks" })
                 if (definition.ContainsKey(key) && BalanceSkillParameters.Number(definition, key) < 0)
                     reasons.Add($"{key} は0以上で指定してください。");
@@ -62,7 +82,7 @@ internal static class BalanceSkills
             if (profile.Effects.Count > 2_000 || profile.Effects.Any(effect => effect.Tick < 0 || effect.Tick > 72_000
                 || !double.IsFinite(effect.Value) || effect.DurationTicks < 0 || !double.IsFinite(effect.FlightSpeed)))
                 reasons.Add("効果数・時刻・数値が計算モデルの上限を超えています。");
-            return profile with { Reasons = reasons.Distinct(StringComparer.Ordinal).ToArray() };
+            return BalanceStaticGeometry.Annotate(definition, profile with { Reasons = reasons.Distinct(StringComparer.Ordinal).ToArray() });
         }
         catch (ArgumentException ex)
         {
@@ -119,6 +139,7 @@ internal static class BalanceSkills
                 ["id"] = id, ["implementationId"] = profile.ImplementationId, ["path"] = master.Path,
                 ["name"] = master.Content["name"]?.DeepClone(), ["supported"] = profile.Supported,
                 ["kind"] = master.Content["passive"] is null ? "active" : "passive",
+                ["runtime"] = profile.Runtime, ["requirements"] = Strings(profile.Requirements ?? []),
                 ["reasons"] = Strings(profile.Reasons), ["assumptions"] = Strings(profile.Assumptions),
                 ["sources"] = Strings(profile.Sources), ["classLinks"] = links,
                 ["cooldownTicks"] = master.Content["cooldownTicks"]?.DeepClone(), ["castTimeTicks"] = master.Content["castTimeTicks"]?.DeepClone(),

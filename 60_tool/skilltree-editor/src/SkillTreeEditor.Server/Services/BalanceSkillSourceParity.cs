@@ -7,6 +7,13 @@ internal static class BalanceSkillSourceParity
 {
     private static readonly IReadOnlyDictionary<string, string> Hashes = new Dictionary<string, string>(StringComparer.Ordinal)
     {
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/AstralRecord.java"] = "663af6102061f2f70311eb31e33d54c64f08c6d3a002293690255ec8b58d1d6d",
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/executor/WeaponAttackSkillExecutor.java"] = "f7d9930e0719ff2e5826bfdf22fa291d70586bebe730b8c8ff0966f8d4c06c61",
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/service/BuiltInWeaponAttackDefinitions.java"] = "931b6b16a1dee003bb8433a7897351d76e46980b2b252aeaf3bb89724c8ba3ad",
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobKnockbackService.java"] = "2ebe3acebe1ee2fc3da2c0b5d06064b79aa471f73dbb47777255a1d239ffa21d",
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/service/DodgeService.java"] = "4d836b02e62fc7e37a3ef57d915550504ae23b0d579e6a81c1d19ce322e18898",
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/death/PlayerDeathService.java"] = "9f028638ac66107bb7804bada84ff538bf467cb8e9b903ba5dc099252f43052b",
+        ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/effect/InvulnerabilityVisualService.java"] = "35da308ed6d1704321e5e7aca1eabfa044cf684277590b36db974b9ac9b52b50",
         ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/ActiveBuff.kt"] = "85685964f19d525586188c98a5b7cc4d3c7a63f10b7c6900d6c149576b0b7ae5",
         ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffModifier.kt"] = "6cb7ce6b4370948759a77f654f1e411d1fa0906669fdf07eda182172344567a7",
         ["10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffModifierType.kt"] = "f658937bda59e50beb190fae20a634b3ced98550c044285f27be05529fd03ae3",
@@ -293,6 +300,15 @@ internal static class BalanceSkillSourceParity
     }
     private static readonly string[] Common =
     [
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/AstralRecord.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/executor/WeaponAttackSkillExecutor.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/service/BuiltInWeaponAttackDefinitions.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobKnockbackService.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/service/DodgeService.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/death/PlayerDeathService.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/effect/InvulnerabilityVisualService.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillMovementService.java",
+        "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/ActiveSkillLifecycleService.java",
         "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillCombatService.java",
         "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillTaskService.java",
         "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/support/PlayerActiveSkillExecutor.java",

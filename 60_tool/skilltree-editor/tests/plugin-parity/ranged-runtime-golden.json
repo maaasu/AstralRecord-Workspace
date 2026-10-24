@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "description": "実PhantomArcherRuntimeの印付与・失効・消費と、実executorの着弾倍率を呼ぶ。Bukkit clockと依存serviceは固定し、サーバー・filebaseは使用しない。",
+  "sources": [
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/phantomarcher/PhantomArcherRuntime.java",
+      "sha256": "40b7c696753eac33d4a2616776f192a1bd899ac533e9b6b1c5f51f034e1952dd"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/phantomarcher/PhantomArcherSkillExecutor.java",
+      "sha256": "d8bccf46f1b7061a345eb0283c76ba496c9b3210e90539c6eb0956dca58e2ae1"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/phantomarcher/PhantomArcherPassiveExecutor.java",
+      "sha256": "f306c8dd19d5b857b1ed5aae34faebc01a96168cc035c5ead16ee79ae151de1b"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/support/PlayerActiveSkillContext.java",
+      "sha256": "fee730ae2f681cf6339de3de5aeaa272ad36a2e1e5fe9f387e26ca154a73b3d4"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/SkillParamReader.java",
+      "sha256": "cc350e23bc2633b4d7093a6c1906065f79ba5243210917ad74a4c0ca6292692f"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/hunter/HunterFadeShotExecutor.java",
+      "sha256": "d01accc7d61a64e1e0072411590c6127bd755b46e8005d9a33c5a52fcbf760f1"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/hunter/HunterArrowRainExecutor.java",
+      "sha256": "2bea9c1b485896feecb0efa8fba92ca2da076e46b201d88a73fc3e06fbbec6d8"
+    }
+  ],
+  "cases": [
+    {
+      "id": "phantom_marks",
+      "marks": [
+        1,
+        2,
+        3,
+        3,
+        3,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "phantom_ratios",
+      "soul": 6.4399999999999995,
+      "eclipse": 4.1
+    },
+    {
+      "id": "pellet_directions",
+      "directions": [
+        [
+          0.25881904510252074,
+          0.0,
+          0.9659258262890683
+        ],
+        [
+          0.13052619222005157,
+          0.0,
+          0.9914448613738104
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ],
+        [
+          -0.13052619222005157,
+          0.0,
+          0.9914448613738104
+        ],
+        [
+          -0.25881904510252074,
+          0.0,
+          0.9659258262890683
+        ]
+      ]
+    },
+    {
+      "id": "rain_ballistic",
+      "velocity": [
+        0.25,
+        0.2225,
+        0.6666666666666666
+      ],
+      "length": 11.820762752601922
+    }
+  ]
+}

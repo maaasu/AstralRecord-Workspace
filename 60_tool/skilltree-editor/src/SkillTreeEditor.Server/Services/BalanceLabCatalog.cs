@@ -7,7 +7,7 @@ namespace SkillTreeEditor.Server.Services;
 /// <summary>Captures the existing editor's parsed masters without exposing a write path.</summary>
 public sealed class BalanceLabCatalog(MasterDataPaths paths, MasterDataService masters, WorkspacePaths workspace, MasterDataValidation validation)
 {
-    public const string ModelVersion = "astral-balance/2.0.0";
+    public const string ModelVersion = "astral-balance/3.0.0";
     public static JsonObject Limits => new()
     {
         ["maxTrials"] = 500, ["maxSeconds"] = 600, ["maxBuilds"] = 4,

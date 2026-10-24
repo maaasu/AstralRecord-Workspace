@@ -30,6 +30,25 @@ beforeEach(() => { localStorage.clear(); sessionStorage.clear() })
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 
 describe('BalanceLab', () => {
+  it('restores runtime drafts and keeps passive slots out of active priority', async () => {
+    let submitted: { builds: { skillIds: string[]; passiveSkillIds: string[] }[] } | undefined
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/catalog')) return { ok: true, json: async () => catalog }
+      if (init?.method === 'POST') { submitted = JSON.parse(String(init.body)); return { ok: true, json: async () => ({ id: 'restored-runtime', status: 'completed', completed: 1, total: 1 }) } }
+      throw new Error(`unexpected ${url}`)
+    }))
+    render(<BalanceLab />); await screen.findByText(/マスター指紋/)
+    fireEvent.click(screen.getByLabelText(/未対応魔法/))
+    fireEvent.click(screen.getByRole('button', { name: 'ブラウザに保存' }))
+    const editor = screen.getByLabelText('位置と操作入力JSON')
+    fireEvent.change(editor, { target: { value: '{broken' } }); fireEvent.blur(editor)
+    expect(screen.getByRole('button', { name: 'この条件で実行' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '保存分を復元' }))
+    expect(screen.getByLabelText('位置と操作入力JSON')).not.toHaveValue('{broken')
+    fireEvent.click(screen.getByRole('button', { name: 'この条件で実行' }))
+    await waitFor(() => expect(submitted?.builds[0].passiveSkillIds).toEqual(['unsupported']))
+    expect(submitted?.builds[0].skillIds).toEqual([])
+  })
   it('shows all master skills and submits skill priority with combat geometry', async () => {
     let submitted: { builds: { skillIds: string[]; normalAttacks: boolean; initialShield: number }[]; enemy: { distanceBlocks: number; targetHalfDepth: number } } | undefined
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {

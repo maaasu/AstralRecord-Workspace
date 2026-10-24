@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "note": "Plugin実メソッドを呼ぶ固定入力。空間全体やBukkitの実tickの照合ではない。Meditationは効果開始境界だけをreflectionで設定する。",
+  "sources": [
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/ElementalPrismRuntimeService.java",
+      "sha256": "924c728d0d07e1eecfdad6c0d616a5d86dde5a8f69a4e37dd6fdc37f9360738d"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/mage/MageFrostBlizzardExecutor.java",
+      "sha256": "fbe5118e6e76c880e89daf0db73b6f44c6a80b58b113a5ecb876f7620f55fc0a"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/mage/MageSparkingExecutor.java",
+      "sha256": "ea3331e352e495e0175e724c55b92d17bf12e628c59bfccb3aaf9730977c44aa"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/wizard/WizardEmulateSparkExecutor.java",
+      "sha256": "8eb1c9eb74511f931e0c12057ee2d0b3e302212343baa46135824d3cbb9566c6"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/service/ArcaneFlowSkillRuntimeService.java",
+      "sha256": "790e873e19a067450c27ac4414c01c595f28a632698f1e97282fc717de7b6145"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/service/MeditationSkillRuntimeService.java",
+      "sha256": "1a531e987862246db1bf3c24abd26e2f04d178f43112fc669d90fcc024aee97d"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/PassiveSkillContext.java",
+      "sha256": "50b3297966de59c5782bef1f4f8df4b8aa60d4e03dbd5db3bead213813f02b46"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/SkillDefinition.kt",
+      "sha256": "190bc097fe1875ea04960e259006976f7ed32d21bcb1fea00d55ba876bfe6378"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/SkillParamReader.java",
+      "sha256": "cc350e23bc2633b4d7093a6c1906065f79ba5243210917ad74a4c0ca6292692f"
+    }
+  ],
+  "cases": [
+    {
+      "id": "magic_prism_intersection",
+      "expected": {
+        "distance": 1.735682002026389,
+        "behindMiss": true
+      }
+    },
+    {
+      "id": "magic_vortex_velocity",
+      "expected": {
+        "ordinary": [
+          -0.176,
+          0.04,
+          0.032
+        ],
+        "fallback": [
+          -0.16,
+          0.04,
+          -0.08
+        ]
+      }
+    },
+    {
+      "id": "magic_spark_spiral",
+      "expected": {
+        "steps": [
+          [
+            -0.07624946490210377,
+            0.0,
+            0.11741387951235938
+          ],
+          [
+            -0.08833040573978868,
+            0.0,
+            0.10911087891262594
+          ],
+          [
+            -0.09973469359903928,
+            0.0,
+            0.09987654538694254
+          ],
+          [
+            -0.11039857532002886,
+            0.0,
+            0.08975979845541304
+          ],
+          [
+            -0.1202616072696227,
+            0.0,
+            0.07881364456324252
+          ]
+        ]
+      }
+    },
+    {
+      "id": "magic_emulate_bounce",
+      "expected": {
+        "verticalSpeed": 0.31622776601683794
+      }
+    },
+    {
+      "id": "magic_arcane_history",
+      "expected": {
+        "different": 5.0,
+        "same": 0.0
+      }
+    },
+    {
+      "id": "magic_meditation_multiplier",
+      "expected": {
+        "values": [
+          1.0,
+          2.0,
+          2.0,
+          2.5,
+          5.0,
+          1.0
+        ]
+      }
+    }
+  ]
+}

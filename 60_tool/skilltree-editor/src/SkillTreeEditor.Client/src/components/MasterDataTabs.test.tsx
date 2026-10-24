@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { masterDataApi } from '../api/masterDataApi'
 import { MasterDataEditor } from './MasterDataEditor'
@@ -26,7 +27,9 @@ beforeEach(() => {
 })
 
 async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
-  fireEvent.click(await screen.findByRole('button', { name: new RegExp(name) }))
+  const button = await screen.findByRole('button', { name: new RegExp(name) })
+  await waitFor(() => expect(button).toBeEnabled())
+  await userEvent.click(button)
   await waitFor(() => expect(input('/name')).toHaveValue(name))
 }
 

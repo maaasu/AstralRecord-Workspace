@@ -250,9 +250,9 @@ public sealed class BalanceSkillSimulationTests
         var range = Request(1);
         range["enemy"]!["distanceBlocks"] = 100;
         var outOfRange = BalanceCombat.Simulate(catalog, range, Build("fire"), 1, CancellationToken.None);
-        // A synthetic catalog has no Plugin fingerprints; approximate mode still emits the range diagnostic.
-        Assert.True(outOfRange["diagnostics"]!.AsArray().Any(item =>
-            item?["message"]?.ToString().Contains("射程外") == true), outOfRange.ToJsonString());
+        // The runtime searches actual projectile collisions and may spend a cast on a miss.
+        Assert.Equal("timeout", outOfRange["outcome"]?.ToString());
+        Assert.Equal(0, outOfRange["damageDealt"]!.GetValue<double>());
 
         var leveled = Build("fire");
         leveled["skillLevels"] = new JsonObject { ["fire"] = 2 };

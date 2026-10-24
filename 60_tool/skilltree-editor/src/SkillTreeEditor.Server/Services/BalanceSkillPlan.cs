@@ -32,7 +32,8 @@ internal sealed record BalanceSkillEffect(
 internal sealed record BalanceSkillProfile(
     string ImplementationId, IReadOnlyList<BalanceSkillEffect> Effects,
     IReadOnlyList<string> Sources, IReadOnlyList<string> KnownParameters,
-    IReadOnlyList<string> Assumptions, IReadOnlyList<string> Reasons)
+    IReadOnlyList<string> Assumptions, IReadOnlyList<string> Reasons,
+    bool Runtime = false, bool Passive = false, IReadOnlyList<string>? Requirements = null)
 {
     internal bool Supported => Reasons.Count == 0;
 }

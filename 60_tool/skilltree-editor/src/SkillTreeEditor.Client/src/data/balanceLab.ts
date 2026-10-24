@@ -6,6 +6,7 @@ export interface BalanceSkillCatalogEntry {
   reasons: string[]; assumptions: string[]; sources: string[]
   classLinks: { classId: string; kind: 'class' | 'node'; path: string; nodeId?: string | number; requirements?: unknown }[]
   cooldownTicks?: number; castTimeTicks?: number; resourceType?: string; resourceCost?: number; maxLevel?: number
+  runtime?: boolean; requirements?: string[]
 }
 export interface BalanceCatalog {
   masters: BalanceMaster[]
@@ -22,7 +23,7 @@ export interface BalanceEquipment { itemId: string; enhanceLevel: number; [key: 
 export interface BalanceBuild {
   id: string; name: string; classId: string; playerLevel: number; classLevel: number
   equipment: BalanceEquipment[]; skillIds: string[]; baseStats?: Record<string, number>
-  normalAttacks?: boolean; initialShield?: number
+  normalAttacks?: boolean; initialShield?: number; passiveSkillIds?: string[]
 }
 export interface BalanceEconomy {
   targetItemId: string; quantity: number; enhanceItemId: string; fromEnhanceLevel: number
@@ -33,7 +34,10 @@ export interface BalanceEconomy {
 export interface BalanceScenario {
   schemaVersion: 1; masterHash?: string; sourceHash?: string; modelVersion?: string; seed: number; trials: number
   maxSeconds: number; mode: 'strict' | 'approximate'; builds: BalanceBuild[]
-  enemy: { mobId: string; level: number; attackIntervalTicks?: number; distanceBlocks?: number; targetHalfDepth?: number }
+  enemy: { mobId: string; level: number; attackIntervalTicks?: number; distanceBlocks?: number; targetHalfDepth?: number; targetHeight?: number; targetAllyId?: string }
+  world?: { floorY?: number; playerPosition?: number[]; enemyPosition?: number[]; facing?: number[]; velocityMode?: 'replay' }
+  inputs?: { tick: number; kind?: 'dodge' | 'air_shift' | 'normal_attack'; sneaking?: boolean; onGround?: boolean; playerPosition?: number[]; enemyPosition?: number[]; facing?: number[]; allyStates?: { id: string; position?: number[]; hp?: number; mp?: number; eng?: number; shield?: number }[] }[]
+  allies?: { id: string; position: number[]; stats: Record<string, number>; hp: number; mp?: number; eng?: number; shield?: number }[]
   overrides: { path: string; content: unknown }[]; economy?: BalanceEconomy
 }
 export interface BalanceTrial {
@@ -41,7 +45,8 @@ export interface BalanceTrial {
   elapsedTicks: number; damageDealt: number; damageTaken: number; dps: number
   mpExhaustedTick?: number | null; engExhaustedTick?: number | null
   contributions?: { id: string; name: string; uses: number; damage: number }[]
-  resources?: { tick: number; hp: number; mp: number; eng: number; shield: number }[]
+  resources?: { tick: number; hp: number; mp: number; eng: number; shield: number; custom?: Record<string, number>; playerPosition?: number[]; enemyPosition?: number[]; allies?: { id: string; hp: number; mp: number; shield: number }[] }[]
+  skillTimeline?: { tick: number; skillId: string; kind: string; value?: number; damage?: number; detail?: string }[]
 }
 export interface BalanceEconomyResult {
   status: 'completed' | 'unsupported' | 'unreachable' | 'invalid'
@@ -122,10 +127,12 @@ export function validateScenario(value: unknown): BalanceScenario {
   const input = asRecord(value)
   if (input.schemaVersion !== 1 || !Array.isArray(input.builds) || !Array.isArray(input.overrides)) throw new Error('シナリオの形式が違います。schemaVersion 1 のJSONを選択してください。')
   const scenario = value as BalanceScenario
+  validateRuntimeData(scenario)
   if (scenario.builds.some(value => {
     const build = asRecord(value)
     return !Array.isArray(build.equipment) || build.equipment.some(value => !textValue(asRecord(value).itemId))
       || !Array.isArray(build.skillIds) || build.skillIds.some(value => typeof value !== 'string' || !value)
+      || (build.passiveSkillIds !== undefined && (!Array.isArray(build.passiveSkillIds) || build.passiveSkillIds.some(value => typeof value !== 'string' || !value)))
   })) throw new Error('各ビルドの装備とスキルを配列で指定してください。')
   if (scenario.overrides.some(value => {
     const entry = asRecord(value)
@@ -140,6 +147,28 @@ export function validateScenario(value: unknown): BalanceScenario {
   if (!Number.isInteger(scenario.seed) || scenario.seed < -2147483648 || scenario.seed > 2147483647 || !Number.isInteger(scenario.trials) || scenario.trials < 1 || scenario.trials > 500 || !Number.isInteger(scenario.maxSeconds) || scenario.maxSeconds < 1 || scenario.maxSeconds > 600) throw new Error('seed、試行回数（1～500）、最大秒数（1～600）を確認してください。')
   if (scenario.mode !== 'strict' && scenario.mode !== 'approximate') throw new Error('計算モードを確認してください。')
   return scenario
+}
+
+export function validateRuntimeData(input: { world?: unknown; inputs?: unknown; allies?: unknown }): void {
+  const vector = (value: unknown): boolean => Array.isArray(value) && value.length === 3 && value.every(item => typeof item === 'number' && Number.isFinite(item))
+  if (input.world !== undefined) {
+    if (!input.world || typeof input.world !== 'object' || Array.isArray(input.world)) throw new Error('worldはオブジェクトです。')
+    const world = asRecord(input.world)
+    for (const key of ['playerPosition', 'enemyPosition', 'facing']) if (key in world && !vector(world[key])) throw new Error(`${key}は有限の3要素配列です。`)
+  }
+  if (input.inputs !== undefined && (!Array.isArray(input.inputs) || input.inputs.some(frame => !frame || typeof frame !== 'object' || Array.isArray(frame) || !Number.isInteger(frame.tick) || frame.tick < 0))) throw new Error('inputsは0以上の整数tickを持つオブジェクトの配列です。')
+  if (input.allies !== undefined) {
+    if (!Array.isArray(input.allies) || input.allies.length > 8) throw new Error('alliesは8人以下の配列です。')
+    const ids = new Set<string>()
+    for (const value of input.allies) {
+      const ally = asRecord(value), stats = asRecord(ally.stats)
+      if (!value || typeof value !== 'object' || Array.isArray(value) || !textValue(ally.id) || ids.has(textValue(ally.id)) || !vector(ally.position)
+        || !ally.stats || typeof ally.stats !== 'object' || Array.isArray(ally.stats) || !(numberValue(stats.MAX_HEALTH) > 0)
+        || Object.values(stats).some(number => typeof number !== 'number' || !Number.isFinite(number))
+        || ['hp', 'mp', 'eng', 'shield'].some(key => key in ally && (typeof ally[key] !== 'number' || !Number.isFinite(ally[key]) || ally[key] < 0))) throw new Error('各味方に重複のないid、3要素position、有限のstatsと正数MAX_HEALTH、0以上のhp等を指定してください。')
+      ids.add(textValue(ally.id))
+    }
+  }
 }
 
 export function loadScenario(): BalanceScenario | null {
@@ -159,7 +188,7 @@ const csvCell = (value: unknown) => {
 }
 const contextHeaders = ['計算モデル', 'マスターSHA256', 'PluginソースSHA256', '調整案SHA256', '基準seed', '条件JSON（先頭行）']
 const contextCells = (result: BalanceResult, first: boolean) => [result.modelVersion, result.masterHash, result.sourceHash, result.proposalHash, result.seed, first ? JSON.stringify(result.scenario) : '']
-export const conditionKey = (scenario: BalanceScenario) => JSON.stringify({ seed: scenario.seed, trials: scenario.trials, maxSeconds: scenario.maxSeconds, mode: scenario.mode, builds: scenario.builds, enemy: scenario.enemy, overrides: scenario.overrides, economy: scenario.economy })
+export const conditionKey = (scenario: BalanceScenario) => JSON.stringify({ seed: scenario.seed, trials: scenario.trials, maxSeconds: scenario.maxSeconds, mode: scenario.mode, builds: scenario.builds, enemy: scenario.enemy, overrides: scenario.overrides, economy: scenario.economy, world: scenario.world, inputs: scenario.inputs, allies: scenario.allies })
 export function resultCsv(result: BalanceResult): string {
   const lines: unknown[][] = [['ビルドID', 'ビルド名', '案', '試行', 'seed', '結果', '秒', 'DPS', '与ダメージ', '被ダメージ', 'MP枯渇tick', 'ENG枯渇tick']]
   for (const row of result.results) for (const trial of row.trials ?? []) lines.push([row.buildId, row.buildName, row.variant, trial.index, trial.seed, trial.outcome, trial.elapsedTicks / 20, trial.dps, trial.damageDealt, trial.damageTaken, trial.mpExhaustedTick, trial.engExhaustedTick])

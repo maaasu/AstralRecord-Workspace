@@ -86,3 +86,8 @@
 
 .balance-build-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .balance-build-fields:disabled { opacity: .65; }
+.balance-runtime-presets { border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.balance-runtime-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.balance-runtime-charts figure { margin: 10px 0; padding: 8px; background: #142232; border-radius: 4px; }
+.balance-runtime-charts figcaption { font-size: 12px; color: #b7cadb; }
+.balance-runtime-charts svg { width: 100%; height: 90px; }

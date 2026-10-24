@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "description": "実PluginのGUARD状態と剣気runtimeを呼ぶ固定ケース。描画・空間・被弾処理全体の照合ではない。",
+  "sources": [
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/paladin/PaladinGuardRuntimeService.java",
+      "sha256": "f976471c6c664d78071157edeff3b84813cb9859bec77ee1d6b32019f66d7389"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/service/SeijakuIssenSkillRuntimeService.java",
+      "sha256": "61015675f380a4b3e8af772fea64cacd1d0b396e4d06a6c265302ca050a4e1ad"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/SkillParamReader.java",
+      "sha256": "cc350e23bc2633b4d7093a6c1906065f79ba5243210917ad74a4c0ca6292692f"
+    },
+    {
+      "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/model/PassiveSkillContext.java",
+      "sha256": "50b3297966de59c5782bef1f4f8df4b8aa60d4e03dbd5db3bead213813f02b46"
+    }
+  ],
+  "cases": [
+    {
+      "id": "guard_gain_0",
+      "raw": 100.0,
+      "health": 20.0,
+      "maximumHealth": 100.0,
+      "gain": 10.0
+    },
+    {
+      "id": "guard_gain_1",
+      "raw": 100.0,
+      "health": 0.0,
+      "maximumHealth": 100.0,
+      "gain": 10.0
+    },
+    {
+      "id": "guard_gain_2",
+      "raw": 0.0,
+      "health": 20.0,
+      "maximumHealth": 100.0,
+      "gain": 2.0
+    },
+    {
+      "id": "guard_gain_3",
+      "raw": -1.0,
+      "health": -3.0,
+      "maximumHealth": 0.0,
+      "gain": 0.0
+    },
+    {
+      "id": "guard_gain_4",
+      "raw": 100.0,
+      "health": 150.0,
+      "maximumHealth": 1000.0,
+      "gain": 1.5
+    },
+    {
+      "id": "guard_decay",
+      "before": 10.0,
+      "first": 9.0,
+      "second": 8.0,
+      "afterSpend": 1.0
+    },
+    {
+      "id": "riposte_reserve",
+      "unboundGain": 0,
+      "gained": 1,
+      "duplicateGain": 0,
+      "stacks": 1,
+      "consumed": true,
+      "emptyConsumed": false,
+      "remaining": 0
+    }
+  ]
+}

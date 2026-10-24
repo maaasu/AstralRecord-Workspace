@@ -3,8 +3,8 @@ using System.Text.Json.Nodes;
 namespace SkillTreeEditor.Server.Services;
 
 /// <summary>
-/// A bounded, stationary one-player/one-mob encounter model. The numeric combat core tracks the
-/// cited Plugin implementation; dynamic Bukkit skill executors are explicitly unsupported.
+/// A bounded player/mob encounter with explicit positions, inputs and optional party targets.
+/// The Plugin adapters share numeric combat calculations; server physics requires an explicit replay.
 /// </summary>
 public static partial class BalanceCombat
 {
@@ -17,7 +17,7 @@ public static partial class BalanceCombat
     private static readonly string[] Sources = BalanceCombatParity.SourceHashes.Keys.ToArray();
     private sealed record Skill(string Id, string Name, string Kind, string Type, string Element, double Ratio,
         double HealPercent, string Resource, double Cost, double AdditionalManaCost, int CooldownTicks, int CastTicks,
-        int ImpactDelayTicks, BalanceSkillProfile Profile);
+        int ImpactDelayTicks, BalanceSkillProfile Profile, JsonObject Definition);
 
     /// <summary>Simulates one seeded encounter, or returns an explicit invalid/unsupported result.</summary>
     public static JsonObject Simulate(JsonObject catalog, JsonObject request, JsonObject build, int seed, CancellationToken token)
@@ -66,14 +66,19 @@ public static partial class BalanceCombat
         var requestedSkills = BalanceCombatData.Array(build["skillIds"]).Select(BalanceCombatData.Id).Where(id => id.Length > 0).ToArray();
         if (requestedSkills.Distinct(StringComparer.OrdinalIgnoreCase).Count() != requestedSkills.Length)
             diagnostics.Add(("duplicate_skill", "同じスキルを優先順位へ重複指定できません。", "error"));
-        foreach (var field in new[] { "buffIds", "passiveSkillIds", "statusEffects", "followUpSkills" })
+        foreach (var field in new[] { "buffIds", "statusEffects", "followUpSkills" })
             if (BalanceCombatData.Array(build[field]).Any()) unsupported.Add($"build.{field} の戦闘効果は未対応です。");
         foreach (var field in new[] { "skillLevels", "skillSigils", "sigils", "skillModifiers" })
             if (build[field] is not null) unsupported.Add($"build.{field} は未対応です。対応スキルはLv1・シジル未装着で計算します。");
         foreach (var field in new[] { "buffIds", "statusEffects", "environmentEffects" })
             if (BalanceCombatData.Array(request[field]).Any()) unsupported.Add($"request.{field} の戦闘効果は未対応です。");
         var skills = new List<Skill>();
-        foreach (var id in requestedSkills)
+        var passiveIds = BalanceCombatData.Array(build["passiveSkillIds"]).Select(BalanceCombatData.Id).Where(id => id.Length > 0).ToArray();
+        if (passiveIds.Distinct(StringComparer.Ordinal).Count() != passiveIds.Length || passiveIds.Length > 32)
+            diagnostics.Add(("invalid_passives", "パッシブは重複なしで32件以下にしてください。", "error"));
+        var passives = new List<Skill>();
+        foreach (var message in BalanceRuntimeWorld.Validate(request)) diagnostics.Add(("invalid_world", message, "error"));
+        foreach (var id in requestedSkills.Concat(passiveIds))
         {
             CheckUnique("skill", id);
             var master = BalanceCombatData.Find(masters, "skill", id);
@@ -82,16 +87,19 @@ public static partial class BalanceCombat
             if (skill is null) unsupported.Add($"スキル {id}: {string.Join(" / ", BalanceSkills.Resolve(master.Content, catalog).Reasons)}");
             else
             {
-                skills.Add(skill);
+                if (skill.Profile.Passive != passiveIds.Contains(id, StringComparer.Ordinal))
+                    diagnostics.Add(("skill_kind", $"{id} は{(skill.Profile.Passive ? "パッシブのバインド" : "アクティブ優先順位")}へ指定してください。", "error"));
+                else if (skill.Profile.Passive) passives.Add(skill);
+                else skills.Add(skill);
                 assumptions.AddRange(skill.Profile.Assumptions.Select(message => $"{id}: {message}"));
                 var changed = BalanceSkillSourceParity.Mismatches(catalog, skill.Profile.Sources);
                 if (changed.Count > 0) unsupported.Add($"{id} のPluginソースが照合済み版と異なります: {string.Join(", ", changed)}");
                 var distance = BalanceCombatData.Number(request["enemy"]?["distanceBlocks"], 3);
                 var halfDepth = BalanceCombatData.Number(request["enemy"]?["targetHalfDepth"], .3);
-                if (skill.Profile.Effects.Any(effect => effect.Kind == "damage" && BalanceSkillDamage.OutOfRange(distance, halfDepth, effect)))
-                    unsupported.Add($"{id}: 固定距離が射程外です。対象なしでの発動成否・消費を再現できないため実行条件を見直してください。");
             }
         }
+        if (skills.Concat(passives).GroupBy(skill => skill.Profile.ImplementationId, StringComparer.Ordinal).Any(group => group.Count() > 1))
+            diagnostics.Add(("duplicate_implementation", "同じimplementationIdの別名スキルを同時に装着できません。", "error"));
         if (diagnostics.Count > 0) return Result("invalid", 0, 0, 0, 0, null, null, [],
             new Dictionary<string, double>(), new Dictionary<string, double>(), [], diagnostics, assumptions, catalog);
 
@@ -197,11 +205,24 @@ public static partial class BalanceCombat
             unsupported.Add("Mob のバフ・状態異常は未対応です。");
         var weapon = Weapon(weaponTag);
         var useNormalAttacks = build["normalAttacks"]?.GetValue<bool>() != false;
-        if (useNormalAttacks && inputDistance > 3)
+        var dynamic = skills.Any(skill => skill.Profile.Runtime) || passives.Count > 0 || request["world"] is not null || request["inputs"] is not null || request["allies"] is not null;
+        if (!dynamic)
+            foreach (var skill in skills.Where(skill => skill.Profile.Effects.Any(effect => effect.Kind == "damage" && BalanceSkillDamage.OutOfRange(inputDistance, inputHalfDepth, effect))))
+                unsupported.Add($"{skill.Id}: 固定距離が射程外です。対象なしでの発動成否・消費を再現できないため実行条件を見直してください。");
+        if (!dynamic && useNormalAttacks && inputDistance > 3)
             unsupported.Add("通常攻撃は固定距離3ブロック以内の条件に限定します。遠距離では通常攻撃を無効にしてください。");
         if (useNormalAttacks && weapon is null) unsupported.Add($"武器タグ {weaponTag} に組み込み通常攻撃がありません。");
-        if (useNormalAttacks && weaponTag is ("SPEAR" or "BOW" or "SHORTBOW" or "LONGBOW" or "WAND" or "STAFF"))
+        if (!dynamic && useNormalAttacks && weaponTag is ("SPEAR" or "BOW" or "SHORTBOW" or "LONGBOW" or "WAND" or "STAFF"))
             unsupported.Add($"{weaponTag} の多段・飛翔体挙動は未対応です。");
+        foreach (var skill in skills.Concat(passives))
+            foreach (var requirement in skill.Profile.Requirements ?? [])
+                if (requirement == "bow" && weaponTag is not ("BOW" or "SHORTBOW" or "LONGBOW"))
+                    diagnostics.Add(("weapon_required", $"{skill.Id} は弓を装備してください。", "error"));
+                else if (requirement == "velocity_replay" && BalanceCombatData.Text(request["world"]?["velocityMode"]) != "replay")
+                    unsupported.Add($"{skill.Id} の速度変更にはworld.velocityMode=replayと各tickの座標軌跡が必要です。");
+                else if (requirement == "party" && !BalanceCombatData.Array(request["allies"]).Any()) unsupported.Add($"{skill.Id} の検証にはalliesにパーティの対象を指定してください。");
+                else if (requirement == "static_only" && dynamic) unsupported.Add($"{skill.Id} の動的位置判定は未検証です。静止条件だけに対応します。");
+                else if (requirement is not ("bow" or "velocity_replay" or "party" or "static_only")) unsupported.Add($"{skill.Id} の追加条件 {requirement} は未対応です。");
         if (BalanceCombatData.Boolean(BalanceCombatData.Object(effectiveMob["shield"])?["enabled"])
             && BalanceCombatData.Object(effectiveMob["shield"])?["rechargeTimeSeconds"] is not null)
             unsupported.Add("Mob のシールド再充填は未対応です。");
@@ -209,6 +230,11 @@ public static partial class BalanceCombat
         foreach (var (name, stats) in new[] { ("プレイヤー", player), ("敵", enemy) })
             foreach (var (key, value) in stats.Where(entry => entry.Value != 0 && !SupportedStatuses.Contains(entry.Key)))
                 unsupported.Add($"{name}のステータス {key}={value} の効果は未対応です。");
+        foreach (var ally in BalanceCombatData.Array(request["allies"]).OfType<JsonObject>())
+            foreach (var (key, value) in ally["stats"] as JsonObject ?? new())
+                if (value?.GetValueKind() != System.Text.Json.JsonValueKind.Number || !double.TryParse(value.ToString(), out var statValue) || !double.IsFinite(statValue))
+                    diagnostics.Add(("invalid_ally_status", $"味方{key}は有限の数値です。", "error"));
+                else if (statValue != 0 && !SupportedStatuses.Contains(key)) unsupported.Add($"味方のステータス {key} は未対応です。");
         if (diagnostics.Any(item => item.Severity == "error")) return Result("invalid", 0, 0, 0, 0, null, null, [], player, enemy, [], diagnostics, assumptions, catalog);
         var changedSources = BalanceCombatParity.Mismatches(catalog);
         if (changedSources.Count > 0)
@@ -224,15 +250,17 @@ public static partial class BalanceCombat
             foreach (var message in unsupported) diagnostics.Add(("unsupported_mechanic", message, strict ? "error" : "warning"));
             if (strict) return Result("unsupported", 0, 0, 0, 0, null, null, [], player, enemy, [], diagnostics, assumptions, catalog);
         }
-        assumptions.Add("一対一の静止戦闘です。対象は射程内で標的に取られ続け、ボス・ダンジョン制限や環境効果はありません。");
+        assumptions.Add(dynamic ? "一対一・読み込み済みの遮蔽なし平面です。移動は明示したtick入力とPluginの位置移動処理に限定し、Bukkit物理・地形・敵AIの接近は再現しません。"
+            : "一対一の静止戦闘です。対象は射程内で標的に取られ続け、ボス・ダンジョン制限や環境効果はありません。");
         assumptions.Add("乱数列は Plugin の ThreadLocalRandom と一致しません。指定seedで本モデルの判定を再現します。");
         assumptions.Add("skillIds はLv1・シジル未装着・習得/装着/使用許可済みとし、記載順に使用します。実アカウント解放状態は参照しません。");
         if (unsupported.Count > 0) assumptions.Add("未対応のスキル・エンチャント・ルーン効果は近似モードで省略します。");
         return Run(request, seed, maxSeconds, player, enemy, effectiveMob, enemyNormal, weapon ?? ("MELEE", 10),
-            weaponName ?? "通常攻撃", skills, classId, diagnostics, assumptions, catalog, build, token);
+            weaponName ?? "通常攻撃", skills, classId, diagnostics, assumptions, catalog, build, token, passives, weaponTag ?? "", dynamic);
     }
 
     internal static bool SupportsSkill(JsonObject definition) => BalanceSkills.Resolve(definition).Supported;
+    internal static bool SupportsStatus(string key) => SupportedStatuses.Contains(key);
 
     private static Skill? ResolveSkill(JsonObject definition, JsonObject catalog)
     {
@@ -244,7 +272,7 @@ public static partial class BalanceCombat
             "MAGIC", "NONE", 0, 0, resource,
             BalanceCombatData.Number(definition["resourceCost"], BalanceCombatData.Number(definition["manaCost"])),
             resource == "ENERGY" ? BalanceCombatData.Number(definition["manaCost"]) : 0,
-            BalanceCombatData.Integer(definition["cooldownTicks"]), BalanceCombatData.Integer(definition["castTimeTicks"]), 0, profile);
+            BalanceCombatData.Integer(definition["cooldownTicks"]), BalanceCombatData.Integer(definition["castTimeTicks"]), 0, profile, definition);
     }
 
     private static (string Type, int Ticks)? Weapon(string? tag) => tag?.ToUpperInvariant() switch
@@ -274,7 +302,7 @@ public static partial class BalanceCombat
         , "CONDITION_DURATION_INCREASE", "BURNING_APPLY_CHANCE", "BURNING_RESISTANCE", "BURNING_DAMAGE_INCREASE", "BURNING_DAMAGE_RESISTANCE", "BURNING_DAMAGE_PENETRATION",
         "SHOCKED_APPLY_CHANCE", "SHOCKED_RESISTANCE", "SHOCKED_DAMAGE_INCREASE", "SHOCKED_DAMAGE_RESISTANCE", "SHOCKED_DAMAGE_PENETRATION",
         "CHILLED_APPLY_CHANCE", "CHILLED_RESISTANCE", "FROZEN_APPLY_CHANCE", "FROZEN_RESISTANCE", "WEAKNESS_APPLY_CHANCE", "WEAKNESS_RESISTANCE"
-        , "POISONED_RESISTANCE", "BLINDNESS_RESISTANCE", "HEALING_INHIBITION_RESISTANCE"
+        , "POISONED_RESISTANCE", "BLINDNESS_RESISTANCE", "HEALING_INHIBITION_RESISTANCE", "BLINDNESS_APPLY_CHANCE", "PHOENIX_EXTRA_ATTACK_COUNT"
     };
 
     private static double Strike(Dictionary<string, double> attacker, Dictionary<string, double> victim,

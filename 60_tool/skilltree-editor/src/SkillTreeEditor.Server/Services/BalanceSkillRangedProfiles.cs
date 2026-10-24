@@ -8,7 +8,7 @@ internal static class BalanceSkillRangedProfiles
 {
     private const string SkillMaster = "40_filebase/30.features.skill/v1.";
     private const string ExecutorRoot = "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/";
-    private const string SingleTarget = "単体・固定距離・遮蔽物なし。射線上の最初のMobへ実executorの飛翔速度と当たり半径で命中する。";
+    private const string SingleTarget = "敵1体・遮蔽物なし。各発射時の位置と照準から、実executorの飛翔速度と当たり半径で最初のMobへの衝突を調べる。";
     private const string NoInheritance = "継承の心得を未習得・継承バフなしとする。";
 
     internal static BalanceSkillProfile? Resolve(JsonObject definition)
@@ -16,7 +16,10 @@ internal static class BalanceSkillRangedProfiles
         string? id = definition["implementationId"]?.GetValue<string>();
         if (string.IsNullOrWhiteSpace(id)) return null;
         JsonObject p = BalanceSkillParameters.Params(definition);
-        return id switch
+        if (id.StartsWith("phantom_archer_", StringComparison.Ordinal) || id == "archer_starweave_followup")
+            return RuntimeProfile(definition, id, p);
+        if (OtherRuntimeProfile(definition, id, p) is { } runtime) return runtime;
+        var profile = id switch
         {
             "sharpshooter_fire_arrow" => ElementalArrow(id, p, "FIRE", "BURNING", 24.5, 100,
                 "SharpshooterElementalArrowExecutor.java", "SharpshooterFireArrowExecutor.java"),
@@ -28,28 +31,226 @@ internal static class BalanceSkillRangedProfiles
             "sharpshooter_phantom_shot" => PhantomShot(p),
             "sharpshooter_spreading_ambition" => SpreadingAmbition(p),
             "hunter_build_up" => BuildUp(p),
-            "hunter_fade_shot" => Unsupported(id, "HunterFadeShotExecutor.java", "扇状の複数矢・拡散角と後方移動により、固定射線の単体衝突へ縮約できない。"),
-            "hunter_arrow_rain" => Unsupported(id, "HunterArrowRainExecutor.java", "初弾とランダム配置の雨矢・重力・範囲内複数命中があり、固定射線でhit列を確定できない。"),
-            "hunter_crash_arrow" => Unsupported(id, "HunterCrashArrowExecutor.java", "シールド破壊倍率、超星クリティカル抽選と継承追撃の処理が必要。"),
-            "hunter_heal_arrow" => Unsupported(id, "HunterHealArrowExecutor.java", "着弾後の範囲回復・地面着弾・敵への直撃の分岐が必要。"),
-            "hunter_spell_step" => Unsupported(id, "HunterSpellStepSkillExecutor.java", "回避入力後の時間窓で発動するパッシブで、単体スキル発動ではない。", directExecutor: true),
-            "archer_air_shift" => Unsupported(id, "ArcherAirShiftSkillExecutor.java", "空中回避操作による移動パッシブで、固定距離モデルに移動がない。", directExecutor: true),
-            "archer_heal_arrow_alpha" => Unsupported(id, "ArcherHealArrowAlphaExecutor.java", "詠唱時のHEALING_INCREASE buffと着弾後の範囲回復・直撃の分岐が必要。"),
-            "archer_starweave_followup" => Unsupported(id, "RangedStarweaveFollowupExecutor.java", "通常弓攻撃の有効命中後に発動するパッシブ追撃で、独立castではない。", directExecutor: true),
-            "sharpshooter_glacial_trap" => Unsupported(id, "SharpshooterGlacialTrapExecutor.java", "地面への着弾位置から遅延範囲攻撃・凍結するため、単体射線衝突と異なる。"),
-            "sharpshooter_inheritance_mastery" => Unsupported(id, "SharpshooterInheritanceMasterySkillExecutor.java", "12種の継承バフ・通常攻撃追撃・再消費を管理するパッシブで、単独castではない。", directExecutor: true),
-            "phantom_archer_shadow_stitch" => Unsupported(id, "PhantomArcherSkillExecutor.java", "有効命中で霊印を蓄積し、以後の倍率・消費へ波及する専用stateが必要。"),
-            "phantom_archer_soul_pierce" => Unsupported(id, "PhantomArcherSkillExecutor.java", "霊印数に応じた倍率、状態異常特効、貫通後の霊印消費が必要。"),
-            "phantom_archer_dread_bloom" => Unsupported(id, "PhantomArcherSkillExecutor.java", "直撃に加えて着弾点の範囲判定、盲目抽選、霊印蓄積が必要。"),
-            "phantom_archer_spectral_sentry" => Unsupported(id, "PhantomArcherSkillExecutor.java", "設置型の再照準・複数射撃・霊印蓄積と召喚寿命の専用stateが必要。"),
-            "phantom_archer_echo_volley" => Unsupported(id, "PhantomArcherSkillExecutor.java", "連射時の再照準・貫通・各有効命中での霊印蓄積が必要。"),
-            "phantom_archer_mist_retreat" => Unsupported(id, "PhantomArcherSkillExecutor.java", "後退移動・回避補正・次の射撃を強める待機状態が必要。"),
-            "phantom_archer_eclipse_shot" => Unsupported(id, "PhantomArcherSkillExecutor.java", "チャージ後の射撃、貫通、霊印数依存倍率と霊印消費が必要。"),
-            "phantom_archer_curse_weaving" => Unsupported(id, "PhantomArcherPassiveExecutor.java", "霊印別の常時倍率と状態異常付与率・持続補正を持つパッシブで、単独castではない。"),
-            "phantom_archer_spectral_attunement" => Unsupported(id, "PhantomArcherPassiveExecutor.java", "通常弓攻撃の有効命中で霊印を蓄積し、常時CT・MP補正を持つパッシブである。"),
-            "phantom_archer_wraith_step" => Unsupported(id, "PhantomArcherPassiveExecutor.java", "回避後の待機状態と次の専用矢への独立追加hitを持つパッシブである。"),
             _ => null
         };
+        if (profile is not null && id.StartsWith("sharpshooter_", StringComparison.Ordinal))
+        {
+            string[] required = id switch
+            {
+                "sharpshooter_fire_arrow" or "sharpshooter_ice_arrow" => ["conditionChance", "inheritedConditionChance", "conditionDurationTicks"],
+                "sharpshooter_piercing_line" => ["maxHits", "pierceDecay"],
+                "sharpshooter_ricochet_arrow" => ["bounceRadius", "bounceCount", "bounceDecay"],
+                "sharpshooter_thermal_break" => ["statusBonusRatio"],
+                "sharpshooter_phantom_shot" => ["shotIntervalTicks", "successiveHitWindowTicks", "resourceRecoveryRatio"],
+                "sharpshooter_spreading_ambition" => ["explosionDamageRatio", "explosionRadius", "maxExplosionTargets", "pelletCount", "spreadAngle"],
+                _ => []
+            };
+            var missing = required.Concat(["range", "damageRatio", "projectileSpeed", "projectileHitRadius"])
+                .Where(key => !p.ContainsKey(key)).Select(key => $"params.{key} はPluginの必須項目です。");
+            profile = profile with { Reasons = profile.Reasons.Concat(missing).ToArray() };
+        }
+        return profile;
+    }
+
+    private static BalanceSkillProfile? OtherRuntimeProfile(JsonObject definition, string id, JsonObject p)
+    {
+        string executor = id switch
+        {
+            "adventurer_blast_arrow" => "adventurer/AdventurerBlastArrowExecutor.java",
+            "hunter_fade_shot" => "hunter/HunterFadeShotExecutor.java",
+            "hunter_arrow_rain" => "hunter/HunterArrowRainExecutor.java",
+            "hunter_crash_arrow" => "hunter/HunterCrashArrowExecutor.java",
+            "hunter_heal_arrow" => "hunter/HunterHealArrowExecutor.java",
+            "archer_heal_arrow_alpha" => "hunter/ArcherHealArrowAlphaExecutor.java",
+            "hunter_spell_step" => "../HunterSpellStepSkillExecutor.java",
+            "archer_air_shift" => "../ArcherAirShiftSkillExecutor.java",
+            "sharpshooter_glacial_trap" => "sharpshooter/SharpshooterGlacialTrapExecutor.java",
+            "sharpshooter_inheritance_mastery" => "../SharpshooterInheritanceMasterySkillExecutor.java",
+            _ => ""
+        };
+        if (executor.Length == 0) return null;
+        bool passive = id is "hunter_spell_step" or "archer_air_shift" or "sharpshooter_inheritance_mastery";
+        var reasons = new List<string>();
+        void Positive(params string[] keys)
+        {
+            foreach (string key in keys)
+                if (N(p, key, 0) <= 0) reasons.Add($"params.{key} はPluginの必須正数です。");
+        }
+        void Integer(string key, int min = 1, int max = int.MaxValue)
+        {
+            if (!p.ContainsKey(key) || I(p, key, -1) < min || I(p, key, -1) > max)
+                reasons.Add($"params.{key} は{min}から{max}の必須整数です。");
+        }
+        void Chance(string key)
+        {
+            if (!p.ContainsKey(key) || N(p, key, -1) is < 0 or > 100) reasons.Add($"params.{key} は0から100の必須確率です。");
+        }
+        if (id is "adventurer_blast_arrow" or "hunter_fade_shot" or "hunter_crash_arrow" or "sharpshooter_glacial_trap")
+            Positive("range", "damageRatio", "projectileSpeed", "projectileHitRadius");
+        switch (id)
+        {
+            case "adventurer_blast_arrow": Positive("radius"); Integer("maxTargets"); break;
+            case "hunter_fade_shot":
+                Positive("backstepVelocity", "spreadAngle"); Integer("pelletCount", 3, 9);
+                if (I(p, "pelletCount", 0) % 2 != 1 || N(p, "spreadAngle", 0) > 60)
+                    reasons.Add("フェイドショットの散弾数は奇数、全角は60以下です。");
+                break;
+            case "hunter_crash_arrow": Positive("shieldBreakMultiplier"); Chance("superStarCriticalChance"); break;
+            case "hunter_arrow_rain":
+                Positive("range", "radius", "openingSpeed", "openingHitRadius", "rainHitRadius"); Integer("arrowCount", 1, 2000);
+                var ratios = BalanceSkillParameters.Numbers(p, "damageRatios");
+                if (ratios.Length != 2 || ratios.Any(ratio => ratio <= 0)) reasons.Add("params.damageRatios は正数2要素の必須配列です。");
+                break;
+            case "hunter_heal_arrow":
+            case "archer_heal_arrow_alpha":
+                Positive("radius", "damageRatio", "projectileSpeed", "projectileHitRadius", id == "hunter_heal_arrow" ? "healAmount" : "healPercent");
+                Integer("areaDurationTicks", 1, 72000);
+                if (Math.Abs(N(p, "damageRatio", 0) - .36) > 1e-9) reasons.Add("敵への倍率はPluginと同じ0.36固定です。");
+                break;
+            case "sharpshooter_glacial_trap": Positive("radius"); Integer("maxTargets", 1, 10); Chance("conditionChance"); Integer("conditionTicks", 1, 600); break;
+            case "hunter_spell_step":
+                if (I(p, "windowTicks", -1) != 20) reasons.Add("スペルステップの有効期間は20tick固定です。");
+                break;
+            case "archer_air_shift":
+                if (N(p, "horizontalStrength", 0) != 1.45 || N(p, "verticalStrength", 0) != .25)
+                    reasons.Add("エアーシフトの水平速度1.45・垂直速度0.25はPlugin固定値です。");
+                if ((definition["passive"] as JsonObject)?["bindRequired"]?.GetValueKind() != System.Text.Json.JsonValueKind.False
+                    || BalanceCombatData.Text(definition["resourceType"]) != "ENERGY" || BalanceCombatData.Number(definition["resourceCost"], -1) != 15)
+                    reasons.Add("エアーシフトはバインド不要・ENERGY・消費15固定です。");
+                break;
+            case "sharpshooter_inheritance_mastery":
+                if (N(p, "normalAttackDamageMultiplier", 0) != .5 || N(p, "inheritedSkillDamageMultiplier", 0) != .5
+                    || (definition["passive"] as JsonObject)?["bindRequired"]?.GetValueKind() != System.Text.Json.JsonValueKind.True || BalanceCombatData.Integer(definition["maxLevel"], 1) != 1)
+                    reasons.Add("継承の心得は最大Lv1・バインド必須・通常/継承倍率0.5固定です。");
+                ValidateInheritance(p, reasons);
+                break;
+        }
+        if (id is "hunter_spell_step" or "archer_air_shift")
+        {
+            if (string.IsNullOrWhiteSpace(p["triggerSound"]?.ToString()) || N(p, "triggerSoundVolume", .8) < 0 || N(p, "triggerSoundPitch", 1) <= 0)
+                reasons.Add("発動音は必須の非空文字列、音量は非負、音程は正数です。");
+        }
+        var sources = new List<string> { SkillMaster + id + ".yml", ExecutorRoot + executor };
+        if (executor.StartsWith("../", StringComparison.Ordinal)) sources[1] = ExecutorRoot.Replace("/active/", "/", StringComparison.Ordinal) + executor[3..];
+        if (id == "archer_heal_arrow_alpha") { sources.Add(ExecutorRoot + "hunter/HunterHealArrowExecutor.java"); sources.Add("40_filebase/70.shared.buff/v1.archer_heal_arrow_alpha.yml"); }
+        if (id == "hunter_spell_step") sources.Add(ExecutorRoot.Replace("/executor/active/", "/service/", StringComparison.Ordinal) + "SpellStepSkillRuntimeService.java");
+        if (id == "archer_air_shift") sources.Add(ExecutorRoot.Replace("/executor/active/", "/service/", StringComparison.Ordinal) + "AirShiftSkillRuntimeService.java");
+        if (id == "sharpshooter_inheritance_mastery") sources.Add(ExecutorRoot.Replace("/executor/active/", "/service/", StringComparison.Ordinal) + "InheritanceBuffService.java");
+        IReadOnlyList<string> keys = id == "adventurer_blast_arrow"
+            ? ["inheritanceMasteryName", "inheritanceBuffName", "inheritanceDurationTicks", "range", "radius", "damageRatio", "maxTargets", "projectileSpeed", "projectileHitRadius"]
+            : UnsupportedKnownParameters(id);
+        return new(id, [], sources, keys,
+            ["単独プレイヤー対1体の敵、平面の床、指定した位置・照準・入力を使う20tick/秒の戦闘モデル。",
+             "雨矢の円内乱数と重力弾道をseed付きで生成する。Plugin乱数列との同一性は保証しない。回復エリアは各エリアで自分と入力済み味方をそれぞれ一度だけ回復する。"],
+            reasons, Runtime: true, Passive: passive,
+            Requirements: id is "hunter_fade_shot" or "archer_air_shift" ? ["velocity_replay"] : []);
+    }
+
+    private static void ValidateInheritance(JsonObject p, List<string> reasons)
+    {
+        if (p["inheritanceBuffs"] is not JsonArray rows) { reasons.Add("params.inheritanceBuffs は必須の配列です。"); return; }
+        string[] knownSources = ["hunter_arrow_rain", "adventurer_blast_arrow", "adventurer_quick_shot", "hunter_crash_arrow",
+            "sharpshooter_fire_arrow", "sharpshooter_ice_arrow", "sharpshooter_spreading_ambition", "sharpshooter_phantom_shot",
+            "sharpshooter_piercing_line", "sharpshooter_thermal_break", "sharpshooter_ricochet_arrow", "sharpshooter_glacial_trap"];
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in rows)
+        {
+            if (raw is not JsonObject row) { reasons.Add("継承バフ行はオブジェクトです。"); continue; }
+            string buff = BalanceCombatData.Text(row["buffId"]);
+            if (!buff.StartsWith("buff:", StringComparison.Ordinal) || buff.Length <= 5 || !ids.Add(buff)) reasons.Add("継承buff参照はbuff:付きで重複不可です。");
+            if (I(row, "durationConsumptionTicks", 0) <= 0) reasons.Add("継承バフの時間消費は正整数です。");
+            if (row.ContainsKey("consumeSourceSkillResources") && row["consumeSourceSkillResources"]?.GetValueKind() != System.Text.Json.JsonValueKind.True
+                && row["consumeSourceSkillResources"]?.GetValueKind() != System.Text.Json.JsonValueKind.False) reasons.Add("継承リソース再消費設定はbooleanです。");
+            if (row.ContainsKey("normalAttackExtraCount") || row.ContainsKey("normalAttackExtraIntervalTicks"))
+                if (I(row, "normalAttackExtraCount", 0) is < 1 or > 4 || I(row, "normalAttackExtraIntervalTicks", 0) <= 0
+                    || row["consumeSourceSkillResources"]?.GetValueKind() != System.Text.Json.JsonValueKind.False) reasons.Add("追加通常攻撃は1〜4回・正整数間隔・再消費falseです。");
+            string source = BalanceCombatData.Text(row["sourceSkillId"]);
+            if (!source.StartsWith("skill:", StringComparison.Ordinal) || source.Length <= 6)
+                reasons.Add("このモデルは検証済み元スキル参照による継承だけを扱います。");
+            else if (!knownSources.Contains(source[6..], StringComparer.Ordinal))
+                reasons.Add($"継承元 {source} のcallbackは計算未対応です。");
+            if (row.ContainsKey("resourceType") || row.ContainsKey("resourceCost")) reasons.Add("sourceSkillId と resourceType/resourceCost は併用できません。");
+            foreach (string key in row.Select(pair => pair.Key).Except(["buffId", "durationConsumptionTicks", "sourceSkillId", "consumeSourceSkillResources", "normalAttackExtraCount", "normalAttackExtraIntervalTicks"], StringComparer.Ordinal))
+                reasons.Add($"継承バフの追加項目 {key} は未検証です。");
+        }
+    }
+
+    private static BalanceSkillProfile? RuntimeProfile(JsonObject definition, string id, JsonObject p)
+    {
+        string[] known = ["phantom_archer_shadow_stitch", "phantom_archer_soul_pierce", "phantom_archer_dread_bloom",
+            "phantom_archer_spectral_sentry", "phantom_archer_echo_volley", "phantom_archer_mist_retreat",
+            "phantom_archer_eclipse_shot", "phantom_archer_curse_weaving", "phantom_archer_spectral_attunement",
+            "phantom_archer_wraith_step", "archer_starweave_followup"];
+        if (!known.Contains(id, StringComparer.Ordinal)) return null;
+        bool passive = id is "phantom_archer_curse_weaving" or "phantom_archer_spectral_attunement"
+            or "phantom_archer_wraith_step" or "archer_starweave_followup";
+        var reasons = new List<string>();
+        void Positive(params string[] keys)
+        {
+            foreach (string key in keys)
+                if (N(p, key, 0) <= 0) reasons.Add($"params.{key} はPluginの必須正数です。");
+        }
+        void Count(string key, int min, int max)
+        {
+            if (!p.ContainsKey(key) || I(p, key, -1) < min || I(p, key, -1) > max)
+                reasons.Add($"params.{key} は{min}から{max}の整数です。");
+        }
+        if (passive)
+        {
+            if ((definition["passive"] as JsonObject)?["bindRequired"]?.GetValueKind() != System.Text.Json.JsonValueKind.True)
+                reasons.Add("Pluginと同じくパッシブのバインドを必要とします。");
+            if (id != "archer_starweave_followup" && (BalanceCombatData.Integer(definition["maxLevel"], 1) != 1
+                || BalanceCombatData.Array(definition["levels"]).Any() || BalanceCombatData.Array(definition["allowedSigilIds"]).Any()
+                || BalanceCombatData.Array(definition["sigilSlotsByLevel"]).Any()))
+                reasons.Add("Pluginは最大Lv1・レベル差分なし・シジル枠なしの固有パッシブを要求します。");
+            if (id == "phantom_archer_curse_weaving") Positive("markBonusRatio");
+            if (id == "phantom_archer_wraith_step") { Positive("phantomDamageRatio"); Count("readyDurationTicks", 1, 400); }
+            if (id == "archer_starweave_followup")
+            {
+                if (BalanceCombatData.Integer(definition["maxLevel"], 1) != 5
+                    || BalanceCombatData.Integer(definition["cooldownTicks"]) != 120)
+                    reasons.Add("星糸追矢はPluginと同じ最大Lv5・固定120tickの再使用間隔を要求します。");
+                if (!p.ContainsKey("followupRatio") || N(p, "followupRatio", -1) is < 0 or > 2
+                    || !p.ContainsKey("comboBonusRatio") || N(p, "comboBonusRatio", -1) is < 0 or > 1
+                    || !p.ContainsKey("range") || N(p, "range", -1) is < 1 or > 40)
+                    reasons.Add("星糸追矢は倍率0〜2・連携加算0〜1・射程1〜40の必須値を要求します。");
+                if (I(p, "flightTicks", -1) != 6) reasons.Add("星糸追矢の飛翔時間はPluginと同じ6tickです。");
+            }
+        }
+        else if (id == "phantom_archer_mist_retreat")
+        { Positive("backstepVelocity", "evasionMultiplier"); Count("durationTicks", 1, 200); }
+        else
+        {
+            Positive("damageRatio", "projectileSpeed", "projectileHitRadius");
+            if (id == "phantom_archer_spectral_sentry")
+            { Positive("placementRange", "targetRadius"); Count("shotIntervalTicks", 2, 100); Count("shotCount", 1, 16); }
+            else Positive("range");
+            if (id is "phantom_archer_soul_pierce" or "phantom_archer_eclipse_shot" or "phantom_archer_echo_volley") Count("maxHits", 1, 8);
+            if (id is "phantom_archer_soul_pierce" or "phantom_archer_eclipse_shot") Positive("markDamageRatio");
+            if (id == "phantom_archer_soul_pierce") Positive("conditionBonusRatio");
+            if (id == "phantom_archer_eclipse_shot") Count("chargeTicks", 1, 40);
+            if (id == "phantom_archer_echo_volley") { Count("shotCount", 2, 6); Count("shotIntervalTicks", 2, 40); }
+            if (id is "phantom_archer_shadow_stitch" or "phantom_archer_dread_bloom")
+            {
+                if (!p.ContainsKey("conditionChance") || N(p, "conditionChance", -1) is < 0 or > 100)
+                    reasons.Add("params.conditionChance は0から100の必須確率です。");
+                Count("conditionTicks", 1, 400);
+            }
+            if (id == "phantom_archer_dread_bloom") { Positive("impactRadius"); Count("maxTargets", 1, 12); }
+        }
+        string root = "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/";
+        string source = id == "archer_starweave_followup" ? root + "executor/RangedStarweaveFollowupExecutor.java"
+            : ExecutorRoot + "phantomarcher/" + (passive ? "PhantomArcherPassiveExecutor.java" : "PhantomArcherSkillExecutor.java");
+        var sources = new List<string> { SkillMaster + id + ".yml", source,
+            ExecutorRoot + "phantomarcher/PhantomArcherRuntime.java" };
+        if (id == "archer_starweave_followup") sources.Add(root + "service/RangedStarweaveRuntimeService.java");
+        if (!passive) sources.Add(ExecutorRoot + "phantomarcher/PhantomArcherCastLifecycle.java");
+        return new(id, [], sources, UnsupportedKnownParameters(id),
+            ["弓・短弓・長弓を継続装備し、習得・使用許可・パッシブの装備とバインドは有効とする。",
+             "霊印は所有者と対象ごと最大3層、最終付与から120tick。有効命中だけで付与・消費する。",
+             "1体の敵と床面、指定入力・位置・射線のモデルで評価する。転職・装備変更・切断は戦闘中に起きない。"],
+            reasons, Runtime: true, Passive: passive,
+            Requirements: id == "phantom_archer_mist_retreat" ? ["bow", "velocity_replay"] : ["bow"]);
     }
 
     private static BalanceSkillProfile ElementalArrow(string id, JsonObject p, string element,
@@ -122,7 +323,6 @@ internal static class BalanceSkillRangedProfiles
         var reasons = ProjectileReasons(p, 16, 1.70, 1.8, 1.10);
         if (interval < 1 || I(p, "successiveHitWindowTicks", 40) < 1 || recovery is < 0 or > 1)
             reasons.Add("実executorの発射間隔と連続命中窓は正整数、回復率は0〜1を要する。");
-        if (recovery > 0) reasons.Add("連続有効命中の実時間窓によるMP/ENG回復は現在のeffect planで表せない。");
         BalanceSkillEffect shot(int tick) => ProjectileDamage(p, N(p, "damageRatio", 1.70), "NONE", 16, 1.8, 1.10) with { Tick = tick };
         return Profile(id, [shot(0), shot(interval), shot(interval * 2)],
             ["SharpshooterPhantomShotExecutor.java"],
@@ -140,7 +340,7 @@ internal static class BalanceSkillRangedProfiles
         if (N(p, "explosionDamageRatio", 1) <= 0 || N(p, "explosionRadius", 3) <= 0
             || I(p, "maxExplosionTargets", 6) < 1 || N(p, "spreadAngle", 20) is < 0 or > 60)
             reasons.Add("実executorの爆発倍率・半径・最大対象数は正、拡散角は0〜60度を要する。");
-        if (pellets != 1) reasons.Add("Lv2以降の3/5散弾は複数射線・爆発の着弾位置と重複命中が必要。");
+        if (pellets is not (1 or 3 or 5)) reasons.Add("実executorの散弾数は1/3/5のいずれかです。");
         var profile = Profile(id,
             [new("damage", AttackType: "RANGED", Element: "NONE",
                 Evaluate: view => ratio * (view.Conditions.Count > 0 ? 2 : 1),
@@ -150,7 +350,7 @@ internal static class BalanceSkillRangedProfiles
             ["inheritanceMasteryName", "inheritanceBuffName", "inheritanceDurationTicks", "inheritanceConsumptionTicks",
              "range", "damageRatio", "explosionDamageRatio", "explosionRadius", "maxExplosionTargets", "pelletCount",
              "spreadAngle", "projectileSpeed", "projectileHitRadius"],
-            [SingleTarget, NoInheritance, "Lv1の中央1矢のみ。発射起点は視点の前方0.8ブロック。",
+            [SingleTarget, NoInheritance, "指定された奇数本の散弾を全角内に等間隔で放つ。発射起点は視点の前方0.8ブロック。",
              "直撃対象は同じ矢の範囲爆発から除外される。着弾直前に状態異常が1種でもあれば直撃倍率を2倍にする。"],
             reasons);
         return profile with { Sources = [.. profile.Sources, ExecutorRoot + "hunter/HunterFadeShotExecutor.java"] };
@@ -198,17 +398,9 @@ internal static class BalanceSkillRangedProfiles
         var sources = new List<string> { SkillMaster + id + ".yml" };
         foreach (string executor in executors)
             sources.Add(ExecutorRoot + (id.StartsWith("hunter_") ? "hunter/" : "sharpshooter/") + executor);
-        return new(id, effects, sources, keys, assumptions, reasons ?? []);
-    }
-
-    private static BalanceSkillProfile Unsupported(string id, string executor, string reason, bool directExecutor = false)
-    {
-        string folder = id.StartsWith("hunter_") || id.StartsWith("archer_") ? "hunter/"
-            : id.StartsWith("phantom_archer_") ? "phantomarcher/" : "sharpshooter/";
-        string path = directExecutor
-            ? "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/" + executor
-            : ExecutorRoot + folder + executor;
-        return new(id, [], [SkillMaster + id + ".yml", path], UnsupportedKnownParameters(id), [], [reason]);
+        bool runtime = id.StartsWith("sharpshooter_", StringComparison.Ordinal);
+        return new(id, effects, sources, keys, assumptions.Where(value => !runtime || value != NoInheritance).ToArray(),
+            reasons ?? [], Runtime: runtime);
     }
 
     private static IReadOnlyList<string> UnsupportedKnownParameters(string id) => id switch

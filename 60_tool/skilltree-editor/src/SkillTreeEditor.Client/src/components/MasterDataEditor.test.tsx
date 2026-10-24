@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
@@ -29,6 +30,13 @@ async function openFile() {
   fireEvent.click(await screen.findByRole('button', { name: /元クラス.*old/ }))
   await screen.findByRole('textbox', { name: '/id' })
   await waitFor(() => expect(screen.getByRole('button', { name: '原稿 YAML' })).not.toBeDisabled())
+}
+
+async function openCreationDialog() {
+  const button = await screen.findByRole('button', { name: '＋ 新規' })
+  await waitFor(() => expect(button).toBeEnabled())
+  await userEvent.click(button)
+  return within(await screen.findByRole('dialog', { name: 'マスターファイル作成' }))
 }
 
 describe('master editor workflow', () => {
@@ -473,9 +481,7 @@ describe('master editor workflow', () => {
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: /元クラス.*old/ }))
     await screen.findByRole('textbox', { name: '/id' })
-    await waitFor(() => expect(screen.getByRole('button', { name: '＋ 新規' })).not.toBeDisabled())
-    fireEvent.click(screen.getByRole('button', { name: '＋ 新規' }))
-    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    const dialog = await openCreationDialog()
     fireEvent.change(dialog.getByRole('combobox', { name: 'カテゴリ' }), { target: { value: 'skill' } })
     expect(dialog.getByRole('combobox', { name: '新規マスターの形式' })).toHaveValue('yaml')
     expect(dialog.getByRole('textbox', { name: /保存先/ })).toHaveValue('30.features.skill/v1.new_skill.yml')
@@ -488,8 +494,7 @@ describe('master editor workflow', () => {
     vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ ...catalog, categories: [rootCategory] })
     const create = vi.spyOn(masterDataApi, 'create').mockResolvedValue(original)
     render(<MasterDataEditor />)
-    fireEvent.click(await screen.findByRole('button', { name: '＋ 新規' }))
-    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    const dialog = await openCreationDialog()
     expect(dialog.getByRole('textbox', { name: /保存先/ })).toHaveValue('v1.root_config.yml')
     fireEvent.change(dialog.getByRole('combobox', { name: '新規マスターの形式' }), { target: { value: 'json' } })
     fireEvent.change(dialog.getByRole('textbox', { name: '新規マスター原稿' }), { target: { value: '{"id":"root_json","schemaVersion":1}' } })
@@ -504,8 +509,7 @@ describe('master editor workflow', () => {
     let complete!: (value: MasterDocument) => void
     const create = vi.spyOn(masterDataApi, 'create').mockImplementation(() => new Promise((resolve) => { complete = resolve }))
     render(<MasterDataEditor />)
-    fireEvent.click(await screen.findByRole('button', { name: '＋ 新規' }))
-    const dialog = within(screen.getByRole('dialog', { name: 'マスターファイル作成' }))
+    const dialog = await openCreationDialog()
     fireEvent.click(dialog.getByRole('button', { name: '検証して作成' }))
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
     expect(dialog.getByRole('textbox', { name: '新規マスター原稿' })).toBeDisabled()
@@ -524,8 +528,7 @@ describe('master editor workflow', () => {
 describe('creation draft protection', () => {
   async function openNew(onDirtyChange = vi.fn()) {
     const view = render(<MasterDataEditor onDirtyChange={onDirtyChange} />)
-    fireEvent.click(await screen.findByRole('button', { name: '＋ 新規' }))
-    return { ...view, dialog: within(screen.getByRole('dialog', { name: 'マスターファイル作成' })), onDirtyChange }
+    return { ...view, dialog: await openCreationDialog(), onDirtyChange }
   }
   function unloadPrevented() {
     const event = new Event('beforeunload', { cancelable: true })

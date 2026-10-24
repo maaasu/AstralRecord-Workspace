@@ -84,7 +84,7 @@ public sealed class BalanceSkillRangedTests
     }
 
     [Fact]
-    public void PhantomShotSchedulesThreeSeparateProjectilesAndStopsRecoveryVariant()
+    public void PhantomShotSchedulesThreeSeparateProjectilesAndUsesRuntimeForRecoveryVariant()
     {
         var p = new JsonObject { ["damageRatio"] = 1.7, ["shotIntervalTicks"] = 5,
             ["resourceRecoveryRatio"] = 0 };
@@ -95,8 +95,8 @@ public sealed class BalanceSkillRangedTests
         p["resourceRecoveryRatio"] = .1;
         var recovery = BalanceSkillRangedProfiles.Resolve(Definition("sharpshooter_phantom_shot", p));
         Assert.NotNull(recovery);
-        Assert.False(recovery.Supported);
-        Assert.Contains("連続", Assert.Single(recovery.Reasons));
+        Assert.True(recovery.Supported);
+        Assert.True(recovery.Runtime);
     }
 
     [Fact]
@@ -114,8 +114,8 @@ public sealed class BalanceSkillRangedTests
         p["pelletCount"] = 3;
         var spread = BalanceSkillRangedProfiles.Resolve(Definition("sharpshooter_spreading_ambition", p));
         Assert.NotNull(spread);
-        Assert.False(spread.Supported);
-        Assert.Contains("散弾", Assert.Single(spread.Reasons));
+        Assert.True(spread.Supported);
+        Assert.True(spread.Runtime);
     }
 
     [Fact]
@@ -167,10 +167,28 @@ public sealed class BalanceSkillRangedTests
         Assert.Null(BalanceSkillRangedProfiles.Resolve(Definition("unrecognized", new())));
     }
 
-    private static JsonObject Definition(string id, JsonObject parameters) => new()
+    private static JsonObject Definition(string id, JsonObject parameters)
     {
-        ["id"] = id, ["implementationId"] = id, ["params"] = parameters.DeepClone()
-    };
+        string fixture = id switch
+        {
+            "sharpshooter_fire_arrow" => """{"conditionChance":24.5,"inheritedConditionChance":25,"conditionDurationTicks":100}""",
+            "sharpshooter_ice_arrow" => """{"conditionChance":50,"inheritedConditionChance":50,"conditionDurationTicks":40}""",
+            "sharpshooter_piercing_line" => """{"maxHits":3,"pierceDecay":0.8}""",
+            "sharpshooter_ricochet_arrow" => """{"bounceRadius":5,"bounceCount":2,"bounceDecay":0.7}""",
+            "sharpshooter_thermal_break" => """{"statusBonusRatio":0.9}""",
+            "sharpshooter_phantom_shot" => """{"shotIntervalTicks":5,"successiveHitWindowTicks":40,"resourceRecoveryRatio":0}""",
+            "sharpshooter_spreading_ambition" => """{"explosionDamageRatio":1,"explosionRadius":3,"maxExplosionTargets":6,"pelletCount":1,"spreadAngle":20}""",
+            _ => "{}"
+        };
+        var complete = JsonNode.Parse(fixture)!.AsObject();
+        if (id.StartsWith("sharpshooter_", StringComparison.Ordinal))
+        {
+            complete["range"] = 16; complete["damageRatio"] = 1;
+            complete["projectileSpeed"] = 1.8; complete["projectileHitRadius"] = .6;
+        }
+        foreach (var pair in parameters) complete[pair.Key] = pair.Value?.DeepClone();
+        return new() { ["id"] = id, ["implementationId"] = id, ["params"] = complete };
+    }
 
     private static BalanceSkillView View(IReadOnlySet<string> conditions)
         => new(new Dictionary<string, double>(), new Dictionary<string, double>(),
