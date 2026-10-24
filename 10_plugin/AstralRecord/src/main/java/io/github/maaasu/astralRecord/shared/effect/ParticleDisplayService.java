@@ -810,8 +810,11 @@ public class ParticleDisplayService {
             if (checked++ >= ParticlePointSampling.MAX_POINTS) break;
             int count = resolveEmissionCount(definition.count(), density, definition.offsetX(), definition.offsetY(),
                     definition.offsetZ(), definition.extra());
+            if (bedrock && count > 0) count = 1;
             spawnForViewerResolvedCount(viewer, point, definition.particle(), count,
-                    definition.offsetX(), definition.offsetY(), definition.offsetZ(), definition.extra(), definition.data(), longDistance);
+                    bedrock ? 0.0D : definition.offsetX(), bedrock ? 0.0D : definition.offsetY(),
+                    bedrock ? 0.0D : definition.offsetZ(), bedrock ? 0.0D : definition.extra(),
+                    definition.data(), longDistance);
         }
     }
 
@@ -853,9 +856,9 @@ public class ParticleDisplayService {
             }
             points = nearby;
         }
-        int selected = ParticlePointSampling.count(points.size(), density * PLUGIN_PARTICLE_DENSITY_SCALE);
         boolean bedrock = isBedrock(viewer);
-        if (bedrock) selected = Math.min(selected, BEDROCK_MAX_POINTS);
+        int candidates = bedrock ? Math.min(points.size(), BEDROCK_MAX_POINTS) : points.size();
+        int selected = ParticlePointSampling.count(candidates, density * PLUGIN_PARTICLE_DENSITY_SCALE);
         if (selected == 0) return;
         int count = bedrock || isFixedPoint(definition.offsetX(), definition.offsetY(), definition.offsetZ(), definition.extra())
                 ? 1 : definition.count();
