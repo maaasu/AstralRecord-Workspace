@@ -911,7 +911,7 @@ public final class AstralRecordProxyPlugin {
             .forEach(player -> player.sendMessage(message));
     }
 
-    /** Proxy最高権限UUIDに一致するプレイヤーだけへプライベートチャット監視を配信する。 */
+    /** Proxy最高権限UUIDだけへ監視を配信し、DMの人物ラベルはアカウント表示名だけにする。 */
     void broadcastPrivateChat(String sourceServerId, BackendProtocol.PrivateChat chat) {
         NetworkSettings settings = settings();
         if (settings == null) return;
@@ -924,11 +924,11 @@ public final class AstralRecordProxyPlugin {
                 .filter(id -> !id.equals(chat.playerId()))
                 .map(id -> chatMetadata(metadata.get(id), sourceServerId, chat.targetName()))
                 .filter(java.util.Objects::nonNull)
-                .map(value -> tabDisplayName(value, frame)).findFirst()
+                .map(value -> accountDisplayName(value, frame)).findFirst()
                 .orElse(Component.text(chat.targetName(), NamedTextColor.LIGHT_PURPLE));
             message = message.append(Component.text("[DM] ", NamedTextColor.LIGHT_PURPLE))
                 .append(senderMetadata != null
-                    ? tabDisplayName(senderMetadata, frame)
+                    ? accountDisplayName(senderMetadata, frame)
                     : Component.text(chat.senderName(), NamedTextColor.LIGHT_PURPLE))
                 .append(Component.text(" → ", NamedTextColor.LIGHT_PURPLE))
                 .append(targetLabel)
@@ -975,6 +975,7 @@ public final class AstralRecordProxyPlugin {
 
     /**
      * 異なるbackendにいるオンラインプレイヤーへDMを配送します。
+     * 送受信者はアカウント表示名だけとし、クラス・レベル・AFK・チャンネルを付けません。
      *
      * @param sourceServerId 送信元backend ID
      * @param sender 送信者
@@ -1002,10 +1003,10 @@ public final class AstralRecordProxyPlugin {
         String targetName = targetMetadata == null ? target.getUsername() : targetMetadata.displayName();
         int frame = messageFrame();
         Component senderLabel = metadata.containsKey(sender.getUniqueId())
-            ? tabDisplayName(metadata.get(sender.getUniqueId()), frame)
+            ? accountDisplayName(metadata.get(sender.getUniqueId()), frame)
             : Component.text(message.senderName(), NamedTextColor.WHITE);
         Component targetLabel = targetMetadata == null
-            ? Component.text(targetName, NamedTextColor.WHITE) : tabDisplayName(targetMetadata, frame);
+            ? Component.text(targetName, NamedTextColor.WHITE) : accountDisplayName(targetMetadata, frame);
         Component sent = directMessageComponent("DM送信", senderLabel, targetLabel, message);
         Component received = directMessageComponent("DM受信", senderLabel, targetLabel, message);
         sender.sendMessage(sent);

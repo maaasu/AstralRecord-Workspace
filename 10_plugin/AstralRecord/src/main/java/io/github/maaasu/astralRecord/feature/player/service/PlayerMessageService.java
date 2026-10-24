@@ -441,7 +441,7 @@ public final class PlayerMessageService {
 
     /**
      * ダイレクトメッセージを送受信者へ配信する。
-     * 送受信者それぞれのプレイヤーレベルを表示する。
+     * 送受信者はアカウント表示名だけを表示し、クラス・レベル・AFK・チャンネルを付けない。
      *
      * @param sender 送信者
      * @param target 受信者
@@ -493,9 +493,16 @@ public final class PlayerMessageService {
         String targetDisplayName = targetAstPlayer == null
             ? target.getName()
             : AccountDisplayNameFormatter.toPlain(targetAstPlayer.getAccount());
-        Component names = playerLabel(sender, senderAstPlayer)
+        long frame = System.nanoTime() / 100_000_000L;
+        Component senderName = senderAstPlayer == null
+            ? Component.text(sender.getName(), NamedTextColor.WHITE)
+            : AccountDisplayNameFormatter.toAnimatedComponent(senderAstPlayer.getAccount(), frame);
+        Component targetName = targetAstPlayer == null
+            ? Component.text(target.getName(), NamedTextColor.WHITE)
+            : AccountDisplayNameFormatter.toAnimatedComponent(targetAstPlayer.getAccount(), frame);
+        Component names = senderName
             .append(Component.text(" → ", NamedTextColor.WHITE))
-            .append(playerLabel(target, targetAstPlayer))
+            .append(targetName)
             .append(Component.text(": ", NamedTextColor.WHITE));
         Component sent = PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_5943.getId())
             .append(Component.space()).append(names).append(chatBodyComponent(conversion));
