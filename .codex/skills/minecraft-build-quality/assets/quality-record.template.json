@@ -1,0 +1,220 @@
+{
+  "standard": "MC-BUILD-Q1",
+  "version": "1.0.0",
+  "scope": {
+    "mode": "full_build",
+    "description": "",
+    "plan_evidence": "design_plan",
+    "required_views": [
+      "front",
+      "back",
+      "left",
+      "right",
+      "overall",
+      "roof",
+      "connections",
+      "interior"
+    ],
+    "reviewed_elevations": [
+      "front",
+      "back",
+      "left",
+      "right"
+    ]
+  },
+  "reviewer": {
+    "kind": "agent",
+    "name": ""
+  },
+  "verification_level": "static_and_preview",
+  "final_artifact": {
+    "path": "",
+    "sha256": ""
+  },
+  "evidence": {},
+  "critical_features": [
+    {
+      "description": "",
+      "status": "unverified",
+      "evidence": []
+    }
+  ],
+  "gates": {
+    "artifact_consistency": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "envelope": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "fixtures": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "interior": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "preservation": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "regressions": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "requirements": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "routes": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "supports": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "visual_review": {
+      "status": "unverified",
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    }
+  },
+  "dimensions": {
+    "silhouette": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "roof": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "facade": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "all_elevations": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "interfaces": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "interior": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "material_details": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    },
+    "site": {
+      "applicable": true,
+      "score": null,
+      "reason": "",
+      "scope_reason": "",
+      "evidence": []
+    }
+  },
+  "views": {
+    "front": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "back": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "left": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "right": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "overall": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "roof": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "connections": {
+      "status": "unverified",
+      "evidence": []
+    },
+    "interior": {
+      "status": "unverified",
+      "evidence": []
+    }
+  },
+  "elevations": {
+    "front": {
+      "score": null,
+      "reason": "",
+      "evidence": []
+    },
+    "back": {
+      "score": null,
+      "reason": "",
+      "evidence": []
+    },
+    "left": {
+      "score": null,
+      "reason": "",
+      "evidence": []
+    },
+    "right": {
+      "score": null,
+      "reason": "",
+      "evidence": []
+    }
+  },
+  "blocking_issues": [],
+  "limitations": []
+}

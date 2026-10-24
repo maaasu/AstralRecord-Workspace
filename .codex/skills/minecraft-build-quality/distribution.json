@@ -1,0 +1,56 @@
+{
+  "standard": "MC-BUILD-Q1",
+  "version": "1.0.0",
+  "source": "User-level minecraft-build-quality skill (canonical)",
+  "distribution": "Standalone repository copy",
+  "files": [
+    {
+      "path": "agents/openai.yaml",
+      "sha256": "8d7e9cb3942b30883a807ed64651ae3ed213fc675a498fd704266a7765b829de"
+    },
+    {
+      "path": "assets/benchmark/preview-back-details.png",
+      "sha256": "8f2959bf155de60d6fcad869e700a2ee042817dc01e185a687250354244e0c8e"
+    },
+    {
+      "path": "assets/benchmark/preview-details.png",
+      "sha256": "ec2f0a0e7676c4f4e498e5749c55249491a68dca626ad8e0b8eafa61957a5885"
+    },
+    {
+      "path": "assets/benchmark/preview-exterior.png",
+      "sha256": "3722ed3f7f85218c181f0d73ebd31a1f57938b669aa23d9dc2258a46ffe1d83b"
+    },
+    {
+      "path": "assets/benchmark/preview-roofs.png",
+      "sha256": "139cfebed37a078c9db8e910b17ec15552b96aa1fe68fec3fad86f941db9d023"
+    },
+    {
+      "path": "assets/benchmark/unified-palace.schem",
+      "sha256": "b5e203614b1283b04eff7732bb880ba2826007af92f45447995419078e11ae22"
+    },
+    {
+      "path": "assets/quality-record.template.json",
+      "sha256": "7a756b5a0a306827cb1cfb5a716c9fd1ae80a89d6efa4ce0be662010840ebd26"
+    },
+    {
+      "path": "references/completion-standard.md",
+      "sha256": "c2fbc40907b19afdb8b43e26b75fc81dd6f351d6d8150f97b58291f38e066298"
+    },
+    {
+      "path": "references/palace-rev11-benchmark.json",
+      "sha256": "4caa14f815451a2e377d434aac837698aefc8ed36787668e003af79467eb08d3"
+    },
+    {
+      "path": "scripts/check_quality_record.py",
+      "sha256": "2b3c1edafa95d79b26b2a26a1de0c9d4f48004ce71bee3e4c378378c5b8209aa"
+    },
+    {
+      "path": "scripts/test_quality_record.py",
+      "sha256": "442afffb8603e034ec61e3e2f6796422ef0a6b8d2dab24f2f4afd1fd26cd8481"
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "16eb341f39d0474f9a4731a223fecf92bc3a403d1083ca8238687a06831dfac3"
+    }
+  ]
+}

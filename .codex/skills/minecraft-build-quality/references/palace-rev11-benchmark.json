@@ -1,0 +1,77 @@
+{
+  "standard": "MC-BUILD-Q1",
+  "version": "1.0.0",
+  "name": "蒼穹の大城館",
+  "revision": 11,
+  "role": "Scale- and style-adjusted visual benchmark, not a universal building layout or minimum quantity.",
+  "user_visual_rating": "not_scored",
+  "weighted_visual_score": null,
+  "certification_note": "利用者から他建築への水準維持を依頼された基準作例。新基準の点数採点・満点認定はしていない。",
+  "dimensions": [
+    128,
+    128,
+    128
+  ],
+  "non_air_blocks": 137074,
+  "model_sha256": "f54f7f0e5dc1b4b97eeb7cd91dbf19dd39eaa4a0c8a804c317b307bdcb899863",
+  "glb_sha256": "31040feb2dd37355b12a7e3663aa614374c551fe1275c87bf908ec1c92b28c4d",
+  "delivery_zip_sha256": "4bb19a343957579f52a915eda4774e9f622cab5821e463c860fdd90ce1c64d02",
+  "verified_snapshot": {
+    "geometry_checks_passed": 26,
+    "structural_regression_tests_passed": 37,
+    "support_faults_detected": 10,
+    "browser_views_reviewed": 12,
+    "gameplay_tested": false,
+    "interior_cells_including_roof_air_preserved": 175669
+  },
+  "transferable_features": [
+    "遠景の塔と翼棟の主従、曲線的な屋根",
+    "中景の二重窓枠・柱・バルコニー・アーチ",
+    "近景の縁・柱頭・持送り・花箱",
+    "背面にも続く意匠と接続",
+    "内部の空気と通路を保つ装飾"
+  ],
+  "do_not_copy_as_requirements": [
+    "128×128の敷地",
+    "137074ブロックという量",
+    "塔・温室・金の装飾の採用",
+    "179か所の窓周囲装飾",
+    "全室が単一の室内原点へ到達する条件"
+  ],
+  "assets": [
+    {
+      "path": "../assets/benchmark/preview-details.png",
+      "sha256": "ec2f0a0e7676c4f4e498e5749c55249491a68dca626ad8e0b8eafa61957a5885"
+    },
+    {
+      "path": "../assets/benchmark/preview-back-details.png",
+      "sha256": "8f2959bf155de60d6fcad869e700a2ee042817dc01e185a687250354244e0c8e"
+    },
+    {
+      "path": "../assets/benchmark/preview-roofs.png",
+      "sha256": "139cfebed37a078c9db8e910b17ec15552b96aa1fe68fec3fad86f941db9d023"
+    },
+    {
+      "path": "../assets/benchmark/preview-exterior.png",
+      "sha256": "3722ed3f7f85218c181f0d73ebd31a1f57938b669aa23d9dc2258a46ffe1d83b"
+    },
+    {
+      "path": "../assets/benchmark/unified-palace.schem",
+      "sha256": "b5e203614b1283b04eff7732bb880ba2826007af92f45447995419078e11ae22"
+    }
+  ],
+  "failure_lessons": [
+    {
+      "symptom": "柱やアーチ化粧縁が途中で切れる",
+      "rule": "予定する全断面と必要接合を事前宣言して照合する"
+    },
+    {
+      "symptom": "ハーフブロックが隣接しているが見かけが途切れる",
+      "rule": "実形状の正の面積の接触を検査する"
+    },
+    {
+      "symptom": "ドーム内の元の空気へ外装219セルが入った",
+      "rule": "閉屋根全体の空気volumeを保護し、保存対象に新装飾が入らないことを差分で検査する"
+    }
+  ]
+}

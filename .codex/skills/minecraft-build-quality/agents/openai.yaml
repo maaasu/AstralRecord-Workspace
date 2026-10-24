@@ -1,0 +1,6 @@
+interface:
+  display_name: "Minecraft建築の完成基準"
+  short_description: "建築の全周・内装・支持・通路を共通基準で設計し、完成度を確認する"
+  default_prompt: "$minecraft-build-quality を使って、今回のMinecraft建築を共通の完成基準で設計・確認してください。"
+policy:
+  allow_implicit_invocation: true
