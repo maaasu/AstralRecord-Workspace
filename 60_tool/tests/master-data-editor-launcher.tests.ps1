@@ -79,7 +79,7 @@ exit /b 1
 '@
     [IO.File]::WriteAllText($child, $body.Replace("`r`n", "`n").Replace("`n", "`r`n"), [Text.ASCIIEncoding]::new())
     $start = [Diagnostics.ProcessStartInfo]::new($env:ComSpec)
-    # 05 enables extensions before calling this internal 06 resolver; 05 /e:off startup is tested separately.
+    # Public acceptance uses Explorer -> 05, which enables extensions before this internal 06 resolver.
     $start.Arguments = '/d /e:on /v:off /c ""' + $child + '""'
     $start.WorkingDirectory = $caseRoot
     $start.Environment['ERRORLEVEL'] = $ShadowErrorLevel
