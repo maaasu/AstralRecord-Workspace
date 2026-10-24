@@ -117,9 +117,6 @@ try {
     $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
     $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
     $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
-    if ($mode -ceq 'Full' -and $gateServerIds.Count -eq 1 -and $gateServerIds[0] -ceq 'Dev') {
-        Write-Host '01の停止・起動対象はDevだけです。他サーバーの停止は要求しません。'
-    }
     if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
         if ($devLifecycle) { Write-Host 'Shared API maintenance: Dev以外の共有サーバーは実行中ずっと停止してください。自動停止・起動はDevだけです。' }
         else { Write-Host "Shared API maintenance: stop all of [$($gateServerIds -join ', ')]; start all of them in the startup phase before Dev patch publication." }
