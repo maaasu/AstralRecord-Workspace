@@ -30,6 +30,8 @@ public final class MobInstance {
     private int entityId = -1;
     private UUID displayEntityId;
     private int displayEntityNumericId = -1;
+    /** 非 block NPC に付随するクリック用 Interaction の UUID。 */
+    private UUID interactionEntityId;
     private Location currentLocation;
     private double maxHealth;
     private double currentHealth;
@@ -175,6 +177,21 @@ public final class MobInstance {
     public void bindDisplayEntity(@NotNull UUID displayEntityId, int displayEntityNumericId) {
         this.displayEntityId = displayEntityId;
         this.displayEntityNumericId = displayEntityNumericId;
+    }
+
+    /** クリック用 Interaction の UUID を返します。未使用時は {@code null} です。 */
+    @Nullable
+    public UUID interactionEntityId() {
+        return interactionEntityId;
+    }
+
+    /**
+     * 非 block NPC のクリック用 Interaction を紐付けます。
+     *
+     * @param interactionEntityId 生成済み Interaction の UUID
+     */
+    public void bindInteractionEntity(@NotNull UUID interactionEntityId) {
+        this.interactionEntityId = interactionEntityId;
     }
 
     /** 元テンプレートを返します。 */

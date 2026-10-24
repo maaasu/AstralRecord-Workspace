@@ -610,6 +610,7 @@ public class MobService {
         if (instance.displayEntityId() != null) {
             trackEntity(instance.instanceId(), instance.displayEntityId());
         }
+        trackEntity(instance.instanceId(), instance.interactionEntityId());
         viewers.put(instanceId, new HashSet<>());
         updateViewers(instance);
 
@@ -657,6 +658,7 @@ public class MobService {
         viewers.remove(instanceId);
         untrackEntity(instance.bukkitEntityId());
         untrackEntity(instance.displayEntityId());
+        untrackEntity(instance.interactionEntityId());
         entityController.remove(instance);
         destroyListener.accept(instanceId);
         Logger.log(LogId.D_5702, instanceId);
@@ -865,7 +867,7 @@ public class MobService {
      * 実体 Mob の現在位置を {@link MobInstance} へ同期します。
      *
      * @param instance 同期対象インスタンス
-     * @return 実体が有効なら {@code true}
+     * @return 実体が有効で、付随 Interaction の位置同期も成功した場合は {@code true}
      */
     public boolean syncLocation(@NotNull MobInstance instance) {
         return entityController.syncLocation(instance);

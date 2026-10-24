@@ -32,6 +32,9 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -168,17 +171,31 @@ public final class MobInteractionEventHandler
         ));
     }
 
+    /**
+     * 直接対象がある入力ではその NPC だけを視線・距離で検証し、対象なし入力では既存の ray 探索を行います。
+     *
+     * @param snapshot 入力時点または再検証時点の視線情報
+     * @return 視線上の NPC。対象外または距離・視線条件を満たさなければ null
+     */
     private MobService.MobInteractionHit resolveHit(PlayerInteractionSnapshot snapshot) {
         if (snapshot.targetEntity() != null) {
             MobInstance direct = mobService.getNpcInstanceByEntity(snapshot.targetEntity().getUniqueId());
-            Double hitDistance = snapshot.hitDistance(
-                snapshot.targetEntity(),
-                MobService.NPC_INTERACTION_RAY_SIZE
+            Entity hitEntity = snapshot.targetEntity();
+            if (direct != null && direct.template().usesPlayerSkinPacketView()
+                && hitEntity.getUniqueId().equals(direct.bukkitEntityId())) {
+                // fake Player の USE_ENTITY は隠れた実体へ転送されるため、表示形状に一致する Interaction で測る。
+                hitEntity = direct.interactionEntityId() == null
+                    ? null : Bukkit.getEntity(direct.interactionEntityId());
+            }
+            Double hitDistance = hitEntity == null ? null : snapshot.hitDistance(
+                hitEntity,
+                hitEntity instanceof Interaction ? 0.0D : MobService.NPC_INTERACTION_RAY_SIZE
             );
             if (direct != null && hitDistance != null
                 && hitDistance <= MobService.NPC_INTERACTION_DISTANCE) {
                 return new MobService.MobInteractionHit(direct, hitDistance);
             }
+            return null;
         }
         return mobService.findTargetedNpcHit(
             snapshot.player(),

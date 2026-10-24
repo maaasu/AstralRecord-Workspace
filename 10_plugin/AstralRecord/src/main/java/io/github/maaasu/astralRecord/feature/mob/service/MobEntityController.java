@@ -91,6 +91,8 @@ public class MobEntityController {
     private static final float ITEM_DISPLAY_RENDER_Y_OFFSET = ITEM_DISPLAY_RENDER_SCALE / 2.0F;
     private static final float BLOCK_INTERACTION_WIDTH = 1.0F;
     private static final float BLOCK_INTERACTION_HEIGHT = 1.0F;
+    private static final float PLAYER_SKIN_INTERACTION_WIDTH = 0.6F;
+    private static final float PLAYER_SKIN_INTERACTION_HEIGHT = 1.8F;
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
@@ -161,6 +163,10 @@ public class MobEntityController {
 
         try {
             instance.bindEntity(mob.getUniqueId(), mob.getEntityId(), mob.getLocation());
+            if (instance.template().category() == MobCategory.NPC && !spawnNpcInteraction(instance, mob)) {
+                mob.remove();
+                return null;
+            }
             return mob;
         } catch (RuntimeException ex) {
             mob.remove();
@@ -201,6 +207,10 @@ public class MobEntityController {
 
         try {
             instance.bindEntity(armorStand.getUniqueId(), armorStand.getEntityId(), armorStand.getLocation());
+            if (instance.template().category() == MobCategory.NPC && !spawnNpcInteraction(instance, armorStand)) {
+                armorStand.remove();
+                return null;
+            }
             return armorStand;
         } catch (RuntimeException ex) {
             Logger.error(
@@ -338,6 +348,45 @@ public class MobEntityController {
         interaction.setInteractionHeight(BLOCK_INTERACTION_HEIGHT);
         interaction.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         interaction.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
+    }
+
+    /**
+     * 非 block NPC の実体と同じ位置へクリック用 Interaction を一つ生成します。
+     * 生成または紐付けに失敗した場合は生成済みの Interaction を回収します。
+     *
+     * @param instance 紐付け先の NPC
+     * @param body 表示・移動の基準となる実体
+     * @return Interaction を紐付けた場合は true
+     */
+    private boolean spawnNpcInteraction(@NotNull MobInstance instance, @NotNull Entity body) {
+        BoundingBox bounds = body.getBoundingBox();
+        Location location = body.getLocation();
+        location.setY(bounds.getMinY());
+        boolean playerSkin = instance.template().usesPlayerSkinPacketView();
+        float width = playerSkin ? PLAYER_SKIN_INTERACTION_WIDTH
+                : (float) Math.max(0.1D, Math.max(bounds.getWidthX(), bounds.getWidthZ()));
+        float height = playerSkin ? PLAYER_SKIN_INTERACTION_HEIGHT
+                : (float) Math.max(0.1D, bounds.getHeight());
+        Interaction interaction;
+        try {
+            interaction = body.getWorld().spawn(location, Interaction.class);
+        } catch (RuntimeException ex) {
+            return false;
+        }
+        try {
+            configureBlockInteraction(instance, interaction);
+            interaction.setInteractionWidth(width);
+            interaction.setInteractionHeight(height);
+            if (interaction.isDead()) {
+                interaction.remove();
+                return false;
+            }
+            instance.bindInteractionEntity(interaction.getUniqueId());
+            return true;
+        } catch (RuntimeException ex) {
+            interaction.remove();
+            return false;
+        }
     }
 
     private void configureBlockDisplay(@NotNull MobInstance instance, @NotNull BlockDisplay display) {
@@ -620,7 +669,7 @@ public class MobEntityController {
      * 実体 Mob の現在位置と頭部回転を {@link MobInstance} へ反映します。
      *
      * @param instance 同期対象インスタンス
-     * @return 実体が有効なら {@code true}
+     * @return 実体が有効で、付随 Interaction の位置同期も成功した場合は {@code true}
      */
     public boolean syncLocation(@NotNull MobInstance instance) {
         Entity entity = getEntity(instance);
@@ -628,6 +677,9 @@ public class MobEntityController {
             return false;
         }
         Location current = entity.getLocation();
+        if (!syncNpcInteraction(instance, entity)) {
+            return false;
+        }
         instance.currentLocation(current);
         instance.headYaw(current.getYaw());
         instance.headPitch(current.getPitch());
@@ -819,6 +871,7 @@ public class MobEntityController {
         boolean drifted = current.distanceSquared(anchor) > 1.0E-4D;
         boolean moving = currentVelocity.lengthSquared() > 1.0E-4D;
         if (!drifted && !moving) {
+            syncNpcInteraction(instance, entity);
             instance.currentLocation(current);
             return;
         }
@@ -829,10 +882,12 @@ public class MobEntityController {
             anchored.setYaw(current.getYaw());
             anchored.setPitch(current.getPitch());
             entity.teleport(anchored);
+            syncNpcInteraction(instance, entity);
             instance.currentLocation(anchored);
             return;
         }
 
+        syncNpcInteraction(instance, entity);
         instance.currentLocation(entity.getLocation());
     }
 
@@ -874,6 +929,7 @@ public class MobEntityController {
         reset.setYaw(current.getYaw());
         reset.setPitch(current.getPitch());
         if (entity.teleport(reset)) {
+            syncNpcInteraction(instance, entity);
             instance.currentLocation(reset);
         } else {
             instance.currentLocation(entity.getLocation());
@@ -947,6 +1003,49 @@ public class MobEntityController {
         if (displayEntity != null) {
             displayEntity.remove();
         }
+        Entity interaction = getNpcInteraction(instance);
+        if (interaction != null) {
+            interaction.remove();
+        }
+    }
+
+    /**
+     * 非 block NPC のクリック用 Interaction を実体の移動時だけ同期します。
+     *
+     * @param instance 同期対象 NPC
+     * @param body 位置の基準となる実体
+     * @return Interaction が不要または同期できた場合は true
+     */
+    private boolean syncNpcInteraction(@NotNull MobInstance instance, @NotNull Entity body) {
+        if (instance.interactionEntityId() == null) {
+            return true;
+        }
+        Entity interaction = getNpcInteraction(instance);
+        if (interaction == null || interaction.getWorld() != body.getWorld()) {
+            return false;
+        }
+        Location target = body.getLocation();
+        target.setY(body.getBoundingBox().getMinY());
+        Location current = interaction.getLocation();
+        if (current.distanceSquared(target) <= 1.0E-4D) {
+            return true;
+        }
+        return interaction.teleport(target);
+    }
+
+    /**
+     * 非 block NPC に付随する有効な Interaction を取得します。
+     *
+     * @param instance 対象 NPC
+     * @return 存在する Interaction。消失済みなら null
+     */
+    private @Nullable Entity getNpcInteraction(@NotNull MobInstance instance) {
+        UUID entityId = instance.interactionEntityId();
+        if (entityId == null) {
+            return null;
+        }
+        Entity entity = Bukkit.getEntity(entityId);
+        return entity instanceof Interaction && !entity.isDead() ? entity : null;
     }
 
     @NotNull
