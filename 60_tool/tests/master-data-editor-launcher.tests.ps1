@@ -2,7 +2,8 @@
 param(
     [string]$ToolRoot = (Join-Path $PSScriptRoot '..'),
     [Parameter(Mandatory = $true)][string]$CompatibleSdkHome,
-    [Parameter(Mandatory = $true)][string]$IncompatibleSdkHome
+    [Parameter(Mandatory = $true)][string]$IncompatibleSdkHome,
+    [string]$PortableSdkUserProfile = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,7 +51,8 @@ function Invoke-CapturedProcess([Diagnostics.ProcessStartInfo]$Start, [string]$N
 }
 
 function Invoke-Resolver([string]$Name, [string]$ShadowErrorLevel,
-        [string]$PreferredHome, [string]$FallbackHome = '', [int]$CodePage = 65001, [switch]$InvalidTemp) {
+        [string]$PreferredHome, [string]$FallbackHome = '', [int]$CodePage = 65001, [switch]$InvalidTemp,
+        [string]$ProfileHome = '') {
     $caseRoot = Join-Path $evidence $Name
     New-Item -ItemType Directory -Path $caseRoot | Out-Null
     $child = Join-Path $caseRoot 'probe.cmd'
@@ -61,6 +63,7 @@ chcp %AR_TEST_CODE_PAGE% >nul
 set "ProgramFiles=%AR_TEST_ISOLATED_HOME%"
 set "ProgramFiles(x86)=%AR_TEST_ISOLATED_HOME%"
 set "USERPROFILE=%AR_TEST_ISOLATED_HOME%"
+if defined AR_TEST_PROFILE_HOME set "USERPROFILE=%AR_TEST_PROFILE_HOME%"
 set "LOCALAPPDATA=%AR_TEST_ISOLATED_HOME%"
 call "%AR_TEST_RESOLVER%" --resolve-dotnet
 if errorlevel 1 goto failed
@@ -91,6 +94,7 @@ exit /b 1
     $start.Environment['AR_TEST_RESOLVER'] = $resolver
     $start.Environment['AR_TEST_CODE_PAGE'] = [string]$CodePage
     $start.Environment['AR_TEST_ISOLATED_HOME'] = (Join-Path $caseRoot 'isolated user')
+    $start.Environment['AR_TEST_PROFILE_HOME'] = $ProfileHome
     return Invoke-CapturedProcess $start $Name
 }
 
@@ -163,6 +167,14 @@ try {
     Assert ($result.Output -notmatch '(?m)^\d+\.\d+\.\d+[\w.\-]*\r?$') 'Invalid TEMP failure diagnostics lost the global.json SDK constraint.'
     Assert ((Get-FileHash -Algorithm SHA256 -LiteralPath $globalJson).Hash -ceq $globalHash) 'The TEMP fixture changed the real global.json file.'
     $passed++
+
+    if ($PortableSdkUserProfile) {
+        $profileSdk = (Resolve-Path -LiteralPath (Join-Path $PortableSdkUserProfile '.astralrecord/tools/dotnet')).Path
+        Assert ($profileSdk -ieq $CompatibleSdkHome) 'Portable profile case requires CompatibleSdkHome below that profile.'
+        $result = Invoke-Resolver 'portable-profile-discovery' '1' '' -ProfileHome $PortableSdkUserProfile
+        $null = Assert-SelectedSdk $result 'portable-profile-discovery'
+        $passed++
+    }
 
     $after = [Environment]::GetEnvironmentVariables('Process')
     Assert ($before.Count -eq $after.Count) 'The parent process environment gained/lost variables.'

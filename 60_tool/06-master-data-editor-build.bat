@@ -115,6 +115,7 @@ for /f "delims=" %%I in ('where dotnet.exe 2^>nul') do call :try_dotnet "%%~dpI"
 if defined ProgramFiles call :try_dotnet "%ProgramFiles%\dotnet"
 if defined ProgramFiles(x86) call :try_dotnet "%ProgramFiles(x86)%\dotnet"
 if defined USERPROFILE call :try_dotnet "%USERPROFILE%\.dotnet"
+if defined USERPROFILE call :try_dotnet "%USERPROFILE%\.astralrecord\tools\dotnet"
 if defined LOCALAPPDATA call :try_dotnet "%LOCALAPPDATA%\Programs\dotnet"
 if defined LOCALAPPDATA call :try_dotnet "%LOCALAPPDATA%\AstralRecord\tools\dotnet"
 if not defined EDITOR_DOTNET_EXE (
@@ -122,6 +123,7 @@ if not defined EDITOR_DOTNET_EXE (
     echo A runtime-only installation or an older .NET 10 SDK cannot build the editor.
     echo Set ASTRALRECORD_DOTNET_HOME or DOTNET_ROOT to a directory containing dotnet.exe and a compatible SDK,
     echo or extract the SDK into "%LOCALAPPDATA%\AstralRecord\tools\dotnet".
+    echo A portable SDK can also be placed in "%USERPROFILE%\.astralrecord\tools\dotnet".
     echo Verify dotnet --version from the skilltree-editor directory.
     if defined EDITOR_DOTNET_LOG_READY (
         echo SDK diagnostics: "%EDITOR_DOTNET_LOG%"

@@ -153,9 +153,11 @@ dotnet build SkillTreeEditor.slnx
 
 BATは `ASTRALRECORD_NODE_HOME` → `NODE_HOME` → `PATH` 上の `npm.cmd` → `C:\Program Files\nodejs` → `%LOCALAPPDATA%\Programs\nodejs` → `%LOCALAPPDATA%\AstralRecord\tools\node` の順でNode.jsを探します。`node.exe`、`npm.cmd`、`node_modules\npm\bin\npm-cli.js` が同じ配置先に揃ったものを採用し、そのNode.jsディレクトリをビルド用プロセスの `PATH` 先頭へ追加します。採用したNode.jsとnpmのパスは起動ログへ表示します。ビルドまたはサーバー起動に失敗した場合は、原因を確認できるようウィンドウを閉じずに停止します。
 
-`05`はフロントのビルド前に.NET SDKを確認します。`ASTRALRECORD_DOTNET_HOME` → `DOTNET_ROOT` → `PATH`上の`dotnet.exe` → `Program Files\dotnet`（32bit側を含む）→ `%USERPROFILE%\.dotnet` → `%LOCALAPPDATA%\Programs\dotnet` → `%LOCALAPPDATA%\AstralRecord\tools\dotnet`の順で探します。各候補の`dotnet --version`を`skilltree-editor`内で実行し、`global.json`のSDK解決に成功して10.xが選ばれる配置だけを採用します。現在の指定は`10.0.302`、`rollForward=latestFeature`、プレビュー不可です。10.0.100だけの配置はスキップし、例えば10.0.402を持つ後続候補へ進みます。
+`05`はフロントのビルド前に.NET SDKを確認します。`ASTRALRECORD_DOTNET_HOME` → `DOTNET_ROOT` → `PATH`上の`dotnet.exe` → `Program Files\dotnet`（32bit側を含む）→ `%USERPROFILE%\.dotnet` → `%USERPROFILE%\.astralrecord\tools\dotnet` → `%LOCALAPPDATA%\Programs\dotnet` → `%LOCALAPPDATA%\AstralRecord\tools\dotnet`の順で探します。各候補の`dotnet --version`を`skilltree-editor`内で実行し、`global.json`のSDK解決に成功して10.xが選ばれる配置だけを採用します。現在の指定は`10.0.302`、`rollForward=latestFeature`、プレビュー不可です。10.0.100だけの配置はスキップし、例えば10.0.402を持つ後続候補へ進みます。
 
 PATHの先頭がruntime専用でも、後続候補に互換SDKがあればそちらで起動します。選択した`dotnet.exe`の絶対パスと`DOTNET_ROOT`を呼出元へ明示的に返します。`05`も`skilltree-editor`へ移動して同じホストでサーバーをビルド・起動するため、BATを実行した場所によらず同じ`global.json`を適用します。終了・エラー時は呼出元ディレクトリへ戻します。環境変数の変更は起動BATとその子プロセス内だけで、ユーザー・システムのPATHは変更しません。
+
+WindowsアプリのAppData仮想化がある環境では、アプリから配置したSDKが通常のエクスプローラーから見えない場合があります。ポータブルSDKは`%USERPROFILE%\.astralrecord\tools\dotnet`へ配置できます。この場所も自動検出するため、起動時の環境変数設定は不要です。
 
 `05`と`06`はCommand Extensionsを有効化し、継承された同名の`ERRORLEVEL`環境変数をローカルな範囲で解除します。SDKの採否は実際の終了コードで決め、版番号の表示文字列や診断ログの書込み成否には依存しません。検出に失敗すると、候補パスと実終了コードを記録した`%TEMP%\AstralRecord-editor-sdk-*.log`の場所と内容を表示します。TEMPに書けない場合もSDK検査は続け、最後に実ホストの診断を表示します。
 
