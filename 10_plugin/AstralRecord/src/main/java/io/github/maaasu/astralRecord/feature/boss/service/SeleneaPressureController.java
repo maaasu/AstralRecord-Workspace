@@ -126,7 +126,7 @@ final class SeleneaPressureController {
         }
     }
 
-    /** 発射点に収束するオレンジの輪と白い光球を一括描画し、発射直前ほど高い音で予告します。 */
+    /** 発射点に収束する明るい赤の小粒の輪と白い光球を一括描画し、発射直前ほど高い音で予告します。 */
     private void drawVolley(Volley volley, Entity boss, long tick) {
         double progress = Math.clamp((tick - volley.startedAt) / (double) VOLLEY_CHARGE, 0, 1);
         List<Location> ring = new ArrayList<>(192);

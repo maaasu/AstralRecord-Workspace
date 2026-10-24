@@ -939,7 +939,7 @@ final class SeleneaEncounterController {
         book.setTransformation(bookTransformation(pose));
     }
 
-    /** 10tickごとにオレンジの危険輪郭・白い封頁輪・月影渡りの移動先を描きます。 */
+    /** 10tickごとに明るい赤の危険輪郭・白い封頁輪・月影渡りの移動先を描きます。 */
     private void draw(Cast cast) {
         particles.spawnForNearbyViewers(cast.edges, SharedParticleDefinitions.SELENEA_WARNING_EDGE, true);
         particles.spawnForNearbyViewers(cast.fill, SharedParticleDefinitions.SELENEA_SUPPORT_WARNING, true);

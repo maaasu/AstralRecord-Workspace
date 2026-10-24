@@ -76,10 +76,10 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition SELENEA_GROUND_WAVE =
         new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 4, 0.04D, 0.08D, 0.04D, 0,
             new Particle.DustOptions(Color.fromRGB(255, 230, 150), 1.6F));
-    /** 三連弾の発射点へ収束する明るいオレンジの予告輪です。 */
+    /** 三連弾の発射点へ収束する明るい赤の小粒の予告輪です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_RING =
         new SharedParticleDefinition("selenea_volley_ring", Particle.DUST, 4, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(255, 190, 80), 1.4F));
+            new Particle.DustOptions(Color.fromRGB(255, 70, 70), 0.8F));
     /** 頭上の発射点で待機する三つの光球です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_CHARGE =
         new SharedParticleDefinition("selenea_volley_charge", Particle.DUST, 2, 0.06D, 0.06D, 0.06D, 0,
@@ -89,7 +89,7 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("selenea_volley_release", Particle.FLASH, 2, 0, 0, 0, 0,
             Color.fromRGB(255, 235, 190));
 
-    /** 攻撃のオレンジと区別した白い会場境界です。 */
+    /** 攻撃予告の赤と区別した白い会場境界です。 */
     public static final SharedParticleDefinition SELENEA_BOUNDARY =
         new SharedParticleDefinition("selenea_boundary", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(245, 245, 255), 1.2F));
@@ -98,10 +98,10 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("selenea_impact", Particle.DUST_COLOR_TRANSITION, 4, 0.05, 0.1, 0.05, 0,
             new Particle.DustTransition(Color.fromRGB(190, 65, 240), Color.fromRGB(235, 235, 255), 1.5F));
 
-    /** 危険領域の縁だけを明るいオレンジの太い輪郭で示します。 */
+    /** 危険領域の縁だけを明るい赤の小粒の輪郭で示します。 */
     public static final SharedParticleDefinition SELENEA_WARNING_EDGE =
         new SharedParticleDefinition("selenea_warning_edge", Particle.DUST, 4, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(255, 190, 80), 1.6F));
+            new Particle.DustOptions(Color.fromRGB(255, 70, 70), 0.8F));
 
     /** スニーク保持が必要な封頁の文字粒子です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_RING =
