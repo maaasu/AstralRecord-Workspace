@@ -163,6 +163,12 @@ public final class MageFrostBlizzardExecutor extends PlayerActiveSkillExecutor {
                     SharedParticleDefinitions.MAGE_FROST_BLIZZARD
             );
         }
+        if (tick % 4 == 0) {
+            context.services().effects().bedrockRing(
+                    state.center().clone().add(0.0D, -0.85D, 0.0D), radius, 16,
+                    SharedParticleDefinitions.MAGE_FROST_BLIZZARD
+            );
+        }
 
         boolean damageTick = tick % damageIntervalTicks == 0;
         boolean velocityTick = tick % TARGET_UPDATE_INTERVAL_TICKS == 0;

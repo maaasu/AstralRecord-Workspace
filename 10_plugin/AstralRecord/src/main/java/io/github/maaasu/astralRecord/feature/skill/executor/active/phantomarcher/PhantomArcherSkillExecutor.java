@@ -291,6 +291,9 @@ public final class PhantomArcherSkillExecutor extends PlayerActiveSkillExecutor 
                 cast.close();
                 return;
             }
+            context.services().effects().bedrockRing(
+                    center, 0.42D, 12, SharedParticleDefinitions.PHANTOM_ARCHER_SENTRY
+            );
             List<AstEntity> candidates = context.services().targeting().inSphere(context.player(), center,
                     p.getDouble("targetRadius", 10.0D), 1, true);
             if (candidates.isEmpty()) return;

@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
@@ -239,6 +241,38 @@ public final class SkillEffectService {
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
         }
         particleDisplayService.spawnForNearbyViewers(center, locations, definition);
+    }
+
+    /**
+     * 統合版の近傍閲覧者だけへ表示エンティティの代替となる水平リングを描きます。
+     *
+     * @param center リングの中心
+     * @param radius 水平半径
+     * @param points 標準密度で表示する点数
+     * @param definition 共通粒子定義
+     */
+    public void bedrockRing(
+            @NotNull Location center,
+            double radius,
+            int points,
+            @NotNull SharedParticleDefinition definition
+    ) {
+        List<Player> viewers = nearbyViewers(center, null, MAX_FRAME_VIEWERS);
+        if (viewers.isEmpty()) {
+            return;
+        }
+        int safePoints = Math.min(2048, Math.max(4, points)) * 2;
+        List<Location> locations = new ArrayList<>(safePoints);
+        for (int index = 0; index < safePoints; index++) {
+            double angle = Math.PI * 2.0D * index / safePoints;
+            locations.add(center.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
+        }
+        for (Player viewer : viewers) {
+            AstPlayer astPlayer = AstPlayerCache.get(viewer);
+            if (astPlayer != null && astPlayer.isBedrock()) {
+                particleDisplayService.spawnForViewer(viewer, locations, definition);
+            }
+        }
     }
 
     /** 視線方向を中心とする水平円弧を表示します。 */

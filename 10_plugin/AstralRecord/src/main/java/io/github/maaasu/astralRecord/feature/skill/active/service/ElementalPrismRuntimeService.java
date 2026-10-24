@@ -391,6 +391,7 @@ public final class ElementalPrismRuntimeService {
             }
             effects.ring(base.clone().add(0.0D, 0.57D, 0.0D), 1.20D, 20,
                     SharedParticleDefinitions.WIZARD_PRISM_CORE_DUST);
+            effects.bedrockRing(base, radius, 24, SharedParticleDefinitions.WIZARD_PRISM_CORE_DUST);
             effects.ring(base.clone().add(0.0D, 2.30D, 0.0D), 1.20D, 20,
                     SharedParticleDefinitions.TELEPORTER_UNLOCK_RING_END_ROD);
             Location apex = base.clone().add(0.0D, 0.62D, 0.0D);
