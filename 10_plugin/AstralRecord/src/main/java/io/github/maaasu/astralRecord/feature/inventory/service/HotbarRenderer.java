@@ -32,7 +32,7 @@ final class HotbarRenderer {
     }
 
     /**
-     * 空の保持中スロットとオフハンドをブランクにし、他の空ホットバーだけをダミーで描画します。
+     * 保持中を含む空のホットバーを石のボタンダミーで描画し、空のオフハンドはブランクにします。
      * Bukkit メインスレッドで呼び出し、変更があればプレイヤーのインベントリ表示を更新します。
      *
      * @param astPlayer 表示対象プレイヤー
@@ -48,7 +48,7 @@ final class HotbarRenderer {
     }
 
     /**
-     * 空の保持中スロットとオフハンドをブランクにし、装備中アイテムにはセット効果表示を反映します。
+     * 保持中を含む空のホットバーを石のボタンダミーで描画し、装備中アイテムにはセット効果表示を反映します。
      * Bukkit メインスレッドで呼び出し、旧オフハンドダミーを除去して実装備は保持します。
      * 変更があればプレイヤーのインベントリ表示を更新します。
      *
@@ -80,7 +80,7 @@ final class HotbarRenderer {
                 itemStackResolver.applyHotbarDisplayIcon(entry, accountId, itemStack);
             }
             if (itemStack == null || itemStack.getType() == Material.AIR) {
-                itemStack = equipped ? null : createHotbarDummyItem(dbSlot, astPlayer.isBedrock());
+                itemStack = createHotbarDummyItem(dbSlot);
             }
             if (selected && itemStack != null) {
                 itemStack = withSelectionGlow(itemStack);
@@ -106,8 +106,14 @@ final class HotbarRenderer {
         }
     }
 
-    private @NotNull ItemStack createHotbarDummyItem(int dbSlot, boolean bedrock) {
-        ItemStack itemStack = new ItemStack(bedrock ? Material.GLOW_LICHEN : Material.GRAY_STAINED_GLASS_PANE);
+    /**
+     * Java 版・統合版共通の、右クリック入力を送信できるホットバーダミーを生成します。
+     *
+     * @param dbSlot 表示対象の DB ホットバースロット番号
+     * @return 実アイテムと区別する PDC を付けた石のボタン
+     */
+    private @NotNull ItemStack createHotbarDummyItem(int dbSlot) {
+        ItemStack itemStack = new ItemStack(Material.STONE_BUTTON);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER, 1);
