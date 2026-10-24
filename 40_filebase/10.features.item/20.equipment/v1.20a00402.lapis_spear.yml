@@ -278,5 +278,5 @@ equipment:
       name: '&b進化したラピススピア'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false
 saleValue: 0

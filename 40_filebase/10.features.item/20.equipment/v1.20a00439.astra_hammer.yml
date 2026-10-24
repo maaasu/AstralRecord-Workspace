@@ -295,4 +295,4 @@ equipment:
       name: '&b進化したアストラハンマー'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

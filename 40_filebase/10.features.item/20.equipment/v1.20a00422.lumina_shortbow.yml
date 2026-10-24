@@ -6,7 +6,7 @@ id: 20a00422
 category: equipment
 name: '&bルミナショートボウ'
 icon: BOW
-iconGlint: true
+iconGlint: false
 rarity: RARE
 maxStack: 1
 saleValue: 6000

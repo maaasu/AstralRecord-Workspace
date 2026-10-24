@@ -292,4 +292,4 @@ equipment:
       name: '&b進化したアストラスピア'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

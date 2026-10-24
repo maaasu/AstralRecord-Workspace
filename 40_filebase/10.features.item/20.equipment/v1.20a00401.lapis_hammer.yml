@@ -281,5 +281,5 @@ equipment:
       name: '&b進化したラピスハンマー'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false
 saleValue: 0

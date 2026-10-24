@@ -292,4 +292,4 @@ equipment:
       name: '&b進化したアストラソード'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

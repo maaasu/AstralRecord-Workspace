@@ -295,4 +295,4 @@ equipment:
       name: '&b進化したアストラロングボウ'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

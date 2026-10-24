@@ -6,7 +6,7 @@ id: 20a00419
 category: equipment
 name: '&bルミナソード'
 icon: IRON_SWORD
-iconGlint: true
+iconGlint: false
 rarity: RARE
 maxStack: 1
 saleValue: 6000

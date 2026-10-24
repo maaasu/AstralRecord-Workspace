@@ -271,4 +271,4 @@ equipment:
       name: '&b進化したラピスガードメイル'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

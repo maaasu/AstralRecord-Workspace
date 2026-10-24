@@ -268,4 +268,4 @@ equipment:
       name: '&b進化したラピスガードブーツ'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

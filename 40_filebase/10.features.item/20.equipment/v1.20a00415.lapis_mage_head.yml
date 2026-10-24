@@ -268,4 +268,4 @@ equipment:
       name: '&b進化したラピスメイジハット'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false

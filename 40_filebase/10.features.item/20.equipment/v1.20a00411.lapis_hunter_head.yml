@@ -265,4 +265,4 @@ equipment:
       name: '&b進化したラピスハンターハット'
       enhance:
         maxLevel: 30
-iconGlint: true
+iconGlint: false
