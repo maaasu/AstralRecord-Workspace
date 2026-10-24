@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
+import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -84,7 +85,24 @@ public final class PartyCommand extends AstCommand {
         sendResult(player, partyService.invite(player, target));
     }
 
+    /**
+     * 招待を承諾します。招待者名を省略した場合は、招待が1件かつ招待者がオンラインなら自動選択します。
+     *
+     * @param player 承諾者
+     * @param partyService 招待の参照と承諾を行うサービス
+     * @param args accept と任意の招待者名を含むコマンド引数
+     */
     private void accept(@NotNull AstPlayer player, @NotNull PartyService partyService, @NotNull String[] args) {
+        if (args.length == 1) {
+            List<PartyInvite> invites = partyService.getInvites(player.getBukkit().getUniqueId());
+            if (invites.size() == 1) {
+                Player leader = Bukkit.getPlayer(invites.getFirst().leaderId());
+                if (leader != null) {
+                    sendResult(player, partyService.acceptInvite(player, leader.getName()));
+                    return;
+                }
+            }
+        }
         if (!checkArgsLength(args, 2, player.getBukkit())) {
             return;
         }
