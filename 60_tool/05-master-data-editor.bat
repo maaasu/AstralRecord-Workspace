@@ -1,5 +1,6 @@
 @echo off
-setlocal
+setlocal EnableExtensions DisableDelayedExpansion
+set "ERRORLEVEL="
 
 set "TOOL_DIR=%~dp0skilltree-editor"
 set "BUILD_SCRIPT=%~dp006-master-data-editor-build.bat"

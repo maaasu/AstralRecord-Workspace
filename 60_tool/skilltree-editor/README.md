@@ -157,6 +157,10 @@ BATは `ASTRALRECORD_NODE_HOME` → `NODE_HOME` → `PATH` 上の `npm.cmd` → 
 
 PATHの先頭がruntime専用でも、後続候補に互換SDKがあればそちらで起動します。選択した`dotnet.exe`の絶対パスと`DOTNET_ROOT`を呼出元へ明示的に返します。`05`も`skilltree-editor`へ移動して同じホストでサーバーをビルド・起動するため、BATを実行した場所によらず同じ`global.json`を適用します。終了・エラー時は呼出元ディレクトリへ戻します。環境変数の変更は起動BATとその子プロセス内だけで、ユーザー・システムのPATHは変更しません。
 
+`05`と`06`はCommand Extensionsを有効化し、継承された同名の`ERRORLEVEL`環境変数をローカルな範囲で解除します。SDKの採否は実際の終了コードで決め、版番号の表示文字列や診断ログの書込み成否には依存しません。検出に失敗すると、候補パスと実終了コードを記録した`%TEMP%\AstralRecord-editor-sdk-*.log`の場所と内容を表示します。TEMPに書けない場合もSDK検査は続け、最後に実ホストの診断を表示します。
+
+管理者向けの最終確認は、エクスプローラーから`05-master-data-editor.bat`をダブルクリックし、フロントとサーバーのビルドを経て`http://127.0.0.1:5274/`へアクセスする操作で行います。SDK検出の回帰検査は`60_tool/tests/master-data-editor-launcher.tests.ps1`で、互換・非互換の実SDKを指定して実行できます。
+
 SDKを別の場所へ展開済みの場合は、起動するcmdで次のように指定できます。指定先がruntimeのみ・SDK不足なら後続候補も確認します。BATからのダウンロードやインストールは行いません。
 
 ```bat
@@ -283,7 +287,7 @@ JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合�
 
 ### `A compatible .NET SDK was not found`
 
-.NET 10 SDKをインストールし、`dotnet --list-sdks` に10.xが表示されることを確認してください。Runtimeだけではビルドできません。
+`global.json`と互換の.NET SDKが必要です。`skilltree-editor`フォルダー内で`dotnet --version`が成功することを確認してください。現在は10.0.302以降の互換Feature Bandが対象で、Runtimeや10.0.100だけの配置ではビルドできません。検出候補と実終了コードは、エラー画面に表示される診断ログで確認できます。
 
 ### `npm` / `node` が見つからない
 

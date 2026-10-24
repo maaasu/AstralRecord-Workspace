@@ -1,5 +1,6 @@
 @echo off
-setlocal DisableDelayedExpansion
+setlocal EnableExtensions DisableDelayedExpansion
+set "ERRORLEVEL="
 
 if /i "%~1"=="--resolve-dotnet" goto resolve_dotnet
 
@@ -93,11 +94,21 @@ exit /b 0
 :resolve_dotnet
 set "EDITOR_DOTNET_EXE="
 set "EDITOR_DOTNET_DIR="
+set "EDITOR_DOTNET_LOG=%TEMP%\AstralRecord-editor-sdk-%RANDOM%-%RANDOM%.log"
+set "EDITOR_DOTNET_LOG_READY="
+set "EDITOR_DOTNET_LAST="
 pushd "%~dp0skilltree-editor"
 if errorlevel 1 (
     echo ERROR: Master Data Editor directory could not be opened for SDK resolution.
     exit /b 1
 )
+if not exist "global.json" (
+    echo ERROR: Master Data Editor global.json was not found.
+    popd
+    exit /b 1
+)
+if exist "%TEMP%\." >"%EDITOR_DOTNET_LOG%" echo SDK resolution directory: "%CD%"
+if exist "%EDITOR_DOTNET_LOG%" set "EDITOR_DOTNET_LOG_READY=1"
 if defined ASTRALRECORD_DOTNET_HOME call :try_dotnet "%ASTRALRECORD_DOTNET_HOME%"
 if defined DOTNET_ROOT call :try_dotnet "%DOTNET_ROOT%"
 for /f "delims=" %%I in ('where dotnet.exe 2^>nul') do call :try_dotnet "%%~dpI"
@@ -106,26 +117,36 @@ if defined ProgramFiles(x86) call :try_dotnet "%ProgramFiles(x86)%\dotnet"
 if defined USERPROFILE call :try_dotnet "%USERPROFILE%\.dotnet"
 if defined LOCALAPPDATA call :try_dotnet "%LOCALAPPDATA%\Programs\dotnet"
 if defined LOCALAPPDATA call :try_dotnet "%LOCALAPPDATA%\AstralRecord\tools\dotnet"
-popd
 if not defined EDITOR_DOTNET_EXE (
     echo ERROR: No .NET SDK compatible with skilltree-editor\global.json was found.
     echo A runtime-only installation or an older .NET 10 SDK cannot build the editor.
     echo Set ASTRALRECORD_DOTNET_HOME or DOTNET_ROOT to a directory containing dotnet.exe and a compatible SDK,
     echo or extract the SDK into "%LOCALAPPDATA%\AstralRecord\tools\dotnet".
     echo Verify dotnet --version from the skilltree-editor directory.
+    if defined EDITOR_DOTNET_LOG_READY (
+        echo SDK diagnostics: "%EDITOR_DOTNET_LOG%"
+        type "%EDITOR_DOTNET_LOG%"
+    ) else echo SDK diagnostics could not be written to TEMP.
+    if defined EDITOR_DOTNET_LAST "%EDITOR_DOTNET_LAST%" --version
+    popd
     exit /b 1
 )
+popd
 echo Using .NET SDK host: "%EDITOR_DOTNET_EXE%"
-endlocal & set "ASTRALRECORD_DOTNET_EXE=%EDITOR_DOTNET_EXE%" & set "DOTNET_ROOT=%EDITOR_DOTNET_DIR%" & exit /b 0
+endlocal & set "ASTRALRECORD_DOTNET_EXE=%EDITOR_DOTNET_EXE%" & set "DOTNET_ROOT=%EDITOR_DOTNET_DIR%" & set "ASTRALRECORD_EDITOR_SDK_LOG=%EDITOR_DOTNET_LOG%" & exit /b 0
 
 :try_dotnet
 if defined EDITOR_DOTNET_EXE exit /b 0
 if "%~1"=="" exit /b 0
 if not exist "%~1\dotnet.exe" exit /b 0
+set "EDITOR_DOTNET_LAST=%~1\dotnet.exe"
 "%~1\dotnet.exe" --version >nul 2>&1
-if not "%ERRORLEVEL%"=="0" exit /b 0
-"%~1\dotnet.exe" --version 2>nul | "%SystemRoot%\System32\findstr.exe" /r /b /c:"10\." >nul
-if errorlevel 1 exit /b 0
+set "EDITOR_DOTNET_EXIT=%ERRORLEVEL%"
+if defined EDITOR_DOTNET_LOG_READY (
+    >>"%EDITOR_DOTNET_LOG%" echo Checking: "%~1\dotnet.exe"
+    >>"%EDITOR_DOTNET_LOG%" echo Exit code: %EDITOR_DOTNET_EXIT%
+)
+if not "%EDITOR_DOTNET_EXIT%"=="0" exit /b 0
 for %%I in ("%~1\.") do set "EDITOR_DOTNET_DIR=%%~fI"
 set "EDITOR_DOTNET_EXE=%EDITOR_DOTNET_DIR%\dotnet.exe"
 exit /b 0
