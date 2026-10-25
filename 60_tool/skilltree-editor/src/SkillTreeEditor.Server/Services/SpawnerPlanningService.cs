@@ -49,6 +49,9 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         {
             snapshot = await ReadManifestSnapshotAsync(cancellationToken);
             if (!string.Equals(snapshot.Revision, revision, StringComparison.Ordinal)) return StaleExport();
+            if (kind == "proposals" && !snapshot.ProposalFiles.ContainsKey(radius!))
+                return Results.Problem(statusCode: StatusCodes.Status404NotFound,
+                    title: "この計画には指定された半径の配置案がありません。");
 
             var fileName = kind switch
             {
@@ -125,9 +128,13 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
 
             if (!root.TryGetProperty("radiusOptions", out var radiusOptions)
                 || radiusOptions.ValueKind != JsonValueKind.Array
-                || !Radii.All(radius => radiusOptions.EnumerateArray().Any(value =>
-                    value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) && number == int.Parse(radius))))
+                || radiusOptions.GetArrayLength() == 0
+                || radiusOptions.EnumerateArray().Any(value => value.ValueKind != JsonValueKind.Number
+                    || !value.TryGetInt32(out var number) || !Radii.Contains(number.ToString(), StringComparer.Ordinal)))
                 throw new InvalidDataException("manifest の半径候補が不足しています。");
+            var declaredRadii = radiusOptions.EnumerateArray().Select(value => value.GetInt32().ToString()).ToArray();
+            if (declaredRadii.Distinct(StringComparer.Ordinal).Count() != declaredRadii.Length)
+                throw new InvalidDataException("manifest の半径候補が重複しています。");
 
             if (!root.TryGetProperty("files", out var files) || files.ValueKind != JsonValueKind.Object
                 || GetString(files, "cells") != "cells.json"
@@ -135,7 +142,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
                 || !files.TryGetProperty("proposals", out var proposals) || proposals.ValueKind != JsonValueKind.Object)
                 throw new InvalidDataException("manifest のファイル参照が不正です。");
             var proposalFiles = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var radius in Radii)
+            foreach (var radius in declaredRadii)
             {
                 var expected = $"proposals-{radius}.json";
                 if (GetString(proposals, radius) != expected)

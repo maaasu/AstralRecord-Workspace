@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { cellAtWorld, levelColor, reasonColor, terrainColor } from '../data/spawnerPlanning'
+import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
@@ -80,6 +80,18 @@ export function SpawnerPlanningMap(props: Props) {
     ctx.imageSmoothingEnabled = false
     ctx.drawImage(raster, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
     const screen = (x: number, z: number) => [(x - bounds.minX) * view.scale + view.x, (z - bounds.minZ) * view.scale + view.z]
+    const road = planningRoad(snapshot.manifest)
+    if (road) {
+      ctx.beginPath()
+      for (const [start, end] of road.edges) {
+        const a = road.nodes[start], b = road.nodes[end]
+        if (!a || !b) continue
+        const [ax, az] = screen(a.x, a.z), [bx, bz] = screen(b.x, b.z)
+        ctx.moveTo(ax, az); ctx.lineTo(bx, bz)
+      }
+      ctx.strokeStyle = '#142736'; ctx.lineWidth = 5; ctx.stroke()
+      ctx.strokeStyle = '#f5cd80'; ctx.lineWidth = 2; ctx.stroke()
+    }
     for (const proposal of visibleProposals) {
       const [x, z] = screen(proposal.x + .5, proposal.z + .5)
       const selected = selectedProposal === proposal.proposalId

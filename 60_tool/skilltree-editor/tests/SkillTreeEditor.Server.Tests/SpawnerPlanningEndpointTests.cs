@@ -72,6 +72,29 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
     }
 
     [Fact]
+    public async Task SelectedRadiusOnlyExportIsReadableAndMissingRadiusIsNotFound()
+    {
+        await using var host = await StartAsync();
+        WriteExport(host.DataDirectory);
+        var manifestPath = Path.Combine(host.DataDirectory, "manifest.json");
+        var manifest = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(manifestPath))!;
+        manifest["radiusOptions"] = new System.Text.Json.Nodes.JsonArray(64);
+        manifest["files"]!["proposals"]!.AsObject().Remove("32");
+        manifest["files"]!["proposals"]!.AsObject().Remove("48");
+        File.WriteAllText(manifestPath, manifest.ToJsonString());
+        using var response = await host.Client.GetAsync("/api/spawner-planning/manifest");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var selected = await host.Client.GetAsync($"/api/spawner-planning/proposals/64?revision={_revision}");
+        Assert.Equal(HttpStatusCode.OK, selected.StatusCode);
+        using var absent = await host.Client.GetAsync($"/api/spawner-planning/proposals/32?revision={_revision}");
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+        manifest["radiusOptions"] = new System.Text.Json.Nodes.JsonArray(64, 64);
+        File.WriteAllText(manifestPath, manifest.ToJsonString());
+        using var duplicate = await host.Client.GetAsync("/api/spawner-planning/manifest");
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+    }
+
+    [Fact]
     public async Task MixedGenerationAndIdentityAreRejected()
     {
         await using var host = await StartAsync();

@@ -1,5 +1,14 @@
 export interface PlanningIdentity { schemaVersion: number; worldId: string; terrainFingerprint: string; exportRevision: string }
 export interface PlanningBounds { minX: number; minZ: number; width: number; height: number; cellSize: number }
+export interface PlanningRoad {
+  nodes: { x: number; z: number; distanceMeters: number }[]
+  edges: [number, number][]
+  maxDistanceMeters: number; corridorMeters: number; candidateCenterMeters: number
+}
+export function planningRoad(manifest: PlanningManifest): PlanningRoad | null {
+  const policy = manifest.progressionPolicy as { mode?: string; road?: PlanningRoad } | null
+  return policy?.mode === 'road' && policy.road ? policy.road : null
+}
 export interface PlanningManifest extends PlanningIdentity {
   worldName: string
   previewOnly: boolean
@@ -19,6 +28,7 @@ export interface PlanningCell {
   candidateX: number | null; candidateY: number | null; candidateZ: number | null
   minY: number | null; maxY: number | null
   habitat: string; regionId: string; targetLevel: number | null; reasonCode: string; reason: string
+  roadDistanceMeters?: number | null; distanceToRoadMeters?: number | null
 }
 export interface PlanningRegion {
   id: string; name: string; habitat: string; levelMin: number | null; levelMax: number | null
@@ -50,6 +60,7 @@ export const reasonColors: Record<string, string> = {
   absent: '#29323f', unknown: '#df6278', failed: '#df6278', unsafe: '#8b7d72', steep: '#b19682',
   unsupported: '#bc87b7', unsupported_habitat: '#bc87b7', unsupported_level: '#c294d5',
   uncovered: '#efa65c', budget: '#e58660', boundary: '#e7a970',
+  reserved_future: '#58657b',
 }
 export function reasonColor(code: string) {
   return reasonColors[code] ?? (code.includes('level') ? '#c294d5' : code.includes('habitat') || code.includes('master') ? '#bc87b7' : '#999ab2')

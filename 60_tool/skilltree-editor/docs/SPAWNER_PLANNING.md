@@ -15,6 +15,12 @@
 
 ## 解析結果の準備
 
+道路進行の計画は `continent.py --policy 60_tool/spawner-planner/policies/eriva-westroad.json` を指定します。開始地点につながる道の16m区画を4近傍で結び、道路に沿う距離でLv.15〜45の11段階へ分けます。地図の金色の線はこの道路網です。区画を選ぶと道に沿った距離と道からの距離を表示します。未配置の後続地域は `reserved_future` として表示し、北東のLv.100超予定地は今回の対象にしません。道路のブロック単位の通行可能性は別途確認が必要です。
+
+登録用ファイルを準備する場合は `prepare_registration.py` に出力一式、Filebase、明示したBukkitワールド名、新しい出力ディレクトリを渡します。半径64m、Lv.15〜45、既存マスタと実在プロファイル、道路範囲・保護範囲の条件を検証して配置YAMLと必要マスタをまとめます。未登録マスタ案のままでは受け付けません。この準備ツールはサーバーを変更せず、登録記録の `runtimeApplied` はfalseです。実際のDevへの反映と稼働確認は、絶対パスを指定した別の作業で行います。
+
+`--world-name` は既定で提案のworldと一致する必要があります。共有マスタ公開の保留によりruntime側の旧名を維持する場合だけ、`--source-world-name` で解析側の名前を明示します。対応は登録記録へ保存されます。配備前にコピー元の記録、`uid.dat`、共有APIのworldパスを照合し、同じ地形であることを確認してください。出力の `filebase/manifest.yml` はDevローカルoverlay用の許可ファイル一覧とSHA-256を含みます。
+
 1. [スキャナー](../../spawner-planner/scanner/README.md) の全大陸モードで、隔離したワールドのコピーを解析します。
 2. [全大陸の提案器](../../spawner-planner/docs/CONTINENT.md) で解析JSONと対象Filebaseから出力一式を生成します。
 3. 生成物を既定の `60_tool/skilltree-editor/.cache/spawner-planning/` に配置して、`05-master-data-editor.bat` でエディタを開きます。生成途中のファイルを混在させないでください。提案器は各ファイルを一時ファイル経由で置換し、最後にmanifestを更新します。
@@ -28,7 +34,7 @@ python 60_tool/spawner-planner/continent.py --terrain C:/server/AstralRecord-Cod
 
 ## 読み取りAPIと世代管理
 
-`/api/spawner-planning/manifest` を取得してから、同じ `exportRevision` を `revision` クエリへ付けて `/cells`、`/regions`、`/proposals/32`、`/proposals/48`、`/proposals/64` を取得します。すべてGET専用です。スキーマ、ワールドID、地形指紋、出力世代の一致を確認し、再計算途中で世代が混ざった場合は409を返します。出力がない場合は404となり、画面に準備方法を案内します。
+`/api/spawner-planning/manifest` を取得してから、同じ `exportRevision` を `revision` クエリへ付けて `/cells`、`/regions`、manifestの `radiusOptions` に含まれる `/proposals/{radius}` を取得します。半径は32/48/64mの非空・重複なし部分集合を許可し、64m単独案にも対応します。未選択の半径は404です。すべてGET専用です。スキーマ、ワールドID、地形指紋、出力世代の一致を確認し、再計算途中で世代が混ざった場合は409を返します。出力がない場合は404となり、画面に準備方法を案内します。
 
 ファイル名は固定の許可リストです。任意ファイルの読込、パストラバーサル、シンボリックリンク・ジャンクション経由の読込を拒否します。APIは解析プロセスの実行やFilebase・ワールドの書換えを行いません。地形と配置JSONはローカルに保持し、外部地図サービスへ送信しません。
 

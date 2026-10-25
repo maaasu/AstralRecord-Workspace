@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
-import { habitatNames, levelColor, reasonColor } from '../data/spawnerPlanning'
+import { habitatNames, levelColor, reasonColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
@@ -47,6 +47,7 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
   }, [snapshot, radius])
   const regionById = useMemo(() => new Map(snapshot?.regions.map(value => [value.id, value]) ?? []), [snapshot])
   const selectedRegion = regionById.get(region)
+  const road = snapshot ? planningRoad(snapshot.manifest) : null
   const regionProposals = useMemo(() => plan?.proposals.filter(value => !region || value.regionId === region) ?? [], [plan, region])
   const proposals = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('ja-JP')
@@ -79,8 +80,8 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   return <section className="sp-workspace" aria-label="ワールド配置計画">
-    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD / SPAWNER PLANNING</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置計画</small></h1></div><div className="sp-header-actions"><span className="sp-hold">公開・実配置は保留</span><button className="button" onClick={() => setReload(value => value + 1)} disabled={loading}>解析結果を再読込</button></div></header>
-    <p className="sp-intro">既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。</p>
+    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD / SPAWNER PLANNING</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置計画</small></h1></div><div className="sp-header-actions"><span className="sp-hold">共有マスタ公開は保留</span><button className="button" onClick={() => setReload(value => value + 1)} disabled={loading}>解析結果を再読込</button></div></header>
+    <p className="sp-intro">{road ? '開始地点につながる道に沿ってLv.15〜45を配置します。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。' : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>
     {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>全大陸の解析と配置計算の出力一式を用意してから、再読込してください。</p></div>}
     {loading && <div className="sp-loading" role="status">全大陸の解析結果を読み込んでいます…</div>}
     {snapshot && <>
@@ -111,13 +112,13 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
           {planning && <p role="status" className="sp-loading">半径{radius}mの配置案を読み込んでいます…</p>}
           <section><div className="sp-section-heading"><h2>地点・スポナーの詳細</h2><button className="button" disabled={!plan || planning} onClick={download}>案をJSON保存</button></div>
             {!cell && !proposal && <p className="sp-muted">地図の地点か、下の配置案を選択してください。全域表示では地点、拡大後はスポナーの点も選択できます。</p>}
-            {cell && <div className="sp-detail"><strong>X {cell.x} / Z {cell.z}</strong><p className="sp-reason"><i style={{ background: reasonColor(cellCode) }} />{snapshot.manifest.reasons[cellCode] ?? cellCode}</p><p>{regionById.get(cell.regionId)?.name ?? '地域未判定'}<br />{habitatNames[cell.habitat] ?? cell.habitat} / 推奨 {cell.targetLevel == null ? '未定' : `Lv.${cell.targetLevel}`}</p><p>安全な列: {cell.safeCount ?? 0} / 256<br />候補の足元Y: {cell.candidateY ?? '—'}<br />バイオーム: {cell.biome ?? '未読込'}<br />地表: {cell.surface ?? '未読込'}</p>{cell.reason && <p>{cell.reason}</p>}{coversSelected.map(value => <button className="sp-link-button" key={value.proposalId} onClick={() => selectProposal(value.proposalId)}>この区画をカバーする配置案を見る · Lv.{value.level}</button>)}</div>}
+            {cell && <div className="sp-detail"><strong>X {cell.x} / Z {cell.z}</strong><p className="sp-reason"><i style={{ background: reasonColor(cellCode) }} />{snapshot.manifest.reasons[cellCode] ?? cellCode}</p><p>{regionById.get(cell.regionId)?.name ?? '地域未判定'}<br />{habitatNames[cell.habitat] ?? cell.habitat} / 推奨 {cell.targetLevel == null ? '未定' : `Lv.${cell.targetLevel}`}</p><p>{cell.roadDistanceMeters != null && <>道に沿った距離: {number(Math.round(cell.roadDistanceMeters))}m<br /></>}{cell.distanceToRoadMeters != null && <>道からの距離: {number(Math.round(cell.distanceToRoadMeters))}m<br /></>}安全な列: {cell.safeCount ?? 0} / 256<br />候補の足元Y: {cell.candidateY ?? '—'}<br />バイオーム: {cell.biome ?? '未読込'}<br />地表: {cell.surface ?? '未読込'}</p>{cell.reason && <p>{cell.reason}</p>}{coversSelected.map(value => <button className="sp-link-button" key={value.proposalId} onClick={() => selectProposal(value.proposalId)}>この区画をカバーする配置案を見る · Lv.{value.level}</button>)}</div>}
             {proposal && <div className="sp-detail"><strong>{proposal.regionName}</strong><p>X {proposal.x} / Y {proposal.y} / Z {proposal.z}<br />半径 {proposal.radiusMeters}m · Lv.{proposal.level}</p><span className={`sp-definition ${proposal.definitionStatus === 'draft' ? 'draft' : ''}`}>{proposal.definitionStatus === 'draft' ? '未登録のスポナーマスタ案' : '既存スポナーマスタを使用'}</span><ul>{proposal.spawnMobs.map(mob => <li key={`${mob.mobId}:${mob.level}`}><MinecraftText value={mob.name} /> <b>Lv.{mob.level}</b><small>出現重み {mob.weight}</small></li>)}</ul><p>{proposal.reason}</p><p>{number(proposal.newCoveredCells)}区画を新たにカバー</p>{proposal.originalRadiusMeters != null && <p>現在のマスタ半径: {proposal.originalRadiusMeters}m{proposal.masterUpdateRequired ? '（変更案）' : ''}</p>}<code>{proposal.spawnerId}</code></div>}
           </section>
           {selectedRegion && <section><h2>{selectedRegion.name}</h2><p className="sp-muted">{selectedRegion.reason}</p><button className="button" onClick={() => selectRegion('')}>全大陸へ戻す</button></section>}
           <section><h2>配置・未配置の理由</h2><div className="sp-reason-list">{Object.entries(stats.counts).sort((a, b) => b[1] - a[1]).map(([code, value]) => <button key={code} onClick={() => { setReason(code); setLayer('reasons') }} aria-pressed={reason === code}><span><i style={{ background: reasonColor(code) }} />{snapshot.manifest.reasons[code] ?? code}</span><b>{number(value)}</b></button>)}</div></section>
           <section><h2>配置案 <small>{number(proposals.length)}件</small></h2><input aria-label="配置案を検索" placeholder="モブ名・地域名・ID・座標" value={query} onChange={event => { setQuery(event.target.value); setVisibleCount(40) }} /><div className="sp-proposal-list">{proposals.slice(0, visibleCount).map(value => <button key={value.proposalId} onClick={() => selectProposal(value.proposalId)} aria-pressed={selectedProposal === value.proposalId}><strong>Lv.{value.level} · {value.regionName}</strong><span>{value.spawnMobs.map(mob => mob.name.replace(/[&§][0-9a-fk-or]/gi, '')).join(' / ')}</span><small>X {value.x} / Y {value.y} / Z {value.z}{value.definitionStatus === 'draft' ? ' · 未登録案' : ''}</small></button>)}{proposals.length === 0 && plan && <p className="sp-muted">この条件の配置案はありません。未配置理由を確認してください。</p>}</div>{visibleCount < proposals.length && <button className="button sp-more" onClick={() => setVisibleCount(value => value + 40)}>さらに40件表示</button>}</section>
-          <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>共有マスタへの公開、既存スポナーの変更、実際の配置は行いません。</p></section>
+          <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>この画面は閲覧用です。共有マスタの公開や実際の配置は、この画面からは行いません。</p></section>
         </aside>
       </div>
     </>}

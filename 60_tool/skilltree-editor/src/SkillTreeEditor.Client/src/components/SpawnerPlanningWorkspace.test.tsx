@@ -23,7 +23,7 @@ describe('マスタエディタ内の配置計画', () => {
     expect(screen.getByText('draft-sand')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
     expect(screen.getByText('チャンク読込が失敗しました')).toBeInTheDocument()
-    expect(screen.getByText('読込・解析失敗区画').parentElement).toHaveTextContent('1')
+    expect(screen.getByText('未完成・解析不可区画').parentElement).toHaveTextContent('1')
     expect(screen.queryByRole('button', { name: /公開|適用|実配置/ })).not.toBeInTheDocument()
   })
   it('解析が未準備のとき、空の成功結果として表示しない', async () => {
@@ -32,6 +32,18 @@ describe('マスタエディタ内の配置計画', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('配置案はまだありません')
     expect(screen.queryByText('100.0%')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '解析結果を再読込' })).toBeEnabled()
+  })
+  it('道路モードでは後続地域の保留と道路距離を表示する', async () => {
+    const roadSnapshot = structuredClone(snapshot)
+    roadSnapshot.manifest.progressionPolicy = { mode: 'road', maxLevel: 45, road: { nodes: [], edges: [], maxDistanceMeters: 1400, corridorMeters: 224, candidateCenterMeters: 160 } }
+    roadSnapshot.cells[1].roadDistanceMeters = 648
+    roadSnapshot.cells[1].distanceToRoadMeters = 32
+    vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(roadSnapshot)
+    render(<SpawnerPlanningWorkspace active />)
+    expect(await screen.findByText(/北東のLv.100超予定地/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
+    expect(screen.getByText(/道に沿った距離:/)).toHaveTextContent('648m')
+    expect(screen.getByText(/道からの距離:/)).toHaveTextContent('32m')
   })
   it('半径切替の読込中は前の案の詳細と保存を消す', async () => {
     render(<SpawnerPlanningWorkspace active />)
