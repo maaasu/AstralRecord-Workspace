@@ -1,0 +1,6 @@
+name: RegionTerrainScanner
+version: 1.0.0
+main: com.astralrecord.tools.terrain.RegionTerrainScannerPlugin
+api-version: '1.21.11'
+description: Exports a bounded terrain survey from an existing Paper world.
+load: POSTWORLD

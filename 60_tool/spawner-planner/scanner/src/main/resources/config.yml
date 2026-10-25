@@ -1,0 +1,9 @@
+worldName: eriva_supercontinent
+minX: -1536
+minZ: 1088
+size: 768
+cellSize: 4
+outputFile: analysis/terrain.json
+autoStart: true
+chunksPerTick: 1
+shutdownAfterScan: false
