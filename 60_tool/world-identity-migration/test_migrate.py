@@ -1,4 +1,5 @@
 import gzip
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -26,6 +27,21 @@ class MigrationTest(unittest.TestCase):
         (self.world / "uid.dat").write_bytes(b"preserved-uid")
         (self.world / "xaeromap.txt").write_text("id:1140358035\n", encoding="utf-8")
         (self.world / "session.lock").write_bytes(b"\0")
+        (self.world / "paper-world.yml").write_text(
+            f"# World: plugins/AstralRecord/worlds/overworld/{migrate.OLD} "
+            f"(minecraft:plugins/astralrecord/worlds/overworld/{migrate.OLD})\nsettings: unchanged\n",
+            encoding="utf-8",
+        )
+        plugin = self.server / "plugins/AstralRecord"
+        self.runtime = {
+            "mob_spawners.yml": (f"a:\n  world: plugins/AstralRecord/worlds/overworld/{migrate.OLD}\n"
+                                 f"b:\n  world: plugins/AstralRecord/worlds/overworld/{migrate.OLD}\n").encode(),
+            "text_displays.yml": f"world: plugins/AstralRecord/worlds/overworld/{migrate.OLD}\n".encode(),
+            "dungeon-receptions.json": json.dumps({"worldId": migrate.OLD, "worldUuid": "preserved-uuid",
+                                                    "receptions": [{"id": "one"}]}).encode(),
+        }
+        for name, data in self.runtime.items():
+            (plugin / name).write_bytes(data)
         xaero = self.client / "xaero"
         mini = xaero / "minimap" / migrate.SERVER_KEY
         worldmap = xaero / "world-map" / migrate.SERVER_KEY
@@ -63,6 +79,15 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual((self.old_map.with_name(self.old_map.name.replace(migrate.OLD, migrate.NEW)) /
                           "mw$default/0_0.zip").read_bytes(), b"map-zip-untouched")
         self.assertFalse(self.old_mini.exists())
+        plugin = self.server / "plugins/AstralRecord"
+        for name, before in self.runtime.items():
+            after = (plugin / name).read_bytes()
+            self.assertNotIn(migrate.OLD.encode(), after)
+            self.assertIn(migrate.NEW.encode(), after)
+            self.assertTrue((next(self.backup.iterdir()) / "runtime" / name).read_bytes() == before)
+        self.assertEqual(json.loads((plugin / "dungeon-receptions.json").read_bytes())["worldUuid"],
+                         "preserved-uuid")
+        self.assertIn(migrate.NEW.encode(), (new_world / "paper-world.yml").read_bytes())
         self.assertEqual(len(list(self.backup.iterdir())), 1)
 
     def test_destination_collision_blocks_changes(self):
@@ -71,6 +96,18 @@ class MigrationTest(unittest.TestCase):
             self.run_script(apply=True)
         self.assertTrue(self.world.exists())
         self.assertFalse(list(self.backup.iterdir()))
+
+    def test_unplanned_runtime_reference_blocks_changes(self):
+        plugin = self.server / "plugins/AstralRecord"
+        (plugin / "gathering_spawners.yml").write_text(f"world: {migrate.OLD}\n", encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "Unplanned runtime reference"):
+            self.run_script(apply=True)
+        self.assertTrue(self.world.exists())
+        self.assertFalse(list(self.backup.iterdir()))
+
+    def test_resolved_target_must_stay_under_root(self):
+        with self.assertRaisesRegex(RuntimeError, "Path leaves its root"):
+            migrate.require_under_root(self.server, self.client / "xaero", exists=True)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -30,8 +31,23 @@ def require(condition: bool, message: str) -> None:
 def safe_path(path: Path) -> Path:
     absolute = path.absolute()
     require(absolute.exists(), f"Missing path: {absolute}")
-    require(not absolute.is_symlink(), f"Symlink is not allowed: {absolute}")
+    for ancestor in (absolute, *absolute.parents):
+        require(not ancestor.is_symlink() and not ancestor.is_junction(),
+                f"Link or junction is not allowed: {ancestor}")
     return absolute.resolve(strict=True)
+
+
+def require_under_root(root: Path, path: Path, *, exists: bool) -> None:
+    absolute = path.absolute()
+    require(absolute.is_relative_to(root), f"Path leaves its root: {absolute}")
+    cursor = absolute if exists else absolute.parent
+    while cursor != root:
+        require(cursor.is_relative_to(root), f"Path leaves its root: {cursor}")
+        require(not cursor.is_symlink() and not cursor.is_junction(),
+                f"Link or junction is not allowed: {cursor}")
+        cursor = cursor.parent
+    require(absolute.resolve(strict=exists).is_relative_to(root),
+            f"Resolved path leaves its root: {absolute}")
 
 
 def require_tree_without_links(root: Path) -> None:
@@ -68,6 +84,8 @@ def write_level_name(path: Path) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)
+        require(gzip.decompress(path.read_bytes()) == changed,
+                f"NBT payload changed outside LevelName or could not be verified: {path}")
     finally:
         if temporary.exists():
             temporary.unlink()
@@ -120,6 +138,28 @@ def tree_size(root: Path) -> int:
                for directory, _, files in os.walk(root) for filename in files)
 
 
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def atomic_write(path: Path, payload: bytes) -> None:
+    temporary = path.with_name(path.name + ".eriva-tmp")
+    require(not temporary.exists(), f"Temporary file already exists: {temporary}")
+    try:
+        with temporary.open("wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--server-root", required=True, type=Path)
@@ -140,7 +180,8 @@ def main() -> int:
     require(not backup_parent.is_relative_to(server) and not backup_parent.is_relative_to(client),
             "Backup root must be outside live roots")
 
-    worlds = server / "plugins" / "AstralRecord" / "worlds" / "overworld"
+    plugin = server / "plugins" / "AstralRecord"
+    worlds = plugin / "worlds" / "overworld"
     old_world, new_world = worlds / OLD, worlds / NEW
     xaero = client / "xaero"
     minimap_server = xaero / "minimap" / SERVER_KEY
@@ -150,14 +191,30 @@ def main() -> int:
     old_map = worldmap_server / f"minecraft$plugins%astralrecord%worlds%overworld%{OLD}"
     new_map = worldmap_server / f"minecraft$plugins%astralrecord%worlds%overworld%{NEW}"
     config = minimap_server / "config.txt"
+    spawners = plugin / "mob_spawners.yml"
+    displays = plugin / "text_displays.yml"
+    receptions = plugin / "dungeon-receptions.json"
+    paper_config = old_world / "paper-world.yml"
     old_line = f"dimensionType:minecraft$plugins/astralrecord/worlds/overworld/{OLD}:minecraft$overworld"
     new_line = f"dimensionType:minecraft$plugins/astralrecord/worlds/overworld/{NEW}:minecraft$overworld"
 
-    for source in (old_world, old_mini, old_map, config):
+    runtime_patterns = {
+        spawners: (f"world: plugins/AstralRecord/worlds/overworld/{OLD}".encode(),
+                   f"world: plugins/AstralRecord/worlds/overworld/{NEW}".encode()),
+        displays: (f"world: plugins/AstralRecord/worlds/overworld/{OLD}".encode(),
+                   f"world: plugins/AstralRecord/worlds/overworld/{NEW}".encode()),
+        receptions: (f'"worldId": "{OLD}"'.encode(), f'"worldId": "{NEW}"'.encode()),
+    }
+
+    for source, root in ((old_world, server), (old_mini, client), (old_map, client),
+                         (config, client), (spawners, server), (displays, server),
+                         (receptions, server), (paper_config, server)):
+        require_under_root(root, source, exists=True)
         require(source.exists(), f"Missing source: {source}")
         require(not source.is_symlink() and not source.is_junction(),
                 f"Link or junction is not allowed: {source}")
-    for target in (new_world, new_mini, new_map):
+    for target, root in ((new_world, server), (new_mini, client), (new_map, client)):
+        require_under_root(root, target, exists=False)
         require(not target.exists(), f"Destination collision: {target}")
     for tree in (old_world, old_mini, old_map):
         require_tree_without_links(tree)
@@ -171,6 +228,26 @@ def main() -> int:
     old_bytes, new_bytes = old_line.encode(), new_line.encode()
     require(config_bytes.count(old_bytes) == 1 and new_bytes not in config_bytes,
             "Expected exactly one old Xaero dimensionType and no new one")
+    runtime_bytes = {}
+    for path, (before, after) in runtime_patterns.items():
+        data = path.read_bytes()
+        count = data.count(before)
+        require(count > 0 and data.count(OLD.encode()) == count and after not in data,
+                f"Unexpected old/new world reference in {path}")
+        runtime_bytes[path] = data
+    reception_json = json.loads(runtime_bytes[receptions])
+    require(reception_json.get("worldId") == OLD and reception_json.get("worldUuid"),
+            "Unexpected dungeon reception world identity")
+    paper_bytes = paper_config.read_bytes()
+    require(paper_bytes.count(OLD.encode()) == 2 and paper_bytes.count(NEW.encode()) == 0 and
+            any(line.startswith(b"# World: ") and line.count(OLD.encode()) == 2
+                for line in paper_bytes.splitlines()),
+            "Unexpected Paper world header")
+    for path in plugin.iterdir():
+        if path.is_file() and path.suffix.lower() in {".yml", ".yaml", ".json", ".properties", ".txt"}:
+            require_under_root(server, path, exists=True)
+            if OLD.encode() in path.read_bytes():
+                require(path in runtime_patterns, f"Unplanned runtime reference: {path}")
     require((old_map / "mw$default").is_dir(), "Expected Xaero map content is absent")
     sample_map = next((old_map / "mw$default").rglob("*.zip"), None)
     require(sample_map is not None, "Expected Xaero map ZIP is absent")
@@ -178,46 +255,73 @@ def main() -> int:
     print("Mode:", "apply" if args.apply else "dry-run")
     for before, after in ((old_world, new_world), (old_mini, new_mini), (old_map, new_map)):
         print("Rename:", before, "->", after)
-    print("Update: level.dat and level.dat_old LevelName; Xaero minimap config dimensionType")
+    print("Update: level.dat and level.dat_old LevelName; Paper world header;")
+    print("        mob_spawners.yml, text_displays.yml, dungeon-receptions.json;")
+    print("        Xaero minimap config dimensionType")
+    print("Runtime reference counts:",
+          ", ".join(f"{path.name}={runtime_bytes[path].count(runtime_patterns[path][0])}"
+                    for path in runtime_patterns))
     print("Preserve: uid.dat, xaeromap.txt ID, Xaero map ZIP contents")
     print("Backup parent:", backup_parent)
     if not args.apply:
         return 0
 
     process_check(server, client)
-    for path in (old_world / "session.lock", old_world / "level.dat", old_world / "level.dat_old", config, sample_map):
+    for path in (old_world / "session.lock", old_world / "level.dat", old_world / "level.dat_old",
+                 paper_config, config, sample_map, *runtime_patterns):
+        require_under_root(server if path.is_relative_to(server) else client, path, exists=True)
         lock_probe(path)
     free = shutil.disk_usage(backup_parent).free
-    needed = sum(tree_size(tree) for tree in (old_world, old_mini, old_map)) + config.stat().st_size
+    needed = (sum(tree_size(tree) for tree in (old_world, old_mini, old_map)) +
+              config.stat().st_size + sum(path.stat().st_size for path in runtime_patterns))
     require(free > needed * 1.1, f"Insufficient backup space: need at least {needed * 1.1:.0f} bytes")
     backup = backup_parent / ("eriva-world-identity-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"))
     require(not backup.exists(), f"Backup collision: {backup}")
     backup.mkdir()
-    moved: list[tuple[Path, Path]] = []
     try:
         shutil.copytree(old_world, backup / "world")
         shutil.copytree(old_mini, backup / "minimap")
         shutil.copytree(old_map, backup / "world-map")
         shutil.copy2(config, backup / "minimap-config.txt")
+        runtime_backup = backup / "runtime"
+        runtime_backup.mkdir()
+        for path in runtime_patterns:
+            shutil.copy2(path, runtime_backup / path.name)
         require(tree_size(backup / "world") == tree_size(old_world), "World backup size mismatch")
         require(tree_size(backup / "minimap") == tree_size(old_mini), "Minimap backup size mismatch")
         require(tree_size(backup / "world-map") == tree_size(old_map), "World map backup size mismatch")
+        for path, data in runtime_bytes.items():
+            require(path.read_bytes() == data and sha256(runtime_backup / path.name) == hashlib.sha256(data).hexdigest(),
+                    f"Runtime file changed or backup failed: {path}")
+        require(config.read_bytes() == config_bytes and
+                paper_config.read_bytes() == paper_bytes,
+                "Configuration changed during backup")
         manifest = {"old": OLD, "new": NEW, "server": str(server), "client": str(client),
-                    "xaeromapId": xaero_id, "status": "backed-up"}
+                    "xaeromapId": xaero_id,
+                    "runtimeReferences": {path.name: data.count(runtime_patterns[path][0])
+                                          for path, data in runtime_bytes.items()},
+                    "status": "backed-up"}
         (backup / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         process_check(server, client)
         for before, after in ((old_world, new_world), (old_mini, new_mini), (old_map, new_map)):
             before.rename(after)
-            moved.append((before, after))
         for filename in ("level.dat", "level.dat_old"):
             write_level_name(new_world / filename)
-        config_temp = config.with_name("config.eriva-tmp")
-        require(not config_temp.exists(), f"Temporary file already exists: {config_temp}")
-        with config_temp.open("wb") as stream:
-            stream.write(config_bytes.replace(old_bytes, new_bytes))
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(config_temp, config)
+        atomic_write(new_world / "paper-world.yml", paper_bytes.replace(OLD.encode(), NEW.encode()))
+        for path, (before, after) in runtime_patterns.items():
+            atomic_write(path, runtime_bytes[path].replace(before, after))
+        atomic_write(config, config_bytes.replace(old_bytes, new_bytes))
+        for path, (before, after) in runtime_patterns.items():
+            result = path.read_bytes()
+            require(result.count(after) == runtime_bytes[path].count(before) and OLD.encode() not in result,
+                    f"Runtime reference update failed: {path}")
+        updated_receptions = json.loads(receptions.read_bytes())
+        require(updated_receptions == {**reception_json, "worldId": NEW},
+                "Dungeon receptions changed outside worldId")
+        require((new_world / "paper-world.yml").read_bytes() ==
+                paper_bytes.replace(OLD.encode(), NEW.encode()), "Paper world header update failed")
+        require(config.read_bytes() == config_bytes.replace(old_bytes, new_bytes),
+                "Xaero dimensionType update failed")
         require((new_world / "uid.dat").read_bytes() == (backup / "world" / "uid.dat").read_bytes(),
                 "World UID changed unexpectedly")
         require((new_world / "xaeromap.txt").read_bytes() == (backup / "world" / "xaeromap.txt").read_bytes(),
