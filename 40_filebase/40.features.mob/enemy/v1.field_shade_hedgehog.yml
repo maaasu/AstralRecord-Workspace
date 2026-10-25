@@ -53,6 +53,23 @@ levels:
         value: 90
     drops:
       exp: 682
+  - level: 39
+    name: '&2コカゲハリネズミ Lv.39'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 33300
+      - status: ATTACK
+        value: 4950
+      - status: DEFENSE
+        value: 4770
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 90
+    drops:
+      exp: 704
   - level: 40
     name: "&2コカゲハリネズミ Lv.40"
     baseStats:
@@ -87,6 +104,24 @@ levels:
         value: 90
     drops:
       exp: 770
+  - level: 45
+    name: '&2コカゲハリネズミ Lv.45'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 42300
+      - status: ATTACK
+        value: 6192
+      - status: DEFENSE
+        value: 5490
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 90
+    drops:
+      exp: 836
+
 ai:
   idle:
     behavior: WANDER

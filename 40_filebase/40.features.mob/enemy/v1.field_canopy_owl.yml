@@ -40,6 +40,23 @@ levels:
     value: 110
   drops:
     exp: 650
+- level: 39
+  name: '&aコノハフクロウ Lv.39'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 28738
+    - status: ATTACK
+      value: 4676
+    - status: DEFENSE
+      value: 4526
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 110
+  drops:
+    exp: 670
 - level: 40
   name: '&aコノハフクロウ Lv.40'
   baseStats:
@@ -74,6 +91,7 @@ levels:
     value: 110
   drops:
     exp: 730
+
 baseStats:
 - status: MAX_HEALTH
   value: 25175

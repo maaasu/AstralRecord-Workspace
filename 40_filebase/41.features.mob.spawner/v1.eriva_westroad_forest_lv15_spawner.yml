@@ -1,0 +1,29 @@
+# design:
+#   motif: "地形 / 大森林"
+#   progression: 15
+schemaVersion: 1
+id: eriva_westroad_forest_lv15_spawner
+type: MOB_SPAWNER
+region: "エリヴァ南西街道・Lv.15帯"
+radiusMeters: 64
+
+spawnMobs:
+  - mobId: mob:eriva_underbrush_spider
+    level: 15
+    weight: 60
+  - mobId: mob:eriva_starhorn_guardian
+    level: 15
+    weight: 40
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+spawnChancePercent: 100.0
+
+spawnLimit:
+  maxAlivePerSpawner: 6
+  maxNearbyMobs: 12
+  spawnPerPlayer: 1

@@ -1,0 +1,29 @@
+# design:
+#   motif: "地形 / 草原"
+#   progression: 25
+schemaVersion: 1
+id: eriva_westroad_grass_lv45_spawner
+type: MOB_SPAWNER
+region: "エリヴァ南西街道・Lv.45帯"
+radiusMeters: 64
+
+spawnMobs:
+  - mobId: mob:field_blade_mantis
+    level: 45
+    weight: 75
+  - mobId: mob:field_stoneback_bison
+    level: 45
+    weight: 25
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+spawnChancePercent: 100.0
+
+spawnLimit:
+  maxAlivePerSpawner: 6
+  maxNearbyMobs: 12
+  spawnPerPlayer: 1

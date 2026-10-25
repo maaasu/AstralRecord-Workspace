@@ -73,6 +73,24 @@ levels:
     value: 105
   drops:
     exp: 750
+- level: 45
+  name: '&aトゲシカ Lv.45'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 39638
+    - status: ATTACK
+      value: 6880
+    - status: DEFENSE
+      value: 6675
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 105
+  drops:
+    exp: 810
+
 baseStats:
 - status: MAX_HEALTH
   value: 27825

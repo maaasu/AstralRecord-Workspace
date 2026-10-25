@@ -18,6 +18,48 @@ tags:
   - melee
   - magic
 
+levels:
+  - level: 15
+    name: '&a星角の森守 Lv.15'
+  - level: 18
+    name: '&a星角の森守 Lv.18'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 6560
+      - status: ATTACK
+        value: 1133
+      - status: MAGIC_ATTACK
+        value: 55
+      - status: DEFENSE
+        value: 1143
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 200
+  - level: 21
+    name: '&a星角の森守 Lv.21'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 9000
+      - status: ATTACK
+        value: 1555
+      - status: MAGIC_ATTACK
+        value: 76
+      - status: DEFENSE
+        value: 1568
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 100
+    drops:
+      exp: 260
+
 baseStats:
   - status: MAX_HEALTH
     value: 4400

@@ -40,6 +40,23 @@ levels:
         value: 80
     drops:
       exp: 396
+  - level: 27
+    name: '&aネッコガメ Lv.27'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 17710
+      - status: ATTACK
+        value: 2232
+      - status: DEFENSE
+        value: 2955
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 80
+    drops:
+      exp: 418
   - level: 28
     name: "&aネッコガメ Lv.28"
     baseStats:
@@ -74,6 +91,23 @@ levels:
         value: 80
     drops:
       exp: 484
+  - level: 33
+    name: '&aネッコガメ Lv.33'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 25990
+      - status: ATTACK
+        value: 3280
+      - status: DEFENSE
+        value: 4348
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 80
+    drops:
+      exp: 550
 
 baseStats:
   - status: MAX_HEALTH

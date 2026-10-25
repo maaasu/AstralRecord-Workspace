@@ -116,6 +116,23 @@ levels:
         value: 120
     drops:
       exp: 360
+  - level: 27
+    name: '&aクサハウンド Lv.27'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 14630
+      - status: ATTACK
+        value: 2929
+      - status: DEFENSE
+        value: 2417
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 380
   - level: 28
     name: "&aクサハウンド Lv.28"
     baseStats:
@@ -133,3 +150,20 @@ levels:
         value: 120
     drops:
       exp: 400
+  - level: 30
+    name: '&aクサハウンド Lv.30'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 18050
+      - status: ATTACK
+        value: 3613
+      - status: DEFENSE
+        value: 2984
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 440

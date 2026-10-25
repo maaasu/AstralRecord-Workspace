@@ -84,6 +84,23 @@ levels:
     value: 100
   drops:
     exp: 480
+- level: 33
+  name: '&aハラノヒツジ Lv.33'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 24860
+    - status: ATTACK
+      value: 3890
+    - status: DEFENSE
+      value: 4148
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 100
+  drops:
+    exp: 500
 - level: 34
   name: '&aハラノヒツジ Lv.34'
   baseStats:
@@ -101,6 +118,41 @@ levels:
     value: 100
   drops:
     exp: 520
+- level: 36
+  name: '&aハラノヒツジ Lv.36'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 28820
+    - status: ATTACK
+      value: 4509
+    - status: DEFENSE
+      value: 4811
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 100
+  drops:
+    exp: 560
+- level: 39
+  name: '&aハラノヒツジ Lv.39'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 32780
+    - status: ATTACK
+      value: 5128
+    - status: DEFENSE
+      value: 5474
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 100
+  drops:
+    exp: 620
+
 ai:
   idle:
     behavior: WANDER

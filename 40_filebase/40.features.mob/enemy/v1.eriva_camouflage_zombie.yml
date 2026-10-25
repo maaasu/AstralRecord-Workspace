@@ -40,6 +40,23 @@ levels:
         value: 95
     drops:
       exp: 240
+  - level: 21
+    name: '&2エリヴァ・迷彩ゾンビ Lv.21'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 9000
+      - status: ATTACK
+        value: 1630
+      - status: DEFENSE
+        value: 1568
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 260
   - level: 22
     name: "&2エリヴァ・迷彩ゾンビ Lv.22"
     baseStats:
@@ -91,6 +108,23 @@ levels:
         value: 95
     drops:
       exp: 360
+  - level: 27
+    name: '&2エリヴァ・迷彩ゾンビ Lv.27'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 15400
+      - status: ATTACK
+        value: 2790
+      - status: DEFENSE
+        value: 2686
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 95
+    drops:
+      exp: 380
   - level: 28
     name: "&2エリヴァ・迷彩ゾンビ Lv.28"
     baseStats:

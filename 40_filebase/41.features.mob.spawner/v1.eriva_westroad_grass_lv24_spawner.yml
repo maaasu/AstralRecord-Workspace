@@ -1,0 +1,29 @@
+# design:
+#   motif: "地形 / 草原"
+#   progression: 18
+schemaVersion: 1
+id: eriva_westroad_grass_lv24_spawner
+type: MOB_SPAWNER
+region: "エリヴァ南西街道・Lv.24帯"
+radiusMeters: 64
+
+spawnMobs:
+  - mobId: mob:field_reed_hound
+    level: 24
+    weight: 60
+  - mobId: mob:eriva_camouflage_zombie
+    level: 24
+    weight: 40
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+spawnChancePercent: 100.0
+
+spawnLimit:
+  maxAlivePerSpawner: 6
+  maxNearbyMobs: 12
+  spawnPerPlayer: 1

@@ -109,6 +109,23 @@ levels:
     value: 100
   drops:
     exp: 1160
+- level: 45
+  name: イワセバイソン Lv.45
+  baseStats:
+    - status: MAX_HEALTH
+      value: 94096
+    - status: ATTACK
+      value: 8911
+    - status: DEFENSE
+      value: 8216
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 2
+    - status: MOVEMENT_SPEED
+      value: 100
+  drops:
+    exp: 1180
 - level: 46
   name: イワセバイソン Lv.46
   baseStats:

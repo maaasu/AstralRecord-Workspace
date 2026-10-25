@@ -56,6 +56,23 @@ levels:
         value: 104
     drops:
       exp: 490
+  - level: 33
+    name: '&aカゼトカゲ Lv.33'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 23000
+      - status: ATTACK
+        value: 3890
+      - status: DEFENSE
+        value: 3556
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 104
+    drops:
+      exp: 510
   - level: 34
     name: "&aカゼトカゲ Lv.34"
     baseStats:
@@ -73,6 +90,40 @@ levels:
         value: 104
     drops:
       exp: 530
+  - level: 36
+    name: '&aカゼトカゲ Lv.36'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 27200
+      - status: ATTACK
+        value: 4509
+      - status: DEFENSE
+        value: 4126
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 104
+    drops:
+      exp: 570
+  - level: 39
+    name: '&aカゼトカゲ Lv.39'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 31400
+      - status: ATTACK
+        value: 5128
+      - status: DEFENSE
+        value: 4696
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 104
+    drops:
+      exp: 630
 
 baseStats:
   - status: MAX_HEALTH

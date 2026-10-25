@@ -1,0 +1,29 @@
+# design:
+#   motif: "地形 / 草原"
+#   progression: 20
+schemaVersion: 1
+id: eriva_westroad_grass_lv33_spawner
+type: MOB_SPAWNER
+region: "エリヴァ南西街道・Lv.33帯"
+radiusMeters: 64
+
+spawnMobs:
+  - mobId: mob:field_plain_ram
+    level: 33
+    weight: 55
+  - mobId: mob:field_wind_lizard
+    level: 33
+    weight: 45
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+spawnChancePercent: 100.0
+
+spawnLimit:
+  maxAlivePerSpawner: 6
+  maxNearbyMobs: 12
+  spawnPerPlayer: 1

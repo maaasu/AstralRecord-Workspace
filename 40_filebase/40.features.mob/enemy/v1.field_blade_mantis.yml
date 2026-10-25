@@ -66,6 +66,23 @@ levels:
     value: 112
   drops:
     exp: 720
+- level: 45
+  name: '&aカマキリソード Lv.45'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 33300
+    - status: ATTACK
+      value: 7038
+    - status: DEFENSE
+      value: 6156
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 112
+  drops:
+    exp: 740
 - level: 46
   name: '&aカマキリソード Lv.46'
   baseStats:
@@ -100,6 +117,7 @@ levels:
     value: 112
   drops:
     exp: 800
+
 ai:
   idle:
     behavior: WANDER

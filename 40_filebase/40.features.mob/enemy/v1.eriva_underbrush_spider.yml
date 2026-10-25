@@ -18,6 +18,48 @@ tags:
   - spider
   - ranged
 
+levels:
+  - level: 15
+    name: '&2下草の狩人 Lv.15'
+  - level: 18
+    name: '&2下草の狩人 Lv.18'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 5248
+      - status: ATTACK
+        value: 969
+      - status: RANGED_ATTACK
+        value: 219
+      - status: DEFENSE
+        value: 915
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 110
+    drops:
+      exp: 200
+  - level: 21
+    name: '&2下草の狩人 Lv.21'
+    baseStats:
+      - status: MAX_HEALTH
+        value: 7200
+      - status: ATTACK
+        value: 1330
+      - status: RANGED_ATTACK
+        value: 301
+      - status: DEFENSE
+        value: 1255
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 110
+    drops:
+      exp: 260
+
 baseStats:
   - status: MAX_HEALTH
     value: 3520

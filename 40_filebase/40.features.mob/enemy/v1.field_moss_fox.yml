@@ -115,6 +115,27 @@ levels:
     value: 100
   drops:
     exp: 342
+- level: 27
+  name: '&aコケギツネ Lv.27'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 14325
+    - status: ATTACK
+      value: 2566
+    - status: DEFENSE
+      value: 2551
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 110
+    - status: CRITICAL_RATE
+      value: 0
+    - status: FINAL_DAMAGE_MULTIPLIER
+      value: 100
+  drops:
+    exp: 361
 - level: 28
   name: '&aコケギツネ Lv.28'
   baseStats:
@@ -157,3 +178,24 @@ levels:
     value: 100
   drops:
     exp: 418
+- level: 33
+  name: '&aコケギツネ Lv.33'
+  baseStats:
+    - status: MAX_HEALTH
+      value: 21015
+    - status: ATTACK
+      value: 3768
+    - status: DEFENSE
+      value: 3754
+    - status: ACCURACY
+      value: 95
+    - status: EVASION
+      value: 3
+    - status: MOVEMENT_SPEED
+      value: 110
+    - status: CRITICAL_RATE
+      value: 0
+    - status: FINAL_DAMAGE_MULTIPLIER
+      value: 100
+  drops:
+    exp: 475
