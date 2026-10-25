@@ -96,7 +96,7 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
         <div><strong>{plan ? number(regionProposals.length) : '—'}</strong><span>{selectedRegion ? '選択地域' : '全大陸'}の配置案</span></div>
         <div><strong>{plan ? `${(region ? stats.target ? stats.covered / stats.target * 100 : 0 : plan.coveragePercent).toFixed(1)}%` : '—'}</strong><span>配置対象のカバー率</span></div>
         <div><strong>{plan ? number(region ? stats.uncovered : plan.uncoveredCells) : '—'}</strong><span>対象内の未カバー区画</span></div>
-        <div><strong>{plan ? number(stats.counts.failed ?? stats.counts.unknown ?? 0) : '—'}</strong><span>読込・解析失敗区画</span></div>
+        <div><strong>{plan ? number(stats.counts.failed ?? stats.counts.unknown ?? 0) : '—'}</strong><span>未完成・解析不可区画</span></div>
         <div><strong>{plan ? number(stats.counts.absent ?? 0) : '—'}</strong><span>未保存の区画</span></div>
       </div>
       <div className="sp-main">
