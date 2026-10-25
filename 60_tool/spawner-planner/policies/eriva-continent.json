@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "worldId": "eriva_supercontinent",
+  "spawnSafeRadius": 48,
+  "minSafeColumns": 128,
+  "maxLocalSlope": 4,
+  "candidateStrideCells": 1,
+  "radii": [32, 48, 64],
+  "distanceBands": [
+    {"maxDistance": 400, "level": 15, "name": "出発帯"},
+    {"maxDistance": 800, "level": 16, "name": "近郊帯"},
+    {"maxDistance": 1200, "level": 17, "name": "前進帯"},
+    {"maxDistance": 1600, "level": 18, "name": "中域帯"},
+    {"maxDistance": 2000, "level": 20, "name": "中遠域帯"},
+    {"maxDistance": 2400, "level": 22, "name": "遠域帯"},
+    {"maxDistance": 2800, "level": 24, "name": "深遠帯"},
+    {"maxDistance": 3200, "level": 26, "name": "外縁帯"},
+    {"maxDistance": 3600, "level": 28, "name": "最外縁帯"},
+    {"maxDistance": 4000, "level": 30, "name": "高原帯"},
+    {"maxDistance": 4400, "level": 32, "name": "遠征帯"},
+    {"maxDistance": 4800, "level": 36, "name": "辺境帯"},
+    {"maxDistance": 5200, "level": 38, "name": "大辺境帯"},
+    {"maxDistance": null, "level": 42, "name": "終端帯"}
+  ],
+  "fieldSpawnerIds": {
+    "grass": [
+      "eriva_grassboar_lv15_spawner", "eriva_grassboar_lv16_spawner",
+      "eriva_grassboar_lv17_spawner", "eriva_grassboar_lv18_spawner",
+      "eriva_grassboar_lv19_spawner", "eriva_grassboar_lv20_spawner",
+      "eriva_camouflage_zombie_lv18_spawner", "eriva_camouflage_zombie_lv20_spawner",
+      "eriva_camouflage_zombie_lv22_spawner", "eriva_camouflage_zombie_lv24_spawner",
+      "eriva_camouflage_zombie_lv26_spawner", "eriva_camouflage_zombie_lv28_spawner",
+      "eriva_camouflage_zombie_lv30_spawner"
+    ],
+    "forest": [
+      "eriva_great_forest_lv15_spawner", "eriva_thornfang_wolf_lv17_spawner",
+      "eriva_bark_sentinel_lv18_spawner", "eriva_sporecap_beast_lv18_spawner"
+    ]
+  },
+  "draftEnemyIds": {
+    "grass": ["field_reed_hound", "field_brush_crab", "field_plain_ram", "field_sunhare", "field_wind_lizard", "field_blade_mantis", "field_stoneback_bison", "field_storm_raptor"],
+    "forest": ["field_bark_beetle", "field_moss_fox", "field_root_turtle", "field_canopy_owl", "field_shade_hedgehog", "field_thorn_deer"],
+    "snow": ["field_frost_boar", "field_ice_moth", "field_snow_wolf"],
+    "dry": ["field_mesa_vulture", "field_red_scorpion", "field_sand_gecko"]
+  }
+}
