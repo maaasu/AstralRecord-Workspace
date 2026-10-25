@@ -15,6 +15,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="@metaDescription" />
+    <meta name="theme-color" content="#152b28" />
     <title>@ViewData["Title"] - Astral Record</title>
     <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -22,25 +23,29 @@
     <link rel="stylesheet" href="~/AstralRecordWeb.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/portal.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/skilltree.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/journal.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;600&display=swap" rel="stylesheet" />
 </head>
-<body>
+<body class="ar-journal @(isHomePage ? "ar-journal--home" : "ar-journal--inner")">
     <a class="ar-skip-link" href="#main-content">本文へ移動</a>
-    <div class="ar-cosmos" aria-hidden="true"><span></span><span></span><span></span></div>
     <nav class="navbar ar-navbar fixed-top" aria-label="メインナビゲーション">
         <div class="container">
             <a class="navbar-brand ar-brand" asp-page="/Index">
                 <img src="~/images/icon-128.webp" width="40" height="40" alt="" class="ar-brand-icon" />
-                <span class="ar-brand-text">Astral Record</span>
+                <span class="ar-brand-text">Astral Record<small>MINECRAFT RPG</small></span>
                 @if (publicSite.IsOpenAlpha)
                 {
                     <span class="ar-brand-alpha">OPEN ALPHA</span>
                 }
             </a>
             <div class="ar-nav-actions">
+                <div class="ar-nav-explore">
+                    <a asp-page="/Index" asp-fragment="features">この世界について</a>
+                    <a asp-page="/Releases/Index">お知らせ</a>
+                </div>
                 @if (!isHomePage)
                 {
                     <a class="ar-nav-home" asp-page="/Index">ホーム</a>
@@ -150,12 +155,13 @@
         </dialog>
     }
 
-    <main id="main-content">
+    <main id="main-content" tabindex="-1">
         @RenderBody()
     </main>
 
     <footer class="ar-footer">
         <div class="container">
+            <div class="ar-footer-wordmark" aria-hidden="true">Astral Record<span>YOUR NEXT ADVENTURE.</span></div>
             <div class="row align-items-center gy-3">
                 <div class="col-md-4 text-center text-md-start">
                     <img src="~/images/icon.png" srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w"

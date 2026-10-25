@@ -6,53 +6,32 @@
 
 <div class="ar-home" data-public-phase="@(Model.PublicSite.IsOpenAlpha ? "open-alpha" : "release")">
     <section class="ar-home-hero" aria-labelledby="hero-title">
-        <div class="ar-home-hero__sky" data-depth-layer="sky" aria-hidden="true"></div>
-        <div class="ar-home-hero__town" data-depth-layer="town" aria-hidden="true"></div>
-        <div class="ar-home-hero__glow" aria-hidden="true"></div>
-        <div class="ar-home-stars" aria-hidden="true"></div>
-        <div class="ar-meteor ar-meteor--one" aria-hidden="true"></div>
-        <div class="ar-meteor ar-meteor--two" aria-hidden="true"></div>
-        <div class="ar-block-field" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="ar-horizon" aria-hidden="true"></div>
-
+        <picture class="ar-journal-landscape" aria-hidden="true">
+            <source media="(max-width: 600px)" srcset="/images/bg-sky-640.webp 640w, /images/bg-sky-1280.webp 1280w" sizes="100vw" />
+            <img src="~/images/bg-sky-1920.webp" srcset="/images/bg-sky-1280.webp 1280w, /images/bg-sky-1920.webp 1920w, /images/bg-sky-2560.webp 2560w"
+                 sizes="100vw" width="2560" height="1440" alt="" fetchpriority="high" />
+        </picture>
+        <div class="ar-journal-hero-shade" aria-hidden="true"></div>
         <div class="container ar-home-hero__content">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-7">
-                    <p class="ar-home-kicker">Minecraft Java Edition RPG Server</p>
-                    <h1 class="ar-home-title" id="hero-title">
-                        <span>剣と魔法で、</span>
-                        <span>まだ見ぬ世界へ。</span>
-                    </h1>
-                    <p class="ar-home-intro">
-                        Astral Recordは、クラスや装備、スキルを組み合わせて遊ぶMinecraft RPGサーバーです。
-                        自分に合った戦い方を組み立て、仲間と一緒にダンジョンやボスへ挑めます。
-                    </p>
-                    <div class="ar-home-actions">
-                        <a href="#join" class="btn ar-home-button ar-home-button--primary">今すぐ参加する</a>
-                        <a href="#features" class="btn ar-home-button ar-home-button--ghost">遊び方を見る</a>
-                    </div>
-                </div>
-
-                <div class="col-lg-5 d-none d-lg-block" aria-hidden="true">
-                    <div class="ar-astral-mark" data-depth-layer="mark">
-                        <div class="ar-astral-mark__orbit ar-astral-mark__orbit--outer"></div>
-                        <div class="ar-astral-mark__orbit ar-astral-mark__orbit--inner"></div>
-                        <div class="ar-astral-mark__core">
-                            <img src="~/images/icon.png"
-                                 srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w, /images/icon-512.webp 512w"
-                                 sizes="194px" width="512" height="512" alt="" />
-                        </div>
-                        <span class="ar-astral-mark__rune ar-astral-mark__rune--one">STATUS</span>
-                        <span class="ar-astral-mark__rune ar-astral-mark__rune--two">SKILL</span>
-                        <span class="ar-astral-mark__rune ar-astral-mark__rune--three">DUNGEON</span>
-                    </div>
-                </div>
+            <p class="ar-home-kicker"><span class="ar-journal-star" aria-hidden="true">✦</span> A WORLD WORTH EXPLORING</p>
+            <h1 class="ar-home-title" id="hero-title">
+                <span>剣と魔法で、</span>
+                <span>まだ見ぬ世界へ。</span>
+            </h1>
+            <p class="ar-home-intro">
+                いつものMinecraftから、あなただけの冒険へ。<br />
+                クラス、装備、スキルを組み合わせ、<br class="ar-desktop-break" />
+                仲間とともに、まだ知らない景色に出会おう。
+            </p>
+            <div class="ar-home-actions">
+                <a href="#join" class="btn ar-home-button ar-home-button--primary">今すぐ参加する <span aria-hidden="true">↗</span></a>
+                <a href="#features" class="ar-journal-link">遊び方を見る <span aria-hidden="true">↓</span></a>
             </div>
         </div>
-
-        <a class="ar-scroll-cue" href="#features" aria-label="特徴までスクロール">
-            <span aria-hidden="true"></span>
-        </a>
+        <div class="ar-journal-hero-foot container">
+            <span>MINECRAFT JAVA &amp; BEDROCK</span>
+            <span>EXPLORE. BUILD YOUR STYLE. BELONG.</span>
+        </div>
     </section>
 
     <section class="ar-server-strip" aria-label="現在のサーバー状況" data-server-status data-status-url="@Url.Page("/Index", "ServerStatus")" data-state="@Model.ServerStatus.State">
@@ -65,74 +44,68 @@
 
     <section class="ar-home-section ar-feature-section" id="features" aria-labelledby="features-title">
         <div class="container">
-            <div class="ar-home-heading">
-                <p class="ar-home-kicker">What you can find</p>
-                <h2 id="features-title">この世界で楽しめること</h2>
-                <p>
-                    Minecraftの操作感はそのままに、装備を整え、スキルを選び、手応えのある戦闘や探索を楽しめます。
-                </p>
+            <div class="ar-journal-heading">
+                <div>
+                    <p class="ar-home-kicker">THE ASTRAL EXPERIENCE</p>
+                    <h2 id="features-title">この世界で<br />楽しめること。</h2>
+                </div>
+                <p>Minecraftの操作感はそのままに。<br />装備を整え、スキルを選び、気の向く方へ。<br />冒険の楽しみ方は、ひとつではありません。</p>
             </div>
 
-            <div class="ar-feature-grid">
-                <article class="ar-feature-card ar-feature-card--combat">
-                    <div class="ar-feature-card__number" aria-hidden="true">01</div>
-                    <div class="ar-feature-card__icon" aria-hidden="true">✦</div>
-                    <h3>戦って、組み替える</h3>
-                    <p>
-                        近接・遠距離・魔法、属性やシールドを含む独自戦闘を軸に、クラス、スキル、装備で戦い方を組み立てます。
-                    </p>
-                    <ul aria-label="関連システム">
-                        <li>クラス</li>
-                        <li>スキル</li>
-                        <li>装備</li>
-                        <li>ステータス</li>
-                    </ul>
-                </article>
+            <article class="ar-journal-story ar-journal-story--adventure">
+                <figure class="ar-journal-photo">
+                    <img src="~/images/feature-adventure-800.webp" srcset="/images/feature-adventure-800.webp 800w, /images/feature-adventure-1600.webp 1600w"
+                         sizes="(max-width: 767px) 100vw, 60vw" width="1600" height="994" alt="水面に映る、石と木で築かれた大きな門" loading="lazy" decoding="async" />
+                    <figcaption>EXPLORATION / 冒険のある風景</figcaption>
+                </figure>
+                <div class="ar-journal-story-copy">
+                    <p class="ar-journal-label">FOLLOW YOUR CURIOSITY</p>
+                    <h3>寄り道の先に、<br />次の冒険がある。</h3>
+                    <p>Mobとの戦闘、採集、クエスト、ボスやダンジョン。装備を整えて挑む日も、気ままに探索する日も、自分のペースで楽しめます。</p>
+                    <ul class="ar-journal-tags" aria-label="冒険の関連システム"><li>クエスト</li><li>採集</li><li>ボス</li><li>ダンジョン</li></ul>
+                </div>
+            </article>
 
-                <article class="ar-feature-card ar-feature-card--adventure">
-                    <div class="ar-feature-card__number" aria-hidden="true">02</div>
-                    <div class="ar-feature-card__icon" aria-hidden="true">⌖</div>
-                    <h3>寄り道も、攻略も</h3>
-                    <p>
-                        Mobとの戦闘、採集、クエスト、ボスやダンジョン。更新を重ねながら、冒険できる場所や遊び方を増やしていきます。
-                    </p>
-                    <ul aria-label="関連システム">
-                        <li>クエスト</li>
-                        <li>採集</li>
-                        <li>ボス</li>
-                        <li>ダンジョン</li>
-                    </ul>
+            <div class="ar-journal-stories">
+                <article class="ar-journal-story ar-journal-story--combat">
+                    <figure class="ar-journal-photo">
+                        <img src="~/images/feature-combat-800.webp" srcset="/images/feature-combat-800.webp 800w, /images/feature-combat-1600.webp 1600w"
+                             sizes="(max-width: 767px) 100vw, 50vw" width="1600" height="994" alt="緑に覆われた石造りの街に並ぶ、装備とスキルの案内" loading="lazy" decoding="async" />
+                        <figcaption>YOUR PLAYSTYLE / 自分だけの戦い方</figcaption>
+                    </figure>
+                    <div class="ar-journal-story-copy">
+                        <p class="ar-journal-label">MAKE IT YOUR OWN</p>
+                        <h3>戦って、組み替える。</h3>
+                        <p>近接・遠距離・魔法、属性やシールドを含む独自戦闘。クラス、スキル、装備を組み合わせ、自分に合った戦い方を見つけよう。</p>
+                        <ul class="ar-journal-tags" aria-label="戦闘の関連システム"><li>クラス</li><li>スキル</li><li>装備</li><li>ステータス</li></ul>
+                    </div>
                 </article>
-
-                <article class="ar-feature-card ar-feature-card--community">
-                    <div class="ar-feature-card__number" aria-hidden="true">03</div>
-                    <div class="ar-feature-card__icon" aria-hidden="true">◇</div>
-                    <h3>ひとりでも、仲間とも</h3>
-                    <p>
-                        パーティーでの共闘やショップ、プレイヤー同士の取引、マーケットを通して、それぞれの遊び方で世界に関われます。
-                    </p>
-                    <ul aria-label="関連システム">
-                        <li>パーティー</li>
-                        <li>ショップ</li>
-                        <li>取引</li>
-                        <li>マーケット</li>
-                    </ul>
+                <article class="ar-journal-story ar-journal-story--community">
+                    <figure class="ar-journal-photo">
+                        <img src="~/images/feature-community-800.webp" srcset="/images/feature-community-800.webp 800w, /images/feature-community-1600.webp 1600w"
+                             sizes="(max-width: 767px) 100vw, 50vw" width="1600" height="994" alt="人々の冒険が交わる、木造の建物と緑が広がる街" loading="lazy" decoding="async" />
+                        <figcaption>BETTER TOGETHER / この世界でつながる</figcaption>
+                    </figure>
+                    <div class="ar-journal-story-copy">
+                        <p class="ar-journal-label">FIND YOUR PEOPLE</p>
+                        <h3>ひとりでも、仲間とも。</h3>
+                        <p>パーティーでの共闘やショップ、プレイヤー同士の取引、マーケット。それぞれの遊び方が、この世界の中でつながっていきます。</p>
+                        <ul class="ar-journal-tags" aria-label="交流の関連システム"><li>パーティー</li><li>ショップ</li><li>取引</li><li>マーケット</li></ul>
+                    </div>
                 </article>
             </div>
         </div>
     </section>
 
-    <section class="ar-world-section" aria-labelledby="world-title">
-        <div class="ar-world-section__image" data-depth-layer="world" aria-hidden="true"></div>
-        <div class="ar-world-section__shade" aria-hidden="true"></div>
-        <div class="container position-relative">
-            <div class="ar-world-copy">
-                <p class="ar-home-kicker">A growing world</p>
-                <h2 id="world-title">遊び方は、これからも増えていく。</h2>
-                <p>
-                    新しいクエストやダンジョン、装備などを継続して追加していきます。
-                    訪れるたびに新しい発見がある、長く遊べる世界を目指して育てていきます。
-                </p>
+    <section class="ar-journal-world" aria-labelledby="world-title">
+        <img class="ar-journal-world-photo" src="~/images/bg-town-1920.webp" srcset="/images/bg-town-640.webp 640w, /images/bg-town-1280.webp 1280w, /images/bg-town-1920.webp 1920w"
+             sizes="100vw" width="1920" height="1080" alt="" loading="lazy" decoding="async" />
+        <div class="container">
+            <div class="ar-journal-world-copy">
+                <p class="ar-home-kicker">A GROWING WORLD</p>
+                <h2 id="world-title">訪れるたびに、<br />新しい発見を。</h2>
+                <p>新しいクエストやダンジョン、装備などを継続して追加していきます。長く遊べる世界を目指して、冒険の続きを育てています。</p>
+                <a asp-page="/Releases/Index" class="ar-journal-link">お知らせ・更新情報 <span aria-hidden="true">↗</span></a>
             </div>
         </div>
     </section>
@@ -140,26 +113,16 @@
     <section class="ar-discord-section" id="discord" aria-labelledby="discord-title">
         <div class="container">
             <div class="ar-discord-panel">
-                <div class="ar-discord-panel__mark" aria-hidden="true">
-                    <span></span><span></span><span></span>
-                </div>
+                <div class="ar-journal-community-sign" aria-hidden="true">Let's<br /> meet.</div>
                 <div class="ar-discord-panel__copy">
                     <p class="ar-discord-panel__eyebrow">OFFICIAL DISCORD COMMUNITY</p>
                     <h2 id="discord-title">冒険の続きは、公式Discordで。</h2>
-                    <p>
-                        最新のお知らせや更新情報を受け取り、攻略の相談やプレイヤー同士の交流、不具合の報告にご利用いただけます。
-                        細かいことでも公式Discordの改善案チャンネルへお知らせください。内容によっては修正されるかもしれません。
-                    </p>
-                    <ul aria-label="公式Discordでできること">
-                        <li>更新情報</li>
-                        <li>攻略・交流</li>
-                        <li>不具合報告</li>
-                    </ul>
+                    <p>最新のお知らせや更新情報、攻略の相談、プレイヤー同士の交流に。<br />不具合や小さな改善案も、公式Discordでお聞かせください。</p>
+                    <a href="https://discord.gg/Fja6zmpjGX" class="btn ar-discord-panel__button" target="_blank"
+                       rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">
+                        公式Discordに参加する <span aria-hidden="true">↗</span>
+                    </a>
                 </div>
-                <a href="https://discord.gg/Fja6zmpjGX" class="btn ar-discord-panel__button" target="_blank"
-                   rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">
-                    公式Discordに参加する <span aria-hidden="true">↗</span>
-                </a>
             </div>
         </div>
     </section>
@@ -168,7 +131,7 @@
         <div class="container">
             <div class="ar-home-heading ar-home-heading--center">
                 <p class="ar-home-kicker">Join Astral Record</p>
-                <h2 id="join-title">参加情報</h2>
+                <h2 id="join-title">さあ、冒険をはじめよう。</h2>
                 <p>Java版はバージョン1.21.11以上に対応しており、1.21.11を推奨しています。Java版でのプレイを前提に作られたサーバーですが、統合版からも参加できます。統合版ではプレイに支障が出る場合があるため、あらかじめご了承ください。</p>
             </div>
 

@@ -1,0 +1,241 @@
+/* Visual theme. Loaded after the shared components and before page-specific styles. */
+:root {
+    --ar-bg-dark: #132521;
+    --ar-bg-panel: #1c302b;
+    --ar-bg-panel-2: #253c35;
+    --ar-text: #f3f0e7;
+    --ar-text-muted: #b8c5bb;
+    --ar-gold: #bfa47a;
+    --ar-gold-light: #e5d3b0;
+    --ar-teal: #b3d3bf;
+    --ar-border: #b8c5bb40;
+    --ar-navbar-h: 84px;
+    --ar-paper: #eeeee6;
+    --ar-paper-ink: #20372f;
+    --ar-display: 'Noto Serif JP', 'Yu Mincho', serif;
+}
+
+/* Sections already reserve the fixed header with scroll-margin-top. */
+html { scroll-padding-top: 20px; }
+.ar-journal #main-content { scroll-margin-top: var(--ar-navbar-h); }
+body.ar-journal { background: var(--ar-bg-dark); }
+.ar-journal ::selection { background: #d6c19b; color: #152b28; }
+.ar-journal :focus-visible { outline: 3px solid #d6c19b; outline-offset: 5px; }
+.ar-journal .container { max-width: 1320px; padding-inline: clamp(24px, 5vw, 64px); }
+.ar-journal .ar-navbar { height: var(--ar-navbar-h); padding-block: 0; background: #152b28f5; border-bottom: 1px solid #ced6c92b; }
+.ar-journal .ar-navbar > .container { max-width: 1600px; flex-wrap: nowrap; gap: 20px; }
+.ar-journal .ar-brand { gap: 12px; margin: 0; text-align: left; word-break: normal; white-space: nowrap; }
+.ar-journal .ar-brand-icon { width: 36px; height: 36px; border: 0; border-radius: 50%; }
+.ar-journal .ar-brand-text { color: #f3f0e7; font-size: 1.16rem; line-height: 1.2; font-weight: 400; letter-spacing: .035em; }
+.ar-brand-text small { display: block; font: 500 .5rem 'Noto Sans JP', sans-serif; letter-spacing: .3em; margin-top: 6px; }
+.ar-journal .ar-brand-alpha { color: #c7d5c3; border-color: #829d8880; border-radius: 2px; font-size: .5rem; }
+.ar-journal .ar-nav-actions { gap: 22px; }
+.ar-nav-explore { display: flex; gap: 24px; }
+.ar-nav-explore a { color: #d2dacd; text-decoration: none; font-size: .75rem; white-space: nowrap; padding-block: 14px; }
+.ar-nav-explore a:hover { color: white; }
+.ar-journal .ar-nav-home { color: #d2dacd; }
+.ar-journal .ar-header-session { gap: 8px; }
+.ar-journal .ar-header-login { display: inline-flex; align-items: center; min-height: 44px; border: 0; padding: 12px 4px; color: #f3f0e7; }
+.ar-journal .ar-header-session-label { color: #b8c5bb; }
+.ar-journal .ar-nav-discord { flex-shrink: 0; white-space: nowrap; background: transparent; color: #f3f0e7 !important; border-color: #a2b4a36b; border-radius: 2px; padding: 12px 14px !important; font-size: .72rem; font-weight: 400; }
+.ar-journal .ar-nav-discord:hover { background: #31463c; }
+.ar-journal .ar-menu-toggle { flex-shrink: 0; white-space: nowrap; background: transparent; border: 0; border-left: 1px solid #a2b4a34f; border-radius: 0; min-height: 44px; padding: 8px 0 8px 24px; font-size: .72rem; }
+.ar-journal .ar-menu-lines i { background: #e5d3b0; }
+.ar-journal .ar-menu { background: #172c27; }
+.ar-journal .ar-menu .offcanvas-title { color: #f3f0e7; }
+.ar-journal .ar-menu-section a { min-height: 48px; }
+.ar-journal .ar-menu-account { background: #223e34; border-color: #7f9f8566; border-radius: 3px; }
+.ar-journal .ar-menu-admin { background: #39392a; border-radius: 3px; }
+.ar-journal .ar-confirm { background: #1c302b; border-radius: 4px; }
+
+/* A quiet, full-bleed opening; its source is an existing in-world image. */
+.ar-journal .ar-home { background: var(--ar-bg-dark); }
+.ar-journal .ar-home-hero { min-height: min(850px, calc(100svh - var(--ar-navbar-h))); background: #52665a; padding-bottom: 56px; }
+.ar-journal-landscape, .ar-journal-hero-shade { position: absolute; inset: 0; pointer-events: none; }
+.ar-journal-landscape img { width: 100%; height: 100%; object-fit: cover; object-position: center 44%; }
+.ar-journal-hero-shade { background: linear-gradient(90deg, #102720de, #13251d80 46%, #17281e0d 80%), linear-gradient(0deg, #152b28bd, transparent 35%); }
+.ar-journal .ar-home-hero__content { padding-block: clamp(64px, 8vw, 112px); }
+.ar-journal .ar-home-kicker { font: 500 .67rem 'Noto Sans JP', sans-serif; letter-spacing: .2em; color: #d7dbc9; margin-bottom: 26px; }
+.ar-journal-star { font-size: 1rem; margin-right: 12px; color: #e5d3b0; }
+.ar-journal .ar-home-title { font-family: var(--ar-display); font-weight: 500; font-size: clamp(2.6rem, 5.6vw, 5rem); line-height: 1.5; letter-spacing: .015em; text-shadow: 0 2px 24px #0b1b1270; animation: none; }
+.ar-journal .ar-home-title span:last-child { color: #f3f0e7; background: none; }
+.ar-journal .ar-home-intro { max-width: 36em; font-size: .95rem; line-height: 2.15; color: #efefe4; margin-top: 24px; animation: none; }
+.ar-journal .ar-home-actions { margin-top: 36px; gap: 30px; align-items: center; animation: none; }
+.ar-journal .ar-home-hero__content .ar-home-kicker { animation: none; }
+.ar-journal .ar-home-button { border-radius: 2px; min-height: 54px; gap: 32px; padding: 14px 26px; box-shadow: none; font-size: .85rem; }
+.ar-journal .ar-home-button--primary { background: #e7dec9; color: #20372f; border: 1px solid #e7dec9; }
+.ar-journal .ar-home-button--primary:hover { background: #f8f2e4; color: #10251d; transform: translateY(-2px); box-shadow: none; }
+.ar-journal-link { display: inline-flex; align-items: center; justify-content: space-between; gap: 26px; padding: 12px 0; color: #f3f0e7; text-decoration: none; border-bottom: 1px solid #d2dacd80; font-size: .85rem; }
+.ar-journal-link:hover { color: white; border-bottom-color: white; }
+.ar-journal-hero-foot { position: absolute; bottom: 25px; left: 0; right: 0; display: flex; justify-content: space-between; gap: 20px; color: #eeeee6; font-size: .55rem; letter-spacing: .18em; }
+.ar-journal .ar-server-strip { background: #1d342d; border-block: 1px solid #b5c4af30; }
+.ar-journal .ar-server-strip-inner { padding-block: 25px; }
+.ar-journal .ar-server-presence small, .ar-journal .ar-server-population > small, .ar-journal .ar-server-checked small, .ar-journal .ar-server-capacity { color: #b8c5bb; }
+.ar-journal .ar-server-population > strong { color: #f3f0e7; }
+.ar-journal .ar-server-checked { color: #e5d3b0; }
+
+/* The field journal: one wide feature followed by a staggered pair. */
+.ar-journal .ar-feature-section { background: var(--ar-paper); color: var(--ar-paper-ink); padding-block: clamp(64px, 8vw, 120px); }
+.ar-journal-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; margin-bottom: 64px; }
+.ar-journal .ar-feature-section .ar-home-kicker { color: #536757; margin-bottom: 20px; }
+.ar-journal-heading h2 { font: 500 clamp(2rem, 4vw, 3.4rem)/1.5 var(--ar-display); letter-spacing: .02em; margin: 0; }
+.ar-journal-heading > p { font-size: .88rem; line-height: 2.1; margin: 0 0 8px; color: #536155; }
+.ar-journal-story { min-width: 0; }
+.ar-journal-story--adventure { display: grid; grid-template-columns: 1.5fr 1fr; gap: clamp(30px, 5vw, 72px); align-items: center; margin-bottom: 80px; }
+.ar-journal-photo { position: relative; margin: 0; background: #c2c6ba; overflow: hidden; }
+.ar-journal-photo img { display: block; width: 100%; height: auto; aspect-ratio: 1.55; object-fit: cover; transition: transform .8s ease; }
+.ar-journal-photo figcaption { position: absolute; bottom: 0; left: 0; right: 0; padding: 38px 24px 20px; background: linear-gradient(transparent, #0d1d17d9); color: #eeeee6; font-size: .57rem; letter-spacing: .15em; pointer-events: none; }
+.ar-journal-label { font-size: .58rem; font-weight: 500; letter-spacing: .19em; color: #5b6c5b; margin: 0 0 20px; }
+.ar-journal-story-copy h3 { font: 500 clamp(1.5rem, 2.5vw, 2.15rem)/1.6 var(--ar-display); margin: 0 0 22px; color: #20372f; }
+.ar-journal-story-copy > p:not(.ar-journal-label) { font-size: .9rem; line-height: 2; color: #536155; margin: 0; max-width: 36em; }
+.ar-journal-tags { display: flex; flex-wrap: wrap; gap: 7px 18px; list-style: none; margin: 24px 0 0; padding: 18px 0 0; border-top: 1px solid #8b998755; }
+.ar-journal-tags li { font-size: .67rem; color: #536155; }
+.ar-journal-stories { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 88px); }
+.ar-journal-stories .ar-journal-story-copy { padding-top: 28px; }
+.ar-journal-story--community { margin-top: 90px; }
+.ar-journal-stories .ar-journal-photo img { aspect-ratio: 1.6; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .ar-journal-story:hover .ar-journal-photo img { transform: scale(1.025); }
+}
+
+.ar-journal-world { position: relative; isolation: isolate; min-height: 620px; display: flex; align-items: center; padding-block: 100px; background: #162922; overflow: hidden; }
+.ar-journal-world::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #10261ff5, #10261fa3 45%, #10261f22); }
+.ar-journal-world-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.ar-journal-world-copy { max-width: 480px; }
+.ar-journal-world-copy h2 { font: 500 clamp(2.2rem, 4vw, 3.4rem)/1.55 var(--ar-display); margin-bottom: 26px; color: #f3f0e7; }
+.ar-journal-world-copy > p:not(.ar-home-kicker) { font-size: .9rem; line-height: 2; color: #d3dace; max-width: 30em; margin-bottom: 24px; }
+.ar-journal .ar-discord-section { background: #dce3d7; padding-block: 72px; }
+.ar-journal .ar-discord-panel { background: none; box-shadow: none; border: 0; border-radius: 0; padding: 0; grid-template-columns: 1fr 1.65fr; gap: 60px; }
+.ar-journal .ar-discord-panel::before, .ar-journal .ar-discord-panel::after { content: none; }
+.ar-journal-community-sign { font: 400 clamp(4rem, 8vw, 7rem)/.95 'Cinzel', serif; color: #596e52; letter-spacing: -.055em; }
+.ar-journal .ar-discord-panel__eyebrow { color: #536155; font: 500 .6rem 'Noto Sans JP', sans-serif; letter-spacing: .16em; margin-bottom: 20px; }
+.ar-journal .ar-discord-panel__copy h2 { font-family: var(--ar-display); font-weight: 500; font-size: clamp(1.45rem, 2.3vw, 2rem); color: #20372f; line-height: 1.7; }
+.ar-journal .ar-discord-panel__copy > p:not(.ar-discord-panel__eyebrow) { color: #536155; font-size: .85rem; line-height: 2; margin-bottom: 25px; }
+.ar-journal .ar-discord-panel__button { background: #253f34; color: #fff; border: 1px solid #253f34; border-radius: 2px; padding: 15px 24px; min-height: 50px; font-size: .8rem; }
+.ar-journal .ar-discord-panel__button:hover { background: #142b22; transform: translateY(-2px); }
+
+/* Existing participation controls retain their markup and data contracts. */
+.ar-journal .ar-join-section { background: #152b25; padding-block: clamp(64px, 8vw, 110px); }
+.ar-journal .ar-home-heading h2 { font: 500 clamp(1.9rem, 4vw, 3.2rem)/1.6 var(--ar-display); letter-spacing: .025em; color: #f3f0e7; text-wrap: balance; }
+.ar-journal .ar-home-heading > p:last-child { font-size: .88rem; max-width: 55em; color: #c1ccbe; }
+.ar-journal .ar-edition-card { background: #1b342b; border: 1px solid #879a8055; border-radius: 3px; box-shadow: none; }
+.ar-journal .ar-edition-card--available::before { background: #95ac8b; }
+.ar-journal .ar-edition-card h3 { font-family: 'Cinzel', serif; font-weight: 400; font-size: 1.2rem; line-height: 1.6; }
+.ar-journal .ar-edition-state--open { color: #d1e0c2; border-color: #95ac8b80; background: #82977215; }
+.ar-journal .ar-address-button { border-color: #8b9f8566; background: #10251d; min-height: 88px; gap: 14px; }
+.ar-journal .ar-address-button strong { font-family: 'Cinzel', serif; color: #f0e2c5; font-size: clamp(1rem, 2vw, 1.45rem); overflow-wrap: anywhere; }
+.ar-journal .ar-address-button:hover, .ar-journal .ar-address-button[data-copy-state="done"] { background: #284737; border-color: #d3dfbf; }
+.ar-journal .ar-address-button__copy { color: #d1d9c6; }
+.ar-journal .ar-join-steps span { border-color: #879a8055; background: #314b3b; color: #e6ddc9; border-radius: 50%; }
+.ar-journal .ar-alpha-notice { border-radius: 3px; border-color: #b9a57c6b; background: #b9a57c0c; box-shadow: none; }
+.ar-journal .ar-join-footer { border-color: #879a8055; }
+.ar-journal .ar-join-footer a { min-height: 44px; align-items: center; }
+
+/* Common player, login, legal, and administration surfaces. */
+.ar-journal .ar-portal-heading h1, .ar-journal .ar-page-hero-title, .ar-journal .ar-login-card h1 { font-family: var(--ar-display); font-weight: 500; letter-spacing: .02em; }
+.ar-journal .ar-portal-eyebrow { color: #bdccad; }
+.ar-journal .ar-card, .ar-journal .ar-panel, .ar-journal .ar-stat, .ar-journal .ar-player-card, .ar-journal .ar-release-card { background: #1c302b; border-color: #9aaf9640; border-radius: 4px; box-shadow: none; }
+.ar-journal .ar-stat::after, .ar-journal .ar-profile-banner::after { content: none; }
+.ar-journal .ar-player-card:hover { background: #253e32; border-color: #a2b794; transform: translateY(-3px); }
+.ar-journal .ar-profile-banner { background: linear-gradient(90deg, #142b24f5, #142b246b), url('/images/bg-sky-1920.webp') center / cover; border-color: #9aaf9660; border-radius: 4px; }
+.ar-journal .ar-player-emblem { animation: none; border-radius: 4px; box-shadow: none; background: #365143; border-color: #9aaf9660; }
+.ar-journal .ar-legal-hero { background-color: #152b28; min-height: 300px; }
+.ar-journal .ar-legal-hero .ar-hero-overlay { background: linear-gradient(180deg, #152b2870, #132521); }
+.ar-journal .ar-legal-stars { display: none; }
+.ar-journal .ar-legal-shell { background: #1c302b; border-color: #9aaf9655; border-radius: 3px; }
+.ar-journal .ar-legal-shell .ar-terms-heading { color: #e5d3b0; }
+.ar-journal .ar-legal-shell .ar-terms-num { color: #d4dfc7; border-color: #9aaf9660; background: #30483a; }
+.ar-journal .ar-login-page { background: #152b28; padding-block: 72px; }
+.ar-journal .ar-login-page__backdrop { background-image: linear-gradient(90deg, #152b28bf, #152b28ed), url('/images/bg-town-1920.webp'); filter: none; }
+.ar-journal .ar-login-card { padding: clamp(24px, 4vw, 48px); background: #1c302bf5; border: 1px solid #9aaf9660; border-radius: 4px; box-shadow: 0 24px 80px #07181045; }
+.ar-journal .ar-login-card h1 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.6; }
+.ar-journal .ar-login-card details > summary { font-size: .95rem; line-height: 1.7; padding-block: 12px; }
+.ar-journal .ar-login-card__notice, .ar-journal .ar-login-ownership { background: #2b4134; border-color: #97ab8366; color: #d9decf; }
+.ar-journal .ar-login-card .form-control { background: #11251e; color: #f3f0e7; border-color: #8fa48c; border-radius: 2px; }
+.ar-journal .ar-login-card .form-control:focus { border-color: #d6c19b; box-shadow: 0 0 0 3px #d6c19b33; }
+.ar-journal .ar-login-card .form-text, .ar-journal .ar-login-card__foot { color: #b8c5bb; }
+.ar-journal .ar-login-card__foot { border-color: #9aaf9655; }
+.ar-journal .ar-login-card__foot a { color: #e5d3b0; }
+.ar-journal .ar-footer { background: #10231e; border-top: 1px solid #879a8050; padding-top: 56px; }
+.ar-footer-wordmark { font: 400 clamp(2.5rem, 7.6vw, 7rem)/1.1 'Cinzel', serif; color: #d5dccb; letter-spacing: -.025em; padding-bottom: 50px; margin-bottom: 34px; border-bottom: 1px solid #879a8050; }
+.ar-footer-wordmark > span { display: block; margin-top: 22px; font: 500 .56rem 'Noto Sans JP', sans-serif; letter-spacing: .25em; color: #aabc9f; }
+.ar-journal .ar-footer-title { color: #e7dec9; }
+.ar-journal .ar-footer-icon { border: 0; border-radius: 50%; }
+.ar-journal .ar-footer-links a { display: inline-flex; min-height: 44px; align-items: center; color: #c6d1bd; }
+.ar-journal .ar-footer-hr { border-color: #879a8055; }
+.ar-journal .ar-footer-copy { color: #a8b89e; }
+
+@media (max-width: 1199px) {
+    .ar-nav-explore { display: none; }
+    .ar-journal .ar-navbar > .container { padding-inline: 30px; }
+    .ar-journal .ar-nav-actions { gap: 18px; }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+    .ar-journal .ar-brand-alpha { display: none; }
+    .ar-journal .ar-navbar > .container { gap: 12px; padding-inline: 24px; }
+    .ar-journal .ar-nav-actions { gap: 14px; }
+}
+@media (max-width: 767px) {
+    :root { --ar-navbar-h: 116px; }
+    .ar-journal .ar-navbar > .container { flex-wrap: wrap; gap: 10px; padding: 10px 24px; }
+    .ar-journal .ar-brand { width: 100%; }
+    .ar-journal .ar-brand-text { font-size: 1rem; }
+    .ar-journal .ar-brand-icon { width: 30px; height: 30px; }
+    .ar-brand-text small { font-size: .45rem; margin-top: 3px; }
+    .ar-journal .ar-brand-alpha { margin-left: auto; }
+    .ar-journal .ar-navbar .ar-nav-actions { width: 100%; justify-content: flex-end; gap: 15px; }
+    .ar-journal .ar-header-session { flex-direction: row; margin-right: auto; }
+    .ar-journal .ar-header-account strong { max-width: 90px; }
+    .ar-journal .ar-header-session-label { font-size: .57rem; }
+    .ar-journal .ar-nav-home { font-size: .65rem; }
+    .ar-journal .ar-nav-discord { font-size: .65rem; padding: 10px 11px !important; min-height: 44px; display: flex; align-items: center; }
+    .ar-journal .ar-menu-toggle { font-size: .65rem; padding-left: 15px; gap: 8px; }
+    .ar-journal .ar-home-hero { min-height: 660px; padding-bottom: 52px; align-items: end; }
+    .ar-journal-landscape img { object-position: 64% center; }
+    .ar-journal-hero-shade { background: linear-gradient(0deg, #10271ff5, #10271fba 45%, #10271f18 100%); }
+    .ar-journal .ar-home-hero__content { padding-top: 160px; padding-bottom: 36px; }
+    .ar-journal .ar-home-title { font-size: clamp(2rem, 7.7vw, 3.4rem); line-height: 1.55; }
+    .ar-journal .ar-home-intro { font-size: .85rem; line-height: 2; }
+    .ar-journal .ar-home-kicker { font-size: .56rem; margin-bottom: 22px; letter-spacing: .16em; }
+    .ar-journal .ar-home-actions { gap: 22px; margin-top: 28px; }
+    .ar-journal .ar-home-button { gap: 22px; padding: 13px 22px; font-size: .8rem; }
+    .ar-journal-link { font-size: .75rem; gap: 18px; }
+    .ar-journal-hero-foot { bottom: 22px; font-size: .5rem; }
+    .ar-journal-hero-foot span:last-child { display: none; }
+    .ar-journal .ar-server-strip-inner { flex-wrap: wrap; gap: 20px; padding-block: 24px; }
+    .ar-journal .ar-server-population { text-align: right; }
+    .ar-journal .ar-server-checked { flex-basis: 100%; text-align: left; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 16px; border-top: 1px solid #879a8050; }
+    .ar-journal-heading { display: block; margin-bottom: 36px; }
+    .ar-journal-heading > p { margin-top: 24px; font-size: .8rem; }
+    .ar-journal-story--adventure { grid-template-columns: 1fr; gap: 28px; margin-bottom: 48px; }
+    .ar-journal-stories { grid-template-columns: 1fr; gap: 48px; }
+    .ar-journal-story--community { margin-top: 0; }
+    .ar-journal-story-copy h3 { font-size: 1.65rem; margin-bottom: 16px; }
+    .ar-journal-story-copy > p:not(.ar-journal-label) { font-size: .85rem; }
+    .ar-journal-label { margin-bottom: 12px; }
+    .ar-journal-world { min-height: 560px; padding-block: 72px; }
+    .ar-journal-world::after { background: #10261fc4; }
+    .ar-journal-world-photo { object-position: 58% center; }
+    .ar-journal .ar-discord-section { padding-block: 52px; }
+    .ar-journal .ar-discord-panel { grid-template-columns: 1fr; gap: 30px; }
+    .ar-journal-community-sign { font-size: 3.5rem; }
+    .ar-journal-community-sign br { display: none; }
+    .ar-journal .ar-discord-panel__button { width: auto; }
+    .ar-journal .ar-address-button { align-items: flex-start; flex-direction: column; }
+    .ar-journal .ar-edition-card__head { gap: 12px; }
+    .ar-journal .ar-footer-wordmark { padding-bottom: 32px; }
+    .ar-journal .ar-login-page { padding-block: 40px; }
+    .ar-journal .ar-login-page .container { padding-inline: 16px; }
+}
+@media (max-width: 359px) {
+    .ar-journal .ar-navbar > .container, .ar-journal .container { padding-inline: 18px; }
+    .ar-journal .ar-navbar .ar-nav-actions { gap: 9px; }
+    .ar-journal .ar-header-session-label { display: none; }
+    .ar-journal .ar-home-actions { gap: 15px; }
+    .ar-journal .ar-home-button { padding-inline: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .ar-journal *, .ar-journal *::before, .ar-journal *::after { animation: none !important; transition: none !important; }
+    .ar-journal .ar-reveal-ready { opacity: 1; transform: none; }
+}

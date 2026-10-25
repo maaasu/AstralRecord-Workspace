@@ -69,39 +69,4 @@
             }, 2400);
         });
     });
-
-    const home = document.querySelector('.ar-home');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const finePointer = window.matchMedia('(pointer: fine)');
-
-    if (!home || reduceMotion.matches || !finePointer.matches) {
-        return;
-    }
-
-    let frameId = 0;
-    let pointerX = 0;
-    let pointerY = 0;
-
-    const updateDepth = () => {
-        home.style.setProperty('--pointer-x', `${pointerX.toFixed(2)}px`);
-        home.style.setProperty('--pointer-y', `${pointerY.toFixed(2)}px`);
-        frameId = 0;
-    };
-
-    home.addEventListener('pointermove', (event) => {
-        pointerX = ((event.clientX / window.innerWidth) - 0.5) * 22;
-        pointerY = ((event.clientY / window.innerHeight) - 0.5) * 18;
-
-        if (!frameId) {
-            frameId = window.requestAnimationFrame(updateDepth);
-        }
-    }, { passive: true });
-
-    home.addEventListener('pointerleave', () => {
-        pointerX = 0;
-        pointerY = 0;
-        if (!frameId) {
-            frameId = window.requestAnimationFrame(updateDepth);
-        }
-    }, { passive: true });
 })();
