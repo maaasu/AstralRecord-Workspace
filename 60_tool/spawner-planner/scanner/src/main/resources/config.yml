@@ -1,4 +1,5 @@
 worldName: eriva_supercontinent
+scanMode: region
 minX: -1536
 minZ: 1088
 size: 768

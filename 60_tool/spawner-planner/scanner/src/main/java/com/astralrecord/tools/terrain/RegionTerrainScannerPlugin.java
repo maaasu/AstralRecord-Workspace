@@ -3,6 +3,7 @@ package com.astralrecord.tools.terrain;
 import com.google.gson.stream.JsonWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -10,10 +11,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.HeightMap;
@@ -35,6 +40,9 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
     private int okCells;
     private int unknownCells;
     private boolean finished;
+    private int chunksThisTick;
+    private long tickStartedAt;
+    private int absentCells;
 
     @Override
     public void onEnable() {
@@ -94,18 +102,30 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         BufferedWriter writer = Files.newBufferedWriter(partial, StandardCharsets.UTF_8);
         json = new JsonWriter(writer);
         json.beginObject();
-        json.name("schemaVersion").value(1);
+        json.name("schemaVersion").value(settings.continent() ? 2 : 1);
         json.name("world").value(world.getName());
         json.name("minX").value(settings.minX());
         json.name("minZ").value(settings.minZ());
         json.name("width").value(settings.size());
-        json.name("height").value(settings.size());
+        json.name("height").value(settings.height());
         json.name("cellSize").value(settings.cellSize());
         json.name("capturedAt").value(Instant.now().toString());
+        if (settings.continent()) {
+            json.name("allocatedChunks").value(settings.allocatedChunks().cardinality());
+            json.name("totalChunks").value(settings.totalChunks());
+            json.name("connectivity").value("not_evaluated");
+            json.name("outsideBoundsStatus").value("outside");
+        }
         json.name("cells").beginArray();
         getLogger().info("Scanning " + settings.totalChunks() + " existing chunks in "
             + settings.worldName() + "; output=" + output);
-        Bukkit.getScheduler().runTask(this, this::nextChunk);
+        Bukkit.getScheduler().runTask(this, this::startTick);
+    }
+
+    private void startTick() {
+        chunksThisTick = 0;
+        tickStartedAt = System.nanoTime();
+        nextChunk();
     }
 
     private void nextChunk() {
@@ -120,7 +140,13 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         int chunkX = Math.floorDiv(settings.minX(), 16) + chunkIndex % chunksPerSide;
         int chunkZ = Math.floorDiv(settings.minZ(), 16) + chunkIndex / chunksPerSide;
         int currentRequest = ++requestId;
+        chunksThisTick++;
         try {
+            if (settings.continent() && !settings.allocatedChunks().get(chunkIndex)) {
+                writeUnknownChunk(chunkX, chunkZ, "chunk_not_allocated");
+                advance();
+                return;
+            }
             if (!world.isChunkGenerated(chunkX, chunkZ)) {
                 writeUnknownChunk(chunkX, chunkZ, "chunk_not_generated");
                 advance();
@@ -197,6 +223,10 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
     }
 
     private void scanCell(Chunk chunk, int localX, int localZ, int x, int z) throws IOException {
+        if (settings.continent()) {
+            scanContinentCell(chunk, x, z);
+            return;
+        }
         int cellSize = settings.cellSize();
         Map<String, Integer> surfaces = new LinkedHashMap<>();
         Map<String, Integer> grounds = new LinkedHashMap<>();
@@ -251,6 +281,87 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         }
         writeCell(x, z, surfaces, grounds, biomes, safe, walkableBelowSurface,
             waterCount, treeCount);
+    }
+
+    private void scanContinentCell(Chunk chunk, int x, int z) throws IOException {
+        Map<String, Integer> surfaces = new LinkedHashMap<>();
+        Map<String, Integer> grounds = new LinkedHashMap<>();
+        Map<String, Integer> biomes = new LinkedHashMap<>();
+        List<Candidate> safe = new ArrayList<>(256);
+        int waterCount = 0;
+        int treeCount = 0;
+        for (int dz = 0; dz < 16; dz++) {
+            for (int dx = 0; dx < 16; dx++) {
+                int blockX = x + dx;
+                int blockZ = z + dz;
+                int topY = world.getHighestBlockAt(blockX, blockZ, HeightMap.WORLD_SURFACE).getY();
+                Block top = chunk.getBlock(dx, topY, dz);
+                count(surfaces, key(top.getType()));
+                count(biomes, top.getBiome().getKey().toString());
+                if (top.isLiquid() || top.getType() == Material.WATER) waterCount++;
+                if (isTree(top.getType())) treeCount++;
+                int floor = Math.max(world.getMinHeight(), topY - 32);
+                for (int y = topY; y >= floor; y--) {
+                    Block ground = chunk.getBlock(dx, y, dz);
+                    Material type = ground.getType();
+                    if (!type.isSolid() || isTree(type)) continue;
+                    count(grounds, key(type));
+                    int feetY = y + 1;
+                    if (supportsFeet(type) && !isHazard(type) && feetY + 1 < world.getMaxHeight()
+                        && isClear(chunk.getBlock(dx, feetY, dz))
+                        && isClear(chunk.getBlock(dx, feetY + 1, dz))) {
+                        safe.add(new Candidate(blockX, feetY, blockZ));
+                    }
+                    break;
+                }
+            }
+        }
+        writeContinentCell(x, z, surfaces, grounds, biomes, safe, waterCount, treeCount);
+    }
+
+    private void writeContinentCell(int x, int z, Map<String, Integer> surfaces,
+                                    Map<String, Integer> grounds, Map<String, Integer> biomes,
+                                    List<Candidate> safe, int waterCount, int treeCount) throws IOException {
+        Candidate candidate = null;
+        Integer minY = null;
+        Integer maxY = null;
+        if (!safe.isEmpty()) {
+            List<Integer> elevations = safe.stream().map(Candidate::y).sorted().toList();
+            int median = elevations.get(elevations.size() / 2);
+            candidate = safe.stream().min(Comparator
+                .comparingInt((Candidate value) -> Math.abs(value.y() - median))
+                .thenComparingInt(value -> Math.abs(value.x() - (x + 8)) + Math.abs(value.z() - (z + 8))))
+                .orElseThrow();
+            minY = elevations.getFirst();
+            maxY = elevations.getLast();
+        }
+        json.beginObject();
+        json.name("x").value(x);
+        json.name("z").value(z);
+        json.name("y"); nullable(candidate == null ? null : candidate.y());
+        json.name("surface"); nullable(mostCommon(surfaces));
+        json.name("ground"); nullable(mostCommon(grounds));
+        json.name("biome"); nullable(mostCommon(biomes));
+        json.name("safeCount").value(safe.size());
+        json.name("waterCount").value(waterCount);
+        json.name("treeCount").value(treeCount);
+        json.name("minY"); nullable(minY);
+        json.name("maxY"); nullable(maxY);
+        json.name("candidateX"); nullable(candidate == null ? null : candidate.x());
+        json.name("candidateZ"); nullable(candidate == null ? null : candidate.z());
+        json.name("candidateY"); nullable(candidate == null ? null : candidate.y());
+        json.name("groundCounts"); writeCounts(grounds);
+        json.name("biomeCounts"); writeCounts(biomes);
+        json.name("status").value("ok");
+        json.endObject();
+    }
+
+    private void writeCounts(Map<String, Integer> counts) throws IOException {
+        json.beginObject();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            json.name(entry.getKey()).value(entry.getValue());
+        }
+        json.endObject();
     }
 
     private void writeCell(int x, int z, Map<String, Integer> surfaces,
@@ -327,6 +438,13 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         json.beginObject();
         json.name("x").value(x);
         json.name("z").value(z);
+        if (settings.continent()) {
+            json.name("status").value(reason.equals("chunk_not_allocated") ? "absent" : "failed");
+            json.name("reason").value(reason);
+            json.endObject();
+            if (reason.equals("chunk_not_allocated")) absentCells++; else unknownCells++;
+            return;
+        }
         json.name("y").nullValue();
         json.name("surface").nullValue();
         json.name("ground").nullValue();
@@ -355,7 +473,12 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
             getLogger().info("Scanned chunks " + chunkIndex + "/" + settings.totalChunks()
                 + "; ok cells=" + okCells + "; unknown cells=" + unknownCells);
         }
-        Bukkit.getScheduler().runTaskLater(this, this::nextChunk, 1L);
+        if (chunksThisTick < settings.chunksPerTick()
+            && System.nanoTime() - tickStartedAt < 30_000_000L) {
+            nextChunk();
+        } else {
+            Bukkit.getScheduler().runTaskLater(this, this::startTick, 1L);
+        }
     }
 
     private void complete() {
@@ -372,7 +495,7 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
             }
             finished = true;
             getLogger().info("Terrain scan complete: " + output + "; ok cells=" + okCells
-                + "; unknown cells=" + unknownCells);
+                + "; absent cells=" + absentCells + "; failed cells=" + unknownCells);
             if (settings.shutdownAfterScan()) {
                 Bukkit.getScheduler().runTaskLater(this, Bukkit::shutdown, 20L);
             }
@@ -445,40 +568,112 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
 
     private record Candidate(int x, int y, int z) {}
 
-    private record ScanSettings(String worldName, int minX, int minZ, int size, int cellSize,
-                                String outputFile, boolean autoStart, boolean shutdownAfterScan) {
-        static ScanSettings read(RegionTerrainScannerPlugin plugin) {
+    private record ScanSettings(String worldName, int minX, int minZ, int size, int height, int cellSize,
+                                String outputFile, boolean autoStart, boolean shutdownAfterScan,
+                                boolean continent, int chunksPerTick, BitSet allocatedChunks) {
+        static ScanSettings read(RegionTerrainScannerPlugin plugin) throws IOException {
             String worldName = plugin.getConfig().getString("worldName", "");
             int minX = plugin.getConfig().getInt("minX");
             int minZ = plugin.getConfig().getInt("minZ");
             int size = plugin.getConfig().getInt("size");
+            int height = size;
             int cellSize = plugin.getConfig().getInt("cellSize");
             String outputFile = plugin.getConfig().getString("outputFile", "");
             int chunksPerTick = plugin.getConfig().getInt("chunksPerTick");
+            String scanMode = plugin.getConfig().getString("scanMode", "region");
+            if (!scanMode.equals("region") && !scanMode.equals("continent")) {
+                throw new IllegalArgumentException("scanMode must be region or continent");
+            }
+            boolean continent = scanMode.equals("continent");
             if (worldName.isBlank() || worldName.contains("/") || worldName.contains("\\")
                 || worldName.equals(".") || worldName.equals("..")) {
                 throw new IllegalArgumentException("worldName must be a simple folder name");
             }
-            if (size <= 0 || size > 1024 || size % 16 != 0 || minX % 16 != 0 || minZ % 16 != 0
+            BitSet allocated = new BitSet();
+            if (continent) {
+                if (cellSize != 16) {
+                    throw new IllegalArgumentException("Continent scan requires cellSize=16");
+                }
+                Path worldPath = Bukkit.getWorldContainer().toPath().toAbsolutePath().normalize()
+                    .resolve(worldName);
+                McaCoverage coverage = McaCoverage.read(worldPath.resolve("region"));
+                minX = coverage.minChunkX() * 16;
+                minZ = coverage.minChunkZ() * 16;
+                size = coverage.widthChunks() * 16;
+                height = coverage.heightChunks() * 16;
+                allocated = coverage.allocated();
+            }
+            int maxSize = continent ? 8192 : 1024;
+            if (size <= 0 || size > maxSize || size % 16 != 0 || minX % 16 != 0 || minZ % 16 != 0
+                || height <= 0 || height > maxSize || height % 16 != 0
                 || cellSize <= 0 || 16 % cellSize != 0
                 || (long) minX + size > Integer.MAX_VALUE || (long) minZ + size > Integer.MAX_VALUE
-                || (long) minX + size < Integer.MIN_VALUE || (long) minZ + size < Integer.MIN_VALUE) {
+                || (long) minX + size < Integer.MIN_VALUE || (long) minZ + height < Integer.MIN_VALUE
+                || (long) minZ + height > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Region must be chunk-aligned and cellSize must divide 16");
             }
-            if (chunksPerTick != 1) {
-                throw new IllegalArgumentException("chunksPerTick must be 1");
+            if (chunksPerTick < 1 || chunksPerTick > (continent ? 64 : 1)) {
+                throw new IllegalArgumentException("chunksPerTick is outside the supported range");
             }
             if (outputFile.isBlank() || Path.of(outputFile).isAbsolute()) {
                 throw new IllegalArgumentException("outputFile must be relative to the server root");
             }
-            return new ScanSettings(worldName, minX, minZ, size, cellSize, outputFile,
+            return new ScanSettings(worldName, minX, minZ, size, height, cellSize, outputFile,
                 plugin.getConfig().getBoolean("autoStart"),
-                plugin.getConfig().getBoolean("shutdownAfterScan"));
+                plugin.getConfig().getBoolean("shutdownAfterScan"), continent, chunksPerTick, allocated);
         }
 
         int totalChunks() {
-            int side = size / 16;
-            return Math.multiplyExact(side, side);
+            return Math.multiplyExact(size / 16, height / 16);
+        }
+    }
+
+    private record McaCoverage(int minChunkX, int minChunkZ, int widthChunks, int heightChunks,
+                               BitSet allocated) {
+        private static final Pattern FILE_NAME = Pattern.compile("r\\.(-?\\d+)\\.(-?\\d+)\\.mca");
+
+        static McaCoverage read(Path regionDir) throws IOException {
+            if (!Files.isDirectory(regionDir)) {
+                throw new IllegalArgumentException("World region directory is missing: " + regionDir);
+            }
+            List<int[]> chunks = new ArrayList<>();
+            try (Stream<Path> paths = Files.list(regionDir)) {
+                for (Path path : paths.filter(Files::isRegularFile).toList()) {
+                    Matcher matcher = FILE_NAME.matcher(path.getFileName().toString());
+                    if (!matcher.matches()) continue;
+                    int regionX = Integer.parseInt(matcher.group(1));
+                    int regionZ = Integer.parseInt(matcher.group(2));
+                    byte[] header = new byte[4096];
+                    try (InputStream input = Files.newInputStream(path)) {
+                        if (input.readNBytes(header, 0, header.length) != header.length) {
+                            throw new IOException("Truncated MCA location header: " + path);
+                        }
+                    }
+                    for (int index = 0; index < 1024; index++) {
+                        int offset = (Byte.toUnsignedInt(header[index * 4]) << 16)
+                            | (Byte.toUnsignedInt(header[index * 4 + 1]) << 8)
+                            | Byte.toUnsignedInt(header[index * 4 + 2]);
+                        int sectors = Byte.toUnsignedInt(header[index * 4 + 3]);
+                        if (offset != 0 && sectors != 0) {
+                            chunks.add(new int[] {regionX * 32 + index % 32,
+                                regionZ * 32 + index / 32});
+                        }
+                    }
+                }
+            }
+            if (chunks.isEmpty()) throw new IllegalArgumentException("No allocated MCA chunks: " + regionDir);
+            int minX = chunks.stream().mapToInt(value -> value[0]).min().orElseThrow();
+            int maxX = chunks.stream().mapToInt(value -> value[0]).max().orElseThrow();
+            int minZ = chunks.stream().mapToInt(value -> value[1]).min().orElseThrow();
+            int maxZ = chunks.stream().mapToInt(value -> value[1]).max().orElseThrow();
+            int width = maxX - minX + 1;
+            int height = maxZ - minZ + 1;
+            if (width > 512 || height > 512) {
+                throw new IllegalArgumentException("Continent bounds exceed 8192 blocks");
+            }
+            BitSet allocated = new BitSet(width * height);
+            for (int[] chunk : chunks) allocated.set((chunk[1] - minZ) * width + chunk[0] - minX);
+            return new McaCoverage(minX, minZ, width, height, allocated);
         }
     }
 }
