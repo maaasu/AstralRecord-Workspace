@@ -32,7 +32,7 @@ final class HotbarRenderer {
     }
 
     /**
-     * 保持中を含む空のホットバーを石のボタンダミーで描画し、空のオフハンドはブランクにします。
+     * 空のホットバーは保持中だけ石のボタン、それ以外は版別のダミーで描画し、空のオフハンドはブランクにします。
      * Bukkit メインスレッドで呼び出し、変更があればプレイヤーのインベントリ表示を更新します。
      *
      * @param astPlayer 表示対象プレイヤー
@@ -48,7 +48,7 @@ final class HotbarRenderer {
     }
 
     /**
-     * 保持中を含む空のホットバーを石のボタンダミーで描画し、装備中アイテムにはセット効果表示を反映します。
+     * 空のホットバーは保持中だけ石のボタン、それ以外は版別のダミーで描画し、装備中アイテムにはセット効果表示を反映します。
      * Bukkit メインスレッドで呼び出し、旧オフハンドダミーを除去して実装備は保持します。
      * 変更があればプレイヤーのインベントリ表示を更新します。
      *
@@ -80,7 +80,9 @@ final class HotbarRenderer {
                 itemStackResolver.applyHotbarDisplayIcon(entry, accountId, itemStack);
             }
             if (itemStack == null || itemStack.getType() == Material.AIR) {
-                itemStack = createHotbarDummyItem(dbSlot);
+                Material dummyMaterial = equipped ? Material.STONE_BUTTON
+                    : astPlayer.isBedrock() ? Material.GLOW_LICHEN : Material.GRAY_STAINED_GLASS_PANE;
+                itemStack = createHotbarDummyItem(dbSlot, dummyMaterial);
             }
             if (selected && itemStack != null) {
                 itemStack = withSelectionGlow(itemStack);
@@ -107,13 +109,14 @@ final class HotbarRenderer {
     }
 
     /**
-     * Java 版・統合版共通の、右クリック入力を送信できるホットバーダミーを生成します。
+     * 保持状態とクライアントの版に応じた素材のホットバーダミーを生成します。
      *
      * @param dbSlot 表示対象の DB ホットバースロット番号
-     * @return 実アイテムと区別する PDC を付けた石のボタン
+     * @param material 保持中は石のボタン、それ以外は版別の空き枠用素材
+     * @return 実アイテムと区別する PDC を付けたダミー
      */
-    private @NotNull ItemStack createHotbarDummyItem(int dbSlot) {
-        ItemStack itemStack = new ItemStack(Material.STONE_BUTTON);
+    private @NotNull ItemStack createHotbarDummyItem(int dbSlot, @NotNull Material material) {
+        ItemStack itemStack = new ItemStack(material);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER, 1);
