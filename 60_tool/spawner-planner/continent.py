@@ -28,7 +28,7 @@ REASONS = {
     "steep": "区画内の高低差が大きい",
     "protected": "開始地点の48m保護範囲",
     "unsupported_habitat": "既存の野外スポナーがない環境",
-    "unsupported_level": "この環境・レベル帯に合う既存スポナーがない",
+    "unsupported_level": "この環境・レベル帯に合うモブ定義・スポナーマスタがない",
     "eligible": "配置候補の計算対象",
     "uncovered": "半径・高度・既知区画・地域境界の制約で未カバー",
     "covered": "新しい配置案でカバー",
