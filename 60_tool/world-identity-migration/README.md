@@ -7,6 +7,7 @@
 - Dev の `plugins/AstralRecord/worlds/overworld/vanaheim_supercontinent` を同階層の新名へ移す。
 - `level.dat` と `level.dat_old` の NBT `LevelName` のパスだけを変更する。`uid.dat` と `xaeromap.txt` の ID は保持する。
 - Dev の保存済み `mob_spawners.yml`、`text_displays.yml` の `world:`、`dungeon-receptions.json` の `worldId` を対象行だけ更新する。現環境ではそれぞれ 731、1、1 件。world 内 `paper-world.yml` の生成コメントも更新する。`gathering_spawners.yml` には旧名参照がないため変更しない。
+- Dev に `plugins/AstralArchitect/config.yml` がある場合、`automation.allowed-worlds` の旧ワールドパス1行を更新する。この設定ファイルも `runtime` に退避する。停止中の automation job JSON は履歴として維持し、再開する場合は新ワールド名で job を再作成する。
 - GDLauncher `MainInstance/instance/xaero` の `Multiplayer_mc.astralrecord.com` にある minimap と world-map の旧次元フォルダを新名へ移す。地図 ZIP の内部は変更しない。
 - 同サーバーの minimap `config.txt` にある旧 `dimensionType` 一行を更新する。
 

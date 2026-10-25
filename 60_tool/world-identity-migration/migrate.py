@@ -194,6 +194,7 @@ def main() -> int:
     spawners = plugin / "mob_spawners.yml"
     displays = plugin / "text_displays.yml"
     receptions = plugin / "dungeon-receptions.json"
+    architect_config = server / "plugins" / "AstralArchitect" / "config.yml"
     paper_config = old_world / "paper-world.yml"
     old_line = f"dimensionType:minecraft$plugins/astralrecord/worlds/overworld/{OLD}:minecraft$overworld"
     new_line = f"dimensionType:minecraft$plugins/astralrecord/worlds/overworld/{NEW}:minecraft$overworld"
@@ -205,6 +206,11 @@ def main() -> int:
                    f"world: plugins/AstralRecord/worlds/overworld/{NEW}".encode()),
         receptions: (f'"worldId": "{OLD}"'.encode(), f'"worldId": "{NEW}"'.encode()),
     }
+    if architect_config.exists():
+        runtime_patterns[architect_config] = (
+            f"    - plugins/AstralRecord/worlds/overworld/{OLD}".encode(),
+            f"    - plugins/AstralRecord/worlds/overworld/{NEW}".encode(),
+        )
 
     for source, root in ((old_world, server), (old_mini, client), (old_map, client),
                          (config, client), (spawners, server), (displays, server),
@@ -213,6 +219,7 @@ def main() -> int:
         require(source.exists(), f"Missing source: {source}")
         require(not source.is_symlink() and not source.is_junction(),
                 f"Link or junction is not allowed: {source}")
+    require_under_root(server, architect_config, exists=architect_config.exists())
     for target, root in ((new_world, server), (new_mini, client), (new_map, client)):
         require_under_root(root, target, exists=False)
         require(not target.exists(), f"Destination collision: {target}")
@@ -230,10 +237,19 @@ def main() -> int:
             "Expected exactly one old Xaero dimensionType and no new one")
     runtime_bytes = {}
     for path, (before, after) in runtime_patterns.items():
+        require_under_root(server, path, exists=True)
+        require(not path.is_symlink() and not path.is_junction(),
+                f"Link or junction is not allowed: {path}")
         data = path.read_bytes()
         count = data.count(before)
         require(count > 0 and data.count(OLD.encode()) == count and after not in data,
                 f"Unexpected old/new world reference in {path}")
+        if path == architect_config:
+            lines = data.splitlines()
+            matches = [i for i, line in enumerate(lines) if line == before]
+            require(len(matches) == 1 and matches[0] > 0 and
+                    lines[matches[0] - 1].strip() == b"allowed-worlds:",
+                    "Unexpected AstralArchitect automation.allowed-worlds entry")
         runtime_bytes[path] = data
     reception_json = json.loads(runtime_bytes[receptions])
     require(reception_json.get("worldId") == OLD and reception_json.get("worldUuid"),
@@ -257,6 +273,8 @@ def main() -> int:
         print("Rename:", before, "->", after)
     print("Update: level.dat and level.dat_old LevelName; Paper world header;")
     print("        mob_spawners.yml, text_displays.yml, dungeon-receptions.json;")
+    if architect_config in runtime_patterns:
+        print("        AstralArchitect/config.yml automation.allowed-worlds;")
     print("        Xaero minimap config dimensionType")
     print("Runtime reference counts:",
           ", ".join(f"{path.name}={runtime_bytes[path].count(runtime_patterns[path][0])}"

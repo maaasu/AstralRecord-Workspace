@@ -109,6 +109,30 @@ class MigrationTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Path leaves its root"):
             migrate.require_under_root(self.server, self.client / "xaero", exists=True)
 
+    def test_astralarchitect_allowed_world_is_backed_up_and_replaced(self):
+        architect = self.server / "plugins/AstralArchitect"
+        architect.mkdir()
+        config = architect / "config.yml"
+        original = (f"automation:\n  allowed-worlds:\n"
+                    f"    - plugins/AstralRecord/worlds/overworld/{migrate.OLD}\n"
+                    f"other-setting: unchanged\n").encode()
+        config.write_bytes(original)
+        self.assertEqual(self.run_script(apply=True), 0)
+        self.assertEqual(config.read_bytes(), original.replace(migrate.OLD.encode(), migrate.NEW.encode()))
+        self.assertEqual((next(self.backup.iterdir()) / "runtime/config.yml").read_bytes(), original)
+
+    def test_astralarchitect_unexpected_section_blocks_changes(self):
+        architect = self.server / "plugins/AstralArchitect"
+        architect.mkdir()
+        (architect / "config.yml").write_text(
+            f"  other-worlds:\n    - plugins/AstralRecord/worlds/overworld/{migrate.OLD}\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "automation.allowed-worlds"):
+            self.run_script(apply=True)
+        self.assertTrue(self.world.exists())
+        self.assertFalse(list(self.backup.iterdir()))
+
 
 if __name__ == "__main__":
     unittest.main()
