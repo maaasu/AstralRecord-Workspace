@@ -27,6 +27,7 @@ REASONS = {
     "unsafe": "安全な地表列が不足",
     "steep": "区画内の高低差が大きい",
     "protected": "開始地点の48m保護範囲",
+    "reserved_future": "道路沿いの今回の配置範囲外（後続地域として保留）",
     "unsupported_habitat": "既存の野外スポナーがない環境",
     "unsupported_level": "この環境・レベル帯に合うモブ定義・スポナーマスタがない",
     "eligible": "配置候補の計算対象",
@@ -117,6 +118,11 @@ class ContinentPlanner:
         self._validate_terrain()
         self.columns = self.terrain["width"] // self.step
         self.rows = self.terrain["height"] // self.step
+        if self.policy.get("progressionMode") not in (None, "road"):
+            raise ValueError("Unsupported progression mode")
+        self.road_mode = self.policy.get("progressionMode") == "road"
+        if self.road_mode:
+            self._build_road_network()
         self.spawners, self.catalog, master_hash = self._load_catalog()
         planner_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
         self.export_revision = hashlib.sha256(
@@ -127,6 +133,66 @@ class ContinentPlanner:
         self.land_components = self._assign_land_components()
         self.regions = self._regions()
         self._select_spawners()
+
+    def _build_road_network(self) -> None:
+        road = self.policy["road"]
+        levels = road["levels"]
+        if self.policy.get("radii") != [64]:
+            raise ValueError("Road progression supports radius 64m only")
+        if (not isinstance(levels, list) or not levels or
+                any(type(level) is not int for level in levels) or
+                levels != sorted(set(levels)) or levels[0] != self.minimum_level):
+            raise ValueError("Road levels must be sorted unique integers starting at world minimum")
+        if (road.get("material") != "minecraft:dirt_path" or
+                type(road.get("corridorMeters")) is not int or road["corridorMeters"] <= 0 or
+                type(road.get("candidateCenterMeters")) is not int or
+                not 0 < road["candidateCenterMeters"] <= road["corridorMeters"]):
+            raise ValueError("Invalid road material or corridor")
+        grid = {(c["x"], c["z"]): c for c in self.terrain["cells"]}
+        roads = {p for p, c in grid.items() if c["status"] == "ok" and
+                 c.get("waterCount", 0) < 128 and (c.get("safeCount") or 0) > 0 and
+                 c.get("groundCounts", {}).get(road["material"], 0) > 0}
+        spawn_x = self.terrain["minX"] + math.floor((self.spawn["x"] - self.terrain["minX"]) / 16) * 16
+        spawn_z = self.terrain["minZ"] + math.floor((self.spawn["z"] - self.terrain["minZ"]) / 16) * 16
+        start = (spawn_x, spawn_z)
+        if start not in roads:
+            raise ValueError("Spawn cell has no measured dirt_path; road progression cannot be inferred")
+        distances = {start: 0}
+        queue = deque([start])
+        while queue:
+            x, z = queue.popleft()
+            for neighbor in ((x - 16, z), (x + 16, z), (x, z - 16), (x, z + 16)):
+                if neighbor in roads and neighbor not in distances:
+                    distances[neighbor] = distances[(x, z)] + 16
+                    queue.append(neighbor)
+        self.road_distances = distances
+        self.max_road_distance = max(distances.values())
+        if self.max_road_distance == 0:
+            raise ValueError("Spawn-connected road has no progression length")
+        positions = sorted(distances, key=lambda p: (p[1], p[0]))
+        index = {p: i for i, p in enumerate(positions)}
+        self.road_nodes = [{"x": x + 8, "z": z + 8, "distanceMeters": distances[(x, z)]}
+                           for x, z in positions]
+        self.road_edges = [[i, index[q]] for i, (x, z) in enumerate(positions)
+                           for q in ((x + 16, z), (x, z + 16)) if q in index]
+        # Assign cells by the nearest centre of a measured road-containing chunk.
+        # The histogram does not retain the road's actual columns inside that chunk.
+        self.road_nearest = {}
+        limit = road["corridorMeters"]
+        for x, z in positions:
+            route_distance = distances[(x, z)]
+            for dz in range(-limit - 16, limit + 17, 16):
+                for dx in range(-limit - 16, limit + 17, 16):
+                    p = (x + dx, z + dz)
+                    if p not in grid:
+                        continue
+                    lateral = math.hypot(dx, dz)
+                    if lateral > limit:
+                        continue
+                    previous = self.road_nearest.get(p)
+                    choice = (lateral, route_distance, z, x)
+                    if previous is None or choice < previous:
+                        self.road_nearest[p] = choice
 
     def _world(self) -> dict:
         matches = [(path, data) for path in sorted((self.filebase / "60.features.world").glob("*.yml"))
@@ -197,6 +263,12 @@ class ContinentPlanner:
         field_ids = self.policy["fieldSpawnerIds"]
         if set(field_ids) != {"grass", "forest"}:
             raise ValueError("Policy field habitats must be grass and forest")
+        if self.road_mode:
+            expected = {habitat: [f"eriva_westroad_{habitat}_lv{level}_spawner"
+                                  for level in self.policy["road"]["levels"]]
+                        for habitat in ("grass", "forest")}
+            if field_ids != expected:
+                raise ValueError("Road mode requires exact west-road spawner IDs for every level and habitat")
         selected = {}
         for habitat, ids in field_ids.items():
             for key in ids:
@@ -217,12 +289,16 @@ class ContinentPlanner:
                                     "level": level, "weight": int(entry["weight"])})
                 if not entries or len({entry["level"] for entry in entries}) != 1:
                     raise ValueError(f"Field spawner needs a single defined level: {key}")
+                if self.road_mode and entries[0]["level"] != int(key.split("_lv")[-1].removesuffix("_spawner")):
+                    raise ValueError(f"Road spawner level differs from its ID: {key}")
                 selected[key] = {"id": key, "definitionStatus": "existing", "habitat": habitat, "level": entries[0]["level"],
                                  "region": data.get("region"), "radiusMeters": int(data["radiusMeters"]),
                                  "spawnMobs": entries,
                                  "maxAlivePerSpawner": int(data.get("spawnLimit", {}).get("maxAlivePerSpawner", 0))}
-        draft_ids = self.policy["draftEnemyIds"]
-        if set(draft_ids) != {"grass", "forest", "snow", "dry"}:
+        draft_ids = self.policy.get("draftEnemyIds", {})
+        if self.road_mode and draft_ids:
+            raise ValueError("Road mode cannot use draft Enemy fallbacks")
+        if not self.road_mode and set(draft_ids) != {"grass", "forest", "snow", "dry"}:
             raise ValueError("Draft enemy habitats must be grass, forest, snow and dry")
         for habitat, ids in draft_ids.items():
             for mob_id in ids:
@@ -269,6 +345,16 @@ class ContinentPlanner:
                           "enemyMasterCount": len(mobs)}, hash_input.hexdigest()
 
     def _region_key(self, x: float, z: float, habitat: str) -> tuple[str, str, int]:
+        if self.road_mode:
+            nearest = self.road_nearest.get((int(x - 8), int(z - 8)))
+            if nearest is None:
+                return "eriva-reserved-future", "エリヴァ・後続地域（未配置）", None
+            distance = nearest[1]
+            levels = self.policy["road"]["levels"]
+            stage = min(len(levels) - 1, int(distance * len(levels) / (self.max_road_distance + 1)))
+            level = levels[stage]
+            return (f"eriva-westroad-stage{stage + 1:02d}-lv{level}-{habitat}",
+                    f"エリヴァ・西側道路第{stage + 1}段階・{HABITAT_NAMES[habitat]}（仮称）", level)
         dx, dz = x - self.spawn["x"], z - self.spawn["z"]
         distance = math.hypot(dx, dz)
         band = next(b for b in self.policy["distanceBands"]
@@ -286,19 +372,28 @@ class ContinentPlanner:
         if source.get("reason"):
             c["terrainReason"] = source["reason"]
         c["habitat"] = _habitat(source)
+        if self.road_mode:
+            nearest = self.road_nearest.get((c["x"], c["z"])) if c["status"] == "ok" else None
+            c["distanceToRoadMeters"] = round(nearest[0], 2) if nearest else None
+            c["roadDistanceMeters"] = nearest[1] if nearest else None
         c["regionId"], c["regionName"], c["targetLevel"] = self._region_key(
             c["x"] + self.step / 2, c["z"] + self.step / 2, c["habitat"])
+        if self.road_mode and c["status"] != "ok":
+            c["regionId"], c["regionName"], c["targetLevel"] = (
+                "eriva-road-unmeasured", "エリヴァ・未計測区画", None)
         if c["status"] != "ok":
             reason = c["status"]
         elif c["habitat"] == "water":
             reason = "water"
+        elif self.road_mode and c["distanceToRoadMeters"] is None:
+            reason = "reserved_future"
         elif c["safeCount"] < self.policy["minSafeColumns"]:
             reason = "unsafe"
         elif c["maxY"] - c["minY"] > self.policy["maxLocalSlope"]:
             reason = "steep"
         elif math.hypot(c["x"] + 8 - self.spawn["x"], c["z"] + 8 - self.spawn["z"]) <= self.policy["spawnSafeRadius"] + math.sqrt(128):
             reason = "protected"
-        elif c["habitat"] not in (set(self.policy["fieldSpawnerIds"]) | set(self.policy["draftEnemyIds"])):
+        elif c["habitat"] not in (set(self.policy["fieldSpawnerIds"]) | set(self.policy.get("draftEnemyIds", {}))):
             reason = "unsupported_habitat"
         else:
             reason = "eligible"
@@ -319,7 +414,8 @@ class ContinentPlanner:
                                 "landComponentIds": [],
                                 "bounds": {"minX": c["x"], "minZ": c["z"],
                                            "maxX": c["x"] + self.step, "maxZ": c["z"] + self.step},
-                                "spawnerIds": [], "reason": "スポーンからの平面距離と方角による仮の進行区分"}
+                                "spawnerIds": [], "reason": "道路区画の距離による仮の進行区分" if self.road_mode else
+                                "スポーンからの平面距離と方角による仮の進行区分"}
             regions[key]["cellCount"] += 1
             if c["landComponentId"] is not None:
                 region_components[key].add(c["landComponentId"])
@@ -380,15 +476,19 @@ class ContinentPlanner:
         for ids in by_habitat_level.values():
             ids.sort()
         available_by_habitat = {habitat: sorted(level for h, level in by_habitat_level if h == habitat)
-                                for habitat in self.policy["draftEnemyIds"]}
+                                for habitat in (self.policy["fieldSpawnerIds"] if self.road_mode else
+                                                self.policy["draftEnemyIds"])}
         for c in self.cells:
             if c["reasonCode"] != "eligible":
                 continue
             habitat, level = c["habitat"], c["targetLevel"]
             available = available_by_habitat.get(habitat, [])
-            lower = [v for v in available if v <= level and level - v <= 2]
-            upper = [v for v in available if v > level and v - level <= 2]
-            candidate_level = max(lower) if lower else (min(upper) if upper else None)
+            if self.road_mode:
+                candidate_level = level if level in available else None
+            else:
+                lower = [v for v in available if v <= level and level - v <= 2]
+                upper = [v for v in available if v > level and v - level <= 2]
+                candidate_level = max(lower) if lower else (min(upper) if upper else None)
             ids = by_habitat_level.get((habitat, candidate_level), [])
             if not ids:
                 c["reasonCode"] = "unsupported_level"
@@ -429,6 +529,22 @@ class ContinentPlanner:
                         return False
         return True
 
+    def _circle_within_road_scope(self, x: float, z: float, radius: int) -> bool:
+        """Reject circles touching an explicitly reserved future land cell."""
+        if not self.road_mode:
+            return True
+        t = self.terrain
+        for rz in self._index_range(z, radius, t["minZ"], self.rows):
+            for rx in self._index_range(x, radius, t["minX"], self.columns):
+                c = self.cells[rz * self.columns + rx]
+                if c["reasonCode"] != "reserved_future":
+                    continue
+                nearest_x = min(max(x, c["x"]), c["x"] + self.step)
+                nearest_z = min(max(z, c["z"]), c["z"] + self.step)
+                if (nearest_x - x) ** 2 + (nearest_z - z) ** 2 <= radius ** 2:
+                    return False
+        return True
+
     def _covered(self, i: int, radius: int) -> tuple[int, ...]:
         center = self.cells[i]
         x, y, z = center["candidateX"] + .5, center["candidateY"], center["candidateZ"] + .5
@@ -450,6 +566,8 @@ class ContinentPlanner:
     def plan(self, radius: int) -> dict:
         if radius not in self.policy["radii"]:
             raise ValueError("Unsupported radius")
+        if self.road_mode and radius > self.policy["road"]["corridorMeters"]:
+            raise ValueError("Road corridor is narrower than spawn radius")
         target = {i for i, c in enumerate(self.cells) if c["reasonCode"] == "eligible"}
         remaining = set(target)
         candidates = []
@@ -462,7 +580,14 @@ class ContinentPlanner:
             x, z = c["candidateX"] + .5, c["candidateZ"] + .5
             if math.hypot(x - self.spawn["x"], z - self.spawn["z"]) < radius + self.policy["spawnSafeRadius"]:
                 continue
+            if self.road_mode:
+                lateral = min(math.hypot(x - node["x"], z - node["z"]) for node in self.road_nodes)
+                if lateral > min(self.policy["road"]["candidateCenterMeters"],
+                                 self.policy["road"]["corridorMeters"] - radius):
+                    continue
             if not self._circle_known(x, z, radius):
+                continue
+            if not self._circle_within_road_scope(x, z, radius):
                 continue
             hit = self._covered(i, radius)
             if hit:
@@ -495,6 +620,9 @@ class ContinentPlanner:
                         "targetLevel": c["targetLevel"], "spawnMobs": definition["spawnMobs"],
                         "reason": f"{c['regionName']}、Lv.{definition['level']}の定義済み野外マスタ、実測地表を使用",
                         "newCoveredCells": len(fresh), "coveredCellIndices": fresh}
+            if self.road_mode:
+                proposal["roadDistanceMeters"] = c["roadDistanceMeters"]
+                proposal["distanceToRoadMeters"] = c["distanceToRoadMeters"]
             if definition["definitionStatus"] == "draft":
                 proposal["draftDefinition"] = {"id": definition["id"], "type": "MOB_SPAWNER",
                                                "region": definition["region"], "radiusMeters": radius,
@@ -555,9 +683,10 @@ class ContinentPlanner:
                     "cellCount": len(self.cells),
                     "files": {"cells": "cells.json", "regions": "regions.json", "proposals": outputs},
                     "radiusOptions": self.policy["radii"], "reasons": REASONS,
-                    "progressionPolicy": {"basis": "開始地点からの平面距離。地形経路・到達性は未証明",
-                                          "minimumWorldLevel": self.minimum_level,
-                                          "distanceBands": self.policy["distanceBands"]},
+                    "progressionPolicy": {} if self.road_mode else
+                    {"basis": "開始地点からの平面距離。地形経路・到達性は未証明",
+                     "minimumWorldLevel": self.minimum_level,
+                     "distanceBands": self.policy["distanceBands"]},
                     "counts": dict(Counter(c["reasonCode"] for c in self.cells)),
                     "notes": ["地域名は方角・距離帯・地表環境から生成した提案上の仮称。既存の正式地名ではない。",
                               "既存の配置は読まず、カバー率に加算しない。"],
@@ -567,6 +696,22 @@ class ContinentPlanner:
                                     "スポーン円内の異なる環境・地域へ実際のMobが出現する可能性は未検証。",
                                     "半径を変更すると同じスポナーマスタIDの全配置へ影響し得る。実配置・公開は別工程。",
                                     "同時存在上限の合計は性能測定値ではない。"]}
+        if self.road_mode:
+            road = self.policy["road"]
+            manifest["progressionPolicy"] = {
+                "mode": "road", "basis": "開始地点につながるdirt_path含有16m区画の4近傍最短距離",
+                "minimumWorldLevel": self.minimum_level, "maxLevel": road["levels"][-1],
+                "levels": road["levels"],
+                "road": {"nodes": self.road_nodes, "edges": self.road_edges,
+                         "maxDistanceMeters": self.max_road_distance,
+                         "corridorMeters": road["corridorMeters"],
+                         "candidateCenterMeters": road["candidateCenterMeters"],
+                         "material": road["material"]}}
+            manifest["notes"] = ["西側道路沿いLv.15～45だけを候補とし、他の陸地は後続地域として保留。北東などのLv.100以上の将来設計を先取りしない。",
+                                 "地域名は道路距離と地表環境から生成した提案上の仮称。正式地名ではない。",
+                                 "既存の配置は読まず、カバー率に加算しない。"]
+            manifest["limitations"].append(
+                "groundCountsは16m区画ごとの材質数で道の柱位置を持たない。4近傍道路グラフは歩行可能性、橋、段差を証明しない。")
         # Publish the manifest last. Readers reject mismatched exportRevision.
         _atomic_json(output / "manifest.json", manifest)
         return manifest

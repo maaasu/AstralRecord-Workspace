@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "worldId": "eriva_supercontinent",
+  "progressionMode": "road",
+  "spawnSafeRadius": 48,
+  "minSafeColumns": 128,
+  "maxLocalSlope": 4,
+  "candidateStrideCells": 1,
+  "radii": [64],
+  "road": {
+    "material": "minecraft:dirt_path",
+    "corridorMeters": 224,
+    "candidateCenterMeters": 160,
+    "levels": [15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45]
+  },
+  "fieldSpawnerIds": {
+    "grass": [
+      "eriva_westroad_grass_lv15_spawner",
+      "eriva_westroad_grass_lv18_spawner",
+      "eriva_westroad_grass_lv21_spawner",
+      "eriva_westroad_grass_lv24_spawner",
+      "eriva_westroad_grass_lv27_spawner",
+      "eriva_westroad_grass_lv30_spawner",
+      "eriva_westroad_grass_lv33_spawner",
+      "eriva_westroad_grass_lv36_spawner",
+      "eriva_westroad_grass_lv39_spawner",
+      "eriva_westroad_grass_lv42_spawner",
+      "eriva_westroad_grass_lv45_spawner"
+    ],
+    "forest": [
+      "eriva_westroad_forest_lv15_spawner",
+      "eriva_westroad_forest_lv18_spawner",
+      "eriva_westroad_forest_lv21_spawner",
+      "eriva_westroad_forest_lv24_spawner",
+      "eriva_westroad_forest_lv27_spawner",
+      "eriva_westroad_forest_lv30_spawner",
+      "eriva_westroad_forest_lv33_spawner",
+      "eriva_westroad_forest_lv36_spawner",
+      "eriva_westroad_forest_lv39_spawner",
+      "eriva_westroad_forest_lv42_spawner",
+      "eriva_westroad_forest_lv45_spawner"
+    ]
+  }
+}

@@ -11,6 +11,7 @@ from continent import ContinentPlanner, _mob_name
 HERE = Path(__file__).resolve().parent
 FILEBASE = HERE.parents[1] / "40_filebase"
 POLICY = HERE / "policies" / "eriva-continent.json"
+ROAD_POLICY = HERE / "policies" / "eriva-westroad.json"
 
 
 def terrain(min_x=-1312, min_z=1376, width=256, height=256, biome="minecraft:plains"):
@@ -118,6 +119,91 @@ class ContinentTests(unittest.TestCase):
             for proposal in plan["proposals"]:
                 self.assertTrue(all(planner.cells[j]["landComponentId"] == proposal["landComponentId"]
                                     for j in proposal["coveredCellIndices"]))
+
+
+class RoadProgressionTests(unittest.TestCase):
+    def make_planner(self, root, data):
+        filebase = root / "filebase"
+        world_dir = filebase / "60.features.world"
+        mob_dir = filebase / "40.features.mob" / "enemy"
+        spawner_dir = filebase / "41.features.mob.spawner"
+        for directory in (world_dir, mob_dir, spawner_dir):
+            directory.mkdir(parents=True)
+        (world_dir / "world.yml").write_text(
+            "id: eriva_supercontinent\ndisplayName: Eriva\nbaseWorldPath: eriva_supercontinent\n"
+            "spawnLocation: {x: -1149.5, y: 107, z: 1480.5}\n"
+            "adventureGuide: {recommendedLevelMin: 15}\n", encoding="utf-8")
+        policy = json.loads(ROAD_POLICY.read_text(encoding="utf-8"))
+        levels = policy["road"]["levels"]
+        (mob_dir / "road.yml").write_text(
+            "id: road_test_enemy\ncategory: ENEMY\nname: Road Test\nlevel: 15\n" +
+            "levels:\n" + "".join(f"- level: {level}\n  name: Road Test Lv.{level}\n" for level in levels),
+            encoding="utf-8")
+        for habitat, ids in policy["fieldSpawnerIds"].items():
+            for level, spawner_id in zip(levels, ids):
+                (spawner_dir / f"{spawner_id}.yml").write_text(
+                    f"id: {spawner_id}\nregion: test {habitat}\nradiusMeters: 64\n"
+                    f"spawnMobs:\n- mobId: mob:road_test_enemy\n  level: {level}\n  weight: 100\n"
+                    "spawnLimit: {maxAlivePerSpawner: 3}\n", encoding="utf-8")
+        terrain_path = root / "terrain.json"
+        terrain_path.write_text(json.dumps(data), encoding="utf-8")
+        return ContinentPlanner(terrain_path, filebase, ROAD_POLICY)
+
+    @staticmethod
+    def road_terrain():
+        data = terrain(-1408, 992, 768, 768)
+        for cell in data["cells"]:
+            # Spawn-connected north road, plus a disconnected diagonal and a NE road.
+            if (cell["x"] == -1152 and 1120 <= cell["z"] <= 1472) or \
+                    (cell["x"], cell["z"]) in {(-1136, 1104), (-896, 1472)}:
+                cell["groundCounts"] = {"minecraft:dirt_path": 16,
+                                         "minecraft:grass_block": 240}
+        return data
+
+    def test_connected_road_only_and_reserved_future(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            planner = self.make_planner(root, self.road_terrain())
+            self.assertNotIn((-1136, 1104), planner.road_distances)
+            self.assertNotIn((-896, 1472), planner.road_distances)
+            self.assertEqual(23, len(planner.road_nodes))
+            self.assertEqual(352, planner.max_road_distance)
+            far = next(c for c in planner.cells if (c["x"], c["z"]) == (-896, 1472))
+            self.assertEqual("reserved_future", far["reasonCode"])
+            self.assertIsNone(far["roadDistanceMeters"])
+            end = next(c for c in planner.cells if (c["x"], c["z"]) == (-1152, 1120))
+            self.assertEqual(45, end["targetLevel"])
+            self.assertEqual(352, end["roadDistanceMeters"])
+            plan = planner.plan(64)
+            self.assertTrue(plan["proposals"])
+            self.assertTrue(all(p["definitionStatus"] == "existing" and p["level"] == p["targetLevel"]
+                                for p in plan["proposals"]))
+            self.assertEqual(0, plan["unknownLimitProposalCount"])
+            manifest = planner.export(root / "export")
+            self.assertEqual("continent-redesign", manifest["mode"])
+            self.assertEqual("road", manifest["progressionPolicy"]["mode"])
+            self.assertEqual(23, len(manifest["progressionPolicy"]["road"]["nodes"]))
+            self.assertEqual(22, len(manifest["progressionPolicy"]["road"]["edges"]))
+            self.assertEqual({"64"}, set(manifest["files"]["proposals"]))
+            for proposal in plan["proposals"]:
+                self.assertTrue(planner._circle_within_road_scope(
+                    proposal["x"] + .5, proposal["z"] + .5, 64))
+
+    def test_truthful_unknown_and_water_reasons_outside_road_scope(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            data = self.road_terrain()
+            by_pos = {(c["x"], c["z"]): c for c in data["cells"]}
+            by_pos[(-656, 992)] = {"x": -656, "z": 992, "status": "absent"}
+            by_pos[(-672, 992)] = {"x": -672, "z": 992, "status": "failed"}
+            by_pos[(-688, 992)].update({"surface": "minecraft:water", "ground": "minecraft:sand",
+                                       "waterCount": 256})
+            data["cells"] = list(by_pos.values())
+            planner = self.make_planner(root, data)
+            reasons = {(c["x"], c["z"]): c["reasonCode"] for c in planner.cells}
+            self.assertEqual("absent", reasons[(-656, 992)])
+            self.assertEqual("failed", reasons[(-672, 992)])
+            self.assertEqual("water", reasons[(-688, 992)])
 
 
 if __name__ == "__main__":
