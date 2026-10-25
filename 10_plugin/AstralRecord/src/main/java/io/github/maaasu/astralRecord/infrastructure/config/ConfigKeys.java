@@ -51,6 +51,7 @@ public final class ConfigKeys {
     public static final String MASTER_DATA_AUTO_RELOAD_ENABLED = "masterData.autoReload.enabled";
     public static final String MASTER_DATA_AUTO_RELOAD_POLL_INTERVAL_SECONDS =
             "masterData.autoReload.pollIntervalSeconds";
+    public static final String MASTER_DATA_LOCAL_OVERLAY_ENABLED = "masterData.localOverlay.enabled";
 
     // Velocity network settings
     public static final String NETWORK_ENABLED = "network.enabled";

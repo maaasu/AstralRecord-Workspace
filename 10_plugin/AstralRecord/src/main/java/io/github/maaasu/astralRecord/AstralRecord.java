@@ -215,6 +215,7 @@ import io.github.maaasu.astralRecord.feature.spawner.event.MobSpawnerBlockEventH
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.party.event.PartyGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
 import io.github.maaasu.astralRecord.feature.party.event.PartyRecruitmentGuiEventHandler;
@@ -437,6 +438,8 @@ import io.github.maaasu.astralRecord.infrastructure.api.ApiHealthChecker;
 import io.github.maaasu.astralRecord.infrastructure.api.MasterDataAutoReloadService;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
+import io.github.maaasu.astralRecord.infrastructure.api.LocalMasterOverlay;
+import java.util.Map;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLogger;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLoggerRegistry;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -527,6 +530,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerDetailGui playerDetailGui;
     private PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
     private MobService mobService;
+    private LocalMasterOverlay localMasterOverlay;
     private TrainingDummyService trainingDummyService;
     private TrainingDummyGui trainingDummyGui;
     private MobSpawnerService mobSpawnerService;
@@ -702,6 +706,9 @@ public final class AstralRecord extends JavaPlugin {
     @Override
     public void onLoad() {
         instance = this;
+        localMasterOverlay = new LocalMasterOverlay(getDataFolder().toPath(),
+                () -> ConfigProperties.getInstance().isMasterDataLocalOverlayEnabled(),
+                () -> ConfigProperties.getInstance().isPluginDebugMode());
         adminMessageBossBarService = new AdminMessageBossBarService(this);
         itemService = new ItemService();
         adminWorldTeleportItemService = new AdminWorldTeleportItemService();
@@ -709,7 +716,7 @@ public final class AstralRecord extends JavaPlugin {
         fishingMasterService = new FishingMasterService(itemService, lootService);
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         invulnerabilityVisualService = new InvulnerabilityVisualService(this);
-        mobService = new MobService(this, new MobRepository());
+        mobService = new MobService(this, new MobRepository(localMasterOverlay));
         mobService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         trainingDummyService = new TrainingDummyService(this, mobService, new TrainingDummyRepository(this));
         trainingDummyGui = new TrainingDummyGui();
@@ -724,7 +731,7 @@ public final class AstralRecord extends JavaPlugin {
                 this,
                 mobService,
                 playerRegionService,
-                new MobSpawnerDefinitionRepository(),
+                new MobSpawnerDefinitionRepository(localMasterOverlay),
                 new MobSpawnerLocationRepository(this)
         );
         gatheringService = new GatheringService(
@@ -798,9 +805,11 @@ public final class AstralRecord extends JavaPlugin {
         // API取得中は機能を開始せず、メインスレッドを通信待ちさせない。
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             try {
+                LocalMasterOverlay.Snapshot localSnapshot = localMasterOverlay.loadSnapshot();
                 RuntimeFilebaseSnapshot snapshot = RuntimeFilebaseRepository.getInstance().loadSnapshot();
                 getServer().getScheduler().runTask(this, () -> {
                     if (!isEnabled()) return;
+                    localMasterOverlay.replaceSnapshot(localSnapshot);
                     RuntimeFilebaseRepository.getInstance().replaceSnapshot(snapshot);
                     try {
                         enableFeatures();
@@ -2582,6 +2591,10 @@ public final class AstralRecord extends JavaPlugin {
                 fishingMasterService.loadAll();
                 petService.reloadMaster();
                 var skillDefinitions = skillService.loadDefinitions();
+                localMasterOverlay.validateMobDependencies(
+                        id -> itemService.findLoadedById(id) != null,
+                        id -> lootService.getLoaded(id) != null,
+                        mobSkillService::hasExecutor);
                 var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
                 playerClassService.loadAll();
                 guideService.loadAll();
@@ -2608,6 +2621,7 @@ public final class AstralRecord extends JavaPlugin {
         npcPlacementService.loadAll();
         textDisplayPlacementService.loadAll();
         mobSpawnerService.loadAll();
+        localMasterOverlay.validateReferences(mobService.snapshotLoadedTemplates());
         gatheringService.loadAll();
         gatheringSpawnerService.loadAll();
         questService.loadAll();
@@ -3687,8 +3701,10 @@ public final class AstralRecord extends JavaPlugin {
 
     private @org.jetbrains.annotations.NotNull MasterDataReloadPlan prepareMasterDataReload() {
         RuntimeFilebaseRepository repository = RuntimeFilebaseRepository.getInstance();
+        LocalMasterOverlay.Snapshot localSnapshot = localMasterOverlay.loadSnapshot();
         RuntimeFilebaseSnapshot snapshot = repository.loadSnapshot();
-        return repository.withSnapshot(snapshot, () -> loadMasterDataReloadPlan(snapshot));
+        return repository.withSnapshot(snapshot, () -> localMasterOverlay.withSnapshot(localSnapshot,
+                () -> loadMasterDataReloadPlan(snapshot, localSnapshot)));
     }
 
     /**
@@ -3699,7 +3715,8 @@ public final class AstralRecord extends JavaPlugin {
      * @return メインスレッドで公開する再読込計画
      */
     private @org.jetbrains.annotations.NotNull MasterDataReloadPlan loadMasterDataReloadPlan(
-        @org.jetbrains.annotations.NotNull RuntimeFilebaseSnapshot runtimeFilebaseSnapshot
+        @org.jetbrains.annotations.NotNull RuntimeFilebaseSnapshot runtimeFilebaseSnapshot,
+        @org.jetbrains.annotations.NotNull LocalMasterOverlay.Snapshot localSnapshot
     ) {
         var lootSnapshot = lootService.loadSnapshot();
         int loaded = lootSnapshot.size();
@@ -3742,8 +3759,11 @@ public final class AstralRecord extends JavaPlugin {
         publications.add(() -> guideService.replaceEntrySnapshot(guideSnapshot));
 
         var mobSnapshot = mobService.loadTemplateSnapshot();
+        localMasterOverlay.validateMobDependencies(
+                itemSnapshot.items()::containsKey,
+                lootSnapshot::containsKey,
+                mobSkillService::hasExecutor);
         loaded += mobSnapshot.size();
-        publications.add(() -> mobService.replaceTemplateSnapshot(mobSnapshot));
 
         var npcSnapshot = npcPlacementService.loadPlacementSnapshot();
         loaded += npcSnapshot.size();
@@ -3751,8 +3771,8 @@ public final class AstralRecord extends JavaPlugin {
         activations.add(new MasterDataActivation(ActivationTarget.NPC, npcPlacementService::activatePlacementSnapshot));
 
         var mobSpawnerSnapshot = mobSpawnerService.loadMasterDataSnapshot();
+        localMasterOverlay.validateReferences(mobSnapshot);
         loaded += mobSpawnerSnapshot.definitions().size();
-        publications.add(() -> mobSpawnerService.replaceMasterDataSnapshot(mobSpawnerSnapshot));
 
         var gatheringSnapshot = gatheringService.loadDefinitionSnapshot();
         loaded += gatheringSnapshot.size();
@@ -3792,6 +3812,9 @@ public final class AstralRecord extends JavaPlugin {
         return new MasterDataReloadPlan(
             loaded,
             runtimeFilebaseSnapshot,
+            localSnapshot,
+            mobSnapshot,
+            mobSpawnerSnapshot,
             List.copyOf(publications),
             List.copyOf(activations)
         );
@@ -3838,11 +3861,22 @@ public final class AstralRecord extends JavaPlugin {
                 var previousClasses = playerClassService.snapshotLoadedClasses();
                 var previousSkills = skillService.registry().definitions().stream().collect(
                         java.util.stream.Collectors.toMap(definition -> definition.getId(), definition -> definition));
+                var previousMobs = mobService.snapshotLoadedTemplates();
+                var previousSpawners = mobSpawnerService.snapshotPublishedState();
+                boolean mobTouched = false;
+                boolean spawnerTouched = false;
                 try {
                     for (Runnable publication : plan.publications()) publication.run();
                     inventoryService.reconcileUnavailableItemMasterEntries();
+                    mobTouched = true;
+                    mobService.replaceTemplateSnapshot(plan.mobSnapshot());
+                    spawnerTouched = true;
+                    mobSpawnerService.replaceMasterDataSnapshot(plan.mobSpawnerSnapshot());
                     RuntimeFilebaseRepository.getInstance().replaceSnapshot(plan.runtimeFilebaseSnapshot());
+                    localMasterOverlay.replaceSnapshot(plan.localSnapshot());
                 } catch (RuntimeException failure) {
+                    if (mobTouched) mobService.replaceTemplateSnapshot(previousMobs);
+                    if (spawnerTouched) mobSpawnerService.restorePublishedState(previousSpawners);
                     playerClassService.replaceSnapshot(previousClasses);
                     skillService.replaceDefinitions(previousSkills);
                     skillTreeService.replaceMasterDataSnapshot(previousTree);
@@ -3905,6 +3939,9 @@ public final class AstralRecord extends JavaPlugin {
     private record MasterDataReloadPlan(
         int loadedCount,
         @org.jetbrains.annotations.NotNull RuntimeFilebaseSnapshot runtimeFilebaseSnapshot,
+        @org.jetbrains.annotations.NotNull LocalMasterOverlay.Snapshot localSnapshot,
+        @org.jetbrains.annotations.NotNull Map<String, MobTemplate> mobSnapshot,
+        @org.jetbrains.annotations.NotNull MobSpawnerService.MasterDataSnapshot mobSpawnerSnapshot,
         @org.jetbrains.annotations.NotNull List<Runnable> publications,
         @org.jetbrains.annotations.NotNull List<MasterDataActivation> activations
     ) {

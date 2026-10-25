@@ -86,6 +86,9 @@ masterData:
   autoReload:
     enabled: true
     pollIntervalSeconds: 30
+  # Dev 専用。plugin.debugMode=true の場合だけ使用する。
+  localOverlay:
+    enabled: false
 
 # サーバーレコード。未設定でも30秒・上位10人で動作します。
 serverRecord:

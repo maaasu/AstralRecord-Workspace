@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.logging.MasterDataLoadProgress;
+import io.github.maaasu.astralRecord.infrastructure.api.LocalMasterOverlay;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -56,6 +57,25 @@ import java.util.Set;
  * 本リポジトリで {@code :} 区切りの suffix のみを抽出して保持する。</p>
  */
 public class MobRepository {
+    private final LocalMasterOverlay localOverlay;
+
+    public MobRepository() { this(null); }
+
+    public MobRepository(@Nullable LocalMasterOverlay localOverlay) {
+        this.localOverlay = localOverlay;
+    }
+
+    private @Nullable MobTemplate localTemplate(@NotNull String id) {
+        if (localOverlay == null) return null;
+        LocalMasterOverlay.Entry entry = localOverlay.currentSnapshot().mobs().get(id);
+        if (entry == null) return null;
+        MobTemplate template = parseTemplate(LocalMasterOverlay.asJson(
+                LocalMasterOverlay.parseYaml(entry.content(), entry.path())));
+        if (template == null || !id.equals(template.id())) {
+            throw new IllegalStateException("Invalid local mob master: " + entry.path());
+        }
+        return template;
+    }
 
     /** レベルプロファイルで上書きを許可する共通 Mob 項目です。 */
     private static final Set<String> LEVEL_PROFILE_FIELDS = Set.of(
@@ -105,7 +125,12 @@ public class MobRepository {
                     progress.record(template != null);
                 }
                 progress.finish();
-                return result;
+                if (localOverlay == null || localOverlay.currentSnapshot().mobs().isEmpty()) return result;
+                Map<String, MobTemplate> local = new LinkedHashMap<>();
+                for (String id : localOverlay.currentSnapshot().mobs().keySet()) {
+                    local.put(id, localTemplate(id));
+                }
+                return LocalMasterOverlay.mergeById(result, local, MobTemplate::id);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -122,6 +147,8 @@ public class MobRepository {
      */
     @Nullable
     public MobTemplate findById(@NotNull String mobId) {
+        MobTemplate local = localTemplate(mobId);
+        if (local != null) return local;
         String encoded = URLEncoder.encode(mobId, StandardCharsets.UTF_8).replace("+", "%20");
         String path = "/api/mob/" + encoded;
 

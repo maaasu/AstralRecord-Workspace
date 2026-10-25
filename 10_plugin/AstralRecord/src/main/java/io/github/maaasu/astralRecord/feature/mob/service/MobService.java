@@ -266,6 +266,11 @@ public class MobService {
         Logger.log(LogId.I_5700, templates.size());
     }
 
+    /** @return 公開中の Mob テンプレートを、再読込失敗時の復元用に固定した snapshot。 */
+    public @NotNull Map<String, MobTemplate> snapshotLoadedTemplates() {
+        return Map.copyOf(templates);
+    }
+
     /**
      * テンプレートをキャッシュから取得します。未ヒット時は API から遅延ロードします。
      *

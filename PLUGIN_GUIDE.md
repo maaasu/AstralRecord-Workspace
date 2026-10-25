@@ -139,6 +139,13 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 - 正常終了・例外終了にかかわらず、準備処理後は直前の thread-local を復元し、直前値がない場合は除去する。
 - 全対象の取得・解析・検証に成功した場合だけ共有 snapshot を公開する。失敗時に空の成功結果へ置き換えず、共有 cache を変更せずに直前の公開済み snapshot を保つ。
 
+### Dev ローカルマスタオーバーレイ
+
+- `masterData.localOverlay.enabled` は既定で `false`。明示的に有効化する場合も `plugin.debugMode=true` を必須とし、対象は Plugin のデータフォルダ内 `local-master-overlay/` に限定する。API の接続先と共有マスタは変更しない。
+- `manifest.yml` は `schemaVersion: 1` と `files` のリストを持ち、各行に相対 `path` と原稿バイト列の小文字16進 SHA-256 `sha256` を記載する。許可する原稿は `40.features.mob/enemy/v1.<id>.yml` と `41.features.mob.spawner/v1.<id>.yml` だけ。宣言されないファイルは読まない。絶対パス、親参照、重複、リンク、ハッシュ不一致、不正 UTF-8/YAML/ID はエラーとして起動または再読込の準備を失敗させる。
+- Mob は API の YAML→JSON と同じ型変換後に既存 Mob parser で解釈し、スポナーは既存スポナー parser で解釈する。同じ ID の API 定義はローカル定義が置換する。Mob の遅延検索もローカル定義を優先する。スポナーの Mob ID と指定レベル、およびローカル Mob の item・loot table・Mob スキル参照は読込済み定義へ照合する。API から読む他のマスタとプレイヤーデータの経路は維持する。
+- 起動時と `/masterdata reload` は manifest 全体を検証した snapshot を使う。再読込準備が失敗した場合は旧 snapshot を維持する。ローカルモード中の `/world reload` は共有 API の seed を実行せず、既存 World 定義の再取得だけを行う。
+
 ### Legacy color code 正規化
 
 - filebase や設定由来の表示文字列に含まれる `&` 形式の legacy color code は `ColorCodeUtil` で `§` 形式へ変換してから表示する。

@@ -158,6 +158,46 @@ public class MobSpawnerService {
         dirty = false;
     }
 
+    /** @return 公開中の定義・配置と未保存フラグを再読込失敗時の復元用に保持する状態。 */
+    public @NotNull PublishedState snapshotPublishedState() {
+        Map<String, Set<UUID>> spawned = new LinkedHashMap<>();
+        spawnedByLocation.forEach((key, ids) -> spawned.put(key, Set.copyOf(ids)));
+        return new PublishedState(new MasterDataSnapshot(
+                List.copyOf(definitions.values()), List.copyOf(locations.values())), dirty,
+                Map.copyOf(spawned), new LinkedHashMap<>(pendingSpawns));
+    }
+
+    /** 失敗した再読込の前に公開されていた定義・配置・未保存フラグへ戻します。 */
+    public void restorePublishedState(@NotNull PublishedState state) {
+        replaceMasterDataSnapshot(state.snapshot());
+        spawnedByLocation.clear();
+        state.spawnedByLocation().forEach((key, ids) -> spawnedByLocation.put(key, new HashSet<>(ids)));
+        pendingSpawns.clear();
+        pendingSpawns.putAll(state.pendingSpawns());
+        dirty = state.dirty();
+    }
+
+    public static final class PublishedState {
+        private final MasterDataSnapshot snapshot;
+        private final boolean dirty;
+        private final Map<String, Set<UUID>> spawnedByLocation;
+        private final Map<String, SpawnAttempt> pendingSpawns;
+
+        private PublishedState(MasterDataSnapshot snapshot, boolean dirty,
+                               Map<String, Set<UUID>> spawnedByLocation,
+                               Map<String, SpawnAttempt> pendingSpawns) {
+            this.snapshot = snapshot;
+            this.dirty = dirty;
+            this.spawnedByLocation = spawnedByLocation;
+            this.pendingSpawns = pendingSpawns;
+        }
+
+        private MasterDataSnapshot snapshot() { return snapshot; }
+        private boolean dirty() { return dirty; }
+        private Map<String, Set<UUID>> spawnedByLocation() { return spawnedByLocation; }
+        private Map<String, SpawnAttempt> pendingSpawns() { return pendingSpawns; }
+    }
+
     /** 公開前に準備したスポナー定義と配置の immutable スナップショットです。 */
     public record MasterDataSnapshot(
             @NotNull List<MobSpawnerDefinition> definitions,

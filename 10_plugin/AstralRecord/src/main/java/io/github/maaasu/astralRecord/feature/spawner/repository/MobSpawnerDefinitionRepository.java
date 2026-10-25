@@ -5,14 +5,17 @@ import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerEntry;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerTimeWindow;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseRepository;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
+import io.github.maaasu.astralRecord.infrastructure.api.LocalMasterOverlay;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * filebase の Mob スポナー定義を読み込むリポジトリです。
@@ -20,6 +23,13 @@ import java.util.Locale;
 public class MobSpawnerDefinitionRepository {
 
     private static final String RELATIVE_PATH = "41.features.mob.spawner";
+    private final LocalMasterOverlay localOverlay;
+
+    public MobSpawnerDefinitionRepository() { this(null); }
+
+    public MobSpawnerDefinitionRepository(@Nullable LocalMasterOverlay localOverlay) {
+        this.localOverlay = localOverlay;
+    }
 
     /**
      * すべてのスポナー定義を読み込みます。
@@ -40,7 +50,17 @@ public class MobSpawnerDefinitionRepository {
                 result.add(definition);
             }
         }
-        return result;
+        if (localOverlay == null || localOverlay.currentSnapshot().spawners().isEmpty()) return result;
+        Map<String, MobSpawnerDefinition> localDefinitions = new LinkedHashMap<>();
+        for (var local : localOverlay.currentSnapshot().spawners().entrySet()) {
+            var source = local.getValue();
+            MobSpawnerDefinition definition = parse(LocalMasterOverlay.parseYaml(source.content(), source.path()));
+            if (definition == null || !local.getKey().equals(definition.id())) {
+                throw new IllegalStateException("Invalid local mob spawner: " + source.path());
+            }
+            localDefinitions.put(local.getKey(), definition);
+        }
+        return LocalMasterOverlay.mergeById(result, localDefinitions, MobSpawnerDefinition::id);
     }
 
     /**

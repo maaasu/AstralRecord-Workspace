@@ -47,6 +47,11 @@ public final class MobSkillService {
         this.registry = registry;
     }
 
+    /** @return 指定 Mob スキル ID の実行器が登録済みなら true。 */
+    public boolean hasExecutor(@NotNull String id) {
+        return registry.find(id) != null;
+    }
+
     /** 行動不能・詠唱時間補正の参照先を設定します。 */
     public void setConditionService(@Nullable ConditionService conditionService) {
         this.conditionService = conditionService;

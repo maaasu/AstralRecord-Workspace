@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -207,7 +208,9 @@ public class WorldService {
      * @return ロード件数
      */
     public synchronized int reloadFromYaml() {
-        repository.seedMasterData();
+        if (!ConfigProperties.getInstance().isMasterDataLocalOverlayEnabled()) {
+            repository.seedMasterData();
+        }
         return loadAll();
     }
 

@@ -59,6 +59,7 @@ public class ConfigProperties {
 
     // マスターデータ自動再読込
     private boolean masterDataAutoReloadEnabled;
+    private boolean masterDataLocalOverlayEnabled;
     private long masterDataAutoReloadPollIntervalSeconds;
 
     // Velocity network settings
@@ -198,6 +199,8 @@ public class ConfigProperties {
                 ConfigKeys.MASTER_DATA_AUTO_RELOAD_ENABLED,
                 true
         );
+        this.masterDataLocalOverlayEnabled = configManager.getConfig().getBoolean(
+                ConfigKeys.MASTER_DATA_LOCAL_OVERLAY_ENABLED, false);
         this.masterDataAutoReloadPollIntervalSeconds = Math.max(
                 1L,
                 configManager.getConfig().getLong(
@@ -470,6 +473,11 @@ public class ConfigProperties {
      */
     public boolean isMasterDataAutoReloadEnabled() {
         return masterDataAutoReloadEnabled;
+    }
+
+    /** @return Dev 専用のローカル原稿を明示的に有効化した場合だけ true。 */
+    public boolean isMasterDataLocalOverlayEnabled() {
+        return masterDataLocalOverlayEnabled;
     }
 
     /**
