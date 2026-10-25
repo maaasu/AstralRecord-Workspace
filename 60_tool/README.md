@@ -51,7 +51,7 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 
 ## ワールドの解析と移行
 
-- [スポナー配置プレビュー](spawner-planner/README.md): コピーしたワールドの地形解析、既存マスタによる再配置案、未配置理由をローカルWebで確認します。
+- [スポナー配置プレビュー](spawner-planner/README.md): コピーしたワールドの全域解析、地域別のモブ・実レベル・再配置案と未配置理由をマスタデータエディタの地図で確認します。
 - [エリヴァのワールド名移行](world-identity-migration/README.md): 停止中Devのワールド・保存済み配置・Xaero地図の識別子をバックアップ付きで移行します。共有マスタの公開は別工程です。
 
 ## Controlの導入・管理

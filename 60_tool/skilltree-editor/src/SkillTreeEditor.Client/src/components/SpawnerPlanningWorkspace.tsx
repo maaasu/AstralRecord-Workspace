@@ -1,0 +1,125 @@
+import { useEffect, useMemo, useState } from 'react'
+import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
+import { habitatNames, levelColor, reasonColor } from '../data/spawnerPlanning'
+import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
+import { MinecraftText } from './MinecraftText'
+import { SpawnerPlanningMap } from './SpawnerPlanningMap'
+import type { PlanningLayer } from './SpawnerPlanningMap'
+import './spawnerPlanning.css'
+
+const number = (value: number) => value.toLocaleString('ja-JP')
+export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
+  const [snapshot, setSnapshot] = useState<PlanningSnapshot | null>(null)
+  const [plan, setPlan] = useState<PlanningPlan | null>(null)
+  const [reload, setReload] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [planning, setPlanning] = useState(false)
+  const [error, setError] = useState('')
+  const [radius, setRadius] = useState(64)
+  const [layer, setLayer] = useState<PlanningLayer>('terrain')
+  const [region, setRegion] = useState('')
+  const [reason, setReason] = useState('')
+  const [radii, setRadii] = useState(false)
+  const [selectedCell, setSelectedCell] = useState<number | null>(null)
+  const [selectedProposal, setSelectedProposal] = useState<string | null>(null)
+  const [focus, setFocus] = useState<{ key: number; x: number; z: number } | null>(null)
+  const [visibleCount, setVisibleCount] = useState(40)
+  const [query, setQuery] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true); setError(''); setSnapshot(null); setPlan(null)
+    spawnerPlanningApi.snapshot(controller.signal).then(value => {
+      if (controller.signal.aborted) return
+      setSnapshot(value); setRegion(''); setReason(''); setSelectedCell(null); setSelectedProposal(null)
+      setRadius(current => value.manifest.radiusOptions.includes(current) ? current : value.manifest.radiusOptions[0])
+    }).catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : '解析結果を読み込めませんでした。') })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [reload])
+  useEffect(() => {
+    if (!snapshot) return
+    const controller = new AbortController()
+    setPlanning(true); setPlan(null); setError(''); setSelectedCell(null); setSelectedProposal(null); setVisibleCount(40)
+    spawnerPlanningApi.plan(snapshot, radius, controller.signal).then(value => { if (!controller.signal.aborted) setPlan(value) })
+      .catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : '配置案を読み込めませんでした。') })
+      .finally(() => { if (!controller.signal.aborted) setPlanning(false) })
+    return () => controller.abort()
+  }, [snapshot, radius])
+  const regionById = useMemo(() => new Map(snapshot?.regions.map(value => [value.id, value]) ?? []), [snapshot])
+  const selectedRegion = regionById.get(region)
+  const regionProposals = useMemo(() => plan?.proposals.filter(value => !region || value.regionId === region) ?? [], [plan, region])
+  const proposals = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase('ja-JP')
+    return term ? regionProposals.filter(value => `${value.spawnerId} ${value.regionName} ${value.spawnMobs.map(mob => `${mob.name} ${mob.mobId}`).join(' ')} ${value.x} ${value.z}`.toLocaleLowerCase('ja-JP').includes(term)) : regionProposals
+  }, [regionProposals, query])
+  const stats = useMemo(() => {
+    const counts: Record<string, number> = {}
+    if (snapshot && plan) snapshot.cells.forEach((cell, index) => {
+      if (!region || cell.regionId === region) { const code = plan.reasonCodes[index]; counts[code] = (counts[code] ?? 0) + 1 }
+    })
+    const covered = counts.covered ?? 0
+    const uncovered = Object.entries(counts).filter(([code]) => code === 'uncovered' || code === 'budget' || code.startsWith('uncovered_')).reduce((sum, [, value]) => sum + value, 0)
+    return { counts, covered, uncovered, target: covered + uncovered }
+  }, [snapshot, plan, region])
+  const cell = selectedCell === null ? null : snapshot?.cells[selectedCell]
+  const cellCode = selectedCell === null ? '' : plan?.reasonCodes[selectedCell] ?? cell?.reasonCode ?? ''
+  const proposal = plan?.proposals.find(value => value.proposalId === selectedProposal)
+  const coversSelected = useMemo(() => selectedCell === null ? [] : plan?.proposals.filter(value => value.coveredCellIndices.includes(selectedCell)) ?? [], [plan, selectedCell])
+  function selectRegion(value: string) { setRegion(value); setReason(''); setSelectedCell(null); setSelectedProposal(null); setVisibleCount(40) }
+  function selectProposal(id: string) {
+    setSelectedProposal(id); setSelectedCell(null)
+    const value = plan?.proposals.find(item => item.proposalId === id)
+    if (value) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: value.x + .5, z: value.z + .5 }))
+  }
+  function download() {
+    if (!snapshot || !plan) return
+    const file = new Blob([JSON.stringify({ ...plan, worldName: snapshot.manifest.worldName, progressionPolicy: snapshot.manifest.progressionPolicy, limitations: snapshot.manifest.limitations }, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(file), anchor = document.createElement('a')
+    anchor.href = url; anchor.download = `${snapshot.manifest.worldId}-preview-${radius}m.json`; anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  return <section className="sp-workspace" aria-label="ワールド配置計画">
+    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD / SPAWNER PLANNING</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置計画</small></h1></div><div className="sp-header-actions"><span className="sp-hold">公開・実配置は保留</span><button className="button" onClick={() => setReload(value => value + 1)} disabled={loading}>解析結果を再読込</button></div></header>
+    <p className="sp-intro">既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。</p>
+    {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>全大陸の解析と配置計算の出力一式を用意してから、再読込してください。</p></div>}
+    {loading && <div className="sp-loading" role="status">全大陸の解析結果を読み込んでいます…</div>}
+    {snapshot && <>
+      <div className="sp-controls">
+        <label>表示レイヤー<select value={layer} onChange={event => setLayer(event.target.value as PlanningLayer)}><option value="terrain">地形と配置案</option><option value="levels">地域・推奨レベル</option><option value="reasons">配置・未配置の理由</option></select></label>
+        <label>地域<select value={region} onChange={event => selectRegion(event.target.value)}><option value="">全大陸</option>{snapshot.regions.map(value => <option key={value.id} value={value.id}>{value.name} · {value.levelMin == null ? 'レベル未選定' : `Lv.${value.levelMin}〜${value.levelMax}`}</option>)}</select></label>
+        <label>出現半径<select value={radius} onChange={event => setRadius(Number(event.target.value))}>{snapshot.manifest.radiusOptions.map(value => <option key={value} value={value}>{value}m</option>)}</select></label>
+        <label>配置状況<select value={reason} onChange={event => setReason(event.target.value)}><option value="">すべて</option>{Object.entries(stats.counts).map(([code, value]) => <option key={code} value={code}>{snapshot.manifest.reasons[code] ?? code}（{number(value)}）</option>)}</select></label>
+        <button className="button" onClick={() => { const spawn = snapshot.manifest.spawn; setFocus(value => ({ key: (value?.key ?? 0) + 1, x: spawn.x, z: spawn.z })) }}>開始地点</button>
+        <label className="sp-check"><input type="checkbox" checked={radii} onChange={event => setRadii(event.target.checked)} />出現範囲を重ねる</label>
+      </div>
+      <div className="sp-metrics" aria-live="polite">
+        <div><strong>{plan ? number(regionProposals.length) : '—'}</strong><span>{selectedRegion ? '選択地域' : '全大陸'}の配置案</span></div>
+        <div><strong>{plan ? `${(region ? stats.target ? stats.covered / stats.target * 100 : 0 : plan.coveragePercent).toFixed(1)}%` : '—'}</strong><span>配置対象のカバー率</span></div>
+        <div><strong>{plan ? number(region ? stats.uncovered : plan.uncoveredCells) : '—'}</strong><span>対象内の未カバー区画</span></div>
+        <div><strong>{plan ? number(stats.counts.failed ?? stats.counts.unknown ?? 0) : '—'}</strong><span>読込・解析失敗区画</span></div>
+        <div><strong>{plan ? number(stats.counts.absent ?? 0) : '—'}</strong><span>未保存の区画</span></div>
+      </div>
+      <div className="sp-main">
+        <div className="sp-map-column">
+          <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={layer} region={region} reason={reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={selectedProposal} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} />
+          <div className="sp-map-caption"><span>● 配置案　<span className="sp-spawn-dot">●</span> 開始地点・保護範囲</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
+          {layer === 'levels' && <div className="sp-level-key">推奨レベル {[15, 20, 25, 30, 35, 40, 45].map(value => <span key={value}><i style={{ background: levelColor(value) }} />{value}</span>)}</div>}
+          <p className="sp-scope">カバー率の分母は、地形・足場・モブ条件を満たす配置対象です。全大陸すべてが配置可能という意味ではありません。区画の全256列を測定していますが、実際の移動経路や戦闘負荷は未検証です。</p>
+          <section className="sp-region-section"><h2>地域ごとの計画</h2><p>地域を選ぶと地図と配置案の一覧を絞り込みます。</p><div className="sp-region-list">{snapshot.regions.map(value => <button key={value.id} className={`sp-region-row ${region === value.id ? 'selected' : ''}`} onClick={() => selectRegion(value.id)}><i style={{ background: levelColor(value.levelMin) }} /><span><strong>{value.name}</strong><small>{habitatNames[value.habitat] ?? value.habitat} · {number(value.cellCount)}区画</small></span><b>{value.levelMin == null ? '未選定' : `Lv.${value.levelMin}–${value.levelMax}`}</b><span>{number(value.coveredCellsByRadius?.[String(radius)] ?? 0)} / {number(value.eligibleCells)}<small>カバー / 対象</small></span></button>)}</div></section>
+        </div>
+        <aside className="sp-sidebar">
+          {planning && <p role="status" className="sp-loading">半径{radius}mの配置案を読み込んでいます…</p>}
+          <section><div className="sp-section-heading"><h2>地点・スポナーの詳細</h2><button className="button" disabled={!plan || planning} onClick={download}>案をJSON保存</button></div>
+            {!cell && !proposal && <p className="sp-muted">地図の地点か、下の配置案を選択してください。全域表示では地点、拡大後はスポナーの点も選択できます。</p>}
+            {cell && <div className="sp-detail"><strong>X {cell.x} / Z {cell.z}</strong><p className="sp-reason"><i style={{ background: reasonColor(cellCode) }} />{snapshot.manifest.reasons[cellCode] ?? cellCode}</p><p>{regionById.get(cell.regionId)?.name ?? '地域未判定'}<br />{habitatNames[cell.habitat] ?? cell.habitat} / 推奨 {cell.targetLevel == null ? '未定' : `Lv.${cell.targetLevel}`}</p><p>安全な列: {cell.safeCount ?? 0} / 256<br />候補の足元Y: {cell.candidateY ?? '—'}<br />バイオーム: {cell.biome ?? '未読込'}<br />地表: {cell.surface ?? '未読込'}</p>{cell.reason && <p>{cell.reason}</p>}{coversSelected.map(value => <button className="sp-link-button" key={value.proposalId} onClick={() => selectProposal(value.proposalId)}>この区画をカバーする配置案を見る · Lv.{value.level}</button>)}</div>}
+            {proposal && <div className="sp-detail"><strong>{proposal.regionName}</strong><p>X {proposal.x} / Y {proposal.y} / Z {proposal.z}<br />半径 {proposal.radiusMeters}m · Lv.{proposal.level}</p><span className={`sp-definition ${proposal.definitionStatus === 'draft' ? 'draft' : ''}`}>{proposal.definitionStatus === 'draft' ? '未登録のスポナーマスタ案' : '既存スポナーマスタを使用'}</span><ul>{proposal.spawnMobs.map(mob => <li key={`${mob.mobId}:${mob.level}`}><MinecraftText value={mob.name} /> <b>Lv.{mob.level}</b><small>出現重み {mob.weight}</small></li>)}</ul><p>{proposal.reason}</p><p>{number(proposal.newCoveredCells)}区画を新たにカバー</p>{proposal.originalRadiusMeters != null && <p>現在のマスタ半径: {proposal.originalRadiusMeters}m{proposal.masterUpdateRequired ? '（変更案）' : ''}</p>}<code>{proposal.spawnerId}</code></div>}
+          </section>
+          {selectedRegion && <section><h2>{selectedRegion.name}</h2><p className="sp-muted">{selectedRegion.reason}</p><button className="button" onClick={() => selectRegion('')}>全大陸へ戻す</button></section>}
+          <section><h2>配置・未配置の理由</h2><div className="sp-reason-list">{Object.entries(stats.counts).sort((a, b) => b[1] - a[1]).map(([code, value]) => <button key={code} onClick={() => { setReason(code); setLayer('reasons') }} aria-pressed={reason === code}><span><i style={{ background: reasonColor(code) }} />{snapshot.manifest.reasons[code] ?? code}</span><b>{number(value)}</b></button>)}</div></section>
+          <section><h2>配置案 <small>{number(proposals.length)}件</small></h2><input aria-label="配置案を検索" placeholder="モブ名・地域名・ID・座標" value={query} onChange={event => { setQuery(event.target.value); setVisibleCount(40) }} /><div className="sp-proposal-list">{proposals.slice(0, visibleCount).map(value => <button key={value.proposalId} onClick={() => selectProposal(value.proposalId)} aria-pressed={selectedProposal === value.proposalId}><strong>Lv.{value.level} · {value.regionName}</strong><span>{value.spawnMobs.map(mob => mob.name.replace(/[&§][0-9a-fk-or]/gi, '')).join(' / ')}</span><small>X {value.x} / Y {value.y} / Z {value.z}{value.definitionStatus === 'draft' ? ' · 未登録案' : ''}</small></button>)}{proposals.length === 0 && plan && <p className="sp-muted">この条件の配置案はありません。未配置理由を確認してください。</p>}</div>{visibleCount < proposals.length && <button className="button sp-more" onClick={() => setVisibleCount(value => value + 40)}>さらに40件表示</button>}</section>
+          <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>共有マスタへの公開、既存スポナーの変更、実際の配置は行いません。</p></section>
+        </aside>
+      </div>
+    </>}
+  </section>
+}
