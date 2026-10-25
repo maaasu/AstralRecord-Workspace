@@ -143,6 +143,8 @@ class ContinentPlanner:
                 any(type(level) is not int for level in levels) or
                 levels != sorted(set(levels)) or levels[0] != self.minimum_level):
             raise ValueError("Road levels must be sorted unique integers starting at world minimum")
+        if type(road.get("levelStepMeters")) is not int or road["levelStepMeters"] <= 0:
+            raise ValueError("Road levelStepMeters must be a positive integer")
         if (road.get("material") != "minecraft:dirt_path" or
                 type(road.get("corridorMeters")) is not int or road["corridorMeters"] <= 0 or
                 type(road.get("candidateCenterMeters")) is not int or
@@ -351,10 +353,10 @@ class ContinentPlanner:
                 return "eriva-reserved-future", "エリヴァ・後続地域（未配置）", None
             distance = nearest[1]
             levels = self.policy["road"]["levels"]
-            stage = min(len(levels) - 1, int(distance * len(levels) / (self.max_road_distance + 1)))
+            stage = min(len(levels) - 1, distance // self.policy["road"]["levelStepMeters"])
             level = levels[stage]
             return (f"eriva-westroad-stage{stage + 1:02d}-lv{level}-{habitat}",
-                    f"エリヴァ・西側道路第{stage + 1}段階・{HABITAT_NAMES[habitat]}（仮称）", level)
+                    "エリヴァ南西街道", level)
         dx, dz = x - self.spawn["x"], z - self.spawn["z"]
         distance = math.hypot(dx, dz)
         band = next(b for b in self.policy["distanceBands"]
@@ -702,13 +704,14 @@ class ContinentPlanner:
                 "mode": "road", "basis": "開始地点につながるdirt_path含有16m区画の4近傍最短距離",
                 "minimumWorldLevel": self.minimum_level, "maxLevel": road["levels"][-1],
                 "levels": road["levels"],
+                "levelStepMeters": road["levelStepMeters"],
                 "road": {"nodes": self.road_nodes, "edges": self.road_edges,
                          "maxDistanceMeters": self.max_road_distance,
                          "corridorMeters": road["corridorMeters"],
                          "candidateCenterMeters": road["candidateCenterMeters"],
                          "material": road["material"]}}
-            manifest["notes"] = ["西側道路沿いLv.15～45だけを候補とし、他の陸地は後続地域として保留。北東などのLv.100以上の将来設計を先取りしない。",
-                                 "地域名は道路距離と地表環境から生成した提案上の仮称。正式地名ではない。",
+            manifest["notes"] = ["開始地点からの道路距離の固定間隔でレベルを上げ、上限はLv.45。到達していない距離帯のマスタは配置しない。他の陸地は後続地域として保留。",
+                                 "地域名はレベルによらずエリヴァ南西街道で統一する。地域IDは距離帯・環境別の被覆計算に使う。",
                                  "既存の配置は読まず、カバー率に加算しない。"]
             manifest["limitations"].append(
                 "groundCountsは16m区画ごとの材質数で道の柱位置を持たない。4近傍道路グラフは歩行可能性、橋、段差を証明しない。")

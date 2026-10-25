@@ -168,12 +168,15 @@ class RoadProgressionTests(unittest.TestCase):
             self.assertNotIn((-896, 1472), planner.road_distances)
             self.assertEqual(23, len(planner.road_nodes))
             self.assertEqual(352, planner.max_road_distance)
-            far = next(c for c in planner.cells if (c["x"], c["z"]) == (-896, 1472))
+            expanded = next(c for c in planner.cells if (c["x"], c["z"]) == (-896, 1472))
+            self.assertEqual("eligible", expanded["reasonCode"])
+            far = next(c for c in planner.cells if (c["x"], c["z"]) == (-656, 992))
             self.assertEqual("reserved_future", far["reasonCode"])
             self.assertIsNone(far["roadDistanceMeters"])
             end = next(c for c in planner.cells if (c["x"], c["z"]) == (-1152, 1120))
-            self.assertEqual(45, end["targetLevel"])
+            self.assertEqual(18, end["targetLevel"])
             self.assertEqual(352, end["roadDistanceMeters"])
+            self.assertEqual({"エリヴァ南西街道"}, {c["regionName"] for c in planner.cells if c["targetLevel"] is not None})
             plan = planner.plan(64)
             self.assertTrue(plan["proposals"])
             self.assertTrue(all(p["definitionStatus"] == "existing" and p["level"] == p["targetLevel"]
@@ -182,12 +185,29 @@ class RoadProgressionTests(unittest.TestCase):
             manifest = planner.export(root / "export")
             self.assertEqual("continent-redesign", manifest["mode"])
             self.assertEqual("road", manifest["progressionPolicy"]["mode"])
+            self.assertEqual(300, manifest["progressionPolicy"]["levelStepMeters"])
             self.assertEqual(23, len(manifest["progressionPolicy"]["road"]["nodes"]))
             self.assertEqual(22, len(manifest["progressionPolicy"]["road"]["edges"]))
             self.assertEqual({"64"}, set(manifest["files"]["proposals"]))
             for proposal in plan["proposals"]:
                 self.assertTrue(planner._circle_within_road_scope(
                     proposal["x"] + .5, proposal["z"] + .5, 64))
+
+    def test_fixed_distance_bands_do_not_compress_when_road_length_changes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            short = self.make_planner(root / "short", self.road_terrain())
+            data = self.road_terrain()
+            for cell in data["cells"]:
+                if cell["x"] == -1152 and cell["z"] <= 1472:
+                    cell["groundCounts"] = {"minecraft:dirt_path": 16}
+            longer = self.make_planner(root / "longer", data)
+            self.assertGreater(longer.max_road_distance, short.max_road_distance)
+            for planner in (short, longer):
+                cells = {(c["x"], c["z"]): c for c in planner.cells}
+                self.assertEqual(15, cells[(-1152, 1184)]["targetLevel"])  # 288m
+                self.assertEqual(18, cells[(-1152, 1168)]["targetLevel"])  # 304m
+                self.assertEqual(18, cells[(-1152, 1120)]["targetLevel"])
 
     def test_truthful_unknown_and_water_reasons_outside_road_scope(self):
         with tempfile.TemporaryDirectory() as temp:

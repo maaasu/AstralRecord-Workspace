@@ -9,8 +9,9 @@
   "radii": [64],
   "road": {
     "material": "minecraft:dirt_path",
-    "corridorMeters": 224,
-    "candidateCenterMeters": 160,
+    "corridorMeters": 384,
+    "candidateCenterMeters": 320,
+    "levelStepMeters": 300,
     "levels": [15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45]
   },
   "fieldSpawnerIds": {

@@ -9,6 +9,11 @@ export function planningRoad(manifest: PlanningManifest): PlanningRoad | null {
   const policy = manifest.progressionPolicy as { mode?: string; road?: PlanningRoad } | null
   return policy?.mode === 'road' && policy.road ? policy.road : null
 }
+export function planningLevelStepMeters(manifest: PlanningManifest): number | null {
+  const policy = manifest.progressionPolicy as { mode?: string; levelStepMeters?: number } | null
+  const step = policy?.levelStepMeters
+  return policy?.mode === 'road' && typeof step === 'number' && Number.isInteger(step) && step > 0 ? step : null
+}
 export interface PlanningManifest extends PlanningIdentity {
   worldName: string
   previewOnly: boolean

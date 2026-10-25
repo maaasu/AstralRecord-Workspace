@@ -6,11 +6,11 @@
 
 `--policy 60_tool/spawner-planner/policies/eriva-westroad.json` を指定すると、半径64mだけの道路進行プレビューになる。指定しなければ従来の全大陸ポリシーを使う。開始地点と最低推奨レベルは引き続きワールドマスタから読み、道路モードは最低推奨レベルが15でなければ拒否する。`fieldSpawnerIds` は草原・森林それぞれ Lv.15,18,21,24,27,30,33,36,39,42,45 の `eriva_westroad_*_spawner` を厳密に参照する。全IDの実在と対応するEnemyレベルを検証し、未登録Enemyからのdraftは作らない。
 
-開始地点を含む16m区画から、`groundCounts` に `minecraft:dirt_path` が1列以上ある区画だけを4近傍でたどる。他の道路成分は開始地点からの経路とみなさない。経路の最短距離を16m単位で求め、到達した道路区画の最大距離を11段階に分ける。各区画を最も近い道路区画へ割り当て、その道路距離で目標レベルを決める。森林・草原の地域IDは `eriva-westroad-stageNN-lvLL-<habitat>`、地域名は仮称であり正式な地理区分ではない。枝道も同じ最短道路距離で段階を得る。
+開始地点を含む16m区画から、`groundCounts` に `minecraft:dirt_path` が1列以上ある区画だけを4近傍でたどる。他の道路成分は開始地点からの経路とみなさない。経路の最短距離を16m単位で求め、道路距離300mごとに3レベル上げる（`road.levelStepMeters: 300`）。Lv.15は0～300m未満、Lv.18は300～600m未満、Lv.45は3,000m以降とし、上限45で固定する。解析した道路の全長では正規化しない。現在の開始地点接続道路は最大1,488mなので、今回の配置はLv.15～27となる。Lv.30～45のマスタは距離が不足している間は配置しない。各区画を最も近い道路区画へ割り当て、その道路距離で目標レベルを決める。森林・草原の地域IDは `eriva-westroad-stageNN-lvLL-<habitat>`、表示する地域名は段階・レベル・環境によらず「エリヴァ南西街道」に統一する。地域IDは距離帯・環境別の被覆計算用に保持する。枝道も同じ最短道路距離で段階を得る。
 
-道路区画の中心から224mを今回の範囲とし、範囲外の解析済み非水域には `reserved_future` を付けて配置しない。未生成・計測失敗・水域は元の理由を保持する。候補中心は道路区画中心から160m以内、かつ `224m - 出現半径` 以内とする。出現円が `reserved_future` 区画へ触れる候補も拒否する。半径64mと開始地点48m保護の双方を満たす提案だけを出す。北東などの後続地域、将来のLv.100以上の設計範囲は今回の候補に含まれない。
+道路区画の中心から384mを今回の範囲とし、範囲外の解析済み非水域には `reserved_future` を付けて配置しない。未生成・計測失敗・水域は元の理由を保持する。候補中心は道路区画中心から320m以内、かつ `384m - 出現半径` 以内とする。出現円が `reserved_future` 区画へ触れる候補も拒否する。半径64mと開始地点48m保護の双方を満たす提案だけを出す。北東などの後続地域、将来のLv.100以上の設計範囲は今回の候補に含まれない。
 
-`manifest.progressionPolicy.mode` は `road`、`road.nodes` は16m道路区画中心と最短道路距離、`road.edges` は4近傍辺のノード索引である。`road.maxDistanceMeters`、`road.corridorMeters`、`road.candidateCenterMeters`、段階 `levels` を同じオブジェクトへ出す。`cells.json` の `roadDistanceMeters` と `distanceToRoadMeters` は解析済みの道路範囲だけに入り、範囲外・未計測はnullとなる。提案にもこの二つの距離を記録する。トップレベルの `mode: continent-redesign`、schema 2とファイル間revision一致は維持する。
+`manifest.progressionPolicy.mode` は `road`、`road.nodes` は16m道路区画中心と最短道路距離、`road.edges` は4近傍辺のノード索引である。`road.maxDistanceMeters`、`road.corridorMeters`、`road.candidateCenterMeters`、固定間隔 `levelStepMeters`、段階 `levels` を同じオブジェクトへ出す。`cells.json` の `roadDistanceMeters` と `distanceToRoadMeters` は解析済みの道路範囲だけに入り、範囲外・未計測はnullとなる。提案にもこの二つの距離を記録する。トップレベルの `mode: continent-redesign`、schema 2とファイル間revision一致は維持する。
 
 `groundCounts` は256列の材質個数であり、道の列座標を保存しない。4近傍で隣り合う道含有区画が実際につながる保証はなく、橋、段差、障害物、Mobの経路探索も証明しない。道線と段階は配置前にコピーしたワールドで現地確認する。半径64mのスポナーで異環境や隣の段階へMobが出現し得る点も別途検証する。
 

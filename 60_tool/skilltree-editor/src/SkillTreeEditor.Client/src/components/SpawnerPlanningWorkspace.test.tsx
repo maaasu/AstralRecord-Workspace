@@ -35,12 +35,13 @@ describe('マスタエディタ内の配置計画', () => {
   })
   it('道路モードでは後続地域の保留と道路距離を表示する', async () => {
     const roadSnapshot = structuredClone(snapshot)
-    roadSnapshot.manifest.progressionPolicy = { mode: 'road', maxLevel: 45, road: { nodes: [], edges: [], maxDistanceMeters: 1400, corridorMeters: 224, candidateCenterMeters: 160 } }
+    roadSnapshot.manifest.progressionPolicy = { mode: 'road', maxLevel: 45, levelStepMeters: 300, road: { nodes: [], edges: [], maxDistanceMeters: 1400, corridorMeters: 384, candidateCenterMeters: 320 } }
     roadSnapshot.cells[1].roadDistanceMeters = 648
     roadSnapshot.cells[1].distanceToRoadMeters = 32
     vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(roadSnapshot)
     render(<SpawnerPlanningWorkspace active />)
     expect(await screen.findByText(/北東のLv.100超予定地/)).toBeInTheDocument()
+    expect(screen.getByText(/道路距離300mごと/)).toHaveTextContent('未到達の距離帯は配置しません')
     fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
     expect(screen.getByText(/道に沿った距離:/)).toHaveTextContent('648m')
     expect(screen.getByText(/道からの距離:/)).toHaveTextContent('32m')

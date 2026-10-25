@@ -49,8 +49,11 @@ def validate_plan(manifest: dict, plan: dict, cells: list[dict],
         raise ValueError("Only the road progression plan up to Lv45 with radius64 is supported")
     source_world_name = source_world_name or world_name
     declared_levels = policy.get("levels", [])
-    if declared_levels != list(range(15, 46, 3)) or set(p.get("level") for p in plan.get("proposals", [])) != set(declared_levels):
-        raise ValueError("Registration must include every declared progression level")
+    if declared_levels != list(range(15, 46, 3)):
+        raise ValueError("Registration requires the declared Lv15 to Lv45 progression catalog")
+    level_step = policy.get("levelStepMeters")
+    if type(level_step) is not int or level_step <= 0:
+        raise ValueError("Registration requires a fixed positive levelStepMeters")
     if len(cells) != manifest.get("cellCount") or len(plan.get("reasonCodes", [])) != len(cells):
         raise ValueError("Incomplete cell set")
     road = policy["road"]
@@ -60,8 +63,19 @@ def validate_plan(manifest: dict, plan: dict, cells: list[dict],
     bounds, spawn = manifest["bounds"], manifest["spawn"]
     min_x, min_z = bounds["minX"], bounds["minZ"]
     max_x, max_z = min_x + bounds["width"], min_z + bounds["height"]
+    if bounds.get("cellSize") != 16:
+        raise ValueError("Expected measured 16m cells")
+    cell_by_position = {(c["x"], c["z"]): c for c in cells}
+    if len(cell_by_position) != len(cells):
+        raise ValueError("Duplicate measured cell")
     placements, files, occupied, proposal_ids = [], set(), set(), set()
     for proposal in plan["proposals"]:
+        distance = proposal.get("roadDistanceMeters")
+        if type(distance) is not int or not 0 <= distance <= road["maxDistanceMeters"]:
+            raise ValueError("Missing or invalid measured road distance")
+        expected_level = declared_levels[min(len(declared_levels) - 1, distance // level_step)]
+        if proposal.get("level") != expected_level:
+            raise ValueError("Proposal level differs from fixed road-distance progression")
         if proposal.get("world") != source_world_name:
             raise ValueError("Proposal world differs from the explicitly selected source world")
         if proposal.get("definitionStatus") != "existing" or proposal.get("masterUpdateRequired") is not False:
@@ -73,6 +87,17 @@ def validate_plan(manifest: dict, plan: dict, cells: list[dict],
         if any(type(v) is not int for v in (x, y, z)) or (x, y, z) in occupied:
             raise ValueError("Coordinates must be unique integer block locations")
         occupied.add((x, y, z))
+        cell_x = min_x + (x - min_x) // 16 * 16
+        cell_z = min_z + (z - min_z) // 16 * 16
+        cell = cell_by_position.get((cell_x, cell_z))
+        if (cell is None or cell.get("status") != "ok" or cell.get("reasonCode") != "eligible" or
+                tuple(cell.get(k) for k in ("candidateX", "candidateY", "candidateZ")) != (x, y, z) or
+                cell.get("roadDistanceMeters") != distance or cell.get("targetLevel") != expected_level):
+            raise ValueError("Proposal does not match its measured candidate cell")
+        nearest = min(nodes, key=lambda n: (math.hypot(cell_x + 8 - n["x"], cell_z + 8 - n["z"]),
+                                           n["distanceMeters"], n["z"], n["x"]))
+        if nearest["distanceMeters"] != distance:
+            raise ValueError("Proposal distance differs from measured road nodes")
         cx, cz = x + .5, z + .5
         if not (min_x + 64 <= cx <= max_x - 64 and min_z + 64 <= cz <= max_z - 64):
             raise ValueError("Spawn circle exceeds scanned bounds")
@@ -142,7 +167,9 @@ def prepare(plan_directory: Path, filebase: Path, output: Path, world_name: str,
                "worldId": manifest["worldId"], "worldName": world_name,
                "sourceWorldName": source_world_name or world_name,
                "exportRevision": manifest["exportRevision"], "terrainFingerprint": manifest["terrainFingerprint"],
-               "radiusMeters": 64, "maxLevel": 45, "placementCount": len(placements),
+               "radiusMeters": 64, "maxLevel": max(p["level"] for p in plan["proposals"]),
+               "levelCap": 45, "levelStepMeters": manifest["progressionPolicy"]["levelStepMeters"],
+               "placementCount": len(placements),
                "placementsSha256": digest(placement_path), "masters": masters}
     (output / "registration.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt

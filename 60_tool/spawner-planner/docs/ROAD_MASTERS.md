@@ -14,7 +14,7 @@
 | 36, 39 | ハラノヒツジ55 / カゼトカゲ45 | コノハフクロウ55 / コカゲハリネズミ45 |
 | 42, 45 | カマキリソード75 / イワセバイソン25 | トゲシカ55 / コカゲハリネズミ45 |
 
-スポナーIDは `eriva_westroad_<grass|forest>_lv<level>_spawner`。全件の `radiusMeters: 64`、終日、`spawnIntervalTicks: 100`、`spawnChancePercent: 100.0`、`maxAlivePerSpawner: 6`、`maxNearbyMobs: 12`、`spawnPerPlayer: 1` を共通にする。`maxAlivePerMob` は指定せず、既定の0（Mob ID単位の上限なし）とする。地域表示は両環境で `エリヴァ南西街道・Lv.N帯` とする。
+スポナーIDは `eriva_westroad_<grass|forest>_lv<level>_spawner`。全件の `radiusMeters: 64`、終日、`spawnIntervalTicks: 100`、`spawnChancePercent: 100.0`、`maxAlivePerSpawner: 6`、`maxNearbyMobs: 12`、`spawnPerPlayer: 1` を共通にする。`maxAlivePerMob` は指定せず、既定の0（Mob ID単位の上限なし）とする。地域表示は全レベル・両環境で `エリヴァ南西街道` とする。レベルはモブや配置計画のレベル欄に表示し、エリア名には含めない。実配置は道路距離300mごとに3レベル上げる。現行の開始接続道路は最大1,488mのためLv.15～27を使い、Lv.30～45のマスタは後続用として保持する。
 
 半径64mはPlayer検出・周辺Mob計数・出現位置探索にも使われる。探索には道路やバイオームの除外条件がない。配置時は街道・安全地帯・隣接環境・北東側へ円が掛からないか地図と現地で確かめる。近接する複数スポナーの目標数は独立で、周辺上限は発生地点の円内で判定される。静的定義だけでは街道上の遭遇密度を保証しない。
 

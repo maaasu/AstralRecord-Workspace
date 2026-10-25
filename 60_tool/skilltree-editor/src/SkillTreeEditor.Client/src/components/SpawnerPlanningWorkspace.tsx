@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
-import { habitatNames, levelColor, reasonColor, planningRoad } from '../data/spawnerPlanning'
+import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
@@ -48,6 +48,7 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
   const regionById = useMemo(() => new Map(snapshot?.regions.map(value => [value.id, value]) ?? []), [snapshot])
   const selectedRegion = regionById.get(region)
   const road = snapshot ? planningRoad(snapshot.manifest) : null
+  const levelStep = snapshot ? planningLevelStepMeters(snapshot.manifest) : null
   const regionProposals = useMemo(() => plan?.proposals.filter(value => !region || value.regionId === region) ?? [], [plan, region])
   const proposals = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('ja-JP')
@@ -81,7 +82,7 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
   }
   return <section className="sp-workspace" aria-label="ワールド配置計画">
     <header className="sp-heading"><div><span className="sp-eyebrow">WORLD / SPAWNER PLANNING</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置計画</small></h1></div><div className="sp-header-actions"><span className="sp-hold">共有マスタ公開は保留</span><button className="button" onClick={() => setReload(value => value + 1)} disabled={loading}>解析結果を再読込</button></div></header>
-    <p className="sp-intro">{road ? '開始地点につながる道に沿ってLv.15〜45を配置します。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。' : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>
+    <p className="sp-intro">{road ? `${levelStep ? `開始地点からの道路距離${number(levelStep)}mごとにレベルを一段階上げます。` : '開始地点につながる道の距離でレベルを決めます。'}配置の上限はLv.45で、未到達の距離帯は配置しません。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。` : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>
     {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>全大陸の解析と配置計算の出力一式を用意してから、再読込してください。</p></div>}
     {loading && <div className="sp-loading" role="status">全大陸の解析結果を読み込んでいます…</div>}
     {snapshot && <>
