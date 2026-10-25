@@ -54,6 +54,11 @@ def _plain(value: str) -> str:
     return re.sub(r"[&§][0-9a-fk-or]", "", value, flags=re.I)
 
 
+def _mob_name(mob: dict, level: int) -> str:
+    variant = next((entry for entry in mob.get("levels", []) if int(entry["level"]) == level), None)
+    return _plain((variant or {}).get("name") or mob.get("name") or mob["id"])
+
+
 def _habitat(cell: dict) -> str:
     if cell["status"] != "ok":
         return "unknown"
@@ -208,7 +213,7 @@ class ContinentPlanner:
                     levels = {int(mob["level"])} | {int(v["level"]) for v in mob.get("levels", [])}
                     if level not in levels or level < self.minimum_level or mob.get("category") != "ENEMY":
                         raise ValueError(f"Unsupported field enemy level: {key}/{mob_id}/{level}")
-                    entries.append({"mobId": entry["mobId"], "name": _plain(mob.get("name", mob_id)),
+                    entries.append({"mobId": entry["mobId"], "name": _mob_name(mob, level),
                                     "level": level, "weight": int(entry["weight"])})
                 if not entries or len({entry["level"] for entry in entries}) != 1:
                     raise ValueError(f"Field spawner needs a single defined level: {key}")
@@ -235,7 +240,7 @@ class ContinentPlanner:
                                      "level": level, "region": f"エリヴァ{HABITAT_NAMES[habitat]}",
                                      "radiusMeters": None,
                                      "spawnMobs": [{"mobId": f"mob:{mob_id}",
-                                                    "name": _plain(mob.get("name", mob_id)),
+                                                    "name": _mob_name(mob, level),
                                                     "level": level, "weight": 100}],
                                      "maxAlivePerSpawner": None}
         available = []

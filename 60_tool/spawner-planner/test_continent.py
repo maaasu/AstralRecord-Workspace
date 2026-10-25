@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from continent import ContinentPlanner
+from continent import ContinentPlanner, _mob_name
 
 
 HERE = Path(__file__).resolve().parent
@@ -80,6 +80,16 @@ class ContinentTests(unittest.TestCase):
             self.assertTrue(all(p["spawnMobs"][0]["level"] == p["level"] for p in drafts))
             self.assertIsNone(plan["maxAliveUpperBound"])
             self.assertEqual(len(drafts), plan["unknownLimitProposalCount"])
+
+    def test_level_specific_display_names_for_existing_and_draft(self):
+        with tempfile.TemporaryDirectory() as temp:
+            planner = self.make_planner(terrain(), Path(temp))
+            self.assertEqual("エリヴァ・グラスボア Lv.16",
+                             planner.spawners["eriva_grassboar_lv16_spawner"]["spawnMobs"][0]["name"])
+            self.assertEqual("コケギツネ Lv.26",
+                             planner.spawners["field_moss_fox_lv26_spawner"]["spawnMobs"][0]["name"])
+            self.assertEqual("基礎名", _mob_name({"id": "fallback", "name": "&a基礎名",
+                                                  "levels": [{"level": 26}]}, 26))
 
     def test_missing_or_duplicate_cell_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
