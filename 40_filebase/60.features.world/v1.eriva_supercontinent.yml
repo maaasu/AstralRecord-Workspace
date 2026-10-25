@@ -2,11 +2,11 @@
 #   motif: "地形 / 超大陸"
 #   progression: 1
 schemaVersion: 1
-id: vanaheim_supercontinent
+id: eriva_supercontinent
 displayName: "エリヴァ超大陸"
 worldType: OVERWORLD
-baseWorldPath: "plugins/AstralRecord/worlds/overworld/vanaheim_supercontinent"
-instanceRootPath: "plugins/AstralRecord/_world_instances/vanaheim_supercontinent"
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/eriva_supercontinent"
+instanceRootPath: "plugins/AstralRecord/_world_instances/eriva_supercontinent"
 autoLoad: false
 instanceEnabled: false
 maxPlayers: 100

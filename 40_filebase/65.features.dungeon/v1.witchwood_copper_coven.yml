@@ -6,7 +6,7 @@ id: witchwood_copper_coven
 displayName: "翠呪の紅銅祭苑"
 recommendedLevel: 25
 entry:
-  worldRef: world:vanaheim_supercontinent
+  worldRef: world:eriva_supercontinent
   x: -1154.5
   y: 107.0
   z: 1480.5

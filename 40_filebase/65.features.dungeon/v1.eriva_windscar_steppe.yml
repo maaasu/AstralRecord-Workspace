@@ -6,7 +6,7 @@ id: eriva_windscar_steppe
 displayName: "風切りの草原"
 recommendedLevel: 15
 entry:
-  worldRef: world:vanaheim_supercontinent
+  worldRef: world:eriva_supercontinent
   x: -869.5
   y: 119.5
   z: 1101.6

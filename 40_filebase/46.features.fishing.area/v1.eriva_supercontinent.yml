@@ -2,10 +2,10 @@
 #   motif: "釣り / 大陸"
 #   progression: 3
 schemaVersion: 1
-id: vanaheim_supercontinent
+id: eriva_supercontinent
 type: FISHING_AREA
 name: "エリヴァの水辺"
-worldId: {ref: "world:vanaheim_supercontinent"}
+worldId: {ref: "world:eriva_supercontinent"}
 rulesId: {ref: "fishing_rules:default"}
 enabled: true
 levelRanges:

@@ -57,7 +57,7 @@ ai:
 challenge:
   fieldWorldId: vanaheim_boss_selenea_field
   entryLocation:
-    worldId: vanaheim_supercontinent
+    worldId: eriva_supercontinent
     x: -1047.5
     y: 118.0
     z: 807.5

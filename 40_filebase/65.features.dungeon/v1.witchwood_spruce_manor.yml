@@ -6,7 +6,7 @@ id: witchwood_spruce_manor
 displayName: "幽翠のトウヒ館"
 recommendedLevel: 20
 entry:
-  worldRef: world:vanaheim_supercontinent
+  worldRef: world:eriva_supercontinent
   x: -745.5
   y: 110.0
   z: 1648.5

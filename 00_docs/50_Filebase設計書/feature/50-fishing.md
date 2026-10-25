@@ -2,7 +2,7 @@
 
 釣りは魚（`44.features.fishing.fish`）、ワールドと竿の釣りレベル別抽選（`46.features.fishing.area`）、共通挙動（`47.features.fishing.rules`）に分ける。ファイル構造と数値境界は各カテゴリの JSON Schema と YAML スキーマ定義を正とする。
 
-釣り場は拠点のノクス（`starlit_nox`）、ミズガルズ（`midgard_greenfields`）、ヴェルディア（`verdia`）、エリヴァ超大陸（`vanaheim_supercontinent`）の4ワールドに定義する。拠点のワールドファイル名は `v1.central_base.yml` だが、参照するIDは `starlit_nox`。ボス・建築・スキルツリー等のワールドは対象に含めない。
+釣り場は拠点のノクス（`starlit_nox`）、ミズガルズ（`midgard_greenfields`）、ヴェルディア（`verdia`）、エリヴァ超大陸（`eriva_supercontinent`）の4ワールドに定義する。拠点のワールドファイル名は `v1.central_base.yml` だが、参照するIDは `starlit_nox`。ボス・建築・スキルツリー等のワールドは対象に含めない。
 
 4ワールドのレベル1は共通で、川ダラ70％・川サケ30％。レベル2はヴェルディアだけに定義し、川ダラ40％・川サケ45％・彩りの熱帯魚15％を出現させる。各段階は `minLevel = maxLevel = 定義レベル` として保存する。竿以下の開始レベルが最も高い定義を選ぶため、レベル2の竿でもレベル1だけのワールドではレベル1を適用する。レベル3以上の竿はヴェルディアでレベル2、他の対象ワールドでレベル1となる。竿以下の定義がない場合は釣りを開始しない。
 

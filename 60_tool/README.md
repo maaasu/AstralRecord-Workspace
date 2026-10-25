@@ -55,6 +55,8 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 
 [control-gate](control-gate/README.md) は01/02/03/16/17の実行予約と資源保護を担当する共通ライブラリです。通常は直接実行しません。Control管理markerがあるPCでは、`controlGate`未設定のLegacy実行は拒否されます。[新環境の導入メモ](control-deploy/APP-01-MC-01-DEV-01.md)と[現在の接続状況](CONFIGURATION.md#2026-10-20の実環境確認)を参照してください。
 
+[world-identity-migration](world-identity-migration/README.md) はエリヴァ超大陸の旧ワールド識別子をオフラインで一度だけ移行する補助ツールです。通常の配布入口からは呼び出しません。
+
 ## 実装の責務
 
 | ディレクトリ・ファイル | 担当すること | 呼び出し元 |

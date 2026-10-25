@@ -6,7 +6,7 @@ id: eriva_greatroot_hollow
 displayName: "大樹の根洞"
 recommendedLevel: 25
 entry:
-  worldRef: world:vanaheim_supercontinent
+  worldRef: world:eriva_supercontinent
   x: -1144.5
   y: 107.0
   z: 1480.5
