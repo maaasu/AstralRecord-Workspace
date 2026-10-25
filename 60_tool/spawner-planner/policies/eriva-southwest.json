@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "worldId": "eriva_supercontinent",
+  "sourceWorldAliases": ["vanaheim_supercontinent", "plugins/AstralRecord/worlds/overworld/vanaheim_supercontinent"],
+  "regionName": "エリヴァ超大陸・南西の出発地域",
+  "spawnSafeRadius": 48,
+  "maxLocalSlope": 4,
+  "minSafeColumns": 8,
+  "habitats": {
+    "grass": ["eriva_grassboar_lv15_spawner"],
+    "forest": ["eriva_great_forest_lv15_spawner"]
+  },
+  "notes": [
+    "初回は開始地点周辺のLv.15向け地表を対象にする。洞窟・屋内・水中は対象外。",
+    "草原と森林の分類はブロック・バイオームに基づく推定。人工建築の安全地帯を自動認定しない。",
+    "到達性は1ブロックごとの足場接続による推定で、実クライアントの歩行やMobの経路探索の保証ではない。",
+    "半径変更は配置案のみ。既存マスタとサーバー上のスポナーには反映しない。"
+  ]
+}

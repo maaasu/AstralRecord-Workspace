@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>エリヴァ — スポナー配置プレビュー</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><div><span class="eyebrow">ASTRAL RECORD / WORLD PLANNING</span><h1>エリヴァ超大陸 <span>配置プレビュー</span></h1></div><span class="badge">プレビュー・未適用</span></header>
+<main>
+  <section class="workspace">
+    <div class="toolbar"><div><h2 id="region">南西の出発地域</h2><p id="extent">地形データを読み込んでいます…</p></div><div class="layer-control"><label for="layer">表示</label><select id="layer"><option value="terrain">地形と配置</option><option value="reasons">配置・未配置の理由</option><option value="habitat">生息環境の分類</option></select></div></div>
+    <div class="metrics" aria-live="polite"><div><strong id="count">—</strong><span>新規スポナー案</span></div><div><strong id="coverage">—</strong><span>対象地表のカバー率</span></div><div><strong id="uncovered">—</strong><span>対象内の未カバー区画</span></div><div><strong id="unknown">—</strong><span>未解析区画</span></div></div>
+    <div class="map-wrap"><canvas id="map" aria-label="解析地域の地図。ドラッグで移動、ホイールで拡大、クリックで地点を確認。配置一覧からも選択できます。" tabindex="0"></canvas><div class="map-tools"><button id="zoom-in" aria-label="拡大">＋</button><button id="zoom-out" aria-label="縮小">−</button><button id="reset" aria-label="全域を表示">全域</button><button id="spawn" aria-label="開始地点を表示">開始地点</button></div><div class="north">N ↑</div><div class="coordinates" id="coordinates">X — / Z —</div><div id="busy" role="status">地形を読み込んでいます…</div></div>
+    <div class="legend"><span><i class="dot proposal"></i>再配置案</span><label><input type="checkbox" id="show-existing"> 既存配置を重ねる</label><span><i class="dot spawn"></i>開始地点・保護範囲</span><span><i class="dot missed"></i>未カバー</span><label><input type="checkbox" id="show-radii" checked> 出現範囲</label></div>
+    <p class="scope">カバー率の分母は、足場・環境・接続条件を満たす地表です。水中・洞窟・屋内・未判定区域は含みません。移動可能性は高度に基づく推定です。</p>
+  </section>
+  <aside>
+    <section><h2>配置条件</h2><p class="muted">既存のLv.15スポナーを使用します。</p><label class="field" for="radius">出現半径<select id="radius"><option value="32">32m — 現在のマスタ</option><option value="48" selected>48m — 配置数を抑える案</option><option value="64">64m — 広域の比較案</option></select></label><label class="field" for="maximum">新規配置数の上限<input id="maximum" type="number" min="1" max="500" value="200"></label><button id="calculate" class="primary">配置案を計算</button><p class="small" id="radius-note">半径の変更はこの配置案だけに反映されます。</p><button id="download" class="secondary" disabled>配置案をJSONで保存</button></section>
+    <section><h2>地点の詳細</h2><div id="detail" class="detail">地図上の地点やスポナーを選択すると、座標・モブ・選定理由を表示します。</div></section>
+    <section><h2>配置状況 <span class="small">4m四方の区画数</span></h2><label class="field" for="reason-filter">地図の絞り込み<select id="reason-filter"><option value="">すべて表示</option></select></label><div id="reasons" class="reason-list"></div></section>
+    <section><h2>スポナー一覧</h2><div id="proposal-list" class="proposal-list"></div></section>
+    <section class="small"><h2>解析について</h2><p id="source"></p><p id="inventory"></p><ul id="notes"></ul><p id="error" role="alert"></p></section>
+  </aside>
+</main>
+<footer>地形はワールドのブロックから取得しています。実サーバーの配置・マスタを変更する操作はありません。</footer>
+</body></html>

@@ -202,6 +202,7 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         Map<String, Integer> grounds = new LinkedHashMap<>();
         Map<String, Integer> biomes = new LinkedHashMap<>();
         List<Candidate> safe = new ArrayList<>();
+        List<Candidate> walkableBelowSurface = new ArrayList<>();
         int waterCount = 0;
         int treeCount = 0;
         for (int dz = 0; dz < cellSize; dz++) {
@@ -219,31 +220,43 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
                     treeCount++;
                 }
                 int floor = Math.max(world.getMinHeight(), topY - 32);
+                boolean surfaceFound = false;
                 for (int y = topY; y >= floor; y--) {
                     Block ground = chunk.getBlock(localX + dx, y, localZ + dz);
                     Material type = ground.getType();
                     if (!type.isSolid() || isTree(type)) {
                         continue;
                     }
-                    count(grounds, key(type));
+                    boolean isSurface = !surfaceFound;
+                    if (isSurface) {
+                        count(grounds, key(type));
+                        surfaceFound = true;
+                    }
                     int feetY = y + 1;
-                    if (type.isOccluding() && !isHazard(type) && feetY + 1 < world.getMaxHeight()) {
+                    if (supportsFeet(type) && !isHazard(type) && feetY + 1 < world.getMaxHeight()) {
                         Block feet = chunk.getBlock(localX + dx, feetY, localZ + dz);
                         Block head = chunk.getBlock(localX + dx, feetY + 1, localZ + dz);
                         if (isClear(feet) && isClear(head)) {
-                            safe.add(new Candidate(blockX, feetY, blockZ));
+                            Candidate candidate = new Candidate(blockX, feetY, blockZ);
+                            if (isSurface) {
+                                // The first non-tree solid is the original surface candidate.
+                                safe.add(candidate);
+                            } else {
+                                walkableBelowSurface.add(candidate);
+                            }
                         }
                     }
-                    break;
                 }
             }
         }
-        writeCell(x, z, surfaces, grounds, biomes, safe, waterCount, treeCount);
+        writeCell(x, z, surfaces, grounds, biomes, safe, walkableBelowSurface,
+            waterCount, treeCount);
     }
 
     private void writeCell(int x, int z, Map<String, Integer> surfaces,
                            Map<String, Integer> grounds, Map<String, Integer> biomes,
-                           List<Candidate> safe, int waterCount, int treeCount) throws IOException {
+                           List<Candidate> safe, List<Candidate> walkableBelowSurface,
+                           int waterCount, int treeCount) throws IOException {
         Candidate candidate = null;
         Integer minY = null;
         Integer maxY = null;
@@ -267,6 +280,29 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         json.name("ground"); nullable(mostCommon(grounds));
         json.name("biome"); nullable(mostCommon(biomes));
         json.name("safeCount").value(safe.size());
+        json.name("safeColumnY").beginArray();
+        for (int dz = 0; dz < settings.cellSize(); dz++) {
+            for (int dx = 0; dx < settings.cellSize(); dx++) {
+                Integer height = null;
+                for (Candidate value : safe) {
+                    if (value.x() == x + dx && value.z() == z + dz) {
+                        height = value.y();
+                        break;
+                    }
+                }
+                nullable(height);
+            }
+        }
+        json.endArray();
+        json.name("walkableBelowSurface").beginArray();
+        for (Candidate value : walkableBelowSurface) {
+            json.beginObject();
+            json.name("x").value(value.x());
+            json.name("y").value(value.y());
+            json.name("z").value(value.z());
+            json.endObject();
+        }
+        json.endArray();
         json.name("waterCount").value(waterCount);
         json.name("treeCount").value(treeCount);
         json.name("minY"); nullable(minY);
@@ -296,6 +332,8 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
         json.name("ground").nullValue();
         json.name("biome").nullValue();
         json.name("safeCount").nullValue();
+        json.name("safeColumnY").nullValue();
+        json.name("walkableBelowSurface").nullValue();
         json.name("waterCount").nullValue();
         json.name("treeCount").nullValue();
         json.name("minY").nullValue();
@@ -310,6 +348,8 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
     }
 
     private void advance() {
+        // Invalidate both the timeout and any late chunk-load callback immediately.
+        requestId++;
         chunkIndex++;
         if (chunkIndex % 100 == 0 || chunkIndex == settings.totalChunks()) {
             getLogger().info("Scanned chunks " + chunkIndex + "/" + settings.totalChunks()
@@ -380,6 +420,19 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
             || material == Material.POWDER_SNOW;
     }
 
+    /**
+     * 光を通す道・階段・ハーフブロックも支持面として扱います。
+     * 柵・開閉扉・装飾物は支持候補へ広げず、足と頭の空間は別途検査します。
+     *
+     * @param material 葉・幹を除いた固体ブロックの材質
+     * @return 一般的な歩行面として支持を確認できる場合はtrue
+     */
+    private static boolean supportsFeet(Material material) {
+        return material.isOccluding() || material.name().endsWith("_SLAB")
+            || material.name().endsWith("_STAIRS") || material == Material.DIRT_PATH
+            || material == Material.FARMLAND;
+    }
+
     private static boolean isClear(Block block) {
         Material type = block.getType();
         return block.isPassable() && !block.isLiquid()
@@ -406,7 +459,7 @@ public final class RegionTerrainScannerPlugin extends JavaPlugin {
                 || worldName.equals(".") || worldName.equals("..")) {
                 throw new IllegalArgumentException("worldName must be a simple folder name");
             }
-            if (size <= 0 || size % 16 != 0 || minX % 16 != 0 || minZ % 16 != 0
+            if (size <= 0 || size > 1024 || size % 16 != 0 || minX % 16 != 0 || minZ % 16 != 0
                 || cellSize <= 0 || 16 % cellSize != 0
                 || (long) minX + size > Integer.MAX_VALUE || (long) minZ + size > Integer.MAX_VALUE
                 || (long) minX + size < Integer.MIN_VALUE || (long) minZ + size < Integer.MIN_VALUE) {

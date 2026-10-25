@@ -49,6 +49,11 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 
 07/08の`-Check`は生成漏れの検査です。12はローカルに成果物を生成し、配布は16の責務です。
 
+## ワールドの解析と移行
+
+- [スポナー配置プレビュー](spawner-planner/README.md): コピーしたワールドの地形解析、既存マスタによる再配置案、未配置理由をローカルWebで確認します。
+- [エリヴァのワールド名移行](world-identity-migration/README.md): 停止中Devのワールド・保存済み配置・Xaero地図の識別子をバックアップ付きで移行します。共有マスタの公開は別工程です。
+
 ## Controlの導入・管理
 
 [control-deploy](control-deploy/README.md) は独立管理Web・Agent・Runner・CLIのpublish、登録、更新、運用有効化を担当します。ゲーム内容を配布する01/16とは導入手順が異なります。
