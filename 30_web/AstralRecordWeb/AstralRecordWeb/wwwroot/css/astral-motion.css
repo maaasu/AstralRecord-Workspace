@@ -1,0 +1,91 @@
+/* Decorative motion is opt-in via the controller; the static composition works without JS. */
+.ar-journal .ar-legal-hero { border-bottom: 0; }
+.ar-journal .ar-legal-hero::after { content: ''; position: absolute; inset: auto 0 0; height: 100px; background: linear-gradient(transparent, var(--ar-bg-dark)); pointer-events: none; z-index: 1; }
+.ar-journal .ar-legal-hero .container { z-index: 2; }
+[data-astral-scene] { --ar-scene-shift: 0px; --ar-copy-shift: 0px; }
+.ar-atmosphere { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.ar-astral-particles, .ar-light-veils, .ar-star-trails { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ar-light-veils { opacity: .65; mix-blend-mode: screen; }
+.ar-light-veils i { position: absolute; width: 36%; height: 150%; top: -38%; right: 5%; background: linear-gradient(90deg, transparent, #d8e8ab3b, #fcf1b118, transparent); transform: rotate(28deg); transform-origin: 50% 0; }
+.ar-light-veils i:nth-child(2) { right: 25%; width: 18%; opacity: .6; }
+.ar-light-veils i:nth-child(3) { right: -15%; width: 55%; background: linear-gradient(90deg, transparent, #83e6d74d, transparent); }
+.ar-astrolabe { position: absolute; width: min(58vw, 760px); aspect-ratio: 1; right: -2%; top: 50%; transform: translateY(-50%) rotate(-16deg); color: #f0d99d; opacity: .66; filter: drop-shadow(0 0 9px #e8cb7f80); }
+.ar-astrolabe svg { width: 100%; height: 100%; stroke: currentColor; stroke-width: 1; }
+.ar-astrolabe-outer, .ar-astrolabe-inner { transform-origin: 300px 300px; }
+.ar-astral-particles { opacity: .9; }
+.ar-star-trails i { position: absolute; top: 14%; left: 62%; width: 220px; height: 2px; opacity: 0; background: linear-gradient(90deg, transparent, #f6e5b7); transform: rotate(-30deg); }
+.ar-star-trails i::after { content: ''; position: absolute; right: -2px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: #fff2d0; box-shadow: 0 0 18px 5px #e6d49b99; }
+.ar-star-trails i:nth-child(2) { top: 46%; left: 84%; width: 160px; }
+.ar-star-trails i:nth-child(3) { top: 8%; left: 26%; width: 140px; }
+.ar-motion-control { position: absolute; z-index: 4; right: clamp(24px, 5vw, 64px); top: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 10px 15px; background: #122b25da; border: 1px solid #e3dbb888; border-radius: 2px; color: #f3edda; font-size: .7rem; }
+.ar-motion-control[hidden] { display: none; }
+.ar-motion-control:hover { background: #345244; border-color: #f3edda; }
+.ar-motion-control:disabled { color: #d1d8c8; cursor: default; }
+.ar-motion-control-icon { display: block; width: 9px; height: 11px; border-inline: 3px solid currentColor; }
+[data-motion-state="paused"] .ar-motion-control-icon { height: 0; width: 0; border: 6px solid transparent; border-right: 0; border-left: 9px solid currentColor; }
+.ar-journal .ar-journal-world .container { position: relative; z-index: 1; }
+.ar-journal-world .ar-astrolabe { width: min(48vw, 600px); right: 5%; opacity: .45; }
+.ar-legal-hero .ar-astrolabe { width: 540px; right: -120px; opacity: .3; }
+.ar-legal-hero .ar-light-veils { opacity: .35; }
+
+.ar-motion-ready .ar-journal-landscape { transform: translate3d(0, var(--ar-scene-shift), 0); }
+.ar-motion-ready .ar-journal-landscape img { animation: astral-camera 22s ease-in-out infinite alternate; }
+.ar-motion-ready .ar-journal-world-photo { animation: astral-camera 28s ease-in-out infinite alternate-reverse; }
+.ar-motion-ready .ar-home-hero__content { transform: translate3d(0, var(--ar-copy-shift), 0); }
+.ar-motion-ready .ar-home-title span { animation: astral-title-arrive 1.4s cubic-bezier(.16,.85,.2,1) both; }
+.ar-motion-ready .ar-home-title span:last-child { animation-delay: .18s; }
+.ar-motion-ready .ar-home-hero__content > .ar-home-kicker { animation: astral-arrive .9s .1s both; }
+.ar-motion-ready .ar-home-hero__content > .ar-home-intro { animation: astral-arrive 1.1s .4s both; }
+.ar-motion-ready .ar-home-hero__content > .ar-home-actions { animation: astral-arrive 1.1s .65s both; }
+.ar-motion-ready .ar-astrolabe-outer { animation: astral-orbit 65s linear infinite; }
+.ar-motion-ready .ar-astrolabe-inner { animation: astral-orbit 40s linear infinite reverse; }
+.ar-motion-ready .ar-astrolabe { animation: astral-float 9s ease-in-out infinite alternate; }
+.ar-motion-ready .ar-light-veils i { animation: astral-light 13s ease-in-out infinite alternate; }
+.ar-motion-ready .ar-light-veils i:nth-child(2) { animation-delay: -7s; animation-duration: 17s; }
+.ar-motion-ready .ar-light-veils i:nth-child(3) { animation-delay: -3s; animation-duration: 11s; }
+.ar-motion-ready .ar-star-trails i { animation: astral-trail 9s 2s ease-out infinite; }
+.ar-motion-ready .ar-star-trails i:nth-child(2) { animation-delay: 5s; animation-duration: 13s; }
+.ar-motion-ready .ar-star-trails i:nth-child(3) { animation-delay: 8s; animation-duration: 11s; }
+.ar-scene-reveal { opacity: 0; transform: translateY(48px); transition: opacity .9s ease, transform .9s cubic-bezier(.16,.85,.2,1); }
+.ar-scene-reveal.ar-scene-visible { opacity: 1; transform: none; }
+.ar-scene-reveal .ar-journal-photo img { transform: scale(1.08); transition: transform 1.7s cubic-bezier(.16,.85,.2,1); }
+.ar-scene-visible .ar-journal-photo img { transform: scale(1); }
+
+/* Freeze continuous effects outside the viewport, on hidden tabs, or at the user's request. */
+.ar-motion-ready [data-astral-scene][data-scene-visible="false"] *,
+.ar-motion-ready[data-motion-state="paused"] [data-astral-scene] *,
+.ar-motion-ready[data-motion-state="reduced"] [data-astral-scene] * { animation-play-state: paused; }
+.ar-motion-ready[data-motion-state="paused"] .ar-scene-reveal,
+.ar-motion-ready[data-motion-state="reduced"] .ar-scene-reveal,
+.ar-motion-ready[data-motion-state="paused"] .ar-reveal-ready { opacity: 1; transform: none; transition: none; }
+.ar-motion-ready[data-motion-state="paused"] .ar-home-hero__content > *,
+.ar-motion-ready[data-motion-state="paused"] .ar-home-title span,
+.ar-motion-ready[data-motion-state="paused"] .ar-legal-hero .ar-home-kicker,
+.ar-motion-ready[data-motion-state="paused"] .ar-legal-hero .ar-page-hero-title,
+.ar-motion-ready[data-motion-state="paused"] .ar-legal-hero .ar-page-hero-sub { animation: none; }
+.ar-motion-ready[data-motion-state="paused"] .ar-journal-photo img { transform: none; transition: none; }
+.ar-motion-ready[data-motion-state="reduced"] .ar-astral-particles,
+.ar-motion-ready[data-motion-state="reduced"] .ar-star-trails { display: none; }
+
+@keyframes astral-camera { from { transform: scale(1.08) translate3d(-1%, 0, 0); } to { transform: scale(1.18) translate3d(1.5%, -2%, 0); } }
+@keyframes astral-orbit { to { transform: rotate(360deg); } }
+@keyframes astral-float { from { transform: translateY(-52%) rotate(-16deg); } to { transform: translateY(-47%) rotate(-10deg); } }
+@keyframes astral-light { from { transform: rotate(20deg) translateX(-15%); opacity: .4; } to { transform: rotate(38deg) translateX(20%); opacity: .85; } }
+@keyframes astral-trail { 0%, 70%, 100% { opacity: 0; transform: translate3d(0, 0, 0) rotate(-30deg); } 73% { opacity: .9; } 88% { opacity: 0; transform: translate3d(-480px, 270px, 0) rotate(-30deg); } }
+@keyframes astral-title-arrive { from { opacity: 0; transform: translate3d(0, 50px, 0) rotate(2deg); } to { opacity: 1; transform: none; } }
+@keyframes astral-arrive { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 767px) {
+    .ar-astrolabe { width: 440px; top: 26%; right: -170px; opacity: .52; }
+    .ar-journal-world .ar-astrolabe { width: 430px; right: -200px; top: 30%; opacity: .26; }
+    .ar-legal-hero .ar-astrolabe { width: 390px; right: -180px; }
+    .ar-motion-control { top: 16px; right: 24px; padding: 9px 12px; font-size: .63rem; }
+    .ar-light-veils i { width: 65%; }
+    .ar-star-trails i { width: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ar-atmosphere .ar-astral-particles, .ar-star-trails { display: none; }
+    .ar-motion-ready .ar-journal-landscape, .ar-motion-ready .ar-home-hero__content,
+    .ar-motion-ready .ar-journal-world-photo, .ar-scene-reveal, .ar-scene-reveal .ar-journal-photo img { transform: none; opacity: 1; }
+    .ar-astrolabe { opacity: .18; }
+}

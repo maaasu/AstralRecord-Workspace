@@ -5,13 +5,15 @@
 }
 
 <div class="ar-home" data-public-phase="@(Model.PublicSite.IsOpenAlpha ? "open-alpha" : "release")">
-    <section class="ar-home-hero" aria-labelledby="hero-title">
+    <section class="ar-home-hero" aria-labelledby="hero-title" data-astral-scene>
         <picture class="ar-journal-landscape" aria-hidden="true">
             <source media="(max-width: 600px)" srcset="/images/bg-sky-640.webp 640w, /images/bg-sky-1280.webp 1280w" sizes="100vw" />
             <img src="~/images/bg-sky-1920.webp" srcset="/images/bg-sky-1280.webp 1280w, /images/bg-sky-1920.webp 1920w, /images/bg-sky-2560.webp 2560w"
                  sizes="100vw" width="2560" height="1440" alt="" fetchpriority="high" />
         </picture>
         <div class="ar-journal-hero-shade" aria-hidden="true"></div>
+        <partial name="_AstralAtmosphere" />
+        <partial name="_MotionControl" />
         <div class="container ar-home-hero__content">
             <p class="ar-home-kicker"><span class="ar-journal-star" aria-hidden="true">✦</span> A WORLD WORTH EXPLORING</p>
             <h1 class="ar-home-title" id="hero-title">
@@ -97,9 +99,10 @@
         </div>
     </section>
 
-    <section class="ar-journal-world" aria-labelledby="world-title">
+    <section class="ar-journal-world" aria-labelledby="world-title" data-astral-scene>
         <img class="ar-journal-world-photo" src="~/images/bg-town-1920.webp" srcset="/images/bg-town-640.webp 640w, /images/bg-town-1280.webp 1280w, /images/bg-town-1920.webp 1920w"
              sizes="100vw" width="1920" height="1080" alt="" loading="lazy" decoding="async" />
+        <partial name="_AstralAtmosphere" />
         <div class="container">
             <div class="ar-journal-world-copy">
                 <p class="ar-home-kicker">A GROWING WORLD</p>
