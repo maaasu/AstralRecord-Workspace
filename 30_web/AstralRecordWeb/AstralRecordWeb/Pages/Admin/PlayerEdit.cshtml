@@ -3,7 +3,7 @@
 @{ ViewData["Title"] = "プレイヤー状態の管理者編集"; }
 <section class="ar-portal"><div class="container">
     <header class="ar-portal-heading">
-        <div><p class="ar-portal-eyebrow">管理者専用</p><h1>プレイヤー状態の編集</h1><p class="ar-portal-sub">接続を停止し、保存済み状態を確認してから編集します。</p></div>
+        <div><h1>プレイヤー状態の編集</h1><p class="ar-portal-sub">接続を停止し、保存済み状態を確認してから編集します。</p></div>
         <a class="btn ar-btn-outline" asp-page="/Players/Detail" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@Model.AccountId" asp-route-includePrivate="true">プレイヤー詳細へ戻る</a>
     </header>
     @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }

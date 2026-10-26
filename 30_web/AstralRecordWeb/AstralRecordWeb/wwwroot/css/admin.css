@@ -1,0 +1,170 @@
+/* Operational pages use the public site's green palette with a denser, calmer layout. */
+body.ar-admin main {
+    --admin-surface: #1c302b;
+    --admin-surface-raised: #243b33;
+    --admin-input: #10251e;
+    --admin-border: #6b86755e;
+    --admin-text: #eef2e9;
+    --admin-muted: #bfcebf;
+    --admin-link: #c8e8cf;
+    background: #132521;
+    color: var(--admin-text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 65vh;
+    overflow-wrap: anywhere;
+}
+
+body.ar-admin main :is(h1, h2, h3, h4) {
+    color: var(--admin-text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-shadow: none;
+}
+
+body.ar-admin main :is(a, .ar-history-table a, .ar-history-card a) { color: var(--admin-link); }
+body.ar-admin main a:hover { color: #fff; }
+body.ar-admin main :is(.ar-portal-sub, .ar-page-hero-sub, .ar-history-note) {
+    color: var(--admin-muted);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: .9rem;
+    line-height: 1.7;
+}
+
+body.ar-admin main .ar-admin-hero {
+    background: #182e27;
+    border-bottom: 1px solid var(--admin-border);
+    padding: 28px 0 30px;
+}
+body.ar-admin main .ar-admin-hero .ar-section-overlay { display: none; }
+body.ar-admin main .ar-admin-hero .container { min-height: 0; }
+body.ar-admin main .ar-page-hero-title,
+body.ar-admin main .ar-portal-heading h1 {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.4;
+    margin: 0;
+}
+body.ar-admin main .ar-admin-hero .ar-page-hero-sub { margin-top: 8px; }
+body.ar-admin main .ar-portal { padding-block: 28px 64px; }
+body.ar-admin main .ar-portal-heading {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    margin-bottom: 22px;
+}
+body.ar-admin main .ar-portal-heading .ar-portal-sub { margin-top: 8px; }
+body.ar-admin main .ar-items-page { background: #132521; }
+
+body.ar-admin main :is(.ar-panel, .ar-item-filter, .ar-item-card, .ar-history-card) {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    box-shadow: none;
+}
+body.ar-admin main .ar-panel { padding: clamp(16px, 2vw, 24px); margin-block: 16px; }
+body.ar-admin main .ar-panel :is(h2, h3) { line-height: 1.5; }
+body.ar-admin main .ar-panel h2 { font-size: 1.15rem; margin-bottom: 14px; }
+body.ar-admin main .ar-item-card { border-left-width: 4px; }
+body.ar-admin main :is(.ar-network-user-list li, .ar-network-candidates li, .ar-ban-state div, .ar-ban-confirm div) {
+    background: var(--admin-input);
+    border-color: var(--admin-border);
+}
+body.ar-admin main :is(.ar-history-card, .ar-panel, .ar-item-card) :is(p, li, dd) { line-height: 1.65; }
+
+body.ar-admin main :is(.form-control, .form-select, .ar-input, .ar-history-filters input, .ar-history-filters select,
+    .ar-network-grid input, .ar-network-search input, .ar-network-search select, .ar-defense-selector select,
+    .ar-defense-form select, .ar-defense-actions input, textarea) {
+    background: var(--admin-input);
+    border: 1px solid #829b89;
+    border-radius: 4px;
+    color: var(--admin-text);
+    color-scheme: dark;
+    min-height: 44px;
+    max-width: 100%;
+}
+body.ar-admin main :is(.form-control, .form-select, .ar-input, .ar-history-filters input, .ar-history-filters select,
+    .ar-network-grid input, .ar-network-search input, .ar-network-search select, .ar-defense-selector select,
+    .ar-defense-form select, .ar-defense-actions input, textarea):focus {
+    background: #18352a;
+    border-color: #d0e8cc;
+    box-shadow: 0 0 0 3px #b0dbb63d;
+    color: #fff;
+    outline: none;
+}
+body.ar-admin main :is(input, textarea)::placeholder { color: #b2c3b5; opacity: 1; }
+body.ar-admin main :is(label, .form-label, .ar-network-grid label, .ar-network-search label) {
+    color: var(--admin-text);
+    font-size: .88rem;
+}
+body.ar-admin main :is(.form-text, small, .ar-history-table small, .ar-history-card small) { color: var(--admin-muted); }
+body.ar-admin main .form-check-input { border-color: #a5baa9; background-color: var(--admin-input); }
+body.ar-admin main .form-check-input:checked { background-color: #4c8668; border-color: #9ecbab; }
+
+body.ar-admin main :is(.btn, button:not(.ar-menu-toggle)) {
+    min-height: 40px;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+body.ar-admin main .ar-btn-primary { background: #dce8d4; border: 1px solid #dce8d4; color: #173126; box-shadow: none; }
+body.ar-admin main .ar-btn-primary:hover { background: #f1f5e8; border-color: #f1f5e8; color: #10251d; }
+body.ar-admin main .ar-btn-outline { background: transparent; border: 1px solid #98b49d; color: var(--admin-text); }
+body.ar-admin main .ar-btn-outline:hover { background: #2c4738; border-color: #d5e8d3; color: #fff; }
+
+body.ar-admin main :is(.table-responsive, .ar-history-table-wrap, .ar-defense-history) { overflow-x: auto; }
+body.ar-admin main :is(.table, .ar-history-table, .ar-defense-history table) {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--admin-text);
+    --bs-table-border-color: var(--admin-border);
+    color: var(--admin-text);
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+}
+body.ar-admin main :is(.table, .ar-history-table, .ar-defense-history table) :is(th, td) {
+    border-bottom: 1px solid var(--admin-border);
+    padding: 12px 14px;
+    vertical-align: top;
+}
+body.ar-admin main :is(.table, .ar-history-table, .ar-defense-history table) th {
+    background: #274236;
+    color: #e6f0e2;
+    font-weight: 700;
+    white-space: nowrap;
+}
+body.ar-admin main :is(.table, .ar-history-table, .ar-defense-history table) tbody tr:hover { background: #2b453944; }
+body.ar-admin main :is(.table, .ar-history-table, .ar-defense-history table) td { overflow-wrap: anywhere; }
+body.ar-admin main .ar-history-message { min-width: 180px; }
+
+body.ar-admin main .ar-history-nav { gap: 8px; margin-bottom: 20px; }
+body.ar-admin main .ar-history-nav a {
+    background: #1c302b;
+    border: 1px solid var(--admin-border);
+    border-radius: 3px;
+    color: var(--admin-text);
+    min-height: 40px;
+    padding: 9px 13px;
+}
+body.ar-admin main .ar-history-nav a:hover,
+body.ar-admin main .ar-history-nav a:focus-visible { background: #315040; border-color: #b4d4ba; }
+body.ar-admin main .ar-history-suggestions { background: #1c302b; border-color: #829b89; }
+body.ar-admin main .ar-history-suggestions button { color: var(--admin-text); }
+body.ar-admin main .ar-history-suggestions button:hover,
+body.ar-admin main .ar-history-suggestions button:focus-visible { background: #315040; }
+body.ar-admin main .ar-history-suggestions small,
+body.ar-admin main .ar-history-suggestion-status { color: var(--admin-muted); }
+body.ar-admin main .ar-history-table-wrap { margin-block: 12px; }
+
+@media (max-width: 767px) {
+    body.ar-admin main .ar-admin-hero { padding-block: 22px; }
+    body.ar-admin main .ar-portal { padding-block: 22px 48px; }
+    body.ar-admin main .ar-portal-heading { align-items: flex-start; flex-direction: column; }
+    body.ar-admin main .ar-network-grid,
+    body.ar-admin main .ar-network-search,
+    body.ar-admin main .ar-network-access-lists,
+    body.ar-admin main .ar-defense-summary,
+    body.ar-admin main .ar-ban-state,
+    body.ar-admin main .ar-ban-confirm { grid-template-columns: minmax(0, 1fr); }
+    body.ar-admin main .ar-history-filters { grid-template-columns: minmax(0, 1fr); }
+    body.ar-admin main .ar-panel { padding: 16px; }
+    body.ar-admin main .ar-network-user-list li,
+    body.ar-admin main .ar-network-candidates li { flex-wrap: wrap; }
+}

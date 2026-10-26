@@ -1,15 +1,14 @@
 @page
 @model AstralRecordWeb.Pages.Admin.ItemsModel
 @{
-    ViewData["Title"] = "アイテムマスタ";
+    ViewData["Title"] = "アイテム一覧";
 }
 
 <section class="ar-page-hero ar-page-hero--town ar-admin-hero">
     <div class="ar-section-overlay"></div>
     <div class="container position-relative">
-        <p class="ar-kicker">Master Data</p>
-        <h1 class="ar-page-hero-title">アイテムマスタ</h1>
-        <p class="ar-page-hero-sub">filebase で定義されたアイテム情報を確認します。</p>
+        <h1 class="ar-page-hero-title">アイテム一覧</h1>
+        <p class="ar-page-hero-sub">登録済みのアイテム情報を検索・確認します。</p>
     </div>
 </section>
 
@@ -19,7 +18,7 @@
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-lg-4">
                     <label asp-for="Query" class="form-label">キーワード</label>
-                    <input asp-for="Query" class="form-control ar-input" placeholder="ID / 名前 / lore / material" />
+                    <input asp-for="Query" class="form-control ar-input" placeholder="ID・名前・説明文・アイコン名" />
                 </div>
                 <div class="col-6 col-lg-2">
                     <label asp-for="Category" class="form-label">カテゴリ</label>

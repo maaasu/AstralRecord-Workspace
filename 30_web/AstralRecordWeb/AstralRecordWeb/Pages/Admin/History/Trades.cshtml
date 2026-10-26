@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = "トレード履歴"; }
 @section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
 <section class="ar-portal"><div class="container">
-    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>トレード履歴</h1><p class="ar-portal-sub">成立したトレードの送り手・受け手と、送ったアイテムを確認します。</p></div></header>
+    <header class="ar-portal-heading"><div><h1>トレード履歴</h1><p class="ar-portal-sub">成立したトレードの送り手・受け手と、送ったアイテムを確認します。</p></div></header>
     <partial name="_HistoryNav" />
     <form method="get" class="ar-panel ar-history-filters" aria-label="トレードの検索">
         <partial name="_HistoryFilters" model="Model" />

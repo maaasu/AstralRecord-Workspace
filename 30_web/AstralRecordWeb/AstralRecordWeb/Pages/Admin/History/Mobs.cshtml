@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = "モブ撃破ランキング"; }
 @section Styles { <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" /> }
 <section class="ar-portal"><div class="container">
-    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">管理者専用・活動履歴</p><h1>モブ撃破ランキング</h1><p class="ar-portal-sub">モブがプレイヤーを倒した回数と、プレイヤーへ与えたダメージを確認します。</p></div></header>
+    <header class="ar-portal-heading"><div><h1>モブ撃破ランキング</h1><p class="ar-portal-sub">モブがプレイヤーを倒した回数と、プレイヤーへ与えたダメージを確認します。</p></div></header>
     <partial name="_HistoryNav" />
     <form method="get" class="ar-panel ar-history-filters" aria-label="モブの戦闘履歴の検索">
         <div><label asp-for="Query">@(Model.View == "ranking" ? "モブ名・ID" : "被害プレイヤー名・アカウント名")</label><input asp-for="Query" maxlength="100" /></div>
