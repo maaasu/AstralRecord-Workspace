@@ -201,7 +201,8 @@ public final class WorldPlacementRepository {
 
     private static String nullableString(JsonObject object, String key) {
         JsonElement value = object.get(key);
-        if (value == null || value.isJsonNull()) return null;
+        if (value == null || value.isJsonNull()
+            || value.isJsonPrimitive() && value.getAsJsonPrimitive().isString() && value.getAsString().isBlank()) return null;
         return requiredString(object, key);
     }
 
