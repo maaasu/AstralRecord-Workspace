@@ -19,6 +19,16 @@ public sealed class WorldPlacementsControllerTests
     {
         Assert.Throws<ArgumentException>(() => WorldPlacementValidation.Validate([Valid, Valid]));
         Assert.Throws<ArgumentException>(() => WorldPlacementValidation.Validate([Valid with { X = double.NaN }]));
+        Assert.Throws<ArgumentException>(() => WorldPlacementValidation.Validate([Valid with { X = 1.5 }]));
+        Assert.Throws<ArgumentException>(() => WorldPlacementValidation.Validate([Valid with { PlacementId = "日本語" }]));
+        Assert.Throws<ArgumentException>(() => WorldPlacementValidation.Validate([Valid,
+            Valid with { PlacementId = "spawner:2", TemplateId = "mob:2" }]));
+        WorldPlacementValidation.Validate([Valid, Valid with
+        {
+            PlacementId = "spawner:disabled", Enabled = false
+        }]);
+        WorldPlacementValidation.Validate([Valid with { Kind = "npc", X = 1.5 },
+            Valid with { PlacementId = "npc:2", Kind = "npc", X = 2.5 }]);
         WorldPlacementValidation.Validate([Valid with
         {
             WorldId = "plugins/AstralRecord/worlds/base/starlit_nox",
@@ -38,6 +48,12 @@ public sealed class WorldPlacementsControllerTests
         WorldPlacementValidation.Validate([waystone]);
         var copied = JsonSerializer.Deserialize<WorldPlacement>(JsonSerializer.Serialize(waystone));
         Assert.Equal(instant, copied?.Waystone?.CreatedAt);
+        Assert.Throws<ArgumentException>(() => WorldPlacementValidation.ValidateStableWaystoneIds(
+            [waystone], [waystone with { Waystone = waystone.Waystone! with { Id = "ws-2" } }]));
+        WorldPlacementValidation.ValidateStableWaystoneIds([waystone], [waystone with
+        {
+            Waystone = waystone.Waystone! with { Name = "Renamed" }
+        }]);
     }
 
     [Fact]
@@ -83,6 +99,17 @@ public sealed class WorldPlacementsControllerTests
         Assert.False(fake.Called);
     }
 
+    [Fact]
+    public async Task UpsertReturnsBadRequestForCombinedSnapshotValidationFailure()
+    {
+        var fake = new FakeRepository { InvalidMergedSnapshot = true };
+        var controller = Controller(fake);
+        controller.HttpContext.Request.Headers["X-World-Placement-Key"] = "writer";
+        var result = await controller.Upsert("dev", Valid.PlacementId,
+            new("0", Valid), CancellationToken.None);
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
     private static WorldPlacementsController Controller(FakeRepository repository)
     {
         var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -101,6 +128,7 @@ public sealed class WorldPlacementsControllerTests
     {
         public bool Called { get; private set; }
         public bool Conflict { get; init; }
+        public bool InvalidMergedSnapshot { get; init; }
         public WorldPlacementSnapshot Current { get; private set; } = new(1, "0", []);
         public Task<WorldPlacementSnapshot> GetAsync(string environment, CancellationToken cancellationToken) => Task.FromResult(Current);
         public Task<WorldPlacementSnapshot?> ReplaceDevAsync(WorldPlacementReplaceRequest request, CancellationToken cancellationToken)
@@ -111,7 +139,8 @@ public sealed class WorldPlacementsControllerTests
             return Task.FromResult<WorldPlacementSnapshot?>(Current);
         }
         public Task<WorldPlacementSnapshot?> UpsertDevAsync(WorldPlacementUpsertRequest request, CancellationToken cancellationToken)
-            => Task.FromResult<WorldPlacementSnapshot?>(Current);
+            => InvalidMergedSnapshot ? throw new ArgumentException("Duplicate placement coordinate")
+                : Task.FromResult<WorldPlacementSnapshot?>(Current);
         public Task<WorldPlacementSnapshot?> DeleteDevAsync(string placementId, string expectedRevision, CancellationToken cancellationToken)
             => Task.FromResult<WorldPlacementSnapshot?>(Current);
         public Task<WorldPlacementSnapshot?> SyncAsync(WorldPlacementSyncRequest request, CancellationToken cancellationToken)

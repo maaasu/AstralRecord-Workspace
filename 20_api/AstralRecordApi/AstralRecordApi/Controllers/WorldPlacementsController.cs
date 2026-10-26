@@ -32,8 +32,12 @@ public sealed class WorldPlacementsController(IWorldPlacementRepository reposito
         if (request is null || !RevisionValid(request.ExpectedRevision)) return BadRequest();
         try { WorldPlacementValidation.Validate(request.Placements); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
-        var result = await repository.ReplaceDevAsync(request, cancellationToken);
-        return result is null ? Conflict() : Ok(result);
+        try
+        {
+            var result = await repository.ReplaceDevAsync(request, cancellationToken);
+            return result is null ? Conflict() : Ok(result);
+        }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     /// <summary>Creates or updates one development placement with revision checking.</summary>
@@ -48,8 +52,12 @@ public sealed class WorldPlacementsController(IWorldPlacementRepository reposito
             || placementId != request.Placement.PlacementId) return BadRequest();
         try { WorldPlacementValidation.Validate([request.Placement]); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
-        var result = await repository.UpsertDevAsync(request, cancellationToken);
-        return result is null ? Conflict() : Ok(result);
+        try
+        {
+            var result = await repository.UpsertDevAsync(request, cancellationToken);
+            return result is null ? Conflict() : Ok(result);
+        }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     /// <summary>Deletes one development placement with revision checking.</summary>

@@ -23,14 +23,14 @@ GET 応答例:
 Dev 一括置換リクエスト例（初期スナップショットへの登録）:
 
 ```json
-{"expectedRevision":"0","placements":[{"placementId":"spawner:1","kind":"spawner","worldId":"world:dev","worldName":"world_dev","templateId":"mob:1","x":10.5,"y":64,"z":20.5,"yaw":0,"pitch":0,"enabled":true,"waystone":null}]}
+{"expectedRevision":"0","placements":[{"placementId":"spawner:1","kind":"spawner","worldId":"world:dev","worldName":"world_dev","templateId":"mob:1","x":10,"y":64,"z":20,"yaw":0,"pitch":0,"enabled":true,"waystone":null}]}
 ```
 
 成功時は更新後の全件スナップショット（この例では `revision:"1"`）を返す。単件 `PUT` は `{"expectedRevision":"1","placement":{...}}`、同期は `{"expectedDevRevision":"1","expectedChannelRevision":"0"}` を送る。
 
-`placement` は `placementId`, `kind` (`spawner` / `npc` / `waystone`), `worldId`, `worldName`, `templateId`, `x`, `y`, `z`, `yaw`, `pitch`, `enabled`, `waystone` を持つ。`worldId` は論理 ID、`worldName` はランタイムのワールド名。未解決の旧ワールドも値を残す。`spawner` / `npc` には `templateId` が必須。`waystone` は `templateId:null` と `waystone:{id,name,lockEnabled,unlockGold,icon,createdAt,createdBy}` が必須。waystone ID は既存の開放状態と一致する安定 ID を保持する。
+`placement` は `placementId`, `kind` (`spawner` / `npc` / `waystone`), `worldId`, `worldName`, `templateId`, `x`, `y`, `z`, `yaw`, `pitch`, `enabled`, `waystone` を持つ。`worldId` は論理 ID、`worldName` はランタイムのワールド名。未解決の旧ワールドも値を残す。`spawner` / `npc` には `templateId` が必須。`waystone` は `templateId:null` と `waystone:{id,name,lockEnabled,unlockGold,icon,createdAt,createdBy}` が必須。waystone ID は既存の開放状態と一致する安定 ID を保持し、同じ placementId の更新では変更できない。
 
-配置 ID と waystone ID の重複、空の world ID/name、非有限または範囲外の座標、種類に合わない情報は 400。revision 不一致は 409。編集と同期は各 DB 行をロックした SQL transaction で確定し、失敗時に部分更新しない。版番号は現行状態の競合検出にだけ使用し、過去版を保持しない。
+配置 ID と waystone ID の重複、空の world ID/name、非有限または範囲外の座標、種類に合わない情報は 400。配置・マスター・waystone ID は ASCII 英数字と `_`、`-`、`.`、`:` のみ。スポナーの X/Y/Z はブロック整数とし、有効なスポナー同士・NPC同士の同ワールド同座標重複を拒否する。revision 不一致は 409。編集と同期は各 DB 行をロックした SQL transaction で確定し、失敗時に部分更新しない。版番号は現行状態の競合検出にだけ使用し、過去版を保持しない。
 
 ## 配置 DB 適用
 

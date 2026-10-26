@@ -66,8 +66,10 @@ public sealed class WorldPlacementRepository(IConfiguration configuration) : IWo
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var row = await ReadAsync(connection, transaction, Table, true, cancellationToken);
         if (row.Revision.ToString() != expectedRevision) return null;
-        var placements = change(Deserialize(row.PlacementsJson));
+        var previous = Deserialize(row.PlacementsJson);
+        var placements = change(previous);
         WorldPlacementValidation.Validate(placements);
+        WorldPlacementValidation.ValidateStableWaystoneIds(previous, placements);
         await WriteAsync(connection, transaction, Table, row.Revision + 1, JsonSerializer.Serialize(placements, JsonOptions), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new WorldPlacementSnapshot(1, (row.Revision + 1).ToString(), placements);

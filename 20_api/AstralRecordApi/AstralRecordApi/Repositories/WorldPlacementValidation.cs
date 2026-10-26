@@ -12,6 +12,8 @@ public static class WorldPlacementValidation
             throw new ArgumentException("Placement list is missing or too large.");
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var waystoneIds = new HashSet<string>(StringComparer.Ordinal);
+        var spawnerLocations = new HashSet<(string World, double X, double Y, double Z)>();
+        var npcLocations = new HashSet<(string World, double X, double Y, double Z)>();
         foreach (var placement in placements)
         {
             if (placement is null || !ValidId(placement.PlacementId) || !ids.Add(placement.PlacementId)
@@ -40,11 +42,33 @@ public static class WorldPlacementValidation
             }
             else if (placement.Waystone is not null)
                 throw new ArgumentException("Only waystone placements may contain waystone metadata.");
+            if (placement.Kind == "spawner")
+            {
+                if (placement.X != Math.Floor(placement.X) || placement.Y != Math.Floor(placement.Y)
+                    || placement.Z != Math.Floor(placement.Z)
+                    || placement.Enabled && !spawnerLocations.Add((placement.WorldName, placement.X, placement.Y, placement.Z)))
+                    throw new ArgumentException("Spawner coordinates must be distinct block integers.");
+            }
+            if (placement.Kind == "npc" && placement.Enabled
+                && !npcLocations.Add((placement.WorldName, placement.X, placement.Y, placement.Z)))
+                throw new ArgumentException("Enabled NPC coordinates must be distinct.");
+        }
+    }
+
+    public static void ValidateStableWaystoneIds(IReadOnlyList<WorldPlacement> previous, IReadOnlyList<WorldPlacement> next)
+    {
+        var oldIds = previous.Where(x => x.Kind == "waystone")
+            .ToDictionary(x => x.PlacementId, x => x.Waystone?.Id, StringComparer.Ordinal);
+        foreach (var placement in next)
+        {
+            if (oldIds.TryGetValue(placement.PlacementId, out var oldId)
+                && (placement.Kind != "waystone" || placement.Waystone?.Id != oldId))
+                throw new ArgumentException("An existing waystone ID cannot be changed. Delete the placement explicitly if its identity must be retired.");
         }
     }
 
     private static bool ValidId(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 128
-        && value.All(c => char.IsLetterOrDigit(c) || c is '_' or '-' or '.' or ':');
+        && value.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-' or '.' or ':');
 
     private static bool ValidWorld(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512
         && value.All(c => !char.IsControl(c));
