@@ -4,25 +4,24 @@
 .ar-journal .ar-legal-hero .container { z-index: 2; }
 [data-astral-scene] { --ar-scene-shift: 0px; --ar-copy-shift: 0px; }
 .ar-atmosphere { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-.ar-scene-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; mix-blend-mode: screen; filter: hue-rotate(115deg) saturate(1.5); mask-image: linear-gradient(90deg, #0002, #0009 35%, #000 65%); transition: opacity 1.2s ease; }
-.ar-motion-ready .ar-scene-video[data-video-ready="true"] { opacity: .9; }
-.ar-legal-hero .ar-scene-video[data-video-ready="true"] { opacity: .55; }
-.ar-motion-ready .ar-journal-landscape img { filter: brightness(.72) saturate(.85); }
-.ar-aurora-ribbons { position: absolute; inset: -20%; opacity: .8; mix-blend-mode: screen; filter: blur(22px); }
+.ar-scene-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; mix-blend-mode: screen; filter: hue-rotate(115deg) saturate(.8); mask-image: linear-gradient(#000 0%, #0008 25%, transparent 65%); transition: opacity 1.2s ease; }
+.ar-motion-ready .ar-scene-video[data-video-ready="true"] { opacity: .2; }
+.ar-legal-hero .ar-scene-video[data-video-ready="true"], .ar-journal-world .ar-scene-video[data-video-ready="true"] { opacity: .12; }
+.ar-aurora-ribbons { position: absolute; inset: -20%; opacity: .45; mix-blend-mode: screen; filter: blur(22px); }
 .ar-aurora-ribbons i { position: absolute; width: 75%; height: 25%; top: 20%; right: -10%; background: radial-gradient(ellipse, #7cf9d987, #28a6a530 45%, transparent 70%); transform: rotate(-25deg); }
 .ar-aurora-ribbons i:last-child { top: 60%; right: -20%; background: radial-gradient(ellipse, #e1c78d80, #d5a95130 45%, transparent 70%); transform: rotate(25deg); }
-.ar-magic-ripples { position: absolute; inset: 0; }
+.ar-magic-ripples { position: absolute; inset: 0; opacity: .5; }
 .ar-magic-ripples i { position: absolute; top: 50%; left: 72%; width: min(55vw, 740px); aspect-ratio: 1; border: 2px solid #c7ffe3; border-radius: 50%; opacity: 0; box-shadow: 0 0 20px #76f1c780, inset 0 0 18px #76f1c74d; }
 .ar-legal-hero .ar-aurora-ribbons { opacity: .35; }
 .ar-legal-hero .ar-magic-ripples { opacity: .4; }
-.ar-video-credit { margin: 18px auto 0; text-align: center; color: var(--ar-text-muted); font-size: .62rem; line-height: 1.8; }
+.ar-video-credit { margin: 18px auto 0; text-align: center; color: var(--ar-text-muted); font-size: .7rem; line-height: 1.8; }
 .ar-video-credit a { color: var(--ar-gold-light); text-underline-offset: 3px; }
 .ar-astral-particles, .ar-light-veils, .ar-star-trails { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .ar-light-veils { opacity: .65; mix-blend-mode: screen; }
 .ar-light-veils i { position: absolute; width: 36%; height: 150%; top: -38%; right: 5%; background: linear-gradient(90deg, transparent, #d8e8ab3b, #fcf1b118, transparent); transform: rotate(28deg); transform-origin: 50% 0; }
 .ar-light-veils i:nth-child(2) { right: 25%; width: 18%; opacity: .6; }
 .ar-light-veils i:nth-child(3) { right: -15%; width: 55%; background: linear-gradient(90deg, transparent, #83e6d74d, transparent); }
-.ar-astrolabe { position: absolute; width: min(58vw, 760px); aspect-ratio: 1; right: -2%; top: 50%; transform: translateY(-50%) rotate(-16deg); color: #f5dfa6; opacity: .85; filter: drop-shadow(0 0 12px #e8cb7fa0); }
+.ar-astrolabe { position: absolute; width: min(48vw, 620px); aspect-ratio: 1; right: -12%; top: 28%; transform: translateY(-50%) rotate(-16deg); color: #f5dfa6; opacity: .45; filter: drop-shadow(0 0 12px #e8cb7fa0); }
 .ar-astrolabe svg { width: 100%; height: 100%; stroke: currentColor; stroke-width: 1; }
 .ar-astrolabe-outer, .ar-astrolabe-inner { transform-origin: 300px 300px; }
 .ar-astral-particles { opacity: .9; }
@@ -39,8 +38,8 @@
 .ar-motion-control-icon { display: block; width: 9px; height: 11px; border-inline: 3px solid currentColor; }
 [data-motion-state="paused"] .ar-motion-control-icon { height: 0; width: 0; border: 6px solid transparent; border-right: 0; border-left: 9px solid currentColor; }
 .ar-journal .ar-journal-world .container { position: relative; z-index: 1; }
-.ar-journal-world .ar-astrolabe { width: min(48vw, 600px); right: 5%; opacity: .45; }
-.ar-legal-hero .ar-astrolabe { width: 540px; right: -120px; opacity: .3; }
+.ar-journal-world .ar-astrolabe { width: min(48vw, 600px); right: -12%; opacity: .25; }
+.ar-legal-hero .ar-astrolabe { width: 480px; right: -160px; opacity: .2; }
 .ar-legal-hero .ar-light-veils { opacity: .35; }
 
 .ar-motion-ready .ar-journal-landscape { transform: translate3d(0, var(--ar-scene-shift), 0); }
@@ -105,15 +104,15 @@
 @keyframes astral-arrive { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 767px) {
-    .ar-astrolabe { width: 440px; top: 26%; right: -170px; opacity: .52; }
+    .ar-astrolabe { width: 380px; top: 14%; right: -220px; opacity: .35; }
     .ar-journal-world .ar-astrolabe { width: 430px; right: -200px; top: 30%; opacity: .26; }
     .ar-legal-hero .ar-astrolabe { width: 390px; right: -180px; }
     .ar-motion-control { top: 16px; right: 24px; padding: 9px 12px; font-size: .63rem; }
     .ar-light-veils i { width: 65%; }
     .ar-star-trails i { width: 120px; }
-    .ar-scene-video { mask-image: linear-gradient(#000 0%, #000a 35%, #0003 75%); }
+    .ar-scene-video { mask-image: linear-gradient(#000 0%, #0006 25%, transparent 55%); }
     .ar-magic-ripples i { width: 420px; top: 28%; left: 85%; }
-    .ar-aurora-ribbons { filter: blur(14px); opacity: .6; }
+    .ar-aurora-ribbons { filter: blur(14px); opacity: .3; }
 }
 @media (prefers-reduced-motion: reduce) {
     .ar-atmosphere .ar-astral-particles, .ar-star-trails, .ar-scene-video, .ar-aurora-ribbons, .ar-magic-ripples { display: none; }

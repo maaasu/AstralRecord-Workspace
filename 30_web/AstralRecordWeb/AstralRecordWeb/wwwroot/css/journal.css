@@ -22,7 +22,7 @@ body.ar-journal { background: var(--ar-bg-dark); }
 .ar-journal ::selection { background: #d6c19b; color: #152b28; }
 .ar-journal :focus-visible { outline: 3px solid #d6c19b; outline-offset: 5px; }
 .ar-journal .container { max-width: 1320px; padding-inline: clamp(24px, 5vw, 64px); }
-.ar-journal .ar-navbar { height: var(--ar-navbar-h); padding-block: 0; background: #152b28f5; border-bottom: 1px solid #ced6c92b; }
+.ar-journal .ar-navbar { height: var(--ar-navbar-h); padding-block: 0; background: #0e2027f5; border-bottom: 1px solid #ced6c92b; }
 .ar-journal .ar-navbar > .container { max-width: 1600px; flex-wrap: nowrap; gap: 20px; }
 .ar-journal .ar-brand { gap: 12px; margin: 0; text-align: left; word-break: normal; white-space: nowrap; }
 .ar-journal .ar-brand-icon { width: 36px; height: 36px; border: 0; border-radius: 50%; }
@@ -33,7 +33,7 @@ body.ar-journal { background: var(--ar-bg-dark); }
 .ar-nav-explore { display: flex; gap: 24px; }
 .ar-nav-explore a { color: #d2dacd; text-decoration: none; font-size: .75rem; white-space: nowrap; padding-block: 14px; }
 .ar-nav-explore a:hover { color: white; }
-.ar-journal .ar-nav-home { color: #d2dacd; }
+.ar-journal .ar-nav-home { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 6px; color: #d2dacd; }
 .ar-journal .ar-header-session { gap: 8px; }
 .ar-journal .ar-header-login { display: inline-flex; align-items: center; min-height: 44px; border: 0; padding: 12px 4px; color: #f3f0e7; }
 .ar-journal .ar-header-session-label { color: #b8c5bb; }
@@ -53,7 +53,7 @@ body.ar-journal { background: var(--ar-bg-dark); }
 .ar-journal .ar-home-hero { min-height: min(850px, calc(100svh - var(--ar-navbar-h))); background: #52665a; padding-bottom: 56px; }
 .ar-journal-landscape, .ar-journal-hero-shade { position: absolute; inset: 0; pointer-events: none; }
 .ar-journal-landscape img { width: 100%; height: 100%; object-fit: cover; object-position: center 44%; }
-.ar-journal-hero-shade { background: linear-gradient(90deg, #102720de, #13251d80 46%, #17281e0d 80%), linear-gradient(0deg, #152b28bd, transparent 35%); }
+.ar-journal-hero-shade { background: linear-gradient(90deg, #081920b8, #0b1c265c 45%, transparent 80%), linear-gradient(0deg, #132521e6, transparent 36%); }
 .ar-journal .ar-home-hero__content { padding-block: clamp(64px, 8vw, 112px); }
 .ar-journal .ar-home-kicker { font: 500 .67rem 'Noto Sans JP', sans-serif; letter-spacing: .2em; color: #d7dbc9; margin-bottom: 26px; }
 .ar-journal-star { font-size: 1rem; margin-right: 12px; color: #e5d3b0; }
@@ -137,9 +137,11 @@ body.ar-journal { background: var(--ar-bg-dark); }
 .ar-journal .ar-card, .ar-journal .ar-panel, .ar-journal .ar-stat, .ar-journal .ar-player-card, .ar-journal .ar-release-card { background: #1c302b; border-color: #9aaf9640; border-radius: 4px; box-shadow: none; }
 .ar-journal .ar-stat::after, .ar-journal .ar-profile-banner::after { content: none; }
 .ar-journal .ar-player-card:hover { background: #253e32; border-color: #a2b794; transform: translateY(-3px); }
-.ar-journal .ar-profile-banner { background: linear-gradient(90deg, #142b24f5, #142b246b), url('/images/bg-sky-1920.webp') center / cover; border-color: #9aaf9660; border-radius: 4px; }
+.ar-journal .ar-profile-banner { background: linear-gradient(90deg, #142b24f5, #142b246b), url('/images/bg-night-1280.webp') center / cover; border-color: #9aaf9660; border-radius: 4px; }
 .ar-journal .ar-player-emblem { animation: none; border-radius: 4px; box-shadow: none; background: #365143; border-color: #9aaf9660; }
-.ar-journal .ar-legal-hero { background-color: #152b28; min-height: 300px; }
+.ar-journal .ar-legal-hero { background-color: #152b28; min-height: 300px; padding-block: 32px; }
+.ar-journal .ar-legal-hero .container { min-height: 280px; }
+.ar-journal .ar-legal-content { padding-block: clamp(40px, 6vw, 80px); }
 .ar-journal .ar-legal-hero .ar-hero-overlay { background: linear-gradient(180deg, #152b2870, #132521); }
 .ar-journal .ar-legal-stars { display: none; }
 .ar-journal .ar-legal-shell { background: #1c302b; border-color: #9aaf9655; border-radius: 3px; }
@@ -159,11 +161,11 @@ body.ar-journal { background: var(--ar-bg-dark); }
 .ar-journal .ar-footer { background: #10231e; border-top: 1px solid #879a8050; padding-top: 56px; }
 .ar-footer-wordmark { font: 400 clamp(2.5rem, 7.6vw, 7rem)/1.1 'Cinzel', serif; color: #d5dccb; letter-spacing: -.025em; padding-bottom: 50px; margin-bottom: 34px; border-bottom: 1px solid #879a8050; }
 .ar-footer-wordmark > span { display: block; margin-top: 22px; font: 500 .56rem 'Noto Sans JP', sans-serif; letter-spacing: .25em; color: #aabc9f; }
-.ar-journal .ar-footer-title { color: #e7dec9; }
-.ar-journal .ar-footer-icon { border: 0; border-radius: 50%; }
+.ar-footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.ar-journal .ar-footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 20px; }
 .ar-journal .ar-footer-links a { display: inline-flex; min-height: 44px; align-items: center; color: #c6d1bd; }
 .ar-journal .ar-footer-hr { border-color: #879a8055; }
-.ar-journal .ar-footer-copy { color: #a8b89e; }
+.ar-journal .ar-footer-copy { color: #a8b89e; opacity: 1; }
 
 @media (max-width: 1199px) {
     .ar-nav-explore { display: none; }
@@ -225,7 +227,12 @@ body.ar-journal { background: var(--ar-bg-dark); }
     .ar-journal .ar-edition-card__head { gap: 12px; }
     .ar-journal .ar-footer-wordmark { padding-bottom: 32px; }
     .ar-journal .ar-login-page { padding-block: 40px; }
+    .ar-journal .ar-login-page__backdrop { background-image: linear-gradient(90deg, #152b28bf, #152b28ed), image-set(url('/images/bg-town-640.webp') 1x, url('/images/bg-town-1280.webp') 2x); }
     .ar-journal .ar-login-page .container { padding-inline: 16px; }
+    .ar-journal .ar-profile-banner { background-image: linear-gradient(90deg, #142b24f5, #142b246b), image-set(url('/images/bg-night-640.webp') 1x, url('/images/bg-night-1280.webp') 2x); }
+    .ar-journal .ar-legal-hero .ar-page-hero-title { font-size: clamp(1.65rem, 6.5vw, 2rem); line-height: 1.6; text-wrap: balance; }
+    .ar-footer-bottom { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .ar-journal .ar-footer-links { justify-content: flex-start; gap: 0 20px; }
 }
 @media (max-width: 359px) {
     .ar-journal .ar-navbar > .container, .ar-journal .container { padding-inline: 18px; }

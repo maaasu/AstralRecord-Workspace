@@ -51,14 +51,14 @@
                 {
                     <a class="ar-nav-home" asp-page="/Index">ホーム</a>
                 }
-                <div class="ar-header-session" aria-label="ログイン状態">
+                <div class="ar-header-session" aria-label="アカウント">
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <a asp-page="/MyPage" class="ar-header-account"><span class="ar-header-session-label"><i class="ar-status-dot" aria-hidden="true"></i>ログイン中</span><strong>@User.Identity.Name</strong></a>
                     }
                     else
                     {
-                        <span class="ar-header-session-label">未ログイン</span><a asp-page="/Login" class="ar-header-login">ログイン</a>
+                        <a asp-page="/Login" class="ar-header-login">ログイン</a>
                     }
                 </div>
                 <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
@@ -160,32 +160,19 @@
         @RenderBody()
     </main>
 
-    <footer class="ar-footer">
+    <footer class="ar-footer" aria-label="Astral Record">
         <div class="container">
             <div class="ar-footer-wordmark" aria-hidden="true">Astral Record<span>YOUR NEXT ADVENTURE.</span></div>
-            <div class="row align-items-center gy-3">
-                <div class="col-md-4 text-center text-md-start">
-                    <img src="~/images/icon.png" srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w"
-                         sizes="48px" width="128" height="128" alt="Astral Record" class="ar-footer-icon" />
-                </div>
-                <div class="col-md-4 text-center">
-                    <p class="ar-footer-title mb-1">Astral Record</p>
-                    <p class="ar-footer-sub mb-0">Minecraft Java Edition MMO RPG</p>
-                </div>
-                <div class="col-md-4 text-center text-md-end">
-                    <div class="ar-footer-links">
+            <div class="ar-footer-bottom">
+                <p class="ar-footer-sub mb-0">Minecraft Java &amp; Bedrock · Fantasy RPG</p>
+                <nav class="ar-footer-links" aria-label="フッターナビゲーション">
                         <a asp-page="/Index">ホーム</a>
-                        <span class="mx-2 opacity-50">|</span>
                         <a asp-page="/Index" asp-fragment="join">参加情報</a>
-                        <span class="mx-2 opacity-50">|</span>
-                                <a asp-page="/Terms">利用規約</a>
-                        <span class="mx-2 opacity-50">|</span>
+                        <a asp-page="/Terms">利用規約</a>
                         <a asp-page="/Privacy">プライバシーポリシー</a>
-                        <span class="mx-2 opacity-50">|</span>
                         <a href="https://discord.gg/Fja6zmpjGX" target="_blank" rel="noopener noreferrer"
                            aria-label="Astral Record公式Discordを新しいタブで開く">Discord</a>
-                    </div>
-                </div>
+                </nav>
             </div>
             <hr class="ar-footer-hr" />
             <p class="ar-footer-copy text-center mb-0">&copy; 2026 Astral Record. All rights reserved.</p>

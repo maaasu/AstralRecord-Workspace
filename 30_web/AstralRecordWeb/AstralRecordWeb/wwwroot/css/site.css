@@ -106,10 +106,10 @@ img {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-image: url('/images/bg-sky.png');
+    background-image: url('/images/bg-night-1672.webp');
     background-image: image-set(
-        url('/images/bg-sky-1920.webp') 1x,
-        url('/images/bg-sky-2560.webp') 2x
+        url('/images/bg-night-1280.webp') 1x,
+        url('/images/bg-night-1672.webp') 2x
     );
     background-size: cover;
     background-position: center;
@@ -520,10 +520,10 @@ img {
 }
 
 .ar-page-hero--sky {
-    background-image: url('/images/bg-sky.png');
+    background-image: url('/images/bg-night-1672.webp');
     background-image: image-set(
-        url('/images/bg-sky-1920.webp') 1x,
-        url('/images/bg-sky-2560.webp') 2x
+        url('/images/bg-night-1280.webp') 1x,
+        url('/images/bg-night-1672.webp') 2x
     );
 }
 
@@ -2022,10 +2022,10 @@ img {
 }
 
 .ar-world-section__image {
-    background-image: url('/images/bg-sky.png');
+    background-image: url('/images/bg-night-1672.webp');
     background-image: image-set(
-        url('/images/bg-sky-1920.webp') 1x,
-        url('/images/bg-sky-2560.webp') 2x
+        url('/images/bg-night-1280.webp') 1x,
+        url('/images/bg-night-1672.webp') 2x
     );
     background-position: center;
     background-size: cover;
@@ -2470,12 +2470,12 @@ img {
 .ar-login-page__backdrop {
     background-image:
         linear-gradient(rgba(5, 7, 11, 0.7), rgba(5, 7, 11, 0.92)),
-        url('/images/bg-sky.png');
+        url('/images/bg-night-1672.webp');
     background-image:
         linear-gradient(rgba(5, 7, 11, 0.7), rgba(5, 7, 11, 0.92)),
         image-set(
-            url('/images/bg-sky-1920.webp') 1x,
-            url('/images/bg-sky-2560.webp') 2x
+            url('/images/bg-night-1280.webp') 1x,
+            url('/images/bg-night-1672.webp') 2x
         );
     background-position: center;
     background-size: cover;
@@ -2619,8 +2619,8 @@ img {
 @media (max-width: 767.98px) {
     .ar-page-hero--sky {
         background-image: image-set(
-            url('/images/bg-sky-640.webp') 1x,
-            url('/images/bg-sky-1280.webp') 2x
+            url('/images/bg-night-640.webp') 1x,
+            url('/images/bg-night-1280.webp') 2x
         );
     }
 
@@ -2634,8 +2634,8 @@ img {
     .ar-hero,
     .ar-world-section__image {
         background-image: image-set(
-            url('/images/bg-sky-640.webp') 1x,
-            url('/images/bg-sky-1280.webp') 2x
+            url('/images/bg-night-640.webp') 1x,
+            url('/images/bg-night-1280.webp') 2x
         );
     }
 
@@ -2660,8 +2660,8 @@ img {
         background-image:
             linear-gradient(rgba(5, 7, 11, 0.7), rgba(5, 7, 11, 0.92)),
             image-set(
-                url('/images/bg-sky-640.webp') 1x,
-                url('/images/bg-sky-1280.webp') 2x
+                url('/images/bg-night-640.webp') 1x,
+                url('/images/bg-night-1280.webp') 2x
             );
     }
 }

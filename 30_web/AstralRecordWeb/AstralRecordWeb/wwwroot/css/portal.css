@@ -88,7 +88,7 @@ main, .ar-footer { position: relative; }
 .ar-portal-heading h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 700; margin: .6rem 0; }
 .ar-portal-eyebrow { color: #8ae3db; font-size: .75rem; letter-spacing: .12em; margin: 0; }
 .ar-portal-sub { color: var(--ar-text-muted); font-size: .85rem; margin: .7rem 0 0; line-height: 1.8; }
-.ar-profile-banner { position: relative; overflow: hidden; border: 1px solid #83d9d84a; border-radius: 18px; padding: clamp(1.3rem, 4vw, 3rem); background: linear-gradient(100deg, #0d2239f2 25%, #0c283f88), url('/images/bg-sky-1920.webp') center 44% / cover; animation: portal-arrive .8s both; }
+.ar-profile-banner { position: relative; overflow: hidden; border: 1px solid #83d9d84a; border-radius: 18px; padding: clamp(1.3rem, 4vw, 3rem); background: linear-gradient(100deg, #0d2239f2 25%, #0c283f88), url('/images/bg-night-1280.webp') center 44% / cover; animation: portal-arrive .8s both; }
 .ar-profile-banner::after { content: ''; position: absolute; width: 360px; height: 360px; right: -40px; top: -110px; border: 1px dashed #93e8de40; border-radius: 50%; box-shadow: 0 0 0 40px #93e8de06, 0 0 0 90px #93e8de04; animation: ar-spin 70s linear infinite; pointer-events: none; }
 .ar-profile-identity { display: flex; gap: 1.4rem; align-items: center; position: relative; z-index: 1; }
 .ar-player-emblem { flex: 0 0 84px; height: 84px; display: grid; place-items: center; background: linear-gradient(135deg, #65b8c1, #203b57); border: 1px solid #adf7e9; border-radius: 20px; font: 2.7rem 'Cinzel', serif; box-shadow: 0 0 45px #8ae3db22; animation: emblem-glow 5s ease-in-out infinite alternate; }
