@@ -61,3 +61,17 @@ it('地図のクリックは区画代表地点の X/Y/Z を配置へ渡す', () 
   fireEvent.pointerUp(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
   expect(onPlacePoint).toHaveBeenCalledWith(12, 72, 13)
 })
+
+it('全大陸表示でも保存済み配置の点を選択できる', () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  const onPlacement = vi.fn()
+  const { container } = render(<SpawnerPlanningMap {...props} showProposals={false} placements={[{ placementId: 'saved', kind: 'spawner', worldId: 'eriva', worldName: 'eriva', templateId: 'wolf', x: 0, y: 70, z: 0, yaw: 0, pitch: 0, enabled: true, waystone: null }]} onPlacement={onPlacement} />)
+  const canvas = container.querySelector('canvas')!
+  expect(canvas).toHaveAccessibleName(/点をクリックして配置を選択/)
+  canvas.setPointerCapture = vi.fn()
+  const x = 16 + (2400.5 * (374 / 4736))
+  const z = (500 - 4688 * (374 / 4736)) / 2 + 2400.5 * (374 / 4736)
+  fireEvent.pointerDown(canvas, { clientX: x, clientY: z, pointerId: 1 })
+  fireEvent.pointerUp(canvas, { clientX: x, clientY: z, pointerId: 1 })
+  expect(onPlacement).toHaveBeenCalledWith('saved')
+})

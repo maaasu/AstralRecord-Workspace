@@ -12,6 +12,7 @@ interface Props {
   onCell: (index: number) => void; onProposal: (id: string) => void
   placements?: WorldPlacement[]; placementCatalog?: PlacementCatalog; selectedPlacement?: string | null
   onPlacement?: (id: string) => void; onPlacePoint?: (x: number, y: number | null, z: number) => void; placing?: boolean
+  showProposals?: boolean
 }
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
@@ -153,7 +154,7 @@ export function SpawnerPlanningMap(props: Props) {
       }
       ctx.setLineDash([])
     }
-    for (const proposal of visibleProposals) {
+    for (const proposal of props.showProposals === false ? [] : visibleProposals) {
       const [x, z] = screen(proposal.x + .5, proposal.z + .5)
       const selected = selectedProposal === proposal.proposalId
       const radius = proposal.radiusMeters * view.scale
@@ -192,7 +193,7 @@ export function SpawnerPlanningMap(props: Props) {
     const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, props.placements, props.placementCatalog, props.selectedPlacement])
+  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, props.placements, props.placementCatalog, props.selectedPlacement, props.showProposals])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
@@ -210,7 +211,7 @@ export function SpawnerPlanningMap(props: Props) {
     return () => element.removeEventListener('wheel', wheel)
   }, [active, zoom])
   return <div className="sp-map-wrap">
-    <canvas ref={canvas} aria-label="エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認" tabIndex={0}
+    <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
       onPointerDown={event => { drag.current = { x: event.clientX, y: event.clientY, moved: 0 }; event.currentTarget.setPointerCapture(event.pointerId) }}
       onPointerMove={event => {
         const rect = event.currentTarget.getBoundingClientRect()
@@ -232,13 +233,13 @@ export function SpawnerPlanningMap(props: Props) {
           const index = cellAtWorld(bounds, grid, x, z)
           if (index !== undefined) {
             const cell = snapshot.cells[index]
-            props.onPlacePoint(cell.candidateX ?? Math.floor(x), cell.candidateX == null || cell.candidateZ == null ? null : cell.candidateY, cell.candidateZ ?? Math.floor(z))
+            props.onPlacePoint(cell.candidateX ?? Math.floor(x), cell.candidateX == null || cell.candidateY == null || cell.candidateZ == null ? null : cell.candidateY, cell.candidateZ ?? Math.floor(z))
           }
           return
         }
         let placementDistance = 8
         let closest: WorldPlacement | undefined
-        for (const value of view.scale > .25 ? props.placements ?? [] : []) {
+        for (const value of props.placements ?? []) {
           if (value.worldId !== snapshot.manifest.worldId) continue
           const next = Math.hypot((value.x + .5 - x) * view.scale, (value.z + .5 - z) * view.scale)
           if (next < placementDistance) { placementDistance = next; closest = value }
@@ -247,7 +248,7 @@ export function SpawnerPlanningMap(props: Props) {
         // At overview scale dots are dense; prioritize the terrain cell until zoomed in.
         let distance = 6
         let nearest: (typeof visibleProposals)[number] | undefined
-        if (view.scale > .25) for (const value of visibleProposals) {
+        if (props.showProposals !== false && view.scale > .25) for (const value of visibleProposals) {
           const next = Math.hypot((value.x + .5 - x) * view.scale, (value.z + .5 - z) * view.scale)
           if (next < distance) { distance = next; nearest = value }
         }

@@ -45,6 +45,28 @@ describe('Dev 配置の編集', () => {
     fireEvent.change(screen.getByLabelText('出現レベル下限'), { target: { value: '10' } })
     expect(screen.getByText(/1 件を表示/)).toBeInTheDocument()
   })
+  it('AI 案表示では隠れた編集フィルターを Dev 点へ適用しない', async () => {
+    vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements: [
+      { placementId: 'one', kind: 'spawner', worldId: 'eriva', worldName: 'worlds/eriva', templateId: 'wolf', x: 3, y: 70, z: 3, yaw: 0, pitch: 0, enabled: true, waystone: null },
+      { placementId: 'two', kind: 'spawner', worldId: 'eriva', worldName: 'worlds/eriva', templateId: 'wolf', x: 8, y: 70, z: 8, yaw: 0, pitch: 0, enabled: true, waystone: null },
+    ] })
+    const visible = vi.fn()
+    const props = { snapshot, point: null, selectedId: null, onSelected: vi.fn(), onPlacements: visible, placing: false, onPlacing: vi.fn() }
+    const view = render(<WorldPlacementEditor {...props} editing />)
+    await screen.findByText(/2 件を表示/)
+    fireEvent.change(screen.getByLabelText('保存済み配置を検索'), { target: { value: 'one' } })
+    expect(visible.mock.lastCall?.[0].map((item: WorldPlacement) => item.placementId)).toEqual(['one'])
+    view.rerender(<WorldPlacementEditor {...props} editing={false} />)
+    expect(visible.mock.lastCall?.[0].map((item: WorldPlacement) => item.placementId)).toEqual(['one', 'two'])
+    view.rerender(<WorldPlacementEditor {...props} editing selectedId="two" />)
+    expect(visible.mock.lastCall?.[0].map((item: WorldPlacement) => item.placementId)).toEqual(['one', 'two'])
+    expect(screen.getByText(/選択中の配置は絞り込み条件外/)).toBeInTheDocument()
+    expect(screen.getByText(/1 件を表示/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/森林狼 Lv.10 を削除対象に選択/)).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/削除対象に選択/)).toHaveLength(1)
+    view.rerender(<WorldPlacementEditor {...props} editing />)
+    expect(visible.mock.lastCall?.[0].map((item: WorldPlacement) => item.placementId)).toEqual(['one'])
+  })
   it('保存待機中は座標と地図追加を変更できず、応答で編集を上書きしない', async () => {
     let finish!: (value: { schemaVersion: 1; revision: string; placements: WorldPlacement[] }) => void
     vi.mocked(worldPlacementApi.save).mockReturnValue(new Promise(resolve => { finish = resolve }))
@@ -99,10 +121,11 @@ describe('Dev 配置の編集', () => {
     const change = vi.fn()
     const view = render(<WorldPlacementEditor snapshot={snapshot} point={null} selectedId={null} onSelected={vi.fn()} onPlacements={change} placing onPlacing={vi.fn()} />)
     await waitFor(() => expect(screen.getByRole('button', { name: '座標を入力して追加' })).toBeEnabled())
+    fireEvent.change(screen.getByLabelText('追加するマスター'), { target: { value: 'wolf' } })
     view.rerender(<WorldPlacementEditor snapshot={snapshot} point={{ key: 1, x: 8, y: 70, z: 8 }} selectedId={null} onSelected={vi.fn()} onPlacements={change} placing onPlacing={vi.fn()} />)
     expect(await screen.findByText(/1 件を表示/)).toBeInTheDocument()
     const added = change.mock.lastCall?.[0]
-    expect(added[0]).toEqual(expect.objectContaining({ worldName: 'plugins/AstralRecord/worlds/eriva', x: 8, y: 70, z: 8 }))
+    expect(added[0]).toEqual(expect.objectContaining({ worldName: 'plugins/AstralRecord/worlds/eriva', templateId: 'wolf', x: 8, y: 70, z: 8 }))
     view.rerender(<WorldPlacementEditor snapshot={snapshot} point={{ key: 1, x: 8, y: 70, z: 8 }} selectedId={added[0].placementId} onSelected={vi.fn()} onPlacements={change} placing={false} onPlacing={vi.fn()} />)
     fireEvent.change(screen.getByLabelText('マスター'), { target: { value: 'wolf' } })
     fireEvent.click(screen.getByRole('button', { name: 'Dev に保存' }))
@@ -120,6 +143,19 @@ describe('Dev 配置の編集', () => {
     fireEvent.change(screen.getByLabelText('マスター'), { target: { value: 'wolf' } })
     fireEvent.click(screen.getByRole('button', { name: 'Dev に保存' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('409 競合')
+    expect(screen.getByRole('button', { name: 'Dev に保存' })).toBeEnabled()
+    expect(screen.getByLabelText('マスター')).toHaveValue('wolf')
+  })
+  it('AI 案表示への切替でも未保存の追加を保持する', async () => {
+    const selected = vi.fn()
+    const props = { snapshot, point: null, selectedId: null, onSelected: selected, onPlacements: vi.fn(), placing: false, onPlacing: vi.fn() }
+    const view = render(<WorldPlacementEditor {...props} editing />)
+    await waitFor(() => expect(screen.getByRole('button', { name: '座標を入力して追加' })).toBeEnabled())
+    fireEvent.change(screen.getByLabelText('追加するマスター'), { target: { value: 'wolf' } })
+    fireEvent.click(screen.getByRole('button', { name: '座標を入力して追加' }))
+    view.rerender(<WorldPlacementEditor {...props} editing={false} selectedId={selected.mock.lastCall?.[0]} />)
+    view.rerender(<WorldPlacementEditor {...props} editing selectedId={selected.mock.lastCall?.[0]} />)
+    expect(screen.getByText(/1 件を表示/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Dev に保存' })).toBeEnabled()
     expect(screen.getByLabelText('マスター')).toHaveValue('wolf')
   })

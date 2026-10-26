@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SpawnerPlanningWorkspace } from './SpawnerPlanningWorkspace'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
 vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn() } }))
-vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell }: { onCell: (index: number) => void }) => <button onClick={() => onCell(1)}>解析失敗区画を選択</button> }))
-vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: () => null }))
+vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell, layer }: { onCell: (index: number) => void; layer: string }) => <><output data-testid="map-layer">{layer}</output><button onClick={() => onCell(1)}>解析失敗区画を選択</button></> }))
+vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map }: { map: ReactNode }) => map }))
 const identity = { schemaVersion: 2, worldId: 'test', terrainFingerprint: 'terrain', exportRevision: 'revision-a' }
 const snapshot: PlanningSnapshot = {
   manifest: { ...identity, worldName: 'テスト大陸', previewOnly: true, bounds: { minX: 0, minZ: 0, width: 48, height: 16, cellSize: 16 }, spawn: { x: 0, y: 70, z: 0 }, capturedAt: '2026-10-25T00:00:00Z', radiusOptions: [32, 48, 64], reasons: { covered: '新しい配置案でカバー', failed: '地形の読込・計測に失敗', absent: '未保存の区画' }, limitations: ['実配置は行いません'], progressionPolicy: {} },
@@ -17,8 +18,29 @@ const plan: PlanningPlan = { ...identity, previewOnly: true, radiusMeters: 64, p
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(snapshot); vi.mocked(spawnerPlanningApi.plan).mockResolvedValue(plan) })
 
 describe('マスタエディタ内の配置計画', () => {
+  it('保存済み配置の編集を既定にし、AI 案は明示切替で読み込む', async () => {
+    render(<SpawnerPlanningWorkspace active />)
+    expect(screen.getByRole('button', { name: '配置編集' })).toHaveAttribute('aria-pressed', 'true')
+    await screen.findByText(/テスト大陸/)
+    expect(spawnerPlanningApi.plan).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await waitFor(() => expect(spawnerPlanningApi.plan).toHaveBeenCalled())
+  })
+  it('AI 案のレイヤー選択を保持しつつ配置編集の地図は地形に固定する', async () => {
+    render(<SpawnerPlanningWorkspace active />)
+    expect(await screen.findByTestId('map-layer')).toHaveTextContent('terrain')
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await screen.findByRole('combobox', { name: '表示レイヤー' })
+    fireEvent.change(screen.getByRole('combobox', { name: '表示レイヤー' }), { target: { value: 'levels' } })
+    expect(screen.getByTestId('map-layer')).toHaveTextContent('levels')
+    fireEvent.click(screen.getByRole('button', { name: '配置編集' }))
+    expect(screen.getByTestId('map-layer')).toHaveTextContent('terrain')
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    expect(screen.getByTestId('map-layer')).toHaveTextContent('levels')
+  })
   it('未登録案と解析失敗を表示し、公開操作を用意しない', async () => {
     render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
     fireEvent.click(await screen.findByRole('button', { name: /Lv.38 · 東部乾燥地/ }))
     expect(screen.getByText('未登録のスポナーマスタ案')).toBeInTheDocument()
     expect(screen.getByText('draft-sand')).toBeInTheDocument()
@@ -41,6 +63,7 @@ describe('マスタエディタ内の配置計画', () => {
     roadSnapshot.cells[1].distanceToRoadMeters = 32
     vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(roadSnapshot)
     render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
     expect(await screen.findByText(/北東のLv.100超予定地/)).toBeInTheDocument()
     expect(screen.getByText(/道路距離300mごと/)).toHaveTextContent('未到達の距離帯は配置しません')
     await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
@@ -50,6 +73,7 @@ describe('マスタエディタ内の配置計画', () => {
   })
   it('半径切替の読込中は前の案の詳細と保存を消す', async () => {
     render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
     fireEvent.click(await screen.findByRole('button', { name: /Lv.38 · 東部乾燥地/ }))
     vi.mocked(spawnerPlanningApi.plan).mockReturnValue(new Promise(() => {}))
     fireEvent.change(screen.getByRole('combobox', { name: '出現半径' }), { target: { value: '32' } })
@@ -62,6 +86,7 @@ describe('マスタエディタ内の配置計画', () => {
     extended.cells[1].roadDistanceMeters = 3424
     vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(extended)
     render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
     expect(await screen.findByText(/地形経路距離300mごと/)).toHaveTextContent('水色の点線')
     expect(screen.getByText(/実際の歩行可能性は未検証/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
