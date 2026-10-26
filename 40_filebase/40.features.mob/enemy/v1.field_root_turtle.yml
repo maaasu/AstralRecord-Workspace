@@ -29,7 +29,7 @@ levels:
       - status: MAX_HEALTH
         value: 16330
       - status: ATTACK
-        value: 2060
+        value: 1030
       - status: DEFENSE
         value: 2725
       - status: ACCURACY
@@ -46,7 +46,7 @@ levels:
       - status: MAX_HEALTH
         value: 17710
       - status: ATTACK
-        value: 2232
+        value: 1116
       - status: DEFENSE
         value: 2955
       - status: ACCURACY
@@ -63,7 +63,7 @@ levels:
       - status: MAX_HEALTH
         value: 19090
       - status: ATTACK
-        value: 2405
+        value: 1203
       - status: DEFENSE
         value: 3185
       - status: ACCURACY
@@ -80,7 +80,7 @@ levels:
       - status: MAX_HEALTH
         value: 21850
       - status: ATTACK
-        value: 2755
+        value: 1378
       - status: DEFENSE
         value: 3650
       - status: ACCURACY
@@ -97,7 +97,7 @@ levels:
       - status: MAX_HEALTH
         value: 25990
       - status: ATTACK
-        value: 3280
+        value: 1640
       - status: DEFENSE
         value: 4348
       - status: ACCURACY
@@ -113,7 +113,7 @@ baseStats:
   - status: MAX_HEALTH
     value: 13800
   - status: ATTACK
-    value: 1740
+    value: 870
   - status: DEFENSE
     value: 2300
   - status: ACCURACY

@@ -20,10 +20,10 @@ spawnTimes:
     endTick: 23999
 
 itemMaterial: SPAWNER
-spawnIntervalTicks: 100
+spawnIntervalTicks: 80
 spawnChancePercent: 100.0
 
 spawnLimit:
-  maxAlivePerSpawner: 6
-  maxNearbyMobs: 12
-  spawnPerPlayer: 1
+  maxAlivePerSpawner: 12
+  maxNearbyMobs: 24
+  spawnPerPlayer: 2

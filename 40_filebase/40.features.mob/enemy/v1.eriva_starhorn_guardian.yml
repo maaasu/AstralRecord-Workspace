@@ -27,9 +27,9 @@ levels:
       - status: MAX_HEALTH
         value: 6560
       - status: ATTACK
-        value: 1133
+        value: 567
       - status: MAGIC_ATTACK
-        value: 55
+        value: 28
       - status: DEFENSE
         value: 1143
       - status: ACCURACY
@@ -46,9 +46,9 @@ levels:
       - status: MAX_HEALTH
         value: 9000
       - status: ATTACK
-        value: 1555
+        value: 778
       - status: MAGIC_ATTACK
-        value: 76
+        value: 38
       - status: DEFENSE
         value: 1568
       - status: ACCURACY
@@ -64,9 +64,9 @@ baseStats:
   - status: MAX_HEALTH
     value: 4400
   - status: ATTACK
-    value: 760
+    value: 380
   - status: MAGIC_ATTACK
-    value: 37
+    value: 19
   - status: DEFENSE
     value: 767
   - status: ACCURACY
