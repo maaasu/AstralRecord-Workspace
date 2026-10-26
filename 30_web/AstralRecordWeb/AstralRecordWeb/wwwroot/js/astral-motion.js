@@ -17,9 +17,10 @@
 
     const scenes = elements.map(element => {
         const canvas = element.querySelector('[data-astral-particles]');
+        const video = element.querySelector('[data-astral-video]');
         let context = null;
         try { context = canvas?.getContext('2d') ?? null; } catch { /* CSS effects work without canvas. */ }
-        return { element, canvas, context, width: 0, height: 0, visible: false, particles: [] };
+        return { element, canvas, context, video, videoRequested: false, videoFailed: false, videoRequest: 0, width: 0, height: 0, visible: false, particles: [] };
     });
 
     const canMove = () => !paused && !reducedMotion.matches && !document.hidden && !suspended;
@@ -29,6 +30,44 @@
         lastTime = 0;
     };
 
+    function syncVideo(scene) {
+        const video = scene.video;
+        if (!video) return;
+        if (!canMove() || !scene.visible) {
+            scene.videoRequest++;
+            scene.videoRequested = false;
+            video.pause();
+            return;
+        }
+        if (scene.videoRequested || scene.videoFailed) return;
+        // No source is attached until the scene is visible and motion is allowed.
+        if (!video.getAttribute('src') || video.error) {
+            video.muted = true;
+            video.src = window.innerWidth < 768 ? video.dataset.videoMobile : video.dataset.videoDesktop;
+        }
+        scene.videoRequested = true;
+        const request = ++scene.videoRequest;
+        const failed = () => {
+            if (request !== scene.videoRequest) return;
+            scene.videoRequested = false;
+            scene.videoFailed = true;
+            video.dataset.videoReady = 'false';
+        };
+        try { Promise.resolve(video.play()).catch(failed); } catch { failed(); }
+    }
+
+    scenes.forEach(scene => {
+        scene.video?.addEventListener('playing', () => {
+            if (canMove() && scene.visible && !scene.videoFailed) scene.video.dataset.videoReady = 'true';
+            else syncVideo(scene);
+        });
+        scene.video?.addEventListener('error', () => {
+            scene.videoFailed = true;
+            scene.videoRequested = false;
+            scene.video.dataset.videoReady = 'false';
+        });
+    });
+
     function updateGeometry() {
         scenes.forEach(scene => {
             const rect = scene.element.getBoundingClientRect();
@@ -37,6 +76,7 @@
             const progress = Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height)));
             scene.element.style.setProperty('--ar-scene-shift', `${(progress * 65).toFixed(1)}px`);
             scene.element.style.setProperty('--ar-copy-shift', `${(progress * -30).toFixed(1)}px`);
+            syncVideo(scene);
             if (!scene.context || (scene.width === rect.width && scene.height === rect.height)) return;
 
             scene.width = rect.width;
@@ -45,12 +85,13 @@
             scene.canvas.width = Math.round(rect.width * ratio);
             scene.canvas.height = Math.round(rect.height * ratio);
             scene.context.setTransform(ratio, 0, 0, ratio, 0, 0);
-            const count = rect.width < 768 ? 28 : 64;
+            const count = rect.width < 768 ? 42 : 96;
             scene.particles = Array.from({ length: count }, (_, index) => ({
                 x: ((index * 73 + 17) % 101) / 101,
                 y: ((index * 47 + 31) % 103) / 103,
-                speed: 9 + (index % 7) * 3,
-                size: index % 6 === 0 ? 2.6 : 1.1,
+                speed: 16 + (index % 7) * 5,
+                size: index % 6 === 0 ? 3 : 1.3,
+                color: index % 3 === 0 ? '137, 246, 225' : '255, 231, 166',
                 phase: index * 1.7,
             }));
         });
@@ -66,7 +107,7 @@
             const span = scene.height + 40;
             const y = ((particle.y * span - elapsed * particle.speed) % span + span) % span - 20;
             const alpha = .35 + (Math.sin(elapsed * .8 + particle.phase) + 1) * .25;
-            context.fillStyle = `rgba(255, 231, 166, ${alpha.toFixed(2)})`;
+            context.fillStyle = `rgba(${particle.color}, ${alpha.toFixed(2)})`;
             context.beginPath();
             context.arc(x, y, particle.size, 0, Math.PI * 2);
             context.fill();
@@ -107,6 +148,7 @@
         });
         if (!canMove()) {
             stopFrame();
+            scenes.forEach(syncVideo);
             if (reducedMotion.matches) scenes.forEach(scene => {
                 scene.element.style.setProperty('--ar-scene-shift', '0px');
                 scene.element.style.setProperty('--ar-copy-shift', '0px');
@@ -120,6 +162,7 @@
     controls.forEach(button => button.addEventListener('click', () => {
         if (reducedMotion.matches) return;
         paused = !paused;
+        if (!paused) scenes.forEach(scene => { scene.videoFailed = false; });
         try { sessionStorage.setItem(storageKey, String(paused)); } catch { /* Storage is optional. */ }
         updateState();
     }));
