@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobNormalAttackConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
@@ -685,6 +686,85 @@ class MobAiServiceTest {
         verify(mobService, never()).moveToward(any(MobInstance.class), any(Location.class), anyDouble(), anyLong());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 近接通常攻撃を持つMobはスキル射程内でも通常攻撃の射程外なら追跡を続ける。
+     */
+    @Test
+    void meleeMobPursuesInsideLongSkillRange() throws ReflectiveOperationException {
+        World world = mock(World.class);
+        UUID targetId = UUID.randomUUID();
+        MobSkillBinding binding = new MobSkillBinding("mob_long_range_test", 9.0D, null, null, Map.of());
+        MobInstance instance = new MobInstance(UUID.randomUUID(), meleeEnemyTemplate(binding),
+                new Location(world, 0.0D, 64.0D, 0.0D));
+        instance.state(MobState.AGGRO);
+        instance.targetId(targetId);
+        Player target = activePlayer(world, 5.0D);
+        when(target.getUniqueId()).thenReturn(targetId);
+
+        MobService mobService = mock(MobService.class);
+        MobCombatService combatService = mock(MobCombatService.class);
+        MobSkillService mobSkillService = mock(MobSkillService.class);
+        when(combatService.resolveTarget(targetId)).thenReturn(target);
+        when(mobSkillService.isWithinActivationRange(instance, binding, target, 2.25D)).thenReturn(true);
+        MobAiService aiService = new MobAiService(mobService, combatService, mobSkillService);
+        AstPlayer gameplayTarget = gameplayAstPlayer();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(gameplayTarget);
+            bukkit.when(() -> Bukkit.getPlayer(targetId)).thenReturn(target);
+
+            invokeTickAggro(aiService, instance);
+            assertEquals(MobState.COMBAT, instance.state());
+            invokeTickCombatHold(aiService, instance);
+        }
+
+        verify(mobService, org.mockito.Mockito.times(2)).moveToward(
+                same(instance), any(Location.class), anyDouble(), anyLong());
+        verify(mobSkillService).tryCast(instance, binding, target, 0L);
+        verify(combatService, never()).tickCombat(instance, 0L);
+        verify(mobService, never()).stopPathfinding(instance);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 近接通常攻撃が届く距離では追跡を止め、スキル使用不可時に通常攻撃へ戻る。
+     */
+    @Test
+    void meleeMobStopsAndFallsBackToNormalAttackInReach() throws ReflectiveOperationException {
+        World world = mock(World.class);
+        UUID targetId = UUID.randomUUID();
+        MobSkillBinding binding = new MobSkillBinding("mob_long_range_test", 9.0D, null, null, Map.of());
+        MobInstance instance = new MobInstance(UUID.randomUUID(), meleeEnemyTemplate(binding),
+                new Location(world, 0.0D, 64.0D, 0.0D));
+        instance.state(MobState.COMBAT);
+        instance.targetId(targetId);
+        Player target = activePlayer(world, 2.5D);
+        when(target.getUniqueId()).thenReturn(targetId);
+
+        MobService mobService = mock(MobService.class);
+        MobCombatService combatService = mock(MobCombatService.class);
+        MobSkillService mobSkillService = mock(MobSkillService.class);
+        when(combatService.resolveTarget(targetId)).thenReturn(target);
+        when(mobSkillService.isWithinActivationRange(instance, binding, target, 2.25D)).thenReturn(true);
+        MobAiService aiService = new MobAiService(mobService, combatService, mobSkillService);
+        AstPlayer gameplayTarget = gameplayAstPlayer();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(gameplayTarget);
+            bukkit.when(() -> Bukkit.getPlayer(targetId)).thenReturn(target);
+            invokeTickCombatHold(aiService, instance);
+        }
+
+        verify(mobService).stopPathfinding(instance);
+        verify(combatService).tickCombat(instance, 0L);
+        verify(mobService, never()).moveToward(any(MobInstance.class), any(Location.class), anyDouble(), anyLong());
+    }
+
     private static MobTemplate wanderingNpcTemplate() {
         return new MobTemplate(
                 1,
@@ -758,6 +838,17 @@ class MobAiServiceTest {
                 new MobCombatConfig(CombatStyle.RANGED, 12.0D, null, List.of(binding)),
                 null
         );
+    }
+
+    private static MobTemplate meleeEnemyTemplate(MobSkillBinding binding) {
+        return new MobTemplate(
+                1, "enemy:melee_range_test", MobCategory.ENEMY, "Melee Range Test", null, 1,
+                EntityType.ZOMBIE, true, null, List.of(), List.of(), null, MobEquipmentConfig.EMPTY,
+                List.of(new MobBaseStat("MAX_HEALTH", 100.0D)), MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(), false, MobInteractionsConfig.EMPTY,
+                new MobTargetingConfig(TargetStrategy.HIGHEST_THREAT, 100.0D, 100.0D, 100.0D, false),
+                new MobCombatConfig(CombatStyle.MELEE, 2.0D, new MobNormalAttackConfig(2.0D, 20L), List.of(binding)),
+                null);
     }
 
     private static MobTemplate enemyTemplate() {

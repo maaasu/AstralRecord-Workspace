@@ -306,8 +306,7 @@ public class MobCombatService {
         }
 
         // ターゲット距離チェック
-        double normalAttackRangeSq = normalAttack.range() * normalAttack.range();
-        if (target.getLocation().distanceSquared(instance.currentLocation()) > normalAttackRangeSq + 4.0) {
+        if (!isWithinNormalAttackRange(normalAttack, instance.currentLocation(), target.getLocation())) {
             // 範囲外。AGGRO に戻る
             instance.state(MobState.AGGRO);
             return;
@@ -333,6 +332,24 @@ public class MobCombatService {
                     SharedParticleDefinitions.BOSS_DAMAGE_AREA_EXPLOSION
             );
         }
+    }
+
+    /**
+     * 通常攻撃の実際の距離判定を AI の接近判断と共有します。
+     *
+     * @param normalAttack 通常攻撃設定
+     * @param current Mob の現在位置
+     * @param target 対象位置
+     * @return 通常攻撃を試行できる距離内なら {@code true}
+     */
+    static boolean isWithinNormalAttackRange(
+            @NotNull MobNormalAttackConfig normalAttack,
+            @NotNull Location current,
+            @NotNull Location target
+    ) {
+        double range = normalAttack.range();
+        return current.getWorld() == target.getWorld()
+                && current.distanceSquared(target) <= range * range + 4.0D;
     }
 
     private @NotNull AttackType attackType(@NotNull CombatStyle style) {

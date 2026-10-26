@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobNormalAttackConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
@@ -548,6 +549,7 @@ public class MobAiService {
                 target,
                 preferredRange + COMBAT_RANGE_BUFFER
         );
+        boolean pursueMeleeAttack = shouldPursueMeleeNormalAttack(instance, target);
         if (verticalDiff <= MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
             instance.state(MobState.COMBAT);
@@ -556,6 +558,8 @@ public class MobAiService {
             instance.state(MobState.COMBAT);
             if (verticalDiff > MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE) {
                 mobService.stopPathfinding(instance);
+            } else if (pursueMeleeAttack) {
+                moveToward(instance, targetLoc, instance.template().idle().speed());
             } else {
                 strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
             }
@@ -591,6 +595,7 @@ public class MobAiService {
                 target,
                 preferredRange + COMBAT_RANGE_BUFFER
         );
+        boolean pursueMeleeAttack = shouldPursueMeleeNormalAttack(instance, target);
         if (verticalDiff <= MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
             if (canCastFromCurrentRange) {
@@ -607,6 +612,15 @@ public class MobAiService {
         if (verticalDiff > MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE) {
             mobService.stopPathfinding(instance);
             castCombatSkill(instance, target);
+            return;
+        }
+        if (pursueMeleeAttack) {
+            castCombatSkill(instance, target);
+            if (instance.isSkillCasting() || instance.scriptedAction()) {
+                mobService.stopPathfinding(instance);
+            } else {
+                moveToward(instance, targetLoc, instance.template().idle().speed());
+            }
             return;
         }
         strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
@@ -627,7 +641,9 @@ public class MobAiService {
         }
         List<MobSkillBinding> skills = combat.skills();
         if (skills.isEmpty()) {
-            mobCombatService.tickCombat(instance, internalTick);
+            if (!shouldPursueMeleeNormalAttack(instance, target)) {
+                mobCombatService.tickCombat(instance, internalTick);
+            }
             return;
         }
         if (instance.isSkillCasting()) {
@@ -642,7 +658,9 @@ public class MobAiService {
                 return;
             }
         }
-        mobCombatService.tickCombat(instance, internalTick);
+        if (!shouldPursueMeleeNormalAttack(instance, target)) {
+            mobCombatService.tickCombat(instance, internalTick);
+        }
     }
 
     /**
@@ -859,6 +877,27 @@ public class MobAiService {
         }
         int index = Math.floorMod(instance.nextCombatSkillIndex(), skills.size());
         return mobSkillService.isWithinActivationRange(instance, skills.get(index), target, fallbackRange);
+    }
+
+    /**
+     * 近接通常攻撃が届くまで追跡を続ける必要があるか判定します。
+     * スキルだけを持つ Mob と遠距離・魔法 Mob の間合いは変更しません。
+     *
+     * @param instance 対象 Mob
+     * @param target 攻撃対象
+     * @return 近接通常攻撃の距離外なら {@code true}
+     */
+    private boolean shouldPursueMeleeNormalAttack(
+            @NotNull MobInstance instance,
+            @NotNull LivingEntity target
+    ) {
+        MobCombatConfig combat = instance.template().combat();
+        if (combat == null || combat.style() != CombatStyle.MELEE) {
+            return false;
+        }
+        MobNormalAttackConfig normalAttack = combat.normalAttack();
+        return normalAttack != null && !MobCombatService.isWithinNormalAttackRange(
+                normalAttack, instance.currentLocation(), target.getLocation());
     }
 
     private boolean isWithinGroundActivationRange(
