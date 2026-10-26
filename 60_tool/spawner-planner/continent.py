@@ -32,7 +32,7 @@ REASONS = {
     "unsupported_habitat": "既存の野外スポナーがない環境",
     "unsupported_level": "この環境・レベル帯に合うモブ定義・スポナーマスタがない",
     "eligible": "配置候補の計算対象",
-    "uncovered": "半径・高度・既知区画・地域境界の制約で未カバー",
+    "uncovered": "半径・高度・既知区画・地域境界・危険地形との交差の制約で未カバー",
     "covered": "新しい配置案でカバー",
 }
 DIRECTIONS = (
@@ -150,6 +150,9 @@ class ContinentPlanner:
             (VERSION + planner_hash + self.terrain_fingerprint + hashlib.sha256(policy_raw).hexdigest() +
              self.world_hash + master_hash).encode()
         ).hexdigest()
+        self.hazardous_cell_indices = {
+            i for i, cell in enumerate(self.terrain["cells"]) if self._has_hazardous_surface(cell)
+        }
         self.cells = [self._classify(c) for c in self.terrain["cells"]]
         self.land_components = self._assign_land_components()
         self.regions = self._regions()
@@ -190,7 +193,9 @@ class ContinentPlanner:
                     queue.append(neighbor)
         self.measured_roads = set(distances)
         extension = road.get("terrainExtension")
-        self.extension_path = self._extend_road(grid, distances, extension) if extension else []
+        self.extension_paths = self._extend_road(grid, distances, extension) if extension else []
+        # Keep the single-route inspection attribute for existing callers.
+        self.extension_path = self.extension_paths[0] if self.extension_paths else []
         self.road_distances = distances
         self.max_road_distance = max(distances.values())
         if self.max_road_distance == 0:
@@ -203,8 +208,14 @@ class ContinentPlanner:
         self.road_edges = [[i, index[q]] for i, (x, z) in enumerate(positions)
                            for q in ((x + 16, z), (x, z + 16))
                            if (x, z) in self.measured_roads and q in self.measured_roads]
-        self.road_edges.extend([index[a], index[b]] for a, b in
-                               zip(self.extension_path, self.extension_path[1:]))
+        selected_edges = {tuple(sorted(edge)) for edge in self.road_edges}
+        for path in self.extension_paths:
+            for a, b in zip(path, path[1:]):
+                edge = [index[a], index[b]]
+                key = tuple(sorted(edge))
+                if key not in selected_edges:
+                    self.road_edges.append(edge)
+                    selected_edges.add(key)
         # Assign cells by the nearest centre of a measured road-containing chunk.
         # The histogram does not retain the road's actual columns inside that chunk.
         self.road_nearest = {}
@@ -239,7 +250,7 @@ class ContinentPlanner:
                 b["maxY"] - b["minY"] <= settings["maxLocalSlope"] and
                 abs(a["candidateY"] - b["candidateY"]) <= settings["maxStepHeight"])
 
-    def _extend_road(self, grid: dict, roads: dict, settings: dict) -> list:
+    def _extend_road(self, grid: dict, roads: dict, settings: dict) -> list[list[tuple[int, int]]]:
         """Minimum physical-distance continuation, seeded by existing road distances.
 
         The graph is a conservative summary-based estimate, not block navigation.
@@ -254,26 +265,34 @@ class ContinentPlanner:
         if (any(type(bounds.get(k)) is not int or bounds[k] % 16 for k in ("minX", "minZ", "maxX", "maxZ")) or
                 bounds["minX"] >= bounds["maxX"] or bounds["minZ"] >= bounds["maxZ"]):
             raise ValueError("Invalid terrain extension search bounds")
-        target = settings.get("targetCell")
-        if (not isinstance(target, list) or len(target) != 2 or
-                any(type(v) is not int or v % 16 for v in target)):
-            raise ValueError("Invalid terrain extension target cell")
-        target = tuple(target)
-        if target in roads or target not in grid:
-            raise ValueError("Terrain extension must target a new measured cell")
+        if "targetCell" in settings and "targetCells" in settings:
+            raise ValueError("Terrain extension targetCell and targetCells are mutually exclusive")
+        raw_targets = settings.get("targetCells") if "targetCells" in settings else [settings.get("targetCell")]
+        if (not isinstance(raw_targets, list) or not raw_targets or
+                any(not isinstance(target, list) or len(target) != 2 or
+                    any(type(v) is not int or v % 16 for v in target) for target in raw_targets)):
+            raise ValueError("Invalid terrain extension target cells")
+        targets = [tuple(target) for target in raw_targets]
+        if len(set(targets)) != len(targets):
+            raise ValueError("Terrain extension target cells must be unique")
+        if any(target in roads or target not in grid for target in targets):
+            raise ValueError("Terrain extension must target new measured cells")
         distances, parents = terrain_distances(grid, roads, settings)
         self.terrain_progress = distances
-        if target not in parents:
+        if any(target not in parents for target in targets):
             raise ValueError("No terrain continuation reaches the target within the distance limit")
         required = (len(self.policy["road"]["levels"]) - 1) * self.policy["road"]["levelStepMeters"]
-        if distances[target] < required:
+        if max(distances[target] for target in targets) < required:
             raise ValueError("Terrain continuation does not reach the maximum level distance")
-        path = [target]
-        while path[-1] not in roads:
-            path.append(parents[path[-1]])
-        path.reverse()
-        roads.update((p, distances[p]) for p in path)
-        return path
+        paths = []
+        for target in targets:
+            path = [target]
+            while path[-1] not in roads:
+                path.append(parents[path[-1]])
+            path.reverse()
+            paths.append(path)
+        roads.update((p, distances[p]) for path in paths for p in path)
+        return paths
 
     def _world(self) -> dict:
         matches = [(path, data) for path in sorted((self.filebase / "60.features.world").glob("*.yml"))
@@ -601,6 +620,38 @@ class ContinentPlanner:
         end = min(count, math.ceil((coordinate + radius - minimum) / self.step))
         return range(start, end)
 
+    @staticmethod
+    def _has_hazardous_surface(cell: dict) -> bool:
+        if cell["status"] != "ok":
+            return False
+        hazardous = {"magma_block", "lava"}
+        if any(str(cell.get(key) or "").split(":")[-1] in hazardous for key in ("ground", "surface")):
+            return True
+        for key in ("groundCounts", "surfaceCounts"):
+            counts = cell.get(key) or {}
+            if any(str(material).split(":")[-1] in hazardous and count > 0
+                   for material, count in counts.items()):
+                return True
+        return False
+
+    def _circle_avoids_hazard(self, x: float, z: float, radius: int) -> bool:
+        if not self.hazardous_cell_indices:
+            return True
+        t = self.terrain
+        # Include cells tangent to either side of the circle's bounding box.
+        # The usual half-open index range omits a cell at an exact high edge.
+        for rz in self._index_range(z, radius + self.step, t["minZ"], self.rows):
+            for rx in self._index_range(x, radius + self.step, t["minX"], self.columns):
+                i = rz * self.columns + rx
+                if i not in self.hazardous_cell_indices:
+                    continue
+                c = self.cells[i]
+                nearest_x = min(max(x, c["x"]), c["x"] + self.step)
+                nearest_z = min(max(z, c["z"]), c["z"] + self.step)
+                if (nearest_x - x) ** 2 + (nearest_z - z) ** 2 <= radius ** 2:
+                    return False
+        return True
+
     def _circle_known(self, x: float, z: float, radius: int) -> bool:
         t = self.terrain
         if (x - radius < t["minX"] or x + radius > t["minX"] + t["width"] or
@@ -674,6 +725,8 @@ class ContinentPlanner:
                                  self.policy["road"]["corridorMeters"] - radius):
                     continue
             if not self._circle_known(x, z, radius):
+                continue
+            if not self._circle_avoids_hazard(x, z, radius):
                 continue
             if not self._circle_within_road_scope(x, z, radius):
                 continue

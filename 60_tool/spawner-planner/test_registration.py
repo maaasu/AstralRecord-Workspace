@@ -129,6 +129,7 @@ class RegistrationTests(unittest.TestCase):
         road = self.manifest["progressionPolicy"]["road"]
         road["terrainExtension"] = {"minSafeColumns": 64, "maxLocalSlope": 8,
             "maxStepHeight": 2, "maxDistanceMeters": 3808,
+            "targetCells": [[480, 160], [496, 160]],
             "searchBounds": {"minX": -512, "minZ": -512, "maxX": 5888, "maxZ": 512}}
         for cell, node in zip(self.cells, road["nodes"]):
             cell.update(waterCount=0, safeCount=256, minY=70, maxY=70)
@@ -137,9 +138,11 @@ class RegistrationTests(unittest.TestCase):
         # The proposal's cell is reached by one measured terrain step from a road.
         self.cells.append({"x": 464, "z": 160, "status": "ok", "candidateY": 70,
                            "safeCount": 256, "waterCount": 0, "minY": 70, "maxY": 70})
+        self.cells.append({"x": 496, "z": 160, "status": "ok", "candidateY": 70,
+                           "safeCount": 256, "waterCount": 0, "minY": 70, "maxY": 70})
         road["nodes"].append({"x": 472, "z": 168, "distanceMeters": 584, "kind": "road"})
-        self.manifest["cellCount"] += 1
-        self.plan["reasonCodes"].append("eligible")
+        self.manifest["cellCount"] += 2
+        self.plan["reasonCodes"].extend(["eligible", "eligible"])
         self.assertEqual(11, len(self.validate()[0]))
         self.proposal["roadDistanceMeters"] = self.cells[2]["roadDistanceMeters"] = 616
         with self.assertRaisesRegex(ValueError, "recalculated terrain distance"):

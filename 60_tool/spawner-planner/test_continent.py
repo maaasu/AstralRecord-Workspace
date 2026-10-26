@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from continent import ContinentPlanner, _mob_name
+from continent import ContinentPlanner, REASONS, _mob_name
 
 
 HERE = Path(__file__).resolve().parent
@@ -119,6 +119,38 @@ class ContinentTests(unittest.TestCase):
             for proposal in plan["proposals"]:
                 self.assertTrue(all(planner.cells[j]["landComponentId"] == proposal["landComponentId"]
                                     for j in proposal["coveredCellIndices"]))
+
+    def test_spawn_circle_excludes_hazardous_ground_cells_including_tangent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            data = terrain(-1408, 1280, 512, 512)
+            hazard = next(c for c in data["cells"] if (c["x"], c["z"]) == (-1248, 1536))
+            hazard["groundCounts"] = {"minecraft:grass_block": 255, "minecraft:magma_block": 1}
+            planner = self.make_planner(data, Path(temp))
+            self.assertTrue(planner.hazardous_cell_indices)
+            for x, z in ((-1248 - 64, 1544), (-1232 + 64, 1544),
+                         (-1240, 1536 - 64), (-1240, 1552 + 64)):
+                with self.subTest(tangent=(x, z)):
+                    self.assertFalse(planner._circle_avoids_hazard(x, z, 64))
+            for x, z in ((-1248 - 64.1, 1544), (-1232 + 64.1, 1544),
+                         (-1240, 1536 - 64.1), (-1240, 1552 + 64.1)):
+                with self.subTest(beyond=(x, z)):
+                    self.assertTrue(planner._circle_avoids_hazard(x, z, 64))
+            plan = planner.plan(64)
+            self.assertTrue(plan["proposals"])
+            self.assertTrue(all(planner._circle_avoids_hazard(p["x"] + .5, p["z"] + .5, 64)
+                                for p in plan["proposals"]))
+            hazard_index = planner.terrain["cells"].index(hazard)
+            self.assertEqual("uncovered", plan["reasonCodes"][hazard_index])
+            self.assertIn("危険地形", REASONS["uncovered"])
+
+    def test_hazard_detection_accepts_count_histograms_and_representative_materials(self):
+        base = {"status": "ok", "ground": "minecraft:grass_block", "surface": "minecraft:air"}
+        for key, value in (("groundCounts", {"minecraft:magma_block": 1}),
+                           ("surfaceCounts", {"minecraft:lava": 1}),
+                           ("ground", "minecraft:magma_block"), ("surface", "minecraft:lava")):
+            with self.subTest(key=key):
+                self.assertTrue(ContinentPlanner._has_hazardous_surface({**base, key: value}))
+        self.assertFalse(ContinentPlanner._has_hazardous_surface(base))
 
 
 class RoadProgressionTests(unittest.TestCase):
@@ -264,6 +296,60 @@ class RoadProgressionTests(unittest.TestCase):
                          "searchBounds": {"minX": -1408, "maxX": -640, "minZ": 992, "maxZ": 1760}}
             with self.assertRaisesRegex(ValueError, "No terrain continuation"):
                 self.make_planner(Path(temp), data, extension)
+
+    def test_terrain_continuation_branches_from_original_roads_without_extra_edges(self):
+        with tempfile.TemporaryDirectory() as temp:
+            data = terrain(-1408, -2048, 768, 3840)
+            for cell in data["cells"]:
+                if cell["x"] == -1152 and 1120 <= cell["z"] <= 1472:
+                    cell["groundCounts"] = {"minecraft:dirt_path": 16}
+            extension = {"targetCells": [[-1152, -1808], [-800, 800]],
+                         "minSafeColumns": 64, "maxLocalSlope": 8, "maxStepHeight": 2,
+                         "maxDistanceMeters": 4208,
+                         "searchBounds": {"minX": -1408, "maxX": -640, "minZ": -2048, "maxZ": 1792}}
+            root = Path(temp)
+            planner = self.make_planner(root / "branches", data, extension)
+            north = self.make_planner(root / "north", data,
+                                      {**extension, "targetCells": [extension["targetCells"][0]]})
+            self.assertEqual(north.extension_path, planner.extension_paths[0])
+            self.assertEqual((-1152, -1808), planner.extension_paths[0][-1])
+            self.assertEqual((-800, 800), planner.extension_paths[1][-1])
+            self.assertLess(planner.terrain_progress[(-800, 800)], 3000)
+            self.assertGreaterEqual(planner.terrain_progress[(-1152, -1808)], 3000)
+            self.assertEqual({p: north.road_distances[p] for p in north.measured_roads},
+                             {p: planner.road_distances[p] for p in planner.measured_roads})
+            self.assertEqual(set().union(*map(set, planner.extension_paths)) | planner.measured_roads,
+                             set(planner.road_distances))
+            nodes = [(node["x"] - 8, node["z"] - 8) for node in planner.road_nodes]
+            actual = {frozenset((nodes[a], nodes[b])) for a, b in planner.road_edges}
+            measured = {frozenset((p, q)) for p in planner.measured_roads
+                        for q in planner._neighbors(p) if q in planner.measured_roads}
+            selected = {frozenset((a, b)) for path in planner.extension_paths
+                        for a, b in zip(path, path[1:])}
+            self.assertEqual(measured | selected, actual)
+            self.assertEqual(len(actual), len(planner.road_edges))
+            self.assertTrue(all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 16
+                                for edge in actual for a, b in [tuple(edge)]))
+
+    def test_terrain_extension_rejects_invalid_target_lists(self):
+        with tempfile.TemporaryDirectory() as temp:
+            data = self.road_terrain()
+            extension = {"targetCells": [[-896, 1024]], "minSafeColumns": 64,
+                         "maxLocalSlope": 8, "maxStepHeight": 2, "maxDistanceMeters": 3808,
+                         "searchBounds": {"minX": -1408, "maxX": -640, "minZ": 992, "maxZ": 1760}}
+            cases = [
+                ({**extension, "targetCell": [-896, 1024]}, "mutually exclusive"),
+                ({**extension, "targetCells": []}, "target cells"),
+                ({**extension, "targetCells": [[-896, 1024], [-896, 1024]]}, "unique"),
+                ({**extension, "targetCells": [[-895, 1024]]}, "target cells"),
+                ({**extension, "targetCells": [[True, 1024]]}, "target cells"),
+                ({**extension, "targetCells": [[-1152, 1120]]}, "new measured cells"),
+                ({**extension, "targetCells": [[-896, 976]]}, "new measured cells"),
+                (extension, "maximum level distance"),
+            ]
+            for index, (settings, message) in enumerate(cases):
+                with self.subTest(index=index), self.assertRaisesRegex(ValueError, message):
+                    self.make_planner(Path(temp) / str(index), data, settings)
 
 
 if __name__ == "__main__":
