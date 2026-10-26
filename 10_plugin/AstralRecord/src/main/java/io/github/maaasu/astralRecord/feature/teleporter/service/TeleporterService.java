@@ -135,11 +135,20 @@ public final class TeleporterService {
 
     /**
      * ウェイストーン定義を読み込み、公開前のスナップショットを作成します。
+     * API モードでは非同期マスター準備中に公開中の定義マップを読まないため空で返します。
      *
      * @return ウェイストーン定義スナップショット
      */
     public @NotNull List<WaystoneDefinition> loadDefinitionSnapshot() {
-        return definitionRepository.isApiMode() ? List.copyOf(definitionsById.values()) : List.copyOf(definitionRepository.loadAll());
+        return definitionRepository.isApiMode() ? List.of() : List.copyOf(definitionRepository.loadAll());
+    }
+
+    /**
+     * メインスレッドで公開中の定義をロールバック用に取得します。
+     * @return 公開中ウェイストーン定義の不変コピー
+     */
+    public @NotNull List<WaystoneDefinition> snapshotPublishedDefinitions() {
+        return List.copyOf(definitionsById.values());
     }
 
     /**

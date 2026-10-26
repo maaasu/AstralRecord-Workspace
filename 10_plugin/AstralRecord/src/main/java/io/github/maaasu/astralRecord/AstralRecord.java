@@ -3685,8 +3685,8 @@ public final class AstralRecord extends JavaPlugin {
                         return;
                     }
                     var previousSpawner = mobSpawnerService.snapshotPublishedState();
-                    var previousNpc = npcPlacementService.loadPlacementSnapshot();
-                    var previousWaystone = teleporterService.loadDefinitionSnapshot();
+                    var previousNpc = npcPlacementService.snapshotPublishedPlacements();
+                    var previousWaystone = teleporterService.snapshotPublishedDefinitions();
                     try {
                         mobSpawnerService.replacePlacementSnapshot(snapshot.spawners());
                         npcPlacementService.replacePlacementSnapshot(snapshot.npcs());

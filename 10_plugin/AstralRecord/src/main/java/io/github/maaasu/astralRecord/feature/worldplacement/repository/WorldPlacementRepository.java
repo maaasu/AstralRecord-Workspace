@@ -169,8 +169,9 @@ public final class WorldPlacementRepository {
                         throw new IllegalStateException("Duplicate waystone ID");
                     }
                     Material icon = null;
-                    if (detail.has("icon") && !detail.get("icon").isJsonNull()) {
-                        icon = Material.matchMaterial(requiredString(detail, "icon"));
+                    String iconName = nullableString(detail, "icon");
+                    if (iconName != null) {
+                        icon = Material.matchMaterial(iconName);
                         if (icon != null && (icon.isAir() || !icon.isItem())) icon = null;
                     }
                     long unlockGold = detail.get("unlockGold").getAsLong();

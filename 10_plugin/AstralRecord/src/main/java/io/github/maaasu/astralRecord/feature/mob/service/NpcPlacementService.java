@@ -64,11 +64,20 @@ public final class NpcPlacementService {
 
     /**
      * NPC 配置 YAML を読み込み、公開前のスナップショットを作成します。
+     * API モードでは非同期マスター準備中に公開中の配置マップを読まないため空で返します。
      *
      * @return NPC 配置スナップショット
      */
     public @NotNull List<NpcPlacement> loadPlacementSnapshot() {
-        return repository.isApiMode() ? List.copyOf(placements.values()) : List.copyOf(repository.loadAll());
+        return repository.isApiMode() ? List.of() : List.copyOf(repository.loadAll());
+    }
+
+    /**
+     * メインスレッドで公開中の配置をロールバック用に取得します。
+     * @return 公開中 NPC 配置の不変コピー
+     */
+    public @NotNull List<NpcPlacement> snapshotPublishedPlacements() {
+        return List.copyOf(placements.values());
     }
 
     /**

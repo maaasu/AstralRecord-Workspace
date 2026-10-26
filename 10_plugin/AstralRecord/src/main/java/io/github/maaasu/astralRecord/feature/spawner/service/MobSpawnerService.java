@@ -119,13 +119,14 @@ public class MobSpawnerService {
 
     /**
      * スポナー定義と配置 YAML を読み込み、公開前のスナップショットを作成します。
+     * API モードでは非同期準備中にメインスレッドの配置キャッシュを読まないため、配置は空で返します。
      *
      * @return スポナーマスタスナップショット
      */
     public @NotNull MasterDataSnapshot loadMasterDataSnapshot() {
         return new MasterDataSnapshot(
                 List.copyOf(definitionRepository.findAll()),
-                locationRepository.isApiMode() ? List.copyOf(locations.values()) : List.copyOf(locationRepository.loadAll())
+                locationRepository.isApiMode() ? List.of() : List.copyOf(locationRepository.loadAll())
         );
     }
 
@@ -147,10 +148,15 @@ public class MobSpawnerService {
 
     /**
      * 準備済みスポナーマスタを実行時キャッシュへ一括反映します。
+     * 同じ座標の生存 Mob を引き継ぎ、定義と配置が未変更の場合だけ探索待機状態も維持します。
      *
      * @param snapshot スポナーマスタスナップショット
      */
     public void replaceMasterDataSnapshot(@NotNull MasterDataSnapshot snapshot) {
+        Map<String, MobSpawnerDefinition> previousDefinitions = new LinkedHashMap<>(definitions);
+        Map<String, MobSpawnerLocation> previousLocations = new LinkedHashMap<>(locations);
+        Map<String, Set<UUID>> previousTracked = new HashMap<>(spawnedByLocation);
+        Map<String, SpawnAttempt> previousPending = new LinkedHashMap<>(pendingSpawns);
         definitions.clear();
         for (MobSpawnerDefinition definition : snapshot.definitions()) {
             definitions.put(definition.id(), definition);
@@ -168,8 +174,16 @@ public class MobSpawnerService {
         spawnedByLocation.clear();
         pendingSpawns.clear();
         for (MobSpawnerLocation location : snapshot.locations()) {
-            locations.put(location.locationKey(), location);
-            spawnedByLocation.put(location.locationKey(), new HashSet<>());
+            String key = location.locationKey();
+            MobSpawnerLocation previous = previousLocations.get(key);
+            MobSpawnerLocation published = location.equals(previous) ? previous : location;
+            locations.put(key, published);
+            spawnedByLocation.put(key, new HashSet<>(previousTracked.getOrDefault(key, Set.of())));
+            SpawnAttempt pending = previousPending.get(key);
+            if (pending != null && published == previous && definitions.containsKey(published.spawnerId())
+                && java.util.Objects.equals(previousDefinitions.get(previous.spawnerId()), definitions.get(published.spawnerId()))) {
+                pendingSpawns.put(key, pending);
+            }
         }
         dirty = false;
     }
