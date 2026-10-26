@@ -1,9 +1,10 @@
 export interface PlanningIdentity { schemaVersion: number; worldId: string; terrainFingerprint: string; exportRevision: string }
 export interface PlanningBounds { minX: number; minZ: number; width: number; height: number; cellSize: number }
 export interface PlanningRoad {
-  nodes: { x: number; z: number; distanceMeters: number }[]
+  nodes: { x: number; z: number; distanceMeters: number; kind?: 'road' | 'terrain' }[]
   edges: [number, number][]
   maxDistanceMeters: number; corridorMeters: number; candidateCenterMeters: number
+  terrainExtension?: { maxDistanceMeters: number }
 }
 export function planningRoad(manifest: PlanningManifest): PlanningRoad | null {
   const policy = manifest.progressionPolicy as { mode?: string; road?: PlanningRoad } | null
@@ -66,6 +67,7 @@ export const reasonColors: Record<string, string> = {
   unsupported: '#bc87b7', unsupported_habitat: '#bc87b7', unsupported_level: '#c294d5',
   uncovered: '#efa65c', budget: '#e58660', boundary: '#e7a970',
   reserved_future: '#58657b',
+  terrain_barrier: '#9e7c75',
 }
 export function reasonColor(code: string) {
   return reasonColors[code] ?? (code.includes('level') ? '#c294d5' : code.includes('habitat') || code.includes('master') ? '#bc87b7' : '#999ab2')

@@ -12,7 +12,15 @@
     "corridorMeters": 384,
     "candidateCenterMeters": 320,
     "levelStepMeters": 300,
-    "levels": [15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45]
+    "levels": [15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45],
+    "terrainExtension": {
+      "targetCell": [-1056, -544],
+      "searchBounds": {"minX": -2000, "maxX": 0, "minZ": -960, "maxZ": 1808},
+      "minSafeColumns": 64,
+      "maxLocalSlope": 8,
+      "maxStepHeight": 2,
+      "maxDistanceMeters": 3808
+    }
   },
   "fieldSpawnerIds": {
     "grass": [

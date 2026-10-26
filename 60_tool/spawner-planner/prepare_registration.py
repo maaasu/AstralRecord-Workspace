@@ -10,6 +10,8 @@ import shutil
 
 import yaml
 
+from continent import terrain_distances
+
 
 def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -68,10 +70,24 @@ def validate_plan(manifest: dict, plan: dict, cells: list[dict],
     cell_by_position = {(c["x"], c["z"]): c for c in cells}
     if len(cell_by_position) != len(cells):
         raise ValueError("Duplicate measured cell")
+    extension = road.get("terrainExtension")
+    terrain_progress = None
+    if extension:
+        seeds = {(n["x"] - 8, n["z"] - 8): n["distanceMeters"]
+                 for n in nodes if n.get("kind") == "road"}
+        if not seeds or any(p not in cell_by_position for p in seeds):
+            raise ValueError("Terrain extension requires measured road seeds")
+        terrain_progress, _ = terrain_distances(cell_by_position, seeds, extension)
+        for n in nodes:
+            if terrain_progress.get((n["x"] - 8, n["z"] - 8)) != n["distanceMeters"]:
+                raise ValueError("Terrain route node differs from recalculated terrain distance")
+        if 45 not in {p["level"] for p in plan["proposals"]}:
+            raise ValueError("The extended terrain plan must include actual Lv45 placements")
     placements, files, occupied, proposal_ids = [], set(), set(), set()
     for proposal in plan["proposals"]:
         distance = proposal.get("roadDistanceMeters")
-        if type(distance) is not int or not 0 <= distance <= road["maxDistanceMeters"]:
+        maximum_distance = extension["maxDistanceMeters"] if extension else road["maxDistanceMeters"]
+        if type(distance) is not int or not 0 <= distance <= maximum_distance:
             raise ValueError("Missing or invalid measured road distance")
         expected_level = declared_levels[min(len(declared_levels) - 1, distance // level_step)]
         if proposal.get("level") != expected_level:
@@ -94,10 +110,14 @@ def validate_plan(manifest: dict, plan: dict, cells: list[dict],
                 tuple(cell.get(k) for k in ("candidateX", "candidateY", "candidateZ")) != (x, y, z) or
                 cell.get("roadDistanceMeters") != distance or cell.get("targetLevel") != expected_level):
             raise ValueError("Proposal does not match its measured candidate cell")
-        nearest = min(nodes, key=lambda n: (math.hypot(cell_x + 8 - n["x"], cell_z + 8 - n["z"]),
-                                           n["distanceMeters"], n["z"], n["x"]))
-        if nearest["distanceMeters"] != distance:
-            raise ValueError("Proposal distance differs from measured road nodes")
+        if terrain_progress is not None:
+            if terrain_progress.get((cell_x, cell_z)) != distance:
+                raise ValueError("Proposal distance differs from recalculated terrain distance")
+        else:
+            nearest = min(nodes, key=lambda n: (math.hypot(cell_x + 8 - n["x"], cell_z + 8 - n["z"]),
+                                               n["distanceMeters"], n["z"], n["x"]))
+            if nearest["distanceMeters"] != distance:
+                raise ValueError("Proposal distance differs from measured road nodes")
         cx, cz = x + .5, z + .5
         if not (min_x + 64 <= cx <= max_x - 64 and min_z + 64 <= cz <= max_z - 64):
             raise ValueError("Spawn circle exceeds scanned bounds")

@@ -122,7 +122,7 @@ class ContinentTests(unittest.TestCase):
 
 
 class RoadProgressionTests(unittest.TestCase):
-    def make_planner(self, root, data):
+    def make_planner(self, root, data, extension=None):
         filebase = root / "filebase"
         world_dir = filebase / "60.features.world"
         mob_dir = filebase / "40.features.mob" / "enemy"
@@ -134,6 +134,11 @@ class RoadProgressionTests(unittest.TestCase):
             "spawnLocation: {x: -1149.5, y: 107, z: 1480.5}\n"
             "adventureGuide: {recommendedLevelMin: 15}\n", encoding="utf-8")
         policy = json.loads(ROAD_POLICY.read_text(encoding="utf-8"))
+        policy["road"].pop("terrainExtension", None)
+        if extension:
+            policy["road"]["terrainExtension"] = extension
+        policy_path = root / "policy.json"
+        policy_path.write_text(json.dumps(policy), encoding="utf-8")
         levels = policy["road"]["levels"]
         (mob_dir / "road.yml").write_text(
             "id: road_test_enemy\ncategory: ENEMY\nname: Road Test\nlevel: 15\n" +
@@ -147,7 +152,7 @@ class RoadProgressionTests(unittest.TestCase):
                     "spawnLimit: {maxAlivePerSpawner: 3}\n", encoding="utf-8")
         terrain_path = root / "terrain.json"
         terrain_path.write_text(json.dumps(data), encoding="utf-8")
-        return ContinentPlanner(terrain_path, filebase, ROAD_POLICY)
+        return ContinentPlanner(terrain_path, filebase, policy_path)
 
     @staticmethod
     def road_terrain():
@@ -224,6 +229,41 @@ class RoadProgressionTests(unittest.TestCase):
             self.assertEqual("absent", reasons[(-656, 992)])
             self.assertEqual("failed", reasons[(-672, 992)])
             self.assertEqual("water", reasons[(-688, 992)])
+
+    def test_terrain_continuation_avoids_water_and_reaches_lv45_without_projection_jumps(self):
+        with tempfile.TemporaryDirectory() as temp:
+            data = terrain(-1408, -2048, 768, 3840)
+            for cell in data["cells"]:
+                if cell["x"] == -1152 and 1120 <= cell["z"] <= 1472:
+                    cell["groundCounts"] = {"minecraft:dirt_path": 16}
+                # River has one land crossing, so the route must go around it.
+                if cell["z"] == 0 and cell["x"] != -896:
+                    cell.update(waterCount=256, ground="minecraft:water")
+            extension = {"targetCell": [-1152, -1808], "minSafeColumns": 64,
+                         "maxLocalSlope": 8, "maxStepHeight": 2, "maxDistanceMeters": 4208,
+                         "searchBounds": {"minX": -1408, "maxX": -640, "minZ": -2048, "maxZ": 1792}}
+            planner = self.make_planner(Path(temp), data, extension)
+            self.assertIn((-896, 0), planner.extension_path)
+            self.assertTrue(all(z != 0 or x == -896 for x, z in planner.extension_path))
+            self.assertGreaterEqual(planner.max_road_distance, 3000)
+            self.assertIn(45, {p["level"] for p in planner.plan(64)["proposals"]})
+            grid = {(c["x"], c["z"]): c for c in planner.cells}
+            for p, distance in planner.terrain_progress.items():
+                for q in planner._neighbors(p):
+                    if q in planner.terrain_progress and planner._terrain_step(grid[p], grid[q], extension):
+                        self.assertLessEqual(abs(distance - planner.terrain_progress[q]), 16)
+
+    def test_terrain_continuation_refuses_disconnected_target(self):
+        with tempfile.TemporaryDirectory() as temp:
+            data = self.road_terrain()
+            for cell in data["cells"]:
+                if cell["z"] == 1088:
+                    cell.update(waterCount=256, ground="minecraft:water")
+            extension = {"targetCell": [-1152, 1024], "minSafeColumns": 64,
+                         "maxLocalSlope": 8, "maxStepHeight": 2, "maxDistanceMeters": 3808,
+                         "searchBounds": {"minX": -1408, "maxX": -640, "minZ": 992, "maxZ": 1760}}
+            with self.assertRaisesRegex(ValueError, "No terrain continuation"):
+                self.make_planner(Path(temp), data, extension)
 
 
 if __name__ == "__main__":

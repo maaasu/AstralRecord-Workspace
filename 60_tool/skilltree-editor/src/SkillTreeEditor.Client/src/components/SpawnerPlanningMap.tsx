@@ -82,15 +82,19 @@ export function SpawnerPlanningMap(props: Props) {
     const screen = (x: number, z: number) => [(x - bounds.minX) * view.scale + view.x, (z - bounds.minZ) * view.scale + view.z]
     const road = planningRoad(snapshot.manifest)
     if (road) {
-      ctx.beginPath()
-      for (const [start, end] of road.edges) {
-        const a = road.nodes[start], b = road.nodes[end]
-        if (!a || !b) continue
-        const [ax, az] = screen(a.x, a.z), [bx, bz] = screen(b.x, b.z)
-        ctx.moveTo(ax, az); ctx.lineTo(bx, bz)
+      for (const terrain of [false, true]) {
+        ctx.beginPath()
+        for (const [start, end] of road.edges) {
+          const a = road.nodes[start], b = road.nodes[end]
+          if (!a || !b || (a.kind === 'terrain' || b.kind === 'terrain') !== terrain) continue
+          const [ax, az] = screen(a.x, a.z), [bx, bz] = screen(b.x, b.z)
+          ctx.moveTo(ax, az); ctx.lineTo(bx, bz)
+        }
+        ctx.setLineDash(terrain ? [4, 3] : [])
+        ctx.strokeStyle = '#142736'; ctx.lineWidth = 5; ctx.stroke()
+        ctx.strokeStyle = terrain ? '#8de0e6' : '#f5cd80'; ctx.lineWidth = 2; ctx.stroke()
       }
-      ctx.strokeStyle = '#142736'; ctx.lineWidth = 5; ctx.stroke()
-      ctx.strokeStyle = '#f5cd80'; ctx.lineWidth = 2; ctx.stroke()
+      ctx.setLineDash([])
     }
     for (const proposal of visibleProposals) {
       const [x, z] = screen(proposal.x + .5, proposal.z + .5)

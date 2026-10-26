@@ -54,4 +54,15 @@ describe('マスタエディタ内の配置計画', () => {
     await waitFor(() => expect(screen.queryByText('draft-sand')).not.toBeInTheDocument())
     expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeDisabled()
   })
+  it('地形延長を検出した道路と区別して説明する', async () => {
+    const extended = structuredClone(snapshot)
+    extended.manifest.progressionPolicy = { mode: 'road', levelStepMeters: 300, road: { nodes: [], edges: [], terrainExtension: { maxDistanceMeters: 3808 } } }
+    extended.cells[1].roadDistanceMeters = 3424
+    vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(extended)
+    render(<SpawnerPlanningWorkspace active />)
+    expect(await screen.findByText(/地形経路距離300mごと/)).toHaveTextContent('水色の点線')
+    expect(screen.getByText(/実際の歩行可能性は未検証/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
+    expect(screen.getByText(/地形経路距離:/)).toHaveTextContent('3,424m')
+  })
 })

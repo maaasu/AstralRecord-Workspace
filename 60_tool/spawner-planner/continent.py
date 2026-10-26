@@ -28,6 +28,7 @@ REASONS = {
     "steep": "区画内の高低差が大きい",
     "protected": "開始地点の48m保護範囲",
     "reserved_future": "道路沿いの今回の配置範囲外（後続地域として保留）",
+    "terrain_barrier": "経路の近くにあるが水域・斜面・足場不足・距離上限により地表接続を確認できない",
     "unsupported_habitat": "既存の野外スポナーがない環境",
     "unsupported_level": "この環境・レベル帯に合うモブ定義・スポナーマスタがない",
     "eligible": "配置候補の計算対象",
@@ -95,6 +96,26 @@ def _atomic_json(path: Path, value: dict) -> None:
         os.replace(temp, path)
     finally:
         temp.unlink(missing_ok=True)
+
+
+def terrain_distances(grid: dict, roads: dict, settings: dict) -> tuple[dict, dict]:
+    """Physical 4-neighbour distances, preserving the already measured road seeds."""
+    distances, parents = dict(roads), {}
+    queue = [(d, p) for p, d in distances.items()]
+    heapq.heapify(queue)
+    while queue:
+        distance, p = heapq.heappop(queue)
+        if distance != distances[p]:
+            continue
+        for q in ContinentPlanner._neighbors(p):
+            if (q in roads or q not in grid or distance + 16 > settings["maxDistanceMeters"] or
+                    not ContinentPlanner._terrain_step(grid[p], grid[q], settings)):
+                continue
+            if distance + 16 < distances.get(q, math.inf):
+                distances[q] = distance + 16
+                parents[q] = p
+                heapq.heappush(queue, (distance + 16, q))
+    return distances, parents
 
 
 class ContinentPlanner:
@@ -167,16 +188,23 @@ class ContinentPlanner:
                 if neighbor in roads and neighbor not in distances:
                     distances[neighbor] = distances[(x, z)] + 16
                     queue.append(neighbor)
+        self.measured_roads = set(distances)
+        extension = road.get("terrainExtension")
+        self.extension_path = self._extend_road(grid, distances, extension) if extension else []
         self.road_distances = distances
         self.max_road_distance = max(distances.values())
         if self.max_road_distance == 0:
             raise ValueError("Spawn-connected road has no progression length")
         positions = sorted(distances, key=lambda p: (p[1], p[0]))
         index = {p: i for i, p in enumerate(positions)}
-        self.road_nodes = [{"x": x + 8, "z": z + 8, "distanceMeters": distances[(x, z)]}
+        self.road_nodes = [{"x": x + 8, "z": z + 8, "distanceMeters": distances[(x, z)],
+                            "kind": "road" if (x, z) in self.measured_roads else "terrain"}
                            for x, z in positions]
         self.road_edges = [[i, index[q]] for i, (x, z) in enumerate(positions)
-                           for q in ((x + 16, z), (x, z + 16)) if q in index]
+                           for q in ((x + 16, z), (x, z + 16))
+                           if (x, z) in self.measured_roads and q in self.measured_roads]
+        self.road_edges.extend([index[a], index[b]] for a, b in
+                               zip(self.extension_path, self.extension_path[1:]))
         # Assign cells by the nearest centre of a measured road-containing chunk.
         # The histogram does not retain the road's actual columns inside that chunk.
         self.road_nearest = {}
@@ -195,6 +223,57 @@ class ContinentPlanner:
                     choice = (lateral, route_distance, z, x)
                     if previous is None or choice < previous:
                         self.road_nearest[p] = choice
+
+    @staticmethod
+    def _neighbors(p: tuple[int, int]):
+        x, z = p
+        return ((x - 16, z), (x + 16, z), (x, z - 16), (x, z + 16))
+
+    @staticmethod
+    def _terrain_step(a: dict, b: dict, settings: dict) -> bool:
+        bounds = settings["searchBounds"]
+        return (bounds["minX"] <= b["x"] < bounds["maxX"] and
+                bounds["minZ"] <= b["z"] < bounds["maxZ"] and
+                b["status"] == "ok" and b.get("waterCount") == 0 and
+                b["safeCount"] >= settings["minSafeColumns"] and
+                b["maxY"] - b["minY"] <= settings["maxLocalSlope"] and
+                abs(a["candidateY"] - b["candidateY"]) <= settings["maxStepHeight"])
+
+    def _extend_road(self, grid: dict, roads: dict, settings: dict) -> list:
+        """Minimum physical-distance continuation, seeded by existing road distances.
+
+        The graph is a conservative summary-based estimate, not block navigation.
+        Low-safe-count forest cells can carry a route but cannot host a spawner.
+        """
+        for key in ("minSafeColumns", "maxLocalSlope", "maxStepHeight", "maxDistanceMeters"):
+            if type(settings.get(key)) is not int or settings[key] <= 0:
+                raise ValueError(f"Invalid terrain extension {key}")
+        if settings["minSafeColumns"] > 256:
+            raise ValueError("Invalid terrain extension minSafeColumns")
+        bounds = settings.get("searchBounds", {})
+        if (any(type(bounds.get(k)) is not int or bounds[k] % 16 for k in ("minX", "minZ", "maxX", "maxZ")) or
+                bounds["minX"] >= bounds["maxX"] or bounds["minZ"] >= bounds["maxZ"]):
+            raise ValueError("Invalid terrain extension search bounds")
+        target = settings.get("targetCell")
+        if (not isinstance(target, list) or len(target) != 2 or
+                any(type(v) is not int or v % 16 for v in target)):
+            raise ValueError("Invalid terrain extension target cell")
+        target = tuple(target)
+        if target in roads or target not in grid:
+            raise ValueError("Terrain extension must target a new measured cell")
+        distances, parents = terrain_distances(grid, roads, settings)
+        self.terrain_progress = distances
+        if target not in parents:
+            raise ValueError("No terrain continuation reaches the target within the distance limit")
+        required = (len(self.policy["road"]["levels"]) - 1) * self.policy["road"]["levelStepMeters"]
+        if distances[target] < required:
+            raise ValueError("Terrain continuation does not reach the maximum level distance")
+        path = [target]
+        while path[-1] not in roads:
+            path.append(parents[path[-1]])
+        path.reverse()
+        roads.update((p, distances[p]) for p in path)
+        return path
 
     def _world(self) -> dict:
         matches = [(path, data) for path in sorted((self.filebase / "60.features.world").glob("*.yml"))
@@ -348,10 +427,13 @@ class ContinentPlanner:
 
     def _region_key(self, x: float, z: float, habitat: str) -> tuple[str, str, int]:
         if self.road_mode:
-            nearest = self.road_nearest.get((int(x - 8), int(z - 8)))
+            position = (int(x - 8), int(z - 8))
+            nearest = self.road_nearest.get(position)
             if nearest is None:
                 return "eriva-reserved-future", "エリヴァ・後続地域（未配置）", None
-            distance = nearest[1]
+            distance = self.terrain_progress.get(position) if self.extension_path else nearest[1]
+            if distance is None:
+                return "eriva-terrain-unconnected", "エリヴァ・地表接続未確認", None
             levels = self.policy["road"]["levels"]
             stage = min(len(levels) - 1, distance // self.policy["road"]["levelStepMeters"])
             level = levels[stage]
@@ -377,7 +459,8 @@ class ContinentPlanner:
         if self.road_mode:
             nearest = self.road_nearest.get((c["x"], c["z"])) if c["status"] == "ok" else None
             c["distanceToRoadMeters"] = round(nearest[0], 2) if nearest else None
-            c["roadDistanceMeters"] = nearest[1] if nearest else None
+            c["roadDistanceMeters"] = ((self.terrain_progress.get((c["x"], c["z"])) if self.extension_path
+                                        else nearest[1]) if nearest else None)
         c["regionId"], c["regionName"], c["targetLevel"] = self._region_key(
             c["x"] + self.step / 2, c["z"] + self.step / 2, c["habitat"])
         if self.road_mode and c["status"] != "ok":
@@ -393,6 +476,9 @@ class ContinentPlanner:
             reason = "unsafe"
         elif c["maxY"] - c["minY"] > self.policy["maxLocalSlope"]:
             reason = "steep"
+        elif (self.road_mode and self.extension_path and
+              (c["x"], c["z"]) not in self.terrain_progress):
+            reason = "terrain_barrier"
         elif math.hypot(c["x"] + 8 - self.spawn["x"], c["z"] + 8 - self.spawn["z"]) <= self.policy["spawnSafeRadius"] + math.sqrt(128):
             reason = "protected"
         elif c["habitat"] not in (set(self.policy["fieldSpawnerIds"]) | set(self.policy.get("draftEnemyIds", {}))):
@@ -715,6 +801,12 @@ class ContinentPlanner:
                                  "既存の配置は読まず、カバー率に加算しない。"]
             manifest["limitations"].append(
                 "groundCountsは16m区画ごとの材質数で道の柱位置を持たない。4近傍道路グラフは歩行可能性、橋、段差を証明しない。")
+            if self.extension_path:
+                manifest["progressionPolicy"]["road"]["terrainExtension"] = road["terrainExtension"]
+                manifest["progressionPolicy"]["basis"] = "道路と地形から推定した延長経路の距離。300mごとに3レベル上昇"
+                manifest["notes"][0] = "道路が途切れた先を、水面・高低差・安全な地表列数に基づく4近傍経路で延長。距離間隔は維持し、Lv.45まで配置する。"
+                manifest["limitations"].append(
+                    "水色の点線は16m地表集計からの推定経路。候補高度差は区画境界の段差ではなく、実際の歩行可能性は未検証。")
         # Publish the manifest last. Readers reject mismatched exportRevision.
         _atomic_json(output / "manifest.json", manifest)
         return manifest
