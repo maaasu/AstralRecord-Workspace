@@ -117,6 +117,39 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
     }
 
     [Fact]
+    public async Task DetailImageIsOptionalAndRequiresMatchingIdentityAndDimensions()
+    {
+        await using var host = await StartAsync();
+        WriteExport(host.DataDirectory);
+        using var missing = await host.Client.GetAsync($"/api/spawner-planning/terrain-detail?revision={_revision}");
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        using var missingRevision = await host.Client.GetAsync("/api/spawner-planning/terrain-detail/image");
+        Assert.Equal(HttpStatusCode.BadRequest, missingRevision.StatusCode);
+
+        WriteDetail(host.DataDirectory);
+        foreach (var route in new[] { "terrain-detail", "terrain-detail/image" })
+        {
+            using var response = await host.Client.GetAsync($"/api/spawner-planning/{route}?revision={_revision}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal($"\"{_revision}\"", response.Headers.ETag?.ToString());
+            Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+        }
+        using var stale = await host.Client.GetAsync("/api/spawner-planning/terrain-detail?revision=old");
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        File.WriteAllText(Path.Combine(host.DataDirectory, "terrain-detail.json"),
+            JsonSerializer.Serialize(new { schemaVersion = 1, terrainFingerprint = new string('c', 64), minX = -8, minZ = 16,
+                width = 32, height = 48, blocksPerPixel = 1, image = "terrain-detail.png" }));
+        using var wrongFingerprint = await host.Client.GetAsync($"/api/spawner-planning/terrain-detail?revision={_revision}");
+        Assert.Equal(HttpStatusCode.Conflict, wrongFingerprint.StatusCode);
+        WriteDetail(host.DataDirectory);
+        var png = File.ReadAllBytes(Path.Combine(host.DataDirectory, "terrain-detail.png"));
+        png[23] = 49;
+        File.WriteAllBytes(Path.Combine(host.DataDirectory, "terrain-detail.png"), png);
+        using var wrongDimensions = await host.Client.GetAsync($"/api/spawner-planning/terrain-detail/image?revision={_revision}");
+        Assert.Equal(HttpStatusCode.Conflict, wrongDimensions.StatusCode);
+    }
+
+    [Fact]
     public async Task ConfiguredRelativeTraversalIsRejected()
     {
         Directory.CreateDirectory(_workspace);
@@ -151,6 +184,7 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
         {
             schemaVersion = 2, mode = "continent-redesign", previewOnly = true,
             exportRevision = _revision, worldId = "eriva", terrainFingerprint = _fingerprint,
+            bounds = new { minX = -8, minZ = 16, width = 32, height = 48, cellSize = 16 },
             radiusOptions = new[] { 32, 48, 64 },
             files = new { cells = "cells.json", regions = "regions.json", proposals = new Dictionary<string, string>
             {
@@ -162,6 +196,16 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
         File.WriteAllText(Path.Combine(directory, "regions.json"), Data("regions", _revision));
         foreach (var radius in new[] { 32, 48, 64 })
             File.WriteAllText(Path.Combine(directory, $"proposals-{radius}.json"), Data("proposals", _revision, radius: radius));
+    }
+
+    private void WriteDetail(string directory)
+    {
+        File.WriteAllText(Path.Combine(directory, "terrain-detail.json"),
+            JsonSerializer.Serialize(new { schemaVersion = 1, terrainFingerprint = _fingerprint, minX = -8, minZ = 16,
+                width = 32, height = 48, blocksPerPixel = 1, image = "terrain-detail.png" }));
+        var header = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+            0, 0, 0, 32, 0, 0, 0, 48 };
+        File.WriteAllBytes(Path.Combine(directory, "terrain-detail.png"), header);
     }
 
     private string Data(string kind, string revision, string worldId = "eriva", int radius = 32)

@@ -14,33 +14,67 @@ export function SpawnerPlanningMap(props: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const drag = useRef<{ x: number; y: number; moved: number } | null>(null)
   const [size, setSize] = useState({ width: 800, height: 620 })
+  const sizeRef = useRef(size)
+  const measured = useRef(false)
   const [view, setView] = useState({ scale: .1, x: 0, z: 0 })
   const [coordinates, setCoordinates] = useState('X — / Z —')
+  const [detail, setDetail] = useState<HTMLImageElement | null>(null)
   const bounds = snapshot.manifest.bounds
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot.cells])
   const visibleProposals = useMemo(() => plan?.proposals.filter(item => !region || item.regionId === region) ?? [], [plan, region])
   const fit = useCallback(() => {
-    const scale = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
-    setView({ scale, x: (size.width - bounds.width * scale) / 2, z: (size.height - bounds.height * scale) / 2 })
-  }, [size, bounds])
+    const { width, height } = sizeRef.current
+    const scale = Math.min((width - 32) / bounds.width, (height - 32) / bounds.height)
+    setView({ scale, x: (width - bounds.width * scale) / 2, z: (height - bounds.height * scale) / 2 })
+  }, [bounds])
   useEffect(() => { fit() }, [fit])
   useEffect(() => {
     const element = canvas.current?.parentElement
     if (!element || !active) return
     const resize = () => {
       const rect = element.getBoundingClientRect()
-      if (rect.width && rect.height) setSize({ width: rect.width, height: rect.height })
+      if (rect.width && rect.height && (!measured.current || rect.width !== sizeRef.current.width || rect.height !== sizeRef.current.height)) {
+        const previous = sizeRef.current
+        sizeRef.current = { width: rect.width, height: rect.height }
+        if (!measured.current) {
+          measured.current = true
+          const scale = Math.min((rect.width - 32) / bounds.width, (rect.height - 32) / bounds.height)
+          setView({ scale, x: (rect.width - bounds.width * scale) / 2, z: (rect.height - bounds.height * scale) / 2 })
+        } else {
+          setView(current => ({ ...current, x: current.x + (rect.width - previous.width) / 2, z: current.z + (rect.height - previous.height) / 2 }))
+        }
+        setSize(sizeRef.current)
+      }
     }
     resize()
     const observer = new ResizeObserver(resize)
     observer.observe(element)
     return () => observer.disconnect()
-  }, [active])
+  }, [active, bounds])
   useEffect(() => {
     if (!focus) return
-    const scale = Math.max(.7, Math.min(size.width, size.height) / 700)
-    setView({ scale, x: size.width / 2 - (focus.x - bounds.minX) * scale, z: size.height / 2 - (focus.z - bounds.minZ) * scale })
-  }, [focus, bounds, size])
+    const { width, height } = sizeRef.current
+    const scale = Math.max(.7, Math.min(width, height) / 700)
+    setView({ scale, x: width / 2 - (focus.x - bounds.minX) * scale, z: height / 2 - (focus.z - bounds.minZ) * scale })
+  }, [focus, bounds])
+  useEffect(() => {
+    let cancelled = false
+    setDetail(null)
+    if (typeof fetch !== 'function') return
+    const revision = encodeURIComponent(snapshot.manifest.exportRevision)
+    const controller = new AbortController()
+    fetch(`/api/spawner-planning/terrain-detail?revision=${revision}`, { signal: controller.signal })
+      .then(response => response.ok ? response.json() : null)
+      .then(metadata => {
+        if (cancelled || !metadata || metadata.schemaVersion !== 1 || metadata.blocksPerPixel !== 1 ||
+            metadata.terrainFingerprint !== snapshot.manifest.terrainFingerprint || metadata.minX !== bounds.minX ||
+            metadata.minZ !== bounds.minZ || metadata.width !== bounds.width || metadata.height !== bounds.height) return
+        const image = new Image()
+        image.onload = () => { if (!cancelled && image.naturalWidth === bounds.width && image.naturalHeight === bounds.height) setDetail(image) }
+        image.src = `/api/spawner-planning/terrain-detail/image?revision=${revision}`
+      }).catch(() => { /* The 16m raster remains available. */ })
+    return () => { cancelled = true; controller.abort() }
+  }, [snapshot.manifest.exportRevision, snapshot.manifest.terrainFingerprint, bounds])
   const raster = useMemo(() => {
     const image = document.createElement('canvas')
     image.width = bounds.width / bounds.cellSize
@@ -69,6 +103,21 @@ export function SpawnerPlanningMap(props: Props) {
     }
     return image
   }, [snapshot.cells, bounds, grid, layer, plan, region, reason])
+  const detailMask = useMemo(() => {
+    if (!region && !reason) return null
+    const mask = document.createElement('canvas')
+    mask.width = bounds.width / bounds.cellSize
+    mask.height = bounds.height / bounds.cellSize
+    const ctx = mask.getContext('2d')
+    if (!ctx) return mask
+    ctx.fillStyle = '#0b1423dc'
+    snapshot.cells.forEach((cell, index) => {
+      const code = plan?.reasonCodes[index] ?? cell.reasonCode
+      if ((!region || cell.regionId === region) && (!reason || code === reason)) return
+      ctx.fillRect((cell.x - bounds.minX) / bounds.cellSize, (cell.z - bounds.minZ) / bounds.cellSize, 1, 1)
+    })
+    return mask
+  }, [snapshot.cells, bounds, plan, region, reason])
   useEffect(() => {
     const element = canvas.current, ctx = element?.getContext('2d')
     if (!element || !ctx || !active) return
@@ -79,6 +128,10 @@ export function SpawnerPlanningMap(props: Props) {
     ctx.clearRect(0, 0, size.width, size.height)
     ctx.imageSmoothingEnabled = false
     ctx.drawImage(raster, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
+    if (layer === 'terrain' && detail && view.scale >= .4)
+      ctx.drawImage(detail, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
+    if (layer === 'terrain' && detail && view.scale >= .4 && detailMask)
+      ctx.drawImage(detailMask, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
     const screen = (x: number, z: number) => [(x - bounds.minX) * view.scale + view.x, (z - bounds.minZ) * view.scale + view.z]
     const road = planningRoad(snapshot.manifest)
     if (road) {
@@ -119,14 +172,15 @@ export function SpawnerPlanningMap(props: Props) {
       const [x, z] = screen(cell.x, cell.z)
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(x, z, bounds.cellSize * view.scale, bounds.cellSize * view.scale)
     }
-    const metres = view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
+    const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal])
+  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
-    const scale = Math.max(.035, Math.min(5, current.scale * factor)), ratio = scale / current.scale
+    const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
+    const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
     return { scale, x: x - (x - current.x) * ratio, z: z - (z - current.z) * ratio }
-  }), [size])
+  }), [size, bounds])
   useEffect(() => {
     const element = canvas.current
     if (!element || !active) return
@@ -178,6 +232,6 @@ export function SpawnerPlanningMap(props: Props) {
         }
       }} />
     <div className="sp-map-tools"><button className="button" onClick={() => zoom(1.5)} aria-label="地図を拡大">＋</button><button className="button" onClick={() => zoom(1 / 1.5)} aria-label="地図を縮小">−</button><button className="button" onClick={fit}>全大陸</button></div>
-    <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates}</output>
+    <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
   </div>
 }

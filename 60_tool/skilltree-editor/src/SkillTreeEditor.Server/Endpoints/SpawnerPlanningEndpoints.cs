@@ -14,6 +14,10 @@ public static class SpawnerPlanningEndpoints
             service.ReadDataAsync(context, "regions", null, revision, token));
         api.MapGet("/proposals/{radius}", (HttpContext context, string radius, string? revision, SpawnerPlanningService service, CancellationToken token) =>
             service.ReadDataAsync(context, "proposals", radius, revision, token));
+        api.MapGet("/terrain-detail", (HttpContext context, string? revision, SpawnerPlanningService service, CancellationToken token) =>
+            service.ReadTerrainDetailAsync(context, revision, false, token));
+        api.MapGet("/terrain-detail/image", (HttpContext context, string? revision, SpawnerPlanningService service, CancellationToken token) =>
+            service.ReadTerrainDetailAsync(context, revision, true, token));
         return endpoints;
     }
 }

@@ -9,6 +9,9 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
 {
     private const int MaxManifestBytes = 1024 * 1024;
     private const int MaxMetadataPrefixBytes = 256 * 1024;
+    private const int MaxDetailMetadataBytes = 4096;
+    private const long MaxDetailImageBytes = 128L * 1024 * 1024;
+    private const int MaxDetailDimension = 8192;
     private static readonly string[] Radii = ["32", "48", "64"];
 
     public async Task<IResult> ReadManifestAsync(HttpContext context, CancellationToken cancellationToken)
@@ -98,6 +101,70 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         }
     }
 
+    public async Task<IResult> ReadTerrainDetailAsync(HttpContext context, string? revision, bool image, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(revision))
+            return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                title: "manifest の exportRevision を revision クエリに指定してください。");
+        FileStream? imageStream = null;
+        try
+        {
+            var manifest = await ReadManifestSnapshotAsync(cancellationToken);
+            if (!string.Equals(manifest.Revision, revision, StringComparison.Ordinal)) return StaleExport();
+            var metadataPath = Path.Combine(manifest.Directory, "terrain-detail.json");
+            RequireNoLinks(metadataPath);
+            var metadataBytes = await ReadSmallFileAsync(metadataPath, MaxDetailMetadataBytes, cancellationToken);
+            using var document = JsonDocument.Parse(metadataBytes);
+            var detail = document.RootElement;
+            if (detail.ValueKind != JsonValueKind.Object
+                || GetInt(detail, "schemaVersion") != 1
+                || GetString(detail, "terrainFingerprint") != manifest.TerrainFingerprint
+                || GetInt(detail, "minX") != manifest.MinX
+                || GetInt(detail, "minZ") != manifest.MinZ
+                || GetInt(detail, "width") != manifest.Width
+                || GetInt(detail, "height") != manifest.Height
+                || GetInt(detail, "blocksPerPixel") != 1
+                || GetString(detail, "image") != "terrain-detail.png"
+                || manifest.Width > MaxDetailDimension || manifest.Height > MaxDetailDimension) return InvalidExport();
+            var imagePath = Path.Combine(manifest.Directory, "terrain-detail.png");
+            RequireNoLinks(imagePath);
+            imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete, 64 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            if (imageStream.Length is < 24 or > MaxDetailImageBytes) return InvalidExport();
+            var header = new byte[24];
+            await imageStream.ReadExactlyAsync(header, cancellationToken);
+            if (!header.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })
+                || !header.AsSpan(12, 4).SequenceEqual("IHDR"u8)
+                || System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(16, 4)) != manifest.Width
+                || System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(20, 4)) != manifest.Height)
+                return InvalidExport();
+            context.Response.Headers.ETag = $"\"{manifest.Revision}\"";
+            context.Response.Headers.CacheControl = "no-store";
+            if (!image) return Results.Bytes(metadataBytes, contentType: "application/json; charset=utf-8");
+            imageStream.Position = 0;
+            var result = Results.Stream(imageStream, contentType: "image/png", enableRangeProcessing: false);
+            imageStream = null;
+            return result;
+        }
+        catch (FileNotFoundException) { return DetailUnavailable(); }
+        catch (DirectoryNotFoundException) { return DetailUnavailable(); }
+        catch (InvalidDataException) { return InvalidExport(); }
+        catch (JsonException) { return InvalidExport(); }
+        catch (EndOfStreamException) { return InvalidExport(); }
+        finally { if (imageStream is not null) await imageStream.DisposeAsync(); }
+    }
+
+    private static async Task<byte[]> ReadSmallFileAsync(string path, int limit, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        if (stream.Length > limit) throw new InvalidDataException("詳細地図のメタデータが大きすぎます。");
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory, cancellationToken);
+        if (memory.Length > limit) throw new InvalidDataException("詳細地図のメタデータが大きすぎます。");
+        return memory.ToArray();
+    }
+
     private async Task<ManifestSnapshot> ReadManifestSnapshotAsync(CancellationToken cancellationToken)
     {
         var directory = ResolveDataDirectory();
@@ -123,6 +190,12 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
             var revision = GetString(root, "exportRevision");
             var worldId = GetString(root, "worldId");
             var fingerprint = GetString(root, "terrainFingerprint");
+            if (!root.TryGetProperty("bounds", out var bounds) || bounds.ValueKind != JsonValueKind.Object)
+                throw new InvalidDataException("manifest の範囲が不正です。");
+            var minX = GetInt(bounds, "minX"); var minZ = GetInt(bounds, "minZ");
+            var width = GetInt(bounds, "width"); var height = GetInt(bounds, "height");
+            if (minX is null || minZ is null || width is null or <= 0 || height is null or <= 0)
+                throw new InvalidDataException("manifest の範囲が不正です。");
             if (!IsSha256(revision) || string.IsNullOrWhiteSpace(worldId) || !IsSha256(fingerprint))
                 throw new InvalidDataException("manifest の識別情報が不足しています。");
 
@@ -149,7 +222,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
                     throw new InvalidDataException("manifest のファイル参照が不正です。");
                 proposalFiles.Add(radius, expected);
             }
-            return new ManifestSnapshot(directory, bytes, revision!, worldId!, fingerprint!,
+            return new ManifestSnapshot(directory, bytes, revision!, worldId!, fingerprint!, minX.Value, minZ.Value, width.Value, height.Value,
                 "cells.json", "regions.json", proposalFiles);
         }
         catch (JsonException ex)
@@ -283,9 +356,13 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
     private static IResult InvalidExport()
         => Results.Problem(statusCode: StatusCodes.Status409Conflict,
             title: "配置案のファイルが揃っていないか、版が一致しません。配置案を再生成してください。");
+    private static IResult DetailUnavailable()
+        => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+            title: "詳細地図はまだありません。16m区画の地図を表示してください。");
 
     private sealed record ManifestSnapshot(string Directory, byte[] Bytes, string Revision, string WorldId,
-        string TerrainFingerprint, string CellsFile, string RegionsFile, Dictionary<string, string> ProposalFiles);
+        string TerrainFingerprint, int MinX, int MinZ, int Width, int Height,
+        string CellsFile, string RegionsFile, Dictionary<string, string> ProposalFiles);
     private sealed record RootMetadata(int? SchemaVersion, string? ExportRevision, string? TerrainFingerprint,
         string? WorldId, bool? PreviewOnly, int? RadiusMeters);
 }
