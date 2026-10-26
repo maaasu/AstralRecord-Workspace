@@ -13,9 +13,10 @@ export default function App() {
   const [spawnerOpened, setSpawnerOpened] = useState(false)
   const [masterDirty, setMasterDirty] = useState(false)
   const [treeDirty, setTreeDirty] = useState(false)
+  const [placementDirty, setPlacementDirty] = useState(false)
   const selectWorkspace = (next: typeof workspace) => {
     if (next === workspace) return
-    if ((workspace === 'master' ? masterDirty : workspace === 'skilltree' ? treeDirty : false) && !window.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
+    if ((workspace === 'master' ? masterDirty : workspace === 'skilltree' ? treeDirty : workspace === 'spawner' ? placementDirty : false) && !window.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
     if (next === 'skilltree') setTreeOpened(true)
     if (next === 'analytics') setAnalyticsOpened(true)
     if (next === 'spawner') setSpawnerOpened(true)
@@ -26,6 +27,6 @@ export default function App() {
     <div className="master-app-content" hidden={workspace !== 'master'}><Suspense fallback={<div className="loading-screen">エディタを読み込んでいます…</div>}><MasterDataEditor active={workspace === 'master'} onDirtyChange={setMasterDirty} onOpenSkillTree={() => selectWorkspace('skilltree')} /></Suspense></div>
     {treeOpened && <div className="master-app-content" hidden={workspace !== 'skilltree'}><Suspense fallback={<div className="loading-screen">スキルツリーを読み込んでいます…</div>}><SkillTreeWorkspace active={workspace === 'skilltree'} onDirtyChange={setTreeDirty} /></Suspense></div>}
     {analyticsOpened && <div className="master-app-content" hidden={workspace !== 'analytics'}><Suspense fallback={<div className="loading-screen">比較データを読み込んでいます…</div>}><MasterAnalytics /></Suspense></div>}
-    {spawnerOpened && <div className="master-app-content" hidden={workspace !== 'spawner'}><Suspense fallback={<div className="loading-screen">ワールド配置計画を読み込んでいます…</div>}><SpawnerPlanningWorkspace active={workspace === 'spawner'} /></Suspense></div>}
+    {spawnerOpened && <div className="master-app-content" hidden={workspace !== 'spawner'}><Suspense fallback={<div className="loading-screen">ワールド配置計画を読み込んでいます…</div>}><SpawnerPlanningWorkspace active={workspace === 'spawner'} onDirtyChange={setPlacementDirty} /></Suspense></div>}
   </div>
 }

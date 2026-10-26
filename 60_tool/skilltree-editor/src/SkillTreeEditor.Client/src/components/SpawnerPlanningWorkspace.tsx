@@ -10,7 +10,7 @@ import type { WorldPlacement } from '../api/worldPlacementApi'
 import './spawnerPlanning.css'
 
 const number = (value: number) => value.toLocaleString('ja-JP')
-export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
+export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: boolean; onDirtyChange?: (dirty: boolean) => void }) {
   const [snapshot, setSnapshot] = useState<PlanningSnapshot | null>(null)
   const [plan, setPlan] = useState<PlanningPlan | null>(null)
   const [reload, setReload] = useState(0)
@@ -28,13 +28,15 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
   const [visibleCount, setVisibleCount] = useState(40)
   const [query, setQuery] = useState('')
   const [placements, setPlacements] = useState<WorldPlacement[]>([])
-  const [placementCatalog, setPlacementCatalog] = useState<PlacementCatalog>({ spawners: [], npcs: [] })
+  const [placementCatalog, setPlacementCatalog] = useState<PlacementCatalog>({ spawners: [], npcs: [], worlds: [] })
   const [selectedPlacement, setSelectedPlacement] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
+  const [moving, setMoving] = useState(false)
+  const [placementBusy, setPlacementBusy] = useState(false)
   const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true); setError(''); setSnapshot(null); setPlan(null)
+    setLoading(true); setError(''); setPlan(null)
     spawnerPlanningApi.snapshot(controller.signal).then(value => {
       if (controller.signal.aborted) return
       setSnapshot(value); setRegion(''); setReason(''); setSelectedCell(null); setSelectedProposal(null)
@@ -110,9 +112,9 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
       </div>
       <div className="sp-main">
         <div className="sp-map-column">
-          <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={layer} region={region} reason={reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={selectedProposal} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { setSelectedPlacement(id); setSelectedCell(null); setSelectedProposal(null); const item = placements.find(value => value.placementId === id); if (item) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: item.x, z: item.z })) }} placing={placing} onPlacePoint={(x, y, z) => setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z }))} />
+          <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={layer} region={region} reason={reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={selectedProposal} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { setSelectedPlacement(id); setSelectedCell(null); setSelectedProposal(null); const item = placements.find(value => value.placementId === id); if (item) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: item.x, z: item.z })) }} placing={(placing || moving) && !placementBusy} onPlacePoint={(x, y, z) => { if (!placementBusy) setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z })) }} />
           <div className="sp-map-caption"><span>● 配置案　<span style={{ color: '#33d5e6' }}>●</span> Dev スポナー　<span style={{ color: '#ec99fa' }}>●</span> NPC　<span style={{ color: '#f7cf6d' }}>●</span> 道標　<span className="sp-spawn-dot">●</span> 開始地点</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
-          <WorldPlacementEditor snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} onSelected={setSelectedPlacement} onPlacements={(next, catalog) => { setPlacements(next); setPlacementCatalog(catalog) }} placing={placing} onPlacing={setPlacing} />
+          <WorldPlacementEditor snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} onSelected={setSelectedPlacement} onPlacements={(next, catalog) => { setPlacements(next); setPlacementCatalog(catalog) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={onDirtyChange ?? (() => {})} />
           {layer === 'levels' && <div className="sp-level-key">推奨レベル {[15, 20, 25, 30, 35, 40, 45].map(value => <span key={value}><i style={{ background: levelColor(value) }} />{value}</span>)}</div>}
           <p className="sp-scope">カバー率の分母は、地形・足場・モブ条件を満たす配置対象です。全大陸すべてが配置可能という意味ではありません。区画の全256列を測定していますが、実際の移動経路や戦闘負荷は未検証です。</p>
           <section className="sp-region-section"><h2>地域ごとの計画</h2><p>地域を選ぶと地図と配置案の一覧を絞り込みます。</p><div className="sp-region-list">{snapshot.regions.map(value => <button key={value.id} className={`sp-region-row ${region === value.id ? 'selected' : ''}`} onClick={() => selectRegion(value.id)}><i style={{ background: levelColor(value.levelMin) }} /><span><strong>{value.name}</strong><small>{habitatNames[value.habitat] ?? value.habitat} · {number(value.cellCount)}区画</small></span><b>{value.levelMin == null ? '未選定' : `Lv.${value.levelMin}–${value.levelMax}`}</b><span>{number(value.coveredCellsByRadius?.[String(radius)] ?? 0)} / {number(value.eligibleCells)}<small>カバー / 対象</small></span></button>)}</div></section>

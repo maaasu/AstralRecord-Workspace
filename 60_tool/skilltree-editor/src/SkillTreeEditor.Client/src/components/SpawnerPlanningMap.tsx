@@ -230,7 +230,10 @@ export function SpawnerPlanningMap(props: Props) {
         const x = (px - view.x) / view.scale + bounds.minX, z = (pz - view.z) / view.scale + bounds.minZ
         if (props.placing && props.onPlacePoint) {
           const index = cellAtWorld(bounds, grid, x, z)
-          if (index !== undefined) props.onPlacePoint(Math.floor(x), snapshot.cells[index].candidateY, Math.floor(z))
+          if (index !== undefined) {
+            const cell = snapshot.cells[index]
+            props.onPlacePoint(cell.candidateX ?? Math.floor(x), cell.candidateX == null || cell.candidateZ == null ? null : cell.candidateY, cell.candidateZ ?? Math.floor(z))
+          }
           return
         }
         let placementDistance = 8

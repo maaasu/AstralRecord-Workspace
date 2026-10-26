@@ -46,3 +46,18 @@ it('uses matching 1m terrain once the map is close enough and can zoom to block 
   for (let index = 0; index < 12; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
   expect(screen.getByText(/16\.0 px\/m/)).toBeInTheDocument()
 })
+
+it('地図のクリックは区画代表地点の X/Y/Z を配置へ渡す', () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  const onPlacePoint = vi.fn()
+  const local = structuredClone(snapshot)
+  local.manifest.bounds = { minX: 0, minZ: 0, width: 16, height: 16, cellSize: 16 }
+  local.cells = [{ x: 0, z: 0, y: 70, status: 'ok', surface: 'grass', ground: 'dirt', biome: 'plains', safeCount: 256, waterCount: 0, treeCount: 0,
+    candidateX: 12, candidateY: 72, candidateZ: 13, minY: 70, maxY: 72, habitat: 'grass', regionId: 'field', targetLevel: 10, reasonCode: 'eligible', reason: '' }]
+  const { container } = render(<SpawnerPlanningMap {...props} snapshot={local} placing onPlacePoint={onPlacePoint} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  expect(onPlacePoint).toHaveBeenCalledWith(12, 72, 13)
+})
