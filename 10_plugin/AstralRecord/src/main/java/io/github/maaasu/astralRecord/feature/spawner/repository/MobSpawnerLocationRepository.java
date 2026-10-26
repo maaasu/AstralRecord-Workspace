@@ -37,6 +37,9 @@ public class MobSpawnerLocationRepository {
      */
     @NotNull
     public List<MobSpawnerLocation> loadAll() {
+        if (isApiMode()) {
+            return List.of();
+        }
         File file = file();
         if (!file.exists()) {
             return List.of();
@@ -67,6 +70,9 @@ public class MobSpawnerLocationRepository {
      * @param locations 保存対象
      */
     public boolean saveAll(@NotNull Iterable<MobSpawnerLocation> locations) {
+        if (isApiMode()) {
+            throw new IllegalStateException("World placements are API-managed and read-only in game");
+        }
         YamlConfiguration yaml = new YamlConfiguration();
         List<java.util.Map<String, Object>> rows = new ArrayList<>();
         for (MobSpawnerLocation location : locations) {
@@ -98,6 +104,11 @@ public class MobSpawnerLocationRepository {
     @NotNull
     private File file() {
         return new File(plugin.getDataFolder(), FILE_NAME);
+    }
+
+    /** @return API が配置の正本である場合は true。 */
+    public boolean isApiMode() {
+        return "api".equalsIgnoreCase(plugin.getConfig().getString("worldPlacements.mode", "local"));
     }
 
     private String stringValue(Object value) {

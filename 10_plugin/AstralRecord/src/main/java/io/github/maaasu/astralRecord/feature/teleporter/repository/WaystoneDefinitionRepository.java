@@ -36,6 +36,9 @@ public final class WaystoneDefinitionRepository {
      */
     @NotNull
     public List<WaystoneDefinition> loadAll() {
+        if (isApiMode()) {
+            return List.of();
+        }
         File file = file();
         if (!file.exists()) {
             return List.of();
@@ -79,6 +82,9 @@ public final class WaystoneDefinitionRepository {
      * @throws IllegalStateException data folder の作成または YAML 保存に失敗した場合
      */
     public void saveAll(@NotNull Iterable<WaystoneDefinition> definitions) {
+        if (isApiMode()) {
+            throw new IllegalStateException("World placements are API-managed and read-only in game");
+        }
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.options().setHeader(List.of("AstralRecord waystone master data. Do not change id values manually."));
         yaml.set("version", 1);
@@ -120,6 +126,11 @@ public final class WaystoneDefinitionRepository {
     @NotNull
     private File file() {
         return new File(plugin.getDataFolder(), FILE_NAME);
+    }
+
+    /** @return API が配置の正本である場合は true。 */
+    public boolean isApiMode() {
+        return "api".equalsIgnoreCase(plugin.getConfig().getString("worldPlacements.mode", "local"));
     }
 
     private String stringValue(Object value) {

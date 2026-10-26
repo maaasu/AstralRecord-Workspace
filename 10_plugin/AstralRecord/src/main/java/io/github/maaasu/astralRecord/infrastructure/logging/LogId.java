@@ -1040,6 +1040,10 @@ public enum LogId {
      * ローカル配置データの保存先ディレクトリを作成できません: type=%s, path=%s
      */
     E_6401(6401),
+    /** 配置 API revision %s を公開しました: spawner=%s, npc=%s, waystone=%s */
+    I_6410(6410),
+    /** 配置 API の取得または公開に失敗しました: %s */
+    E_6411(6411),
     // endregion
 
     // region /feature/boss/ 6500-6529

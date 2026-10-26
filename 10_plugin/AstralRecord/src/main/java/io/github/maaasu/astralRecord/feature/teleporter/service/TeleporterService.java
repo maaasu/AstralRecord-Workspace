@@ -139,7 +139,7 @@ public final class TeleporterService {
      * @return ウェイストーン定義スナップショット
      */
     public @NotNull List<WaystoneDefinition> loadDefinitionSnapshot() {
-        return List.copyOf(definitionRepository.loadAll());
+        return definitionRepository.isApiMode() ? List.copyOf(definitionsById.values()) : List.copyOf(definitionRepository.loadAll());
     }
 
     /**
@@ -175,7 +175,7 @@ public final class TeleporterService {
      * @param unlockGold 解除に必要なゴールド
      * @param icon GUI とワールド表示に使うアイコン。未設定の場合は null
      * @return 作成して永続化したウェイストーン定義
-     * @throws IllegalStateException waystones.yml の保存に失敗した場合
+     * @throws IllegalStateException waystones.yml の保存に失敗した場合、または API 読み取り専用モードの場合
      */
     @NotNull
     public WaystoneDefinition createWaystone(
@@ -185,6 +185,9 @@ public final class TeleporterService {
             long unlockGold,
             @Nullable Material icon
     ) {
+        if (definitionRepository.isApiMode()) {
+            throw new IllegalStateException("World placements are API-managed and read-only in game");
+        }
         Player player = astPlayer.getBukkit();
         Location location = player.getLocation();
         String id = generateId(name);
@@ -221,9 +224,12 @@ public final class TeleporterService {
      *
      * @param waystoneId 削除対象 ID
      * @return 削除できた場合 true
-     * @throws IllegalStateException waystones.yml の保存に失敗した場合
+     * @throws IllegalStateException waystones.yml の保存に失敗した場合、または API 読み取り専用モードの場合
      */
     public boolean removeWaystone(@NotNull String waystoneId) {
+        if (definitionRepository.isApiMode()) {
+            throw new IllegalStateException("World placements are API-managed and read-only in game");
+        }
         WaystoneDefinition removed = definitionsById.get(waystoneId);
         if (removed == null) {
             return false;
@@ -618,6 +624,11 @@ public final class TeleporterService {
 
     private void saveAll() {
         definitionRepository.saveAll(definitionsById.values());
+    }
+
+    /** @return API 配置モードでゲーム内管理操作が読み取り専用なら true。 */
+    public boolean isPlacementReadOnly() {
+        return definitionRepository.isApiMode();
     }
 
     private boolean isUnlockStateLoaded(@NotNull AstPlayer astPlayer) {

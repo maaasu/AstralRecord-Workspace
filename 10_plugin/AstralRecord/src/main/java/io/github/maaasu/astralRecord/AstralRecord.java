@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord;
 
 import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadResult;
+import io.github.maaasu.astralRecord.feature.worldplacement.repository.WorldPlacementRepository;
 import io.github.maaasu.astralRecord.feature.masterdata.MasterDataReloadResult.ActivationTarget;
 import io.github.maaasu.astralRecord.feature.builder.gui.BuilderGui;
 import io.github.maaasu.astralRecord.feature.builder.event.BuilderGuiEventHandler;
@@ -701,6 +702,9 @@ public final class AstralRecord extends JavaPlugin {
     private final AtomicReference<CompletableFuture<MasterDataReloadResult>> masterDataReloadInFlight = new AtomicReference<>();
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
     private MasterDataAutoReloadService masterDataAutoReloadService;
+    private WorldPlacementRepository worldPlacementRepository;
+    private final AtomicReference<CompletableFuture<WorldPlacementRepository.Snapshot>> worldPlacementReloadInFlight = new AtomicReference<>();
+    private boolean initialMastersPublished;
 
     /** サービスを生成します。イベント登録と定期処理の開始は有効化後のonEnableで行います。 */
     @Override
@@ -721,6 +725,7 @@ public final class AstralRecord extends JavaPlugin {
         trainingDummyService = new TrainingDummyService(this, mobService, new TrainingDummyRepository(this));
         trainingDummyGui = new TrainingDummyGui();
         npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
+        worldPlacementRepository = new WorldPlacementRepository(this);
         textDisplayPlacementService = new TextDisplayPlacementService(this, new TextDisplayPlacementRepository(this));
         teleporterService = new TeleporterService(this, new WaystoneDefinitionRepository(this), new AccountWaystoneRepository());
         worldService = new WorldService(new WorldRepository());
@@ -787,6 +792,7 @@ public final class AstralRecord extends JavaPlugin {
     @Override
     public void onEnable() {
         startupMastersReady = false;
+        initialMastersPublished = false;
         // AuditLogger を初期化
         AuditLogger.initDefault();
 
@@ -964,6 +970,10 @@ public final class AstralRecord extends JavaPlugin {
             chatBridge.close();
         }
         masterDataReloadGeneration.incrementAndGet();
+        CompletableFuture<WorldPlacementRepository.Snapshot> pendingPlacementReload = worldPlacementReloadInFlight.getAndSet(null);
+        if (pendingPlacementReload != null && !pendingPlacementReload.isDone()) {
+            pendingPlacementReload.completeExceptionally(new IllegalStateException("配置再読込中にプラグインが停止しました"));
+        }
         CompletableFuture<MasterDataReloadResult> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
         if (pendingMasterDataReload != null && !pendingMasterDataReload.isDone()) {
             pendingMasterDataReload.completeExceptionally(
@@ -2604,8 +2614,13 @@ public final class AstralRecord extends JavaPlugin {
                         skillService.replaceDefinitions(skillDefinitions);
                         skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot);
                         inventoryService.reconcileUnavailableItemMasterEntries();
-                        startupMastersReady = true;
-                        startMasterDataAutoReload();
+                        initialMastersPublished = true;
+                        if (worldPlacementRepository.isApiMode()) {
+                            reloadWorldPlacements();
+                        } else {
+                            startupMastersReady = true;
+                            startMasterDataAutoReload();
+                        }
                     } catch (RuntimeException failure) {
                         failMasterStartup(failure);
                     }
@@ -3636,6 +3651,81 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
+     * 配置 API の全種別を非同期取得し、同一 revision をメインスレッドで一括公開します。
+     * マスターデータ自動再読込とは独立し、失敗時は公開済み配置を維持します。
+     *
+     * @return 公開済みスナップショットを返す future。local モードでは例外完了
+     */
+    public @org.jetbrains.annotations.NotNull CompletableFuture<WorldPlacementRepository.Snapshot> reloadWorldPlacements() {
+        if (worldPlacementRepository == null || !worldPlacementRepository.isApiMode()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("World placements are in local mode"));
+        }
+        CompletableFuture<WorldPlacementRepository.Snapshot> completion = new CompletableFuture<>();
+        while (true) {
+            CompletableFuture<WorldPlacementRepository.Snapshot> current = worldPlacementReloadInFlight.get();
+            if (current != null && !current.isDone()) {
+                return current;
+            }
+            if (worldPlacementReloadInFlight.compareAndSet(current, completion)) {
+                break;
+            }
+        }
+        AsyncTaskUtil.supplyAsync(this, worldPlacementRepository::fetchSnapshot).whenComplete((snapshot, failure) -> {
+            if (failure != null) {
+                Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+                Logger.log(LogId.E_6411, cause, cause.getMessage());
+                completion.completeExceptionally(cause);
+                worldPlacementReloadInFlight.compareAndSet(completion, null);
+                return;
+            }
+            try {
+                AsyncTaskUtil.runSync(this, () -> {
+                    if (!isEnabled() || worldPlacementReloadInFlight.get() != completion) {
+                        completion.completeExceptionally(new IllegalStateException("World placement reload was cancelled"));
+                        return;
+                    }
+                    var previousSpawner = mobSpawnerService.snapshotPublishedState();
+                    var previousNpc = npcPlacementService.loadPlacementSnapshot();
+                    var previousWaystone = teleporterService.loadDefinitionSnapshot();
+                    try {
+                        mobSpawnerService.replacePlacementSnapshot(snapshot.spawners());
+                        npcPlacementService.replacePlacementSnapshot(snapshot.npcs());
+                        teleporterService.replaceDefinitionSnapshot(snapshot.waystones());
+                        npcPlacementService.activatePlacementSnapshot();
+                        teleporterService.syncAllViews();
+                        if (initialMastersPublished && !startupMastersReady) {
+                            startupMastersReady = true;
+                            startMasterDataAutoReload();
+                        }
+                        Logger.log(LogId.I_6410, snapshot.revision(),
+                            snapshot.spawners().size(), snapshot.npcs().size(), snapshot.waystones().size());
+                        completion.complete(snapshot);
+                    } catch (RuntimeException publicationFailure) {
+                        try {
+                            mobSpawnerService.restorePublishedState(previousSpawner);
+                            npcPlacementService.replacePlacementSnapshot(previousNpc);
+                            teleporterService.replaceDefinitionSnapshot(previousWaystone);
+                            npcPlacementService.activatePlacementSnapshot();
+                            teleporterService.syncAllViews();
+                        } catch (RuntimeException rollbackFailure) {
+                            publicationFailure.addSuppressed(rollbackFailure);
+                        }
+                        Logger.log(LogId.E_6411, publicationFailure, publicationFailure.getMessage());
+                        completion.completeExceptionally(publicationFailure);
+                    } finally {
+                        worldPlacementReloadInFlight.compareAndSet(completion, null);
+                    }
+                });
+            } catch (RuntimeException schedulingFailure) {
+                Logger.log(LogId.E_6411, schedulingFailure, schedulingFailure.getMessage());
+                completion.completeExceptionally(schedulingFailure);
+                worldPlacementReloadInFlight.compareAndSet(completion, null);
+            }
+        });
+        return completion;
+    }
+
+    /**
      * API由来のマスターデータ再読込を開始します。
      *
      * <p>RepositoryのAPI I/O は非同期 task で実行し、Bukkit API と実行時キャッシュへの公開だけを
@@ -3767,7 +3857,9 @@ public final class AstralRecord extends JavaPlugin {
 
         var npcSnapshot = npcPlacementService.loadPlacementSnapshot();
         loaded += npcSnapshot.size();
-        publications.add(() -> npcPlacementService.replacePlacementSnapshot(npcSnapshot));
+        if (!worldPlacementRepository.isApiMode()) {
+            publications.add(() -> npcPlacementService.replacePlacementSnapshot(npcSnapshot));
+        }
         activations.add(new MasterDataActivation(ActivationTarget.NPC, npcPlacementService::activatePlacementSnapshot));
 
         var mobSpawnerSnapshot = mobSpawnerService.loadMasterDataSnapshot();
@@ -3789,7 +3881,9 @@ public final class AstralRecord extends JavaPlugin {
 
         var teleporterSnapshot = teleporterService.loadDefinitionSnapshot();
         loaded += teleporterSnapshot.size();
-        publications.add(() -> teleporterService.replaceDefinitionSnapshot(teleporterSnapshot));
+        if (!worldPlacementRepository.isApiMode()) {
+            publications.add(() -> teleporterService.replaceDefinitionSnapshot(teleporterSnapshot));
+        }
 
         var worldSnapshot = worldService.loadDefinitionSnapshot();
         loaded += worldSnapshot.worlds().size();
@@ -3871,7 +3965,11 @@ public final class AstralRecord extends JavaPlugin {
                     mobTouched = true;
                     mobService.replaceTemplateSnapshot(plan.mobSnapshot());
                     spawnerTouched = true;
-                    mobSpawnerService.replaceMasterDataSnapshot(plan.mobSpawnerSnapshot());
+                    if (worldPlacementRepository.isApiMode()) {
+                        mobSpawnerService.replaceDefinitionsKeepingPlacements(plan.mobSpawnerSnapshot());
+                    } else {
+                        mobSpawnerService.replaceMasterDataSnapshot(plan.mobSpawnerSnapshot());
+                    }
                     RuntimeFilebaseRepository.getInstance().replaceSnapshot(plan.runtimeFilebaseSnapshot());
                     localMasterOverlay.replaceSnapshot(plan.localSnapshot());
                 } catch (RuntimeException failure) {

@@ -81,6 +81,14 @@ api:
     # 自己署名証明書や内部CA証明書を使用している場合は false に設定してください
     verifyEnabled: true
 
+# スポナー・NPC・ウェイストーン配置の正本。移行済みサーバーだけ api に切り替える。
+# api モードは起動時と /worldplacements reload 時に全種別を一括取得し、
+# ゲーム内の設置・削除を読み取り専用にする。編集は World Placement Editor で行う。
+worldPlacements:
+  mode: "local" # local | api
+  environment: "dev" # dev | channels
+  baseUrl: "" # 例: http://127.0.0.1:5001（専用配置 API）
+
 # MasterDataDB Seeder の成功を検知したマスターデータ自動再読込
 masterData:
   autoReload:

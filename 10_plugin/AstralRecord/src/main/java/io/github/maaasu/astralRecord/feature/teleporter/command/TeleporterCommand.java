@@ -45,6 +45,10 @@ public final class TeleporterCommand extends AstCommand {
      * @param args set サブコマンドを含む引数
      */
     private void handleSet(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (teleporterService.isPlacementReadOnly()) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6410.getId()));
+            return;
+        }
         if (args.length < 4 || args.length > 5) {
             sendUsage(player.getBukkit());
             return;
@@ -85,6 +89,10 @@ public final class TeleporterCommand extends AstCommand {
     }
 
     private void handleRemove(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (teleporterService.isPlacementReadOnly()) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6410.getId()));
+            return;
+        }
         if (args.length != 2) {
             sendUsage(player.getBukkit());
             return;
@@ -118,6 +126,10 @@ public final class TeleporterCommand extends AstCommand {
     }
 
     private void handleReload(@NotNull AstPlayer player) {
+        if (teleporterService.isPlacementReadOnly()) {
+            sendWarning(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6415.getId()));
+            return;
+        }
         int count = teleporterService.reload();
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5958.getId(), count));
     }

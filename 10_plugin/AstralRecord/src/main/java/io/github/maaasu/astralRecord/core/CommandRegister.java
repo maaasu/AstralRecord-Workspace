@@ -86,6 +86,7 @@ import io.github.maaasu.astralRecord.feature.serverrecord.command.ServerRecordTa
 import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordDisplayService;
 import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordWorldService;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterCommand;
+import io.github.maaasu.astralRecord.feature.worldplacement.command.WorldPlacementCommand;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterTabCompleter;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.trade.command.SendCommand;
@@ -340,6 +341,7 @@ public class CommandRegister {
         cm.registerCommand("test", new TestCommand(mobService));
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
+        cm.registerCommand("worldplacements", new WorldPlacementCommand(AstralRecord.getInstance()));
         cm.registerCommand("lobby", new LobbyCommand());
         cm.registerCommand("server-info", new ServerInfoCommand());
         WhitelistCommand whitelistCommand = new WhitelistCommand(

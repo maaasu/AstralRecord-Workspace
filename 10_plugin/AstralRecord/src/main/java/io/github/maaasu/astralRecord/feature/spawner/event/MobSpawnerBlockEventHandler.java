@@ -114,6 +114,11 @@ public final class MobSpawnerBlockEventHandler
     }
 
     private void placeSpawner(BlockPlaceEvent event, String spawnerId) {
+        if (spawnerService.isPlacementReadOnly()) {
+            event.setCancelled(true);
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_6410);
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
             event.setCancelled(true);
@@ -137,6 +142,11 @@ public final class MobSpawnerBlockEventHandler
     }
 
     private void breakSpawner(BlockBreakEvent event) {
+        if (spawnerService.isPlacementReadOnly()) {
+            event.setCancelled(true);
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_6410);
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.canRemoveSpawner(astPlayer)) {
             event.setCancelled(true);
@@ -149,6 +159,10 @@ public final class MobSpawnerBlockEventHandler
     }
 
     private void removeTargetedSpawner(Player player, Location target) {
+        if (spawnerService.isPlacementReadOnly()) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6410);
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!spawnerService.canRemoveSpawner(astPlayer)) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5719);

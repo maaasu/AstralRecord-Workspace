@@ -45,6 +45,7 @@
 | 38 | [[38_0-概要]] | WorldEditの日本語ビルダーGUI、範囲・素材選択、確認付き編集 | `feature/builder` |
 | 40 | [[40_0-概要]] | Web管理編集の参加制限、ゲーム操作凍結、最終保存・退出確認 | `feature/playeradmin` |
 | 42 | [[42_0-概要]] | チャンネル別防衛戦の受付・戦闘・帰還・API報告 | `feature/defense` |
+| 43 | [[43_0-概要]] | スポナー・NPC・ウェイストーン配置の API 正本と公開 | `feature/worldplacement`、各配置 repository の API モード境界 |
 
 ## 更新規則
 
@@ -399,3 +400,10 @@ feature 固有 resource の ID 範囲や利用条件は各 feature が所有し�
 ### [[42_0-概要|42-defense]]
 
 防衛戦の実装所有パスは `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/defense/*`、`src/main/resources/config.yml` の `defense.runtimeKey`、`plugin.yml` の `/defense`、`player.properties`（`P_7900`～`P_7918`）、`logger.properties`（`E_7900`～`E_7902`）である。既存Mob・戦闘・ワールド・ネットワーク等はそれぞれの主所有者を維持する。設定値の未決は [[42_9-未決事項]] を参照する。
+
+### [[43_0-概要|43-world-placement]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/worldplacement/*`
+- `src/main/resources/config.yml` の `worldPlacements` 設定
+- `feature/spawner`・`feature/mob`・`feature/teleporter` の配置 repository と実行時公開境界は各 feature と共有する
+- ウェイストーンのプレイヤー別解放状態は [[25_0-概要]] の責務を維持する

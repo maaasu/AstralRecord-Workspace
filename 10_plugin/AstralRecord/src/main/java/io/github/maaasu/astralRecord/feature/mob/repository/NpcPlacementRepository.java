@@ -39,6 +39,9 @@ public final class NpcPlacementRepository {
      */
     @NotNull
     public List<NpcPlacement> loadAll() {
+        if (isApiMode()) {
+            return List.of();
+        }
         File file = file();
         if (!file.exists()) {
             return List.of();
@@ -71,6 +74,9 @@ public final class NpcPlacementRepository {
      * @param placements 保存対象
      */
     public boolean saveAll(@NotNull Iterable<NpcPlacement> placements) {
+        if (isApiMode()) {
+            throw new IllegalStateException("World placements are API-managed and read-only in game");
+        }
         YamlConfiguration yaml = new YamlConfiguration();
         List<Map<String, Object>> rows = new ArrayList<>();
         for (NpcPlacement placement : placements) {
@@ -104,6 +110,11 @@ public final class NpcPlacementRepository {
     @NotNull
     private File file() {
         return new File(plugin.getDataFolder(), FILE_NAME);
+    }
+
+    /** @return API が配置の正本である場合は true。 */
+    public boolean isApiMode() {
+        return "api".equalsIgnoreCase(plugin.getConfig().getString("worldPlacements.mode", "local"));
     }
 
     private String stringValue(Object value) {

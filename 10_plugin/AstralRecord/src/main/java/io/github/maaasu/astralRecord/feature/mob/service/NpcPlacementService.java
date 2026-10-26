@@ -68,7 +68,7 @@ public final class NpcPlacementService {
      * @return NPC 配置スナップショット
      */
     public @NotNull List<NpcPlacement> loadPlacementSnapshot() {
-        return List.copyOf(repository.loadAll());
+        return repository.isApiMode() ? List.copyOf(placements.values()) : List.copyOf(repository.loadAll());
     }
 
     /**
@@ -130,10 +130,13 @@ public final class NpcPlacementService {
      *
      * @param npcId    NPC マスタ ID
      * @param location 配置座標
-     * @return 登録とスポーンに成功した場合は生成インスタンス、失敗時は null
+     * @return 登録とスポーンに成功した場合は生成インスタンス、失敗または API 読み取り専用モードでは null
      */
     @Nullable
     public MobInstance place(@NotNull String npcId, @NotNull Location location) {
+        if (repository.isApiMode()) {
+            return null;
+        }
         MobTemplate template = mobService.findTemplate(npcId);
         if (template == null || template.category() != MobCategory.NPC) {
             return null;
@@ -156,9 +159,12 @@ public final class NpcPlacementService {
      * 指定 NPC テンプレート ID に一致する配置をすべて削除します。
      *
      * @param npcId 削除対象 NPC テンプレート ID
-     * @return 削除した配置件数
+     * @return 削除した配置件数。API 読み取り専用モードでは 0
      */
     public int removeByNpcId(@NotNull String npcId) {
+        if (repository.isApiMode()) {
+            return 0;
+        }
         List<String> targetKeys = placements.values().stream()
                 .filter(placement -> placement.npcId().equals(npcId))
                 .map(NpcPlacement::locationKey)
@@ -207,6 +213,11 @@ public final class NpcPlacementService {
     @NotNull
     public Collection<NpcPlacement> getPlacements() {
         return List.copyOf(placements.values());
+    }
+
+    /** @return API 配置モードでゲーム内管理操作が読み取り専用なら true。 */
+    public boolean isPlacementReadOnly() {
+        return repository.isApiMode();
     }
 
     /**

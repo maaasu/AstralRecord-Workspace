@@ -125,8 +125,24 @@ public class MobSpawnerService {
     public @NotNull MasterDataSnapshot loadMasterDataSnapshot() {
         return new MasterDataSnapshot(
                 List.copyOf(definitionRepository.findAll()),
-                List.copyOf(locationRepository.loadAll())
+                locationRepository.isApiMode() ? List.copyOf(locations.values()) : List.copyOf(locationRepository.loadAll())
         );
+    }
+
+    /**
+     * API から取得した配置だけを公開します。スポナーマスタ定義は現在のものを維持します。
+     * @param snapshot 検証済み配置
+     */
+    public void replacePlacementSnapshot(@NotNull List<MobSpawnerLocation> snapshot) {
+        replaceMasterDataSnapshot(new MasterDataSnapshot(List.copyOf(definitions.values()), snapshot));
+    }
+
+    /**
+     * マスターデータ再読込時に、現在公開中の API 配置を保ったまま定義を切り替えます。
+     * @param snapshot 新しいマスタ定義
+     */
+    public void replaceDefinitionsKeepingPlacements(@NotNull MasterDataSnapshot snapshot) {
+        replaceMasterDataSnapshot(new MasterDataSnapshot(snapshot.definitions(), List.copyOf(locations.values())));
     }
 
     /**
@@ -397,9 +413,12 @@ public class MobSpawnerService {
      *
      * @param spawnerId スポナー ID
      * @param location  登録座標
-     * @return 登録できた場合は true
+     * @return 登録できた場合は true。API 読み取り専用モードでは false
      */
     public boolean registerLocation(@NotNull String spawnerId, @NotNull Location location) {
+        if (locationRepository.isApiMode()) {
+            return false;
+        }
         if (!definitions.containsKey(spawnerId)) {
             return false;
         }
@@ -417,9 +436,12 @@ public class MobSpawnerService {
      * 指定座標に登録されたスポナーを削除します。
      *
      * @param location 対象座標
-     * @return 削除した場合は true
+     * @return 削除した場合は true。API 読み取り専用モードでは false
      */
     public boolean removeLocation(@NotNull Location location) {
+        if (locationRepository.isApiMode()) {
+            return false;
+        }
         String key = MobSpawnerLocation.from("_", location).locationKey();
         boolean removed = locations.remove(key) != null;
         spawnedByLocation.remove(key);
@@ -462,6 +484,11 @@ public class MobSpawnerService {
     public boolean canRemoveSpawner(@Nullable AstPlayer astPlayer) {
         return hasSpawnerAdminPermission(astPlayer)
             && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
+    }
+
+    /** @return API 配置モードでゲーム内管理操作が読み取り専用なら true。 */
+    public boolean isPlacementReadOnly() {
+        return locationRepository.isApiMode();
     }
 
     /**

@@ -24,7 +24,9 @@
 - file 系マスタデータは `E:\AstralRecord-Workspace\40_filebase` を参照する。
 - API 仕様は [API_GUIDE.md](API_GUIDE.md) と `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` を参照する。
 
-移行対象の SkillTree node/structure、shop、recipe、quest/quest_board、gathering/gathering spawner、mob spawner、dungeon は API の `GET /api/master-data/runtime-filebase` から一括取得する。Plugin は起動時に非同期で取得し、マスタ再読込時にも取得し直す。元の YAML/JSON テキストをメモリ上で既存 parser に渡し、Plugin 側へマスタのファイルコピーを作らない。取得・解析・検証を終えた準備 snapshot だけを一括公開し、失敗時は旧 snapshot を維持する。Plugin 自身の `config.yml`、world/map、管理者が設置した配置情報などのローカルファイルは引き続き Plugin が管理する。
+移行対象の SkillTree node/structure、shop、recipe、quest/quest_board、gathering/gathering spawner、mob spawner、dungeon は API の `GET /api/master-data/runtime-filebase` から一括取得する。Plugin は起動時に非同期で取得し、マスタ再読込時にも取得し直す。元の YAML/JSON テキストをメモリ上で既存 parser に渡し、Plugin 側へマスタのファイルコピーを作らない。取得・解析・検証を終えた準備 snapshot だけを一括公開し、失敗時は旧 snapshot を維持する。Plugin 自身の `config.yml`、world/map、および `worldPlacements.mode: local` の未移行サーバーの管理者配置情報は引き続き Plugin が管理する。
+
+`worldPlacements.mode: api` の移行済みサーバーでは、スポナー・NPC・ウェイストーン配置の正本を専用の配置 API とする。`worldPlacements.baseUrl` と `worldPlacements.environment`（`dev` / `channels`）を設定し、起動時および `/worldplacements reload` の明示操作で全種別を非同期取得・検証して一括公開する。取得失敗時は公開済み配置を保持し、ローカル YAML にフォールバックしない。ゲーム内管理操作は読み取り専用となり、編集は World Placement Editor で行う。マスターデータの自動再読込は配置を自動更新しない。詳細は [[43_0-概要]] を参照する。
 
 Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQL/File/YamlDb 接続基盤は使用しない。API 側の `FileDatabase:RootPath` は維持し、先に API と filebase を配置してから Plugin を展開する。各 Minecraft サーバーへ移行対象マスタを配布する必要はない。item/skill の既存 API と、Plugin が公開済み SkillTree runtime snapshot を API へ登録する世代運用は維持する。
 

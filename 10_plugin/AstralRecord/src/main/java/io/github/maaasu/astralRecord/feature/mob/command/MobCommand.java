@@ -141,6 +141,10 @@ public class MobCommand extends AstCommand {
         String action = args[1].toLowerCase(Locale.ROOT);
         switch (action) {
             case "reload" -> {
+                if (spawnerService.isPlacementReadOnly()) {
+                    sendWarning(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6415.getId()));
+                    return;
+                }
                 int count = spawnerService.loadAll();
                 sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5712.getId(), count));
             }
@@ -194,6 +198,10 @@ public class MobCommand extends AstCommand {
             case "place" -> handleNpcPlace(player, args);
             case "remove" -> handleNpcRemove(player, args);
             case "reload" -> {
+                if (npcPlacementService.isPlacementReadOnly()) {
+                    sendWarning(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6415.getId()));
+                    return;
+                }
                 int count = npcPlacementService.loadAll();
                 sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5715.getId(), count));
             }
@@ -206,6 +214,10 @@ public class MobCommand extends AstCommand {
     }
 
     private void handleNpcPlace(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (npcPlacementService.isPlacementReadOnly()) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6410.getId()));
+            return;
+        }
         if (!spawnerService.isAdminMode(player)) {
             sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
@@ -254,6 +266,10 @@ public class MobCommand extends AstCommand {
     }
 
     private void handleNpcRemove(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (npcPlacementService.isPlacementReadOnly()) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_6410.getId()));
+            return;
+        }
         if (!spawnerService.isAdminMode(player)) {
             sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
