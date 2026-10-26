@@ -258,8 +258,11 @@ def render(world: Path, terrain: Path, output: Path) -> dict:
     pending_image = output / "terrain-detail.png.part"
     Image.fromarray(rgba).save(pending_image, format="PNG", optimize=True)
     pending_image.replace(image)
+    with image.open("rb") as image_stream:
+        image_sha256 = hashlib.file_digest(image_stream, "sha256").hexdigest()
     metadata = {"schemaVersion": 1, "terrainFingerprint": fingerprint, "minX": min_x, "minZ": min_z,
-                "width": width, "height": height, "blocksPerPixel": 1, "image": image.name}
+                "width": width, "height": height, "blocksPerPixel": 1, "image": image.name,
+                "imageSha256": image_sha256}
     pending_metadata = output / "terrain-detail.json.part"
     pending_metadata.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     pending_metadata.replace(output / "terrain-detail.json")

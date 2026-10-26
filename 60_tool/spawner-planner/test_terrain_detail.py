@@ -1,3 +1,4 @@
+import hashlib
 import json
 import math
 import struct
@@ -93,11 +94,16 @@ class TerrainDetailTests(unittest.TestCase):
             metadata = render(world, terrain, output)
             self.assertEqual(metadata["blocksPerPixel"], 1)
             self.assertEqual(metadata["width"], 32)
+            self.assertEqual(metadata["imageSha256"], hashlib.sha256((output / "terrain-detail.png").read_bytes()).hexdigest())
+            self.assertFalse((output / "terrain-detail.png.part").exists())
+            self.assertFalse((output / "terrain-detail.json.part").exists())
             with Image.open(output / "terrain-detail.png") as image:
                 self.assertEqual(image.size, (32, 16))
                 self.assertEqual(image.getpixel((16, 0))[3], 0)
                 self.assertEqual(image.getpixel((1, 0))[3], 255)
-            self.assertEqual(json.loads((output / "terrain-detail.json").read_text())["terrainFingerprint"], metadata["terrainFingerprint"])
+            saved = json.loads((output / "terrain-detail.json").read_text())
+            self.assertEqual(saved["terrainFingerprint"], metadata["terrainFingerprint"])
+            self.assertEqual(saved["imageSha256"], metadata["imageSha256"])
 
 
 if __name__ == "__main__":

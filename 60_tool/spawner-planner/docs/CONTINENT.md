@@ -45,7 +45,7 @@ python 60_tool/spawner-planner/terrain_detail.py `
   --output C:/server/AstralRecord-CodexDev/analysis/terrain-detail
 ```
 
-`terrain-detail.png` はRGBA画像、`terrain-detail.json` は `{schemaVersion:1, terrainFingerprint, minX, minZ, width, height, blocksPerPixel:1, image:"terrain-detail.png"}`。`terrainFingerprint` は入力JSONの生バイトに対するSHA-256で、読取側は現在の地形JSONと照合できる。幅・高さは最大8192ブロックまで。画像上の `(pixelX,pixelZ)` はワールド座標 `(minX+pixelX,minZ+pixelZ)` に対応する。
+`terrain-detail.png` はRGBA画像、`terrain-detail.json` は `{schemaVersion:1, terrainFingerprint, minX, minZ, width, height, blocksPerPixel:1, image:"terrain-detail.png", imageSha256}`。`terrainFingerprint` は入力JSONの生バイトに対するSHA-256、`imageSha256` は確定したPNGの生バイトに対するSHA-256で、読取側は地形JSONと画像の両方を照合できる。画像を先に置換し、メタデータを最後に置換する。幅・高さは最大8192ブロックまで。画像上の `(pixelX,pixelZ)` はワールド座標 `(minX+pixelX,minZ+pixelZ)` に対応する。
 
 出力ファイルは `manifest.json`、`cells.json`、`regions.json`、`proposals-32.json`、`proposals-48.json`、`proposals-64.json`。いずれもschema 2で、同じ `exportRevision` と `terrainFingerprint` を持つ。`manifest.json` を最後に置換する。読取側は各ファイルのrevisionとmanifestの一致を確認する。`exportRevision` は地形、ポリシー、参照するワールド/Enemy/Spawnerマスタ、計算器版から決まる。
 
