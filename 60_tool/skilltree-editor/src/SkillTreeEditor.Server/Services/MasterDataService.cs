@@ -29,7 +29,10 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                     var shortId = mobId.Split(':').Last();
                     var mobName = mobNames.GetValueOrDefault(shortId) ?? shortId;
                     var level = MasterDataValidation.Text(spawn["level"]);
-                    return level is null ? mobName : $"{mobName} Lv.{level}";
+                    var nameWithoutOldLevel = Regex.Replace(mobName,
+                        @"(?:\s|[&§][0-9a-fk-or])+Lv\.\s*\d+(?:[&§][0-9a-fk-or])*\s*$", "",
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                    return level is null ? mobName : $"{nameWithoutOldLevel} Lv.{level}";
                 }).Distinct().ToArray();
                 if (labels.Length > 0) name = string.Join(" / ", labels);
             }

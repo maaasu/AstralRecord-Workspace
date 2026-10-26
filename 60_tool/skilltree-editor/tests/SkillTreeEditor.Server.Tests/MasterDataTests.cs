@@ -39,6 +39,19 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task SpawnerListReplacesEmbeddedMobBaseLevelWithActualSpawnLevels()
+    {
+        Write("40.features.mob/enemy/v1.hunter.yml", "id: hunter\nname: '&2下草の狩人 Lv.15'\n");
+        Write("40.features.mob/enemy/v1.fox.yml", "id: fox\nname: '&aコケギツネ Lv.24'\n");
+        Write("41.features.mob.spawner/v1.grass.yml", "id: grass\nspawnMobs:\n  - mobId: mob:hunter\n    level: 21\n  - mobId: mob:hunter\n    level: 24\n  - mobId: mob:fox\n    level: 33\n");
+
+        var item = Assert.Single(await _service.ListAsync("41.features.mob.spawner", "コケギツネ", CancellationToken.None));
+        Assert.Equal("&2下草の狩人 Lv.21 / &2下草の狩人 Lv.24 / &aコケギツネ Lv.33", item.Name);
+        Assert.DoesNotContain("Lv.15 Lv.21", item.Name);
+        Assert.DoesNotContain("Lv.24 Lv.33", item.Name);
+    }
+
+    [Fact]
     public async Task MobDefenseEligibilityUsesDocumentedBooleanAndEnemyOnlyRule()
     {
         const string path = "40.features.mob/enemy/v1.test.yml";
