@@ -103,6 +103,8 @@ public sealed class PlayerProfileTests
         Assert.Contains("プロフィールを公開する", body);
         Assert.Contains("閲覧専用", body);
         Assert.Contains("data-tree-json", body);
+        Assert.Contains("/css/player.", body);
+        Assert.DoesNotContain("/css/admin.", body);
         Assert.DoesNotContain("stale-account-name", body);
         Assert.Contains(api.Calls, uri => uri.Contains($"/me?viewer_user_uuid={ProfileHandler.UserId:D}"));
 

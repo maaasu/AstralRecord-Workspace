@@ -6,7 +6,11 @@
     ViewData["SkillTreeEditor"] = true;
 }
 <div class="ar-portal ar-skilltree-editor" data-skilltree-editor data-account-id="@Model.AccountId">
-    <a asp-page="/MyPage" class="ar-btn-outline">マイページへ</a>
+    <div class="container">
+    <header class="ar-portal-heading">
+        <div><p class="ar-portal-eyebrow">あなたの冒険の記録</p><h1>スキルツリー編集</h1></div>
+        <a asp-page="/MyPage" class="btn ar-btn-outline">マイページへ</a>
+    </header>
     @Html.AntiForgeryToken()
     @if (Model.ErrorMessage is not null)
     {
@@ -25,5 +29,6 @@
         <p class="ar-empty">参加先のスキルツリーを確認できません。サーバーの更新完了後に再取得してください。</p>
         <a href="" class="ar-btn-outline">最新の状態を再取得</a>
     }
+    </div>
 </div>
 @section Scripts { <script type="module" src="~/js/skilltree-editor.js" asp-append-version="true"></script> }

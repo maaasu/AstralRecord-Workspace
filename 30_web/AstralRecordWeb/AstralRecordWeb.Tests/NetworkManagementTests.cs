@@ -55,7 +55,10 @@ public sealed class NetworkManagementTests
 
         api.Admin = true;
         var body = WebUtility.HtmlDecode(await client.GetStringAsync("/Admin/Network"));
-        Assert.Contains("星界ネットワーク設定", body);
+        Assert.Contains("<h1 class=\"ar-page-hero-title\">ネットワーク設定</h1>", body);
+        Assert.Contains("ar-admin", body);
+        Assert.Contains("/css/admin.", body);
+        Assert.DoesNotContain("/css/player.", body);
         Assert.Contains("ロビーの接続先識別子", body);
         Assert.Contains("管理者専用", body);
         Assert.Equal(ManagementHandler.ActorId, api.LastActor);

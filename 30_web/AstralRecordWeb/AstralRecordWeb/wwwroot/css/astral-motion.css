@@ -1,4 +1,5 @@
 /* Decorative motion is opt-in via the controller; the static composition works without JS. */
+.ar-journal .ar-home-hero { overflow: clip; }
 .ar-journal .ar-legal-hero { border-bottom: 0; }
 .ar-journal .ar-legal-hero::after { content: ''; position: absolute; inset: auto 0 0; height: 100px; background: linear-gradient(transparent, var(--ar-bg-dark)); pointer-events: none; z-index: 1; }
 .ar-journal .ar-legal-hero .container { z-index: 2; }
@@ -31,12 +32,13 @@
 .ar-star-trails i:nth-child(3) { top: 8%; left: 26%; width: 140px; }
 .ar-star-trails i:nth-child(4) { top: 64%; left: 95%; width: 280px; }
 .ar-star-trails i:nth-child(5) { top: 34%; left: 46%; width: 180px; }
-.ar-motion-control { position: absolute; z-index: 4; right: clamp(24px, 5vw, 64px); top: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 10px 15px; background: #122b25da; border: 1px solid #e3dbb888; border-radius: 2px; color: #f3edda; font-size: .7rem; }
+.ar-motion-control { position: absolute; z-index: 4; right: 12px; bottom: 12px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: transparent; border: 0; border-radius: 50%; color: #d9e1d8; }
+.ar-motion-control::before { content: ''; position: absolute; inset: 7px; border: 1px solid #b8c5bb4d; border-radius: 50%; background: #10231e99; }
 .ar-motion-control[hidden] { display: none; }
-.ar-motion-control:hover { background: #345244; border-color: #f3edda; }
+.ar-motion-control:hover::before, .ar-motion-control:focus-visible::before { background: #345244; border-color: #f3edda; }
 .ar-motion-control:disabled { color: #d1d8c8; cursor: default; }
-.ar-motion-control-icon { display: block; width: 9px; height: 11px; border-inline: 3px solid currentColor; }
-[data-motion-state="paused"] .ar-motion-control-icon { height: 0; width: 0; border: 6px solid transparent; border-right: 0; border-left: 9px solid currentColor; }
+.ar-motion-control-icon { position: relative; display: block; width: 7px; height: 9px; border-inline: 2px solid currentColor; }
+[data-motion-state="paused"] .ar-motion-control-icon { height: 0; width: 0; border: 5px solid transparent; border-right: 0; border-left: 7px solid currentColor; }
 .ar-journal .ar-journal-world .container { position: relative; z-index: 1; }
 .ar-journal-world .ar-astrolabe { width: min(48vw, 600px); right: -12%; opacity: .25; }
 .ar-legal-hero .ar-astrolabe { width: 480px; right: -160px; opacity: .2; }
@@ -107,7 +109,7 @@
     .ar-astrolabe { width: 380px; top: 14%; right: -220px; opacity: .35; }
     .ar-journal-world .ar-astrolabe { width: 430px; right: -200px; top: 30%; opacity: .26; }
     .ar-legal-hero .ar-astrolabe { width: 390px; right: -180px; }
-    .ar-motion-control { top: 16px; right: 24px; padding: 9px 12px; font-size: .63rem; }
+    .ar-motion-control { right: 8px; bottom: 8px; }
     .ar-light-veils i { width: 65%; }
     .ar-star-trails i { width: 120px; }
     .ar-scene-video { mask-image: linear-gradient(#000 0%, #0006 25%, transparent 55%); }

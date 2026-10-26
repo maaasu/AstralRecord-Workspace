@@ -144,7 +144,10 @@
             button.hidden = false;
             button.disabled = reducedMotion.matches;
             const label = button.querySelector('[data-motion-label]');
-            if (label) label.textContent = reducedMotion.matches ? '動きを控えて表示中' : paused ? '演出を再生' : '演出を一時停止';
+            if (label) {
+                label.textContent = reducedMotion.matches ? '動きを控えて表示中' : paused ? '演出を再生' : '演出を一時停止';
+                button.title = label.textContent;
+            }
         });
         if (!canMove()) {
             stopFrame();

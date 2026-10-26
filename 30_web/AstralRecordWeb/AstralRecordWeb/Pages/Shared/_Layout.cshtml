@@ -6,7 +6,10 @@
 @using System.Security.Claims
 @{
     var publicSite = PublicSiteOptionsAccessor.Value;
-    var isHomePage = string.Equals(ViewContext.RouteData.Values["page"] as string, "/Index", StringComparison.OrdinalIgnoreCase);
+    var pagePath = ViewContext.RouteData.Values["page"] as string ?? string.Empty;
+    var isHomePage = string.Equals(pagePath, "/Index", StringComparison.OrdinalIgnoreCase);
+    var isAdminPage = pagePath.StartsWith("/Admin/", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(pagePath, "/Players/Vip", StringComparison.OrdinalIgnoreCase);
     var metaDescription = publicSite.IsOpenAlpha
         ? "Minecraft RPGサーバー Astral Record。Java版オープンアルファ公開中。"
         : "Minecraft RPGサーバー Astral Record。クラス、スキル、装備を組み合わせて冒険しよう。";
@@ -26,11 +29,19 @@
     <link rel="stylesheet" href="~/css/journal.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/astral-motion.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+    @if (isAdminPage)
+    {
+        <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    }
+    else if (!isHomePage)
+    {
+        <link rel="stylesheet" href="~/css/player.css" asp-append-version="true" />
+    }
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="ar-journal @(isHomePage ? "ar-journal--home" : "ar-journal--inner")">
+<body class="ar-journal @(isHomePage ? "ar-journal--home" : "ar-journal--inner") @(isAdminPage ? "ar-admin" : "ar-player")">
     <a class="ar-skip-link" href="#main-content">本文へ移動</a>
     <nav class="navbar ar-navbar fixed-top" aria-label="メインナビゲーション">
         <div class="container">

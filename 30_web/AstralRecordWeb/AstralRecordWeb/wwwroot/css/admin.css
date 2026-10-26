@@ -14,7 +14,7 @@ body.ar-admin main {
     overflow-wrap: anywhere;
 }
 
-body.ar-admin main :is(h1, h2, h3, h4) {
+body.ar-admin main :is(h1, h2, h3, h4, .ar-page-hero-title, .ar-portal-heading h1, .ar-panel h2) {
     color: var(--admin-text);
     font-family: 'Noto Sans JP', sans-serif;
     font-weight: 700;
@@ -22,7 +22,7 @@ body.ar-admin main :is(h1, h2, h3, h4) {
     text-shadow: none;
 }
 
-body.ar-admin main :is(a, .ar-history-table a, .ar-history-card a) { color: var(--admin-link); }
+body.ar-admin main a { color: var(--admin-link); }
 body.ar-admin main a:hover { color: #fff; }
 body.ar-admin main :is(.ar-portal-sub, .ar-page-hero-sub, .ar-history-note) {
     color: var(--admin-muted);
@@ -55,7 +55,7 @@ body.ar-admin main .ar-portal-heading {
 body.ar-admin main .ar-portal-heading .ar-portal-sub { margin-top: 8px; }
 body.ar-admin main .ar-items-page { background: #132521; }
 
-body.ar-admin main :is(.ar-panel, .ar-item-filter, .ar-item-card, .ar-history-card) {
+body.ar-admin main :is(.ar-panel, .ar-item-filter, .ar-history-card) {
     background: var(--admin-surface);
     border: 1px solid var(--admin-border);
     border-radius: 4px;
@@ -64,7 +64,14 @@ body.ar-admin main :is(.ar-panel, .ar-item-filter, .ar-item-card, .ar-history-ca
 body.ar-admin main .ar-panel { padding: clamp(16px, 2vw, 24px); margin-block: 16px; }
 body.ar-admin main .ar-panel :is(h2, h3) { line-height: 1.5; }
 body.ar-admin main .ar-panel h2 { font-size: 1.15rem; margin-bottom: 14px; }
-body.ar-admin main .ar-item-card { border-left-width: 4px; }
+body.ar-admin main .ar-item-card {
+    background: var(--admin-surface);
+    border-block: 1px solid var(--admin-border);
+    border-right: 1px solid var(--admin-border);
+    border-left-width: 4px;
+    border-radius: 4px;
+    box-shadow: none;
+}
 body.ar-admin main :is(.ar-network-user-list li, .ar-network-candidates li, .ar-ban-state div, .ar-ban-confirm div) {
     background: var(--admin-input);
     border-color: var(--admin-border);
@@ -99,6 +106,10 @@ body.ar-admin main :is(label, .form-label, .ar-network-grid label, .ar-network-s
 body.ar-admin main :is(.form-text, small, .ar-history-table small, .ar-history-card small) { color: var(--admin-muted); }
 body.ar-admin main .form-check-input { border-color: #a5baa9; background-color: var(--admin-input); }
 body.ar-admin main .form-check-input:checked { background-color: #4c8668; border-color: #9ecbab; }
+body.ar-admin main input:is([type="checkbox"], [type="radio"]) { min-height: 0; }
+body.ar-admin main .ar-reveal-ready { opacity: 1; transform: none; transition: none; }
+body.ar-admin .ar-footer-wordmark { display: none; }
+body.ar-admin .ar-footer { padding-block: 28px; }
 
 body.ar-admin main :is(.btn, button:not(.ar-menu-toggle)) {
     min-height: 40px;

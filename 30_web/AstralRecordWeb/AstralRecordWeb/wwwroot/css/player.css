@@ -1,0 +1,103 @@
+/* Player pages share the public site's night landscape and forest palette.
+   Loaded after page styles; skill states and item rarity colors remain intact. */
+.ar-player main a:where(:not(.btn, .ar-btn-primary, .ar-btn-outline)) { color: var(--ar-teal); text-underline-offset: 3px; }
+.ar-player main a:where(:not(.btn, .ar-btn-primary, .ar-btn-outline)):hover { color: #fff; }
+.ar-player .ar-portal .ar-reveal-ready { opacity: 1; transform: none; transition: none; }
+.ar-player .ar-profile-banner { animation: none; }
+.ar-player .ar-portal,
+.ar-player .ar-section-dark:has(.ar-card) {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--ar-bg-dark);
+    background-image: none;
+}
+.ar-player .ar-portal::before,
+.ar-player .ar-section-dark:has(.ar-card)::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 480px;
+    max-height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    background-image: linear-gradient(180deg, #08192080, #132521 96%), url('/images/bg-night-1672.webp');
+    background-position: center top;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+.ar-player .ar-portal-heading { align-items: center; gap: 1.5rem; padding-block: 1rem 2rem; margin-bottom: 2rem; border-bottom: 1px solid var(--ar-border); }
+.ar-player .ar-portal-heading > div { min-width: 0; }
+.ar-player .ar-portal-heading h1 { font-family: var(--ar-display); font-weight: 500; font-size: clamp(1.8rem, 3.4vw, 2.8rem); line-height: 1.55; letter-spacing: .025em; text-wrap: balance; overflow-wrap: anywhere; }
+.ar-player .ar-portal-eyebrow { color: var(--ar-gold-light); font-size: .72rem; letter-spacing: .1em; }
+.ar-player .ar-portal-heading :is(.ar-portal-sub, p:not(.ar-portal-eyebrow)) { max-width: 52rem; color: #d3ddd5; line-height: 1.9; }
+.ar-player .ar-panel { border: 1px solid var(--ar-border); background: var(--ar-bg-panel); border-radius: 4px; box-shadow: none; }
+.ar-player .ar-panel h2 { font-family: var(--ar-display); font-weight: 600; line-height: 1.6; }
+.ar-player .ar-panel > p { line-height: 1.9; }
+.ar-player :is(.ar-profile-facts > div, .ar-class-chip, .ar-profile-presence, .market-detail-grid > section, .market-history-facts > div) { background: #142820; border-color: var(--ar-border); border-radius: 4px; }
+.ar-player :is(.ar-profile-presence, .ar-class-chip, .ar-player-card, .ar-mob-card, .ar-mob-dossier) { color: var(--ar-text); }
+.ar-player :is(.ar-profile-badge, .ar-bestiary-private, .ar-mob-category) { color: var(--ar-teal); border-color: #b3d3bf66; background: #b3d3bf0d; }
+.ar-player :is(.ar-profile-badge--private, .ar-mob-category.is-boss) { color: #f4c6ad; border-color: #f4c6ad66; }
+.ar-player :is(.ar-filter-grid label, .ar-account-picker label, .market-filter-grid label, .market-range-grid legend, .market-numeric-filters label, .market-purchase-form label) { color: #d3ddd5; }
+.ar-player :is(.ar-filter-grid, .ar-account-picker, .market-filter-grid, .market-range, .market-numeric-filters, .market-purchase-form, .market-account-controls) :is(input:not([type="checkbox"]):not([type="radio"]), select),
+.ar-player :is(.form-control, .form-select) { color: var(--ar-text); background-color: #10231e; border-color: #9db39f80; border-radius: 4px; color-scheme: dark; }
+.ar-player :is(input, textarea)::placeholder { color: #a4b4aa; opacity: 1; }
+.ar-player :is(.ar-filter-grid, .ar-account-picker) p,
+.ar-player :is(.ar-profile-presence small, .ar-profile-coordinates, .ar-player-card p) { color: var(--ar-text-muted); }
+.ar-player .ar-empty { color: var(--ar-text-muted); border-color: #9db39f80; border-radius: 4px; background: #142820e8; }
+.ar-player .ar-pagination { flex-wrap: wrap; gap: .75rem 1.5rem; }
+.ar-player .ar-pagination a { min-height: 44px; display: inline-flex; align-items: center; }
+.ar-player .ar-portal .btn { white-space: normal; line-height: 1.6; }
+.ar-player .table { --bs-table-bg: #1c302b; --bs-table-color: #f3f0e7; --bs-table-border-color: #b8c5bb40; --bs-table-striped-bg: #253c35; --bs-table-striped-color: #f3f0e7; --bs-table-hover-bg: #2b443a; --bs-table-hover-color: #fff; }
+.ar-player .table :is(th, td) { padding: .85rem; vertical-align: middle; }
+.ar-player .table thead th { background: #243d33; color: #d9e5dc; }
+.ar-player .table-responsive { border: 1px solid var(--ar-border); border-radius: 4px; }
+.ar-player .ar-portal code { color: #e5d3b0; }
+
+/* Bestiary */
+.ar-player .ar-bestiary { --bestiary-line: #b8c5bb40; }
+.ar-player .ar-mob-card { background: radial-gradient(ellipse at 50% 30%, #43604c55, transparent 70%), var(--ar-bg-panel); border-radius: 4px; }
+.ar-player .ar-mob-dossier { background: var(--ar-bg-panel); border-radius: 4px; }
+.ar-player .ar-mob-stage { background: radial-gradient(ellipse, #b3d3bf18, transparent 68%); }
+.ar-player :is(.ar-bestiary-note, .ar-bestiary-back, .ar-mob-stage p, .ar-mob-dates dt, .ar-mob-stats dt, .ar-bestiary-summary span, .ar-mob-rewards span) { color: var(--ar-text-muted); }
+.ar-player :is(.ar-mob-lore, .ar-drop-table td) { color: #d9e2d9; }
+.ar-player .ar-drop-table thead { color: var(--ar-teal); background: #b3d3bf0d; }
+
+/* Shop and marketplace retain their categories and action states. */
+.ar-player :is(.ar-shop-account, .market-wallet) { background: linear-gradient(110deg, #344434, #1c302b 65%); border-color: #bfa47a80; border-radius: 4px; }
+.ar-player :is(.ar-shop-card, .ar-shop-card--special) { background: var(--ar-bg-panel); border-color: var(--ar-border); border-top-color: var(--shop-accent); border-radius: 4px; }
+.ar-player .ar-shop-nav a { background: #253c35; border-color: var(--ar-border); border-radius: 4px; }
+.ar-player .ar-shop-nav a:hover { background: #344f40; }
+.ar-player :is(.ar-shop-nav a span:last-child, .ar-shop-account-label, .ar-shop-duration) { color: var(--ar-text-muted); }
+.ar-player .ar-shop-help-content { background: #253c35; border-color: #9db39f; border-radius: 4px; }
+.ar-player .market-browse :is(.market-search, .market-card) { background: var(--ar-bg-panel); border-block-color: var(--ar-border); border-right-color: var(--ar-border); border-radius: 4px; box-shadow: none; }
+.ar-player .market-browse .market-search { border-left-color: var(--ar-border); }
+.ar-player .market-purchase-panel { background: #142820; }
+.ar-player .market-filter-disclosure { background: var(--ar-bg-panel); border-color: var(--ar-border); border-radius: 4px; }
+.ar-player .market-browse .ar-item-icon { background: #10231e; border-color: var(--ar-border); border-radius: 4px; }
+.ar-player :is(.market-guide, .market-item-meta, .market-listing-time, .market-stock, .market-wallet-note) { color: var(--ar-text-muted); }
+
+/* Keep map colors for skill state and class identity; unify its surrounding frame. */
+.ar-player .ar-tree-sanctum { --tree-muted: #b8c5bb; --tree-gold: #e5d3b0; background: var(--ar-bg-panel); border-color: var(--ar-border); border-radius: 4px; box-shadow: none; }
+.ar-player .ar-tree-sanctum::before, .ar-player .ar-tree-sanctum::after { content: none; }
+.ar-player .ar-tree-heading h2 { font-family: var(--ar-display); font-weight: 500; }
+.ar-player .ar-tree-layout { border-radius: 4px; }
+.ar-player .ar-tree-preferences { color: var(--ar-text-muted); }
+.ar-player .ar-tree-search { background: #10231e; border-color: var(--ar-border); }
+.ar-player .ar-tree-controls button { background: #253c35; border-color: var(--ar-border); color: var(--ar-text); }
+.ar-player .ar-tree-viewport { background: radial-gradient(ellipse at 45% 45%, #42634c30, #091b17 72%); }
+.ar-player :is(.ar-tree-account-state, .ar-tree-cp-list > span) { background: #10231e; border-color: var(--ar-border); }
+.ar-player :is(.ar-tree-detail, .ar-tree-detail-header) { background: #253c35; }
+.ar-player :is(.ar-tree-search-options select, .ar-tree-operation select) { background: #10231e; color: var(--ar-text); border-color: var(--ar-border); }
+
+@media (max-width: 767px) {
+    .ar-player .ar-portal::before, .ar-player .ar-section-dark:has(.ar-card)::before {
+        height: 380px;
+        background-image: linear-gradient(180deg, #08192080, #132521 96%), image-set(url('/images/bg-night-640.webp') 1x, url('/images/bg-night-1280.webp') 2x);
+    }
+    .ar-player .ar-portal-heading { align-items: flex-start; flex-direction: column; gap: 1rem; padding-block: .5rem 1.5rem; }
+    .ar-player .ar-portal-heading h1 { font-size: clamp(1.6rem, 6vw, 2rem); }
+    .ar-player .ar-portal-heading > .btn, .ar-player .ar-portal-heading > a { max-width: 100%; }
+    .ar-player .ar-profile-identity { align-items: flex-start; gap: 1rem; }
+    .ar-player .ar-profile-identity > div { min-width: 0; }
+    .ar-player .ar-profile-presence small { margin-left: 0; }
+}
