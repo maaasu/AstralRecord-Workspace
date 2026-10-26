@@ -203,7 +203,7 @@ dotnet publish src\SkillTreeEditor.Server\SkillTreeEditor.Server.csproj -c Relea
 
 ブラウザで `http://127.0.0.1:5274` を開きます。publish版は起動時のカレントディレクトリに依存せず、実行ファイルと同じディレクトリの `appsettings.json` と `wwwroot` を使用します。
 
-Dev 配置 API への接続は、Git 管理外の `appsettings.local.json` に保存できます。通常の `05-master-data-editor.bat` 起動では `60_tool/skilltree-editor/appsettings.local.json`、publish版では実行ファイルと同じディレクトリに置きます。いずれもエディタのASP.NETサーバーだけが読み、キーをブラウザへ渡しません。
+Dev 配置 API への接続は、Git 管理外の `appsettings.local.json` に保存できます。通常の `05-master-data-editor.bat` 起動では `60_tool/skilltree-editor/src/SkillTreeEditor.Server/appsettings.local.json`、publish版では実行ファイルと同じディレクトリに置きます。`dotnet run` は起動時のカレントディレクトリに関係なくプロジェクトディレクトリを設定基準にします。いずれもエディタのASP.NETサーバーだけが読み、キーをブラウザへ渡しません。
 
 ```json
 {
