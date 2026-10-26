@@ -58,6 +58,7 @@ final class SeleneaEncounterController {
     private static final int MAX_POINTS = 2048;
     private static final int MAX_IMPACT_POINTS = 1024;
     private static final double EDGE_POINT_SPACING = 0.375D;
+    private static final double WARNING_EDGE_POINT_SPACING = 0.30D;
     private static final int MAX_DISPLAYS = 16;
     private static final double RUNE_RADIUS = 3.0D;
     private static final long RUNE_HOLD = 30L;
@@ -416,7 +417,7 @@ final class SeleneaEncounterController {
         return cast.runes.size() == cast.required;
     }
 
-    /** 予兆・操作を進め、同じcastの着弾を一度だけ確定します。 */
+    /** 赤い危険輪郭は5tick、他の予兆は10tick周期で進め、同じcastの着弾を一度だけ確定します。 */
     private void advance(Encounter state, Entity entity, List<Player> active, long tick) {
         Cast cast = state.cast;
         if (cast.resolved) {
@@ -426,6 +427,7 @@ final class SeleneaEncounterController {
         updateEffects(state);
         animate(cast, tick);
         if ((tick - cast.started) % 10L == 0L) draw(cast);
+        else drawWarningEdges(cast);
         if (cast.stage == Stage.SEALS) {
             if (advanceRunes(state, cast, active, tick)) { finishRitual(state, tick, true, cast.direction); return; }
         }
@@ -789,7 +791,7 @@ final class SeleneaEncounterController {
     }
 
     /**
-     * 0.375m間隔の最大密度向け輪郭を優先し、内部は疎な刻印のまま最大2048候補地点まで床へ投影します。
+     * 0.30m間隔の最大密度向け危険輪郭を優先し、内部は疎な刻印のまま最大2048候補地点まで床へ投影します。
      * @param cast 凍結した形状。描画と命中で同じcontains判定を使います
      */
     private static void buildDanger(Cast cast) {
@@ -799,7 +801,7 @@ final class SeleneaEncounterController {
             for (int ray = -1; ray <= 1; ray++) {
                 Vector aim = cast.direction.clone().rotateAroundY(ray * Math.PI / 6.0D);
                 Vector side = new Vector(-aim.getZ(), 0, aim.getX());
-                int steps = Math.max(24, (int) Math.ceil(cast.radius / EDGE_POINT_SPACING));
+                int steps = Math.max(24, (int) Math.ceil(cast.radius / WARNING_EDGE_POINT_SPACING));
                 for (double across : new double[]{-1.24D, 1.24D}) {
                     for (int i = 0; i <= steps; i++) {
                         dangerPoint(cast, cast.center.clone().add(aim.clone().multiply((cast.radius - 0.1D) * i / steps))
@@ -820,7 +822,7 @@ final class SeleneaEncounterController {
             Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
             double halfWidth = passageWidth(cast) + 0.05D;
             double length = Math.sqrt(cast.radius * cast.radius - halfWidth * halfWidth) - 0.05D;
-            int steps = Math.max(48, (int) Math.ceil(length * 2.0D / EDGE_POINT_SPACING));
+            int steps = Math.max(48, (int) Math.ceil(length * 2.0D / WARNING_EDGE_POINT_SPACING));
             for (double across : new double[]{-halfWidth, halfWidth}) {
                 for (int i = 0; i <= steps; i++) {
                     dangerPoint(cast, cast.center.clone().add(cast.direction.clone().multiply(-length + length * 2 * i / steps))
@@ -853,7 +855,7 @@ final class SeleneaEncounterController {
 
     /** @param cast 詠唱 @param center 円中心 @param radius 輪郭半径 @param count 標準密度の最小点数。最大1024候補点へ補正します */
     private static void dangerRing(Cast cast, Location center, double radius, int count) {
-        count = Math.clamp(Math.max(count * 2, (int) Math.ceil(Math.PI * 2.0D * radius / EDGE_POINT_SPACING)), 1, 1024);
+        count = Math.clamp(Math.max(count * 2, (int) Math.ceil(Math.PI * 2.0D * radius / WARNING_EDGE_POINT_SPACING)), 1, 1024);
         for (int i = 0; i < count; i++) {
             double angle = i * Math.PI * 2.0D / count;
             dangerPoint(cast, center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius), true);
@@ -939,9 +941,17 @@ final class SeleneaEncounterController {
         book.setTransformation(bookTransformation(pose));
     }
 
-    /** 10tickごとに明るい赤の危険輪郭・白い封頁輪・月影渡りの移動先を描きます。 */
-    private void draw(Cast cast) {
+    /**
+     * 詠唱開始時と以後5tickごとに、粒径を保った明るい赤の危険輪郭を一括送信します。
+     * @param cast 詠唱開始時に固定した危険輪郭。閲覧者の密度と送信上限は共有サービスへ委譲します
+     */
+    private void drawWarningEdges(Cast cast) {
         particles.spawnForNearbyViewers(cast.edges, SharedParticleDefinitions.SELENEA_WARNING_EDGE, true);
+    }
+
+    /** 詠唱開始時と以後10tickごとに危険輪郭・内部刻印・白い封頁輪・月影渡りの移動先を描きます。 */
+    private void draw(Cast cast) {
+        drawWarningEdges(cast);
         particles.spawnForNearbyViewers(cast.fill, SharedParticleDefinitions.SELENEA_SUPPORT_WARNING, true);
         List<Location> sneak = new ArrayList<>(192);
         for (Rune rune : cast.runes) if (!rune.done) ring(rune.point, RUNE_RADIUS, 24, sneak);

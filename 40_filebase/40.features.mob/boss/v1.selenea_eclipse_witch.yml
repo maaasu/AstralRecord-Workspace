@@ -73,6 +73,7 @@ challenge:
     z: 8.5
   partyMin: 1
   partyMax: 6
+  deathLimit: 10
 
 drops:
   exp: 12000

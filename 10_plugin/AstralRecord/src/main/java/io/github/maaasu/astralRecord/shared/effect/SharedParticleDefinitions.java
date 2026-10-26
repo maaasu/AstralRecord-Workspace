@@ -75,7 +75,7 @@ public final class SharedParticleDefinitions {
     /** ジャンプで回避できる床上の低い月蝕波です。 */
     public static final SharedParticleDefinition SELENEA_GROUND_WAVE =
         new SharedParticleDefinition("selenea_ground_wave", Particle.DUST, 4, 0.04D, 0.08D, 0.04D, 0,
-            new Particle.DustOptions(Color.fromRGB(255, 230, 150), 1.6F));
+            new Particle.DustOptions(Color.fromRGB(255, 230, 150), 0.8F));
     /** 三連弾の発射点へ収束する明るい赤の小粒の予告輪です。 */
     public static final SharedParticleDefinition SELENEA_VOLLEY_RING =
         new SharedParticleDefinition("selenea_volley_ring", Particle.DUST, 4, 0, 0, 0, 0,
@@ -101,7 +101,7 @@ public final class SharedParticleDefinitions {
     /** 危険領域の縁だけを明るい赤の小粒の輪郭で示します。 */
     public static final SharedParticleDefinition SELENEA_WARNING_EDGE =
         new SharedParticleDefinition("selenea_warning_edge", Particle.DUST, 4, 0, 0, 0, 0,
-            new Particle.DustOptions(Color.fromRGB(255, 70, 70), 0.8F));
+            new Particle.DustOptions(Color.fromRGB(255, 100, 100), 0.8F));
 
     /** スニーク保持が必要な封頁の文字粒子です。 */
     public static final SharedParticleDefinition SELENEA_SNEAK_RING =
