@@ -14,10 +14,13 @@
     "levelStepMeters": 300,
     "levels": [15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45],
     "terrainExtension": {
-      "targetCells": [[-1056, -544], [64, 1168]],
-      "searchBounds": {"minX": -2000, "maxX": 448, "minZ": -960, "maxZ": 1808},
+      "targetCells": [[-1056, -544], [64, 1168], [416, 1536], [304, 1728]],
+      "searchBounds": {"minX": -2000, "maxX": 800, "minZ": -960, "maxZ": 2112},
       "minSafeColumns": 64,
       "maxLocalSlope": 8,
+      "localSlopeOverrides": [
+        {"bounds": {"minX": 64, "maxX": 272, "minZ": 1440, "maxZ": 1664}, "maxLocalSlope": 11}
+      ],
       "maxStepHeight": 2,
       "maxDistanceMeters": 3808
     }

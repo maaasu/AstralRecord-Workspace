@@ -243,11 +243,16 @@ class ContinentPlanner:
     @staticmethod
     def _terrain_step(a: dict, b: dict, settings: dict) -> bool:
         bounds = settings["searchBounds"]
+        slope_limit = settings["maxLocalSlope"]
+        for override in settings.get("localSlopeOverrides", []):
+            area = override["bounds"]
+            if area["minX"] <= b["x"] < area["maxX"] and area["minZ"] <= b["z"] < area["maxZ"]:
+                slope_limit = max(slope_limit, override["maxLocalSlope"])
         return (bounds["minX"] <= b["x"] < bounds["maxX"] and
                 bounds["minZ"] <= b["z"] < bounds["maxZ"] and
                 b["status"] == "ok" and b.get("waterCount") == 0 and
                 b["safeCount"] >= settings["minSafeColumns"] and
-                b["maxY"] - b["minY"] <= settings["maxLocalSlope"] and
+                b["maxY"] - b["minY"] <= slope_limit and
                 abs(a["candidateY"] - b["candidateY"]) <= settings["maxStepHeight"])
 
     def _extend_road(self, grid: dict, roads: dict, settings: dict) -> list[list[tuple[int, int]]]:
@@ -265,6 +270,20 @@ class ContinentPlanner:
         if (any(type(bounds.get(k)) is not int or bounds[k] % 16 for k in ("minX", "minZ", "maxX", "maxZ")) or
                 bounds["minX"] >= bounds["maxX"] or bounds["minZ"] >= bounds["maxZ"]):
             raise ValueError("Invalid terrain extension search bounds")
+        overrides = settings.get("localSlopeOverrides", [])
+        if not isinstance(overrides, list):
+            raise ValueError("Invalid local slope overrides")
+        for override in overrides:
+            if not isinstance(override, dict):
+                raise ValueError("Invalid local slope override")
+            area = override.get("bounds", {})
+            limit = override.get("maxLocalSlope")
+            if (not isinstance(area, dict) or
+                    any(type(area.get(k)) is not int or area[k] % 16 for k in ("minX", "minZ", "maxX", "maxZ")) or
+                    not bounds["minX"] <= area["minX"] < area["maxX"] <= bounds["maxX"] or
+                    not bounds["minZ"] <= area["minZ"] < area["maxZ"] <= bounds["maxZ"] or
+                    type(limit) is not int or not settings["maxLocalSlope"] < limit <= 16):
+                raise ValueError("Invalid local slope override bounds or limit")
         if "targetCell" in settings and "targetCells" in settings:
             raise ValueError("Terrain extension targetCell and targetCells are mutually exclusive")
         raw_targets = settings.get("targetCells") if "targetCells" in settings else [settings.get("targetCell")]

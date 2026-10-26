@@ -297,6 +297,40 @@ class RoadProgressionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "No terrain continuation"):
                 self.make_planner(Path(temp), data, extension)
 
+    def test_local_slope_override_keeps_water_height_and_placement_limits(self):
+        settings = {"searchBounds": {"minX": 0, "maxX": 128, "minZ": 0, "maxZ": 128},
+                    "minSafeColumns": 64, "maxLocalSlope": 8, "maxStepHeight": 2,
+                    "localSlopeOverrides": [{"bounds": {"minX": 16, "maxX": 48, "minZ": 16, "maxZ": 48},
+                                             "maxLocalSlope": 11}]}
+        start = {"candidateY": 100}
+        cell = {"x": 16, "z": 16, "status": "ok", "waterCount": 0,
+                "safeCount": 128, "minY": 95, "maxY": 106, "candidateY": 101}
+        self.assertTrue(ContinentPlanner._terrain_step(start, cell, settings))
+        for update in ({"x": 48}, {"x": 0}, {"z": 48}, {"z": 0},
+                       {"waterCount": 1}, {"safeCount": 63}, {"candidateY": 103}, {"maxY": 107}):
+            with self.subTest(update=update):
+                self.assertFalse(ContinentPlanner._terrain_step(start, {**cell, **update}, settings))
+        with tempfile.TemporaryDirectory() as temp:
+            data = terrain(-1408, -2048, 768, 3840)
+            for c in data["cells"]:
+                if c["x"] == -1152 and 1120 <= c["z"] <= 1472:
+                    c["groundCounts"] = {"minecraft:dirt_path": 16}
+                if (c["x"], c["z"]) == (-1152, 1024):
+                    c["maxY"] = c["minY"] + 11
+            extension = {"targetCell": [-1152, -1808], "minSafeColumns": 64,
+                         "maxLocalSlope": 8, "maxStepHeight": 2, "maxDistanceMeters": 4208,
+                         "searchBounds": {"minX": -1408, "maxX": -640, "minZ": -2048, "maxZ": 1792},
+                         "localSlopeOverrides": [{"bounds": {"minX": -1152, "maxX": -1136, "minZ": 1024, "maxZ": 1040},
+                                                  "maxLocalSlope": 11}]}
+            planner = self.make_planner(Path(temp), data, extension)
+            self.assertIn((-1152, 1024), planner.extension_path)
+            cell = next(c for c in planner.cells if (c["x"], c["z"]) == (-1152, 1024))
+            self.assertEqual("steep", cell["reasonCode"])
+            for index, invalid in enumerate((None, [{}], [{"bounds": extension["searchBounds"], "maxLocalSlope": True}],
+                            [{"bounds": {"minX": -1409, "maxX": -640, "minZ": -2048, "maxZ": 1792}, "maxLocalSlope": 11}])):
+                with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "local slope"):
+                    self.make_planner(Path(temp) / str(index), data, {**extension, "localSlopeOverrides": invalid})
+
     def test_terrain_continuation_branches_from_original_roads_without_extra_edges(self):
         with tempfile.TemporaryDirectory() as temp:
             data = terrain(-1408, -2048, 768, 3840)
