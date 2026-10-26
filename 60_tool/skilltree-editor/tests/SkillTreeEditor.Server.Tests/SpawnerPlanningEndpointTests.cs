@@ -138,13 +138,20 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         File.WriteAllText(Path.Combine(host.DataDirectory, "terrain-detail.json"),
             JsonSerializer.Serialize(new { schemaVersion = 1, terrainFingerprint = new string('c', 64), minX = -8, minZ = 16,
-                width = 32, height = 48, blocksPerPixel = 1, image = "terrain-detail.png" }));
+                width = 32, height = 48, blocksPerPixel = 1, image = "terrain-detail.png", imageSha256 = new string('d', 64) }));
         using var wrongFingerprint = await host.Client.GetAsync($"/api/spawner-planning/terrain-detail?revision={_revision}");
         Assert.Equal(HttpStatusCode.Conflict, wrongFingerprint.StatusCode);
         WriteDetail(host.DataDirectory);
         var png = File.ReadAllBytes(Path.Combine(host.DataDirectory, "terrain-detail.png"));
+        png[8] = 1;
+        File.WriteAllBytes(Path.Combine(host.DataDirectory, "terrain-detail.png"), png);
+        using var changedImage = await host.Client.GetAsync($"/api/spawner-planning/terrain-detail/image?revision={_revision}");
+        Assert.Equal(HttpStatusCode.Conflict, changedImage.StatusCode);
+        WriteDetail(host.DataDirectory);
+        png = File.ReadAllBytes(Path.Combine(host.DataDirectory, "terrain-detail.png"));
         png[23] = 49;
         File.WriteAllBytes(Path.Combine(host.DataDirectory, "terrain-detail.png"), png);
+        WriteDetailMetadata(host.DataDirectory, png);
         using var wrongDimensions = await host.Client.GetAsync($"/api/spawner-planning/terrain-detail/image?revision={_revision}");
         Assert.Equal(HttpStatusCode.Conflict, wrongDimensions.StatusCode);
     }
@@ -200,13 +207,17 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
 
     private void WriteDetail(string directory)
     {
-        File.WriteAllText(Path.Combine(directory, "terrain-detail.json"),
-            JsonSerializer.Serialize(new { schemaVersion = 1, terrainFingerprint = _fingerprint, minX = -8, minZ = 16,
-                width = 32, height = 48, blocksPerPixel = 1, image = "terrain-detail.png" }));
         var header = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
             0, 0, 0, 32, 0, 0, 0, 48 };
         File.WriteAllBytes(Path.Combine(directory, "terrain-detail.png"), header);
+        WriteDetailMetadata(directory, header);
     }
+
+    private void WriteDetailMetadata(string directory, byte[] png)
+        => File.WriteAllText(Path.Combine(directory, "terrain-detail.json"),
+            JsonSerializer.Serialize(new { schemaVersion = 1, terrainFingerprint = _fingerprint, minX = -8, minZ = 16,
+                width = 32, height = 48, blocksPerPixel = 1, image = "terrain-detail.png",
+                imageSha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(png)) }));
 
     private string Data(string kind, string revision, string worldId = "eriva", int radius = 32)
         => kind == "proposals"

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using SkillTreeEditor.Server.Options;
 
@@ -125,6 +126,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
                 || GetInt(detail, "height") != manifest.Height
                 || GetInt(detail, "blocksPerPixel") != 1
                 || GetString(detail, "image") != "terrain-detail.png"
+                || !IsSha256(GetString(detail, "imageSha256"))
                 || manifest.Width > MaxDetailDimension || manifest.Height > MaxDetailDimension) return InvalidExport();
             var imagePath = Path.Combine(manifest.Directory, "terrain-detail.png");
             RequireNoLinks(imagePath);
@@ -137,6 +139,10 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
                 || !header.AsSpan(12, 4).SequenceEqual("IHDR"u8)
                 || System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(16, 4)) != manifest.Width
                 || System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(20, 4)) != manifest.Height)
+                return InvalidExport();
+            imageStream.Position = 0;
+            var imageHash = await SHA256.HashDataAsync(imageStream, cancellationToken);
+            if (!string.Equals(Convert.ToHexStringLower(imageHash), GetString(detail, "imageSha256"), StringComparison.OrdinalIgnoreCase))
                 return InvalidExport();
             context.Response.Headers.ETag = $"\"{manifest.Revision}\"";
             context.Response.Headers.CacheControl = "no-store";

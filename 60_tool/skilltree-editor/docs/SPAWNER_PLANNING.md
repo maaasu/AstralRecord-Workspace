@@ -39,7 +39,7 @@ python 60_tool/spawner-planner/continent.py --terrain C:/server/AstralRecord-Cod
 
 `/api/spawner-planning/manifest` を取得してから、同じ `exportRevision` を `revision` クエリへ付けて `/cells`、`/regions`、manifestの `radiusOptions` に含まれる `/proposals/{radius}` を取得します。半径は32/48/64mの非空・重複なし部分集合を許可し、64m単独案にも対応します。未選択の半径は404です。すべてGET専用です。スキーマ、ワールドID、地形指紋、出力世代の一致を確認し、再計算途中で世代が混ざった場合は409を返します。出力がない場合は404となり、画面に準備方法を案内します。
 
-詳細地図は任意の `/terrain-detail` と `/terrain-detail/image` から読みます。両方に `revision` が必要です。固定名のメタデータは schemaVersion 1、元地形の SHA-256 `terrainFingerprint`、`minX` / `minZ` / `width` / `height`、`blocksPerPixel: 1`、`image: "terrain-detail.png"` を持ちます。APIはmanifestとの一致、PNGの寸法・最大8192画素/辺・最大128MiBを確認します。詳細地図が未生成なら404、不整合なら409で、配置案本体の利用は継続できます。
+詳細地図は任意の `/terrain-detail` と `/terrain-detail/image` から読みます。両方に `revision` が必要です。固定名のメタデータは schemaVersion 1、元地形の SHA-256 `terrainFingerprint`、`minX` / `minZ` / `width` / `height`、`blocksPerPixel: 1`、`image: "terrain-detail.png"`、PNGの SHA-256 `imageSha256` を持ちます。APIはmanifestとの一致、PNGのハッシュ・寸法・最大8192画素/辺・最大128MiBを確認します。詳細地図が未生成なら404、不整合なら409で、配置案本体の利用は継続できます。
 
 ファイル名は固定の許可リストです。任意ファイルの読込、パストラバーサル、シンボリックリンク・ジャンクション経由の読込を拒否します。APIは解析プロセスの実行やFilebase・ワールドの書換えを行いません。地形と配置JSONはローカルに保持し、外部地図サービスへ送信しません。
 
