@@ -46,3 +46,4 @@ C:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --config C:\path\to\db-rebui
 - Each database is recreated with `DbContext.Database.EnsureCreatedAsync()`.
 - Existing data is not preserved.
 - `ManagementDB` and legacy `WebSiteDB` are persistent management stores, never rebuild targets. The tool rejects either name in all three connections before deleting any database.
+- All three configured database names must match their slot exactly (`AstralRecord`, `MasterDataDB`, `HistoryDB`). Placement stores `WorldPlacementDevDB` / `WorldPlacementDB` and any other database are rejected before the first connection or deletion.

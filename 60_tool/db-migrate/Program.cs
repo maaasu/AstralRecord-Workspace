@@ -38,7 +38,9 @@ try
             $"Migration connection must target {config.ExpectedDatabase}, but targets {targetDatabase}.");
     }
     if (targetDatabase.Equals("ManagementDB", StringComparison.OrdinalIgnoreCase)
-        || targetDatabase.Equals("WebSiteDB", StringComparison.OrdinalIgnoreCase))
+        || targetDatabase.Equals("WebSiteDB", StringComparison.OrdinalIgnoreCase)
+        || targetDatabase.Equals("WorldPlacementDevDB", StringComparison.OrdinalIgnoreCase)
+        || targetDatabase.Equals("WorldPlacementDB", StringComparison.OrdinalIgnoreCase))
         throw new InvalidOperationException("Game migrations must not target persistent management databases.");
     await using var connection = new SqlConnection(connectionString);
     await connection.OpenAsync();

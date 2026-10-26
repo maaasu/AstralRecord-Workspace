@@ -120,6 +120,19 @@ static async Task<EffectiveSettings> ResolveEffectiveSettingsAsync(
             throw new InvalidOperationException("Persistent management databases must not be rebuilt.");
     }
 
+    // 配置などの永続DBへ設定を誤って向けても、最初のDROPより前に全接続を拒否する。
+    foreach (var target in new[]
+    {
+        (Connection: sqlServer, Expected: "AstralRecord"),
+        (Connection: masterData, Expected: "MasterDataDB"),
+        (Connection: history, Expected: "HistoryDB")
+    })
+    {
+        var database = new SqlConnectionStringBuilder(target.Connection).InitialCatalog.Trim();
+        if (!database.Equals(target.Expected, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Rebuild connection must target database '{target.Expected}'. Persistent databases are not rebuild targets.");
+    }
+
     var fileDatabaseRootPath = ResolveFileDatabaseRootPath(
         configuredFileDatabaseRootPath,
         config.SourceApiAppsettingsPath,

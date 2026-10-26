@@ -316,10 +316,14 @@ static DatabaseTarget CreateDatabaseTarget(
     string? integrationTestSuffix)
 {
     var expectedDatabaseName = baseDatabaseName + (integrationTestSuffix ?? string.Empty);
-    var builder = new SqlConnectionStringBuilder(connectionString)
-    {
-        InitialCatalog = expectedDatabaseName,
-    };
+    var builder = new SqlConnectionStringBuilder(connectionString);
+    // Validate the supplied catalog before selecting the isolated integration DB.
+    // Rewriting first would silently accept a persistent placement DB connection.
+    if (!string.Equals(builder.InitialCatalog, baseDatabaseName, StringComparison.OrdinalIgnoreCase)
+        && !(integrationTestSuffix is not null
+            && string.Equals(builder.InitialCatalog, expectedDatabaseName, StringComparison.OrdinalIgnoreCase)))
+        throw new InvalidOperationException($"{baseDatabaseName} connection must target database '{baseDatabaseName}'.");
+    builder.InitialCatalog = expectedDatabaseName;
     return new DatabaseTarget(baseDatabaseName, expectedDatabaseName, builder.ConnectionString);
 }
 

@@ -36,6 +36,8 @@
 
 13/14/15は登録済みの非破壊migrationの適用・スキーマ検査です。04/11は初期化操作なので日常更新の代わりには使いません。ManagementDBは長期保持対象で、ゲームDB再構築・リセットの対象外です。
 
+`WorldPlacementDevDB` / `WorldPlacementDB` も長期保持対象です。スポナー・NPC・テレポーターの専用DB作成、Devの既存配置移行、API起動は [ワールド配置管理](world-placement/README.md) を使用します。04/11はこの2DBを含む既定3DB以外への接続設定を拒否します。
+
 APIを含む01/10では、配置前にゲーム・History・Managementのmigrationを実行します。いずれかの失敗時はAPI/Webを配置しません。
 
 ## 開発時だけ使う
