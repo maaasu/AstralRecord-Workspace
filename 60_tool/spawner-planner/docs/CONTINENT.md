@@ -33,6 +33,20 @@ python 60_tool/spawner-planner/continent.py `
 
 Python 3.11以上とPyYAMLが必要。地形JSONはscanner schema 2で、全長方形区画を `ok` / `absent` / `failed` として列挙する。`failed` は割当済みでも未生成・読込失敗・計測失敗だった区画、`absent` はMCAに未割当の区画であり、どちらも配置しない。解析矩形の外側にも配置しない。中断時の `.part` ではなく完成したJSONを使う。
 
+### 1ブロック単位の地形画像
+
+コピーしたワールドを停止した状態で、MCAファイルを読み取り専用で走査して地表画像を作る。サーバーを起動せず、ワールドを生成・保存しない。`continent-terrain.json` の解析範囲内で `ok` のチャンクだけを描画し、`absent` / `failed` および読込失敗チャンクは透明にする。各ピクセルは実際の地表ブロック1個に対応し、ブロック種別の色と高度差の陰影を示す。16m区画の計画判定は画像の色に転用しない。ブロック色は概略表示であり、Minecraftのテクスチャやバイオーム色を再現しない。
+
+```powershell
+python -m pip install -r 60_tool/spawner-planner/requirements-detail.txt
+python 60_tool/spawner-planner/terrain_detail.py `
+  --world C:/server/AstralRecord-CodexDev/eriva_supercontinent `
+  --terrain C:/server/AstralRecord-CodexDev/analysis/continent-terrain.json `
+  --output C:/server/AstralRecord-CodexDev/analysis/terrain-detail
+```
+
+`terrain-detail.png` はRGBA画像、`terrain-detail.json` は `{schemaVersion:1, terrainFingerprint, minX, minZ, width, height, blocksPerPixel:1, image:"terrain-detail.png"}`。`terrainFingerprint` は入力JSONの生バイトに対するSHA-256で、読取側は現在の地形JSONと照合できる。幅・高さは最大8192ブロックまで。画像上の `(pixelX,pixelZ)` はワールド座標 `(minX+pixelX,minZ+pixelZ)` に対応する。
+
 出力ファイルは `manifest.json`、`cells.json`、`regions.json`、`proposals-32.json`、`proposals-48.json`、`proposals-64.json`。いずれもschema 2で、同じ `exportRevision` と `terrainFingerprint` を持つ。`manifest.json` を最後に置換する。読取側は各ファイルのrevisionとmanifestの一致を確認する。`exportRevision` は地形、ポリシー、参照するワールド/Enemy/Spawnerマスタ、計算器版から決まる。
 
 ## 進行・地域の決め方
