@@ -6,6 +6,8 @@ using AstralRecordApi.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -17,6 +19,25 @@ builder.Logging.AddSimpleConsole(options =>
 {
     options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
 });
+
+// Placement-only local development host: no shared DB contexts, seeder, delivery workers,
+// Discord notifications, or unrelated controllers are registered.
+if (builder.Configuration.GetValue<bool>("WorldPlacements:Standalone"))
+{
+    builder.WebHost.UseUrls("http://127.0.0.1:5286");
+    builder.Services.AddScoped<IWorldPlacementRepository, WorldPlacementRepository>();
+    builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
+    builder.Services.AddAuthorization();
+    builder.Services.AddControllers().ConfigureApplicationPartManager(manager =>
+        manager.FeatureProviders.Add(new PlacementOnlyControllerFilter()));
+    var placementApp = builder.Build();
+    placementApp.UseAuthentication();
+    placementApp.UseAuthorization();
+    placementApp.MapControllers().RequireAuthorization();
+    placementApp.Run();
+    return;
+}
 
 // Add services to the container.
 builder.Services.AddDataProtection().SetApplicationName("AstralRecordApi.WebAuthentication");
@@ -100,6 +121,7 @@ builder.Services.AddScoped<IMobRepository, MobRepository>();
 builder.Services.AddScoped<IGatheringRepository, GatheringRepository>();
 builder.Services.AddScoped<IGatheringSpawnerRepository, GatheringSpawnerRepository>();
 builder.Services.AddScoped<IWorldRepository, WorldRepository>();
+builder.Services.AddScoped<IWorldPlacementRepository, WorldPlacementRepository>();
 builder.Services.AddScoped<IFishingRepository, FishingRepository>();
 builder.Services.AddScoped<IMailRepository, MailRepository>();
 builder.Services.AddScoped<IDonationRepository, DonationRepository>();
@@ -301,4 +323,14 @@ static bool IsDatabaseUnavailable(Exception? exception)
         return IsDatabaseUnavailable(invalidOperationException.InnerException);
 
     return IsDatabaseUnavailable(exception.InnerException);
+}
+
+internal sealed class PlacementOnlyControllerFilter : IApplicationFeatureProvider<ControllerFeature>
+{
+    public void PopulateFeature(IEnumerable<ApplicationPart> parts, ControllerFeature feature)
+    {
+        foreach (var controller in feature.Controllers
+                     .Where(x => x.Name is not ("WorldPlacementsController" or "HealthController")).ToArray())
+            feature.Controllers.Remove(controller);
+    }
 }

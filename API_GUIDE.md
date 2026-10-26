@@ -16,6 +16,9 @@
 - `ConnectionStrings:MasterData`: MasterDataDB 接続文字列
 - `ConnectionStrings:History`: HistoryDB 接続文字列
 - `ConnectionStrings:Management`: 長期保持用ManagementDB接続文字列。空ならSqlServerのDB名だけManagementDBへ変更する。ゲームDBリセットの対象に含めない。
+- `ConnectionStrings:WorldPlacementDev` / `WorldPlacement`: 配置専用の `WorldPlacementDevDB` / `WorldPlacementDB`。空ならその環境は無効。ゲームDBへのフォールバックなし。
+- `WorldPlacements:WriteKey` / `SyncKey`: Dev 編集 / Dev→Channels 明示公開の別キー。共通 `X-Api-Key` に加えて `X-World-Placement-Key` で送る。
+- `WorldPlacements:Standalone`: `true` で配置 API と health のみを `127.0.0.1:5286` に公開するローカル開発ホスト。共通 DB 接続、マスター投入、配信ジョブは起動しない。
 - `FileDatabase:RootPath`: API 側の静的データファイルのルートパス。runtime filebase 配信にも使用する
 - `Network:AuthoritySyncKey`: Proxyの旧YAML初回bootstrap用専用キー（移行前だけ旧authorities PUTも許可）
 - `Network:ModerationKey`: RPG `/ban` の更新専用キー。RPG `api.networkModerationKey`と一致させ、共通APIキーと分離する
@@ -34,6 +37,7 @@
 | エンドポイント | 役割 | ドキュメント |
 |---|---|---|
 | GET `/api/health` | ヘルスチェック | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
+| `/api/world-placements/*` | 配置スナップショット、Dev 編集、明示公開 | `00_docs/20_API設計書/feature/43-world-placements/43_README.md` |
 | GET `/api/master-data/runtime-filebase` | Plugin 用の移行対象 YAML/JSON を一括配信 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.01-取得系.md` |
 | `/api/defense/admin/*`・`/api/defense/runtime/*` | 防衛戦のチャンネル設定・開催管理・Plugin報告・段階報酬 | `00_docs/20_API設計書/feature/42-defense/42_README.md` |
 | GET `/api/geyser/heads` | Geyser Extension 起動用のカスタムヘッドテクスチャ・未削除ユーザー UUID 一括取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |

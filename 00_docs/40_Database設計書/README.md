@@ -11,6 +11,7 @@
 | `MasterDataDB` | `40_filebase` 由来の静的マスタデータを API 配信用に保持する DB | [[MasterDataDB設計]] / [[テーブル定義一覧]] |
 | `HistoryDB` | ログイン/ログアウトなどの履歴データを保持する DB | [[テーブル定義一覧]] |
 | `ManagementDB` | ゲームリセットから独立してプレイヤー識別・運営情報を長期保持する DB | [[ManagementDB設計]] |
+| `WorldPlacementDevDB` / `WorldPlacementDB` | 編集用 / チャンネル配信用の現行ワールド配置。起動時の自動作成・同期なし | `table-definitions/WorldPlacementDB/` |
 
 ## 基本方針
 
