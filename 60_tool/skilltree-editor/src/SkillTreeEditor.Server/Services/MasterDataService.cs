@@ -13,12 +13,26 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
     public async Task<IReadOnlyList<MasterDataFile>> ListAsync(string? category, string? query, CancellationToken token)
     {
         var result = new List<MasterDataFile>();
+        Dictionary<string, string>? mobNames = null;
         foreach (var file in paths.Enumerate(string.IsNullOrWhiteSpace(category) || category == "." ? null : category).Where(MasterDataPaths.IsData).Order(StringComparer.Ordinal))
         {
             var document = await ReadAsync(paths.Relative(file), token);
             var obj = document.Content as JsonObject;
             var id = MasterDataValidation.Text(obj?["id"] ?? obj?["nodeId"] ?? obj?["structureId"]);
             var name = DisplayName(obj);
+            if (Kind(document.Path) == "mob_spawner" && obj?["spawnMobs"] is JsonArray spawns)
+            {
+                mobNames ??= await ReadMobNamesAsync(token);
+                var labels = spawns.OfType<JsonObject>().Select(spawn =>
+                {
+                    var mobId = MasterDataValidation.Text(spawn["mobId"]) ?? "不明なモブ";
+                    var shortId = mobId.Split(':').Last();
+                    var mobName = mobNames.GetValueOrDefault(shortId) ?? shortId;
+                    var level = MasterDataValidation.Text(spawn["level"]);
+                    return level is null ? mobName : $"{mobName} Lv.{level}";
+                }).Distinct().ToArray();
+                if (labels.Length > 0) name = string.Join(" / ", labels);
+            }
             var icon = obj?["icon"] is JsonValue iconValue && iconValue.TryGetValue<string>(out var material) ? material : null;
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             var info = new FileInfo(file);
@@ -27,6 +41,20 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 MasterDataPaths.IsReadOnly(document.Path), icon));
         }
         return result;
+    }
+
+    private async Task<Dictionary<string, string>> ReadMobNamesAsync(CancellationToken token)
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in paths.Enumerate("40.features.mob").Where(MasterDataPaths.IsData))
+        {
+            var document = await ReadAsync(paths.Relative(file), token);
+            if (document.Content is not JsonObject obj) continue;
+            var id = MasterDataValidation.Text(obj["id"]);
+            var name = DisplayName(obj);
+            if (!string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(name)) names[id] = name;
+        }
+        return names;
     }
 
     public async Task<MasterDataDocument> ReadAsync(string path, CancellationToken token)

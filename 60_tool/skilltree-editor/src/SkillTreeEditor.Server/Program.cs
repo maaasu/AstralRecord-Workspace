@@ -9,6 +9,7 @@ builder.Services.Configure<EditorOptions>(builder.Configuration.GetSection(Edito
 builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<MasterAnalyticsService>();
 builder.Services.AddSingleton<SpawnerPlanningService>();
+builder.Services.AddHttpClient<WorldPlacementProxyService>();
 builder.Services.AddSingleton<BalanceLabCatalog>();
 builder.Services.AddSingleton<BalanceLabJobs>();
 builder.Services.AddSingleton<WorkspacePaths>();
@@ -39,6 +40,7 @@ app.UseMiddleware<LocalEditorRequestBoundaryMiddleware>();
 var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
 app.MapMasterAnalyticsEndpoints();
 app.MapSpawnerPlanningEndpoints();
+app.MapWorldPlacementEndpoints();
 app.MapBalanceLabEndpoints();
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>

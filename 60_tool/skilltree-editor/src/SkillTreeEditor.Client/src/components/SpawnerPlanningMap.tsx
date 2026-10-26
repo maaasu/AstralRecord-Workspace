@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
+import type { WorldPlacement } from '../api/worldPlacementApi'
+import type { PlacementCatalog } from './WorldPlacementEditor'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 interface Props {
@@ -8,6 +10,8 @@ interface Props {
   radii: boolean; active: boolean; selectedCell: number | null; selectedProposal: string | null
   focus: { key: number; x: number; z: number } | null
   onCell: (index: number) => void; onProposal: (id: string) => void
+  placements?: WorldPlacement[]; placementCatalog?: PlacementCatalog; selectedPlacement?: string | null
+  onPlacement?: (id: string) => void; onPlacePoint?: (x: number, y: number | null, z: number) => void; placing?: boolean
 }
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
@@ -161,6 +165,19 @@ export function SpawnerPlanningMap(props: Props) {
       ctx.beginPath(); ctx.arc(x, z, selected ? 5 : view.scale > .3 ? 2.5 : 1.2, 0, Math.PI * 2)
       ctx.fillStyle = selected ? '#fff0ac' : '#e3f2c8'; ctx.fill()
     }
+    for (const placement of props.placements ?? []) {
+      if (placement.worldId !== snapshot.manifest.worldId) continue
+      const [x, z] = screen(placement.x + .5, placement.z + .5)
+      const selected = props.selectedPlacement === placement.placementId
+      const template = props.placementCatalog?.spawners.find(item => item.id === placement.templateId)
+      if (placement.kind === 'spawner' && template && (radii || selected)) {
+        ctx.beginPath(); ctx.arc(x, z, template.radiusMeters * view.scale, 0, Math.PI * 2)
+        ctx.strokeStyle = selected ? '#63edff' : '#46d6e06a'; ctx.lineWidth = selected ? 2 : 1; ctx.stroke()
+      }
+      ctx.beginPath(); ctx.arc(x, z, selected ? 7 : view.scale > .3 ? 4 : 2.2, 0, Math.PI * 2)
+      ctx.fillStyle = placement.kind === 'spawner' ? '#33d5e6' : placement.kind === 'npc' ? '#ec99fa' : '#f7cf6d'; ctx.fill()
+      if (selected) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke() }
+    }
     const spawn = snapshot.manifest.spawn
     const [sx, sz] = screen(spawn.x, spawn.z)
     ctx.beginPath(); ctx.arc(sx, sz, 48 * view.scale, 0, Math.PI * 2)
@@ -175,7 +192,7 @@ export function SpawnerPlanningMap(props: Props) {
     const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal])
+  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, props.placements, props.placementCatalog, props.selectedPlacement])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
@@ -211,6 +228,19 @@ export function SpawnerPlanningMap(props: Props) {
         if (moved > 5) return
         const rect = event.currentTarget.getBoundingClientRect(), px = event.clientX - rect.left, pz = event.clientY - rect.top
         const x = (px - view.x) / view.scale + bounds.minX, z = (pz - view.z) / view.scale + bounds.minZ
+        if (props.placing && props.onPlacePoint) {
+          const index = cellAtWorld(bounds, grid, x, z)
+          if (index !== undefined) props.onPlacePoint(Math.floor(x), snapshot.cells[index].candidateY, Math.floor(z))
+          return
+        }
+        let placementDistance = 8
+        let closest: WorldPlacement | undefined
+        for (const value of view.scale > .25 ? props.placements ?? [] : []) {
+          if (value.worldId !== snapshot.manifest.worldId) continue
+          const next = Math.hypot((value.x + .5 - x) * view.scale, (value.z + .5 - z) * view.scale)
+          if (next < placementDistance) { placementDistance = next; closest = value }
+        }
+        if (closest && props.onPlacement) { props.onPlacement(closest.placementId); return }
         // At overview scale dots are dense; prioritize the terrain cell until zoomed in.
         let distance = 6
         let nearest: (typeof visibleProposals)[number] | undefined

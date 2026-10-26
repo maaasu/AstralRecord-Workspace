@@ -28,6 +28,17 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task SpawnerListUsesEverySummonedMobJapaneseNameAndLevel()
+    {
+        Write("40.features.mob/enemy/v1.wolf.yml", "id: wolf\nname: '&c森林狼'\n");
+        Write("40.features.mob/enemy/v1.bear.yml", "id: bear\nname: '&6森熊'\n");
+        Write("41.features.mob.spawner/v1.forest.yml", "id: forest\nspawnMobs:\n  - mobId: mob:wolf\n    level: 12\n  - mobId: mob:bear\n    level: 15\n");
+        var item = Assert.Single(await _service.ListAsync("41.features.mob.spawner", "森林狼", CancellationToken.None));
+        Assert.Equal("&c森林狼 Lv.12 / &6森熊 Lv.15", item.Name);
+        Assert.Equal("forest", item.Id);
+    }
+
+    [Fact]
     public async Task MobDefenseEligibilityUsesDocumentedBooleanAndEnemyOnlyRule()
     {
         const string path = "40.features.mob/enemy/v1.test.yml";

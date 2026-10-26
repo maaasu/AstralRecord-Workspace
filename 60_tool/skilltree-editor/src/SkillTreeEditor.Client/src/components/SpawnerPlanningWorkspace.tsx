@@ -5,6 +5,8 @@ import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlanningLayer } from './SpawnerPlanningMap'
+import { WorldPlacementEditor, type PlacementCatalog, type PlacementPoint } from './WorldPlacementEditor'
+import type { WorldPlacement } from '../api/worldPlacementApi'
 import './spawnerPlanning.css'
 
 const number = (value: number) => value.toLocaleString('ja-JP')
@@ -25,6 +27,11 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
   const [focus, setFocus] = useState<{ key: number; x: number; z: number } | null>(null)
   const [visibleCount, setVisibleCount] = useState(40)
   const [query, setQuery] = useState('')
+  const [placements, setPlacements] = useState<WorldPlacement[]>([])
+  const [placementCatalog, setPlacementCatalog] = useState<PlacementCatalog>({ spawners: [], npcs: [] })
+  const [selectedPlacement, setSelectedPlacement] = useState<string | null>(null)
+  const [placing, setPlacing] = useState(false)
+  const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true); setError(''); setSnapshot(null); setPlan(null)
@@ -103,8 +110,9 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
       </div>
       <div className="sp-main">
         <div className="sp-map-column">
-          <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={layer} region={region} reason={reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={selectedProposal} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} />
-          <div className="sp-map-caption"><span>● 配置案　<span className="sp-spawn-dot">●</span> 開始地点・保護範囲</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
+          <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={layer} region={region} reason={reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={selectedProposal} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { setSelectedPlacement(id); setSelectedCell(null); setSelectedProposal(null); const item = placements.find(value => value.placementId === id); if (item) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: item.x, z: item.z })) }} placing={placing} onPlacePoint={(x, y, z) => setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z }))} />
+          <div className="sp-map-caption"><span>● 配置案　<span style={{ color: '#33d5e6' }}>●</span> Dev スポナー　<span style={{ color: '#ec99fa' }}>●</span> NPC　<span style={{ color: '#f7cf6d' }}>●</span> 道標　<span className="sp-spawn-dot">●</span> 開始地点</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
+          <WorldPlacementEditor snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} onSelected={setSelectedPlacement} onPlacements={(next, catalog) => { setPlacements(next); setPlacementCatalog(catalog) }} placing={placing} onPlacing={setPlacing} />
           {layer === 'levels' && <div className="sp-level-key">推奨レベル {[15, 20, 25, 30, 35, 40, 45].map(value => <span key={value}><i style={{ background: levelColor(value) }} />{value}</span>)}</div>}
           <p className="sp-scope">カバー率の分母は、地形・足場・モブ条件を満たす配置対象です。全大陸すべてが配置可能という意味ではありません。区画の全256列を測定していますが、実際の移動経路や戦闘負荷は未検証です。</p>
           <section className="sp-region-section"><h2>地域ごとの計画</h2><p>地域を選ぶと地図と配置案の一覧を絞り込みます。</p><div className="sp-region-list">{snapshot.regions.map(value => <button key={value.id} className={`sp-region-row ${region === value.id ? 'selected' : ''}`} onClick={() => selectRegion(value.id)}><i style={{ background: levelColor(value.levelMin) }} /><span><strong>{value.name}</strong><small>{habitatNames[value.habitat] ?? value.habitat} · {number(value.cellCount)}区画</small></span><b>{value.levelMin == null ? '未選定' : `Lv.${value.levelMin}–${value.levelMax}`}</b><span>{number(value.coveredCellsByRadius?.[String(radius)] ?? 0)} / {number(value.eligibleCells)}<small>カバー / 対象</small></span></button>)}</div></section>
@@ -119,7 +127,7 @@ export function SpawnerPlanningWorkspace({ active }: { active: boolean }) {
           {selectedRegion && <section><h2>{selectedRegion.name}</h2><p className="sp-muted">{selectedRegion.reason}</p><button className="button" onClick={() => selectRegion('')}>全大陸へ戻す</button></section>}
           <section><h2>配置・未配置の理由</h2><div className="sp-reason-list">{Object.entries(stats.counts).sort((a, b) => b[1] - a[1]).map(([code, value]) => <button key={code} onClick={() => { setReason(code); setLayer('reasons') }} aria-pressed={reason === code}><span><i style={{ background: reasonColor(code) }} />{snapshot.manifest.reasons[code] ?? code}</span><b>{number(value)}</b></button>)}</div></section>
           <section><h2>配置案 <small>{number(proposals.length)}件</small></h2><input aria-label="配置案を検索" placeholder="モブ名・地域名・ID・座標" value={query} onChange={event => { setQuery(event.target.value); setVisibleCount(40) }} /><div className="sp-proposal-list">{proposals.slice(0, visibleCount).map(value => <button key={value.proposalId} onClick={() => selectProposal(value.proposalId)} aria-pressed={selectedProposal === value.proposalId}><strong>Lv.{value.level} · {value.regionName}</strong><span>{value.spawnMobs.map(mob => mob.name.replace(/[&§][0-9a-fk-or]/gi, '')).join(' / ')}</span><small>X {value.x} / Y {value.y} / Z {value.z}{value.definitionStatus === 'draft' ? ' · 未登録案' : ''}</small></button>)}{proposals.length === 0 && plan && <p className="sp-muted">この条件の配置案はありません。未配置理由を確認してください。</p>}</div>{visibleCount < proposals.length && <button className="button sp-more" onClick={() => setVisibleCount(value => value + 40)}>さらに40件表示</button>}</section>
-          <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>この画面は閲覧用です。共有マスタの公開や実際の配置は、この画面からは行いません。</p></section>
+          <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>配置案は解析用です。保存済み配置の編集は Dev のみです。共有チャンネルへの公開は別工程です。</p></section>
         </aside>
       </div>
     </>}

@@ -6,6 +6,7 @@ import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
 vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn() } }))
 vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell }: { onCell: (index: number) => void }) => <button onClick={() => onCell(1)}>解析失敗区画を選択</button> }))
+vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: () => null }))
 const identity = { schemaVersion: 2, worldId: 'test', terrainFingerprint: 'terrain', exportRevision: 'revision-a' }
 const snapshot: PlanningSnapshot = {
   manifest: { ...identity, worldName: 'テスト大陸', previewOnly: true, bounds: { minX: 0, minZ: 0, width: 48, height: 16, cellSize: 16 }, spawn: { x: 0, y: 70, z: 0 }, capturedAt: '2026-10-25T00:00:00Z', radiusOptions: [32, 48, 64], reasons: { covered: '新しい配置案でカバー', failed: '地形の読込・計測に失敗', absent: '未保存の区画' }, limitations: ['実配置は行いません'], progressionPolicy: {} },
@@ -42,6 +43,7 @@ describe('マスタエディタ内の配置計画', () => {
     render(<SpawnerPlanningWorkspace active />)
     expect(await screen.findByText(/北東のLv.100超予定地/)).toBeInTheDocument()
     expect(screen.getByText(/道路距離300mごと/)).toHaveTextContent('未到達の距離帯は配置しません')
+    await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
     expect(screen.getByText(/道に沿った距離:/)).toHaveTextContent('648m')
     expect(screen.getByText(/道からの距離:/)).toHaveTextContent('32m')
