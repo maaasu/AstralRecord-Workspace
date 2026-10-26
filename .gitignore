@@ -39,6 +39,8 @@ dependency-reduced-pom.xml
 local.settings.json
 appsettings.Development.json
 appsettings.Local.json
+60_tool/skilltree-editor/appsettings.local.json
+60_tool/skilltree-editor/src/SkillTreeEditor.Server/appsettings.local.json
 token.txt
 60_tool/maintenance/*.local.json
 60_tool/player-patch-migration/*.local.json

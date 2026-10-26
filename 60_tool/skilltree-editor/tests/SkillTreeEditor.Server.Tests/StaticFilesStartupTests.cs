@@ -104,6 +104,27 @@ public sealed class StaticFilesStartupTests : IDisposable
     }
 
     [Fact]
+    public async Task LocalSettingsPersistAtContentRootAndCommandLineWins()
+    {
+        var applicationBase = Path.Combine(_root, "local-settings-host");
+        var publishedWebRoot = Path.Combine(applicationBase, "wwwroot");
+        Directory.CreateDirectory(publishedWebRoot);
+        await File.WriteAllTextAsync(Path.Combine(publishedWebRoot, "index.html"), "published editor");
+        await File.WriteAllTextAsync(Path.Combine(applicationBase, "appsettings.json"),
+            """{"SkillTreeEditor":{"WorldPlacementApiBaseUrl":"http://default"}}""");
+        await File.WriteAllTextAsync(Path.Combine(applicationBase, "appsettings.local.json"),
+            """{"SkillTreeEditor":{"WorldPlacementApiBaseUrl":"http://local","WorldPlacementApiKey":"private-read","WorldPlacementWriteKey":"private-write"}}""");
+
+        var arguments = new[] { "--SkillTreeEditor:WorldPlacementApiBaseUrl=http://command-line" };
+        var builder = WebApplication.CreateBuilder(EditorHostOptions.Create(arguments, applicationBase));
+        EditorHostOptions.AddLocalSettings(builder, arguments);
+        await using var app = builder.Build();
+        Assert.Equal("http://command-line", app.Configuration["SkillTreeEditor:WorldPlacementApiBaseUrl"]);
+        Assert.Equal("private-read", app.Configuration["SkillTreeEditor:WorldPlacementApiKey"]);
+        Assert.Equal("private-write", app.Configuration["SkillTreeEditor:WorldPlacementWriteKey"]);
+    }
+
+    [Fact]
     public void SourceHostLeavesContentRootUnspecifiedForDefaultProjectResolution()
     {
         var applicationBase = Path.Combine(_root, "source-bin");

@@ -4,6 +4,7 @@ using SkillTreeEditor.Server.Options;
 using SkillTreeEditor.Server.Services;
 
 var builder = WebApplication.CreateBuilder(EditorHostOptions.Create(args));
+EditorHostOptions.AddLocalSettings(builder, args);
 
 builder.Services.Configure<EditorOptions>(builder.Configuration.GetSection(EditorOptions.SectionName));
 builder.Services.AddProblemDetails();

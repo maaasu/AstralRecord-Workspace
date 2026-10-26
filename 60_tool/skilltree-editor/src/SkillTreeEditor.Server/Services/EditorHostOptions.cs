@@ -2,6 +2,15 @@ namespace SkillTreeEditor.Server.Services;
 
 public static class EditorHostOptions
 {
+    public static void AddLocalSettings(WebApplicationBuilder builder, string[] args)
+    {
+        var path = Path.Combine(builder.Environment.ContentRootPath, "appsettings.local.json");
+        builder.Configuration.AddJsonFile(path, optional: true, reloadOnChange: false);
+        // The optional local file sits below environment variables and command line settings.
+        builder.Configuration.AddEnvironmentVariables();
+        builder.Configuration.AddCommandLine(args);
+    }
+
     public static WebApplicationOptions Create(string[] args)
         => Create(args, AppContext.BaseDirectory);
 
