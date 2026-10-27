@@ -6,14 +6,83 @@ import { closestContainerPointer } from '../data/masterDataNavigation'
 import { MasterDataDetails, MasterDataSearch } from './MasterDataNavigation'
 
 const initial = { schemaVersion: 1, id: 'test', unknown: 'root', skills: [{ params: { 'a/b~c': 2, UnknownRpc: 'keep' } }, { id: 'sibling' }] }
-function Editable({ readOnly = false, value: startingValue = initial, schema = {} }: { readOnly?: boolean; value?: JsonValue; schema?: JsonObject }) {
+function Editable({ readOnly = false, value: startingValue = initial, schema = {}, onFocus = vi.fn() }: { readOnly?: boolean; value?: JsonValue; schema?: JsonObject; onFocus?: (path: string) => void }) {
   const [value, setValue] = useState<JsonValue>(startingValue)
   const [path, setPath] = useState('')
   const selected = closestContainerPointer(value, path)
-  return <><MasterDataDetails value={value} path={selected} fields={[]} references={[]} schema={schema} disabled={readOnly} navigationDisabled={false} onSelect={setPath} onFocus={vi.fn()} onInvalid={vi.fn()} onChange={setValue} />
+  return <><MasterDataDetails value={value} path={selected} fields={[]} references={[]} schema={schema} disabled={readOnly} navigationDisabled={false} onSelect={setPath} onFocus={onFocus} onInvalid={vi.fn()} onChange={setValue} />
     <output data-testid="value">{JSON.stringify(value)}</output></>
 }
 describe('master data sections, search and details', () => {
+  it('moves through search results by keyboard, returns to the query, and supports another search', () => {
+    const onFocus = vi.fn()
+    render(<MasterDataSearch value={{ alpha: 'match', beta: 'match', gamma: 'match' }} fields={[]} schema={{}} onSelect={vi.fn()} onFocus={onFocus} />)
+    const input = screen.getByRole('textbox', { name: /フォーム内検索/ })
+    fireEvent.change(input, { target: { value: 'match' } })
+    const results = ['/alpha', '/beta', '/gamma'].map((path) => screen.getByRole('button', { name: new RegExp('^' + path + ' ') }))
+    input.focus()
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(results[0]).toHaveFocus()
+    fireEvent.keyDown(results[0], { key: 'ArrowDown' })
+    expect(results[1]).toHaveFocus()
+    fireEvent.keyDown(results[1], { key: 'End' })
+    expect(results[2]).toHaveFocus()
+    fireEvent.keyDown(results[2], { key: 'Home' })
+    expect(results[0]).toHaveFocus()
+    fireEvent.keyDown(results[0], { key: 'ArrowUp' })
+    expect(results[2]).toHaveFocus()
+    fireEvent.keyDown(results[2], { key: 'Escape' })
+    expect(input).toHaveFocus()
+    expect(input).toHaveValue('match')
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(results[0]).toHaveFocus()
+    fireEvent.click(results[0])
+    expect(onFocus).toHaveBeenCalledWith('/alpha')
+    expect(input).toHaveValue('')
+    fireEvent.change(input, { target: { value: 'gamma' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(screen.getByRole('button', { name: /^\/gamma / })).toHaveFocus()
+  })
+
+  it('ignores composition keys and respects disabled navigation', () => {
+    const onFocus = vi.fn()
+    const { rerender } = render(<MasterDataSearch value={{ alpha: 'match' }} fields={[]} schema={{}} onSelect={vi.fn()} onFocus={onFocus} />)
+    const input = screen.getByRole('textbox', { name: /フォーム内検索/ })
+    fireEvent.change(input, { target: { value: 'match' } })
+    input.focus()
+    fireEvent.keyDown(input, { key: 'ArrowDown', isComposing: true })
+    expect(input).toHaveFocus()
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 })
+    expect(input).toHaveFocus()
+    rerender(<MasterDataSearch value={{ alpha: 'match' }} fields={[]} schema={{}} disabled onSelect={vi.fn()} onFocus={onFocus} />)
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveFocus()
+    expect(screen.getByRole('button', { name: /^\/alpha / })).toBeDisabled()
+    expect(onFocus).not.toHaveBeenCalled()
+  })
+
+  it('selects a structured search result and then requests focus at its heading', () => {
+    const onSelect = vi.fn()
+    const onFocus = vi.fn()
+    render(<MasterDataSearch value={{ nested: { id: 'target' } }} fields={[]} schema={{}} onSelect={onSelect} onFocus={onFocus} />)
+    fireEvent.change(screen.getByRole('textbox', { name: /フォーム内検索/ }), { target: { value: 'target' } })
+    fireEvent.click(screen.getByRole('button', { name: /^\/nested に移動/ }))
+    expect(onSelect).toHaveBeenCalledWith('/nested')
+    expect(onFocus).toHaveBeenCalledWith('/nested')
+    expect(onSelect.mock.invocationCallOrder[0]).toBeLessThan(onFocus.mock.invocationCallOrder[0])
+  })
+
+  it('requests focus for sections and breadcrumbs without editing values', () => {
+    const onFocus = vi.fn()
+    render(<Editable value={{ id: 'one', nested: { child: { id: 'two' } } }} onFocus={onFocus} />)
+    fireEvent.click(screen.getByRole('button', { name: '/nested を開く' }))
+    expect(onFocus).toHaveBeenCalledWith('/nested')
+    fireEvent.click(screen.getByRole('button', { name: '/nested/child を開く' }))
+    expect(onFocus).toHaveBeenCalledWith('/nested/child')
+    fireEvent.click(within(screen.getByRole('navigation', { name: /現在の階層/ })).getByRole('button', { name: /基本情報/ }))
+    expect(onFocus).toHaveBeenLastCalledWith('')
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ id: 'one', nested: { child: { id: 'two' } } })
+  })
   it('searches catalog status names in scalar values and Map keys without rewriting stored IDs', () => {
     render(<Editable value={{ stats: { MAX_HEALTH: 5 }, baseStats: [{ status: 'MAX_HEALTH', value: 7 }] }} />)
     fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: '最大HP' } })

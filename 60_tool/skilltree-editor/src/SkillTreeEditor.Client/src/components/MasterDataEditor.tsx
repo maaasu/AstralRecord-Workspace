@@ -204,6 +204,10 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const [documentation, setDocumentation] = useState<{ path: string; raw: string } | null>(null)
   const [formPath, setFormPath] = useState('')
   const [focusPath, setFocusPath] = useState<{ path: string } | null>(null)
+  const [focusValidation, setFocusValidation] = useState(false)
+  const validationHeading = useRef<HTMLElement>(null)
+  const saveInFlight = useRef(false)
+  const [savePhase, setSavePhase] = useState<'prepare' | 'validate' | 'save' | null>(null)
   const editorElement = useRef<HTMLElement>(null)
   const importInput = useRef<HTMLInputElement>(null)
   const operationId = useRef(0)
@@ -232,7 +236,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       ?? (schemas.length === 1 ? schemas[0].schema : {})
   }, [documentCategory, draft.content])
   const dirty = Boolean(document) && (draft.source === 'form'
-    ? JSON.stringify(draft.content) !== JSON.stringify(document?.content)
+    ? JSON.stringify(draft.content) !== JSON.stringify(document?.content) || draft.raw !== document?.raw
     : draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
   const filteredReferences = useMemo(() => references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${stripMinecraftFormatting(entry.label ?? '')}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())), [references, referenceQuery])
   const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
@@ -333,20 +337,23 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const validate = async () => {
     if (!document || busy || Object.keys(invalidInputs).length) return
     setBusy(true); setError('')
-    try { const validation = await masterDataApi.validate(document.path, await currentRaw()); setReport(validation); setNotice(validation.isValid ? '検証に成功しました。' : '検証で問題が見つかりました。') }
+    try { const validation = await masterDataApi.validate(document.path, await currentRaw()); presentValidation(validation); setNotice(validation.isValid ? '検証に成功しました。' : '検証で問題が見つかりました。') }
     catch (reason) { showError(reason) } finally { setBusy(false) }
   }
   const save = async () => {
-    if (!document || readOnly || busy || recovery || Object.keys(invalidInputs).length) return
-    setBusy(true); setError(''); setNotice('')
+    if (!document || readOnly || !dirty || busy || saveInFlight.current || recovery || Object.keys(invalidInputs).length) return
+    saveInFlight.current = true
+    setBusy(true); setSavePhase('prepare'); setError(''); setNotice('')
     try {
       const raw = await currentRaw()
       if ((requiresDiffReview || latestRenderWarnings.current.length > 0) && reviewedRaw.current !== raw) {
         setDiffRaw(raw); setNotice(requiresDiffReview ? '復元した下書きと最新の保存済み原稿の差分を確認してください。閉じた後、もう一度「保存」を押すと反映します。' : '原稿の変換に警告があります。差分を確認して閉じた後、もう一度「保存」を押してください。'); return
       }
+      setSavePhase('validate')
       const validation = await masterDataApi.validate(document.path, raw)
-      setReport(validation)
+      presentValidation(validation)
       if (!validation.isValid) { setError('検証エラーがあるため保存しませんでした。'); return }
+      setSavePhase('save')
       const saved = await masterDataApi.save(document.path, raw, document.revision)
       setDocument(saved); history.reset({ raw: saved.raw, content: saved.content, source: draft.source }); setRenderWarnings([]); setRequiresDiffReview(false)
       setNotice(`${baseName(saved.path)} を保存しました。`)
@@ -359,7 +366,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
           if (latest.revision !== document.revision) setConflictDocument(latest)
         } catch { setNotice('最新の原稿を取得できません。編集内容は保持しています。接続を確認して再試行してください。') }
       }
-    } finally { setBusy(false) }
+    } finally { saveInFlight.current = false; setSavePhase(null); setBusy(false) }
   }
   const moveHistory = (direction: 'undo' | 'redo') => {
     if (Object.keys(invalidInputs).length) { setNotice('編集中の数値を修正してから履歴を移動してください。'); return }
@@ -380,8 +387,12 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   useEffect(() => {
     if (!active) return
     const keyboard = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || createMode || diffRaw !== null || documentation || recovery || browserDialogOpen || busy) return
-      if (event.key.toLowerCase() === 's') { event.preventDefault(); void save() }
+      if (!(event.ctrlKey || event.metaKey)) return
+      // Keep repeated saves and modal/busy states from opening the browser's Save Page dialog.
+      const saveShortcut = event.key.toLowerCase() === 's'
+      if (saveShortcut) event.preventDefault()
+      if (event.isComposing || event.repeat || createMode || diffRaw !== null || documentation || recovery || browserDialogOpen || busy) return
+      if (saveShortcut) { void save(); return }
       if ((event.target as HTMLElement | null)?.closest('input, textarea, select, [contenteditable]')) return
       if (event.key.toLowerCase() === 'z') { event.preventDefault(); moveHistory(event.shiftKey ? 'redo' : 'undo') }
       if (event.key.toLowerCase() === 'y') { event.preventDefault(); moveHistory('redo') }
@@ -445,6 +456,26 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     if (draft.source === 'raw') void changeMode('form').then(() => setFocusPath(next))
     else setFocusPath(next)
   }
+  const presentValidation = (validation: ValidationReport) => {
+    setReport(validation)
+    if (validation.isValid) return
+    const paths = validation.issues.filter((entry) => entry.severity === 'error').map((entry) => entry.path)
+      .filter((path): path is string => typeof path === 'string' && (!path || path.startsWith('/')) && !/~(?![01])/.test(path))
+    // JSON Schema also reports ancestor summaries before the actionable field error.
+    const path = paths.find((candidate) => {
+      const value = valueAtPointer(draft.content, candidate)
+      return value !== undefined && value !== null && typeof value !== 'object'
+        && !paths.some((other) => other !== candidate && other.startsWith(`${candidate}/`))
+    })
+    if (draft.source === 'form' && path !== undefined) setFocusPath({ path })
+    else setFocusValidation(true)
+  }
+  useEffect(() => {
+    if (!active || busy || !focusValidation) return
+    validationHeading.current?.focus()
+    validationHeading.current?.scrollIntoView?.({ block: 'center' })
+    setFocusValidation(false)
+  }, [active, busy, focusValidation])
   useEffect(() => {
     if (!active || !focusPath || draft.source !== 'form' || busy) return
     const targetValue = valueAtPointer(draft.content, focusPath.path)
@@ -481,7 +512,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
         setRecovery(null); onRecoveryHandled(document.path)
       }}>下書きを破棄</button></div></section>}
       <fieldset className="master-recovery-lock" disabled={Boolean(recovery)}>
-      <div className="master-toolbar master-main-toolbar"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button><button className="button" title="元に戻す Ctrl+Z" disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="button" title="やり直す Ctrl+Y" disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><span className="master-spacer" /><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
+      <div className="master-toolbar master-main-toolbar"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button><button className="button" title="元に戻す Ctrl+Z" disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="button" title="やり直す Ctrl+Y" disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><span className="master-spacer" /><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{savePhase === 'prepare' ? '原稿を準備中…' : savePhase === 'validate' ? '検証中…' : savePhase === 'save' ? '保存中…' : busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
       {(error || notice) && <div className={`master-message ${error ? 'error' : 'success'}`} role={error ? 'alert' : 'status'}><span>{error || notice}</span><button className="button compact subtle" onClick={() => { setError(''); setNotice('') }}>閉じる</button></div>}
       {conflictDocument && <section className="master-recovery-panel" aria-label="保存競合の解決"><strong>別の編集で保存済み原稿が変更されています</strong><p>現在の編集は保持しています。最新原稿との差分を確認してから、編集を続ける基準を更新できます。</p><div className="button-row"><button type="button" className="button" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => {
         setBusy(true)
@@ -504,7 +535,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
         }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
       </> : <div className="master-empty"><h2>{initialPath ? busy ? 'ファイルを読み込んでいます…' : 'ファイルを読み込めませんでした' : 'マスターデータを編集'}</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{initialPath && <button type="button" className="button" disabled={busy} onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button>}{category && <p>{category.label} · {category.directory}</p>}</div>}</div>
-      {(report || Object.keys(invalidInputs).length > 0) && <section className="master-validation"><details open><summary>検証結果 {Object.keys(invalidInputs).length ? `入力エラー ${Object.keys(invalidInputs).length} 件` : report?.isValid ? '✓ 成功' : '要確認'} {report?.issues.length ? `${report.issues.length} 件` : ''}</summary>{report?.isValid && !report.issues.length && !Object.keys(invalidInputs).length && <p className="success-message">検証エラーはありません。</p>}<ul>{Object.entries(invalidInputs).map(([path, message]) => <li className="error" key={path}><button className="text-button" onClick={() => focusIssue(path)}>{path}</button> {message}</li>)}{report?.issues.map((issue, index) => <li key={index} className={issue.severity}><code>{issue.code}</code> <button className="text-button" onClick={() => focusIssue(issue.path)}>{issue.path || '/'}</button> {issue.message}</li>)}</ul></details></section>}
+      {(report || Object.keys(invalidInputs).length > 0) && <section className="master-validation"><details open><summary ref={validationHeading} tabIndex={-1}>検証結果 {Object.keys(invalidInputs).length ? `入力エラー ${Object.keys(invalidInputs).length} 件` : report?.isValid ? '✓ 成功' : '要確認'} {report?.issues.length ? `${report.issues.length} 件` : ''}</summary>{report?.isValid && !report.issues.length && !Object.keys(invalidInputs).length && <p className="success-message">検証エラーはありません。</p>}<ul>{Object.entries(invalidInputs).map(([path, message]) => <li className="error" key={path}><button className="text-button" onClick={() => focusIssue(path)}>{path}</button> {message}</li>)}{report?.issues.map((issue, index) => <li key={index} className={issue.severity}><code>{issue.code}</code> <button className="text-button" onClick={() => focusIssue(issue.path)}>{issue.path || '/'}</button> {issue.message}</li>)}</ul></details></section>}
       </fieldset>
     </section>
     {diffRaw !== null && document && <MasterDataDiff before={diffBefore ?? document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null); setDiffBefore(null) }} />}

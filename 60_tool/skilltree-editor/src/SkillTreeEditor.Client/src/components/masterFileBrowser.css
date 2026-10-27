@@ -50,7 +50,8 @@
 .master-results-pane .master-result-path { color: #a3b1c4; font-size: 10px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; display: block; }
 .master-results-pane .master-result-location { color: #8ca2bf; font-size: 10px; }
 .master-results-footer { padding: 8px 10px; border-top: 1px solid var(--line); color: var(--text-muted); font-size: 10px; }
-.master-no-results { padding: 28px 12px; color: var(--text-muted); font-size: 12px; line-height: 1.7; text-align: center; }
+.master-no-results { padding: 28px 12px; color: var(--text-muted); font-size: 12px; line-height: 1.7; text-align: center; display: grid; justify-items: center; gap: 8px; }
+.master-no-results p { margin: 0; }
 .master-no-results strong { color: var(--text); }
 .master-browser-switch { display: none; }
 .master-filter-dialog { width: min(820px, calc(100vw - 32px)); max-height: min(920px, calc(100vh - 32px)); }
