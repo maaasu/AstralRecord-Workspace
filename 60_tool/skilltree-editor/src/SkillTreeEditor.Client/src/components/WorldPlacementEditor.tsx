@@ -5,7 +5,7 @@ import { MinecraftText } from './MinecraftText'
 import { spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import './worldPlacementEditor.css'
 
-export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
+export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number | null; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
 export interface PlacementPoint { key: number; x: number; y: number | null; z: number }
 interface Props {
   editing?: boolean
@@ -15,7 +15,7 @@ interface Props {
   selectedId: string | null
   selectionKey?: number
   onSelected: (id: string | null) => void
-  onPlacements: (placements: WorldPlacement[], catalog: PlacementCatalog) => void
+  onPlacements: (placements: WorldPlacement[], catalog: PlacementCatalog, ready: boolean) => void
   placing: boolean
   onPlacing: (placing: boolean) => void
   moving?: boolean
@@ -24,6 +24,11 @@ interface Props {
   onDirtyChange?: (dirty: boolean) => void
 }
 const emptyCatalog: PlacementCatalog = { spawners: [], npcs: [], worlds: [] }
+const readCatalog = async (): Promise<PlacementCatalog> => {
+  const response = await fetch('/api/world-placements/catalog'), payload = await response.json()
+  if (!response.ok) throw new Error(payload.title ?? '配置マスターを読み込めません。')
+  return payload as PlacementCatalog
+}
 const clean = (value: string) => value.replace(/[&§][0-9a-fk-or]/gi, '')
 const templateName = (placement: WorldPlacement, catalog: PlacementCatalog) => placement.kind === 'waystone'
   ? placement.waystone?.name || placement.waystone?.id || '道標'
@@ -91,16 +96,12 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const mapPlacements = useMemo(() => editing
     ? selectedOutsideFilter && selected ? [...filtered, selected] : filtered
     : working.filter(item => item.worldId === worldId), [editing, filtered, selectedOutsideFilter, selected, working, worldId])
-  useEffect(() => { onPlacements(mapPlacements, catalog) }, [mapPlacements, catalog])
+  useEffect(() => { onPlacements(mapPlacements, catalog, base !== null) }, [mapPlacements, catalog, base])
   useEffect(() => {
     let cancelled = false
     Promise.all([
       worldPlacementApi.read(),
-      fetch('/api/world-placements/catalog').then(async response => {
-        const payload = await response.json()
-        if (!response.ok) throw new Error(payload.title ?? '配置マスターを読み込めません。')
-        return payload as PlacementCatalog
-      }),
+      readCatalog(),
     ]).then(([value, definitions]) => {
       if (cancelled) return
       setBase(value); setWorking(value.placements); setCatalog(definitions)
@@ -155,7 +156,12 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     if (busyRef.current) return
     if (dirty && !window.confirm('未保存の編集を破棄して Dev 配置を再読込しますか？')) return
     busyRef.current = true; setBusy(true); setError('')
-    try { const value = await worldPlacementApi.read(); setBase(value); setWorking(value.placements); setDirty(false); onSelected(null); setNotice('Dev 配置を再読込しました。') }
+    try {
+      // A base snapshot is usable only after both placements and definitions load.
+      // Retry both after an initial catalog failure; do not publish a partial pair.
+      const [value, definitions] = await Promise.all([worldPlacementApi.read(), readCatalog()])
+      setBase(value); setWorking(value.placements); setCatalog(definitions); setDirty(false); onSelected(null); setNotice('Dev 配置を再読込しました。')
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
     finally { busyRef.current = false; setBusy(false) }
   }

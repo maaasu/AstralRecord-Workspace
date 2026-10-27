@@ -421,7 +421,7 @@ it('ホバー円はドラッグ・配置操作・非表示・フィルター除�
   expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
 })
 
-it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY, -1, 0])('未知・不正な半径 %s からDev・AIの円を捏造しない', radius => {
+it.each([null, undefined, Number.NaN, Number.POSITIVE_INFINITY, -1, 0])('未知・不正な半径 %s からDev・AIの円を捏造しない', radius => {
   const context = drawingContext()
   const catalog = { ...hoverCatalog, spawners: [{ ...hoverCatalog.spawners[0], radiusMeters: radius as number }] }
   const { container, rerender } = render(<SpawnerPlanningMap {...hoverProps} placementCatalog={catalog} />)
@@ -434,6 +434,85 @@ it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY, -1, 0])('未知・不�
   rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={{ ...hoverPlan, proposals: [{ ...hoverPlan.proposals[0], radiusMeters: radius as number }] }} />)
   expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 不明')
   expect(context.arc.mock.calls.map(call => call[2])).toEqual([48 * .935, 5])
+})
+
+const coverageSnapshot: PlanningSnapshot = { ...snapshot, manifest: { ...snapshot.manifest,
+  bounds: { minX: 0, minZ: 0, width: 48, height: 16, cellSize: 16 } },
+  cells: Array.from({ length: 3 }, (_, index) => ({ x: index * 16, z: 0, y: 70, status: 'ok', surface: 'grass', ground: 'dirt', biome: 'plains',
+    safeCount: 256, waterCount: 0, treeCount: 0, candidateX: index * 16, candidateY: 70, candidateZ: 0,
+    minY: 70, maxY: 70, habitat: 'grass', regionId: index === 2 ? 'other' : 'field', targetLevel: 15, reasonCode: 'eligible', reason: '' })),
+}
+const coveragePlacement = { ...hoverPlacement, x: 7.5, z: 7.5 }
+const coverageCatalog = { ...hoverCatalog, spawners: [{ ...hoverCatalog.spawners[0], radiusMeters: 16 }] }
+const coverageProps = { ...hoverProps, snapshot: coverageSnapshot, placements: [coveragePlacement], placementCatalog: coverageCatalog, showProposals: false }
+
+it('既定ONの色と文字件数で重複・未カバーを示し、無効・NPC・別worldを除いて編集とフィルターを反映する', () => {
+  drawingContext()
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} placements={[coveragePlacement,
+    { ...coveragePlacement, placementId: 'disabled', enabled: false }, { ...coveragePlacement, placementId: 'npc', kind: 'npc' },
+    { ...coveragePlacement, placementId: 'other-world', worldId: 'other' }]} />)
+  const key = screen.getByLabelText('出現範囲の重複と未カバー')
+  expect(screen.getByRole('checkbox', { name: '重複・未カバーを色で確認' })).toBeChecked()
+  expect(key).toHaveTextContent('未カバー（0件） · 1区画')
+  expect(key).toHaveTextContent('1件の範囲内 · 2区画')
+  expect(key).toHaveTextContent('重複（2件以上） · 0区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={[coveragePlacement, { ...coveragePlacement, placementId: 'second' }]} />)
+  expect(key).toHaveTextContent('重複（2件以上） · 2区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={[{ ...coveragePlacement, x: 39.5 }]} />)
+  expect(key).toHaveTextContent('未カバー（0件） · 1区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={[]} />)
+  expect(key).toHaveTextContent('未カバー（0件） · 3区画')
+})
+
+it('AIはDevと二重計数せず案の半径で計算し、地域・状況を反映して未取得は判定しない', () => {
+  drawingContext()
+  const plan = { ...hoverPlan, proposals: [{ ...hoverPlan.proposals[0], x: 7.5, z: 7.5, radiusMeters: 16, coveredCellIndices: [] }] }
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} showProposals plan={plan} />)
+  const key = screen.getByLabelText('出現範囲の重複と未カバー')
+  expect(key).toHaveTextContent('判定: 選択地域の AI 配置案のみ')
+  expect(key).toHaveTextContent('1件の範囲内 · 2区画')
+  expect(key).toHaveTextContent('重複（2件以上） · 0区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={plan} region="other" />)
+  expect(key).toHaveTextContent('未カバー（0件） · 1区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={plan} reason="covered" />)
+  expect(key).toHaveTextContent('1件の範囲内 · 0区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={null} />)
+  expect(key).toHaveTextContent('AI 配置案を取得できていないため')
+  expect(key).not.toHaveTextContent('区画 ·')
+  expect(key).not.toHaveTextContent('0件） · 3区画')
+})
+
+it('未取得のDevを0件とせず、不明半径・未解析地形を未カバーと断定しない', () => {
+  drawingContext()
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} placementsReady={false} />)
+  const key = screen.getByLabelText('出現範囲の重複と未カバー')
+  expect(key).toHaveTextContent('Dev 配置とマスターの取得が完了していないため')
+  expect(key).not.toHaveTextContent('0件） · 1区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} placementCatalog={{ ...coverageCatalog, spawners: [{ ...coverageCatalog.spawners[0], radiusMeters: null }] }} />)
+  expect(key).toHaveTextContent('既知範囲0件 · 3区画')
+  expect(key).toHaveTextContent('0件の場所も未カバーとは断定できません')
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={[]} snapshot={{ ...coverageSnapshot, cells: coverageSnapshot.cells.map(item => ({ ...item, status: 'failed' })) }} selectedCell={0} />)
+  expect(key).toHaveTextContent('未カバー（0件） · 0区画')
+  expect(key).toHaveTextContent('選択区画: 判定対象外')
+})
+
+it('色をOFFにしても円設定を保持し、ホバー・パン・ズームでは被覆の再計算を増やさない', () => {
+  const context = drawingContext()
+  const { container, rerender } = render(<SpawnerPlanningMap {...coverageProps} radii />)
+  const key = screen.getByLabelText('出現範囲の重複と未カバー')
+  const canvas = container.querySelector('canvas')!
+  context.fillRect.mockClear()
+  moveMouse(canvas, 86, 250)
+  expect(context.fillRect).not.toHaveBeenCalled()
+  fireEvent.keyDown(canvas, { key: 'ArrowLeft' })
+  fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  // Scene labels/scale may use fillRect, but the 1x1 coverage raster remains cached.
+  expect(context.fillRect.mock.calls.filter(call => call[2] === 1 && call[3] === 1)).toHaveLength(0)
+  fireEvent.click(screen.getByRole('checkbox', { name: '重複・未カバーを色で確認' }))
+  expect(key).not.toHaveTextContent('0件） · 1区画')
+  rerender(<SpawnerPlanningMap {...coverageProps} radii showProposals plan={{ ...hoverPlan, proposals: [{ ...hoverPlan.proposals[0], x: 7.5, z: 7.5 }] }} />)
+  expect(screen.getByRole('checkbox', { name: '重複・未カバーを色で確認' })).not.toBeChecked()
+  expect(rangeCalls(context, 32 * (374 / 48) * 1.5).length).toBeGreaterThan(0)
 })
 
 it('2,500配置の全範囲を1色1strokeで加え、ホバーでは地形・点・全円を再描画しない', () => {

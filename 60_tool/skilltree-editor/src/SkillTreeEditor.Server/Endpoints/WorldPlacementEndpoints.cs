@@ -1,4 +1,6 @@
 using SkillTreeEditor.Server.Services;
+using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace SkillTreeEditor.Server.Endpoints;
@@ -19,7 +21,7 @@ public static class WorldPlacementEndpoints
             foreach (var item in spawners.Where(item => item.Id is not null))
             {
                 var document = await masters.ReadAsync(item.Path, token);
-                var radius = document.Content is JsonObject content && int.TryParse(content["radiusMeters"]?.ToString(), out var value) ? value : 32;
+                var radius = ReadSpawnerRadius(document.Content);
                 var levels = document.Content is JsonObject spawner && spawner["spawnMobs"] is JsonArray spawnMobs
                     ? spawnMobs.OfType<JsonObject>().Select(mob => int.TryParse(mob["level"]?.ToString(), out var level) ? level : (int?)null)
                         .Where(level => level is not null).Select(level => level!.Value).Distinct().Order().ToArray()
@@ -43,5 +45,17 @@ public static class WorldPlacementEndpoints
             return Results.Ok(new { spawners = spawnerEntries, npcs = npcEntries, worlds = worldEntries });
         });
         return endpoints;
+    }
+
+    public static double? ReadSpawnerRadius(JsonNode? document)
+    {
+        if (document is not JsonObject content) return null;
+        var radius = content["radiusMeters"];
+        // Match the plugin's default and minimum while keeping malformed values unknown.
+        if (radius is null) return 16;
+        if (radius.GetValueKind() != JsonValueKind.Number ||
+            !double.TryParse(radius.ToJsonString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ||
+            !double.IsFinite(value)) return null;
+        return Math.Max(1, value);
     }
 }

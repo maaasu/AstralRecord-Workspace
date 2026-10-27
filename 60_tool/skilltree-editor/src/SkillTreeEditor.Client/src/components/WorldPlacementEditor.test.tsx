@@ -18,6 +18,35 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 describe('Dev 配置の編集', () => {
+  it('初回カタログ失敗後も未取得を維持し、Dev再読込で配置とカタログの両方が回復する', async () => {
+    const visible = vi.fn()
+    vi.mocked(fetch).mockResolvedValue({ ok: false, json: async () => ({ title: 'カタログ失敗' }) } as Response)
+    render(<WorldPlacementEditor snapshot={snapshot} point={null} selectedId={null} onSelected={vi.fn()} onPlacements={visible} placing={false} onPlacing={vi.fn()} />)
+    await screen.findByText('カタログ失敗')
+    expect(visible.mock.lastCall?.[2]).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Dev を再読込' }))
+    await waitFor(() => expect(worldPlacementApi.read).toHaveBeenCalledTimes(2))
+    await screen.findByText('カタログ失敗')
+    expect(visible.mock.lastCall?.[2]).toBe(false)
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ spawners: [{ id: 'wolf', name: '狼', radiusMeters: 32.5, levels: [10] }], npcs: [], worlds: [] }) } as Response)
+    fireEvent.click(screen.getByRole('button', { name: 'Dev を再読込' }))
+    await waitFor(() => expect(visible.mock.lastCall?.[2]).toBe(true))
+    expect(visible.mock.lastCall?.[1].spawners[0].radiusMeters).toBe(32.5)
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+  it('配置とカタログの取得成功まで未取得を通知し、失敗を空の配置と区別する', async () => {
+    vi.mocked(worldPlacementApi.read).mockRejectedValue(new Error('Dev 接続失敗'))
+    const visible = vi.fn()
+    const props = { snapshot, point: null, selectedId: null, onSelected: vi.fn(), onPlacements: visible, placing: false, onPlacing: vi.fn() }
+    const view = render(<WorldPlacementEditor {...props} />)
+    await screen.findByText('Dev 接続失敗')
+    expect(visible.mock.lastCall?.[2]).toBe(false)
+    view.unmount()
+    vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements: [] })
+    render(<WorldPlacementEditor {...props} />)
+    await waitFor(() => expect(visible.mock.lastCall?.[2]).toBe(true))
+    expect(visible.mock.lastCall?.[0]).toEqual([])
+  })
   it('保存済みの物理ワールド名を新規配置へ引き継ぎ、候補から選択できる', async () => {
     vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements: [
       { placementId: 'old', kind: 'spawner', worldId: 'eriva', worldName: 'worlds/legacy', templateId: 'wolf', x: 1, y: 70, z: 1, yaw: 0, pitch: 0, enabled: true, waystone: null },

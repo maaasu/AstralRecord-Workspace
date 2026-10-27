@@ -6,9 +6,10 @@ import type { PlacementCatalog } from './WorldPlacementEditor'
 import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
 import { circleIntersectsViewport, drawSpawnerRanges, type MapCircle } from '../data/spawnerRangeDrawing'
+import { calculateCoverage, coverageColors, coverageTerrain, type CoverageCircle } from '../data/spawnerCoverage'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
-const hasRadius = (radius: number | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
+const hasRadius = (radius: number | null | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
 const unknownLevels = spawnerLevels([])
 interface Props {
   snapshot: PlanningSnapshot; plan: PlanningPlan | null; layer: PlanningLayer; region: string; reason: string
@@ -18,6 +19,7 @@ interface Props {
   placements?: WorldPlacement[]; placementCatalog?: PlacementCatalog; selectedPlacement?: string | null
   onPlacement?: (id: string) => void; onPlacePoint?: (x: number, y: number | null, z: number) => void; placing?: boolean
   showProposals?: boolean
+  placementsReady?: boolean
 }
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
@@ -31,6 +33,7 @@ export function SpawnerPlanningMap(props: Props) {
   const [coordinates, setCoordinates] = useState('X — / Z —')
   const [detail, setDetail] = useState<HTMLImageElement | null>(null)
   const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
+  const [showCoverage, setShowCoverage] = useState(true)
   const [pointer, setPointer] = useState<{ x: number; z: number } | null>(null)
   const tooltip = useRef<HTMLDivElement>(null)
   const tooltipContent = useRef<HTMLDivElement>(null)
@@ -46,6 +49,47 @@ export function SpawnerPlanningMap(props: Props) {
   })), [masters, markerMode])
   const masterNumbers = useMemo(() => spawnerMasterNumbers([...masters.keys()]), [masters])
   const placements = useMemo(() => (props.placements ?? []).filter(item => item.worldId === snapshot.manifest.worldId), [props.placements, snapshot.manifest.worldId])
+  const terrain = useMemo(() => coverageTerrain(bounds, snapshot.cells), [bounds, snapshot.cells])
+  const coverageReady = props.showProposals === false
+    ? props.placementsReady ?? (props.placements !== undefined && props.placementCatalog !== undefined) : plan !== null
+  const coverageSources = useMemo(() => {
+    const circles: CoverageCircle[] = []
+    let unknown = 0
+    const add = (x: number, z: number, radius: number | null | undefined) => {
+      if (!hasRadius(radius) || !Number.isFinite(x) || !Number.isFinite(z)) { unknown++; return }
+      circles.push({ x: x + .5, z: z + .5, radius })
+    }
+    if (props.showProposals === false) {
+      for (const item of placements) if (item.kind === 'spawner' && item.enabled) add(item.x, item.z, masters.get(item.templateId ?? '')?.radiusMeters)
+    } else {
+      for (const item of visibleProposals) add(item.x, item.z, item.radiusMeters)
+    }
+    return { circles, unknown }
+  }, [props.showProposals, placements, masters, visibleProposals])
+  const coverage = useMemo(() => showCoverage && coverageReady ? calculateCoverage(terrain, coverageSources.circles) : null,
+    [showCoverage, coverageReady, terrain, coverageSources])
+  const coverageTotals = useMemo(() => {
+    const totals = [0, 0, 0]
+    coverage?.counts.forEach((count, index) => {
+      const cell = snapshot.cells[index]
+      if (count >= 0 && (!region || cell.regionId === region) && (!reason || (plan?.reasonCodes[index] ?? cell.reasonCode) === reason)) totals[count]++
+    })
+    return totals
+  }, [coverage, snapshot.cells, region, reason, plan])
+  const coverageRaster = useMemo(() => {
+    if (!coverage) return null
+    const image = document.createElement('canvas')
+    image.width = terrain.width; image.height = terrain.height
+    const ctx = image.getContext('2d')
+    if (!ctx) return image
+    for (let index = 0; index < snapshot.cells.length; index++) {
+      const cell = snapshot.cells[index], count = coverage.counts[index]
+      if (count < 0 || (region && cell.regionId !== region) || (reason && (plan?.reasonCodes[index] ?? cell.reasonCode) !== reason)) continue
+      ctx.fillStyle = coverageColors[count]
+      ctx.fillRect((cell.x - bounds.minX) / bounds.cellSize, (cell.z - bounds.minZ) / bounds.cellSize, 1, 1)
+    }
+    return image
+  }, [coverage, terrain, snapshot.cells, bounds, region, reason, plan])
   const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
   const placementAt = (px: number, pz: number) => {
     let distance = 8
@@ -219,6 +263,7 @@ export function SpawnerPlanningMap(props: Props) {
       ctx.drawImage(detail, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
     if (layer === 'terrain' && detail && view.scale >= .4 && detailMask)
       ctx.drawImage(detailMask, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
+    if (coverageRaster) ctx.drawImage(coverageRaster, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
     const screen = (x: number, z: number) => [(x - bounds.minX) * view.scale + view.x, (z - bounds.minZ) * view.scale + view.z]
     const road = planningRoad(snapshot.manifest)
     if (road) {
@@ -320,7 +365,7 @@ export function SpawnerPlanningMap(props: Props) {
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
     return element
-  }, [active, raster, detail, detailMask, layer, view, size, pixelRatio, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, placements, masters, masterStyles, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
+  }, [active, raster, detail, detailMask, coverageRaster, layer, view, size, pixelRatio, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, placements, masters, masterStyles, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
   useEffect(() => {
     const element = canvas.current, ctx = element?.getContext('2d')
     if (!element || !ctx || !active || !scene) return
@@ -360,6 +405,16 @@ export function SpawnerPlanningMap(props: Props) {
     return () => element.removeEventListener('wheel', wheel)
   }, [active, zoom])
   return <div className="sp-map-panel">
+    <div className="sp-coverage-controls" aria-label="出現範囲の重複と未カバー">
+      <label><input type="checkbox" checked={showCoverage} onChange={event => setShowCoverage(event.target.checked)} />重複・未カバーを色で確認</label>
+      <strong>判定: {props.showProposals === false ? '表示中の有効な Dev スポナー' : '選択地域の AI 配置案のみ'}</strong>
+      <div className="sp-coverage-key">{[coverageSources.unknown ? '既知範囲0件' : '未カバー（0件）', coverageSources.unknown ? '既知範囲1件' : '1件の範囲内', '重複（2件以上）'].map((label, index) => <span key={index}><i style={{ background: coverageColors[index] }} />{label}{coverage ? ` · ${coverageTotals[index].toLocaleString('ja-JP')}区画` : ''}</span>)}</div>
+      {showCoverage && !coverageReady && <p role="status">{props.showProposals === false ? 'Dev 配置とマスターの取得が完了していないため' : 'AI 配置案を取得できていないため'}、重複・未カバーの判定を表示していません。</p>}
+      {showCoverage && coverageReady && coverageSources.unknown > 0 && <p className="sp-coverage-warning" role="status">半径・座標不明の有効な対象が{coverageSources.unknown}件あります。色は既知範囲の件数の下限です。0件の場所も未カバーとは断定できません。</p>}
+      <p>{bounds.cellSize}m区画の中心点と水平円の概算です。橙は既知の円に含まれない地点、紫は重複の目安。区画全体や実際のスポーン可否は保証しません。地形画像が1m表示でも判定は{bounds.cellSize}mです。</p>
+      <details><summary>判定の対象と除外条件</summary><p>安全な足場を一部含み、候補座標が測定済みの陸地区画だけを着色します。区画中心そのものの足場は保証しません。水域・溶岩・未解析・解析失敗・未保存・地表や生息環境が不明・安全な足場や候補座標が不明の区画は着色しません。保護範囲や将来地域も含む地形の確認であり、AI 計画の配置対象・カバー率とは判定条件が異なります。高度差・地形の接続・区画四隅・モブ条件は判定しません。</p><p>{props.showProposals === false ? '編集の表示フィルターと、条件外でも地図に残る選択中の配置が対象です。未保存の編集も反映します。無効な配置・NPC・道標は数えません。Dev の半径はマスター API の値を使います。' : '地域で絞り込んだ全 AI 案だけを数えます。併記される Dev 配置は数えません。配置状況は着色する区画を絞り込み、一覧の検索・件数制限は計数対象を減らしません。'} 円の表示スイッチとは独立しています。色をOFFにすると元の地形・レイヤーを確認できます。凡例の件数は地図の地域・配置状況に合う区画数です（画面外を含みます）。</p></details>
+      {coverage && selectedCell !== null && <p aria-live="polite">選択区画: {coverage.counts[selectedCell] < 0 ? '判定対象外（測定済みの安全な陸地を確認できません）' : coverage.counts[selectedCell] === 2 ? '既知範囲が2件以上重複' : `既知範囲${coverage.counts[selectedCell]}件`}</p>}
+    </div>
     <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>
     <div className="sp-map-wrap">
     <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
