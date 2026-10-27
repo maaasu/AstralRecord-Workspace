@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError, editorApi } from '../api/editorApi'
 import { NodeSidebar } from './NodeSidebar'
+import { NodePlacementDialog } from './NodePlacementDialog'
 import { PlacementInspector } from './PlacementInspector'
 import { defaultFromSchema } from './SchemaForm'
 import { SkillTreeCanvas } from './SkillTreeCanvas'
@@ -81,6 +82,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   const [nodeEditor, setNodeEditor] = useState<EditorTarget | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [nodeDirty, setNodeDirty] = useState(false)
+  const [placementNode, setPlacementNode] = useState<NodeMaster | null>(null)
+  const [placementDirty, setPlacementDirty] = useState(false)
   const [settingsDirty, setSettingsDirty] = useState(false)
   const [inspectorDirty, setInspectorDirty] = useState(false)
   const [inspectorInputValid, setInspectorInputValid] = useState(true)
@@ -107,7 +110,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   const structures = useMemo(() => structureDocuments.map((document) => document.content), [structureDocuments])
   const currentStructure = history.present
   const dirty = Boolean(selectedStructureId) && JSON.stringify(currentStructure) !== savedSnapshot
-  const anyDirty = dirty || nodeDirty || settingsDirty || inspectorDirty
+  const anyDirty = dirty || nodeDirty || settingsDirty || inspectorDirty || placementDirty
   useEffect(() => { onDirtyChange(anyDirty) }, [anyDirty, onDirtyChange])
   const placedIds = useMemo(() => new Set(currentStructure.nodes.map((node) => node.nodeId)), [currentStructure.nodes])
   const selectedMaster = nodes.find((node) => node.nodeId === selectedNodeId) ?? null
@@ -204,7 +207,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     const keyboard = (event: KeyboardEvent) => {
       if (!active || saving || !inspectorInputValid) return
       const target = event.target as HTMLElement | null
-      if (target?.matches('input, textarea, select') || nodeEditor || settingsOpen) return
+      if (target?.matches('input, textarea, select') || nodeEditor || settingsOpen || placementNode) return
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'z') {
         event.preventDefault()
         if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
@@ -221,7 +224,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     }
     window.addEventListener('keydown', keyboard)
     return () => window.removeEventListener('keydown', keyboard)
-  }, [active, history, nodeEditor, settingsOpen, saving, inspectorDirty, inspectorInputValid])
+  }, [active, history, nodeEditor, settingsOpen, placementNode, saving, inspectorDirty, inspectorInputValid])
 
   const selectNode = (nodeId: string | null) => {
     if (saving || nodeId === selectedNodeId) return
@@ -473,12 +476,13 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">AR</span>
-          <div><span className="eyebrow">ASTRALRECORD 開発ツール</span><h1>スキルツリーエディタ</h1></div>
+    <main className="app-shell skilltree-workspace">
+      <header className="topbar skilltree-header">
+        <div className="workspace-heading">
+          <div><span className="eyebrow">設計ワークスペース</span><h1>スキルツリーエディタ</h1><p>一覧からノードを配置し、つながりとゲーム内の表示を確認します。</p></div>
+          <span className={anyDirty ? 'save-state dirty' : 'save-state'}>{anyDirty ? '未保存の編集あり' : '保存済み'}</span>
         </div>
+        <div className="skilltree-primary-toolbar">
         <div className="structure-control">
           <label>構造
             <select value={selectedStructureId} disabled={saving} onChange={(event) => selectStructure(event.target.value)}>
@@ -489,18 +493,14 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
           <button className="button subtle" onClick={() => void createStructure()} disabled={saving}>＋ 構造</button>
         </div>
         <div className="toolbar">
-          <button className="button subtle" disabled={saving} onClick={() => {
-            if (anyDirty && !window.confirm('未保存の編集を破棄して再読み込みしますか？')) return
-            setNodeEditor(null)
-            setSettingsOpen(false)
-            setSelectedNodeId(null)
-            void load()
-          }}>再読み込み</button>
-          <button className="icon-button" onClick={() => changeHistory(false)} disabled={saving || !inspectorInputValid || !history.canUndo} title="Undo (Ctrl+Z)">↶</button>
-          <button className="icon-button" onClick={() => changeHistory(true)} disabled={saving || !inspectorInputValid || !history.canRedo} title="Redo (Ctrl+Y)">↷</button>
-          <button className="button subtle" onClick={autoLayout} disabled={saving || !inspectorInputValid || !selectedStructureId || currentStructure.nodes.length === 0}>補助自動配置</button>
-          <span className={dirty ? 'save-state dirty' : 'save-state'}>{dirty ? '未保存' : '保存済み'}</span>
-          <button className="button subtle" onClick={retryIcons} title="取得に失敗したMinecraftアイコンを再読み込み">アイコン再読込</button>
+          <div className="history-actions" role="group" aria-label="構造の編集履歴"><button className="icon-button" onClick={() => changeHistory(false)} disabled={saving || !inspectorInputValid || !history.canUndo} title="Undo (Ctrl+Z)" aria-label="元に戻す Ctrl+Z">↶</button>
+          <button className="icon-button" onClick={() => changeHistory(true)} disabled={saving || !inspectorInputValid || !history.canRedo} title="Redo (Ctrl+Y)" aria-label="やり直す Ctrl+Y">↷</button></div>
+          <button className="button primary" onClick={() => void saveStructure()} disabled={!dirty || saving || !inspectorInputValid || !selectedStructureId}>
+            {saving ? '保存中…' : '構造を保存'}
+          </button>
+        </div>
+        </div>
+        <div className="skilltree-secondary-toolbar">
           <div className="pane-toggles" role="group" aria-label="表示パネル">
             {([
               ['nodes', '一覧'],
@@ -511,7 +511,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
                 className={`button compact pane-toggle ${visiblePanes[pane] ? 'active' : ''}`}
                 key={pane}
                 type="button"
-                disabled={saving}
+                disabled={saving || visiblePanes[pane] && Object.values(visiblePanes).filter(Boolean).length === 1}
                 aria-pressed={visiblePanes[pane]}
                 onClick={() => {
                   if (pane === 'details' && visiblePanes.details && inspectorDirty
@@ -523,10 +523,19 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
               </button>
             ))}
           </div>
-          <button className="button" onClick={() => setSettingsOpen(true)}>表示設定</button>
-          <button className="button primary" onClick={() => void saveStructure()} disabled={!dirty || saving || !inspectorInputValid || !selectedStructureId}>
-            {saving ? '保存中…' : '構造を保存'}
-          </button>
+          <span className="skilltree-structure-summary">{currentStructure.nodes.length} ノード · {currentStructure.edges.length} 接続</span>
+          <div className="skilltree-utility-actions">
+          <button className="button subtle" onClick={autoLayout} disabled={saving || !inspectorInputValid || !selectedStructureId || currentStructure.nodes.length === 0}>補助自動配置</button>
+          <button className="button subtle" onClick={() => setSettingsOpen(true)}>表示設定</button>
+          <button className="button subtle" onClick={retryIcons} title="取得に失敗したMinecraftアイコンを再読み込み">アイコン再読込</button>
+          <button className="button subtle" disabled={saving} onClick={() => {
+            if (anyDirty && !window.confirm('未保存の編集を破棄して再読み込みしますか？')) return
+            setNodeEditor(null)
+            setSettingsOpen(false)
+            setSelectedNodeId(null)
+            void load()
+          }}>再読み込み</button>
+          </div>
         </div>
       </header>
 
@@ -538,6 +547,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
       )}
 
       <WorkspaceLayout
+        onActivatePane={(pane) => setVisiblePanes((current) => ({ ...current, [pane === 'left' ? 'nodes' : pane === 'center' ? 'canvas' : 'details']: true }))}
         leftVisible={visiblePanes.nodes}
         centerVisible={visiblePanes.canvas}
         rightVisible={visiblePanes.details}
@@ -551,6 +561,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             onTagChange={setSelectedTag}
             onEdit={editMaster}
             onCreate={openNewNode}
+            onPlace={(node) => { if (!saving && inspectorInputValid && selectedStructureId && !placedIds.has(node.nodeId)) setPlacementNode(node) }}
+            placementDisabled={saving || !inspectorInputValid || !selectedStructureId}
             iconRevision={iconRevision}
             skillMasters={skillMasters}
             classMasters={classMasters}
@@ -675,6 +687,13 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
         )}
       />
 
+      {placementNode && <NodePlacementDialog key={`${selectedStructureId}-${placementNode.nodeId}`} node={placementNode} structure={currentStructure} disabled={saving || !inspectorInputValid} onDirtyChange={setPlacementDirty} onClose={() => setPlacementNode(null)} onPlace={(placement) => {
+        if (saving || !inspectorInputValid || !selectedStructureId || !nodes.some((node) => node.nodeId === placement.nodeId) || placedIds.has(placement.nodeId)
+          || currentStructure.nodes.some((node) => node.x === placement.x && node.y === placement.y && node.z === placement.z)) return false
+        history.record({ ...currentStructure, rootNodeId: currentStructure.rootNodeId || placement.nodeId, nodes: [...currentStructure.nodes, placement] })
+        setNotice(`ノード #${placement.nodeId} を配置しました。キャンバスで接続や位置を調整できます。`)
+        return true
+      }} />}
       {nodeEditor && (
         <Suspense fallback={<div role="status">ノード編集画面を読み込んでいます…</div>}>
         <NodeEditor

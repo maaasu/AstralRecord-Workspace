@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeMaster } from '../types/editor'
 import { NodeSidebar } from './NodeSidebar'
@@ -16,6 +16,19 @@ const node: NodeMaster = {
 }
 
 describe('NodeSidebar', () => {
+  it('offers explicit placement only for unplaced nodes and collapses empty groups', () => {
+    const place = vi.fn()
+    const props = { nodes: [node], placedIds: new Set<string>(), query: '', selectedTag: '', onQueryChange: vi.fn(), onTagChange: vi.fn(), onEdit: vi.fn(), onCreate: vi.fn(), onPlace: place, skillMasters: [] }
+    const { rerender } = render(<NodeSidebar {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: '始まりのノードを座標指定で配置' }))
+    expect(place).toHaveBeenCalledWith(node)
+    expect(screen.getByText('始まりのノード').closest('article')).toHaveAttribute('draggable', 'true')
+    expect(screen.getByText('配置済み 0').closest('section')).toHaveClass('empty')
+    rerender(<NodeSidebar {...props} placedIds={new Set(['1000'])} />)
+    expect(screen.queryByRole('button', { name: '始まりのノードを座標指定で配置' })).not.toBeInTheDocument()
+    expect(screen.getByText('未配置 0').closest('section')).toHaveClass('empty')
+    expect(screen.getByText('配置済み 1').closest('section')).not.toHaveClass('empty')
+  })
   it('shows point consumption as prominently as node effects', () => {
     render(<NodeSidebar
       nodes={[{ ...node, pointType: 'CP', pointCost: 3 }]}

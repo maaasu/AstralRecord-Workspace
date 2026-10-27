@@ -7,6 +7,7 @@ interface WorkspaceLayoutProps {
   leftVisible: boolean
   centerVisible: boolean
   rightVisible: boolean
+  onActivatePane?: (pane: 'left' | 'center' | 'right') => void
 }
 
 const LEFT_DEFAULT = 280
@@ -23,13 +24,23 @@ export function WorkspaceLayout({
   leftVisible,
   centerVisible,
   rightVisible,
+  onActivatePane,
 }: WorkspaceLayoutProps) {
   const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
   const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
+  const [focusedPane, setFocusedPane] = useState('center')
+  const panes = [
+    { id: 'left', label: 'ノード一覧', visible: leftVisible },
+    { id: 'center', label: 'キャンバス', visible: centerVisible },
+    { id: 'right', label: '詳細・検証', visible: rightVisible },
+  ] as const
+  const activePane = panes.find((pane) => pane.id === focusedPane && pane.visible)?.id ?? panes.find((pane) => pane.visible)?.id
 
   return (
+    <div className="workspace-layout">
+    <div className="compact-pane-navigation" role="group" aria-label="作業領域の切替">{panes.filter((pane) => pane.visible || onActivatePane).map((pane) => <button key={pane.id} type="button" className={`button ${activePane === pane.id ? 'active' : ''}`} aria-pressed={activePane === pane.id} onClick={() => { setFocusedPane(pane.id); onActivatePane?.(pane.id) }}>{pane.label}</button>)}</div>
     <div className={centerVisible ? 'workspace-grid' : 'workspace-grid no-center'}>
-      {leftVisible && <div className="workspace-pane left-pane" style={{ flexBasis: leftWidth }}>{left}</div>}
+      {leftVisible && <div className="workspace-pane left-pane" data-compact-active={activePane === 'left'} style={{ flexBasis: leftWidth }}>{left}</div>}
       {leftVisible && centerVisible && (
         <ResizeHandle
           label="ノード一覧の幅を変更"
@@ -41,7 +52,7 @@ export function WorkspaceLayout({
           onResize={setLeftWidth}
         />
       )}
-      {centerVisible && <div className="workspace-pane center-pane">{center}</div>}
+      {centerVisible && <div className="workspace-pane center-pane" data-compact-active={activePane === 'center'}>{center}</div>}
       {rightVisible && (centerVisible || leftVisible) && (
         <ResizeHandle
           label="インスペクターの幅を変更"
@@ -53,7 +64,8 @@ export function WorkspaceLayout({
           onResize={setRightWidth}
         />
       )}
-      {rightVisible && <div className="workspace-pane right-pane" style={{ flexBasis: rightWidth }}>{right}</div>}
+      {rightVisible && <div className="workspace-pane right-pane" data-compact-active={activePane === 'right'} style={{ flexBasis: rightWidth }}>{right}</div>}
+    </div>
     </div>
   )
 }

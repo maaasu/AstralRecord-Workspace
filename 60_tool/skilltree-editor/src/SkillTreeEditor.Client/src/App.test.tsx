@@ -9,9 +9,9 @@ vi.mock('./api/editorApi', async (original) => ({
   editorApi: Object.fromEntries(['metadata', 'listClasses', 'listSkills', 'listNodes', 'listStructures', 'listSchemas', 'getSchema', 'getSettings', 'saveNode', 'saveStructure', 'validateStructure'].map((name) => [name, vi.fn()])),
 }))
 vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: () => null }))
-vi.mock('./components/NodeSidebar', () => ({ NodeSidebar: ({ nodes, onEdit }: { nodes: NodeMaster[]; onEdit: (node: NodeMaster) => void }) => <button onClick={() => onEdit(nodes[0])}>ノードを編集</button> }))
+vi.mock('./components/NodeSidebar', () => ({ NodeSidebar: ({ nodes, placedIds, onEdit, onPlace, placementDisabled }: { nodes: NodeMaster[]; placedIds: Set<string>; onEdit: (node: NodeMaster) => void; onPlace: (node: NodeMaster) => void; placementDisabled: boolean }) => <><button onClick={() => onEdit(nodes[0])}>ノードを編集</button>{nodes.filter((entry) => !placedIds.has(entry.nodeId)).map((entry) => <button key={entry.nodeId} disabled={placementDisabled} onClick={() => onPlace(entry)}>ノード #{entry.nodeId} を座標配置</button>)}</> }))
 vi.mock('./components/NodeEditor', () => ({ NodeEditor: ({ node, onSave, errorMessage }: { node: NodeMaster; onSave: (node: NodeMaster) => void; errorMessage?: string }) => <div role="dialog"><button onClick={() => onSave({ ...node, name: '下書き' })}>編集中ノードを保存</button>{errorMessage && <p role="alert">{errorMessage}</p>}</div> }))
-vi.mock('./components/SkillTreeCanvas', () => ({ SkillTreeCanvas: ({ structure, onRecord, onSelectedNode }: { structure: StructureDocument; onRecord: (structure: StructureDocument) => void; onSelectedNode: (nodeId: string) => void }) => <><output aria-label="構造名">{structure.name}</output><button onClick={() => onRecord({ ...structure, name: structure.name + '変更' })}>構造を編集</button><button onClick={() => onSelectedNode(structure.nodes[0].nodeId)}>最初のノードを選択</button>{structure.nodes[1] && <button onClick={() => onSelectedNode(structure.nodes[1].nodeId)}>別のノードを選択</button>}</> }))
+vi.mock('./components/SkillTreeCanvas', () => ({ SkillTreeCanvas: ({ structure, onRecord, onSelectedNode }: { structure: StructureDocument; onRecord: (structure: StructureDocument) => void; onSelectedNode: (nodeId: string) => void }) => <><output aria-label="構造名">{structure.name}</output><output aria-label="構造の配置">{JSON.stringify(structure.nodes)}</output><button onClick={() => onRecord({ ...structure, name: structure.name + '変更' })}>構造を編集</button><button onClick={() => onSelectedNode(structure.nodes[0].nodeId)}>最初のノードを選択</button>{structure.nodes[1] && <button onClick={() => onSelectedNode(structure.nodes[1].nodeId)}>別のノードを選択</button>}</> }))
 
 const node: NodeMaster = { $schema: 'node.schema.json', schemaVersion: 1, nodeId: '1000', name: 'original', icon: 'STONE', tags: [], pointType: 'CP', pointCost: 1, effects: [] }
 const structure: StructureDocument = { $schema: 'structure.schema.json', schemaVersion: 1, structureId: 'main', name: 'main', rootNodeId: '1000', nodes: [{ nodeId: '1000', x: 0, y: 0, z: 0 }], edges: [] }
@@ -35,6 +35,33 @@ async function openTree() {
 }
 
 describe('画面の保存元の版', () => {
+  it('一覧から座標配置し、幅変更でもInspector入力を保持して構造の履歴へ記録する', async () => {
+    const next = { ...node, nodeId: '1001', name: '追加ノード' }
+    vi.mocked(editorApi.listNodes).mockResolvedValue([{ fileName: '1000.json', content: node, revision: 'first' }, { fileName: '1001.json', content: next, revision: 'second' }])
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.stubGlobal('innerWidth', 900)
+    try {
+      await openTree()
+      fireEvent.click(screen.getByRole('button', { name: '最初のノードを選択' }))
+      fireEvent.change(screen.getByLabelText('名前'), { target: { value: '保持する下書き' } })
+      fireEvent.click(screen.getByRole('button', { name: 'ノード #1001 を座標配置' }))
+      fireEvent.change(screen.getByLabelText('配置先 X'), { target: { value: '3.1' } })
+      vi.stubGlobal('innerWidth', 1400)
+      fireEvent(window, new Event('resize'))
+      expect(screen.getByLabelText('配置先 X')).toHaveValue('3.1')
+      fireEvent.click(screen.getByRole('button', { name: '構造へ配置' }))
+      expect(screen.getByLabelText('構造の配置')).toHaveTextContent('"nodeId":"1001","x":3.1,"y":0,"z":0')
+      expect(screen.getByLabelText('名前')).toHaveValue('保持する下書き')
+      expect(confirm).not.toHaveBeenCalled()
+      expect(editorApi.saveStructure).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByTitle('Undo (Ctrl+Z)'))
+      expect(confirm).toHaveBeenCalledOnce()
+      expect(screen.getByLabelText('構造の配置')).not.toHaveTextContent('1001')
+      fireEvent.click(screen.getByTitle('Redo (Ctrl+Y)'))
+      expect(screen.getByLabelText('構造の配置')).toHaveTextContent('1001')
+    } finally { confirm.mockRestore(); vi.unstubAllGlobals() }
+  })
+
   it('実インスペクターの未保存入力は別ノード・構造・再読込の確認キャンセルで保持する', async () => {
     const secondNode = { ...node, nodeId: '1001', name: 'second' }
     vi.mocked(editorApi.listNodes).mockResolvedValue([{ fileName: '1000.json', content: node, revision: 'first' }, { fileName: '1001.json', content: secondNode, revision: 'second' }])

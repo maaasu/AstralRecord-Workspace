@@ -14,6 +14,8 @@ interface NodeSidebarProps {
   onTagChange: (value: string) => void
   onEdit: (node: NodeMaster) => void
   onCreate: () => void
+  onPlace?: (node: NodeMaster) => void
+  placementDisabled?: boolean
   iconRevision?: number
   skillMasters: readonly SkillMasterSummary[]
   classMasters?: readonly ClassMasterSummary[]
@@ -28,6 +30,8 @@ export function NodeSidebar({
   onTagChange,
   onEdit,
   onCreate,
+  onPlace,
+  placementDisabled = false,
   iconRevision = 0,
   skillMasters,
   classMasters = [],
@@ -72,7 +76,7 @@ export function NodeSidebar({
           {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
         </select>
       </div>
-      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
+      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
       <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
     </aside>
   )
@@ -83,6 +87,8 @@ function NodeGroup({
   nodes,
   placedIds,
   onEdit,
+  onPlace,
+  placementDisabled,
   iconRevision,
   effectsByNodeId,
   classMasters,
@@ -91,12 +97,14 @@ function NodeGroup({
   nodes: NodeMaster[]
   placedIds: Set<string>
   onEdit: (node: NodeMaster) => void
+  onPlace?: (node: NodeMaster) => void
+  placementDisabled?: boolean
   iconRevision: number
   effectsByNodeId: ReadonlyMap<string, readonly NodeEffectPresentation[]>
   classMasters: readonly ClassMasterSummary[]
 }) {
   return (
-    <section className="node-group">
+    <section className={`node-group ${nodes.length === 0 ? 'empty' : ''}`}>
       <h3>{title}</h3>
       <div className="node-list">
         {nodes.map((node) => {
@@ -132,7 +140,7 @@ function NodeGroup({
                 {effects.length > 2 && <span className="node-effect more">ほか{effects.length - 2}件</span>}
               </div>
             )}
-            <button className="text-button" onClick={() => onEdit(node)}>編集</button>
+            <div className="node-list-actions">{onPlace && <button className="button compact subtle" aria-label={`${stripMinecraftFormatting(node.name)}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}<button className="text-button" onClick={() => onEdit(node)}>編集</button></div>
           </article>
         })}
         {nodes.length === 0 && <p className="empty-state">該当ノードはありません。</p>}

@@ -36,6 +36,29 @@ async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
 function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
 
 describe('master file tabs', () => {
+  it('returns to an existing unsaved tab from the narrow file browser without reloading it', async () => {
+    vi.stubGlobal('innerWidth', 900)
+    try {
+      render(<MasterDataEditor />)
+      await open('ファイルA')
+      expect(screen.getByRole('button', { name: 'ナビを表示' })).toBeVisible()
+      fireEvent.change(input('/name'), { target: { value: '未保存のファイルA' } })
+      fireEvent.click(screen.getByRole('button', { name: 'ナビを表示' }))
+      fireEvent.click(screen.getByRole('button', { name: /ファイルB/ }))
+      await waitFor(() => expect(input('/name')).toHaveValue('ファイルB'))
+      fireEvent.click(screen.getByRole('button', { name: 'ナビを表示' }))
+      fireEvent.click(screen.getByRole('button', { name: /ファイルA/ }))
+      expect(input('/name')).toHaveValue('未保存のファイルA')
+      expect(screen.getByRole('button', { name: 'ナビを表示' })).toBeVisible()
+      expect(screen.queryByRole('textbox', { name: 'マスター検索' })).not.toBeInTheDocument()
+      expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+      await waitFor(() => expect(screen.getByRole('tab', { name: /未保存のファイルA/ })).toHaveFocus())
+      vi.stubGlobal('innerWidth', 1400)
+      fireEvent(window, new Event('resize'))
+      expect(input('/name')).toHaveValue('未保存のファイルA')
+    } finally { vi.unstubAllGlobals() }
+  })
+
   it('keeps the file list visible after opening a file and removes redundant navigation controls', async () => {
     render(<MasterDataEditor />)
     await open('ファイルA')
@@ -255,11 +278,11 @@ describe('master file tabs', () => {
     await open('ファイルB')
     fireEvent.change(input('/name'), { target: { value: '編集B' } })
     select(/編集A/)
-    fireEvent.click(panel().getByRole('button', { name: '↶' }))
+    fireEvent.click(panel().getByRole('button', { name: '元に戻す Ctrl+Z' }))
     expect(input('/name')).toHaveValue('ファイルA')
     select(/編集B/)
     expect(input('/name')).toHaveValue('編集B')
-    fireEvent.click(panel().getByRole('button', { name: '↶' }))
+    fireEvent.click(panel().getByRole('button', { name: '元に戻す Ctrl+Z' }))
     expect(input('/name')).toHaveValue('ファイルB')
   })
 

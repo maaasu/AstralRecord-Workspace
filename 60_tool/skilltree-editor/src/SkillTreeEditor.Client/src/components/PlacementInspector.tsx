@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ClassMasterSummary, JsonValue, NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import { parsePlacementCoordinate as parseCoordinate } from '../state/placementCoordinates'
 import { MaterialIconInput } from './MaterialIconInput'
 import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
 import { describeNodeCost, describeNodeEffects } from '../data/nodeEffectPresentation'
@@ -321,13 +322,6 @@ export function PlacementInspector({
       </fieldset>
     </section>
   )
-}
-
-const parseCoordinate = (raw: string): number | null => {
-  if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw)) return null
-  const value = Number(raw)
-  if (!Number.isFinite(value) || value < -2147483648 || value > 2147483647 || Math.abs(value * 10 - Math.round(value * 10)) >= 0.0000001) return null
-  return Math.round(value * 10) / 10
 }
 
 const parsePointCost = (raw: string): number | null => {

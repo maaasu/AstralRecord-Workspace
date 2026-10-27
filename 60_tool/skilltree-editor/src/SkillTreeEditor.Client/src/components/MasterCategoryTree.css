@@ -4,10 +4,10 @@
 .master-category-tree, .master-category-tree ul { list-style: none; padding: 0; margin: 0; }
 .master-category-tree { overflow: auto; min-height: 0; padding: 3px 0 6px; }
 .master-category-tree li { outline: none; }
-.master-category-row { position: relative; display: flex; align-items: center; gap: 4px; min-height: 29px; padding: 2px 7px 2px calc(4px + var(--category-depth) * 12px); cursor: pointer; color: #d9e1ee; font-size: 12px; border-left: 2px solid transparent; }
+.master-category-row { position: relative; display: flex; align-items: center; gap: 4px; min-height: 34px; padding: 4px 7px 4px calc(4px + var(--category-depth) * 12px); cursor: pointer; color: var(--text); font-size: 12px; border-left: 2px solid transparent; }
 .master-category-row:hover { background: #263249; }
-.master-category-row.selected { background: #243e60; border-left-color: #75b6ff; color: #fff; }
-.master-category-tree li:focus > .master-category-row { outline: 1px solid #a1caff; outline-offset: -2px; }
+.master-category-row.selected { background: var(--accent-soft); border-left-color: var(--accent); color: #e3fbf5; }
+.master-category-tree li:focus > .master-category-row { outline: 2px solid var(--accent); outline-offset: -2px; }
 .master-category-guides { position: absolute; inset: 0 auto 0 4px; display: flex; pointer-events: none; }
 .master-category-guides i { display: block; width: 12px; border-right: 1px solid #334157; }
 .master-category-chevron { display: flex; align-items: center; justify-content: center; width: 19px; height: 25px; flex: 0 0 19px; font-size: 19px; border-radius: 3px; }
