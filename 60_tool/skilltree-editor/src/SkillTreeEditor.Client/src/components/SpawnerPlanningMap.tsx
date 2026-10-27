@@ -5,9 +5,11 @@ import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { PlacementCatalog } from './WorldPlacementEditor'
 import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
+import { circleIntersectsViewport, drawSpawnerRanges, type MapCircle } from '../data/spawnerRangeDrawing'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 const hasRadius = (radius: number | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
+const unknownLevels = spawnerLevels([])
 interface Props {
   snapshot: PlanningSnapshot; plan: PlanningPlan | null; layer: PlanningLayer; region: string; reason: string
   radii: boolean; active: boolean; selectedCell: number | null; selectedProposal: string | null
@@ -22,6 +24,7 @@ export function SpawnerPlanningMap(props: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const drag = useRef<{ x: number; y: number; moved: number } | null>(null)
   const [size, setSize] = useState({ width: 800, height: 620 })
+  const [pixelRatio, setPixelRatio] = useState(window.devicePixelRatio || 1)
   const sizeRef = useRef(size)
   const measured = useRef(false)
   const [view, setView] = useState({ scale: .1, x: 0, z: 0 })
@@ -37,6 +40,10 @@ export function SpawnerPlanningMap(props: Props) {
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot.cells])
   const visibleProposals = useMemo(() => plan?.proposals.filter(item => !region || item.regionId === region) ?? [], [plan, region])
   const masters = useMemo(() => new Map(props.placementCatalog?.spawners.map(item => [item.id, item]) ?? []), [props.placementCatalog])
+  const masterStyles = useMemo(() => new Map([...masters].map(([id, master]) => {
+    const levels = spawnerLevels(master.levels ?? [])
+    return [id, { levels, color: markerMode === 'masters' ? spawnerMasterColor(id) : levels.color }]
+  })), [masters, markerMode])
   const masterNumbers = useMemo(() => spawnerMasterNumbers([...masters.keys()]), [masters])
   const placements = useMemo(() => (props.placements ?? []).filter(item => item.worldId === snapshot.manifest.worldId), [props.placements, snapshot.manifest.worldId])
   const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
@@ -108,6 +115,7 @@ export function SpawnerPlanningMap(props: Props) {
     const element = canvas.current?.parentElement
     if (!element || !active) return
     const resize = () => {
+      setPixelRatio(window.devicePixelRatio || 1)
       const rect = element.getBoundingClientRect()
       if (rect.width && rect.height && (!measured.current || rect.width !== sizeRef.current.width || rect.height !== sizeRef.current.height)) {
         const previous = sizeRef.current
@@ -125,7 +133,8 @@ export function SpawnerPlanningMap(props: Props) {
     resize()
     const observer = new ResizeObserver(resize)
     observer.observe(element)
-    return () => observer.disconnect()
+    window.addEventListener('resize', resize)
+    return () => { observer.disconnect(); window.removeEventListener('resize', resize) }
   }, [active, bounds])
   useEffect(() => {
     if (!focus) return
@@ -194,10 +203,12 @@ export function SpawnerPlanningMap(props: Props) {
     })
     return mask
   }, [snapshot.cells, bounds, plan, region, reason])
-  useEffect(() => {
-    const element = canvas.current, ctx = element?.getContext('2d')
-    if (!element || !ctx || !active) return
-    const ratio = window.devicePixelRatio || 1
+  // Cache the complete scene at the current view. Pointer and tooltip movement do not
+  // invalidate terrain, roads, markers or the batched range layer.
+  const scene = useMemo(() => {
+    const element = document.createElement('canvas'), ctx = element.getContext('2d')
+    if (!ctx || !active) return null
+    const ratio = pixelRatio
     element.width = Math.round(size.width * ratio)
     element.height = Math.round(size.height * ratio)
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
@@ -225,16 +236,31 @@ export function SpawnerPlanningMap(props: Props) {
       }
       ctx.setLineDash([])
     }
+    const ranges: MapCircle[] = []
+    if (radii) {
+      for (const proposal of props.showProposals === false ? [] : visibleProposals) {
+        if (!hasRadius(proposal.radiusMeters) || selectedProposal === proposal.proposalId) continue
+        const [x, z] = screen(proposal.x + .5, proposal.z + .5), radius = proposal.radiusMeters * view.scale
+        if (circleIntersectsViewport(x, z, radius, size.width, size.height)) ranges.push({ x, z, radius, color: '#d3dfb83d' })
+      }
+      for (const placement of placements) {
+        const template = masters.get(placement.templateId ?? '')
+        if (placement.kind !== 'spawner' || !hasRadius(template?.radiusMeters) || props.selectedPlacement === placement.placementId) continue
+        const [x, z] = screen(placement.x + .5, placement.z + .5), radius = template.radiusMeters * view.scale
+        const color = masterStyles.get(placement.templateId ?? '')?.color ?? (markerMode === 'masters' ? spawnerMasterColor(placement.templateId) : unknownLevels.color)
+        if (circleIntersectsViewport(x, z, radius, size.width, size.height)) ranges.push({ x, z, radius, color: `${color}80` })
+      }
+      drawSpawnerRanges(ctx, ranges)
+    }
     for (const proposal of props.showProposals === false ? [] : visibleProposals) {
       const [x, z] = screen(proposal.x + .5, proposal.z + .5)
       const selected = selectedProposal === proposal.proposalId
-      const isHovered = hoveredProposalId === proposal.proposalId
       const radius = hasRadius(proposal.radiusMeters) ? proposal.radiusMeters * view.scale : 0
-      if (x + radius < 0 || z + radius < 0 || x - radius > size.width || z - radius > size.height) continue
-      if (radius > 0 && (radii || selected || isHovered)) {
+      if (radius > 0 && selected && circleIntersectsViewport(x, z, radius, size.width, size.height)) {
         ctx.beginPath(); ctx.arc(x, z, radius, 0, Math.PI * 2)
-        ctx.strokeStyle = selected ? '#fff1a2' : isHovered ? '#9ee9ef' : '#d3dfb83d'; ctx.lineWidth = selected || isHovered ? 2 : .7; ctx.stroke()
+        ctx.strokeStyle = '#fff1a2'; ctx.lineWidth = 2; ctx.stroke()
       }
+      if (x < -6 || z < -6 || x > size.width + 6 || z > size.height + 6) continue
       const r = selected ? 6 : view.scale > .3 ? 4 : 2
       ctx.beginPath(); ctx.moveTo(x, z - r); ctx.lineTo(x + r, z + r); ctx.lineTo(x - r, z + r); ctx.closePath()
       ctx.fillStyle = selected ? '#fff0ac' : '#e3f2c8'; ctx.fill()
@@ -246,17 +272,15 @@ export function SpawnerPlanningMap(props: Props) {
       const [x, z] = screen(placement.x + .5, placement.z + .5)
       const selected = props.selectedPlacement === placement.placementId
       const template = masters.get(placement.templateId ?? '')
-      const levels = spawnerLevels(template?.levels ?? [])
-      const color = placement.kind === 'spawner' ? markerMode === 'masters' ? spawnerMasterColor(placement.templateId) : levels.color : placement.kind === 'npc' ? '#ec99fa' : '#f7cf6d'
+      const style = masterStyles.get(placement.templateId ?? ''), levels = style?.levels ?? unknownLevels
+      const color = placement.kind === 'spawner' ? style?.color ?? (markerMode === 'masters' ? spawnerMasterColor(placement.templateId) : levels.color) : placement.kind === 'npc' ? '#ec99fa' : '#f7cf6d'
       const number = masterNumbers.get(placement.templateId ?? '')
-      const isHovered = hoveredPlacementId === placement.placementId
       const radius = hasRadius(template?.radiusMeters) ? template.radiusMeters * view.scale : 0
-      const margin = radii || selected || isHovered ? Math.max(60, radius) : 60
-      if (x < -margin || z < -margin || x > size.width + margin || z > size.height + margin) continue
-      if (placement.kind === 'spawner' && radius > 0 && (radii || selected || isHovered)) {
+      if (placement.kind === 'spawner' && radius > 0 && selected && circleIntersectsViewport(x, z, radius, size.width, size.height)) {
         ctx.beginPath(); ctx.arc(x, z, radius, 0, Math.PI * 2)
-        ctx.strokeStyle = selected ? '#ffffff' : isHovered ? '#9ee9ef' : `${color}80`; ctx.lineWidth = selected || isHovered ? 2 : 1; ctx.stroke()
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke()
       }
+      if (x < -60 || z < -60 || x > size.width + 60 || z > size.height + 60) continue
       const r = selected ? 8 : view.scale > .3 ? 5 : 2.8
       ctx.beginPath()
       if (placement.kind === 'npc') { ctx.moveTo(x, z - r); ctx.lineTo(x + r, z); ctx.lineTo(x, z + r); ctx.lineTo(x - r, z); ctx.closePath() }
@@ -295,7 +319,30 @@ export function SpawnerPlanningMap(props: Props) {
     const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, masters, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals, hoveredPlacementId, hoveredProposalId])
+    return element
+  }, [active, raster, detail, detailMask, layer, view, size, pixelRatio, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, placements, masters, masterStyles, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
+  useEffect(() => {
+    const element = canvas.current, ctx = element?.getContext('2d')
+    if (!element || !ctx || !active || !scene) return
+    // Resizing resets the context and backing store; only do it when dimensions change.
+    if (element.width !== scene.width) element.width = scene.width
+    if (element.height !== scene.height) element.height = scene.height
+    const ratio = pixelRatio
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    ctx.imageSmoothingEnabled = false
+    ctx.clearRect(0, 0, size.width, size.height)
+    ctx.drawImage(scene, 0, 0, size.width, size.height)
+    const placement = hoveredPlacementId ? placements.find(item => item.placementId === hoveredPlacementId && item.placementId !== props.selectedPlacement) : null
+    const proposal = hoveredProposalId ? visibleProposals.find(item => item.proposalId === hoveredProposalId && item.proposalId !== selectedProposal) : null
+    const point = placement ?? proposal
+    const radius = placement ? masters.get(placement.templateId ?? '')?.radiusMeters : proposal?.radiusMeters
+    if (point && hasRadius(radius)) {
+      const x = (point.x + .5 - bounds.minX) * view.scale + view.x, z = (point.z + .5 - bounds.minZ) * view.scale + view.z
+      ctx.beginPath(); ctx.arc(x, z, radius * view.scale, 0, Math.PI * 2)
+      // An opaque wider stroke replaces the normal ring visually, without rebuilding it.
+      ctx.strokeStyle = '#9ee9ef'; ctx.lineWidth = 2; ctx.stroke()
+    }
+  }, [active, scene, size, pixelRatio, view, bounds, hoveredPlacementId, hoveredProposalId, placements, visibleProposals, masters, props.selectedPlacement, selectedProposal])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale

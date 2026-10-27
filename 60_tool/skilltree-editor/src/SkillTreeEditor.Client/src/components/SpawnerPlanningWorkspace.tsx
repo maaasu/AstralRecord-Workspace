@@ -22,7 +22,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [layer, setLayer] = useState<PlanningLayer>('terrain')
   const [region, setRegion] = useState('')
   const [reason, setReason] = useState('')
-  const [radii, setRadii] = useState(false)
+  const [radii, setRadii] = useState(true)
   const [selectedCell, setSelectedCell] = useState<number | null>(null)
   const [selectedProposal, setSelectedProposal] = useState<string | null>(null)
   const [focus, setFocus] = useState<{ key: number; x: number; z: number } | null>(null)
@@ -108,6 +108,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     {!editing && planningError && <div className="sp-error" role="alert"><strong>配置案を表示できません</strong><p>{planningError}</p></div>}
     {loading && <div className="sp-loading" role="status">全大陸の解析結果を読み込んでいます…</div>}
     {snapshot && <>
+      {editing && <div className="sp-controls"><label className="sp-check"><input type="checkbox" checked={radii} onChange={event => setRadii(event.target.checked)} />すべての出現範囲を表示</label><span className="sp-muted">地図に表示中の Dev スポナー全件が対象です。OFFでも選択・ホバーした範囲を表示します。</span></div>}
       {!editing && <div className="sp-controls">
         <label>表示レイヤー<select value={layer} onChange={event => setLayer(event.target.value as PlanningLayer)}><option value="terrain">地形と配置案</option><option value="levels">地域・推奨レベル</option><option value="reasons">配置・未配置の理由</option></select></label>
         <label>地域<select value={region} onChange={event => selectRegion(event.target.value)}><option value="">全大陸</option>{snapshot.regions.map(value => <option key={value.id} value={value.id}>{value.name} · {value.levelMin == null ? 'レベル未選定' : `Lv.${value.levelMin}〜${value.levelMax}`}</option>)}</select></label>
@@ -116,6 +117,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
         <button className="button" onClick={() => { const spawn = snapshot.manifest.spawn; setFocus(value => ({ key: (value?.key ?? 0) + 1, x: spawn.x, z: spawn.z })) }}>開始地点</button>
         <label className="sp-check"><input type="checkbox" checked={radii} onChange={event => setRadii(event.target.checked)} />出現範囲を重ねる</label>
       </div>}
+      {!editing && <p className="sp-scope">出現範囲の一括表示は、地図に表示中の Dev スポナーと地域で絞り込んだ AI 配置案すべてが対象です。配置案一覧の検索では地図を絞り込みません。表示設定は配置編集と共通です。</p>}
       {!editing && <div className="sp-metrics" aria-live="polite">
         <div><strong>{plan ? number(regionProposals.length) : '—'}</strong><span>{selectedRegion ? '選択地域' : '全大陸'}の配置案</span></div>
         <div><strong>{plan ? `${(region ? stats.target ? stats.covered / stats.target * 100 : 0 : plan.coveragePercent).toFixed(1)}%` : '—'}</strong><span>配置対象のカバー率</span></div>

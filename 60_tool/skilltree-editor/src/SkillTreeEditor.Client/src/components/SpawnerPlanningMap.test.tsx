@@ -296,7 +296,7 @@ it.each([
 })
 
 function drawingContext() {
-  const context = { setTransform: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), arc: vi.fn(),
+  const context = { strokeStyle: '', setTransform: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), arc: vi.fn(),
     moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), rect: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
     fillRect: vi.fn(), strokeRect: vi.fn(), fillText: vi.fn(), measureText: () => ({ width: 120 }) }
   vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(context as unknown as CanvasRenderingContext2D)
@@ -343,16 +343,18 @@ it('同じDevマスターの別配置へ移ると配置IDに対応する1件だ�
   expect(rangeCalls(context, 64 * .935)).toEqual([[296.5, 250, 64 * .935, 0, Math.PI * 2]])
 })
 
-it.each(['selected', 'all'] as const)('Devの%s円はホバーで二重描画せず、離脱後も維持する', mode => {
+it.each(['selected', 'all'] as const)('Devの%s円はキャッシュを保ち、ホバーでは未選択の1件だけを強調する', mode => {
   const context = drawingContext()
   const { container } = render(<SpawnerPlanningMap {...hoverProps} selectedPlacement={mode === 'selected' ? 'boars' : null} radii={mode === 'all'} />)
   const canvas = container.querySelector('canvas')!
+  expect(rangeCalls(context, 64 * .935)).not.toHaveLength(0)
   context.arc.mockClear()
   moveMouse(canvas)
-  expect(rangeCalls(context, 64 * .935)).toHaveLength(1)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(mode === 'all' ? 1 : 0)
   context.arc.mockClear()
   fireEvent.pointerLeave(canvas)
-  expect(rangeCalls(context, 64 * .935)).toHaveLength(1)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  expect(context.drawImage).toHaveBeenLastCalledWith(expect.any(HTMLCanvasElement), 0, 0, 406, 500)
 })
 
 it('AIホバーは元マスターでなく配置案の半径を使い、同じマスターの別案とは区別する', () => {
@@ -373,16 +375,18 @@ it('AIホバーは元マスターでなく配置案の半径を使い、同じ�
   expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
 })
 
-it.each(['selected', 'all'] as const)('AIの%s円はホバーで二重描画せず、離脱後も維持する', mode => {
+it.each(['selected', 'all'] as const)('AIの%s円はキャッシュを保ち、ホバーでは未選択の1件だけを強調する', mode => {
   const context = drawingContext()
   const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={hoverPlan} selectedProposal={mode === 'selected' ? 'ai-one' : null} radii={mode === 'all'} />)
   const canvas = container.querySelector('canvas')!
+  expect(rangeCalls(context, 32 * .935)).not.toHaveLength(0)
   context.arc.mockClear()
   moveMouse(canvas)
-  expect(rangeCalls(context, 32 * .935)).toHaveLength(1)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(mode === 'all' ? 1 : 0)
   context.arc.mockClear()
   fireEvent.pointerLeave(canvas)
-  expect(rangeCalls(context, 32 * .935)).toHaveLength(1)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
+  expect(context.drawImage).toHaveBeenLastCalledWith(expect.any(HTMLCanvasElement), 0, 0, 406, 500)
 })
 
 it('ホバー円はドラッグ・配置操作・非表示・フィルター除外で解除する', () => {
@@ -425,9 +429,93 @@ it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY, -1, 0])('未知・不�
   context.arc.mockClear()
   moveMouse(canvas)
   expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 不明')
-  expect(context.arc.mock.calls.map(call => call[2])).toEqual([5, 48 * .935, 5])
+  expect(context.arc).not.toHaveBeenCalled()
   context.arc.mockClear()
   rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={{ ...hoverPlan, proposals: [{ ...hoverPlan.proposals[0], radiusMeters: radius as number }] }} />)
   expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 不明')
   expect(context.arc.mock.calls.map(call => call[2])).toEqual([48 * .935, 5])
+})
+
+it('2,500配置の全範囲を1色1strokeで加え、ホバーでは地形・点・全円を再描画しない', () => {
+  const context = drawingContext()
+  const placements = Array.from({ length: 2500 }, (_, index) => ({ ...hoverPlacement, placementId: `dense-${index}`,
+    x: 5 + index % 50 * 7.8, z: 5 + Math.floor(index / 50) * 7.8 }))
+  const mapProps = { ...hoverProps, placements, showProposals: false }
+  const { container, rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  context.arc.mockClear(); context.stroke.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} radii />)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(2500)
+  const strokesWithRanges = context.stroke.mock.calls.length
+  context.arc.mockClear(); context.stroke.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} radii={false} />)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  expect(strokesWithRanges - context.stroke.mock.calls.length).toBe(1)
+  rerender(<SpawnerPlanningMap {...mapProps} radii />)
+  context.arc.mockClear(); context.fillText.mockClear(); context.drawImage.mockClear(); context.stroke.mockClear()
+  const canvas = container.querySelector('canvas')!
+  moveMouse(canvas, 202.53, 249.53)
+  expect(context.arc).toHaveBeenCalledTimes(1)
+  expect(context.stroke).toHaveBeenCalledTimes(1)
+  expect(context.fillText).not.toHaveBeenCalled()
+  expect(context.drawImage).toHaveBeenCalledTimes(1)
+  expect(context.strokeStyle).toBe('#9ee9ef')
+  context.arc.mockClear(); context.drawImage.mockClear()
+  fireEvent.pointerLeave(canvas)
+  expect(context.arc).not.toHaveBeenCalled()
+  expect(context.drawImage).toHaveBeenCalledTimes(1)
+  console.info('Map load: 2,500 visible placements; all 2,500 ranges add 1 stroke; hover rebuilds 0 terrain/marker/range paths and draws 1 highlight; leave draws 0 arcs.')
+})
+
+it('一括円は画面外の中心も半径で判定し、パン・ズーム・編集・色・DPR変更でキャッシュを更新する', () => {
+  const context = drawingContext()
+  const placements = [hoverPlacement, { ...hoverPlacement, placementId: 'edge', x: -50.5 },
+    { ...hoverPlacement, placementId: 'outside', x: -100.5 }, { ...hoverPlacement, placementId: 'other-world', worldId: 'other' }]
+  const mapProps = { ...hoverProps, placements, radii: true }
+  const { container, rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} reason="filtered" />)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(2)
+  context.arc.mockClear()
+  const edited = [{ ...hoverPlacement, x: 99.5 }]
+  rerender(<SpawnerPlanningMap {...mapProps} placements={edited} />)
+  expect(rangeCalls(context, 64 * .935)).toEqual([[109.5, 250, 64 * .935, 0, Math.PI * 2]])
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} placements={edited} placementCatalog={{ ...hoverCatalog, spawners: [{ ...hoverCatalog.spawners[0], radiusMeters: 32 }] }} />)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(1)
+  context.arc.mockClear()
+  fireEvent.change(screen.getByRole('combobox', { name: 'スポナーの色分け' }), { target: { value: 'levels' } })
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(1)
+  context.arc.mockClear()
+  const canvas = container.querySelector('canvas')!
+  fireEvent.keyDown(canvas, { key: 'ArrowLeft' })
+  expect(rangeCalls(context, 32 * .935)[0][0]).toBeCloseTo(169.5)
+  context.arc.mockClear()
+  fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  expect(rangeCalls(context, 32 * .935 * 1.5)).toHaveLength(1)
+  context.arc.mockClear()
+  vi.stubGlobal('devicePixelRatio', 2)
+  fireEvent(window, new Event('resize'))
+  expect(canvas.width).toBe(812)
+  expect(rangeCalls(context, 32 * .935 * 1.5)).toHaveLength(1)
+})
+
+it('AIは一覧の40件制限なく地域内全1,500案の半径を描き、モードと地域変更で残像を残さない', () => {
+  const context = drawingContext()
+  const proposals = Array.from({ length: 1500 }, (_, index) => ({ ...hoverPlan.proposals[0], proposalId: `proposal-${index}`,
+    x: 5 + index % 50 * 7.8, z: 5 + Math.floor(index / 50) * 7.8 }))
+  const plan = { ...hoverPlan, proposals: [...proposals, { ...hoverPlan.proposals[0], proposalId: 'other-region', regionId: 'other', radiusMeters: 64 }] }
+  const mapProps = { ...hoverProps, placements: [], plan, radii: true, region: 'field' }
+  const { rerender } = render(<SpawnerPlanningMap {...mapProps} showProposals={false} />)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} />)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(1500)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} region="other" />)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(1)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} showProposals={false} />)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
 })
