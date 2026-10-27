@@ -5,6 +5,28 @@ import { MasterAnalytics } from './MasterAnalytics'
 afterEach(() => vi.unstubAllGlobals())
 
 describe('equipment name presentation', () => {
+  it('switches analysis tabs with the keyboard while keeping comparison conditions', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ equipment: [], classes: [], diagnostics: [] }) }))
+    render(<MasterAnalytics />)
+    await screen.findByRole('table')
+    const equipmentTab = screen.getByRole('tab', { name: '装備を比較' })
+    const growthTab = screen.getByRole('tab', { name: 'クラス成長' })
+    fireEvent.change(screen.getByRole('textbox', { name: '名前・ID' }), { target: { value: '剣' } })
+    equipmentTab.focus()
+    fireEvent.keyDown(equipmentTab, { key: 'ArrowRight' })
+    expect(growthTab).toHaveFocus()
+    expect(growthTab).toHaveAttribute('aria-selected', 'true')
+    expect(equipmentTab).toHaveAttribute('tabindex', '-1')
+    expect(screen.getByRole('tabpanel', { name: 'クラス成長' })).toHaveAttribute('id', growthTab.getAttribute('aria-controls'))
+    expect(screen.getByRole('heading', { name: '成長の計算条件' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '職業ごとの成長を比較' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'グラフを計算' }).compareDocumentPosition(screen.getByRole('textbox', { name: 'アカウントUUID' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.keyDown(growthTab, { key: 'Home' })
+    expect(equipmentTab).toHaveFocus()
+    expect(screen.getByRole('textbox', { name: '名前・ID' })).toHaveValue('剣')
+    expect(screen.getByRole('region', { name: '装備の比較表' })).toHaveAttribute('tabindex', '0')
+  })
+
   it('renders the original color in bars and table while searching the visible name', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({
       equipment: [{ path: 'item/sword.yml', progression: null, content: { id: '20a00001', name: '&6黄金&aの剣', equipment: { requiredLevel: 10, stats: [{ status: 'MELEE_ATTACK', value: 5 }] } } }], classes: [], diagnostics: [],

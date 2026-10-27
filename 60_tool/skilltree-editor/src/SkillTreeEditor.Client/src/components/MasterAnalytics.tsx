@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
@@ -50,6 +51,15 @@ export function MasterAnalytics() {
   const [mode, setMode] = useState<'equipment' | 'growth' | 'lab'>('equipment')
   const [labOpened, setLabOpened] = useState(false)
   const openLab = () => { setLabOpened(true); setMode('lab') }
+  function moveTab(event: KeyboardEvent<HTMLButtonElement>) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const tabs = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    const index = tabs.indexOf(event.currentTarget)
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+    tabs[next].focus()
+    tabs[next].click()
+  }
   const [query, setQuery] = useState('')
   const [slot, setSlot] = useState('')
   const [tag, setTag] = useState('')
@@ -107,46 +117,63 @@ export function MasterAnalytics() {
 
   return <section className="master-analytics">
     <header className="analytics-header"><div><h1>比較・成長グラフ</h1><p>保存済みのFilebaseから計算。変更後は再読込してください。</p></div><button className="button" onClick={() => { setRevision(value => value + 1); setSimulation(null) }}>マスター再読込</button></header>
-    <div role="tablist" aria-label="分析の種類" className="analytics-tabs"><button role="tab" aria-selected={mode === 'equipment'} className="button" onClick={() => setMode('equipment')}>装備を比較</button><button role="tab" aria-selected={mode === 'growth'} className="button" onClick={() => setMode('growth')}>クラス成長</button><button role="tab" aria-selected={mode === 'lab'} className="button" onClick={openLab}>統合バランスラボ</button></div>
-    {labOpened && <div hidden={mode !== 'lab'}><BalanceLab /></div>}
+    <div role="tablist" aria-label="分析の種類" className="analytics-tabs"><button id="analytics-equipment-tab" role="tab" aria-controls="analytics-equipment-panel" aria-selected={mode === 'equipment'} tabIndex={mode === 'equipment' ? 0 : -1} className="button" onKeyDown={moveTab} onClick={() => setMode('equipment')}>装備を比較</button><button id="analytics-growth-tab" role="tab" aria-controls="analytics-growth-panel" aria-selected={mode === 'growth'} tabIndex={mode === 'growth' ? 0 : -1} className="button" onKeyDown={moveTab} onClick={() => setMode('growth')}>クラス成長</button><button id="analytics-lab-tab" role="tab" aria-controls="analytics-lab-panel" aria-selected={mode === 'lab'} tabIndex={mode === 'lab' ? 0 : -1} className="button" onKeyDown={moveTab} onClick={openLab}>統合バランスラボ</button></div>
+    {labOpened && <div id="analytics-lab-panel" role="tabpanel" aria-labelledby="analytics-lab-tab" hidden={mode !== 'lab'}><BalanceLab /></div>}
     {mode !== 'lab' && (!catalog ? <p role={error ? 'alert' : 'status'}>{error || 'マスターを読み込んでいます…'}</p> : <>
     {error && <p role="alert" className="analytics-error">{error}</p>}
     {catalog.diagnostics.length > 0 && <details><summary>読み込めないマスター {catalog.diagnostics.length}件</summary>{catalog.diagnostics.map(item => <p key={item.path}>{item.path}: {item.message}</p>)}</details>}
-    {mode === 'equipment' ? <>
+    {mode === 'equipment' ? <div id="analytics-equipment-panel" role="tabpanel" aria-labelledby="analytics-equipment-tab" className="analytics-workspace">
+      <section className="analytics-panel analytics-settings" aria-labelledby="equipment-settings-heading">
+      <div className="analytics-section-heading"><h2 id="equipment-settings-heading">比較条件</h2><span className="analytics-badge">保存済みマスター</span></div>
+      <p className="analytics-note">条件を変えると比較結果へすぐに反映します。</p>
       <div className="analytics-controls">
-        <label>名前・ID<input value={query} onChange={event => setQuery(event.target.value)} placeholder="ノクス、20a00002…" /></label>
+        <label className="analytics-field-wide">名前・ID<input value={query} onChange={event => setQuery(event.target.value)} placeholder="ノクス、20a00002…" /></label>
         <label>スロット<select value={slot} onChange={event => setSlot(event.target.value)}><option value="">すべて</option>{[...new Set(rows.map(row => row.slot))].sort().map(value => <option key={value}>{value}</option>)}</select></label>
         <label>装備タグ<select value={tag} onChange={event => setTag(event.target.value)}><option value="">すべて</option>{[...new Set(rows.map(row => row.tag))].sort().map(value => <option key={value}>{value}</option>)}</select></label>
         <label>要求Lvの中心<input type="number" min="0" value={level} onChange={event => setLevel(Math.max(0, numeric(event.target.value)))} /></label>
         <label>前後のLv幅<input type="number" min="0" value={band} onChange={event => setBand(Math.max(0, numeric(event.target.value)))} /></label>
         <label>強化Lv<input type="number" min="0" max="100" value={enhance} onChange={event => setEnhance(Math.max(0, Math.min(100, numeric(event.target.value))))} /></label>
-        <label>グラフのステータス<select value={stat} onChange={event => setStat(event.target.value)}>{[...new Set([stat, ...statuses])].map(value => <option key={value} value={value}>{statusLabel(value)} ({value})</option>)}</select></label>
+        <label className="analytics-field-wide">グラフのステータス<select value={stat} onChange={event => setStat(event.target.value)}>{[...new Set([stat, ...statuses])].map(value => <option key={value} value={value}>{statusLabel(value)} ({value})</option>)}</select></label>
       </div>
-      <p className="analytics-note">マスターの下限〜上限を比較します。強化は上限Lvまでの差分を累積し、同じ装備のFLAT合計 × 最後に採用されるSCALARを計算します。強化SCALARがある場合は基礎SCALARを置き換えます。SCALARだけのステータスは効果を持ちません。個体の乱数・エンチャント・ルーン・セット・超越・装備可否による無効化は含みません。</p>
-      <div className="analytics-actions"><span>{active.length}件を比較 / 条件一致 {filtered.length}件</span><button className="button" onClick={() => setSelectedPaths([])}>選択を解除</button><button className="button" onClick={() => downloadCsv('equipment-comparison.csv', [['ID', '名前', 'スロット', 'タグ', '要求Lv', '進行度', ...statuses.flatMap(id => [`${id} 下限`, `${id} 上限`])], ...active.map(row => [row.id, row.name, row.slot, row.tag, row.level, row.progression, ...statuses.flatMap(id => [row.stats[id]?.min, row.stats[id]?.max])])])}>比較表をCSV出力</button></div>
+      <details className="analytics-explanation"><summary>比較の計算方法と対象範囲</summary><p className="analytics-note">マスターの下限〜上限を比較します。強化は上限Lvまでの差分を累積し、同じ装備のFLAT合計 × 最後に採用されるSCALARを計算します。強化SCALARがある場合は基礎SCALARを置き換えます。SCALARだけのステータスは効果を持ちません。個体の乱数・エンチャント・ルーン・セット・超越・装備可否による無効化は含みません。</p></details>
+      </section>
+      <section className="analytics-panel analytics-results" aria-labelledby="equipment-results-heading">
+      <div className="analytics-section-heading"><div><h2 id="equipment-results-heading">比較結果</h2><p className="analytics-result-count" role="status">{active.length}件を比較 <span>／ 条件一致 {filtered.length}件</span></p></div><div className="analytics-actions"><button className="button" disabled={!selectedPaths.length} onClick={() => setSelectedPaths([])}>選択を解除</button><button className="button" disabled={!active.length} onClick={() => downloadCsv('equipment-comparison.csv', [['ID', '名前', 'スロット', 'タグ', '要求Lv', '進行度', ...statuses.flatMap(id => [`${id} 下限`, `${id} 上限`])], ...active.map(row => [row.id, row.name, row.slot, row.tag, row.level, row.progression, ...statuses.flatMap(id => [row.stats[id]?.min, row.stats[id]?.max])])])}>比較表をCSV出力</button></div></div>
+      <h3>{statusLabel(stat)}の範囲比較</h3>
       <p className="analytics-note">バーは比較対象の先頭30件を表示します。表は50件ずつ表示し、CSVには比較対象すべてを出力します。</p>
       <div className="equipment-bars" aria-label={`${statusLabel(stat)}の範囲比較`}>{active.filter(row => row.stats[stat]).slice(0, 30).map(row => <div key={row.path} className="equipment-bar"><span title={row.id}><MinecraftText value={names.get(row.path) || row.name} /></span><div><i style={{ width: `${Math.max(Math.abs(row.stats[stat].min), Math.abs(row.stats[stat].max)) / scale * 100}%` }} /></div><strong>{formatRange(row.stats[stat])}</strong></div>)}</div>
-      <div className="analytics-table-wrap"><table><caption>装備の横並び比較。チェックした装備だけに絞り込めます。</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{statuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPaths.includes(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPaths.includes(row.path)} onChange={event => setSelectedPaths(current => event.target.checked ? [...current, row.path] : current.filter(path => path !== row.path))} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{statuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!filtered.length && <p>条件に一致する装備がありません。レベル幅やスロットを変更してください。</p>}</div>
+      {!active.some(row => row.stats[stat]) && <p className="analytics-empty">このステータスを持つ比較対象がありません。条件やステータスを変更してください。</p>}
+      <h3>装備の比較表</h3>
+      <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>装備の横並び比較。チェックした装備だけに絞り込めます。</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{statuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPaths.includes(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPaths.includes(row.path)} onChange={event => setSelectedPaths(current => event.target.checked ? [...current, row.path] : current.filter(path => path !== row.path))} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{statuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!filtered.length && <p className="analytics-empty">条件に一致する装備がありません。レベル幅やスロットを変更してください。</p>}</div>
       <div className="analytics-actions"><button className="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>前の50件</button><span>{currentPage + 1} / {pageCount}ページ</span><button className="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>次の50件</button></div>
-    </> : <>
+      </section>
+    </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace">
+      <section className="analytics-panel analytics-settings" aria-labelledby="growth-settings-heading">
+      <div className="analytics-section-heading"><h2 id="growth-settings-heading">成長の計算条件</h2></div>
+      <div className="analytics-compute"><span>{classIds.length} / 12職業を選択</span><button className="button primary" disabled={growing || !classIds.length} onClick={() => void generate()}>{growing ? '計算中…' : 'グラフを計算'}</button></div>
+      <p className="analytics-note">条件を設定し「グラフを計算」で結果を更新します。</p>
       <div className="analytics-controls">
-        <label>アカウントUUID<input value={uuid} onChange={event => setUuid(event.target.value)} className="uuid-input" /></label>
+        <label className="analytics-field-wide">アカウントUUID<input value={uuid} onChange={event => setUuid(event.target.value)} className="uuid-input" /></label>
         <label>開始プレイヤーLv<input type="number" min="1" max="200" value={startPlayer} onChange={event => setStartPlayer(numeric(event.target.value, 1))} /></label>
         <label>開始クラスLv<input type="number" min="1" max="1000" value={startClass} onChange={event => setStartClass(numeric(event.target.value, 1))} /></label>
         <label>表示上限プレイヤーLv<input type="number" min="1" max="200" value={maximum} onChange={event => setMaximum(numeric(event.target.value, 100))} /></label>
       </div>
       <fieldset className="class-selection"><legend>比較する職業（最大12件）</legend>{catalog.classes.map(master => { const id = String(master.content.id); return <label key={master.path} title={`解放プレイヤーLv ${numeric(master.content.unlockLevel, 1)} / 必要経験値係数 ${numeric(master.content.expRate, 100)} / 最大レベル ${numeric(master.content.maxLevel, 100)}`}><input type="checkbox" checked={classIds.includes(id)} disabled={!classIds.includes(id) && classIds.length >= 12} onChange={event => setClassIds(current => event.target.checked ? [...current, id] : current.filter(value => value !== id))} /><MinecraftText value={String(master.content.name ?? '')} /><small>{id}</small></label> })}</fieldset>
-      <button className="button primary" disabled={growing || !classIds.length} onClick={() => void generate()}>{growing ? '計算中…' : 'グラフを計算'}</button>
-      <p className="analytics-note">入力変更後は「グラフを計算」で反映します。開始Lvは到達直後として計算します。通常育成・転生なし、同じEXPをプレイヤーと1職へ加算する仮定です。各職の曲線はそれぞれ独立した育成シナリオです。</p>
+      <details className="analytics-explanation"><summary>育成シナリオの前提</summary><p className="analytics-note">入力変更後は「グラフを計算」で反映します。開始Lvは到達直後として計算します。通常育成・転生なし、同じEXPをプレイヤーと1職へ加算する仮定です。各職の曲線はそれぞれ独立した育成シナリオです。</p></details>
+      </section>
+      <section className="analytics-panel analytics-results" aria-labelledby="growth-results-heading" aria-busy={growing}>
+      <div className="analytics-section-heading"><h2 id="growth-results-heading">成長の計算結果</h2>{simulation && <span className="analytics-badge">{simulation.classes.length}職業を比較</span>}</div>
+      {!simulation && <div className="analytics-empty"><h3>職業ごとの成長を比較</h3><p>計算条件を設定して「グラフを計算」を押すと、グラフと指定レベルの数値表を表示します。</p></div>}
       {simulation && <>
         <div className="analytics-controls"><label>グラフの種類<select value={growthView} onChange={event => setGrowthView(event.target.value as typeof growthView)}><option value="level">プレイヤーLv → クラスLv</option><option value="experience">プレイヤーLv → クラス累積EXP</option><option value="bonus">プレイヤーLv → クラスのステータス補正</option></select></label>{growthView === 'bonus' && <label>ステータス<select value={growthStat} onChange={event => setGrowthStat(event.target.value)}>{[...new Set([growthStat, ...growthStatuses])].map(id => <option key={id} value={id}>{statusLabel(id)} ({id})</option>)}</select></label>}</div>
         <LineChart series={graph} xLabel="プレイヤーLv" yLabel={growthView === 'level' ? 'クラスLv' : growthView === 'experience' ? 'クラス累積EXP' : `${statusLabel(growthStat)}（クラス補正のみ）`} />
         <label className="inspect-level">確認するプレイヤーLv: {inspect}<input type="range" min={simulation.startPlayerLevel} max={simulation.points.at(-1)?.playerLevel} step="1" value={inspect} onChange={event => setInspect(Number(event.target.value))} /></label>
-        {point && <div className="analytics-table-wrap"><table><caption>プレイヤーLv {point.playerLevel} · 累積EXP {formatNumber(point.playerTotalExperience)}</caption><thead><tr><th>職業</th><th>クラスLv / 上限</th><th>累積クラスEXP</th><th>次Lvまで</th><th>必要経験値係数</th><th>{statusLabel(growthStat)}補正</th><th>1Lvの成長</th></tr></thead><tbody>{simulation.classes.map(definition => { const value = point.classes.find(item => item.id === definition.id)!; const master = catalog.classes.find(item => item.content.id === definition.id); return <tr key={definition.id}><th scope="row"><MinecraftText value={definition.name} /><small>{definition.id}</small></th><td>{value.level} / {definition.maxLevel}</td><td>{formatNumber(value.totalExperience)}</td><td>{value.level === definition.maxLevel ? '上限到達' : formatNumber(value.nextLevelExperience)}</td><td>{definition.expRate}</td><td>{master ? formatNumber(classBonus(master, growthStat, value.level)) : '—'}</td><td>{master ? formatNumber(numeric(asList(master.content.growthPerLevel).map(asObject).find(stat => normalizeStatus(stat.status) === growthStat)?.value)) : '—'}</td></tr> })}</tbody></table></div>}
+        {point && <div className="analytics-table-wrap" role="region" aria-label="指定レベルの成長表" tabIndex={0}><table><caption>プレイヤーLv {point.playerLevel} · 累積EXP {formatNumber(point.playerTotalExperience)}</caption><thead><tr><th>職業</th><th>クラスLv / 上限</th><th>累積クラスEXP</th><th>次Lvまで</th><th>必要経験値係数</th><th>{statusLabel(growthStat)}補正</th><th>1Lvの成長</th></tr></thead><tbody>{simulation.classes.map(definition => { const value = point.classes.find(item => item.id === definition.id)!; const master = catalog.classes.find(item => item.content.id === definition.id); return <tr key={definition.id}><th scope="row"><MinecraftText value={definition.name} /><small>{definition.id}</small></th><td>{value.level} / {definition.maxLevel}</td><td>{formatNumber(value.totalExperience)}</td><td>{value.level === definition.maxLevel ? '上限到達' : formatNumber(value.nextLevelExperience)}</td><td>{definition.expRate}</td><td>{master ? formatNumber(classBonus(master, growthStat, value.level)) : '—'}</td><td>{master ? formatNumber(numeric(asList(master.content.growthPerLevel).map(asObject).find(stat => normalizeStatus(stat.status) === growthStat)?.value)) : '—'}</td></tr> })}</tbody></table></div>}
         <button className="button" onClick={() => downloadCsv('class-growth.csv', [['プレイヤーLv', '累積プレイヤーEXP', ...simulation.classes.map(definition => `${definition.id} クラスLv`)], ...simulation.points.map(item => [item.playerLevel, item.playerTotalExperience, ...simulation.classes.map(definition => item.classes.find(value => value.id === definition.id)?.level)])])}>成長表をCSV出力</button>
         <details className="analytics-sources"><summary>計算の根拠と前提</summary><p>{simulation.assumption}</p><p>プレイヤー必要EXP = 500 + Lv²×120 + floor(Lv/10)×850 + 8段階wave + 5Lvごとの加算 + UUID由来の加算。クラス必要EXP = round((45 + Lv²×8 + 10Lvごとの加算) × max(expRate,10)/100)。クラス補正 = baseStats + growthPerLevel × (クラスLv−1)。</p>{simulation.sources.map(source => <code key={source}>{source}</code>)}<p>アカウントUUID: {simulation.accountUuid}。EXPERIENCE_GAIN_RATEは両方へ加算する前に適用されるため、この累積EXP対レベルの比較には影響しません。</p></details>
       </>}
-    </>}
+      </section>
+    </div>}
     </>)}
   </section>
 }
