@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { worldPlacementApi, type PlacementKind, type PlacementSnapshot, type WorldPlacement } from '../api/worldPlacementApi'
 import { cellAtWorld, type PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
+import { spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import './worldPlacementEditor.css'
 
 export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
@@ -38,6 +39,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  const inspector = useRef<HTMLDivElement>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [kind, setKind] = useState<PlacementKind>('spawner')
@@ -52,7 +54,11 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [selectedWorldName, setSelectedWorldName] = useState('')
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([])
   const selected = working.find(item => item.placementId === selectedId)
+  useEffect(() => {
+    if (editing && selectedId && inspector.current) inspector.current.scrollTop = 0
+  }, [selectedId, editing])
   const worldId = snapshot.manifest.worldId
+  const masterNumbers = useMemo(() => spawnerMasterNumbers(catalog.spawners.map(item => item.id)), [catalog.spawners])
   const worldNames = useMemo(() => {
     const existing = [...new Set(base?.placements.filter(item => item.worldId === worldId).map(item => item.worldName) ?? [])]
     if (existing.length) return existing
@@ -171,7 +177,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     {(placing || moving) && <p className="wp-instruction" role="status">{placing ? '地図の安全な地点をクリックして追加します。' : '移動先の安全な地点をクリックします。'} ドラッグで地図を移動できます。</p>}</>}
     <div className="wp-map-pane">{map}</div>
     {editing && <>
-    <div className="wp-inspector">
+    <div className="wp-inspector" ref={inspector}>
     {selected && <div className="wp-form"><h3>{selected.kind === 'spawner' ? 'スポナー' : selected.kind === 'npc' ? 'NPC' : '道標'}の配置を編集</h3>{selectedOutsideFilter && <p className="wp-filter-note">選択中の配置は絞り込み条件外です。地図にはこの1件を表示しています。</p>}<code>{selected.placementId}</code>
       {selected.kind !== 'waystone' && <label>マスター<select value={selected.templateId ?? ''} disabled={busy} onChange={event => update({ templateId: event.target.value || null })}><option value="">選択してください</option>{options.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label>}
       <div className="wp-coordinates">{(['x', 'y', 'z', 'yaw', 'pitch'] as const).map(key => <label key={key}>{key.toUpperCase()}<input type="number" disabled={busy} step={key === 'yaw' || key === 'pitch' ? '0.1' : '1'} value={selected[key]} onChange={event => update({ [key]: Number(event.target.value) })} /></label>)}</div>
@@ -182,7 +188,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     </div>}
     <div className="wp-filters"><label>検索<input aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} placeholder="モブ名・ID・座標" /></label><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div>
     <p className="wp-count">{filtered.length} 件を表示 · 世界: {snapshot.manifest.worldName} ({worldId}){selectedWorldName && ` · 保存先: ${selectedWorldName}`}</p>
-    <div className="wp-list">{filtered.map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={busy} aria-label={`${templateName(item, catalog)} を削除対象に選択`} checked={selectedForDelete.includes(item.placementId)} onChange={event => setSelectedForDelete(current => event.target.checked ? [...current, item.placementId] : current.filter(id => id !== item.placementId))} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => onSelected(item.placementId)}><strong><MinecraftText value={templateName(item, catalog)} /></strong><small>{item.kind} · {regionName(item)} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!filtered.length && <p>条件に合う保存済み配置はありません。</p>}</div>
+    <div className="wp-list">{filtered.map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={busy} aria-label={`${templateName(item, catalog)} を削除対象に選択`} checked={selectedForDelete.includes(item.placementId)} onChange={event => setSelectedForDelete(current => event.target.checked ? [...current, item.placementId] : current.filter(id => id !== item.placementId))} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => onSelected(item.placementId)}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={templateName(item, catalog)} /></strong><small>{item.kind} · {regionName(item)} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!filtered.length && <p>条件に合う保存済み配置はありません。</p>}</div>
     <div className="wp-actions wp-delete-actions"><button className="button" disabled={busy || !selectedForDelete.length} onClick={() => remove(selectedForDelete)}>選択した {selectedForDelete.length} 件を削除</button></div>
     </div>
     </>}

@@ -89,6 +89,7 @@ describe('マスタエディタ内の配置計画', () => {
     fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
     expect(await screen.findByText(/地形経路距離300mごと/)).toHaveTextContent('水色の点線')
     expect(screen.getByText(/実際の歩行可能性は未検証/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
     expect(screen.getByText(/地形経路距離:/)).toHaveTextContent('3,424m')
   })

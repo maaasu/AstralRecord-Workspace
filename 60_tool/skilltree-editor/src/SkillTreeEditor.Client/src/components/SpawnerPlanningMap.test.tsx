@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlanningSnapshot } from '../data/spawnerPlanning'
+import type { WorldPlacement } from '../api/worldPlacementApi'
 
 const bounds = { minX: -2400, minZ: -2400, width: 4736, height: 4688, cellSize: 16 }
 const snapshot: PlanningSnapshot = {
@@ -74,4 +75,56 @@ it('全大陸表示でも保存済み配置の点を選択できる', () => {
   fireEvent.pointerDown(canvas, { clientX: x, clientY: z, pointerId: 1 })
   fireEvent.pointerUp(canvas, { clientX: x, clientY: z, pointerId: 1 })
   expect(onPlacement).toHaveBeenCalledWith('saved')
+})
+
+it('表示条件を変えても一覧と共通の番号を保ち、実レベルと無効状態を確認できる', () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  const placement: WorldPlacement = { placementId: 'wolf-point', kind: 'spawner', worldId: 'eriva', worldName: 'eriva', templateId: 'wolf', x: 0, y: 70, z: 0, yaw: 0, pitch: 0, enabled: false, waystone: null }
+  const catalog = { spawners: [{ id: 'wolf', name: '&aオオカミ', radiusMeters: 64, levels: [30, 15] }, { id: 'slime', name: 'スライム', radiusMeters: 32, levels: [15] }], npcs: [], worlds: [] }
+  const { rerender } = render(<SpawnerPlanningMap {...props} placementCatalog={catalog} placements={[placement, { ...placement, placementId: 'slime-point', templateId: 'slime' }, { ...placement, placementId: 'other', worldId: 'other' }]} selectedPlacement="wolf-point" />)
+  expect(screen.getByText(/選択中: #2 オオカミ · Lv.15–30 · 無効/)).toBeInTheDocument()
+  expect(screen.getByText(/表示中のスポナーマスター \(2\)/)).toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...props} placementCatalog={catalog} placements={[placement]} selectedPlacement="wolf-point" />)
+  expect(screen.getByText(/選択中: #2 オオカミ/)).toBeInTheDocument()
+  expect(screen.getByText(/表示中のスポナーマスター \(1\)/)).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('combobox', { name: 'スポナーの色分け' }), { target: { value: 'levels' } })
+  expect(screen.getByText('複数レベル・不明')).toBeInTheDocument()
+  expect(screen.getByText(/青灰: 未解析・解析失敗/)).toBeInTheDocument()
+})
+
+it('密集した点でも選択した配置を最後に描き、名前をラベルへ残す', () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  const context = { setTransform: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), arc: vi.fn(),
+    moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), rect: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
+    fillRect: vi.fn(), strokeRect: vi.fn(), fillText: vi.fn(), measureText: () => ({ width: 120 }) }
+  vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(context as unknown as CanvasRenderingContext2D)
+  const placement: WorldPlacement = { placementId: 'selected', kind: 'spawner', worldId: 'eriva', worldName: 'eriva', templateId: 'wolf', x: 0, y: 70, z: 0, yaw: 0, pitch: 0, enabled: true, waystone: null }
+  const mapProps = { ...props, showProposals: false, selectedPlacement: 'selected', placements: [placement, { ...placement, placementId: 'neighbor' }], placementCatalog: { spawners: [{ id: 'wolf', name: '&aオオカミ', radiusMeters: 64, levels: [15] }], npcs: [], worlds: [] } }
+  const { rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  const markerRadii = context.arc.mock.calls.map(call => call[2])
+  expect(markerRadii.lastIndexOf(8)).toBeGreaterThan(markerRadii.lastIndexOf(2.8))
+  expect(context.fillText).toHaveBeenCalledWith('#1 オオカミ · Lv.15', expect.any(Number), expect.any(Number), expect.any(Number))
+  context.fillText.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} focus={{ key: 1, x: 0, z: 0 }} />)
+  expect(screen.getByText(/0\.70 px\/m/)).toBeInTheDocument()
+  expect(context.fillText.mock.calls.filter(call => String(call[0]).startsWith('#'))).toEqual([
+    ['#1 オオカミ · Lv.15', expect.any(Number), expect.any(Number), expect.any(Number)],
+  ])
+})
+
+it('カタログ外マスターは選択時と拡大時の描画ラベルも番号不明を表示する', () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  const context = { setTransform: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), arc: vi.fn(),
+    moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), rect: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
+    fillRect: vi.fn(), strokeRect: vi.fn(), fillText: vi.fn(), measureText: () => ({ width: 180 }) }
+  vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(context as unknown as CanvasRenderingContext2D)
+  const placement: WorldPlacement = { placementId: 'unknown', kind: 'spawner', worldId: 'eriva', worldName: 'eriva', templateId: 'missing-spawner', x: 0, y: 70, z: 0, yaw: 0, pitch: 0, enabled: true, waystone: null }
+  const mapProps = { ...props, showProposals: false, placements: [placement], placementCatalog: { spawners: [], npcs: [], worlds: [] } }
+  const { rerender } = render(<SpawnerPlanningMap {...mapProps} selectedPlacement="unknown" />)
+  expect(context.fillText).toHaveBeenCalledWith('#? missing-spawner · Lv.不明', expect.any(Number), expect.any(Number), expect.any(Number))
+  expect(screen.getByText(/選択中: #\? missing-spawner/)).toBeInTheDocument()
+  context.fillText.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} selectedPlacement={null} focus={{ key: 1, x: 0, z: 0 }} />)
+  for (let index = 0; index < 3; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  expect(context.fillText).toHaveBeenCalledWith('#? Lv.不明', expect.any(Number), expect.any(Number), expect.any(Number))
 })

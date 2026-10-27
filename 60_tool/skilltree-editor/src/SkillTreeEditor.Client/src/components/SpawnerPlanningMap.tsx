@@ -3,6 +3,8 @@ import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { PlacementCatalog } from './WorldPlacementEditor'
+import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
+import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 interface Props {
@@ -24,9 +26,16 @@ export function SpawnerPlanningMap(props: Props) {
   const [view, setView] = useState({ scale: .1, x: 0, z: 0 })
   const [coordinates, setCoordinates] = useState('X — / Z —')
   const [detail, setDetail] = useState<HTMLImageElement | null>(null)
+  const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
   const bounds = snapshot.manifest.bounds
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot.cells])
   const visibleProposals = useMemo(() => plan?.proposals.filter(item => !region || item.regionId === region) ?? [], [plan, region])
+  const masters = useMemo(() => new Map(props.placementCatalog?.spawners.map(item => [item.id, item]) ?? []), [props.placementCatalog])
+  const masterNumbers = useMemo(() => spawnerMasterNumbers([...masters.keys()]), [masters])
+  const placements = useMemo(() => (props.placements ?? []).filter(item => item.worldId === snapshot.manifest.worldId), [props.placements, snapshot.manifest.worldId])
+  const visibleMasters = useMemo(() => [...new Set(placements.filter(item => item.kind === 'spawner').map(item => item.templateId))]
+    .sort((a, b) => (masterNumbers.get(a ?? '') ?? Infinity) - (masterNumbers.get(b ?? '') ?? Infinity)), [placements, masterNumbers])
+  const selected = placements.find(item => item.placementId === props.selectedPlacement)
   const fit = useCallback(() => {
     const { width, height } = sizeRef.current
     const scale = Math.min((width - 32) / bounds.width, (height - 32) / bounds.height)
@@ -91,7 +100,7 @@ export function SpawnerPlanningMap(props: Props) {
       const code = plan?.reasonCodes[index] ?? cell.reasonCode
       let color = layer === 'levels' ? levelColor(cell.targetLevel) : layer === 'reasons' ? reasonColor(code) : terrainColor(cell)
       if (layer === 'levels' && cell.status !== 'ok') color = terrainColor(cell)
-      if (layer === 'terrain' && cell.candidateY != null && !/water|lava/.test(cell.surface ?? '')) {
+      if (layer === 'terrain' && cell.status === 'ok' && cell.candidateY != null && !/water|lava/.test(cell.surface ?? '')) {
         const east = snapshot.cells[grid.get(`${cell.x + bounds.cellSize},${cell.z}`) ?? -1]
         const south = snapshot.cells[grid.get(`${cell.x},${cell.z + bounds.cellSize}`) ?? -1]
         const slope = ((east?.candidateY ?? cell.candidateY) + (south?.candidateY ?? cell.candidateY) - cell.candidateY * 2) / bounds.cellSize
@@ -163,21 +172,49 @@ export function SpawnerPlanningMap(props: Props) {
         ctx.beginPath(); ctx.arc(x, z, radius, 0, Math.PI * 2)
         ctx.strokeStyle = selected ? '#fff1a2' : '#d3dfb83d'; ctx.lineWidth = selected ? 2 : .7; ctx.stroke()
       }
-      ctx.beginPath(); ctx.arc(x, z, selected ? 5 : view.scale > .3 ? 2.5 : 1.2, 0, Math.PI * 2)
+      const r = selected ? 6 : view.scale > .3 ? 4 : 2
+      ctx.beginPath(); ctx.moveTo(x, z - r); ctx.lineTo(x + r, z + r); ctx.lineTo(x - r, z + r); ctx.closePath()
       ctx.fillStyle = selected ? '#fff0ac' : '#e3f2c8'; ctx.fill()
+      ctx.strokeStyle = '#101b29'; ctx.lineWidth = 1; ctx.stroke()
     }
-    for (const placement of props.placements ?? []) {
-      if (placement.worldId !== snapshot.manifest.worldId) continue
+    const labels: { x: number; z: number; width: number }[] = []
+    // Draw the selection last so dense neighboring points cannot cover it.
+    for (const placement of [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement))) {
       const [x, z] = screen(placement.x + .5, placement.z + .5)
       const selected = props.selectedPlacement === placement.placementId
-      const template = props.placementCatalog?.spawners.find(item => item.id === placement.templateId)
+      const template = masters.get(placement.templateId ?? '')
+      const levels = spawnerLevels(template?.levels ?? [])
+      const color = placement.kind === 'spawner' ? markerMode === 'masters' ? spawnerMasterColor(placement.templateId) : levels.color : placement.kind === 'npc' ? '#ec99fa' : '#f7cf6d'
+      const number = masterNumbers.get(placement.templateId ?? '')
+      const margin = template && (radii || selected) ? Math.max(60, template.radiusMeters * view.scale) : 60
+      if (x < -margin || z < -margin || x > size.width + margin || z > size.height + margin) continue
       if (placement.kind === 'spawner' && template && (radii || selected)) {
         ctx.beginPath(); ctx.arc(x, z, template.radiusMeters * view.scale, 0, Math.PI * 2)
-        ctx.strokeStyle = selected ? '#63edff' : '#46d6e06a'; ctx.lineWidth = selected ? 2 : 1; ctx.stroke()
+        ctx.strokeStyle = selected ? '#ffffff' : `${color}80`; ctx.lineWidth = selected ? 2 : 1; ctx.stroke()
       }
-      ctx.beginPath(); ctx.arc(x, z, selected ? 7 : view.scale > .3 ? 4 : 2.2, 0, Math.PI * 2)
-      ctx.fillStyle = placement.kind === 'spawner' ? '#33d5e6' : placement.kind === 'npc' ? '#ec99fa' : '#f7cf6d'; ctx.fill()
-      if (selected) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke() }
+      const r = selected ? 8 : view.scale > .3 ? 5 : 2.8
+      ctx.beginPath()
+      if (placement.kind === 'npc') { ctx.moveTo(x, z - r); ctx.lineTo(x + r, z); ctx.lineTo(x, z + r); ctx.lineTo(x - r, z); ctx.closePath() }
+      else if (placement.kind === 'waystone') ctx.rect(x - r, z - r, r * 2, r * 2)
+      else ctx.arc(x, z, r, 0, Math.PI * 2)
+      ctx.fillStyle = placement.enabled ? color : '#152131'; ctx.fill()
+      ctx.strokeStyle = '#0b1320'; ctx.lineWidth = selected ? 4 : 2; ctx.stroke()
+      ctx.strokeStyle = placement.enabled ? selected ? '#fff' : '#edf4f7' : color
+      ctx.lineWidth = selected ? 2 : 1; ctx.stroke()
+      if (!placement.enabled) { ctx.beginPath(); ctx.moveTo(x - r, z + r); ctx.lineTo(x + r, z - r); ctx.stroke() }
+      if (selected || (placement.kind === 'spawner' && view.scale >= 2)) {
+        const text = placement.kind === 'spawner' ? `#${number ?? '?'} ${selected ? plainName(template?.name ?? placement.templateId ?? 'マスター不明') + ' · ' : ''}${levels.label}${placement.enabled ? '' : ' · 無効'}`
+          : `${placement.kind === 'npc' ? plainName(props.placementCatalog?.npcs.find(item => item.id === placement.templateId)?.name ?? placement.templateId ?? 'NPC') : plainName(placement.waystone?.name ?? '道標')}${placement.enabled ? '' : ' · 無効'}`
+        ctx.font = 'bold 11px sans-serif'
+        const width = Math.min(size.width - 16, ctx.measureText(text).width + 12)
+        const lx = Math.max(4, Math.min(size.width - width - 4, x + r + 5)), lz = Math.max(4, Math.min(size.height - 20, z - 10))
+        if (selected || !labels.some(label => lx < label.x + label.width + 4 && lx + width + 4 > label.x && Math.abs(lz - label.z) < 22)) {
+          ctx.fillStyle = '#101b29ee'; ctx.fillRect(lx, lz, width, 20)
+          ctx.strokeStyle = selected ? '#fff' : color; ctx.lineWidth = 1; ctx.strokeRect(lx, lz, width, 20)
+          ctx.fillStyle = '#fff'; ctx.fillText(text, lx + 6, lz + 14, width - 12)
+          labels.push({ x: lx, z: lz, width })
+        }
+      }
     }
     const spawn = snapshot.manifest.spawn
     const [sx, sz] = screen(spawn.x, spawn.z)
@@ -193,7 +230,7 @@ export function SpawnerPlanningMap(props: Props) {
     const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, props.placements, props.placementCatalog, props.selectedPlacement, props.showProposals])
+  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, placements, masters, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
@@ -210,7 +247,9 @@ export function SpawnerPlanningMap(props: Props) {
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
   }, [active, zoom])
-  return <div className="sp-map-wrap">
+  return <div className="sp-map-panel">
+    <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>
+    <div className="sp-map-wrap">
     <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
       onPointerDown={event => { drag.current = { x: event.clientX, y: event.clientY, moved: 0 }; event.currentTarget.setPointerCapture(event.pointerId) }}
       onPointerMove={event => {
@@ -267,5 +306,16 @@ export function SpawnerPlanningMap(props: Props) {
       }} />
     <div className="sp-map-tools"><button className="button" onClick={() => zoom(1.5)} aria-label="地図を拡大">＋</button><button className="button" onClick={() => zoom(1 / 1.5)} aria-label="地図を縮小">−</button><button className="button" onClick={fit}>全大陸</button></div>
     <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
+    </div>
+    {selected && <p className="sp-map-selection" aria-live="polite">選択中: {selected.kind === 'spawner' ? `#${masterNumbers.get(selected.templateId ?? '') ?? '?'} ${plainName(masters.get(selected.templateId ?? '')?.name ?? selected.templateId ?? 'マスター不明')} · ${spawnerLevels(masters.get(selected.templateId ?? '')?.levels ?? []).label}` : selected.kind === 'npc' ? plainName(props.placementCatalog?.npcs.find(item => item.id === selected.templateId)?.name ?? selected.templateId ?? 'NPC') : plainName(selected.waystone?.name ?? '道標')} · {selected.enabled ? '有効' : '無効'} · X {selected.x} / Z {selected.z}</p>}
+    <div className="sp-marker-key" aria-label="スポナーの凡例">
+      {markerMode === 'levels' && <div className="sp-marker-bands">{spawnerLevelBands.map(band => <span key={band.label}><i style={{ background: band.color }} />{band.label}</span>)}<span><i style={{ background: '#b0bbc8' }} />複数レベル・不明</span></div>}
+      <details><summary>表示中のスポナーマスター ({visibleMasters.length}) · 番号は一覧と共通</summary><div className="sp-master-key-list">{visibleMasters.map(id => {
+        const master = masters.get(id ?? ''), levels = spawnerLevels(master?.levels ?? [])
+        return <span key={id ?? 'unknown'} title={id ?? 'マスター未選択'}><b style={{ borderColor: markerMode === 'masters' ? spawnerMasterColor(id) : levels.color }}>#{masterNumbers.get(id ?? '') ?? '?'}</b><span>{plainName(master?.name ?? id ?? 'マスター未選択')}<small>{levels.label} · {id ?? 'マスター未選択'}</small></span></span>
+      })}</div></details>
+      <p>2px/m以上に拡大すると番号と実レベルを表示します。通常は選択した点だけにラベルを表示し、密集時は重なるラベルを省略します。</p>
+      {layer === 'terrain' && <p><i className="sp-unknown-key" />青灰: 未解析・解析失敗　<i className="sp-absent-key" />濃灰: 未保存。地形や水域とは区別しています。{props.showProposals !== false && '詳細は区画の選択、または「配置・未配置の理由」で確認できます。'}</p>}
+    </div>
   </div>
 }

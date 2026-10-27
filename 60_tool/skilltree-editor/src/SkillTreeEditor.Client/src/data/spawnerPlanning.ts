@@ -78,7 +78,7 @@ export function levelColor(level: number | null) {
 }
 export function terrainColor(cell: PlanningCell) {
   if (cell.status === 'absent') return '#1c2634'
-  if (cell.status !== 'ok') return '#cf6074'
+  if (cell.status !== 'ok') return '#344253'
   const material = cell.surface ?? ''
   if (material.includes('water')) return '#365b81'
   if (material.includes('lava')) return '#de7e39'

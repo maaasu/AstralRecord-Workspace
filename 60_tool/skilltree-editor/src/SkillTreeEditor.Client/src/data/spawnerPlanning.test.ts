@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { assertPlanningIdentity, cellAtWorld, validatePlanningPlan } from './spawnerPlanning'
+import { assertPlanningIdentity, cellAtWorld, reasonColor, terrainColor, validatePlanningPlan, type PlanningCell } from './spawnerPlanning'
 import type { PlanningManifest, PlanningPlan, PlanningSnapshot } from './spawnerPlanning'
 
 const manifest = { schemaVersion: 2, worldId: 'test', exportRevision: 'revision-a', terrainFingerprint: 'terrain', radiusOptions: [32, 48, 64] } as PlanningManifest
+it('地形の未解析は控えめな独立色で表示し、未配置理由の警告色は保持する', () => {
+  const failed = { status: 'failed' } as PlanningCell
+  expect(terrainColor(failed)).toBe('#344253')
+  expect(terrainColor({ ...failed, status: 'unknown' })).toBe(terrainColor(failed))
+  expect(terrainColor({ ...failed, status: 'absent' })).not.toBe(terrainColor(failed))
+  expect(terrainColor({ ...failed, status: 'ok', surface: 'water' })).not.toBe(terrainColor(failed))
+  expect(reasonColor('failed')).toBe('#df6278')
+})
 describe('配置プレビューの入力境界', () => {
   it('同じ地形でも異なる計算版を混ぜない', () => {
     expect(() => assertPlanningIdentity(manifest, { ...manifest, exportRevision: 'revision-b' })).toThrow('版が一致しません')
