@@ -7,6 +7,7 @@ import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumb
 import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
+const hasRadius = (radius: number | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
 interface Props {
   snapshot: PlanningSnapshot; plan: PlanningPlan | null; layer: PlanningLayer; region: string; reason: string
   radii: boolean; active: boolean; selectedCell: number | null; selectedProposal: string | null
@@ -58,6 +59,7 @@ export function SpawnerPlanningMap(props: Props) {
       const master = masters.get(placement.templateId ?? '')
       const levels = [...new Set(master?.levels?.filter(level => Number.isFinite(level) && level > 0) ?? [])].sort((a, b) => a - b)
       return { title: `Dev スポナー · ${placement.enabled ? '有効' : '無効'}`, id: placement.templateId ?? 'マスター未選択',
+        placementId: placement.placementId, proposalId: null, radiusMeters: hasRadius(master?.radiusMeters) ? master.radiusMeters : null,
         // Catalog names already pair every mob's Japanese name with its spawn level.
         names: [plainName(master?.name ?? '').trim() || `出現モブ不明 (${placement.templateId ?? 'マスター未選択'})`],
         levels: levels.length ? levels.map(level => `Lv.${level}`).join(' / ') : 'Lv.不明' }
@@ -70,14 +72,16 @@ export function SpawnerPlanningMap(props: Props) {
       const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - pointer.x, (item.z + .5 - bounds.minZ) * view.scale + view.z - pointer.z)
       if (next < distance) { distance = next; nearest = item }
     }
-    return nearest ? { title: 'AI 配置案', id: nearest.spawnerId, levels: '', names: nearest.spawnMobs.map(mob => {
+    return nearest ? { title: 'AI 配置案', id: nearest.spawnerId, placementId: null, proposalId: nearest.proposalId,
+      radiusMeters: hasRadius(nearest.radiusMeters) ? nearest.radiusMeters : null, levels: '', names: nearest.spawnMobs.map(mob => {
       const name = plainName(mob.name).trim() || `モブ名不明 (${mob.mobId})`
       const suffix = name.match(/\s+Lv\.\s*(\d+)\s*$/i)
       const sameLevel = suffix && Number(suffix[1]) === mob.level
       return `${sameLevel ? name.slice(0, suffix.index).trim() : name} · ${suffix && !sameLevel ? '出現 ' : ''}${Number.isFinite(mob.level) && mob.level > 0 ? `Lv.${mob.level}` : 'Lv.不明'}`
     }) } : null
   })()
-  const tooltipText = hovered ? [hovered.title, hovered.id, hovered.levels, ...hovered.names].join('\n') : ''
+  const hoveredPlacementId = hovered?.placementId ?? null, hoveredProposalId = hovered?.proposalId ?? null
+  const tooltipText = hovered ? [hovered.title, hovered.id, hovered.levels, hovered.radiusMeters, ...hovered.names].join('\n') : ''
   useLayoutEffect(() => {
     if (!tooltip.current) return
     const rect = tooltip.current.getBoundingClientRect()
@@ -224,11 +228,12 @@ export function SpawnerPlanningMap(props: Props) {
     for (const proposal of props.showProposals === false ? [] : visibleProposals) {
       const [x, z] = screen(proposal.x + .5, proposal.z + .5)
       const selected = selectedProposal === proposal.proposalId
-      const radius = proposal.radiusMeters * view.scale
+      const isHovered = hoveredProposalId === proposal.proposalId
+      const radius = hasRadius(proposal.radiusMeters) ? proposal.radiusMeters * view.scale : 0
       if (x + radius < 0 || z + radius < 0 || x - radius > size.width || z - radius > size.height) continue
-      if (radii || selected) {
+      if (radius > 0 && (radii || selected || isHovered)) {
         ctx.beginPath(); ctx.arc(x, z, radius, 0, Math.PI * 2)
-        ctx.strokeStyle = selected ? '#fff1a2' : '#d3dfb83d'; ctx.lineWidth = selected ? 2 : .7; ctx.stroke()
+        ctx.strokeStyle = selected ? '#fff1a2' : isHovered ? '#9ee9ef' : '#d3dfb83d'; ctx.lineWidth = selected || isHovered ? 2 : .7; ctx.stroke()
       }
       const r = selected ? 6 : view.scale > .3 ? 4 : 2
       ctx.beginPath(); ctx.moveTo(x, z - r); ctx.lineTo(x + r, z + r); ctx.lineTo(x - r, z + r); ctx.closePath()
@@ -244,11 +249,13 @@ export function SpawnerPlanningMap(props: Props) {
       const levels = spawnerLevels(template?.levels ?? [])
       const color = placement.kind === 'spawner' ? markerMode === 'masters' ? spawnerMasterColor(placement.templateId) : levels.color : placement.kind === 'npc' ? '#ec99fa' : '#f7cf6d'
       const number = masterNumbers.get(placement.templateId ?? '')
-      const margin = template && (radii || selected) ? Math.max(60, template.radiusMeters * view.scale) : 60
+      const isHovered = hoveredPlacementId === placement.placementId
+      const radius = hasRadius(template?.radiusMeters) ? template.radiusMeters * view.scale : 0
+      const margin = radii || selected || isHovered ? Math.max(60, radius) : 60
       if (x < -margin || z < -margin || x > size.width + margin || z > size.height + margin) continue
-      if (placement.kind === 'spawner' && template && (radii || selected)) {
-        ctx.beginPath(); ctx.arc(x, z, template.radiusMeters * view.scale, 0, Math.PI * 2)
-        ctx.strokeStyle = selected ? '#ffffff' : `${color}80`; ctx.lineWidth = selected ? 2 : 1; ctx.stroke()
+      if (placement.kind === 'spawner' && radius > 0 && (radii || selected || isHovered)) {
+        ctx.beginPath(); ctx.arc(x, z, radius, 0, Math.PI * 2)
+        ctx.strokeStyle = selected ? '#ffffff' : isHovered ? '#9ee9ef' : `${color}80`; ctx.lineWidth = selected || isHovered ? 2 : 1; ctx.stroke()
       }
       const r = selected ? 8 : view.scale > .3 ? 5 : 2.8
       ctx.beginPath()
@@ -288,7 +295,7 @@ export function SpawnerPlanningMap(props: Props) {
     const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, masters, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
+  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, masters, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals, hoveredPlacementId, hoveredProposalId])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
@@ -364,7 +371,7 @@ export function SpawnerPlanningMap(props: Props) {
       width: Math.min(360, size.width - 16),
       left: Math.max(8, Math.min(size.width - tooltipSize.width - 8, pointer.x + 14 + tooltipSize.width <= size.width - 8 ? pointer.x + 14 : pointer.x - tooltipSize.width - 14)),
       top: Math.max(8, Math.min(size.height - tooltipSize.height - 8, pointer.z + 14 + tooltipSize.height <= size.height - 8 ? pointer.z + 14 : pointer.z - tooltipSize.height - 14)),
-    }}><strong>{hovered.title}</strong><div ref={tooltipContent} className="sp-map-tooltip-content">{hovered.names.map((name, index) => <div key={index}>{name}</div>)}{hovered.levels && <small>出現する実レベル: {hovered.levels}</small>}<small>{hovered.id}</small></div>{tooltipClipped && <small className="sp-map-tooltip-more">クリック・一覧の詳細で全文を確認</small>}</div>}
+    }}><strong>{hovered.title}</strong><div ref={tooltipContent} className="sp-map-tooltip-content">{hovered.names.map((name, index) => <div key={index}>{name}</div>)}{hovered.levels && <small>出現する実レベル: {hovered.levels}</small>}<small>出現半径: {hovered.radiusMeters == null ? '不明' : `${hovered.radiusMeters} m`}</small><small>{hovered.id}</small></div>{tooltipClipped && <small className="sp-map-tooltip-more">クリック・一覧の詳細で全文を確認</small>}</div>}
     <div className="sp-map-tools"><button className="button" onClick={() => zoom(1.5)} aria-label="地図を拡大">＋</button><button className="button" onClick={() => zoom(1 / 1.5)} aria-label="地図を縮小">−</button><button className="button" onClick={fit}>全大陸</button></div>
     <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
     </div>

@@ -294,3 +294,140 @@ it.each([
   moveMouse(canvas, px - 1, pz - 1)
   expect(screen.getByRole('tooltip')).toHaveStyle({ width: `${expectedWidth}px` })
 })
+
+function drawingContext() {
+  const context = { setTransform: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), arc: vi.fn(),
+    moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), rect: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
+    fillRect: vi.fn(), strokeRect: vi.fn(), fillText: vi.fn(), measureText: () => ({ width: 120 }) }
+  vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(context as unknown as CanvasRenderingContext2D)
+  return context
+}
+const rangeCalls = (context: ReturnType<typeof drawingContext>, radius: number) => context.arc.mock.calls.filter(call => Math.abs(call[2] - radius) < 1e-6)
+const hoverPlan: PlanningPlan = { ...snapshot.manifest, previewOnly: true, radiusMeters: 32, proposals: [{
+  proposalId: 'ai-one', spawnerId: 'field', x: 199.5, y: 70, z: 199.5, radiusMeters: 32, originalRadiusMeters: 64,
+  masterUpdateRequired: true, definitionStatus: 'existing', regionId: 'field', regionName: '草原', habitat: 'grass', level: 15,
+  spawnMobs: [{ mobId: 'mob:boar', name: 'グラスボア', level: 15, weight: 1 }], reason: '', newCoveredCells: 0, coveredCellIndices: [],
+}], reasonCodes: [], counts: {}, targetCells: 0, coveredCells: 0, uncoveredCells: 0, coveragePercent: 0 }
+
+it('Devホバーは実際の中心とマスター半径で円を描き、同じ点内の移動では再描画しない', () => {
+  const context = drawingContext()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  context.arc.mockClear()
+  moveMouse(canvas)
+  expect(rangeCalls(context, 64 * .935)).toEqual([[203, 250, 64 * .935, 0, Math.PI * 2]])
+  expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 64 m')
+  context.clearRect.mockClear()
+  context.arc.mockClear()
+  moveMouse(canvas, 204, 251)
+  expect(context.clearRect).not.toHaveBeenCalled()
+  expect(context.arc).not.toHaveBeenCalled()
+  fireEvent.wheel(canvas, { deltaY: -1, clientX: 203, clientY: 250 })
+  expect(rangeCalls(context, 64 * .935 * 1.18)).toHaveLength(1)
+  expect(rangeCalls(context, 64 * .935 * 1.18)[0].slice(0, 2)).toEqual([203, 250])
+  context.arc.mockClear()
+  fireEvent.pointerLeave(canvas)
+  expect(rangeCalls(context, 64 * .935 * 1.18)).toHaveLength(0)
+})
+
+it('同じDevマスターの別配置へ移ると配置IDに対応する1件だけの円へ切り替える', () => {
+  const context = drawingContext()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={[hoverPlacement, { ...hoverPlacement, placementId: 'other', x: 299.5 }]} />)
+  const canvas = container.querySelector('canvas')!
+  context.arc.mockClear()
+  moveMouse(canvas)
+  expect(rangeCalls(context, 64 * .935)).toEqual([[203, 250, 64 * .935, 0, Math.PI * 2]])
+  context.arc.mockClear()
+  moveMouse(canvas, 296.5, 250)
+  expect(rangeCalls(context, 64 * .935)).toEqual([[296.5, 250, 64 * .935, 0, Math.PI * 2]])
+})
+
+it.each(['selected', 'all'] as const)('Devの%s円はホバーで二重描画せず、離脱後も維持する', mode => {
+  const context = drawingContext()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} selectedPlacement={mode === 'selected' ? 'boars' : null} radii={mode === 'all'} />)
+  const canvas = container.querySelector('canvas')!
+  context.arc.mockClear()
+  moveMouse(canvas)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(1)
+  context.arc.mockClear()
+  fireEvent.pointerLeave(canvas)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(1)
+})
+
+it('AIホバーは元マスターでなく配置案の半径を使い、同じマスターの別案とは区別する', () => {
+  const context = drawingContext()
+  const plan = { ...hoverPlan, proposals: [hoverPlan.proposals[0], { ...hoverPlan.proposals[0], proposalId: 'ai-two', x: 299.5 }] }
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={plan} />)
+  const canvas = container.querySelector('canvas')!
+  context.arc.mockClear()
+  moveMouse(canvas)
+  expect(rangeCalls(context, 32 * .935)).toEqual([[203, 250, 32 * .935, 0, Math.PI * 2]])
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 32 m')
+  context.arc.mockClear()
+  moveMouse(canvas, 296.5, 250)
+  expect(rangeCalls(context, 32 * .935)).toEqual([[296.5, 250, 32 * .935, 0, Math.PI * 2]])
+  context.arc.mockClear()
+  fireEvent.pointerLeave(canvas)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
+})
+
+it.each(['selected', 'all'] as const)('AIの%s円はホバーで二重描画せず、離脱後も維持する', mode => {
+  const context = drawingContext()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={hoverPlan} selectedProposal={mode === 'selected' ? 'ai-one' : null} radii={mode === 'all'} />)
+  const canvas = container.querySelector('canvas')!
+  context.arc.mockClear()
+  moveMouse(canvas)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(1)
+  context.arc.mockClear()
+  fireEvent.pointerLeave(canvas)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(1)
+})
+
+it('ホバー円はドラッグ・配置操作・非表示・フィルター除外で解除する', () => {
+  const context = drawingContext()
+  const { container, rerender } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  moveMouse(canvas)
+  context.arc.mockClear()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  fireEvent.pointerCancel(canvas)
+  moveMouse(canvas)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...hoverProps} placing />)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  rerender(<SpawnerPlanningMap {...hoverProps} />)
+  moveMouse(canvas)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...hoverProps} active={false} />)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...hoverProps} />)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  moveMouse(canvas)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} />)
+  expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={hoverPlan} />)
+  moveMouse(canvas)
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={hoverPlan} region="other" />)
+  expect(rangeCalls(context, 32 * .935)).toHaveLength(0)
+})
+
+it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY, -1, 0])('未知・不正な半径 %s からDev・AIの円を捏造しない', radius => {
+  const context = drawingContext()
+  const catalog = { ...hoverCatalog, spawners: [{ ...hoverCatalog.spawners[0], radiusMeters: radius as number }] }
+  const { container, rerender } = render(<SpawnerPlanningMap {...hoverProps} placementCatalog={catalog} />)
+  const canvas = container.querySelector('canvas')!
+  context.arc.mockClear()
+  moveMouse(canvas)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 不明')
+  expect(context.arc.mock.calls.map(call => call[2])).toEqual([5, 48 * .935, 5])
+  context.arc.mockClear()
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} plan={{ ...hoverPlan, proposals: [{ ...hoverPlan.proposals[0], radiusMeters: radius as number }] }} />)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('出現半径: 不明')
+  expect(context.arc.mock.calls.map(call => call[2])).toEqual([48 * .935, 5])
+})
