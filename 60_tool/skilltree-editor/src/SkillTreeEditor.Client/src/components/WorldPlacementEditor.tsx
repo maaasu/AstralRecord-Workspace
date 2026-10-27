@@ -13,6 +13,7 @@ interface Props {
   snapshot: PlanningSnapshot
   point: PlacementPoint | null
   selectedId: string | null
+  selectionKey?: number
   onSelected: (id: string | null) => void
   onPlacements: (placements: WorldPlacement[], catalog: PlacementCatalog) => void
   placing: boolean
@@ -32,7 +33,7 @@ const fresh = (kind: PlacementKind, worldId: string, worldName: string, template
   waystone: kind === 'waystone' ? { id: '', name: '', lockEnabled: false, unlockGold: 0, icon: 'LODESTONE', createdAt: new Date().toISOString(), createdBy: 'master-data-editor' } : null,
 })
 
-export function WorldPlacementEditor({ editing = true, map, snapshot, point, selectedId, onSelected, onPlacements, placing, onPlacing, moving = false, onMoving = () => {}, onBusyChange = () => {}, onDirtyChange = () => {} }: Props) {
+export function WorldPlacementEditor({ editing = true, map, snapshot, point, selectedId, selectionKey = 0, onSelected, onPlacements, placing, onPlacing, moving = false, onMoving = () => {}, onBusyChange = () => {}, onDirtyChange = () => {} }: Props) {
   const [base, setBase] = useState<PlacementSnapshot | null>(null)
   const [working, setWorking] = useState<WorldPlacement[]>([])
   const [catalog, setCatalog] = useState<PlacementCatalog>(emptyCatalog)
@@ -56,7 +57,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const selected = working.find(item => item.placementId === selectedId)
   useEffect(() => {
     if (editing && selectedId && inspector.current) inspector.current.scrollTop = 0
-  }, [selectedId, editing])
+  }, [selectedId, editing, selectionKey])
   const worldId = snapshot.manifest.worldId
   const masterNumbers = useMemo(() => spawnerMasterNumbers(catalog.spawners.map(item => item.id)), [catalog.spawners])
   const worldNames = useMemo(() => {
@@ -188,7 +189,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     </div>}
     <div className="wp-filters"><label>検索<input aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} placeholder="モブ名・ID・座標" /></label><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div>
     <p className="wp-count">{filtered.length} 件を表示 · 世界: {snapshot.manifest.worldName} ({worldId}){selectedWorldName && ` · 保存先: ${selectedWorldName}`}</p>
-    <div className="wp-list">{filtered.map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={busy} aria-label={`${templateName(item, catalog)} を削除対象に選択`} checked={selectedForDelete.includes(item.placementId)} onChange={event => setSelectedForDelete(current => event.target.checked ? [...current, item.placementId] : current.filter(id => id !== item.placementId))} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => onSelected(item.placementId)}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={templateName(item, catalog)} /></strong><small>{item.kind} · {regionName(item)} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!filtered.length && <p>条件に合う保存済み配置はありません。</p>}</div>
+    <div className="wp-list">{filtered.map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={busy} aria-label={`${templateName(item, catalog)} を削除対象に選択`} checked={selectedForDelete.includes(item.placementId)} onChange={event => setSelectedForDelete(current => event.target.checked ? [...current, item.placementId] : current.filter(id => id !== item.placementId))} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; onSelected(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={templateName(item, catalog)} /></strong><small>{item.kind} · {regionName(item)} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!filtered.length && <p>条件に合う保存済み配置はありません。</p>}</div>
     <div className="wp-actions wp-delete-actions"><button className="button" disabled={busy || !selectedForDelete.length} onClick={() => remove(selectedForDelete)}>選択した {selectedForDelete.length} 件を削除</button></div>
     </div>
     </>}

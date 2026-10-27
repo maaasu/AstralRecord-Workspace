@@ -31,6 +31,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [placements, setPlacements] = useState<WorldPlacement[]>([])
   const [placementCatalog, setPlacementCatalog] = useState<PlacementCatalog>({ spawners: [], npcs: [], worlds: [] })
   const [selectedPlacement, setSelectedPlacement] = useState<string | null>(null)
+  const [placementSelectionKey, setPlacementSelectionKey] = useState(0)
   const [placing, setPlacing] = useState(false)
   const [moving, setMoving] = useState(false)
   const [placementBusy, setPlacementBusy] = useState(false)
@@ -87,6 +88,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   function selectPlacement(id: string | null) {
     setSelectedPlacement(id)
     if (!id) return
+    setPlacementSelectionKey(current => current + 1)
     setSelectedCell(null); setSelectedProposal(null)
     const item = placements.find(value => value.placementId === id)
     if (item) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: item.x, z: item.z }))
@@ -123,7 +125,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
       </div>}
       <div className={`sp-main ${editing ? 'sp-main-editing' : ''}`}>
         <div className="sp-map-column">
-          <WorldPlacementEditor editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} onSelected={selectPlacement} onPlacements={(next, catalog) => { setPlacements(next); setPlacementCatalog(catalog) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={onDirtyChange ?? (() => {})} map={<>
+          <WorldPlacementEditor editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} selectionKey={placementSelectionKey} onSelected={selectPlacement} onPlacements={(next, catalog) => { setPlacements(next); setPlacementCatalog(catalog) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={onDirtyChange ?? (() => {})} map={<>
             <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={editing ? 'terrain' : layer} region={editing ? '' : region} reason={editing ? '' : reason} radii={radii} active={active} selectedCell={editing ? null : selectedCell} selectedProposal={editing ? null : selectedProposal} showProposals={!editing} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { if (!editing) setEditing(true); selectPlacement(id) }} placing={(placing || moving) && !placementBusy} onPlacePoint={(x, y, z) => { if (!placementBusy) setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z })) }} />
             <div className="sp-map-caption"><span><span className="sp-spawn-dot">●</span> 開始地点　金色実線: 道路 / 水色点線: 推定経路</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
           </>} />
