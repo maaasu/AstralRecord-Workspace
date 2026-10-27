@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
-import type { PlanningSnapshot } from '../data/spawnerPlanning'
+import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 
 const bounds = { minX: -2400, minZ: -2400, width: 4736, height: 4688, cellSize: 16 }
@@ -127,4 +127,170 @@ it('カタログ外マスターは選択時と拡大時の描画ラベルも番�
   rerender(<SpawnerPlanningMap {...mapProps} selectedPlacement={null} focus={{ key: 1, x: 0, z: 0 }} />)
   for (let index = 0; index < 3; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
   expect(context.fillText).toHaveBeenCalledWith('#? Lv.不明', expect.any(Number), expect.any(Number), expect.any(Number))
+})
+
+const hoverSnapshot: PlanningSnapshot = { ...snapshot, manifest: { ...snapshot.manifest,
+  bounds: { minX: 0, minZ: 0, width: 400, height: 400, cellSize: 16 } } }
+const hoverPlacement: WorldPlacement = { placementId: 'boars', kind: 'spawner', worldId: 'eriva', worldName: 'eriva',
+  templateId: 'field', x: 199.5, y: 70, z: 199.5, yaw: 0, pitch: 0, enabled: true, waystone: null }
+const hoverCatalog = { spawners: [{ id: 'field', name: '&aグラスボア Lv.15 / §b草狼 Lv.21', radiusMeters: 64, levels: [15, 21] }], npcs: [], worlds: [] }
+const hoverProps = { ...props, snapshot: hoverSnapshot, placements: [hoverPlacement], placementCatalog: hoverCatalog }
+const moveMouse = (canvas: HTMLCanvasElement, x = 203, y = 250) => fireEvent.pointerMove(canvas, { clientX: x, clientY: y, pointerType: 'mouse', buttons: 0 })
+
+it('全大陸表示のホバーで各モブの日本語名と実レベルを表示し、選択やスクロールを発生させない', () => {
+  const onPlacement = vi.fn(), onCell = vi.fn(), onProposal = vi.fn()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} showProposals={false} onPlacement={onPlacement} onCell={onCell} onProposal={onProposal} />)
+  const canvas = container.querySelector('canvas')!
+  const event = new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX: 203, clientY: 250, pointerType: 'mouse', buttons: 0 })
+  fireEvent(canvas, event)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('グラスボア Lv.15 / 草狼 Lv.21')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Dev スポナー · 有効')
+  expect(screen.getByRole('tooltip').textContent).not.toMatch(/[&§][ab]/)
+  expect(event.defaultPrevented).toBe(false)
+  expect(onPlacement).not.toHaveBeenCalled()
+  expect(onCell).not.toHaveBeenCalled()
+  expect(onProposal).not.toHaveBeenCalled()
+  moveMouse(canvas, 215, 250)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  moveMouse(canvas)
+  fireEvent.pointerLeave(canvas)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it('表示対象の変更、無効配置、未解決マスター、旧カタログに追従する', () => {
+  const { container, rerender } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  moveMouse(canvas)
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[{ ...hoverPlacement, enabled: false }]} />)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('無効')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('草狼 Lv.21')
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[]} />)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...hoverProps} placements={[{ ...hoverPlacement, templateId: 'missing' }]} />)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('出現モブ不明 (missing)')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Lv.不明')
+  rerender(<SpawnerPlanningMap {...hoverProps} placementCatalog={{ ...hoverCatalog, spawners: [{ id: 'field', name: '草狼 Lv.21', radiusMeters: 64 } as typeof hoverCatalog.spawners[number]] }} />)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('草狼 Lv.21')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Lv.不明')
+})
+
+it('ドラッグ、追加・移動指定、非表示、タッチ、外枠への移動、キャンセルでホバーを残さない', () => {
+  const { container, rerender } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  moveMouse(canvas)
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  fireEvent.pointerMove(canvas, { clientX: 223, clientY: 270, pointerType: 'mouse', buttons: 1 })
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  fireEvent.pointerCancel(canvas)
+  moveMouse(canvas, 223, 270)
+  expect(screen.getByRole('tooltip')).toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...hoverProps} placing />)
+  moveMouse(canvas, 223, 270)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...hoverProps} active={false} />)
+  moveMouse(canvas, 223, 270)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...hoverProps} />)
+  fireEvent.pointerMove(canvas, { clientX: 223, clientY: 270, pointerType: 'touch', buttons: 0 })
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  moveMouse(canvas, 223, 270)
+  fireEvent.blur(window)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  moveMouse(canvas, -1, 270)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it('AI案は各モブのレベルを使い、地域条件と表示モード、重なるDev配置の描画順を尊重する', () => {
+  const proposal = { proposalId: 'ai', spawnerId: 'ai-field', x: 199.5, y: 70, z: 199.5, radiusMeters: 64,
+    originalRadiusMeters: null, masterUpdateRequired: false, definitionStatus: 'draft' as const, regionId: 'field', regionName: '草原', habitat: 'grass', level: 99,
+    spawnMobs: [{ mobId: 'mob:boar', name: '&aグラスボア Lv.15', level: 15, weight: 1 }, { mobId: 'mob:wolf', name: '草狼 Lv.7', level: 21, weight: 1 }], reason: '', newCoveredCells: 0, coveredCellIndices: [] }
+  const plan: PlanningPlan = { ...snapshot.manifest, previewOnly: true, radiusMeters: 64, proposals: [proposal], reasonCodes: [], counts: {}, targetCells: 0, coveredCells: 0, uncoveredCells: 0, coveragePercent: 0 }
+  const mapProps = { ...hoverProps, plan, placements: [] }
+  const { container, rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  const canvas = container.querySelector('canvas')!
+  moveMouse(canvas)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('AI 配置案')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('グラスボア · Lv.15')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('草狼 Lv.7 · 出現 Lv.21')
+  expect(screen.getByRole('tooltip')).not.toHaveTextContent('Lv.15 · Lv.15')
+  expect(screen.getByRole('tooltip')).not.toHaveTextContent('99')
+  rerender(<SpawnerPlanningMap {...mapProps} region="other" />)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...mapProps} showProposals={false} />)
+  moveMouse(canvas)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  const npc = { ...hoverPlacement, placementId: 'npc', kind: 'npc' as const }
+  rerender(<SpawnerPlanningMap {...mapProps} placements={[hoverPlacement, npc]} />)
+  moveMouse(canvas)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...mapProps} placements={[hoverPlacement, npc]} selectedPlacement="boars" />)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Dev スポナー')
+})
+
+it('ズーム・パンでカーソルの下を再判定し、地図端のツールチップを枠内へ配置する', () => {
+  vi.mocked(HTMLElement.prototype.getBoundingClientRect).mockImplementation(function(this: HTMLElement) {
+    return { left: 0, top: 0, width: this.getAttribute('role') === 'tooltip' ? 220 : 406,
+      height: this.getAttribute('role') === 'tooltip' ? 100 : 500 } as DOMRect
+  })
+  const edge = { ...hoverPlacement, x: 398.5, z: 458.5 }
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={[edge]} />)
+  const canvas = container.querySelector('canvas')!
+  moveMouse(canvas, 389.065, 492.165)
+  const tooltip = screen.getByRole('tooltip')
+  expect(parseFloat(tooltip.style.left)).toBeGreaterThanOrEqual(8)
+  expect(parseFloat(tooltip.style.left) + 220).toBeLessThanOrEqual(398)
+  expect(parseFloat(tooltip.style.top) + 100).toBeLessThanOrEqual(492)
+  fireEvent.wheel(canvas, { deltaY: -1, clientX: 0, clientY: 0 })
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  fireEvent.keyDown(canvas, { key: 'Home' })
+  expect(screen.getByRole('tooltip')).toBeInTheDocument()
+  fireEvent.keyDown(canvas, { key: 'ArrowRight' })
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it('長いモブ一覧は全文を確認する操作を案内し、選択詳細に全内容を残す', () => {
+  const longName = 'グラスボア Lv.15 / 草狼 Lv.21 / '.repeat(100)
+  vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(2000)
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100)
+  const onPlacement = vi.fn()
+  const mapProps = { ...hoverProps, onPlacement, placementCatalog: { ...hoverCatalog,
+    spawners: [{ ...hoverCatalog.spawners[0], name: longName }] } }
+  const { container, rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  const canvas = container.querySelector('canvas')!
+  moveMouse(canvas)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('クリック・一覧の詳細で全文を確認')
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  expect(onPlacement).toHaveBeenCalledWith('boars')
+  rerender(<SpawnerPlanningMap {...mapProps} selectedPlacement="boars" />)
+  expect(screen.getByText(/^選択中:/).textContent).toContain(longName)
+})
+
+it.each([
+  [406, 500, 398, 492], [406, 500, 8, 8], [406, 500, 398, 8], [406, 500, 8, 492], [180, 360, 172, 352],
+])('初回ホバーの幅をleftに依存させず、四隅・狭幅でも枠内に収める (%i×%i / %i,%i)', (width, height, px, pz) => {
+  const expectedWidth = Math.min(360, width - 16)
+  vi.mocked(HTMLElement.prototype.getBoundingClientRect).mockImplementation(function(this: HTMLElement) {
+    if (this.getAttribute('role') === 'tooltip') return { left: 0, top: 0,
+      // An auto-width absolute box shrinks to the space after its initial left.
+      width: parseFloat(this.style.width) || Math.max(40, width - parseFloat(this.style.left) - 8), height: 120 } as DOMRect
+    return { left: 0, top: 0, width, height } as DOMRect
+  })
+  const scale = Math.min((width - 32) / 400, (height - 32) / 400)
+  const point = { ...hoverPlacement, x: (px - (width - 400 * scale) / 2) / scale - .5,
+    z: (pz - (height - 400 * scale) / 2) / scale - .5 }
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={[point]} />)
+  const canvas = container.querySelector('canvas')!
+  moveMouse(canvas, px, pz)
+  const tooltip = screen.getByRole('tooltip')
+  expect(tooltip).toHaveStyle({ width: `${expectedWidth}px` })
+  expect(parseFloat(tooltip.style.left)).toBeGreaterThanOrEqual(8)
+  expect(parseFloat(tooltip.style.left) + expectedWidth).toBeLessThanOrEqual(width - 8)
+  expect(parseFloat(tooltip.style.top)).toBeGreaterThanOrEqual(8)
+  expect(parseFloat(tooltip.style.top) + 120).toBeLessThanOrEqual(height - 8)
+  moveMouse(canvas, px - 1, pz - 1)
+  expect(screen.getByRole('tooltip')).toHaveStyle({ width: `${expectedWidth}px` })
 })

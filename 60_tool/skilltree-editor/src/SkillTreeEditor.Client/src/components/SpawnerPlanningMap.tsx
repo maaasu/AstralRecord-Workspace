@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
@@ -27,12 +27,70 @@ export function SpawnerPlanningMap(props: Props) {
   const [coordinates, setCoordinates] = useState('X — / Z —')
   const [detail, setDetail] = useState<HTMLImageElement | null>(null)
   const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
+  const [pointer, setPointer] = useState<{ x: number; z: number } | null>(null)
+  const tooltip = useRef<HTMLDivElement>(null)
+  const tooltipContent = useRef<HTMLDivElement>(null)
+  const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 })
+  const [tooltipClipped, setTooltipClipped] = useState(false)
   const bounds = snapshot.manifest.bounds
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot.cells])
   const visibleProposals = useMemo(() => plan?.proposals.filter(item => !region || item.regionId === region) ?? [], [plan, region])
   const masters = useMemo(() => new Map(props.placementCatalog?.spawners.map(item => [item.id, item]) ?? []), [props.placementCatalog])
   const masterNumbers = useMemo(() => spawnerMasterNumbers([...masters.keys()]), [masters])
   const placements = useMemo(() => (props.placements ?? []).filter(item => item.worldId === snapshot.manifest.worldId), [props.placements, snapshot.manifest.worldId])
+  const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
+  const placementAt = (px: number, pz: number) => {
+    let distance = 8
+    let nearest: WorldPlacement | undefined
+    // Equal-distance overlaps use the point drawn last, including a selected point.
+    for (let index = orderedPlacements.length - 1; index >= 0; index--) {
+      const item = orderedPlacements[index]
+      const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - px, (item.z + .5 - bounds.minZ) * view.scale + view.z - pz)
+      if (next < distance) { distance = next; nearest = item }
+    }
+    return nearest
+  }
+  const hovered = (() => {
+    if (!pointer || !active || props.placing || drag.current || pointer.x < 0 || pointer.z < 0 || pointer.x >= size.width || pointer.z >= size.height) return null
+    const placement = placementAt(pointer.x, pointer.z)
+    if (placement) {
+      if (placement.kind !== 'spawner') return null
+      const master = masters.get(placement.templateId ?? '')
+      const levels = [...new Set(master?.levels?.filter(level => Number.isFinite(level) && level > 0) ?? [])].sort((a, b) => a - b)
+      return { title: `Dev スポナー · ${placement.enabled ? '有効' : '無効'}`, id: placement.templateId ?? 'マスター未選択',
+        // Catalog names already pair every mob's Japanese name with its spawn level.
+        names: [plainName(master?.name ?? '').trim() || `出現モブ不明 (${placement.templateId ?? 'マスター未選択'})`],
+        levels: levels.length ? levels.map(level => `Lv.${level}`).join(' / ') : 'Lv.不明' }
+    }
+    if (props.showProposals === false) return null
+    let distance = 6
+    let nearest: (typeof visibleProposals)[number] | undefined
+    for (let index = visibleProposals.length - 1; index >= 0; index--) {
+      const item = visibleProposals[index]
+      const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - pointer.x, (item.z + .5 - bounds.minZ) * view.scale + view.z - pointer.z)
+      if (next < distance) { distance = next; nearest = item }
+    }
+    return nearest ? { title: 'AI 配置案', id: nearest.spawnerId, levels: '', names: nearest.spawnMobs.map(mob => {
+      const name = plainName(mob.name).trim() || `モブ名不明 (${mob.mobId})`
+      const suffix = name.match(/\s+Lv\.\s*(\d+)\s*$/i)
+      const sameLevel = suffix && Number(suffix[1]) === mob.level
+      return `${sameLevel ? name.slice(0, suffix.index).trim() : name} · ${suffix && !sameLevel ? '出現 ' : ''}${Number.isFinite(mob.level) && mob.level > 0 ? `Lv.${mob.level}` : 'Lv.不明'}`
+    }) } : null
+  })()
+  const tooltipText = hovered ? [hovered.title, hovered.id, hovered.levels, ...hovered.names].join('\n') : ''
+  useLayoutEffect(() => {
+    if (!tooltip.current) return
+    const rect = tooltip.current.getBoundingClientRect()
+    setTooltipSize(current => current.width === rect.width && current.height === rect.height ? current : { width: rect.width, height: rect.height })
+    const content = tooltipContent.current
+    setTooltipClipped(!!content && content.scrollHeight > content.clientHeight)
+  }, [tooltipText, size])
+  useEffect(() => { setPointer(null) }, [active, props.placing, props.showProposals])
+  useEffect(() => {
+    const clear = () => { drag.current = null; setPointer(null) }
+    window.addEventListener('blur', clear)
+    return () => window.removeEventListener('blur', clear)
+  }, [])
   const visibleMasters = useMemo(() => [...new Set(placements.filter(item => item.kind === 'spawner').map(item => item.templateId))]
     .sort((a, b) => (masterNumbers.get(a ?? '') ?? Infinity) - (masterNumbers.get(b ?? '') ?? Infinity)), [placements, masterNumbers])
   const selected = placements.find(item => item.placementId === props.selectedPlacement)
@@ -179,7 +237,7 @@ export function SpawnerPlanningMap(props: Props) {
     }
     const labels: { x: number; z: number; width: number }[] = []
     // Draw the selection last so dense neighboring points cannot cover it.
-    for (const placement of [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement))) {
+    for (const placement of orderedPlacements) {
       const [x, z] = screen(placement.x + .5, placement.z + .5)
       const selected = props.selectedPlacement === placement.placementId
       const template = masters.get(placement.templateId ?? '')
@@ -230,7 +288,7 @@ export function SpawnerPlanningMap(props: Props) {
     const metres = view.scale > 8 ? 5 : view.scale > 2 ? 20 : view.scale > 1 ? 50 : view.scale > .3 ? 100 : 500
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
-  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, placements, masters, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
+  }, [active, raster, detail, detailMask, layer, view, size, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, masters, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
   const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
@@ -251,12 +309,13 @@ export function SpawnerPlanningMap(props: Props) {
     <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>
     <div className="sp-map-wrap">
     <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
-      onPointerDown={event => { drag.current = { x: event.clientX, y: event.clientY, moved: 0 }; event.currentTarget.setPointerCapture(event.pointerId) }}
+      onPointerDown={event => { setPointer(null); drag.current = { x: event.clientX, y: event.clientY, moved: 0 }; event.currentTarget.setPointerCapture(event.pointerId) }}
       onPointerMove={event => {
         const rect = event.currentTarget.getBoundingClientRect()
         const x = (event.clientX - rect.left - view.x) / view.scale + bounds.minX, z = (event.clientY - rect.top - view.z) / view.scale + bounds.minZ
         setCoordinates(`X ${Math.floor(x)} / Z ${Math.floor(z)}`)
         const previous = drag.current
+        setPointer(!previous && event.pointerType !== 'touch' && event.buttons === 0 ? { x: event.clientX - rect.left, z: event.clientY - rect.top } : null)
         if (previous) {
           const dx = event.clientX - previous.x, dz = event.clientY - previous.y
           drag.current = { x: event.clientX, y: event.clientY, moved: previous.moved + Math.abs(dx) + Math.abs(dz) }
@@ -276,13 +335,7 @@ export function SpawnerPlanningMap(props: Props) {
           }
           return
         }
-        let placementDistance = 8
-        let closest: WorldPlacement | undefined
-        for (const value of props.placements ?? []) {
-          if (value.worldId !== snapshot.manifest.worldId) continue
-          const next = Math.hypot((value.x + .5 - x) * view.scale, (value.z + .5 - z) * view.scale)
-          if (next < placementDistance) { placementDistance = next; closest = value }
-        }
+        const closest = placementAt(px, pz)
         if (closest && props.onPlacement) { props.onPlacement(closest.placementId); return }
         // At overview scale dots are dense; prioritize the terrain cell until zoomed in.
         let distance = 6
@@ -294,7 +347,10 @@ export function SpawnerPlanningMap(props: Props) {
         if (nearest) onProposal(nearest.proposalId)
         else { const index = cellAtWorld(bounds, grid, x, z); if (index !== undefined) onCell(index) }
       }}
-      onPointerCancel={() => { drag.current = null }}
+      onPointerCancel={() => { drag.current = null; setPointer(null) }}
+      onLostPointerCapture={() => { drag.current = null; setPointer(null) }}
+      onPointerLeave={() => setPointer(null)}
+      onBlur={() => setPointer(null)}
       onKeyDown={event => {
         if (['+', '-', 'Home', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
           event.preventDefault()
@@ -304,6 +360,11 @@ export function SpawnerPlanningMap(props: Props) {
           else setView(current => ({ ...current, x: current.x + (event.key === 'ArrowLeft' ? 60 : event.key === 'ArrowRight' ? -60 : 0), z: current.z + (event.key === 'ArrowUp' ? 60 : event.key === 'ArrowDown' ? -60 : 0) }))
         }
       }} />
+    {hovered && pointer && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{
+      width: Math.min(360, size.width - 16),
+      left: Math.max(8, Math.min(size.width - tooltipSize.width - 8, pointer.x + 14 + tooltipSize.width <= size.width - 8 ? pointer.x + 14 : pointer.x - tooltipSize.width - 14)),
+      top: Math.max(8, Math.min(size.height - tooltipSize.height - 8, pointer.z + 14 + tooltipSize.height <= size.height - 8 ? pointer.z + 14 : pointer.z - tooltipSize.height - 14)),
+    }}><strong>{hovered.title}</strong><div ref={tooltipContent} className="sp-map-tooltip-content">{hovered.names.map((name, index) => <div key={index}>{name}</div>)}{hovered.levels && <small>出現する実レベル: {hovered.levels}</small>}<small>{hovered.id}</small></div>{tooltipClipped && <small className="sp-map-tooltip-more">クリック・一覧の詳細で全文を確認</small>}</div>}
     <div className="sp-map-tools"><button className="button" onClick={() => zoom(1.5)} aria-label="地図を拡大">＋</button><button className="button" onClick={() => zoom(1 / 1.5)} aria-label="地図を縮小">−</button><button className="button" onClick={fit}>全大陸</button></div>
     <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
     </div>
