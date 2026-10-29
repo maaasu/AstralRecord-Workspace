@@ -46,7 +46,7 @@ it.each(['一覧', '地図'])('%s から同じ配置を再選択すると編集�
   expect(inspector.scrollTop).toBe(0)
   expect(screen.getByRole('heading', { name: 'スポナーの配置を編集' })).toBeInTheDocument()
   expect(screen.getByTestId('selection-focus')).toHaveTextContent('2')
-  expect(screen.getByLabelText('X')).toHaveValue(12)
+  expect(screen.getByLabelText('X')).toHaveValue('12')
   expect(screen.getByLabelText('保存済み配置を検索')).toHaveValue('one')
   expect(screen.getByRole('button', { name: 'Dev に保存' })).toBeEnabled()
   expect(dirty).toHaveBeenLastCalledWith(true)
