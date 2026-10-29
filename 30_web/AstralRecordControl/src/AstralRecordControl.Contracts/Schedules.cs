@@ -74,7 +74,7 @@ public sealed record RunScheduleNowResponse(ScheduleOccurrenceReport? Report, Er
 
 public static class ScheduleValidation
 {
-    public static bool IsLocalKind(OperationKind kind) => kind is OperationKind.Start or OperationKind.Stop or OperationKind.Restart or OperationKind.ConsoleCommand or OperationKind.CreateBackup or OperationKind.PruneBackups;
+    public static bool IsLocalKind(OperationKind kind) => kind is OperationKind.Start or OperationKind.Stop or OperationKind.Restart or OperationKind.ConsoleCommand or OperationKind.CreateBackup or OperationKind.PruneBackups or OperationKind.UpdateGeyser;
 
     public static ScheduleDefinition Read(JsonElement json)
     {
@@ -114,7 +114,7 @@ public static class ScheduleValidation
                 var payload = FileOperationValidation.Read<CreateBackupPayload>(step.Payload);
                 if (payload.BackupId != Guid.Empty || payload.BackupProfileId == Guid.Empty || payload.ProfileRevision < 1) throw new ArgumentException("Scheduled backup ID must be generated for each occurrence.");
             }
-            else if (step.Kind is OperationKind.PruneBackups) FileOperationValidation.ValidatePayload(step.Kind, step.Payload);
+            else if (step.Kind is OperationKind.PruneBackups or OperationKind.UpdateGeyser) FileOperationValidation.ValidatePayload(step.Kind, step.Payload);
             else
             {
                 var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = schedule.HostId, ServerId = schedule.ServerId,

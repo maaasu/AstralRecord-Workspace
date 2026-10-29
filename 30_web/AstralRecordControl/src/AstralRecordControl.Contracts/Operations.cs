@@ -143,7 +143,7 @@ public sealed record CliTokenIssued(Guid CredentialId, string Token, DateTimeOff
 public static class OperationValidation
 {
     public static bool IsP1Kind(OperationKind kind) => kind is OperationKind.Start or OperationKind.Stop or OperationKind.Restart or OperationKind.Kill or OperationKind.ConsoleCommand;
-    public static bool IsP2Kind(OperationKind kind) => kind is OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.WriteFile or OperationKind.FileMutation or OperationKind.ExportFiles or OperationKind.ImportArtifact or OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.ProvisionServer or OperationKind.PruneBackups or OperationKind.SetBackupProtection or OperationKind.DeleteBackup;
+    public static bool IsP2Kind(OperationKind kind) => kind is OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.WriteFile or OperationKind.FileMutation or OperationKind.ExportFiles or OperationKind.ImportArtifact or OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.ProvisionServer or OperationKind.PruneBackups or OperationKind.SetBackupProtection or OperationKind.DeleteBackup or OperationKind.UpdateGeyser;
     public static bool IsTerminal(OperationStatus status) => status is OperationStatus.Succeeded or OperationStatus.Failed or OperationStatus.Rejected or OperationStatus.Expired or OperationStatus.Cancelled;
     public static OperationCommand Read(ExecuteRequest request, Guid hostId)
     {

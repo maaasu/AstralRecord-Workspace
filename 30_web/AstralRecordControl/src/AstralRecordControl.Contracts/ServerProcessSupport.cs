@@ -3,6 +3,7 @@ namespace AstralRecordControl.Contracts;
 public static class ServerProcessSupport
 {
     public const string VelocityCapability = "P1.Velocity";
+    public const string GeyserUpdateCapability = "P3.GeyserUpdate";
 
     public static bool IsSupported(ServerKind kind) => kind is ServerKind.Java or ServerKind.Velocity;
 

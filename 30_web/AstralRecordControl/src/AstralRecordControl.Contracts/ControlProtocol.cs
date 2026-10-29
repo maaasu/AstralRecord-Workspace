@@ -100,4 +100,4 @@ public enum GameReadiness { Unknown, Preparing, Ready, Failed }
 public enum DependencyReadiness { Running, AstralReady }
 public enum HoldMode { Exclusive, Maintenance }
 public enum ErrorCode { ProtocolMismatch, AgentDisabled, HostOffline, StaleRevision, StateConflict, ReservationConflict, DeadlineExpired, OperationConflict, UnsupportedCapability, PathOutsideRoot, HashMismatch, TransferOffsetMismatch, DiskFull, Timeout, RecoveryRequired }
-public enum OperationKind { Start, Stop, Restart, Kill, ConsoleCommand, ListFiles, ReadFile, WriteFile, FileMutation, ExportFiles, ImportArtifact, CreateBackup, RestoreBackup, ProvisionServer, UpdateServer, PlayerAction, RunMaintenanceStep, PruneBackups, SetBackupProtection, DeleteBackup, QueryLogs, ExportLogs }
+public enum OperationKind { Start, Stop, Restart, Kill, ConsoleCommand, ListFiles, ReadFile, WriteFile, FileMutation, ExportFiles, ImportArtifact, CreateBackup, RestoreBackup, ProvisionServer, UpdateServer, PlayerAction, RunMaintenanceStep, PruneBackups, SetBackupProtection, DeleteBackup, QueryLogs, ExportLogs, UpdateGeyser }
