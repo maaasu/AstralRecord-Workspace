@@ -21,6 +21,11 @@
 .wp-editing { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: .7rem 1rem; margin: 0; }
 .wp-editing > header, .wp-editing > .wp-toolbar, .wp-editing > .wp-instruction, .wp-editing > .wp-error, .wp-editing > [role='status'] { grid-column: 1 / -1; margin: 0; }
 .wp-toolbar { align-items: end; padding: .65rem 0; border-top: 1px solid #365967; border-bottom: 1px solid #365967; }
+.wp-editing > .wp-edit-summary, .wp-editing > .wp-draft-note { grid-column: 1 / -1; }
+.wp-edit-summary, .wp-draft-note { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.wp-editor input[aria-invalid='true'] { border-color: #f28e89; outline: 1px solid #f28e89; }
+.wp-coordinates input { width: 6rem; min-width: 6rem; }
+.wp-draft-note { color: #ffd0a0; }
 .wp-toolbar .button[aria-pressed='true'] { background: #276377; border-color: #76dded; }
 .wp-editor .wp-instruction { color: #aaf0ec; }
 .wp-map-pane { min-width: 0; }
