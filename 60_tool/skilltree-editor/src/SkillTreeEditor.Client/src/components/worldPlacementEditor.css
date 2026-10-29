@@ -38,17 +38,28 @@
 .wp-toolbar .button[aria-pressed='true'] { background: #276377; border-color: #76dded; }
 .wp-editor .wp-instruction { color: #aaf0ec; }
 .wp-map-pane { min-width: 0; }
-.wp-editing .wp-inspector { display: flex; flex-direction: column; min-width: 0; max-height: clamp(360px, 67vh, 900px); overflow: auto; overflow-wrap: anywhere; padding-right: .3rem; }
+.wp-editing .wp-inspector { display: flex; flex-direction: column; min-width: 0; max-height: clamp(360px, 67vh, 900px); overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere; padding-right: .3rem; }
 .wp-editing .wp-inspector > *, .wp-editing .wp-inspector label { min-width: 0; max-width: 100%; }
+.wp-selected-panel, .wp-filter-panel { min-width: 0; border: 1px solid #477382; border-radius: 7px; }
+.wp-selected-panel { margin-bottom: .5rem; }
+.wp-filter-panel { margin: .3rem 0; padding: .45rem; }
+.wp-panel-toggle { display: block; width: 100%; padding: .35rem .45rem; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; font-weight: 600; cursor: pointer; overflow-wrap: anywhere; }
+.wp-panel-toggle::before { content: '▸'; display: inline-block; margin-right: .4rem; }
+.wp-panel-toggle[aria-expanded='true']::before { content: '▾'; }
+.wp-panel-summary { display: block; margin: .15rem 0 0 1.1rem; font-size: .78rem; font-weight: 400; color: #c0d9df; overflow-wrap: anywhere; }
+.wp-world-details { font-size: .78rem; color: #adc8d0; overflow-wrap: anywhere; }
+.wp-search { margin: .3rem 0; }
+.wp-search input { width: 100%; box-sizing: border-box; }
 .wp-editing .wp-form { margin: 0 0 .7rem; padding: .7rem; border: 1px solid #6b929a; border-radius: 7px; background: #183642; }
 .wp-editing .wp-form h3 { font-size: 1rem; }
 .wp-editing .wp-form .wp-coordinates { margin: .6rem 0; }
 .wp-editing .wp-filters { margin: .4rem 0; }
 .wp-list-options { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; margin: .4rem 0; }
 .wp-sort-note { margin: .25rem 0; color: #adc8d0; }
-.wp-editing .wp-list { max-height: none; min-height: 7rem; }
+.wp-editing .wp-list { max-height: none; min-height: 0; overflow: visible; flex-shrink: 0; }
 .wp-editing .wp-count { margin: .5rem 0; }
 .wp-bulk-panel { padding: .6rem; border: 1px solid #477382; border-radius: 7px; background: #183642; }
+.wp-bulk-panel > div { margin-top: .4rem; }
 .wp-bulk-scope { font-weight: 600; }
 .wp-editor .wp-selected-only { white-space: normal; }
 .wp-bulk-panel > p:last-of-type { color: #adc8d0; font-size: .84rem; }

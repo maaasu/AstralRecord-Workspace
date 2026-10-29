@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { worldPlacementApi, type PlacementKind, type PlacementSnapshot, type WorldPlacement } from '../api/worldPlacementApi'
 import { cellAtWorld, type PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
@@ -63,6 +63,10 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const closeConfirmation = () => { confirmationRef.current = null; setConfirmation(null) }
   const inspector = useRef<HTMLDivElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
+  const formId = useId(), filterId = useId(), bulkId = useId()
+  const [formOpen, setFormOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [bulkOpen, setBulkOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [kind, setKind] = useState<PlacementKind>('spawner')
@@ -79,8 +83,15 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [bulkSelection, setBulkSelection] = useState<{ worldId: string; ids: ReadonlySet<string> }>({ worldId: snapshot.manifest.worldId, ids: new Set() })
   const [selectedOnly, setSelectedOnly] = useState(false)
   const [visibleCount, setVisibleCount] = useState(50)
-  const selectPlacement = (id: string | null, location?: WorldPlacement) => onSelected(id, location ?? working.find(item => item.placementId === id))
+  const selectPlacement = (id: string | null, location?: WorldPlacement) => {
+    if (id) setFormOpen(true)
+    onSelected(id, location ?? working.find(item => item.placementId === id))
+  }
   const selected = working.find(item => item.placementId === selectedId && item.worldId === snapshot.manifest.worldId)
+  const selectedDrafts = selected && drafts[selected.placementId]
+  const selectedDraftState = selectedDrafts && Object.entries(selectedDrafts).length
+    ? Object.entries(selectedDrafts).some(([field, raw]) => parsePlacementNumber(raw!, field as PlacementNumericField) === null) ? '入力エラー' : '数値入力中'
+    : ''
   const editNumber = (id: string, field: PlacementNumericField, raw: string) => {
     if (locked()) return
     setDrafts(current => ({ ...current, [id]: { ...current[id], [field]: raw } }))
@@ -113,7 +124,10 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     onPlacing(false); onMoving(false); setSelectedOnly(false); setBulkSelection({ worldId: snapshot.manifest.worldId, ids: new Set() }); setNotice('')
   }
   useEffect(() => {
-    if (editing && selectedId && inspector.current) inspector.current.scrollTop = 0
+    if (editing && selectedId) {
+      setFormOpen(true)
+      if (inspector.current) inspector.current.scrollTop = 0
+    }
   }, [selectedId, editing, selectionKey])
   const worldId = snapshot.manifest.worldId
   const bulkIds = bulkSelection.worldId === worldId ? bulkSelection.ids : emptySelection
@@ -170,6 +184,14 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   }, [working, worldId, filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, display])
   const filteredIds = useMemo(() => new Set(filtered.map(item => item.placementId)), [filtered])
   const bulkScope = useMemo(() => placementSelectionScope(working, bulkIds, worldId, filteredIds), [working, bulkIds, worldId, filteredIds])
+  const activeFilterDetails = [
+    filterKind && `種類: ${{ spawner: 'スポナー', npc: 'NPC', waystone: '道標' }[filterKind as PlacementKind] ?? filterKind}`,
+    filterEnabled && `有効状態: ${filterEnabled === 'true' ? '有効' : filterEnabled === 'false' ? '無効' : filterEnabled}`,
+    filterRegion && `地域: ${filterRegion}`,
+    filterTemplate && `スポナーマスター: ${clean(catalog.spawners.find(item => item.id === filterTemplate)?.name ?? filterTemplate)}`,
+    minimumLevel && `出現レベル下限: ${minimumLevel}`,
+    maximumLevel && `出現レベル上限: ${maximumLevel}`,
+  ].filter((value): value is string => !!value)
   // References change for any reload, edit, filter, world or selection change, even if
   // the visible target count happens to be the same. Never apply an old intent.
   const confirmationContext = useMemo(() => ({}), [worldId, snapshot, base, working, catalog, filteredIds, bulkIds, selectedId, editing, hasDrafts, placing, moving])
@@ -314,25 +336,30 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     <div className="wp-map-pane">{map}</div>
     {editing && <>
     <div className="wp-inspector" ref={inspector}>
-    {selected && <div className="wp-form"><h3>{selected.kind === 'spawner' ? 'スポナー' : selected.kind === 'npc' ? 'NPC' : '道標'}の配置を編集</h3>{selectedOutsideFilter && <p className="wp-filter-note">選択中の配置は絞り込み条件外です。地図にはこの1件を表示しています。</p>}<code>{selected.placementId}</code>
+    {selected && <section className="wp-selected-panel" aria-label="選択中の配置"><button className="wp-panel-toggle" type="button" aria-expanded={formOpen} aria-controls={formId} onClick={() => setFormOpen(open => !open)}>選択中: {clean(display.get(selected.placementId)?.name ?? selected.placementId)} · {selected.kind === 'spawner' ? 'スポナー' : selected.kind === 'npc' ? 'NPC' : '道標'}の配置を編集{selectedDraftState && ` · ${selectedDraftState}`}</button>
+    <div id={formId} hidden={!formOpen}>{formOpen && <div className="wp-form"><h3>{selected.kind === 'spawner' ? 'スポナー' : selected.kind === 'npc' ? 'NPC' : '道標'}の配置を編集</h3>{selectedOutsideFilter && <p className="wp-filter-note">選択中の配置は絞り込み条件外です。地図にはこの1件を表示しています。</p>}<code>{selected.placementId}</code>
       {selected.kind !== 'waystone' && <label>マスター<select value={selected.templateId ?? ''} disabled={busy} onChange={event => update({ templateId: event.target.value || null })}><option value="">選択してください</option>{options.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label>}
       <div className="wp-coordinates">{(['x', 'y', 'z', 'yaw', 'pitch'] as const).map(key => <label key={key}>{key.toUpperCase()}<input disabled={busy} type="text" inputMode="decimal" aria-invalid={drafts[selected.placementId]?.[key] !== undefined && parsePlacementNumber(drafts[selected.placementId][key]!, key) === null} value={drafts[selected.placementId]?.[key] ?? String(selected[key])} onChange={event => editNumber(selected.placementId, key, event.target.value)} onBlur={() => commitNumber(selected.placementId, key)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, key) } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, key) } }} /></label>)}</div>
       <label><input type="checkbox" disabled={busy} checked={selected.enabled} onChange={event => update({ enabled: event.target.checked })} />有効</label>
       {selected.kind === 'spawner' && <p>出現範囲: {catalog.spawners.find(item => item.id === selected.templateId)?.radiusMeters ?? 'マスター未選択'} m</p>}
       {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone"><label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label><label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label><label>アイコン<input value={selected.waystone.icon} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, icon: event.target.value } })} /></label><label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label><label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label></div>}
       <div className="wp-actions"><button className="button" onClick={duplicate} disabled={busy || hasDrafts}>複製</button><button className="button" onClick={() => bulkAction('delete', new Set([selected.placementId]))} disabled={bulkLocked}>この配置を削除</button></div>
-    </div>}
-    <div className="wp-filters"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} placeholder="モブ名・ID・座標" /></label><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div>
+    </div>}</div></section>}
+    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} placeholder="モブ名・ID・座標" /></label></div>
+    <section className="wp-filter-panel" aria-label="詳細条件"><button className="wp-panel-toggle" type="button" aria-expanded={filtersOpen} aria-controls={filterId} onClick={() => setFiltersOpen(open => !open)}>詳細条件（{activeFilterDetails.length} 件）{activeFilterDetails.length > 0 && <span className="wp-panel-summary">{activeFilterDetails.join(' · ')}</span>}</button>
+    <div id={filterId} hidden={!filtersOpen}>{filtersOpen && <><div className="wp-filters"><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div><p className="wp-world-details">世界 ID: <code>{worldId}</code>{selectedWorldName && <> · 保存先: <code>{selectedWorldName}</code></>}</p></>}</div></section>
     <div className="wp-list-options"><label>一覧の並び順<select aria-label="一覧の並び順" value={listingSort} onChange={event => setListingSort(event.target.value as PlacementListingSort)}><option value="default">標準（保存済み順）</option><option value="distance">開始地点に近い順</option><option value="level-asc">出現レベルが低い順</option><option value="level-desc">出現レベルが高い順</option><option value="name">日本語名順</option></select></label><button className="button" type="button" onClick={() => { setQuery(''); setFilterKind(''); setFilterEnabled(''); setFilterRegion(''); setFilterTemplate(''); setMinimumLevel(''); setMaximumLevel(''); searchInput.current?.focus() }} disabled={!query && !filterKind && !filterEnabled && !filterRegion && !filterTemplate && !minimumLevel && !maximumLevel}>検索条件をすべて解除</button></div>
-    <p className="wp-count">{filtered.length} 件を表示 · 世界: {snapshot.manifest.worldName} ({worldId}){selectedWorldName && ` · 保存先: ${selectedWorldName}`}</p>
+    <p className="wp-count">{filtered.length} 件を表示 · 世界: {snapshot.manifest.worldName}</p>
     {listingSort === 'distance' && <p className="wp-sort-note">開始地点からの水平直線距離です。道路に沿った距離ではありません。</p>}
-    <div className="wp-bulk-panel" aria-label="配置の一括操作">
-      <p className="wp-bulk-scope" role="status">一括選択: 合計 {bulkScope.items.length} 件 · 現在の表示条件内 {bulkScope.matchingCount} 件 · 表示条件外 {bulkScope.outsideCount} 件</p>
+    <section className="wp-bulk-panel" aria-label="配置の一括操作"><button className="wp-panel-toggle" type="button" aria-expanded={bulkOpen} aria-controls={bulkId} onClick={() => setBulkOpen(open => !open)}>一括操作 <span className="wp-panel-summary">一括選択: 合計 {bulkScope.items.length} 件 · 条件内 {bulkScope.matchingCount} 件 · 条件外 {bulkScope.outsideCount} 件{selectedOnly && ' · 選択だけを一覧表示中'}</span></button>
+      <div id={bulkId} hidden={!bulkOpen}>{bulkOpen && <>
       <div className="wp-actions"><button className="button" disabled={bulkLocked || !filtered.length} onClick={() => selectBulk(new Set([...bulkScope.ids, ...filteredIds]))}>現在の表示条件に合う全 {filtered.length} 件を選択</button><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => selectBulk(new Set())}>一括選択をすべて解除</button></div>
       <label className="wp-selected-only"><input type="checkbox" checked={selectedOnly} onChange={event => setSelectedOnly(event.target.checked)} />一括選択だけを一覧で確認（表示条件外を含む）</label>
       <p>一括操作は表示条件外を含む全選択が対象です。条件外がある操作と削除は、実行前に対象一覧と変更後の状態を確認します。</p>
       <div className="wp-actions"><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => bulkAction('enable')}>選択した {bulkScope.items.length} 件を有効にする</button><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => bulkAction('disable')}>選択した {bulkScope.items.length} 件を無効にする</button><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => bulkAction('delete')}>選択した {bulkScope.items.length} 件を削除</button></div>
-    </div>
+      </>}
+      </div>
+    </section>
     <div className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(0, visibleCount).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
     <div className="wp-actions"><span>{selectedOnly ? '一括選択の一覧' : '一覧'} {Math.min(visibleCount, listed.length)} / {listed.length} 件</span>{visibleCount < listed.length && <button className="button" onClick={() => setVisibleCount(count => count + 50)}>さらに50件表示</button>}</div>
 
