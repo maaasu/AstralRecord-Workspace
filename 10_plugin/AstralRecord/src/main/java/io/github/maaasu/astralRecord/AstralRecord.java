@@ -1480,7 +1480,6 @@ public final class AstralRecord extends JavaPlugin {
         partyGui = new PartyGui(partyService);
         partyRecruitmentSettingsGui = new PartyRecruitmentSettingsGui(partyService);
         partyRecruitmentMessageAnvilGui = new PartyRecruitmentMessageAnvilGui();
-        partyBoardGui = new PartyBoardGui(partyService);
 
         // inventory
         var inventoryRepository = new InventoryRepository();
@@ -1537,6 +1536,7 @@ public final class AstralRecord extends JavaPlugin {
         itemStackFactory.setPlayerClassService(playerClassService);
         playerClassService.setSkillTreeService(skillTreeService);
         skillTreeService.setPlayerClassService(playerClassService);
+        partyBoardGui = new PartyBoardGui(partyService, playerClassService);
 
         playerMessageService = new PlayerMessageService();
         inventoryAutoSaveTask = new InventoryAutoSaveTask(

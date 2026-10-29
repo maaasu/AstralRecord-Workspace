@@ -5,6 +5,10 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
+import io.github.maaasu.astralRecord.feature.rebirth.view.RebirthLevelDisplay;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
@@ -34,15 +38,18 @@ import java.util.UUID;
  */
 public final class PartyBoardGui {
     private final PartyService partyService;
+    private final PlayerClassService playerClassService;
     private final PagedGuiView pagedGuiView = new PagedGuiView();
 
     /**
      * パーティー掲示板GUIを生成します。
      *
      * @param partyService 公開パーティーを参照するサービス
+     * @param playerClassService 読み込み済みの職業名と最大職業レベルを参照するサービス
      */
-    public PartyBoardGui(@NotNull PartyService partyService) {
+    public PartyBoardGui(@NotNull PartyService partyService, @NotNull PlayerClassService playerClassService) {
         this.partyService = partyService;
+        this.playerClassService = playerClassService;
     }
 
     /**
@@ -111,6 +118,12 @@ public final class PartyBoardGui {
         return inventory != null && inventory.getHolder() instanceof Holder holder ? holder.pageIndex() : 0;
     }
 
+    /**
+     * 募集内容と描画時点の各メンバーの職業・レベルを持つ掲示板項目を生成します。
+     *
+     * @param party 表示対象の公開パーティー
+     * @return 参加方式・人数・メンバー情報・募集内容を表示するプレイヤーヘッド
+     */
     private @NotNull ItemStack partyEntry(@NotNull Party party) {
         String leaderName = playerName(party.getLeaderId());
         List<Component> lore = new ArrayList<>();
@@ -123,7 +136,7 @@ public final class PartyBoardGui {
             NamedTextColor.WHITE
         ));
         for (UUID memberId : party.members()) {
-            lore.add(Component.text("・" + playerName(memberId), NamedTextColor.GRAY));
+            lore.add(memberDetails(memberId));
         }
         lore.add(Component.empty());
         lore.add(Component.text("募集内容", NamedTextColor.AQUA, TextDecoration.BOLD));
@@ -138,6 +151,37 @@ public final class PartyBoardGui {
             Component.text(leaderName + "のパーティー", NamedTextColor.GOLD, TextDecoration.BOLD),
             lore
         );
+    }
+
+    /**
+     * 読み込み済み情報だけでメンバー名・現在職業・職業Lv・プレイヤーLvを表示します。
+     * Bukkitの同期スレッドから呼び出し、外部APIへの問い合わせや状態更新は行いません。
+     *
+     * @param memberId 表示対象メンバーのUUID
+     * @return メンバー情報。セッション情報がなければ取得不可、職業未登録なら汎用名を表示
+     */
+    private @NotNull Component memberDetails(@NotNull UUID memberId) {
+        Component name = Component.text("・" + playerName(memberId), NamedTextColor.GRAY);
+        Player player = Bukkit.getPlayer(memberId);
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return name.append(Component.text(" / 職業・レベル情報を取得できません", NamedTextColor.DARK_GRAY));
+        }
+        String classDisplayName = playerClassService.getLoadedClass(astPlayer.getClassId()) == null
+            ? null : playerClassService.getLoadedClass(astPlayer.getClassId()).getName();
+        Component className = ColorCodeUtil.toComponent(
+            classDisplayName, "未登録のクラス", NamedTextColor.WHITE
+        );
+        return name
+            .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
+            .append(className)
+            .append(Component.text(" C", NamedTextColor.GRAY))
+            .append(ClassLevelDisplay.component(
+                astPlayer.getClassLevel(), playerClassService.isMaxClassLevel(astPlayer),
+                NamedTextColor.GRAY, NamedTextColor.YELLOW
+            ))
+            .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
+            .append(RebirthLevelDisplay.component("PLv.", astPlayer.getAccount()));
     }
 
     private @NotNull ItemStack playerHead(
