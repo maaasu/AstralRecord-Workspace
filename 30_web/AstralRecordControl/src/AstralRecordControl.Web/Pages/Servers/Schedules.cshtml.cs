@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace AstralRecordControl.Web.Pages.Servers;
 
+public enum ScheduleEditorPreset { DailyRestart, DailyGeyserUpdate, Advanced }
+
 [Authorize(Policy = "OwnerOnly")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class SchedulesModel(InventoryStore store, IAgentOperationTransport agents, InventoryNotifier notifier, IConfiguration configuration) : PageModel
@@ -20,22 +22,28 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     public Dictionary<Guid, ScheduleOccurrenceReport[]> History { get; } = [];
     public ScheduleManualRequest[] PendingRequests { get; private set; } = [];
     public bool Available => configuration.GetValue<bool>("Control:EnableSchedules");
+    public ServerKind Kind { get; private set; }
+    public bool IsVelocity => Kind == ServerKind.Velocity;
+    public bool GeyserAvailable { get; private set; }
+    [BindProperty] public ScheduleEditorPreset Preset { get; set; } = ScheduleEditorPreset.Advanced;
+    [BindProperty] public string? DailyTime { get; set; } = "04:00";
     [BindProperty] public Guid RequestKey { get; set; }
     [BindProperty] public Guid? ScheduleId { get; set; }
     [BindProperty] public long? Revision { get; set; }
     [BindProperty] public bool Enabled { get; set; } = true;
     [BindProperty] public ScheduleTriggerKind TriggerKind { get; set; }
-    [BindProperty] public string AtUtc { get; set; } = "";
+    [BindProperty] public string? AtUtc { get; set; } = "";
     [BindProperty] public int Seconds { get; set; } = 3600;
-    [BindProperty] public string Expression { get; set; } = "0 4 * * *";
-    [BindProperty] public string TimeZoneId { get; set; } = "Asia/Tokyo";
-    [BindProperty] public string StepsJson { get; set; } = "[{\"stepKey\":\"restart\",\"kind\":\"Restart\",\"payload\":{},\"delaySeconds\":0}]";
+    [BindProperty] public string? Expression { get; set; } = "0 4 * * *";
+    [BindProperty] public string? TimeZoneId { get; set; } = "Asia/Tokyo";
+    [BindProperty] public string? StepsJson { get; set; } = "[{\"stepKey\":\"restart\",\"kind\":\"Restart\",\"payload\":{},\"delaySeconds\":0}]";
     [TempData] public string? Message { get; set; }
 
     public async Task<IActionResult> OnGetAsync(Guid serverId, Guid? edit = null)
     {
         await LoadAsync(serverId);
         RequestKey = Guid.NewGuid();
+        Preset = ScheduleEditorPreset.DailyRestart;
         if (edit.HasValue)
         {
             var definition = Schedules.SingleOrDefault(s => s.Definition.ScheduleId == edit)?.Definition;
@@ -44,6 +52,9 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             TriggerKind = definition.Trigger.Kind; AtUtc = (definition.Trigger.AtUtc ?? definition.Trigger.AnchorUtc)?.ToString("O") ?? "";
             Seconds = definition.Trigger.Seconds ?? 3600; Expression = definition.Trigger.Expression ?? "0 4 * * *"; TimeZoneId = definition.Trigger.TimeZoneId ?? "Asia/Tokyo";
             StepsJson = ControlJson.Serialize(definition.Template.Steps);
+            Preset = ScheduleEditorPreset.Advanced;
+            if (TryDailyPreset(definition, out var preset, out var dailyTime))
+            { Preset = preset; DailyTime = dailyTime; }
         }
         return Page();
     }
@@ -54,17 +65,38 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         try
         {
             if (!ModelState.IsValid) throw new ArgumentException("Invalid form.");
-            var steps = ControlJson.Deserialize<ScheduleStep[]>(StepsJson);
-            var trigger = TriggerKind switch
+            if (!Enum.IsDefined(Preset)) throw new ArgumentException("Invalid preset.");
+            ScheduleStep[] steps;
+            ScheduleTrigger trigger;
+            if (Preset != ScheduleEditorPreset.Advanced)
             {
-                ScheduleTriggerKind.Once => new ScheduleTrigger { Kind = TriggerKind, AtUtc = ParseUtc(AtUtc) },
-                ScheduleTriggerKind.Interval => new ScheduleTrigger { Kind = TriggerKind, Seconds = Seconds, AnchorUtc = ParseUtc(AtUtc) },
-                ScheduleTriggerKind.Cron => new ScheduleTrigger { Kind = TriggerKind, Expression = Expression, TimeZoneId = TimeZoneId },
-                _ => throw new ArgumentException("Invalid trigger.")
-            };
-            var definition = new ScheduleDefinition { ScheduleId = ScheduleId ?? Guid.NewGuid(), HostId = Server.HostId, ServerId = serverId,
+                if (!ServerProcessSupport.IsSupported(Kind)) throw new InventoryFault(409, "UnsupportedCapability");
+                if (!TimeOnly.TryParseExact(DailyTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+                    throw new ArgumentException("Invalid daily time.");
+                if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && (!IsVelocity || !GeyserAvailable))
+                    throw new InventoryFault(409, "UnsupportedCapability");
+                trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = FormattableString.Invariant($"{time.Minute} {time.Hour} * * *"), TimeZoneId = TimeZoneId };
+                steps = Preset == ScheduleEditorPreset.DailyRestart
+                    ? [new() { StepKey = "restart", Kind = OperationKind.Restart }]
+                    : [new() { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload()) }];
+            }
+            else
+            {
+                steps = ControlJson.Deserialize<ScheduleStep[]>(StepsJson ?? "");
+                trigger = TriggerKind switch
+                {
+                    ScheduleTriggerKind.Once => new ScheduleTrigger { Kind = TriggerKind, AtUtc = ParseUtc(AtUtc) },
+                    ScheduleTriggerKind.Interval => new ScheduleTrigger { Kind = TriggerKind, Seconds = Seconds, AnchorUtc = ParseUtc(AtUtc) },
+                    ScheduleTriggerKind.Cron => new ScheduleTrigger { Kind = TriggerKind, Expression = Expression, TimeZoneId = TimeZoneId },
+                    _ => throw new ArgumentException("Invalid trigger.")
+                };
+            }
+            var actionType = steps.Length == 1 ? ScheduleActionType.Operation : ScheduleActionType.LocalChain;
+            if (Preset == ScheduleEditorPreset.Advanced && Schedules.SingleOrDefault(s => s.Definition.ScheduleId == ScheduleId)?.Definition.Template.ActionType == ScheduleActionType.LocalChain)
+                actionType = ScheduleActionType.LocalChain;
+            var definition = new ScheduleDefinition { ScheduleId = ScheduleId ?? ScheduleIdentity.Uuid5(serverId, "schedule:" + RequestKey.ToString("D")), HostId = Server.HostId, ServerId = serverId,
                 Revision = Revision.HasValue ? checked(Revision.Value + 1) : 1, Enabled = Enabled, Trigger = trigger,
-                Template = new() { ActionType = steps.Length == 1 ? ScheduleActionType.Operation : ScheduleActionType.LocalChain, Steps = steps } };
+                Template = new() { ActionType = actionType, Steps = steps } };
             await store.SaveScheduleAsync(definition, Revision, RequestKey);
             await notifier.InventoryChangedAsync(Server.HostId);
             Message = "予約を保存しました。Agentの適用完了後に有効になります。";
@@ -75,6 +107,34 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             ModelState.AddModelError("", error is InventoryFault fault ? fault.Code : "入力内容を確認してください。");
             return Page();
         }
+    }
+
+    public static string Description(ScheduleDefinition definition)
+    {
+        if (TryDailyPreset(definition, out var preset, out var time))
+            return $"{(preset == ScheduleEditorPreset.DailyRestart ? "定期再起動" : "GeyserMC 自動更新")} — 毎日 {time}（{definition.Trigger.TimeZoneId}）";
+        return $"予約実行 — {definition.Trigger.Kind}";
+    }
+
+    private static bool TryDailyPreset(ScheduleDefinition definition, out ScheduleEditorPreset preset, out string time)
+    {
+        preset = ScheduleEditorPreset.Advanced; time = "04:00";
+        var fields = definition.Trigger.Expression?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (definition.Trigger.Kind != ScheduleTriggerKind.Cron || fields is not { Length: 5 } ||
+            fields[2] != "*" || fields[3] != "*" || fields[4] != "*" ||
+            !int.TryParse(fields[0], NumberStyles.None, CultureInfo.InvariantCulture, out var minute) || minute is < 0 or > 59 ||
+            !int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out var hour) || hour is < 0 or > 23 ||
+            definition.Template.ActionType != ScheduleActionType.Operation ||
+            definition.Template.Steps is not { Length: 1 } steps || steps[0].DelaySeconds != 0) return false;
+        var step = steps[0];
+        if (step.Kind == OperationKind.Restart && step.StepKey == "restart" && step.Payload.ValueKind == JsonValueKind.Object && !step.Payload.EnumerateObject().Any())
+            preset = ScheduleEditorPreset.DailyRestart;
+        else if (step.Kind == OperationKind.UpdateGeyser && step.StepKey == "update-geyser" && step.Payload.ValueKind == JsonValueKind.Object &&
+            step.Payload.EnumerateObject().Count() == 1 && step.Payload.TryGetProperty("restartIfPreviouslyRunning", out var restart) && restart.ValueKind == JsonValueKind.True)
+            preset = ScheduleEditorPreset.DailyGeyserUpdate;
+        else return false;
+        time = new TimeOnly(hour, minute).ToString("HH:mm", CultureInfo.InvariantCulture);
+        return true;
     }
 
     public async Task<IActionResult> OnPostRunNowAsync(Guid serverId, Guid scheduleId)
@@ -102,14 +162,19 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         return RedirectToPage(new { serverId });
     }
 
-    private static DateTimeOffset ParseUtc(string input)
+    private static DateTimeOffset ParseUtc(string? input)
     {
-        if (!DateTimeOffset.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out var utc) || utc.Offset != TimeSpan.Zero || !input.EndsWith('Z') && !input.EndsWith("+00:00", StringComparison.Ordinal)) throw new ArgumentException("UTC with offset is required.");
+        if (input is null || !DateTimeOffset.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out var utc) || utc.Offset != TimeSpan.Zero || !input.EndsWith('Z') && !input.EndsWith("+00:00", StringComparison.Ordinal)) throw new ArgumentException("UTC with offset is required.");
         return utc;
     }
     private async Task LoadAsync(Guid serverId)
     {
         Server = await store.ServerAsync(serverId);
+        Kind = ControlJson.Deserialize<ServerConfig>(Server.DesiredConfigJson).Kind;
+        var host = await store.HostAsync(Server.HostId);
+        var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
+        GeyserAvailable = IsVelocity && configuration.GetValue<bool>("Control:EnableFileControl") &&
+            capabilities.Contains("P2.Files") && capabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) && capabilities.Contains(ServerProcessSupport.VelocityCapability);
         Schedules = await store.SchedulesAsync(serverId);
         PendingRequests = await store.PendingManualRequestsAsync(serverId);
         foreach (var row in Schedules) History[row.Definition.ScheduleId] = await store.ScheduleHistoryAsync(row.Definition.ScheduleId);

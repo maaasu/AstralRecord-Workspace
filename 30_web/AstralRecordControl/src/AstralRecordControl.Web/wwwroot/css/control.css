@@ -135,4 +135,6 @@ footer{display:flex;justify-content:space-between;gap:18px}footer a{margin-left:
 .compact-details>summary,.inline-details>summary{display:flex;align-items:center;min-height:44px;width:fit-content;padding:8px 13px;border:1px solid var(--line);border-radius:8px;font-weight:600}
 .compact-details>summary::before,.inline-details>summary::before{content:"＋";margin-right:8px}.compact-details[open]>summary::before,.inline-details[open]>summary::before{content:"−"}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.schedule-editor:has(#Preset option[value="Advanced"]:checked) .schedule-daily{display:none}
+.schedule-editor:has(#Preset option:not([value="Advanced"]):checked) .schedule-advanced{display:none}
 @media(max-width:700px){.overview-summary{padding:18px;min-height:0}.summary-card{min-height:200px;padding:20px}.history-toolbar{align-items:flex-start;flex-direction:column}.history-toolbar button{margin:0;width:100%}.history-pagination{justify-content:flex-start}.table-actions .button-link{width:auto}.history-facts{display:block}}

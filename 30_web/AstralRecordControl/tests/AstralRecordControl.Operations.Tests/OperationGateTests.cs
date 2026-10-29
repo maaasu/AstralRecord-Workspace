@@ -16,6 +16,46 @@ namespace AstralRecordControl.Operations.Tests;
 public sealed class OperationGateTests
 {
     [Theory]
+    [InlineData(ServerKind.Java, true)]
+    [InlineData(ServerKind.Velocity, false)]
+    public async Task GeyserUpdateRejectsUnsupportedServerOrAgentBeforeReserving(ServerKind kind, bool updateCapability)
+    {
+        await using var fixture = await Fixture.CreateAsync(enableFiles: true);
+        var server = await fixture.ServerAsync("proxy");
+        server.DesiredConfigJson = ControlJson.Serialize(ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { Kind = kind });
+        var host = await fixture.Db.Hosts.SingleAsync(x => x.HostId == server.HostId);
+        string[] capabilities = ["P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files"];
+        host.CapabilitiesJson = ControlJson.Serialize(updateCapability ? [.. capabilities, "P3.GeyserUpdate"] : capabilities);
+        await fixture.Db.SaveChangesAsync();
+        await Fault("UnsupportedCapability", () => fixture.Operations.CreateAsync(server.ServerId,
+            new() { Kind = OperationKind.UpdateGeyser, ConfigRevision = 1, ExpectedStateRevision = 1, Payload = ControlJson.Element(new UpdateGeyserPayload()) }, Guid.NewGuid()));
+        Assert.Equal(0, fixture.Agent.PrepareCount);
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GeyserUpdateUsesDataOperationGateWhileStoppedOrRunning(bool running)
+    {
+        await using var fixture = await Fixture.CreateAsync(enableFiles: true);
+        var server = await fixture.ServerAsync("proxy");
+        server.DesiredConfigJson = ControlJson.Serialize(ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { Kind = ServerKind.Velocity });
+        var host = await fixture.Db.Hosts.SingleAsync(x => x.HostId == server.HostId);
+        host.CapabilitiesJson = ControlJson.Serialize(new[] { "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.GeyserUpdate" });
+        var session = running ? Guid.NewGuid() : (Guid?)null;
+        fixture.Agent.States[server.HostId] = fixture.Agent.States[server.HostId] with { ProcessState = running ? ProcessState.Running : ProcessState.Stopped, CurrentSessionId = session };
+        await fixture.Db.SaveChangesAsync();
+        var key = Guid.NewGuid();
+        var operation = await fixture.Operations.CreateAsync(server.ServerId,
+            new() { Kind = OperationKind.UpdateGeyser, ConfigRevision = 1, ExpectedStateRevision = 1, ExpectedServerSessionId = session, Payload = ControlJson.Element(new UpdateGeyserPayload()) }, key);
+        Assert.Equal(key, operation.OperationId);
+        Assert.Equal(OperationStatus.Accepted, operation.Status);
+        Assert.Equal(1, fixture.Agent.PrepareCount);
+        Assert.Equal(1, fixture.Agent.DispatchCount);
+    }
+
+    [Theory]
     [InlineData(OperationKind.Stop, ServerKind.Java)]
     [InlineData(OperationKind.Restart, ServerKind.Java)]
     [InlineData(OperationKind.ConsoleCommand, ServerKind.Java)]
@@ -531,15 +571,15 @@ public sealed class OperationGateTests
         public FakeAgent Agent { get; } = new();
         public ReservationService Reservations { get; private set; } = null!;
         public ControlOperationsService Operations { get; private set; } = null!;
-        public static async Task<Fixture> CreateAsync()
+        public static async Task<Fixture> CreateAsync(bool enableFiles = false)
         {
             var f = new Fixture(); await f.connection.OpenAsync();
             f.Db = new(new DbContextOptionsBuilder<ControlDbContext>().UseSqlite(f.connection).Options);
             await f.Db.Database.EnsureCreatedAsync();
-            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true" }).Build();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true", ["Control:EnableFileControl"] = enableFiles.ToString() }).Build();
             var store = new InventoryStore(f.Db, new InventoryWriteGate(), TimeProvider.System, config);
             f.Reservations = new(f.Db, store, f.Agent, config, TimeProvider.System);
-            f.Operations = new(f.Db, store, f.Reservations, f.Agent, TimeProvider.System);
+            f.Operations = new(f.Db, store, f.Reservations, f.Agent, TimeProvider.System, config);
             return f;
         }
         public async Task<InventoryServer> ServerAsync(string key)

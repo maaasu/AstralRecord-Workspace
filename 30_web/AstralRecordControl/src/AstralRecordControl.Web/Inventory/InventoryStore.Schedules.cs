@@ -28,6 +28,7 @@ public sealed partial class InventoryStore
         if (configuration?.GetValue<bool>("Control:EnableSchedules") != true || !ProcessControlEnabled) throw new InventoryFault(409, "UnsupportedCapability");
         ScheduleValidation.Validate(definition);
         var server = await ServerAsync(definition.ServerId!.Value);
+        var serverConfig = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
         var host = await HostAsync(server.HostId);
         if (definition.HostId != host.HostId || !host.Enabled) throw new InventoryFault(400, "HostScopeMismatch");
         var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
@@ -46,6 +47,10 @@ public sealed partial class InventoryStore
         var snapshot = ControlJson.Deserialize<InventorySnapshot>(version.SnapshotJson);
         foreach (var step in definition.Template.Steps)
         {
+            if (step.Kind == OperationKind.UpdateGeyser &&
+                (serverConfig.Kind != ServerKind.Velocity || configuration?.GetValue<bool>("Control:EnableFileControl") != true ||
+                 !capabilities.Contains("P2.Files") || !capabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) || !capabilities.Contains(ServerProcessSupport.VelocityCapability)))
+                throw new InventoryFault(409, "UnsupportedCapability");
             if (step.Kind is OperationKind.CreateBackup or OperationKind.PruneBackups)
             {
                 if (configuration?.GetValue<bool>("Control:EnableFileControl") != true || !capabilities.Contains("P2.Backups")) throw new InventoryFault(409, "UnsupportedCapability");

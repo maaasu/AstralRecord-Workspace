@@ -39,6 +39,7 @@ public static class ControlDisplay
     {
         OperationKind.Start => "起動", OperationKind.Stop => "正常停止", OperationKind.Restart => "再起動",
         OperationKind.Kill => "強制終了", OperationKind.ConsoleCommand => "コマンド送信",
+        OperationKind.UpdateGeyser => "GeyserMC 更新",
         OperationKind.CreateBackup => "バックアップ取得", OperationKind.RestoreBackup => "バックアップ復元", OperationKind.PruneBackups => "バックアップ整理",
         _ => kind.ToString()
     };

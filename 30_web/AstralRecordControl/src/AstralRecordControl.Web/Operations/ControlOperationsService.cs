@@ -57,6 +57,10 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             var host = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);
             var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
             if (!capabilities.Contains("P2.Files") || (IsBackupKind(request.Kind) && !capabilities.Contains("P2.Backups"))) throw new InventoryFault(409, "UnsupportedCapability");
+            if (request.Kind == OperationKind.UpdateGeyser &&
+                (config.Kind != ServerKind.Velocity || !capabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) || !capabilities.Contains(ServerProcessSupport.VelocityCapability) ||
+                 config.DependencyReadiness != DependencyReadiness.Running || config.DependsOnServerIds.Length != 0))
+                throw new InventoryFault(409, "UnsupportedCapability");
             if (request.Kind == OperationKind.CreateBackup)
             {
                 var payload = ControlJson.Deserialize<CreateBackupPayload>(request.Payload.GetRawText());
@@ -322,7 +326,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         if (OperationValidation.IsP2Kind(kind))
         {
             if (kind is OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.ExportFiles) return;
-            if (kind is OperationKind.CreateBackup or OperationKind.RestoreBackup && state.ProcessState == ProcessState.Running && state.CurrentSessionId != null) return;
+            if (kind is OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.UpdateGeyser && state.ProcessState == ProcessState.Running && state.CurrentSessionId != null) return;
             if (state.ProcessState != ProcessState.Stopped || state.CurrentSessionId != null) throw new InventoryFault(409, "StateConflict");
             return;
         }
