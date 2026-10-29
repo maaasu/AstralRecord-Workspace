@@ -12,6 +12,8 @@ import { SpawnerCoverageInspector } from './SpawnerCoverageInspector'
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 const hasRadius = (radius: number | null | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
 const unknownLevels = spawnerLevels([])
+type MapView = { scale: number; x: number; z: number }
+type PointerSample = { x: number; z: number; hover: boolean }
 interface Props {
   snapshot: PlanningSnapshot; plan: PlanningPlan | null; layer: PlanningLayer; region: string; reason: string
   radii: boolean; active: boolean; selectedCell: number | null; selectedProposal: string | null
@@ -25,12 +27,18 @@ interface Props {
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
   const canvas = useRef<HTMLCanvasElement>(null)
-  const drag = useRef<{ x: number; y: number; moved: number } | null>(null)
+  const drag = useRef<{ pointerId: number; x: number; y: number; moved: number } | null>(null)
+  const pending = useRef<{ point: PointerSample; dx: number; dz: number } | null>(null)
+  const frame = useRef<number | null>(null)
+  const frameGeneration = useRef(0)
   const [size, setSize] = useState({ width: 800, height: 620 })
   const [pixelRatio, setPixelRatio] = useState(window.devicePixelRatio || 1)
   const sizeRef = useRef(size)
   const measured = useRef(false)
   const [view, setView] = useState({ scale: .1, x: 0, z: 0 })
+  // Event boundaries (up, zoom, keyboard) must see a flushed pan before React renders.
+  const viewRef = useRef(view)
+  const updateView = useCallback((next: MapView) => { viewRef.current = next; setView(next) }, [])
   const [coordinates, setCoordinates] = useState('X — / Z —')
   const [detailResource, setDetailResource] = useState<{ identity: object; image: HTMLImageElement } | null>(null)
   const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
@@ -41,6 +49,38 @@ export function SpawnerPlanningMap(props: Props) {
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 })
   const [tooltipClipped, setTooltipClipped] = useState(false)
   const bounds = snapshot.manifest.bounds
+  const discardPointerFrame = useCallback(() => {
+    frameGeneration.current++
+    if (frame.current !== null) cancelAnimationFrame(frame.current)
+    frame.current = null
+    pending.current = null
+  }, [])
+  const flushPointerFrame = useCallback(() => {
+    const next = pending.current
+    discardPointerFrame()
+    if (!next) return viewRef.current
+    let current = viewRef.current
+    if (next.dx || next.dz) {
+      current = { ...current, x: current.x + next.dx, z: current.z + next.dz }
+      updateView(current)
+    }
+    const x = (next.point.x - current.x) / current.scale + bounds.minX
+    const z = (next.point.z - current.z) / current.scale + bounds.minZ
+    setCoordinates(`X ${Math.floor(x)} / Z ${Math.floor(z)}`)
+    setPointer(next.point.hover ? { x: next.point.x, z: next.point.z } : null)
+    return current
+  }, [bounds.minX, bounds.minZ, discardPointerFrame, updateView])
+  const endPointer = useCallback(() => {
+    flushPointerFrame()
+    drag.current = null
+    setPointer(null)
+  }, [flushPointerFrame])
+  useLayoutEffect(() => {
+    discardPointerFrame()
+    drag.current = null
+    setPointer(null)
+    return discardPointerFrame
+  }, [active, snapshot, props.placing, props.showProposals, discardPointerFrame])
   const detailIdentity = useMemo(() => ({ revision: snapshot.manifest.exportRevision,
     fingerprint: snapshot.manifest.terrainFingerprint, minX: bounds.minX, minZ: bounds.minZ, width: bounds.width, height: bounds.height }),
   [snapshot.manifest.exportRevision, snapshot.manifest.terrainFingerprint, bounds.minX, bounds.minZ, bounds.width, bounds.height])
@@ -104,19 +144,19 @@ export function SpawnerPlanningMap(props: Props) {
     return image
   }, [coverage, terrain, snapshot.cells, bounds, region, reason, plan])
   const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
-  const placementAt = (px: number, pz: number) => {
+  const placementAt = useCallback((px: number, pz: number, current = view) => {
     let distance = 8
     let nearest: WorldPlacement | undefined
     // Equal-distance overlaps use the point drawn last, including a selected point.
     for (let index = orderedPlacements.length - 1; index >= 0; index--) {
       const item = orderedPlacements[index]
-      const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - px, (item.z + .5 - bounds.minZ) * view.scale + view.z - pz)
+      const next = Math.hypot((item.x + .5 - bounds.minX) * current.scale + current.x - px, (item.z + .5 - bounds.minZ) * current.scale + current.z - pz)
       if (next < distance) { distance = next; nearest = item }
     }
     return nearest
-  }
-  const hovered = (() => {
-    if (!pointer || !active || props.placing || drag.current || pointer.x < 0 || pointer.z < 0 || pointer.x >= size.width || pointer.z >= size.height) return null
+  }, [orderedPlacements, bounds.minX, bounds.minZ, view])
+  const hovered = useMemo(() => {
+    if (!pointer || !active || props.placing || pointer.x < 0 || pointer.z < 0 || pointer.x >= size.width || pointer.z >= size.height) return null
     const placement = placementAt(pointer.x, pointer.z)
     if (placement) {
       if (placement.kind !== 'spawner') return null
@@ -143,7 +183,7 @@ export function SpawnerPlanningMap(props: Props) {
       const sameLevel = suffix && Number(suffix[1]) === mob.level
       return `${sameLevel ? name.slice(0, suffix.index).trim() : name} · ${suffix && !sameLevel ? '出現 ' : ''}${Number.isFinite(mob.level) && mob.level > 0 ? `Lv.${mob.level}` : 'Lv.不明'}`
     }) } : null
-  })()
+  }, [pointer, active, props.placing, props.showProposals, size, placementAt, masters, visibleProposals, bounds.minX, bounds.minZ, view])
   const hoveredPlacementId = hovered?.placementId ?? null, hoveredProposalId = hovered?.proposalId ?? null
   const tooltipText = hovered ? [hovered.title, hovered.id, hovered.levels, hovered.radiusMeters, ...hovered.names].join('\n') : ''
   useLayoutEffect(() => {
@@ -153,20 +193,20 @@ export function SpawnerPlanningMap(props: Props) {
     const content = tooltipContent.current
     setTooltipClipped(!!content && content.scrollHeight > content.clientHeight)
   }, [tooltipText, size])
-  useEffect(() => { setPointer(null) }, [active, props.placing, props.showProposals])
   useEffect(() => {
-    const clear = () => { drag.current = null; setPointer(null) }
-    window.addEventListener('blur', clear)
-    return () => window.removeEventListener('blur', clear)
-  }, [])
+    window.addEventListener('blur', endPointer)
+    return () => window.removeEventListener('blur', endPointer)
+  }, [endPointer])
   const visibleMasters = useMemo(() => [...new Set(placements.filter(item => item.kind === 'spawner').map(item => item.templateId))]
     .sort((a, b) => (masterNumbers.get(a ?? '') ?? Infinity) - (masterNumbers.get(b ?? '') ?? Infinity)), [placements, masterNumbers])
   const selected = placements.find(item => item.placementId === props.selectedPlacement)
   const fit = useCallback(() => {
+    discardPointerFrame()
+    drag.current = null
     const { width, height } = sizeRef.current
     const scale = Math.min((width - 32) / bounds.width, (height - 32) / bounds.height)
-    setView({ scale, x: (width - bounds.width * scale) / 2, z: (height - bounds.height * scale) / 2 })
-  }, [bounds])
+    updateView({ scale, x: (width - bounds.width * scale) / 2, z: (height - bounds.height * scale) / 2 })
+  }, [bounds, discardPointerFrame, updateView])
   useEffect(() => { fit() }, [fit])
   useEffect(() => {
     const element = canvas.current?.parentElement
@@ -180,9 +220,11 @@ export function SpawnerPlanningMap(props: Props) {
         if (!measured.current) {
           measured.current = true
           const scale = Math.min((rect.width - 32) / bounds.width, (rect.height - 32) / bounds.height)
-          setView({ scale, x: (rect.width - bounds.width * scale) / 2, z: (rect.height - bounds.height * scale) / 2 })
+          discardPointerFrame()
+          updateView({ scale, x: (rect.width - bounds.width * scale) / 2, z: (rect.height - bounds.height * scale) / 2 })
         } else {
-          setView(current => ({ ...current, x: current.x + (rect.width - previous.width) / 2, z: current.z + (rect.height - previous.height) / 2 }))
+          const current = flushPointerFrame()
+          updateView({ ...current, x: current.x + (rect.width - previous.width) / 2, z: current.z + (rect.height - previous.height) / 2 })
         }
         setSize(sizeRef.current)
       }
@@ -192,13 +234,15 @@ export function SpawnerPlanningMap(props: Props) {
     observer.observe(element)
     window.addEventListener('resize', resize)
     return () => { observer.disconnect(); window.removeEventListener('resize', resize) }
-  }, [active, bounds])
+  }, [active, bounds, discardPointerFrame, flushPointerFrame, updateView])
   useEffect(() => {
     if (!focus) return
+    discardPointerFrame()
+    drag.current = null
     const { width, height } = sizeRef.current
     const scale = Math.max(.7, Math.min(width, height) / 700)
-    setView({ scale, x: width / 2 - (focus.x - bounds.minX) * scale, z: height / 2 - (focus.z - bounds.minZ) * scale })
-  }, [focus, bounds])
+    updateView({ scale, x: width / 2 - (focus.x - bounds.minX) * scale, z: height / 2 - (focus.z - bounds.minZ) * scale })
+  }, [focus, bounds, discardPointerFrame, updateView])
   useEffect(() => {
     if (!detailNeeded || detail) return
     let cancelled = false
@@ -415,11 +459,12 @@ export function SpawnerPlanningMap(props: Props) {
       ctx.strokeStyle = '#9ee9ef'; ctx.lineWidth = 2; ctx.stroke()
     }
   }, [active, scene, size, pixelRatio, view, bounds, hoveredPlacementId, hoveredProposalId, placements, visibleProposals, masters, props.selectedPlacement, selectedProposal])
-  const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => setView(current => {
+  const zoom = useCallback((factor: number, x = size.width / 2, z = size.height / 2) => {
+    const current = flushPointerFrame()
     const minimum = Math.min((size.width - 32) / bounds.width, (size.height - 32) / bounds.height)
     const scale = Math.max(minimum, Math.min(16, current.scale * factor)), ratio = scale / current.scale
-    return { scale, x: x - (x - current.x) * ratio, z: z - (z - current.z) * ratio }
-  }), [size, bounds])
+    updateView({ scale, x: x - (x - current.x) * ratio, z: z - (z - current.z) * ratio })
+  }, [size, bounds, flushPointerFrame, updateView])
   useEffect(() => {
     const element = canvas.current
     if (!element || !active) return
@@ -445,34 +490,59 @@ export function SpawnerPlanningMap(props: Props) {
         onSource={id => props.showProposals === false ? props.onPlacement?.(id) : onProposal(id)}
         onFocus={index => {
           const cell = snapshot.cells[index], { width, height } = sizeRef.current
+          discardPointerFrame()
+          drag.current = null
           setPointer(null)
-          setView(current => { const scale = Math.max(.7, current.scale); return { scale,
+          const scale = Math.max(.7, viewRef.current.scale)
+          updateView({ scale,
             x: width / 2 - (cell.x + bounds.cellSize / 2 - bounds.minX) * scale,
-            z: height / 2 - (cell.z + bounds.cellSize / 2 - bounds.minZ) * scale } })
+            z: height / 2 - (cell.z + bounds.cellSize / 2 - bounds.minZ) * scale })
           onCell(index)
         }} />}
     </div>
     <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>
     <div className="sp-map-wrap">
     <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
-      onPointerDown={event => { setPointer(null); drag.current = { x: event.clientX, y: event.clientY, moved: 0 }; event.currentTarget.setPointerCapture(event.pointerId) }}
+      onPointerDown={event => {
+        if (!active || drag.current) return
+        discardPointerFrame(); setPointer(null)
+        drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: 0 }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }}
       onPointerMove={event => {
-        const rect = event.currentTarget.getBoundingClientRect()
-        const x = (event.clientX - rect.left - view.x) / view.scale + bounds.minX, z = (event.clientY - rect.top - view.z) / view.scale + bounds.minZ
-        setCoordinates(`X ${Math.floor(x)} / Z ${Math.floor(z)}`)
         const previous = drag.current
-        setPointer(!previous && event.pointerType !== 'touch' && event.buttons === 0 ? { x: event.clientX - rect.left, z: event.clientY - rect.top } : null)
+        if (!active || (previous && previous.pointerId !== event.pointerId)) return
+        const rect = event.currentTarget.getBoundingClientRect()
+        const point = { x: event.clientX - rect.left, z: event.clientY - rect.top,
+          hover: !previous && event.pointerType !== 'touch' && event.buttons === 0 }
+        const next = pending.current ?? { point, dx: 0, dz: 0 }
+        next.point = point
         if (previous) {
           const dx = event.clientX - previous.x, dz = event.clientY - previous.y
-          drag.current = { x: event.clientX, y: event.clientY, moved: previous.moved + Math.abs(dx) + Math.abs(dz) }
-          setView(current => ({ ...current, x: current.x + dx, z: current.z + dz }))
+          // Keep the whole path for click suppression, even when a frame's net pan is zero.
+          drag.current = { pointerId: previous.pointerId, x: event.clientX, y: event.clientY, moved: previous.moved + Math.abs(dx) + Math.abs(dz) }
+          next.dx += dx; next.dz += dz
+        }
+        pending.current = next
+        if (frame.current === null) {
+          const generation = frameGeneration.current
+          frame.current = requestAnimationFrame(() => {
+            if (generation === frameGeneration.current) flushPointerFrame()
+          })
         }
       }}
       onPointerUp={event => {
-        const moved = drag.current?.moved ?? 0; drag.current = null
-        if (moved > 5) return
+        const previous = drag.current
+        if (!active || !previous || previous.pointerId !== event.pointerId) return
         const rect = event.currentTarget.getBoundingClientRect(), px = event.clientX - rect.left, pz = event.clientY - rect.top
-        const x = (px - view.x) / view.scale + bounds.minX, z = (pz - view.z) / view.scale + bounds.minZ
+        const dx = event.clientX - previous.x, dz = event.clientY - previous.y
+        const next = pending.current ?? { point: { x: px, z: pz, hover: false }, dx: 0, dz: 0 }
+        next.point = { x: px, z: pz, hover: false }; next.dx += dx; next.dz += dz
+        pending.current = next
+        const current = flushPointerFrame()
+        const moved = previous.moved + Math.abs(dx) + Math.abs(dz); drag.current = null
+        if (moved > 5) return
+        const x = (px - current.x) / current.scale + bounds.minX, z = (pz - current.z) / current.scale + bounds.minZ
         if (props.placing && props.onPlacePoint) {
           const index = cellAtWorld(bounds, grid, x, z)
           if (index !== undefined) {
@@ -481,29 +551,32 @@ export function SpawnerPlanningMap(props: Props) {
           }
           return
         }
-        const closest = placementAt(px, pz)
+        const closest = placementAt(px, pz, current)
         if (closest && props.onPlacement) { props.onPlacement(closest.placementId); return }
         // At overview scale dots are dense; prioritize the terrain cell until zoomed in.
         let distance = 6
         let nearest: (typeof visibleProposals)[number] | undefined
-        if (props.showProposals !== false && view.scale > .25) for (const value of visibleProposals) {
-          const next = Math.hypot((value.x + .5 - x) * view.scale, (value.z + .5 - z) * view.scale)
+        if (props.showProposals !== false && current.scale > .25) for (const value of visibleProposals) {
+          const next = Math.hypot((value.x + .5 - x) * current.scale, (value.z + .5 - z) * current.scale)
           if (next < distance) { distance = next; nearest = value }
         }
         if (nearest) onProposal(nearest.proposalId)
         else { const index = cellAtWorld(bounds, grid, x, z); if (index !== undefined) onCell(index) }
       }}
-      onPointerCancel={() => { drag.current = null; setPointer(null) }}
-      onLostPointerCapture={() => { drag.current = null; setPointer(null) }}
-      onPointerLeave={() => setPointer(null)}
-      onBlur={() => setPointer(null)}
+      onPointerCancel={event => { if (!drag.current || drag.current.pointerId === event.pointerId) endPointer() }}
+      onLostPointerCapture={event => { if (!drag.current || drag.current.pointerId === event.pointerId) endPointer() }}
+      onPointerLeave={() => { if (pending.current) pending.current.point.hover = false; if (!drag.current) discardPointerFrame(); setPointer(null) }}
+      onBlur={endPointer}
       onKeyDown={event => {
         if (['+', '-', 'Home', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
           event.preventDefault()
           if (event.key === '+') zoom(1.4)
           else if (event.key === '-') zoom(1 / 1.4)
           else if (event.key === 'Home') fit()
-          else setView(current => ({ ...current, x: current.x + (event.key === 'ArrowLeft' ? 60 : event.key === 'ArrowRight' ? -60 : 0), z: current.z + (event.key === 'ArrowUp' ? 60 : event.key === 'ArrowDown' ? -60 : 0) }))
+          else {
+            const current = flushPointerFrame()
+            updateView({ ...current, x: current.x + (event.key === 'ArrowLeft' ? 60 : event.key === 'ArrowRight' ? -60 : 0), z: current.z + (event.key === 'ArrowUp' ? 60 : event.key === 'ArrowDown' ? -60 : 0) })
+          }
         }
       }} />
     {hovered && pointer && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{

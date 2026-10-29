@@ -14,8 +14,18 @@ const snapshot: PlanningSnapshot = {
 }
 const props = { snapshot, plan: null, layer: 'terrain' as const, region: '', reason: '', radii: false,
   active: true, selectedCell: null, selectedProposal: null, focus: null, onCell: vi.fn(), onProposal: vi.fn() }
+let frames: Map<number, FrameRequestCallback>
+let nextFrame: number
+const flushFrame = () => act(() => {
+  const callbacks = [...frames.values()]
+  frames.clear()
+  callbacks.forEach(callback => callback(0))
+})
 
 beforeEach(() => {
+  frames = new Map(); nextFrame = 0
+  vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => { frames.set(++nextFrame, callback); return nextFrame }))
+  vi.stubGlobal('cancelAnimationFrame', vi.fn((id: number) => frames.delete(id)))
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 406, height: 500 } as DOMRect)
 })
@@ -222,7 +232,196 @@ const hoverPlacement: WorldPlacement = { placementId: 'boars', kind: 'spawner', 
   templateId: 'field', x: 199.5, y: 70, z: 199.5, yaw: 0, pitch: 0, enabled: true, waystone: null }
 const hoverCatalog = { spawners: [{ id: 'field', name: '&aグラスボア Lv.15 / §b草狼 Lv.21', radiusMeters: 64, levels: [15, 21] }], npcs: [], worlds: [] }
 const hoverProps = { ...props, snapshot: hoverSnapshot, placements: [hoverPlacement], placementCatalog: hoverCatalog }
-const moveMouse = (canvas: HTMLCanvasElement, x = 203, y = 250) => fireEvent.pointerMove(canvas, { clientX: x, clientY: y, pointerType: 'mouse', buttons: 0 })
+const moveMouse = (canvas: HTMLCanvasElement, x = 203, y = 250) => {
+  fireEvent.pointerMove(canvas, { clientX: x, clientY: y, pointerType: 'mouse', buttons: 0 })
+  flushFrame()
+}
+
+it('pointer burst measurement: coalesces 30 moves into one hover scan or scene build', () => {
+  const context = drawingContext()
+  const placements = Array.from({ length: 2500 }, (_, index) => ({ ...hoverPlacement, placementId: `burst-${index}`,
+    x: 5 + index % 50 * 7.8, z: 5 + Math.floor(index / 50) * 7.8 }))
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} placements={placements} showProposals={false} />)
+  const canvas = container.querySelector('canvas')!
+  const hypot = vi.spyOn(Math, 'hypot')
+  context.drawImage.mockClear(); context.fillText.mockClear()
+  for (let index = 0; index < 30; index++) fireEvent.pointerMove(canvas, { clientX: 203 + index / 100, clientY: 250, pointerType: 'mouse', buttons: 0 })
+  expect(hypot).not.toHaveBeenCalled()
+  expect(frames.size).toBe(1)
+  flushFrame()
+  expect(hypot).toHaveBeenCalledTimes(2500)
+  expect(context.fillText).not.toHaveBeenCalled()
+  console.info(`Pointer burst hover: 30 moves, 2500 placements, hit-test distances=${hypot.mock.calls.length}, scene builds=${context.fillText.mock.calls.filter(call => call[0] === '開始地点').length}`)
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  context.drawImage.mockClear(); context.fillText.mockClear()
+  for (let index = 1; index <= 30; index++) fireEvent.pointerMove(canvas, { clientX: 203 + index, clientY: 250, pointerType: 'mouse', buttons: 1, pointerId: 1 })
+  expect(context.fillText).not.toHaveBeenCalled()
+  expect(frames.size).toBe(1)
+  flushFrame()
+  expect(context.fillText.mock.calls.filter(call => call[0] === '開始地点')).toHaveLength(1)
+  expect(context.drawImage.mock.calls.find(call => call[1] === 46)?.slice(1, 3)).toEqual([46, 63])
+  console.info(`Pointer burst drag: 30 moves, scene builds=${context.fillText.mock.calls.filter(call => call[0] === '開始地点').length}`)
+})
+
+it('フレームまでは描画せず最後のpointer座標だけでホバーと座標を更新する', () => {
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  for (let index = 0; index < 29; index++) fireEvent.pointerMove(canvas, { clientX: 0, clientY: 0, pointerType: 'mouse', buttons: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 203, clientY: 250, pointerType: 'mouse', buttons: 0 })
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  expect(screen.getByText(/X — \/ Z —/)).toBeInTheDocument()
+  flushFrame()
+  expect(screen.getByRole('tooltip')).toHaveTextContent('グラスボア')
+  expect(screen.getByText(/X 200 \/ Z 200/)).toBeInTheDocument()
+  expect(frames.size).toBe(0)
+})
+
+it.each([
+  ['5pxまで選択する', [2, 5], 5, true],
+  ['5pxを超えると選択しない', [6], 6, false],
+  ['往復の距離を保持する', [4, 0], 0, false],
+  ['upだけの終点も移動距離に含める', [], 6, false],
+  ['upの終点を含む5pxで選択する', [2], 5, true],
+] as const)('%s（フレーム前のup）', (_name, moves, end, selected) => {
+  const context = drawingContext(), onPlacement = vi.fn()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} onPlacement={onPlacement} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  context.fillText.mockClear(); context.drawImage.mockClear()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 7 })
+  for (const dx of moves) fireEvent.pointerMove(canvas, { clientX: 203 + dx, clientY: 250, pointerId: 7, pointerType: 'mouse', buttons: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 203 + end, clientY: 250, pointerId: 7 })
+  expect(onPlacement).toHaveBeenCalledTimes(selected ? 1 : 0)
+  if (selected) expect(onPlacement).toHaveBeenCalledWith('boars')
+  expect(frames.size).toBe(0)
+  const sceneCalls = context.fillText.mock.calls.filter(call => call[0] === '開始地点').length
+  expect(sceneCalls).toBe(end ? 1 : 0)
+  if (end) expect(context.drawImage.mock.calls.some(call => call[1] === 16 + end)).toBe(true)
+  flushFrame()
+  expect(context.fillText.mock.calls.filter(call => call[0] === '開始地点')).toHaveLength(sceneCalls)
+})
+
+it.each(['cancel', 'lostcapture', 'windowblur', 'canvasblur'] as const)('%sで受信済みpanを確定しqueueとgestureを終了する', terminal => {
+  const context = drawingContext(), onPlacement = vi.fn()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} onPlacement={onPlacement} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerMove(canvas, { clientX: 207, clientY: 250, pointerId: 1, pointerType: 'mouse', buttons: 1 })
+  const stale = [...frames.values()][0]
+  context.fillText.mockClear(); context.drawImage.mockClear()
+  if (terminal === 'cancel') fireEvent.pointerCancel(canvas, { pointerId: 1 })
+  else if (terminal === 'lostcapture') fireEvent.lostPointerCapture(canvas, { pointerId: 1 })
+  else fireEvent.blur(terminal === 'windowblur' ? window : canvas)
+  expect(frames.size).toBe(0)
+  expect(context.drawImage.mock.calls.some(call => call[1] === 20)).toBe(true)
+  context.fillText.mockClear()
+  act(() => stale(0))
+  fireEvent.pointerUp(canvas, { clientX: 207, clientY: 250, pointerId: 1 })
+  expect(onPlacement).not.toHaveBeenCalled()
+  expect(context.fillText).not.toHaveBeenCalled()
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it('別pointerのmove/up/cancelで主gestureを変えず、leave後もcapture中のpanを続ける', () => {
+  const context = drawingContext(), onPlacement = vi.fn()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} onPlacement={onPlacement} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerDown(canvas, { clientX: 300, clientY: 250, pointerId: 2 })
+  fireEvent.pointerMove(canvas, { clientX: 350, clientY: 250, pointerId: 2, buttons: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 350, clientY: 250, pointerId: 2 })
+  fireEvent.pointerCancel(canvas, { pointerId: 2 })
+  fireEvent.lostPointerCapture(canvas, { pointerId: 2 })
+  expect(frames.size).toBe(0)
+  fireEvent.pointerMove(canvas, { clientX: 207, clientY: 250, pointerId: 1, buttons: 1 })
+  fireEvent.pointerLeave(canvas)
+  expect(frames.size).toBe(1)
+  context.drawImage.mockClear()
+  fireEvent.pointerUp(canvas, { clientX: 208, clientY: 250, pointerId: 1 })
+  expect(onPlacement).toHaveBeenCalledWith('boars')
+  expect(context.drawImage.mock.calls.some(call => call[1] === 21)).toBe(true)
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it.each(['leave', 'cancel', 'lostcapture', 'windowblur', 'canvasblur', 'inactive', 'snapshot', 'placing', 'mode', 'unmount'] as const)('%s後に保留ホバーが復活しない', terminal => {
+  const { container, rerender, unmount } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  fireEvent.pointerMove(canvas, { clientX: 203, clientY: 250, pointerType: 'mouse', buttons: 0 })
+  const stale = [...frames.values()][0]
+  if (terminal === 'leave') fireEvent.pointerLeave(canvas)
+  else if (terminal === 'cancel') fireEvent.pointerCancel(canvas)
+  else if (terminal === 'lostcapture') fireEvent.lostPointerCapture(canvas)
+  else if (terminal === 'windowblur') fireEvent.blur(window)
+  else if (terminal === 'canvasblur') fireEvent.blur(canvas)
+  else if (terminal === 'inactive') rerender(<SpawnerPlanningMap {...hoverProps} active={false} />)
+  else if (terminal === 'snapshot') rerender(<SpawnerPlanningMap {...hoverProps} snapshot={{ ...hoverSnapshot, manifest: { ...hoverSnapshot.manifest, exportRevision: 'new' } }} />)
+  else if (terminal === 'placing') rerender(<SpawnerPlanningMap {...hoverProps} placing />)
+  else if (terminal === 'mode') rerender(<SpawnerPlanningMap {...hoverProps} showProposals={false} />)
+  else unmount()
+  expect(frames.size).toBe(0)
+  act(() => stale(0))
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it.each(['inactive', 'snapshot', 'placing', 'mode', 'unmount'] as const)('%sで保留panを破棄し古いviewを復活させない', terminal => {
+  const context = drawingContext()
+  const { container, rerender, unmount } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerMove(canvas, { clientX: 240, clientY: 250, pointerId: 1, buttons: 1 })
+  const stale = [...frames.values()][0]
+  if (terminal === 'inactive') rerender(<SpawnerPlanningMap {...hoverProps} active={false} />)
+  else if (terminal === 'snapshot') rerender(<SpawnerPlanningMap {...hoverProps} snapshot={{ ...hoverSnapshot }} />)
+  else if (terminal === 'placing') rerender(<SpawnerPlanningMap {...hoverProps} placing />)
+  else if (terminal === 'mode') rerender(<SpawnerPlanningMap {...hoverProps} showProposals={false} />)
+  else unmount()
+  context.drawImage.mockClear()
+  act(() => stale(0))
+  expect(frames.size).toBe(0)
+  expect(context.drawImage).not.toHaveBeenCalled()
+})
+
+it.each(['fit', 'focus', 'coverage'] as const)('%sは保留panを破棄して移動先のviewを維持する', action => {
+  const context = drawingContext()
+  const mapProps = action === 'coverage' ? coverageProps : hoverProps
+  const { container, rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerMove(canvas, { clientX: 240, clientY: 250, pointerId: 1, buttons: 1 })
+  const stale = [...frames.values()][0]
+  if (action === 'fit') fireEvent.click(screen.getByRole('button', { name: '全大陸' }))
+  else if (action === 'focus') rerender(<SpawnerPlanningMap {...mapProps} focus={{ key: 1, x: 100, z: 100 }} />)
+  else fireEvent.click(screen.getByRole('button', { name: '次の区画' }))
+  expect(frames.size).toBe(0)
+  context.drawImage.mockClear()
+  act(() => stale(0))
+  fireEvent.pointerUp(canvas, { clientX: 240, clientY: 250, pointerId: 1 })
+  expect(context.drawImage).not.toHaveBeenCalled()
+})
+
+it.each(['zoom', 'keyboard'] as const)('%sは保留panの後へ適用しframeで二重に移動しない', action => {
+  const context = drawingContext()
+  const { container } = render(<SpawnerPlanningMap {...hoverProps} />)
+  const canvas = container.querySelector('canvas')!
+  canvas.setPointerCapture = vi.fn()
+  fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
+  fireEvent.pointerMove(canvas, { clientX: 233, clientY: 250, pointerId: 1, buttons: 1 })
+  const stale = [...frames.values()][0]
+  context.drawImage.mockClear()
+  if (action === 'zoom') fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  else fireEvent.keyDown(canvas, { key: 'ArrowLeft' })
+  const expectedX = action === 'zoom' ? 203 - (203 - 46) * 1.5 : 106
+  expect(context.drawImage.mock.calls.some(call => call[1] === expectedX)).toBe(true)
+  expect(frames.size).toBe(0)
+  context.drawImage.mockClear()
+  act(() => stale(0))
+  expect(context.drawImage).not.toHaveBeenCalled()
+})
 
 it('全大陸表示のホバーで各モブの日本語名と実レベルを表示し、選択やスクロールを発生させない', () => {
   const onPlacement = vi.fn(), onCell = vi.fn(), onProposal = vi.fn()
@@ -230,6 +429,7 @@ it('全大陸表示のホバーで各モブの日本語名と実レベルを表�
   const canvas = container.querySelector('canvas')!
   const event = new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX: 203, clientY: 250, pointerType: 'mouse', buttons: 0 })
   fireEvent(canvas, event)
+  flushFrame()
   expect(screen.getByRole('tooltip')).toHaveTextContent('グラスボア Lv.15 / 草狼 Lv.21')
   expect(screen.getByRole('tooltip')).toHaveTextContent('Dev スポナー · 有効')
   expect(screen.getByRole('tooltip').textContent).not.toMatch(/[&§][ab]/)
@@ -268,9 +468,9 @@ it('ドラッグ、追加・移動指定、非表示、タッチ、外枠への�
   moveMouse(canvas)
   fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
-  fireEvent.pointerMove(canvas, { clientX: 223, clientY: 270, pointerType: 'mouse', buttons: 1 })
+  fireEvent.pointerMove(canvas, { clientX: 223, clientY: 270, pointerType: 'mouse', buttons: 1, pointerId: 1 })
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
-  fireEvent.pointerCancel(canvas)
+  fireEvent.pointerCancel(canvas, { pointerId: 1 })
   moveMouse(canvas, 223, 270)
   expect(screen.getByRole('tooltip')).toBeInTheDocument()
   rerender(<SpawnerPlanningMap {...hoverProps} placing />)
@@ -281,6 +481,7 @@ it('ドラッグ、追加・移動指定、非表示、タッチ、外枠への�
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
   rerender(<SpawnerPlanningMap {...hoverProps} />)
   fireEvent.pointerMove(canvas, { clientX: 223, clientY: 270, pointerType: 'touch', buttons: 0 })
+  flushFrame()
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
   moveMouse(canvas, 223, 270)
   fireEvent.blur(window)
@@ -485,7 +686,7 @@ it('ホバー円はドラッグ・配置操作・非表示・フィルター除�
   context.arc.mockClear()
   fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
   expect(rangeCalls(context, 64 * .935)).toHaveLength(0)
-  fireEvent.pointerCancel(canvas)
+  fireEvent.pointerCancel(canvas, { pointerId: 1 })
   moveMouse(canvas)
   context.arc.mockClear()
   rerender(<SpawnerPlanningMap {...hoverProps} placing />)
