@@ -12,6 +12,7 @@ public enum BossChallengeEndReason {
     FIELD_PREPARE_FAILED(false, "フィールド準備失敗"),
     TRANSFER_FAILED(false, "転送失敗"),
     BOSS_SPAWN_FAILED(false, "ボス出現失敗"),
+    MECHANIC_FAILURE(false, ""),
     ADMIN_STOP(false, "管理者による停止"),
     PLUGIN_SHUTDOWN(false, "プラグイン停止");
 

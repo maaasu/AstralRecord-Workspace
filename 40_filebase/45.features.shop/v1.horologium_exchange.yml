@@ -1,0 +1,19 @@
+# design:
+#   motif: "時計機構 / 時針の交換"
+#   progression: 50
+schemaVersion: 1
+id: horologium_exchange
+type: SHOP
+name: "&6廻刻の交換所"
+mode: EXCHANGE
+access: PUBLIC
+items:
+  - id: horologium_pocket_watch
+    itemId:
+      ref: item:20a00457
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 10
+    recipeId:
+      ref: recipe:horologium_pocket_watch_exchange

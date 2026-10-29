@@ -1,0 +1,92 @@
+# design:
+#   motif: "時計機構 / 時針と巻戻し"
+#   progression: 50
+schemaVersion: 1
+id: horologium_clockwork_sovereign
+type: MOB
+category: BOSS
+name: "&6&l廻刻の機工王 ホロロギウム"
+title: "&8―― 失われた一刻を刻む王 ――"
+level: 50
+entityType: IRON_GOLEM
+variant:
+  scale: 1.25
+icon: IRON_GOLEM_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7時計盤の侵入者を針で狙い、足跡を過去へ刻む機工王。"
+  - "&7拠点で /boss horologium から挑戦。1～6人に対応。"
+  - "&7針の線から離れ、足跡が固定されたら4ブロック以上移動しよう。"
+  - "&7外壁の方位札で北・東・南・西を確認し、針の角度を読もう。"
+  - "&7反響が終わると六秒間、攻撃が通りやすくなる。"
+  - "&7標的が示された歯車印の塗り床に足跡を残して離れると、九秒の強い反撃機会を得る。"
+  - "&7残り七割から針が時計回りに90度回転。赤い最終線で衝突する。"
+  - "&7残り三割五分から最終線のあと初期線を逆再演。巻戻しの予告を読もう。"
+  - "&7素材抽選100%。受取には同会場参加・非AFK・BAG容量が必要。"
+tags:
+  - boss
+  - magic
+equipment:
+  mainHand: CLOCK
+  offHand: COPPER_INGOT
+# Lv50基礎職+アストラ武器/防具+10（ツリー/アクセなし）での有効攻撃R=674～708、
+# HP=368～1727、魔防=639～812を基準に調整。DEF500でゼロダメージ閾値を避ける。
+# 技の倍率0.5～0.65、技能倍率1.3～1.6/稼働75～85%は未実測の仮定。
+baseStats:
+  - status: MAX_HEALTH
+    value: 100000
+  - status: ATTACK
+    value: 500
+  - status: DEFENSE
+    value: 500
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 30
+    deaggroRange: 36
+    leashRange: 40
+  combat:
+    style: MAGIC
+    preferredRange: 5
+challenge:
+  fieldWorldId: horologium_clockwork_field
+  entryLocation:
+    worldId: starlit_nox
+    x: -75.0
+    y: -42.0
+    z: -576.0
+  entryRadius: 3.0
+  playerSpawnLocation:
+    x: 0.5
+    y: 64.0
+    z: -16.5
+  bossSpawnLocation:
+    x: 0.5
+    y: 64.0
+    z: 0.5
+  partyMin: 1
+  partyMax: 6
+  timeLimitSeconds: 900
+  deathLimit: 5
+  reviveDelaySeconds: 5
+drops:
+  exp: 24000
+  items:
+    - itemId:
+        ref: item:10a00411
+      rate: 100.0
+      amount: 1
+      luckAffected: false
+      hidden: false

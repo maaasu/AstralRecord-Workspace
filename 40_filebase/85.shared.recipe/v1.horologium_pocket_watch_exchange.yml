@@ -1,0 +1,16 @@
+# design:
+#   motif: "時計機構 / 巻戻しの懐中時計"
+#   progression: 50
+schemaVersion: 1
+id: horologium_pocket_watch_exchange
+type: RECIPE
+category: SHOP
+name: "&6巻戻しの懐中時計の交換"
+result:
+  itemId:
+    ref: item:20a00457
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:10a00411
+    amount: 4

@@ -19,11 +19,12 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * ボス挑戦の管理者操作と、パーティーリーダー向け中止操作を提供します。
+ * ボス挑戦の一般受付・中止と管理者操作を提供します。
  */
 public final class BossCommand extends AstCommand {
     public BossCommand() {
-        super("boss", "ボス挑戦を管理します。", "/boss <instances|list|stop|cancel|teleport> [partyId|partyKey|challengeIdPrefix|type instanceId]",
+        super("boss", PlayerMsgResource.getMessage(PlayerMsgId.P_8069.getId()),
+                PlayerMsgResource.getMessage(PlayerMsgId.P_8068.getId()),
                 false);
     }
 
@@ -38,17 +39,31 @@ public final class BossCommand extends AstCommand {
             return;
         }
         if (args.length == 0) {
-            sendUsage(sender);
+            sendPublicHelp(sender);
             return;
         }
 
         String action = args[0].toLowerCase(Locale.ROOT);
+        if (action.equals("horologium")) {
+            if (!(sender instanceof Player player)) {
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5060.getId()));
+            } else if (args.length != 1) {
+                sendPublicHelp(sender);
+            } else {
+                service.acceptHorologiumFromBase(player);
+            }
+            return;
+        }
         if (action.equals("cancel")) {
             handlePlayerCancel(sender, service);
             return;
         }
         if (!isAdmin(sender)) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+            if (List.of("instances", "list", "stop", "teleport").contains(action)) {
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+            } else {
+                sendPublicHelp(sender);
+            }
             return;
         }
         switch (action) {
@@ -57,6 +72,11 @@ public final class BossCommand extends AstCommand {
             case "teleport" -> handleTeleport(sender, service, plugin, args);
             default -> sendUsage(sender);
         }
+    }
+
+    private void sendPublicHelp(@NotNull CommandSender sender) {
+        sendInfo(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_8060.getId()));
+        if (isAdmin(sender)) sendUsage(sender);
     }
 
     private void handlePlayerCancel(

@@ -82,6 +82,7 @@ import java.time.Instant;
  * Coordinates boss challenge acceptance, field entry, and completion.
  */
 public final class BossChallengeService {
+    private static final String HOROLOGIUM_ID = "horologium_clockwork_sovereign";
     /** ボス入口円内の候補と、プレイヤーから入口中心までの距離です。 */
     public record BossEntryHit(@NotNull String bossId, double hitDistance) {
     }
@@ -418,6 +419,7 @@ public final class BossChallengeService {
     public @Nullable BossEntryHit findNearestChallengeEntry(@NotNull Player player) {
         BossEntryHit nearest = null;
         for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
+            if (HOROLOGIUM_ID.equals(bossId)) continue;
             MobTemplate template = mobService.findTemplate(bossId);
             if (template == null || template.challenge() == null) {
                 continue;
@@ -450,6 +452,16 @@ public final class BossChallengeService {
      * @param bossId boss mob master ID
      */
     public void acceptChallenge(@NotNull Player player, @NotNull String bossId) {
+        acceptChallenge(player, bossId, false);
+    }
+
+    /** 拠点またはハブから、ホロロギウムだけを既存の挑戦受付へ渡します。 */
+    public void acceptHorologiumFromBase(@NotNull Player player) {
+        acceptChallenge(player, HOROLOGIUM_ID, true);
+    }
+
+    /** @param commandEntry 専用コマンドで登録済BASE/HUBから受け付ける場合だけtrue */
+    private void acceptChallenge(@NotNull Player player, @NotNull String bossId, boolean commandEntry) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !AccountModeGuard.isGameplayPlayer(astPlayer)) {
             messageService.send(player, PlayerMsgId.P_5065);
@@ -463,7 +475,13 @@ public final class BossChallengeService {
         }
 
         BossChallengeConfig config = template.challenge();
-        if (!isInsideEntry(player, config)) {
+        WorldType worldType = commandEntry ? worldService.resolveWorldType(player.getWorld()) : null;
+        if (commandEntry && (!HOROLOGIUM_ID.equals(bossId)
+            || worldType != WorldType.BASE && worldType != WorldType.HUB)) {
+            messageService.send(player, PlayerMsgId.P_8061);
+            return;
+        }
+        if (!commandEntry && !isInsideEntry(player, config)) {
             messageService.send(player, PlayerMsgId.P_6502);
             return;
         }
@@ -543,6 +561,7 @@ public final class BossChallengeService {
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);
 
         notifyParticipants(challenge, PlayerMsgId.P_6508, template.displayName());
+        if (HOROLOGIUM_ID.equals(template.id())) notifyParticipants(challenge, PlayerMsgId.P_8062);
         teleportParticipantToHubAsync(player, hubData).whenComplete((result, throwable) ->
                 runSync(() -> finishHubTransfer(
                         challenge.challengeId(), fieldData, player.getUniqueId(), result, throwable)));
@@ -1245,6 +1264,20 @@ public final class BossChallengeService {
         return true;
     }
 
+    /**
+     * ボス固有ギミックが進行できない場合、撃破報酬を発生させず挑戦を終了します。
+     * メインスレッドから呼び出すことを前提とします。
+     * @param bossMobId 異常が発生したボス個体ID
+     * @return 対応する挑戦を発見した場合true
+     */
+    public boolean abortForMechanicFailure(@NotNull UUID bossMobId) {
+        UUID challengeId = challengeIdByBossMob.get(bossMobId);
+        BossChallengeInstance challenge = challengeId == null ? null : challengesById.get(challengeId);
+        if (challenge == null) return false;
+        endChallenge(challenge, BossChallengeEndReason.MECHANIC_FAILURE);
+        return true;
+    }
+
     private void finishHubTransfer(
             @NotNull UUID challengeId,
             @NotNull WorldMasterData fieldData,
@@ -1285,6 +1318,7 @@ public final class BossChallengeService {
             messageService.send(player, PlayerMsgId.P_6505, challenge.bossTemplate().displayName());
             return;
         }
+        if (HOROLOGIUM_ID.equals(challenge.bossTemplate().id())) messageService.send(player, PlayerMsgId.P_8062);
         WorldMasterData fieldData = worldService.getById(challenge.config().fieldWorldId());
         if (fieldData == null) {
             messageService.send(player, PlayerMsgId.P_6507, challenge.config().fieldWorldId());
@@ -1905,7 +1939,12 @@ public final class BossChallengeService {
         if (bossMobId != null) {
             challengeIdByBossMob.remove(bossMobId);
             if (reason != BossChallengeEndReason.DEFEATED) {
-                mobService.destroy(bossMobId);
+                try {
+                    mobService.destroy(bossMobId);
+                } catch (RuntimeException failure) {
+                    // Mob登録の解除後にリスナーが失敗しても、参加者退避とworld破棄は続行する。
+                    Logger.log(LogId.E_6510, failure, challenge.challengeId(), bossMobId);
+                }
             }
         }
 
@@ -1915,6 +1954,8 @@ public final class BossChallengeService {
             notifyParticipants(challenge, PlayerMsgId.P_6513, challenge.bossTemplate().displayName());
         } else if (reason == BossChallengeEndReason.NO_PARTICIPANTS) {
             notifyParticipants(challenge, PlayerMsgId.P_6514, challenge.bossTemplate().displayName());
+        } else if (reason == BossChallengeEndReason.MECHANIC_FAILURE) {
+            notifyParticipants(challenge, PlayerMsgId.P_8038, challenge.bossTemplate().displayName());
         } else if (reason == BossChallengeEndReason.DEATH_LIMIT
                 || reason == BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET) {
             // The specific reason was already announced when the condition was detected.
@@ -2645,6 +2686,7 @@ public final class BossChallengeService {
         double baseAngle = entryVisualFrame * 0.28D;
         Set<String> activePromptIds = new HashSet<>();
         for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
+            if (HOROLOGIUM_ID.equals(bossId)) continue;
             MobTemplate template = mobService.findTemplate(bossId);
             if (template == null || template.challenge() == null) {
                 continue;

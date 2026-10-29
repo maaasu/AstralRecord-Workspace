@@ -1,0 +1,18 @@
+# design:
+#   motif: "時計機構 / 時針"
+#   progression: 50
+schemaVersion: 1
+id: 10a00411
+category: material
+name: "&6廻刻の時針"
+icon: LIGHTNING_ROD
+rarity: EPIC
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7ホロロギウムの時計盤から残された、小さな時針。"
+  - "&7討伐報酬の抽選は100%。受取には同会場の参加資格・非AFK・BAG容量が必要。"
+  - "&7受け取った素材4個で懐中時計へ交換できる。"
+  - "&7交換所は /shop 廻刻の交換所 から開ける。"
+unTradeable: false
+unSellable: true

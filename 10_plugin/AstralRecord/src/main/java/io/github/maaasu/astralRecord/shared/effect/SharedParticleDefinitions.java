@@ -127,6 +127,10 @@ public final class SharedParticleDefinitions {
     /** 全ボスの攻撃予見。密度に応じて輪郭の点間隔を変え、各地点は一粒だけ表示します。 */
     public static final SharedParticleDefinition BOSS_ATTACK_WARNING =
         new SharedParticleDefinition("boss_attack_warning", Particle.ANGRY_VILLAGER, 4, 0, 0, 0, 0);
+    /** ホロロギウムの回転中だけを示す琥珀の装飾線。赤い最終危険線とは区別します。 */
+    public static final SharedParticleDefinition HOROLOGIUM_SWEEP =
+        new SharedParticleDefinition("horologium_sweep", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(245, 170, 65), 1.15F));
     /** 全ボスの安全地帯の輪郭。緑の粒子と白い縦装飾を組み合わせます。 */
     public static final SharedParticleDefinition BOSS_SAFE_AREA =
         new SharedParticleDefinition("boss_safe_area", Particle.HAPPY_VILLAGER, 4, 0, 0, 0, 0);

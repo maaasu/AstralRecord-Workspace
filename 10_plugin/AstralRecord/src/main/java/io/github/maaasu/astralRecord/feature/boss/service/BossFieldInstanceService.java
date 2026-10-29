@@ -42,6 +42,7 @@ import java.util.stream.Stream;
  */
 public final class BossFieldInstanceService {
     private static final String ASTRAIOS_FIELD_ID = "astral_observatory";
+    private static final String HOROLOGIUM_FIELD_ID = "horologium_clockwork_field";
     private static final long FAILED_FIELD_CLEANUP_RETRY_TICKS = 20L;
     private static final long WORLD_LOAD_RETRY_DELAY_TICKS = 1L;
     private static final long WORLD_LOAD_SLOT_RELEASE_DELAY_TICKS = 1L;
@@ -292,7 +293,9 @@ public final class BossFieldInstanceService {
                 challenge.config().bossSpawnLocation().toLocation(field.world())
         ));
         if (isGeneratedField(worldData)) {
-            requiredLocations.addAll(AstraiosFieldGenerator.requiredChunkCenters(field.world()));
+            requiredLocations.addAll(isHorologiumField(worldData)
+                ? HorologiumFieldGenerator.requiredChunkCenters(field.world())
+                : AstraiosFieldGenerator.requiredChunkCenters(field.world()));
         }
         prepareRequiredChunksAsync(
                 challenge.challengeId(),
@@ -304,7 +307,8 @@ public final class BossFieldInstanceService {
                 if (throwable == null && !pending.cancelled().get() && plugin.isEnabled()) {
                     try {
                         if (isGeneratedField(worldData)) {
-                            AstraiosFieldGenerator.build(field.world());
+                            if (isHorologiumField(worldData)) HorologiumFieldGenerator.build(field.world());
+                            else AstraiosFieldGenerator.build(field.world());
                             // 予期しないチャンク再ロード時にも床を失わないよう保存する。
                             field.world().save();
                             // 歩行経路の床検査が会場全域で成立するよう、挑戦終了まで読み込みを維持する。
@@ -392,7 +396,8 @@ public final class BossFieldInstanceService {
             pendingRegistered = true;
             WorldCreator creator = new WorldCreator(worldName);
             if (isGeneratedField(worldData)) {
-                creator.generator(new AstraiosFieldGenerator()).generateStructures(false);
+                creator.generator(isHorologiumField(worldData)
+                    ? new HorologiumFieldGenerator() : new AstraiosFieldGenerator()).generateStructures(false);
             }
             world = Bukkit.createWorld(creator);
             if (world == null) {
@@ -402,7 +407,7 @@ public final class BossFieldInstanceService {
             worldService.applyRpgGameRules(world);
             if (isGeneratedField(worldData)) {
                 world.setAutoSave(false);
-                world.setSpawnLocation(0, 64, -18);
+                world.setSpawnLocation(0, 64, isHorologiumField(worldData) ? -16 : -18);
             }
             return new BossFieldInstance(challenge.challengeId(), world.getName(), target, world);
         } catch (Throwable ex) {
@@ -848,10 +853,15 @@ public final class BossFieldInstanceService {
 
     /**
      * @param worldData 判定対象のワールドマスタ
-     * @return コピー元を持たずに生成する天文台フィールドなら true
+     * @return コピー元を持たずに生成する専用フィールドなら true
      */
     private static boolean isGeneratedField(@NotNull WorldMasterData worldData) {
-        return ASTRAIOS_FIELD_ID.equals(worldData.id());
+        return ASTRAIOS_FIELD_ID.equals(worldData.id()) || isHorologiumField(worldData);
+    }
+
+    /** @param worldData 判定対象 @return 時計盤の生成フィールドならtrue */
+    private static boolean isHorologiumField(@NotNull WorldMasterData worldData) {
+        return HOROLOGIUM_FIELD_ID.equals(worldData.id());
     }
 
     private record PendingFieldCreation(@NotNull AtomicBoolean cancelled) {

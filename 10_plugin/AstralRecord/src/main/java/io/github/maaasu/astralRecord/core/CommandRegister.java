@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.account.command.ExpCommand;
 import io.github.maaasu.astralRecord.feature.account.command.ExpTabCompleter;
 import io.github.maaasu.astralRecord.feature.account.command.LevelTabCompleter;
 import io.github.maaasu.astralRecord.feature.boss.command.BossCommand;
+import io.github.maaasu.astralRecord.feature.boss.command.BossTabCompleter;
 import io.github.maaasu.astralRecord.feature.currency.command.CurrencyCommand;
 import io.github.maaasu.astralRecord.feature.dungeon.command.DungeonCommand;
 import io.github.maaasu.astralRecord.feature.dungeon.command.DungeonDropCommand;
@@ -292,7 +293,7 @@ public class CommandRegister {
         BuilderCommand builderCommand = new BuilderCommand(builderGui);
         cm.registerCommand("builder", builderCommand);
         cm.registerCommand("bg", builderCommand);
-        cm.registerCommand("boss", new BossCommand());
+        cm.registerCommand("boss", new BossCommand(), new BossTabCompleter());
         cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("defense", new io.github.maaasu.astralRecord.feature.defense.DefenseCommand(
             AstralRecord.getInstance().getDefenseService()));

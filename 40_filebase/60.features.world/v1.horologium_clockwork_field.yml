@@ -1,0 +1,23 @@
+# design:
+#   motif: "時計機構 / 時計盤"
+#   progression: 50
+schemaVersion: 1
+id: horologium_clockwork_field
+displayName: "廻刻の機工王 ホロロギウム・時計盤"
+worldType: BOSS_FIELD
+baseWorldPath: "plugins/AstralRecord/worlds/boss_field/horologium_clockwork_field"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss_field/horologium_clockwork_field"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 6
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: -16.5
+  yaw: 0.0
+  pitch: 0.0
+description: "針と足跡の記録を避ける、機工王の専用時計盤。"

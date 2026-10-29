@@ -170,6 +170,8 @@ public final class BossMechanicService {
     private final SeleneaSupportController seleneaSupportController;
     private final AstraiosEncounterController astraiosEncounterController;
     private final Map<UUID, Set<UUID>> astraiosDirectParticipants = new HashMap<>();
+    private final HorologiumEncounterController horologiumEncounterController;
+    private final Map<UUID, Set<UUID>> horologiumDirectParticipants = new HashMap<>();
     private final Map<UUID, Set<UUID>> seleneaDirectParticipants = new HashMap<>();
     private final Map<UUID, Long> seleneaRangeNoticeUntil = new HashMap<>();
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
@@ -251,6 +253,15 @@ public final class BossMechanicService {
             mobService, particleDisplayService, this::astraiosParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio, 1000.0D)
         );
+        this.horologiumEncounterController = new HorologiumEncounterController(
+            mobService, particleDisplayService, this::horologiumParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio, 1000.0D),
+            boss -> {
+                if (!bossChallengeService.abortForMechanicFailure(boss.instanceId()))
+                    mobService.destroy(boss.instanceId());
+            },
+            boss -> bossChallengeService.isBossMob(boss.instanceId())
+        );
         this.seleneaEncounterController = new SeleneaEncounterController(
             mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio),
@@ -289,6 +300,8 @@ public final class BossMechanicService {
         if (!victim.isMob() || victim.mob() == null) return 1.0D;
         if (astraiosEncounterController.protectedNow(victim.mob())) return 0.0D;
         if (seleneaEncounterController.ultimateProtected(victim.mob())) return 0.0D;
+        if (HorologiumEncounterController.BOSS_ID.equals(victim.mob().template().id()))
+            return horologiumEncounterController.incomingDamageMultiplier(victim.mob(), clockTicks);
         try {
             return seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks);
         } catch (RuntimeException exception) {
@@ -375,6 +388,8 @@ public final class BossMechanicService {
         seleneaDirectParticipants.remove(bossInstanceId);
         astraiosEncounterController.clear(bossInstanceId);
         astraiosDirectParticipants.remove(bossInstanceId);
+        horologiumEncounterController.clear(bossInstanceId);
+        horologiumDirectParticipants.remove(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -416,6 +431,8 @@ public final class BossMechanicService {
         seleneaDirectParticipants.clear();
         astraiosEncounterController.clearAll();
         astraiosDirectParticipants.clear();
+        horologiumEncounterController.clearAll();
+        horologiumDirectParticipants.clear();
         seleneaRangeNoticeUntil.clear();
     }
 
@@ -437,6 +454,7 @@ public final class BossMechanicService {
         Set<UUID> activeKnockers = new HashSet<>();
         Set<UUID> activeSeleneas = new HashSet<>();
         Set<UUID> activeAstraioses = new HashSet<>();
+        Set<UUID> activeHorologiums = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
@@ -446,7 +464,8 @@ public final class BossMechanicService {
             boolean ventos = VentosEncounterController.BOSS_ID.equals(boss.template().id());
             boolean greatroot = GreatrootEncounterController.BOSS_ID.equals(boss.template().id());
             boolean astraios = AstraiosEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot && !astraios)
+            boolean horologium = HorologiumEncounterController.BOSS_ID.equals(boss.template().id());
+            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot && !astraios && !horologium)
                 || boss.currentHealth() <= 0.0D) {
                 continue;
             }
@@ -466,6 +485,22 @@ public final class BossMechanicService {
                         && conditionService.canCastSkill(AstEntity.mob(boss))
                         && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId()));
                     astraiosEncounterController.tick(boss, entity, clockTicks, canAct,
+                        bossChallengeService.isBossMob(boss.instanceId()) || dungeonService.isDungeonMob(boss.instanceId()));
+                }
+                continue;
+            }
+
+            if (horologium) {
+                activeHorologiums.add(boss.instanceId());
+                if (!bossChallengeService.isBossMob(boss.instanceId())
+                    && (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE)) {
+                    horologiumEncounterController.clear(boss.instanceId());
+                    horologiumDirectParticipants.remove(boss.instanceId());
+                } else {
+                    boolean canAct = conditionService.canRunAi(AstEntity.mob(boss))
+                        && conditionService.canCastSkill(AstEntity.mob(boss))
+                        && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId()));
+                    horologiumEncounterController.tick(boss, entity, clockTicks, canAct,
                         bossChallengeService.isBossMob(boss.instanceId()) || dungeonService.isDungeonMob(boss.instanceId()));
                 }
                 continue;
@@ -666,6 +701,8 @@ public final class BossMechanicService {
         seleneaDirectParticipants.keySet().retainAll(activeSeleneas);
         astraiosEncounterController.retain(activeAstraioses);
         astraiosDirectParticipants.keySet().retainAll(activeAstraioses);
+        horologiumEncounterController.retain(activeHorologiums);
+        horologiumDirectParticipants.keySet().retainAll(activeHorologiums);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -2716,6 +2753,21 @@ public final class BossMechanicService {
      * @return 専用会場制約のないMobはtrue。対象ボスでは場内参加者または直接召喚の初撃だけtrue
      */
     public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (victim.isMob() && HorologiumEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (owner == null || !damageService.isMobCombatTarget(owner.getBukkit())
+                || owner.getBukkit().getGameMode() == org.bukkit.GameMode.CREATIVE
+                || owner.getBukkit().getGameMode() == org.bukkit.GameMode.SPECTATOR
+                || !HorologiumEncounterController.inside(owner.getBukkit().getLocation(), victim.mob().spawnLocation())) return false;
+            MobInstance boss = victim.mob();
+            if (!bossChallengeService.isBossMob(boss.instanceId()) && !dungeonService.isDungeonMob(boss.instanceId())) {
+                horologiumDirectParticipants.computeIfAbsent(boss.instanceId(), ignored -> {
+                    Party party = partyService.findParty(owner.getBukkit().getUniqueId());
+                    return party == null ? Set.of(owner.getBukkit().getUniqueId()) : Set.copyOf(party.members());
+                });
+            }
+            return horologiumParticipants(boss).contains(owner.getBukkit());
+        }
         if (victim.isMob() && AstraiosEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
             var owner = attacker == null ? null : attacker.combatOwner();
             if (owner == null || !damageService.isMobCombatTarget(owner.getBukkit())
@@ -2847,8 +2899,31 @@ public final class BossMechanicService {
     }
 
     /**
+     * 時計盤の確定参加者を返します。場外へ出た参加者も表示・終了処理のため24mまで追跡します。
+     * @param boss 所有個体
+     * @return 見学者・死亡者・別worldを除いた参加者
+     */
+    private @NotNull List<Player> horologiumParticipants(@NotNull MobInstance boss) {
+        Set<UUID> ids = bossChallengeService.isBossMob(boss.instanceId())
+            ? bossChallengeService.participantIdsForBossMob(boss.instanceId())
+            : dungeonService.isDungeonMob(boss.instanceId())
+                ? dungeonService.resolveMobRewardRecipients(boss.instanceId()).stream()
+                    .map(p -> p.getBukkit().getUniqueId()).collect(java.util.stream.Collectors.toSet())
+                : horologiumDirectParticipants.getOrDefault(boss.instanceId(), Set.of());
+        Location center = boss.spawnLocation();
+        return ids.stream().map(Bukkit::getPlayer).filter(java.util.Objects::nonNull)
+            .filter(damageService::isMobCombatTarget)
+            .filter(p -> p.getGameMode() != org.bukkit.GameMode.CREATIVE && p.getGameMode() != org.bukkit.GameMode.SPECTATOR)
+            .filter(p -> p.getWorld() == center.getWorld() && Math.abs(p.getY() - center.getY()) <= 6.0D
+                && horizontalDistanceSquared(p.getLocation(), center) <= 24.0D * 24.0D)
+            .filter(p -> !dungeonService.isDungeonMob(boss.instanceId())
+                || dungeonService.canApplyCombatDamage(damageService.resolveEntity(p), AstEntity.mob(boss))).toList();
+    }
+
+    /**
      * 観測台の確定参加者を返します。場外への逃走者も境界判定のため40m・高さ±8mまで追跡します。
-     * @param boss 所有個体 @return 生存する戦闘参加者。見学者・別world・別ダンジョン部屋は除外
+     * @param boss 所有個体
+     * @return 生存する戦闘参加者。見学者・別world・別ダンジョン部屋は除外
      */
     private @NotNull List<Player> astraiosParticipants(@NotNull MobInstance boss) {
         Set<UUID> ids = bossChallengeService.isBossMob(boss.instanceId())

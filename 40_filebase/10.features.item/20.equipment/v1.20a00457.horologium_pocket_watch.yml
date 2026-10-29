@@ -1,0 +1,28 @@
+# design:
+#   motif: "時計機構 / 巻戻しの懐中時計"
+#   progression: 50
+schemaVersion: 1
+id: 20a00457
+category: equipment
+name: "&6巻戻しの懐中時計"
+icon: CLOCK
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7巻き戻る針を避けた証を、懐に収めた護符。"
+  - "&7最大HP+60、移動速度+6。生存と位置取りを支える。"
+  - "&7廻刻の時針4個と交換。/shop 廻刻の交換所 から選べる。"
+unTradeable: false
+unSellable: true
+equipment:
+  slot: ACCESSORY
+  tag: AMULET
+  requiredLevel: 50
+  stats:
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 60
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 6
