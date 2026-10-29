@@ -53,6 +53,8 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -1944,10 +1946,7 @@ public final class DamageService {
             }
             boolean bossMob = bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId());
             if (bossMob) {
-                mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(mob.instanceId()),
-                        (recipient, text) -> bossChallengeService.captureBossDropResult(
-                                mob.instanceId(), recipient.getBukkit().getUniqueId(), text));
-                bossChallengeService.handleBossDefeated(mob.instanceId(), deathLocation);
+                finishBossDeath(mob, deathLocation, mobCombatService, bossChallengeService, mobService);
             } else if (dungeonService != null && dungeonService.isDungeonMob(mob.instanceId())) {
                 mobCombatService.handleDeath(mob, dungeonService.resolveMobRewardRecipients(mob.instanceId()),
                         (recipient, text) -> dungeonService.captureBossDropResult(
@@ -1956,6 +1955,36 @@ public final class DamageService {
                 mobCombatService.handleDeath(mob);
             }
             mobDeathListener.accept(mob.instanceId(), deathLocation.clone());
+        }
+    }
+
+    /**
+     * ボス報酬の部分配布は再試行せず、失敗時だけMob破棄を補償して討伐完了へ進めます。
+     * @param mob 討伐が確定したボス個体
+     * @param deathLocation 討伐位置
+     * @param mobCombatService 通常の報酬配布とMob破棄
+     * @param bossChallengeService 固定受取人と討伐結果待機の管理
+     * @param mobService 報酬処理例外時だけ使う補償破棄
+     * @implNote メインスレッドから一度呼び、配布中に例外が出ても再抽選せず結果待機へ通知します。
+     */
+    static void finishBossDeath(@NotNull MobInstance mob, @NotNull Location deathLocation,
+                                @NotNull MobCombatService mobCombatService,
+                                @NotNull BossChallengeService bossChallengeService,
+                                @NotNull MobService mobService) {
+        UUID bossId = mob.instanceId();
+        try {
+            mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(bossId),
+                    (recipient, text) -> bossChallengeService.captureBossDropResult(
+                            bossId, recipient.getBukkit().getUniqueId(), text));
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_6511, failure, bossId);
+            try {
+                mobService.destroy(bossId);
+            } catch (RuntimeException destroyFailure) {
+                Logger.log(LogId.E_6512, destroyFailure, bossId);
+            }
+        } finally {
+            bossChallengeService.handleBossDefeated(bossId, deathLocation);
         }
     }
 

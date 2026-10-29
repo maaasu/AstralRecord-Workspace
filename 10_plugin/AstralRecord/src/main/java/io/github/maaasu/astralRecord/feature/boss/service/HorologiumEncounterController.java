@@ -50,6 +50,8 @@ final class HorologiumEncounterController {
     private final Consumer<MobInstance> abort;
     private final Predicate<MobInstance> gearField;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
+    private final Map<UUID, Encounter> recoveryBarCleanupPending = new HashMap<>();
+    private final Set<UUID> retiredAfterRecoveryBarFailure = new HashSet<>();
 
     /**
      * @param mobs Mobの移動停止に使うサービス
@@ -91,6 +93,7 @@ final class HorologiumEncounterController {
      * @param persistentEncounter 復帰待ち中もHPと専用行動を保持するか
      */
     void tick(MobInstance boss, Entity entity, long tick, boolean canAct, boolean persistentEncounter) {
+        if (retiredAfterRecoveryBarFailure.contains(boss.instanceId())) return;
         Encounter state = encounters.computeIfAbsent(boss.instanceId(), ignored -> new Encounter(boss));
         if (state.disabled) return;
         List<Player> active = List.of();
@@ -100,12 +103,14 @@ final class HorologiumEncounterController {
                 warnPresentation(state, active);
             if (active.isEmpty()) {
                 closeCast(state);
+                closeRecoveryBar(state);
                 boss.scriptedAction(persistentEncounter || state.originalScripted);
-                state.nextAt = tick + 40L;
+                state.nextAt = Math.max(state.nextAt, tick + 40L);
                 return;
             }
             boss.scriptedAction(true);
             mobs.stopPathfinding(boss);
+            if (state.cast == null) updateRecoveryBar(state, active, tick);
             if (!state.introduced) {
                 announce(active, PlayerMsgId.P_8030);
                 state.gearEnabled = gearField.test(boss);
@@ -123,6 +128,7 @@ final class HorologiumEncounterController {
             Logger.log(LogId.E_6542, failure, boss.instanceId());
             state.disabled = true;
             closeCast(state);
+            closeRecoveryBar(state);
             state.boss.scriptedAction(state.originalScripted);
             try {
                 abort.accept(boss);
@@ -135,6 +141,7 @@ final class HorologiumEncounterController {
 
     /** 生存参加者の足元へ向く針を固定し、予兆中の位置変更を反響の記録に使います。 */
     private void begin(Encounter state, List<Player> active, long tick) {
+        if (!closeRecoveryBar(state)) throw new IllegalStateException("Recovery BossBar could not be released");
         List<Player> inside = active.stream().filter(player -> inside(player.getLocation(), state.center)).toList();
         if (inside.isEmpty()) {
             state.nextAt = tick + 40L;
@@ -293,8 +300,10 @@ final class HorologiumEncounterController {
         }
         closeCast(state);
         state.recoveryMultiplier = gearSuccess ? 1.35D : 1.25D;
-        state.recoveryUntil = tick + (gearSuccess ? 180L : 120L);
+        state.recoveryDuration = gearSuccess ? 180L : 120L;
+        state.recoveryUntil = tick + state.recoveryDuration;
         state.nextAt = state.recoveryUntil;
+        updateRecoveryBar(state, active, tick);
         announce(active, gearSuccess ? PlayerMsgId.P_8045 : PlayerMsgId.P_8036);
     }
 
@@ -389,13 +398,43 @@ final class HorologiumEncounterController {
             ? PlayerMsgResource.format(PlayerMsgId.P_8037.getId(), remainingSeconds)
             : cast.locked ? barTitle(cast, remainingSeconds) : lockTitle(cast, remainingSeconds));
         cast.bar.setProgress(Math.clamp((end - tick) / (double) Math.max(1L, end - start), 0D, 1D));
+        syncBar(cast.bar, active);
+    }
+
+    /** 緑の反撃窓を残秒と倍率で示し、次の詠唱時には解放します。 */
+    private static void updateRecoveryBar(Encounter state, List<Player> active, long tick) {
+        if (state.recoveryUntil <= 0L) return;
+        if (tick >= state.recoveryUntil) {
+            if (!closeRecoveryBar(state)) throw new IllegalStateException("Recovery BossBar could not be released");
+            return;
+        }
+        if (state.recoveryBar == null) {
+            state.recoveryBar = Bukkit.createBossBar(recoveryTitle(state, (state.recoveryUntil - tick + 19L) / 20L),
+                BarColor.GREEN, BarStyle.SOLID);
+            state.recoveryBar.setVisible(true);
+        }
+        BossBar bar = state.recoveryBar;
+        bar.setVisible(true);
+        bar.setTitle(recoveryTitle(state, (state.recoveryUntil - tick + 19L) / 20L));
+        bar.setProgress(Math.clamp((state.recoveryUntil - tick) / (double) state.recoveryDuration, 0D, 1D));
+        syncBar(bar, active);
+    }
+
+    /** @return 反撃倍率と締切を共通メッセージから組み立てたタイトル */
+    private static String recoveryTitle(Encounter state, long remainingSeconds) {
+        return PlayerMsgResource.format((state.recoveryMultiplier > 1.25D
+            ? PlayerMsgId.P_8074 : PlayerMsgId.P_8073).getId(), remainingSeconds);
+    }
+
+    /** @param bar 対象バー @param active 現在の参加者 */
+    private static void syncBar(BossBar bar, List<Player> active) {
         Set<UUID> ids = new HashSet<>();
         for (Player player : active) {
             ids.add(player.getUniqueId());
-            if (!cast.bar.getPlayers().contains(player)) cast.bar.addPlayer(player);
+            if (!bar.getPlayers().contains(player)) bar.addPlayer(player);
         }
-        for (Player player : List.copyOf(cast.bar.getPlayers()))
-            if (!ids.contains(player.getUniqueId())) cast.bar.removePlayer(player);
+        for (Player player : List.copyOf(bar.getPlayers()))
+            if (!ids.contains(player.getUniqueId())) bar.removePlayer(player);
     }
 
     /** @param cast 表示中の針 @param remainingSeconds 衝突までの残秒 @return 現在の赤い危険線 */
@@ -500,6 +539,35 @@ final class HorologiumEncounterController {
         if (cast != null) releaseGearDisplay(state, cast);
     }
 
+    /** 反撃窓の参加者参照と表示を解放します。 */
+    private static boolean closeRecoveryBar(Encounter state) {
+        BossBar bar = state.recoveryBar;
+        if (bar == null) return true;
+        boolean removed = true;
+        try {
+            bar.removeAll();
+        } catch (RuntimeException failure) {
+            removed = false;
+            logRecoveryBarCleanupFailure(state, failure);
+        }
+        boolean hidden = true;
+        try {
+            bar.setVisible(false);
+        } catch (RuntimeException failure) {
+            hidden = false;
+            logRecoveryBarCleanupFailure(state, failure);
+        }
+        if (removed && hidden) state.recoveryBar = null;
+        return removed && hidden;
+    }
+
+    /** 同じ個体の緑バー回収例外を繰り返し記録しません。 */
+    private static void logRecoveryBarCleanupFailure(Encounter state, RuntimeException failure) {
+        if (state.recoveryBarCleanupWarned) return;
+        state.recoveryBarCleanupWarned = true;
+        Logger.log(LogId.E_6543, failure, state.boss.instanceId());
+    }
+
     /** 固定した印の一時強調を直ちに外し、後片付け時も同じ経路を使う。 */
     private static void releaseGearDisplay(Encounter state, Cast cast) {
         if (cast.gearDisplay == null) return;
@@ -520,18 +588,32 @@ final class HorologiumEncounterController {
      */
     void clear(UUID bossId) {
         Encounter state = encounters.remove(bossId);
-        if (state == null) return;
+        if (state == null) {
+            Encounter pending = recoveryBarCleanupPending.get(bossId);
+            if (pending != null && closeRecoveryBar(pending)) recoveryBarCleanupPending.remove(bossId);
+            return;
+        }
         closeCast(state);
+        if (!closeRecoveryBar(state)) {
+            recoveryBarCleanupPending.put(bossId, state);
+            retiredAfterRecoveryBarFailure.add(bossId);
+        }
         state.boss.scriptedAction(state.originalScripted);
     }
 
     /** @param active 現在残る個体。消失個体の表示を回収する */
     void retain(Set<UUID> active) {
+        for (UUID id : List.copyOf(recoveryBarCleanupPending.keySet())) clear(id);
         for (UUID id : List.copyOf(encounters.keySet())) if (!active.contains(id)) clear(id);
+        retiredAfterRecoveryBarFailure.removeIf(id -> !active.contains(id)
+            && !recoveryBarCleanupPending.containsKey(id));
     }
 
     /** Plugin停止時に全個体を回収します。 */
-    void clearAll() { for (UUID id : List.copyOf(encounters.keySet())) clear(id); }
+    void clearAll() {
+        for (UUID id : List.copyOf(encounters.keySet())) clear(id);
+        for (UUID id : List.copyOf(recoveryBarCleanupPending.keySet())) clear(id);
+    }
 
     /** @param active 対象参加者 @param id リソース文言 @param args 置換値 */
     private static void announce(List<Player> active, PlayerMsgId id, Object... args) {
@@ -558,7 +640,10 @@ final class HorologiumEncounterController {
         int actions;
         long nextAt;
         long recoveryUntil;
+        long recoveryDuration;
         double recoveryMultiplier = 1.25D;
+        BossBar recoveryBar;
+        boolean recoveryBarCleanupWarned;
         Cast cast;
 
         /** @param boss 専用行動の所有個体 */

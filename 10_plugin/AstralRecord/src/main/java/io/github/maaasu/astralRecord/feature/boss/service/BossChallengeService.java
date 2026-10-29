@@ -2966,10 +2966,15 @@ public final class BossChallengeService {
             challenge.resultWaitTask(null);
         }
         destroyDamageResult(challenge);
+        destroyBossBar(challenge);
         UUID bossMobId = challenge.bossMobInstanceId();
         if (bossMobId != null) {
             challengeIdByBossMob.remove(bossMobId);
-            mobService.destroy(bossMobId);
+            try {
+                mobService.destroy(bossMobId);
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_6510, failure, challenge.challengeId(), bossMobId);
+            }
         }
         for (UUID participantId : exitParticipantIds(challenge)) {
             playerDeathService.recoverNow(participantId);
