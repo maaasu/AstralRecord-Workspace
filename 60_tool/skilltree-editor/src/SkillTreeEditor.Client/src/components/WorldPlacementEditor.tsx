@@ -6,6 +6,7 @@ import { spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import { applyPlacementDrafts, parsePlacementNumber, placementChangeEntries, placementSelectionScope, removePlacements, revertPlacementChange, samePlacement, setPlacementsEnabled, type PlacementNumericDrafts, type PlacementNumericField } from '../state/worldPlacementEditing'
 import './worldPlacementEditor.css'
 import { PlacementChangeReview } from './PlacementChangeReview'
+import { PlacementBulkConfirmation, type PlacementBulkAction } from './PlacementBulkConfirmation'
 
 export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number | null; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
 export interface PlacementPoint { key: number; x: number; y: number | null; z: number }
@@ -25,6 +26,7 @@ interface Props {
   onBusyChange?: (busy: boolean) => void
   onDirtyChange?: (dirty: boolean) => void
 }
+interface BulkIntent { action: PlacementBulkAction; items: WorldPlacement[]; ids: ReadonlySet<string>; matchingIds: ReadonlySet<string>; catalog: PlacementCatalog; context: object }
 const emptySelection: ReadonlySet<string> = new Set()
 const emptyCatalog: PlacementCatalog = { spawners: [], npcs: [], worlds: [] }
 const readCatalog = async (): Promise<PlacementCatalog> => {
@@ -53,6 +55,11 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [catalog, setCatalog] = useState<PlacementCatalog>(emptyCatalog)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  const [confirmation, setConfirmation] = useState<BulkIntent | null>(null)
+  const confirmationRef = useRef<BulkIntent | null>(null)
+  const confirmationOrigin = useRef<HTMLElement | null>(null)
+  const locked = () => busyRef.current || confirmationRef.current !== null
+  const closeConfirmation = () => { confirmationRef.current = null; setConfirmation(null) }
   const inspector = useRef<HTMLDivElement>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -72,11 +79,11 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const selectPlacement = (id: string | null, location?: WorldPlacement) => onSelected(id, location ?? working.find(item => item.placementId === id))
   const selected = working.find(item => item.placementId === selectedId && item.worldId === snapshot.manifest.worldId)
   const editNumber = (id: string, field: PlacementNumericField, raw: string) => {
-    if (busyRef.current) return
+    if (locked()) return
     setDrafts(current => ({ ...current, [id]: { ...current[id], [field]: raw } }))
   }
   const discardNumber = (id: string, field: PlacementNumericField) => {
-    if (busyRef.current) return
+    if (locked()) return
     setDrafts(current => {
       const next = { ...current }, fields = { ...next[id] }
       delete fields[field]
@@ -86,12 +93,12 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     })
   }
   const commitNumber = (id: string, field: PlacementNumericField) => {
-    if (busyRef.current || drafts[id]?.[field] === undefined || parsePlacementNumber(drafts[id][field]!, field) === null) return
+    if (locked() || drafts[id]?.[field] === undefined || parsePlacementNumber(drafts[id][field]!, field) === null) return
     setWorking(applyPlacementDrafts(working, { [id]: { [field]: drafts[id][field] } }))
     discardNumber(id, field)
   }
   const travelHistory = (direction: 'past' | 'future') => {
-    if (busyRef.current || hasDrafts) return
+    if (locked() || hasDrafts) return
     setHistory(current => {
       const source = current[direction]
       if (!source.length) return current
@@ -117,7 +124,14 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   }, [base, catalog.worlds, worldId])
   useEffect(() => { setSelectedWorldName(current => worldNames.includes(current) ? current : worldNames[0] ?? '') }, [worldNames])
   useEffect(() => { onDirtyChange(dirty) }, [dirty])
-  useEffect(() => { onBusyChange(busy) }, [busy])
+  useEffect(() => { onBusyChange(busy || confirmation !== null) }, [busy, confirmation])
+  useEffect(() => {
+    if (confirmation) return
+    // Capture before inert removes focus; restore after inert and Modal cleanup.
+    const origin = confirmationOrigin.current
+    confirmationOrigin.current = null
+    if (origin?.isConnected && !origin.matches(':disabled') && !origin.closest('[inert], [hidden], [aria-hidden="true"]')) origin.focus({ preventScroll: true })
+  }, [confirmation])
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot])
   const regionNames = useMemo(() => new Map(snapshot.regions.map(region => [region.id, region.name])), [snapshot.regions])
   const spawners = useMemo(() => new Map(catalog.spawners.map(item => [item.id, item])), [catalog.spawners])
@@ -148,10 +162,13 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   }), [working, worldId, filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, display])
   const filteredIds = useMemo(() => new Set(filtered.map(item => item.placementId)), [filtered])
   const bulkScope = useMemo(() => placementSelectionScope(working, bulkIds, worldId, filteredIds), [working, bulkIds, worldId, filteredIds])
+  // References change for any reload, edit, filter, world or selection change, even if
+  // the visible target count happens to be the same. Never apply an old intent.
+  const confirmationContext = useMemo(() => ({}), [worldId, snapshot, base, working, catalog, filteredIds, bulkIds, selectedId, editing, hasDrafts, placing, moving])
   const listed = selectedOnly ? bulkScope.items : filtered
-  const bulkLocked = busy || hasDrafts || placing || moving || !base
+  const bulkLocked = busy || confirmation !== null || hasDrafts || placing || moving || !base
   const selectBulk = (ids: ReadonlySet<string>) => {
-    if (busyRef.current || hasDrafts || placing || moving || !editing || !base) return
+    if (locked() || hasDrafts || placing || moving || !editing || !base) return
     setBulkSelection({ worldId, ids })
   }
   useEffect(() => { setVisibleCount(50) }, [filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, worldId, selectedOnly])
@@ -177,7 +194,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     return () => window.removeEventListener('beforeunload', listener)
   } }, [dirty])
   useEffect(() => {
-    if (!point || busyRef.current || hasDrafts || !(placing || moving)) return
+    if (!point || locked() || hasDrafts || !(placing || moving)) return
     if (point.y === null) { setError('この地点の立ち位置は解析されていません。座標を入力して指定してください。'); return }
     if (moving && selected) {
       update({ x: point.x, y: point.y, z: point.z }); onMoving(false)
@@ -192,37 +209,52 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     selectPlacement(item.placementId, item); onPlacing(false)
   }, [point?.key])
   const update = (patch: Partial<WorldPlacement>) => {
-    if (busyRef.current || !selected) return
+    if (locked() || !selected) return
     if (patch.waystone && base?.placements.some(item => item.placementId === selected.placementId)
       && patch.waystone.id !== selected.waystone?.id) return
     const next = working.map(item => item.placementId === selected.placementId ? { ...item, ...patch } : item)
     setWorking(next); setNotice('')
   }
   const add = () => {
-    if (busyRef.current || hasDrafts || !base || !selectedWorldName) { setError('追加先のワールド名を選んでください。'); return }
+    if (locked() || hasDrafts || !base || !selectedWorldName) { setError('追加先のワールド名を選んでください。'); return }
     const spawn = snapshot.manifest.spawn
     const item = fresh(kind, worldId, selectedWorldName, kind === 'waystone' ? null : newTemplateId || null, Math.floor(spawn.x), Math.floor(spawn.y), Math.floor(spawn.z))
     const next = [...working, item]; setWorking(next); selectPlacement(item.placementId, item)
     setNotice('開始地点の座標で追加しました。座標とマスターを確認してください。')
   }
   const duplicate = () => {
-    if (busyRef.current || !selected || hasDrafts) return
+    if (locked() || !selected || hasDrafts) return
     const copy = { ...selected, placementId: crypto.randomUUID(), x: selected.x + 1, waystone: selected.waystone ? { ...selected.waystone, id: '', name: `${selected.waystone.name} の複製` } : null }
     const next = [...working, copy]; setWorking(next); selectPlacement(copy.placementId, copy)
   }
-  const bulkAction = (action: 'delete' | 'enable' | 'disable', requestedIds: ReadonlySet<string> = bulkIds) => {
-    if (busyRef.current || hasDrafts || placing || moving || !editing || !base) return
-    const scope = placementSelectionScope(working, requestedIds, worldId, filteredIds)
-    if (!scope.items.length) return
+  const applyBulkAction = (action: PlacementBulkAction, scope: { items: WorldPlacement[]; ids: ReadonlySet<string> }) => {
     const verb = action === 'delete' ? '削除対象に' : action === 'enable' ? '有効に' : '無効に'
-    if ((action === 'delete' || scope.outsideCount > 0) && !window.confirm(`合計 ${scope.items.length} 件（現在の表示条件内 ${scope.matchingCount} 件・表示条件外 ${scope.outsideCount} 件）を${verb}します。表示条件外も含む全選択が対象です。Dev への反映には保存が必要です。続けますか？`)) return
     const next = action === 'delete' ? removePlacements(working, scope.ids, worldId) : setPlacementsEnabled(working, scope.ids, worldId, action === 'enable')
     setWorking(next)
     setNotice(next === working ? '選択した配置はすべて指定の有効状態です。変更はありません。' : `${scope.items.length} 件を${verb}しました。Dev に保存する前に変更内容を確認してください。`)
     if (action === 'delete') { setSelectedOnly(false); if (selectedId && scope.ids.has(selectedId)) selectPlacement(null); setBulkSelection({ worldId, ids: new Set() }) }
   }
+  const bulkAction = (action: PlacementBulkAction, requestedIds: ReadonlySet<string> = bulkIds) => {
+    if (locked() || hasDrafts || placing || moving || !editing || !base) return
+    const scope = placementSelectionScope(working, requestedIds, worldId, filteredIds)
+    if (!scope.items.length) return
+    if (action === 'delete' || scope.outsideCount > 0) {
+      const intent = { action, items: scope.items, ids: scope.ids, matchingIds: filteredIds, catalog, context: confirmationContext }
+      confirmationOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      confirmationRef.current = intent; setConfirmation(intent)
+      return
+    }
+    applyBulkAction(action, scope)
+  }
+  const confirmBulkAction = () => {
+    const intent = confirmationRef.current
+    if (!intent || intent !== confirmation || intent.context !== confirmationContext || busyRef.current || hasDrafts || placing || moving || !editing || !base) return
+    // Consume synchronously before updating working/history, including queued clicks.
+    closeConfirmation()
+    applyBulkAction(intent.action, intent)
+  }
   const reload = async () => {
-    if (busyRef.current) return
+    if (locked()) return
     if (dirty && !window.confirm('未保存の編集を破棄して Dev 配置を再読込しますか？')) return
     busyRef.current = true; setBusy(true); setError('')
     try {
@@ -235,7 +267,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     finally { busyRef.current = false; setBusy(false) }
   }
   const save = async () => {
-    if (busyRef.current || !base || !dirty) return
+    if (locked() || !base || !dirty) return
     if (invalidDraftId) { setError('入力途中の数値があります。該当する配置で数値を修正してください。'); selectPlacement(invalidDraftId); return }
     const pending = applyPlacementDrafts(working, drafts)
     const invalid = pending.find(item => !item.worldId || ![item.x, item.y, item.z, item.yaw, item.pitch].every(Number.isFinite)
@@ -249,7 +281,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     finally { busyRef.current = false; setBusy(false) }
   }
   const options = selected?.kind === 'spawner' ? catalog.spawners : catalog.npcs
-  return <section className={`wp-editor ${editing ? 'wp-editing' : 'wp-planning'}`} aria-label="Dev ワールド配置エディタ" onKeyDown={event => {
+  return <><section inert={confirmation !== null} onClickCapture={event => { if (confirmationRef.current) event.stopPropagation() }} onChangeCapture={event => { if (confirmationRef.current) event.stopPropagation() }} className={`wp-editor ${editing ? 'wp-editing' : 'wp-planning'}`} aria-label="Dev ワールド配置エディタ" onKeyDown={event => {
     if (!editing || !(event.ctrlKey || event.metaKey) || event.altKey || (event.target instanceof HTMLElement && (event.target.closest('input, textarea, select') || event.target.isContentEditable))) return
     const key = event.key.toLowerCase()
     if (key !== 'z' && key !== 'y') return
@@ -263,9 +295,9 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     <div className="wp-actions wp-toolbar"><label>追加先のワールド<select value={selectedWorldName} onChange={event => setSelectedWorldName(event.target.value)} disabled={busy || !worldNames.length}><option value="">選択してください</option>{worldNames.map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>追加する種類<select value={kind} onChange={event => { setKind(event.target.value as PlacementKind); setNewTemplateId(''); onPlacing(false) }} disabled={busy}><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label>{kind !== 'waystone' && <label>追加する{kind === 'spawner' ? 'スポナー' : 'NPC'}マスター<select aria-label="追加するマスター" value={newTemplateId} onChange={event => setNewTemplateId(event.target.value)} disabled={busy}><option value="">選択してください</option>{(kind === 'spawner' ? catalog.spawners : catalog.npcs).map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label>}<button className="button" aria-pressed={placing} onClick={() => { onPlacing(!placing); onMoving(false); setError('') }} disabled={busy || hasDrafts || !base || !selectedWorldName || (kind !== 'waystone' && !newTemplateId)}>地図で追加</button><button className="button" onClick={add} disabled={busy || hasDrafts || !base || !selectedWorldName}>座標を入力して追加</button><button className="button" aria-pressed={moving} onClick={() => { onMoving(!moving); onPlacing(false); setError('') }} disabled={busy || !selected || hasDrafts}>地図で移動</button><button className="button" onClick={() => { onPlacing(false); onMoving(false) }} disabled={!placing && !moving}>操作をキャンセル</button><button className="button" onClick={() => void save()} disabled={busy || !dirty || !base || !!invalidDraftId}>Dev に保存</button><button className="button" onClick={() => void reload()} disabled={busy}>Dev を再読込</button></div>
     {(placing || moving) && <p className="wp-instruction" role="status">{placing ? '地図の安全な地点をクリックして追加します。' : '移動先の安全な地点をクリックします。'} ドラッグで地図を移動できます。</p>}</>}
     {editing && <PlacementChangeReview changes={changeEntries} catalog={catalog} locked={busy || placing || moving} hasDrafts={hasDrafts} onLocate={item => {
-      if (!busyRef.current && !placing && !moving) selectPlacement(item.placementId, item)
+      if (!locked() && !placing && !moving) selectPlacement(item.placementId, item)
     }} onRevert={change => {
-      if (busyRef.current || placing || moving || hasDrafts) return
+      if (locked() || placing || moving || hasDrafts) return
       setWorking(revertPlacementChange(working, change)); setNotice('この配置の変更を取り消しました。元に戻す操作で復元できます。')
       setBulkSelection(current => ({ ...current, ids: new Set([...current.ids].filter(id => id !== change.id)) }))
       if (!change.before && selectedId === change.id) selectPlacement(null)
@@ -287,7 +319,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       <p className="wp-bulk-scope" role="status">一括選択: 合計 {bulkScope.items.length} 件 · 現在の表示条件内 {bulkScope.matchingCount} 件 · 表示条件外 {bulkScope.outsideCount} 件</p>
       <div className="wp-actions"><button className="button" disabled={bulkLocked || !filtered.length} onClick={() => selectBulk(new Set([...bulkScope.ids, ...filteredIds]))}>現在の表示条件に合う全 {filtered.length} 件を選択</button><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => selectBulk(new Set())}>一括選択をすべて解除</button></div>
       <label className="wp-selected-only"><input type="checkbox" checked={selectedOnly} onChange={event => setSelectedOnly(event.target.checked)} />一括選択だけを一覧で確認（表示条件外を含む）</label>
-      <p>一括操作は表示条件外を含む全選択が対象です。条件外がある操作と削除は、実行前に件数を確認します。</p>
+      <p>一括操作は表示条件外を含む全選択が対象です。条件外がある操作と削除は、実行前に対象一覧と変更後の状態を確認します。</p>
       <div className="wp-actions"><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => bulkAction('enable')}>選択した {bulkScope.items.length} 件を有効にする</button><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => bulkAction('disable')}>選択した {bulkScope.items.length} 件を無効にする</button><button className="button" disabled={bulkLocked || !bulkScope.items.length} onClick={() => bulkAction('delete')}>選択した {bulkScope.items.length} 件を削除</button></div>
     </div>
     <div className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{listed.slice(0, visibleCount).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
@@ -296,4 +328,6 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     </div>
     </>}
   </section>
+    {confirmation && <PlacementBulkConfirmation action={confirmation.action} items={confirmation.items} matchingIds={confirmation.matchingIds} catalog={confirmation.catalog} stale={confirmation.context !== confirmationContext || busy || !editing || hasDrafts || placing || moving} onCancel={closeConfirmation} onConfirm={confirmBulkAction} />}
+  </>
 }

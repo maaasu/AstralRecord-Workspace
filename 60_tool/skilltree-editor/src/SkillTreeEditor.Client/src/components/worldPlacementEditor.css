@@ -52,5 +52,17 @@
 .wp-bulk-panel > p:last-of-type { color: #adc8d0; font-size: .84rem; }
 .wp-editing .wp-inspector input:not([type='checkbox']), .wp-editing .wp-inspector select { max-width: 100%; }
 .wp-planning { padding: 0; margin: 0; border: 0; background: transparent; }
+.modal.wp-bulk-confirmation { display: flex; flex-direction: column; width: min(58rem, calc(100vw - 2rem)); max-width: calc(100vw - 2rem); padding: 1rem; overflow-wrap: anywhere; }
+.wp-bulk-confirmation header { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: start; gap: 1rem; }
+.wp-bulk-confirmation footer { flex: 0 0 auto; margin-bottom: 0; }
+.wp-bulk-confirmation-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.wp-bulk-confirmation h2 { margin: 0 0 .7rem; }
+.wp-bulk-confirmation label { display: flex; align-items: center; gap: .4rem; }
+.wp-bulk-confirmation input[type='checkbox'] { width: auto; }
+.wp-bulk-targets { max-height: 45vh; overflow: auto; display: grid; gap: .6rem; margin-top: .7rem; }
+.wp-bulk-target { padding: .7rem; border: 1px solid #477382; border-radius: 6px; background: #183642; }
+.wp-bulk-target h3 { margin: 0 0 .35rem; font-size: 1rem; }
+.wp-bulk-target p { margin: .3rem 0; }
+.wp-bulk-confirmation .wp-error { padding: .7rem; border: 1px solid #f28e89; color: #ffd0cb; }
 @media (max-width: 980px) { .wp-editing { grid-template-columns: 1fr; } .wp-editing .wp-inspector { max-height: none; overflow: visible; } .wp-editing .wp-map-pane { grid-column: 1; } }
 @container (max-width: 980px) { .wp-editing { grid-template-columns: 1fr; } .wp-editing .wp-inspector { max-height: none; overflow: visible; } }
