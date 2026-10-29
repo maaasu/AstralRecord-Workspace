@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
@@ -18,7 +18,7 @@ async function read<T>(url: string, signal?: AbortSignal): Promise<T> {
 }
 
 interface ChartSeries { name: string; displayName?: string; values: { x: number; y: number }[] }
-function LineChart({ series, yLabel, xLabel }: { series: ChartSeries[]; yLabel: string; xLabel: string }) {
+const LineChart = memo(function LineChart({ series, yLabel, xLabel }: { series: ChartSeries[]; yLabel: string; xLabel: string }) {
   const width = 950, height = 360, left = 75, top = 25, right = 20, bottom = 50
   const all = series.flatMap(item => item.values)
   const minX = all.length ? Math.min(...all.map(point => point.x)) : 1
@@ -42,7 +42,7 @@ function LineChart({ series, yLabel, xLabel }: { series: ChartSeries[]; yLabel: 
     </svg>
     <div className="chart-legend">{series.map((item, index) => <span key={item.name}><i style={{ background: colors[index % colors.length] }} /><MinecraftText value={item.displayName ?? item.name} /></span>)}</div>
   </div>
-}
+})
 
 export function MasterAnalytics() {
   const [catalog, setCatalog] = useState<AnalyticsCatalog | null>(null)
@@ -85,16 +85,23 @@ export function MasterAnalytics() {
     void read<AnalyticsCatalog>('/api/master-analytics/catalog', controller.signal).then(setCatalog).catch(reason => { if (!controller.signal.aborted) setError(String(reason)) })
     return () => controller.abort()
   }, [revision])
-  const names = useMemo(() => new Map((catalog?.equipment ?? []).map(master => [master.path, String(master.content.name ?? '')])), [catalog])
-  const rows = useMemo(() => equipmentRows(catalog?.equipment ?? [], enhance), [catalog, enhance])
-  const filtered = rows.filter(row => Math.abs(row.level - level) <= band && (!slot || row.slot === slot) && (!tag || row.tag === tag) && `${row.name} ${row.id} ${row.path}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
-  const active = selectedPaths.length ? filtered.filter(row => selectedPaths.includes(row.path)) : filtered
+  const equipment = catalog?.equipment
+  const classes = catalog?.classes
+  const names = useMemo(() => new Map((equipment ?? []).map(master => [master.path, String(master.content.name ?? '')])), [equipment])
+  const rows = useMemo(() => equipmentRows(equipment ?? [], enhance), [equipment, enhance])
+  const slots = useMemo(() => [...new Set(rows.map(row => row.slot))].sort(), [rows])
+  const tags = useMemo(() => [...new Set(rows.map(row => row.tag))].sort(), [rows])
+  const filtered = useMemo(() => {
+    const search = query.toLowerCase()
+    return rows.filter(row => Math.abs(row.level - level) <= band && (!slot || row.slot === slot) && (!tag || row.tag === tag) && `${row.name} ${row.id} ${row.path}`.toLowerCase().includes(search)).sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
+  }, [rows, level, band, slot, tag, query])
+  const active = useMemo(() => selectedPaths.length ? filtered.filter(row => selectedPaths.includes(row.path)) : filtered, [filtered, selectedPaths])
   const pageCount = Math.max(1, Math.ceil(filtered.length / 50))
   const currentPage = Math.min(page, pageCount - 1)
-  const visibleRows = filtered.slice(currentPage * 50, (currentPage + 1) * 50)
-  const statuses = [...new Set(active.flatMap(row => Object.keys(row.stats)))].sort()
-  const scale = Math.max(1, ...active.map(row => Math.max(Math.abs(row.stats[stat]?.min ?? 0), Math.abs(row.stats[stat]?.max ?? 0))))
-  const growthStatuses = [...new Set((catalog?.classes ?? []).flatMap(master => [...asList(master.content.baseStats), ...asList(master.content.growthPerLevel)].map(asObject).map(entry => normalizeStatus(entry.status))))].sort()
+  const visibleRows = useMemo(() => filtered.slice(currentPage * 50, (currentPage + 1) * 50), [filtered, currentPage])
+  const statuses = useMemo(() => [...new Set(active.flatMap(row => Object.keys(row.stats)))].sort(), [active])
+  const scale = useMemo(() => Math.max(1, ...active.map(row => Math.max(Math.abs(row.stats[stat]?.min ?? 0), Math.abs(row.stats[stat]?.max ?? 0)))), [active, stat])
+  const growthStatuses = useMemo(() => [...new Set((classes ?? []).flatMap(master => [...asList(master.content.baseStats), ...asList(master.content.growthPerLevel)].map(asObject).map(entry => normalizeStatus(entry.status))))].sort(), [classes])
 
   async function generate() {
     setGrowing(true); setError('')
@@ -104,16 +111,16 @@ export function MasterAnalytics() {
       setSimulation(result); setInspect(Math.max(startPlayer, Math.min(maximum, inspect)))
     } catch (reason) { setError(String(reason)) } finally { setGrowing(false) }
   }
-  const point = simulation?.points.find(value => value.playerLevel === inspect) ?? simulation?.points[0]
-  const graph = simulation?.classes.map(definition => ({
+  const point = useMemo(() => simulation?.points.find(value => value.playerLevel === inspect) ?? simulation?.points[0], [simulation, inspect])
+  const graph = useMemo(() => simulation?.classes.map(definition => ({
     name: plainName(definition.name),
     displayName: definition.name,
     values: simulation.points.map(item => {
       const current = item.classes.find(value => value.id === definition.id)!
-      const master = catalog?.classes.find(value => value.content.id === definition.id)
+      const master = classes?.find(value => value.content.id === definition.id)
       return { x: item.playerLevel, y: growthView === 'level' ? current.level : growthView === 'experience' ? current.totalExperience : master ? classBonus(master, growthStat, current.level) : 0 }
     }),
-  })) ?? []
+  })) ?? [], [simulation, classes, growthView, growthStat])
 
   return <section className="master-analytics">
     <header className="analytics-header"><div><h1>比較・成長グラフ</h1><p>保存済みのFilebaseから計算。変更後は再読込してください。</p></div><button className="button" onClick={() => { setRevision(value => value + 1); setSimulation(null) }}>マスター再読込</button></header>
@@ -128,8 +135,8 @@ export function MasterAnalytics() {
       <p className="analytics-note">条件を変えると比較結果へすぐに反映します。</p>
       <div className="analytics-controls">
         <label className="analytics-field-wide">名前・ID<input value={query} onChange={event => setQuery(event.target.value)} placeholder="ノクス、20a00002…" /></label>
-        <label>スロット<select value={slot} onChange={event => setSlot(event.target.value)}><option value="">すべて</option>{[...new Set(rows.map(row => row.slot))].sort().map(value => <option key={value}>{value}</option>)}</select></label>
-        <label>装備タグ<select value={tag} onChange={event => setTag(event.target.value)}><option value="">すべて</option>{[...new Set(rows.map(row => row.tag))].sort().map(value => <option key={value}>{value}</option>)}</select></label>
+        <label>スロット<select value={slot} onChange={event => setSlot(event.target.value)}><option value="">すべて</option>{slots.map(value => <option key={value}>{value}</option>)}</select></label>
+        <label>装備タグ<select value={tag} onChange={event => setTag(event.target.value)}><option value="">すべて</option>{tags.map(value => <option key={value}>{value}</option>)}</select></label>
         <label>要求Lvの中心<input type="number" min="0" value={level} onChange={event => setLevel(Math.max(0, numeric(event.target.value)))} /></label>
         <label>前後のLv幅<input type="number" min="0" value={band} onChange={event => setBand(Math.max(0, numeric(event.target.value)))} /></label>
         <label>強化Lv<input type="number" min="0" max="100" value={enhance} onChange={event => setEnhance(Math.max(0, Math.min(100, numeric(event.target.value))))} /></label>
