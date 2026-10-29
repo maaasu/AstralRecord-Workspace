@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { fieldForPath, masterDefault, MasterDataForm, normalizeMasterType } from './MasterDataForm'
 import type { JsonValue } from '../types/editor'
-import type { MasterField } from '../types/masterData'
+import type { MasterField, MasterReference } from '../types/masterData'
 import petSchema from '../../../../../../40_filebase/55.features.pet/schemas/pet-master.v1.schema.json'
 import nodeSchema from '../../../../../../40_filebase/35.features.skilltree/schemas/node.v1.schema.json'
 
@@ -120,11 +120,78 @@ describe('master form', () => {
     render(<MasterDataForm value="犬の卵" path="/eggItemId" fields={[{ path: '/eggItemId', key: 'eggItemId', label: '卵', type: 'string', required: false, description: '', reference: 'item' }]}
       references={[{ path: 'egg.yml', pointer: '/id', value: '81a00001', kind: 'item', label: '&6犬の&a卵' }]} onChange={onChange} />)
     expect(document.querySelector('option[value="81a00001"]')).toHaveTextContent('犬の卵')
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(0)
+    fireEvent.click(screen.getByText('卵の候補を選択'))
     expect(screen.getByText('犬の')).toHaveStyle({ color: '#ffaa00' })
     expect(screen.getByText('卵', { selector: '.minecraft-text span' })).toHaveStyle({ color: '#55ff55' })
-    fireEvent.click(screen.getByText('卵の候補を選択'))
     fireEvent.click(screen.getByRole('button', { name: '犬の卵81a00001' }))
     expect(onChange).toHaveBeenCalledWith('81a00001')
+  })
+
+  it('searches colored candidates independently of the draft and only changes it on selection', () => {
+    const onChange = vi.fn()
+    const references: MasterReference[] = [
+      { path: 'mobs/boar.yml', pointer: '/id', value: 'boar', kind: 'mob', label: '&6イノシシ' },
+      { path: 'mobs/wolf.yml', pointer: '/id', value: 'wolf', kind: 'mob', label: 'オオカミ' },
+    ]
+    render(<MasterDataForm value="mob:unknown" path="/spawnMobs/0/mobId" fields={[]} references={references} onChange={onChange} />)
+    expect(screen.getByRole('combobox', { name: '/spawnMobs/0/mobId' })).toHaveValue('mob:unknown')
+    expect(document.querySelector('option[value="mob:boar"]')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('mobIdの候補を選択'))
+    expect(screen.getByText('選択中:', { exact: false })).toHaveTextContent('mob:unknown')
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(2)
+    const search = screen.getByRole('searchbox', { name: '/spawnMobs/0/mobId 候補を検索' })
+    fireEvent.change(search, { target: { value: 'オオ' } })
+    expect(screen.getByRole('status')).toHaveTextContent('1 件 / 全 2 件')
+    expect(screen.getByRole('button', { name: 'オオカミmob:wolf' })).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: 'BOAR' } })
+    expect(screen.getByRole('button', { name: 'イノシシmob:boar' })).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: 'missing' } })
+    expect(screen.getByText('一致する候補がありません。')).toBeInTheDocument()
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.change(search, { target: { value: 'wolf' } })
+    fireEvent.click(screen.getByRole('button', { name: 'オオカミmob:wolf' }))
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('mob:wolf')
+    fireEvent.click(screen.getByText('mobIdの候補を選択'))
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(0)
+  })
+
+  it('renders at most one page of candidates and clamps the page when references change', () => {
+    const onChange = vi.fn()
+    const references: MasterReference[] = Array.from({ length: 123 }, (_, index) => ({
+      path: `mobs/${index}.yml`, pointer: '/id', value: `mob${String(index).padStart(3, '0')}`, kind: 'mob', label: `モブ ${index}`,
+    }))
+    const form = (items: MasterReference[]) => <MasterDataForm value="mob:mob122" path="/spawnMobs/0/mobId" fields={[]} references={items} onChange={onChange} />
+    const { rerender } = render(form(references))
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(0)
+    fireEvent.click(screen.getByText('mobIdの候補を選択'))
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(50)
+    expect(screen.getByRole('status')).toHaveTextContent('123 件 / 全 123 件 · 1 / 3 ページ')
+    fireEvent.click(screen.getByRole('button', { name: '次へ' }))
+    fireEvent.click(screen.getByRole('button', { name: '次へ' }))
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(23)
+    expect(screen.getByRole('button', { name: 'モブ 122mob:mob122' })).toHaveAttribute('aria-current', 'true')
+    rerender(form(references.slice(0, 60)))
+    expect(screen.getByRole('status')).toHaveTextContent('60 件 / 全 60 件 · 2 / 2 ページ')
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(10)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('uses spawner mob fallback only at the documented path and honors explicit metadata', () => {
+    const references: MasterReference[] = [
+      { path: 'mobs/a.yml', pointer: '/id', value: 'eriva_boar', kind: 'mob', label: 'イノシシ' },
+      { path: 'mobs/b.yml', pointer: '/id', value: 'mob:eriva_wolf', kind: 'mob', label: 'オオカミ' },
+      { path: 'items/a.yml', pointer: '/id', value: 'item1', kind: 'item', label: '道具' },
+    ]
+    const { rerender } = render(<MasterDataForm value="" path="/spawnMobs/0/mobId" fields={[]} references={references} onChange={vi.fn()} />)
+    expect(document.querySelector('option[value="mob:eriva_boar"]')).toBeInTheDocument()
+    expect(document.querySelector('option[value="mob:eriva_wolf"]')).toBeInTheDocument()
+    expect(document.querySelector('option[value="mob:mob:eriva_wolf"]')).toBeNull()
+    rerender(<MasterDataForm value="" path="/other/0/mobId" fields={[]} references={references} onChange={vi.fn()} />)
+    expect(document.querySelector('.master-colored-candidates')).toBeNull()
+    rerender(<MasterDataForm value="" path="/spawnMobs/0/mobId" fields={[{ path: '/spawnMobs/*/mobId', key: 'mobId', label: '参照', type: 'string', required: false, description: '', reference: 'item' }]} references={references} onChange={vi.fn()} />)
+    expect(document.querySelector('option[value="item1"]')).toBeInTheDocument()
+    expect(document.querySelector('option[value="mob:eriva_boar"]')).toBeNull()
   })
 
   it('selects enchant master candidates with their required prefix in inputs and candidate buttons', () => {

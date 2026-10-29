@@ -104,10 +104,22 @@
 .master-text-preview { padding: 8px 10px; margin-top: 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); font-size: 12px; }
 .master-colored-candidates { margin-top: 6px; font-size: 11px; }
 .master-colored-candidates summary { cursor: pointer; color: var(--text-muted); }
-.master-colored-candidates > div { max-height: 230px; overflow: auto; margin-top: 6px; }
-.master-candidate { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 8px; color: inherit; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.master-candidate-browser { display: grid; gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-soft); }
+.master-candidate-current { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; color: var(--text-muted); overflow-wrap: anywhere; }
+.master-candidate-current code { font-size: 10px; }
+.master-candidate-search { display: grid; gap: 4px; color: var(--text-muted); }
+.master-candidate-search small { font-size: 10px; overflow-wrap: anywhere; }
+.master-candidate-search input { width: 100%; }
+.master-candidate-count { margin: 0; color: var(--text-muted); }
+.master-candidate-list { max-height: 230px; overflow: auto; }
+.master-candidate-pages { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.master-candidate-pages button { padding: 5px 10px; }
+.master-candidate-pages span { color: var(--text-muted); }
+.master-candidate { display: grid; gap: 3px; width: 100%; min-width: 0; text-align: left; padding: 8px; color: inherit; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
 .master-candidate:hover { background: var(--surface-soft); }
-.master-candidate code { color: var(--text-muted); font-size: 10px; flex-shrink: 0; }
+.master-candidate[aria-current="true"] { border-color: var(--gold); }
+.master-candidate > .minecraft-text, .master-candidate code { min-width: 0; overflow-wrap: anywhere; }
+.master-candidate code { color: var(--text-muted); font-size: 10px; }
 .master-field-description { font-size: 11px; line-height: 1.6; color: var(--text-muted); margin-bottom: 7px; white-space: pre-wrap; }
 .master-checkbox { display: flex !important; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; }
 .master-checkbox input { width: 16px; height: 16px; }

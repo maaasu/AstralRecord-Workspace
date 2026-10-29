@@ -1,7 +1,7 @@
 import { masterFieldLabel, masterFieldTitle } from '../data/masterDataPresentation'
 import { masterStatusSuggestions, masterTagSuggestions, masterValueFieldKey, masterValueLabel, masterValueReferenceKind } from '../data/masterValuePresentation'
 import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
@@ -133,13 +133,15 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
-  const referenceKind = metadata?.reference ?? parentReference ?? masterValueReferenceKind(path) ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
+  const spawnerMobReference = /^\/spawnMobs\/\d+\/mobId$/.test(path)
+  const referenceKind = metadata?.reference ?? parentReference ?? masterValueReferenceKind(path) ?? (spawnerMobReference ? 'mob' : path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
   const fishingReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
     ? referenceKind + ':' : undefined
   const enchantReferencePrefix = path === '/orb/effect/enchantMasterId' && referenceKind === 'enchant' ? 'enchant:' : undefined
+  const spawnerMobReferencePrefix = spawnerMobReference && referenceKind === 'mob' ? 'mob:' : undefined
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
-    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
+    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? spawnerMobReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
     referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`)) : undefined} />
 }
 
@@ -285,15 +287,26 @@ function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText }: 
 
 function StringEditor({ value, path, label, onChange, references, referenceKind, referencePrefix, referenceFilter }: { value: string; path: string; label: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string; referenceFilter?: (entry: MasterReference) => boolean }) {
   const listId = useId()
-  const catalog = referenceKind === 'status' ? masterStatusSuggestions : referenceKind === 'tag' ? masterTagSuggestions : []
-  const catalogReferences: MasterReference[] = catalog.map((entry) => ({ ...entry, kind: referenceKind, path: '', pointer: '' }))
-  const candidates = referenceKind ? [...new Map([...references, ...catalogReferences].filter((entry) => entry.kind === referenceKind && (!referenceFilter || referenceFilter(entry))).map((entry) => {
-    const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
-    const knownLabel = masterValueLabel(referenceKind, candidate.value)
-    return [candidate.value, knownLabel !== candidate.value ? { ...candidate, label: knownLabel } : candidate] as const
-  })).values()] : []
+  const [candidatesOpen, setCandidatesOpen] = useState(false)
+  const [candidateSearch, setCandidateSearch] = useState('')
+  const [candidatePage, setCandidatePage] = useState(0)
+  const candidates = useMemo(() => {
+    if (!referenceKind) return []
+    const catalog = referenceKind === 'status' ? masterStatusSuggestions : referenceKind === 'tag' ? masterTagSuggestions : []
+    const catalogReferences: MasterReference[] = catalog.map((entry) => ({ ...entry, kind: referenceKind, path: '', pointer: '' }))
+    return [...new Map([...references, ...catalogReferences].filter((entry) => entry.kind === referenceKind && (!referenceFilter || referenceFilter(entry))).map((entry) => {
+      const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
+      const knownLabel = masterValueLabel(referenceKind, candidate.value)
+      return [candidate.value, knownLabel !== candidate.value ? { ...candidate, label: knownLabel } : candidate] as const
+    })).values()]
+  }, [referenceFilter, referenceKind, referencePrefix, references])
   const search = stripMinecraftFormatting(value).toLocaleLowerCase()
   const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(search)).slice(0, 100)
+  const candidateQuery = candidateSearch.trim().toLocaleLowerCase()
+  const matchingCandidates = useMemo(() => candidates.filter((entry) => !candidateQuery || entry.value.toLocaleLowerCase().includes(candidateQuery) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(candidateQuery)), [candidates, candidateQuery])
+  const lastCandidatePage = Math.max(0, Math.ceil(matchingCandidates.length / 50) - 1)
+  const currentCandidatePage = Math.min(candidatePage, lastCandidatePage)
+  useEffect(() => setCandidatePage((page) => Math.min(page, lastCandidatePage)), [lastCandidatePage])
   const selected = candidates.find((entry) => entry.value === value)
   const preview = selected?.label ?? masterValueLabel(path, value)
   const formatted = preview !== stripMinecraftFormatting(preview)
@@ -304,8 +317,14 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
     {(formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
     {!formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
     {hexColor && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
-    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。ID / 名前で絞込（最大100件）。自由入力も可能です。</small>
-      <details className="master-colored-candidates"><summary aria-label={`${label}（${path}）の候補を選択`}>{label}の候補を選択</summary><div>{visibleCandidates.map((entry) => <button type="button" className="master-candidate" key={entry.value} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!visibleCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div></details>
+    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small>
+      <details className="master-colored-candidates" open={candidatesOpen}><summary aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); setCandidatesOpen((open) => !open) }}>{label}の候補を選択</summary>{candidatesOpen && <div className="master-candidate-browser">
+        <div className="master-candidate-current">選択中: {value ? <><MinecraftText value={selected?.label ?? value} /> <code>{value}</code></> : 'なし'}</div>
+        <label className="master-candidate-search">{label}の候補を検索 <small>{path || '/'}</small><input type="search" aria-label={`${path || '/'} 候補を検索`} value={candidateSearch} placeholder="ID または日本語名" onChange={(event) => { setCandidateSearch(event.target.value); setCandidatePage(0) }} /></label>
+        <p className="master-candidate-count" role="status">{matchingCandidates.length} 件 / 全 {candidates.length} 件{matchingCandidates.length > 0 && ` · ${currentCandidatePage + 1} / ${lastCandidatePage + 1} ページ`}</p>
+        <div className="master-candidate-list">{matchingCandidates.slice(currentCandidatePage * 50, (currentCandidatePage + 1) * 50).map((entry) => <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!matchingCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div>
+        {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" disabled={currentCandidatePage === 0} onClick={() => setCandidatePage(currentCandidatePage - 1)}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" disabled={currentCandidatePage === lastCandidatePage} onClick={() => setCandidatePage(currentCandidatePage + 1)}>次へ</button></div>}
+      </div>}</details>
     </>}
   </div>
 }
