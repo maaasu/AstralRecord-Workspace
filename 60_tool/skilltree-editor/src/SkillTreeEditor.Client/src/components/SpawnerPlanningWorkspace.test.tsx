@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SpawnerPlanningWorkspace } from './SpawnerPlanningWorkspace'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
@@ -18,6 +18,45 @@ const plan: PlanningPlan = { ...identity, previewOnly: true, radiusMeters: 64, p
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(snapshot); vi.mocked(spawnerPlanningApi.plan).mockResolvedValue(plan) })
 
 describe('マスタエディタ内の配置計画', () => {
+  it('同snapshotの3半径を保持し、モード・半径を往復しても再取得せず明示再読込で破棄する', async () => {
+    render(<StrictMode><SpawnerPlanningWorkspace active /></StrictMode>)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
+    for (const radius of ['32', '48', '64', '32', '48', '64']) {
+      fireEvent.change(screen.getByRole('combobox', { name: '出現半径' }), { target: { value: radius } })
+      await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
+    }
+    fireEvent.click(screen.getByRole('button', { name: '配置編集' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
+    expect(spawnerPlanningApi.plan).toHaveBeenCalledTimes(3)
+    expect(vi.mocked(spawnerPlanningApi.plan).mock.calls.map(call => call[1])).toEqual([64, 32, 48])
+    fireEvent.click(screen.getByRole('button', { name: '解析結果を再読込' }))
+    await waitFor(() => expect(spawnerPlanningApi.plan).toHaveBeenCalledTimes(4))
+    expect(spawnerPlanningApi.plan).toHaveBeenLastCalledWith(snapshot, 64, expect.any(AbortSignal))
+  })
+
+  it('失敗はキャッシュせず再試行し、中断後の遅い応答もキャッシュへ残さない', async () => {
+    vi.mocked(spawnerPlanningApi.plan).mockRejectedValueOnce(new Error('一時失敗'))
+    render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('一時失敗')
+    fireEvent.click(screen.getByRole('button', { name: '配置編集' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
+    let resolveLate!: (value: PlanningPlan) => void
+    vi.mocked(spawnerPlanningApi.plan).mockReturnValueOnce(new Promise(resolve => { resolveLate = resolve }))
+    fireEvent.change(screen.getByRole('combobox', { name: '出現半径' }), { target: { value: '32' } })
+    const signal = vi.mocked(spawnerPlanningApi.plan).mock.calls[2][2]
+    fireEvent.click(screen.getByRole('button', { name: '配置編集' }))
+    expect(signal.aborted).toBe(true)
+    await act(async () => resolveLate({ ...plan, radiusMeters: 32 }))
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await waitFor(() => expect(spawnerPlanningApi.plan).toHaveBeenCalledTimes(4))
+    await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
+    expect(spawnerPlanningApi.plan).toHaveBeenLastCalledWith(snapshot, 32, expect.any(AbortSignal))
+  })
+
   it('保存済み配置の編集を既定にし、AI 案は明示切替で読み込む', async () => {
     render(<SpawnerPlanningWorkspace active />)
     expect(screen.getByRole('button', { name: '配置編集' })).toHaveAttribute('aria-pressed', 'true')

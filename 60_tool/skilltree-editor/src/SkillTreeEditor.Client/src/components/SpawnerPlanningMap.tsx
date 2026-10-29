@@ -31,7 +31,7 @@ export function SpawnerPlanningMap(props: Props) {
   const measured = useRef(false)
   const [view, setView] = useState({ scale: .1, x: 0, z: 0 })
   const [coordinates, setCoordinates] = useState('X — / Z —')
-  const [detail, setDetail] = useState<HTMLImageElement | null>(null)
+  const [detailResource, setDetailResource] = useState<{ identity: object; image: HTMLImageElement } | null>(null)
   const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
   const [showCoverage, setShowCoverage] = useState(true)
   const [pointer, setPointer] = useState<{ x: number; z: number } | null>(null)
@@ -40,6 +40,11 @@ export function SpawnerPlanningMap(props: Props) {
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 })
   const [tooltipClipped, setTooltipClipped] = useState(false)
   const bounds = snapshot.manifest.bounds
+  const detailIdentity = useMemo(() => ({ revision: snapshot.manifest.exportRevision,
+    fingerprint: snapshot.manifest.terrainFingerprint, minX: bounds.minX, minZ: bounds.minZ, width: bounds.width, height: bounds.height }),
+  [snapshot.manifest.exportRevision, snapshot.manifest.terrainFingerprint, bounds.minX, bounds.minZ, bounds.width, bounds.height])
+  const detail = detailResource?.identity === detailIdentity ? detailResource.image : null
+  const detailNeeded = active && layer === 'terrain' && view.scale >= .4
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot.cells])
   const visibleProposals = useMemo(() => plan?.proposals.filter(item => !region || item.regionId === region) ?? [], [plan, region])
   const masters = useMemo(() => new Map(props.placementCatalog?.spawners.map(item => [item.id, item]) ?? []), [props.placementCatalog])
@@ -187,23 +192,37 @@ export function SpawnerPlanningMap(props: Props) {
     setView({ scale, x: width / 2 - (focus.x - bounds.minX) * scale, z: height / 2 - (focus.z - bounds.minZ) * scale })
   }, [focus, bounds])
   useEffect(() => {
+    if (!detailNeeded || detail) return
     let cancelled = false
-    setDetail(null)
+    let image: HTMLImageElement | null = null
+    let loaded = false
     if (typeof fetch !== 'function') return
-    const revision = encodeURIComponent(snapshot.manifest.exportRevision)
+    const revision = encodeURIComponent(detailIdentity.revision)
     const controller = new AbortController()
     fetch(`/api/spawner-planning/terrain-detail?revision=${revision}`, { signal: controller.signal })
       .then(response => response.ok ? response.json() : null)
       .then(metadata => {
         if (cancelled || !metadata || metadata.schemaVersion !== 1 || metadata.blocksPerPixel !== 1 ||
-            metadata.terrainFingerprint !== snapshot.manifest.terrainFingerprint || metadata.minX !== bounds.minX ||
-            metadata.minZ !== bounds.minZ || metadata.width !== bounds.width || metadata.height !== bounds.height) return
-        const image = new Image()
-        image.onload = () => { if (!cancelled && image.naturalWidth === bounds.width && image.naturalHeight === bounds.height) setDetail(image) }
+            metadata.terrainFingerprint !== detailIdentity.fingerprint || metadata.minX !== detailIdentity.minX ||
+            metadata.minZ !== detailIdentity.minZ || metadata.width !== detailIdentity.width || metadata.height !== detailIdentity.height) return
+        image = new Image()
+        const candidate = image
+        image.onload = () => {
+          if (!cancelled && candidate.naturalWidth === detailIdentity.width && candidate.naturalHeight === detailIdentity.height) {
+            loaded = true
+            setDetailResource({ identity: detailIdentity, image: candidate })
+          }
+        }
         image.src = `/api/spawner-planning/terrain-detail/image?revision=${revision}`
       }).catch(() => { /* The 16m raster remains available. */ })
-    return () => { cancelled = true; controller.abort() }
-  }, [snapshot.manifest.exportRevision, snapshot.manifest.terrainFingerprint, bounds])
+    return () => {
+      cancelled = true; controller.abort()
+      if (image) {
+        image.onload = null
+        if (!loaded) image.src = ''
+      }
+    }
+  }, [detailIdentity, detailNeeded, detail])
   const raster = useMemo(() => {
     const image = document.createElement('canvas')
     image.width = bounds.width / bounds.cellSize

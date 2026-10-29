@@ -38,6 +38,8 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [placementBusy, setPlacementBusy] = useState(false)
   const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
   const [editing, setEditing] = useState(true)
+  // A new snapshot (including an explicit reload) owns a fresh, bounded cache.
+  const plansByRadius = useMemo(() => new Map<number, PlanningPlan>(), [snapshot, reload])
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true); setError(''); setPlan(null)
@@ -50,14 +52,22 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     return () => controller.abort()
   }, [reload])
   useEffect(() => {
-    if (!snapshot || editing) return
+    if (!snapshot || editing || loading) return
     const controller = new AbortController()
     setPlanning(true); setPlan(null); setPlanningError(''); setSelectedCell(null); setSelectedProposal(null); setVisibleCount(40)
-    spawnerPlanningApi.plan(snapshot, radius, controller.signal).then(value => { if (!controller.signal.aborted) setPlan(value) })
+    const cached = plansByRadius.get(radius)
+    if (cached) { setPlan(cached); setPlanning(false); return () => controller.abort() }
+    spawnerPlanningApi.plan(snapshot, radius, controller.signal).then(value => {
+      if (controller.signal.aborted) return
+      const oldest = plansByRadius.keys().next().value
+      if (plansByRadius.size >= 3 && oldest !== undefined) plansByRadius.delete(oldest)
+      plansByRadius.set(radius, value)
+      setPlan(value)
+    })
       .catch(failure => { if (!controller.signal.aborted) setPlanningError(failure instanceof Error ? failure.message : '配置案を読み込めませんでした。') })
       .finally(() => { if (!controller.signal.aborted) setPlanning(false) })
     return () => controller.abort()
-  }, [snapshot, radius, editing])
+  }, [snapshot, radius, editing, loading, plansByRadius])
   const regionById = useMemo(() => new Map(snapshot?.regions.map(value => [value.id, value]) ?? []), [snapshot])
   const selectedRegion = regionById.get(region)
   const road = snapshot ? planningRoad(snapshot.manifest) : null
@@ -102,7 +112,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   return <section className="sp-workspace" aria-label="ワールド配置・編集">
-    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD PLACEMENTS</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置・編集</small></h1></div><div className="sp-header-actions"><button className="button" onClick={() => setReload(value => value + 1)} disabled={loading}>解析結果を再読込</button></div></header>
+    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD PLACEMENTS</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置・編集</small></h1></div><div className="sp-header-actions"><button className="button" onClick={() => { setLoading(true); setReload(value => value + 1) }} disabled={loading}>解析結果を再読込</button></div></header>
     <div className="sp-mode-switch" aria-label="表示モード"><button className="button" aria-pressed={editing} onClick={() => { setEditing(true); setSelectedProposal(null) }}>配置編集</button><button className="button" aria-pressed={!editing} onClick={() => { setEditing(false); setPlacing(false); setMoving(false) }}>AI 配置案</button></div>
     {!editing && <p className="sp-intro">{road ? `${levelStep ? `開始地点からの${road.terrainExtension ? '地形経路距離' : '道路距離'}${number(levelStep)}mごとにレベルを一段階上げます。` : '開始地点につながる道の距離でレベルを決めます。'}配置の上限はLv.45で、未到達の距離帯は配置しません。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。${road.terrainExtension ? '水色の点線は水域・斜面・足場を調べて延長した推定経路です。周辺のレベルも地表をたどる距離で決めています。実際の歩行可能性は未検証です。' : ''}` : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>}
     {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>全大陸の解析と配置計算の出力一式を用意してから、再読込してください。</p></div>}

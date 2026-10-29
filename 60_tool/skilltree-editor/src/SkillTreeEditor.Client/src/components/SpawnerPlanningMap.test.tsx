@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
@@ -46,6 +47,92 @@ it('uses matching 1m terrain once the map is close enough and can zoom to block 
   await waitFor(() => expect(screen.getByText(/1m地形/)).toBeInTheDocument())
   for (let index = 0; index < 12; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
   expect(screen.getByText(/16\.0 px\/m/)).toBeInTheDocument()
+})
+
+it('詳細地形は表示中の地形レイヤーを拡大したときだけ取得し、往復しても画像を再取得しない', async () => {
+  const request = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ schemaVersion: 1,
+    terrainFingerprint: 'fingerprint', ...bounds, blocksPerPixel: 1 }) })
+  const sources: string[] = []
+  vi.stubGlobal('fetch', request)
+  vi.stubGlobal('Image', class {
+    naturalWidth = bounds.width; naturalHeight = bounds.height
+    onload: (() => void) | null = null
+    set src(value: string) { sources.push(value); if (value) queueMicrotask(() => this.onload?.()) }
+  })
+  const { rerender } = render(<SpawnerPlanningMap {...props} active={false} />)
+  expect(request).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...props} />)
+  expect(request).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...props} layer="levels" />)
+  for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  expect(request).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...props} layer="reasons" />)
+  expect(request).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...props} active={false} />)
+  expect(request).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...props} />)
+  await waitFor(() => expect(screen.getByText(/1m地形/)).toBeInTheDocument())
+  rerender(<SpawnerPlanningMap {...props} active={false} />)
+  rerender(<SpawnerPlanningMap {...props} layer="levels" />)
+  rerender(<SpawnerPlanningMap {...props} />)
+  for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '地図を縮小' }))
+  for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  expect(request).toHaveBeenCalledTimes(1)
+  expect(sources).toEqual(['/api/spawner-planning/terrain-detail/image?revision=revision'])
+})
+
+it('詳細地形の取得中は非表示で中断し、古い応答を採用せず再表示で再試行できる', async () => {
+  let resolveOld!: (value: unknown) => void
+  const pending = new Promise(resolve => { resolveOld = resolve })
+  const request = vi.fn().mockReturnValueOnce(pending).mockResolvedValue({ ok: false })
+  const image = vi.fn()
+  vi.stubGlobal('fetch', request); vi.stubGlobal('Image', image)
+  const { rerender } = render(<SpawnerPlanningMap {...props} snapshot={hoverSnapshot} />)
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+  const signal = request.mock.calls[0][1].signal as AbortSignal
+  rerender(<SpawnerPlanningMap {...props} snapshot={hoverSnapshot} active={false} />)
+  expect(signal.aborted).toBe(true)
+  await act(async () => resolveOld({ ok: true, json: async () => ({ schemaVersion: 1,
+    terrainFingerprint: 'fingerprint', ...hoverSnapshot.manifest.bounds, blocksPerPixel: 1 }) }))
+  expect(image).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...props} snapshot={hoverSnapshot} />)
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(2))
+  expect(screen.getByText(/px\/m · 16m区画/)).toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...props} snapshot={hoverSnapshot} layer="levels" />)
+  rerender(<SpawnerPlanningMap {...props} snapshot={hoverSnapshot} />)
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(3))
+})
+
+it('詳細画像はrevision・地形fingerprint変更で無効化し、読み込み途中の画像も採用しない', async () => {
+  const images: { onload: (() => void) | null; src: string }[] = []
+  let identity = hoverSnapshot.manifest
+  const request = vi.fn().mockImplementation(async () => ({ ok: true, json: async () => ({ schemaVersion: 1,
+    terrainFingerprint: identity.terrainFingerprint, ...identity.bounds, blocksPerPixel: 1 }) }))
+  vi.stubGlobal('fetch', request)
+  vi.stubGlobal('Image', class {
+    naturalWidth = identity.bounds.width; naturalHeight = identity.bounds.height
+    onload: (() => void) | null = null
+    src = ''
+    constructor() { images.push(this) }
+  })
+  const { rerender } = render(<StrictMode><SpawnerPlanningMap {...props} snapshot={hoverSnapshot} /></StrictMode>)
+  await waitFor(() => expect(images).toHaveLength(1))
+  const lateLoad = images[0].onload!
+  identity = { ...identity, exportRevision: 'revision-b' }
+  rerender(<StrictMode><SpawnerPlanningMap {...props} snapshot={{ ...hoverSnapshot, manifest: identity }} /></StrictMode>)
+  await waitFor(() => expect(images).toHaveLength(2))
+  expect(images[0].src).toBe('')
+  act(() => lateLoad())
+  expect(screen.getByText(/px\/m · 16m区画/)).toBeInTheDocument()
+  act(() => images[1].onload?.())
+  expect(screen.getByText(/1m地形/)).toBeInTheDocument()
+  identity = { ...identity, terrainFingerprint: 'terrain-b' }
+  rerender(<StrictMode><SpawnerPlanningMap {...props} snapshot={{ ...hoverSnapshot, manifest: identity }} /></StrictMode>)
+  expect(screen.getByText(/px\/m · 16m区画/)).toBeInTheDocument()
+  await waitFor(() => expect(images).toHaveLength(3))
+  act(() => images[2].onload?.())
+  expect(screen.getByText(/1m地形/)).toBeInTheDocument()
+  expect(request).toHaveBeenCalledTimes(3)
 })
 
 it('地図のクリックは区画代表地点の X/Y/Z を配置へ渡す', () => {
