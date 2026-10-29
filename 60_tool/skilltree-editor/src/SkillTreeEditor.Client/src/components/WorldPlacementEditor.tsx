@@ -3,8 +3,9 @@ import { worldPlacementApi, type PlacementKind, type PlacementSnapshot, type Wor
 import { cellAtWorld, type PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
 import { spawnerMasterNumbers } from '../data/spawnerMapStyle'
-import { applyPlacementDrafts, parsePlacementNumber, placementChanges, type PlacementNumericDrafts, type PlacementNumericField } from '../state/worldPlacementEditing'
+import { applyPlacementDrafts, parsePlacementNumber, placementChangeEntries, revertPlacementChange, samePlacement, type PlacementNumericDrafts, type PlacementNumericField } from '../state/worldPlacementEditing'
 import './worldPlacementEditor.css'
+import { PlacementChangeReview } from './PlacementChangeReview'
 
 export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number | null; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
 export interface PlacementPoint { key: number; x: number; y: number | null; z: number }
@@ -15,7 +16,7 @@ interface Props {
   point: PlacementPoint | null
   selectedId: string | null
   selectionKey?: number
-  onSelected: (id: string | null) => void
+  onSelected: (id: string | null, location?: { x: number; z: number }) => void
   onPlacements: (placements: WorldPlacement[], catalog: PlacementCatalog, ready: boolean) => void
   placing: boolean
   onPlacing: (placing: boolean) => void
@@ -43,9 +44,10 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [drafts, setDrafts] = useState<PlacementNumericDrafts>({})
   const hasDrafts = Object.keys(drafts).length > 0
   const invalidDraftId = Object.keys(drafts).find(id => Object.entries(drafts[id]).some(([field, raw]) => parsePlacementNumber(raw!, field as PlacementNumericField) === null))
-  const changes = useMemo(() => placementChanges(base?.placements ?? [], working), [base, working])
+  const changeEntries = useMemo(() => placementChangeEntries(base?.placements ?? [], working), [base, working])
+  const changes = useMemo(() => ({ added: changeEntries.filter(item => item.kind === 'added').length, changed: changeEntries.filter(item => item.kind === 'changed').length, deleted: changeEntries.filter(item => item.kind === 'deleted').length }), [changeEntries])
   const dirty = changes.added + changes.changed + changes.deleted > 0 || hasDrafts
-  const setWorking = (next: WorldPlacement[]) => setHistory(current => JSON.stringify(current.working) === JSON.stringify(next) ? current : ({ past: [...current.past.slice(-99), current.working], working: next, future: [] }))
+  const setWorking = (next: WorldPlacement[]) => setHistory(current => current.working.length === next.length && current.working.every((item, index) => samePlacement(item, next[index])) ? current : ({ past: [...current.past.slice(-99), current.working], working: next, future: [] }))
   const resetWorking = (next: WorldPlacement[]) => { setHistory({ past: [], working: next, future: [] }); setDrafts({}); setSelectedForDelete([]) }
   const [catalog, setCatalog] = useState<PlacementCatalog>(emptyCatalog)
   const [busy, setBusy] = useState(false)
@@ -65,6 +67,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [selectedWorldName, setSelectedWorldName] = useState('')
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([])
   const [visibleCount, setVisibleCount] = useState(50)
+  const selectPlacement = (id: string | null, location?: WorldPlacement) => onSelected(id, location ?? working.find(item => item.placementId === id))
   const selected = working.find(item => item.placementId === selectedId)
   const editNumber = (id: string, field: PlacementNumericField, raw: string) => {
     if (busyRef.current) return
@@ -174,7 +177,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     const item = fresh(kind, worldId, selectedWorldName, kind === 'waystone' ? null : newTemplateId, point.x, point.y, point.z)
     setWorking([...working, item])
     setError(''); setNotice(`地図の安全な立ち位置 X ${point.x} / Y ${point.y} / Z ${point.z} に追加しました。内容を確認して Dev に保存してください。`)
-    onSelected(item.placementId); onPlacing(false)
+    selectPlacement(item.placementId, item); onPlacing(false)
   }, [point?.key])
   const update = (patch: Partial<WorldPlacement>) => {
     if (busyRef.current || !selected) return
@@ -187,18 +190,18 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     if (busyRef.current || hasDrafts || !base || !selectedWorldName) { setError('追加先のワールド名を選んでください。'); return }
     const spawn = snapshot.manifest.spawn
     const item = fresh(kind, worldId, selectedWorldName, kind === 'waystone' ? null : newTemplateId || null, Math.floor(spawn.x), Math.floor(spawn.y), Math.floor(spawn.z))
-    const next = [...working, item]; setWorking(next); onSelected(item.placementId)
+    const next = [...working, item]; setWorking(next); selectPlacement(item.placementId, item)
     setNotice('開始地点の座標で追加しました。座標とマスターを確認してください。')
   }
   const duplicate = () => {
     if (busyRef.current || !selected || hasDrafts) return
     const copy = { ...selected, placementId: crypto.randomUUID(), x: selected.x + 1, waystone: selected.waystone ? { ...selected.waystone, id: '', name: `${selected.waystone.name} の複製` } : null }
-    const next = [...working, copy]; setWorking(next); onSelected(copy.placementId)
+    const next = [...working, copy]; setWorking(next); selectPlacement(copy.placementId, copy)
   }
   const remove = (ids: string[]) => {
     if (busyRef.current || hasDrafts || !ids.length || !window.confirm(`${ids.length} 件の保存済み Dev 配置を削除対象にします。保存すると削除されます。続けますか？`)) return
     const next = working.filter(item => !ids.includes(item.placementId))
-    setWorking(next); onSelected(null); setSelectedForDelete([])
+    setWorking(next); selectPlacement(null); setSelectedForDelete([])
   }
   const reload = async () => {
     if (busyRef.current) return
@@ -208,19 +211,19 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       // A base snapshot is usable only after both placements and definitions load.
       // Retry both after an initial catalog failure; do not publish a partial pair.
       const [value, definitions] = await Promise.all([worldPlacementApi.read(), readCatalog()])
-      setBase(value); resetWorking(value.placements); setCatalog(definitions); onSelected(null); setNotice('Dev 配置を再読込しました。')
+      setBase(value); resetWorking(value.placements); setCatalog(definitions); selectPlacement(null); setNotice('Dev 配置を再読込しました。')
     }
     catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
     finally { busyRef.current = false; setBusy(false) }
   }
   const save = async () => {
     if (busyRef.current || !base || !dirty) return
-    if (invalidDraftId) { setError('入力途中の数値があります。該当する配置で数値を修正してください。'); onSelected(invalidDraftId); return }
+    if (invalidDraftId) { setError('入力途中の数値があります。該当する配置で数値を修正してください。'); selectPlacement(invalidDraftId); return }
     const pending = applyPlacementDrafts(working, drafts)
     const invalid = pending.find(item => !item.worldId || ![item.x, item.y, item.z, item.yaw, item.pitch].every(Number.isFinite)
       || (item.kind !== 'waystone' && !item.templateId)
       || (item.kind === 'waystone' && (!item.waystone?.id.trim() || !item.waystone.name.trim())))
-    if (invalid) { setError(`保存できない配置があります（${invalid.placementId}）。マスター、道標 ID・名前、座標を確認してください。`); onSelected(invalid.placementId); return }
+    if (invalid) { setError(`保存できない配置があります（${invalid.placementId}）。マスター、道標 ID・名前、座標を確認してください。`); selectPlacement(invalid.placementId); return }
     if (hasDrafts) setWorking(pending)
     busyRef.current = true; setBusy(true); setError('')
     try { const value = await worldPlacementApi.save(base.revision, pending); setBase(value); resetWorking(value.placements); setNotice('Dev 配置を保存しました。ゲーム内への反映には /worldplacements reload が必要です。共有チャンネルには反映されていません。') }
@@ -238,9 +241,17 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     {editing && <><header><div><h2>保存済み Dev 配置を編集</h2><p>地図上の点を選択して編集します。保存後、ゲーム内には /worldplacements reload が必要です。</p></div><strong>{working.filter(item => item.worldId === worldId).length} 件{dirty ? ' · 未保存' : ''}</strong></header>
     {error && <p className="wp-error" role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
     <div className="wp-edit-summary" aria-live="polite"><span>未保存の変更: 追加 {changes.added} 件 · 変更 {changes.changed} 件 · 削除 {changes.deleted} 件</span><button className="button" onClick={() => travelHistory('past')} disabled={busy || hasDrafts || !history.past.length}>元に戻す</button><button className="button" onClick={() => travelHistory('future')} disabled={busy || hasDrafts || !history.future.length}>やり直す</button></div>
-    {hasDrafts && <p className="wp-draft-note" role="status">{invalidDraftId ? '入力途中または不正な数値があります。修正するまで保存できません。Escapeでその欄の入力を取り消せます。' : '数値をEnterまたは入力欄からの移動で確定してください。保存時も有効な値を確定します。'}{Object.keys(drafts).map(id => <button className="button" key={id} onClick={() => onSelected(id)}>数値の入力中: {display.get(id)?.name ?? id}</button>)}</p>}
+    {hasDrafts && <p className="wp-draft-note" role="status">{invalidDraftId ? '入力途中または不正な数値があります。修正するまで保存できません。Escapeでその欄の入力を取り消せます。' : '数値をEnterまたは入力欄からの移動で確定してください。保存時も有効な値を確定します。'}{Object.keys(drafts).map(id => <button className="button" key={id} onClick={() => selectPlacement(id)}>数値の入力中: {display.get(id)?.name ?? id}</button>)}</p>}
     <div className="wp-actions wp-toolbar"><label>追加先のワールド<select value={selectedWorldName} onChange={event => setSelectedWorldName(event.target.value)} disabled={busy || !worldNames.length}><option value="">選択してください</option>{worldNames.map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>追加する種類<select value={kind} onChange={event => { setKind(event.target.value as PlacementKind); setNewTemplateId(''); onPlacing(false) }} disabled={busy}><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label>{kind !== 'waystone' && <label>追加する{kind === 'spawner' ? 'スポナー' : 'NPC'}マスター<select aria-label="追加するマスター" value={newTemplateId} onChange={event => setNewTemplateId(event.target.value)} disabled={busy}><option value="">選択してください</option>{(kind === 'spawner' ? catalog.spawners : catalog.npcs).map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label>}<button className="button" aria-pressed={placing} onClick={() => { onPlacing(!placing); onMoving(false); setError('') }} disabled={busy || hasDrafts || !base || !selectedWorldName || (kind !== 'waystone' && !newTemplateId)}>地図で追加</button><button className="button" onClick={add} disabled={busy || hasDrafts || !base || !selectedWorldName}>座標を入力して追加</button><button className="button" aria-pressed={moving} onClick={() => { onMoving(!moving); onPlacing(false); setError('') }} disabled={busy || !selected || hasDrafts}>地図で移動</button><button className="button" onClick={() => { onPlacing(false); onMoving(false) }} disabled={!placing && !moving}>操作をキャンセル</button><button className="button" onClick={() => void save()} disabled={busy || !dirty || !base || !!invalidDraftId}>Dev に保存</button><button className="button" onClick={() => void reload()} disabled={busy}>Dev を再読込</button></div>
     {(placing || moving) && <p className="wp-instruction" role="status">{placing ? '地図の安全な地点をクリックして追加します。' : '移動先の安全な地点をクリックします。'} ドラッグで地図を移動できます。</p>}</>}
+    {editing && <PlacementChangeReview changes={changeEntries} catalog={catalog} locked={busy || placing || moving} hasDrafts={hasDrafts} onLocate={item => {
+      if (!busyRef.current && !placing && !moving) selectPlacement(item.placementId, item)
+    }} onRevert={change => {
+      if (busyRef.current || placing || moving || hasDrafts) return
+      setWorking(revertPlacementChange(working, change)); setNotice('この配置の変更を取り消しました。元に戻す操作で復元できます。')
+      setSelectedForDelete(current => current.filter(id => id !== change.id))
+      if (!change.before && selectedId === change.id) selectPlacement(null)
+    }} />}
     <div className="wp-map-pane">{map}</div>
     {editing && <>
     <div className="wp-inspector" ref={inspector}>
@@ -254,7 +265,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     </div>}
     <div className="wp-filters"><label>検索<input aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} placeholder="モブ名・ID・座標" /></label><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div>
     <p className="wp-count">{filtered.length} 件を表示 · 世界: {snapshot.manifest.worldName} ({worldId}){selectedWorldName && ` · 保存先: ${selectedWorldName}`}</p>
-    <div className="wp-list">{filtered.slice(0, visibleCount).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={busy} aria-label={`${display.get(item.placementId)!.name} を削除対象に選択`} checked={selectedForDelete.includes(item.placementId)} onChange={event => setSelectedForDelete(current => event.target.checked ? [...current, item.placementId] : current.filter(id => id !== item.placementId))} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; onSelected(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!filtered.length && <p>条件に合う保存済み配置はありません。</p>}</div>
+    <div className="wp-list">{filtered.slice(0, visibleCount).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={busy} aria-label={`${display.get(item.placementId)!.name} を削除対象に選択`} checked={selectedForDelete.includes(item.placementId)} onChange={event => setSelectedForDelete(current => event.target.checked ? [...current, item.placementId] : current.filter(id => id !== item.placementId))} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!filtered.length && <p>条件に合う保存済み配置はありません。</p>}</div>
     <div className="wp-actions"><span>一覧 {Math.min(visibleCount, filtered.length)} / {filtered.length} 件</span>{visibleCount < filtered.length && <button className="button" onClick={() => setVisibleCount(count => count + 50)}>さらに50件表示</button>}</div>
     <div className="wp-actions wp-delete-actions"><button className="button" disabled={busy || hasDrafts || !selectedForDelete.length} onClick={() => remove(selectedForDelete)}>選択した {selectedForDelete.length} 件を削除</button></div>
     </div>

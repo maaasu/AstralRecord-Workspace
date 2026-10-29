@@ -21,13 +21,36 @@ export function applyPlacementDrafts(placements: WorldPlacement[], drafts: Place
     return next
   })
 }
-export function placementChanges(base: WorldPlacement[], working: WorldPlacement[]) {
-  const saved = new Map(base.map(item => [item.placementId, JSON.stringify(item)]))
-  let added = 0, changed = 0
-  for (const item of working) {
-    const original = saved.get(item.placementId)
-    if (original === undefined) added++
-    else { if (original !== JSON.stringify(item)) changed++; saved.delete(item.placementId) }
+const placementFields: Record<Exclude<keyof WorldPlacement, 'waystone'>, true> = {
+  placementId: true, kind: true, worldId: true, worldName: true, templateId: true,
+  x: true, y: true, z: true, yaw: true, pitch: true, enabled: true,
+}
+const waystoneFields: Record<keyof NonNullable<WorldPlacement['waystone']>, true> = {
+  id: true, name: true, lockEnabled: true, unlockGold: true, icon: true, createdAt: true, createdBy: true,
+}
+const placementKeys = Object.keys(placementFields) as (keyof typeof placementFields)[]
+const waystoneKeys = Object.keys(waystoneFields) as (keyof typeof waystoneFields)[]
+export function samePlacement(a: WorldPlacement, b: WorldPlacement): boolean {
+  if (a === b) return true
+  return placementKeys.every(key => a[key] === b[key]) && (a.waystone === b.waystone
+    || !!a.waystone && !!b.waystone && waystoneKeys.every(key => a.waystone![key] === b.waystone![key]))
+}
+export type PlacementChangeKind = 'added' | 'changed' | 'deleted'
+export interface PlacementChange { id: string; kind: PlacementChangeKind; before?: WorldPlacement; after?: WorldPlacement }
+export function placementChangeEntries(base: WorldPlacement[], working: WorldPlacement[]): PlacementChange[] {
+  const saved = new Map(base.map(item => [item.placementId, item]))
+  const changes: PlacementChange[] = []
+  for (const after of working) {
+    const before = saved.get(after.placementId)
+    if (!before) changes.push({ id: after.placementId, kind: 'added', after })
+    else if (!samePlacement(before, after)) changes.push({ id: after.placementId, kind: 'changed', before, after })
+    saved.delete(after.placementId)
   }
-  return { added, changed, deleted: saved.size }
+  for (const before of saved.values()) changes.push({ id: before.placementId, kind: 'deleted', before })
+  return changes
+}
+export function revertPlacementChange(working: WorldPlacement[], change: PlacementChange): WorldPlacement[] {
+  if (!change.before) return working.filter(item => item.placementId !== change.id)
+  if (!change.after) return [...working, change.before]
+  return working.map(item => item.placementId === change.id ? change.before! : item)
 }

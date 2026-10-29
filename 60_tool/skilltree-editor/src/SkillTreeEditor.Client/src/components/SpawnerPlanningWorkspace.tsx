@@ -95,12 +95,12 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     const value = plan?.proposals.find(item => item.proposalId === id)
     if (value) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: value.x + .5, z: value.z + .5 }))
   }
-  function selectPlacement(id: string | null) {
+  function selectPlacement(id: string | null, location?: { x: number; z: number }) {
     setSelectedPlacement(id)
     if (!id) return
     setPlacementSelectionKey(current => current + 1)
     setSelectedCell(null); setSelectedProposal(null)
-    const item = placements.find(value => value.placementId === id)
+    const item = location ?? placements.find(value => value.placementId === id)
     if (item) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: item.x, z: item.z }))
   }
   function download() {

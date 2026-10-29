@@ -3,11 +3,13 @@ import { StrictMode, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SpawnerPlanningWorkspace } from './SpawnerPlanningWorkspace'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
+import type { PlacementCatalog } from './WorldPlacementEditor'
+import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
 vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn() } }))
-vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell, layer }: { onCell: (index: number) => void; layer: string }) => <><output data-testid="map-layer">{layer}</output><button onClick={() => onCell(1)}>解析失敗区画を選択</button></> }))
-vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map }: { map: ReactNode }) => map }))
+vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell, layer, focus }: { onCell: (index: number) => void; layer: string; focus: unknown }) => <><output data-testid="map-layer">{layer}</output><output data-testid="map-focus">{JSON.stringify(focus)}</output><button onClick={() => onCell(1)}>解析失敗区画を選択</button></> }))
+vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map, onSelected, onPlacements }: { map: ReactNode; onSelected: (id: string, location: { x: number; z: number }) => void; onPlacements: (items: WorldPlacement[], catalog: PlacementCatalog, ready: boolean) => void }) => <>{map}<button onClick={() => onSelected('hidden', { x: 120, z: 240 })}>条件外の配置を選択</button><button onClick={() => onPlacements([], { spawners: [], npcs: [], worlds: [] }, true)}>表示中配置を更新</button></> }))
 const identity = { schemaVersion: 2, worldId: 'test', terrainFingerprint: 'terrain', exportRevision: 'revision-a' }
 const snapshot: PlanningSnapshot = {
   manifest: { ...identity, worldName: 'テスト大陸', previewOnly: true, bounds: { minX: 0, minZ: 0, width: 48, height: 16, cellSize: 16 }, spawn: { x: 0, y: 70, z: 0 }, capturedAt: '2026-10-25T00:00:00Z', radiusOptions: [32, 48, 64], reasons: { covered: '新しい配置案でカバー', failed: '地形の読込・計測に失敗', absent: '未保存の区画' }, limitations: ['実配置は行いません'], progressionPolicy: {} },
@@ -145,5 +147,14 @@ describe('マスタエディタ内の配置計画', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: '解析失敗区画を選択' }))
     expect(screen.getByText(/地形経路距離:/)).toHaveTextContent('3,424m')
+  })
+  it('地図に未公開の配置でも指定座標へ移動し、後続の配置更新で再移動しない', async () => {
+    render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(await screen.findByRole('button', { name: '条件外の配置を選択' }))
+    expect(screen.getByTestId('map-focus')).toHaveTextContent('{"key":1,"x":120,"z":240}')
+    fireEvent.click(screen.getByRole('button', { name: '表示中配置を更新' }))
+    expect(screen.getByTestId('map-focus')).toHaveTextContent('{"key":1,"x":120,"z":240}')
+    fireEvent.click(screen.getByRole('button', { name: '条件外の配置を選択' }))
+    expect(screen.getByTestId('map-focus')).toHaveTextContent('{"key":2,"x":120,"z":240}')
   })
 })

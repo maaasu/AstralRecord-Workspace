@@ -26,6 +26,15 @@
 .wp-editor input[aria-invalid='true'] { border-color: #f28e89; outline: 1px solid #f28e89; }
 .wp-coordinates input { width: 6rem; min-width: 6rem; }
 .wp-draft-note { color: #ffd0a0; }
+.wp-editing > .wp-change-review { grid-column: 1 / -1; min-width: 0; }
+.wp-change-review { padding: .6rem; border: 1px solid #477382; border-radius: 7px; }
+.wp-change-review > div { margin-top: .7rem; }
+.wp-change-list { display: grid; gap: .7rem; max-height: 32rem; overflow: auto; margin-top: .7rem; }
+.wp-change { min-width: 0; padding: .7rem; background: #183642; border: 1px solid #365967; border-radius: 6px; overflow-wrap: anywhere; }
+.wp-change h3 { font-size: 1rem; }
+.wp-change code { display: block; color: #adc8d0; }
+.wp-change table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: .5rem; font-size: .85rem; }
+.wp-change th, .wp-change td { padding: .35rem; border-bottom: 1px solid #365967; vertical-align: top; text-align: left; white-space: pre-wrap; }
 .wp-toolbar .button[aria-pressed='true'] { background: #276377; border-color: #76dded; }
 .wp-editor .wp-instruction { color: #aaf0ec; }
 .wp-map-pane { min-width: 0; }

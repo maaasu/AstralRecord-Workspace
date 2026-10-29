@@ -34,6 +34,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 it('Devでも空地点の区画選択を地図に返し、未保存の配置編集を保持する', async () => {
   render(<SpawnerPlanningWorkspace active />)
   await screen.findByText(/1 件を表示/)
+  await waitFor(() => expect(screen.getByRole('button', { name: '地図で配置を選択' })).toBeEnabled())
   fireEvent.click(screen.getByRole('button', { name: '地図で配置を選択' }))
   fireEvent.change(screen.getByLabelText('X'), { target: { value: '-' } })
   fireEvent.click(screen.getByRole('button', { name: '地図で区画を選択' }))
