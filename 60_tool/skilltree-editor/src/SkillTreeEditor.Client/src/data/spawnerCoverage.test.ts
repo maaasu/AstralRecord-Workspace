@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { calculateCoverage, coverageTerrain, measuredCoverageLand } from './spawnerCoverage'
+import { calculateCoverage, coverageTerrain, coversCellCenter, measuredCoverageLand } from './spawnerCoverage'
 import type { PlanningCell } from './spawnerPlanning'
 
 const bounds = { minX: -32, minZ: -16, width: 80, height: 48, cellSize: 16 }
@@ -45,6 +45,18 @@ it('行区間方式を全点幾何判定と照合する（接線・端・不規�
   const circles = Array.from({ length: 37 }, (_, index) => ({ x: index * 11 % 160 - 70, z: index * 7 % 100 - 40, radius: index % 29 + .5 }))
   const result = calculateCoverage(coverageTerrain(bounds, cells), circles)
   expect([...result.counts]).toEqual(cells.map(item => Math.min(2, circles.filter(circle => Math.hypot(item.x + 8 - circle.x, item.z + 8 - circle.z) <= circle.radius).length)))
+})
+
+it('選択区画の詳細は円周・負座標・微小誤差を含めて着色の件数と一致する', () => {
+  const terrain = coverageTerrain(bounds, cells)
+  const circles = [
+    { x: -8, z: 8, radius: 16 }, { x: -48, z: -8, radius: 24 },
+    { x: -8 + 1e-10, z: 8, radius: 16 }, { x: 8, z: -80, radius: 72 },
+    ...Array.from({ length: 37 }, (_, index) => ({ x: index * 11 % 160 - 70, z: index * 7 % 100 - 40, radius: index % 29 + .5 })),
+  ]
+  for (const circle of circles) {
+    expect([...calculateCoverage(terrain, [circle]).counts]).toEqual(cells.map(item => Number(coversCellCenter(circle, item, bounds.cellSize))))
+  }
 })
 
 it('約9万セル・1万円でも各円の局所的な行区間だけを加算する', () => {

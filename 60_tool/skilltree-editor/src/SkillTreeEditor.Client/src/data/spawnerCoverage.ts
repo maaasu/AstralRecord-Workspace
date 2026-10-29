@@ -1,7 +1,17 @@
 import type { PlanningBounds, PlanningCell } from './spawnerPlanning'
 
 export interface CoverageCircle { x: number; z: number; radius: number }
+export interface CoverageSource extends CoverageCircle { id: string; label: string }
 export const coverageColors = ['#ef923fc0', '#5fd2a57a', '#c276f0cf'] as const
+
+// Match the row-interval calculation's inclusive edge and horizontal grid tolerance.
+export function coversCellCenter(circle: CoverageCircle, cell: PlanningCell, step: number) {
+  const dz = cell.z + step / 2 - circle.z
+  if (Math.abs(dz) > circle.radius) return false
+  const dx = Math.sqrt(Math.max(0, circle.radius * circle.radius - dz * dz))
+  const x = cell.x + step / 2, tolerance = step * 1e-10
+  return x >= circle.x - dx - tolerance && x <= circle.x + dx + tolerance
+}
 
 export function measuredCoverageLand(cell: PlanningCell) {
   return cell.status === 'ok' && cell.habitat !== 'water' && cell.habitat !== 'unknown' &&

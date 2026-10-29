@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
@@ -532,6 +532,69 @@ const coverageSnapshot: PlanningSnapshot = { ...snapshot, manifest: { ...snapsho
 const coveragePlacement = { ...hoverPlacement, x: 7.5, z: 7.5 }
 const coverageCatalog = { ...hoverCatalog, spawners: [{ ...hoverCatalog.spawners[0], radiusMeters: 16 }] }
 const coverageProps = { ...hoverProps, snapshot: coverageSnapshot, placements: [coveragePlacement], placementCatalog: coverageCatalog, showProposals: false }
+
+it('未カバー・重複区画を巡回し、条件変更後も対象区画だけへ移動する', () => {
+  const onCell = vi.fn()
+  const placements = [coveragePlacement, { ...coveragePlacement, placementId: 'second' }]
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} placements={placements} onCell={onCell} />)
+  fireEvent.click(screen.getByRole('button', { name: '次の区画' }))
+  expect(onCell).toHaveBeenLastCalledWith(2)
+  fireEvent.change(screen.getByLabelText('確認する区画'), { target: { value: '2' } })
+  fireEvent.click(screen.getByRole('button', { name: '次の区画' }))
+  expect(onCell).toHaveBeenLastCalledWith(0)
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={placements} onCell={onCell} selectedCell={0} />)
+  fireEvent.click(screen.getByRole('button', { name: '前の区画' }))
+  expect(onCell).toHaveBeenLastCalledWith(1)
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={placements} onCell={onCell} selectedCell={0} region="other" />)
+  expect(screen.getByRole('button', { name: '次の区画' })).toBeDisabled()
+  expect(screen.getByLabelText('選択区画の出現範囲')).toHaveTextContent('表示条件外')
+  fireEvent.change(screen.getByLabelText('確認する区画'), { target: { value: '0' } })
+  fireEvent.click(screen.getByRole('button', { name: '次の区画' }))
+  expect(onCell).toHaveBeenLastCalledWith(2)
+  rerender(<SpawnerPlanningMap {...coverageProps} onCell={onCell} reason="protected" />)
+  expect(screen.getByRole('button', { name: '次の区画' })).toBeDisabled()
+})
+
+it('Dev区画には届く有効スポナーの実件数と日本語名を表示し、その配置を選択できる', () => {
+  const onPlacement = vi.fn()
+  render(<SpawnerPlanningMap {...coverageProps} selectedCell={1} onPlacement={onPlacement} placements={[
+    coveragePlacement, { ...coveragePlacement, placementId: 'second' }, { ...coveragePlacement, placementId: 'third' },
+    { ...coveragePlacement, placementId: 'disabled', enabled: false }, { ...coveragePlacement, placementId: 'npc', kind: 'npc' },
+    { ...coveragePlacement, placementId: 'other', worldId: 'other' },
+  ]} />)
+  const detail = screen.getByLabelText('選択区画の出現範囲')
+  expect(detail).toHaveTextContent('既知範囲3件が重複')
+  expect(detail).toHaveTextContent('半径 16m')
+  const buttons = within(detail).getAllByRole('button')
+  expect(buttons).toHaveLength(3)
+  expect(buttons[0]).toHaveTextContent('Lv.')
+  fireEvent.click(buttons[2])
+  expect(onPlacement).toHaveBeenCalledWith('third')
+})
+
+it('AI区画の詳細は新規被覆記録にない重複元も含め、Devを混ぜず案へ移動する', () => {
+  const onProposal = vi.fn(), proposal = { ...hoverPlan.proposals[0], x: 7.5, z: 7.5, radiusMeters: 16, coveredCellIndices: [] }
+  const plan = { ...hoverPlan, proposals: [proposal, { ...proposal, proposalId: 'second' }] }
+  render(<SpawnerPlanningMap {...coverageProps} selectedCell={1} showProposals plan={plan} onProposal={onProposal} />)
+  const detail = screen.getByLabelText('選択区画の出現範囲')
+  expect(detail).toHaveTextContent('既知範囲2件が重複')
+  fireEvent.click(within(detail).getAllByRole('button')[1])
+  expect(onProposal).toHaveBeenCalledWith('second')
+})
+
+it('不明半径は断定を避け、未取得・OFF・追加中は区画巡回を行わない', () => {
+  const onCell = vi.fn(), unknownCatalog = { ...coverageCatalog, spawners: [{ ...coverageCatalog.spawners[0], radiusMeters: null }] }
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} selectedCell={0} onCell={onCell} placementCatalog={unknownCatalog} />)
+  expect(screen.getByLabelText('選択区画の出現範囲')).toHaveTextContent('未カバーとは断定できません')
+  rerender(<SpawnerPlanningMap {...coverageProps} onCell={onCell} placing />)
+  fireEvent.click(screen.getByRole('button', { name: '次の区画' }))
+  expect(onCell).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...coverageProps} onCell={onCell} placementsReady={false} />)
+  expect(screen.queryByRole('button', { name: '次の区画' })).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...coverageProps} onCell={onCell} />)
+  fireEvent.click(screen.getByRole('checkbox', { name: '重複・未カバーを色で確認' }))
+  expect(screen.queryByRole('button', { name: '次の区画' })).not.toBeInTheDocument()
+})
 
 it('既定ONの色と文字件数で重複・未カバーを示し、無効・NPC・別worldを除いて編集とフィルターを反映する', () => {
   drawingContext()
