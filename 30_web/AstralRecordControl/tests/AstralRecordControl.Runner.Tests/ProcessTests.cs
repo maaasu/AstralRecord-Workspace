@@ -10,6 +10,32 @@ namespace AstralRecordControl.Runner.Tests;
 public sealed class ProcessTests
 {
     [Fact]
+    public async Task LiveGeyserRecoveryCannotBeAcknowledgedAsAConsoleFailure()
+    {
+        using var fixture = new Fixture(kind: ServerKind.Velocity, enableFileControl: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        Assert.Equal(OperationStatus.Succeeded,
+            (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId)).Status);
+        var inspection = runner.InspectRecovery(new(fixture.Server.ServerId));
+        fixture.Track(inspection);
+        var update = fixture.Request(runner, hold, OperationKind.UpdateGeyser, new UpdateGeyserPayload());
+        runner.BeginDataOperation(update);
+        runner.FinishDataOperation(new(update.OperationId, update.CommandSha256, OperationStatus.NeedsAttention));
+        var recover = new RunnerRecoveryRequest(fixture.Server.ServerId, inspection.Runtime.CurrentSessionId, WorkflowRecoveryAction.AbortAfterInspection, "fixture inspection");
+        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => runner.Recover(recover, isLocalAdministrator: true)).Code);
+        Assert.Equal(OperationStatus.NeedsAttention, runner.GetDataOperation(update.OperationId).Status);
+        Assert.True(runner.InspectRecovery(new(fixture.Server.ServerId)).ProcessAlive);
+        var resolved = runner.Recover(recover with { Action = WorkflowRecoveryAction.KillAfterInspection }, isLocalAdministrator: true);
+        Assert.Equal(OperationStatus.Failed, runner.GetDataOperation(update.OperationId).Status);
+        Assert.False(resolved.RecoveryRequired);
+        Assert.False(resolved.ProcessAlive);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        Assert.Empty(runner.GetSnapshot().Holds);
+    }
+
+    [Fact]
     public async Task GeyserNoChangeCanCompleteWhileOriginalVelocitySessionStillRuns()
     {
         using var fixture = new Fixture(kind: ServerKind.Velocity, enableFileControl: true);

@@ -11,10 +11,10 @@ public sealed partial class RunnerStore
         try { command = OperationValidation.Read(request, configuration.HostId); }
         catch (Exception ex) when (ex is ArgumentException or System.Text.Json.JsonException) { throw new RunnerFault(ErrorCode.ProtocolMismatch); }
         if (!IsDataKind(command.Kind)) throw new RunnerFault(ErrorCode.UnsupportedCapability);
-        if (command.Kind == OperationKind.UpdateGeyser && (!GeyserUpdateEnabled || GetServerConfig(command.ServerId!.Value).Kind != ServerKind.Velocity))
-            throw new RunnerFault(ErrorCode.UnsupportedCapability);
         lock (sync)
         {
+            if (command.Kind == OperationKind.UpdateGeyser && (!GeyserUpdateEnabled || GetServerConfig(command.ServerId!.Value).Kind != ServerKind.Velocity))
+                throw new RunnerFault(ErrorCode.UnsupportedCapability);
             var previous = (string?)Scalar("SELECT commandHash FROM DataOperationLedger WHERE operationId=$id;", null, ("$id", request.OperationId.ToString()));
             if (previous != null)
             {

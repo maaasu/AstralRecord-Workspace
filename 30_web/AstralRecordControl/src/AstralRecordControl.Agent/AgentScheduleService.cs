@@ -170,7 +170,7 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
             var runnerSnapshot = await runner.GetSnapshotAsync(cancellationToken);
             var runtime = runnerSnapshot.Servers.SingleOrDefault(s => s.ServerId == report.ServerId);
             if (runtime is null) { await FinishAsync(report, ScheduleOccurrenceStatus.Failed, "StateConflict", hold, cancellationToken); return; }
-            if (definition.Template.Steps.Length == 1 && step.Kind == OperationKind.Restart && step.DelaySeconds == 0 &&
+            if (prior is null && definition.Template.Steps.Length == 1 && step.Kind == OperationKind.Restart &&
                 runtime.ProcessState == ProcessState.Stopped && runtime.CurrentSessionId is null)
             {
                 await FinishAsync(report, ScheduleOccurrenceStatus.Skipped, "StateConflict", hold, cancellationToken);

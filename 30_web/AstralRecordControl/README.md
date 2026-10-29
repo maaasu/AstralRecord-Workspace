@@ -125,7 +125,7 @@ P1の導入条件に加え、Webの`Control:EnableFileControl=true`、Agent/Runn
 
 `/Servers/{id}/Schedules`で定義・適用版・実行履歴を確認できます。Run Nowは初期offline時に503で拒否し、受付済み要求は同じIdempotency-Keyで照会・再送します。受付後に通信結果が不明なら202と照会先を返し、Agentが開始前の拒否を確定した場合はRejectedとして保存・表示します。新しい要求IDで重複実行しません。バックアップprofileはinventory内で希望版と適用ACKを区別し、定義更新時にも既存profileを保持します。
 
-Serverごとの予約画面に日次再起動（停止中はSkip）とVelocity専用のGeyserMC日次自動更新を追加する設計です。時刻`HH:mm`・有効状態を編集でき、既存Cron/適用ACK/履歴/Run Nowを使います。GeyserMCは既存`plugins/Geyser-Velocity.jar`のみを公式APIのhash検証後に交換し、定期実行には`P3.Schedules`、更新処理には`P2.Files`/`P3.GeyserUpdate`/`P1.Velocity`と各gateが必要です。実装と検証の状態は[受入条件](../../00_docs/30_WEB設計書/AstralRecordControl/06-実装計画と受入条件.md)で管理します。
+各サーバーの「定期再起動・予約」で、毎日の再起動時刻（停止中はSkip）と、Velocity専用のGeyserMC自動更新を設定できます。時刻`HH:mm`・タイムゾーン（標準`Asia/Tokyo`）・有効状態を編集でき、既存Cron/適用ACK/履歴/今すぐ実行を使います。同じサーバーの予約は実行時刻を分けてください。GeyserMCは既存`plugins/Geyser-Velocity.jar`のみを公式APIのhash検証後に交換し、最新版と同一なら停止しません。更新がある場合は正常停止して交換し、直前まで稼働していた場合だけ起動します。Web/Agentの予約実行とWeb/Agent/Runnerのファイル操作を有効化し、更新処理に対応するAgent/Runnerを配置してください。必要な能力は`P3.Schedules`、`P2.Files`、`P3.GeyserUpdate`、`P1.Velocity`です。旧JARは`plugins/Geyser-Velocity.jar.control-{operationId:N}.backup`へ退避し、結果の`backupRelativePath`に記録します。
 
 Agentは約10秒ごとにHost/プロセスCPU、メモリ、ディスク空き、稼働時間を採取し、Javaの`127.0.0.1` status pingから取得できる人数だけを報告します。取得不能はnull/欠測で、0人や停止へ変換しません。TPS/MSPTはP3のデータ源に含みません。Webの`/Servers/{id}/Metrics`では1分粒度7日、1時間粒度90日の系列を表示します。
 

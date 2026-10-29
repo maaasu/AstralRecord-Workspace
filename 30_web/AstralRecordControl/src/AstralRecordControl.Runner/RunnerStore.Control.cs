@@ -206,7 +206,8 @@ public sealed partial class RunnerStore
                 try { pidReused = inspected.Session.ProcessCreatedAtUtc is DateTimeOffset created && Math.Abs((process.StartTime.ToUniversalTime() - created.UtcDateTime).TotalMilliseconds) > 1; }
                 catch (System.ComponentModel.Win32Exception) { throw new RunnerFault(ErrorCode.RecoveryRequired); }
                 var unresolved = Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention' AND kind<>'ConsoleCommand';", null, ("$server", request.ServerId.ToString())));
-                var acknowledgeConsole = inspected.IdentityMatches && ownedProcesses.ContainsKey(request.ServerId) && unresolved == 0;
+                var unresolvedData = Convert.ToInt64(Scalar("SELECT COUNT(*) FROM DataOperationLedger WHERE serverId=$server AND status IN ('Accepted','Running','NeedsAttention');", null, ("$server", request.ServerId.ToString())));
+                var acknowledgeConsole = inspected.IdentityMatches && ownedProcesses.ContainsKey(request.ServerId) && unresolved == 0 && unresolvedData == 0;
                 if (!pidReused && !acknowledgeConsole) throw new RunnerFault(ErrorCode.RecoveryRequired);
                 if (acknowledgeConsole)
                 {

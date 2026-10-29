@@ -11,21 +11,49 @@ namespace AstralRecordControl.Agent.Tests;
 
 public sealed class ScheduleExecutionTests
 {
-    [Fact]
-    public async Task SingleRestartOfStoppedServerIsSkippedWithoutStartingIt()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(30)]
+    public async Task SingleRestartOfStoppedServerIsSkippedWithoutStartingIt(int delaySeconds)
     {
         using var fixture = new Fixture();
         var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
-            new ScheduleStep { StepKey = "restart", Kind = OperationKind.Restart });
+            new ScheduleStep { StepKey = "restart", Kind = OperationKind.Restart, DelaySeconds = delaySeconds });
         using var store = fixture.OpenStore();
         fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
-        await fixture.Service(store).TickAsync();
+        var service = fixture.Service(store);
+        await service.TickAsync();
+        if (delaySeconds > 0)
+        {
+            Assert.Equal(ScheduleOccurrenceStatus.Running, Assert.Single(store.ReadScheduleReports()).Report.Status);
+            fixture.Clock.Advance(TimeSpan.FromSeconds(delaySeconds));
+            await service.TickAsync();
+        }
         var report = Assert.Single(store.ReadScheduleReports()).Report;
         Assert.Equal(ScheduleOccurrenceStatus.Skipped, report.Status);
         Assert.Equal("StateConflict", report.ErrorCode);
         Assert.Empty(report.Steps);
         Assert.Empty(fixture.Runner.Executions);
         Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task AcceptedRestartKeepsItsHoldDuringTheStoppedPhase()
+    {
+        using var fixture = new Fixture();
+        fixture.Runner.IsRunning = true;
+        fixture.Runner.PauseRestart = true;
+        var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new ScheduleStep { StepKey = "restart", Kind = OperationKind.Restart });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
+        var service = fixture.Service(store);
+        await service.TickAsync();
+        Assert.False(fixture.Runner.IsRunning);
+        await service.TickAsync();
+        Assert.Equal(ScheduleOccurrenceStatus.Running, Assert.Single(store.ReadScheduleReports()).Report.Status);
+        Assert.Single(fixture.Runner.Holds);
+        Assert.Single(fixture.Runner.Executions);
     }
 
     [Fact]
@@ -398,6 +426,7 @@ public sealed class ScheduleExecutionTests
     private sealed class ManualClock(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+        public void Advance(TimeSpan duration) => now += duration;
     }
 
     private sealed class GeyserHandler(bool corruptDownload) : HttpMessageHandler
@@ -423,6 +452,7 @@ public sealed class ScheduleExecutionTests
         public bool CentralHold { get; set; }
         public OperationKind? FailKind { get; set; }
         public bool IsRunning { get; set; }
+        public bool PauseRestart { get; set; }
         public bool RecoveryRequired { get; private set; }
         private readonly Guid sessionId = Guid.NewGuid();
         public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
@@ -464,6 +494,7 @@ public sealed class ScheduleExecutionTests
             if (!Holds.TryGetValue(command.ReservationId!.Value, out var hold) || hold.Fence != command.ReservationFence || command.ExpectedStateRevision != stateRevision)
                 throw new AgentFault(ErrorCode.ReservationConflict);
             var status = command.Kind == FailKind ? OperationStatus.Failed : OperationStatus.Succeeded;
+            if (command.Kind == OperationKind.Restart && PauseRestart) { status = OperationStatus.Running; IsRunning = false; stateRevision++; }
             if (status == OperationStatus.Succeeded && command.Kind == OperationKind.Stop) { IsRunning = false; stateRevision++; }
             if (status == OperationStatus.Succeeded && command.Kind == OperationKind.Start) { IsRunning = true; stateRevision++; }
             var result = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256,
