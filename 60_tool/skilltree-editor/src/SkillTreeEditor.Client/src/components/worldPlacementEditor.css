@@ -46,6 +46,10 @@
 .wp-editing .wp-filters { margin: .4rem 0; }
 .wp-editing .wp-list { max-height: none; min-height: 7rem; }
 .wp-editing .wp-count { margin: .5rem 0; }
+.wp-bulk-panel { padding: .6rem; border: 1px solid #477382; border-radius: 7px; background: #183642; }
+.wp-bulk-scope { font-weight: 600; }
+.wp-editor .wp-selected-only { white-space: normal; }
+.wp-bulk-panel > p:last-of-type { color: #adc8d0; font-size: .84rem; }
 .wp-editing .wp-inspector input:not([type='checkbox']), .wp-editing .wp-inspector select { max-width: 100%; }
 .wp-planning { padding: 0; margin: 0; border: 0; background: transparent; }
 @media (max-width: 980px) { .wp-editing { grid-template-columns: 1fr; } .wp-editing .wp-inspector { max-height: none; overflow: visible; } .wp-editing .wp-map-pane { grid-column: 1; } }

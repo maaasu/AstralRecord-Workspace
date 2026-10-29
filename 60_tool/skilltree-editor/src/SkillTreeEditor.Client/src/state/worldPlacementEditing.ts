@@ -2,6 +2,26 @@ import type { WorldPlacement } from '../api/worldPlacementApi'
 
 export type PlacementNumericField = 'x' | 'y' | 'z' | 'yaw' | 'pitch' | 'unlockGold'
 export type PlacementNumericDrafts = Record<string, Partial<Record<PlacementNumericField, string>>>
+/** Resolve against the current world and working copy; stale/unknown selections cannot mutate another world. */
+export function placementSelectionScope(working: WorldPlacement[], selectedIds: ReadonlySet<string>, worldId: string, filteredIds: ReadonlySet<string>) {
+  const items = working.filter(item => item.worldId === worldId && selectedIds.has(item.placementId))
+  const ids = new Set(items.map(item => item.placementId))
+  const matchingCount = items.reduce((count, item) => count + Number(filteredIds.has(item.placementId)), 0)
+  return { items, ids, matchingCount, outsideCount: items.length - matchingCount }
+}
+export function setPlacementsEnabled(working: WorldPlacement[], ids: ReadonlySet<string>, worldId: string, enabled: boolean): WorldPlacement[] {
+  let changed = false
+  const next = working.map(item => {
+    if (item.worldId !== worldId || !ids.has(item.placementId) || item.enabled === enabled) return item
+    changed = true
+    return { ...item, enabled }
+  })
+  return changed ? next : working
+}
+export function removePlacements(working: WorldPlacement[], ids: ReadonlySet<string>, worldId: string): WorldPlacement[] {
+  const next = working.filter(item => item.worldId !== worldId || !ids.has(item.placementId))
+  return next.length === working.length ? working : next
+}
 export function parsePlacementNumber(raw: string, field: PlacementNumericField): number | null {
   if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw.trim())) return null
   const value = Number(raw)
