@@ -83,8 +83,8 @@ public sealed partial class RunnerStore
                 var parentKind = Enum.Parse<OperationKind>(pendingReader.GetString(1));
                 var sameHold = pendingReader.GetString(2) == command.ReservationId?.ToString() && pendingReader.GetString(3) == command.WorkflowId?.ToString() && pendingReader.GetInt64(4) == command.ReservationFence;
                 var active = pendingReader.GetString(5) == OperationStatus.Running.ToString();
-                var childStop = active && command.Kind == OperationKind.Stop && (parentKind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && command.OperationId == DataExecution.ChildOperationId(parentId, OperationKind.Stop);
-                var childStart = active && pendingReader.GetBoolean(6) && command.Kind == OperationKind.Start && (parentKind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && command.OperationId == DataExecution.ChildOperationId(parentId, OperationKind.Start);
+                var childStop = active && command.Kind == OperationKind.Stop && (parentKind is OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.UpdateGeyser) && command.OperationId == DataExecution.ChildOperationId(parentId, OperationKind.Stop);
+                var childStart = active && pendingReader.GetBoolean(6) && command.Kind == OperationKind.Start && (parentKind is OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.UpdateGeyser) && command.OperationId == DataExecution.ChildOperationId(parentId, OperationKind.Start);
                 if (!sameHold || !(childStop || childStart || rescueKill)) throw new RunnerFault(ErrorCode.RecoveryRequired);
             }
         if ((recovery || state == ProcessState.Unmanaged) && !rescueKill) throw new RunnerFault(ErrorCode.RecoveryRequired);

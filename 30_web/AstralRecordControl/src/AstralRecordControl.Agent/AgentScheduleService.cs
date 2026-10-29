@@ -69,8 +69,12 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
             }
             foreach (var (definition, report) in store.ReadScheduleReports(nonterminalOnly: true))
             {
-                if (report.Status == ScheduleOccurrenceStatus.NeedsAttention) continue;
-                try { await ProcessAsync(definition, report, cancellationToken); }
+                try
+                {
+                    if (report.Status == ScheduleOccurrenceStatus.NeedsAttention)
+                        await ReconcileGeyserAttentionAsync(definition, report, cancellationToken);
+                    else await ProcessAsync(definition, report, cancellationToken);
+                }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                 catch (Exception exception) when (exception is AgentFault or IOException or ArgumentException or InvalidOperationException)
                 {
@@ -166,6 +170,12 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
             var runnerSnapshot = await runner.GetSnapshotAsync(cancellationToken);
             var runtime = runnerSnapshot.Servers.SingleOrDefault(s => s.ServerId == report.ServerId);
             if (runtime is null) { await FinishAsync(report, ScheduleOccurrenceStatus.Failed, "StateConflict", hold, cancellationToken); return; }
+            if (definition.Template.Steps.Length == 1 && step.Kind == OperationKind.Restart && step.DelaySeconds == 0 &&
+                runtime.ProcessState == ProcessState.Stopped && runtime.CurrentSessionId is null)
+            {
+                await FinishAsync(report, ScheduleOccurrenceStatus.Skipped, "StateConflict", hold, cancellationToken);
+                return;
+            }
             var inventory = store.GetAppliedInventory();
             var server = inventory.Servers.SingleOrDefault(s => s.ServerId == report.ServerId);
             if (server is null || server.Revision != runtime.ConfigRevision)
@@ -233,6 +243,26 @@ public sealed class AgentScheduleService(AgentConfiguration configuration, Agent
     {
         await runner.ReleaseHoldAsync(new ReleaseHoldRequest(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence), cancellationToken);
         store.SaveScheduleReport(report with { Status = status, ErrorCode = error, UpdatedAtUtc = clock.GetUtcNow() });
+    }
+
+    private async Task ReconcileGeyserAttentionAsync(ScheduleDefinition definition, ScheduleOccurrenceReport report, CancellationToken cancellationToken)
+    {
+        var step = report.Steps.LastOrDefault(s => s.Status == OperationStatus.NeedsAttention);
+        if (step is null || definition.Template.Steps.SingleOrDefault(s => s.StepKey == step.StepKey)?.Kind != OperationKind.UpdateGeyser)
+            return;
+        var result = await operations.QueryAsync(new AgentExecutionRequest(localEpoch, step.OperationId), localEpoch, cancellationToken);
+        if (!result.IsTerminal) return;
+        var inspected = await runner.InspectRecoveryAsync(report.ServerId, cancellationToken);
+        if (inspected.RecoveryRequired || inspected.Runtime.ServerId != report.ServerId) return;
+        var hold = (await runner.GetSnapshotAsync(cancellationToken)).Holds.SingleOrDefault(h => h.ReservationId == report.ReservationId);
+        if (hold is null || hold.OwnerWorkflowId != report.WorkflowId || hold.Fence != report.Fence)
+            throw new AgentFault(ErrorCode.RecoveryRequired);
+        report = store.SaveScheduleReport(report with
+        {
+            Steps = report.Steps.Select(s => s.OperationId == step.OperationId ? s with { Status = result.Status, ErrorCode = result.ErrorCode } : s).ToArray(),
+            UpdatedAtUtc = clock.GetUtcNow()
+        });
+        await FinishAsync(report, ScheduleOccurrenceStatus.Failed, result.ErrorCode ?? result.Status.ToString(), hold, cancellationToken);
     }
 
     private string[] ReservationKeys(ScheduleDefinition definition)

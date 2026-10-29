@@ -11,6 +11,8 @@ public sealed partial class RunnerStore
         try { command = OperationValidation.Read(request, configuration.HostId); }
         catch (Exception ex) when (ex is ArgumentException or System.Text.Json.JsonException) { throw new RunnerFault(ErrorCode.ProtocolMismatch); }
         if (!IsDataKind(command.Kind)) throw new RunnerFault(ErrorCode.UnsupportedCapability);
+        if (command.Kind == OperationKind.UpdateGeyser && (!GeyserUpdateEnabled || GetServerConfig(command.ServerId!.Value).Kind != ServerKind.Velocity))
+            throw new RunnerFault(ErrorCode.UnsupportedCapability);
         lock (sync)
         {
             var previous = (string?)Scalar("SELECT commandHash FROM DataOperationLedger WHERE operationId=$id;", null, ("$id", request.OperationId.ToString()));
@@ -56,8 +58,22 @@ public sealed partial class RunnerStore
         lock (sync)
         {
             var command = ReadDataCommand(operationId);
-            if (command.Kind is not (OperationKind.CreateBackup or OperationKind.RestoreBackup)) throw new RunnerFault(ErrorCode.UnsupportedCapability);
-            VerifyDataOperation(operationId);
+            if (GetDataOperation(operationId).Status != OperationStatus.Running) throw new RunnerFault(ErrorCode.RecoveryRequired);
+            if (command.Kind is not (OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.UpdateGeyser)) throw new RunnerFault(ErrorCode.UnsupportedCapability);
+            if (command.Kind == OperationKind.UpdateGeyser)
+            {
+                var runtime = GetSnapshot().Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new RunnerFault(ErrorCode.StateConflict);
+                if (runtime.ProcessState == ProcessState.Running)
+                {
+                    if (runtime.CurrentSessionId is null || runtime.CurrentSessionId != command.ExpectedServerSessionId || runtime.ConfigRevision != command.ConfigRevision)
+                        throw new RunnerFault(ErrorCode.RecoveryRequired);
+                    if (Convert.ToInt64(Scalar("SELECT recoveryRequired FROM Servers WHERE id=$id;", null, ("$id", command.ServerId!.Value.ToString()))) != 0)
+                        throw new RunnerFault(ErrorCode.RecoveryRequired);
+                    VerifyDataHold(command);
+                }
+                else VerifyDataOperation(operationId);
+            }
+            else VerifyDataOperation(operationId);
             Execute("UPDATE DataOperationLedger SET readyForRestart=1,statusVersion=statusVersion+1 WHERE operationId=$id AND status='Running';", null, ("$id", operationId.ToString()));
             return GetDataOperation(operationId);
         }
@@ -77,18 +93,36 @@ public sealed partial class RunnerStore
                 if (previous.Status != request.Status) throw new RunnerFault(ErrorCode.OperationConflict);
                 return previous;
             }
-            if (request.Status == OperationStatus.Rejected) VerifyDataOperation(request.OperationId);
+            if (request.Status == OperationStatus.Rejected)
+            {
+                var rejectedCommand = ReadDataCommand(request.OperationId);
+                if (rejectedCommand.Kind == OperationKind.UpdateGeyser)
+                {
+                    var runtime = GetSnapshot().Servers.SingleOrDefault(s => s.ServerId == rejectedCommand.ServerId) ?? throw new RunnerFault(ErrorCode.StateConflict);
+                    var expectedState = rejectedCommand.ExpectedServerSessionId is null ? ProcessState.Stopped : ProcessState.Running;
+                    var stopId = DataExecution.ChildOperationId(request.OperationId, OperationKind.Stop);
+                    if (runtime.ProcessState != expectedState || runtime.CurrentSessionId != rejectedCommand.ExpectedServerSessionId ||
+                        runtime.ConfigRevision != rejectedCommand.ConfigRevision ||
+                        Scalar("SELECT status FROM ExecutionLedger WHERE operationId=$id;", null, ("$id", stopId.ToString())) is not null)
+                        throw new RunnerFault(ErrorCode.RecoveryRequired);
+                    VerifyDataHold(rejectedCommand);
+                }
+                else VerifyDataOperation(request.OperationId);
+            }
             if (request.Status == OperationStatus.Succeeded)
             {
                 var command = ReadDataCommand(request.OperationId);
                 var runtime = GetSnapshot().Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new RunnerFault(ErrorCode.StateConflict);
-                if ((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && runtime.ProcessState == ProcessState.Running)
+                if ((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.UpdateGeyser) && runtime.ProcessState == ProcessState.Running)
                 {
                     if (runtime.ConfigRevision != command.ConfigRevision) throw new RunnerFault(ErrorCode.StaleRevision);
                     VerifyDataHold(command);
                     if (Convert.ToInt64(Scalar("SELECT readyForRestart FROM DataOperationLedger WHERE operationId=$id;", null, ("$id", request.OperationId.ToString()))) == 0) throw new RunnerFault(ErrorCode.RecoveryRequired);
-                    var childId = DataExecution.ChildOperationId(request.OperationId, OperationKind.Start);
-                    if ((string?)Scalar("SELECT status FROM ExecutionLedger WHERE operationId=$id;", null, ("$id", childId.ToString())) != OperationStatus.Succeeded.ToString()) throw new RunnerFault(ErrorCode.RecoveryRequired);
+                    if (command.Kind != OperationKind.UpdateGeyser || runtime.CurrentSessionId != command.ExpectedServerSessionId)
+                    {
+                        var childId = DataExecution.ChildOperationId(request.OperationId, OperationKind.Start);
+                        if ((string?)Scalar("SELECT status FROM ExecutionLedger WHERE operationId=$id;", null, ("$id", childId.ToString())) != OperationStatus.Succeeded.ToString()) throw new RunnerFault(ErrorCode.RecoveryRequired);
+                    }
                 }
                 else VerifyDataOperation(request.OperationId);
             }

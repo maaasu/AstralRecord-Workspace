@@ -118,6 +118,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
                     ? ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P2.Files", "P2.Backups"]
                     : ["P0.Inventory", "P1.Operations", "P1.LegacyGate"]
                 : new[] { "P0.Inventory" }).Concat(processGate.Enabled && runnerCapabilities.Contains(ServerProcessSupport.VelocityCapability) ? [ServerProcessSupport.VelocityCapability] : Array.Empty<string>())
+                .Concat(processGate.Enabled && configuration.EnableFileControl && runnerCapabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) ? [ServerProcessSupport.GeyserUpdateCapability] : Array.Empty<string>())
                 .Concat(processGate.Enabled && configuration.EnableSchedules ? ["P3.Schedules"] : Array.Empty<string>()).Append("P3.Metrics").ToArray()
         }, stoppingToken);
         if (hello.ProtocolVersion != ControlProtocol.Version || hello.ConnectionEpoch == Guid.Empty || hello.HeartbeatSeconds is < 1 or > 60) throw new AgentFault(ErrorCode.ProtocolMismatch);

@@ -13,10 +13,11 @@ public sealed partial class P2StorageService
     private readonly StoragePaths paths;
     private readonly TimeProvider clock;
     private readonly Func<string, long?> availableBytesProbe;
+    private readonly HttpClient geyserHttpClient;
     private readonly SemaphoreSlim gate = new(1, 1);
     public Action<RestoreJournal>? JournalBoundary { get; set; }
 
-    public P2StorageService(string dataDirectory, HostResources resources, TimeProvider? clock = null, Func<string, long?>? availableBytesProbe = null)
+    public P2StorageService(string dataDirectory, HostResources resources, TimeProvider? clock = null, Func<string, long?>? availableBytesProbe = null, HttpClient? geyserHttpClient = null)
     {
         if (string.IsNullOrWhiteSpace(dataDirectory) || !Path.IsPathFullyQualified(dataDirectory)) throw new ArgumentException("Absolute local data directory required.", nameof(dataDirectory));
         this.dataDirectory = Path.GetFullPath(dataDirectory);
@@ -24,6 +25,7 @@ public sealed partial class P2StorageService
         this.paths = new StoragePaths(resources);
         this.clock = clock ?? TimeProvider.System;
         this.availableBytesProbe = availableBytesProbe ?? AvailableBytes;
+        this.geyserHttpClient = geyserHttpClient ?? new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
         StoragePaths.CheckNoReparse(this.dataDirectory);
         Directory.CreateDirectory(this.dataDirectory);
         CleanupFailedBackups();

@@ -14,6 +14,7 @@ public sealed partial class RunnerStore : IDisposable
     private bool disposed;
     public Guid Epoch { get; } = Guid.NewGuid();
     public bool ProcessControlEnabled => configuration.EnableProcessControl;
+    public bool GeyserUpdateEnabled => configuration.EnableProcessControl && configuration.EnableFileControl;
 
     public RunnerStore(string dataRoot, RunnerConfiguration configuration, TimeProvider? clock = null)
     {

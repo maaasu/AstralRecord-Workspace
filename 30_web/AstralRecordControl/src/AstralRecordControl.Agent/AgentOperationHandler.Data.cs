@@ -24,6 +24,12 @@ public sealed partial class AgentOperationHandler
     private async Task<ExecutionSnapshot> DispatchDataAsync(ExecuteRequest execute, OperationCommand command, CancellationToken cancellationToken)
     {
         if (!configuration.EnableFileControl || processGate?.Enabled == false || storage is null) throw new AgentFault(ErrorCode.UnsupportedCapability);
+        if (command.Kind == OperationKind.UpdateGeyser)
+        {
+            var server = store.GetAppliedInventory().Servers.SingleOrDefault(s => s.ServerId == command.ServerId);
+            if (server?.Kind != ServerKind.Velocity || !(await runner.GetCapabilitiesAsync(cancellationToken)).Contains(ServerProcessSupport.GeyserUpdateCapability))
+                throw new AgentFault(ErrorCode.UnsupportedCapability);
+        }
         await gate.WaitAsync(cancellationToken);
         try
         {
@@ -55,6 +61,7 @@ public sealed partial class AgentOperationHandler
     private async Task RunDataJobAsync(ExecuteRequest execute, OperationCommand command, bool resume, string? resumeReason, CancellationToken cancellationToken)
     {
         var begun = false;
+        var geyserMayHaveChanged = false;
         var restoreBeforeJournal = false;
         var pendingAtStart = store.GetPendingResultState(command.OperationId);
         try
@@ -63,6 +70,7 @@ public sealed partial class AgentOperationHandler
             var server = inventory.Servers.SingleOrDefault(s => s.ServerId == command.ServerId) ?? throw new AgentFault(ErrorCode.StaleRevision);
             if (server.Revision != command.ConfigRevision) throw new AgentFault(ErrorCode.StaleRevision);
             var profile = command.Kind is OperationKind.CreateBackup or OperationKind.PruneBackups ? ResolveProfile(inventory, command) : null;
+            GeyserPreparedUpdate? geyser = null;
             if (resume)
             {
                 if (command.Kind is not (OperationKind.RestoreBackup or OperationKind.CreateBackup)) throw new AgentFault(ErrorCode.UnsupportedCapability);
@@ -89,9 +97,16 @@ public sealed partial class AgentOperationHandler
             var restartRequired = pendingAtStart?.RestartRequired ?? false;
             if (pendingAtStart is null)
             {
-                if ((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && previouslyRunning)
+                // The Runner accepts within StartBeforeUtc; only then download before stopping Velocity.
+                if (command.Kind == OperationKind.UpdateGeyser)
+                    geyser = await storage!.PrepareGeyserUpdateAsync(server, command.OperationId, cancellationToken);
+                if (((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && previouslyRunning) || geyser?.Updated == true && previouslyRunning)
+                {
+                    if (geyser?.Updated == true) geyserMayHaveChanged = true;
                     await RunChildProcessOperationAsync(command, OperationKind.Stop, cancellationToken);
-                if (command.Kind is not (OperationKind.ListFiles or OperationKind.ReadFile)) await VerifyDataGuardAsync(command.OperationId, cancellationToken);
+                }
+                if (command.Kind is not (OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.UpdateGeyser) || geyser?.Updated == true)
+                    await VerifyDataGuardAsync(command.OperationId, cancellationToken);
                 object result;
                 if (resume && command.Kind == OperationKind.CreateBackup)
                 {
@@ -101,10 +116,24 @@ public sealed partial class AgentOperationHandler
                 }
                 else if (resume && command.Kind == OperationKind.RestoreBackup && !restoreBeforeJournal)
                     result = await storage!.ResumeRestoreAsync(server, command.OperationId, token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
+                else if (geyser is not null)
+                {
+                    if (geyser.Updated)
+                    {
+                        geyserMayHaveChanged = true;
+                        await storage!.ApplyGeyserUpdateAsync(server, command.OperationId, geyser,
+                            token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
+                    }
+                    else if (previouslyRunning)
+                        await runner.MarkDataReadyForRestartAsync(command.OperationId, cancellationToken);
+                    result = geyser.Summary;
+                }
                 else result = await ExecuteStorageAsync(command, server, profile, cancellationToken);
                 if (result is RestoreResult restored) result = RestoreResultSummary(restored);
                 restartRequired = command.Kind == OperationKind.CreateBackup && previouslyRunning && profile!.RestartIfPreviouslyRunning
-                    || command.Kind == OperationKind.RestoreBackup && FileOperationValidation.Read<RestoreBackupPayload>(command.Payload).RestartAfterRestore;
+                    || command.Kind == OperationKind.RestoreBackup && FileOperationValidation.Read<RestoreBackupPayload>(command.Payload).RestartAfterRestore
+                    || command.Kind == OperationKind.UpdateGeyser && geyser?.Updated == true && previouslyRunning &&
+                        FileOperationValidation.Read<UpdateGeyserPayload>(command.Payload).RestartIfPreviouslyRunning;
                 store.SavePendingResult(command.OperationId, ControlJson.Serialize(result), restartRequired);
             }
             if (restartRequired)
@@ -122,7 +151,20 @@ public sealed partial class AgentOperationHandler
         }
         catch (Exception exception)
         {
-            if (begun && exception is FileConflictException)
+            if (begun && command.Kind == OperationKind.UpdateGeyser && !geyserMayHaveChanged && pendingAtStart is null)
+            {
+                try
+                {
+                    await runner.FinishDataOperationAsync(new FinishDataOperationRequest(command.OperationId, execute.CommandSha256, OperationStatus.Rejected), CancellationToken.None);
+                    store.AdvanceOperation(command.OperationId, OperationStatus.Rejected, ExecutionPhase.Completed,
+                        error: exception is AgentFault preflightFault ? preflightFault.Code : ErrorCode.RecoveryRequired);
+                    try { storage!.DiscardGeyserStage(store.GetAppliedInventory().Servers.Single(s => s.ServerId == command.ServerId), command.OperationId); }
+                    catch (Exception) { /* Stale stage can be inspected without holding the server. */ }
+                    return;
+                }
+                catch { /* An unknown local RPC result still needs inspection. */ }
+            }
+            if (begun && exception is FileConflictException && !(command.Kind == OperationKind.UpdateGeyser && geyserMayHaveChanged))
             {
                 try
                 {
@@ -328,7 +370,8 @@ public sealed partial class AgentOperationHandler
                 await runner.FinishDataOperationAsync(new(operationId, recovered.CommandSha256, OperationStatus.NeedsAttention), cancellationToken);
                 return local;
             }
-            if (recovered.Status == OperationStatus.Failed) return store.AdvanceOperation(operationId, OperationStatus.Failed, ExecutionPhase.Completed, error: ErrorCode.RecoveryRequired);
+            if (recovered.Status is OperationStatus.Failed or OperationStatus.Rejected)
+                return store.AdvanceOperation(operationId, recovered.Status, ExecutionPhase.Completed, error: ErrorCode.RecoveryRequired);
             if (recovered.Status == OperationStatus.Succeeded && store.GetPendingResult(operationId) is not null)
             {
                 await PublishPendingResultAsync(operationId, recovered.CommandSha256, cancellationToken);
@@ -374,6 +417,7 @@ public sealed partial class AgentOperationHandler
             return store.AdvanceOperation(operationId, OperationStatus.NeedsAttention, ExecutionPhase.Recovering, error: ErrorCode.RecoveryRequired);
         }
         if (remote.Status == OperationStatus.NeedsAttention) return store.AdvanceOperation(operationId, OperationStatus.NeedsAttention, ExecutionPhase.Recovering, error: ErrorCode.RecoveryRequired);
+        if (remote.Status == OperationStatus.Rejected) return store.AdvanceOperation(operationId, OperationStatus.Rejected, ExecutionPhase.Completed, error: ErrorCode.RecoveryRequired);
         return store.AdvanceOperation(operationId, OperationStatus.NeedsAttention, ExecutionPhase.Recovering, error: ErrorCode.RecoveryRequired);
     }
 

@@ -1,12 +1,111 @@
 using AstralRecordControl.Agent;
 using AstralRecordControl.Agent.Storage;
 using AstralRecordControl.Contracts;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Xunit;
 
 namespace AstralRecordControl.Agent.Tests;
 
 public sealed class ScheduleExecutionTests
 {
+    [Fact]
+    public async Task SingleRestartOfStoppedServerIsSkippedWithoutStartingIt()
+    {
+        using var fixture = new Fixture();
+        var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new ScheduleStep { StepKey = "restart", Kind = OperationKind.Restart });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
+        await fixture.Service(store).TickAsync();
+        var report = Assert.Single(store.ReadScheduleReports()).Report;
+        Assert.Equal(ScheduleOccurrenceStatus.Skipped, report.Status);
+        Assert.Equal("StateConflict", report.ErrorCode);
+        Assert.Empty(report.Steps);
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task GeyserAttentionIsReleasedOnlyAfterLocalInspectionResolvesRunnerState()
+    {
+        using var fixture = new Fixture(geyser: true);
+        fixture.Runner.IsRunning = true;
+        fixture.Runner.FailKind = OperationKind.Stop;
+        var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload()) });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
+        var service = fixture.Service(store);
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            await service.TickAsync();
+            if (store.ReadScheduleReports().Single().Report.Status == ScheduleOccurrenceStatus.NeedsAttention) break;
+            await Task.Delay(20);
+        }
+        Assert.Equal(ScheduleOccurrenceStatus.NeedsAttention, Assert.Single(store.ReadScheduleReports()).Report.Status);
+        Assert.Single(fixture.Runner.Holds);
+        await service.TickAsync();
+        Assert.Single(fixture.Runner.Holds);
+        fixture.Runner.RecoverGeyserAfterInspection();
+        await service.TickAsync();
+        var report = Assert.Single(store.ReadScheduleReports()).Report;
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, report.Status);
+        Assert.Equal(OperationStatus.Failed, Assert.Single(report.Steps).Status);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task BadGeyserDownloadDoesNotStopVelocityOrHoldSchedule()
+    {
+        using var fixture = new Fixture(geyser: true, corruptDownload: true);
+        fixture.Runner.IsRunning = true;
+        var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload()) });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
+        var service = fixture.Service(store);
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            await service.TickAsync();
+            if (store.ReadScheduleReports().Single().Report.Status == ScheduleOccurrenceStatus.Failed) break;
+            await Task.Delay(20);
+        }
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, Assert.Single(store.ReadScheduleReports()).Report.Status);
+        Assert.True(fixture.Runner.IsRunning);
+        Assert.DoesNotContain(fixture.Runner.Executions.Keys, id => id == DataExecution.ChildOperationId(Assert.Single(store.ReadScheduleReports()).Report.Steps.Single().OperationId, OperationKind.Stop));
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    public async Task GeyserUpdateHandlesRunningNoChangeAndStoppedVelocity(bool running, bool sameHash, bool expectRestart)
+    {
+        using var fixture = new Fixture(geyser: true, installedGeyser: sameHash ? "new" : "old");
+        fixture.Runner.IsRunning = running;
+        var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
+            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload()) });
+        using var store = fixture.OpenStore();
+        fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
+        var service = fixture.Service(store);
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            await service.TickAsync();
+            if (store.ReadScheduleReports().Single().Report.Status == ScheduleOccurrenceStatus.Succeeded) break;
+            await Task.Delay(20);
+        }
+        var report = Assert.Single(store.ReadScheduleReports()).Report;
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, report.Status);
+        Assert.Equal(running, fixture.Runner.IsRunning);
+        Assert.Equal("new", File.ReadAllText(fixture.GeyserPluginPath));
+        Assert.Equal(expectRestart ? 2 : 0, fixture.Runner.Executions.Count);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
     [Fact]
     public async Task OnlyAcknowledgedSnapshotExecutesAndSameOccurrenceSurvivesRestart()
     {
@@ -245,27 +344,36 @@ public sealed class ScheduleExecutionTests
         public Guid BackupRootId { get; } = Guid.NewGuid();
         public Guid ProfileId { get; } = Guid.NewGuid();
         public string BackupRoot => Path.Combine(root, "backup-root");
+        private readonly bool geyser;
         public ServerConfig Server => new() { HostId = HostId, ServerId = ServerId, Revision = 1,
-            ManagedRootId = RootId, ExecutableId = Guid.NewGuid(), ServerDirectory = "server" };
+            Kind = geyser ? ServerKind.Velocity : ServerKind.Java, ManagedRootId = RootId, ExecutableId = Guid.NewGuid(), ServerDirectory = "server" };
         public P2StorageService Storage { get; }
         public ManualClock Clock { get; } = new(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         public FakeRunner Runner { get; }
         public AgentConfiguration Configuration { get; }
         public AgentProcessControlGate Gate { get; }
-        public Fixture()
+        public string GeyserPluginPath => Path.Combine(root, "managed-root", "server", "plugins", "Geyser-Velocity.jar");
+        public Fixture(bool geyser = false, bool corruptDownload = false, string installedGeyser = "old")
         {
+            this.geyser = geyser;
             Directory.CreateDirectory(root);
             var liveRoot = Path.Combine(root, "managed-root");
             Directory.CreateDirectory(Path.Combine(liveRoot, "server"));
             Directory.CreateDirectory(BackupRoot);
             File.WriteAllText(Path.Combine(liveRoot, "server", "level.dat"), "world");
+            if (geyser)
+            {
+                Directory.CreateDirectory(Path.Combine(liveRoot, "server", "plugins"));
+                File.WriteAllText(GeyserPluginPath, installedGeyser);
+            }
             var marker = Path.Combine(root, "marker"); File.WriteAllText(marker, "test");
             Gate = new AgentProcessControlGate(marker);
             Configuration = new AgentConfiguration { HostId = HostId, ServerUrl = "https://control.test", EnableSchedules = true, EnableFileControl = true,
                 LocalResources = new HostResources { Roots = [new ManagedRoot { Id = RootId, Path = liveRoot, DisplayName = "fixture" },
                     new ManagedRoot { Id = BackupRootId, Path = BackupRoot, DisplayName = "backup", BackupOnly = true }] } };
             Runner = new FakeRunner(HostId, ServerId, Clock);
-            Storage = new P2StorageService(Path.Combine(root, "storage"), Configuration.LocalResources, Clock, _ => long.MaxValue);
+            Storage = new P2StorageService(Path.Combine(root, "storage"), Configuration.LocalResources, Clock, _ => long.MaxValue,
+                geyser ? new HttpClient(new GeyserHandler(corruptDownload)) : null);
         }
         public AgentStore OpenStore() => new(Path.Combine(root, "agent"), HostId);
         public AgentScheduleService Service(AgentStore store) => new(Configuration, store, Runner,
@@ -292,6 +400,17 @@ public sealed class ScheduleExecutionTests
         public override DateTimeOffset GetUtcNow() => now;
     }
 
+    private sealed class GeyserHandler(bool corruptDownload) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var content = request.RequestUri!.AbsolutePath.EndsWith("/downloads/velocity", StringComparison.Ordinal) ? corruptDownload ? "corrupt" : "new" :
+                JsonSerializer.Serialize(new { project_id = "geyser", version = "2.12.1", build = 17,
+                    downloads = new { velocity = new { name = "Geyser-Velocity.jar", sha256 = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("new"))) } } });
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) });
+        }
+    }
+
     private sealed class FakeRunner(Guid hostId, Guid serverId, ManualClock clock) : IRunnerClient
     {
         private long fence;
@@ -304,8 +423,20 @@ public sealed class ScheduleExecutionTests
         public bool CentralHold { get; set; }
         public OperationKind? FailKind { get; set; }
         public bool IsRunning { get; set; }
+        public bool RecoveryRequired { get; private set; }
         private readonly Guid sessionId = Guid.NewGuid();
         public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability });
+        public Task<RecoveryInspection> InspectRecoveryAsync(Guid requestedServerId, CancellationToken cancellationToken) => Task.FromResult(
+            new RecoveryInspection(GetSnapshotAsync(cancellationToken).Result.Servers.Single(), null, IsRunning, IsRunning, RecoveryRequired));
+        public void RecoverGeyserAfterInspection()
+        {
+            IsRunning = false;
+            RecoveryRequired = false;
+            stateRevision++;
+            foreach (var (id, row) in dataExecutions.ToArray())
+                if (row.Status == OperationStatus.NeedsAttention) dataExecutions[id] = row with { Status = OperationStatus.Failed, StatusVersion = row.StatusVersion + 1 };
+        }
         public Task<RunnerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) => Task.FromResult(new RunnerSnapshot
         {
             RunnerEpoch = Guid.NewGuid(), Holds = Holds.Values.ToArray(), Servers = [new ServerRuntimeSnapshot { ServerId = serverId, ConfigRevision = 1, StateRevision = stateRevision,
@@ -334,6 +465,7 @@ public sealed class ScheduleExecutionTests
                 throw new AgentFault(ErrorCode.ReservationConflict);
             var status = command.Kind == FailKind ? OperationStatus.Failed : OperationStatus.Succeeded;
             if (status == OperationStatus.Succeeded && command.Kind == OperationKind.Stop) { IsRunning = false; stateRevision++; }
+            if (status == OperationStatus.Succeeded && command.Kind == OperationKind.Start) { IsRunning = true; stateRevision++; }
             var result = new ExecutionSnapshot { OperationId = request.OperationId, CommandSha256 = request.CommandSha256,
                 Status = status, StatusVersion = 2, Phase = ExecutionPhase.Completed, UpdatedAtUtc = clock.GetUtcNow() };
             executions.Add(request.OperationId, result);
@@ -354,11 +486,13 @@ public sealed class ScheduleExecutionTests
             return Task.FromResult(result);
         }
         public Task<ExecutionSnapshot> VerifyDataOperationAsync(Guid operationId, CancellationToken cancellationToken) => GetDataOperationAsync(operationId, cancellationToken);
+        public Task<ExecutionSnapshot> MarkDataReadyForRestartAsync(Guid operationId, CancellationToken cancellationToken) => GetDataOperationAsync(operationId, cancellationToken);
         public Task<ExecutionSnapshot> FinishDataOperationAsync(FinishDataOperationRequest request, CancellationToken cancellationToken)
         {
             var previous = dataExecutions[request.OperationId];
             var next = previous with { Status = request.Status, StatusVersion = previous.StatusVersion + 1, Phase = ExecutionPhase.Completed };
             dataExecutions[request.OperationId] = next;
+            if (request.Status == OperationStatus.NeedsAttention) RecoveryRequired = true;
             return Task.FromResult(next);
         }
         public Task<ExecutionSnapshot> GetDataOperationAsync(Guid operationId, CancellationToken cancellationToken) =>

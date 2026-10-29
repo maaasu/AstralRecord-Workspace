@@ -67,7 +67,11 @@ public sealed class RunnerDispatcher(RunnerStore store)
     private System.Text.Json.JsonElement Capabilities(IpcRequest request)
     {
         if (request.Body.ValueKind != System.Text.Json.JsonValueKind.Object || request.Body.EnumerateObject().Any()) throw new RunnerFault(ErrorCode.ProtocolMismatch);
-        return ControlJson.Element(store.ProcessControlEnabled ? new[] { ServerProcessSupport.VelocityCapability } : Array.Empty<string>());
+        return ControlJson.Element(store.ProcessControlEnabled
+            ? store.GeyserUpdateEnabled
+                ? new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability }
+                : new[] { ServerProcessSupport.VelocityCapability }
+            : Array.Empty<string>());
     }
     private System.Text.Json.JsonElement Snapshot(IpcRequest request)
     {

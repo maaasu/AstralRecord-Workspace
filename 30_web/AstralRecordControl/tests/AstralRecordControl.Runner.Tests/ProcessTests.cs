@@ -10,6 +10,63 @@ namespace AstralRecordControl.Runner.Tests;
 public sealed class ProcessTests
 {
     [Fact]
+    public async Task GeyserNoChangeCanCompleteWhileOriginalVelocitySessionStillRuns()
+    {
+        using var fixture = new Fixture(kind: ServerKind.Velocity, enableFileControl: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        var started = await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId);
+        Assert.Equal(OperationStatus.Succeeded, started.Status);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var session = runner.GetSnapshot().Servers.Single().CurrentSessionId;
+        var update = fixture.Request(runner, hold, OperationKind.UpdateGeyser, new UpdateGeyserPayload());
+        Assert.Equal(OperationStatus.Running, runner.BeginDataOperation(update).Status);
+        Assert.Equal(ErrorCode.StateConflict, Assert.Throws<RunnerFault>(() => runner.VerifyDataOperation(update.OperationId)).Code);
+        runner.MarkDataReadyForRestart(update.OperationId);
+        Assert.Equal(OperationStatus.Succeeded, runner.FinishDataOperation(new(update.OperationId, update.CommandSha256, OperationStatus.Succeeded)).Status);
+        Assert.Equal(session, runner.GetSnapshot().Servers.Single().CurrentSessionId);
+        var rejected = fixture.Request(runner, hold, OperationKind.UpdateGeyser, new UpdateGeyserPayload());
+        runner.BeginDataOperation(rejected);
+        Assert.Equal(OperationStatus.Rejected, runner.FinishDataOperation(new(rejected.OperationId, rejected.CommandSha256, OperationStatus.Rejected)).Status);
+        Assert.Equal(session, runner.GetSnapshot().Servers.Single().CurrentSessionId);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        var stopHold = fixture.Hold(runner);
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, stopHold, OperationKind.Stop)).OperationId)).Status);
+    }
+
+    [Fact]
+    public async Task GeyserDataOperationAllowsOnlyItsDeterministicStopAndStartChildren()
+    {
+        using var fixture = new Fixture(kind: ServerKind.Velocity, enableFileControl: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        Assert.Equal(OperationStatus.Succeeded,
+            (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId)).Status);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var update = fixture.Request(runner, hold, OperationKind.UpdateGeyser, new UpdateGeyserPayload());
+        runner.BeginDataOperation(update);
+        var stop = ControlJson.Deserialize<OperationCommand>(fixture.Request(runner, hold, OperationKind.Stop).CommandJson) with
+        { OperationId = DataExecution.ChildOperationId(update.OperationId, OperationKind.Stop) };
+        var stopJson = ControlJson.Serialize(stop);
+        Assert.Equal(OperationStatus.Succeeded,
+            (await WaitTerminal(runner, runner.Execute(new(stop.OperationId, stopJson, ControlProtocol.Hash(stopJson))).OperationId)).Status);
+        Assert.Equal(OperationStatus.Running, runner.VerifyDataOperation(update.OperationId).Status);
+        runner.MarkDataReadyForRestart(update.OperationId);
+        var start = ControlJson.Deserialize<OperationCommand>(fixture.Request(runner, hold, OperationKind.Start).CommandJson) with
+        { OperationId = DataExecution.ChildOperationId(update.OperationId, OperationKind.Start) };
+        var startJson = ControlJson.Serialize(start);
+        Assert.Equal(OperationStatus.Succeeded,
+            (await WaitTerminal(runner, runner.Execute(new(start.OperationId, startJson, ControlProtocol.Hash(startJson))).OperationId)).Status);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        Assert.Equal(OperationStatus.Succeeded, runner.FinishDataOperation(new(update.OperationId, update.CommandSha256, OperationStatus.Succeeded)).Status);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        var stopHold = fixture.Hold(runner);
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, stopHold, OperationKind.Stop)).OperationId)).Status);
+    }
+
+    [Fact]
     public async Task ChildRetainsWindowsNetworkingAndPrivateWritableTempWithoutParentEnvironment()
     {
         var previous = Environment.GetEnvironmentVariable("ASTRAL_CONTROL_PARENT_ONLY_FIXTURE");
@@ -493,14 +550,14 @@ public sealed class ProcessTests
         public ServerConfig? SecondServer { get; }
         public string DatabasePath => Path.Combine(root, "runner", "runner.db");
         public string TemporaryDirectory => Path.Combine(root, "runner", "process-temp", Server.ServerId.ToString("N"));
-        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false, ServerKind kind = ServerKind.Java)
+        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false, ServerKind kind = ServerKind.Java, bool enableFileControl = false)
         {
             var managed = Path.Combine(root, "managed");
             Directory.CreateDirectory(Path.Combine(managed, "server"));
             var executable = Path.GetFullPath(Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "../../..", "dotnet.exe"));
             Assert.True(File.Exists(executable));
             var host = Guid.NewGuid(); var managedId = Guid.NewGuid(); var executableId = Guid.NewGuid();
-            Configuration = new RunnerConfiguration { HostId = host, EnableProcessControl = true, LocalResources = new HostResources { Roots = [new ManagedRoot { Id = managedId, Path = managed }], Executables = [new ManagedExecutable { Id = executableId, Path = executable, Kind = ServerKind.Java }] } };
+            Configuration = new RunnerConfiguration { HostId = host, EnableProcessControl = true, EnableFileControl = enableFileControl, LocalResources = new HostResources { Roots = [new ManagedRoot { Id = managedId, Path = managed }], Executables = [new ManagedExecutable { Id = executableId, Path = executable, Kind = ServerKind.Java }] } };
             Server = new ServerConfig { ServerId = Guid.NewGuid(), HostId = host, Revision = 1, Kind = ServerKind.Java, ManagedRootId = managedId, ExecutableId = executableId, ServerDirectory = "server", ArgumentList = ignoreStop ? [typeof(Marker).Assembly.Location, "ignore-stop"] : [typeof(Marker).Assembly.Location], AutoStart = autoStart, RestartOnCrash = restartOnCrash, RestartDelaySeconds = 1 };
             if (kind == ServerKind.Velocity) Server = Server with { Kind = kind, ArgumentList = [.. Server.ArgumentList, "velocity"] };
             if (noRead) Server = Server with { ArgumentList = [typeof(Marker).Assembly.Location, "no-read"], StopCommand = new string('x', 4096) };
