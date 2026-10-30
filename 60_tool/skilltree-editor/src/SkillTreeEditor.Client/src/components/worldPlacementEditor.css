@@ -29,6 +29,10 @@
 .wp-editing > .wp-change-review { grid-column: 1 / -1; min-width: 0; }
 .wp-change-review { padding: .6rem; border: 1px solid #477382; border-radius: 7px; }
 .wp-change-review > div { margin-top: .7rem; }
+.wp-change-filters { display: flex; flex-wrap: wrap; gap: .7rem; align-items: end; }
+.wp-change-filters label { display: grid; gap: .3rem; }
+.wp-change-filters label:last-child { flex: 1 1 16rem; min-width: 0; }
+.wp-change-filters input { width: 100%; box-sizing: border-box; }
 .wp-change-list { display: grid; gap: .7rem; max-height: 32rem; overflow: auto; margin-top: .7rem; }
 .wp-change { min-width: 0; padding: .7rem; background: #183642; border: 1px solid #365967; border-radius: 6px; overflow-wrap: anywhere; }
 .wp-change h3 { font-size: 1rem; }
