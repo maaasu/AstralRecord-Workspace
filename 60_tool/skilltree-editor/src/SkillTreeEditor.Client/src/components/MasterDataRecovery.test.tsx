@@ -56,7 +56,7 @@ describe('draft recovery and connection recovery', () => {
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: '下書き' }))
     fireEvent.click(await screen.findByRole('button', { name: '下書きを復元' }))
-    expect(screen.getByRole('textbox', { name: '/order' })).toHaveValue('-')
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/order' })).toHaveValue('-'))
     expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).toBeDisabled()
     fireEvent.change(screen.getByRole('textbox', { name: '/order' }), { target: { value: '2' } })
     expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).not.toBeDisabled()

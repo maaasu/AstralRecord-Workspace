@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { JsonObject, JsonValue } from '../types/editor'
 import { closestContainerPointer } from '../data/masterDataNavigation'
+import * as navigation from '../data/masterDataNavigation'
 import { MasterDataDetails, MasterDataSearch } from './MasterDataNavigation'
 
 const initial = { schemaVersion: 1, id: 'test', unknown: 'root', skills: [{ params: { 'a/b~c': 2, UnknownRpc: 'keep' } }, { id: 'sibling' }] }
@@ -168,5 +169,213 @@ describe('master data sections, search and details', () => {
     fireEvent.click(screen.getByRole('button', { name: '次の要素' }))
     fireEvent.click(screen.getByRole('button', { name: '/items/25 を削除' }))
     expect(JSON.parse(screen.getByTestId('value').textContent!).items.map((item: { id: string }) => item.id)).toEqual(items.filter((_, index) => index !== 25).map((item) => item.id))
+  })
+})
+
+describe('paged form search', () => {
+  const fields: [] = []
+  const schema: JsonObject = {}
+  const many = Object.fromEntries(Array.from({ length: 205 }, (_, index) => [`field${index}`, 'needle']))
+  const resultButtons = () => screen.getAllByRole('button', { name: / に移動$/ })
+
+  it('reaches every result with a bounded page and keyboard focus on the new page', () => {
+    const onFocus = vi.fn()
+    render(<MasterDataSearch value={many} fields={fields} schema={schema} onSelect={vi.fn()} onFocus={onFocus} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'needle' } })
+    expect(screen.getByRole('status')).toHaveTextContent('205件 · 1〜100件を表示')
+    expect(resultButtons()).toHaveLength(100)
+    expect(screen.getByRole('button', { name: '前の検索結果' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+    expect(screen.getByRole('button', { name: '/field100 に移動' })).toHaveFocus()
+    expect(screen.queryByRole('button', { name: '/field0 に移動' })).not.toBeInTheDocument()
+    expect(resultButtons()).toHaveLength(100)
+    fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+    expect(resultButtons()).toHaveLength(5)
+    expect(screen.getByRole('status')).toHaveTextContent('205件 · 201〜205件を表示')
+    const first = screen.getByRole('button', { name: '/field200 に移動' })
+    const last = screen.getByRole('button', { name: '/field204 に移動' })
+    expect(first).toHaveFocus()
+    expect(screen.getByRole('button', { name: '次の検索結果' })).toBeDisabled()
+    fireEvent.keyDown(first, { key: 'End' })
+    expect(last).toHaveFocus()
+    fireEvent.keyDown(last, { key: 'ArrowDown' })
+    expect(first).toHaveFocus()
+    fireEvent.keyDown(first, { key: 'ArrowUp' })
+    expect(last).toHaveFocus()
+    fireEvent.keyDown(last, { key: 'Escape' })
+    expect(screen.getByRole('textbox', { name: 'フォーム内検索' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'フォーム内検索' }), { key: 'Enter' })
+    expect(first).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: '前の検索結果' }))
+    expect(screen.getByRole('button', { name: '/field100 に移動' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+    fireEvent.click(screen.getByRole('button', { name: '/field204 に移動' }))
+    expect(onFocus).toHaveBeenCalledWith('/field204')
+    expect(screen.getByRole('textbox', { name: 'フォーム内検索' })).toHaveValue('')
+  })
+
+  it('returns to the first page when the query changes, including returning to an earlier query', () => {
+    render(<MasterDataSearch value={many} fields={fields} schema={schema} onSelect={vi.fn()} onFocus={vi.fn()} />)
+    const input = screen.getByRole('textbox', { name: 'フォーム内検索' })
+    fireEvent.change(input, { target: { value: 'needle' } })
+    fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+    fireEvent.change(input, { target: { value: 'field204' } })
+    expect(resultButtons()).toHaveLength(1)
+    expect(screen.queryByRole('navigation', { name: 'フォーム内検索のページ' })).not.toBeInTheDocument()
+    fireEvent.change(input, { target: { value: 'needle' } })
+    expect(screen.getByRole('button', { name: '/field0 に移動' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '前の検索結果' })).toBeDisabled()
+    fireEvent.change(input, { target: { value: 'not-present' } })
+    expect(screen.getByRole('status')).toHaveTextContent('0件')
+    input.focus()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(input).toHaveFocus()
+  })
+
+  it('returns to the first page even when only query capitalization or surrounding spaces change', () => {
+    render(<MasterDataSearch value={many} fields={fields} schema={schema} onSelect={vi.fn()} onFocus={vi.fn()} />)
+    const input = screen.getByRole('textbox', { name: 'フォーム内検索' })
+    fireEvent.change(input, { target: { value: 'needle' } })
+    for (const query of ['NEEDLE', ' NEEDLE ', 'needle']) {
+      fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+      expect(screen.getByRole('status')).toHaveTextContent('101〜200件')
+      fireEvent.change(input, { target: { value: query } })
+      expect(screen.getByRole('status')).toHaveTextContent('1〜100件')
+      expect(screen.getByRole('button', { name: '/field0 に移動' })).toBeInTheDocument()
+    }
+  })
+
+  it('does not repeat schema traversal for query changes, page changes or unrelated rerenders', () => {
+    const resolve = vi.spyOn(navigation, 'schemaAtPointer')
+    try {
+      const props = { value: many, fields, schema, onSelect: vi.fn(), onFocus: vi.fn() }
+      const { rerender } = render(<MasterDataSearch {...props} />)
+      expect(resolve).not.toHaveBeenCalled()
+      const input = screen.getByRole('textbox', { name: 'フォーム内検索' })
+      fireEvent.change(input, { target: { value: 'n' } })
+      expect(resolve).toHaveBeenCalledTimes(205)
+      for (const query of ['ne', 'nee', 'needle']) fireEvent.change(input, { target: { value: query } })
+      fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+      rerender(<MasterDataSearch {...props} onFocus={vi.fn()} />)
+      expect(resolve).toHaveBeenCalledTimes(205)
+      expect(screen.getByRole('button', { name: '/field100 に移動' })).toBeInTheDocument()
+      rerender(<MasterDataSearch {...props} value={{ ...many, field0: 'updated' }} />)
+      expect(resolve).toHaveBeenCalledTimes(410)
+      expect(screen.getByRole('status')).toHaveTextContent('204件 · 1〜100件を表示')
+      expect(screen.queryByRole('button', { name: '/field0 に移動' })).not.toBeInTheDocument()
+      fireEvent.change(input, { target: { value: 'updated' } })
+      expect(screen.getByRole('button', { name: '/field0 に移動' })).toHaveTextContent('updated')
+      expect(resolve).toHaveBeenCalledTimes(410)
+    } finally { resolve.mockRestore() }
+  })
+
+  it('refreshes Japanese field titles and schema titles when definitions change', () => {
+    const props = { value: { custom: 'x' }, fields, schema, onSelect: vi.fn(), onFocus: vi.fn() }
+    const { rerender } = render(<MasterDataSearch {...props} />)
+    const input = screen.getByRole('textbox', { name: 'フォーム内検索' })
+    fireEvent.change(input, { target: { value: '日本語' } })
+    expect(screen.getByRole('status')).toHaveTextContent('0件')
+    rerender(<MasterDataSearch {...props} schema={{ properties: { custom: { title: '日本語の定義' } } }} />)
+    expect(screen.getByRole('button', { name: '/custom に移動' })).toHaveTextContent('日本語の定義')
+    rerender(<MasterDataSearch {...props} fields={[{ path: 'custom', key: 'custom', label: '日本語の項目', type: 'string', required: false, description: '' }]} />)
+    expect(screen.getByRole('button', { name: '/custom に移動' })).toHaveTextContent('日本語の項目')
+    rerender(<MasterDataSearch {...props} />)
+    expect(screen.getByRole('status')).toHaveTextContent('0件')
+  })
+
+  it('updates result pointers and summaries after array reorder and removal', () => {
+    const onFocus = vi.fn()
+    const props = { fields, schema, onSelect: vi.fn(), onFocus }
+    const { rerender } = render(<MasterDataSearch {...props} value={{ rows: [{ id: 'target' }, { id: 'other' }] }} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'target' } })
+    expect(screen.getByRole('button', { name: '/rows/0/id に移動' })).toBeInTheDocument()
+    rerender(<MasterDataSearch {...props} value={{ rows: [{ id: 'other' }, { id: 'target' }] }} />)
+    expect(screen.queryByRole('button', { name: '/rows/0/id に移動' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '/rows/1/id に移動' }))
+    expect(onFocus).toHaveBeenCalledWith('/rows/1/id')
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'target' } })
+    rerender(<MasterDataSearch {...props} value={{ rows: [{ id: 'other' }] }} />)
+    expect(screen.getByRole('status')).toHaveTextContent('0件')
+  })
+
+  it('locks page movement and item navigation while numeric inputs are invalid', () => {
+    const onFocus = vi.fn()
+    render(<MasterDataSearch value={many} fields={fields} schema={schema} disabled onSelect={vi.fn()} onFocus={onFocus} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: 'needle' } })
+    expect(screen.getByRole('button', { name: '次の検索結果' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '次の検索結果' }))
+    expect(screen.getByRole('status')).toHaveTextContent('1〜100件')
+    expect(resultButtons().every((button) => (button as HTMLButtonElement).disabled)).toBe(true)
+    expect(onFocus).not.toHaveBeenCalled()
+  })
+
+  it('keeps results inside the viewport and follows ancestor scrolling and resizing', () => {
+    render(<MasterDataSearch value={many} fields={fields} schema={schema} onSelect={vi.fn()} onFocus={vi.fn()} />)
+    const input = screen.getByRole('textbox', { name: 'フォーム内検索' })
+    let top = window.innerHeight - 100
+    const rect = vi.spyOn(input, 'getBoundingClientRect').mockImplementation(() => ({ x: 500, y: top, top, bottom: top + 32, left: 500, right: 700, width: 200, height: 32, toJSON: () => ({}) }))
+    try {
+      fireEvent.change(input, { target: { value: 'needle' } })
+      const popup = screen.getByRole('status').parentElement!
+      expect(popup.style.bottom).toBe('100px')
+      expect(popup.style.top).toBe('')
+      expect(parseFloat(popup.style.maxHeight)).toBeLessThan(top)
+      top = 80
+      fireEvent.resize(window)
+      expect(popup.style.top).toBe('112px')
+      expect(popup.style.bottom).toBe('')
+      const reads = rect.mock.calls.length
+      fireEvent.scroll(screen.getByRole('list'))
+      expect(rect).toHaveBeenCalledTimes(reads)
+      top = 100
+      fireEvent.scroll(input.parentElement!)
+      expect(popup.style.top).toBe('132px')
+      fireEvent.change(input, { target: { value: '' } })
+      const closedReads = rect.mock.calls.length
+      fireEvent.resize(window)
+      expect(rect).toHaveBeenCalledTimes(closedReads)
+    } finally { rect.mockRestore() }
+  })
+
+  it('updates schema branch titles when the discriminating value changes', () => {
+    const schema: JsonObject = { properties: { action: { oneOf: [
+      { properties: { type: { const: 'attack' }, amount: { title: '攻撃量' } } },
+      { properties: { type: { const: 'heal' }, amount: { title: '回復量' } } },
+    ] } } }
+    const props = { fields, schema, onSelect: vi.fn(), onFocus: vi.fn() }
+    const { rerender } = render(<MasterDataSearch {...props} value={{ action: { type: 'attack', amount: 10 } }} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: '回復量' } })
+    expect(screen.getByRole('status')).toHaveTextContent('0件')
+    rerender(<MasterDataSearch {...props} value={{ action: { type: 'heal', amount: 10 } }} />)
+    expect(screen.getByRole('button', { name: '/action/amount に移動' })).toHaveTextContent('回復量')
+  })
+
+  it('repositions after parent layout changes or restoring a hidden editor', () => {
+    const props = { value: many, fields, schema, onSelect: vi.fn(), onFocus: vi.fn() }
+    const { rerender } = render(<div hidden={false}><MasterDataSearch {...props} /></div>)
+    const input = screen.getByRole('textbox', { name: 'フォーム内検索' })
+    let top = 80
+    let visible = true
+    const rect = vi.spyOn(input, 'getBoundingClientRect').mockImplementation(() => visible
+      ? { x: 500, y: top, top, bottom: top + 32, left: 500, right: 700, width: 200, height: 32, toJSON: () => ({}) }
+      : { x: 0, y: 0, top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, toJSON: () => ({}) })
+    try {
+      fireEvent.change(input, { target: { value: 'needle' } })
+      const popup = screen.getByRole('status').parentElement!
+      expect(popup.style.top).toBe('112px')
+      top = 120
+      rerender(<div hidden={false}><MasterDataSearch {...props} /></div>)
+      expect(popup.style.top).toBe('152px')
+      visible = false
+      rerender(<div hidden><MasterDataSearch {...props} /></div>)
+      fireEvent.resize(window)
+      expect(popup.style.top).toBe('152px')
+      visible = true
+      top = 160
+      rerender(<div hidden={false}><MasterDataSearch {...props} /></div>)
+      expect(screen.getByRole('status').parentElement).toBe(popup)
+      expect(popup.style.top).toBe('192px')
+      expect(input).toHaveValue('needle')
+    } finally { rect.mockRestore() }
   })
 })
