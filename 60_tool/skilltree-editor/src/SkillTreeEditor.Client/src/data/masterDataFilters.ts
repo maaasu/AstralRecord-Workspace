@@ -84,9 +84,14 @@ export function categoryFacetOptions(files: MasterFileSummary[], index: MasterFi
     .map(([key, items]) => [key, [...items].sort((a, b) => a.localeCompare(b, 'ja'))]))
 }
 
-export function searchMasterName(query: string, ...values: (string | null | undefined)[]): boolean {
-  const search = stripMinecraftFormatting(query).trim().toLocaleLowerCase()
-  return !search || values.some((value) => value != null && stripMinecraftFormatting(value).toLocaleLowerCase().includes(search))
+export function createMasterNameMatcher(query: string): (...values: (string | null | undefined)[]) => boolean {
+  const words = stripMinecraftFormatting(query).trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean)
+  if (!words.length) return () => true
+  return (...values) => {
+    const normalized: (string | undefined)[] = []
+    return words.every((word) => values.some((value, index) => value != null
+      && (normalized[index] ??= stripMinecraftFormatting(value).toLocaleLowerCase()).includes(word)))
+  }
 }
 
 export function matchesFileStatus(file: MasterFileSummary, status: string): boolean {

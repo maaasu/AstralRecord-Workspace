@@ -1,5 +1,5 @@
 import type { MasterFileSummary, MasterFilterIndex } from '../types/masterData'
-import { inCategory, matchesFileStatus, matchesNumericFilters, numericFilterError, searchMasterName, type NumericFilters } from './masterDataFilters'
+import { createMasterNameMatcher, inCategory, matchesFileStatus, matchesNumericFilters, numericFilterError, type NumericFilters } from './masterDataFilters'
 
 export interface MasterListFilters {
   format: string
@@ -24,6 +24,7 @@ export function filterMasterFiles(files: MasterFileSummary[], index: MasterFilte
   const sourceItems = new Set(source?.itemIds ?? [])
   const tagged = new Set(index?.skillTags.filter((entry) => entry.tags.includes(filters.skillTag)).map((entry) => entry.path) ?? [])
   const sources = new Map(index?.sources.map((entry) => [entry.path, entry]) ?? [])
+  const matchesName = createMasterNameMatcher(query)
   return files.filter((file) => {
     const entry = entries.get(file.path)
     const drops = sources.get(file.path)
@@ -35,6 +36,6 @@ export function filterMasterFiles(files: MasterFileSummary[], index: MasterFilte
       && Object.entries(filters.facetFilters).every(([key, value]) => !value || entry?.facets[key]?.includes(value))
       && matchesNumericFilters(entry, filters.numericFilters)
       && matchesFileStatus(file, filters.fileStatus)
-      && searchMasterName(query, file.path, file.id, file.name)
+      && matchesName(file.path, file.id, file.name)
   })
 }

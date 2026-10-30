@@ -1,9 +1,28 @@
 import { describe, expect, it } from 'vitest'
 import type { MasterFileSummary, MasterFilterEntry, MasterFilterIndex } from '../types/masterData'
-import { categoryFacetOptions, categoryNumericOptions, matchesNumericFilters, numericFilterError } from './masterDataFilters'
+import { categoryFacetOptions, categoryNumericOptions, createMasterNameMatcher, matchesNumericFilters, numericFilterError } from './masterDataFilters'
 
 const file = (path: string): MasterFileSummary => ({ path, category: 'sample', format: 'yaml', revision: '1', size: 1, modifiedUtc: '' })
 const entry: MasterFilterEntry = { path: 'mob.yml', facets: {}, numbers: { mobLevel: [1, 20], requiredLevel: [0] } }
+
+describe('master name matching', () => {
+  it('matches every word across different fields regardless of word order', () => {
+    const matches = createMasterNameMatcher('ERIVA グラスボア 18')
+    expect(matches('40.features.mob/eriva/lv18.yml', 'grassboar', '§aグラスボア')).toBe(true)
+    expect(createMasterNameMatcher('18 eriva グラスボア')('40.features.mob/eriva/lv18.yml', 'grassboar', 'グラスボア')).toBe(true)
+    expect(matches('40.features.mob/eriva/lv18.yml', 'grassboar', '別のモブ')).toBe(false)
+    expect(matches('40.features.mob/other/lv18.yml', 'grassboar', 'グラスボア')).toBe(false)
+  })
+
+  it('splits full-width spaces, repeated spaces, and tabs; ignores case and Minecraft formatting', () => {
+    expect(createMasterNameMatcher(' §BERIVA　　グラス\t18 ')('eriva/path18.yml', null, '&aグラス')).toBe(true)
+  })
+
+  it('does not restrict matches for empty or whitespace-only queries', () => {
+    expect(createMasterNameMatcher('')(null)).toBe(true)
+    expect(createMasterNameMatcher(' 　\t ')(undefined)).toBe(true)
+  })
+})
 
 describe('numeric master filters', () => {
   it('matches actual profile levels, includes boundaries and does not fill gaps', () => {
