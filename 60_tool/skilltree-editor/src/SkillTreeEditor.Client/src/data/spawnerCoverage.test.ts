@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { calculateCoverage, coverageTerrain, coversCellCenter, measuredCoverageLand } from './spawnerCoverage'
+import { calculateCoverage, coverageTerrain, coversCellCenter, createCoverageCalculator, measuredCoverageLand } from './spawnerCoverage'
 import type { PlanningCell } from './spawnerPlanning'
 
 const bounds = { minX: -32, minZ: -16, width: 80, height: 48, cellSize: 16 }
@@ -7,6 +7,39 @@ const cell = (x: number, z: number): PlanningCell => ({ x, z, y: 70, status: 'ok
   safeCount: 256, waterCount: 0, treeCount: 0, candidateX: x, candidateY: 71, candidateZ: z, minY: 70, maxY: 70,
   habitat: 'grass', regionId: 'field', targetLevel: 15, reasonCode: 'eligible', reason: '' })
 const cells = Array.from({ length: 15 }, (_, index) => cell(-32 + index % 5 * 16, -16 + Math.floor(index / 5) * 16))
+
+it('直前の地形と円形状だけを再利用し、形状の書換え・重複数・地形・clearで更新する', () => {
+  const calculator = createCoverageCalculator(), terrain = coverageTerrain(bounds, cells)
+  const circle = { id: 'old', label: '森林狼', x: -8, z: 8, radius: 16 }
+  const result = calculator.calculate(terrain, [circle])
+  const renamed = { ...circle, id: 'new', label: '灰色狼' }
+  expect(calculator.calculate(terrain, [renamed])).toBe(result)
+  circle.x = 40
+  const moved = calculator.calculate(terrain, [circle])
+  expect(moved).not.toBe(result)
+  expect(moved).toEqual(calculateCoverage(terrain, [circle]))
+  for (const circles of [[{ ...circle, z: -8 }], [{ ...circle, radius: 32 }], [circle, circle], []]) {
+    expect(calculator.calculate(terrain, circles)).toEqual(calculateCoverage(terrain, circles))
+  }
+  const original = calculator.calculate(terrain, [circle])
+  const changedTerrain = coverageTerrain(bounds, cells.map(item => ({ ...item, status: 'failed' })))
+  expect(calculator.calculate(changedTerrain, [circle]).counts.every(count => count === -1)).toBe(true)
+  // An intervening/speculative key can evict the previous entry, never reuse it incorrectly.
+  const restored = calculator.calculate(terrain, [circle])
+  expect(restored).toEqual(original)
+  calculator.clear()
+  expect(calculator.calculate(terrain, [circle])).not.toBe(restored)
+  expect(calculator.calculate(terrain, [circle])).toEqual(original)
+})
+
+it('地図ごとに独立して保持し、不正な円も通常計算と同じ結果になる', () => {
+  const terrain = coverageTerrain(bounds, cells), first = createCoverageCalculator(), second = createCoverageCalculator()
+  const circles = [{ x: NaN, z: 0, radius: 16 }, { x: 0, z: 0, radius: Infinity }]
+  const result = first.calculate(terrain, circles)
+  expect(second.calculate(terrain, circles)).not.toBe(result)
+  expect(first.calculate(terrain, circles.map(circle => ({ ...circle })))).toBe(result)
+  expect(result).toEqual(calculateCoverage(terrain, circles))
+})
 
 it('負座標・円周を含む0/1/2以上を幾何計算し、配置移動と半径変更を反映する', () => {
   const terrain = coverageTerrain(bounds, cells)

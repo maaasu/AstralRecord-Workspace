@@ -6,7 +6,7 @@ import type { PlacementCatalog } from './WorldPlacementEditor'
 import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
 import { circleIntersectsViewport, drawSpawnerRanges, type MapCircle } from '../data/spawnerRangeDrawing'
-import { calculateCoverage, coverageColors, coverageTerrain, type CoverageSource } from '../data/spawnerCoverage'
+import { createCoverageCalculator, coverageColors, coverageTerrain, type CoverageSource } from '../data/spawnerCoverage'
 import { SpawnerCoverageInspector } from './SpawnerCoverageInspector'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
@@ -115,20 +115,24 @@ export function SpawnerPlanningMap(props: Props) {
     }
     return { circles, unknown }
   }, [props.showProposals, placements, masters, visibleProposals])
-  const coverage = useMemo(() => showCoverage && coverageReady ? calculateCoverage(terrain, coverageSources.circles) : null,
-    [showCoverage, coverageReady, terrain, coverageSources])
+  const coverageCalculator = useMemo(createCoverageCalculator, [])
+  const coverage = useMemo(() => {
+    if (!showCoverage || !coverageReady) { coverageCalculator.clear(); return null }
+    return coverageCalculator.calculate(terrain, coverageSources.circles)
+  }, [showCoverage, coverageReady, terrain, coverageSources, coverageCalculator])
+  const coverageReasonCodes = reason ? plan?.reasonCodes : undefined
   const coverageSummary = useMemo(() => {
     const totals = [0, 0, 0]
     const indices: number[][] = [[], [], []]
     coverage?.counts.forEach((count, index) => {
       const cell = snapshot.cells[index]
-      if (count >= 0 && (!region || cell.regionId === region) && (!reason || (plan?.reasonCodes[index] ?? cell.reasonCode) === reason)) {
+      if (count >= 0 && (!region || cell.regionId === region) && (!reason || (coverageReasonCodes?.[index] ?? cell.reasonCode) === reason)) {
         totals[count]++
         indices[count].push(index)
       }
     })
     return { totals, indices }
-  }, [coverage, snapshot.cells, region, reason, plan])
+  }, [coverage, snapshot.cells, region, reason, coverageReasonCodes])
   const coverageRaster = useMemo(() => {
     if (!coverage) return null
     const image = document.createElement('canvas')
@@ -137,12 +141,12 @@ export function SpawnerPlanningMap(props: Props) {
     if (!ctx) return image
     for (let index = 0; index < snapshot.cells.length; index++) {
       const cell = snapshot.cells[index], count = coverage.counts[index]
-      if (count < 0 || (region && cell.regionId !== region) || (reason && (plan?.reasonCodes[index] ?? cell.reasonCode) !== reason)) continue
+      if (count < 0 || (region && cell.regionId !== region) || (reason && (coverageReasonCodes?.[index] ?? cell.reasonCode) !== reason)) continue
       ctx.fillStyle = coverageColors[count]
       ctx.fillRect((cell.x - bounds.minX) / bounds.cellSize, (cell.z - bounds.minZ) / bounds.cellSize, 1, 1)
     }
     return image
-  }, [coverage, terrain, snapshot.cells, bounds, region, reason, plan])
+  }, [coverage, terrain, snapshot.cells, bounds, region, reason, coverageReasonCodes])
   const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
   const placementAt = useCallback((px: number, pz: number, current = view) => {
     let distance = 8
@@ -275,6 +279,7 @@ export function SpawnerPlanningMap(props: Props) {
       }
     }
   }, [detailIdentity, detailNeeded, detail])
+  const rasterReasonCodes = layer === 'reasons' || reason ? plan?.reasonCodes : undefined
   const raster = useMemo(() => {
     const image = document.createElement('canvas')
     image.width = bounds.width / bounds.cellSize
@@ -283,7 +288,7 @@ export function SpawnerPlanningMap(props: Props) {
     if (!ctx) return image
     for (let index = 0; index < snapshot.cells.length; index++) {
       const cell = snapshot.cells[index]
-      const code = plan?.reasonCodes[index] ?? cell.reasonCode
+      const code = rasterReasonCodes?.[index] ?? cell.reasonCode
       let color = layer === 'levels' ? levelColor(cell.targetLevel) : layer === 'reasons' ? reasonColor(code) : terrainColor(cell)
       if (layer === 'levels' && cell.status !== 'ok') color = terrainColor(cell)
       if (layer === 'terrain' && cell.status === 'ok' && cell.candidateY != null && !/water|lava/.test(cell.surface ?? '')) {
@@ -302,7 +307,7 @@ export function SpawnerPlanningMap(props: Props) {
       }
     }
     return image
-  }, [snapshot.cells, bounds, grid, layer, plan, region, reason])
+  }, [snapshot.cells, bounds, grid, layer, rasterReasonCodes, region, reason])
   const detailMask = useMemo(() => {
     if (!region && !reason) return null
     const mask = document.createElement('canvas')
@@ -312,12 +317,12 @@ export function SpawnerPlanningMap(props: Props) {
     if (!ctx) return mask
     ctx.fillStyle = '#0b1423dc'
     snapshot.cells.forEach((cell, index) => {
-      const code = plan?.reasonCodes[index] ?? cell.reasonCode
+      const code = coverageReasonCodes?.[index] ?? cell.reasonCode
       if ((!region || cell.regionId === region) && (!reason || code === reason)) return
       ctx.fillRect((cell.x - bounds.minX) / bounds.cellSize, (cell.z - bounds.minZ) / bounds.cellSize, 1, 1)
     })
     return mask
-  }, [snapshot.cells, bounds, plan, region, reason])
+  }, [snapshot.cells, bounds, coverageReasonCodes, region, reason])
   // Cache the complete scene at the current view. Pointer and tooltip movement do not
   // invalidate terrain, roads, markers or the batched range layer.
   const scene = useMemo(() => {

@@ -734,6 +734,118 @@ const coveragePlacement = { ...hoverPlacement, x: 7.5, z: 7.5 }
 const coverageCatalog = { ...hoverCatalog, spawners: [{ ...hoverCatalog.spawners[0], radiusMeters: 16 }] }
 const coverageProps = { ...hoverProps, snapshot: coverageSnapshot, placements: [coveragePlacement], placementCatalog: coverageCatalog, showProposals: false }
 
+// Each full coverage calculation allocates exactly one count array. Observe
+// allocation without replacing the real calculation or its results.
+function coverageAllocations() {
+  const arrays: Int8Array[] = []
+  vi.stubGlobal('Int8Array', new Proxy(Int8Array, { construct(target, args) {
+    const array = Reflect.construct(target, args) as Int8Array
+    arrays.push(array)
+    return array
+  } }))
+  return arrays
+}
+const coveragePixels = (context: ReturnType<typeof drawingContext>) => context.fillRect.mock.calls.filter(call => call[2] === 1 && call[3] === 1).length
+
+it('道標・NPC・向き・高さと表示名だけの編集では全域計算と着色を再利用し、詳細は最新にする', () => {
+  const arrays = coverageAllocations(), context = drawingContext(), onPlacement = vi.fn()
+  const { rerender } = render(<StrictMode><SpawnerPlanningMap {...coverageProps} selectedCell={0} onPlacement={onPlacement} /></StrictMode>)
+  arrays.length = 0; context.fillRect.mockClear()
+  const placements: WorldPlacement[] = [{ ...coveragePlacement, placementId: 'renamed', yaw: 45, pitch: 10, y: 150, worldName: 'new-path' },
+    { ...coveragePlacement, placementId: 'npc', kind: 'npc' },
+    { ...coveragePlacement, placementId: 'stone', kind: 'waystone', waystone: { id: 'stone', name: '新しい道標', lockEnabled: true, unlockGold: 50, icon: 'STONE', createdAt: null, createdBy: '' } }]
+  const catalog = { ...coverageCatalog, spawners: [{ ...coverageCatalog.spawners[0], name: '&b灰色狼 Lv.30', levels: [30] }] }
+  rerender(<StrictMode><SpawnerPlanningMap {...coverageProps} selectedCell={0} onPlacement={onPlacement} placements={placements} placementCatalog={catalog} /></StrictMode>)
+  const detail = screen.getByLabelText('選択区画の出現範囲')
+  expect(detail).toHaveTextContent('灰色狼 Lv.30')
+  fireEvent.click(within(detail).getByRole('button'))
+  expect(onPlacement).toHaveBeenCalledWith('renamed')
+  expect(arrays).toHaveLength(0)
+  expect(coveragePixels(context)).toBe(0)
+  rerender(<StrictMode><SpawnerPlanningMap {...coverageProps} selectedCell={0} placements={[...placements, { ...coveragePlacement, placementId: 'unknown', templateId: 'missing' }]} placementCatalog={catalog} /></StrictMode>)
+  expect(screen.getByText(/半径・座標不明の有効な対象が1件/)).toBeInTheDocument()
+  expect(screen.getByLabelText('出現範囲の重複と未カバー')).toHaveTextContent('既知範囲0件 · 1区画')
+  expect(arrays).toHaveLength(0)
+  expect(coveragePixels(context)).toBe(0)
+})
+
+it.each([
+  ['x', [0, 1, 1]], ['z', [0, 0, 0]], ['disabled', [0, 0, 0]], ['template', [1, 1, 1]],
+  ['radius', [1, 1, 1]], ['npc', [0, 0, 0]], ['world', [0, 0, 0]], ['remove', [0, 0, 0]], ['duplicate', [2, 2, 0]],
+] as const)('出現円に影響する%sの変更は再計算して区画ごとの判定を更新する', (change, expected) => {
+  const arrays = coverageAllocations()
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} />)
+  arrays.length = 0
+  const point: WorldPlacement = { ...coveragePlacement, ...(change === 'x' ? { x: 39.5 } : change === 'z' ? { z: 39.5 }
+    : change === 'disabled' ? { enabled: false } : change === 'template' ? { templateId: 'large' }
+      : change === 'npc' ? { kind: 'npc' } : change === 'world' ? { worldId: 'other' } : {}) }
+  const catalog = { ...coverageCatalog, spawners: [{ ...coverageCatalog.spawners[0], radiusMeters: change === 'radius' ? 32 : 16 }, { ...coverageCatalog.spawners[0], id: 'large', radiusMeters: 32 }] }
+  rerender(<SpawnerPlanningMap {...coverageProps} placementCatalog={catalog} placements={change === 'remove' ? [] : change === 'duplicate' ? [point, { ...point, placementId: 'second' }] : [point]} />)
+  expect(arrays).toHaveLength(1)
+  expect([...arrays[0]]).toEqual(expected)
+})
+
+it('AI表示情報だけの変更は再計算せず、最新の案ID・名前と理由条件を反映する', () => {
+  const arrays = coverageAllocations(), context = drawingContext(), onProposal = vi.fn()
+  const proposal = { ...hoverPlan.proposals[0], x: 7.5, z: 7.5, radiusMeters: 16 }
+  const plan = { ...hoverPlan, proposals: [proposal], reasonCodes: ['eligible', 'eligible', 'eligible'] }
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} showProposals plan={plan} selectedCell={0} onProposal={onProposal} />)
+  arrays.length = 0; context.fillRect.mockClear()
+  const renamed = { ...plan, proposals: [{ ...proposal, proposalId: 'new-ai', spawnMobs: [{ ...proposal.spawnMobs[0], name: '新しいボア', level: 40 }] }], reasonCodes: [...plan.reasonCodes] }
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={renamed} placements={[]} selectedCell={0} onProposal={onProposal} />)
+  fireEvent.click(within(screen.getByLabelText('選択区画の出現範囲')).getByRole('button', { name: /新しいボア.*40/ }))
+  expect(onProposal).toHaveBeenCalledWith('new-ai')
+  expect(arrays).toHaveLength(0)
+  expect(coveragePixels(context)).toBe(0)
+  const reasons = { ...renamed, reasonCodes: ['covered', 'eligible', 'eligible'] }
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={reasons} reason="covered" />)
+  expect(screen.getByLabelText('出現範囲の重複と未カバー')).toHaveTextContent('1件の範囲内 · 1区画')
+  expect(arrays).toHaveLength(0)
+  context.fillRect.mockClear()
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={renamed} reason="covered" />)
+  expect(screen.getByLabelText('出現範囲の重複と未カバー')).toHaveTextContent('1件の範囲内 · 0区画')
+  expect(arrays).toHaveLength(0)
+  rerender(<SpawnerPlanningMap {...coverageProps} showProposals plan={renamed} region="other" />)
+  expect(arrays).toHaveLength(1)
+  expect([...arrays[0]]).toEqual([0, 0, 0])
+})
+
+it('OFF・未取得では計算と保持を止め、再表示と地形変更では現在の円で再計算する', () => {
+  const arrays = coverageAllocations()
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} />)
+  arrays.length = 0
+  fireEvent.click(screen.getByRole('checkbox', { name: '重複・未カバーを色で確認' }))
+  const placements = [{ ...coveragePlacement, x: 39.5 }]
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={placements} />)
+  expect(arrays).toHaveLength(0)
+  fireEvent.click(screen.getByRole('checkbox', { name: '重複・未カバーを色で確認' }))
+  expect([...arrays[0]]).toEqual([0, 1, 1])
+  arrays.length = 0
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={placements} placementsReady={false} />)
+  expect(arrays).toHaveLength(0)
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={placements} placementsReady />)
+  expect(arrays).toHaveLength(1)
+  arrays.length = 0
+  rerender(<SpawnerPlanningMap {...coverageProps} placements={placements} snapshot={{ ...coverageSnapshot, cells: coverageSnapshot.cells.map((cell, i) => i === 1 ? { ...cell, status: 'failed' } : cell) }} />)
+  expect([...arrays[0]]).toEqual([0, -1, 1])
+})
+
+it('1万区画・千スポナーの10回の向き編集で全域計算と着色を繰り返さない', () => {
+  const arrays = coverageAllocations(), context = drawingContext()
+  const large: PlanningSnapshot = { ...coverageSnapshot, manifest: { ...coverageSnapshot.manifest, bounds: { minX: 0, minZ: 0, width: 1600, height: 1600, cellSize: 16 } },
+    cells: Array.from({ length: 10000 }, (_, i) => ({ ...coverageSnapshot.cells[0], x: i % 100 * 16, z: Math.floor(i / 100) * 16 })) }
+  let placements = Array.from({ length: 1000 }, (_, i) => ({ ...coveragePlacement, placementId: `load-${i}`, x: 7.5 + i % 40 * 32, z: 7.5 + Math.floor(i / 40) * 32 }))
+  const { rerender } = render(<SpawnerPlanningMap {...coverageProps} snapshot={large} placements={placements} />)
+  arrays.length = 0; context.fillRect.mockClear()
+  for (let i = 0; i < 10; i++) {
+    placements = placements.map((point, index) => index === 0 ? { ...point, yaw: point.yaw + 1 } : point)
+    rerender(<SpawnerPlanningMap {...coverageProps} snapshot={large} placements={placements} />)
+  }
+  console.info(JSON.stringify({ coverageEditBenchmark: true, cells: 10000, spawners: 1000, edits: 10, fullCalculations: arrays.length, rasterPixels: coveragePixels(context) }))
+  expect(arrays).toHaveLength(0)
+  expect(coveragePixels(context)).toBe(0)
+})
+
 it('未カバー・重複区画を巡回し、条件変更後も対象区画だけへ移動する', () => {
   const onCell = vi.fn()
   const placements = [coveragePlacement, { ...coveragePlacement, placementId: 'second' }]

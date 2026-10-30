@@ -68,3 +68,23 @@ export function calculateCoverage(terrain: ReturnType<typeof coverageTerrain>, c
   }
   return { counts, totals, rowIntervals }
 }
+
+// One entry per map: metadata edits only compare O(circles) numbers, rather than
+// rebuilding the terrain-wide arrays. Terrain and returned results are immutable.
+// A speculative React render may evict this entry, but cannot return a wrong key.
+export function createCoverageCalculator() {
+  let previous: { terrain: ReturnType<typeof coverageTerrain>; circles: CoverageCircle[]; result: ReturnType<typeof calculateCoverage> } | null = null
+  return {
+    clear() { previous = null },
+    calculate(terrain: ReturnType<typeof coverageTerrain>, circles: CoverageCircle[]) {
+      if (previous?.terrain === terrain && previous.circles.length === circles.length && circles.every((circle, index) => {
+        const prior = previous!.circles[index]
+        return Object.is(circle.x, prior.x) && Object.is(circle.z, prior.z) && Object.is(circle.radius, prior.radius)
+      })) return previous.result
+      const result = calculateCoverage(terrain, circles)
+      // Copy geometry so a caller's later edit cannot silently alter the cache key.
+      previous = { terrain, circles: circles.map(({ x, z, radius }) => ({ x, z, radius })), result }
+      return result
+    },
+  }
+}
