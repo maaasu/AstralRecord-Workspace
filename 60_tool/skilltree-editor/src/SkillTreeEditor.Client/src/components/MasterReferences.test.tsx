@@ -186,7 +186,7 @@ describe('on-demand references', () => {
     await openFirst(); toggleReferences()
     fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
     const message = await screen.findByText(pointer.includes('~2') ? /項目パスが不正/ : /参照位置の値が異なるか/)
-    expect(message.closest('[role="status"]')).toHaveFocus()
+    await waitFor(() => expect(message.closest('[role="status"]')).toHaveFocus())
     expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス')
     expect(masterDataApi.save).not.toHaveBeenCalled()
   })
