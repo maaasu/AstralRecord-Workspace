@@ -10,6 +10,8 @@
 .wp-editor input:not([type='checkbox']), .wp-editor select { min-width: 7rem; max-width: 20rem; padding: .35rem; color: #edf8fa; background: #183744; border: 1px solid #6b929a; border-radius: 5px; }
 .wp-editor input[type='number'] { width: 6rem; min-width: 6rem; }
 .wp-list { max-height: 24rem; overflow: auto; border-top: 1px solid #365967; border-bottom: 1px solid #365967; }
+.wp-list-pagination { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wp-list-pagination > [role='status'], .wp-list-pagination > button:last-child { grid-column: 1 / -1; }
 .wp-row { display: flex; gap: .5rem; align-items: center; border-bottom: 1px solid #274957; }
 .wp-row > button { flex: 1; min-width: 0; text-align: left; color: inherit; background: transparent; border: 0; padding: .5rem; cursor: pointer; overflow-wrap: anywhere; }
 .wp-row > button[aria-pressed='true'] { background: #265c69; }

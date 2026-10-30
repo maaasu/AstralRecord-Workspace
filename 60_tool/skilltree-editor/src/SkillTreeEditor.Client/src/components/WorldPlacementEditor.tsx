@@ -31,6 +31,7 @@ interface Props {
 }
 interface BulkIntent { action: PlacementBulkAction; items: WorldPlacement[]; ids: ReadonlySet<string>; matchingIds: ReadonlySet<string>; catalog: PlacementCatalog; context: object }
 const emptySelection: ReadonlySet<string> = new Set()
+const pageSize = 50
 const emptyCatalog: PlacementCatalog = { spawners: [], npcs: [], worlds: [] }
 const readCatalog = async (): Promise<PlacementCatalog> => {
   const response = await fetch('/api/world-placements/catalog'), payload = await response.json()
@@ -64,8 +65,11 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const locked = () => busyRef.current || confirmationRef.current !== null
   const closeConfirmation = () => { confirmationRef.current = null; setConfirmation(null) }
   const inspector = useRef<HTMLDivElement>(null)
+  const listing = useRef<HTMLDivElement>(null)
+  const listingFocus = useRef<{ id: string | null } | null>(null)
+  const [listingFocusKey, setListingFocusKey] = useState(0)
   const searchInput = useRef<HTMLInputElement>(null)
-  const formId = useId(), filterId = useId(), bulkId = useId(), searchHelpId = useId()
+  const formId = useId(), filterId = useId(), bulkId = useId(), searchHelpId = useId(), listingId = useId()
   const [formOpen, setFormOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -84,7 +88,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [selectedWorldName, setSelectedWorldName] = useState('')
   const [bulkSelection, setBulkSelection] = useState<{ worldId: string; ids: ReadonlySet<string> }>({ worldId: snapshot.manifest.worldId, ids: new Set() })
   const [selectedOnly, setSelectedOnly] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(50)
+  const [page, setPage] = useState(0)
   const selectPlacement = (id: string | null, location?: WorldPlacement) => {
     if (id) setFormOpen(true)
     onSelected(id, location ?? working.find(item => item.placementId === id))
@@ -199,12 +203,30 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const confirmationContext = useMemo(() => ({}), [worldId, snapshot, base, working, catalog, filteredIds, bulkIds, selectedId, editing, hasDrafts, placing, moving])
   const listed = selectedOnly ? bulkScope.items : filtered
   const sortedListing = useMemo(() => sortWorldPlacementListing(listed, listingSort, display, snapshot.manifest.spawn), [listed, listingSort, display, snapshot.manifest.spawn])
+  const pageCount = Math.max(1, Math.ceil(listed.length / pageSize))
+  const currentPage = Math.min(page, pageCount - 1)
+  const selectedListingIndex = useMemo(() => sortedListing.items.findIndex(item => item.placementId === selectedId), [sortedListing.items, selectedId])
+  const navigateListing = (next: number, id: string | null = null) => {
+    listingFocus.current = { id }
+    setPage(next)
+    setListingFocusKey(value => value + 1)
+  }
+  useEffect(() => { setPage(current => Math.min(current, pageCount - 1)) }, [pageCount])
+  useEffect(() => {
+    const request = listingFocus.current
+    listingFocus.current = null
+    if (!request) return
+    const buttons = Array.from(listing.current?.querySelectorAll<HTMLButtonElement>('button[data-placement-id]') ?? [])
+    const target = request.id === null ? buttons[0] : buttons.find(button => button.dataset.placementId === request.id)
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView?.({ block: 'nearest' })
+  }, [currentPage, listingFocusKey])
   const bulkLocked = busy || confirmation !== null || hasDrafts || placing || moving || !base
   const selectBulk = (ids: ReadonlySet<string>) => {
     if (locked() || hasDrafts || placing || moving || !editing || !base) return
     setBulkSelection({ worldId, ids })
   }
-  useEffect(() => { setVisibleCount(50) }, [filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, worldId, selectedOnly, listingSort])
+  useEffect(() => { setPage(0) }, [filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, worldId, selectedOnly, listingSort])
   const selectedOutsideFilter = editing && selected?.worldId === worldId && !filtered.some(item => item.placementId === selectedId)
   const mapPlacements = useMemo(() => editing
     ? selectedOutsideFilter && selected ? [...filtered, selected] : filtered
@@ -363,8 +385,15 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       </>}
       </div>
     </section>
-    <div className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(0, visibleCount).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
-    <div className="wp-actions"><span>{selectedOnly ? '一括選択の一覧' : '一覧'} {Math.min(visibleCount, listed.length)} / {listed.length} 件</span>{visibleCount < listed.length && <button className="button" onClick={() => setVisibleCount(count => count + 50)}>さらに50件表示</button>}</div>
+    <div className="wp-actions wp-list-pagination" role="group" aria-label="配置一覧のページ">
+      <span role="status">{selectedOnly ? '一括選択の一覧' : '一覧'} {listed.length ? `${currentPage * pageSize + 1}–${Math.min((currentPage + 1) * pageSize, listed.length)}` : '0'} / {listed.length} 件 · {currentPage + 1} / {pageCount} ページ</span>
+      <button className="button" type="button" aria-controls={listingId} disabled={currentPage === 0} onClick={() => navigateListing(currentPage - 1)}>前の配置ページ</button>
+      <button className="button" type="button" aria-controls={listingId} disabled={currentPage + 1 >= pageCount} onClick={() => navigateListing(currentPage + 1)}>次の配置ページ</button>
+      <button className="button" type="button" aria-controls={listingId} disabled={selectedListingIndex < 0} onClick={() => navigateListing(Math.floor(selectedListingIndex / pageSize), selectedId)}>選択中の配置のページへ</button>
+    </div>
+    <p>一覧は50件ずつ表示します。ページを切り替えても、地図の表示条件・一括選択・保存対象は変わりません。</p>
+    {selected && selectedListingIndex < 0 && <p>選択中の配置は現在の一覧に含まれていません。検索条件や「一括選択だけを一覧で確認」を確認してください。</p>}
+    <div id={listingId} ref={listing} className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" data-placement-id={item.placementId} aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
 
     </div>
     </>}
