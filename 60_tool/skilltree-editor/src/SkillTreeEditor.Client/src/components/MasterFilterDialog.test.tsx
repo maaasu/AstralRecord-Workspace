@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MasterFilterDialog } from './MasterFilterDialog'
+import { MasterFilterDialog, masterFacetValueLabel } from './MasterFilterDialog'
+import { plainMasterFilterName } from '../data/masterDataPresentation'
 import { emptyMasterListFilters, type MasterListFilters } from '../data/masterFileQuery'
 import type { MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
 
@@ -94,13 +95,75 @@ describe('drop candidate preparation', () => {
     ]} itemScope={false} dropScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
     expect(options()).toEqual([
       { value: 'empty', text: 'empty' },
-      { value: 'z', text: '青 (z)' },
       { value: 'wrong_path', text: 'wrong_path' },
       { value: 'first_file', text: '最初の名前 (first_file)' },
+      { value: 'z', text: '青 (z)' },
       { value: 'same_b', text: '同名 (same_b)' },
       { value: 'same_a', text: '同名 (same_a)' },
       { value: 'missing_label', text: '補完名 (missing_label)' },
     ])
+  })
+
+  it('sorts by the visible Japanese names, retains equal-name source order, and leaves literal entities intact', () => {
+    const references = [
+      itemRef('apple', '&cりんご'), itemRef('berry', '§#123456あんず'),
+      itemRef('melon', '&x&1&2&3&4&5&6いちご'),
+      itemRef('same_b', '&f同名'), itemRef('same_a', '§l同名'),
+      itemRef('entity', '&amp;まめ'), itemRef('empty_code', '&f§l'),
+    ]
+    const originalLabels = references.map((reference) => reference.label)
+    render(<MasterFilterDialog {...props} files={[mob]} allFiles={[mob, itemFile('empty_code', 'ファイルの名前')]}
+      index={dropIndex(['apple', 'same_b', 'melon', 'berry', 'same_a', 'entity', 'empty_code'])}
+      candidates={references} itemScope={false} dropScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
+    expect(options()).toEqual([
+      { value: 'entity', text: '&amp;まめ (entity)' },
+      { value: 'empty_code', text: 'empty_code' },
+      { value: 'berry', text: 'あんず (berry)' },
+      { value: 'melon', text: 'いちご (melon)' },
+      { value: 'apple', text: 'りんご (apple)' },
+      { value: 'same_b', text: '同名 (same_b)' },
+      { value: 'same_a', text: '同名 (same_a)' },
+    ])
+    expect(references.map((reference) => reference.label)).toEqual(originalLabels)
+  })
+
+  it('searches the raw label once when formatting exposes a literal code-like prefix', () => {
+    const reference = itemRef('peach', '&§fa桃')
+    render(<MasterFilterDialog {...props} files={[mob]} allFiles={[mob]} index={dropIndex(['peach'])}
+      candidates={[reference]} itemScope={false} dropScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
+    expect(options()).toEqual([{ value: 'peach', text: '&a桃 (peach)' }])
+    expect(screen.getByText('1 件が一致')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'ドロップ品を名前で検索' }), { target: { value: '&' } })
+    expect(options()).toEqual([{ value: 'peach', text: '&a桃 (peach)' }])
+    expect(screen.getByText('1 件が一致')).toBeInTheDocument()
+    expect(reference.label).toBe('&§fa桃')
+  })
+
+  it('keeps a missing-name fallback ID verbatim even when it resembles a formatting code', () => {
+    render(<MasterFilterDialog {...props} files={[mob]} allFiles={[mob]} index={dropIndex(['sword&a'])}
+      candidates={[]} itemScope={false} dropScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
+    expect(options()).toEqual([{ value: 'sword&a', text: 'sword&a' }])
+  })
+
+  it('shows plain names and verbatim ID fallbacks for source, tag, world, and class choices', () => {
+    const source = { path: '40.features.mob/eriva.yml', kind: 'mob' as const, name: '&f§l', id: 'eriva', itemIds: ['item'] }
+    const tagged = { ...index, sources: [source], tags: [{ id: 'magic', name: '&b 魔法 ' }, { id: 'blank', name: '§l' }],
+      skillTags: [{ path: file.path, tags: ['magic', 'blank'] }],
+      entries: [{ path: file.path, facets: { tags: ['magic', 'blank'], requiredToolTags: ['magic'], world: ['eriva_world'], requiredClasses: ['mage'] } }] }
+    const candidates: MasterReference[] = [
+      { path: '', pointer: '', kind: 'world', value: 'eriva_world', label: '§#00aa00 エリヴァ ' },
+      { path: '', pointer: '', kind: 'class', value: 'mage', label: '&l' },
+    ]
+    render(<MasterFilterDialog {...props} index={tagged} candidates={candidates} skillScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
+    expect(within(screen.getByRole('combobox', { name: 'ドロップ元' })).getByRole('option', { name: 'モブ · eriva' })).toHaveValue(source.path)
+    expect(within(screen.getByRole('combobox', { name: 'スキルタグ' })).getByRole('option', { name: '魔法 (magic)' })).toHaveValue('magic')
+    expect(within(screen.getByRole('combobox', { name: 'スキルタグ' })).getByRole('option', { name: 'blank' })).toHaveValue('blank')
+    expect(masterFacetValueLabel('tags', 'magic', tagged, candidates)).toBe('魔法 (magic)')
+    expect(masterFacetValueLabel('requiredToolTags', 'blank', tagged, candidates)).toBe('blank')
+    expect(masterFacetValueLabel('world', 'eriva_world', tagged, candidates)).toBe('エリヴァ (eriva_world)')
+    expect(masterFacetValueLabel('requiredClasses', 'mage', tagged, candidates)).toBe('mage')
+    expect(masterFacetValueLabel('tags', 'unknown', { ...tagged, tags: [{ id: 'unknown', name: '&q未知' }] }, candidates)).toBe('&q未知 (unknown)')
+    expect(plainMasterFilterName('§l', 'id&f')).toBe('id&f')
   })
 
   it('updates candidates and scope asynchronously while retaining a hidden selection and detecting stale data', () => {

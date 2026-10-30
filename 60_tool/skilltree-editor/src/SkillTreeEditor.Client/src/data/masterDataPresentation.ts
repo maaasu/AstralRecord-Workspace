@@ -1,5 +1,6 @@
 import type { JsonValue } from '../types/editor'
 import { masterStatusLabel } from './masterValuePresentation'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 
 const fieldLabels: Record<string, string> = {
   displayName: '表示名', name: '表示名', title: '題名',
@@ -44,4 +45,9 @@ export function fileNameIncludesId(path: string, id: string | null | undefined):
 
 export function namedMasterOption(name: string | null | undefined, id: string): string {
   return name && name !== id ? `${name} (${id})` : id
+}
+
+/** Plain text for filter choices and applied chips; preserve fallback IDs and paths verbatim. */
+export function plainMasterFilterName(name: string | null | undefined, fallback: string): string {
+  return stripMinecraftFormatting(name ?? '').trim() || fallback
 }

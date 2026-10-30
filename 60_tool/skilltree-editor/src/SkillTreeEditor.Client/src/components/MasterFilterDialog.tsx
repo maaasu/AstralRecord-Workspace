@@ -3,9 +3,8 @@ import { Modal } from './Modal'
 import type { MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
 import { categoryFacetOptions, categoryNumericOptions, createMasterNameMatcher, facetLabels, isSkillDirectory, numericFilterError, numericFilterLabels } from '../data/masterDataFilters'
 import { emptyMasterListFilters, filterMasterFiles, type MasterListFilters } from '../data/masterFileQuery'
-import { namedMasterOption } from '../data/masterDataPresentation'
+import { namedMasterOption, plainMasterFilterName } from '../data/masterDataPresentation'
 import { masterValueLabel } from '../data/masterValuePresentation'
-import { stripMinecraftFormatting } from '../utils/minecraft'
 
 interface MasterFilterDialogProps {
   value: MasterListFilters
@@ -23,8 +22,8 @@ interface MasterFilterDialogProps {
 }
 
 export function masterFacetValueLabel(key: string, value: string, index: MasterFilterIndex | null, candidates: MasterReference[]): string {
-  if (key === 'tags' || key === 'requiredToolTags') return namedMasterOption(index?.tags.find((entry) => entry.id === value)?.name, value)
-  if (key === 'world' || key === 'requiredClasses') return namedMasterOption(stripMinecraftFormatting(candidates.find((entry) => entry.kind === (key === 'world' ? 'world' : 'class') && entry.value === value)?.label ?? ''), value)
+  if (key === 'tags' || key === 'requiredToolTags') return namedMasterOption(plainMasterFilterName(index?.tags.find((entry) => entry.id === value)?.name, value), value)
+  if (key === 'world' || key === 'requiredClasses') return namedMasterOption(plainMasterFilterName(candidates.find((entry) => entry.kind === (key === 'world' ? 'world' : 'class') && entry.value === value)?.label, value), value)
   if (key === 'unTradeable') return value === 'true' ? 'トレード禁止' : 'トレード可能'
   if (key === 'unSellable') return value === 'true' ? '売却禁止' : '売却可能'
   if (['enchantEnabled', 'enhanceEnabled'].includes(key)) return value === 'true' ? '可能' : '不可'
@@ -65,9 +64,12 @@ export function MasterFilterDialog({ value, files, allFiles, index, candidates, 
     }
     return { candidateLabels, fileNames }
   }, [candidates, allFiles, showDropItems])
-  const sortedItems = useMemo(() => labelsByItemId ? [...dropIds].map((id) => ({ value: id, label: labelsByItemId.candidateLabels.get(id) ?? labelsByItemId.fileNames.get(id) ?? id }))
+  const sortedItems = useMemo(() => labelsByItemId ? [...dropIds].map((id) => {
+    const rawName = labelsByItemId.candidateLabels.get(id) ?? labelsByItemId.fileNames.get(id)
+    return { value: id, searchLabel: rawName ?? id, label: plainMasterFilterName(rawName, id) }
+  })
     .sort((left, right) => left.label.localeCompare(right.label, 'ja')) : [], [dropIds, labelsByItemId])
-  const items = useMemo(() => sortedItems.filter((item) => item.value === draft.dropItemId || matchesItem(item.label, item.value)), [sortedItems, draft.dropItemId, matchesItem])
+  const items = useMemo(() => sortedItems.filter((item) => item.value === draft.dropItemId || matchesItem(item.searchLabel, item.value)), [sortedItems, draft.dropItemId, matchesItem])
   const tags = useMemo(() => new Set(index?.skillTags.filter((skill) => paths.has(skill.path)).flatMap((skill) => skill.tags) ?? []), [index, paths])
   const formats = useMemo(() => [...new Set(files.map((file) => file.format))], [files])
   const stale = !index && Boolean(draft.dropSourcePath || draft.skillTag || draft.dropItemId || draft.dropPresence)
@@ -98,9 +100,9 @@ export function MasterFilterDialog({ value, files, allFiles, index, candidates, 
         {numericError && <p role="alert" className="error-message">{numericError}</p>}
         {facetSection('種類・分類', shownFacetKeys.filter((key) => identityKeys.includes(key)))}
         {facetSection('タグ・ワールド・動作', shownFacetKeys.filter((key) => !identityKeys.includes(key) && !availabilityKeys.includes(key)))}
-        {skillScope && <fieldset className="master-filter-section"><legend>スキルの共有タグ</legend><label>スキルタグ<select aria-label="スキルタグ" value={draft.skillTag} onChange={(event) => set('skillTag', event.target.value)} disabled={!index}><option value="">指定しない</option>{index?.tags.filter((tag) => tags.has(tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{namedMasterOption(tag.name, tag.id)}</option>)}</select></label></fieldset>}
-        {itemScope && <fieldset className="master-filter-section"><legend>アイテムのドロップ元</legend><div className="master-filter-fields"><label>モブ・採集オブジェクトを検索<input aria-label="ドロップ元を名前で検索" value={draft.sourceQuery} placeholder="名前 / ID / パス" onChange={(event) => setDraft((current) => ({ ...current, sourceQuery: event.target.value, dropSourcePath: '' }))} /></label><label>ドロップ元<select aria-label="ドロップ元" value={draft.dropSourcePath} onChange={(event) => set('dropSourcePath', event.target.value)} disabled={!index}><option value="">指定しない</option>{sources.map((source) => <option key={source.path} value={source.path}>{source.kind === 'mob' ? 'モブ' : '採集'} · {namedMasterOption(stripMinecraftFormatting(source.name), source.id)}</option>)}</select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。レベル別・共通報酬テーブル経由のドロップ品も対象です。</p></fieldset>}
-        {dropScope && <fieldset className="master-filter-section"><legend>モブ・採集のドロップ品</legend><div className="master-filter-fields"><label>ドロップ品を検索<input aria-label="ドロップ品を名前で検索" value={draft.dropItemQuery} placeholder="名前 / ID" onChange={(event) => setDraft((current) => ({ ...current, dropItemQuery: event.target.value, dropItemId: '' }))} /></label><label>ドロップするアイテム<select aria-label="ドロップするアイテム" value={draft.dropItemId} onChange={(event) => set('dropItemId', event.target.value)} disabled={!index}><option value="">指定しない</option>{items.map((item) => <option key={item.value} value={item.value}>{namedMasterOption(stripMinecraftFormatting(item.label), item.value)}</option>)}</select></label><label>アイテムドロップの有無<select aria-label="アイテムドロップの有無" value={draft.dropPresence} onChange={(event) => set('dropPresence', event.target.value)} disabled={!index}><option value="">すべて</option><option value="has">あり</option><option value="none">なし</option></select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。</p></fieldset>}
+        {skillScope && <fieldset className="master-filter-section"><legend>スキルの共有タグ</legend><label>スキルタグ<select aria-label="スキルタグ" value={draft.skillTag} onChange={(event) => set('skillTag', event.target.value)} disabled={!index}><option value="">指定しない</option>{index?.tags.filter((tag) => tags.has(tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{namedMasterOption(plainMasterFilterName(tag.name, tag.id), tag.id)}</option>)}</select></label></fieldset>}
+        {itemScope && <fieldset className="master-filter-section"><legend>アイテムのドロップ元</legend><div className="master-filter-fields"><label>モブ・採集オブジェクトを検索<input aria-label="ドロップ元を名前で検索" value={draft.sourceQuery} placeholder="名前 / ID / パス" onChange={(event) => setDraft((current) => ({ ...current, sourceQuery: event.target.value, dropSourcePath: '' }))} /></label><label>ドロップ元<select aria-label="ドロップ元" value={draft.dropSourcePath} onChange={(event) => set('dropSourcePath', event.target.value)} disabled={!index}><option value="">指定しない</option>{sources.map((source) => <option key={source.path} value={source.path}>{source.kind === 'mob' ? 'モブ' : '採集'} · {namedMasterOption(plainMasterFilterName(source.name, source.id), source.id)}</option>)}</select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。レベル別・共通報酬テーブル経由のドロップ品も対象です。</p></fieldset>}
+        {dropScope && <fieldset className="master-filter-section"><legend>モブ・採集のドロップ品</legend><div className="master-filter-fields"><label>ドロップ品を検索<input aria-label="ドロップ品を名前で検索" value={draft.dropItemQuery} placeholder="名前 / ID" onChange={(event) => setDraft((current) => ({ ...current, dropItemQuery: event.target.value, dropItemId: '' }))} /></label><label>ドロップするアイテム<select aria-label="ドロップするアイテム" value={draft.dropItemId} onChange={(event) => set('dropItemId', event.target.value)} disabled={!index}><option value="">指定しない</option>{items.map((item) => <option key={item.value} value={item.value}>{namedMasterOption(item.label, item.value)}</option>)}</select></label><label>アイテムドロップの有無<select aria-label="アイテムドロップの有無" value={draft.dropPresence} onChange={(event) => set('dropPresence', event.target.value)} disabled={!index}><option value="">すべて</option><option value="has">あり</option><option value="none">なし</option></select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。</p></fieldset>}
         <fieldset className="master-filter-section"><legend>ファイルの条件</legend><div className="master-filter-fields"><label>ファイル形式<select aria-label="ファイル形式" value={draft.format} onChange={(event) => set('format', event.target.value)}><option value="">すべて</option>{formats.map((format) => <option key={format} value={format}>{format.toUpperCase()}</option>)}</select></label><label>ファイル状態<select aria-label="ファイル状態" value={draft.fileStatus} onChange={(event) => set('fileStatus', event.target.value)}><option value="">すべて</option><option value="editable">編集可能</option><option value="readOnly">閲覧のみ</option><option value="error">解析エラーあり</option></select></label></div></fieldset>
       </div>
       <footer className="modal-footer"><button type="button" className="button subtle" onClick={() => setDraft(emptyMasterListFilters())}>条件をクリア</button><span className="master-filter-preview" role="status">{stale ? '条件を再設定してください' : numericError ? '範囲を修正してください' : `${count} 件が一致`}</span><button type="button" className="button" onClick={onCancel}>キャンセル</button><button type="submit" className="button primary" disabled={Boolean(numericError) || stale}>条件を適用</button></footer>

@@ -8,7 +8,7 @@ import { MinecraftText } from './MinecraftText'
 import { Modal } from './Modal'
 import { emptyMasterListFilters, filterMasterFiles, type MasterListFilters } from '../data/masterFileQuery'
 import { facetLabels, inCategory, isDropSourceDirectory, isItemDefinitionDirectory, isSkillDirectory, numericFilterLabels } from '../data/masterDataFilters'
-import { fileNameIncludesId } from '../data/masterDataPresentation'
+import { fileNameIncludesId, plainMasterFilterName } from '../data/masterDataPresentation'
 import './masterFileBrowser.css'
 
 interface MasterFileBrowserProps {
@@ -87,9 +87,9 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   const chips: { key: string; label: string; clear: () => void }[] = []
   if (filters.format) chips.push({ key: 'format', label: `形式: ${filters.format.toUpperCase()}`, clear: () => w.setFormat('') })
   if (filters.fileStatus) chips.push({ key: 'fileStatus', label: `状態: ${{ editable: '編集可能', readOnly: '閲覧のみ', error: '解析エラーあり' }[filters.fileStatus] ?? filters.fileStatus}`, clear: () => w.setFileStatus('') })
-  if (filters.dropSourcePath) chips.push({ key: 'source', label: `ドロップ元: ${w.filterIndex?.sources.find((source) => source.path === filters.dropSourcePath)?.name ?? filters.dropSourcePath}`, clear: () => { w.setDropSourcePath(''); w.setSourceQuery('') } })
-  if (filters.skillTag) chips.push({ key: 'skillTag', label: `スキルタグ: ${w.filterIndex?.tags.find((tag) => tag.id === filters.skillTag)?.name ?? filters.skillTag}`, clear: () => w.setSkillTag('') })
-  if (filters.dropItemId) chips.push({ key: 'dropItem', label: `ドロップ品: ${w.files.find((file) => file.id === filters.dropItemId && inCategory(file.path, '10.features.item'))?.name ?? filters.dropItemId}`, clear: () => { w.setDropItemId(''); w.setDropItemQuery('') } })
+  if (filters.dropSourcePath) chips.push({ key: 'source', label: `ドロップ元: ${plainMasterFilterName(w.filterIndex?.sources.find((source) => source.path === filters.dropSourcePath)?.name, filters.dropSourcePath)}`, clear: () => { w.setDropSourcePath(''); w.setSourceQuery('') } })
+  if (filters.skillTag) chips.push({ key: 'skillTag', label: `スキルタグ: ${plainMasterFilterName(w.filterIndex?.tags.find((tag) => tag.id === filters.skillTag)?.name, filters.skillTag)}`, clear: () => w.setSkillTag('') })
+  if (filters.dropItemId) chips.push({ key: 'dropItem', label: `ドロップ品: ${plainMasterFilterName(w.files.find((file) => file.id === filters.dropItemId && inCategory(file.path, '10.features.item'))?.name, filters.dropItemId)}`, clear: () => { w.setDropItemId(''); w.setDropItemQuery('') } })
   if (filters.dropPresence) chips.push({ key: 'dropPresence', label: `ドロップ品: ${filters.dropPresence === 'has' ? 'あり' : 'なし'}`, clear: () => w.setDropPresence('') })
   for (const [key, value] of Object.entries(filters.facetFilters)) chips.push({ key: `facet:${key}`, label: `${facetLabels[key] ?? key}: ${masterFacetValueLabel(key, value, w.filterIndex, w.candidates)}`, clear: () => w.setFacetFilters((current) => { const next = { ...current }; delete next[key]; return next }) })
   for (const [key, range] of Object.entries(filters.numericFilters)) if (range.min.trim() || range.max.trim()) chips.push({ key: `number:${key}`, label: `${numericFilterLabels[key] ?? key}: ${range.min || '下限なし'}〜${range.max || '上限なし'}`, clear: () => w.setNumericFilters((current) => { const next = { ...current }; delete next[key]; return next }) })
