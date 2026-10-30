@@ -1,7 +1,8 @@
 import { masterFieldLabel, masterFieldTitle } from '../data/masterDataPresentation'
 import { masterStatusSuggestions, masterTagSuggestions, masterValueFieldKey, masterValueLabel, masterValueReferenceKind } from '../data/masterValuePresentation'
 import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
@@ -290,6 +291,10 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
   const [candidatesOpen, setCandidatesOpen] = useState(false)
   const [candidateSearch, setCandidateSearch] = useState('')
   const [candidatePage, setCandidatePage] = useState(0)
+  const candidateSummary = useRef<HTMLElement>(null)
+  const candidateInput = useRef<HTMLInputElement>(null)
+  const candidateList = useRef<HTMLDivElement>(null)
+  const focusAfterCandidatePage = useRef(false)
   const candidates = useMemo(() => {
     if (!referenceKind) return []
     const catalog = referenceKind === 'status' ? masterStatusSuggestions : referenceKind === 'tag' ? masterTagSuggestions : []
@@ -307,6 +312,48 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
   const lastCandidatePage = Math.max(0, Math.ceil(matchingCandidates.length / 50) - 1)
   const currentCandidatePage = Math.min(candidatePage, lastCandidatePage)
   useEffect(() => setCandidatePage((page) => Math.min(page, lastCandidatePage)), [lastCandidatePage])
+  useEffect(() => {
+    if (candidatesOpen && !candidateInput.current?.matches(':disabled')) candidateInput.current?.focus()
+  }, [candidatesOpen])
+  useEffect(() => {
+    if (!focusAfterCandidatePage.current) return
+    focusAfterCandidatePage.current = false
+    if (!candidatesOpen || candidateInput.current?.matches(':disabled')) return
+    if (candidateList.current) candidateList.current.scrollTop = 0
+    candidateList.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+  }, [currentCandidatePage, matchingCandidates, candidatesOpen])
+  const skipCandidateKey = (event: KeyboardEvent<HTMLElement>) => event.nativeEvent.isComposing || event.keyCode === 229
+    || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.currentTarget.matches(':disabled')
+  const focusCandidate = (index: number) => candidateList.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')[index]?.focus()
+  const onCandidateSearchKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (skipCandidateKey(event)) return
+    if (event.key === 'Escape') {
+      event.preventDefault(); event.stopPropagation()
+      focusAfterCandidatePage.current = false
+      setCandidatesOpen(false)
+      candidateSummary.current?.focus()
+    } else if ((event.key === 'ArrowDown' || event.key === 'Enter') && matchingCandidates.length > 0) {
+      event.preventDefault()
+      focusCandidate(0)
+    }
+  }
+  const onCandidateKey = (event: KeyboardEvent<HTMLButtonElement>, index: number, count: number) => {
+    if (skipCandidateKey(event)) return
+    if (event.key === 'Escape') {
+      event.preventDefault(); event.stopPropagation()
+      candidateInput.current?.focus()
+      return
+    }
+    const next = event.key === 'ArrowDown' ? (index + 1) % count
+      : event.key === 'ArrowUp' ? (index - 1 + count) % count
+        : event.key === 'Home' ? 0 : event.key === 'End' ? count - 1 : -1
+    if (next >= 0) { event.preventDefault(); focusCandidate(next) }
+  }
+  const changeCandidatePage = (page: number) => {
+    focusAfterCandidatePage.current = true
+    setCandidatePage(page)
+  }
+  const candidatePageEntries = candidatesOpen ? matchingCandidates.slice(currentCandidatePage * 50, (currentCandidatePage + 1) * 50) : []
   const selected = candidates.find((entry) => entry.value === value)
   const preview = selected?.label ?? masterValueLabel(path, value)
   const formatted = preview !== stripMinecraftFormatting(preview)
@@ -318,12 +365,13 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
     {!formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
     {hexColor && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
     {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small>
-      <details className="master-colored-candidates" open={candidatesOpen}><summary aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); setCandidatesOpen((open) => !open) }}>{label}の候補を選択</summary>{candidatesOpen && <div className="master-candidate-browser">
+      <details className="master-colored-candidates" open={candidatesOpen}><summary ref={candidateSummary} aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); if (event.currentTarget.closest('fieldset:disabled')) return; focusAfterCandidatePage.current = false; setCandidatesOpen((open) => !open) }}>{label}の候補を選択</summary>{candidatesOpen && <div className="master-candidate-browser">
         <div className="master-candidate-current">選択中: {value ? <><MinecraftText value={selected?.label ?? value} /> <code>{value}</code></> : 'なし'}</div>
-        <label className="master-candidate-search">{label}の候補を検索 <small>{path || '/'}</small><input type="search" aria-label={`${path || '/'} 候補を検索`} value={candidateSearch} placeholder="ID または日本語名" onChange={(event) => { setCandidateSearch(event.target.value); setCandidatePage(0) }} /></label>
+        <label className="master-candidate-search">{label}の候補を検索 <small>{path || '/'}</small><input ref={candidateInput} type="search" aria-label={`${path || '/'} 候補を検索`} value={candidateSearch} placeholder="ID または日本語名" onChange={(event) => { setCandidateSearch(event.target.value); setCandidatePage(0) }} onKeyDown={onCandidateSearchKey} /></label>
+        <small className="master-muted">↓ / Enterで候補へ、↑↓で移動、Enterで選択。Escapeで検索欄へ戻り、もう一度押すと閉じます。</small>
         <p className="master-candidate-count" role="status">{matchingCandidates.length} 件 / 全 {candidates.length} 件{matchingCandidates.length > 0 && ` · ${currentCandidatePage + 1} / ${lastCandidatePage + 1} ページ`}</p>
-        <div className="master-candidate-list">{matchingCandidates.slice(currentCandidatePage * 50, (currentCandidatePage + 1) * 50).map((entry) => <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onClick={() => onChange(entry.value)}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!matchingCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div>
-        {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" disabled={currentCandidatePage === 0} onClick={() => setCandidatePage(currentCandidatePage - 1)}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" disabled={currentCandidatePage === lastCandidatePage} onClick={() => setCandidatePage(currentCandidatePage + 1)}>次へ</button></div>}
+        <div ref={candidateList} className="master-candidate-list">{candidatePageEntries.map((entry, index) => <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onKeyDown={(event) => onCandidateKey(event, index, candidatePageEntries.length)} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) onChange(entry.value) }}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!matchingCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div>
+        {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" disabled={currentCandidatePage === 0} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage - 1) }}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" disabled={currentCandidatePage === lastCandidatePage} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage + 1) }}>次へ</button></div>}
       </div>}</details>
     </>}
   </div>

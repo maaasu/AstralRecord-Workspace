@@ -1,0 +1,113 @@
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { MasterReference } from '../types/masterData'
+import { MasterDataForm } from './MasterDataForm'
+
+const references: MasterReference[] = Array.from({ length: 123 }, (_, index) => ({ path: `${index}.yml`, pointer: '/id', value: `mob${String(index).padStart(3, '0')}`, kind: 'mob', label: `モブ ${index}` }))
+const input = () => screen.getByRole('searchbox', { name: '/spawnMobs/0/mobId 候補を検索' })
+const candidate = (index: number) => screen.getByRole('button', { name: `モブ ${index}mob:mob${String(index).padStart(3, '0')}` })
+function open() { fireEvent.click(screen.getByText('mobIdの候補を選択')) }
+function form(onChange = vi.fn()) { return <MasterDataForm value="mob:unknown" path="/spawnMobs/0/mobId" fields={[]} references={references} onChange={onChange} /> }
+
+describe('reference candidate keyboard navigation', () => {
+  it('focuses search on open, traverses the visible page and only updates the draft when a candidate is activated', () => {
+    const onChange = vi.fn()
+    render(form(onChange)); open()
+    expect(input()).toHaveFocus()
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    expect(candidate(0)).toHaveFocus()
+    fireEvent.keyDown(candidate(0), { key: 'End' })
+    expect(candidate(49)).toHaveFocus()
+    fireEvent.keyDown(candidate(49), { key: 'ArrowDown' })
+    expect(candidate(0)).toHaveFocus()
+    fireEvent.keyDown(candidate(0), { key: 'ArrowUp' })
+    expect(candidate(49)).toHaveFocus()
+    fireEvent.keyDown(candidate(49), { key: 'Home' })
+    expect(candidate(0)).toHaveFocus()
+    fireEvent.keyDown(candidate(0), { key: 'Escape' })
+    expect(input()).toHaveFocus()
+    fireEvent.keyDown(input(), { key: 'Enter' })
+    expect(candidate(0)).toHaveFocus()
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(candidate(0))
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('mob:mob000')
+  })
+
+  it('returns from candidates to search, then closes to the summary without bubbling Escape to a parent dialog', () => {
+    const parentKey = vi.fn()
+    render(<div onKeyDown={parentKey}>{form()}</div>); open()
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    parentKey.mockClear()
+    fireEvent.keyDown(candidate(0), { key: 'Escape' })
+    expect(input()).toHaveFocus()
+    fireEvent.keyDown(input(), { key: 'Escape' })
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.getByText('mobIdの候補を選択')).toHaveFocus()
+    expect(parentKey).not.toHaveBeenCalled()
+  })
+
+  it('focuses the first candidate on each page and keeps the rendered list bounded', () => {
+    render(form()); open()
+    fireEvent.click(screen.getByRole('button', { name: '次へ' }))
+    expect(candidate(50)).toHaveFocus()
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(50)
+    fireEvent.keyDown(candidate(50), { key: 'End' })
+    expect(candidate(99)).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: '次へ' }))
+    expect(candidate(100)).toHaveFocus()
+    expect(document.querySelectorAll('.master-candidate')).toHaveLength(23)
+    fireEvent.keyDown(candidate(100), { key: 'ArrowUp' })
+    expect(candidate(122)).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: '前へ' }))
+    expect(candidate(50)).toHaveFocus()
+  })
+
+  it('keeps focus and draft during filtering, handles empty results, and enters the filtered page', () => {
+    const onChange = vi.fn()
+    render(form(onChange)); open()
+    fireEvent.click(screen.getByRole('button', { name: '次へ' }))
+    input().focus()
+    fireEvent.change(input(), { target: { value: 'モブ 12' } })
+    expect(input()).toHaveFocus()
+    expect(screen.getByRole('status')).toHaveTextContent('4 件 / 全 123 件 · 1 / 1 ページ')
+    fireEvent.keyDown(input(), { key: 'Enter' })
+    expect(candidate(12)).toHaveFocus()
+    fireEvent.keyDown(candidate(12), { key: 'ArrowUp' })
+    expect(candidate(122)).toHaveFocus()
+    fireEvent.keyDown(candidate(122), { key: 'Escape' })
+    fireEvent.change(input(), { target: { value: 'missing' } })
+    fireEvent.keyDown(input(), { key: 'Enter' })
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    expect(input()).toHaveFocus()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it.each([{ isComposing: true }, { keyCode: 229 }, { ctrlKey: true }, { altKey: true }, { shiftKey: true }, { metaKey: true }])('leaves composition and modified keys untouched: %j', modifiers => {
+    render(form()); open()
+    for (const key of ['ArrowDown', 'Enter', 'Escape']) expect(fireEvent.keyDown(input(), { key, ...modifiers })).toBe(true)
+    expect(input()).toHaveFocus()
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    for (const key of ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape']) expect(fireEvent.keyDown(candidate(0), { key, ...modifiers })).toBe(true)
+    expect(candidate(0)).toHaveFocus()
+  })
+
+  it('respects a disabled fieldset for opening, focusing, paging, and selection', () => {
+    const onChange = vi.fn()
+    const view = (disabled: boolean) => <><button>外の操作</button><fieldset disabled={disabled}>{form(onChange)}</fieldset></>
+    const { rerender } = render(view(true))
+    const outside = screen.getByRole('button', { name: '外の操作' })
+    outside.focus(); open()
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(outside).toHaveFocus()
+    rerender(view(false)); open()
+    expect(input()).toHaveFocus()
+    rerender(view(true)); outside.focus()
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    fireEvent.keyDown(candidate(0), { key: 'Escape' })
+    fireEvent.click(candidate(0))
+    fireEvent.click(screen.getByRole('button', { name: '次へ' }))
+    expect(outside).toHaveFocus()
+    expect(screen.getByRole('status')).toHaveTextContent('1 / 3 ページ')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+})
