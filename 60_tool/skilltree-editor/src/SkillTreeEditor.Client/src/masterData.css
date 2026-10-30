@@ -164,7 +164,8 @@
 .master-reference-location { display: block; margin-top: 5px; text-align: left; overflow-wrap: anywhere; }
 .master-reference-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 16px; }
 .master-reference-tools label { display: grid; gap: 4px; min-width: 0; flex: 1 1 180px; }
-.master-reference-tools input { min-width: 0; width: 100%; }
+.master-reference-tools input, .master-reference-tools select { min-width: 0; width: 100%; }
+.master-reference-category { display: block; margin-bottom: 4px; }
 .master-references table { width: 100%; border-collapse: collapse; }
 .master-references th, .master-references td { padding: 7px; text-align: left; border: 1px solid var(--line); overflow-wrap: anywhere; }
 .master-doc-links { margin-bottom: 15px; font-size: 11px; }

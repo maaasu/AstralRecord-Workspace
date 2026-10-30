@@ -40,6 +40,73 @@ const toggleReferences = () => fireEvent.click(screen.getByRole('button', { name
 const panel = () => within(screen.getByRole('region', { name: '保存済みデータの参照元' }))
 
 describe('on-demand references', () => {
+  it('参照元カテゴリと複数語で検索し、ページ・未保存原稿・一覧外の案内を保つ', async () => {
+    const spawnerPath = '50.features.spawner/mobs/wolf.yml'
+    const questPath = '70.features.quest/wolf.yml'
+    vi.mocked(masterDataApi.catalog).mockResolvedValue({ ...catalog, categories: [...catalog.categories,
+      { ...catalog.categories[0], id: 'spawner', label: 'スポナー', directory: '50.features.spawner' },
+      { ...catalog.categories[0], id: 'mob-spawner', label: 'モブスポナー', directory: '50.features.spawner/mobs' },
+      { ...catalog.categories[0], id: 'quest', label: 'クエスト', directory: '70.features.quest' }] })
+    vi.mocked(masterDataApi.files).mockResolvedValue([first, second, { ...second, path: spawnerPath }, { ...second, path: questPath }].map(document => ({ path: document.path, category: 'unused', name: (document.content as {name:string}).name, format: 'yaml', revision: 'r1', size: 40, modifiedUtc: '' })))
+    const refs: MasterReference[] = [...Array.from({ length: 55 }, (_, i) => ({ ...reference('森&a林&#aabbcc狼'), path: spawnerPath, pointer: `/spawnMobs/${i}/mobId`, kind: 'mob', value: 'mob:wolf' })),
+      { ...reference('狼の討伐'), path: questPath, kind: 'mob', value: 'mob:wolf' },
+      { ...reference('Plugin の設定'), path: '../plugin/config.yml', kind: 'mob', value: 'mob:wolf' }]
+    vi.mocked(masterDataApi.references).mockResolvedValueOnce(refs).mockResolvedValueOnce(refs.slice(55))
+    await openFirst()
+    fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '保持する原稿' } })
+    toggleReferences()
+    await panel().findByRole('combobox', { name: '参照元カテゴリ' })
+    expect(panel().getByRole('option', { name: 'モブスポナー（55箇所）' })).toBeInTheDocument()
+    expect(panel().getAllByRole('row')).toHaveLength(51)
+    fireEvent.click(panel().getByRole('button', { name: '次の参照' }))
+    expect(panel().getAllByRole('row')).toHaveLength(8)
+    fireEvent.change(panel().getByLabelText('参照元を検索'), { target: { value: '森林狼　MOB:WOLF /spawnMobs' } })
+    expect(panel().getAllByRole('row')).toHaveLength(51)
+    expect(panel().getByRole('button', { name: '前の参照' })).toBeDisabled()
+    fireEvent.change(panel().getByLabelText('参照元カテゴリ'), { target: { value: 'category:70.features.quest' } })
+    expect(panel().getByText(/条件に一致する参照元はありません/)).toBeInTheDocument()
+    fireEvent.change(panel().getByLabelText('参照元を検索'), { target: { value: ' \t　' } })
+    expect(panel().getAllByRole('row')).toHaveLength(2)
+    expect(panel().getByRole('cell', { name: /狼の討伐/ })).toBeInTheDocument()
+    fireEvent.change(panel().getByLabelText('参照元カテゴリ'), { target: { value: 'outside' } })
+    expect(panel().getByText(/ファイル一覧外の参照元です/)).toBeInTheDocument()
+    expect(panel().queryByRole('button', { name: /の参照位置/ })).not.toBeInTheDocument()
+    fireEvent.click(panel().getByRole('button', { name: '参照の条件を解除' }))
+    expect(panel().getAllByRole('row')).toHaveLength(51)
+    fireEvent.change(panel().getByLabelText('参照元カテゴリ'), { target: { value: 'category:50.features.spawner/mobs' } })
+    fireEvent.click(panel().getByRole('button', { name: '参照元を更新' }))
+    await panel().findByRole('option', { name: /現在0箇所/ })
+    expect(panel().getByText(/条件に一致する参照元はありません/)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('保持する原稿')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(1)
+    expect(masterDataApi.references).toHaveBeenCalledTimes(2)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
+  it('5000参照の検索文字列は表示中に一度加工し、入力や閉じた間の編集では再加工しない', async () => {
+    vi.mocked(masterDataApi.references).mockResolvedValue(Array.from({ length: 5000 }, (_, i) => ({ ...reference('森&a林狼'), value: `__ref_perf_${i}` })))
+    const lower = vi.spyOn(String.prototype, 'toLocaleLowerCase')
+    const count = () => lower.mock.contexts.filter(value => String(value).includes('__ref_perf_')).length
+    await openFirst()
+    expect(count()).toBe(0)
+    toggleReferences()
+    await screen.findByRole('button', { name: '参照一覧 (5000)' })
+    expect(count()).toBe(5000)
+    lower.mockClear()
+    for (const value of ['森', '森林', '森林狼', '森林狼 second']) fireEvent.change(panel().getByLabelText('参照元を検索'), { target: { value } })
+    expect(count()).toBe(0)
+    expect(panel().getAllByRole('row')).toHaveLength(51)
+    toggleReferences()
+    fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '編集中' } })
+    expect(count()).toBe(0)
+    toggleReferences()
+    expect(panel().getByLabelText('参照元を検索')).toHaveValue('森林狼 second')
+    expect(masterDataApi.references).toHaveBeenCalledTimes(1)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    lower.mockRestore()
+  })
+
   it.each([
     { pointer: '/a~1b~0c/items/30/id', content: { 'a/b~c': { items: Array.from({ length: 31 }, (_, i) => ({ id: i === 30 ? 'first' : 'other' })) } }, field: '/a~1b~0c/items/30/id' },
     { pointer: '/lore/1', content: { lore: ['other', 'first'] }, field: '/lore' },

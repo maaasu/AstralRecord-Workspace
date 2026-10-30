@@ -4,6 +4,7 @@ import { masterDataApi } from '../api/masterDataApi'
 import { useHistory } from '../state/history'
 import { useMasterDataWorkspace, type MasterDataWorkspace } from '../state/masterDataWorkspace'
 import { useMasterReferences } from '../state/masterReferences'
+import { filterMasterReferences, indexMasterReferences } from '../data/masterReferenceSearch'
 import { emptyMasterTabs, masterTabsReducer, type MasterTabStatus, type MasterReferenceTarget } from '../state/masterDataTabs'
 import { listMasterDrafts, readMasterDraft, removeMasterDraft, writeMasterDraft, type MasterDraftState, type RecoverableMasterDraft } from '../state/masterDataRecovery'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
@@ -230,12 +231,14 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const [importText, setImportText] = useState('')
   const [showReferences, setShowReferences] = useState(false)
   const [referenceQuery, setReferenceQuery] = useState('')
+  const [referenceCategory, setReferenceCategory] = useState('')
   const [referencePage, setReferencePage] = useState(0)
   const referencePanelId = useId()
   const referenceSource = useMemo(() => document ? { path: document.path } : null, [document, documentVersion, referenceVersion])
   const referenceState = useMasterReferences(referenceSource, showReferences && active)
   const references = referenceState.entries
-  const referenceFilePaths = useMemo(() => showReferences ? new Set(files.map(file => file.path)) : new Set<string>(), [files, showReferences])
+  const referenceIndex = useMemo(() => showReferences && active ? indexMasterReferences(references, files, catalog?.categories ?? []) : null,
+    [references, files, catalog, showReferences, active])
   const [documentation, setDocumentation] = useState<{ path: string; raw: string } | null>(null)
   const [formPath, setFormPath] = useState('')
   const [focusPath, setFocusPath] = useState<{ path: string } | null>(null)
@@ -275,7 +278,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const formContentDirty = useMemo(() => draft.source === 'form' && JSON.stringify(draft.content) !== savedContentJson,
     [draft.content, draft.source, savedContentJson])
   const dirty = Boolean(document) && (formContentDirty || draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
-  const filteredReferences = useMemo(() => showReferences ? references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${stripMinecraftFormatting(entry.label ?? '')}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())) : [], [references, referenceQuery, showReferences])
+  const filteredReferences = useMemo(() => referenceIndex ? filterMasterReferences(referenceIndex, referenceQuery, referenceCategory) : [], [referenceIndex, referenceQuery, referenceCategory])
   const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
   const currentReferencePage = Math.min(referencePage, referencePages - 1)
   const handleInvalid = useCallback((path: string, message: string | null, text?: string) => {
@@ -600,10 +603,14 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
               : <>
                 <div className="master-reference-tools">
                   <button type="button" className="button compact" onClick={() => { setReferencePage(0); referenceState.reload() }}>参照元を更新</button>
-                  <label>参照元を検索<input aria-label="参照元を検索" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label>
+                  <label>参照元カテゴリ<select value={referenceCategory} onChange={event => { setReferenceCategory(event.target.value); setReferencePage(0) }}><option value="">すべて</option>{referenceIndex?.categories.map(category => <option key={category.key} value={category.key}>{category.label}（{category.count}箇所）</option>)}{referenceCategory && !referenceIndex?.categories.some(category => category.key === referenceCategory) && <option value={referenceCategory}>{referenceCategory === 'outside' ? 'ファイル一覧外' : referenceCategory.replace(/^category:/, '')}（現在0箇所）</option>}</select></label>
+                  <label>参照元を検索<input aria-label="参照元を検索" aria-describedby={`${referencePanelId}-search-help`} placeholder="名前・ID・パス・項目・カテゴリ" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label>
+                  <button type="button" className="button compact" disabled={!referenceQuery && !referenceCategory} onClick={() => { setReferenceQuery(''); setReferenceCategory(''); setReferencePage(0) }}>参照の条件を解除</button>
                 </div>
+                <p id={`${referencePanelId}-search-help`} className="master-muted">空白区切りですべての語を含む参照元を検索します。例: スポナー 森林狼。カテゴリは参照元ファイルの最も深い分類です。件数は参照箇所数です。</p>
                 <p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p>
-                {references.length > 0 ? <><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map((entry, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td>{referenceFilePaths.has(entry.path) ? <><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button><button className="text-button master-reference-location" disabled={busy} aria-label={`${stripMinecraftFormatting(entry.label ?? '') || baseName(entry.path)} の参照位置 ${entry.pointer || '/'} へ移動`} onClick={() => onOpenFile(entry.path, undefined, { pointer: entry.pointer, value: entry.value })}>項目へ移動: {entry.pointer || '/'}</button></> : <><code>{entry.path}</code><small>{entry.pointer}</small><span className="master-muted">ファイル一覧外の参照元です。Filebase外の設定は対応するエディタで確認し、Filebase内なら一覧を再読込してください。</span></>}</td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div></>
+                {references.length > 0 && filteredReferences.length === 0 && <p className="master-muted">条件に一致する参照元はありません。検索語やカテゴリを変更するか、条件を解除してください。</p>}
+                {references.length > 0 ? <><table><thead><tr><th>参照先の種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map(({ entry, categoryLabel, canOpen }, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><small className="master-muted master-reference-category">{categoryLabel}</small>{canOpen ? <><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button><button className="text-button master-reference-location" disabled={busy} aria-label={`${stripMinecraftFormatting(entry.label ?? '') || baseName(entry.path)} の参照位置 ${entry.pointer || '/'} へ移動`} onClick={() => onOpenFile(entry.path, undefined, { pointer: entry.pointer, value: entry.value })}>項目へ移動: {entry.pointer || '/'}</button></> : <><code>{entry.path}</code><small>{entry.pointer}</small><span className="master-muted">ファイル一覧外の参照元です。Filebase外の設定は対応するエディタで確認し、Filebase内なら一覧を再読込してください。</span></>}</td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div></>
                   : <p className="master-muted">検出された参照元はありません。</p>}
               </>}
         </section>}
