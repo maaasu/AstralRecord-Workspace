@@ -38,17 +38,38 @@ export function MasterFilterDialog({ value, files, allFiles, index, candidates, 
   const facets = useMemo(() => categoryFacetOptions(files, index), [files, index])
   const numbers = useMemo(() => categoryNumericOptions(files, index), [files, index])
   const numericError = numericFilterError(draft.numericFilters)
-  const count = useMemo(() => filterMasterFiles(files, index, draft, query).length, [files, index, draft, query])
+  // The two candidate search fields never affect the result list.
+  const countFilters = useMemo<MasterListFilters>(() => ({
+    format: draft.format, sourceQuery: '', dropSourcePath: draft.dropSourcePath,
+    skillTag: draft.skillTag, dropItemQuery: '', dropItemId: draft.dropItemId,
+    dropPresence: draft.dropPresence, facetFilters: draft.facetFilters,
+    fileStatus: draft.fileStatus, numericFilters: draft.numericFilters,
+  }), [draft.format, draft.dropSourcePath, draft.skillTag, draft.dropItemId, draft.dropPresence, draft.facetFilters, draft.fileStatus, draft.numericFilters])
+  const count = useMemo(() => filterMasterFiles(files, index, countFilters, query).length, [files, index, countFilters, query])
   const set = <K extends keyof MasterListFilters>(key: K, next: MasterListFilters[K]) => setDraft((current) => ({ ...current, [key]: next }))
-  const paths = new Set(files.map((file) => file.path))
+  const paths = useMemo(() => new Set(files.map((file) => file.path)), [files])
   const matchesSource = useMemo(() => createMasterNameMatcher(draft.sourceQuery), [draft.sourceQuery])
   const matchesItem = useMemo(() => createMasterNameMatcher(draft.dropItemQuery), [draft.dropItemQuery])
-  const sources = (index?.sources ?? []).filter((source) => source.path === draft.dropSourcePath || matchesSource(source.name, source.id, source.path))
-  const dropIds = new Set(index?.sources.filter((source) => paths.has(source.path)).flatMap((source) => source.itemIds) ?? [])
-  const items = [...dropIds].map((id) => ({ value: id, label: candidates.find((item) => item.kind === 'item' && item.value === id)?.label ?? allFiles.find((file) => file.id === id && file.path.startsWith('10.features.item/'))?.name ?? id }))
-    .filter((item) => item.value === draft.dropItemId || matchesItem(item.label, item.value))
-    .sort((left, right) => left.label.localeCompare(right.label, 'ja'))
-  const tags = new Set(index?.skillTags.filter((skill) => paths.has(skill.path)).flatMap((skill) => skill.tags) ?? [])
+  const sources = useMemo(() => (index?.sources ?? []).filter((source) => source.path === draft.dropSourcePath || matchesSource(source.name, source.id, source.path)), [index, draft.dropSourcePath, matchesSource])
+  const dropIds = useMemo(() => new Set(index?.sources.filter((source) => paths.has(source.path)).flatMap((source) => source.itemIds) ?? []), [index, paths])
+  const showDropItems = dropScope && dropIds.size > 0
+  const labelsByItemId = useMemo(() => {
+    if (!showDropItems) return null
+    const candidateLabels = new Map<string, string | undefined>()
+    for (const candidate of candidates) {
+      if (candidate.kind === 'item' && !candidateLabels.has(candidate.value)) candidateLabels.set(candidate.value, candidate.label)
+    }
+    const fileNames = new Map<string, string | null | undefined>()
+    for (const file of allFiles) {
+      if (file.id != null && file.path.startsWith('10.features.item/') && !fileNames.has(file.id)) fileNames.set(file.id, file.name)
+    }
+    return { candidateLabels, fileNames }
+  }, [candidates, allFiles, showDropItems])
+  const sortedItems = useMemo(() => labelsByItemId ? [...dropIds].map((id) => ({ value: id, label: labelsByItemId.candidateLabels.get(id) ?? labelsByItemId.fileNames.get(id) ?? id }))
+    .sort((left, right) => left.label.localeCompare(right.label, 'ja')) : [], [dropIds, labelsByItemId])
+  const items = useMemo(() => sortedItems.filter((item) => item.value === draft.dropItemId || matchesItem(item.label, item.value)), [sortedItems, draft.dropItemId, matchesItem])
+  const tags = useMemo(() => new Set(index?.skillTags.filter((skill) => paths.has(skill.path)).flatMap((skill) => skill.tags) ?? []), [index, paths])
+  const formats = useMemo(() => [...new Set(files.map((file) => file.format))], [files])
   const stale = !index && Boolean(draft.dropSourcePath || draft.skillTag || draft.dropItemId || draft.dropPresence)
     || Boolean(draft.dropSourcePath && !index?.sources.some((source) => source.path === draft.dropSourcePath))
     || Boolean(draft.skillTag && (!tags.has(draft.skillTag) || !index?.tags.some((tag) => tag.id === draft.skillTag)))
@@ -58,7 +79,7 @@ export function MasterFilterDialog({ value, files, allFiles, index, candidates, 
     || Object.entries(draft.numericFilters).some(([key, range]) => (range.min.trim() || range.max.trim()) && !numbers[key])
   const identityKeys = ['category', 'type', 'rarity', 'slot', 'handType', 'equipmentTag', 'role', 'entityType']
   const availabilityKeys = ['unTradeable', 'unSellable', 'classRestricted', 'requiredClasses', 'enchantEnabled', 'enhanceEnabled', 'setId']
-  const onlySkills = files.length > 0 && files.every((file) => isSkillDirectory(file.path))
+  const onlySkills = useMemo(() => files.length > 0 && files.every((file) => isSkillDirectory(file.path)), [files])
   const shownFacetKeys = Object.keys(facets).filter((key) => key !== 'tags' || !onlySkills)
   const facetField = (key: string) => <label key={key}>{facetLabels[key]}<select aria-label={facetLabels[key]} value={draft.facetFilters[key] ?? ''} onChange={(event) => {
     const next = { ...draft.facetFilters }
@@ -79,8 +100,8 @@ export function MasterFilterDialog({ value, files, allFiles, index, candidates, 
         {facetSection('タグ・ワールド・動作', shownFacetKeys.filter((key) => !identityKeys.includes(key) && !availabilityKeys.includes(key)))}
         {skillScope && <fieldset className="master-filter-section"><legend>スキルの共有タグ</legend><label>スキルタグ<select aria-label="スキルタグ" value={draft.skillTag} onChange={(event) => set('skillTag', event.target.value)} disabled={!index}><option value="">指定しない</option>{index?.tags.filter((tag) => tags.has(tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{namedMasterOption(tag.name, tag.id)}</option>)}</select></label></fieldset>}
         {itemScope && <fieldset className="master-filter-section"><legend>アイテムのドロップ元</legend><div className="master-filter-fields"><label>モブ・採集オブジェクトを検索<input aria-label="ドロップ元を名前で検索" value={draft.sourceQuery} placeholder="名前 / ID / パス" onChange={(event) => setDraft((current) => ({ ...current, sourceQuery: event.target.value, dropSourcePath: '' }))} /></label><label>ドロップ元<select aria-label="ドロップ元" value={draft.dropSourcePath} onChange={(event) => set('dropSourcePath', event.target.value)} disabled={!index}><option value="">指定しない</option>{sources.map((source) => <option key={source.path} value={source.path}>{source.kind === 'mob' ? 'モブ' : '採集'} · {namedMasterOption(stripMinecraftFormatting(source.name), source.id)}</option>)}</select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。レベル別・共通報酬テーブル経由のドロップ品も対象です。</p></fieldset>}
-        {dropScope && <fieldset className="master-filter-section"><legend>モブ・採集のドロップ品</legend><div className="master-filter-fields"><label>ドロップ品を検索<input aria-label="ドロップ品を名前で検索" value={draft.dropItemQuery} placeholder="名前 / ID" onChange={(event) => setDraft((current) => ({ ...current, dropItemQuery: event.target.value, dropItemId: '' }))} /></label><label>ドロップするアイテム<select aria-label="ドロップするアイテム" value={draft.dropItemId} onChange={(event) => set('dropItemId', event.target.value)} disabled={!index}><option value="">指定しない</option>{[...new Map(items.map((item) => [item.value, item])).values()].map((item) => <option key={item.value} value={item.value}>{namedMasterOption(stripMinecraftFormatting(item.label ?? ''), item.value)}</option>)}</select></label><label>アイテムドロップの有無<select aria-label="アイテムドロップの有無" value={draft.dropPresence} onChange={(event) => set('dropPresence', event.target.value)} disabled={!index}><option value="">すべて</option><option value="has">あり</option><option value="none">なし</option></select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。</p></fieldset>}
-        <fieldset className="master-filter-section"><legend>ファイルの条件</legend><div className="master-filter-fields"><label>ファイル形式<select aria-label="ファイル形式" value={draft.format} onChange={(event) => set('format', event.target.value)}><option value="">すべて</option>{[...new Set(files.map((file) => file.format))].map((format) => <option key={format} value={format}>{format.toUpperCase()}</option>)}</select></label><label>ファイル状態<select aria-label="ファイル状態" value={draft.fileStatus} onChange={(event) => set('fileStatus', event.target.value)}><option value="">すべて</option><option value="editable">編集可能</option><option value="readOnly">閲覧のみ</option><option value="error">解析エラーあり</option></select></label></div></fieldset>
+        {dropScope && <fieldset className="master-filter-section"><legend>モブ・採集のドロップ品</legend><div className="master-filter-fields"><label>ドロップ品を検索<input aria-label="ドロップ品を名前で検索" value={draft.dropItemQuery} placeholder="名前 / ID" onChange={(event) => setDraft((current) => ({ ...current, dropItemQuery: event.target.value, dropItemId: '' }))} /></label><label>ドロップするアイテム<select aria-label="ドロップするアイテム" value={draft.dropItemId} onChange={(event) => set('dropItemId', event.target.value)} disabled={!index}><option value="">指定しない</option>{items.map((item) => <option key={item.value} value={item.value}>{namedMasterOption(stripMinecraftFormatting(item.label), item.value)}</option>)}</select></label><label>アイテムドロップの有無<select aria-label="アイテムドロップの有無" value={draft.dropPresence} onChange={(event) => set('dropPresence', event.target.value)} disabled={!index}><option value="">すべて</option><option value="has">あり</option><option value="none">なし</option></select></label></div><p>検索語は空白で区切り、すべてに一致する候補を表示します。</p></fieldset>}
+        <fieldset className="master-filter-section"><legend>ファイルの条件</legend><div className="master-filter-fields"><label>ファイル形式<select aria-label="ファイル形式" value={draft.format} onChange={(event) => set('format', event.target.value)}><option value="">すべて</option>{formats.map((format) => <option key={format} value={format}>{format.toUpperCase()}</option>)}</select></label><label>ファイル状態<select aria-label="ファイル状態" value={draft.fileStatus} onChange={(event) => set('fileStatus', event.target.value)}><option value="">すべて</option><option value="editable">編集可能</option><option value="readOnly">閲覧のみ</option><option value="error">解析エラーあり</option></select></label></div></fieldset>
       </div>
       <footer className="modal-footer"><button type="button" className="button subtle" onClick={() => setDraft(emptyMasterListFilters())}>条件をクリア</button><span className="master-filter-preview" role="status">{stale ? '条件を再設定してください' : numericError ? '範囲を修正してください' : `${count} 件が一致`}</span><button type="button" className="button" onClick={onCancel}>キャンセル</button><button type="submit" className="button primary" disabled={Boolean(numericError) || stale}>条件を適用</button></footer>
     </form>
