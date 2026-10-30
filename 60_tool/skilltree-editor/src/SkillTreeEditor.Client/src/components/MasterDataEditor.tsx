@@ -270,9 +270,11 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     return schemas.find((entry) => typeof reference === 'string' && baseName(entry.path) === baseName(reference))?.schema
       ?? (schemas.length === 1 ? schemas[0].schema : {})
   }, [documentCategory, draft.content])
-  const dirty = Boolean(document) && (draft.source === 'form'
-    ? JSON.stringify(draft.content) !== JSON.stringify(document?.content) || draft.raw !== document?.raw
-    : draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
+  // History and form updates replace content; retain only the current baseline and comparison.
+  const savedContentJson = useMemo(() => JSON.stringify(document?.content), [document?.content])
+  const formContentDirty = useMemo(() => draft.source === 'form' && JSON.stringify(draft.content) !== savedContentJson,
+    [draft.content, draft.source, savedContentJson])
+  const dirty = Boolean(document) && (formContentDirty || draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
   const filteredReferences = useMemo(() => showReferences ? references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${stripMinecraftFormatting(entry.label ?? '')}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())) : [], [references, referenceQuery, showReferences])
   const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
   const currentReferencePage = Math.min(referencePage, referencePages - 1)
