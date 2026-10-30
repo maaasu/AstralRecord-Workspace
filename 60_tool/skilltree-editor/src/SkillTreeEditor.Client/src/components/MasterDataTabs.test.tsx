@@ -36,6 +36,93 @@ async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
 function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
 
 describe('master file tabs', () => {
+  it('searches unsaved tabs and switches without losing invalid input, edited names or file history', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集中の戦士' } })
+    fireEvent.change(input('/level'), { target: { value: 'invalid' } })
+    await open('ファイルB')
+    fireEvent.click(screen.getByRole('button', { name: '開いているファイルを検索' }))
+    const dialog = within(screen.getByRole('dialog', { name: '開いているファイルを検索' }))
+    fireEvent.click(dialog.getByRole('checkbox', { name: '未保存のみ' }))
+    fireEvent.change(dialog.getByRole('textbox', { name: '開いているファイルの検索語' }), { target: { value: '戦士 class' } })
+    fireEvent.click(dialog.getByRole('button', { name: /編集中の戦士.*v1.a.yml/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(input('/name')).toHaveValue('編集中の戦士')
+    expect(input('/level')).toHaveValue('invalid')
+    expect(input('/level')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('tab', { name: /編集中の戦士/ })).toHaveFocus()
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
+  it('keeps raw drafts and undo history when selecting existing tabs through search', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    await open('ファイルB')
+    fireEvent.click(panel().getByRole('button', { name: '原稿 YAML' }))
+    await waitFor(() => expect(input('マスター原稿')).toBeEnabled())
+    const initialRaw = (input('マスター原稿') as HTMLTextAreaElement).value
+    fireEvent.change(input('マスター原稿'), { target: { value: 'id: b\nname: 原稿の編集中\n' } })
+    for (const path of ['v1.a.yml', 'v1.b.yml']) {
+      fireEvent.click(screen.getByRole('button', { name: '開いているファイルを検索' }))
+      const query = screen.getByRole('textbox', { name: '開いているファイルの検索語' })
+      fireEvent.change(query, { target: { value: path } })
+      fireEvent.keyDown(query, { key: 'Enter' })
+    }
+    expect(input('マスター原稿')).toHaveValue('id: b\nname: 原稿の編集中\n')
+    fireEvent.click(panel().getByRole('button', { name: '元に戻す Ctrl+Z' }))
+    expect(input('マスター原稿')).toHaveValue(initialRaw)
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+  })
+
+  it('restores focus on cancel, suppresses save shortcuts and closes search when the screen becomes inactive', async () => {
+    const view = render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '編集中' } })
+    const trigger = screen.getByRole('button', { name: '開いているファイルを検索' })
+    await userEvent.click(trigger)
+    fireEvent.keyDown(screen.getByRole('textbox', { name: '開いているファイルの検索語' }), { key: 's', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true })
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(trigger).toHaveFocus()
+    expect(input('/name')).toHaveValue('編集中')
+    fireEvent.click(trigger)
+    view.rerender(<MasterDataEditor active={false} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    view.rerender(<MasterDataEditor active />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(input('/name')).toHaveValue('編集中')
+    fireEvent.click(trigger)
+    fireEvent.keyDown(screen.getByRole('textbox', { name: '開いているファイルの検索語' }), { key: 'Enter' })
+    expect(screen.getByRole('tab', { name: /編集中/ })).toHaveFocus()
+  })
+
+  it('selects a saving tab from search while keeping another draft intact', async () => {
+    let finishSave!: (document: MasterDocument) => void
+    vi.mocked(masterDataApi.save).mockImplementation(() => new Promise(resolve => { finishSave = resolve }))
+    render(<MasterDataEditor />)
+    await open('ファイルA'); await open('ファイルB')
+    select(/ファイルA/)
+    fireEvent.change(input('/name'), { target: { value: '保存中A' } })
+    fireEvent.click(panel().getByRole('button', { name: '保存 (Ctrl+S)' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledTimes(1))
+    select(/ファイルB/)
+    fireEvent.change(input('/name'), { target: { value: '編集中B' } })
+    fireEvent.click(screen.getByRole('button', { name: '開いているファイルを検索' }))
+    const dialog = within(screen.getByRole('dialog'))
+    const saving = dialog.getByRole('button', { name: /保存中A.*処理中/ })
+    expect(saving).toBeEnabled()
+    fireEvent.click(saving)
+    expect(input('/name')).toHaveValue('保存中A')
+    await act(async () => finishSave({ ...a, revision: 'saved-a', content: { id: 'a', name: '保存中A', level: 1 }, raw: 'id: a\nname: 保存中A\nlevel: 1\n' }))
+    select(/編集中B/)
+    expect(input('/name')).toHaveValue('編集中B')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+  })
+
   it('returns to an existing unsaved tab from the narrow file browser without reloading it', async () => {
     vi.stubGlobal('innerWidth', 900)
     try {

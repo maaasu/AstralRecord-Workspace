@@ -12,6 +12,7 @@ import { MasterDataDiff } from './MasterDataDiff'
 import { masterDefault } from './MasterDataForm'
 import { MasterDataDetails } from './MasterDataNavigation'
 import { MasterTabContextMenu } from './MasterTabContextMenu'
+import { MasterTabSearch } from './MasterTabSearch'
 import { Modal } from './Modal'
 import { masterDisplayName } from '../data/masterDataPresentation'
 import { closestContainerPointer, parentPointer, valueAtPointer } from '../data/masterDataNavigation'
@@ -59,6 +60,10 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const [recoverableDrafts, setRecoverableDrafts] = useState<RecoverableMasterDraft[]>([])
   const recoveryRoot = useRef('')
   const [tabMenu, setTabMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [tabSearchOpen, setTabSearchOpen] = useState(false)
+  const focusAfterSwitch = useRef(false)
+  const fileNames = useMemo(() => new Map(workspace.files.map(file => [file.path, file.name])), [workspace.files])
+  const displayTabs = useMemo(() => tabsState.tabs.map(tab => ({ ...tab, name: tab.name || fileNames.get(tab.path) || baseName(tab.path) })), [tabsState.tabs, fileNames])
   const latestWelcomeDirty = useRef(false)
   const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
   const openFile = useCallback((path: string, document?: MasterDocument) => {
@@ -101,7 +106,12 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     if (restoreFocus && tabMenu) tabButtons.current.get(tabMenu.id)?.focus()
     setTabMenu(null)
   }, [tabMenu])
-  useEffect(() => { if (!active) setTabMenu(null) }, [active])
+  useEffect(() => { if (!active) { setTabMenu(null); setTabSearchOpen(false) } }, [active])
+  useEffect(() => {
+    if (!focusAfterSwitch.current || tabSearchOpen) return
+    tabButtons.current.get(tabsState.activeId)?.focus()
+    focusAfterSwitch.current = false
+  }, [tabsState.activeId, tabSearchOpen])
   const menuIndex = tabsState.tabs.findIndex((tab) => tab.id === tabMenu?.id)
   const tabCommands = menuIndex < 0 ? [] : [
     { label: '閉じる', targets: [tabsState.tabs[menuIndex]] },
@@ -137,9 +147,9 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     <div className={'master-workbench' + (workspace.sidebarCollapsed ? ' browser-hidden' : '')}>
       <MasterFileBrowser workspace={workspace} selectedPath={tabsState.tabs.find((tab) => tab.id === tabsState.activeId)?.path} busy={tabsState.tabs.find((tab) => tab.id === tabsState.activeId)?.busy ?? welcomeBusy} active={active} onOpen={openFile} onNew={() => browserActions.current.get(tabsState.activeId || 'welcome')?.create()} onImport={() => browserActions.current.get(tabsState.activeId || 'welcome')?.import()} onDialogChange={setBrowserDialogOpen} />
       <section className="master-document-area" aria-label="マスターの編集領域">
-    {tabsState.tabs.length > 0 && <div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{tabsState.tabs.map((tab, index) => {
+    {tabsState.tabs.length > 0 && <div className="master-tab-bar"><div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{displayTabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId
-      const name = tab.name || workspace.files.find((file) => file.path === tab.path)?.name || baseName(tab.path)
+      const name = tab.name
       return <div className={'master-document-tab ' + (selected ? 'selected' : '')} key={tab.id} role="presentation" onContextMenu={(event) => { event.preventDefault(); setTabMenu({ id: tab.id, x: event.clientX, y: event.clientY }) }} onAuxClick={(event) => { if (event.button === 1) { event.preventDefault(); closeTab(tab.id) } }}>
         <button type="button" role="tab" id={`${tabPrefix}-${tab.id}`} aria-controls={`${tabPrefix}-${tab.id}-panel`} aria-selected={selected} aria-label={`${stripMinecraftFormatting(name)}${tab.dirty ? ' · 未保存' : ''}`} tabIndex={selected ? 0 : -1}
           ref={(element) => { if (element) tabButtons.current.set(tab.id, element); else tabButtons.current.delete(tab.id) }}
@@ -157,10 +167,16 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
           }}><span><MinecraftText value={name} />{tab.dirty && <b className="master-tab-dirty" aria-hidden="true">●</b>}</span><small>{baseName(tab.path)}</small></button>
         <button type="button" className="master-tab-close" aria-label={`${baseName(tab.path)} のタブを閉じる`} disabled={tab.busy} onClick={() => closeTab(tab.id)}>×</button>
       </div>
-    })}</div>}
+    })}</div><button type="button" className="button master-tab-search-trigger" aria-label="開いているファイルを検索" aria-haspopup="dialog" aria-expanded={tabSearchOpen} onClick={() => { setTabMenu(null); setTabSearchOpen(true) }}>タブを検索 ({tabsState.tabs.length})</button></div>}
+    {active && tabSearchOpen && <MasterTabSearch tabs={displayTabs} activeId={tabsState.activeId} onClose={() => setTabSearchOpen(false)} onSelect={id => {
+      focusAfterSwitch.current = true
+      setTabSearchOpen(false)
+      dispatch({ type: 'select', id })
+      if (window.innerWidth <= 1100) workspace.setSidebarCollapsed(true)
+    }} />}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
+      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
     </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} /></div>}
       </section>
     </div>

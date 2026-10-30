@@ -30,6 +30,17 @@
 .master-editor-panel { flex: 1; min-height: 0; }
 .master-editor-panel[hidden] { display: none; }
 .master-document-tabs { display: flex; flex-shrink: 0; overflow-x: auto; background: #101722; border-bottom: 1px solid var(--line); }
+.master-tab-bar { display: flex; flex-shrink: 0; min-width: 0; align-items: stretch; background: #101925; }
+.master-tab-bar > .master-document-tabs { flex: 1; min-width: 0; }
+.master-tab-search-trigger { flex-shrink: 0; margin: 7px; align-self: center; font-size: 11px; }
+.modal.master-tab-search-dialog { width: min(760px, 95vw); grid-template-rows: auto minmax(0, 1fr) auto; }
+.master-tab-search-dialog .modal-footer { flex-wrap: wrap; font-size: 12px; }
+.master-tab-search-filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; font-size: 12px; }
+.master-tab-search-filters label { display: flex; align-items: center; gap: 7px; }
+.master-tab-search-results { min-height: 0; max-height: 45vh; overflow: auto; margin-bottom: 12px; }
+.master-tab-search-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; min-width: 0; overflow-wrap: anywhere; }
+.master-tab-search-title > .minecraft-text { min-width: 0; }
+.master-tab-search-title small { color: var(--text-muted); font-size: 11px; }
 .master-document-tab { display: flex; align-items: center; flex: 0 0 auto; max-width: 270px; border-right: 1px solid var(--line); border-top: 2px solid transparent; }
 .master-document-tab.selected { background: var(--surface); border-top-color: var(--gold); }
 .master-document-tab > [role="tab"] { display: grid; gap: 3px; min-width: 130px; max-width: 235px; padding: 8px 10px; background: transparent; border: 0; color: inherit; text-align: left; cursor: pointer; }
