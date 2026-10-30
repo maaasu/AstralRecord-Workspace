@@ -66,6 +66,34 @@ describe('equipment name presentation', () => {
 })
 
 describe('analysis calculation reuse', () => {
+  it('sorts the standard candidate order once rather than on each search', async () => {
+    const masters = Array.from({ length: 1000 }, (_, i) => ({ path: `item/sort-perf-${999 - i}.yml`, progression: null, content: { id: `sort-perf-${999 - i}`, name: `Gear ${999 - i}`, equipment: { requiredLevel: 10 } } }))
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ equipment: masters, classes: [], diagnostics: [] }) })))
+    const originalCompare = String.prototype.localeCompare
+    let comparisons = 0
+    vi.spyOn(String.prototype, 'localeCompare').mockImplementation(function (this: string, other, ...options) {
+      if (String(this).startsWith('sort-perf-') && String(other).startsWith('sort-perf-')) comparisons++
+      return originalCompare.call(this, other, ...options)
+    })
+    const queries = ['gear', 'GEAR', 'item/', 'sort-perf-']
+    // Prior behavior sorted the matching rows again for every query.
+    for (const query of queries) masters.filter(master => `${master.content.name} ${master.content.id} ${master.path}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.content.id.localeCompare(b.content.id))
+    const previousSearchComparisons = comparisons
+    expect(previousSearchComparisons).toBeGreaterThan(0)
+    comparisons = 0
+    render(<MasterAnalytics />)
+    await screen.findByRole('table')
+    expect(comparisons).toBeGreaterThan(0)
+    comparisons = 0
+    for (const value of queries) fireEvent.change(screen.getByRole('textbox', { name: '名前・ID' }), { target: { value } })
+    expect(comparisons).toBe(0)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(50)
+    expect(screen.getByText(/1000件を比較/)).toBeInTheDocument()
+    expect(equipmentRows).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    console.info('1000 equipment × 4 searches: ID comparisons', { before: previousSearchComparisons, after: comparisons })
+  })
+
   it('reuses 12-class × 200-point graphs for inspection and unrelated inputs, and refreshes their dependencies', async () => {
     const definitions = Array.from({ length: 12 }, (_, index) => ({ id: `class-${index}`, name: `職業${index}`, maxLevel: 1000, expRate: 100 }))
     let catalog: AnalyticsCatalog = { equipment: [], diagnostics: [], classes: definitions.map((definition, index) => ({

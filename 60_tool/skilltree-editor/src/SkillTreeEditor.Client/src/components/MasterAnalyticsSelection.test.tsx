@@ -26,6 +26,74 @@ function exportIds() {
 }
 
 describe('equipment comparison selection across search conditions', () => {
+  it('sorts candidates, selection, bars and CSV consistently without changing selection order or fetching again', async () => {
+    const wide = equipment('wide', '&6幅広い剣'), fixed = equipment('fixed', '安定した剣'), none = equipment('none', '魔法の杖', 10, 'OFF', 'WAND', 'MAGIC_ATTACK', 30)
+    wide.content.equipment = { stats: [{ status: 'MELEE_ATTACK', value: '1~100' }, { status: 'MAGIC_ATTACK', value: 2 }], requiredLevel: 10 }
+    fixed.content.equipment = { stats: [{ status: 'MELEE_ATTACK', value: 5 }, { status: 'MAGIC_ATTACK', value: 20 }], requiredLevel: 10 }
+    const catalog: AnalyticsCatalog = { equipment: [wide, none, fixed], classes: [], diagnostics: [] }
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => catalog }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MasterAnalytics />)
+    await screen.findByRole('table')
+    const tableNames = () => screen.getAllByRole('checkbox').map(input => input.getAttribute('aria-label')!.replace('を比較に選択', ''))
+    const barNames = () => Array.from(screen.getByLabelText(/の範囲比較$/).children).map(row => row.firstElementChild!.textContent)
+    expect(screen.getByLabelText('並べる方向')).toBeDisabled()
+    setInput('並び順', 'max')
+    expect(exportIds()).toEqual(['wide', 'fixed', 'none'])
+    expect(tableNames()).toEqual(['幅広い剣', '安定した剣', '魔法の杖'])
+    expect(barNames()).toEqual(['幅広い剣', '安定した剣'])
+    setInput('並べる方向', 'asc')
+    expect(exportIds()).toEqual(['fixed', 'wide', 'none'])
+    select('幅広い剣'); select('安定した剣')
+    fireEvent.click(listButton(true))
+    setInput('並べる方向', 'desc'); setInput('並び順', 'min')
+    expect(exportIds()).toEqual(['fixed', 'wide'])
+    expect(tableNames()).toEqual(['安定した剣', '幅広い剣'])
+    expect(barNames()).toEqual(['安定した剣', '幅広い剣'])
+    setInput('名前・ID', '魔法の杖')
+    expect(screen.getByText(/現在の条件外 2件/)).toBeInTheDocument()
+    setInput('グラフのステータス', 'MAGIC_ATTACK')
+    expect(exportIds()).toEqual(['fixed', 'wide'])
+    setInput('並べる方向', 'asc')
+    expect(exportIds()).toEqual(['wide', 'fixed'])
+    setInput('並び順', 'default')
+    expect(tableNames()).toEqual(['幅広い剣', '安定した剣'])
+    expect(exportIds()).toEqual(['wide', 'fixed'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(equipmentRows).toHaveBeenCalledTimes(2)
+  })
+
+  it('resorts enhanced and reloaded values, preserves selection, and resets pages for sort changes', async () => {
+    const gear = Array.from({ length: 60 }, (_, i) => equipment(`gear-${String(i).padStart(2, '0')}`, `剣${i}`, 10, 'MAIN', 'SWORD', 'MELEE_ATTACK', i))
+    let catalog: AnalyticsCatalog = { equipment: gear, classes: [], diagnostics: [] }
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => catalog })))
+    render(<MasterAnalytics />)
+    await screen.findByRole('table')
+    fireEvent.click(screen.getByRole('button', { name: '次の50件' }))
+    setInput('並び順', 'max')
+    expect(screen.getByText('1 / 2ページ')).toBeInTheDocument()
+    expect(screen.getAllByRole('checkbox')[0]).toHaveAccessibleName('剣59を比較に選択')
+    expect(screen.getAllByRole('checkbox')).toHaveLength(50)
+    fireEvent.click(screen.getByRole('button', { name: '次の50件' }))
+    setInput('並べる方向', 'asc')
+    expect(screen.getByText('1 / 2ページ')).toBeInTheDocument()
+    select('剣0'); select('剣1')
+    fireEvent.click(listButton(true))
+    const equipmentContent = gear[0].content.equipment as Record<string, unknown>
+    catalog = { ...catalog, equipment: [{ ...gear[0], content: { ...gear[0].content, equipment: { ...equipmentContent, enhance: { maxLevel: 1, levels: [{ level: 1, statIncrease: [{ status: 'MELEE_ATTACK', value: 100 }] }] } } } }, ...gear.slice(1)] }
+    fireEvent.click(screen.getByRole('button', { name: 'マスター再読込' }))
+    await vi.waitFor(() => expect(equipmentRows).toHaveBeenCalledTimes(3))
+    setInput('強化Lv', '1')
+    expect(exportIds()).toEqual(['gear-01', 'gear-00'])
+    catalog = { ...catalog, equipment: [equipment('gear-00', '更新した剣', 10, 'MAIN', 'SWORD', 'MELEE_ATTACK', -100), ...gear.slice(1)] }
+    fireEvent.click(screen.getByRole('button', { name: 'マスター再読込' }))
+    await screen.findByRole('checkbox', { name: '更新した剣を比較に選択' })
+    expect(exportIds()).toEqual(['gear-00', 'gear-01'])
+    expect(screen.getByRole('checkbox', { name: '更新した剣を比較に選択' })).toBeChecked()
+    setInput('並び順', 'default')
+    expect(exportIds()).toEqual(['gear-00', 'gear-01'])
+  })
+
   it('compares equipment found under different names, levels, slots and tags, including CSV and table columns', async () => {
     const catalog: AnalyticsCatalog = { equipment: [equipment('staff', '銀の杖', 40, 'OFF', 'WAND', 'MAGIC_ATTACK', 31), equipment('sword', '&6黄金の剣'), equipment('shield', '盾')], classes: [], diagnostics: [] }
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => catalog }))
