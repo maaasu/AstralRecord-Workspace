@@ -9,6 +9,7 @@ import { MaterialIconInput } from './MaterialIconInput'
 import { summarizeMasterValue } from '../data/masterDataNavigation'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import { createMasterCandidateSearch } from '../data/masterCandidateSearch'
 import './masterDataForm.css'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
@@ -16,6 +17,8 @@ const typeLabels: Record<ValueType, string> = {
   string: '文字列', number: '数値', integer: '整数', boolean: '真偽値', object: 'オブジェクト / Map', array: '配列 / List', null: 'null',
 }
 const types = Object.keys(typeLabels) as ValueType[]
+const emptyReferences: MasterReference[] = []
+const isCaughtItemReference = (entry: MasterReference) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`))
 const textFieldName = (path: string) => path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~')
 const isDescriptionField = (path: string) => ['description', 'lore'].includes(textFieldName(path) ?? '')
 const isTextLineArray = (path: string, value: JsonValue): value is string[] =>
@@ -98,7 +101,7 @@ interface MasterDataFormProps {
   navigationDisabled?: boolean
 }
 
-export function MasterDataForm({ value, onChange, fields, references = [], schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled }: MasterDataFormProps) {
+export function MasterDataForm({ value, onChange, fields, references = emptyReferences, schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled }: MasterDataFormProps) {
   const resolved = resolveSchema(schema, rootSchema)
   const metadata = fieldForPath(fields, path)
   const kind = valueType(value, resolved, metadata)
@@ -143,7 +146,7 @@ export function MasterDataForm({ value, onChange, fields, references = [], schem
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
     referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? spawnerMobReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
-    referenceFilter={path.endsWith('/caughtItemId/ref') ? (entry) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`)) : undefined} />
+    referenceFilter={path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
 }
 
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
@@ -305,13 +308,16 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
       return [candidate.value, knownLabel !== candidate.value ? { ...candidate, label: knownLabel } : candidate] as const
     })).values()]
   }, [referenceFilter, referenceKind, referencePrefix, references])
+  const candidateIndex = useMemo(() => createMasterCandidateSearch(candidates), [candidates])
   const search = stripMinecraftFormatting(value).toLocaleLowerCase()
-  const visibleCandidates = candidates.filter((entry) => !search || entry.value.toLocaleLowerCase().includes(search) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(search)).slice(0, 100)
+  const visibleCandidates = useMemo(() => candidateIndex.find(search, 100), [candidateIndex, search])
   const candidateQuery = candidateSearch.trim().toLocaleLowerCase()
-  const matchingCandidates = useMemo(() => candidates.filter((entry) => !candidateQuery || entry.value.toLocaleLowerCase().includes(candidateQuery) || stripMinecraftFormatting(entry.label ?? '').toLocaleLowerCase().includes(candidateQuery)), [candidates, candidateQuery])
+  const matchingCandidates = useMemo(() => candidatesOpen ? candidateIndex.find(candidateQuery) : [], [candidateIndex, candidateQuery, candidatesOpen])
   const lastCandidatePage = Math.max(0, Math.ceil(matchingCandidates.length / 50) - 1)
   const currentCandidatePage = Math.min(candidatePage, lastCandidatePage)
-  useEffect(() => setCandidatePage((page) => Math.min(page, lastCandidatePage)), [lastCandidatePage])
+  useEffect(() => {
+    if (candidatesOpen) setCandidatePage((page) => Math.min(page, lastCandidatePage))
+  }, [lastCandidatePage, candidatesOpen])
   useEffect(() => {
     if (candidatesOpen && !candidateInput.current?.matches(':disabled')) candidateInput.current?.focus()
   }, [candidatesOpen])
@@ -354,7 +360,7 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
     setCandidatePage(page)
   }
   const candidatePageEntries = candidatesOpen ? matchingCandidates.slice(currentCandidatePage * 50, (currentCandidatePage + 1) * 50) : []
-  const selected = candidates.find((entry) => entry.value === value)
+  const selected = candidateIndex.get(value)
   const preview = selected?.label ?? masterValueLabel(path, value)
   const formatted = preview !== stripMinecraftFormatting(preview)
   const description = isDescriptionField(path)
@@ -364,14 +370,14 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
     {(formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
     {!formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
     {hexColor && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
-    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{stripMinecraftFormatting(entry.label ?? entry.value)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small>
+    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{candidateIndex.label(entry)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small>
       <details className="master-colored-candidates" open={candidatesOpen}><summary ref={candidateSummary} aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); if (event.currentTarget.closest('fieldset:disabled')) return; focusAfterCandidatePage.current = false; setCandidatesOpen((open) => !open) }}>{label}の候補を選択</summary>{candidatesOpen && <div className="master-candidate-browser">
         <div className="master-candidate-current">選択中: {value ? <><MinecraftText value={selected?.label ?? value} /> <code>{value}</code></> : 'なし'}</div>
         <label className="master-candidate-search">{label}の候補を検索 <small>{path || '/'}</small><input ref={candidateInput} type="search" aria-label={`${path || '/'} 候補を検索`} value={candidateSearch} placeholder="ID または日本語名" onChange={(event) => { setCandidateSearch(event.target.value); setCandidatePage(0) }} onKeyDown={onCandidateSearchKey} /></label>
         <small className="master-muted">↓ / Enterで候補へ、↑↓で移動、Enterで選択。Escapeで検索欄へ戻り、もう一度押すと閉じます。</small>
         <p className="master-candidate-count" role="status">{matchingCandidates.length} 件 / 全 {candidates.length} 件{matchingCandidates.length > 0 && ` · ${currentCandidatePage + 1} / ${lastCandidatePage + 1} ページ`}</p>
         <div ref={candidateList} className="master-candidate-list">{candidatePageEntries.map((entry, index) => <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onKeyDown={(event) => onCandidateKey(event, index, candidatePageEntries.length)} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) onChange(entry.value) }}><MinecraftText value={entry.label ?? entry.value} /><code>{entry.value}</code></button>)}{!matchingCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div>
-        {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" disabled={currentCandidatePage === 0} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage - 1) }}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" disabled={currentCandidatePage === lastCandidatePage} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage + 1) }}>次へ</button></div>}
+        {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" className="button" disabled={currentCandidatePage === 0} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage - 1) }}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" className="button" disabled={currentCandidatePage === lastCandidatePage} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage + 1) }}>次へ</button></div>}
       </div>}</details>
     </>}
   </div>
