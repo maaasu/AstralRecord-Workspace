@@ -8,6 +8,7 @@ import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
 import { circleIntersectsViewport, drawSpawnerRanges, type MapCircle } from '../data/spawnerRangeDrawing'
 import { createCoverageCalculator, coverageColors, coverageTerrain, type CoverageSource } from '../data/spawnerCoverage'
 import { SpawnerCoverageInspector } from './SpawnerCoverageInspector'
+import { createMapLabelIndex } from '../data/mapLabelIndex'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 const hasRadius = (radius: number | null | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
@@ -387,7 +388,7 @@ export function SpawnerPlanningMap(props: Props) {
       ctx.fillStyle = selected ? '#fff0ac' : '#e3f2c8'; ctx.fill()
       ctx.strokeStyle = '#101b29'; ctx.lineWidth = 1; ctx.stroke()
     }
-    const labels: { x: number; z: number; width: number }[] = []
+    const labels = createMapLabelIndex()
     // Draw the selection last so dense neighboring points cannot cover it.
     for (const placement of orderedPlacements) {
       const [x, z] = screen(placement.x + .5, placement.z + .5)
@@ -418,11 +419,11 @@ export function SpawnerPlanningMap(props: Props) {
         ctx.font = 'bold 11px sans-serif'
         const width = Math.min(size.width - 16, ctx.measureText(text).width + 12)
         const lx = Math.max(4, Math.min(size.width - width - 4, x + r + 5)), lz = Math.max(4, Math.min(size.height - 20, z - 10))
-        if (selected || !labels.some(label => lx < label.x + label.width + 4 && lx + width + 4 > label.x && Math.abs(lz - label.z) < 22)) {
+        if (selected || !labels.overlaps({ x: lx, z: lz, width })) {
           ctx.fillStyle = '#101b29ee'; ctx.fillRect(lx, lz, width, 20)
           ctx.strokeStyle = selected ? '#fff' : color; ctx.lineWidth = 1; ctx.strokeRect(lx, lz, width, 20)
           ctx.fillStyle = '#fff'; ctx.fillText(text, lx + 6, lz + 14, width - 12)
-          labels.push({ x: lx, z: lz, width })
+          labels.add({ x: lx, z: lz, width })
         }
       }
     }

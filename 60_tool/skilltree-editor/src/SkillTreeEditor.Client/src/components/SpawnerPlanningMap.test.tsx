@@ -590,6 +590,47 @@ function drawingContext() {
   vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(context as unknown as CanvasRenderingContext2D)
   return context
 }
+
+it('2500配置を拡大・再拡大・選択変更しても従来のラベル位置と選択優先を維持する', () => {
+  const context = drawingContext()
+  const placements = Array.from({ length: 2500 }, (_, i) => ({ ...hoverPlacement, placementId: `label-${i}`, templateId: 'wolf', x: i % 50 * 4 - .5, z: Math.floor(i / 50) * 4 - .5 }))
+  const mapProps = { ...props, showProposals: false, placements, snapshot: { ...snapshot, manifest: { ...snapshot.manifest, bounds: { minX: 0, minZ: 0, width: 200, height: 200, cellSize: 16 } } },
+    placementCatalog: { spawners: [{ id: 'wolf', name: '&a選択した狼', radiusMeters: 64, levels: [15] }], npcs: [], worlds: [] } }
+  const { rerender } = render(<SpawnerPlanningMap {...mapProps} selectedPlacement="label-1275" />)
+  const checkLabels = (scale: number, selectedId: string) => {
+    const drawn: { x: number; z: number; width: number }[] = []
+    const expected: [string, number, number, number][] = []
+    const ordered = [...placements].sort((a, b) => Number(a.placementId === selectedId) - Number(b.placementId === selectedId))
+    for (const placement of ordered) {
+      const selected = placement.placementId === selectedId
+      const x = (placement.x + .5) * scale + (406 - 200 * scale) / 2
+      const z = (placement.z + .5) * scale + (500 - 200 * scale) / 2
+      if (x < -60 || z < -60 || x > 466 || z > 560) continue
+      const width = 132, r = selected ? 8 : 5
+      const lx = Math.max(4, Math.min(406 - width - 4, x + r + 5)), lz = Math.max(4, Math.min(480, z - 10))
+      if (selected || !drawn.some(label => lx < label.x + label.width + 4 && lx + width + 4 > label.x && Math.abs(lz - label.z) < 22)) {
+        expected.push([selected ? '#1 選択した狼 · Lv.15' : '#1 Lv.15', lx + 6, lz + 14, width - 12])
+        drawn.push({ x: lx, z: lz, width })
+      }
+    }
+    const actual = context.fillText.mock.calls.filter(call => String(call[0]).startsWith('#'))
+    expect(actual).toHaveLength(expected.length)
+    expected.forEach((entry, i) => {
+      expect(actual[i][0]).toBe(entry[0])
+      for (let part = 1; part < 4; part++) expect(actual[i][part]).toBeCloseTo(entry[part] as number, 9)
+    })
+    expect(actual.at(-1)?.[0]).toBe('#1 選択した狼 · Lv.15')
+  }
+  context.fillText.mockClear()
+  fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  checkLabels(1.87 * 1.5, 'label-1275')
+  context.fillText.mockClear()
+  fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
+  checkLabels(1.87 * 1.5 * 1.5, 'label-1275')
+  context.fillText.mockClear()
+  rerender(<SpawnerPlanningMap {...mapProps} selectedPlacement="label-1276" />)
+  checkLabels(1.87 * 1.5 * 1.5, 'label-1276')
+})
 const rangeCalls = (context: ReturnType<typeof drawingContext>, radius: number) => context.arc.mock.calls.filter(call => Math.abs(call[2] - radius) < 1e-6)
 const hoverPlan: PlanningPlan = { ...snapshot.manifest, previewOnly: true, radiusMeters: 32, proposals: [{
   proposalId: 'ai-one', spawnerId: 'field', x: 199.5, y: 70, z: 199.5, radiusMeters: 32, originalRadiusMeters: 64,
