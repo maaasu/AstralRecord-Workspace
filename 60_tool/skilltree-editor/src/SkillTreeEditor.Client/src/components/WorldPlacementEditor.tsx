@@ -5,6 +5,8 @@ import { MinecraftText } from './MinecraftText'
 import { spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import { applyPlacementDrafts, parsePlacementNumber, placementChangeEntries, placementSelectionScope, removePlacements, revertPlacementChange, samePlacement, setPlacementsEnabled, type PlacementNumericDrafts, type PlacementNumericField } from '../state/worldPlacementEditing'
 import { sortWorldPlacementListing, type PlacementListingSort } from '../state/worldPlacementListing'
+import { placementSearchText, placementSearchWords } from '../data/placementSearch'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 import './worldPlacementEditor.css'
 import { PlacementChangeReview } from './PlacementChangeReview'
 import { PlacementBulkConfirmation, type PlacementBulkAction } from './PlacementBulkConfirmation'
@@ -35,7 +37,7 @@ const readCatalog = async (): Promise<PlacementCatalog> => {
   if (!response.ok) throw new Error(payload.title ?? '配置マスターを読み込めません。')
   return payload as PlacementCatalog
 }
-const clean = (value: string) => value.replace(/[&§][0-9a-fk-or]/gi, '')
+const clean = stripMinecraftFormatting
 const fresh = (kind: PlacementKind, worldId: string, worldName: string, templateId: string | null, x: number, y: number, z: number): WorldPlacement => ({
   placementId: crypto.randomUUID(), kind, worldId, worldName, templateId, x, y, z, yaw: 0, pitch: 0, enabled: true,
   waystone: kind === 'waystone' ? { id: '', name: '', lockEnabled: false, unlockGold: 0, icon: 'LODESTONE', createdAt: new Date().toISOString(), createdBy: 'master-data-editor' } : null,
@@ -63,7 +65,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const closeConfirmation = () => { confirmationRef.current = null; setConfirmation(null) }
   const inspector = useRef<HTMLDivElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
-  const formId = useId(), filterId = useId(), bulkId = useId()
+  const formId = useId(), filterId = useId(), bulkId = useId(), searchHelpId = useId()
   const [formOpen, setFormOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -163,10 +165,10 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     const name = item.kind === 'waystone' ? item.waystone?.name || item.waystone?.id || '道標' : master?.name ?? item.templateId ?? 'マスター未選択'
     const region = regionName(item)
     return [item.placementId, { name, region, levels: item.kind === 'spawner' ? spawners.get(item.templateId ?? '')?.levels ?? [] : [],
-      search: `${item.placementId} ${item.templateId ?? ''} ${name} ${item.waystone?.id ?? ''} ${region} ${item.x} ${item.y} ${item.z}`.toLocaleLowerCase('ja-JP') }]
+      search: placementSearchText(`${item.placementId} ${item.templateId ?? ''} ${name} ${item.waystone?.id ?? ''} ${region} ${item.x} ${item.y} ${item.z}`) }]
   })), [working, spawners, npcs, snapshot, grid, regionNames])
   const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('ja-JP')
+    const words = placementSearchWords(query)
     const lowerLevel = minimumLevel ? Number(minimumLevel) : null
     const upperLevel = maximumLevel ? Number(maximumLevel) : null
     return working.filter(item => item.worldId === worldId).filter(item => {
@@ -179,7 +181,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       const levels = info.levels
       if (!levels.some(level => (lowerLevel === null || level >= lowerLevel) && (upperLevel === null || level <= upperLevel))) return false
     }
-    return info.search.includes(normalizedQuery)
+    return words.every(word => info.search.includes(word))
     })
   }, [working, worldId, filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, display])
   const filteredIds = useMemo(() => new Set(filtered.map(item => item.placementId)), [filtered])
@@ -345,7 +347,8 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone"><label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label><label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label><label>アイコン<input value={selected.waystone.icon} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, icon: event.target.value } })} /></label><label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label><label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label></div>}
       <div className="wp-actions"><button className="button" onClick={duplicate} disabled={busy || hasDrafts}>複製</button><button className="button" onClick={() => bulkAction('delete', new Set([selected.placementId]))} disabled={bulkLocked}>この配置を削除</button></div>
     </div>}</div></section>}
-    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} placeholder="モブ名・ID・座標" /></label></div>
+    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" aria-describedby={searchHelpId} value={query} onChange={event => setQuery(event.target.value)} placeholder="名前・地域・ID・座標" /></label></div>
+    <p id={searchHelpId} className="wp-filter-note">空白で区切ると、すべての語を含む配置を検索します。例: オオカミ 草原</p>
     <section className="wp-filter-panel" aria-label="詳細条件"><button className="wp-panel-toggle" type="button" aria-expanded={filtersOpen} aria-controls={filterId} onClick={() => setFiltersOpen(open => !open)}>詳細条件（{activeFilterDetails.length} 件）{activeFilterDetails.length > 0 && <span className="wp-panel-summary">{activeFilterDetails.join(' · ')}</span>}</button>
     <div id={filterId} hidden={!filtersOpen}>{filtersOpen && <><div className="wp-filters"><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div><p className="wp-world-details">世界 ID: <code>{worldId}</code>{selectedWorldName && <> · 保存先: <code>{selectedWorldName}</code></>}</p></>}</div></section>
     <div className="wp-list-options"><label>一覧の並び順<select aria-label="一覧の並び順" value={listingSort} onChange={event => setListingSort(event.target.value as PlacementListingSort)}><option value="default">標準（保存済み順）</option><option value="distance">開始地点に近い順</option><option value="level-asc">出現レベルが低い順</option><option value="level-desc">出現レベルが高い順</option><option value="name">日本語名順</option></select></label><button className="button" type="button" onClick={() => { setQuery(''); setFilterKind(''); setFilterEnabled(''); setFilterRegion(''); setFilterTemplate(''); setMinimumLevel(''); setMaximumLevel(''); searchInput.current?.focus() }} disabled={!query && !filterKind && !filterEnabled && !filterRegion && !filterTemplate && !minimumLevel && !maximumLevel}>検索条件をすべて解除</button></div>
