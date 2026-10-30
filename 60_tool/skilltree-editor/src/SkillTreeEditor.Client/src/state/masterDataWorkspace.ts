@@ -11,6 +11,8 @@ export function useMasterDataWorkspace() {
   const [candidates, setCandidates] = useState<MasterReference[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [referenceVersion, setReferenceVersion] = useState(0)
+  const invalidateReferences = useCallback(() => setReferenceVersion((current) => current + 1), [])
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [categoryId, setCategoryId] = useState('10.features.item')
@@ -35,6 +37,8 @@ export function useMasterDataWorkspace() {
 
   const refresh = useCallback(async () => {
     const requestId = ++refreshId.current
+    // A save/create/delete can succeed even if the subsequent list refresh fails.
+    invalidateReferences()
     setRefreshing(true)
     let nextCatalog: MasterCatalog
     let nextFiles: MasterFileSummary[]
@@ -62,7 +66,7 @@ export function useMasterDataWorkspace() {
       setNumericFilters({})
       setNotice('ドロップ元とタグなどの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')
     }
-  }, [])
+  }, [invalidateReferences])
   useEffect(() => {
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : String(reason))).finally(() => setLoading(false))
     return () => { refreshId.current++ }
@@ -100,7 +104,7 @@ export function useMasterDataWorkspace() {
   useEffect(() => { setVisibleCount(50) }, [categoryId, query, searchScope, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus, numericFilters])
 
   return {
-    catalog, files, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths,
+    catalog, files, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths, referenceVersion, invalidateReferences,
     categoryId, setCategoryId, query, setQuery, searchScope, setSearchScope, browserView, setBrowserView, expandedCategories, setExpandedCategories, numericFilters, setNumericFilters, format, setFormat, sourceQuery, setSourceQuery,
     dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,

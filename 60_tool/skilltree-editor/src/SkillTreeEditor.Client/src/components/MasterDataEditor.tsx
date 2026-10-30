@@ -3,10 +3,11 @@ import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { useHistory } from '../state/history'
 import { useMasterDataWorkspace, type MasterDataWorkspace } from '../state/masterDataWorkspace'
+import { useMasterReferences } from '../state/masterReferences'
 import { emptyMasterTabs, masterTabsReducer, type MasterTabStatus } from '../state/masterDataTabs'
 import { listMasterDrafts, readMasterDraft, removeMasterDraft, writeMasterDraft, type MasterDraftState, type RecoverableMasterDraft } from '../state/masterDataRecovery'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
-import type { MasterCategory, MasterDocument, MasterDraft, MasterFileSummary, MasterReference } from '../types/masterData'
+import type { MasterCategory, MasterDocument, MasterDraft, MasterFileSummary } from '../types/masterData'
 import { MasterDataDiff } from './MasterDataDiff'
 import { masterDefault } from './MasterDataForm'
 import { MasterDataDetails } from './MasterDataNavigation'
@@ -184,10 +185,9 @@ interface MasterDataEditorPaneProps {
 }
 
 function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
-  const { catalog, files, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed } = workspace
+  const { catalog, files, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion, invalidateReferences } = workspace
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [documentVersion, setDocumentVersion] = useState(0)
-  const [references, setReferences] = useState<MasterReference[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -207,6 +207,10 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const [showReferences, setShowReferences] = useState(false)
   const [referenceQuery, setReferenceQuery] = useState('')
   const [referencePage, setReferencePage] = useState(0)
+  const referencePanelId = useId()
+  const referenceSource = useMemo(() => document ? { path: document.path } : null, [document, documentVersion, referenceVersion])
+  const referenceState = useMasterReferences(referenceSource, showReferences && active)
+  const references = referenceState.entries
   const [documentation, setDocumentation] = useState<{ path: string; raw: string } | null>(null)
   const [formPath, setFormPath] = useState('')
   const [focusPath, setFocusPath] = useState<{ path: string } | null>(null)
@@ -244,7 +248,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const dirty = Boolean(document) && (draft.source === 'form'
     ? JSON.stringify(draft.content) !== JSON.stringify(document?.content) || draft.raw !== document?.raw
     : draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
-  const filteredReferences = useMemo(() => references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${stripMinecraftFormatting(entry.label ?? '')}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())), [references, referenceQuery])
+  const filteredReferences = useMemo(() => showReferences ? references.filter((entry) => `${entry.path} ${entry.pointer} ${entry.value} ${stripMinecraftFormatting(entry.label ?? '')}`.toLocaleLowerCase().includes(referenceQuery.toLocaleLowerCase())) : [], [references, referenceQuery, showReferences])
   const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
   const currentReferencePage = Math.min(referencePage, referencePages - 1)
   const handleInvalid = useCallback((path: string, message: string | null, text?: string) => {
@@ -285,13 +289,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     setFormPath(closestContainerPointer(loaded.content, rememberedPaths.current[loaded.path] ?? '')); setFocusPath(null)
     if (window.innerWidth <= 1100) setSidebarCollapsed(true)
     setReport({ isValid: !loaded.issues.some((entry) => entry.severity === 'error'), issues: loaded.issues }); setRenderWarnings([])
-    latestRenderWarnings.current = []; reviewedRaw.current = ''; setReferences([])
+    latestRenderWarnings.current = []; reviewedRaw.current = ''; setReferencePage(0)
   }, [history.reset, setSidebarCollapsed, rememberedPaths, catalog?.root])
-  const loadReferences = useCallback((path: string, requestId: number) => {
-    void masterDataApi.references(path).then((next) => { if (requestId === operationId.current) setReferences(next) }).catch(() => {
-      if (requestId === operationId.current) setNotice('参照元を取得できませんでした。編集は継続できます。')
-    })
-  }, [])
   useEffect(() => {
     if (!initialPath) return
     const requestId = ++operationId.current
@@ -300,12 +299,12 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       try {
         const loaded = initialDocument ?? await masterDataApi.file(initialPath)
         if (requestId !== operationId.current) return
-        acceptDocument(loaded); loadReferences(loaded.path, requestId)
+        acceptDocument(loaded)
       } catch (reason) { if (requestId === operationId.current) showError(reason) }
       finally { if (requestId === operationId.current) setBusy(false) }
     })()
     return () => { operationId.current++ }
-  }, [initialPath, initialDocument, acceptDocument, loadReferences, showError])
+  }, [initialPath, initialDocument, acceptDocument, showError])
   const loadDocument = async (path: string) => {
     if (busy || !allowDiscard()) return
     const requestId = ++operationId.current
@@ -314,7 +313,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       const loaded = await masterDataApi.file(path)
       if (requestId !== operationId.current) return
       if (document && catalog) removeMasterDraft(catalog.root, path)
-      acceptDocument(loaded, !document); loadReferences(path, requestId)
+      acceptDocument(loaded, !document)
+      invalidateReferences()
     } catch (reason) { if (requestId === operationId.current) showError(reason) } finally { if (requestId === operationId.current) setBusy(false) }
   }
   const currentRaw = async () => {
@@ -533,10 +533,24 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       }}>この編集を維持して最新を基準にする</button></div></section>}
       {renderWarnings.length > 0 && <div className="master-message warning"><div><strong>原稿の変換を確認してください</strong>{renderWarnings.map((warning, index) => <p key={index}>{warning}</p>)}</div><button className="button" disabled={busy} onClick={() => void showDiff()}>差分を確認</button></div>}
       <div className="master-edit-area">{document ? <>
-        <div className="master-secondary-toolbar"><span className="master-file-tools-label">ファイル操作</span><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" onClick={() => setShowReferences((current) => !current)}>参照一覧 ({references.length})</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
+        <div className="master-secondary-toolbar"><span className="master-file-tools-label">ファイル操作</span><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" aria-expanded={showReferences} aria-controls={referencePanelId} onClick={() => setShowReferences((current) => !current)}>参照一覧{referenceState.status === 'success' ? ` (${references.length})` : referenceState.status === 'loading' ? '（読込中）' : ''}</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
         {readOnly && <p className="master-muted">このファイルは閲覧専用です。Schemaや採番情報の変更は、実装・定義書と同期して管理します。</p>}
         {nodeDocument && <p className="master-muted">ノードの新規作成・複製は専用スキルツリーで自動採番します。{onOpenSkillTree && <button className="button subtle" onClick={onOpenSkillTree}>スキルツリーを開く</button>}</p>}
-        {showReferences && <details open className="master-references"><summary>{displayedName || baseName(document.path)} の参照元（{references.length}件）</summary><label>参照元を検索<input aria-label="参照元を検索" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label><p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map((entry, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button> <small>{entry.pointer}</small></td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div>{!references.length && <p className="master-muted">検出された参照元はありません。</p>}</details>}
+        {showReferences && <section className="master-references" id={referencePanelId} aria-label="保存済みデータの参照元">
+          <h3>{displayedName || baseName(document.path)} の参照元{referenceState.status === 'success' && `（${references.length}件）`}</h3>
+          <p className="master-muted">保存済みデータを対象にしています。未保存の編集内容は含みません。</p>
+          {referenceState.status === 'idle' || referenceState.status === 'loading' ? <p role="status">参照元を読み込んでいます…</p>
+            : referenceState.status === 'error' ? <><p role="alert">参照元を取得できませんでした。編集内容は保持されています。{referenceState.error}</p><button type="button" className="button" onClick={referenceState.reload}>参照元を再試行</button></>
+              : <>
+                <div className="master-reference-tools">
+                  <button type="button" className="button compact" onClick={() => { setReferencePage(0); referenceState.reload() }}>参照元を更新</button>
+                  <label>参照元を検索<input aria-label="参照元を検索" value={referenceQuery} onChange={(event) => { setReferenceQuery(event.target.value); setReferencePage(0) }} /></label>
+                </div>
+                <p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p>
+                {references.length > 0 ? <><table><thead><tr><th>種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map((entry, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button> <small>{entry.pointer}</small></td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div></>
+                  : <p className="master-muted">検出された参照元はありません。</p>}
+              </>}
+        </section>}
         {Boolean(documentCategory?.documents.length) && <details className="master-doc-links"><summary>{documentCategory?.label} の定義書（{documentCategory?.documents.length}件）</summary>{documentCategory?.documents.map((entry) => <button className="button subtle" key={entry.path} disabled={busy} onClick={() => { void masterDataApi.documentation(entry.path).then(setDocumentation).catch(showError) }}>{entry.title}</button>)}</details>}
         {draft.source === 'raw' ? <><p className="master-muted">固有名詞・追加キーを含む全原稿を編集できます。YAMLのコメントは直接編集できます。</p><textarea className="master-raw" aria-label="マスター原稿" disabled={busy} readOnly={readOnly} spellCheck={false} value={draft.raw} onChange={(event) => { history.record({ raw: event.target.value, content: null, source: 'raw' }); setReport(null) }} onKeyDown={(event) => {
           if (readOnly) return

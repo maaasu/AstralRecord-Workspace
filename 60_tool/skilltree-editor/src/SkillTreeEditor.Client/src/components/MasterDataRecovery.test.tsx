@@ -138,8 +138,8 @@ describe('draft recovery and connection recovery', () => {
       { path: '41.features.mob_spawner/spawner.yml', pointer: '/ref', value: 'spawner', kind: 'mob_spawner' },
     ])
     await open()
-    fireEvent.click(await screen.findByRole('button', { name: '参照一覧 (3)' }))
-    expect(screen.getByRole('cell', { name: '釣り魚' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '参照一覧' }))
+    expect(await screen.findByRole('cell', { name: '釣り魚' })).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: 'ドロップ報酬テーブル' })).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: 'モブスポナー' })).toBeInTheDocument()
   })
