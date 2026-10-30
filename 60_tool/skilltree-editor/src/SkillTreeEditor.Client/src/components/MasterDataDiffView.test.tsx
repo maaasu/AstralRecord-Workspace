@@ -108,4 +108,28 @@ describe('save preview context', () => {
     fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('renders only two small change groups for distant edits in a large document', () => {
+    const before = numbered(1400)
+    const after = before.replace('line 100\n', 'changed 100\n').replace('line 1300\n', 'changed 1300\n')
+    render(<MasterDataDiff before={before} after={after} onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog', { name: '保存前の差分' })
+    expect(within(dialog).getByText('保存済み → 現在の原稿。2 行追加 / 2 行削除')).toBeInTheDocument()
+    expect(rows(dialog)).toHaveLength(16)
+    expect(within(dialog).queryByRole('status')).not.toBeInTheDocument()
+    expect(within(dialog).getAllByRole('button', { name: /変更のない\d+行を表示/ })).toHaveLength(3)
+    fireEvent.click(within(dialog).getByRole('button', { name: '全行を表示' }))
+    expect(rows(dialog)).toHaveLength(1402)
+  })
+
+  it('explains simplified comparison and removes its notice for the next exact comparison', () => {
+    const before = numbered(1100)
+    const after = before.replaceAll('line', 'changed')
+    const view = render(<MasterDataDiff before={before} after={after} onClose={vi.fn()} />)
+    expect(screen.getByRole('status')).toHaveTextContent('変更のない行が追加・削除に含まれる場合があります')
+    expect(rows(screen.getByRole('dialog', { name: '保存前の差分' }))).toHaveLength(2200)
+    view.rerender(<MasterDataDiff before={before} after={before} onClose={vi.fn()} />)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByText('変更はありません。全行を表示して原稿を確認できます。')).toBeInTheDocument()
+  })
 })
