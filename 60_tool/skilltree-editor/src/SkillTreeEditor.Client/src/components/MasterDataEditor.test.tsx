@@ -40,6 +40,25 @@ async function openCreationDialog() {
 }
 
 describe('master editor workflow', () => {
+  it('filters a large validation report and opens the matching field without saving or reloading', async () => {
+    const path = '/settings/amount'
+    vi.mocked(masterDataApi.file).mockResolvedValue({ ...original, content: { id: 'old', settings: { amount: 2 } } })
+    const issues = Array.from({ length: 70 }, (_, index) => ({ code: 'required', path: `/missing/${index}`, severity: 'error' as const, message: `未設定 ${index}` }))
+    vi.mocked(masterDataApi.validate).mockResolvedValue({ isValid: false, issues: [...issues, { code: 'range', path, severity: 'error', message: '攻撃量を確認してください。' }] })
+    const save = vi.spyOn(masterDataApi, 'save')
+    await openFile()
+    fireEvent.click(screen.getByRole('button', { name: '検証' }))
+    const results = await screen.findByRole('region', { name: '検証結果' })
+    expect(within(results).getAllByRole('listitem')).toHaveLength(50)
+    fireEvent.change(within(results).getByRole('textbox', { name: '検証結果を検索' }), { target: { value: '攻撃 settings' } })
+    expect(within(results).getAllByRole('listitem')).toHaveLength(1)
+    fireEvent.click(within(results).getByRole('button', { name: path }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: path })).toHaveFocus())
+    expect(screen.getByRole('textbox', { name: path })).toHaveValue('2')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(1)
+    expect(save).not.toHaveBeenCalled()
+  })
+
   it('keeps a filter dialog visible when a pending document collapses the narrow browser', async () => {
     window.innerWidth = 600
     let finishLoad!: (value: MasterDocument) => void

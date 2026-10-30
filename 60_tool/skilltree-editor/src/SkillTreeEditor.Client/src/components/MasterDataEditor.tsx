@@ -13,6 +13,7 @@ import { masterDefault } from './MasterDataForm'
 import { MasterDataDetails } from './MasterDataNavigation'
 import { MasterTabContextMenu } from './MasterTabContextMenu'
 import { MasterTabSearch } from './MasterTabSearch'
+import { MasterValidationResults } from './MasterValidationResults'
 import { Modal } from './Modal'
 import { masterDisplayName } from '../data/masterDataPresentation'
 import { closestContainerPointer, parentPointer, valueAtPointer } from '../data/masterDataNavigation'
@@ -231,7 +232,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const [formPath, setFormPath] = useState('')
   const [focusPath, setFocusPath] = useState<{ path: string } | null>(null)
   const [focusValidation, setFocusValidation] = useState(false)
-  const validationHeading = useRef<HTMLElement>(null)
+  const validationHeading = useRef<HTMLButtonElement>(null)
   const saveInFlight = useRef(false)
   const [savePhase, setSavePhase] = useState<'prepare' | 'validate' | 'save' | null>(null)
   const editorElement = useRef<HTMLElement>(null)
@@ -575,7 +576,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
         }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
       </> : <div className="master-empty"><h2>{initialPath ? busy ? 'ファイルを読み込んでいます…' : 'ファイルを読み込めませんでした' : 'マスターデータを編集'}</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{initialPath && <button type="button" className="button" disabled={busy} onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button>}{category && <p>{category.label} · {category.directory}</p>}{!initialPath && <div className="master-empty-steps"><div><b>01 / 探す</b><strong>目的のファイルへ</strong><span>フォルダと名前・IDの検索、詳細フィルターを使って絞り込みます。</span></div><div><b>02 / 編集する</b><strong>自分に合った方法で</strong><span>日本語フォームと原稿を切り替え、複数のタブで作業できます。</span></div><div><b>03 / 確かめる</b><strong>差分・検証から保存へ</strong><span>変更点と入力エラーを確認し、保存ボタンまたは Ctrl+S で反映します。</span></div></div>}</div>}</div>
-      {(report || Object.keys(invalidInputs).length > 0) && <section className="master-validation"><details open><summary ref={validationHeading} tabIndex={-1}>検証結果 {Object.keys(invalidInputs).length ? `入力エラー ${Object.keys(invalidInputs).length} 件` : report?.isValid ? '✓ 成功' : '要確認'} {report?.issues.length ? `${report.issues.length} 件` : ''}</summary>{report?.isValid && !report.issues.length && !Object.keys(invalidInputs).length && <p className="success-message">検証エラーはありません。</p>}<ul>{Object.entries(invalidInputs).map(([path, message]) => <li className="error" key={path}><button className="text-button" onClick={() => focusIssue(path)}>{path}</button> {message}</li>)}{report?.issues.map((issue, index) => <li key={index} className={issue.severity}><code>{issue.code}</code> <button className="text-button" onClick={() => focusIssue(issue.path)}>{issue.path || '/'}</button> {issue.message}</li>)}</ul></details></section>}
+      {(report || Object.keys(invalidInputs).length > 0) && <MasterValidationResults report={report} invalidInputs={invalidInputs} headingRef={validationHeading} active={active} onSelect={focusIssue} />}
       </fieldset>
     </section>
     {diffRaw !== null && document && <MasterDataDiff before={diffBefore ?? document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null); setDiffBefore(null) }} />}
