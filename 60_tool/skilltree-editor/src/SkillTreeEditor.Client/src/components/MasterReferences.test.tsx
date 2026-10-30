@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { masterDataApi } from '../api/masterDataApi'
 import type { MasterCatalog, MasterDocument, MasterReference } from '../types/masterData'
 import { MasterDataEditor } from './MasterDataEditor'
+import { writeMasterDraft } from '../state/masterDataRecovery'
 
 const first: MasterDocument = { path: '20.features.class/v1.first.yml', format: 'yaml', revision: 'r1', raw: 'id: first\nname: 最初のクラス\n', content: { id: 'first', name: '最初のクラス' }, issues: [] }
 const second: MasterDocument = { ...first, path: '20.features.class/v1.second.yml', raw: 'id: second\nname: 次のクラス\n', content: { id: 'second', name: '次のクラス' } }
@@ -25,6 +26,8 @@ beforeEach(() => {
   vi.spyOn(masterDataApi, 'filterIndex').mockResolvedValue({ sources: [], skillTags: [], tags: [] })
   vi.spyOn(masterDataApi, 'render').mockResolvedValue({ raw: second.raw, warnings: [], commentsPreserved: true })
   vi.spyOn(masterDataApi, 'validate').mockResolvedValue({ isValid: true, issues: [] })
+  vi.spyOn(masterDataApi, 'save').mockResolvedValue(second)
+  vi.spyOn(masterDataApi, 'parse').mockResolvedValue({ content: second.content, issues: [] })
 })
 async function openFirst() {
   const view = render(<MasterDataEditor />)
@@ -37,6 +40,141 @@ const toggleReferences = () => fireEvent.click(screen.getByRole('button', { name
 const panel = () => within(screen.getByRole('region', { name: '保存済みデータの参照元' }))
 
 describe('on-demand references', () => {
+  it.each([
+    { pointer: '/a~1b~0c/items/30/id', content: { 'a/b~c': { items: Array.from({ length: 31 }, (_, i) => ({ id: i === 30 ? 'first' : 'other' })) } }, field: '/a~1b~0c/items/30/id' },
+    { pointer: '/lore/1', content: { lore: ['other', 'first'] }, field: '/lore' },
+  ])('opens and focuses the exact reference $pointer after its file has loaded', async ({ pointer, content, field }) => {
+    vi.mocked(masterDataApi.file).mockImplementation(async path => path === first.path ? first : { ...second, content: { ...second.content as object, ...content } })
+    vi.mocked(masterDataApi.references).mockResolvedValue([{ ...reference('次のクラス'), pointer }])
+    await openFirst()
+    toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: field })).toHaveFocus())
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
+  it('repeats navigation in an unsaved existing tab while preserving its history and avoiding another fetch', async () => {
+    vi.mocked(masterDataApi.file).mockImplementation(async path => path === first.path ? first : { ...second, content: { ...second.content as object, unlock: { classId: 'first' } } })
+    vi.mocked(masterDataApi.references).mockResolvedValue([reference('次のクラス')])
+    await openFirst()
+    fireEvent.click(screen.getByRole('button', { name: /次のクラス.*v1.second/ }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス'))
+    fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '変更した名前' } })
+    fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' }))
+    toggleReferences()
+    for (let repeat = 0; repeat < 2; repeat++) {
+      fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+      await waitFor(() => expect(screen.getByRole('textbox', { name: '/unlock/classId' })).toHaveFocus())
+      expect(screen.getByRole('tab', { name: '変更した名前 · 未保存' })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' }))
+    }
+    fireEvent.click(screen.getByRole('tab', { name: '変更した名前 · 未保存' }))
+    fireEvent.click(screen.getByRole('button', { name: '元に戻す Ctrl+Z' }))
+    expect(screen.getByRole('tab', { name: '次のクラス' })).toBeInTheDocument()
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('waits for a hidden pending file and navigates only when its tab becomes active', async () => {
+    const pending = deferred<MasterDocument>()
+    vi.mocked(masterDataApi.file).mockImplementation(path => path === first.path ? Promise.resolve(first) : pending.promise)
+    vi.mocked(masterDataApi.references).mockResolvedValue([reference('次のクラス')])
+    await openFirst(); toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' }))
+    const name = screen.getByRole('textbox', { name: '/name' })
+    name.focus()
+    await act(async () => pending.resolve({ ...second, content: { ...second.content as object, unlock: { classId: 'first' } } }))
+    expect(name).toHaveFocus()
+    fireEvent.click(screen.getByRole('tab', { name: '次のクラス' }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/unlock/classId' })).toHaveFocus())
+  })
+
+  it('waits for an existing target tab to finish saving before moving to its current field', async () => {
+    const target = { ...second, content: { ...second.content as object, unlock: { classId: 'first' } } }
+    const pending = deferred<MasterDocument>()
+    vi.mocked(masterDataApi.file).mockImplementation(async path => path === first.path ? first : target)
+    vi.mocked(masterDataApi.save).mockReturnValue(pending.promise)
+    vi.mocked(masterDataApi.references).mockResolvedValue([reference('次のクラス')])
+    await openFirst()
+    fireEvent.click(screen.getByRole('button', { name: /次のクラス.*v1.second/ }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス'))
+    fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '保存した名前' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存 (Ctrl+S)' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' })); toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    expect(screen.getByRole('textbox', { name: '/name' })).toBeDisabled()
+    expect(screen.queryByRole('textbox', { name: '/unlock/classId' })).not.toBeInTheDocument()
+    await act(async () => pending.resolve({ ...target, revision: 'saved', content: { ...target.content, name: '保存した名前' } }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/unlock/classId' })).toHaveFocus())
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(['/unlock/classId', '/missing', '/bad~2path'])('explains unavailable or changed reference positions without changing the draft: %s', async pointer => {
+    vi.mocked(masterDataApi.file).mockImplementation(async path => path === first.path ? first : { ...second, content: { ...second.content as object, unlock: { classId: 'other' } } })
+    vi.mocked(masterDataApi.references).mockResolvedValue([{ ...reference('次のクラス'), pointer }])
+    await openFirst(); toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    const message = await screen.findByText(pointer.includes('~2') ? /項目パスが不正/ : /参照位置の値が異なるか/)
+    expect(message.closest('[role="status"]')).toHaveFocus()
+    expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス')
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('keeps invalid numeric text and does not jump later when the value is corrected', async () => {
+    vi.mocked(masterDataApi.file).mockImplementation(async path => path === first.path ? first : { ...second, content: { ...second.content as object, amount: 2, unlock: { classId: 'first' } } })
+    vi.mocked(masterDataApi.references).mockResolvedValue([reference('次のクラス')])
+    await openFirst()
+    fireEvent.click(screen.getByRole('button', { name: /次のクラス.*v1.second/ }))
+    fireEvent.change(await screen.findByRole('textbox', { name: '/amount' }), { target: { value: 'invalid' } })
+    fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' })); toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    await screen.findByText(/入力中の数値を修正してから/)
+    expect(screen.getByRole('textbox', { name: '/amount' })).toHaveValue('invalid')
+    fireEvent.change(screen.getByRole('textbox', { name: '/amount' }), { target: { value: '3' } })
+    expect(screen.queryByRole('textbox', { name: '/unlock/classId' })).not.toBeInTheDocument()
+  })
+
+  it('keeps a raw draft and does not automatically parse or switch modes for a reference', async () => {
+    vi.mocked(masterDataApi.references).mockResolvedValue([reference('次のクラス')])
+    await openFirst()
+    fireEvent.click(screen.getByRole('button', { name: /次のクラス.*v1.second/ }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス'))
+    fireEvent.click(screen.getByRole('button', { name: '原稿 YAML' }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'マスター原稿' })).toBeEnabled())
+    fireEvent.change(screen.getByRole('textbox', { name: 'マスター原稿' }), { target: { value: 'name: [未完の原稿' } })
+    fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' })); toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    await screen.findByText(/参照元の原稿モードを保持/)
+    expect(screen.getByRole('textbox', { name: 'マスター原稿' })).toHaveValue('name: [未完の原稿')
+    expect(masterDataApi.parse).not.toHaveBeenCalled()
+  })
+
+  it('leaves a recoverable draft awaiting the user decision', async () => {
+    writeMasterDraft(catalog.root, { version: 1, document: second, draft: { raw: 'draft', content: { id: 'second', name: '復元対象' }, source: 'form' }, formPath: '', invalidValues: {}, requiresDiffReview: false, updatedAt: new Date().toISOString() })
+    vi.mocked(masterDataApi.references).mockResolvedValue([reference('次のクラス')])
+    await openFirst(); toggleReferences()
+    fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
+    await screen.findByText(/下書きを復元または破棄してから/)
+    expect(screen.getByRole('button', { name: '下書きを復元' })).toBeEnabled()
+    expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス')
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('displays external Plugin settings without an unusable file or position link', async () => {
+    const path = '../10_plugin/AstralRecord/src/main/resources/config.yml'
+    vi.mocked(masterDataApi.references).mockResolvedValue([{ ...reference('Plugin の表示構造'), path, pointer: '/skilltree/structureId' }])
+    await openFirst(); toggleReferences()
+    expect(await panel().findByText(path)).toBeInTheDocument()
+    expect(panel().queryByRole('button', { name: path })).not.toBeInTheDocument()
+    expect(panel().queryByRole('button', { name: /の参照位置/ })).not.toBeInTheDocument()
+    expect(panel().getByText(/ファイル一覧外の参照元/)).toBeInTheDocument()
+    expect(masterDataApi.file).toHaveBeenCalledTimes(1)
+  })
+
   it('does not fetch for file opens or draft edits, and reuses one pending or completed request on reopen', async () => {
     const request = deferred<MasterReference[]>()
     vi.mocked(masterDataApi.references).mockReturnValue(request.promise)
