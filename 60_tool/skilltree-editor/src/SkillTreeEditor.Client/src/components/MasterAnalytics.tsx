@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import type { ChangeEvent, KeyboardEvent } from 'react'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
@@ -68,6 +68,8 @@ export function MasterAnalytics() {
   const [enhance, setEnhance] = useState(0)
   const [stat, setStat] = useState('MELEE_ATTACK')
   const [selectedPaths, setSelectedPaths] = useState<string[]>([])
+  const [selectedOnly, setSelectedOnly] = useState(false)
+  const selectedViewButton = useRef<HTMLButtonElement>(null)
   const [page, setPage] = useState(0)
   const [uuid, setUuid] = useState('00000000-0000-0000-0000-000000000001')
   const [startPlayer, setStartPlayer] = useState(1)
@@ -95,13 +97,38 @@ export function MasterAnalytics() {
     const search = query.toLowerCase()
     return rows.filter(row => Math.abs(row.level - level) <= band && (!slot || row.slot === slot) && (!tag || row.tag === tag) && `${row.name} ${row.id} ${row.path}`.toLowerCase().includes(search)).sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
   }, [rows, level, band, slot, tag, query])
-  const active = useMemo(() => selectedPaths.length ? filtered.filter(row => selectedPaths.includes(row.path)) : filtered, [filtered, selectedPaths])
-  const pageCount = Math.max(1, Math.ceil(filtered.length / 50))
+  const rowsByPath = useMemo(() => new Map(rows.map(row => [row.path, row])), [rows])
+  const selectedPathSet = useMemo(() => new Set(selectedPaths), [selectedPaths])
+  const selectedRows = useMemo(() => selectedPaths.flatMap(path => {
+    const row = rowsByPath.get(path)
+    return row ? [row] : []
+  }), [rowsByPath, selectedPaths])
+  const filteredPaths = useMemo(() => new Set(filtered.map(row => row.path)), [filtered])
+  const outsideCount = useMemo(() => selectedRows.filter(row => !filteredPaths.has(row.path)).length, [selectedRows, filteredPaths])
+  const missingCount = selectedPaths.length - selectedRows.length
+  const active = selectedPaths.length || selectedOnly ? selectedRows : filtered
+  const tableRows = selectedOnly ? selectedRows : filtered
+  const pageCount = Math.max(1, Math.ceil(tableRows.length / 50))
   const currentPage = Math.min(page, pageCount - 1)
-  const visibleRows = useMemo(() => filtered.slice(currentPage * 50, (currentPage + 1) * 50), [filtered, currentPage])
-  const statuses = useMemo(() => [...new Set(active.flatMap(row => Object.keys(row.stats)))].sort(), [active])
+  const visibleRows = useMemo(() => tableRows.slice(currentPage * 50, (currentPage + 1) * 50), [tableRows, currentPage])
+  const filteredStatuses = useMemo(() => [...new Set(filtered.flatMap(row => Object.keys(row.stats)))].sort(), [filtered])
+  const selectedStatuses = useMemo(() => [...new Set(selectedRows.flatMap(row => Object.keys(row.stats)))].sort(), [selectedRows])
+  const statuses = selectedPaths.length || selectedOnly ? selectedStatuses : filteredStatuses
+  const tableStatuses = selectedOnly ? selectedStatuses : filteredStatuses
   const scale = useMemo(() => Math.max(1, ...active.map(row => Math.max(Math.abs(row.stats[stat]?.min ?? 0), Math.abs(row.stats[stat]?.max ?? 0)))), [active, stat])
   const growthStatuses = useMemo(() => [...new Set((classes ?? []).flatMap(master => [...asList(master.content.baseStats), ...asList(master.content.growthPerLevel)].map(asObject).map(entry => normalizeStatus(entry.status))))].sort(), [classes])
+
+  function selectEquipment(event: ChangeEvent<HTMLInputElement>, path: string) {
+    const checked = event.currentTarget.checked
+    if (!checked && selectedOnly) {
+      // The unchecked row disappears; keep keyboard focus on a surviving control.
+      const checkboxes = Array.from(event.currentTarget.closest('tbody')!.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+      const index = checkboxes.indexOf(event.currentTarget)
+      const nextFocus = checkboxes[index + 1] ?? checkboxes[index - 1] ?? selectedViewButton.current
+      nextFocus?.focus()
+    }
+    setSelectedPaths(current => checked ? current.includes(path) ? current : [...current, path] : current.filter(value => value !== path))
+  }
 
   async function generate() {
     setGrowing(true); setError('')
@@ -132,26 +159,32 @@ export function MasterAnalytics() {
     {mode === 'equipment' ? <div id="analytics-equipment-panel" role="tabpanel" aria-labelledby="analytics-equipment-tab" className="analytics-workspace">
       <section className="analytics-panel analytics-settings" aria-labelledby="equipment-settings-heading">
       <div className="analytics-section-heading"><h2 id="equipment-settings-heading">比較条件</h2><span className="analytics-badge">保存済みマスター</span></div>
-      <p className="analytics-note">条件を変えると比較結果へすぐに反映します。</p>
+      <p className="analytics-note">条件で候補を探し、チェックして比較に追加します。選択した装備は条件を変えても比較対象に残ります。</p>
       <div className="analytics-controls">
-        <label className="analytics-field-wide">名前・ID<input value={query} onChange={event => setQuery(event.target.value)} placeholder="ノクス、20a00002…" /></label>
-        <label>スロット<select value={slot} onChange={event => setSlot(event.target.value)}><option value="">すべて</option>{slots.map(value => <option key={value}>{value}</option>)}</select></label>
-        <label>装備タグ<select value={tag} onChange={event => setTag(event.target.value)}><option value="">すべて</option>{tags.map(value => <option key={value}>{value}</option>)}</select></label>
-        <label>要求Lvの中心<input type="number" min="0" value={level} onChange={event => setLevel(Math.max(0, numeric(event.target.value)))} /></label>
-        <label>前後のLv幅<input type="number" min="0" value={band} onChange={event => setBand(Math.max(0, numeric(event.target.value)))} /></label>
+        <label className="analytics-field-wide">名前・ID<input value={query} onChange={event => { setQuery(event.target.value); setPage(0) }} placeholder="ノクス、20a00002…" /></label>
+        <label>スロット<select value={slot} onChange={event => { setSlot(event.target.value); setPage(0) }}><option value="">すべて</option>{slots.map(value => <option key={value}>{value}</option>)}</select></label>
+        <label>装備タグ<select value={tag} onChange={event => { setTag(event.target.value); setPage(0) }}><option value="">すべて</option>{tags.map(value => <option key={value}>{value}</option>)}</select></label>
+        <label>要求Lvの中心<input type="number" min="0" value={level} onChange={event => { setLevel(Math.max(0, numeric(event.target.value))); setPage(0) }} /></label>
+        <label>前後のLv幅<input type="number" min="0" value={band} onChange={event => { setBand(Math.max(0, numeric(event.target.value))); setPage(0) }} /></label>
         <label>強化Lv<input type="number" min="0" max="100" value={enhance} onChange={event => setEnhance(Math.max(0, Math.min(100, numeric(event.target.value))))} /></label>
         <label className="analytics-field-wide">グラフのステータス<select value={stat} onChange={event => setStat(event.target.value)}>{[...new Set([stat, ...statuses])].map(value => <option key={value} value={value}>{statusLabel(value)} ({value})</option>)}</select></label>
       </div>
       <details className="analytics-explanation"><summary>比較の計算方法と対象範囲</summary><p className="analytics-note">マスターの下限〜上限を比較します。強化は上限Lvまでの差分を累積し、同じ装備のFLAT合計 × 最後に採用されるSCALARを計算します。強化SCALARがある場合は基礎SCALARを置き換えます。SCALARだけのステータスは効果を持ちません。個体の乱数・エンチャント・ルーン・セット・超越・装備可否による無効化は含みません。</p></details>
       </section>
       <section className="analytics-panel analytics-results" aria-labelledby="equipment-results-heading">
-      <div className="analytics-section-heading"><div><h2 id="equipment-results-heading">比較結果</h2><p className="analytics-result-count" role="status">{active.length}件を比較 <span>／ 条件一致 {filtered.length}件</span></p></div><div className="analytics-actions"><button className="button" disabled={!selectedPaths.length} onClick={() => setSelectedPaths([])}>選択を解除</button><button className="button" disabled={!active.length} onClick={() => downloadCsv('equipment-comparison.csv', [['ID', '名前', 'スロット', 'タグ', '要求Lv', '進行度', ...statuses.flatMap(id => [`${id} 下限`, `${id} 上限`])], ...active.map(row => [row.id, row.name, row.slot, row.tag, row.level, row.progression, ...statuses.flatMap(id => [row.stats[id]?.min, row.stats[id]?.max])])])}>比較表をCSV出力</button></div></div>
+      <div className="analytics-section-heading"><div><h2 id="equipment-results-heading">比較結果</h2><p className="analytics-result-count" role="status">{active.length}件を比較 <span>／ 条件一致 {filtered.length}件</span></p></div><div className="analytics-actions"><button className="button" disabled={!selectedPaths.length} onClick={() => { setSelectedPaths([]); setSelectedOnly(false); setPage(0) }}>選択を解除</button><button className="button" disabled={!active.length} onClick={() => downloadCsv('equipment-comparison.csv', [['ID', '名前', 'スロット', 'タグ', '要求Lv', '進行度', ...statuses.flatMap(id => [`${id} 下限`, `${id} 上限`])], ...active.map(row => [row.id, row.name, row.slot, row.tag, row.level, row.progression, ...statuses.flatMap(id => [row.stats[id]?.min, row.stats[id]?.max])])])}>比較表をCSV出力</button></div></div>
+      {selectedPaths.length > 0 && <p className="analytics-note" role="status">選択中: {selectedRows.length}件（現在の条件外 {outsideCount}件）。「選択した装備」の一覧から個別に解除できます。</p>}
+      {missingCount > 0 && <div className="analytics-selection-warning" role="status"><p>選択した装備のうち {missingCount}件が現在のマスターに見つかりません。比較とCSVには含めません。</p><button className="button" onClick={() => { setSelectedPaths(current => current.filter(path => rowsByPath.has(path))); setPage(0) }}>見つからない選択を解除</button></div>}
       <h3>{statusLabel(stat)}の範囲比較</h3>
       <p className="analytics-note">バーは比較対象の先頭30件を表示します。表は50件ずつ表示し、CSVには比較対象すべてを出力します。</p>
       <div className="equipment-bars" aria-label={`${statusLabel(stat)}の範囲比較`}>{active.filter(row => row.stats[stat]).slice(0, 30).map(row => <div key={row.path} className="equipment-bar"><span title={row.id}><MinecraftText value={names.get(row.path) || row.name} /></span><div><i style={{ width: `${Math.max(Math.abs(row.stats[stat].min), Math.abs(row.stats[stat].max)) / scale * 100}%` }} /></div><strong>{formatRange(row.stats[stat])}</strong></div>)}</div>
       {!active.some(row => row.stats[stat]) && <p className="analytics-empty">このステータスを持つ比較対象がありません。条件やステータスを変更してください。</p>}
       <h3>装備の比較表</h3>
-      <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>装備の横並び比較。チェックした装備だけに絞り込めます。</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{statuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPaths.includes(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPaths.includes(row.path)} onChange={event => setSelectedPaths(current => event.target.checked ? [...current, row.path] : current.filter(path => path !== row.path))} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{statuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!filtered.length && <p className="analytics-empty">条件に一致する装備がありません。レベル幅やスロットを変更してください。</p>}</div>
+      <div className="analytics-actions analytics-list-mode" role="group" aria-label="装備一覧の表示">
+        <button className="button" aria-pressed={!selectedOnly} onClick={() => { setSelectedOnly(false); setPage(0) }}>条件に一致する装備（{filtered.length}件）</button>
+        <button ref={selectedViewButton} className="button" aria-pressed={selectedOnly} onClick={() => { setSelectedOnly(true); setPage(0) }}>選択した装備（{selectedRows.length}件）</button>
+      </div>
+      <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>{selectedOnly ? '選択した順に表示。チェックを外すと比較から解除します。' : '条件に一致する候補を表示。チェックして比較に追加できます。未選択の場合は条件に一致する全装備を比較します。'}</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{tableStatuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPathSet.has(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPathSet.has(row.path)} onChange={event => selectEquipment(event, row.path)} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{tableStatuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!tableRows.length && <p className="analytics-empty">{selectedOnly ? '表示できる選択装備がないため比較は0件です。「条件に一致する装備」から比較に追加してください。' : '条件に一致する装備がありません。名前・レベル幅・スロットなどの条件を変更してください。'}</p>}</div>
       <div className="analytics-actions"><button className="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>前の50件</button><span>{currentPage + 1} / {pageCount}ページ</span><button className="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>次の50件</button></div>
       </section>
     </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace">

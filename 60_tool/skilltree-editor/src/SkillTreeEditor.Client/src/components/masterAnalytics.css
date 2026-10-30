@@ -17,6 +17,9 @@
 .analytics-result-count span { color: var(--text-muted); font-size: 12px; }
 .analytics-actions { justify-content: flex-start; gap: 8px; font-size: 12px; }
 .analytics-actions .button { font-size: 12px; }
+.analytics-list-mode .button[aria-pressed=true] { border-color: var(--line-bright); background: var(--accent-soft); color: var(--accent); }
+.analytics-selection-warning { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px; margin: 14px 0; border: 1px solid var(--line-bright); border-radius: 8px; background: var(--surface-soft); font-size: 12px; line-height: 1.7; }
+.analytics-selection-warning p { flex: 1 1 240px; margin: 0; }
 .analytics-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; align-items: end; margin: 18px 0; }
 .analytics-controls label { display: grid; min-width: 0; gap: 7px; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
 .analytics-controls .analytics-field-wide { grid-column: 1 / -1; }
