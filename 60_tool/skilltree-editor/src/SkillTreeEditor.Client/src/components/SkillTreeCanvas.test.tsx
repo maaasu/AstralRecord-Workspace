@@ -1,8 +1,11 @@
-import { StrictMode, useCallback, useState } from 'react'
+import { StrictMode, useCallback, useState, type ComponentProps } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { routeEdge, SkillTreeCanvas } from './SkillTreeCanvas'
 import type { NodeMaster, StructureDocument } from '../types/editor'
+import * as nodePresentation from '../data/nodeEffectPresentation'
+
+afterEach(() => vi.restoreAllMocks())
 
 const structure: StructureDocument = {
   $schema: '../schemas/structure.v1.schema.json',
@@ -29,6 +32,89 @@ const masters: NodeMaster[] = [
 ]
 
 describe('SkillTreeCanvas', () => {
+  it('reuses node descriptions across six selection changes in a 100-node tree', async () => {
+    const effects = vi.spyOn(nodePresentation, 'describeNodeEffects')
+    const tooltip = vi.spyOn(nodePresentation, 'nodeTooltip')
+    const manyMasters = Array.from({ length: 100 }, (_, index) => ({ ...masters[1], nodeId: String(2000 + index), name: `ノード${index}`,
+      pointType: 'CP', unlockCondition: { classId: 'class-99' }, effects: [{ type: 'skill', skillId: 'skill-99' }] }))
+    const manyNodes = { ...structure, rootNodeId: '2000', nodes: manyMasters.map((master, index) => ({ nodeId: master.nodeId, x: index % 10 * 6, y: 0, z: Math.floor(index / 10) * 6 })), edges: [] }
+    const skillMasters = Array.from({ length: 100 }, (_, index) => ({ id: `skill-${index}`, name: `&6スキル${index}`, type: 'ACTIVE' }))
+    const classMasters = Array.from({ length: 100 }, (_, index) => ({ id: `class-${index}`, name: `&b職業${index}`, parentClassIds: [] }))
+    const onRecord = vi.fn(), onReplace = vi.fn(), onSelectedNode = vi.fn()
+    render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={manyNodes} masters={manyMasters} skillMasters={skillMasters} classMasters={classMasters}
+      onRecord={onRecord} onReplace={onReplace} onSelectedNode={onSelectedNode} onBeginTransaction={vi.fn()} onCommitTransaction={vi.fn()} onEditMaster={vi.fn()} onNotify={vi.fn()} /></div>)
+    expect(await screen.findByTestId('rf__node-2099')).toHaveTextContent('CP[職業99] 1')
+    expect(effects).toHaveBeenCalledTimes(100)
+    expect(tooltip).toHaveBeenCalledTimes(100)
+    effects.mockClear(); tooltip.mockClear()
+    for (const index of [0, 17, 38, 55, 79, 99]) {
+      const node = screen.getByTestId(`rf__node-${2000 + index}`)
+      fireEvent.click(node)
+      await waitFor(() => expect(node).toHaveClass('selected'))
+      expect(node.querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('スキル99'))
+      expect(onSelectedNode).toHaveBeenLastCalledWith(String(2000 + index))
+    }
+    expect(effects).toHaveBeenCalledTimes(0)
+    expect(tooltip).toHaveBeenCalledTimes(0)
+    expect(screen.getByTestId('rf__node-2000')).not.toHaveClass('selected')
+    expect(onRecord).not.toHaveBeenCalled()
+    expect(onReplace).not.toHaveBeenCalled()
+  })
+
+  it('refreshes descriptions and positions when master, catalog, structure or display inputs change', async () => {
+    let props: ComponentProps<typeof SkillTreeCanvas> = {
+      structure,
+      masters: masters.map(master => master.nodeId === '1001' ? { ...master, pointType: 'CP', unlockCondition: { classId: 'adventurer' }, effects: [{ type: 'skill', skillId: 'flame' }] } : master),
+      skillMasters: [{ id: 'flame', name: '&6火球', type: 'ACTIVE' }],
+      classMasters: [{ id: 'adventurer', name: '&b冒険者', parentClassIds: [] }],
+      onRecord: vi.fn(), onReplace: vi.fn(), onSelectedNode: vi.fn(), onBeginTransaction: vi.fn(), onCommitTransaction: vi.fn(), onEditMaster: vi.fn(), onNotify: vi.fn(),
+    }
+    const view = render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas {...props} /></div>)
+    const update = (patch: Partial<typeof props>) => {
+      props = { ...props, ...patch }
+      view.rerender(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas {...props} /></div>)
+    }
+    const node = () => screen.getByTestId('rf__node-1001')
+    fireEvent.click(await screen.findByTestId('rf__node-1001'))
+    await waitFor(() => expect(node()).toHaveClass('selected'))
+    expect(node().querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('・火球'))
+
+    update({ skillMasters: [{ id: 'flame', name: '&6大火球', type: 'ACTIVE' }] })
+    await waitFor(() => expect(node().querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('・大火球')))
+    update({ classMasters: [{ id: 'adventurer', name: '&b熟練冒険者', parentClassIds: [] }] })
+    await waitFor(() => expect(node()).toHaveTextContent('CP[熟練冒険者] 1'))
+    update({ masters: props.masters.map(master => master.nodeId === '1001' ? { ...master, name: '&b強化ノード', icon: 'DIAMOND', pointCost: 2, effects: [], tags: ['root'] } : master) })
+    await waitFor(() => expect(node()).toHaveTextContent('強化ノード'))
+    expect(node()).toHaveTextContent('CP[熟練冒険者] 2')
+    expect(node().querySelector('.skill-node')).not.toHaveAttribute('title', expect.stringContaining('大火球'))
+    expect(node().querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('ルート／根（root）'))
+    expect(node()).toHaveClass('selected')
+
+    update({ structure: { ...structure, rootNodeId: '1001', nodes: structure.nodes.map(placement => placement.nodeId === '1001' ? { ...placement, x: -6, y: 12, z: 9 } : placement) } })
+    await waitFor(() => expect(node().style.transform).toMatch(/translate\(-216px,\s*324px\)/))
+    expect(node()).toHaveTextContent('Y 12')
+    expect(node().querySelector('.skill-node')).toHaveClass('root')
+    expect(screen.getByTestId('rf__node-1000').querySelector('.skill-node')).not.toHaveClass('root')
+    update({ structure })
+    await waitFor(() => expect(node().style.transform).toMatch(/translate\(216px,\s*0px\)/))
+    expect(node()).toHaveTextContent('Y 0')
+    expect(node().querySelector('.skill-node')).not.toHaveClass('root')
+
+    update({ nodeSize: 96, iconRevision: 3 })
+    await waitFor(() => expect(node().querySelector('.skill-node')).toHaveStyle('--skill-node-size: 96px'))
+    expect(screen.getByTitle('DIAMOND').querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/DIAMOND?revision=3')
+    update({ visibleNodeIds: new Set(['1000']) })
+    await waitFor(() => expect(screen.queryByTestId('rf__node-1001')).not.toBeInTheDocument())
+    expect(screen.queryByTestId('rf__edge-edge:1000:1001')).not.toBeInTheDocument()
+    update({ visibleNodeIds: null })
+    expect(await screen.findByTestId('rf__node-1001')).toHaveTextContent('強化ノード')
+    update({ masters: [masters[0]] })
+    await waitFor(() => expect(node()).toHaveTextContent('Unknown 1001'))
+    expect(node().querySelector('.skill-node')).toHaveAttribute('title', 'Unknown 1001')
+    expect(props.onRecord).not.toHaveBeenCalled()
+    expect(props.onReplace).not.toHaveBeenCalled()
+  })
+
   it('routes edges through the nearest matching handles', () => {
     const placements = new Map([
       ['1000', { x: 0, z: 0 }],

@@ -98,7 +98,7 @@ function CanvasInner({
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
   const [contextMenu, setContextMenu] = useState<NodeContextMenuState | null>(null)
   const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
-  const initialNodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes
+  const preparedNodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes
     .filter((placement) => !visibleNodeIds || visibleNodeIds.has(placement.nodeId))
     .map((placement) => {
     const master = masterMap.get(placement.nodeId)
@@ -107,7 +107,6 @@ function CanvasInner({
     return {
       id: placement.nodeId,
       type: 'skill',
-      selected: selectedIds.has(placement.nodeId),
       position: { x: placement.x * BLOCK_SCALE, y: placement.z * BLOCK_SCALE },
       data: {
         label: master ? stripMinecraftFormatting(master.name) : `Unknown ${placement.nodeId}`,
@@ -124,8 +123,10 @@ function CanvasInner({
       },
     }
     }),
-    [classMasters, iconRevision, masterMap, nodeSize, selectedIds, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
+    [classMasters, iconRevision, masterMap, nodeSize, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
   )
+  // Selection changes reuse presentation data; master, placement and display changes still refresh it.
+  const initialNodes = useMemo(() => preparedNodes.map(node => ({ ...node, selected: selectedIds.has(node.id) })), [preparedNodes, selectedIds])
   const [flowNodes, setFlowNodes] = useState<Node<SkillNodeData>[]>(initialNodes)
 
   useEffect(() => {
