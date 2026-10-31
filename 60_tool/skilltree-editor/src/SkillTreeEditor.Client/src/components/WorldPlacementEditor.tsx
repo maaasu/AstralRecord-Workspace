@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { worldPlacementApi, type PlacementKind, type PlacementSnapshot, type WorldPlacement } from '../api/worldPlacementApi'
 import { cellAtWorld, type PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
@@ -40,6 +40,8 @@ const readCatalog = async (): Promise<PlacementCatalog> => {
   return payload as PlacementCatalog
 }
 const clean = stripMinecraftFormatting
+const isPlainNavigationKey = (event: KeyboardEvent) => !event.nativeEvent.isComposing && event.keyCode !== 229
+  && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
 const fresh = (kind: PlacementKind, worldId: string, worldName: string, templateId: string | null, x: number, y: number, z: number): WorldPlacement => ({
   placementId: crypto.randomUUID(), kind, worldId, worldName, templateId, x, y, z, yaw: 0, pitch: 0, enabled: true,
   waystone: kind === 'waystone' ? { id: '', name: '', lockEnabled: false, unlockGold: 0, icon: 'LODESTONE', createdAt: new Date().toISOString(), createdBy: 'master-data-editor' } : null,
@@ -212,6 +214,18 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     setPage(next)
     setListingFocusKey(value => value + 1)
   }
+  const focusListingItem = (index: number) => {
+    if (locked() || !sortedListing.items.length) return
+    const targetIndex = Math.max(0, Math.min(index, sortedListing.items.length - 1))
+    navigateListing(Math.floor(targetIndex / pageSize), sortedListing.items[targetIndex].placementId)
+  }
+  const handleListingKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!isPlainNavigationKey(event) || locked()) return
+    if (event.key === 'Escape') { event.preventDefault(); searchInput.current?.focus(); return }
+    const next = event.key === 'ArrowDown' ? index + 1 : event.key === 'ArrowUp' ? index - 1
+      : event.key === 'Home' ? 0 : event.key === 'End' ? sortedListing.items.length - 1 : null
+    if (next !== null) { event.preventDefault(); focusListingItem(next) }
+  }
   useEffect(() => { setPage(current => Math.min(current, pageCount - 1)) }, [pageCount])
   useEffect(() => {
     const request = listingFocus.current
@@ -371,8 +385,12 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone"><label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label><label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label><label>アイコン<input value={selected.waystone.icon} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, icon: event.target.value } })} /></label><label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label><label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label></div>}
       <div className="wp-actions"><button className="button" onClick={duplicate} disabled={busy || hasDrafts}>複製</button><button className="button" onClick={() => bulkAction('delete', new Set([selected.placementId]))} disabled={bulkLocked}>この配置を削除</button></div>
     </div>}</div></section>}
-    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" aria-describedby={searchHelpId} value={query} onChange={event => setQuery(event.target.value)} placeholder="名前・地域・ID・座標" /></label></div>
-    <p id={searchHelpId} className="wp-filter-note">空白で区切ると、すべての語を含む配置を検索します。例: オオカミ 草原</p>
+    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" aria-describedby={searchHelpId} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => {
+      if (isPlainNavigationKey(event) && !locked() && sortedListing.items.length && (event.key === 'ArrowDown' || event.key === 'Enter')) {
+        event.preventDefault(); focusListingItem(currentPage * pageSize)
+      }
+    }} placeholder="名前・地域・ID・座標" /></label></div>
+    <p id={searchHelpId} className="wp-filter-note">空白で区切ると、すべての語を含む配置を検索します。例: オオカミ 草原。検索欄で↓・Enterを押すと現在のページの先頭へ移動します。一覧では↑↓でページをまたいで移動、Home・Endで先頭・末尾、Enter・Spaceで配置を選択、Escapeで検索へ戻ります。</p>
     <section className="wp-filter-panel" aria-label="詳細条件"><button className="wp-panel-toggle" type="button" aria-expanded={filtersOpen} aria-controls={filterId} onClick={() => setFiltersOpen(open => !open)}>詳細条件（{activeFilterDetails.length} 件）{activeFilterDetails.length > 0 && <span className="wp-panel-summary">{activeFilterDetails.join(' · ')}</span>}</button>
     <div id={filterId} hidden={!filtersOpen}>{filtersOpen && <><div className="wp-filters"><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div><p className="wp-world-details">世界 ID: <code>{worldId}</code>{selectedWorldName && <> · 保存先: <code>{selectedWorldName}</code></>}</p></>}</div></section>
     <div className="wp-list-options"><label>一覧の並び順<select aria-label="一覧の並び順" value={listingSort} onChange={event => setListingSort(event.target.value as PlacementListingSort)}><option value="default">標準（保存済み順）</option><option value="distance">開始地点に近い順</option><option value="level-asc">出現レベルが低い順</option><option value="level-desc">出現レベルが高い順</option><option value="name">日本語名順</option></select></label><button className="button" type="button" onClick={() => { setQuery(''); setFilterKind(''); setFilterEnabled(''); setFilterRegion(''); setFilterTemplate(''); setMinimumLevel(''); setMaximumLevel(''); searchInput.current?.focus() }} disabled={!query && !filterKind && !filterEnabled && !filterRegion && !filterTemplate && !minimumLevel && !maximumLevel}>検索条件をすべて解除</button></div>
@@ -395,7 +413,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     </div>
     <p>一覧は50件ずつ表示します。ページを切り替えても、地図の表示条件・一括選択・保存対象は変わりません。</p>
     {selected && selectedListingIndex < 0 && <p>選択中の配置は現在の一覧に含まれていません。検索条件や「一括選択だけを一覧で確認」を確認してください。</p>}
-    <div id={listingId} ref={listing} className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(item => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" data-placement-id={item.placementId} aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
+    <div id={listingId} ref={listing} className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map((item, index) => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" data-placement-id={item.placementId} onKeyDown={event => handleListingKey(event, currentPage * pageSize + index)} aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
 
     </div>
     </>}
