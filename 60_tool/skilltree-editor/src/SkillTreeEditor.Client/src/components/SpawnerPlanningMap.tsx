@@ -9,6 +9,7 @@ import { circleIntersectsViewport, drawSpawnerRanges, type MapCircle } from '../
 import { createCoverageCalculator, coverageColors, coverageTerrain, type CoverageSource } from '../data/spawnerCoverage'
 import { SpawnerCoverageInspector } from './SpawnerCoverageInspector'
 import { createMapLabelIndex } from '../data/mapLabelIndex'
+import { createMapPointIndex } from '../data/mapPointIndex'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 const hasRadius = (radius: number | null | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
@@ -156,17 +157,18 @@ export function SpawnerPlanningMap(props: Props) {
     return image
   }, [coverage, terrain, snapshot.cells, bounds, region, reason, coverageReasonCodes])
   const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
+  const placementIndex = useMemo(() => createMapPointIndex(orderedPlacements), [orderedPlacements])
+  const proposalIndex = useMemo(() => createMapPointIndex(visibleProposals), [visibleProposals])
   const placementAt = useCallback((px: number, pz: number, current = view) => {
-    let distance = 8
+    let distance = 8, nearestOrder = -1
     let nearest: WorldPlacement | undefined
     // Equal-distance overlaps use the point drawn last, including a selected point.
-    for (let index = orderedPlacements.length - 1; index >= 0; index--) {
-      const item = orderedPlacements[index]
+    placementIndex.forEachNear((px - current.x) / current.scale + bounds.minX - .5, (pz - current.z) / current.scale + bounds.minZ - .5, 8 / current.scale, (item, order) => {
       const next = Math.hypot((item.x + .5 - bounds.minX) * current.scale + current.x - px, (item.z + .5 - bounds.minZ) * current.scale + current.z - pz)
-      if (next < distance) { distance = next; nearest = item }
-    }
+      if (next < distance || (nearest && next === distance && order > nearestOrder)) { distance = next; nearest = item; nearestOrder = order }
+    })
     return nearest
-  }, [orderedPlacements, bounds.minX, bounds.minZ, view])
+  }, [placementIndex, bounds.minX, bounds.minZ, view])
   const hovered = useMemo(() => {
     if (!pointer || !active || props.placing || pointer.x < 0 || pointer.z < 0 || pointer.x >= size.width || pointer.z >= size.height) return null
     const placement = placementAt(pointer.x, pointer.z)
@@ -181,13 +183,12 @@ export function SpawnerPlanningMap(props: Props) {
         levels: levels.length ? levels.map(level => `Lv.${level}`).join(' / ') : 'Lv.不明' }
     }
     if (props.showProposals === false) return null
-    let distance = 6
+    let distance = 6, nearestOrder = -1
     let nearest: (typeof visibleProposals)[number] | undefined
-    for (let index = visibleProposals.length - 1; index >= 0; index--) {
-      const item = visibleProposals[index]
+    proposalIndex.forEachNear((pointer.x - view.x) / view.scale + bounds.minX - .5, (pointer.z - view.z) / view.scale + bounds.minZ - .5, 6 / view.scale, (item, order) => {
       const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - pointer.x, (item.z + .5 - bounds.minZ) * view.scale + view.z - pointer.z)
-      if (next < distance) { distance = next; nearest = item }
-    }
+      if (next < distance || (nearest && next === distance && order > nearestOrder)) { distance = next; nearest = item; nearestOrder = order }
+    })
     return nearest ? { title: 'AI 配置案', id: nearest.spawnerId, placementId: null, proposalId: nearest.proposalId,
       radiusMeters: hasRadius(nearest.radiusMeters) ? nearest.radiusMeters : null, levels: '', names: nearest.spawnMobs.map(mob => {
       const name = plainName(mob.name).trim() || `モブ名不明 (${mob.mobId})`
@@ -195,7 +196,7 @@ export function SpawnerPlanningMap(props: Props) {
       const sameLevel = suffix && Number(suffix[1]) === mob.level
       return `${sameLevel ? name.slice(0, suffix.index).trim() : name} · ${suffix && !sameLevel ? '出現 ' : ''}${Number.isFinite(mob.level) && mob.level > 0 ? `Lv.${mob.level}` : 'Lv.不明'}`
     }) } : null
-  }, [pointer, active, props.placing, props.showProposals, size, placementAt, masters, visibleProposals, bounds.minX, bounds.minZ, view])
+  }, [pointer, active, props.placing, props.showProposals, size, placementAt, masters, proposalIndex, bounds.minX, bounds.minZ, view])
   const hoveredPlacementId = hovered?.placementId ?? null, hoveredProposalId = hovered?.proposalId ?? null
   const tooltipText = hovered ? [hovered.title, hovered.id, hovered.levels, hovered.radiusMeters, ...hovered.names].join('\n') : ''
   useLayoutEffect(() => {
@@ -598,12 +599,12 @@ export function SpawnerPlanningMap(props: Props) {
         const closest = placementAt(px, pz, current)
         if (closest && props.onPlacement) { props.onPlacement(closest.placementId); return }
         // At overview scale dots are dense; prioritize the terrain cell until zoomed in.
-        let distance = 6
+        let distance = 6, nearestOrder = Infinity
         let nearest: (typeof visibleProposals)[number] | undefined
-        if (props.showProposals !== false && current.scale > .25) for (const value of visibleProposals) {
+        if (props.showProposals !== false && current.scale > .25) proposalIndex.forEachNear(x - .5, z - .5, 6 / current.scale, (value, order) => {
           const next = Math.hypot((value.x + .5 - x) * current.scale, (value.z + .5 - z) * current.scale)
-          if (next < distance) { distance = next; nearest = value }
-        }
+          if (next < distance || (nearest && next === distance && order < nearestOrder)) { distance = next; nearest = value; nearestOrder = order }
+        })
         if (nearest) onProposal(nearest.proposalId)
         else { const index = cellAtWorld(bounds, grid, x, z); if (index !== undefined) onCell(index) }
       }}
