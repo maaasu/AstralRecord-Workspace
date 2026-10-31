@@ -30,6 +30,7 @@
 .balance-skill-supported { color: #a8dec0; }
 .balance-skill-unsupported { color: #f1c689; }
 .balance-skill-counts { margin: 8px 0; font-size: 13px; color: #b9cfe0; }
+.balance-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; font-size: 12px; }
 .balance-skill-details { margin: 5px 9px 0 !important; padding-top: 5px; border-top: 1px solid #3a4e62; font-size: 11px; }
 .balance-skill-details p { margin: 6px 0; line-height: 1.5; overflow-wrap: anywhere; }
 .balance-skill-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin: 12px 0; font-size: 12px; }

@@ -26,7 +26,44 @@ function NumberInput({ label, value, min, max, step, onChange }: { label: string
   return <label>{label}<input type="number" value={value} min={min} max={max} step={step ?? 1} onChange={event => onChange(number(event.target.value))} /></label>
 }
 
-function SkillPicker({ build, classMaster, masters, entries, onChange }: { build: BalanceBuild; classMaster?: BalanceMaster; masters: BalanceMaster[]; entries: BalanceSkillCatalogEntry[]; onChange: (skillIds: string[], passiveSkillIds?: string[]) => void }) {
+const CANDIDATE_PAGE_SIZE = 50
+
+function useCandidatePage<T>(rows: T[], context: string) {
+  const listId = useId()
+  const listRef = useRef<HTMLDivElement>(null)
+  const firstCheckboxRef = useRef<HTMLInputElement>(null)
+  const focusAfterPaging = useRef(false)
+  const [pagination, setPagination] = useState({ context, page: 0 })
+  const pageCount = Math.max(1, Math.ceil(rows.length / CANDIDATE_PAGE_SIZE))
+  const page = pagination.context === context ? Math.min(pagination.page, pageCount - 1) : 0
+  // Preserve the clamped page so a later catalog expansion cannot resurrect an old page.
+  if (pagination.context !== context || pagination.page !== page) setPagination({ context, page })
+  const start = page * CANDIDATE_PAGE_SIZE
+  const items = rows.slice(start, start + CANDIDATE_PAGE_SIZE)
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0
+    if (!focusAfterPaging.current) return
+    focusAfterPaging.current = false
+    firstCheckboxRef.current?.focus({ preventScroll: true })
+    firstCheckboxRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [page, context])
+  const changePage = (nextPage: number) => {
+    focusAfterPaging.current = true
+    setPagination({ context, page: nextPage })
+  }
+  return { items, listId, listRef, firstCheckboxRef, page, pageCount, start: start + 1, end: start + items.length, changePage }
+}
+
+function CandidatePageControls({ label, paging }: { label: string; paging: { listId: string; page: number; pageCount: number; start: number; end: number; changePage: (page: number) => void } }) {
+  if (paging.pageCount <= 1) return null
+  return <div className="balance-pagination" role="group" aria-label={`${label}のページ`}>
+    <button type="button" className="button compact" aria-label={`${label}の前のページ`} aria-controls={paging.listId} disabled={paging.page === 0} onClick={() => paging.changePage(paging.page - 1)}>前の50件</button>
+    <span role="status">{paging.start}–{paging.end}件 · {paging.page + 1} / {paging.pageCount}ページ</span>
+    <button type="button" className="button compact" aria-label={`${label}の次のページ`} aria-controls={paging.listId} disabled={paging.page === paging.pageCount - 1} onClick={() => paging.changePage(paging.page + 1)}>次の50件</button>
+  </div>
+}
+
+function SkillPicker({ build, position, classMaster, masters, entries, onChange }: { build: BalanceBuild; position: number; classMaster?: BalanceMaster; masters: BalanceMaster[]; entries: BalanceSkillCatalogEntry[]; onChange: (skillIds: string[], passiveSkillIds?: string[]) => void }) {
   const [query, setQuery] = useState('')
   const searchHelpId = useId()
   const [classOnly, setClassOnly] = useState(false)
@@ -43,6 +80,7 @@ function SkillPicker({ build, classMaster, masters, entries, onChange }: { build
   const matches = useMemo(() => createMasterNameMatcher(query), [query])
   const visible = useMemo(() => candidates.filter(({ entry, name, candidate }) => (!classOnly || candidate) && (!supportedOnly || entry.supported)
     && matches(name, entry.id, entry.implementationId, entry.path)), [candidates, classOnly, supportedOnly, matches])
+  const paging = useCandidatePage(visible, JSON.stringify([query, classOnly, supportedOnly, build.classId]))
   const move = (index: number, direction: -1 | 1) => {
     const next = [...build.skillIds]
     ;[next[index], next[index + direction]] = [next[index + direction], next[index]]
@@ -55,8 +93,9 @@ function SkillPicker({ build, classMaster, masters, entries, onChange }: { build
     <p id={searchHelpId} className="balance-muted">名前・ID・実装ID・パスを検索します。空白で区切ると、すべての語で絞り込みます。</p>
     {build.skillIds.length > 0 && <div className="balance-selected-skills"><strong>アクティブ・優先順</strong><ol>{build.skillIds.map((id, index) => <li key={`${id}:${index}`}><span className="balance-selected-name"><MinecraftText value={namesById.get(id) ?? id} /><small>{id}</small></span><div className="balance-skill-order"><button type="button" className="button compact" aria-label={`${id}の優先順位を上げる`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${id}の優先順位を下げる`} disabled={index === build.skillIds.length - 1} onClick={() => move(index, 1)}>↓</button></div></li>)}</ol></div>}
     <p className="balance-muted">パッシブ装着：{build.passiveSkillIds?.length ?? 0}件</p>
-    <p className="balance-muted">表示 {visible.length} / 全 {entries.length} 件</p>
-    <div className="balance-checks balance-skill-checks">{visible.map(({ entry, name, candidate, nodeCandidate }) => { return <div key={entry.path} className="balance-skill-row"><label className="balance-check-item"><input type="checkbox" checked={(entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds).includes(entry.id)} onChange={event => { const current = entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds; const next = event.target.checked ? [...current, entry.id] : current.filter(value => value !== entry.id); if (entry.kind === 'passive') onChange(build.skillIds, next); else onChange(next, build.passiveSkillIds) }} /><span className="balance-check-name"><MinecraftText value={name} /><small>{entry.id}</small></span></label><div className="balance-skill-meta"><span className={entry.supported ? 'balance-skill-supported' : 'balance-skill-unsupported'}>{entry.supported ? (entry.requirements?.length ? '条件付き対応' : '計算対応') : '計算未対応'} · {entry.kind === 'passive' ? 'パッシブ' : 'アクティブ'}</span>{candidate && <span>職業の潜在候補{nodeCandidate ? ' · スキルツリー' : ''}</span>}</div>{Boolean(entry.requirements?.length) && <p className="balance-muted">追加条件：{entry.requirements?.map(value => ({ bow: '弓装備', velocity_replay: '速度変更後の座標軌跡', party: '味方の入力', static_only: '静止条件のみ' })[value] ?? value).join('、')}</p>}{entry.reasons.length > 0 && <details className="balance-skill-details"><summary>未対応理由 {entry.reasons.length}件</summary>{entry.reasons.map((reason, index) => <p key={index}>{reason}</p>)}</details>}{entry.assumptions.length > 0 && <details className="balance-skill-details"><summary>計算の前提</summary>{entry.assumptions.map((assumption, index) => <p key={index}>{assumption}</p>)}</details>}{entry.sources.length > 0 && <details className="balance-skill-details"><summary>参照ソース</summary>{entry.sources.map(source => <p key={source}><code>{source}</code></p>)}</details>}</div> })}</div>
+    <p className="balance-muted">候補 {visible.length} / 全 {entries.length} 件</p>
+    <CandidatePageControls label={`ビルド${position}のスキル候補`} paging={paging} />
+    <div className="balance-checks balance-skill-checks" id={paging.listId} ref={paging.listRef}>{paging.items.map(({ entry, name, candidate, nodeCandidate }, index) => { return <div key={entry.path} className="balance-skill-row"><label className="balance-check-item"><input type="checkbox" ref={index === 0 ? paging.firstCheckboxRef : undefined} checked={(entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds).includes(entry.id)} onChange={event => { const current = entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds; const next = event.target.checked ? [...current, entry.id] : current.filter(value => value !== entry.id); if (entry.kind === 'passive') onChange(build.skillIds, next); else onChange(next, build.passiveSkillIds) }} /><span className="balance-check-name"><MinecraftText value={name} /><small>{entry.id}</small></span></label><div className="balance-skill-meta"><span className={entry.supported ? 'balance-skill-supported' : 'balance-skill-unsupported'}>{entry.supported ? (entry.requirements?.length ? '条件付き対応' : '計算対応') : '計算未対応'} · {entry.kind === 'passive' ? 'パッシブ' : 'アクティブ'}</span>{candidate && <span>職業の潜在候補{nodeCandidate ? ' · スキルツリー' : ''}</span>}</div>{Boolean(entry.requirements?.length) && <p className="balance-muted">追加条件：{entry.requirements?.map(value => ({ bow: '弓装備', velocity_replay: '速度変更後の座標軌跡', party: '味方の入力', static_only: '静止条件のみ' })[value] ?? value).join('、')}</p>}{entry.reasons.length > 0 && <details className="balance-skill-details"><summary>未対応理由 {entry.reasons.length}件</summary>{entry.reasons.map((reason, index) => <p key={index}>{reason}</p>)}</details>}{entry.assumptions.length > 0 && <details className="balance-skill-details"><summary>計算の前提</summary>{entry.assumptions.map((assumption, index) => <p key={index}>{assumption}</p>)}</details>}{entry.sources.length > 0 && <details className="balance-skill-details"><summary>参照ソース</summary>{entry.sources.map(source => <p key={source}><code>{source}</code></p>)}</details>}</div> })}</div>
     {!visible.length && <p className="balance-muted">条件に合うスキルがありません。検索語や候補の絞り込みを変更してください。</p>}
   </div>
 }
@@ -67,11 +106,13 @@ function SellItemsPicker({ masters, selected, onChange }: { masters: BalanceMast
   const rows = useMemo(() => masters.map(master => ({ id: masterId(master), name: masterName(master), path: master.path })), [masters])
   const matches = useMemo(() => createMasterNameMatcher(query), [query])
   const visible = useMemo(() => rows.filter(row => matches(row.name, row.id, row.path)), [rows, matches])
+  const paging = useCandidatePage(visible, query)
   return <details className="balance-subpanel balance-sell-picker"><summary>売却アイテム（{selected.length}件選択）</summary>
     <label className="balance-search">売却アイテム検索<input type="search" value={query} aria-describedby={searchHelpId} onChange={event => setQuery(event.target.value)} placeholder="例: 銀 鉱石" /></label>
     <p id={searchHelpId} className="balance-muted">名前・ID・パスを検索します。空白で区切ると、すべての語で絞り込みます。</p>
     <p className="balance-muted">候補 {visible.length} / 全 {masters.length} 件</p>
-    <div className="balance-checks">{visible.map(({ id, name, path }) => <label key={path} className="balance-check-item"><input type="checkbox" checked={selected.includes(id)} onChange={event => onChange(event.target.checked ? [...selected, id] : selected.filter(value => value !== id))} /><span className="balance-check-name"><MinecraftText value={name} /><small>{id}</small></span></label>)}</div>
+    <CandidatePageControls label="売却候補" paging={paging} />
+    <div className="balance-checks" id={paging.listId} ref={paging.listRef}>{paging.items.map(({ id, name, path }, index) => <label key={path} className="balance-check-item"><input type="checkbox" ref={index === 0 ? paging.firstCheckboxRef : undefined} checked={selected.includes(id)} onChange={event => onChange(event.target.checked ? [...selected, id] : selected.filter(value => value !== id))} /><span className="balance-check-name"><MinecraftText value={name} /><small>{id}</small></span></label>)}</div>
     {!visible.length && <p className="balance-muted">条件に合うアイテムがありません。</p>}
   </details>
 }
@@ -266,7 +307,7 @@ export function BalanceLab() {
       <section className="balance-panel"><div className="balance-section-heading"><h3>ビルド（{scenario.builds.length}/{limits.maxBuilds}）</h3><button className="button" disabled={scenario.builds.length >= limits.maxBuilds || busy} onClick={() => change(current => ({ ...current, builds: [...current.builds, { id: `build-${Date.now()}`, name: `ビルド${current.builds.length + 1}`, classId: groups.classes[0] ? masterId(groups.classes[0]) : '', playerLevel: 1, classLevel: 1, equipment: [], skillIds: [], normalAttacks: true, initialShield: 0 }] }))}>ビルドを追加</button></div>
         {scenario.builds.map((build, index) => <article key={build.id} className="balance-build"><div className="balance-section-heading"><h4>ビルド {index + 1}</h4><button className="button compact" disabled={scenario.builds.length <= 1 || busy || hasJsonDrafts} onClick={() => change(current => ({ ...current, builds: current.builds.filter(item => item.id !== build.id) }))}>削除</button></div><fieldset className="balance-build-fields" disabled={hasJsonDrafts}><div className="balance-fields"><label>名前<input value={build.name} onChange={event => changeBuild(build.id, previous => ({ ...previous, name: event.target.value }))} /></label><MasterSelect label="職業" masters={groups.classes} value={build.classId} onChange={value => changeBuild(build.id, previous => ({ ...previous, classId: value }))} /><NumberInput label="プレイヤーLv" value={build.playerLevel} min={1} onChange={value => changeBuild(build.id, previous => ({ ...previous, playerLevel: value }))} /><NumberInput label="クラスLv" value={build.classLevel} min={1} onChange={value => changeBuild(build.id, previous => ({ ...previous, classLevel: value }))} /><NumberInput label="初期シールド" value={build.initialShield ?? 0} min={0} onChange={value => changeBuild(build.id, previous => ({ ...previous, initialShield: value }))} /></div><label className="balance-toggle"><input type="checkbox" checked={build.normalAttacks !== false} onChange={event => changeBuild(build.id, previous => ({ ...previous, normalAttacks: event.target.checked }))} />通常攻撃も使う</label>
           <div className="balance-subpanel"><h5>装備</h5>{build.equipment.map((entry, equipmentIndex) => <div key={equipmentIndex} className="balance-fields"><MasterSelect label={`装備 ${equipmentIndex + 1}`} masters={groups.equipment} value={entry.itemId} onChange={value => changeBuild(build.id, previous => ({ ...previous, equipment: previous.equipment.map((item, i) => i === equipmentIndex ? { ...item, itemId: value } : item) }))} /><NumberInput label="強化Lv" value={entry.enhanceLevel} min={0} onChange={value => changeBuild(build.id, previous => ({ ...previous, equipment: previous.equipment.map((item, i) => i === equipmentIndex ? { ...item, enhanceLevel: value } : item) }))} /><button className="button compact" onClick={() => changeBuild(build.id, previous => ({ ...previous, equipment: previous.equipment.filter((_, i) => i !== equipmentIndex) }))}>外す</button></div>)}<button className="button compact" onClick={() => changeBuild(build.id, previous => ({ ...previous, equipment: [...previous.equipment, { itemId: '', enhanceLevel: 0 }] }))}>装備を追加</button></div>
-          <SkillPicker build={build} classMaster={groups.classes.find(master => masterId(master) === build.classId)} masters={groups.skills} entries={skillEntries} onChange={(skillIds, passiveSkillIds) => changeBuild(build.id, previous => ({ ...previous, skillIds, passiveSkillIds: passiveSkillIds ?? previous.passiveSkillIds }))} /></fieldset>
+          <SkillPicker build={build} position={index + 1} classMaster={groups.classes.find(master => masterId(master) === build.classId)} masters={groups.skills} entries={skillEntries} onChange={(skillIds, passiveSkillIds) => changeBuild(build.id, previous => ({ ...previous, skillIds, passiveSkillIds: passiveSkillIds ?? previous.passiveSkillIds }))} /></fieldset>
           <details><summary>基礎ステータスの上書き（JSON）</summary><textarea disabled={hasJsonDrafts && !jsonDrafts[`${build.id}:base`]} aria-label={`${build.name}の基礎ステータスJSON`} defaultValue={JSON.stringify(build.baseStats ?? {}, null, 2)} key={`${build.id}:${JSON.stringify(build.baseStats)}`} onChange={() => markDraft(`${build.id}:base`, true)} onBlur={event => { try { const parsed = JSON.parse(event.target.value); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || Object.values(parsed).some(value => typeof value !== 'number')) throw new Error('数値のMapを入力してください。'); changeBuild(build.id, previous => ({ ...previous, baseStats: parsed })); markDraft(`${build.id}:base`, false); setError('') } catch (reason) { setError(String(reason)) } }} /></details>
           <details><summary>装備個体値・エンチャント・ルーン・超越などの詳細JSON</summary><p className="balance-muted">このビルドのコピーを編集します。サーバーが未対応と判定した効果は診断に表示されます。</p><textarea disabled={hasJsonDrafts && !jsonDrafts[`${build.id}:details`]} aria-label={`${build.name}の詳細JSON`} defaultValue={JSON.stringify(build, null, 2)} key={`${build.id}:${JSON.stringify(build)}`} onChange={() => markDraft(`${build.id}:details`, true)} onBlur={event => { try { const parsed = JSON.parse(event.target.value) as BalanceBuild; if (!parsed || typeof parsed !== 'object' || parsed.id !== build.id || !parsed.classId || !Array.isArray(parsed.equipment) || !Array.isArray(parsed.skillIds)) throw new Error('ビルドID・職業・装備・スキル配列を確認してください。'); changeBuild(build.id, () => parsed); markDraft(`${build.id}:details`, false); setError('') } catch (reason) { setError(String(reason)) } }} /></details>
         </article>)}

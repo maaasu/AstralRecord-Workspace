@@ -53,7 +53,7 @@ describe('BalanceLab catalog search', () => {
     query('スキル検索', '雷 missing')
     expect(screen.getByText('条件に合うスキルがありません。検索語や候補の絞り込みを変更してください。')).toBeInTheDocument()
     query('スキル検索', ' \t　 ')
-    expect(screen.getByText('表示 4 / 全 4 件')).toBeInTheDocument()
+    expect(screen.getByText('候補 4 / 全 4 件')).toBeInTheDocument()
     expect(api.fetchMock).toHaveBeenCalledTimes(1)
   })
 
