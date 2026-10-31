@@ -48,6 +48,9 @@ const LineChart = memo(function LineChart({ series, yLabel, xLabel }: { series: 
 
 export function MasterAnalytics() {
   const [catalog, setCatalog] = useState<AnalyticsCatalog | null>(null)
+  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const catalogRequest = useRef<AbortController | null>(null)
+  const growthRequest = useRef<AbortController | null>(null)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
   const [mode, setMode] = useState<'equipment' | 'growth' | 'lab'>('equipment')
@@ -89,9 +92,21 @@ export function MasterAnalytics() {
   const [inspect, setInspect] = useState(10)
   useEffect(() => {
     const controller = new AbortController()
+    catalogRequest.current = controller
+    setCatalogStatus('loading')
     setError('')
-    void read<AnalyticsCatalog>('/api/master-analytics/catalog', controller.signal).then(setCatalog).catch(reason => { if (!controller.signal.aborted) setError(String(reason)) })
-    return () => controller.abort()
+    void read<AnalyticsCatalog>('/api/master-analytics/catalog', controller.signal).then(result => {
+      if (controller.signal.aborted) return
+      setCatalog(result); setCatalogStatus('ready')
+    }).catch(reason => {
+      if (controller.signal.aborted) return
+      setError(String(reason)); setCatalogStatus('error')
+    })
+    return () => {
+      controller.abort()
+      growthRequest.current?.abort()
+      growthRequest.current = null
+    }
   }, [revision])
   const equipment = catalog?.equipment
   const classes = catalog?.classes
@@ -139,13 +154,33 @@ export function MasterAnalytics() {
     setSelectedPaths(current => checked ? current.includes(path) ? current : [...current, path] : current.filter(value => value !== path))
   }
 
+  function reloadMasters() {
+    catalogRequest.current?.abort()
+    growthRequest.current?.abort()
+    growthRequest.current = null
+    setGrowing(false); setSimulation(null); setCatalogStatus('loading')
+    setRevision(value => value + 1)
+  }
+
   async function generate() {
+    if (catalogStatus !== 'ready' || growing || !classIds.length) return
+    const controller = new AbortController()
+    growthRequest.current?.abort()
+    growthRequest.current = controller
     setGrowing(true); setError('')
     try {
       const params = new URLSearchParams({ uuid, maxPlayerLevel: String(maximum), startPlayerLevel: String(startPlayer), startClassLevel: String(startClass), classIds: classIds.join(',') })
-      const result = await read<GrowthSimulation>(`/api/master-analytics/growth?${params}`)
+      const result = await read<GrowthSimulation>(`/api/master-analytics/growth?${params}`, controller.signal)
+      if (growthRequest.current !== controller || controller.signal.aborted) return
       setSimulation(result); setInspect(Math.max(startPlayer, Math.min(maximum, inspect)))
-    } catch (reason) { setError(String(reason)) } finally { setGrowing(false) }
+    } catch (reason) {
+      if (growthRequest.current === controller && !controller.signal.aborted) setError(String(reason))
+    } finally {
+      if (growthRequest.current === controller && !controller.signal.aborted) {
+        growthRequest.current = null
+        setGrowing(false)
+      }
+    }
   }
   const point = useMemo(() => simulation?.points.find(value => value.playerLevel === inspect) ?? simulation?.points[0], [simulation, inspect])
   const graph = useMemo(() => simulation?.classes.map(definition => ({
@@ -159,7 +194,7 @@ export function MasterAnalytics() {
   })) ?? [], [simulation, classes, growthView, growthStat])
 
   return <section className="master-analytics">
-    <header className="analytics-header"><div><h1>比較・成長グラフ</h1><p>保存済みのFilebaseから計算。変更後は再読込してください。</p></div><button className="button" onClick={() => { setRevision(value => value + 1); setSimulation(null) }}>マスター再読込</button></header>
+    <header className="analytics-header"><div><h1>比較・成長グラフ</h1><p>保存済みのFilebaseから計算。変更後は再読込してください。</p></div><button className="button" onClick={reloadMasters}>マスター再読込</button></header>
     <div role="tablist" aria-label="分析の種類" className="analytics-tabs"><button id="analytics-equipment-tab" role="tab" aria-controls="analytics-equipment-panel" aria-selected={mode === 'equipment'} tabIndex={mode === 'equipment' ? 0 : -1} className="button" onKeyDown={moveTab} onClick={() => setMode('equipment')}>装備を比較</button><button id="analytics-growth-tab" role="tab" aria-controls="analytics-growth-panel" aria-selected={mode === 'growth'} tabIndex={mode === 'growth' ? 0 : -1} className="button" onKeyDown={moveTab} onClick={() => setMode('growth')}>クラス成長</button><button id="analytics-lab-tab" role="tab" aria-controls="analytics-lab-panel" aria-selected={mode === 'lab'} tabIndex={mode === 'lab' ? 0 : -1} className="button" onKeyDown={moveTab} onClick={openLab}>統合バランスラボ</button></div>
     {labOpened && <div id="analytics-lab-panel" role="tabpanel" aria-labelledby="analytics-lab-tab" hidden={mode !== 'lab'}><BalanceLab /></div>}
     {mode !== 'lab' && (!catalog ? <p role={error ? 'alert' : 'status'}>{error || 'マスターを読み込んでいます…'}</p> : <>
@@ -208,7 +243,8 @@ export function MasterAnalytics() {
     </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace">
       <section className="analytics-panel analytics-settings" aria-labelledby="growth-settings-heading">
       <div className="analytics-section-heading"><h2 id="growth-settings-heading">成長の計算条件</h2></div>
-      <div className="analytics-compute"><span>{classIds.length} / 12職業を選択</span><button className="button primary" disabled={growing || !classIds.length} onClick={() => void generate()}>{growing ? '計算中…' : 'グラフを計算'}</button></div>
+      <div className="analytics-compute"><span>{classIds.length} / 12職業を選択</span><button className="button primary" disabled={catalogStatus !== 'ready' || growing || !classIds.length} onClick={() => void generate()}>{growing ? '計算中…' : 'グラフを計算'}</button></div>
+      {catalogStatus !== 'ready' && <p className="analytics-note" role="status">{catalogStatus === 'loading' ? 'マスターを再読込しています。完了後に計算できます。' : 'マスターを取得できませんでした。再読込が成功すると計算できます。'}</p>}
       <p className="analytics-note">条件を設定し「グラフを計算」で結果を更新します。</p>
       <div className="analytics-controls">
         <label className="analytics-field-wide">アカウントUUID<input value={uuid} onChange={event => setUuid(event.target.value)} className="uuid-input" /></label>
