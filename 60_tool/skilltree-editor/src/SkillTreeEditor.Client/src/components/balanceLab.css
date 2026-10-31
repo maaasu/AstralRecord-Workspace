@@ -1,4 +1,5 @@
 .balance-lab { display: grid; gap: 16px; color: #dce5ef; }
+.balance-scenario-fields { display: grid; gap: 16px; min-width: 0; margin: 0; border: 0; padding: 0; }
 .balance-lab h2, .balance-lab h3, .balance-lab h4, .balance-lab h5 { margin: 0; }
 .balance-heading, .balance-section-heading, .balance-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .balance-heading h2 { font-size: 21px; }
