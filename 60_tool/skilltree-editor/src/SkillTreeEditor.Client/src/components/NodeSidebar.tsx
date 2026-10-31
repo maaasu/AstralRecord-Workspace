@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ClassMasterSummary, NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -10,6 +10,7 @@ interface NodeSidebarProps {
   placedIds: Set<string>
   query: string
   selectedTag: string
+  paginationContext?: string
   onQueryChange: (value: string) => void
   onTagChange: (value: string) => void
   onEdit: (node: NodeMaster) => void
@@ -32,6 +33,7 @@ interface NodeListingEntry {
 }
 
 const EMPTY_CLASS_MASTERS: readonly ClassMasterSummary[] = []
+const NODE_PAGE_SIZE = 50
 const normalizeSearch = (text: string) => stripMinecraftFormatting(text).toLocaleLowerCase('ja-JP')
 
 export function NodeSidebar({
@@ -39,6 +41,7 @@ export function NodeSidebar({
   placedIds,
   query,
   selectedTag,
+  paginationContext = '',
   onQueryChange,
   onTagChange,
   onEdit,
@@ -50,6 +53,7 @@ export function NodeSidebar({
   classMasters = EMPTY_CLASS_MASTERS,
 }: NodeSidebarProps) {
   const searchHelpId = useId()
+  const pageContext = JSON.stringify([query, selectedTag, paginationContext])
   const entries = useMemo<NodeListingEntry[]>(() => nodes.map(node => {
     const effects = describeNodeEffects(node, skillMasters)
     const cost = describeNodeCost(node, classMasters)
@@ -95,14 +99,15 @@ export function NodeSidebar({
           {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
         </select>
       </div>
-      <NodeGroup title={`未配置 ${unplaced.length}`} entries={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} />
-      <NodeGroup title={`配置済み ${placed.length}`} entries={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
+      <NodeGroup label="未配置" pageContext={pageContext} entries={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} />
+      <NodeGroup label="配置済み" pageContext={pageContext} entries={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
     </aside>
   )
 }
 
 function NodeGroup({
-  title,
+  label,
+  pageContext,
   entries,
   placedIds,
   onEdit,
@@ -110,7 +115,8 @@ function NodeGroup({
   placementDisabled,
   iconRevision,
 }: {
-  title: string
+  label: string
+  pageContext: string
   entries: NodeListingEntry[]
   placedIds: Set<string>
   onEdit: (node: NodeMaster) => void
@@ -118,11 +124,38 @@ function NodeGroup({
   placementDisabled?: boolean
   iconRevision: number
 }) {
+  const headingId = useId()
+  const listRef = useRef<HTMLDivElement>(null)
+  const firstEditRef = useRef<HTMLButtonElement>(null)
+  const focusAfterPaging = useRef(false)
+  const [pagination, setPagination] = useState({ context: pageContext, page: 0 })
+  const pageCount = Math.max(1, Math.ceil(entries.length / NODE_PAGE_SIZE))
+  const page = pagination.context === pageContext ? Math.min(pagination.page, pageCount - 1) : 0
+  // 件数が戻っても、縮小前の存在しないページへ飛ばないよう補正値を保持する。
+  if (pagination.context !== pageContext || pagination.page !== page) setPagination({ context: pageContext, page })
+  const pageStart = page * NODE_PAGE_SIZE
+  const visibleEntries = entries.slice(pageStart, pageStart + NODE_PAGE_SIZE)
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0
+    if (!focusAfterPaging.current) return
+    focusAfterPaging.current = false
+    firstEditRef.current?.focus({ preventScroll: true })
+    firstEditRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [page, pageContext])
+  const changePage = (nextPage: number) => {
+    focusAfterPaging.current = true
+    setPagination({ context: pageContext, page: nextPage })
+  }
   return (
-    <section className={`node-group ${entries.length === 0 ? 'empty' : ''}`}>
-      <h3>{title}</h3>
-      <div className="node-list">
-        {entries.map(({ node, name, effects, cost, tags, tooltip }) => {
+    <section className={`node-group ${entries.length === 0 ? 'empty' : ''}`} aria-labelledby={headingId}>
+      <h3 id={headingId}>{label} {entries.length}</h3>
+      {pageCount > 1 && <div className="node-pagination" role="group" aria-label={`${label}ノードのページ`}>
+        <button className="button compact subtle" aria-label={`${label}ノードの前のページ`} disabled={page === 0} onClick={() => changePage(page - 1)}>前へ</button>
+        <span role="status">{pageStart + 1}–{pageStart + visibleEntries.length}件 · {page + 1} / {pageCount}ページ</span>
+        <button className="button compact subtle" aria-label={`${label}ノードの次のページ`} disabled={page === pageCount - 1} onClick={() => changePage(page + 1)}>次へ</button>
+      </div>}
+      <div className="node-list" ref={listRef}>
+        {visibleEntries.map(({ node, name, effects, cost, tags, tooltip }, index) => {
           return <article
             className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
             key={node.nodeId}
@@ -153,7 +186,7 @@ function NodeGroup({
                 {effects.length > 2 && <span className="node-effect more">ほか{effects.length - 2}件</span>}
               </div>
             )}
-            <div className="node-list-actions">{onPlace && <button className="button compact subtle" aria-label={`${name}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}<button className="text-button" onClick={() => onEdit(node)}>編集</button></div>
+            <div className="node-list-actions">{onPlace && <button className="button compact subtle" aria-label={`${name}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}<button className="text-button" ref={index === 0 ? firstEditRef : undefined} onClick={() => onEdit(node)}>編集</button></div>
           </article>
         })}
         {entries.length === 0 && <p className="empty-state">該当ノードはありません。</p>}

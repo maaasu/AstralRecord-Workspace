@@ -557,6 +557,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             placedIds={placedIds}
             query={query}
             selectedTag={selectedTag}
+            paginationContext={JSON.stringify([selectedStructureId, simulationEnabled, simulationClassId, simulationPlayerLevel])}
             onQueryChange={setQuery}
             onTagChange={setSelectedTag}
             onEdit={editMaster}

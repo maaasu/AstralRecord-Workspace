@@ -20,6 +20,117 @@ const node: NodeMaster = {
 }
 
 describe('NodeSidebar', () => {
+  function pagingFixture(count = 242, placedCount = 121) {
+    const nodes = Array.from({ length: count }, (_, index) => ({ ...node, nodeId: String(2000 + index), name: `ノード${index}` }))
+    let props: ComponentProps<typeof NodeSidebar> = { nodes, placedIds: new Set(nodes.slice(0, placedCount).map(item => item.nodeId)),
+      query: '', selectedTag: '', paginationContext: 'main', onQueryChange: vi.fn(), onTagChange: vi.fn(), onEdit: vi.fn(), onCreate: vi.fn(), onPlace: vi.fn(), skillMasters: [] }
+    const view = render(<NodeSidebar {...props} />)
+    return {
+      nodes, initialProps: props,
+      update: (patch: Partial<typeof props>) => { props = { ...props, ...patch }; view.rerender(<NodeSidebar {...props} />) },
+    }
+  }
+
+  it('pages each group independently, focuses its first edit action and keeps off-page actions accurate', () => {
+    const { nodes, initialProps, update } = pagingFixture()
+    const unplaced = within(screen.getByRole('region', { name: '未配置 121' }))
+    const placed = within(screen.getByRole('region', { name: '配置済み 121' }))
+    const list = unplaced.getAllByRole('article')[0].parentElement!
+    list.scrollTop = 600
+    fireEvent.click(unplaced.getByRole('button', { name: '未配置ノードの次のページ' }))
+    expect(unplaced.getByRole('status')).toHaveTextContent('51–100件 · 2 / 3ページ')
+    expect(list.scrollTop).toBe(0)
+    let first = unplaced.getAllByRole('article')[0]
+    expect(first).toHaveTextContent('ノード171')
+    expect(within(first).getByRole('button', { name: '編集' })).toHaveFocus()
+    expect(placed.getByRole('status')).toHaveTextContent('1–50件 · 1 / 3ページ')
+    const transfer = { setData: vi.fn(), effectAllowed: '' }
+    fireEvent.dragStart(first, { dataTransfer: transfer })
+    expect(transfer.setData).toHaveBeenCalledWith('application/x-astral-node', '2171')
+    fireEvent.click(within(first).getByRole('button', { name: '編集' }))
+    fireEvent.click(within(first).getByRole('button', { name: 'ノード171を座標指定で配置' }))
+    expect(vi.mocked(initialProps.onEdit).mock.calls[0][0]).toBe(nodes[171])
+    expect(vi.mocked(initialProps.onPlace!).mock.calls[0][0]).toBe(nodes[171])
+    fireEvent.click(placed.getByRole('button', { name: '配置済みノードの次のページ' }))
+    first = placed.getAllByRole('article')[0]
+    expect(first).toHaveTextContent('ノード50')
+    expect(first).toHaveAttribute('draggable', 'false')
+    expect(within(first).queryByRole('button', { name: /座標指定/ })).not.toBeInTheDocument()
+    expect(unplaced.getByRole('status')).toHaveTextContent('2 / 3ページ')
+    fireEvent.click(unplaced.getByRole('button', { name: '未配置ノードの次のページ' }))
+    expect(unplaced.getAllByRole('article')).toHaveLength(21)
+    expect(unplaced.getByRole('button', { name: '未配置ノードの次のページ' })).toBeDisabled()
+    expect(unplaced.getAllByRole('article').at(-1)).toHaveTextContent('ノード241')
+    update({ placementDisabled: true })
+    expect(unplaced.getByRole('button', { name: 'ノード221を座標指定で配置' })).toBeDisabled()
+    fireEvent.click(unplaced.getByRole('button', { name: '未配置ノードの前のページ' }))
+    expect(unplaced.getAllByRole('article')).toHaveLength(50)
+    expect(unplaced.getAllByRole('article')[0]).toHaveTextContent('ノード171')
+    expect(initialProps.onEdit).toHaveBeenCalledTimes(1)
+    expect(initialProps.onPlace).toHaveBeenCalledTimes(1)
+  })
+
+  it('resets both pages for filters or view context without taking focus, and searches every page', () => {
+    const { update, initialProps } = pagingFixture()
+    const advance = () => {
+      fireEvent.click(screen.getByRole('button', { name: '未配置ノードの次のページ' }))
+      fireEvent.click(screen.getByRole('button', { name: '配置済みノードの次のページ' }))
+    }
+    const search = screen.getByRole('searchbox', { name: 'ノードを検索' })
+    const tag = screen.getByRole('combobox', { name: 'ノードのタグ' })
+    for (const [patch, focus] of [[{ query: 'ノード' }, search], [{ selectedTag: 'root' }, tag], [{ paginationContext: 'other' }, search]] as const) {
+      advance()
+      focus.focus()
+      update(patch)
+      expect(focus).toHaveFocus()
+      expect(screen.getAllByRole('status').map(item => item.textContent)).toEqual(['1–50件 · 1 / 3ページ', '1–50件 · 1 / 3ページ'])
+    }
+    search.focus()
+    update({ query: '2241' })
+    expect(screen.getByRole('article')).toHaveTextContent('ノード241')
+    expect(screen.queryByRole('group', { name: /ノードのページ/ })).not.toBeInTheDocument()
+    expect(search).toHaveFocus()
+    update({ query: '一致なし' })
+    expect(screen.queryByRole('article')).not.toBeInTheDocument()
+    update({ query: '' })
+    expect(screen.getAllByRole('article')).toHaveLength(100)
+    expect(initialProps.onEdit).not.toHaveBeenCalled()
+    expect(initialProps.onPlace).not.toHaveBeenCalled()
+  })
+
+  it('clamps pages after placement or removal and does not restore an obsolete page on undo', () => {
+    const { nodes, update } = pagingFixture(103, 0)
+    fireEvent.click(screen.getByRole('button', { name: '未配置ノードの次のページ' }))
+    fireEvent.click(screen.getByRole('button', { name: '未配置ノードの次のページ' }))
+    expect(screen.getAllByRole('article')).toHaveLength(3)
+    const search = screen.getByRole('searchbox', { name: 'ノードを検索' })
+    search.focus()
+    update({ placedIds: new Set(nodes.slice(100).map(item => item.nodeId)) })
+    expect(screen.getByRole('status')).toHaveTextContent('51–100件 · 2 / 2ページ')
+    expect(search).toHaveFocus()
+    update({ placedIds: new Set() })
+    expect(screen.getByRole('status')).toHaveTextContent('51–100件 · 2 / 3ページ')
+    update({ nodes: nodes.slice(0, 50) })
+    expect(screen.getAllByRole('article')).toHaveLength(50)
+    expect(screen.queryByRole('group', { name: /ノードのページ/ })).not.toBeInTheDocument()
+    update({ nodes: nodes.slice(0, 51) })
+    expect(screen.getByRole('status')).toHaveTextContent('1–50件 · 1 / 2ページ')
+    expect(screen.getByRole('button', { name: '未配置ノードの前のページ' })).toBeDisabled()
+    update({ placedIds: new Set(nodes.map(item => item.nodeId)) })
+    expect(screen.getByRole('region', { name: '未配置 0' })).toHaveClass('empty')
+    expect(screen.getByRole('status')).toHaveTextContent('1–50件 · 1 / 2ページ')
+    expect(search).toHaveFocus()
+  })
+
+  it('bounds rendered cards to 100 while retaining totals for 1158 matching nodes', () => {
+    const nodes = Array.from({ length: 1158 }, (_, index) => ({ ...node, nodeId: String(2000 + index) }))
+    render(<NodeSidebar nodes={nodes} placedIds={new Set(nodes.slice(0, 100).map(item => item.nodeId))} query="" selectedTag=""
+      onQueryChange={vi.fn()} onTagChange={vi.fn()} onEdit={vi.fn()} onCreate={vi.fn()} skillMasters={[]} />)
+    expect(screen.getByRole('heading', { name: '未配置 1058' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '配置済み 100' })).toBeInTheDocument()
+    expect(screen.getAllByRole('article')).toHaveLength(100)
+  })
+
   it('combines words across fields with tag filtering while preserving grouping, order and actions', () => {
     const flame: NodeMaster = { ...node, name: '&6炎の&a道', pointType: 'CP', pointCost: 3, unlockCondition: { classId: 'adventurer' },
       effects: [{ type: 'skill', skillId: 'flame' }, { type: 'status', status: 'MAX_HEALTH', modifierType: 'SCALAR', value: 0.1 }] }

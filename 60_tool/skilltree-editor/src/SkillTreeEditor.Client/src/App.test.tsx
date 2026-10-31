@@ -9,7 +9,7 @@ vi.mock('./api/editorApi', async (original) => ({
   editorApi: Object.fromEntries(['metadata', 'listClasses', 'listSkills', 'listNodes', 'listStructures', 'listSchemas', 'getSchema', 'getSettings', 'saveNode', 'saveStructure', 'validateStructure'].map((name) => [name, vi.fn()])),
 }))
 vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: () => null }))
-vi.mock('./components/NodeSidebar', () => ({ NodeSidebar: ({ nodes, placedIds, onEdit, onPlace, placementDisabled }: { nodes: NodeMaster[]; placedIds: Set<string>; onEdit: (node: NodeMaster) => void; onPlace: (node: NodeMaster) => void; placementDisabled: boolean }) => <><button onClick={() => onEdit(nodes[0])}>ノードを編集</button>{nodes.filter((entry) => !placedIds.has(entry.nodeId)).map((entry) => <button key={entry.nodeId} disabled={placementDisabled} onClick={() => onPlace(entry)}>ノード #{entry.nodeId} を座標配置</button>)}</> }))
+vi.mock('./components/NodeSidebar', () => ({ NodeSidebar: ({ nodes, placedIds, onEdit, onPlace, placementDisabled, paginationContext }: { nodes: NodeMaster[]; placedIds: Set<string>; onEdit: (node: NodeMaster) => void; onPlace: (node: NodeMaster) => void; placementDisabled: boolean; paginationContext: string }) => <><output aria-label="一覧の表示条件">{paginationContext}</output><button onClick={() => onEdit(nodes[0])}>ノードを編集</button>{nodes.filter((entry) => !placedIds.has(entry.nodeId)).map((entry) => <button key={entry.nodeId} disabled={placementDisabled} onClick={() => onPlace(entry)}>ノード #{entry.nodeId} を座標配置</button>)}</> }))
 vi.mock('./components/NodeEditor', () => ({ NodeEditor: ({ node, onSave, errorMessage }: { node: NodeMaster; onSave: (node: NodeMaster) => void; errorMessage?: string }) => <div role="dialog"><button onClick={() => onSave({ ...node, name: '下書き' })}>編集中ノードを保存</button>{errorMessage && <p role="alert">{errorMessage}</p>}</div> }))
 vi.mock('./components/SkillTreeCanvas', () => ({ SkillTreeCanvas: ({ structure, onRecord, onSelectedNode }: { structure: StructureDocument; onRecord: (structure: StructureDocument) => void; onSelectedNode: (nodeId: string) => void }) => <><output aria-label="構造名">{structure.name}</output><output aria-label="構造の配置">{JSON.stringify(structure.nodes)}</output><button onClick={() => onRecord({ ...structure, name: structure.name + '変更' })}>構造を編集</button><button onClick={() => onSelectedNode(structure.nodes[0].nodeId)}>最初のノードを選択</button>{structure.nodes[1] && <button onClick={() => onSelectedNode(structure.nodes[1].nodeId)}>別のノードを選択</button>}</> }))
 
@@ -35,6 +35,30 @@ async function openTree() {
 }
 
 describe('画面の保存元の版', () => {
+  it('passes structure and simulation changes to list paging while ordinary structure edits keep its context', async () => {
+    vi.mocked(editorApi.listStructures).mockResolvedValue([{ fileName: 'main.json', content: structure, revision: 'main' },
+      { fileName: 'other.json', content: { ...structure, structureId: 'other' }, revision: 'other' }])
+    vi.mocked(editorApi.listClasses).mockResolvedValue([{ id: 'adventurer', name: '冒険者', parentClassIds: [] }, { id: 'mage', name: '魔導士', parentClassIds: [] }])
+    await openTree()
+    const context = () => screen.getByLabelText('一覧の表示条件').textContent
+    const beforeSwitch = context()
+    fireEvent.change(screen.getByRole('combobox', { name: '構造' }), { target: { value: 'other' } })
+    expect(context()).not.toBe(beforeSwitch)
+    const afterSwitch = context()
+    fireEvent.click(screen.getByRole('button', { name: '構造を編集' }))
+    expect(context()).toBe(afterSwitch)
+    fireEvent.click(screen.getByLabelText('ゲーム内表示シミュレーション'))
+    expect(context()).not.toBe(afterSwitch)
+    const afterToggle = context()
+    fireEvent.change(screen.getByLabelText('現在の職業'), { target: { value: 'mage' } })
+    expect(context()).not.toBe(afterToggle)
+    const afterClass = context()
+    fireEvent.change(screen.getByLabelText('プレイヤーLv.'), { target: { value: '20' } })
+    expect(context()).not.toBe(afterClass)
+    expect(editorApi.saveNode).not.toHaveBeenCalled()
+    expect(editorApi.saveStructure).not.toHaveBeenCalled()
+  })
+
   it('一覧から座標配置し、幅変更でもInspector入力を保持して構造の履歴へ記録する', async () => {
     const next = { ...node, nodeId: '1001', name: '追加ノード' }
     vi.mocked(editorApi.listNodes).mockResolvedValue([{ fileName: '1000.json', content: node, revision: 'first' }, { fileName: '1001.json', content: next, revision: 'second' }])
