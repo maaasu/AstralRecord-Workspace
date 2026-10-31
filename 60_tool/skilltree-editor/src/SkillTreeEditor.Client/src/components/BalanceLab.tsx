@@ -122,12 +122,16 @@ export function BalanceLab() {
   const [overrideText, setOverrideText] = useState('')
   const [importing, setImporting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [pollRevision, setPollRevision] = useState(0)
   const [overrideDirty, setOverrideDirty] = useState(false)
   const [restoring, setRestoring] = useState(true)
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, boolean>>({})
   const hasJsonDrafts = Object.values(jsonDrafts).some(Boolean)
   const markDraft = (key: string, dirty: boolean) => setJsonDrafts(current => ({ ...current, [key]: dirty }))
   const submittingRef = useRef(false)
+  const cancellingRef = useRef(false)
+  const progressRequest = useRef<AbortController | null>(null)
   const loadingFileRef = useRef(false)
   const importRef = useRef<HTMLInputElement>(null)
   const groups = useMemo(() => catalog ? classifyMasters(catalog) : { classes: [], mobs: [], equipment: [], skills: [], items: [] }, [catalog])
@@ -138,7 +142,7 @@ export function BalanceLab() {
     const controller = new AbortController()
     try {
       const id = sessionStorage.getItem(jobKey)
-      if (id) void getBalanceJob(id, controller.signal).then(setJob).catch(reason => { if (!controller.signal.aborted) { if (reason instanceof BalanceApiError && reason.status === 404) sessionStorage.removeItem(jobKey); else { setJob({ id, status: 'running', completed: 0, total: 1 }); setError('進捗取得に失敗しました。保存したジョブの取得を再試行します。') } } }).finally(() => { if (!controller.signal.aborted) setRestoring(false) })
+      if (id) void getBalanceJob(id, controller.signal).then(value => { if (!controller.signal.aborted) setJob(value) }).catch(reason => { if (!controller.signal.aborted) { if (reason instanceof BalanceApiError && reason.status === 404) sessionStorage.removeItem(jobKey); else { setJob({ id, status: 'running', completed: 0, total: 1 }); setError('進捗取得に失敗しました。保存したジョブの取得を再試行します。') } } }).finally(() => { if (!controller.signal.aborted) setRestoring(false) })
       else setRestoring(false)
     } catch { setRestoring(false) }
     return () => controller.abort()
@@ -151,6 +155,7 @@ export function BalanceLab() {
   useEffect(() => {
     const controller = new AbortController()
     void getBalanceCatalog(controller.signal).then(value => {
+      if (controller.signal.aborted) return
       setCatalog(value)
       setScenario(previous => {
         if (previous.masterHash || previous.modelVersion) return { ...previous, sourceHash: previous.sourceHash ?? value.sourceHash }
@@ -162,29 +167,35 @@ export function BalanceLab() {
     return () => controller.abort()
   }, [revision])
   useEffect(() => {
-    if (!job || job.status !== 'running') return
+    if (!job || job.status !== 'running' || cancelling) return
     const controller = new AbortController()
+    progressRequest.current = controller
     let timer: number
-    const poll = () => void getBalanceJob(job.id, controller.signal).then(value => {
-      setJob(value); setError(previous => previous.startsWith('進捗取得に失敗') ? '' : previous)
-    }).catch(reason => {
-      if (!controller.signal.aborted) { if (reason instanceof BalanceApiError && reason.status === 404) { sessionStorage.removeItem(jobKey); setJob(null); setError('保存した実行結果は期限切れです。条件から再実行してください。'); return } setError(`進捗取得に失敗しました。再試行します: ${String(reason)}`); timer = window.setTimeout(poll, 1200) }
-    })
+    const poll = () => {
+      if (controller.signal.aborted) return
+      void getBalanceJob(job.id, controller.signal).then(value => {
+        if (controller.signal.aborted) return
+        setJob(current => current?.id === job.id && current.status === 'running' ? value : current)
+        setError(previous => previous.startsWith('進捗取得に失敗') ? '' : previous)
+      }).catch(reason => {
+        if (!controller.signal.aborted) { if (reason instanceof BalanceApiError && reason.status === 404) { sessionStorage.removeItem(jobKey); setJob(null); setError('保存した実行結果は期限切れです。条件から再実行してください。'); return } setError(`進捗取得に失敗しました。再試行します: ${String(reason)}`); timer = window.setTimeout(poll, 1200) }
+      })
+    }
     timer = window.setTimeout(poll, 600)
-    return () => { window.clearTimeout(timer); controller.abort() }
-  }, [job])
+    return () => { window.clearTimeout(timer); controller.abort(); if (progressRequest.current === controller) progressRequest.current = null }
+  }, [job, cancelling, pollRevision])
 
   const change = (update: (current: BalanceScenario) => BalanceScenario) => { setScenario(current => update(current)); setNotice('') }
   const changeBuild = (id: string, update: (build: BalanceBuild) => BalanceBuild) => change(current => ({ ...current, builds: current.builds.map(build => build.id === id ? update(build) : build) }))
   const changeEconomy = (update: (economy: BalanceEconomy) => BalanceEconomy) => change(current => ({ ...current, economy: update(current.economy ?? defaultEconomy()) }))
   const stale = catalog && (scenario.masterHash && scenario.masterHash !== catalog.masterHash || scenario.sourceHash && scenario.sourceHash !== catalog.sourceHash || scenario.modelVersion && scenario.modelVersion !== catalog.modelVersion)
-  const busy = restoring || submitting || job?.status === 'running'
+  const busy = restoring || submitting || cancelling || job?.status === 'running'
   const result = job?.result
   const differentConditions = result && conditionKey(result.scenario) !== conditionKey(scenario)
   const limits = catalog?.limits ?? { maxTrials: 500, maxSeconds: 600, maxBuilds: 4, maxTickWork: 2000000, wallSeconds: 30 }
 
   async function run() {
-    if (restoring || loadingFileRef.current || submittingRef.current || job?.status === 'running') return
+    if (restoring || loadingFileRef.current || submittingRef.current || cancellingRef.current || job?.status === 'running') return
     if (hasJsonDrafts) { setError('詳細JSONを修正し、欄からフォーカスを外して確定してください。'); return }
     if (overrideDirty) { setError('調整案JSONの変更を「調整案に追加」で反映してから実行してください。'); return }
     submittingRef.current = true; setSubmitting(true)
@@ -199,8 +210,19 @@ export function BalanceLab() {
     finally { submittingRef.current = false; setSubmitting(false) }
   }
   async function cancel() {
-    if (!job) return
-    try { setJob(await cancelBalanceJob(job.id)) } catch (reason) { setError(String(reason)) }
+    if (!job || job.status !== 'running' || cancellingRef.current) return
+    cancellingRef.current = true; setCancelling(true)
+    progressRequest.current?.abort()
+    setError('')
+    try {
+      const cancelled = await cancelBalanceJob(job.id)
+      setJob(current => current?.id === job.id && current.status === 'running' ? cancelled : current)
+    } catch (reason) { setError(String(reason)) }
+    finally {
+      cancellingRef.current = false; setCancelling(false)
+      // Even an immediate rejection can batch both pending updates; restart the aborted poll.
+      setPollRevision(value => value + 1)
+    }
   }
   function addOverride() {
     try {
@@ -244,7 +266,7 @@ export function BalanceLab() {
       <section className="balance-panel"><h3>敵</h3><div className="balance-fields"><MasterSelect label="モブ" masters={groups.mobs} value={scenario.enemy.mobId} onChange={value => change(current => ({ ...current, enemy: { ...current.enemy, mobId: value } }))} /><label>攻撃する味方<select value={scenario.enemy.targetAllyId ?? ''} onChange={event => change(current => ({ ...current, enemy: { ...current.enemy, targetAllyId: event.target.value || undefined } }))}><option value="">自分</option>{scenario.allies?.map(ally => <option key={ally.id} value={ally.id}>{ally.id}</option>)}</select></label><NumberInput label="敵Lv" value={scenario.enemy.level} min={1} onChange={value => change(current => ({ ...current, enemy: { ...current.enemy, level: value } }))} /><NumberInput label="攻撃間隔（tick、0で定義値）" value={scenario.enemy.attackIntervalTicks ?? 0} min={0} onChange={value => change(current => ({ ...current, enemy: { ...current.enemy, attackIntervalTicks: value || undefined } }))} /><NumberInput label="敵との距離（ブロック）" value={scenario.enemy.distanceBlocks ?? 3} min={0.1} step={0.1} onChange={value => change(current => ({ ...current, enemy: { ...current.enemy, distanceBlocks: value } }))} /><NumberInput label="敵の当たり判定半奥行き" value={scenario.enemy.targetHalfDepth ?? 0.3} min={0.01} step={0.01} onChange={value => change(current => ({ ...current, enemy: { ...current.enemy, targetHalfDepth: value } }))} /></div></section>
       <section className="balance-panel"><h3>育成・経済</h3><label className="balance-toggle"><input type="checkbox" checked={Boolean(scenario.economy)} onChange={event => change(current => ({ ...current, economy: event.target.checked ? defaultEconomy() : undefined }))} />収集・強化・成長・金策も計算する</label>{scenario.economy && <><div className="balance-fields"><MasterSelect label="目標アイテム" masters={groups.items} value={scenario.economy.targetItemId} onChange={value => changeEconomy(current => ({ ...current, targetItemId: value }))} /><NumberInput label="必要数" value={scenario.economy.quantity} min={1} onChange={value => changeEconomy(current => ({ ...current, quantity: value }))} /><MasterSelect label="強化する装備" masters={groups.equipment} value={scenario.economy.enhanceItemId} onChange={value => changeEconomy(current => ({ ...current, enhanceItemId: value }))} /><NumberInput label="開始強化Lv" value={scenario.economy.fromEnhanceLevel} min={0} onChange={value => changeEconomy(current => ({ ...current, fromEnhanceLevel: value }))} /><NumberInput label="目標強化Lv" value={scenario.economy.targetEnhanceLevel} min={0} onChange={value => changeEconomy(current => ({ ...current, targetEnhanceLevel: value }))} /><MasterSelect label="オーブ" masters={groups.items} value={scenario.economy.orbItemId ?? ''} onChange={value => changeEconomy(current => ({ ...current, orbItemId: value || undefined }))} empty="なし" /><label>ドロップ倍率上書き（%・空欄はビルド）<input type="number" min="0" value={scenario.economy.dropRatePercent ?? ''} onChange={event => changeEconomy(current => ({ ...current, dropRatePercent: event.target.value === '' ? undefined : number(event.target.value) }))} /></label><label>幸運上書き（空欄はビルド）<input type="number" min="0" value={scenario.economy.luck ?? ''} onChange={event => changeEconomy(current => ({ ...current, luck: event.target.value === '' ? undefined : number(event.target.value) }))} /></label><NumberInput label="移動秒数" value={scenario.economy.moveSeconds} min={0} onChange={value => changeEconomy(current => ({ ...current, moveSeconds: value }))} /><NumberInput label="待機秒数" value={scenario.economy.waitSeconds} min={0} onChange={value => changeEconomy(current => ({ ...current, waitSeconds: value }))} /><NumberInput label="補給秒数" value={scenario.economy.resupplySeconds} min={0} onChange={value => changeEconomy(current => ({ ...current, resupplySeconds: value }))} /><NumberInput label="討伐秒数（空欄なら戦闘結果）" value={scenario.economy.killSeconds ?? 0} min={0} onChange={value => changeEconomy(current => ({ ...current, killSeconds: value || undefined }))} /><NumberInput label="収集の時間予算秒（0は未指定）" value={scenario.economy.timeBudgetSeconds ?? 0} min={0} onChange={value => changeEconomy(current => ({ ...current, timeBudgetSeconds: value || undefined }))} /><NumberInput label="目標プレイヤーLv" value={scenario.economy.targetPlayerLevel ?? 0} min={0} onChange={value => changeEconomy(current => ({ ...current, targetPlayerLevel: value || undefined }))} /><NumberInput label="目標クラスLv" value={scenario.economy.targetClassLevel ?? 0} min={0} onChange={value => changeEconomy(current => ({ ...current, targetClassLevel: value || undefined }))} /><label>アカウントUUID<input value={scenario.economy.accountUuid ?? ''} onChange={event => changeEconomy(current => ({ ...current, accountUuid: event.target.value || undefined }))} /></label></div><SellItemsPicker masters={groups.items} selected={scenario.economy.sellItemIds} onChange={sellItemIds => changeEconomy(current => ({ ...current, sellItemIds }))} /></>}</section>
       <section className="balance-panel"><h3>調整案</h3><p className="balance-muted">選んだマスターのコピーをJSONで編集します。元マスターを保存するAPIは呼びません。pathはFilebase相対パスです。</p><div className="balance-fields"><label>調整するマスター<select value={overridePath} onChange={event => { const path = event.target.value; setOverridePath(path); setOverrideDirty(false); setOverrideText(JSON.stringify(scenario.overrides.find(item => item.path === path)?.content ?? catalog.masters.find(item => item.path === path)?.content ?? {}, null, 2)) }}><option value="">選択してください</option>{catalog.masters.map(master => <option key={master.path} value={master.path}>{masterName(master).replace(/(?:&|§)[0-9a-fk-or]/gi, '')} · {master.path}</option>)}</select></label></div><textarea aria-label="調整案JSON" value={overrideText} onChange={event => { setOverrideText(event.target.value); setOverrideDirty(true) }} spellCheck={false} /><div className="balance-actions"><button className="button" disabled={!overridePath} onClick={addOverride}>調整案に追加</button><span>{scenario.overrides.length}件のマスターを調整</span></div>{scenario.overrides.map(item => <div key={item.path} className="balance-override"><code>{item.path}</code><button className="button compact" onClick={() => { setOverridePath(item.path); setOverrideDirty(false); setOverrideText(JSON.stringify(item.content, null, 2)) }}>編集</button><button className="button compact" onClick={() => change(current => ({ ...current, overrides: current.overrides.filter(entry => entry.path !== item.path) }))}>削除</button></div>)}</section>
-      <section className="balance-panel"><h3>保存と実行</h3><div className="balance-actions"><button className="button" disabled={hasJsonDrafts || overrideDirty} onClick={() => { saveScenario(scenario); setNotice('このブラウザに保存しました。') }}>ブラウザに保存</button><button className="button" disabled={busy} onClick={() => { const saved = loadScenario(); if (saved) { setScenario(saved); setJsonDrafts({}); setRuntimeRevision(value => value + 1); setNotice('保存したシナリオを復元しました。') } else setError('保存したシナリオはありません。') }}>保存分を復元</button><button className="button" onClick={() => { clearScenario(); setNotice('ブラウザ保存を削除しました。') }}>保存分を削除</button><button className="button" disabled={hasJsonDrafts || overrideDirty} onClick={() => downloadText('balance-scenario.json', JSON.stringify({ scenario }, null, 2), 'application/json')}>条件JSON出力</button><button className="button" disabled={importing || busy} onClick={() => importRef.current?.click()}>条件JSON読込</button><input ref={importRef} hidden type="file" accept=".json,application/json" aria-label="条件JSONファイル" onChange={event => { const file = event.target.files?.[0]; if (file) void importJson(file) }} /><button className="button primary" disabled={busy || importing || hasJsonDrafts} onClick={() => void run()}>{busy ? '実行中…' : 'この条件で実行'}</button>{job?.status === 'running' && <button className="button" onClick={() => void cancel()}>実行をキャンセル</button>}</div><p className="balance-muted">サーバーには1件ずつ実行できます。結果はサーバーの直近8件に限り保持されるため、必要な集計はCSVで保存してください。</p></section>
+      <section className="balance-panel"><h3>保存と実行</h3><div className="balance-actions"><button className="button" disabled={hasJsonDrafts || overrideDirty} onClick={() => { saveScenario(scenario); setNotice('このブラウザに保存しました。') }}>ブラウザに保存</button><button className="button" disabled={busy} onClick={() => { const saved = loadScenario(); if (saved) { setScenario(saved); setJsonDrafts({}); setRuntimeRevision(value => value + 1); setNotice('保存したシナリオを復元しました。') } else setError('保存したシナリオはありません。') }}>保存分を復元</button><button className="button" onClick={() => { clearScenario(); setNotice('ブラウザ保存を削除しました。') }}>保存分を削除</button><button className="button" disabled={hasJsonDrafts || overrideDirty} onClick={() => downloadText('balance-scenario.json', JSON.stringify({ scenario }, null, 2), 'application/json')}>条件JSON出力</button><button className="button" disabled={importing || busy} onClick={() => importRef.current?.click()}>条件JSON読込</button><input ref={importRef} hidden type="file" accept=".json,application/json" aria-label="条件JSONファイル" onChange={event => { const file = event.target.files?.[0]; if (file) void importJson(file) }} /><button className="button primary" disabled={busy || importing || hasJsonDrafts} onClick={() => void run()}>{busy ? '実行中…' : 'この条件で実行'}</button>{job?.status === 'running' && <button className="button" disabled={cancelling} onClick={() => void cancel()}>{cancelling ? 'キャンセル要求中…' : '実行をキャンセル'}</button>}</div><p className="balance-muted">サーバーには1件ずつ実行できます。結果はサーバーの直近8件に限り保持されるため、必要な集計はCSVで保存してください。</p></section>
       {hasJsonDrafts && <p role="alert" className="balance-warning">詳細JSONが未確定です。内容を修正し、欄からフォーカスを外して反映してください。未確定の間は他のビルド操作・実行・条件保存・出力を停止します。</p>}{differentConditions && <p role="alert" className="balance-warning">入力条件が結果の実行時から変わっています。表示と出力は前回の条件の結果です。再実行してください。</p>}{overrideDirty && <p role="alert" className="balance-warning">調整案JSONに未反映の変更があります。条件保存・出力には追加済みの調整案だけが含まれます。</p>}{result && <div className="balance-actions"><button className="button" onClick={() => downloadText('balance-summary.csv', summaryCsv(result), 'text/csv;charset=utf-8')}>ビルド集計CSV出力</button></div>}
       {result && <p className="balance-fingerprint">結果のソース指紋 <code>{result.sourceHash ?? '未提供'}</code></p>}
       {result?.comparison?.length ? <section className="balance-panel"><h3>現行との比較</h3><p className="balance-muted">先頭ビルドの現行を基準に比較します。討伐率の差はパーセントポイントです。</p><div className="balance-scroll"><table><thead><tr><th>ビルド</th><th>指標</th><th>現行</th><th>比較先</th><th>差</th></tr></thead><tbody>{result.comparison.flatMap((entry, entryIndex) => entry.metrics.map((metric, metricIndex) => { const percent = metric.metric.toLowerCase().includes('rate'); const display = (value: number | null) => value == null ? '算出不能' : `${fmt(percent ? value * 100 : value)}${percent ? '%' : ''}`; return <tr key={`${entryIndex}:${metricIndex}`}><th scope="row">{result.results.find(row => row.buildId === entry.buildId)?.buildName ?? entry.buildId}（{entry.variant === 'proposal' ? '調整案' : '現行'}）</th><td>{metricName[metric.metric] ?? metric.metric}</td><td>{display(metric.before)}</td><td>{display(metric.after)}</td><td>{display(metric.delta)}</td></tr> }))}</tbody></table></div></section> : null}
