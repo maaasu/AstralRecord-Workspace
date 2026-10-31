@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
@@ -41,6 +41,9 @@ export function SpawnerPlanningMap(props: Props) {
   const viewRef = useRef(view)
   const updateView = useCallback((next: MapView) => { viewRef.current = next; setView(next) }, [])
   const [coordinates, setCoordinates] = useState('X — / Z —')
+  const coordinateHelpId = useId()
+  const [coordinateInput, setCoordinateInput] = useState({ x: '', z: '', error: '' })
+  const [coordinateTarget, setCoordinateTarget] = useState<{ x: number; z: number } | null>(null)
   const [detailResource, setDetailResource] = useState<{ identity: object; image: HTMLImageElement } | null>(null)
   const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
   const [showCoverage, setShowCoverage] = useState(true)
@@ -50,6 +53,10 @@ export function SpawnerPlanningMap(props: Props) {
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 })
   const [tooltipClipped, setTooltipClipped] = useState(false)
   const bounds = snapshot.manifest.bounds
+  useLayoutEffect(() => {
+    setCoordinateInput({ x: '', z: '', error: '' })
+    setCoordinateTarget(null)
+  }, [snapshot.manifest.worldId, bounds.minX, bounds.minZ, bounds.width, bounds.height])
   const discardPointerFrame = useCallback(() => {
     frameGeneration.current++
     if (frame.current !== null) cancelAnimationFrame(frame.current)
@@ -482,6 +489,26 @@ export function SpawnerPlanningMap(props: Props) {
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
   }, [active, zoom])
+  function jumpToCoordinates() {
+    if (!active) return
+    const x = Number(coordinateInput.x), z = Number(coordinateInput.z)
+    const error = !coordinateInput.x.trim() || !coordinateInput.z.trim() || !Number.isFinite(x) || !Number.isFinite(z)
+      ? 'XとZに数値を入力してください。'
+      : x < bounds.minX || x >= bounds.minX + bounds.width || z < bounds.minZ || z >= bounds.minZ + bounds.height
+        ? '解析範囲内の座標を入力してください。' : ''
+    setCoordinateInput(current => ({ ...current, error }))
+    if (error) return
+    discardPointerFrame()
+    drag.current = null
+    setPointer(null)
+    const scale = Math.min(16, Math.max(.7, viewRef.current.scale))
+    const { width, height } = sizeRef.current
+    updateView({ scale, x: width / 2 - (x - bounds.minX) * scale, z: height / 2 - (z - bounds.minZ) * scale })
+    setCoordinateTarget({ x, z })
+    setCoordinates(`X ${x} / Z ${z}`)
+    canvas.current?.focus()
+  }
+  const coordinateDescription = `${coordinateHelpId}${coordinateInput.error ? ` ${coordinateHelpId}-error` : ''}`
   return <div className="sp-map-panel">
     <div className="sp-coverage-controls" aria-label="出現範囲の重複と未カバー">
       <label><input type="checkbox" checked={showCoverage} onChange={event => setShowCoverage(event.target.checked)} />重複・未カバーを色で確認</label>
@@ -507,6 +534,17 @@ export function SpawnerPlanningMap(props: Props) {
         }} />}
     </div>
     <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>
+    <form className="sp-coordinate-navigation" aria-label="地図の座標移動" onSubmit={event => { event.preventDefault(); jumpToCoordinates() }}>
+      <div className="sp-coordinate-fields">
+        <label>移動先X<input inputMode="decimal" value={coordinateInput.x} disabled={!active} aria-describedby={coordinateDescription} aria-invalid={Boolean(coordinateInput.error)} onChange={event => { const x = event.target.value; setCoordinateInput(current => ({ ...current, x, error: '' })) }} /></label>
+        <label>移動先Z<input inputMode="decimal" value={coordinateInput.z} disabled={!active} aria-describedby={coordinateDescription} aria-invalid={Boolean(coordinateInput.error)} onChange={event => { const z = event.target.value; setCoordinateInput(current => ({ ...current, z, error: '' })) }} /></label>
+        <button type="submit" className="button" disabled={!active}>座標へ移動</button>
+        <button type="button" className="button" disabled={!active || !coordinateTarget} onClick={() => { setCoordinateTarget(null); canvas.current?.focus() }}>目印を消す</button>
+      </div>
+      <p id={coordinateHelpId}>Xは{bounds.minX}以上{bounds.minX + bounds.width}未満、Zは{bounds.minZ}以上{bounds.minZ + bounds.height}未満。負数・小数に対応します。地図の位置だけを移動します。</p>
+      {coordinateInput.error && <p id={`${coordinateHelpId}-error`} role="alert">{coordinateInput.error}</p>}
+      {coordinateTarget && <p role="status">移動先 X {coordinateTarget.x} / Z {coordinateTarget.z}（十字の目印）</p>}
+    </form>
     <div className="sp-map-wrap">
     <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
       onPointerDown={event => {
@@ -585,6 +623,7 @@ export function SpawnerPlanningMap(props: Props) {
           }
         }
       }} />
+    {coordinateTarget && <svg className="sp-coordinate-marker" viewBox="-12 -12 24 24" role="img" aria-label={`座標の移動先 X ${coordinateTarget.x} / Z ${coordinateTarget.z}`} style={{ left: `${((coordinateTarget.x - bounds.minX) * view.scale + view.x) / size.width * 100}%`, top: `${((coordinateTarget.z - bounds.minZ) * view.scale + view.z) / size.height * 100}%` }}><circle r="5" /><path d="M-12 0H-7 M7 0H12 M0-12V-7 M0 7V12" /></svg>}
     {hovered && pointer && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{
       width: Math.min(360, size.width - 16),
       left: Math.max(8, Math.min(size.width - tooltipSize.width - 8, pointer.x + 14 + tooltipSize.width <= size.width - 8 ? pointer.x + 14 : pointer.x - tooltipSize.width - 14)),
