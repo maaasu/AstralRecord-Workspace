@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BalanceApiError, cancelBalanceJob, getBalanceCatalog, getBalanceJob, startBalanceJob } from '../api/balanceLabApi'
 import { asRecord, classifyMasters, clearScenario, conditionKey, createScenario, downloadText, loadScenario, masterId, masterName, resultCsv, saveScenario, skillCatalogForMasters, skillIsClassCandidate, summaryCsv, validateScenario } from '../data/balanceLab'
 import type { BalanceBuild, BalanceCatalog, BalanceEconomy, BalanceEconomyResult, BalanceJob, BalanceMaster, BalanceResultRow, BalanceScenario, BalanceSkillCatalogEntry, BalanceTrial } from '../data/balanceLab'
+import { createMasterNameMatcher } from '../data/masterDataFilters'
 import { MinecraftText } from './MinecraftText'
 import { BalanceRuntimeTrace } from './BalanceRuntimeTrace'
 import { BalanceRuntimeConditions } from './BalanceRuntimeConditions'
@@ -27,17 +28,21 @@ function NumberInput({ label, value, min, max, step, onChange }: { label: string
 
 function SkillPicker({ build, classMaster, masters, entries, onChange }: { build: BalanceBuild; classMaster?: BalanceMaster; masters: BalanceMaster[]; entries: BalanceSkillCatalogEntry[]; onChange: (skillIds: string[], passiveSkillIds?: string[]) => void }) {
   const [query, setQuery] = useState('')
+  const searchHelpId = useId()
   const [classOnly, setClassOnly] = useState(false)
   const [supportedOnly, setSupportedOnly] = useState(false)
-  const byId = new Map(masters.map(master => [masterId(master), master]))
-  const byPath = new Map(masters.map(master => [master.path, master]))
-  const search = query.trim().toLocaleLowerCase()
-  const visible = entries.filter(entry => {
-    const master = byPath.get(entry.path)
-    return (!classOnly || skillIsClassCandidate(entry, classMaster)) && (!supportedOnly || entry.supported)
-      && (!search || `${entry.id} ${master ? masterName(master) : entry.name} ${entry.implementationId} ${entry.path}`.toLocaleLowerCase().includes(search))
-  })
-  const supportedCount = entries.filter(entry => entry.supported).length
+  const { namesById, rows, supportedCount } = useMemo(() => {
+    const namesById = new Map<string, string>(), namesByPath = new Map<string, string>()
+    for (const master of masters) {
+      const name = masterName(master)
+      namesById.set(masterId(master), name); namesByPath.set(master.path, name)
+    }
+    return { namesById, rows: entries.map(entry => ({ entry, name: namesByPath.get(entry.path) ?? entry.name })), supportedCount: entries.filter(entry => entry.supported).length }
+  }, [masters, entries])
+  const candidates = useMemo(() => rows.map(row => ({ ...row, candidate: skillIsClassCandidate(row.entry, classMaster), nodeCandidate: row.entry.classLinks.some(link => link.classId === build.classId && link.kind === 'node') })), [rows, classMaster, build.classId])
+  const matches = useMemo(() => createMasterNameMatcher(query), [query])
+  const visible = useMemo(() => candidates.filter(({ entry, name, candidate }) => (!classOnly || candidate) && (!supportedOnly || entry.supported)
+    && matches(name, entry.id, entry.implementationId, entry.path)), [candidates, classOnly, supportedOnly, matches])
   const move = (index: number, direction: -1 | 1) => {
     const next = [...build.skillIds]
     ;[next[index], next[index + direction]] = [next[index + direction], next[index]]
@@ -46,23 +51,27 @@ function SkillPicker({ build, classMaster, masters, entries, onChange }: { build
   return <div className="balance-subpanel balance-skill-picker"><h5>スキル</h5>
     <p className="balance-muted">全マスターから選べます。職業の潜在候補はクラス定義とスキルツリー上の関連を示し、習得済みや装備可能を保証しません。アクティブの選択順は使用優先順です。パッシブは装着して発動条件を満たすと働きます。計算条件は単体・スキルLv1・シジル未装着です。</p>
     <p className="balance-skill-counts">全 {entries.length}件 · 計算対応 {supportedCount}件 · 未対応 {entries.length - supportedCount}件</p>
-    <div className="balance-skill-controls"><label>スキル検索<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="名前・IDで検索" /></label><label className="balance-filter-toggle"><input type="checkbox" checked={classOnly} onChange={event => setClassOnly(event.target.checked)} />職業の潜在候補のみ</label><label className="balance-filter-toggle"><input type="checkbox" checked={supportedOnly} onChange={event => setSupportedOnly(event.target.checked)} />計算対応のみ</label></div>
-    {build.skillIds.length > 0 && <div className="balance-selected-skills"><strong>アクティブ・優先順</strong><ol>{build.skillIds.map((id, index) => <li key={`${id}:${index}`}><span className="balance-selected-name"><MinecraftText value={byId.get(id) ? masterName(byId.get(id)!) : id} /><small>{id}</small></span><div className="balance-skill-order"><button type="button" className="button compact" aria-label={`${id}の優先順位を上げる`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${id}の優先順位を下げる`} disabled={index === build.skillIds.length - 1} onClick={() => move(index, 1)}>↓</button></div></li>)}</ol></div>}
+    <div className="balance-skill-controls"><label>スキル検索<input type="search" value={query} aria-describedby={searchHelpId} onChange={event => setQuery(event.target.value)} placeholder="例: 炎 矢" /></label><label className="balance-filter-toggle"><input type="checkbox" checked={classOnly} onChange={event => setClassOnly(event.target.checked)} />職業の潜在候補のみ</label><label className="balance-filter-toggle"><input type="checkbox" checked={supportedOnly} onChange={event => setSupportedOnly(event.target.checked)} />計算対応のみ</label></div>
+    <p id={searchHelpId} className="balance-muted">名前・ID・実装ID・パスを検索します。空白で区切ると、すべての語で絞り込みます。</p>
+    {build.skillIds.length > 0 && <div className="balance-selected-skills"><strong>アクティブ・優先順</strong><ol>{build.skillIds.map((id, index) => <li key={`${id}:${index}`}><span className="balance-selected-name"><MinecraftText value={namesById.get(id) ?? id} /><small>{id}</small></span><div className="balance-skill-order"><button type="button" className="button compact" aria-label={`${id}の優先順位を上げる`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${id}の優先順位を下げる`} disabled={index === build.skillIds.length - 1} onClick={() => move(index, 1)}>↓</button></div></li>)}</ol></div>}
     <p className="balance-muted">パッシブ装着：{build.passiveSkillIds?.length ?? 0}件</p>
     <p className="balance-muted">表示 {visible.length} / 全 {entries.length} 件</p>
-    <div className="balance-checks balance-skill-checks">{visible.map(entry => { const master = byPath.get(entry.path); const candidate = skillIsClassCandidate(entry, classMaster); const links = entry.classLinks.filter(link => link.classId === build.classId); return <div key={entry.path} className="balance-skill-row"><label className="balance-check-item"><input type="checkbox" checked={(entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds).includes(entry.id)} onChange={event => { const current = entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds; const next = event.target.checked ? [...current, entry.id] : current.filter(value => value !== entry.id); if (entry.kind === 'passive') onChange(build.skillIds, next); else onChange(next, build.passiveSkillIds) }} /><span className="balance-check-name"><MinecraftText value={master ? masterName(master) : entry.name} /><small>{entry.id}</small></span></label><div className="balance-skill-meta"><span className={entry.supported ? 'balance-skill-supported' : 'balance-skill-unsupported'}>{entry.supported ? (entry.requirements?.length ? '条件付き対応' : '計算対応') : '計算未対応'} · {entry.kind === 'passive' ? 'パッシブ' : 'アクティブ'}</span>{candidate && <span>職業の潜在候補{links.some(link => link.kind === 'node') ? ' · スキルツリー' : ''}</span>}</div>{Boolean(entry.requirements?.length) && <p className="balance-muted">追加条件：{entry.requirements?.map(value => ({ bow: '弓装備', velocity_replay: '速度変更後の座標軌跡', party: '味方の入力', static_only: '静止条件のみ' })[value] ?? value).join('、')}</p>}{entry.reasons.length > 0 && <details className="balance-skill-details"><summary>未対応理由 {entry.reasons.length}件</summary>{entry.reasons.map((reason, index) => <p key={index}>{reason}</p>)}</details>}{entry.assumptions.length > 0 && <details className="balance-skill-details"><summary>計算の前提</summary>{entry.assumptions.map((assumption, index) => <p key={index}>{assumption}</p>)}</details>}{entry.sources.length > 0 && <details className="balance-skill-details"><summary>参照ソース</summary>{entry.sources.map(source => <p key={source}><code>{source}</code></p>)}</details>}</div> })}</div>
+    <div className="balance-checks balance-skill-checks">{visible.map(({ entry, name, candidate, nodeCandidate }) => { return <div key={entry.path} className="balance-skill-row"><label className="balance-check-item"><input type="checkbox" checked={(entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds).includes(entry.id)} onChange={event => { const current = entry.kind === 'passive' ? build.passiveSkillIds ?? [] : build.skillIds; const next = event.target.checked ? [...current, entry.id] : current.filter(value => value !== entry.id); if (entry.kind === 'passive') onChange(build.skillIds, next); else onChange(next, build.passiveSkillIds) }} /><span className="balance-check-name"><MinecraftText value={name} /><small>{entry.id}</small></span></label><div className="balance-skill-meta"><span className={entry.supported ? 'balance-skill-supported' : 'balance-skill-unsupported'}>{entry.supported ? (entry.requirements?.length ? '条件付き対応' : '計算対応') : '計算未対応'} · {entry.kind === 'passive' ? 'パッシブ' : 'アクティブ'}</span>{candidate && <span>職業の潜在候補{nodeCandidate ? ' · スキルツリー' : ''}</span>}</div>{Boolean(entry.requirements?.length) && <p className="balance-muted">追加条件：{entry.requirements?.map(value => ({ bow: '弓装備', velocity_replay: '速度変更後の座標軌跡', party: '味方の入力', static_only: '静止条件のみ' })[value] ?? value).join('、')}</p>}{entry.reasons.length > 0 && <details className="balance-skill-details"><summary>未対応理由 {entry.reasons.length}件</summary>{entry.reasons.map((reason, index) => <p key={index}>{reason}</p>)}</details>}{entry.assumptions.length > 0 && <details className="balance-skill-details"><summary>計算の前提</summary>{entry.assumptions.map((assumption, index) => <p key={index}>{assumption}</p>)}</details>}{entry.sources.length > 0 && <details className="balance-skill-details"><summary>参照ソース</summary>{entry.sources.map(source => <p key={source}><code>{source}</code></p>)}</details>}</div> })}</div>
     {!visible.length && <p className="balance-muted">条件に合うスキルがありません。検索語や候補の絞り込みを変更してください。</p>}
   </div>
 }
 
 function SellItemsPicker({ masters, selected, onChange }: { masters: BalanceMaster[]; selected: string[]; onChange: (ids: string[]) => void }) {
   const [query, setQuery] = useState('')
-  const search = query.trim().toLocaleLowerCase()
-  const visible = masters.filter(master => !search || `${masterId(master)} ${masterName(master)} ${master.path}`.toLocaleLowerCase().includes(search))
+  const searchHelpId = useId()
+  const rows = useMemo(() => masters.map(master => ({ id: masterId(master), name: masterName(master), path: master.path })), [masters])
+  const matches = useMemo(() => createMasterNameMatcher(query), [query])
+  const visible = useMemo(() => rows.filter(row => matches(row.name, row.id, row.path)), [rows, matches])
   return <details className="balance-subpanel balance-sell-picker"><summary>売却アイテム（{selected.length}件選択）</summary>
-    <label className="balance-search">売却アイテム検索<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="名前・IDで検索" /></label>
+    <label className="balance-search">売却アイテム検索<input type="search" value={query} aria-describedby={searchHelpId} onChange={event => setQuery(event.target.value)} placeholder="例: 銀 鉱石" /></label>
+    <p id={searchHelpId} className="balance-muted">名前・ID・パスを検索します。空白で区切ると、すべての語で絞り込みます。</p>
     <p className="balance-muted">候補 {visible.length} / 全 {masters.length} 件</p>
-    <div className="balance-checks">{visible.map(master => { const id = masterId(master); return <label key={master.path} className="balance-check-item"><input type="checkbox" checked={selected.includes(id)} onChange={event => onChange(event.target.checked ? [...selected, id] : selected.filter(value => value !== id))} /><span className="balance-check-name"><MinecraftText value={masterName(master)} /><small>{id}</small></span></label> })}</div>
+    <div className="balance-checks">{visible.map(({ id, name, path }) => <label key={path} className="balance-check-item"><input type="checkbox" checked={selected.includes(id)} onChange={event => onChange(event.target.checked ? [...selected, id] : selected.filter(value => value !== id))} /><span className="balance-check-name"><MinecraftText value={name} /><small>{id}</small></span></label>)}</div>
     {!visible.length && <p className="balance-muted">条件に合うアイテムがありません。</p>}
   </details>
 }
