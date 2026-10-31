@@ -4,6 +4,7 @@ import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 import { sortEquipment } from '../data/equipmentSort'
+import { differingEquipmentStatuses } from '../data/equipmentComparisonColumns'
 import { createMasterNameMatcher } from '../data/masterDataFilters'
 import type { EquipmentSortDirection, EquipmentSortKey } from '../data/equipmentSort'
 import './masterAnalytics.css'
@@ -82,6 +83,7 @@ export function MasterAnalytics() {
   const sortStatus = isStatSort ? stat : ''
   const [selectedPaths, setSelectedPaths] = useState<string[]>([])
   const [selectedOnly, setSelectedOnly] = useState(false)
+  const [differentStatusesOnly, setDifferentStatusesOnly] = useState(false)
   const selectedViewButton = useRef<HTMLButtonElement>(null)
   const [page, setPage] = useState(0)
   const [uuid, setUuid] = useState('00000000-0000-0000-0000-000000000001')
@@ -171,6 +173,10 @@ export function MasterAnalytics() {
   const selectedStatuses = useMemo(() => [...new Set(selectedRows.flatMap(row => Object.keys(row.stats)))].sort(), [selectedRows])
   const statuses = selectedPaths.length || selectedOnly ? selectedStatuses : filteredStatuses
   const tableStatuses = selectedOnly ? selectedStatuses : filteredStatuses
+  const columnComparisonRows = selectedOnly ? selectedRows : filtered
+  const visibleTableStatuses = useMemo(() => differentStatusesOnly
+    ? differingEquipmentStatuses(columnComparisonRows, tableStatuses) : tableStatuses,
+  [differentStatusesOnly, columnComparisonRows, tableStatuses])
   const scale = useMemo(() => Math.max(1, ...active.map(row => Math.max(Math.abs(row.stats[stat]?.min ?? 0), Math.abs(row.stats[stat]?.max ?? 0)))), [active, stat])
   const growthStatuses = useMemo(() => [...new Set((classes ?? []).flatMap(master => [...asList(master.content.baseStats), ...asList(master.content.growthPerLevel)].map(asObject).map(entry => normalizeStatus(entry.status))))].sort(), [classes])
 
@@ -309,7 +315,13 @@ export function MasterAnalytics() {
         <button className="button" aria-pressed={!selectedOnly} onClick={() => { setSelectedOnly(false); setPage(0) }}>条件に一致する装備（{filtered.length}件）</button>
         <button ref={selectedViewButton} className="button" aria-pressed={selectedOnly} onClick={() => { setSelectedOnly(true); setPage(0) }}>選択した装備（{selectedRows.length}件）</button>
       </div>
-      <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>{selectedOnly ? '選択した装備を指定の並び順で表示。標準では選択順です。チェックを外すと比較から解除します。' : '条件に一致する候補を表示。チェックして比較に追加できます。未選択の場合は条件に一致する全装備を比較します。'}</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{tableStatuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPathSet.has(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPathSet.has(row.path)} onChange={event => selectEquipment(event, row.path)} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{tableStatuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!tableRows.length && <p className="analytics-empty">{selectedOnly ? '表示できる選択装備がないため比較は0件です。「条件に一致する装備」から比較に追加してください。' : '条件に一致する装備がありません。名前・レベル幅・スロットなどの条件を変更してください。'}</p>}</div>
+      <div className="analytics-actions analytics-list-mode">
+        <button type="button" className="button" aria-pressed={differentStatusesOnly} onClick={() => setDifferentStatusesOnly(value => !value)}>差のあるステータスだけ</button>
+        <span role="status">ステータス列 {visibleTableStatuses.length} / {tableStatuses.length}項目{differentStatusesOnly && tableRows.length >= 2 ? `（一覧全${tableRows.length}件で比較）` : ''}</span>
+      </div>
+      <p className="analytics-note">現在の一覧の全ページで下限・上限・期待値を比較します。未定義と0は区別し、2件未満では全項目を表示します。装備の選択・グラフ・CSVの項目は変わりません。</p>
+      {differentStatusesOnly && tableRows.length >= 2 && visibleTableStatuses.length === 0 && <p className="analytics-note">差のあるステータスはありません。装備名などの列は引き続き表示しています。</p>}
+      <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>{selectedOnly ? '選択した装備を指定の並び順で表示。標準では選択順です。チェックを外すと比較から解除します。' : '条件に一致する候補を表示。チェックして比較に追加できます。未選択の場合は条件に一致する全装備を比較します。'}</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{visibleTableStatuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPathSet.has(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPathSet.has(row.path)} onChange={event => selectEquipment(event, row.path)} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{visibleTableStatuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!tableRows.length && <p className="analytics-empty">{selectedOnly ? '表示できる選択装備がないため比較は0件です。「条件に一致する装備」から比較に追加してください。' : '条件に一致する装備がありません。名前・レベル幅・スロットなどの条件を変更してください。'}</p>}</div>
       <div className="analytics-actions"><button className="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>前の50件</button><span>{currentPage + 1} / {pageCount}ページ</span><button className="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>次の50件</button></div>
       </section>
     </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace">
