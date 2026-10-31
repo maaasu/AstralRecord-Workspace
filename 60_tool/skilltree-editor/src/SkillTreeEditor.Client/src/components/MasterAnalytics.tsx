@@ -183,6 +183,12 @@ export function MasterAnalytics() {
     setClassIds(current => checked ? current.includes(id) || current.length >= 12 ? current : [...current, id] : current.filter(value => value !== id))
   }
 
+  function clearMissingClasses() {
+    if (catalogStatus !== 'ready' || !missingClassIds.length) return
+    classSearchInput.current?.focus()
+    setClassIds(current => current.filter(id => catalogClassIds.has(id)))
+  }
+
   function updateMatchingSelection(adding: boolean) {
     if (adding ? matchingSelectedCount === filtered.length : matchingSelectedCount === 0) return
     setSelectedPaths(current => {
@@ -311,7 +317,10 @@ export function MasterAnalytics() {
         <button className="button" disabled={!classQuery && !classSelectedOnly} onClick={() => { setClassQuery(''); setClassSelectedOnly(false); classSearchInput.current?.focus() }}>職業の条件を解除</button>
       </div>
       <p className="analytics-note" aria-live="polite">表示 {visibleClasses.length} / {catalog.classes.length} 職業 · 条件外の選択 {hiddenSelectedClasses} 件</p>
-      {missingClassIds.length > 0 && <p className="analytics-note">現在のカタログにない選択ID: {missingClassIds.join(', ')}。選択は保持しています。</p>}
+      {missingClassIds.length > 0 && <div className="analytics-selection-warning analytics-class-missing" role="group" aria-label="見つからない職業の選択">
+        <p>{catalogStatus === 'ready' ? `現在のカタログにない選択ID: ${missingClassIds.join(', ')}。選択は保持しています。` : 'マスター再読込が成功すると、見つからない選択を確認・解除できます。'}</p>
+        <button className="button" disabled={catalogStatus !== 'ready'} onClick={clearMissingClasses} title="見つからないIDだけを比較の選択から外します。グラフは再計算してください。">見つからない選択を解除{catalogStatus === 'ready' ? `（${missingClassIds.length}件）` : ''}</button>
+      </div>}
       <fieldset className="class-selection"><legend>比較する職業（最大12件）</legend>{visibleClasses.map(master => { const id = String(master.content.id); return <label key={master.path} title={`解放プレイヤーLv ${numeric(master.content.unlockLevel, 1)} / 必要経験値係数 ${numeric(master.content.expRate, 100)} / 最大レベル ${numeric(master.content.maxLevel, 100)}`}><input type="checkbox" checked={classIds.includes(id)} disabled={!classIds.includes(id) && classIds.length >= 12} onChange={event => selectClass(event, id)} /><MinecraftText value={String(master.content.name ?? '')} /><small>{id}</small></label> })}{!visibleClasses.length && <p className="analytics-note class-selection-empty">表示条件に一致する{classSelectedOnly ? '選択済みの' : ''}職業候補はありません。検索・表示条件を変えても選択は解除されません。</p>}</fieldset>
       <details className="analytics-explanation"><summary>育成シナリオの前提</summary><p className="analytics-note">入力変更後は「グラフを計算」で反映します。開始Lvは到達直後として計算します。通常育成・転生なし、同じEXPをプレイヤーと1職へ加算する仮定です。各職の曲線はそれぞれ独立した育成シナリオです。</p></details>
       </section>
