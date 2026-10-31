@@ -26,6 +26,75 @@ function exportIds() {
 }
 
 describe('equipment comparison selection across search conditions', () => {
+  it('finds all search words across visible names, IDs and paths regardless of order or formatting', async () => {
+    const silver = { ...equipment('SILVER-07', '&6銀の&a長剣'), path: 'item/eriva/SILVER-07.yml' }
+    const shield = { ...equipment('SILVER-08', '銀の盾'), path: 'item/eriva/SILVER-08.yml' }
+    const otherSword = { ...equipment('SILVER-09', '銀の長剣・別地域'), path: 'item/midgard/SILVER-09.yml' }
+    const catalog: AnalyticsCatalog = { equipment: [silver, shield, otherSword], classes: [], diagnostics: [] }
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => catalog }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MasterAnalytics />)
+    await screen.findByRole('table')
+    const search = screen.getByRole('textbox', { name: '名前・ID' })
+    expect(search).toHaveAccessibleDescription('名前・ID・パスを検索します。空白で区切ると、すべての語で絞り込みます。')
+    const names = () => screen.queryAllByRole('checkbox').map(item => item.getAttribute('aria-label'))
+    search.focus()
+    for (const query of ['長剣 銀', ' §BErIvA　銀\t07 長剣 ', '07 銀 ERIVA 銀']) {
+      fireEvent.change(search, { target: { value: query } })
+      expect(names()).toEqual(query === '長剣 銀' ? ['銀の長剣を比較に選択', '銀の長剣・別地域を比較に選択'] : ['銀の長剣を比較に選択'])
+      expect(search).toHaveFocus()
+    }
+    expect(exportIds()).toEqual(['SILVER-07'])
+    setInput('名前・ID', '銀 盾 07')
+    expect(names()).toEqual([])
+    expect(screen.getByRole('button', { name: '比較表をCSV出力' })).toBeDisabled()
+    setInput('名前・ID', ' \t　 ')
+    expect(names()).toHaveLength(3)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(equipmentRows).toHaveBeenCalledTimes(2)
+  })
+
+  it('combines multiword queries with filters and paging while keeping selected, sorted CSV targets', async () => {
+    const gear = Array.from({ length: 61 }, (_, i) => equipment(`gear-${String(i).padStart(3, '0')}`, `銀の長剣${i}`, 10, 'MAIN', 'SWORD', 'MELEE_ATTACK', i))
+    const staff = equipment('staff', '金の杖', 40, 'OFF', 'WAND', 'MAGIC_ATTACK', 25)
+    const catalog: AnalyticsCatalog = { equipment: [...gear, staff], classes: [], diagnostics: [] }
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => catalog }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MasterAnalytics />)
+    await screen.findByRole('table')
+    select('銀の長剣0')
+    fireEvent.click(screen.getByRole('button', { name: '次の50件' }))
+    select('銀の長剣60')
+    setInput('名前・ID', '長剣 銀 ITEM')
+    expect(screen.getByText('1 / 2ページ')).toBeInTheDocument()
+    expect(screen.getAllByRole('checkbox')).toHaveLength(50)
+    expect(screen.getByText(/条件一致 61件/)).toBeInTheDocument()
+    setInput('並び順', 'max')
+    expect(exportIds()).toEqual(['gear-060', 'gear-000'])
+    setInput('名前・ID', '銀 gear-059 長剣')
+    expect(screen.getByRole('checkbox')).toHaveAccessibleName('銀の長剣59を比較に選択')
+    expect(screen.getByText(/現在の条件外 2件/)).toBeInTheDocument()
+    fireEvent.click(listButton(true))
+    setInput('名前・ID', '一致なし 銀')
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2)
+    expect(screen.getAllByRole('checkbox').every(input => (input as HTMLInputElement).checked)).toBe(true)
+    expect(exportIds()).toEqual(['gear-060', 'gear-000'])
+    expect(screen.getByLabelText('近接攻撃力の範囲比較')).toHaveTextContent('銀の長剣60')
+    fireEvent.click(listButton(false))
+    setInput('名前・ID', '杖 STAFF')
+    setInput('スロット', 'OFF'); setInput('装備タグ', 'WAND')
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    setInput('要求Lvの中心', '40'); setInput('前後のLv幅', '0')
+    expect(screen.getByRole('checkbox')).toHaveAccessibleName('金の杖を比較に選択')
+    setInput('装備タグ', 'SWORD')
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    setInput('装備タグ', 'WAND')
+    select('金の杖')
+    expect(exportIds()).toEqual(['gear-060', 'gear-000', 'staff'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(equipmentRows).toHaveBeenCalledTimes(2)
+  })
+
   it('sorts candidates, selection, bars and CSV consistently without changing selection order or fetching again', async () => {
     const wide = equipment('wide', '&6幅広い剣'), fixed = equipment('fixed', '安定した剣'), none = equipment('none', '魔法の杖', 10, 'OFF', 'WAND', 'MAGIC_ATTACK', 30)
     wide.content.equipment = { stats: [{ status: 'MELEE_ATTACK', value: '1~100' }, { status: 'MAGIC_ATTACK', value: 2 }], requiredLevel: 10 }

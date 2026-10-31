@@ -1,9 +1,10 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 import { sortEquipment } from '../data/equipmentSort'
+import { createMasterNameMatcher } from '../data/masterDataFilters'
 import type { EquipmentSortDirection, EquipmentSortKey } from '../data/equipmentSort'
 import './masterAnalytics.css'
 import { MinecraftText } from './MinecraftText'
@@ -66,6 +67,7 @@ export function MasterAnalytics() {
     tabs[next].click()
   }
   const [query, setQuery] = useState('')
+  const equipmentSearchHelpId = useId()
   const [slot, setSlot] = useState('')
   const [tag, setTag] = useState('')
   const [level, setLevel] = useState(10)
@@ -115,10 +117,10 @@ export function MasterAnalytics() {
   const defaultRows = useMemo(() => [...rows].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id)), [rows])
   const slots = useMemo(() => [...new Set(rows.map(row => row.slot))].sort(), [rows])
   const tags = useMemo(() => [...new Set(rows.map(row => row.tag))].sort(), [rows])
+  const matchesEquipmentName = useMemo(() => createMasterNameMatcher(query), [query])
   const filtered = useMemo(() => {
-    const search = query.toLowerCase()
-    return defaultRows.filter(row => Math.abs(row.level - level) <= band && (!slot || row.slot === slot) && (!tag || row.tag === tag) && `${row.name} ${row.id} ${row.path}`.toLowerCase().includes(search))
-  }, [defaultRows, level, band, slot, tag, query])
+    return defaultRows.filter(row => Math.abs(row.level - level) <= band && (!slot || row.slot === slot) && (!tag || row.tag === tag) && matchesEquipmentName(row.name, row.id, row.path))
+  }, [defaultRows, level, band, slot, tag, matchesEquipmentName])
   const rowsByPath = useMemo(() => new Map(rows.map(row => [row.path, row])), [rows])
   const selectedPathSet = useMemo(() => new Set(selectedPaths), [selectedPaths])
   const selectedRows = useMemo(() => selectedPaths.flatMap(path => {
@@ -205,7 +207,7 @@ export function MasterAnalytics() {
       <div className="analytics-section-heading"><h2 id="equipment-settings-heading">比較条件</h2><span className="analytics-badge">保存済みマスター</span></div>
       <p className="analytics-note">条件で候補を探し、チェックして比較に追加します。選択した装備は条件を変えても比較対象に残ります。</p>
       <div className="analytics-controls">
-        <label className="analytics-field-wide">名前・ID<input value={query} onChange={event => { setQuery(event.target.value); setPage(0) }} placeholder="ノクス、20a00002…" /></label>
+        <div className="analytics-field-wide"><label>名前・ID<input value={query} aria-describedby={equipmentSearchHelpId} onChange={event => { setQuery(event.target.value); setPage(0) }} placeholder="例: 銀 剣" /></label><p id={equipmentSearchHelpId} className="analytics-search-help">名前・ID・パスを検索します。空白で区切ると、すべての語で絞り込みます。</p></div>
         <label>スロット<select value={slot} onChange={event => { setSlot(event.target.value); setPage(0) }}><option value="">すべて</option>{slots.map(value => <option key={value}>{value}</option>)}</select></label>
         <label>装備タグ<select value={tag} onChange={event => { setTag(event.target.value); setPage(0) }}><option value="">すべて</option>{tags.map(value => <option key={value}>{value}</option>)}</select></label>
         <label>要求Lvの中心<input type="number" min="0" value={level} onChange={event => { setLevel(Math.max(0, numeric(event.target.value))); setPage(0) }} /></label>
