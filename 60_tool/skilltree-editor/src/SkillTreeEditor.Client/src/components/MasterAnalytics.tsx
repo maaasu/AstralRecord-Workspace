@@ -21,6 +21,7 @@ async function read<T>(url: string, signal?: AbortSignal): Promise<T> {
 }
 
 interface ChartSeries { name: string; displayName?: string; values: { x: number; y: number }[] }
+interface GrowthInputsSnapshot { uuid: string; startPlayer: number; startClass: number; maximum: number; classIds: string[] }
 const LineChart = memo(function LineChart({ series, yLabel, xLabel }: { series: ChartSeries[]; yLabel: string; xLabel: string }) {
   const width = 950, height = 360, left = 75, top = 25, right = 20, bottom = 50
   const all = series.flatMap(item => item.values)
@@ -92,11 +93,23 @@ export function MasterAnalytics() {
   const [classSelectedOnly, setClassSelectedOnly] = useState(false)
   const classSearchInput = useRef<HTMLInputElement>(null)
   const classSearchHelpId = useId()
-  const [simulation, setSimulation] = useState<GrowthSimulation | null>(null)
+  const [growthResult, setGrowthResult] = useState<{ simulation: GrowthSimulation; snapshot: GrowthInputsSnapshot } | null>(null)
+  const simulation = growthResult?.simulation ?? null
   const [growing, setGrowing] = useState(false)
   const [growthStat, setGrowthStat] = useState('MAX_HEALTH')
   const [growthView, setGrowthView] = useState<'level' | 'experience' | 'bonus'>('level')
   const [inspect, setInspect] = useState(10)
+  const changedGrowthInputs = useMemo(() => {
+    const snapshot = growthResult?.snapshot
+    if (!snapshot) return []
+    const changed: string[] = []
+    if (snapshot.uuid !== uuid) changed.push('アカウントUUID')
+    if (snapshot.startPlayer !== startPlayer) changed.push('開始プレイヤーLv')
+    if (snapshot.startClass !== startClass) changed.push('開始クラスLv')
+    if (snapshot.maximum !== maximum) changed.push('表示上限プレイヤーLv')
+    if (snapshot.classIds.length !== classIds.length || snapshot.classIds.some(id => !classIds.includes(id))) changed.push('比較する職業')
+    return changed
+  }, [growthResult, uuid, startPlayer, startClass, maximum, classIds])
   useEffect(() => {
     const controller = new AbortController()
     catalogRequest.current = controller
@@ -211,7 +224,7 @@ export function MasterAnalytics() {
     catalogRequest.current?.abort()
     growthRequest.current?.abort()
     growthRequest.current = null
-    setGrowing(false); setSimulation(null); setCatalogStatus('loading')
+    setGrowing(false); setGrowthResult(null); setCatalogStatus('loading')
     setRevision(value => value + 1)
   }
 
@@ -220,12 +233,13 @@ export function MasterAnalytics() {
     const controller = new AbortController()
     growthRequest.current?.abort()
     growthRequest.current = controller
+    const snapshot: GrowthInputsSnapshot = { uuid, startPlayer, startClass, maximum, classIds: [...classIds] }
     setGrowing(true); setError('')
     try {
-      const params = new URLSearchParams({ uuid, maxPlayerLevel: String(maximum), startPlayerLevel: String(startPlayer), startClassLevel: String(startClass), classIds: classIds.join(',') })
+      const params = new URLSearchParams({ uuid: snapshot.uuid, maxPlayerLevel: String(snapshot.maximum), startPlayerLevel: String(snapshot.startPlayer), startClassLevel: String(snapshot.startClass), classIds: snapshot.classIds.join(',') })
       const result = await read<GrowthSimulation>(`/api/master-analytics/growth?${params}`, controller.signal)
       if (growthRequest.current !== controller || controller.signal.aborted) return
-      setSimulation(result); setInspect(Math.max(startPlayer, Math.min(maximum, inspect)))
+      setGrowthResult({ simulation: result, snapshot }); setInspect(Math.max(startPlayer, Math.min(maximum, inspect)))
     } catch (reason) {
       if (growthRequest.current === controller && !controller.signal.aborted) setError(String(reason))
     } finally {
@@ -326,6 +340,10 @@ export function MasterAnalytics() {
       </section>
       <section className="analytics-panel analytics-results" aria-labelledby="growth-results-heading" aria-busy={growing}>
       <div className="analytics-section-heading"><h2 id="growth-results-heading">成長の計算結果</h2>{simulation && <span className="analytics-badge">{simulation.classes.length}職業を比較</span>}</div>
+      {changedGrowthInputs.length > 0 && <div className="analytics-selection-warning" role="group" aria-label="成長結果の計算条件" aria-live="polite">
+        <p><strong>入力条件が変更されています。</strong><br />表示中のグラフ・表・CSVは前回の計算結果です。<br />変更項目: {changedGrowthInputs.join('、')}</p>
+        <button className="button" disabled={catalogStatus !== 'ready' || growing || !classIds.length} onClick={() => void generate()}>変更した条件で再計算</button>
+      </div>}
       {!simulation && <div className="analytics-empty"><h3>職業ごとの成長を比較</h3><p>計算条件を設定して「グラフを計算」を押すと、グラフと指定レベルの数値表を表示します。</p></div>}
       {simulation && <>
         <div className="analytics-controls"><label>グラフの種類<select value={growthView} onChange={event => setGrowthView(event.target.value as typeof growthView)}><option value="level">プレイヤーLv → クラスLv</option><option value="experience">プレイヤーLv → クラス累積EXP</option><option value="bonus">プレイヤーLv → クラスのステータス補正</option></select></label>{growthView === 'bonus' && <label>ステータス<select value={growthStat} onChange={event => setGrowthStat(event.target.value)}>{[...new Set([growthStat, ...growthStatuses])].map(id => <option key={id} value={id}>{statusLabel(id)} ({id})</option>)}</select></label>}</div>
