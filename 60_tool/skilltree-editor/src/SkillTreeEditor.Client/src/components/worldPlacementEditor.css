@@ -20,6 +20,9 @@
 .wp-form { border-top: 1px solid #6b929a; margin-top: 1rem; padding-top: 1rem; }
 .wp-form > label { margin: .7rem 0; }
 .wp-form code { display: block; margin: .3rem 0; overflow-wrap: anywhere; color: #adc8d0; }
+.wp-coordinate-copy { margin: .6rem 0; overflow-wrap: anywhere; }
+.wp-coordinate-copy > small { display: block; color: var(--text-muted, #adc8d0); }
+.wp-coordinate-copy label input { width: 100%; font-family: monospace; }
 .wp-editing { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: .7rem 1rem; margin: 0; }
 .wp-editing > header, .wp-editing > .wp-toolbar, .wp-editing > .wp-instruction, .wp-editing > .wp-error, .wp-editing > [role='status'] { grid-column: 1 / -1; margin: 0; }
 .wp-toolbar { align-items: end; padding: .65rem 0; border-top: 1px solid #365967; border-bottom: 1px solid #365967; }
