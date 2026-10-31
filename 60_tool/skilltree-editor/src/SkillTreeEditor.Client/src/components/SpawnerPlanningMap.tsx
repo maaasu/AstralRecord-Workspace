@@ -10,6 +10,7 @@ import { createCoverageCalculator, coverageColors, coverageTerrain, type Coverag
 import { SpawnerCoverageInspector } from './SpawnerCoverageInspector'
 import { createMapLabelIndex } from '../data/mapLabelIndex'
 import { createMapPointIndex } from '../data/mapPointIndex'
+import { SpawnerMasterLegend } from './SpawnerMasterLegend'
 
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 const hasRadius = (radius: number | null | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
@@ -636,10 +637,7 @@ export function SpawnerPlanningMap(props: Props) {
     {selected && <p className="sp-map-selection" aria-live="polite">選択中: {selected.kind === 'spawner' ? `#${masterNumbers.get(selected.templateId ?? '') ?? '?'} ${plainName(masters.get(selected.templateId ?? '')?.name ?? selected.templateId ?? 'マスター不明')} · ${spawnerLevels(masters.get(selected.templateId ?? '')?.levels ?? []).label}` : selected.kind === 'npc' ? plainName(props.placementCatalog?.npcs.find(item => item.id === selected.templateId)?.name ?? selected.templateId ?? 'NPC') : plainName(selected.waystone?.name ?? '道標')} · {selected.enabled ? '有効' : '無効'} · X {selected.x} / Z {selected.z}</p>}
     <div className="sp-marker-key" aria-label="スポナーの凡例">
       {markerMode === 'levels' && <div className="sp-marker-bands">{spawnerLevelBands.map(band => <span key={band.label}><i style={{ background: band.color }} />{band.label}</span>)}<span><i style={{ background: '#b0bbc8' }} />複数レベル・不明</span></div>}
-      <details><summary>表示中のスポナーマスター ({visibleMasters.length}) · 番号は一覧と共通</summary><div className="sp-master-key-list">{visibleMasters.map(id => {
-        const master = masters.get(id ?? ''), levels = spawnerLevels(master?.levels ?? [])
-        return <span key={id ?? 'unknown'} title={id ?? 'マスター未選択'}><b style={{ borderColor: markerMode === 'masters' ? spawnerMasterColor(id) : levels.color }}>#{masterNumbers.get(id ?? '') ?? '?'}</b><span>{plainName(master?.name ?? id ?? 'マスター未選択')}<small>{levels.label} · {id ?? 'マスター未選択'}</small></span></span>
-      })}</div></details>
+      <SpawnerMasterLegend ids={visibleMasters} masters={masters} numbers={masterNumbers} mode={markerMode} />
       <p>2px/m以上に拡大すると番号と実レベルを表示します。通常は選択した点だけにラベルを表示し、密集時は重なるラベルを省略します。</p>
       {layer === 'terrain' && <p><i className="sp-unknown-key" />青灰: 未解析・解析失敗　<i className="sp-absent-key" />濃灰: 未保存。地形や水域とは区別しています。{props.showProposals !== false && '詳細は区画の選択、または「配置・未配置の理由」で確認できます。'}</p>}
     </div>
