@@ -68,6 +68,7 @@ export function MasterAnalytics() {
   }
   const [query, setQuery] = useState('')
   const equipmentSearchHelpId = useId()
+  const bulkSelectionHelpId = useId()
   const [slot, setSlot] = useState('')
   const [tag, setTag] = useState('')
   const [level, setLevel] = useState(10)
@@ -129,6 +130,7 @@ export function MasterAnalytics() {
   }), [rowsByPath, selectedPaths])
   const filteredPaths = useMemo(() => new Set(filtered.map(row => row.path)), [filtered])
   const outsideCount = useMemo(() => selectedRows.filter(row => !filteredPaths.has(row.path)).length, [selectedRows, filteredPaths])
+  const matchingSelectedCount = selectedRows.length - outsideCount
   const missingCount = selectedPaths.length - selectedRows.length
   const sortedFiltered = useMemo(() => sortEquipment(filtered, sortKey, sortDirection, sortStatus), [filtered, sortKey, sortDirection, sortStatus])
   const sortedSelected = useMemo(() => sortEquipment(selectedRows, sortKey, sortDirection, sortStatus), [selectedRows, sortKey, sortDirection, sortStatus])
@@ -154,6 +156,24 @@ export function MasterAnalytics() {
       nextFocus?.focus()
     }
     setSelectedPaths(current => checked ? current.includes(path) ? current : [...current, path] : current.filter(value => value !== path))
+  }
+
+  function updateMatchingSelection(adding: boolean) {
+    if (adding ? matchingSelectedCount === filtered.length : matchingSelectedCount === 0) return
+    setSelectedPaths(current => {
+      if (!adding) return current.filter(path => !filteredPaths.has(path))
+      const selected = new Set(current)
+      const next = [...current]
+      for (const row of sortedFiltered) {
+        if (selected.has(row.path)) continue
+        selected.add(row.path)
+        next.push(row.path)
+      }
+      return next
+    })
+    setSelectedOnly(true)
+    setPage(0)
+    selectedViewButton.current?.focus()
   }
 
   function reloadMasters() {
@@ -215,6 +235,11 @@ export function MasterAnalytics() {
         <label>強化Lv<input type="number" min="0" max="100" value={enhance} onChange={event => { setEnhance(Math.max(0, Math.min(100, numeric(event.target.value)))); if (isStatSort) setPage(0) }} /></label>
         <label className="analytics-field-wide">グラフのステータス<select value={stat} onChange={event => { setStat(event.target.value); if (isStatSort) setPage(0) }}>{[...new Set([stat, ...statuses])].map(value => <option key={value} value={value}>{statusLabel(value)} ({value})</option>)}</select></label>
       </div>
+      <div className="analytics-actions" role="group" aria-label="条件一致の一括選択" aria-describedby={bulkSelectionHelpId}>
+        <button type="button" className="button" disabled={matchingSelectedCount === filtered.length} onClick={() => updateMatchingSelection(true)}>条件一致を比較に追加（{filtered.length - matchingSelectedCount}件）</button>
+        <button type="button" className="button" disabled={matchingSelectedCount === 0} onClick={() => updateMatchingSelection(false)}>条件一致の選択を解除（{matchingSelectedCount}件）</button>
+      </div>
+      <p id={bulkSelectionHelpId} className="analytics-note">全ページの絞り込み結果 {filtered.length}件が対象です。ボタンの件数は追加・解除する件数です。条件外の選択は保持し、操作後は「選択した装備」を表示します。</p>
       <details className="analytics-explanation"><summary>比較の計算方法と対象範囲</summary><p className="analytics-note">マスターの下限〜上限を比較します。強化は上限Lvまでの差分を累積し、同じ装備のFLAT合計 × 最後に採用されるSCALARを計算します。強化SCALARがある場合は基礎SCALARを置き換えます。SCALARだけのステータスは効果を持ちません。個体の乱数・エンチャント・ルーン・セット・超越・装備可否による無効化は含みません。</p></details>
       </section>
       <section className="analytics-panel analytics-results" aria-labelledby="equipment-results-heading">
