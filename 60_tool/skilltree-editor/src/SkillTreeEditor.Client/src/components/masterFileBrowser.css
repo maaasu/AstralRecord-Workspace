@@ -10,6 +10,9 @@
 .master-browser-heading h2 { font-size: 13px; letter-spacing: .03em; white-space: nowrap; }
 .master-browser-heading > div { display: flex; gap: 4px; }
 .master-browser-heading .button { padding: 5px 7px; min-height: 30px; font-size: 11px; }
+.master-current-file { display: grid; gap: 5px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.master-current-file .button { justify-self: start; font-size: 11px; }
+.master-current-file small { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
 .master-browser-columns { display: grid; grid-template-columns: 210px minmax(0, 1fr); flex: 1; min-height: 0; }
 .master-folder-pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
 .master-folder-pane > .master-category-browser { flex: 1; min-height: 0; }

@@ -36,6 +36,29 @@ async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
 function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
 
 describe('master file tabs', () => {
+  it('reveals the current file without losing invalid input or reloading an unsaved tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.change(input('/name'), { target: { value: '未保存の原稿A' } })
+    fireEvent.change(input('/level'), { target: { value: 'invalid' } })
+    await open('ファイルB')
+    fireEvent.change(screen.getByRole('textbox', { name: 'マスター検索' }), { target: { value: 'ファイルB' } })
+    select(/未保存の原稿A/)
+    expect(input('/name')).toHaveValue('未保存の原稿A')
+    expect(input('/level')).toHaveValue('invalid')
+    expect(screen.getByRole('textbox', { name: 'マスター検索' })).toHaveValue('ファイルB')
+    const filesBefore = vi.mocked(masterDataApi.file).mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: '編集中のファイルを一覧に表示' }))
+    const row = within(screen.getByLabelText('マスターの検索結果')).getByRole('button', { name: /ファイルA/ })
+    await waitFor(() => expect(row).toHaveFocus())
+    expect(screen.getByRole('textbox', { name: 'マスター検索' })).toHaveValue('')
+    expect(input('/name')).toHaveValue('未保存の原稿A')
+    expect(input('/level')).toHaveValue('invalid')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(filesBefore)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
   it('searches unsaved tabs and switches without losing invalid input, edited names or file history', async () => {
     render(<MasterDataEditor />)
     await open('ファイルA')

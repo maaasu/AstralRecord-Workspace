@@ -30,6 +30,9 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   const pendingFocus = useRef<number | null>(null)
   const more = useRef<HTMLDivElement>(null)
   const batchRequested = useRef(false)
+  const [reveal, setReveal] = useState<{ path: string; categoryId: string; scope: 'folder' | 'all'; ready: boolean } | null>(null)
+  const selectedExists = useMemo(() => Boolean(selectedPath && w.files.some(file => file.path === selectedPath)), [selectedPath, w.files])
+  const canReveal = active && !busy && !w.refreshing && selectedExists
   const category = w.catalog?.categories.find((entry) => entry.id === w.categoryId)
   const directory = category?.directory ?? ''
   const scopeLabel = w.searchScope === 'all' ? 'Filebase 全体' : category?.label ?? 'フォルダを選択'
@@ -55,6 +58,21 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     batchRequested.current = true
     w.setVisibleCount((count) => Math.min(count + 50, visibleFiles.length))
   }, [w.setVisibleCount, visibleFiles.length])
+  const revealCurrent = () => {
+    if (!canReveal || !selectedPath) return
+    const targetCategory = w.catalog?.categories.filter(entry => inCategory(selectedPath, entry.directory))
+      .sort((a, b) => b.directory.length - a.directory.length)[0]
+    const scope = targetCategory ? 'folder' : 'all'
+    pendingFocus.current = null
+    setReveal({ path: selectedPath, categoryId: targetCategory?.id ?? w.categoryId, scope, ready: false })
+    if (targetCategory) {
+      w.setCategoryId(targetCategory.id)
+      const parts = targetCategory.directory.split('/')
+      w.setExpandedCategories(current => new Set([...current, ...parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'))]))
+    }
+    w.setSearchScope(scope); w.setBrowserView('files'); w.setSidebarCollapsed(false)
+    w.setQuery(''); apply(emptyMasterListFilters())
+  }
   const focusResult = (index: number) => {
     if (busy || index < 0 || index >= visibleFiles.length) return
     if (index >= w.visibleCount) {
@@ -76,6 +94,22 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     batchRequested.current = false
     pendingFocus.current = null
   }, [w.categoryId, w.searchScope, w.query, filters])
+  useEffect(() => {
+    if (!reveal) return
+    if (!canReveal || selectedPath !== reveal.path || w.sidebarCollapsed || w.browserView !== 'files') { setReveal(null); return }
+    // Let the shared workspace's filter-change effect reset the first 50 rows
+    // before growing this explicit navigation request to the target row.
+    if (!reveal.ready) { setReveal({ ...reveal, ready: true }); return }
+    const changedFilters = Object.values(filters).some(value => typeof value === 'string' ? value.length > 0 : Object.keys(value).length > 0)
+    if (w.query || changedFilters || w.categoryId !== reveal.categoryId || w.searchScope !== reveal.scope) { setReveal(null); return }
+    const index = visibleFiles.findIndex(file => file.path === reveal.path)
+    if (index < 0) { setReveal(null); return }
+    if (index >= w.visibleCount) { w.setVisibleCount(Math.min(visibleFiles.length, Math.ceil((index + 1) / 50) * 50)); return }
+    const target = fileList.current?.querySelectorAll<HTMLButtonElement>('.master-file')[index]
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    setReveal(null)
+  }, [reveal, canReveal, selectedPath, w.sidebarCollapsed, w.browserView, w.categoryId, w.searchScope, w.query, filters, visibleFiles, w.visibleCount, w.setVisibleCount])
   useEffect(() => { batchRequested.current = false }, [w.visibleCount])
   useEffect(() => {
     if (!active || !fileList.current || !more.current || w.visibleCount >= visibleFiles.length || typeof IntersectionObserver === 'undefined') return
@@ -96,6 +130,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   return <><aside className="master-sidebar master-browser" hidden={w.sidebarCollapsed} data-browser-view={w.browserView} aria-label="マスターファイルを探す">
     <header className="master-browser-heading"><h2>マスターファイル</h2><div><button type="button" className="button compact subtle" disabled={busy} onClick={onNew}>＋ 新規</button><button type="button" className="button compact subtle" disabled={busy} onClick={onImport}>原稿を読込</button><button type="button" className="button compact subtle" disabled={w.refreshing} aria-label="一覧と定義を再読込" title="一覧と定義メタデータを再読込" onClick={() => void w.refresh().catch((reason) => w.setError(reason instanceof Error ? reason.message : String(reason)))}>↻</button><button type="button" className="button compact subtle" aria-label="ナビを閉じる" onClick={() => w.setSidebarCollapsed(true)}>×</button></div></header>
     <div className="master-browser-switch" role="group" aria-label="ファイル一覧の表示"><button type="button" className="button" aria-pressed={w.browserView === 'folders'} onClick={() => w.setBrowserView('folders')}>フォルダ</button><button type="button" className="button" aria-pressed={w.browserView === 'files'} onClick={() => w.setBrowserView('files')}>ファイル・検索結果</button></div>
+    <div className="master-current-file"><button type="button" className="button compact subtle" disabled={!canReveal} onClick={revealCurrent} title={selectedPath}>編集中のファイルを一覧に表示</button><small>{!selectedPath ? 'ファイルを開くと移動できます。' : !selectedExists ? 'このファイルは現在の一覧にありません。' : '検索・詳細条件を解除し、対象の行へ移動します。'}</small></div>
     <div className="master-browser-columns">
       <section className="master-folder-pane" aria-label="フォルダ一覧"><MasterCategoryTree categories={w.catalog?.categories ?? []} files={w.files} selectedId={w.categoryId} onSelect={changeCategory} expanded={w.expandedCategories} onExpandedChange={w.setExpandedCategories} /><footer><span>← → で開閉・Enterで選択</span><button type="button" className="text-button" onClick={() => setPathsOpen(true)}>読込先・バックアップ先</button></footer></section>
       <section className="master-results-pane" aria-label="ファイル検索と結果">
