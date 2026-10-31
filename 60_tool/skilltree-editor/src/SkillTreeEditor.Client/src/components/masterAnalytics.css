@@ -54,6 +54,7 @@
 .class-selection label:has(:disabled) { opacity: .55; cursor: default; }
 .class-selection input { align-self: start; margin-top: 2px !important; }
 .class-selection small { grid-column: 2; font-size: 10px; padding: 0; }
+.class-selection-empty { grid-column: 1 / -1; padding: 8px; }
 .analytics-compute { display: grid; gap: 10px; margin: 14px 0; }
 .analytics-compute > span { color: var(--text-muted); font-size: 12px; }
 .analytics-compute .button { width: 100%; }

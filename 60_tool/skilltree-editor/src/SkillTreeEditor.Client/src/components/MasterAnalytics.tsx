@@ -88,6 +88,10 @@ export function MasterAnalytics() {
   const [startClass, setStartClass] = useState(1)
   const [maximum, setMaximum] = useState(100)
   const [classIds, setClassIds] = useState<string[]>(['adventurer', 'swordsman', 'hunter', 'mage'])
+  const [classQuery, setClassQuery] = useState('')
+  const [classSelectedOnly, setClassSelectedOnly] = useState(false)
+  const classSearchInput = useRef<HTMLInputElement>(null)
+  const classSearchHelpId = useId()
   const [simulation, setSimulation] = useState<GrowthSimulation | null>(null)
   const [growing, setGrowing] = useState(false)
   const [growthStat, setGrowthStat] = useState('MAX_HEALTH')
@@ -113,6 +117,17 @@ export function MasterAnalytics() {
   }, [revision])
   const equipment = catalog?.equipment
   const classes = catalog?.classes
+  const matchesClassName = useMemo(() => createMasterNameMatcher(classQuery), [classQuery])
+  const visibleClasses = useMemo(() => (classes ?? []).filter(master =>
+    (!classSelectedOnly || classIds.includes(String(master.content.id))) &&
+    matchesClassName(String(master.content.name ?? ''), String(master.content.id), master.path)),
+  [classes, classSelectedOnly, classIds, matchesClassName])
+  const catalogClassIds = useMemo(() => new Set((classes ?? []).map(master => String(master.content.id))), [classes])
+  const missingClassIds = useMemo(() => classIds.filter(id => !catalogClassIds.has(id)), [classIds, catalogClassIds])
+  const hiddenSelectedClasses = useMemo(() => {
+    const visibleIds = new Set(visibleClasses.map(master => String(master.content.id)))
+    return classIds.filter(id => catalogClassIds.has(id) && !visibleIds.has(id)).length
+  }, [visibleClasses, classIds, catalogClassIds])
   const names = useMemo(() => new Map((equipment ?? []).map(master => [master.path, String(master.content.name ?? '')])), [equipment])
   const rows = useMemo(() => equipmentRows(equipment ?? [], enhance), [equipment, enhance])
   const defaultRows = useMemo(() => [...rows].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id)), [rows])
@@ -156,6 +171,16 @@ export function MasterAnalytics() {
       nextFocus?.focus()
     }
     setSelectedPaths(current => checked ? current.includes(path) ? current : [...current, path] : current.filter(value => value !== path))
+  }
+
+  function selectClass(event: ChangeEvent<HTMLInputElement>, id: string) {
+    const checked = event.currentTarget.checked
+    if (!checked && classSelectedOnly) {
+      const checkboxes = Array.from(event.currentTarget.closest('fieldset')!.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+      const index = checkboxes.indexOf(event.currentTarget)
+      ;(checkboxes[index + 1] ?? checkboxes[index - 1] ?? classSearchInput.current)?.focus()
+    }
+    setClassIds(current => checked ? current.includes(id) || current.length >= 12 ? current : [...current, id] : current.filter(value => value !== id))
   }
 
   function updateMatchingSelection(adding: boolean) {
@@ -279,7 +304,15 @@ export function MasterAnalytics() {
         <label>開始クラスLv<input type="number" min="1" max="1000" value={startClass} onChange={event => setStartClass(numeric(event.target.value, 1))} /></label>
         <label>表示上限プレイヤーLv<input type="number" min="1" max="200" value={maximum} onChange={event => setMaximum(numeric(event.target.value, 100))} /></label>
       </div>
-      <fieldset className="class-selection"><legend>比較する職業（最大12件）</legend>{catalog.classes.map(master => { const id = String(master.content.id); return <label key={master.path} title={`解放プレイヤーLv ${numeric(master.content.unlockLevel, 1)} / 必要経験値係数 ${numeric(master.content.expRate, 100)} / 最大レベル ${numeric(master.content.maxLevel, 100)}`}><input type="checkbox" checked={classIds.includes(id)} disabled={!classIds.includes(id) && classIds.length >= 12} onChange={event => setClassIds(current => event.target.checked ? [...current, id] : current.filter(value => value !== id))} /><MinecraftText value={String(master.content.name ?? '')} /><small>{id}</small></label> })}</fieldset>
+      <div className="analytics-controls"><label className="analytics-field-wide">職業を検索<input ref={classSearchInput} value={classQuery} aria-describedby={classSearchHelpId} placeholder="名前・ID・パス" onChange={event => setClassQuery(event.target.value)} /></label></div>
+      <p id={classSearchHelpId} className="analytics-search-help">空白区切りですべての語を含む職業を検索します。表示条件を変えても選択は保持されます。</p>
+      <div className="analytics-actions analytics-list-mode" role="group" aria-label="職業一覧の表示">
+        <button className="button" aria-pressed={classSelectedOnly} onClick={() => setClassSelectedOnly(value => !value)}>選択済みだけ表示</button>
+        <button className="button" disabled={!classQuery && !classSelectedOnly} onClick={() => { setClassQuery(''); setClassSelectedOnly(false); classSearchInput.current?.focus() }}>職業の条件を解除</button>
+      </div>
+      <p className="analytics-note" aria-live="polite">表示 {visibleClasses.length} / {catalog.classes.length} 職業 · 条件外の選択 {hiddenSelectedClasses} 件</p>
+      {missingClassIds.length > 0 && <p className="analytics-note">現在のカタログにない選択ID: {missingClassIds.join(', ')}。選択は保持しています。</p>}
+      <fieldset className="class-selection"><legend>比較する職業（最大12件）</legend>{visibleClasses.map(master => { const id = String(master.content.id); return <label key={master.path} title={`解放プレイヤーLv ${numeric(master.content.unlockLevel, 1)} / 必要経験値係数 ${numeric(master.content.expRate, 100)} / 最大レベル ${numeric(master.content.maxLevel, 100)}`}><input type="checkbox" checked={classIds.includes(id)} disabled={!classIds.includes(id) && classIds.length >= 12} onChange={event => selectClass(event, id)} /><MinecraftText value={String(master.content.name ?? '')} /><small>{id}</small></label> })}{!visibleClasses.length && <p className="analytics-note class-selection-empty">表示条件に一致する{classSelectedOnly ? '選択済みの' : ''}職業候補はありません。検索・表示条件を変えても選択は解除されません。</p>}</fieldset>
       <details className="analytics-explanation"><summary>育成シナリオの前提</summary><p className="analytics-note">入力変更後は「グラフを計算」で反映します。開始Lvは到達直後として計算します。通常育成・転生なし、同じEXPをプレイヤーと1職へ加算する仮定です。各職の曲線はそれぞれ独立した育成シナリオです。</p></details>
       </section>
       <section className="analytics-panel analytics-results" aria-labelledby="growth-results-heading" aria-busy={growing}>
