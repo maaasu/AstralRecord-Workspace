@@ -32,6 +32,30 @@ const masters: NodeMaster[] = [
 ]
 
 describe('SkillTreeCanvas', () => {
+  it('reuses prepared connections across six edge-only selections in a 100-node tree', async () => {
+    const sourcesRead = vi.fn((index: number) => String(2000 + index))
+    const manyMasters = Array.from({ length: 100 }, (_, index) => ({ ...masters[1], nodeId: String(2000 + index) }))
+    const manyNodes = { ...structure, rootNodeId: '2000', nodes: manyMasters.map((master, index) => ({ nodeId: master.nodeId, x: index % 10 * 6, y: 0, z: Math.floor(index / 10) * 6 })),
+      edges: manyMasters.slice(1).map((master, index) => ({ get sourceNodeId() { return sourcesRead(index) }, targetNodeId: master.nodeId })) }
+    const onRecord = vi.fn(), onReplace = vi.fn()
+    render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={manyNodes} masters={manyMasters}
+      onRecord={onRecord} onReplace={onReplace} onSelectedNode={vi.fn()} onBeginTransaction={vi.fn()} onCommitTransaction={vi.fn()} onEditMaster={vi.fn()} onNotify={vi.fn()} /></div>)
+    await screen.findByTestId('rf__edge-edge:2098:2099')
+    expect(sourcesRead).toHaveBeenCalled()
+    sourcesRead.mockClear()
+    for (const index of [0, 17, 38, 55, 79, 98]) {
+      const edge = screen.getByTestId(`rf__edge-edge:${2000 + index}:${2001 + index}`)
+      const path = edge.querySelector('path')?.getAttribute('d')
+      fireEvent.click(edge)
+      await waitFor(() => expect(edge).toHaveClass('selected'))
+      expect(edge.querySelector('path')).toHaveAttribute('d', path)
+    }
+    expect(screen.getByTestId('rf__edge-edge:2000:2001')).not.toHaveClass('selected')
+    expect(onRecord).not.toHaveBeenCalled()
+    expect(onReplace).not.toHaveBeenCalled()
+    expect(sourcesRead).toHaveBeenCalledTimes(0)
+  })
+
   it('reuses node descriptions across six selection changes in a 100-node tree', async () => {
     const effects = vi.spyOn(nodePresentation, 'describeNodeEffects')
     const tooltip = vi.spyOn(nodePresentation, 'nodeTooltip')
@@ -59,6 +83,73 @@ describe('SkillTreeCanvas', () => {
     expect(screen.getByTestId('rf__node-2000')).not.toHaveClass('selected')
     expect(onRecord).not.toHaveBeenCalled()
     expect(onReplace).not.toHaveBeenCalled()
+  })
+
+  it('refreshes connection paths for positions, visibility and topology while keeping edge selection', async () => {
+    let props: ComponentProps<typeof SkillTreeCanvas> = { structure, masters, onRecord: vi.fn(), onReplace: vi.fn(),
+      onSelectedNode: vi.fn(), onBeginTransaction: vi.fn(), onCommitTransaction: vi.fn(), onEditMaster: vi.fn(), onNotify: vi.fn() }
+    const view = render(<StrictMode><div style={{ width: 800, height: 600 }}><SkillTreeCanvas {...props} /></div></StrictMode>)
+    const update = (patch: Partial<typeof props>) => {
+      props = { ...props, ...patch }
+      view.rerender(<StrictMode><div style={{ width: 800, height: 600 }}><SkillTreeCanvas {...props} /></div></StrictMode>)
+    }
+    const edge = () => screen.getByTestId('rf__edge-edge:1000:1001')
+    const path = () => edge().querySelector('path')?.getAttribute('d')
+    await screen.findByTestId('rf__edge-edge:1000:1001')
+    const horizontalPath = path()
+    expect(horizontalPath).toMatch(/^M/)
+    fireEvent.click(edge())
+    await waitFor(() => expect(edge()).toHaveClass('selected'))
+    update({ structure: { ...structure, nodes: structure.nodes.map(placement => placement.nodeId === '1001' ? { ...placement, x: 0, z: 6 } : placement) } })
+    await waitFor(() => expect(path()).not.toBe(horizontalPath))
+    const verticalPath = path()
+    expect(edge()).toHaveClass('selected')
+    update({ visibleNodeIds: new Set(['1000']) })
+    await waitFor(() => expect(screen.queryByTestId('rf__edge-edge:1000:1001')).not.toBeInTheDocument())
+    update({ visibleNodeIds: null })
+    await waitFor(() => expect(path()).toBe(verticalPath))
+    expect(edge()).toHaveClass('selected')
+    update({ structure: { ...structure, edges: [] } })
+    await waitFor(() => expect(screen.queryByTestId('rf__edge-edge:1000:1001')).not.toBeInTheDocument())
+    update({ structure })
+    await waitFor(() => expect(path()).toBe(horizontalPath))
+    update({ structure: { ...structure, nodes: [...structure.nodes, { nodeId: '1002', x: -6, y: 0, z: 0 }], edges: [{ sourceNodeId: '1000', targetNodeId: '1002' }] } })
+    expect(await screen.findByTestId('rf__edge-edge:1000:1002')).toBeInTheDocument()
+    expect(screen.getByTestId('rf__node-1002')).toHaveTextContent('Unknown 1002')
+    expect(screen.queryByTestId('rf__edge-edge:1000:1001')).not.toBeInTheDocument()
+    expect(props.onRecord).not.toHaveBeenCalled()
+    expect(props.onReplace).not.toHaveBeenCalled()
+  })
+
+  it('updates connection paths during a live drag before committing the structure', async () => {
+    const onReplace = vi.fn(), onCommit = vi.fn(), onBegin = vi.fn()
+    render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={structure} masters={masters}
+      onRecord={vi.fn()} onReplace={onReplace} onSelectedNode={vi.fn()} onBeginTransaction={onBegin} onCommitTransaction={onCommit} onEditMaster={vi.fn()} onNotify={vi.fn()} /></div>)
+    const edge = await screen.findByTestId('rf__edge-edge:1000:1001')
+    const originalPath = edge.querySelector('path')?.getAttribute('d')
+    const node = screen.getByTestId('rf__node-1001')
+    const dragWindow = node.ownerDocument.defaultView!
+    const dragEvent = (type: string, clientX: number, clientY: number, buttons: number) => {
+      const event = new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, buttons, clientX, clientY })
+      // JSDOMのWindow変換を避け、d3-dragが参照するviewを明示する。
+      Object.defineProperty(event, 'view', { value: dragWindow })
+      return event
+    }
+    fireEvent(node, dragEvent('mousedown', 400, 100, 1))
+    fireEvent(dragWindow, dragEvent('mousemove', 410, 110, 1))
+    fireEvent(dragWindow, dragEvent('mousemove', 100, 500, 1))
+    try {
+      expect(onBegin).toHaveBeenCalledOnce()
+      await waitFor(() => expect(screen.getByTestId('rf__edge-edge:1000:1001').querySelector('path')?.getAttribute('d')).not.toBe(originalPath))
+      expect(onReplace).not.toHaveBeenCalled()
+      expect(onCommit).not.toHaveBeenCalled()
+    } finally {
+      fireEvent(dragWindow, dragEvent('mouseup', 100, 500, 0))
+    }
+    await waitFor(() => expect(onCommit).toHaveBeenCalledOnce())
+    expect(onReplace).toHaveBeenCalledOnce()
+    expect(onReplace.mock.calls[0][0].nodes[1]).not.toEqual(structure.nodes[1])
+    expect(onReplace.mock.calls[0][0].edges).toEqual(structure.edges)
   })
 
   it('refreshes descriptions and positions when master, catalog, structure or display inputs change', async () => {

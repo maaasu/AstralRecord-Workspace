@@ -132,7 +132,7 @@ function CanvasInner({
   useEffect(() => {
     setFlowNodes(initialNodes)
   }, [initialNodes])
-  const edges = useMemo<Edge[]>(() => {
+  const preparedEdges = useMemo<Edge[]>(() => {
     const placementMap = new Map(flowNodes.map((node) => [node.id, {
       x: node.position.x,
       z: node.position.y,
@@ -151,10 +151,11 @@ function CanvasInner({
           targetHandle: routed.targetHandle,
           type: 'straight',
           className: 'skill-edge',
-          selected: selectedEdgeIds.has(id),
         }
       })
-  }, [flowNodes, selectedEdgeIds, structure.edges, visibleNodeIds])
+  }, [flowNodes, structure.edges, visibleNodeIds])
+  // Edge-only selection reuses routing; live node positions and visibility still refresh it.
+  const edges = useMemo(() => preparedEdges.map(edge => ({ ...edge, selected: selectedEdgeIds.has(edge.id) })), [preparedEdges, selectedEdgeIds])
 
   const onNodesChange = useCallback((changes: NodeChange<Node<SkillNodeData>>[]) => {
     setSelectedIds((current) => {
