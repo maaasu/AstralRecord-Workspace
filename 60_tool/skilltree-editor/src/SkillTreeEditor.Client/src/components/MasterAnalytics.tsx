@@ -5,6 +5,7 @@ import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber,
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 import { sortEquipment } from '../data/equipmentSort'
 import { differingEquipmentStatuses } from '../data/equipmentComparisonColumns'
+import { equipmentCsvRows } from '../data/equipmentCsv'
 import { createMasterNameMatcher } from '../data/masterDataFilters'
 import type { EquipmentSortDirection, EquipmentSortKey } from '../data/equipmentSort'
 import './masterAnalytics.css'
@@ -70,6 +71,7 @@ export function MasterAnalytics() {
   }
   const [query, setQuery] = useState('')
   const equipmentSearchHelpId = useId()
+  const equipmentExportHelpId = useId()
   const bulkSelectionHelpId = useId()
   const [slot, setSlot] = useState('')
   const [tag, setTag] = useState('')
@@ -294,7 +296,8 @@ export function MasterAnalytics() {
       <details className="analytics-explanation"><summary>比較の計算方法と対象範囲</summary><p className="analytics-note">マスターの下限〜上限を比較します。強化は上限Lvまでの差分を累積し、同じ装備のFLAT合計 × 最後に採用されるSCALARを計算します。強化SCALARがある場合は基礎SCALARを置き換えます。SCALARだけのステータスは効果を持ちません。個体の乱数・エンチャント・ルーン・セット・超越・装備可否による無効化は含みません。</p></details>
       </section>
       <section className="analytics-panel analytics-results" aria-labelledby="equipment-results-heading">
-      <div className="analytics-section-heading"><div><h2 id="equipment-results-heading">比較結果</h2><p className="analytics-result-count" role="status">{active.length}件を比較 <span>／ 条件一致 {filtered.length}件</span></p></div><div className="analytics-actions"><button className="button" disabled={!selectedPaths.length} onClick={() => { setSelectedPaths([]); setSelectedOnly(false); setPage(0) }}>選択を解除</button><button className="button" disabled={!active.length} onClick={() => downloadCsv('equipment-comparison.csv', [['ID', '名前', 'スロット', 'タグ', '要求Lv', '進行度', ...statuses.flatMap(id => [`${id} 下限`, `${id} 上限`])], ...active.map(row => [row.id, row.name, row.slot, row.tag, row.level, row.progression, ...statuses.flatMap(id => [row.stats[id]?.min, row.stats[id]?.max])])])}>比較表をCSV出力</button></div></div>
+      <div className="analytics-section-heading"><div><h2 id="equipment-results-heading">比較結果</h2><p className="analytics-result-count" role="status">{active.length}件を比較 <span>／ 条件一致 {filtered.length}件</span></p></div><div className="analytics-actions"><button className="button" disabled={!selectedPaths.length} onClick={() => { setSelectedPaths([]); setSelectedOnly(false); setPage(0) }}>選択を解除</button><button className="button" disabled={!active.length} aria-describedby={equipmentExportHelpId} onClick={() => downloadCsv('equipment-comparison.csv', equipmentCsvRows(active, statuses, enhance))}>比較表をCSV出力</button></div></div>
+      <p id={equipmentExportHelpId} className="analytics-note">CSVは比較対象の全件・全ステータスを出力します。末尾に期待値（未定義は空欄）、指定強化Lv、40_filebaseからのソースパスを付けます。計算は装備ごとの強化上限を適用しています。</p>
       {selectedPaths.length > 0 && <p className="analytics-note" role="status">選択中: {selectedRows.length}件（現在の条件外 {outsideCount}件）。「選択した装備」の一覧から個別に解除できます。</p>}
       {missingCount > 0 && <div className="analytics-selection-warning" role="status"><p>選択した装備のうち {missingCount}件が現在のマスターに見つかりません。比較とCSVには含めません。</p><button className="button" onClick={() => { setSelectedPaths(current => current.filter(path => rowsByPath.has(path))); setPage(0) }}>見つからない選択を解除</button></div>}
       <div className="analytics-controls" role="group" aria-label="比較結果の並び順">
