@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import type { ClassMasterSummary, NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
-import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
+import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeCostPresentation, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
 import { masterTagLabel, masterTagSearchText, masterTagTooltip } from '../data/masterTagPresentation'
 
 interface NodeSidebarProps {
@@ -21,6 +21,19 @@ interface NodeSidebarProps {
   classMasters?: readonly ClassMasterSummary[]
 }
 
+interface NodeListingEntry {
+  node: NodeMaster
+  name: string
+  effects: NodeEffectPresentation[]
+  cost: NodeCostPresentation
+  tags: { id: string; label: string; tooltip: string }[]
+  tooltip: string
+  searchText: string
+}
+
+const EMPTY_CLASS_MASTERS: readonly ClassMasterSummary[] = []
+const normalizeSearch = (text: string) => stripMinecraftFormatting(text).toLocaleLowerCase('ja-JP')
+
 export function NodeSidebar({
   nodes,
   placedIds,
@@ -34,26 +47,29 @@ export function NodeSidebar({
   placementDisabled = false,
   iconRevision = 0,
   skillMasters,
-  classMasters = [],
+  classMasters = EMPTY_CLASS_MASTERS,
 }: NodeSidebarProps) {
-  const effectsByNodeId = useMemo(
-    () => new Map(nodes.map((node) => [node.nodeId, describeNodeEffects(node, skillMasters)])),
-    [nodes, skillMasters],
-  )
-  const tags = [...new Set(nodes.flatMap((node) => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja'))
-  const filtered = nodes.filter((node) => {
-    const keyword = query.trim().toLocaleLowerCase()
+  const searchHelpId = useId()
+  const entries = useMemo<NodeListingEntry[]>(() => nodes.map(node => {
+    const effects = describeNodeEffects(node, skillMasters)
     const cost = describeNodeCost(node, classMasters)
-    const matchesKeyword = !keyword
-      || node.nodeId.toLocaleLowerCase().includes(keyword)
-      || node.name.toLocaleLowerCase().includes(keyword)
-      || (node.tags ?? []).some((tag) => masterTagSearchText(tag).toLocaleLowerCase().includes(keyword))
-      || cost.searchText.toLocaleLowerCase().includes(keyword)
-      || (effectsByNodeId.get(node.nodeId) ?? []).some((effect) => effect.searchText.toLocaleLowerCase().includes(keyword))
-    return matchesKeyword && (!selectedTag || node.tags?.includes(selectedTag))
-  })
-  const unplaced = filtered.filter((node) => !placedIds.has(node.nodeId))
-  const placed = filtered.filter((node) => placedIds.has(node.nodeId))
+    const name = stripMinecraftFormatting(node.name)
+    const tags = (node.tags ?? []).map(id => ({ id, label: masterTagLabel(id), tooltip: masterTagTooltip(id) }))
+    return {
+      node, name, effects, cost, tags,
+      tooltip: [nodeTooltip(node, effects, classMasters), ...(tags.length ? ['', 'タグ:', ...tags.map(tag => tag.tooltip)] : [])].join('\n'),
+      searchText: normalizeSearch([node.nodeId, name, ...(node.tags ?? []).map(masterTagSearchText), cost.searchText, ...effects.map(effect => effect.searchText)].join('\n')),
+    }
+  }), [nodes, skillMasters, classMasters])
+  const tags = useMemo(() => [...new Set(nodes.flatMap(node => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja')), [nodes])
+  const words = useMemo(() => normalizeSearch(query).trim().split(/\s+/u).filter(Boolean), [query])
+  const filtered = useMemo(() => entries.filter(entry => (!selectedTag || entry.node.tags?.includes(selectedTag))
+    && words.every(word => entry.searchText.includes(word))), [entries, selectedTag, words])
+  const { unplaced, placed } = useMemo(() => {
+    const unplaced: NodeListingEntry[] = [], placed: NodeListingEntry[] = []
+    for (const entry of filtered) (placedIds.has(entry.node.nodeId) ? placed : unplaced).push(entry)
+    return { unplaced, placed }
+  }, [filtered, placedIds])
 
   return (
     <aside className="sidebar">
@@ -67,53 +83,50 @@ export function NodeSidebar({
       <div className="filters">
         <input
           type="search"
+          aria-label="ノードを検索"
+          aria-describedby={searchHelpId}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="ID・名前・タグを検索"
+          placeholder="例: 火球 CP 冒険者"
         />
-        <select value={selectedTag} onChange={(event) => onTagChange(event.target.value)}>
+        <small id={searchHelpId} className="node-search-help">ID・名前・タグ・効果・コストを検索します。空白で区切ると、すべての語を含むノードを表示します。</small>
+        <select aria-label="ノードのタグ" value={selectedTag} onChange={(event) => onTagChange(event.target.value)}>
           <option value="">すべてのタグ</option>
           {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
         </select>
       </div>
-      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
-      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
+      <NodeGroup title={`未配置 ${unplaced.length}`} entries={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} />
+      <NodeGroup title={`配置済み ${placed.length}`} entries={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
     </aside>
   )
 }
 
 function NodeGroup({
   title,
-  nodes,
+  entries,
   placedIds,
   onEdit,
   onPlace,
   placementDisabled,
   iconRevision,
-  effectsByNodeId,
-  classMasters,
 }: {
   title: string
-  nodes: NodeMaster[]
+  entries: NodeListingEntry[]
   placedIds: Set<string>
   onEdit: (node: NodeMaster) => void
   onPlace?: (node: NodeMaster) => void
   placementDisabled?: boolean
   iconRevision: number
-  effectsByNodeId: ReadonlyMap<string, readonly NodeEffectPresentation[]>
-  classMasters: readonly ClassMasterSummary[]
 }) {
   return (
-    <section className={`node-group ${nodes.length === 0 ? 'empty' : ''}`}>
+    <section className={`node-group ${entries.length === 0 ? 'empty' : ''}`}>
       <h3>{title}</h3>
       <div className="node-list">
-        {nodes.map((node) => {
-          const effects = effectsByNodeId.get(node.nodeId) ?? []
-          const cost = describeNodeCost(node, classMasters)
+        {entries.map(({ node, name, effects, cost, tags, tooltip }) => {
           return <article
             className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
             key={node.nodeId}
-            title={nodeTooltipWithTags(node, effects, classMasters)}
+            title={tooltip}
             draggable={!placedIds.has(node.nodeId)}
             onDragStart={(event) => {
               event.dataTransfer.setData('application/x-astral-node', node.nodeId)
@@ -123,10 +136,10 @@ function NodeGroup({
           >
             <MinecraftIcon icon={node.icon} revision={iconRevision} className="sidebar-node-icon" />
             <div className="node-id">#{node.nodeId} · {String(node.icon)}</div>
-            <strong>{stripMinecraftFormatting(node.name)}</strong>
+            <strong>{name}</strong>
             <div className="tag-row">
-              {(node.tags ?? []).slice(0, 3).map((tag) => (
-                <span className="tag" title={masterTagTooltip(tag)} key={tag}>{masterTagLabel(tag)}</span>
+              {tags.slice(0, 3).map((tag) => (
+                <span className="tag" title={tag.tooltip} key={tag.id}>{tag.label}</span>
               ))}
             </div>
             <div className="node-cost-preview" title={cost.detail}>
@@ -140,23 +153,11 @@ function NodeGroup({
                 {effects.length > 2 && <span className="node-effect more">ほか{effects.length - 2}件</span>}
               </div>
             )}
-            <div className="node-list-actions">{onPlace && <button className="button compact subtle" aria-label={`${stripMinecraftFormatting(node.name)}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}<button className="text-button" onClick={() => onEdit(node)}>編集</button></div>
+            <div className="node-list-actions">{onPlace && <button className="button compact subtle" aria-label={`${name}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}<button className="text-button" onClick={() => onEdit(node)}>編集</button></div>
           </article>
         })}
-        {nodes.length === 0 && <p className="empty-state">該当ノードはありません。</p>}
+        {entries.length === 0 && <p className="empty-state">該当ノードはありません。</p>}
       </div>
     </section>
   )
-}
-
-function nodeTooltipWithTags(
-  node: NodeMaster,
-  effects: readonly NodeEffectPresentation[],
-  classMasters: readonly ClassMasterSummary[],
-): string {
-  const tags = node.tags ?? []
-  return [
-    nodeTooltip(node, effects, classMasters),
-    ...(tags.length > 0 ? ['', 'タグ:', ...tags.map(masterTagTooltip)] : []),
-  ].join('\n')
 }
