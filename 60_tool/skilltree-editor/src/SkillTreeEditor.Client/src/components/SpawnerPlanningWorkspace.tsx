@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
 import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
@@ -12,8 +12,13 @@ import { placementSearchText, placementSearchWords } from '../data/placementSear
 import { stripMinecraftFormatting } from '../utils/minecraft'
 
 const number = (value: number) => value.toLocaleString('ja-JP')
+const proposalPageSize = 40
 export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: boolean; onDirtyChange?: (dirty: boolean) => void }) {
   const searchHelpId = useId()
+  const proposalListId = useId()
+  const proposalList = useRef<HTMLDivElement>(null)
+  const listFocus = useRef<{ id: string | null; plan: PlanningPlan | null; region: string } | null>(null)
+  const [listFocusKey, setListFocusKey] = useState(0)
   const [snapshot, setSnapshot] = useState<PlanningSnapshot | null>(null)
   const [plan, setPlan] = useState<PlanningPlan | null>(null)
   const [reload, setReload] = useState(0)
@@ -29,7 +34,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [selectedCell, setSelectedCell] = useState<number | null>(null)
   const [selectedProposal, setSelectedProposal] = useState<string | null>(null)
   const [focus, setFocus] = useState<{ key: number; x: number; z: number } | null>(null)
-  const [visibleCount, setVisibleCount] = useState(40)
+  const [proposalPage, setProposalPage] = useState(0)
   const [query, setQuery] = useState('')
   const [placements, setPlacements] = useState<WorldPlacement[]>([])
   const [placementsReady, setPlacementsReady] = useState(false)
@@ -57,7 +62,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   useEffect(() => {
     if (!snapshot || editing || loading) return
     const controller = new AbortController()
-    setPlanning(true); setPlan(null); setPlanningError(''); setSelectedCell(null); setSelectedProposal(null); setVisibleCount(40)
+    setPlanning(true); setPlan(null); setPlanningError(''); setSelectedCell(null); setSelectedProposal(null); setProposalPage(0)
     const cached = plansByRadius.get(radius)
     if (cached) { setPlan(cached); setPlanning(false); return () => controller.abort() }
     spawnerPlanningApi.plan(snapshot, radius, controller.signal).then(value => {
@@ -83,6 +88,32 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     const words = placementSearchWords(query)
     return words.length ? regionProposals.filter(value => words.every(word => proposalSearch.get(value)!.includes(word))) : regionProposals
   }, [regionProposals, query, proposalSearch])
+  const proposalPages = Math.max(1, Math.ceil(proposals.length / proposalPageSize))
+  const currentProposalPage = Math.min(proposalPage, proposalPages - 1)
+  const selectedProposalIndex = useMemo(() => proposals.findIndex(value => value.proposalId === selectedProposal), [proposals, selectedProposal])
+  const selectedRegionIndex = useMemo(() => regionProposals.findIndex(value => value.proposalId === selectedProposal), [regionProposals, selectedProposal])
+  const selectedOutsideSearch = selectedRegionIndex >= 0 && selectedProposalIndex < 0
+  useEffect(() => { setProposalPage(current => Math.min(current, proposalPages - 1)) }, [proposalPages])
+  useEffect(() => {
+    const request = listFocus.current
+    listFocus.current = null
+    if (!request || editing || loading || planning || request.plan !== plan || request.region !== region) return
+    const buttons = Array.from(proposalList.current?.querySelectorAll<HTMLButtonElement>('button[data-proposal-id]') ?? [])
+    const target = request.id === null ? buttons[0] : buttons.find(button => button.dataset.proposalId === request.id)
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView?.({ block: 'nearest' })
+  }, [currentProposalPage, listFocusKey, editing, loading, planning, plan, region])
+  function navigateProposals(page: number, id: string | null = null) {
+    if (!plan || planning || loading) return
+    listFocus.current = { id, plan, region }
+    setProposalPage(page)
+    setListFocusKey(value => value + 1)
+  }
+  function revealProposal() {
+    if (selectedRegionIndex < 0 || !selectedProposal || !plan || planning || loading) return
+    if (selectedOutsideSearch) setQuery('')
+    navigateProposals(Math.floor((selectedOutsideSearch ? selectedRegionIndex : selectedProposalIndex) / proposalPageSize), selectedProposal)
+  }
   const stats = useMemo(() => {
     const counts: Record<string, number> = {}
     if (snapshot && plan) snapshot.cells.forEach((cell, index) => {
@@ -95,7 +126,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const cell = selectedCell === null ? null : snapshot?.cells[selectedCell]
   const cellCode = selectedCell === null ? '' : plan?.reasonCodes[selectedCell] ?? cell?.reasonCode ?? ''
   const proposal = plan?.proposals.find(value => value.proposalId === selectedProposal)
-  function selectRegion(value: string) { setRegion(value); setReason(''); setSelectedCell(null); setSelectedProposal(null); setVisibleCount(40) }
+  function selectRegion(value: string) { setRegion(value); setReason(''); setSelectedCell(null); setSelectedProposal(null); setProposalPage(0) }
   function selectProposal(id: string) {
     setSelectedProposal(id); setSelectedCell(null)
     const value = plan?.proposals.find(item => item.proposalId === id)
@@ -160,7 +191,18 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
           </section>
           {selectedRegion && <section><h2>{selectedRegion.name}</h2><p className="sp-muted">{selectedRegion.reason}</p><button className="button" onClick={() => selectRegion('')}>全大陸へ戻す</button></section>}
           <section><h2>配置・未配置の理由</h2><div className="sp-reason-list">{Object.entries(stats.counts).sort((a, b) => b[1] - a[1]).map(([code, value]) => <button key={code} onClick={() => { setReason(code); setLayer('reasons') }} aria-pressed={reason === code}><span><i style={{ background: reasonColor(code) }} />{snapshot.manifest.reasons[code] ?? code}</span><b>{number(value)}</b></button>)}</div></section>
-          <section><h2>配置案 <small>{number(proposals.length)}件</small></h2><input aria-label="配置案を検索" aria-describedby={searchHelpId} placeholder="モブ名・地域名・ID・座標" value={query} onChange={event => { setQuery(event.target.value); setVisibleCount(40) }} /><p id={searchHelpId} className="sp-muted">空白区切りですべての語を含む案を検索します。例: オオカミ 草原。検索は一覧だけに反映します。</p><div className="sp-proposal-list">{proposals.slice(0, visibleCount).map(value => <button key={value.proposalId} onClick={() => selectProposal(value.proposalId)} aria-pressed={selectedProposal === value.proposalId}><strong>Lv.{value.level} · {value.regionName}</strong><span>{value.spawnMobs.map(mob => stripMinecraftFormatting(mob.name)).join(' / ')}</span><small>X {value.x} / Y {value.y} / Z {value.z}{value.definitionStatus === 'draft' ? ' · 未登録案' : ''}</small></button>)}{proposals.length === 0 && plan && <p className="sp-muted">この条件の配置案はありません。未配置理由を確認してください。</p>}</div>{visibleCount < proposals.length && <button className="button sp-more" onClick={() => setVisibleCount(value => value + 40)}>さらに40件表示</button>}</section>
+          <section><h2>配置案 <small>{number(proposals.length)}件</small></h2>
+            <input aria-label="配置案を検索" aria-describedby={searchHelpId} placeholder="モブ名・地域名・ID・座標" value={query} onChange={event => { setQuery(event.target.value); setProposalPage(0) }} />
+            <p id={searchHelpId} className="sp-muted">空白区切りですべての語を含む案を検索します。例: オオカミ 草原。検索は一覧だけに反映します。</p>
+            <div className="sp-proposal-navigation" role="group" aria-label="配置案一覧のページ">
+              <span role="status">{proposals.length ? `${number(currentProposalPage * proposalPageSize + 1)}–${number(Math.min((currentProposalPage + 1) * proposalPageSize, proposals.length))}` : '0'} / {number(proposals.length)} 件 · {currentProposalPage + 1} / {proposalPages} ページ</span>
+              <button className="button" type="button" aria-controls={proposalListId} disabled={loading || planning || currentProposalPage === 0} onClick={() => navigateProposals(currentProposalPage - 1)}>前の案ページ</button>
+              <button className="button" type="button" aria-controls={proposalListId} disabled={loading || planning || currentProposalPage + 1 >= proposalPages} onClick={() => navigateProposals(currentProposalPage + 1)}>次の案ページ</button>
+              <button className="button sp-proposal-reveal" type="button" aria-controls={proposalListId} disabled={loading || planning || selectedRegionIndex < 0} onClick={revealProposal}>{selectedOutsideSearch ? '検索を解除して選択案を表示' : '選択中の案を一覧に表示'}</button>
+            </div>
+            {selectedOutsideSearch && <p className="sp-muted" role="status">選択中の案は検索条件外です。表示する操作で一覧の検索だけを解除します。</p>}
+            <div id={proposalListId} ref={proposalList} className="sp-proposal-list" aria-label="配置案の一覧">{proposals.slice(currentProposalPage * proposalPageSize, (currentProposalPage + 1) * proposalPageSize).map(value => <button type="button" key={value.proposalId} data-proposal-id={value.proposalId} onClick={() => selectProposal(value.proposalId)} aria-pressed={selectedProposal === value.proposalId}><strong>Lv.{value.level} · {value.regionName}</strong><span>{value.spawnMobs.map(mob => stripMinecraftFormatting(mob.name)).join(' / ')}</span><small>X {value.x} / Y {value.y} / Z {value.z}{value.definitionStatus === 'draft' ? ' · 未登録案' : ''}</small></button>)}{proposals.length === 0 && plan && <p className="sp-muted">この条件の配置案はありません。未配置理由を確認してください。</p>}</div>
+          </section>
           <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>配置案は解析用です。保存済み配置の編集は Dev のみです。共有チャンネルへの公開は別工程です。</p></section>
         </aside>}
       </div>

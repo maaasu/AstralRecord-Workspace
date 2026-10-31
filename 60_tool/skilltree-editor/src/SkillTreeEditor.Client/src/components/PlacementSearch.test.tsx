@@ -109,7 +109,7 @@ describe('placement list search', () => {
     })
     const { container } = render(<SpawnerPlanningWorkspace active />)
     fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
-    await screen.findByRole('button', { name: 'さらに40件表示' })
+    await screen.findByText('1–40 / 2,000 件 · 1 / 50 ページ')
     const initial = normalized
     normalized = 0
     for (const value of ['w', 'wo', 'wol', 'wolf']) fireEvent.change(screen.getByLabelText('配置案を検索'), { target: { value } })
