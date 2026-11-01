@@ -204,7 +204,7 @@ Java実行ファイルが既定の`C:\Program Files\AstralRecordControl\Java\jdk
 
 ### MC-01のNetherNet TCP許可を修復する
 
-GeyserをNetherNetへ更新した後、TCP 19132のsignalingが到達しない場合は、MC-01の管理者PowerShellで`Repair-ControlNetherNetFirewall.ps1`を使用します。MC-01のローカルIPが`192.168.0.89`であること、TCP ListenとUDP 19132が同じJava実行ファイル・同じPIDに所有され、両方が`0.0.0.0`または`192.168.0.89`で待ち受けていることを確認します。Java実行ファイルは既存UDP修復と同じ既定パスで、必要なら`-Java 'C:\absolute\path\to\java.exe'`を指定します。
+GeyserをNetherNetへ更新した後、TCP 19132のsignalingが到達しない場合は、MC-01の管理者PowerShellで`Repair-ControlNetherNetFirewall.ps1`を使用します。MC-01のローカルIPが`192.168.0.89`であること、TCP ListenとUDP 19132が同じJava実行ファイル・同じPIDに所有され、両方が`0.0.0.0`または`192.168.0.89`で待ち受けていることを確認します。TCPだけがIPv6ワイルドカード`::`で表示される場合は、同じPCからIPv4の`192.168.0.89:19132`へ2秒以内に接続できた場合に限り受け入れます。この確認は外部からの到達性を保証しません。loopback・別IPへの待受や、IPv4接続できないIPv6限定待受は拒否します。失敗時のエラーには取得済みのTCP/UDP待受アドレス・PIDを含めます。Java実行ファイルは既存UDP修復と同じ既定パスで、必要なら`-Java 'C:\absolute\path\to\java.exe'`を指定します。
 
 ```powershell
 pwsh -NoProfile -File ./60_tool/control-deploy/Repair-ControlNetherNetFirewall.ps1 -WhatIf

@@ -5,9 +5,12 @@ $ErrorActionPreference = 'Stop'
 $script:realGetNetherNetRules = ${function:Get-NetherNetRules}
 
 function Assert-Test([bool]$Condition, [string]$Message) { if (!$Condition) { throw $Message } }
-function Expect-Rejection([scriptblock]$Action, [string]$Message) {
+function Expect-Rejection([scriptblock]$Action, [string]$Message, [string]$ExpectedMessage = '') {
     try { & $Action | Out-Null; throw "Expected rejection: $Message" }
-    catch { if ($_.Exception.Message -like 'Expected rejection:*') { throw } }
+    catch {
+        if ($_.Exception.Message -like 'Expected rejection:*') { throw }
+        if ($ExpectedMessage) { Assert-Test ($_.Exception.Message -like $ExpectedMessage) "Missing rejection diagnosis: $Message" }
+    }
 }
 function New-TestRule([string]$Name, [string]$Protocol, [string]$Group) {
     [pscustomobject]@{
@@ -28,6 +31,11 @@ function Get-NetherNetComputerName { $script:hostName }
 function Test-NetherNetAdministrator { $script:admin }
 function Get-NetherNetLocalIPs { $script:localIPs }
 function Get-NetherNetListeners { $script:listeners }
+function Test-NetherNetIPv4Listener([string]$Address, [int]$Port) {
+    $script:probeCalls++
+    Assert-Test ($Address -eq '192.168.0.89' -and $Port -eq 19132) 'Probe used an unexpected destination.'
+    $script:probeSuccess
+}
 # Exercise the real read adapter separately with scalar CIM filter values.
 function Get-NetFirewallRule { param($PolicyStore, $ErrorAction) $script:adapterRule }
 function Get-NetFirewallApplicationFilter { param($ErrorAction) process { [pscustomobject]@{ Program = $java; Package = $null } } }
@@ -90,6 +98,7 @@ function Reset-TestState {
     $script:udpRule = New-TestRule 'existing-udp-rule' 'UDP' 'ExistingUdpAllowGroup'
     $script:managed.Clear(); $script:addCalls = 0; $script:removeCalls = 0; $script:createdName = $null
     $script:failVerify = $false; $script:failAdd = $false; $script:injectCollision = $false
+    $script:probeCalls = 0; $script:probeSuccess = $false
 }
 try {
     New-Item -ItemType Directory -Path $fixture | Out-Null
@@ -115,6 +124,18 @@ try {
     $again = Invoke-ControlNetherNetFirewallRepair -Java $java -Confirm:$false | ConvertFrom-Json
     Assert-Test ($again.status -eq 'Existing' -and $again.ruleName -eq $created.ruleName -and $script:addCalls -eq 1) 'Replay was not idempotent.'
     Assert-Test ($script:udpRule.Name -eq 'existing-udp-rule' -and $script:udpRule.Protocol -eq 'UDP') 'Existing UDP changed.'
+    Assert-Test ($script:probeCalls -eq 0) 'Direct IPv4 listener unexpectedly needed a probe.'
+    Reset-TestState; $script:listeners[0].Address = '::'; $script:probeSuccess = $true
+    $dual = Invoke-ControlNetherNetFirewallRepair -Java $java -Confirm:$false | ConvertFrom-Json
+    Assert-Test ($dual.status -eq 'Created' -and $script:probeCalls -eq 1 -and $script:addCalls -eq 1) 'Proven dual-stack TCP listener was rejected.'
+    Reset-TestState; $script:listeners[0].Address = '::'
+    Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } 'IPv6-only or failed IPv4 probe' '*Listeners19132: TCP=::*UDP=0.0.0.0*'
+    Assert-Test ($script:probeCalls -eq 1 -and $script:addCalls -eq 0) 'Failed dual-stack probe changed Firewall.'
+    foreach ($address in @('127.0.0.1', '::1', '192.168.0.90')) {
+        Reset-TestState; $script:listeners[0].Address = $address; $script:probeSuccess = $true
+        Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } 'Non-wildcard TCP address' '*Listeners19132:*'
+        Assert-Test ($script:probeCalls -eq 0 -and $script:addCalls -eq 0) 'Non-wildcard TCP address used the dual-stack exception.'
+    }
 
     foreach ($package in @($null, '', 'Any')) {
         Reset-TestState; $script:udpRule.Package = $package

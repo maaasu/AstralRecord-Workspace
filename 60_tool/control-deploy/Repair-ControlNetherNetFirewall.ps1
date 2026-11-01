@@ -15,6 +15,14 @@ function Test-NetherNetAdministrator {
 }
 function Test-NetherNetJavaFile([string]$Path) { Test-Path -LiteralPath $Path -PathType Leaf }
 function Get-NetherNetLocalIPs { Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | Select-Object -ExpandProperty IPAddress }
+function Test-NetherNetIPv4Listener([string]$Address, [int]$Port) {
+    $client = [Net.Sockets.TcpClient]::new([Net.Sockets.AddressFamily]::InterNetwork)
+    try {
+        $pending = $client.ConnectAsync([Net.IPAddress]::Parse($Address), $Port)
+        $pending.Wait(2000) -and $client.Connected
+    } catch { $false }
+    finally { $client.Dispose() }
+}
 function Get-NetherNetListeners {
     $endpoints = @(
         Get-NetTCPConnection -LocalPort 19132 -State Listen -ErrorAction Stop | ForEach-Object {
@@ -94,6 +102,8 @@ function Remove-NetherNetRule([string]$Name) { Remove-NetFirewallRule -Name $Nam
 function Invoke-ControlNetherNetFirewallRepair {
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Java)
+    $listeners = @()
+    try {
     if ((Get-NetherNetComputerName) -ine 'MC-01') { throw 'This repair is limited to MC-01.' }
     if (!(Test-NetherNetAdministrator)) { throw 'Run an elevated PowerShell session on MC-01.' }
     if ($Java -cnotmatch '^[A-Za-z]:\\' -or [IO.Path]::GetFileName($Java) -ine 'java.exe' -or
@@ -108,8 +118,12 @@ function Invoke-ControlNetherNetFirewallRepair {
         throw 'TCP and UDP 19132 must belong exclusively to the same specified Java process.'
     }
     foreach ($protocol in @('TCP', 'UDP')) {
-        # Require an IPv4 listener reachable via the diagnosed router destination, not just loopback/IPv6.
-        if (@($listeners | Where-Object { $_.Protocol -eq $protocol -and $_.Address -in @('0.0.0.0', '192.168.0.89') }).Count -eq 0) {
+        $directIPv4 = @($listeners | Where-Object { $_.Protocol -eq $protocol -and $_.Address -in @('0.0.0.0', '192.168.0.89') }).Count -gt 0
+        # Java's dual-stack TCP wildcard may be reported as ::. Verify IPv4 instead of inferring it.
+        $dualStackIPv4 = !$directIPv4 -and $protocol -eq 'TCP' -and
+            @($listeners | Where-Object { $_.Protocol -eq 'TCP' -and $_.Address -eq '::' }).Count -gt 0 -and
+            (Test-NetherNetIPv4Listener -Address '192.168.0.89' -Port 19132)
+        if (!$directIPv4 -and !$dualStackIPv4) {
             throw "$protocol 19132 has no listener reachable at 192.168.0.89."
         }
     }
@@ -162,5 +176,10 @@ function Invoke-ControlNetherNetFirewallRepair {
         routerVerification = 'NotVerified'
         routerNotice = 'Router configuration was not verified. TCP 19132 -> 192.168.0.89:19132 forwarding is required; retain existing UDP 19132 forwarding.'
     } | ConvertTo-Json -Depth 4 -Compress
+    } catch {
+        $addresses = (@($listeners | ForEach-Object { "$($_.Protocol)=$($_.Address) (PID $($_.ProcessId))" }) -join '; ')
+        if (!$addresses) { $addresses = '<none collected>' }
+        throw "$($_.Exception.Message) Listeners19132: $addresses"
+    }
 }
 if ($MyInvocation.InvocationName -ne '.') { Invoke-ControlNetherNetFirewallRepair -Java $Java }
