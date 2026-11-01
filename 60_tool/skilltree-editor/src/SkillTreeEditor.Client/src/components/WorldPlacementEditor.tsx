@@ -30,6 +30,7 @@ interface Props {
   onBusyChange?: (busy: boolean) => void
   onDirtyChange?: (dirty: boolean) => void
 }
+interface PlacementDisplayInfo { name: string; region: string; levels: number[]; search: string }
 interface BulkIntent { action: PlacementBulkAction; items: WorldPlacement[]; ids: ReadonlySet<string>; matchingIds: ReadonlySet<string>; catalog: PlacementCatalog; context: object }
 const emptySelection: ReadonlySet<string> = new Set()
 const pageSize = 50
@@ -163,18 +164,25 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const regionNames = useMemo(() => new Map(snapshot.regions.map(region => [region.id, region.name])), [snapshot.regions])
   const spawners = useMemo(() => new Map(catalog.spawners.map(item => [item.id, item])), [catalog.spawners])
   const npcs = useMemo(() => new Map(catalog.npcs.map(item => [item.id, item])), [catalog.npcs])
-  const regionName = (placement: WorldPlacement) => {
-    const index = cellAtWorld(snapshot.manifest.bounds, grid, placement.x, placement.z)
-    const regionId = index === undefined ? '' : snapshot.cells[index].regionId
-    return regionNames.get(regionId) ?? '解析範囲外'
-  }
-  const display = useMemo(() => new Map(working.map(item => {
-    const master = item.kind === 'spawner' ? spawners.get(item.templateId ?? '') : npcs.get(item.templateId ?? '')
-    const name = item.kind === 'waystone' ? item.waystone?.name || item.waystone?.id || '道標' : master?.name ?? item.templateId ?? 'マスター未選択'
-    const region = regionName(item)
-    return [item.placementId, { name, region, levels: item.kind === 'spawner' ? spawners.get(item.templateId ?? '')?.levels ?? [] : [],
-      search: placementSearchText(`${item.placementId} ${item.templateId ?? ''} ${name} ${item.waystone?.id ?? ''} ${region} ${item.x} ${item.y} ${item.z}`) }]
-  })), [working, spawners, npcs, snapshot, grid, regionNames])
+  // Working copies and history preserve unchanged placement objects. Keep derived
+  // display data with those objects, and invalidate it when terrain or masters change.
+  const describePlacement = useMemo(() => {
+    const cache = new WeakMap<WorldPlacement, PlacementDisplayInfo>()
+    return (item: WorldPlacement): PlacementDisplayInfo => {
+      const cached = cache.get(item)
+      if (cached) return cached
+      const master = item.kind === 'spawner' ? spawners.get(item.templateId ?? '') : npcs.get(item.templateId ?? '')
+      const name = item.kind === 'waystone' ? item.waystone?.name || item.waystone?.id || '道標' : master?.name ?? item.templateId ?? 'マスター未選択'
+      const index = cellAtWorld(snapshot.manifest.bounds, grid, item.x, item.z)
+      const regionId = index === undefined ? '' : snapshot.cells[index].regionId
+      const region = regionNames.get(regionId) ?? '解析範囲外'
+      const info = { name, region, levels: item.kind === 'spawner' ? spawners.get(item.templateId ?? '')?.levels ?? [] : [],
+        search: placementSearchText(`${item.placementId} ${item.templateId ?? ''} ${name} ${item.waystone?.id ?? ''} ${region} ${item.x} ${item.y} ${item.z}`) }
+      cache.set(item, info)
+      return info
+    }
+  }, [spawners, npcs, snapshot, grid, regionNames])
+  const display = useMemo(() => new Map(working.map(item => [item.placementId, describePlacement(item)])), [working, describePlacement])
   const filtered = useMemo(() => {
     const words = placementSearchWords(query)
     const lowerLevel = minimumLevel ? Number(minimumLevel) : null
