@@ -178,6 +178,10 @@
 .master-doc-dialog pre { white-space: pre-wrap; font: 12px/1.8 "Cascadia Code", Consolas, monospace; }
 .master-diff-lines { overflow: auto; padding: 12px; background: #0e1520; }
 .master-diff-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.master-diff-dialog > .modal-header { flex-wrap: wrap; gap: 12px; }
+.master-diff-position { margin: 4px 0 0; color: var(--text-muted); }
+.master-diff-actions .button[aria-disabled="true"] { opacity: .45; cursor: default; }
+.master-diff-line.current-change { box-shadow: inset 3px 0 #ffd477; }
 .master-diff-empty { margin: 8px 0 16px; color: var(--text-muted); }
 .master-diff-omission { padding: 6px 0; border-block: 1px solid #344354; }
 .master-diff-omission > .button { width: 100%; text-align: left; }
