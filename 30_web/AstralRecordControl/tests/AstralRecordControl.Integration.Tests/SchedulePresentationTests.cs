@@ -73,6 +73,7 @@ public sealed partial class LiveTransportTests
         Assert.Matches($"name=\"RequestKey\" value=\"{rejectedId}\"", html);
         Assert.Contains("同じ要求を照合", html);
         Assert.Contains("予約の診断情報", html);
+        Assert.Contains("ViaVersion 更新に未対応です。対応した Agent / Runner を配置するか、ViaVersion 更新のチェックを外してください。", html);
         var history = Regex.Match(html, "<table[^>]*class=\"data-table schedule-history\"[\\s\\S]*?</table>").Value;
         Assert.NotEmpty(history);
         Assert.Equal(6, Regex.Matches(history, "<tr><td>").Count);

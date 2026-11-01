@@ -55,6 +55,8 @@ public sealed class ScheduledAutomationPageTests
         Assert.True(page.GeyserAvailable);
         Assert.True(page.GeyserDisplayEntityUpdateAvailable);
         Assert.True(page.UpdateGeyserDisplayEntity);
+        Assert.True(page.ViaVersionUpdateAvailable);
+        Assert.True(page.UpdateViaVersion);
         page.Preset = ScheduleEditorPreset.DailyProxyMaintenance;
         page.DailyTime = "03:10";
         Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
@@ -67,10 +69,20 @@ public sealed class ScheduledAutomationPageTests
         Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).UpdateGeyserDisplayEntity);
         Assert.Contains("GeyserDisplayEntity", SchedulesModel.Description(saved));
         Assert.Contains("Velocity", SchedulesModel.Description(saved));
+        Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).UpdateViaVersion);
+        Assert.Contains("ViaVersion", SchedulesModel.Description(saved));
         var edit = f.Page();
         await edit.OnGetAsync(f.ServerId, saved.ScheduleId);
         Assert.Equal(ScheduleEditorPreset.DailyProxyMaintenance, edit.Preset);
         Assert.Equal("03:10", edit.DailyTime);
+        Assert.True(edit.UpdateViaVersion);
+        edit.UpdateViaVersion = false;
+        Assert.IsType<RedirectToPageResult>(await edit.OnPostSaveAsync(f.ServerId));
+        var edited = FileOperationValidation.Read<UpdateGeyserPayload>(Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition.Template.Steps[0].Payload);
+        Assert.False(edited.UpdateViaVersion);
+        Assert.True(edited.UpdateVelocity);
+        Assert.True(edited.UpdateGeyserDisplayEntity);
+        Assert.True(edited.RestartEvenIfUnchanged);
     }
 
     [Theory]
@@ -80,6 +92,8 @@ public sealed class ScheduledAutomationPageTests
     [InlineData("{\"restartIfPreviouslyRunning\":false,\"updateVelocity\":true}")]
     [InlineData("{\"updateGeyserDisplayEntity\":false}")]
     [InlineData("{\"restartIfPreviouslyRunning\":false,\"updateGeyserDisplayEntity\":true}")]
+    [InlineData("{\"updateViaVersion\":false}")]
+    [InlineData("{\"restartIfPreviouslyRunning\":false,\"updateViaVersion\":true}")]
     public async Task EditingDailyGeyserPreservesLegacyAndExplicitPayloads(string json)
     {
         await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
@@ -93,6 +107,7 @@ public sealed class ScheduledAutomationPageTests
         Assert.Equal(ScheduleEditorPreset.DailyGeyserUpdate, page.Preset);
         Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateVelocity, page.UpdateVelocity);
         Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateGeyserDisplayEntity, page.UpdateGeyserDisplayEntity);
+        Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateViaVersion, page.UpdateViaVersion);
         page.DailyTime = "05:15";
         Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
         var saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
@@ -104,6 +119,40 @@ public sealed class ScheduledAutomationPageTests
         var changed = FileOperationValidation.Read<UpdateGeyserPayload>(Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition.Template.Steps[0].Payload);
         Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).RestartIfPreviouslyRunning, changed.RestartIfPreviouslyRunning);
         Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateGeyserDisplayEntity, changed.UpdateGeyserDisplayEntity);
+        Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateViaVersion, changed.UpdateViaVersion);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ViaVersionUpdateRequiresItsOwnCapabilityAndCanBeDeselected(bool advanced)
+    {
+        await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
+        f.Host.CapabilitiesJson = ControlJson.Serialize(ControlJson.Deserialize<string[]>(f.Host.CapabilitiesJson)
+            .Where(c => c != ServerProcessSupport.ViaVersionUpdateCapability).ToArray());
+        await f.Db.SaveChangesAsync();
+        var page = f.Page();
+        await page.OnGetAsync(f.ServerId);
+        Assert.True(page.GeyserDisplayEntityUpdateAvailable);
+        Assert.True(page.VelocityUpdateAvailable);
+        Assert.False(page.ViaVersionUpdateAvailable);
+        var step = new ScheduleStep { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser,
+            Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateViaVersion: true)) };
+        page.Preset = advanced ? ScheduleEditorPreset.Advanced : ScheduleEditorPreset.DailyProxyMaintenance;
+        page.TriggerKind = ScheduleTriggerKind.Cron;
+        page.StepsJson = ControlJson.Serialize(new[] { step });
+        Assert.IsType<PageResult>(await page.OnPostSaveAsync(f.ServerId));
+        Assert.Empty(await f.Store.SchedulesAsync(f.ServerId));
+
+        // A host without the new capability still accepts the existing update payload.
+        page = f.Page();
+        await page.OnGetAsync(f.ServerId);
+        page.UpdateViaVersion = false;
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        var saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+        Assert.False(FileOperationValidation.Read<UpdateGeyserPayload>(saved.Template.Steps[0].Payload).UpdateViaVersion);
+        Assert.DoesNotContain("updateViaVersion", saved.Template.Steps[0].Payload.GetRawText());
+        Assert.DoesNotContain("ViaVersion", SchedulesModel.Description(saved));
     }
 
     [Theory]
@@ -226,7 +275,7 @@ public sealed class ScheduledAutomationPageTests
             ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = server, Revision = 1, Enabled = true,
             Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = time, TimeZoneId = zone },
             Template = new() { ActionType = action, Steps = [new() { Kind = kind, StepKey = key ?? (kind == OperationKind.Restart ? "restart" : "update-geyser"),
-                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload(false, UpdateGeyserDisplayEntity: true)) : ControlJson.Element(new { }) }] } };
+                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload(false, UpdateGeyserDisplayEntity: true, UpdateViaVersion: true)) : ControlJson.Element(new { }) }] } };
         var restart = Definition(OperationKind.Restart, f.ServerId, "00 04 * * *");
         var update = Definition(OperationKind.UpdateGeyser, f.ServerId);
         var untouched = new[] { Definition(OperationKind.Restart, second), Definition(OperationKind.Restart, f.ServerId, "0 5 * * *"),
@@ -283,6 +332,7 @@ public sealed class ScheduledAutomationPageTests
         Assert.False(edit.UpdateGeyser);
         Assert.False(edit.UpdateVelocity);
         Assert.False(edit.UpdateGeyserDisplayEntity);
+        Assert.False(edit.UpdateViaVersion);
     }
 
     [Theory]
@@ -418,7 +468,7 @@ public sealed class ScheduledAutomationPageTests
             f.Host = await f.Store.CreateHostAsync(new("fixture", "Fixture"), Guid.NewGuid(), "fixture");
             f.Host.ResourcesJson = ControlJson.Serialize(new HostResources { Roots = [new() { Id = f.root }], Executables = [new() { Id = f.executable }] });
             string[] capabilities = ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.Schedules"];
-            f.Host.CapabilitiesJson = ControlJson.Serialize(capability ? [.. capabilities, "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance", "P3.GeyserDisplayEntityUpdate"] : capabilities);
+            f.Host.CapabilitiesJson = ControlJson.Serialize(capability ? [.. capabilities, "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance", "P3.GeyserDisplayEntityUpdate", "P3.ViaVersionUpdate"] : capabilities);
             await f.Db.SaveChangesAsync();
             f.ServerId = await f.AddServerAsync("server", kind);
             return f;

@@ -33,6 +33,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     [BindProperty] public bool UpdateVelocity { get; set; } = true;
     public bool GeyserDisplayEntityUpdateAvailable { get; private set; }
     [BindProperty] public bool UpdateGeyserDisplayEntity { get; set; } = true;
+    public bool ViaVersionUpdateAvailable { get; private set; }
+    [BindProperty] public bool UpdateViaVersion { get; set; } = true;
     [BindProperty] public ScheduleEditorPreset Preset { get; set; } = ScheduleEditorPreset.Advanced;
     [BindProperty] public string? DailyTime { get; set; } = "04:00";
     [BindProperty] public Guid RequestKey { get; set; }
@@ -71,10 +73,11 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
                 {
                     UpdateVelocity = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateVelocity;
                     UpdateGeyserDisplayEntity = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateGeyserDisplayEntity;
+                    UpdateViaVersion = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateViaVersion;
                     EditingLegacyUpdate = preset == ScheduleEditorPreset.DailyGeyserUpdate;
                 }
                 else if (IsVelocity && preset == ScheduleEditorPreset.DailyRestart)
-                { Preset = ScheduleEditorPreset.DailyProxyMaintenance; UpdateGeyser = false; UpdateVelocity = false; UpdateGeyserDisplayEntity = false; }
+                { Preset = ScheduleEditorPreset.DailyProxyMaintenance; UpdateGeyser = false; UpdateVelocity = false; UpdateGeyserDisplayEntity = false; UpdateViaVersion = false; }
             }
         }
         return Page();
@@ -99,9 +102,9 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
                     throw new ArgumentException("Invalid daily time.");
                 if (Preset == ScheduleEditorPreset.DailyProxyMaintenance && !IsVelocity)
                     throw new ArgumentException("Invalid proxy update selection.");
-                if (Preset == ScheduleEditorPreset.DailyProxyMaintenance && UpdateGeyser && (!ProxyMaintenanceAvailable || UpdateVelocity && !VelocityUpdateAvailable || UpdateGeyserDisplayEntity && !GeyserDisplayEntityUpdateAvailable))
+                if (Preset == ScheduleEditorPreset.DailyProxyMaintenance && UpdateGeyser && (!ProxyMaintenanceAvailable || UpdateVelocity && !VelocityUpdateAvailable || UpdateGeyserDisplayEntity && !GeyserDisplayEntityUpdateAvailable || UpdateViaVersion && !ViaVersionUpdateAvailable))
                     throw new InventoryFault(409, "UnsupportedCapability");
-                if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && (!IsVelocity || !GeyserAvailable || UpdateVelocity && !VelocityUpdateAvailable || UpdateGeyserDisplayEntity && !GeyserDisplayEntityUpdateAvailable))
+                if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && (!IsVelocity || !GeyserAvailable || UpdateVelocity && !VelocityUpdateAvailable || UpdateGeyserDisplayEntity && !GeyserDisplayEntityUpdateAvailable || UpdateViaVersion && !ViaVersionUpdateAvailable))
                     throw new InventoryFault(409, "UnsupportedCapability");
                 trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = FormattableString.Invariant($"{time.Minute} {time.Hour} * * *"), TimeZoneId = TimeZoneId };
                 steps = Preset == ScheduleEditorPreset.DailyRestart || Preset == ScheduleEditorPreset.DailyProxyMaintenance && !UpdateGeyser
@@ -145,10 +148,10 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             var payload = old.Template.Steps[0].Payload;
             var value = FileOperationValidation.Read<UpdateGeyserPayload>(payload);
             // Keep omitted legacy defaults and restart policy when changing only the time.
-            if (value.UpdateVelocity == UpdateVelocity && value.UpdateGeyserDisplayEntity == UpdateGeyserDisplayEntity) return payload;
-            return ControlJson.Element(value with { UpdateVelocity = UpdateVelocity, UpdateGeyserDisplayEntity = UpdateGeyserDisplayEntity });
+            if (value.UpdateVelocity == UpdateVelocity && value.UpdateGeyserDisplayEntity == UpdateGeyserDisplayEntity && value.UpdateViaVersion == UpdateViaVersion) return payload;
+            return ControlJson.Element(value with { UpdateVelocity = UpdateVelocity, UpdateGeyserDisplayEntity = UpdateGeyserDisplayEntity, UpdateViaVersion = UpdateViaVersion });
         }
-        return ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: UpdateVelocity, RestartEvenIfUnchanged: Preset == ScheduleEditorPreset.DailyProxyMaintenance, UpdateGeyserDisplayEntity: UpdateGeyserDisplayEntity));
+        return ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: UpdateVelocity, RestartEvenIfUnchanged: Preset == ScheduleEditorPreset.DailyProxyMaintenance, UpdateGeyserDisplayEntity: UpdateGeyserDisplayEntity, UpdateViaVersion: UpdateViaVersion));
     }
 
     public static string Description(ScheduleDefinition definition)
@@ -161,6 +164,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             var payload = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload);
             label = payload.RestartEvenIfUnchanged ? "定期再起動・GeyserMC 更新" : "更新のみ（旧予約）・GeyserMC";
             if (payload.UpdateVelocity) label += "・Velocity";
+            if (payload.UpdateViaVersion) label += "・ViaVersion";
             if (payload.UpdateGeyserDisplayEntity) label += "・GeyserDisplayEntity";
         }
         return $"{label} — 毎日 {time}（{definition.Trigger.TimeZoneId}）";
@@ -180,7 +184,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         if (step.Kind == OperationKind.Restart && step.StepKey == "restart" && step.Payload.ValueKind == JsonValueKind.Object && !step.Payload.EnumerateObject().Any())
             preset = ScheduleEditorPreset.DailyRestart;
         else if (step.Kind == OperationKind.UpdateGeyser && step.StepKey == "update-geyser" && step.Payload.ValueKind == JsonValueKind.Object &&
-            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" or "restartEvenIfUnchanged" or "updateGeyserDisplayEntity" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
+            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" or "restartEvenIfUnchanged" or "updateGeyserDisplayEntity" or "updateViaVersion" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
             preset = FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).RestartEvenIfUnchanged ? ScheduleEditorPreset.DailyProxyMaintenance : ScheduleEditorPreset.DailyGeyserUpdate;
         else return false;
         time = new TimeOnly(hour, minute).ToString("HH:mm", CultureInfo.InvariantCulture);
@@ -236,6 +240,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             capabilities.Contains("P2.Files") && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(), capabilities);
         VelocityUpdateAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(UpdateVelocity: true), capabilities);
         GeyserDisplayEntityUpdateAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(UpdateGeyserDisplayEntity: true), capabilities);
+        ViaVersionUpdateAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(UpdateViaVersion: true), capabilities);
         ProxyMaintenanceAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(RestartEvenIfUnchanged: true), capabilities);
         Schedules = await store.SchedulesAsync(serverId);
         PendingRequests = await store.PendingManualRequestsAsync(serverId);

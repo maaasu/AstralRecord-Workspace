@@ -84,6 +84,7 @@ else { <p>同じサーバーの予約は実行時刻を分けてください。�
             </div>
             <div class="schedule-velocity-update">
                 <label><input asp-for="UpdateVelocity" /> Velocity 本体も同時に更新する</label>
+                <label><input asp-for="UpdateViaVersion" /> ViaVersion も同時に更新する</label>
                 <label><input asp-for="UpdateGeyserDisplayEntity" /> GeyserDisplayEntity も同時に更新する</label>
                 <p>導入済みの拡張を公式配布から更新します。未導入の場合は追加しません。</p>
             </div>
@@ -93,6 +94,7 @@ else { <p>同じサーバーの予約は実行時刻を分けてください。�
             @if (!Model.ProxyMaintenanceAvailable) { <p>再起動と更新には対応した Agent / Runner が必要です。未対応の場合は更新確認のチェックを外すと再起動のみを保存できます。</p> }
             @if (!Model.VelocityUpdateAvailable) { <p>Velocity 本体更新に未対応です。本体更新のチェックを外してください。</p> }
             @if (!Model.GeyserDisplayEntityUpdateAvailable) { <p>GeyserDisplayEntity 更新に未対応です。対応した Agent / Runner を配置するか、拡張更新のチェックを外してください。</p> }
+            @if (!Model.ViaVersionUpdateAvailable) { <p>ViaVersion 更新に未対応です。対応した Agent / Runner を配置するか、ViaVersion 更新のチェックを外してください。</p> }
 
         }
     </div>

@@ -233,6 +233,8 @@ P1の基本運転だけを先に有効化する手順は[基本運転への切�
 
 Web/Agent/Runner/CLIを`phase=P3`のパッケージへ更新します。Runner更新の全Server停止・Session/holdなし条件と、P1の管理運用marker/共通gateを引き続き満たしてください。P3のSchedule変更操作はWebの`Control:EnableSchedules`とAgentの`enableSchedules`をともに`true`へ明示変更した後に有効になります。どちらも初期値はfalseです。Agentが`P3.Schedules`を広告し、Webの希望inventory版とAgent適用ACK版が一致することを確認してから予定を有効化します。P2のバックアップstepを使う場合はWeb/Agent/RunnerのEnableFileControlと`P2.Backups`能力も必要です。
 
+Proxyの日次更新で「ViaVersion も同時に更新する」を使用する場合は、対応版Web/Agent/Runnerへ更新し、`P3.ViaVersionUpdate`能力を確認します。P1.Velocity・P2.Files・P3.GeyserUpdateとファイル操作有効化も必要です。新規フォームはON、既存予約の省略はfalseです。未対応Hostではチェックを外して従来の予約を保存できます。導入済みViaVersionだけを公式stable JARとdigest・最低Javaで停止前に検証し、Velocity→ViaVersion→Geyser→DisplayEntityの順で準備・交換します。全準備後に一度だけ停止し、旧JARのbackupを保持します。途中失敗ではholdを維持して点検し、起動を繰り返さないでください。
+
 Once/Interval/CronとRun Nowは`/Servers/{id}/Schedules`で設定・確認します。Run Nowの通信結果が不明なら、表示された要求IDと照会先を使い、別のIDで再実行しません。`/Servers/{id}/Metrics`はHost/プロセスと取得できたJava人数を表示し、欠測を0として扱いません。`/Notifications`のWebhook送信先はownerのログイン後に登録します。URL全体が保護され画面へ再表示されないため、編集時に秘密を保持するならURL欄を空にします。送信先は公開IPへ到達するHTTPS/443に限定され、外部Webhookへの配信は初回送信と最大3回の再試行です。
 
 P3の検証は一時DB・ローカルfixture・fake HTTP handlerを使用します。実Minecraft、実NAS、外部Webhookへの送信やWindowsサービス登録は開発テストに含めません。
