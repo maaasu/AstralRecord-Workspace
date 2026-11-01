@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MasterAnalytics } from './MasterAnalytics'
-import { classBonus, equipmentRows, formatNumber, normalizeStatus, plainName } from '../data/masterAnalytics'
+import { classBonus, createClassBonusCalculator, equipmentRows, formatNumber, normalizeStatus, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 
 vi.mock('../data/masterAnalytics', async importOriginal => {
   const actual = await importOriginal<typeof import('../data/masterAnalytics')>()
-  return { ...actual, classBonus: vi.fn(actual.classBonus), equipmentRows: vi.fn(actual.equipmentRows), formatNumber: vi.fn(actual.formatNumber), normalizeStatus: vi.fn(actual.normalizeStatus), plainName: vi.fn(actual.plainName) }
+  return { ...actual, classBonus: vi.fn(actual.classBonus), createClassBonusCalculator: vi.fn(actual.createClassBonusCalculator), equipmentRows: vi.fn(actual.equipmentRows), formatNumber: vi.fn(actual.formatNumber), normalizeStatus: vi.fn(actual.normalizeStatus), plainName: vi.fn(actual.plainName) }
 })
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.clearAllMocks() })
@@ -118,17 +118,18 @@ describe('analysis calculation reuse', () => {
     await screen.findByRole('slider')
     expect.soft(masterLookup).toHaveBeenCalledTimes(12) // Only the inspection table searches in level view.
     const initialLevelPaths = Array.from(screen.getByRole('img', { name: /の比較グラフ/ }).querySelectorAll('path'), path => path.getAttribute('d'))
-    const observations: { action: string; graphNames: number; bonusCalls: number; masterLookups: number }[] = []
-    function measure(action: string, change: () => void, graphNames: number, bonusCalls: number, masterLookups: number) {
-      vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear(); masterLookup.mockClear()
+    const observations: { action: string; graphNames: number; bonusCalls: number; masterLookups: number; preparedBonuses: number }[] = []
+    function measure(action: string, change: () => void, graphNames: number, bonusCalls: number, masterLookups: number, preparedBonuses = 0) {
+      vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear(); vi.mocked(createClassBonusCalculator).mockClear(); masterLookup.mockClear()
       change()
-      const observed = { action, graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length, masterLookups: masterLookup.mock.calls.length }
+      const observed = { action, graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length, masterLookups: masterLookup.mock.calls.length, preparedBonuses: vi.mocked(createClassBonusCalculator).mock.calls.length }
       observations.push(observed)
       expect.soft(observed.graphNames, action).toBe(graphNames)
       expect.soft(observed.bonusCalls, action).toBe(bonusCalls)
       expect.soft(observed.masterLookups, action).toBe(masterLookups)
+      expect.soft(observed.preparedBonuses, action).toBe(preparedBonuses)
     }
-    measure('switch to bonus', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'bonus' } }), 12, 2412, 24)
+    measure('switch to bonus', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'bonus' } }), 12, 12, 24, 12)
     const chart = () => screen.getByRole('img', { name: /の比較グラフ/ })
     const firstPath = chart().querySelector('path')!.getAttribute('d')
     const firstRow = () => within(screen.getByRole('region', { name: '指定レベルの成長表' })).getAllByRole('row')[1]
@@ -143,7 +144,7 @@ describe('analysis calculation reuse', () => {
     measure('open equipment tab', () => fireEvent.click(screen.getByRole('tab', { name: '装備を比較' })), 0, 0, 0)
     measure('edit equipment search', () => fireEvent.change(screen.getByRole('textbox', { name: '名前・ID' }), { target: { value: 'gear' } }), 0, 0, 0)
     measure('return to growth', () => fireEvent.click(screen.getByRole('tab', { name: 'クラス成長' })), 0, 12, 12)
-    measure('change bonus status', () => fireEvent.change(screen.getByRole('combobox', { name: 'ステータス' }), { target: { value: 'MELEE_ATTACK' } }), 12, 2412, 24)
+    measure('change bonus status', () => fireEvent.change(screen.getByRole('combobox', { name: 'ステータス' }), { target: { value: 'MELEE_ATTACK' } }), 12, 12, 24, 12)
     expect(within(firstRow()).getByRole('cell', { name: '29' })).toBeInTheDocument()
     expect(chart().querySelector('path')!.getAttribute('d')).not.toBe(firstPath)
     measure('change to experience', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'experience' } }), 12, 12, 12)
@@ -152,23 +153,26 @@ describe('analysis calculation reuse', () => {
     expect(chart()).toHaveAccessibleName('プレイヤーLvに対するクラスLvの比較グラフ')
     expect(Array.from(chart().querySelectorAll('path'), path => path.getAttribute('d'))).toEqual(initialLevelPaths)
     fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'bonus' } })
-    vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear(); masterLookup.mockClear()
+    vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear(); vi.mocked(createClassBonusCalculator).mockClear(); masterLookup.mockClear()
     offset = 1
     fireEvent.click(screen.getByRole('button', { name: 'グラフを計算' }))
     await screen.findByText('アカウントUUID: result-1。EXPERIENCE_GAIN_RATEは両方へ加算する前に適用されるため、この累積EXP対レベルの比較には影響しません。')
-    observations.push({ action: 'new simulation', graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length, masterLookups: masterLookup.mock.calls.length })
+    observations.push({ action: 'new simulation', graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length, masterLookups: masterLookup.mock.calls.length, preparedBonuses: vi.mocked(createClassBonusCalculator).mock.calls.length })
     expect.soft(masterLookup).toHaveBeenCalledTimes(36) // 12 graph lookups + two inspection-table renders.
     expect.soft(plainName).toHaveBeenCalledTimes(12)
-    expect.soft(classBonus).toHaveBeenCalledTimes(2424) // Pending render keeps the inspection table current.
+    expect.soft(createClassBonusCalculator).toHaveBeenCalledTimes(12)
+    expect.soft(classBonus).toHaveBeenCalledTimes(24) // Pending render keeps the inspection table current.
     expect(within(firstRow()).getByRole('cell', { name: '30' })).toBeInTheDocument()
     catalog = { ...catalog, classes: catalog.classes.map(master => ({ ...master, content: { ...master.content, baseStats: [{ status: 'MELEE_ATTACK', value: 200 }], growthPerLevel: [{ status: 'MELEE_ATTACK', value: 3 }] } })) }
     const reloadedMasterLookup = vi.spyOn(catalog.classes, 'find')
+    vi.mocked(createClassBonusCalculator).mockClear()
     fireEvent.click(screen.getByRole('button', { name: 'マスター再読込' }))
     await screen.findByRole('heading', { name: '職業ごとの成長を比較' })
     expect(screen.queryByRole('img', { name: /の比較グラフ/ })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'グラフを計算' }))
     await screen.findByRole('slider')
     expect.soft(reloadedMasterLookup).toHaveBeenCalledTimes(24)
+    expect.soft(createClassBonusCalculator).toHaveBeenCalledTimes(12)
     expect(within(firstRow()).getByRole('cell', { name: '260' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'ステータス' }).querySelector('option[value="MAX_HEALTH"]')).toBeNull()
     console.info('12 classes × 200 points: graph names, bonus calls and master searches', observations)

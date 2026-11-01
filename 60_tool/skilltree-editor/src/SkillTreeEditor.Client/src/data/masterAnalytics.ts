@@ -125,10 +125,15 @@ export function equipmentRows(masters: AnalyticsMaster[], enhanceLevel: number):
 }
 
 // PlayerClassService.classStatValue takes the first matching definition, rather than summing duplicates.
-export function classBonus(master: AnalyticsMaster, status: string, classLevel: number): number {
+export function createClassBonusCalculator(master: AnalyticsMaster, status: string): (classLevel: number) => number {
   const first = (value: unknown) => numeric(asList(value).map(asObject).find(stat => normalizeStatus(stat.status) === status)?.value)
-  const level = Math.max(1, Math.min(Math.max(1, numeric(master.content.maxLevel, 100)), classLevel))
-  return first(master.content.baseStats) + first(master.content.growthPerLevel) * (level - 1)
+  const maximum = Math.max(1, numeric(master.content.maxLevel, 100))
+  const base = first(master.content.baseStats), growth = first(master.content.growthPerLevel)
+  // Capture one master/status snapshot for all points in a series, without a global cache.
+  return classLevel => base + growth * (Math.max(1, Math.min(maximum, classLevel)) - 1)
+}
+export function classBonus(master: AnalyticsMaster, status: string, classLevel: number): number {
+  return createClassBonusCalculator(master, status)(classLevel)
 }
 export const formatRange = (range: StatRange | undefined): string => !range ? '—' : range.min === range.max ? formatNumber(range.min) : `${formatNumber(range.min)}〜${formatNumber(range.max)}`
 export const formatNumber = (value: number): string => value.toLocaleString('ja-JP', { maximumFractionDigits: 3 })

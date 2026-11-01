@@ -1,7 +1,7 @@
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
-import { asList, asObject, classBonus, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
+import { asList, asObject, classBonus, createClassBonusCalculator, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
 import { sortEquipment } from '../data/equipmentSort'
 import { differingEquipmentStatuses } from '../data/equipmentComparisonColumns'
@@ -272,12 +272,13 @@ export function MasterAnalytics() {
   const point = useMemo(() => simulation?.points.find(value => value.playerLevel === inspect) ?? simulation?.points[0], [simulation, inspect])
   const graph = useMemo(() => simulation?.classes.map(definition => {
     const master = growthView === 'bonus' ? classes?.find(value => value.content.id === definition.id) : undefined
+    const bonus = master ? createClassBonusCalculator(master, growthStat) : null
     return {
       id: definition.id, name: plainName(definition.name),
       displayName: definition.name,
       values: simulation.points.map(item => {
         const current = item.classes.find(value => value.id === definition.id)!
-        return { x: item.playerLevel, y: growthView === 'level' ? current.level : growthView === 'experience' ? current.totalExperience : master ? classBonus(master, growthStat, current.level) : 0 }
+        return { x: item.playerLevel, y: growthView === 'level' ? current.level : growthView === 'experience' ? current.totalExperience : bonus ? bonus(current.level) : 0 }
       }),
     }
   }) ?? [], [simulation, classes, growthView, growthStat])

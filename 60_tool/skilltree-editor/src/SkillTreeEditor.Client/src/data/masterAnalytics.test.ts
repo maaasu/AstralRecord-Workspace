@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classBonus, equipmentRows, equipmentStatRange, formatEquipmentRange, plainName, rangeOf } from './masterAnalytics'
+import { classBonus, createClassBonusCalculator, equipmentRows, equipmentStatRange, formatEquipmentRange, plainName, rangeOf } from './masterAnalytics'
 import type { AnalyticsMaster } from './masterAnalytics'
 
 describe('master comparison math', () => {
@@ -53,5 +53,43 @@ describe('master comparison math', () => {
     expect(equipmentRows([master], 0)[0].stats.ATTACK).toEqual({ min: 10, max: 10 })
     expect(equipmentRows([master], 1)[0].stats.ATTACK).toEqual({ min: 20, max: 20 })
     expect(equipmentRows([master], 2)[0].stats.ATTACK).toEqual({ min: 25, max: 25 })
+  })
+})
+
+
+describe('prepared class bonus values', () => {
+  it('reads definitions once for a complete series and keeps first-match and level bounds', () => {
+    let baseReads = 0, growthReads = 0, maximumReads = 0
+    const master: AnalyticsMaster = { path: 'class.yml', progression: null, content: {
+      get maxLevel() { maximumReads++; return '3' },
+      get baseStats() { baseReads++; return [null, { status: 'max health', value: '10' }, { status: 'MAX_HEALTH', value: 999 }] },
+      get growthPerLevel() { growthReads++; return [{ status: 'max-health', value: '1.5' }, { status: 'MAX_HEALTH', value: 999 }] },
+    } }
+    const bonus = createClassBonusCalculator(master, 'MAX_HEALTH')
+    expect([-2, 1, 2, 3, 200].map(bonus)).toEqual([10, 10, 11.5, 13, 13])
+    expect({ baseReads, growthReads, maximumReads }).toEqual({ baseReads: 1, growthReads: 1, maximumReads: 1 })
+  })
+
+  it('preserves missing, invalid and negative values without summing duplicate definitions', () => {
+    const master: AnalyticsMaster = { path: 'class.yml', progression: null, content: {
+      maxLevel: 'invalid', baseStats: [{ status: 'ATTACK', value: false }, { status: 'ATTACK', value: 10 }],
+      growthPerLevel: [{ status: 'ATTACK', value: -0.5 }],
+    } }
+    expect(createClassBonusCalculator(master, 'ATTACK')(200)).toBe(-49.5)
+    expect(createClassBonusCalculator(master, 'DEFENSE')(200)).toBe(0)
+    expect(createClassBonusCalculator(master, 'attack')(200)).toBe(0) // Target IDs retain their existing exact-match contract.
+    expect(createClassBonusCalculator({ ...master, content: { ...master.content, maxLevel: 0 } }, 'ATTACK')(200)).toBe(0)
+    expect(createClassBonusCalculator({ ...master, content: { baseStats: {}, growthPerLevel: null } }, 'ATTACK')(10)).toBe(0)
+  })
+
+  it('captures a snapshot and uses updated master values when prepared again', () => {
+    const master: AnalyticsMaster = { path: 'class.yml', progression: null, content: {
+      maxLevel: 5, baseStats: [{ status: 'ATTACK', value: 10 }], growthPerLevel: [{ status: 'ATTACK', value: 2 }],
+    } }
+    const original = createClassBonusCalculator(master, 'ATTACK')
+    master.content = { maxLevel: 3, baseStats: [{ status: 'ATTACK', value: 100 }], growthPerLevel: [{ status: 'ATTACK', value: 4 }] }
+    expect(original(5)).toBe(18)
+    expect(createClassBonusCalculator(master, 'ATTACK')(5)).toBe(108)
+    expect(classBonus(master, 'ATTACK', 5)).toBe(108)
   })
 })
