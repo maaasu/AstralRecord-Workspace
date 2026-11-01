@@ -142,3 +142,18 @@ footer{display:flex;justify-content:space-between;gap:18px}footer a{margin-left:
 .schedule-editor:has(#Preset option[value="DailyGeyserUpdate"]:checked) .schedule-proxy-updates{display:none}
 
 .schedule-editor:has(#Preset option[value="DailyProxyMaintenance"]:checked):has(#UpdateGeyser:not(:checked)) .schedule-velocity-update{display:none}
+
+/* Schedule history uses a real full-width table inside a scrolling card. */
+.schedule-card{min-width:0;margin:16px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.schedule-card>summary{padding:20px 22px;color:var(--text);font-weight:650}
+.schedule-card>summary::marker{color:var(--accent)}
+.schedule-title{overflow-wrap:anywhere}.schedule-badges{display:inline-flex;flex-wrap:wrap;gap:8px;margin-left:14px;vertical-align:middle}
+.schedule-card[open]>summary{border-bottom:1px solid var(--line)}
+.schedule-card-body{min-width:0;padding:18px 22px 22px}.schedule-card-body>p:first-child{margin-top:0}
+.schedule-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 20px}.schedule-actions form,.schedule-actions button{margin:0}
+.schedule-card h3{margin:0 0 12px}.schedule-history-empty{margin:0;padding:18px;border:1px dashed #4a626b;border-radius:9px;color:var(--muted)}
+.schedule-history{table-layout:fixed}.schedule-history th:first-child{width:34%}.schedule-history th:nth-child(2){width:19%}.schedule-history td{overflow-wrap:anywhere}
+.schedule-diagnostics{margin:12px 0 0;font-size:.85rem;color:var(--muted)}.schedule-diagnostics>summary{padding:0;color:var(--accent);font-weight:400}
+.schedule-diagnostics dl{grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:12px 0 0}.schedule-diagnostics code{font-size:.8rem;overflow-wrap:anywhere}
+.schedule-request{margin:16px 0;padding:20px 22px}.schedule-request-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.schedule-request-heading h2{margin:0;font-size:1.05rem}.schedule-request form{margin:12px 0 0}.schedule-request button{margin:0}
+@media(max-width:700px){.schedule-card>summary{padding:16px}.schedule-badges{display:flex;margin:10px 0 0;gap:6px}.schedule-card-body{padding:16px}.schedule-request{padding:16px}.schedule-request-heading{align-items:flex-start;flex-wrap:wrap}.schedule-actions>a{width:auto}.schedule-diagnostics dl{display:block}.schedule-diagnostics dt{margin-top:8px}}

@@ -60,6 +60,8 @@
 
 日次再起動とVelocity専用GeyserMC自動更新の追加仕様は03の`UpdateGeyser`/Schedule契約、04の停止・交換・点検復旧、05の予約画面、06の受入条件に記す。汎用の本体/Plugin更新WorkflowはP4のまま。
 
+画面の日時はブラウザーの設定に依存せず日本時間（JST）を表示し、詳細予約の指定日時／間隔の基準時刻も日本時間で入力する。保存・API・Agent通信はUTCを維持する。予約カードには有効状態・適用状態・操作と日本語の履歴をまとめ、ID・内部コード・版番号は診断情報へ折り畳む。日次時刻・Cronのタイムゾーン契約と標準04:00は変更しない。
+
 Velocity本体の同時更新は `UpdateGeyser.updateVelocity=true` の限定的な明示選択として扱う。旧payloadはfalse、新規簡易フォームはON、追加能力は `P3.VelocityUpdate`。公式Fill v3 stable/recommended、停止前検証、一度の停止、同名交換・backup、部分失敗時の点検holdの契約は02〜06に記す。NetherNetのTCP/UDP 19132確認は別に行う。
 
 Velocityの通常日次操作は「毎日の定期再起動・更新」に統合しました。Geyser更新確認とVelocity本体同時更新は新規でONです。Geyser確認を外すと通常再起動だけになります。更新確認後、稼働中なら差分がなくても一度正常停止・起動し、停止中は更新だけで起動しません。`restartEvenIfUnchanged=true` と追加能力 `P3.ProxyMaintenance` を使います。旧更新のみ予約は従来の動作を保ち、編集時だけ旧選択肢を表示します。統合予約の保存で同Server・同じ毎日時刻/TZの単純な旧再起動／更新予約を一回のinventory保存で無効化して一本化し、履歴は残します。詳細設定や複数処理・別時刻は変更しません。無効な予約は折り畳みから確認できます。

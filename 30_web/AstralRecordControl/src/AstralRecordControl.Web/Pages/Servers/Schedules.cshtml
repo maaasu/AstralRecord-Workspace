@@ -1,5 +1,6 @@
 @page "/Servers/{serverId:guid}/Schedules"
 @model AstralRecordControl.Web.Pages.Servers.SchedulesModel
+@using AstralRecordControl.Web.Pages.Shared
 @{ ViewData["Title"] = "定期再起動・予約"; ViewData["ServerTab"] = "Schedules"; ViewData["ServerManaged"] = Model.Kind == ServerKind.Java; ViewData["ServerProcessManaged"] = ServerProcessSupport.IsSupported(Model.Kind); }
 <h1>@Model.Server.DisplayName — 定期再起動・予約</h1>
 <partial name="_ServerTabs" model="Model.Server.ServerId" />
@@ -11,29 +12,54 @@ else { <p>同じサーバーの予約は実行時刻を分けてください。�
 <div asp-validation-summary="All"></div>
 @foreach (var request in Model.PendingRequests)
 {
-    <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@request.ScheduleId">
-        <p>@(request.RejectionCode == null ? "受付の確認待ち" : "開始前に拒否")：@request.OperationId @request.RejectionCode（@request.CreatedAtUtc.ToString("u")）</p>
-        <input type="hidden" name="RequestKey" value="@request.OperationId" />
-        <button disabled="@(request.RejectionCode != null)">同じ要求を照合</button>
-    </form>
+    <section class="schedule-request" aria-label="今すぐ実行の要求">
+        <div class="schedule-request-heading">
+            <h2>@(request.RejectionCode == null ? "実行受付の確認待ち" : "実行開始前に拒否されました")</h2>
+            <span class="state-badge @(request.RejectionCode == null ? "is-pending" : "is-warning")">@(request.RejectionCode == null ? "確認待ち" : "拒否")</span>
+        </div>
+        <p class="secondary-text">要求日時: @ControlDisplay.Timestamp(request.CreatedAtUtc)</p>
+        @if (request.RejectionCode == null) { <p>応答を確認できていません。同じ要求を照合して、重複実行を防ぎながら受付状況を確認します。</p> }
+        else { <p>@ControlDisplay.ScheduleError(request.RejectionCode)</p> }
+        <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@request.ScheduleId">
+            <input type="hidden" name="RequestKey" value="@request.OperationId" />
+            <button disabled="@(request.RejectionCode != null)">同じ要求を照合</button>
+        </form>
+        <details class="schedule-diagnostics"><summary>診断情報</summary><dl><dt>要求ID</dt><dd><code>@request.OperationId</code></dd><dt>予約ID</dt><dd><code>@request.ScheduleId</code></dd>@if (request.RejectionCode != null) { <dt>拒否コード</dt><dd><code>@request.RejectionCode</code></dd> }</dl></details>
+    </section>
 }
+<h2>登録済みの予約</h2>
+@if (Model.Schedules.Length == 0) { <div class="empty-state"><strong>登録済みの予約はありません</strong><p>下のフォームから予約を追加できます。</p></div> }
 @foreach (var row in Model.Schedules)
 {
     var definition = row.Definition;
-    <details open="@definition.Enabled">
-        <summary>@AstralRecordControl.Web.Pages.Servers.SchedulesModel.Description(definition)（@(definition.Enabled ? "有効" : "無効・履歴を表示")）</summary>
-        <p>@definition.Trigger.Kind / @(definition.Enabled ? "有効" : "無効") / 希望版 @definition.Revision / 適用版 @(row.AppliedRevision?.ToString() ?? "未適用")</p>
-        <p><a class="button-link" asp-page="/Servers/Schedules" asp-route-serverId="@Model.Server.ServerId" asp-route-edit="@definition.ScheduleId">編集</a></p>
-        <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@definition.ScheduleId">
-            <input type="hidden" name="RequestKey" value="@Guid.NewGuid()" />
-            <button disabled="@(!Model.Available || !definition.Enabled || row.AppliedRevision != definition.Revision)">今すぐ実行</button>
-        </form>
-        <table><thead><tr><th>予定UTC</th><th>結果</th><th>詳細</th></tr></thead><tbody>
-        @foreach (var item in Model.History[definition.ScheduleId])
-        {
-            <tr><td>@item.ScheduledAtUtc.ToString("u") @(item.Manual ? "(手動)" : "")</td><td>@item.Status</td><td>@item.ErrorCode / @item.OperationId</td></tr>
-        }
-        </tbody></table>
+    var applied = row.AppliedRevision == definition.Revision;
+    var history = Model.History[definition.ScheduleId];
+    <details class="schedule-card" id="schedule-@definition.ScheduleId" open="@definition.Enabled">
+        <summary><span class="schedule-title">@AstralRecordControl.Web.Pages.Servers.SchedulesModel.Description(definition)</span><span class="schedule-badges"><span class="state-badge @(definition.Enabled ? "is-online" : "is-offline")">@(definition.Enabled ? "有効" : "無効・履歴を表示")</span><span class="state-badge @(applied ? "is-online" : "is-pending")">@(applied ? "適用済み" : "反映待ち")</span></span></summary>
+        <div class="schedule-card-body">
+            @if (!applied) { <p class="secondary-text">予約の変更はPCへ反映されるまで実行に使われません。</p> }
+            <div class="schedule-actions">
+                <a class="button-link" asp-page="/Servers/Schedules" asp-route-serverId="@Model.Server.ServerId" asp-route-edit="@definition.ScheduleId">編集</a>
+                <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@definition.ScheduleId">
+                    <input type="hidden" name="RequestKey" value="@Guid.NewGuid()" />
+                    <button disabled="@(!Model.Available || !definition.Enabled || !applied)">今すぐ実行</button>
+                </form>
+            </div>
+            <h3>実行履歴</h3>
+            @if (history.Length == 0) { <p class="schedule-history-empty">実行履歴はまだありません。</p> }
+            else
+            {
+                <div class="table-scroll">
+                    <table class="data-table schedule-history"><caption class="visually-hidden">この予約の実行履歴</caption><thead><tr><th scope="col">実行日時（日本時間）</th><th scope="col">結果</th><th scope="col">詳細</th></tr></thead><tbody>
+                    @foreach (var item in history)
+                    {
+                        <tr><td>@ControlDisplay.Timestamp(item.ScheduledAtUtc)@if (item.Manual) { <span class="entity-key">手動実行</span> }</td><td><span class="state-badge @ControlDisplay.ScheduleStateClass(item.Status)">@ControlDisplay.ScheduleState(item.Status)</span></td><td><span>@ControlDisplay.ScheduleError(item.ErrorCode)</span><details class="schedule-diagnostics"><summary>診断情報</summary><dl><dt>実行ID</dt><dd><code>@item.OperationId</code></dd><dt>結果コード</dt><dd><code>@item.Status</code></dd>@if (item.ErrorCode != null) { <dt>エラーコード</dt><dd><code>@item.ErrorCode</code></dd> }</dl></details></td></tr>
+                    }
+                    </tbody></table>
+                </div>
+            }
+            <details class="schedule-diagnostics"><summary>予約の診断情報</summary><dl><dt>予約ID</dt><dd><code>@definition.ScheduleId</code></dd><dt>希望版</dt><dd>@definition.Revision</dd><dt>適用版</dt><dd>@(row.AppliedRevision?.ToString() ?? "未適用")</dd><dt>実行方式</dt><dd>@definition.Trigger.Kind</dd>@if (definition.Trigger.Expression != null) { <dt>Cron</dt><dd><code>@definition.Trigger.Expression</code></dd> }</dl></details>
+        </div>
     </details>
 }
 <h2>@(Model.ScheduleId.HasValue ? "予約を編集" : "予約を追加")</h2>
@@ -72,7 +98,7 @@ else { <p>同じサーバーの予約は実行時刻を分けてください。�
     </div>
     <div class="schedule-advanced">
     <label asp-for="TriggerKind">実行方式</label><select asp-for="TriggerKind" asp-items="Html.GetEnumSelectList<AstralRecordControl.Contracts.ScheduleTriggerKind>()"></select>
-    <label asp-for="AtUtc">日時／間隔の基準時刻（UTC、例 2026-10-19T00:00:00Z）</label><input asp-for="AtUtc" />
+    <label asp-for="AtLocal">日時／間隔の基準時刻（日本時間）</label><input asp-for="AtLocal" type="text" placeholder="2026-11-02T04:00:00" />
     <label asp-for="Seconds">間隔（秒、60以上）</label><input asp-for="Seconds" type="number" min="60" max="31536000" />
     <label asp-for="Expression">Cron（分 時 日 月 曜日）</label><input asp-for="Expression" maxlength="128" />
     <label asp-for="StepsJson">処理の順序（JSON、最大16件）</label><textarea asp-for="StepsJson" rows="8" maxlength="65536"></textarea>
