@@ -1,10 +1,37 @@
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
+using System.Globalization;
 
 namespace AstralRecordControl.Web.Pages.Shared;
 
 public static class ControlDisplay
 {
+    public static readonly TimeSpan JapanOffset = TimeSpan.FromHours(9);
+
+    public static string Timestamp(DateTimeOffset? value) => value.HasValue
+        ? value.Value.ToOffset(JapanOffset).ToString("yyyy/MM/dd HH:mm:ss 'JST'", CultureInfo.InvariantCulture)
+        : "—";
+
+    public static string ScheduleState(ScheduleOccurrenceStatus state) => state switch
+    {
+        ScheduleOccurrenceStatus.Pending => "待機中", ScheduleOccurrenceStatus.Running => "実行中",
+        ScheduleOccurrenceStatus.Succeeded => "完了", ScheduleOccurrenceStatus.Failed => "失敗",
+        ScheduleOccurrenceStatus.Skipped => "スキップ", ScheduleOccurrenceStatus.NeedsAttention => "要確認", _ => "不明"
+    };
+
+    public static string ScheduleStateClass(ScheduleOccurrenceStatus state) => state switch
+    {
+        ScheduleOccurrenceStatus.Succeeded => "is-online", ScheduleOccurrenceStatus.Skipped => "is-offline",
+        ScheduleOccurrenceStatus.Failed or ScheduleOccurrenceStatus.NeedsAttention => "is-warning", _ => "is-pending"
+    };
+
+    public static string ScheduleError(string? code) => code switch
+    {
+        null or "" => "—", "StateConflict" => "実行時のサーバー状態が条件と一致しません",
+        "ReservationConflict" => "別の処理が実行中です", "UnsupportedCapability" => "この処理に対応していません",
+        "StaleRevision" => "設定の反映を待ってから実行してください", "RecoveryRequired" => "状態の確認と復旧が必要です",
+        "Expired" or "DeadlineExceeded" => "実行開始の期限を過ぎました", _ => code
+    };
     public sealed record RuntimeStatus(string Label, string CssClass, string Detail, ProcessState? State);
 
     public static RuntimeStatus ServerState(InventoryHost? host, ServerRuntimeSnapshot? runtime, DateTimeOffset now)
@@ -84,6 +111,6 @@ public static class ControlDisplay
     };
 
     public static string LastSeen(DateTimeOffset? utc) => utc.HasValue
-        ? utc.Value.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm 'JST'")
+        ? utc.Value.ToOffset(JapanOffset).ToString("yyyy/MM/dd HH:mm 'JST'", CultureInfo.InvariantCulture)
         : "まだ報告なし";
 }

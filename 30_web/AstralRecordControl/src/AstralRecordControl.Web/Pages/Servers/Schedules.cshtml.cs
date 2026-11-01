@@ -5,6 +5,7 @@ using AstralRecordControl.Web.Data;
 using AstralRecordControl.Web.Hubs;
 using AstralRecordControl.Web.Inventory;
 using AstralRecordControl.Web.Operations;
+using AstralRecordControl.Web.Pages.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -40,6 +41,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     [BindProperty] public bool Enabled { get; set; } = true;
     [BindProperty] public ScheduleTriggerKind TriggerKind { get; set; }
     [BindProperty] public string? AtUtc { get; set; } = "";
+    [BindProperty] public string? AtLocal { get; set; } = "";
     [BindProperty] public int Seconds { get; set; } = 3600;
     [BindProperty] public string? Expression { get; set; } = "0 4 * * *";
     [BindProperty] public string? TimeZoneId { get; set; } = "Asia/Tokyo";
@@ -56,7 +58,9 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             var definition = Schedules.SingleOrDefault(s => s.Definition.ScheduleId == edit)?.Definition;
             if (definition == null) return NotFound();
             ScheduleId = definition.ScheduleId; Revision = definition.Revision; Enabled = definition.Enabled;
-            TriggerKind = definition.Trigger.Kind; AtUtc = (definition.Trigger.AtUtc ?? definition.Trigger.AnchorUtc)?.ToString("O") ?? "";
+            TriggerKind = definition.Trigger.Kind;
+            AtLocal = (definition.Trigger.AtUtc ?? definition.Trigger.AnchorUtc)?.ToOffset(ControlDisplay.JapanOffset)
+                .ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture) ?? "";
             Seconds = definition.Trigger.Seconds ?? 3600; Expression = definition.Trigger.Expression ?? "0 4 * * *"; TimeZoneId = definition.Trigger.TimeZoneId ?? "Asia/Tokyo";
             StepsJson = ControlJson.Serialize(definition.Template.Steps);
             Preset = ScheduleEditorPreset.Advanced;
@@ -109,8 +113,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
                 steps = ControlJson.Deserialize<ScheduleStep[]>(StepsJson ?? "");
                 trigger = TriggerKind switch
                 {
-                    ScheduleTriggerKind.Once => new ScheduleTrigger { Kind = TriggerKind, AtUtc = ParseUtc(AtUtc) },
-                    ScheduleTriggerKind.Interval => new ScheduleTrigger { Kind = TriggerKind, Seconds = Seconds, AnchorUtc = ParseUtc(AtUtc) },
+                    ScheduleTriggerKind.Once => new ScheduleTrigger { Kind = TriggerKind, AtUtc = ParseFormTime() },
+                    ScheduleTriggerKind.Interval => new ScheduleTrigger { Kind = TriggerKind, Seconds = Seconds, AnchorUtc = ParseFormTime() },
                     ScheduleTriggerKind.Cron => new ScheduleTrigger { Kind = TriggerKind, Expression = Expression, TimeZoneId = TimeZoneId },
                     _ => throw new ArgumentException("Invalid trigger.")
                 };
@@ -149,7 +153,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
 
     public static string Description(ScheduleDefinition definition)
     {
-        if (!TryDailyPreset(definition, out var preset, out var time)) return $"予約実行 — {definition.Trigger.Kind}";
+        if (!TryDailyPreset(definition, out var preset, out var time)) return "予約実行 — " + (definition.Trigger.Kind switch
+            { ScheduleTriggerKind.Once => "指定日時", ScheduleTriggerKind.Interval => "一定間隔", ScheduleTriggerKind.Cron => "Cron指定", _ => "不明" });
         var label = "定期再起動";
         if (preset != ScheduleEditorPreset.DailyRestart)
         {
@@ -207,8 +212,17 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         return RedirectToPage(new { serverId });
     }
 
-    private static DateTimeOffset ParseUtc(string? input)
+    private DateTimeOffset ParseFormTime()
     {
+        if (!string.IsNullOrWhiteSpace(AtLocal))
+        {
+            if (!string.IsNullOrWhiteSpace(AtUtc) || !DateTime.TryParseExact(AtLocal,
+                ["yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF"],
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out var local)) throw new ArgumentException("日本時間の日時を入力してください。");
+            return new DateTimeOffset(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), ControlDisplay.JapanOffset).ToUniversalTime();
+        }
+        // Accept already-open forms from before the UI update; this field is no longer rendered.
+        var input = AtUtc;
         if (input is null || !DateTimeOffset.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out var utc) || utc.Offset != TimeSpan.Zero || !input.EndsWith('Z') && !input.EndsWith("+00:00", StringComparison.Ordinal)) throw new ArgumentException("UTC with offset is required.");
         return utc;
     }
