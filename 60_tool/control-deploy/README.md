@@ -202,6 +202,23 @@ Java実行ファイルが既定の`C:\Program Files\AstralRecordControl\Java\jdk
 
 ローカルのモック検証は`pwsh -NoProfile -File ./60_tool/control-deploy/tests/bedrock-firewall.tests.ps1`です。実ファイアウォールは変更しません。
 
+### MC-01のNetherNet TCP許可を修復する
+
+GeyserをNetherNetへ更新した後、TCP 19132のsignalingが到達しない場合は、MC-01の管理者PowerShellで`Repair-ControlNetherNetFirewall.ps1`を使用します。MC-01のローカルIPが`192.168.0.89`であること、TCP ListenとUDP 19132が同じJava実行ファイル・同じPIDに所有され、両方が`0.0.0.0`または`192.168.0.89`で待ち受けていることを確認します。Java実行ファイルは既存UDP修復と同じ既定パスで、必要なら`-Java 'C:\absolute\path\to\java.exe'`を指定します。
+
+```powershell
+pwsh -NoProfile -File ./60_tool/control-deploy/Repair-ControlNetherNetFirewall.ps1 -WhatIf
+pwsh -NoProfile -File ./60_tool/control-deploy/Repair-ControlNetherNetFirewall.ps1 -Confirm:$false
+```
+
+同じJava実行ファイルに対する既存Public受信UDP 19132許可をルールのグループ名に依存せず検索し、1件に確定してからPublic受信TCP 19132ルールを1件だけ追加します。既存UDPルールのaddress、interface、service、user、authentication等に制限がある場合やEdgeTraversalがBlock以外の場合は、範囲を広げず停止します。既存ルールやFirewall profile、サービスは変更しません。正しい管理対象TCPルールがあれば再実行時は追加しません。
+
+結果は`status`（`WhatIf`、`Created`、`Existing`）、`ruleName`、`Java`、`listenerPID`、`localIP`、`ruleScope`（根拠のUDPルール名を含む）、`routerVerification: NotVerified`、`routerNotice`を含む1行JSONです。**ルーターでもTCP 19132を`192.168.0.89:19132`へ転送し、既存UDP 19132転送を維持する必要があります。ルーターの現在設定は未検証です。** このスクリプトはルーターを確認・変更しません。作成後の検証失敗時は、この実行で作成したと確認できるルールだけを削除します。作成処理が識別子を返す前に失敗した場合は、所有を断定して削除せずエラーを返します。手動で戻す場合は成功JSONの`ruleName`を確認し、`Remove-NetFirewallRule -Name '<成功時のruleName>' -PolicyStore PersistentStore`を使用します。
+
+実サーバーでの入口として、PS1と`Repair-ControlNetherNetFirewall.bat`を同じディレクトリへ置き、BATを管理者として実行できます。BATはMC-01に導入済みの`E:\mc-01\ControlDeployment\Automation-20261030\Runtime\PowerShell\pwsh.exe`で隣のPS1を呼び、同じディレクトリの`result.json`と`error.txt`へ標準出力・標準エラーを保存して画面にも表示し、一時停止します。自動昇格やサービスの再起動は行いません。
+
+モック検証は`pwsh -NoProfile -File ./60_tool/control-deploy/tests/nethernet-firewall.tests.ps1`です。実ファイアウォールは変更しません。
+
 P1の基本運転だけを先に有効化する手順は[基本運転への切り替え](BASIC-OPERATIONS.md)を参照してください。旧ToolのLegacy実行を制限したまま、ゲームPCの停止確認・marker・Runner設定、最後にWeb設定の順で切り替えます。
 
 ## P2の有効化
