@@ -10,8 +10,22 @@
     if (!root || !log || !logStatus || !process || !session || !availability || !history) return;
 
     const stateNames = { Stopped: "停止中", Starting: "起動中", Running: "稼働中", Stopping: "停止処理中", Unmanaged: "管理外" };
-    const kindNames = { Start: "起動", Stop: "正常停止", Restart: "再起動", Kill: "強制終了", ConsoleCommand: "コマンド送信" };
-    const statusNames = { Queued: "受付", Accepted: "受理", Running: "実行中", Succeeded: "成功", Failed: "失敗", Rejected: "拒否", Expired: "期限切れ", Cancelled: "取消", NeedsAttention: "要確認" };
+    const kindNames = { Start: "起動", Stop: "正常停止", Restart: "再起動", Kill: "強制終了", ConsoleCommand: "コマンド送信", UpdateGeyser: "GeyserMC 更新", CreateBackup: "バックアップ取得", RestoreBackup: "バックアップ復元", PruneBackups: "バックアップ整理" };
+    const statusNames = { Queued: "待機中", Accepted: "受付済み", Running: "実行中", Succeeded: "完了", Failed: "失敗", Rejected: "受付拒否", Expired: "期限切れ", Cancelled: "中断済み", NeedsAttention: "要確認" };
+    // A pre-update shell can install a direct POST response without loading new head assets.
+    const formatTime = window.ControlTime?.format ?? (value => {
+        if (value === null || value === undefined || value === "") return "—";
+        if (typeof value === "string" && !/(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) return "—";
+        if (typeof value !== "string" && typeof value !== "number" && !(value instanceof Date)) return "—";
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return "—";
+        const formatter = new Intl.DateTimeFormat("ja-JP-u-ca-gregory-nu-latn", {
+            timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+        });
+        const p = Object.fromEntries(formatter.formatToParts(date).map(part => [part.type, part.value]));
+        return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second} JST`;
+    });
     const forms = [...root.querySelectorAll("[data-operation-form]"), ...document.querySelectorAll(".console-command-form")];
     const buttons = forms.flatMap(form => [...form.querySelectorAll('button[name="kind"]')]);
     const trimLog = value => {
@@ -71,7 +85,7 @@
         const fragment = document.createDocumentFragment();
         for (const row of rows) {
             const tr = document.createElement("tr");
-            const occurred = window.ControlTime.format(row.createdAtUtc);
+            const occurred = formatTime(row.createdAtUtc);
             for (const value of [occurred, kindNames[row.kind] || row.kind, statusNames[row.status] || row.status, row.errorCode || ""]) {
                 const td = document.createElement("td");
                 td.textContent = value || "";
@@ -114,7 +128,7 @@
         if (batch.sessionId !== log.dataset.sessionId || !Number.isSafeInteger(batch.nextCursor) || batch.nextCursor < cursor || !Array.isArray(batch.rows)) throw new Error("Invalid log batch");
         const follow = log.scrollHeight - log.scrollTop - log.clientHeight <= 32;
         const scrollTop = log.scrollTop;
-        const appended = batch.rows.map(row => `[${window.ControlTime.format(row.occurredAtUtc)}] ${row.stream}: ${row.text}${row.truncated ? " [分割]" : ""}\n`).join("");
+        const appended = batch.rows.map(row => `[${formatTime(row.occurredAtUtc)}] ${row.stream}: ${row.text}${row.truncated ? " [分割]" : ""}\n`).join("");
         if (appended) {
             logText = trimLog(logText + appended);
             renderLog();

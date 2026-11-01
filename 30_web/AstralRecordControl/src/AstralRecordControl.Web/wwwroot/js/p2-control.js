@@ -38,6 +38,20 @@ ControlSha256.k = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0
 if (typeof module !== "undefined" && module.exports) module.exports = ControlSha256;
 if (typeof document !== "undefined") {
     const panel = document.getElementById("p2-control"); if (!panel) return;
+    // Keep already-open pre-update pages working after an in-place POST response.
+    const formatTime = window.ControlTime?.format ?? (value => {
+        if (value === null || value === undefined || value === "") return "—";
+        if (typeof value === "string" && !/(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) return "—";
+        if (typeof value !== "string" && typeof value !== "number" && !(value instanceof Date)) return "—";
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return "—";
+        const formatter = new Intl.DateTimeFormat("ja-JP-u-ca-gregory-nu-latn", {
+            timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+        });
+        const p = Object.fromEntries(formatter.formatToParts(date).map(part => [part.type, part.value]));
+        return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second} JST`;
+    });
     const byId = id => document.getElementById(id), status = byId("p2-status"), output = byId("p2-result");
     const api = "/api/control/v1", chunkSize = 4 * 1024 * 1024, csrf = panel.querySelector('input[name="__RequestVerificationToken"]').value;
     let profiles = [], nextCursor = null, nextBackup = null;
@@ -160,7 +174,7 @@ if (typeof document !== "undefined") {
         const table = byId("backup-entries"); if (!append) table.replaceChildren();
         for (const b of data.rows) {
             const tr = table.insertRow(), cell = tr.insertCell(), radio = document.createElement("input"); radio.type = "radio"; radio.name = "backupId"; radio.value = b.backupId; radio.setAttribute("aria-label", b.backupId); cell.append(radio);
-            for (const value of [window.ControlTime.format(b.createdAtUtc), b.state, `${b.sizeBytes} bytes`, b.protected ? "保護" : "なし"]) tr.insertCell().textContent = value;
+            for (const value of [formatTime(b.createdAtUtc), b.state, `${b.sizeBytes} bytes`, b.protected ? "保護" : "なし"]) tr.insertCell().textContent = value;
         }
         nextBackup = data.nextCursor; byId("backups-next").hidden = !nextBackup;
     }
@@ -226,7 +240,7 @@ if (typeof document !== "undefined") {
             const transfers = await request("/transfers"), table = byId("transfer-entries"); table.replaceChildren();
             for (const t of transfers) {
                 const row = table.insertRow();
-                for (const value of [t.transferId, t.status, `${t.committedOffset} / ${t.sizeBytes ?? "未確定"}`, window.ControlTime.format(t.expiresAtUtc)]) row.insertCell().textContent = value;
+                for (const value of [t.transferId, t.status, `${t.committedOffset} / ${t.sizeBytes ?? "未確定"}`, formatTime(t.expiresAtUtc)]) row.insertCell().textContent = value;
                 const cell = row.insertCell();
                 if (t.destinationHostId === null && t.status === "Verified") { const b = document.createElement("button"); b.textContent = "保存"; b.addEventListener("click", () => run(() => download(t))); cell.append(b); }
                 if (t.sourceHostId === null && t.status === "Uploading") { const input = document.createElement("input"); input.type = "file"; input.setAttribute("aria-label", "再開する同じファイル"); const b = document.createElement("button"); b.textContent = "転送を再開"; b.addEventListener("click", () => run(async () => { if (!input.files[0]) throw new Error("同じファイルを選択してください。"); await upload(input.files[0], t); await refresh(); })); cell.append(input, b); }

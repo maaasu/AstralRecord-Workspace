@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const script = name => fs.readFileSync(path.join(__dirname, '../../src/AstralRecordControl.Web/wwwroot/js', name), 'utf8');
 
-function fixture() {
+function fixture(loadTime = true) {
     class Element extends EventTarget {
         constructor() { super(); this.children = []; this.textContent = ''; this.value = ''; }
         append(child) { this.children.push(child); }
@@ -40,7 +40,7 @@ function fixture() {
             return { ok: true, json: async () => data };
         }
     });
-    vm.runInContext(script('control-time.js'), context);
+    if (loadTime) vm.runInContext(script('control-time.js'), context);
     return {
         requests, window,
         async open(mode) {
@@ -58,8 +58,8 @@ function fixture() {
     };
 }
 
-test('backup and transfer timestamps stay JST when page scripts reload during navigation', async () => {
-    const browser = fixture();
+for (const loadTime of [true, false]) test(`backup and transfer timestamps stay JST during navigation (shared asset=${loadTime})`, async () => {
+    const browser = fixture(loadTime);
     for (let visit = 0; visit < 2; visit++) {
         const backups = await browser.open('backups');
         const rows = backups['backup-entries'].children;

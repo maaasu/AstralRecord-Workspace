@@ -361,6 +361,41 @@ public sealed class ScheduledAutomationPageTests
         Assert.Equal(ControlJson.Serialize(definition.Template), ControlJson.Serialize(Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition.Template));
     }
 
+    [Theory]
+    [InlineData(ScheduleTriggerKind.Once, "2026-11-02T04:00:00", "2026-11-01T19:00:00Z")]
+    [InlineData(ScheduleTriggerKind.Interval, "2027-01-01T00:00:00.1234567", "2026-12-31T15:00:00.1234567Z")]
+    public async Task JapanTimeFormStoresUtcAndEditingKeepsTheExactInstant(ScheduleTriggerKind kind, string local, string expected)
+    {
+        await using var f = await Fixture.CreateAsync();
+        var page = f.Page(); page.RequestKey = Guid.NewGuid();
+        page.Preset = ScheduleEditorPreset.Advanced; page.TriggerKind = kind; page.AtLocal = local;
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        var first = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+        var instant = first.Trigger.AtUtc ?? first.Trigger.AnchorUtc;
+        Assert.Equal(DateTimeOffset.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), instant);
+        Assert.Equal(TimeSpan.Zero, instant!.Value.Offset);
+        var edit = f.Page(); await edit.OnGetAsync(f.ServerId, first.ScheduleId);
+        Assert.Equal(local, edit.AtLocal);
+        Assert.IsType<RedirectToPageResult>(await edit.OnPostSaveAsync(f.ServerId));
+        var edited = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+        Assert.Equal(instant, edited.Trigger.AtUtc ?? edited.Trigger.AnchorUtc);
+    }
+
+    [Theory]
+    [InlineData("2026-11-02T04:00:00Z", "")]
+    [InlineData("2026-11-02T04:00:00+09:00", "")]
+    [InlineData("2026-11-02T04:00:00", "2026-11-01T19:00:00Z")]
+    public async Task LocalTimeFieldRejectsOffsetsAndConflictingLegacyUtc(string local, string utc)
+    {
+        await using var f = await Fixture.CreateAsync();
+        var page = f.Page(); page.RequestKey = Guid.NewGuid();
+        page.Preset = ScheduleEditorPreset.Advanced; page.TriggerKind = ScheduleTriggerKind.Once;
+        page.AtLocal = local; page.AtUtc = utc;
+        Assert.IsType<PageResult>(await page.OnPostSaveAsync(f.ServerId));
+        Assert.False(page.ModelState.IsValid);
+        Assert.Empty(await f.Store.SchedulesAsync(f.ServerId));
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");

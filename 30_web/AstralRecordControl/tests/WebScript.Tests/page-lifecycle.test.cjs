@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const script = name => fs.readFileSync(path.join(__dirname, '../../src/AstralRecordControl.Web/wwwroot/js', name), 'utf8');
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 
-const consoleFixture = (fetch, renderer) => {
+const consoleFixture = (fetch, renderer, loadTime = true) => {
     const fields = Object.fromEntries(['configRevision', 'expectedStateRevision', 'expectedServerSessionId'].map(name => [name, { name, value: '' }]));
     const buttons = ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand'].map(value => ({ name: 'kind', value, disabled: false }));
     const form = new EventTarget();
@@ -33,10 +33,23 @@ const consoleFixture = (fetch, renderer) => {
         createElement: () => ({ children: [], textContent: '', append(cell) { this.children.push(cell); } })
     };
     const context = vm.createContext({ document, window, AbortController, URLSearchParams, fetch, queueMicrotask });
-    vm.runInContext(script('control-time.js'), context);
+    if (loadTime) vm.runInContext(script('control-time.js'), context);
     vm.runInContext(script('server-logs.js'), context);
     return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers };
 };
+
+test('old shells without the shared time asset still poll and keep Japanese history labels', async () => {
+    const fixture = consoleFixture(url => String(url).includes('handler=Status')
+        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 2, stateRevision: 4, processState: 'Running', currentSessionId: 'old', recent: [{ createdAtUtc: '2026-10-31T15:02:03Z', kind: 'UpdateGeyser', status: 'Succeeded' }] }) })
+        : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: 1, rows: [{ occurredAtUtc: '2026-10-31T15:02:03Z', stream: 'stdout', text: 'ready' }] }) }), undefined, false);
+    await new Promise(setImmediate);
+    assert.equal(fixture.buttons[1].disabled, false);
+    assert.equal(fixture.history.rows[0].children[0].textContent, '2026/11/01 00:02:03 JST');
+    assert.equal(fixture.history.rows[0].children[1].textContent, 'GeyserMC 更新');
+    assert.equal(fixture.history.rows[0].children[2].textContent, '完了');
+    assert.match(fixture.log.textContent, /^\[2026\/11\/01 00:02:03 JST\] stdout: ready/);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
 
 test('console polling aborts status fetch and ignores late results on page change', async () => {
     let signal, resolveFetch;

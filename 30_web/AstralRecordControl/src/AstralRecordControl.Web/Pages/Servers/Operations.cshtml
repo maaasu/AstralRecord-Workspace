@@ -1,6 +1,7 @@
 @page "/Servers/{serverId:guid}/Operations"
 @model AstralRecordControl.Web.Pages.Servers.OperationsModel
 @using AstralRecordControl.Contracts
+@using AstralRecordControl.Web.Pages.Shared
 @{
     ViewData["Title"] = Model.Server.DisplayName + " · 操作・ログ";
     ViewData["ServerTab"] = "Operations";
@@ -52,7 +53,7 @@
     <h2>ライブログ</h2>
     <p id="log-status" role="status" aria-live="polite">ログと運転状態を3秒ごとに更新します。</p>
     @if (Model.Logs?.Gap == true) { <p>保持期間を超えた行があります。最古 cursor: @Model.Logs.EarliestAvailableCursor</p> }
-    <pre id="server-log" tabindex="0" aria-label="サーバーログ" data-server-id="@Model.Server.ServerId" data-session-id="@Model.Logs?.SessionId" data-cursor="@(Model.Logs?.NextCursor ?? 0)">@if (Model.Logs is not null) { foreach (var row in Model.Logs.Rows) { @($"[{row.OccurredAtUtc:O}] {row.Stream}: {row.Text}\n") } }</pre>
+    <pre id="server-log" tabindex="0" aria-label="サーバーログ" data-server-id="@Model.Server.ServerId" data-session-id="@Model.Logs?.SessionId" data-cursor="@(Model.Logs?.NextCursor ?? 0)">@if (Model.Logs is not null) { foreach (var row in Model.Logs.Rows) { @($"[{ControlDisplay.Timestamp(row.OccurredAtUtc)}] {row.Stream}: {row.Text}\n") } }</pre>
     <form method="post" asp-page-handler="Operate" data-operation-form class="console-command-form">
         <input type="hidden" name="serverId" value="@Model.Server.ServerId" />
         <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
@@ -66,7 +67,7 @@
 <section class="server-console">
     <h2>操作履歴</h2>
     <div class="table-scroll"><table class="data-table"><thead><tr><th>日時</th><th>種別</th><th>状態</th><th>エラー</th></tr></thead><tbody id="server-operation-history">
-        @foreach (var operation in Model.Recent) { <tr><td>@operation.CreatedAtUtc.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</td><td>@operation.Kind</td><td>@operation.Status</td><td>@operation.ErrorCode</td></tr> }
+        @foreach (var operation in Model.Recent) { <tr><td>@ControlDisplay.Timestamp(operation.CreatedAtUtc)</td><td>@ControlDisplay.OperationName(operation.Kind)</td><td>@ControlDisplay.OperationState(operation.Status)</td><td>@operation.ErrorCode</td></tr> }
     </tbody></table></div>
 </section>
 @section Scripts { <script src="~/js/server-logs.js" asp-append-version="true" defer></script> }

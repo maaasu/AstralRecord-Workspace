@@ -30,7 +30,7 @@ public static class ControlDisplay
         null or "" => "—", "StateConflict" => "実行時のサーバー状態が条件と一致しません",
         "ReservationConflict" => "別の処理が実行中です", "UnsupportedCapability" => "この処理に対応していません",
         "StaleRevision" => "設定の反映を待ってから実行してください", "RecoveryRequired" => "状態の確認と復旧が必要です",
-        "Expired" or "DeadlineExceeded" => "実行開始の期限を過ぎました", _ => code
+        "Expired" or "DeadlineExpired" or "DeadlineExceeded" => "実行開始の期限を過ぎました", _ => code
     };
     public sealed record RuntimeStatus(string Label, string CssClass, string Detail, ProcessState? State);
 
