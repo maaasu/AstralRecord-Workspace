@@ -32,7 +32,9 @@ const consoleFixture = (fetch, renderer) => {
         createDocumentFragment: () => ({ children: [], append(row) { this.children.push(row); } }),
         createElement: () => ({ children: [], textContent: '', append(cell) { this.children.push(cell); } })
     };
-    vm.runInContext(script('server-logs.js'), vm.createContext({ document, window, AbortController, URLSearchParams, fetch, queueMicrotask }));
+    const context = vm.createContext({ document, window, AbortController, URLSearchParams, fetch, queueMicrotask });
+    vm.runInContext(script('control-time.js'), context);
+    vm.runInContext(script('server-logs.js'), context);
     return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers };
 };
 
@@ -68,12 +70,38 @@ test('console follows new session, updates hidden revisions/history, and preserv
     assert.equal(fixture.buttons[0].disabled, true);
     assert.equal(fixture.buttons[1].disabled, false);
     assert.equal(fixture.history.rows[0].children[1].textContent, '起動');
-    assert.equal(fixture.history.rows[0].children[0].textContent, '2026-10-20 00:00:00 UTC');
+    assert.equal(fixture.history.rows[0].children[0].textContent, '2026/10/20 09:00:00 JST');
     assert.match(fixture.log.textContent, /<unsafe>/);
     assert.equal(fixture.log.scrollTop, 10);
     assert.match(requests[1].url, /sessionId=new&afterSequence=0/);
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
     assert.equal(fixture.timers.size, 0);
+});
+
+test('console appends JST metadata after page reload and preserves raw log text and cursors', async () => {
+    for (let reload = 0; reload < 2; reload++) {
+        let cursor = 0;
+        const requests = [];
+        const fixture = consoleFixture(url => {
+            requests.push(String(url));
+            return String(url).includes('handler=Status')
+                ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 2, stateRevision: 4, processState: 'Running', currentSessionId: 'old', recent: [{ createdAtUtc: 'invalid', kind: 'Start', status: 'Succeeded' }] }) })
+                : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: ++cursor, rows: [{ occurredAtUtc: '2026-10-31T15:02:03Z', stream: 'stdout', text: '[15:02:03 UTC] <raw>', truncated: true }] }) });
+        });
+        await new Promise(setImmediate);
+        assert.equal(fixture.history.rows[0].children[0].textContent, '—');
+        const line = '[2026/11/01 00:02:03 JST] stdout: [15:02:03 UTC] <raw> [分割]\n';
+        assert.equal(fixture.log.textContent, line);
+        const [timerId, callback] = [...fixture.timers][0];
+        fixture.timers.delete(timerId);
+        callback();
+        await new Promise(setImmediate);
+        assert.equal(fixture.log.textContent, line + line);
+        assert.equal(fixture.log.dataset.cursor, '2');
+        assert.match(requests.at(-1), /afterSequence=1/);
+        fixture.window.dispatchEvent(new Event('control:before-page-change'));
+        assert.equal(fixture.timers.size, 0);
+    }
 });
 
 test('console disables operations when status cannot be checked', async () => {

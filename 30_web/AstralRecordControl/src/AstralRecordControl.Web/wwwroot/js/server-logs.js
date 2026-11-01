@@ -71,7 +71,7 @@
         const fragment = document.createDocumentFragment();
         for (const row of rows) {
             const tr = document.createElement("tr");
-            const occurred = row.createdAtUtc ? new Date(row.createdAtUtc).toISOString().slice(0, 19).replace("T", " ") + " UTC" : "";
+            const occurred = window.ControlTime.format(row.createdAtUtc);
             for (const value of [occurred, kindNames[row.kind] || row.kind, statusNames[row.status] || row.status, row.errorCode || ""]) {
                 const td = document.createElement("td");
                 td.textContent = value || "";
@@ -114,7 +114,7 @@
         if (batch.sessionId !== log.dataset.sessionId || !Number.isSafeInteger(batch.nextCursor) || batch.nextCursor < cursor || !Array.isArray(batch.rows)) throw new Error("Invalid log batch");
         const follow = log.scrollHeight - log.scrollTop - log.clientHeight <= 32;
         const scrollTop = log.scrollTop;
-        const appended = batch.rows.map(row => `[${row.occurredAtUtc}] ${row.stream}: ${row.text}${row.truncated ? " [分割]" : ""}\n`).join("");
+        const appended = batch.rows.map(row => `[${window.ControlTime.format(row.occurredAtUtc)}] ${row.stream}: ${row.text}${row.truncated ? " [分割]" : ""}\n`).join("");
         if (appended) {
             logText = trimLog(logText + appended);
             renderLog();

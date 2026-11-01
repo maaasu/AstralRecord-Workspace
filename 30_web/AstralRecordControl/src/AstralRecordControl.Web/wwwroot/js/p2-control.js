@@ -160,7 +160,7 @@ if (typeof document !== "undefined") {
         const table = byId("backup-entries"); if (!append) table.replaceChildren();
         for (const b of data.rows) {
             const tr = table.insertRow(), cell = tr.insertCell(), radio = document.createElement("input"); radio.type = "radio"; radio.name = "backupId"; radio.value = b.backupId; radio.setAttribute("aria-label", b.backupId); cell.append(radio);
-            for (const value of [new Date(b.createdAtUtc).toLocaleString(), b.state, `${b.sizeBytes} bytes`, b.protected ? "保護" : "なし"]) tr.insertCell().textContent = value;
+            for (const value of [window.ControlTime.format(b.createdAtUtc), b.state, `${b.sizeBytes} bytes`, b.protected ? "保護" : "なし"]) tr.insertCell().textContent = value;
         }
         nextBackup = data.nextCursor; byId("backups-next").hidden = !nextBackup;
     }
@@ -226,7 +226,7 @@ if (typeof document !== "undefined") {
             const transfers = await request("/transfers"), table = byId("transfer-entries"); table.replaceChildren();
             for (const t of transfers) {
                 const row = table.insertRow();
-                for (const value of [t.transferId, t.status, `${t.committedOffset} / ${t.sizeBytes ?? "未確定"}`, new Date(t.expiresAtUtc).toLocaleString()]) row.insertCell().textContent = value;
+                for (const value of [t.transferId, t.status, `${t.committedOffset} / ${t.sizeBytes ?? "未確定"}`, window.ControlTime.format(t.expiresAtUtc)]) row.insertCell().textContent = value;
                 const cell = row.insertCell();
                 if (t.destinationHostId === null && t.status === "Verified") { const b = document.createElement("button"); b.textContent = "保存"; b.addEventListener("click", () => run(() => download(t))); cell.append(b); }
                 if (t.sourceHostId === null && t.status === "Uploading") { const input = document.createElement("input"); input.type = "file"; input.setAttribute("aria-label", "再開する同じファイル"); const b = document.createElement("button"); b.textContent = "転送を再開"; b.addEventListener("click", () => run(async () => { if (!input.files[0]) throw new Error("同じファイルを選択してください。"); await upload(input.files[0], t); await refresh(); })); cell.append(input, b); }
