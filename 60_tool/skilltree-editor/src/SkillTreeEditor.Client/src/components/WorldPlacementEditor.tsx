@@ -70,6 +70,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const inspector = useRef<HTMLDivElement>(null)
   const listing = useRef<HTMLDivElement>(null)
   const listingFocus = useRef<{ id: string | null } | null>(null)
+  const listingReveal = useRef<{ id: string; worldId: string } | null>(null)
   const [listingFocusKey, setListingFocusKey] = useState(0)
   const searchInput = useRef<HTMLInputElement>(null)
   const formId = useId(), filterId = useId(), bulkId = useId(), searchHelpId = useId(), listingId = useId()
@@ -214,6 +215,16 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     setPage(next)
     setListingFocusKey(value => value + 1)
   }
+  const clearSearchConditions = () => {
+    setQuery(''); setFilterKind(''); setFilterEnabled(''); setFilterRegion(''); setFilterTemplate(''); setMinimumLevel(''); setMaximumLevel('')
+  }
+  const revealSelectedPlacement = () => {
+    if (locked() || !editing || !selected) return
+    if (selectedListingIndex >= 0) { navigateListing(Math.floor(selectedListingIndex / pageSize), selected.placementId); return }
+    listingReveal.current = { id: selected.placementId, worldId }
+    if (!filteredIds.has(selected.placementId)) clearSearchConditions()
+    setSelectedOnly(false)
+  }
   const focusListingItem = (index: number) => {
     if (locked() || !sortedListing.items.length) return
     const targetIndex = Math.max(0, Math.min(index, sortedListing.items.length - 1))
@@ -242,6 +253,14 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     setBulkSelection({ worldId, ids })
   }
   useEffect(() => { setPage(0) }, [filterKind, filterEnabled, filterTemplate, filterRegion, minimumLevel, maximumLevel, query, worldId, selectedOnly, listingSort])
+  useEffect(() => {
+    const request = listingReveal.current
+    listingReveal.current = null
+    if (!request || !editing || locked() || request.worldId !== worldId || request.id !== selectedId) return
+    const index = sortedListing.items.findIndex(item => item.placementId === request.id)
+    // Run after filter-driven page reset, then focus once the target page is rendered.
+    if (index >= 0) navigateListing(Math.floor(index / pageSize), request.id)
+  }, [sortedListing.items, worldId, selectedId, editing])
   const selectedOutsideFilter = editing && selected?.worldId === worldId && !filtered.some(item => item.placementId === selectedId)
   const mapPlacements = useMemo(() => editing
     ? selectedOutsideFilter && selected ? [...filtered, selected] : filtered
@@ -393,7 +412,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     <p id={searchHelpId} className="wp-filter-note">空白で区切ると、すべての語を含む配置を検索します。例: オオカミ 草原。検索欄で↓・Enterを押すと現在のページの先頭へ移動します。一覧では↑↓でページをまたいで移動、Home・Endで先頭・末尾、Enter・Spaceで配置を選択、Escapeで検索へ戻ります。</p>
     <section className="wp-filter-panel" aria-label="詳細条件"><button className="wp-panel-toggle" type="button" aria-expanded={filtersOpen} aria-controls={filterId} onClick={() => setFiltersOpen(open => !open)}>詳細条件（{activeFilterDetails.length} 件）{activeFilterDetails.length > 0 && <span className="wp-panel-summary">{activeFilterDetails.join(' · ')}</span>}</button>
     <div id={filterId} hidden={!filtersOpen}>{filtersOpen && <><div className="wp-filters"><label>種類<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">すべて</option><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label><label>有効状態<select value={filterEnabled} onChange={event => setFilterEnabled(event.target.value)}><option value="">すべて</option><option value="true">有効</option><option value="false">無効</option></select></label><label>地域<select value={filterRegion} onChange={event => setFilterRegion(event.target.value)}><option value="">すべて</option>{[...new Set(snapshot.regions.map(region => region.name))].map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>スポナーマスター<select value={filterTemplate} onChange={event => setFilterTemplate(event.target.value)}><option value="">すべて</option>{catalog.spawners.map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label><label>出現レベル下限<input aria-label="出現レベル下限" type="number" min="1" value={minimumLevel} onChange={event => setMinimumLevel(event.target.value)} /></label><label>出現レベル上限<input aria-label="出現レベル上限" type="number" min="1" value={maximumLevel} onChange={event => setMaximumLevel(event.target.value)} /></label></div><p className="wp-world-details">世界 ID: <code>{worldId}</code>{selectedWorldName && <> · 保存先: <code>{selectedWorldName}</code></>}</p></>}</div></section>
-    <div className="wp-list-options"><label>一覧の並び順<select aria-label="一覧の並び順" value={listingSort} onChange={event => setListingSort(event.target.value as PlacementListingSort)}><option value="default">標準（保存済み順）</option><option value="distance">開始地点に近い順</option><option value="level-asc">出現レベルが低い順</option><option value="level-desc">出現レベルが高い順</option><option value="name">日本語名順</option></select></label><button className="button" type="button" onClick={() => { setQuery(''); setFilterKind(''); setFilterEnabled(''); setFilterRegion(''); setFilterTemplate(''); setMinimumLevel(''); setMaximumLevel(''); searchInput.current?.focus() }} disabled={!query && !filterKind && !filterEnabled && !filterRegion && !filterTemplate && !minimumLevel && !maximumLevel}>検索条件をすべて解除</button></div>
+    <div className="wp-list-options"><label>一覧の並び順<select aria-label="一覧の並び順" value={listingSort} onChange={event => setListingSort(event.target.value as PlacementListingSort)}><option value="default">標準（保存済み順）</option><option value="distance">開始地点に近い順</option><option value="level-asc">出現レベルが低い順</option><option value="level-desc">出現レベルが高い順</option><option value="name">日本語名順</option></select></label><button className="button" type="button" onClick={() => { clearSearchConditions(); searchInput.current?.focus() }} disabled={!query && !filterKind && !filterEnabled && !filterRegion && !filterTemplate && !minimumLevel && !maximumLevel}>検索条件をすべて解除</button></div>
     <p className="wp-count">{filtered.length} 件を表示 · 世界: {snapshot.manifest.worldName}</p>
     {listingSort === 'distance' && <p className="wp-sort-note">開始地点からの水平直線距離です。道路に沿った距離ではありません。</p>}
     <section className="wp-bulk-panel" aria-label="配置の一括操作"><button className="wp-panel-toggle" type="button" aria-expanded={bulkOpen} aria-controls={bulkId} onClick={() => setBulkOpen(open => !open)}>一括操作 <span className="wp-panel-summary">一括選択: 合計 {bulkScope.items.length} 件 · 条件内 {bulkScope.matchingCount} 件 · 条件外 {bulkScope.outsideCount} 件{selectedOnly && ' · 選択だけを一覧表示中'}</span></button>
@@ -409,10 +428,10 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       <span role="status">{selectedOnly ? '一括選択の一覧' : '一覧'} {listed.length ? `${currentPage * pageSize + 1}–${Math.min((currentPage + 1) * pageSize, listed.length)}` : '0'} / {listed.length} 件 · {currentPage + 1} / {pageCount} ページ</span>
       <button className="button" type="button" aria-controls={listingId} disabled={currentPage === 0} onClick={() => navigateListing(currentPage - 1)}>前の配置ページ</button>
       <button className="button" type="button" aria-controls={listingId} disabled={currentPage + 1 >= pageCount} onClick={() => navigateListing(currentPage + 1)}>次の配置ページ</button>
-      <button className="button" type="button" aria-controls={listingId} disabled={selectedListingIndex < 0} onClick={() => navigateListing(Math.floor(selectedListingIndex / pageSize), selectedId)}>選択中の配置のページへ</button>
+      <button className="button" type="button" aria-controls={listingId} disabled={busy || confirmation !== null || !selected} onClick={revealSelectedPlacement}>{selected && selectedListingIndex < 0 ? '表示条件を解除して選択中の配置を表示' : '選択中の配置のページへ'}</button>
     </div>
     <p>一覧は50件ずつ表示します。ページを切り替えても、地図の表示条件・一括選択・保存対象は変わりません。</p>
-    {selected && selectedListingIndex < 0 && <p>選択中の配置は現在の一覧に含まれていません。検索条件や「一括選択だけを一覧で確認」を確認してください。</p>}
+    {selected && selectedListingIndex < 0 && <p>選択中の配置は現在の一覧に含まれていません。表示する操作で「一括選択だけ」の表示を解除し、必要なら地図と一覧の検索・詳細条件も解除します。一括選択・並び順・編集中の内容は保持します。</p>}
     <div id={listingId} ref={listing} className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map((item, index) => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" data-placement-id={item.placementId} onKeyDown={event => handleListingKey(event, currentPage * pageSize + index)} aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{item.kind} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small><code>{item.templateId ?? item.placementId}</code></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
 
     </div>

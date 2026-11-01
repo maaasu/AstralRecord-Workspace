@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { WorldPlacementEditor } from './WorldPlacementEditor'
 import { worldPlacementApi, type PlacementKind, type WorldPlacement } from '../api/worldPlacementApi'
@@ -27,6 +27,8 @@ it.each<PlacementKind>(['spawner', 'npc', 'waystone'])('copies selected %s worki
   render(<WorldPlacementEditor {...props} />)
   await screen.findByRole('button', { name: '座標をコピー' })
   expect(screen.getByText('ワールド: エリヴァ · actual/eriva')).toBeInTheDocument()
+  // The loaded button can appear before the initial passive map notification.
+  await waitFor(() => expect(props.onPlacements).toHaveBeenLastCalledWith([{ ...placement, kind }], expect.any(Object), true))
   props.onPlacements.mockClear(); props.onDirtyChange.mockClear()
   fireEvent.click(copy())
   await screen.findByText(/^座標をコピーしました:/)

@@ -153,7 +153,7 @@ describe('Dev 配置の編集', () => {
     expect(screen.getByLabelText(/\(point-249\) を一括選択$/)).toBeChecked()
     expect(worldPlacementApi.save).not.toHaveBeenCalled()
   })
-  it('地図で選択した配置へ並び順に沿って移動し、条件外では移動せず数値原稿と全件保存を保持する', async () => {
+  it('地図で選択した配置へ並び順に沿って移動し、条件外では表示操作を案内して数値原稿と全件保存を保持する', async () => {
     const placements = [...Array.from({ length: 101 }, (_, i) => placement(`point-${i}`, 100 - i)), { ...placement('other'), worldId: 'other' }]
     vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements })
     vi.mocked(worldPlacementApi.save).mockImplementation(async (_, placements) => ({ schemaVersion: 1, revision: 'rev-2', placements }))
@@ -185,14 +185,14 @@ describe('Dev 配置の編集', () => {
     search.focus()
     fireEvent.change(search, { target: { value: 'point-0' } })
     expect(search).toHaveFocus()
-    expect(screen.getByRole('button', { name: '選択中の配置のページへ' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '表示条件を解除して選択中の配置を表示' })).toBeEnabled()
     expect(screen.getByText(/選択中の配置は現在の一覧に含まれていません/)).toBeInTheDocument()
     expect(screen.getByLabelText('X')).toHaveValue('-')
     fireEvent.keyDown(screen.getByLabelText('X'), { key: 'Escape' })
     fireEvent.click(screen.getByLabelText(/\(point-0\) を一括選択$/))
     fireEvent.click(getBulkOnly())
     fireEvent.change(search, { target: { value: '' } })
-    expect(screen.getByRole('button', { name: '選択中の配置のページへ' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '表示条件を解除して選択中の配置を表示' })).toBeEnabled()
     fireEvent.click(getBulkOnly())
     fireEvent.change(screen.getByLabelText('X'), { target: { value: '999' } })
     fireEvent.keyDown(screen.getByLabelText('X'), { key: 'Enter' })
