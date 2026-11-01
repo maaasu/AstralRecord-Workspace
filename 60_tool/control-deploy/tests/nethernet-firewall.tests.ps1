@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\Repair-ControlNetherNetFirewall.ps1')
 $script:realGetNetherNetRules = ${function:Get-NetherNetRules}
+$script:realGetNetherNetListeners = ${function:Get-NetherNetListeners}
 
 function Assert-Test([bool]$Condition, [string]$Message) { if (!$Condition) { throw $Message } }
 function Expect-Rejection([scriptblock]$Action, [string]$Message, [string]$ExpectedMessage = '') {
@@ -30,16 +31,55 @@ $script:managed = [Collections.Generic.List[object]]::new()
 function Get-NetherNetComputerName { $script:hostName }
 function Test-NetherNetAdministrator { $script:admin }
 function Get-NetherNetLocalIPs { $script:localIPs }
-function Get-NetherNetListeners { $script:listeners }
+function Get-NetherNetListeners {
+    if ($script:useRawAdapters) { & $script:realGetNetherNetListeners } else { $script:listeners }
+}
+function Get-NetTCPConnection {
+    param($LocalPort, $State, $ErrorAction)
+    $script:listeners | Where-Object { $_.Protocol -eq 'TCP' } | ForEach-Object {
+        [pscustomobject]@{ LocalAddress = $_.Address; OwningProcess = $_.ProcessId }
+    }
+}
+function Get-NetUDPEndpoint {
+    param($LocalPort, $ErrorAction)
+    $script:listeners | Where-Object { $_.Protocol -eq 'UDP' } | ForEach-Object {
+        [pscustomobject]@{ LocalAddress = $_.Address; OwningProcess = $_.ProcessId }
+    }
+}
+function Get-CimInstance {
+    param($ClassName, $Filter, $ErrorAction)
+    $ownerId = [int]($Filter -replace '^ProcessId=', '')
+    [pscustomobject]@{ ExecutablePath = ($script:listeners | Where-Object { $_.ProcessId -eq $ownerId } | Select-Object -First 1).Executable }
+}
 function Test-NetherNetIPv4Listener([string]$Address, [int]$Port) {
     $script:probeCalls++
     Assert-Test ($Address -eq '192.168.0.89' -and $Port -eq 19132) 'Probe used an unexpected destination.'
     $script:probeSuccess
 }
 # Exercise the real read adapter separately with scalar CIM filter values.
-function Get-NetFirewallRule { param($PolicyStore, $ErrorAction) $script:adapterRule }
+function Get-NetFirewallRule {
+    param($PolicyStore, $ErrorAction)
+    $script:adapterRule
+    if ($script:useRawAdapters) {
+        foreach ($rule in $script:managed) {
+            [pscustomobject]@{
+                Name = $rule.Name; Group = $rule.Group; Enabled = $rule.Enabled; Direction = $rule.Direction
+                Action = $rule.Action; Profile = $rule.Profile; PolicyStoreSourceType = $rule.PolicySource
+                EdgeTraversalPolicy = $rule.EdgeTraversal; Protocol = $rule.Protocol
+                LocalPort = [string](@($rule.LocalPorts)[0])
+            }
+        }
+    }
+}
 function Get-NetFirewallApplicationFilter { param($ErrorAction) process { [pscustomobject]@{ Program = $java; Package = $null } } }
-function Get-NetFirewallPortFilter { param($ErrorAction) process { $script:adapterPort } }
+function Get-NetFirewallPortFilter {
+    param([Parameter(ValueFromPipeline)]$InputObject)
+    process {
+        if ($script:useRawAdapters) {
+            [pscustomobject]@{ Protocol = $InputObject.Protocol; LocalPort = $InputObject.LocalPort; RemotePort = 'Any' }
+        } else { $script:adapterPort }
+    }
+}
 function Get-NetFirewallAddressFilter { param($ErrorAction) process { [pscustomobject]@{ LocalAddress = 'Any'; RemoteAddress = 'Any' } } }
 function Get-NetFirewallServiceFilter { param($ErrorAction) process { [pscustomobject]@{ Service = 'Any' } } }
 function Get-NetFirewallSecurityFilter {
@@ -54,6 +94,7 @@ function Get-NetFirewallSecurityFilter {
 function Get-NetFirewallInterfaceFilter { param($ErrorAction) process { [pscustomobject]@{ InterfaceAlias = 'Any' } } }
 function Get-NetFirewallInterfaceTypeFilter { param($ErrorAction) process { [pscustomobject]@{ InterfaceType = 'Any' } } }
 function Get-NetherNetRules([string]$Group = '', [string]$Name = '', [string]$UdpJava = '') {
+    if ($script:useRawAdapters) { & $script:realGetNetherNetRules -Group $Group -Name $Name -UdpJava $UdpJava; return }
     if ($UdpJava) { if ($null -ne $script:udpRule) { $script:udpRule }; return }
     foreach ($rule in $script:managed) {
         if (($Name -and $rule.Name -eq $Name) -or (!$Name -and $rule.Group -eq $Group)) {
@@ -99,6 +140,7 @@ function Reset-TestState {
     $script:managed.Clear(); $script:addCalls = 0; $script:removeCalls = 0; $script:createdName = $null
     $script:failVerify = $false; $script:failAdd = $false; $script:injectCollision = $false
     $script:probeCalls = 0; $script:probeSuccess = $false
+    $script:useRawAdapters = $false
 }
 try {
     New-Item -ItemType Directory -Path $fixture | Out-Null
@@ -107,6 +149,7 @@ try {
     $script:adapterRule = [pscustomobject]@{
         Name = 'real-shape-udp'; Group = ''; Enabled = 'True'; Direction = 'Inbound'; Action = 'Allow'
         Profile = 'Public'; PolicyStoreSourceType = 'Local'; EdgeTraversalPolicy = 'Block'
+        Protocol = 'UDP'; LocalPort = '19132'
     }
     $script:adapterPort = [pscustomobject]@{ Protocol = 'UDP'; LocalPort = '19132'; RemotePort = 'Any' }
     $adapted = @(& $script:realGetNetherNetRules -UdpJava $java)
@@ -116,6 +159,27 @@ try {
     Assert-Test (@(& $script:realGetNetherNetRules -UdpJava $java).Count -eq 0) 'Wrong scalar UDP port was selected.'
     $script:adapterPort.LocalPort = @('19132', '19133')
     Assert-Test (@(& $script:realGetNetherNetRules -UdpJava $java).Count -eq 0) 'Multiple UDP ports were selected.'
+    # Full repair through both real adapters: scalar LocalPort, null Package, TCP/UDP ::.
+    Reset-TestState; $script:useRawAdapters = $true; $script:probeSuccess = $true
+    $script:listeners | ForEach-Object { $_.Address = '::' }
+    $rawCreated = Invoke-ControlNetherNetFirewallRepair -Java $java -Confirm:$false | ConvertFrom-Json
+    Assert-Test ($rawCreated.status -eq 'Created' -and $rawCreated.udpIPv4Verification -eq 'NotVerified' -and
+        $rawCreated.listenerPID -eq 100 -and $script:addCalls -eq 1 -and $script:probeCalls -eq 1) 'Full raw dual-wildcard flow failed.'
+    $rawAgain = Invoke-ControlNetherNetFirewallRepair -Java $java -Confirm:$false | ConvertFrom-Json
+    Assert-Test ($rawAgain.status -eq 'Existing' -and $script:addCalls -eq 1) 'Raw dual-wildcard replay added a rule.'
+    Reset-TestState; $script:useRawAdapters = $true
+    $script:listeners | ForEach-Object { $_.Address = '::' }
+    Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } 'Dual wildcard TCP probe failure' '*Listeners19132: TCP=::*UDP=::*'
+    Assert-Test ($script:addCalls -eq 0) 'Failed raw TCP probe changed Firewall.'
+    Reset-TestState; $script:useRawAdapters = $true; $script:probeSuccess = $true
+    $script:listeners | ForEach-Object { $_.Address = '::' }; $script:listeners[1].ProcessId = 101
+    Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } 'Raw dual wildcard different PID'
+    Assert-Test ($script:addCalls -eq 0 -and $script:probeCalls -eq 0) 'Different raw PID bypassed preflight.'
+    Reset-TestState; $script:useRawAdapters = $true; $script:probeSuccess = $true
+    $script:listeners | ForEach-Object { $_.Address = '::'; $_.Executable = 'C:\Other\java.exe' }
+    Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } 'Raw dual wildcard different Java'
+    Assert-Test ($script:addCalls -eq 0) 'Different raw Java bypassed preflight.'
+    Reset-TestState
     $created = Invoke-ControlNetherNetFirewallRepair -Java $java -Confirm:$false | ConvertFrom-Json
     Assert-Test ($created.status -eq 'Created' -and $script:addCalls -eq 1 -and $created.listenerPID -eq 100 -and
         $created.localIP -eq '192.168.0.89' -and $created.Java -eq $java -and $created.ruleScope.protocol -eq 'TCP' -and
@@ -165,7 +229,9 @@ try {
     foreach ($protocol in @('TCP', 'UDP')) {
         Reset-TestState; $script:listeners = @($script:listeners | Where-Object { $_.Protocol -ne $protocol })
         Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } "Missing $protocol"
-        foreach ($address in @('127.0.0.1', '::1', '::', '192.168.0.90')) {
+        $rejectedAddresses = @('127.0.0.1', '::1', '192.168.0.90')
+        if ($protocol -eq 'TCP') { $rejectedAddresses += '::' }
+        foreach ($address in $rejectedAddresses) {
             Reset-TestState; ($script:listeners | Where-Object { $_.Protocol -eq $protocol }).Address = $address
             Expect-Rejection { Invoke-ControlNetherNetFirewallRepair -Java $java } "Unreachable $protocol $address"
         }

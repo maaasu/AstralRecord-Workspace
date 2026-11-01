@@ -123,7 +123,9 @@ function Invoke-ControlNetherNetFirewallRepair {
         $dualStackIPv4 = !$directIPv4 -and $protocol -eq 'TCP' -and
             @($listeners | Where-Object { $_.Protocol -eq 'TCP' -and $_.Address -eq '::' }).Count -gt 0 -and
             (Test-NetherNetIPv4Listener -Address '192.168.0.89' -Port 19132)
-        if (!$directIPv4 -and !$dualStackIPv4) {
+        # This repair adds TCP only. UDP IPv4 reachability remains unverified.
+        $udpWildcard = $protocol -eq 'UDP' -and @($listeners | Where-Object { $_.Protocol -eq 'UDP' -and $_.Address -eq '::' }).Count -gt 0
+        if (!$directIPv4 -and !$dualStackIPv4 -and !$udpWildcard) {
             throw "$protocol 19132 has no listener reachable at 192.168.0.89."
         }
     }
@@ -174,6 +176,7 @@ function Invoke-ControlNetherNetFirewallRepair {
             sourceUdpRuleName = $udpRules[0].Name
         }
         routerVerification = 'NotVerified'
+        udpIPv4Verification = 'NotVerified'
         routerNotice = 'Router configuration was not verified. TCP 19132 -> 192.168.0.89:19132 forwarding is required; retain existing UDP 19132 forwarding.'
     } | ConvertTo-Json -Depth 4 -Compress
     } catch {
