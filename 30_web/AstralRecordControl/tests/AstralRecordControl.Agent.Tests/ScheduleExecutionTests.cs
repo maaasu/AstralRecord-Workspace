@@ -188,10 +188,75 @@ public sealed class ScheduleExecutionTests
         Assert.Equal("old", File.ReadAllText(fixture.GeyserPluginPath));
     }
 
-    private static async Task<ScheduleOccurrenceReport> RunCombinedUpdate(Fixture fixture, AgentStore store)
+    [Theory]
+    [InlineData(true, true, true, 2)]
+    [InlineData(true, true, false, 2)]
+    [InlineData(true, false, true, 2)]
+    [InlineData(true, false, false, 2)]
+    [InlineData(false, true, true, 0)]
+    [InlineData(false, false, false, 0)]
+    public async Task MaintenanceRestartsExactlyOnceWithOrWithoutUpdates(bool running, bool sameGeyser, bool sameVelocity, int processOperations)
+    {
+        using var fixture = new Fixture(geyser: true, installedGeyser: sameGeyser ? "new" : "old", velocity: true, sameVelocity: sameVelocity);
+        fixture.Runner.IsRunning = running;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, (await RunCombinedUpdate(fixture, store, maintenance: true)).Status);
+        Assert.Equal(processOperations, fixture.Runner.Executions.Count);
+        Assert.Equal(running, fixture.Runner.IsRunning);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task GeyserOnlyMaintenanceAlsoRestartsWhenAlreadyCurrent()
+    {
+        using var fixture = new Fixture(geyser: true, installedGeyser: "new");
+        fixture.Runner.IsRunning = true;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, (await RunCombinedUpdate(fixture, store, maintenance: true, velocity: false)).Status);
+        Assert.Equal(2, fixture.Runner.Executions.Count);
+        Assert.True(fixture.Runner.IsRunning);
+    }
+
+    [Fact]
+    public async Task MaintenancePreflightFailureDoesNotStopTheRunningServer()
+    {
+        using var fixture = new Fixture(geyser: true, corruptDownload: true, velocity: true);
+        fixture.Runner.IsRunning = true;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, (await RunCombinedUpdate(fixture, store, maintenance: true)).Status);
+        Assert.True(fixture.Runner.IsRunning);
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task UnchangedMaintenanceStopFailureRequiresInspection()
+    {
+        using var fixture = new Fixture(geyser: true, installedGeyser: "new", velocity: true, sameVelocity: true);
+        fixture.Runner.IsRunning = true;
+        fixture.Runner.FailKind = OperationKind.Stop;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.NeedsAttention, (await RunCombinedUpdate(fixture, store, maintenance: true)).Status);
+        Assert.Single(fixture.Runner.Executions);
+        Assert.Single(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task MaintenanceRejectsRunnerWithoutTheAdditionalCapability()
+    {
+        using var fixture = new Fixture(geyser: true, velocity: true);
+        fixture.Runner.IsRunning = true;
+        fixture.Runner.ProxyMaintenanceSupported = false;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, (await RunCombinedUpdate(fixture, store, maintenance: true)).Status);
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    private static async Task<ScheduleOccurrenceReport> RunCombinedUpdate(Fixture fixture, AgentStore store, bool maintenance = false, bool velocity = true)
     {
         var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
-            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: true)) });
+            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: velocity, RestartEvenIfUnchanged: maintenance)) });
         fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
         var service = fixture.Service(store);
         for (var attempt = 0; attempt < 200; attempt++)
@@ -536,10 +601,13 @@ public sealed class ScheduleExecutionTests
         public bool IsRunning { get; set; }
         public bool PauseRestart { get; set; }
         public Action? OnVerify { get; set; }
+        public bool ProxyMaintenanceSupported { get; set; } = true;
         public bool RecoveryRequired { get; private set; }
         private readonly Guid sessionId = Guid.NewGuid();
         public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability });
+        public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(ProxyMaintenanceSupported
+            ? new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability, ServerProcessSupport.ProxyMaintenanceCapability }
+            : new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability });
         public Task<RecoveryInspection> InspectRecoveryAsync(Guid requestedServerId, CancellationToken cancellationToken) => Task.FromResult(
             new RecoveryInspection(GetSnapshotAsync(cancellationToken).Result.Servers.Single(), null, IsRunning, IsRunning, RecoveryRequired));
         public void RecoverGeyserAfterInspection()
