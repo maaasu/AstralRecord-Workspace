@@ -183,28 +183,60 @@ public sealed partial class P2StorageService
     private static ViaVersionIdentity ReadViaVersionIdentity(string path)
     {
         StoragePaths.CheckNoReparse(path);
-        if (new FileInfo(path).Length is < 1 or > MaxViaVersionJarBytes) throw new InvalidDataException("Invalid Velocity plugin jar size.");
-        using var archive = ZipFile.OpenRead(path);
-        if (archive.Entries.Count > 10000) throw new InvalidDataException("Too many Velocity plugin jar entries.");
-        var descriptors = archive.Entries.Where(x => x.FullName.Equals("velocity-plugin.json", StringComparison.OrdinalIgnoreCase)).ToArray();
         var namedCandidate = Path.GetFileName(path).StartsWith("ViaVersion", StringComparison.OrdinalIgnoreCase);
-        if (descriptors.Length == 0 && !namedCandidate) return new(false, null);
-        if (descriptors.Length != 1 || descriptors[0].FullName != "velocity-plugin.json" || descriptors[0].Length is < 1 or > 64 * 1024)
-            throw new InvalidDataException("A single velocity-plugin.json is required for ViaVersion.");
-        using var descriptorStream = descriptors[0].Open();
-        var descriptorBytes = new byte[64 * 1024 + 1];
-        var descriptorLength = descriptorStream.ReadAtLeast(descriptorBytes, descriptorBytes.Length, throwOnEndOfStream: false);
-        if (descriptorLength > 64 * 1024) throw new InvalidDataException("Velocity plugin metadata exceeds limit.");
-        var text = new UTF8Encoding(false, true).GetString(descriptorBytes, 0, descriptorLength);
-        ControlJson.ValidateJson(text, 64 * 1024);
-        using var descriptor = JsonDocument.Parse(text);
-        var root = descriptor.RootElement;
-        var id = root.GetProperty("id").GetString();
-        var main = root.GetProperty("main").GetString();
-        var related = namedCandidate || string.Equals(id, "viaversion", StringComparison.OrdinalIgnoreCase) || main == ViaVersionMain;
-        if (!related) return new(false, null);
-        if (id != "viaversion" || main != ViaVersionMain) throw new InvalidDataException("Ambiguous ViaVersion identity.");
-        return new(true, ViaVersionVersion(root.GetProperty("version").GetString() ?? ""));
+        if (new FileInfo(path).Length is < 1 or > MaxViaVersionJarBytes)
+        {
+            if (namedCandidate) throw new InvalidDataException("Invalid ViaVersion jar size.");
+            return new(false, null);
+        }
+        ZipArchive archive;
+        try { archive = ZipFile.OpenRead(path); }
+        catch (InvalidDataException) when (!namedCandidate) { return new(false, null); }
+        using (archive)
+        {
+            // Other Velocity plugins (including Geyser) may have far more entries than ViaVersion.
+            // Inspect only bounded descriptors before applying ViaVersion's own archive restrictions.
+            ZipArchiveEntry[] descriptors;
+            try { descriptors = archive.Entries.Where(x => x.FullName.Equals("velocity-plugin.json", StringComparison.OrdinalIgnoreCase)).Take(2).ToArray(); }
+            catch (InvalidDataException) when (!namedCandidate) { return new(false, null); }
+            foreach (var entry in descriptors)
+            {
+                string text;
+                JsonDocument descriptor;
+                try
+                {
+                    if (entry.Length is < 1 or > 64 * 1024) throw new InvalidDataException("Velocity plugin metadata exceeds limit.");
+                    using var input = entry.Open();
+                    var bytes = new byte[64 * 1024 + 1];
+                    var length = input.ReadAtLeast(bytes, bytes.Length, throwOnEndOfStream: false);
+                    if (length > 64 * 1024) throw new InvalidDataException("Velocity plugin metadata exceeds limit.");
+                    text = new UTF8Encoding(false, true).GetString(bytes, 0, length);
+                    descriptor = JsonDocument.Parse(text);
+                }
+                catch (Exception error) when (!namedCandidate && error is InvalidDataException or JsonException or DecoderFallbackException)
+                {
+                    continue;
+                }
+                using (descriptor)
+                {
+                    var root = descriptor.RootElement;
+                    var related = namedCandidate || root.ValueKind == JsonValueKind.Object && root.EnumerateObject().Any(field =>
+                        field.Value.ValueKind == JsonValueKind.String &&
+                        (field.Name == "id" && string.Equals(field.Value.GetString(), "viaversion", StringComparison.OrdinalIgnoreCase) ||
+                         field.Name == "main" && field.Value.GetString() == ViaVersionMain));
+                    if (!related) continue;
+                    if (archive.Entries.Count > 10000 || descriptors.Length != 1 || entry.FullName != "velocity-plugin.json")
+                        throw new InvalidDataException("Invalid or ambiguous ViaVersion archive metadata.");
+                    ControlJson.ValidateJson(text, 64 * 1024);
+                    var id = root.GetProperty("id").GetString();
+                    var main = root.GetProperty("main").GetString();
+                    if (id != "viaversion" || main != ViaVersionMain) throw new InvalidDataException("Ambiguous ViaVersion identity.");
+                    return new(true, ViaVersionVersion(root.GetProperty("version").GetString() ?? ""));
+                }
+            }
+            if (namedCandidate) throw new InvalidDataException("ViaVersion velocity-plugin.json is missing or invalid.");
+            return new(false, null);
+        }
     }
 
     private static Version ViaVersionVersion(string value)

@@ -120,7 +120,10 @@ public sealed class ViaVersionStorageTests
             case "duplicate": File.Copy(fixture.Target, Path.Combine(fixture.Directory, "other.jar")); break;
             case "identity": File.WriteAllBytes(fixture.Target, BuildJar("5.11.0", id: "wrong-id")); break;
             case "version": File.WriteAllBytes(fixture.Target, BuildJar("5.11.0-SNAPSHOT")); break;
-            case "invalidJar": File.WriteAllText(fixture.Target, "not a jar"); break;
+            case "invalidJar":
+                File.WriteAllText(fixture.Target, "not a jar");
+                File.Move(fixture.Target, Path.Combine(fixture.Directory, "ViaVersion.jar"));
+                break;
             case "descriptor": File.WriteAllBytes(fixture.Target, BuildJar("5.11.0", duplicateDescriptor: true)); break;
         }
         await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Storage.PrepareViaVersionUpdateAsync(fixture.Server, Guid.NewGuid()));
@@ -135,6 +138,51 @@ public sealed class ViaVersionStorageTests
         File.WriteAllBytes(Path.Combine(fixture.Directory, "Unrelated.jar"), BuildJar("5.11.0", "other", "Other Extension", "example.Other"));
         var prepared = await fixture.Storage.PrepareViaVersionUpdateAsync(fixture.Server, Guid.NewGuid());
         Assert.False(prepared.Installed);
+        Assert.Empty(fixture.Client.Requests);
+    }
+
+    [Fact]
+    public async Task LargeGeyserAndNonZipUnrelatedPluginsDoNotPreventRenamedViaVersionUpdate()
+    {
+        using var fixture = new Fixture();
+        File.WriteAllBytes(Path.Combine(fixture.Directory, "Geyser-Velocity.jar"),
+            BuildJar("2.12.1-b1280", id: "geyser", main: "org.geysermc.geyser.platform.velocity.GeyserVelocityPlugin", extraEntries: 20000));
+        File.WriteAllText(Path.Combine(fixture.Directory, "OtherPlugin.jar"), "new");
+        var corruptArchive = BuildJar("other-version", id: "other", main: "example.Other");
+        for (var index = 0; index < corruptArchive.Length - 4; index++)
+            if (corruptArchive[index] == 0x50 && corruptArchive[index + 1] == 0x4b && corruptArchive[index + 2] == 1 && corruptArchive[index + 3] == 2)
+            { corruptArchive[index] = 0; break; }
+        File.WriteAllBytes(Path.Combine(fixture.Directory, "CorruptUnrelated.jar"), corruptArchive);
+        File.WriteAllBytes(Path.Combine(fixture.Directory, "UnknownPlugin.jar"), BuildJar("not-a-stable-version", id: "unknown", main: "example.Other"));
+        var operation = Guid.NewGuid();
+        var prepared = await fixture.Storage.PrepareViaVersionUpdateAsync(fixture.Server, operation);
+        Assert.True(prepared.Updated);
+        Assert.Equal("plugins/custom-renamed.jar", prepared.TargetRelativePath);
+        await fixture.Storage.ApplyViaVersionUpdateAsync(fixture.Server, operation, prepared, _ => Task.CompletedTask);
+        Assert.Equal(fixture.Client.Offered, File.ReadAllBytes(fixture.Target));
+        Assert.Equal("new", File.ReadAllText(Path.Combine(fixture.Directory, "OtherPlugin.jar")));
+        using var geyser = ZipFile.OpenRead(Path.Combine(fixture.Directory, "Geyser-Velocity.jar"));
+        Assert.True(geyser.Entries.Count > 20000);
+    }
+
+    [Fact]
+    public async Task UnrelatedInvalidPluginsDoNotTriggerHttpWhenViaVersionIsAbsent()
+    {
+        using var fixture = new Fixture();
+        File.Delete(fixture.Target);
+        File.WriteAllText(Path.Combine(fixture.Directory, "Geyser-Velocity.jar"), "new");
+        File.WriteAllBytes(Path.Combine(fixture.Directory, "OtherPlugin.jar"), BuildJar("other-version", id: "other", main: "example.Other"));
+        var prepared = await fixture.Storage.PrepareViaVersionUpdateAsync(fixture.Server, Guid.NewGuid());
+        Assert.False(prepared.Installed);
+        Assert.Empty(fixture.Client.Requests);
+    }
+
+    [Fact]
+    public async Task RenamedViaVersionStillRejectsItsOwnExcessiveArchiveEntries()
+    {
+        using var fixture = new Fixture();
+        File.WriteAllBytes(fixture.Target, BuildJar("5.11.0", extraEntries: 10000));
+        await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Storage.PrepareViaVersionUpdateAsync(fixture.Server, Guid.NewGuid()));
         Assert.Empty(fixture.Client.Requests);
     }
 
@@ -375,7 +423,7 @@ public sealed class ViaVersionStorageTests
     public static byte[] PluginJar(string version, int java = 17) => BuildJar(version, java: java);
 
     private static byte[] BuildJar(string version, string id = "viaversion", string name = "ViaVersion", string main = MainClass,
-        bool duplicateDescriptor = false, bool omitMain = false, bool extraClass = false, bool preview = false, int java = 17)
+        bool duplicateDescriptor = false, bool omitMain = false, bool extraClass = false, bool preview = false, int java = 17, int extraEntries = 0)
     {
         using var bytes = new MemoryStream();
         using (var zip = new ZipArchive(bytes, ZipArchiveMode.Create, leaveOpen: true))
@@ -393,6 +441,7 @@ public sealed class ViaVersionStorageTests
             byte[] classHeader = [0xca, 0xfe, 0xba, 0xbe, preview ? (byte)0xff : (byte)0, preview ? (byte)0xff : (byte)0, (byte)((java + 44) >> 8), (byte)(java + 44)];
             if (!omitMain) Add(main.Replace('.', '/') + ".class", classHeader);
             if (extraClass) Add("example/Additional.class", classHeader);
+            for (var index = 0; index < extraEntries; index++) Add("payload/" + index + ".bin", []);
         }
         return bytes.ToArray();
     }
