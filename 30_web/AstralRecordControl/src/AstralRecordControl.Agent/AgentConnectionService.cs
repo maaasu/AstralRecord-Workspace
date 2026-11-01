@@ -120,6 +120,7 @@ public sealed class AgentConnectionService(AgentConfiguration configuration, Age
                 : new[] { "P0.Inventory" }).Concat(processGate.Enabled && runnerCapabilities.Contains(ServerProcessSupport.VelocityCapability) ? [ServerProcessSupport.VelocityCapability] : Array.Empty<string>())
                 .Concat(processGate.Enabled && configuration.EnableFileControl && runnerCapabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) ? [ServerProcessSupport.GeyserUpdateCapability] : Array.Empty<string>())
                 .Concat(processGate.Enabled && configuration.EnableFileControl && runnerCapabilities.Contains(ServerProcessSupport.VelocityUpdateCapability) ? [ServerProcessSupport.VelocityUpdateCapability] : Array.Empty<string>())
+                .Concat(processGate.Enabled && configuration.EnableFileControl && runnerCapabilities.Contains(ServerProcessSupport.GeyserDisplayEntityUpdateCapability) ? [ServerProcessSupport.GeyserDisplayEntityUpdateCapability] : Array.Empty<string>())
                 .Concat(processGate.Enabled && configuration.EnableFileControl && runnerCapabilities.Contains(ServerProcessSupport.ProxyMaintenanceCapability) ? [ServerProcessSupport.ProxyMaintenanceCapability] : Array.Empty<string>())
                 .Concat(processGate.Enabled && configuration.EnableSchedules ? ["P3.Schedules"] : Array.Empty<string>()).Append("P3.Metrics").ToArray()
         }, stoppingToken);

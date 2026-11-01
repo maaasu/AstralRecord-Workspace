@@ -73,6 +73,7 @@ public sealed partial class AgentOperationHandler
             var profile = command.Kind is OperationKind.CreateBackup or OperationKind.PruneBackups ? ResolveProfile(inventory, command) : null;
             GeyserPreparedUpdate? geyser = null;
             VelocityPreparedUpdate? velocity = null;
+            GeyserDisplayEntityPreparedUpdate? displayEntity = null;
             var update = command.Kind == OperationKind.UpdateGeyser ? FileOperationValidation.Read<UpdateGeyserPayload>(command.Payload) : null;
             if (resume)
             {
@@ -106,8 +107,10 @@ public sealed partial class AgentOperationHandler
                     if (update!.UpdateVelocity)
                         velocity = await storage!.PrepareVelocityUpdateAsync(server, command.OperationId, cancellationToken);
                     geyser = await storage!.PrepareGeyserUpdateAsync(server, command.OperationId, cancellationToken);
+                    if (update.UpdateGeyserDisplayEntity)
+                        displayEntity = await storage.PrepareGeyserDisplayEntityUpdateAsync(server, command.OperationId, cancellationToken);
                 }
-                var softwareUpdated = geyser?.Updated == true || velocity?.Updated == true;
+                var softwareUpdated = geyser?.Updated == true || velocity?.Updated == true || displayEntity?.Updated == true;
                 var maintenanceRestart = update?.RestartEvenIfUnchanged == true && previouslyRunning;
                 if (((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && previouslyRunning) || (softwareUpdated || maintenanceRestart) && previouslyRunning)
                 {
@@ -139,9 +142,17 @@ public sealed partial class AgentOperationHandler
                         await storage!.ApplyGeyserUpdateAsync(server, command.OperationId, geyser,
                             token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
                     }
-                    else if (!softwareUpdated && previouslyRunning)
+                    if (displayEntity?.Updated == true)
+                    {
+                        updateMayHaveChangedState = true;
+                        await storage!.ApplyGeyserDisplayEntityUpdateAsync(server, command.OperationId, displayEntity,
+                            token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
+                    }
+                    if (!softwareUpdated && previouslyRunning)
                         await runner.MarkDataReadyForRestartAsync(command.OperationId, cancellationToken);
-                    result = update!.RestartEvenIfUnchanged
+                    result = update!.UpdateGeyserDisplayEntity
+                        ? new { updated = softwareUpdated, maintenanceRestart, geyser = geyser.Summary, velocity = velocity?.Summary, geyserDisplayEntity = displayEntity!.Summary }
+                        : update.RestartEvenIfUnchanged
                         ? new { updated = softwareUpdated, maintenanceRestart, geyser = geyser.Summary, velocity = velocity?.Summary }
                         : velocity is null ? geyser.Summary : new { updated = softwareUpdated, geyser = geyser.Summary, velocity = velocity.Summary };
                 }
@@ -180,6 +191,7 @@ public sealed partial class AgentOperationHandler
                         var server = store.GetAppliedInventory().Servers.Single(s => s.ServerId == command.ServerId);
                         storage!.DiscardVelocityStage(server, command.OperationId);
                         storage.DiscardGeyserStage(server, command.OperationId);
+                        storage.DiscardGeyserDisplayEntityStage(server, command.OperationId);
                     }
                     catch (Exception) { /* Stale stage can be inspected without holding the server. */ }
                     return;

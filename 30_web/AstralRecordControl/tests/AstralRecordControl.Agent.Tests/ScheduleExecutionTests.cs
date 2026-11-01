@@ -253,10 +253,98 @@ public sealed class ScheduleExecutionTests
         Assert.Empty(fixture.Runner.Holds);
     }
 
-    private static async Task<ScheduleOccurrenceReport> RunCombinedUpdate(Fixture fixture, AgentStore store, bool maintenance = false, bool velocity = true)
+    [Theory]
+    [InlineData(true, true, true, true, false, 0)]
+    [InlineData(true, true, true, false, false, 2)]
+    [InlineData(true, false, false, false, false, 2)]
+    [InlineData(false, false, false, false, false, 0)]
+    [InlineData(true, true, true, true, true, 2)]
+    public async Task ThreeComponentUpdateUsesOneStopAndPreservesStoppedServers(bool running, bool sameGeyser, bool sameVelocity,
+        bool sameDisplayEntity, bool maintenance, int processOperations)
+    {
+        using var fixture = new Fixture(geyser: true, installedGeyser: sameGeyser ? "new" : "old", velocity: true,
+            sameVelocity: sameVelocity, displayEntity: true, sameDisplayEntity: sameDisplayEntity);
+        fixture.Runner.IsRunning = running;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, (await RunCombinedUpdate(fixture, store, maintenance, displayEntity: true)).Status);
+        Assert.Equal(processOperations, fixture.Runner.Executions.Count);
+        Assert.Equal(running, fixture.Runner.IsRunning);
+        Assert.Equal(GeyserDisplayEntityUpdateTests.ExtensionJar("1.0.14"), File.ReadAllBytes(fixture.DisplayEntityJarPath));
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task DisplayEntityPreflightFailureDiscardsEveryStageWithoutStopping()
+    {
+        using var fixture = new Fixture(geyser: true, velocity: true, displayEntity: true, corruptDisplayEntity: true);
+        fixture.Runner.IsRunning = true;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, (await RunCombinedUpdate(fixture, store, displayEntity: true)).Status);
+        Assert.True(fixture.Runner.IsRunning);
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.Empty(fixture.Runner.Holds);
+        Assert.Equal("old", File.ReadAllText(fixture.GeyserPluginPath));
+        Assert.Equal(VelocityStorageTests.VelocityJar("4.1.0-SNAPSHOT", 8), File.ReadAllBytes(fixture.VelocityJarPath));
+        Assert.Equal(GeyserDisplayEntityUpdateTests.ExtensionJar("1.0.12"), File.ReadAllBytes(fixture.DisplayEntityJarPath));
+        Assert.Empty(Directory.EnumerateFiles(Path.GetDirectoryName(fixture.VelocityJarPath)!, ".control-*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task FailedExtensionApplyAfterCoreUpdatesKeepsStoppedServerAndHold()
+    {
+        using var fixture = new Fixture(geyser: true, velocity: true, displayEntity: true);
+        fixture.Runner.IsRunning = true;
+        fixture.Runner.OnVerify = () =>
+        {
+            if (File.ReadAllText(fixture.GeyserPluginPath) == "new") throw new IOException("Guard lost before extension replacement.");
+        };
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.NeedsAttention, (await RunCombinedUpdate(fixture, store, displayEntity: true)).Status);
+        Assert.False(fixture.Runner.IsRunning);
+        Assert.Single(fixture.Runner.Executions);
+        Assert.Single(fixture.Runner.Holds);
+        Assert.Equal(GeyserDisplayEntityUpdateTests.ExtensionJar("1.0.12"), File.ReadAllBytes(fixture.DisplayEntityJarPath));
+    }
+
+    [Fact]
+    public async Task ExtensionUpdateRequiresItsAdditionalRunnerCapability()
+    {
+        using var fixture = new Fixture(geyser: true, velocity: true, displayEntity: true);
+        fixture.Runner.IsRunning = true;
+        fixture.Runner.DisplayEntitySupported = false;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Failed, (await RunCombinedUpdate(fixture, store, displayEntity: true)).Status);
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task MissingExtensionIsSkippedWithoutInstallingIt()
+    {
+        using var fixture = new Fixture(geyser: true, installedGeyser: "new", velocity: true, sameVelocity: true);
+        fixture.Runner.IsRunning = true;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, (await RunCombinedUpdate(fixture, store, displayEntity: true)).Status);
+        Assert.Empty(fixture.Runner.Executions);
+        Assert.False(File.Exists(fixture.DisplayEntityJarPath));
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    [Fact]
+    public async Task ExistingSchedulesDoNotUpdateExtensionsWithoutOptingIn()
+    {
+        using var fixture = new Fixture(geyser: true, velocity: true, displayEntity: true);
+        fixture.Runner.IsRunning = true;
+        using var store = fixture.OpenStore();
+        Assert.Equal(ScheduleOccurrenceStatus.Succeeded, (await RunCombinedUpdate(fixture, store)).Status);
+        Assert.Equal(GeyserDisplayEntityUpdateTests.ExtensionJar("1.0.12"), File.ReadAllBytes(fixture.DisplayEntityJarPath));
+        Assert.Empty(fixture.Runner.Holds);
+    }
+
+    private static async Task<ScheduleOccurrenceReport> RunCombinedUpdate(Fixture fixture, AgentStore store, bool maintenance = false, bool velocity = true, bool displayEntity = false)
     {
         var schedule = fixture.Schedule(new ScheduleTrigger { Kind = ScheduleTriggerKind.Once, AtUtc = fixture.Clock.GetUtcNow() },
-            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: velocity, RestartEvenIfUnchanged: maintenance)) });
+            new ScheduleStep { StepKey = "geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: velocity, RestartEvenIfUnchanged: maintenance, UpdateGeyserDisplayEntity: displayEntity)) });
         fixture.Apply(store, 1, schedule); store.MarkScheduleInventoryAcknowledged(1);
         var service = fixture.Service(store);
         for (var attempt = 0; attempt < 200; attempt++)
@@ -520,7 +608,9 @@ public sealed class ScheduleExecutionTests
         public AgentProcessControlGate Gate { get; }
         public string GeyserPluginPath => Path.Combine(root, "managed-root", "server", "plugins", "Geyser-Velocity.jar");
         public string VelocityJarPath => Path.Combine(root, "managed-root", "server", "velocity-4.1.0-SNAPSHOT-8.jar");
-        public Fixture(bool geyser = false, bool corruptDownload = false, string installedGeyser = "old", bool velocity = false, bool sameVelocity = false, int javaVersion = 25)
+        public string DisplayEntityJarPath => Path.Combine(root, "managed-root", "server", "plugins", "Geyser-Velocity", "extensions", "GeyserDisplayEntity-1.0.12.jar");
+        public Fixture(bool geyser = false, bool corruptDownload = false, string installedGeyser = "old", bool velocity = false, bool sameVelocity = false, int javaVersion = 25,
+            bool displayEntity = false, bool sameDisplayEntity = false, bool corruptDisplayEntity = false)
         {
             this.geyser = geyser;
             this.velocity = velocity;
@@ -537,6 +627,11 @@ public sealed class ScheduleExecutionTests
                 Directory.CreateDirectory(Path.Combine(liveRoot, "server", "plugins"));
                 File.WriteAllText(GeyserPluginPath, installedGeyser);
             }
+            if (displayEntity)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(DisplayEntityJarPath)!);
+                File.WriteAllBytes(DisplayEntityJarPath, GeyserDisplayEntityUpdateTests.ExtensionJar(sameDisplayEntity ? "1.0.14" : "1.0.12"));
+            }
             var marker = Path.Combine(root, "marker"); File.WriteAllText(marker, "test");
             Gate = new AgentProcessControlGate(marker);
             Configuration = new AgentConfiguration { HostId = HostId, ServerUrl = "https://control.test", EnableSchedules = true, EnableFileControl = true,
@@ -545,7 +640,7 @@ public sealed class ScheduleExecutionTests
                     Executables = [new ManagedExecutable { Id = executableId, Path = java, Kind = ServerKind.Java }] } };
             Runner = new FakeRunner(HostId, ServerId, Clock);
             Storage = new P2StorageService(Path.Combine(root, "storage"), Configuration.LocalResources, Clock, _ => long.MaxValue,
-                geyser ? new HttpClient(new GeyserHandler(corruptDownload)) : null, javaVersionProbe: (_, _) => Task.FromResult(javaVersion));
+                geyser ? new HttpClient(new GeyserHandler(corruptDownload, corruptDisplayEntity)) : null, javaVersionProbe: (_, _) => Task.FromResult(javaVersion));
         }
         public AgentStore OpenStore() => new(Path.Combine(root, "agent"), HostId);
         public AgentScheduleService Service(AgentStore store) => new(Configuration, store, Runner,
@@ -573,12 +668,25 @@ public sealed class ScheduleExecutionTests
         public void Advance(TimeSpan duration) => now += duration;
     }
 
-    private sealed class GeyserHandler(bool corruptDownload) : HttpMessageHandler
+    private sealed class GeyserHandler(bool corruptDownload, bool corruptDisplayEntity = false) : HttpMessageHandler
     {
         private readonly HttpMessageInvoker velocity = new(new VelocityStorageTests.VelocityHandler());
+        private readonly byte[] extension = GeyserDisplayEntityUpdateTests.ExtensionJar("1.0.14");
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request.RequestUri!.Host is "fill.papermc.io" or "fill-data.papermc.io") return velocity.SendAsync(request, cancellationToken);
+            if (request.RequestUri.Host == "api.github.com")
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    draft = false, prerelease = false, tag_name = "latest", assets = new[] { new
+                    {
+                        name = "GeyserDisplayEntity-1.0.14.jar", size = extension.Length,
+                        digest = "sha256:" + Convert.ToHexStringLower(SHA256.HashData(extension)),
+                        browser_download_url = "https://github.com/GeyserExtensionists/GeyserDisplayEntity/releases/download/latest/GeyserDisplayEntity-1.0.14.jar"
+                    } }
+                })) });
+            if (request.RequestUri.Host == "github.com")
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(corruptDisplayEntity ? Encoding.UTF8.GetBytes("corrupt") : extension) });
             var content = request.RequestUri!.AbsolutePath.EndsWith("/downloads/velocity", StringComparison.Ordinal) ? corruptDownload ? "corrupt" : "new" :
                 JsonSerializer.Serialize(new { project_id = "geyser", version = "2.12.1", build = 17,
                     downloads = new { velocity = new { name = "Geyser-Velocity.jar", sha256 = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("new"))) } } });
@@ -602,12 +710,14 @@ public sealed class ScheduleExecutionTests
         public bool PauseRestart { get; set; }
         public Action? OnVerify { get; set; }
         public bool ProxyMaintenanceSupported { get; set; } = true;
+        public bool DisplayEntitySupported { get; set; } = true;
         public bool RecoveryRequired { get; private set; }
         private readonly Guid sessionId = Guid.NewGuid();
         public Task<RunnerSnapshot> ApplyInventoryAsync(InventoryEnvelope inventory, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(ProxyMaintenanceSupported
-            ? new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability, ServerProcessSupport.ProxyMaintenanceCapability }
-            : new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability });
+        public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[]
+            { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability }
+            .Concat(ProxyMaintenanceSupported ? [ServerProcessSupport.ProxyMaintenanceCapability] : Array.Empty<string>())
+            .Concat(DisplayEntitySupported ? [ServerProcessSupport.GeyserDisplayEntityUpdateCapability] : Array.Empty<string>()).ToArray());
         public Task<RecoveryInspection> InspectRecoveryAsync(Guid requestedServerId, CancellationToken cancellationToken) => Task.FromResult(
             new RecoveryInspection(GetSnapshotAsync(cancellationToken).Result.Servers.Single(), null, IsRunning, IsRunning, RecoveryRequired));
         public void RecoverGeyserAfterInspection()
