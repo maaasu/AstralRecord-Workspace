@@ -17,6 +17,9 @@ public sealed class ProtocolTests
         Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { RestartEvenIfUnchanged = true }, [ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityCapability]));
         Assert.False(legacy.UpdateVelocity);
         Assert.False(legacy.UpdateGeyserDisplayEntity);
+        Assert.False(legacy.UpdateViaVersion);
+        Assert.DoesNotContain("updateViaVersion", ControlJson.Serialize(legacy));
+        Assert.True(ControlJson.Deserialize<UpdateGeyserPayload>("{\"updateViaVersion\":true}").UpdateViaVersion);
         Assert.DoesNotContain("updateGeyserDisplayEntity", ControlJson.Serialize(legacy));
         Assert.False(ControlJson.Deserialize<UpdateGeyserPayload>("{\"updateGeyserDisplayEntity\":false}").UpdateGeyserDisplayEntity);
         Assert.True(ControlJson.Deserialize<UpdateGeyserPayload>("{\"updateGeyserDisplayEntity\":true}").UpdateGeyserDisplayEntity);
@@ -24,6 +27,8 @@ public sealed class ProtocolTests
         Assert.Contains("updateVelocity", ControlJson.Serialize(legacy with { UpdateVelocity = true }));
         string[] oldCapabilities = [ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityCapability];
         Assert.True(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy, oldCapabilities));
+        Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateViaVersion = true }, oldCapabilities));
+        Assert.True(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateViaVersion = true }, [.. oldCapabilities, ServerProcessSupport.ViaVersionUpdateCapability]));
         Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateGeyserDisplayEntity = true }, oldCapabilities));
         Assert.True(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateGeyserDisplayEntity = true }, [.. oldCapabilities, ServerProcessSupport.GeyserDisplayEntityUpdateCapability]));
         Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateVelocity = true, UpdateGeyserDisplayEntity = true }, [.. oldCapabilities, ServerProcessSupport.GeyserDisplayEntityUpdateCapability]));
