@@ -125,7 +125,7 @@ P1の導入条件に加え、Webの`Control:EnableFileControl=true`、Agent/Runn
 
 `/Servers/{id}/Schedules`で定義・適用版・実行履歴を確認できます。Run Nowは初期offline時に503で拒否し、受付済み要求は同じIdempotency-Keyで照会・再送します。受付後に通信結果が不明なら202と照会先を返し、Agentが開始前の拒否を確定した場合はRejectedとして保存・表示します。新しい要求IDで重複実行しません。バックアップprofileはinventory内で希望版と適用ACKを区別し、定義更新時にも既存profileを保持します。
 
-各サーバーの「定期再起動・予約」で、毎日の再起動時刻（停止中はSkip）と、Velocity専用のGeyserMC自動更新を設定できます。時刻`HH:mm`・タイムゾーン（標準`Asia/Tokyo`）・有効状態を編集でき、既存Cron/適用ACK/履歴/今すぐ実行を使います。同じサーバーの予約は実行時刻を分けてください。GeyserMCは既存`plugins/Geyser-Velocity.jar`のみを公式APIのhash検証後に交換し、更新対象がすべて最新版と同一なら停止しません。更新がある場合は正常停止して交換し、直前まで稼働していた場合だけ起動します。Web/Agentの予約実行とWeb/Agent/Runnerのファイル操作を有効化し、更新処理に対応するAgent/Runnerを配置してください。必要な能力は`P3.Schedules`、`P2.Files`、`P3.GeyserUpdate`、`P1.Velocity`です。旧JARは`plugins/Geyser-Velocity.jar.control-{operationId:N}.backup`へ退避し、結果の`backupRelativePath`に記録します。
+各サーバーの「定期再起動・予約」で、毎日の再起動時刻（停止中はSkip）と、Velocity専用のGeyserMC自動更新を設定できます。時刻`HH:mm`・タイムゾーン（標準`Asia/Tokyo`）・有効状態を編集でき、既存Cron/適用ACK/履歴/今すぐ実行を使います。同じサーバーの予約は実行時刻を分けてください。GeyserMCは既存`plugins/Geyser-Velocity.jar`のみを公式APIのhash検証後に交換し、旧更新のみでは更新対象がすべて最新版と同一なら停止しません。更新がある場合は正常停止して交換し、直前まで稼働していた場合だけ起動します。Web/Agentの予約実行とWeb/Agent/Runnerのファイル操作を有効化し、更新処理に対応するAgent/Runnerを配置してください。必要な能力は`P3.Schedules`、`P2.Files`、`P3.GeyserUpdate`、`P1.Velocity`です。旧JARは`plugins/Geyser-Velocity.jar.control-{operationId:N}.backup`へ退避し、結果の`backupRelativePath`に記録します。
 
 Agentは約10秒ごとにHost/プロセスCPU、メモリ、ディスク空き、稼働時間を採取し、Javaの`127.0.0.1` status pingから取得できる人数だけを報告します。取得不能はnull/欠測で、0人や停止へ変換しません。TPS/MSPTはP3のデータ源に含みません。Webの`/Servers/{id}/Metrics`では1分粒度7日、1時間粒度90日の系列を表示します。
 
@@ -133,4 +133,6 @@ Agentは約10秒ごとにHost/プロセスCPU、メモリ、ディスク空き�
 
 完了済み操作・Web/AgentのSchedule履歴・通知は90日で本文を退役させ、再送照合に必要なID/hashを保持します。Runnerの復旧監査も90日を過ぎ、対象の要復旧状態とholdがない場合に削除します。非終端操作・要復旧保守・未ACKイベントは期限だけで削除しません。大量のPruneBackups結果はローカル予約では件数/hashへ要約し、Web転送に依存しません。検証は一時fixtureで行い、実Minecraft、実NAS、外部Webhook、実サービス登録には接続しません。
 
-VelocityのGeyserMC日次更新では「Velocity 本体も同時に更新する」を明示選択できます。新規フォームはON、旧payloadの `updateVelocity` 省略はfalseで、既存予約は編集するまでGeyserのみです。ON時は追加能力 `P3.VelocityUpdate` が必要です。Velocity本体は公式Fill v3のstable / recommendedだけを使い、両方のダウンロード・hash・Java最低版を停止前に検証します。変更がある場合だけ一度正常停止し、現在の `-jar` 対象と同じファイル名へ原子的に交換して旧JARをbackupに残します。部分失敗・中断時は再起動せずholdと要確認状態を保持し、点検を待ちます。自動ロールバックは行いません。NetherNetのTCP 19132とUDP 19132は別々の通信設定として確認してください。
+VelocityのGeyserMC日次更新では「Velocity 本体も同時に更新する」を明示選択できます。新規フォームはON、旧payloadの `updateVelocity` 省略はfalseで、既存予約は編集するまでGeyserのみです。ON時は追加能力 `P3.VelocityUpdate` が必要です。Velocity本体は公式Fill v3のstable / recommendedだけを使い、両方のダウンロード・hash・Java最低版を停止前に検証します。旧更新のみでは変更がある場合だけ一度正常停止し、現在の `-jar` 対象と同じファイル名へ原子的に交換して旧JARをbackupに残します。部分失敗・中断時は再起動せずholdと要確認状態を保持し、点検を待ちます。自動ロールバックは行いません。NetherNetのTCP 19132とUDP 19132は別々の通信設定として確認してください。
+
+Velocityの通常日次操作は「毎日の定期再起動・更新」に統合しました。Geyser更新確認とVelocity本体同時更新は新規でONです。Geyser確認を外すと通常再起動だけになります。更新確認後、稼働中なら差分がなくても一度正常停止・起動し、停止中は更新だけで起動しません。`restartEvenIfUnchanged=true` と追加能力 `P3.ProxyMaintenance` を使います。旧更新のみ予約は従来の動作を保ち、編集時だけ旧選択肢を表示します。統合予約の保存で同Server・同じ毎日時刻/TZの単純な旧再起動／更新予約を一回のinventory保存で無効化して一本化し、履歴は残します。詳細設定や複数処理・別時刻は変更しません。無効な予約は折り畳みから確認できます。

@@ -4,7 +4,8 @@
 <h1>@Model.Server.DisplayName — 定期再起動・予約</h1>
 <partial name="_ServerTabs" model="Model.Server.ServerId" />
 <p>適用済みの予約は管理Webに接続できなくても、このPC内で実行します。開始が60秒を超えて遅れた予約はスキップします。</p>
-<p>同じサーバーの予約は実行時刻を分けてください。再起動・更新など別の処理と重なった予約はスキップされます。</p>
+@if (Model.IsVelocity) { <p>Proxyの定期再起動と更新は同じ予約にまとめられます。詳細設定の処理など、ほかの予約は実行時刻を分けてください。</p> }
+else { <p>同じサーバーの予約は実行時刻を分けてください。別の処理と重なった予約はスキップされます。</p> }
 @if (!Model.Available) { <p>予約実行は無効です。導入手順に従って有効化してください。</p> }
 @if (Model.Message != null) { <p role="status">@Model.Message</p> }
 <div asp-validation-summary="All"></div>
@@ -19,8 +20,8 @@
 @foreach (var row in Model.Schedules)
 {
     var definition = row.Definition;
-    <section>
-        <h2>@AstralRecordControl.Web.Pages.Servers.SchedulesModel.Description(definition)</h2>
+    <details open="@definition.Enabled">
+        <summary>@AstralRecordControl.Web.Pages.Servers.SchedulesModel.Description(definition)（@(definition.Enabled ? "有効" : "無効・履歴を表示")）</summary>
         <p>@definition.Trigger.Kind / @(definition.Enabled ? "有効" : "無効") / 希望版 @definition.Revision / 適用版 @(row.AppliedRevision?.ToString() ?? "未適用")</p>
         <p><a class="button-link" asp-page="/Servers/Schedules" asp-route-serverId="@Model.Server.ServerId" asp-route-edit="@definition.ScheduleId">編集</a></p>
         <form method="post" asp-page-handler="RunNow" asp-route-scheduleId="@definition.ScheduleId">
@@ -33,7 +34,7 @@
             <tr><td>@item.ScheduledAtUtc.ToString("u") @(item.Manual ? "(手動)" : "")</td><td>@item.Status</td><td>@item.ErrorCode / @item.OperationId</td></tr>
         }
         </tbody></table>
-    </section>
+    </details>
 }
 <h2>@(Model.ScheduleId.HasValue ? "予約を編集" : "予約を追加")</h2>
 <form method="post" asp-page-handler="Save" class="schedule-editor">
@@ -41,8 +42,9 @@
     <label><input asp-for="Enabled" /> 有効</label>
     <label asp-for="Preset">予約する処理</label>
     <select asp-for="Preset">
-        <option value="DailyRestart">毎日の定期再起動</option>
-        @if (Model.IsVelocity) { <option value="DailyGeyserUpdate">毎日の GeyserMC 自動更新</option> }
+        @if (Model.IsVelocity) { <option value="DailyProxyMaintenance">毎日の定期再起動・更新</option> }
+        else { <option value="DailyRestart">毎日の定期再起動</option> }
+        @if (Model.EditingLegacyUpdate) { <option value="DailyGeyserUpdate">更新のみ（旧予約を維持）</option> }
         <option value="Advanced">詳細設定（間隔・Cron・複数の処理）</option>
     </select>
     <div class="schedule-daily">
@@ -50,11 +52,17 @@
         <p>定期再起動は稼働中のサーバーを正常停止して起動します。停止中のサーバーは起動しません。</p>
         @if (Model.IsVelocity)
         {
-            <p>GeyserMC 自動更新は、導入済みの <code>plugins/Geyser-Velocity.jar</code> を公式最新版へ更新します。更新対象がすべて同じ版なら停止せず、更新時は正常停止し、直前まで稼働していた場合だけ起動します。旧 JAR は退避して残します。</p>
-            <label><input asp-for="UpdateVelocity" /> Velocity 本体も同時に更新する</label>
-            <p>Velocity は公式 Fill v3 の stable / recommended ビルドを使います。両方のダウンロード・ハッシュ・Java 最低版を停止前に検証し、必要な更新を一度の正常停止で適用します。部分的に失敗した場合は再起動せず、予約を保持して点検を待ちます。</p>
-            @if (!Model.VelocityUpdateAvailable) { <p>同時更新には P3.VelocityUpdate 対応の Agent / Runner が必要です。未対応の場合はチェックを外してください。</p> }
-            @if (!Model.GeyserAvailable) { <p>GeyserMC 更新にはファイル操作の有効化と、この機能に対応した Agent / Runner が必要です。</p> }
+            <div class="schedule-proxy-updates">
+                <label><input asp-for="UpdateGeyser" /> 再起動時に GeyserMC の更新も確認する</label>
+                <p>チェックを外すと、更新を確認せず定期再起動だけを行います。</p>
+            </div>
+            <div class="schedule-velocity-update"><label><input asp-for="UpdateVelocity" /> Velocity 本体も同時に更新する</label></div>
+            <p>更新を確認した後、稼働中なら新しい版がなくても一度だけ正常停止して起動します。停止中は必要な更新だけを適用し、起動しません。旧予約の「更新のみ」は変更がある場合だけ停止します。</p>
+            <p>「毎日の定期再起動・更新」を保存すると、このサーバーの同じ毎日時刻・タイムゾーンにある従来の単独再起動／更新予約を無効化して一本にまとめます。履歴は残り、無効な予約から確認できます。詳細設定・複数処理の予約は変更しません。</p>
+            <p>Velocity は公式の安定版を使います。ダウンロード・ハッシュ・Java 最低版を停止前に検証し、失敗時は停止しません。交換途中の失敗は再起動せず、予約を保持して点検を待ちます。</p>
+            @if (!Model.ProxyMaintenanceAvailable) { <p>再起動と更新には対応した Agent / Runner が必要です。未対応の場合は更新確認のチェックを外すと再起動のみを保存できます。</p> }
+            @if (!Model.VelocityUpdateAvailable) { <p>Velocity 本体更新に未対応です。本体更新のチェックを外してください。</p> }
+
         }
     </div>
     <div class="schedule-advanced">

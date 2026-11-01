@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace AstralRecordControl.Web.Pages.Servers;
 
-public enum ScheduleEditorPreset { DailyRestart, DailyGeyserUpdate, Advanced }
+public enum ScheduleEditorPreset { DailyRestart, DailyGeyserUpdate, Advanced, DailyProxyMaintenance }
 
 [Authorize(Policy = "OwnerOnly")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -25,6 +25,9 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     public ServerKind Kind { get; private set; }
     public bool IsVelocity => Kind == ServerKind.Velocity;
     public bool GeyserAvailable { get; private set; }
+    public bool ProxyMaintenanceAvailable { get; private set; }
+    public bool EditingLegacyUpdate { get; private set; }
+    [BindProperty] public bool UpdateGeyser { get; set; } = true;
     public bool VelocityUpdateAvailable { get; private set; }
     [BindProperty] public bool UpdateVelocity { get; set; } = true;
     [BindProperty] public ScheduleEditorPreset Preset { get; set; } = ScheduleEditorPreset.Advanced;
@@ -45,7 +48,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     {
         await LoadAsync(serverId);
         RequestKey = Guid.NewGuid();
-        Preset = ScheduleEditorPreset.DailyRestart;
+        Preset = IsVelocity ? ScheduleEditorPreset.DailyProxyMaintenance : ScheduleEditorPreset.DailyRestart;
         if (edit.HasValue)
         {
             var definition = Schedules.SingleOrDefault(s => s.Definition.ScheduleId == edit)?.Definition;
@@ -58,8 +61,13 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             if (TryDailyPreset(definition, out var preset, out var dailyTime))
             {
                 Preset = preset; DailyTime = dailyTime;
-                if (preset == ScheduleEditorPreset.DailyGeyserUpdate)
+                if (preset is ScheduleEditorPreset.DailyGeyserUpdate or ScheduleEditorPreset.DailyProxyMaintenance)
+                {
                     UpdateVelocity = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateVelocity;
+                    EditingLegacyUpdate = preset == ScheduleEditorPreset.DailyGeyserUpdate;
+                }
+                else if (IsVelocity && preset == ScheduleEditorPreset.DailyRestart)
+                { Preset = ScheduleEditorPreset.DailyProxyMaintenance; UpdateGeyser = false; UpdateVelocity = false; }
             }
         }
         return Page();
@@ -72,6 +80,9 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         {
             if (!ModelState.IsValid) throw new ArgumentException("Invalid form.");
             if (!Enum.IsDefined(Preset)) throw new ArgumentException("Invalid preset.");
+            var original = Schedules.SingleOrDefault(s => s.Definition.ScheduleId == ScheduleId)?.Definition;
+            EditingLegacyUpdate = original != null && TryDailyPreset(original, out var oldPreset, out _) && oldPreset == ScheduleEditorPreset.DailyGeyserUpdate;
+            if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && !EditingLegacyUpdate) throw new ArgumentException("Legacy preset is edit-only.");
             ScheduleStep[] steps;
             ScheduleTrigger trigger;
             if (Preset != ScheduleEditorPreset.Advanced)
@@ -79,10 +90,14 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
                 if (!ServerProcessSupport.IsSupported(Kind)) throw new InventoryFault(409, "UnsupportedCapability");
                 if (!TimeOnly.TryParseExact(DailyTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                     throw new ArgumentException("Invalid daily time.");
+                if (Preset == ScheduleEditorPreset.DailyProxyMaintenance && !IsVelocity)
+                    throw new ArgumentException("Invalid proxy update selection.");
+                if (Preset == ScheduleEditorPreset.DailyProxyMaintenance && UpdateGeyser && (!ProxyMaintenanceAvailable || UpdateVelocity && !VelocityUpdateAvailable))
+                    throw new InventoryFault(409, "UnsupportedCapability");
                 if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && (!IsVelocity || !GeyserAvailable || UpdateVelocity && !VelocityUpdateAvailable))
                     throw new InventoryFault(409, "UnsupportedCapability");
                 trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = FormattableString.Invariant($"{time.Minute} {time.Hour} * * *"), TimeZoneId = TimeZoneId };
-                steps = Preset == ScheduleEditorPreset.DailyRestart
+                steps = Preset == ScheduleEditorPreset.DailyRestart || Preset == ScheduleEditorPreset.DailyProxyMaintenance && !UpdateGeyser
                     ? [new() { StepKey = "restart", Kind = OperationKind.Restart }]
                     : [new() { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, Payload = GeyserPresetPayload() }];
             }
@@ -103,7 +118,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             var definition = new ScheduleDefinition { ScheduleId = ScheduleId ?? ScheduleIdentity.Uuid5(serverId, "schedule:" + RequestKey.ToString("D")), HostId = Server.HostId, ServerId = serverId,
                 Revision = Revision.HasValue ? checked(Revision.Value + 1) : 1, Enabled = Enabled, Trigger = trigger,
                 Template = new() { ActionType = actionType, Steps = steps } };
-            await store.SaveScheduleAsync(definition, Revision, RequestKey);
+            await store.SaveScheduleAsync(definition, Revision, RequestKey, consolidateDailyProxySchedules: Preset == ScheduleEditorPreset.DailyProxyMaintenance);
             await notifier.InventoryChangedAsync(Server.HostId);
             Message = "予約を保存しました。Agentの適用完了後に有効になります。";
             return RedirectToPage(new { serverId });
@@ -117,6 +132,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
 
     private JsonElement GeyserPresetPayload()
     {
+        if (Preset == ScheduleEditorPreset.DailyProxyMaintenance)
+            return ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: UpdateVelocity, RestartEvenIfUnchanged: true));
         var old = Schedules.SingleOrDefault(s => s.Definition.ScheduleId == ScheduleId)?.Definition;
         if (old != null && TryDailyPreset(old, out var preset, out _) && preset == ScheduleEditorPreset.DailyGeyserUpdate)
         {
@@ -131,9 +148,15 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
 
     public static string Description(ScheduleDefinition definition)
     {
-        if (TryDailyPreset(definition, out var preset, out var time))
-            return $"{(preset == ScheduleEditorPreset.DailyRestart ? "定期再起動" : FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateVelocity ? "GeyserMC・Velocity 自動更新" : "GeyserMC 自動更新")} — 毎日 {time}（{definition.Trigger.TimeZoneId}）";
-        return $"予約実行 — {definition.Trigger.Kind}";
+        if (!TryDailyPreset(definition, out var preset, out var time)) return $"予約実行 — {definition.Trigger.Kind}";
+        var label = "定期再起動";
+        if (preset != ScheduleEditorPreset.DailyRestart)
+        {
+            var payload = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload);
+            label = payload.RestartEvenIfUnchanged ? "定期再起動・GeyserMC 更新" : "更新のみ（旧予約）・GeyserMC";
+            if (payload.UpdateVelocity) label += "・Velocity";
+        }
+        return $"{label} — 毎日 {time}（{definition.Trigger.TimeZoneId}）";
     }
 
     private static bool TryDailyPreset(ScheduleDefinition definition, out ScheduleEditorPreset preset, out string time)
@@ -150,8 +173,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         if (step.Kind == OperationKind.Restart && step.StepKey == "restart" && step.Payload.ValueKind == JsonValueKind.Object && !step.Payload.EnumerateObject().Any())
             preset = ScheduleEditorPreset.DailyRestart;
         else if (step.Kind == OperationKind.UpdateGeyser && step.StepKey == "update-geyser" && step.Payload.ValueKind == JsonValueKind.Object &&
-            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
-            preset = ScheduleEditorPreset.DailyGeyserUpdate;
+            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" or "restartEvenIfUnchanged" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
+            preset = FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).RestartEvenIfUnchanged ? ScheduleEditorPreset.DailyProxyMaintenance : ScheduleEditorPreset.DailyGeyserUpdate;
         else return false;
         time = new TimeOnly(hour, minute).ToString("HH:mm", CultureInfo.InvariantCulture);
         return true;
@@ -196,6 +219,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         GeyserAvailable = IsVelocity && configuration.GetValue<bool>("Control:EnableFileControl") &&
             capabilities.Contains("P2.Files") && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(), capabilities);
         VelocityUpdateAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(UpdateVelocity: true), capabilities);
+        ProxyMaintenanceAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(RestartEvenIfUnchanged: true), capabilities);
         Schedules = await store.SchedulesAsync(serverId);
         PendingRequests = await store.PendingManualRequestsAsync(serverId);
         foreach (var row in Schedules) History[row.Definition.ScheduleId] = await store.ScheduleHistoryAsync(row.Definition.ScheduleId);

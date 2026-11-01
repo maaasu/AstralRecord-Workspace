@@ -53,7 +53,7 @@ public sealed class ScheduledAutomationPageTests
         var page = f.Page();
         await page.OnGetAsync(f.ServerId);
         Assert.True(page.GeyserAvailable);
-        page.Preset = ScheduleEditorPreset.DailyGeyserUpdate;
+        page.Preset = ScheduleEditorPreset.DailyProxyMaintenance;
         page.DailyTime = "03:10";
         Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
         var saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
@@ -61,10 +61,11 @@ public sealed class ScheduledAutomationPageTests
         Assert.Equal(OperationKind.UpdateGeyser, step.Kind);
         Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).RestartIfPreviouslyRunning);
         Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).UpdateVelocity);
+        Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).RestartEvenIfUnchanged);
         Assert.Contains("Velocity", SchedulesModel.Description(saved));
         var edit = f.Page();
         await edit.OnGetAsync(f.ServerId, saved.ScheduleId);
-        Assert.Equal(ScheduleEditorPreset.DailyGeyserUpdate, edit.Preset);
+        Assert.Equal(ScheduleEditorPreset.DailyProxyMaintenance, edit.Preset);
         Assert.Equal("03:10", edit.DailyTime);
     }
 
@@ -109,7 +110,7 @@ public sealed class ScheduledAutomationPageTests
         await page.OnGetAsync(f.ServerId);
         Assert.True(page.GeyserAvailable);
         Assert.False(page.VelocityUpdateAvailable);
-        page.Preset = advanced ? ScheduleEditorPreset.Advanced : ScheduleEditorPreset.DailyGeyserUpdate;
+        page.Preset = advanced ? ScheduleEditorPreset.Advanced : ScheduleEditorPreset.DailyProxyMaintenance;
         page.TriggerKind = ScheduleTriggerKind.Cron;
         page.StepsJson = ControlJson.Serialize(new[] { new ScheduleStep { StepKey = "update", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: true)) } });
         Assert.IsType<PageResult>(await page.OnPostSaveAsync(f.ServerId));
@@ -208,6 +209,73 @@ public sealed class ScheduledAutomationPageTests
         Assert.Equal("0 3 * * 0", edit.Expression);
     }
 
+    [Fact]
+    public async Task ProxyConsolidationIsOneAtomicInventoryVersionAndKeepsHistoryAndOtherDefinitions()
+    {
+        await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
+        var second = await f.AddServerAsync("other-proxy", ServerKind.Velocity);
+        ScheduleDefinition Definition(OperationKind kind, Guid server, string time = "0 4 * * *", string zone = "Asia/Tokyo", string? key = null, ScheduleActionType action = ScheduleActionType.Operation) => new() {
+            ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = server, Revision = 1, Enabled = true,
+            Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = time, TimeZoneId = zone },
+            Template = new() { ActionType = action, Steps = [new() { Kind = kind, StepKey = key ?? (kind == OperationKind.Restart ? "restart" : "update-geyser"),
+                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload(false)) : ControlJson.Element(new { }) }] } };
+        var restart = Definition(OperationKind.Restart, f.ServerId, "00 04 * * *");
+        var update = Definition(OperationKind.UpdateGeyser, f.ServerId);
+        var untouched = new[] { Definition(OperationKind.Restart, second), Definition(OperationKind.Restart, f.ServerId, "0 5 * * *"),
+            Definition(OperationKind.Restart, f.ServerId, zone: "UTC"), Definition(OperationKind.Restart, f.ServerId, key: "custom"),
+            Definition(OperationKind.UpdateGeyser, f.ServerId, action: ScheduleActionType.LocalChain),
+            Definition(OperationKind.Restart, f.ServerId) with { Template = new() { Steps = [new() { Kind = OperationKind.Restart, StepKey = "restart", DelaySeconds = 30 }] } } };
+        foreach (var definition in new[] { restart, update }.Concat(untouched))
+            await f.Store.SaveScheduleAsync(definition, null, Guid.NewGuid());
+        var historyId = Guid.NewGuid();
+        var history = new ScheduleOccurrenceReport { ScheduleId = restart.ScheduleId, OperationId = historyId, Status = ScheduleOccurrenceStatus.Succeeded };
+        var historyJson = ControlJson.Serialize(history);
+        f.Db.ScheduleOccurrences.Add(new() { OperationId = historyId, HostId = f.Host.HostId, ScheduleId = restart.ScheduleId, ReportJson = historyJson, UpdatedAtUtc = DateTimeOffset.UtcNow });
+        await f.Db.SaveChangesAsync();
+        var before = f.Host.DesiredInventoryRevision;
+        var page = f.Page();
+        await page.OnGetAsync(f.ServerId);
+        Assert.Equal(ScheduleEditorPreset.DailyProxyMaintenance, page.Preset);
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        Assert.Equal(before + 1, f.Host.DesiredInventoryRevision);
+        var all = await f.Store.SchedulesAsync();
+        foreach (var old in new[] { restart, update })
+        {
+            var disabled = all.Single(d => d.Definition.ScheduleId == old.ScheduleId).Definition;
+            Assert.False(disabled.Enabled);
+            Assert.Equal(2, disabled.Revision);
+        }
+        foreach (var old in untouched)
+            Assert.Equal(ControlJson.Serialize(old), ControlJson.Serialize(all.Single(d => d.Definition.ScheduleId == old.ScheduleId).Definition));
+        Assert.Equal(historyJson, (await f.Db.ScheduleOccurrences.FindAsync(historyId))!.ReportJson);
+        Assert.Single(await f.Store.ScheduleHistoryAsync(restart.ScheduleId));
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        Assert.Equal(before + 1, f.Host.DesiredInventoryRevision);
+        Assert.Equal(untouched.Length + 3, (await f.Store.SchedulesAsync()).Length);
+    }
+
+    [Fact]
+    public async Task FailedProxySaveDoesNotDisableExistingSchedules()
+    {
+        await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
+        var page = f.Page();
+        await page.OnGetAsync(f.ServerId);
+        page.UpdateGeyser = false;
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        var old = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+        var before = f.Host.DesiredInventoryRevision;
+        f.Host.CapabilitiesJson = ControlJson.Serialize(ControlJson.Deserialize<string[]>(f.Host.CapabilitiesJson).Where(c => c != ServerProcessSupport.ProxyMaintenanceCapability).ToArray());
+        await f.Db.SaveChangesAsync();
+        var failure = f.Page(); await failure.OnGetAsync(f.ServerId);
+        Assert.IsType<PageResult>(await failure.OnPostSaveAsync(f.ServerId));
+        Assert.Equal(before, f.Host.DesiredInventoryRevision);
+        Assert.Equal(ControlJson.Serialize(old), ControlJson.Serialize(Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition));
+        var edit = f.Page(); await edit.OnGetAsync(f.ServerId, old.ScheduleId);
+        Assert.Equal(ScheduleEditorPreset.DailyProxyMaintenance, edit.Preset);
+        Assert.False(edit.UpdateGeyser);
+        Assert.False(edit.UpdateVelocity);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");
@@ -230,7 +298,7 @@ public sealed class ScheduledAutomationPageTests
             f.Host = await f.Store.CreateHostAsync(new("fixture", "Fixture"), Guid.NewGuid(), "fixture");
             f.Host.ResourcesJson = ControlJson.Serialize(new HostResources { Roots = [new() { Id = f.root }], Executables = [new() { Id = f.executable }] });
             string[] capabilities = ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.Schedules"];
-            f.Host.CapabilitiesJson = ControlJson.Serialize(capability ? [.. capabilities, "P3.GeyserUpdate", "P3.VelocityUpdate"] : capabilities);
+            f.Host.CapabilitiesJson = ControlJson.Serialize(capability ? [.. capabilities, "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance"] : capabilities);
             await f.Db.SaveChangesAsync();
             f.ServerId = await f.AddServerAsync("server", kind);
             return f;

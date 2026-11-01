@@ -138,3 +138,7 @@ footer{display:flex;justify-content:space-between;gap:18px}footer a{margin-left:
 .schedule-editor:has(#Preset option[value="Advanced"]:checked) .schedule-daily{display:none}
 .schedule-editor:has(#Preset option:not([value="Advanced"]):checked) .schedule-advanced{display:none}
 @media(max-width:700px){.overview-summary{padding:18px;min-height:0}.summary-card{min-height:200px;padding:20px}.history-toolbar{align-items:flex-start;flex-direction:column}.history-toolbar button{margin:0;width:100%}.history-pagination{justify-content:flex-start}.table-actions .button-link{width:auto}.history-facts{display:block}}
+
+.schedule-editor:has(#Preset option[value="DailyGeyserUpdate"]:checked) .schedule-proxy-updates{display:none}
+
+.schedule-editor:has(#Preset option[value="DailyProxyMaintenance"]:checked):has(#UpdateGeyser:not(:checked)) .schedule-velocity-update{display:none}

@@ -11,6 +11,10 @@ public sealed class ProtocolTests
     {
         var legacy = ControlJson.Deserialize<UpdateGeyserPayload>("{}");
         Assert.True(legacy.RestartIfPreviouslyRunning);
+        Assert.False(legacy.RestartEvenIfUnchanged);
+        Assert.DoesNotContain("restartEvenIfUnchanged", ControlJson.Serialize(legacy));
+        Assert.Throws<ArgumentException>(() => FileOperationValidation.ValidatePayload(OperationKind.UpdateGeyser, ControlJson.Element(new UpdateGeyserPayload(false, false, true))));
+        Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { RestartEvenIfUnchanged = true }, [ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityCapability]));
         Assert.False(legacy.UpdateVelocity);
         Assert.DoesNotContain("updateVelocity", ControlJson.Serialize(legacy));
         Assert.Contains("updateVelocity", ControlJson.Serialize(legacy with { UpdateVelocity = true }));

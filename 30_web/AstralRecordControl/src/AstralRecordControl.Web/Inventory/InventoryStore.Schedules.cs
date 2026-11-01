@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +25,7 @@ public sealed partial class InventoryStore
         return result.OrderBy(v => v.Definition.ScheduleId).ToArray();
     }
 
-    public async Task<ScheduleDefinition> SaveScheduleAsync(ScheduleDefinition definition, long? expectedRevision, Guid key) => await WriteAsync(async () =>
+    public async Task<ScheduleDefinition> SaveScheduleAsync(ScheduleDefinition definition, long? expectedRevision, Guid key, bool consolidateDailyProxySchedules = false) => await WriteAsync(async () =>
     {
         if (configuration?.GetValue<bool>("Control:EnableSchedules") != true || !ProcessControlEnabled) throw new InventoryFault(409, "UnsupportedCapability");
         ScheduleValidation.Validate(definition);
@@ -33,7 +35,9 @@ public sealed partial class InventoryStore
         if (definition.HostId != host.HostId || !host.Enabled) throw new InventoryFault(400, "HostScopeMismatch");
         var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
         if (!capabilities.Contains("P3.Schedules")) throw new InventoryFault(409, "UnsupportedCapability");
-        var hash = ControlProtocol.Hash("Schedule:" + expectedRevision + ":" + ControlJson.Serialize(definition));
+        if (consolidateDailyProxySchedules && (serverConfig.Kind != ServerKind.Velocity || !IsSimpleDailyProxySchedule(definition, out _)))
+            throw new InventoryFault(400, "InvalidInput");
+        var hash = ControlProtocol.Hash("Schedule:" + expectedRevision + ":" + ControlJson.Serialize(definition) + (consolidateDailyProxySchedules ? ":consolidate" : ""));
         var replay = await ReplayAsync(key, hash);
         var all = await SchedulesAsync();
         if (replay != null) return all.Single(s => s.Definition.ScheduleId == replay.EntityId).Definition;
@@ -59,10 +63,33 @@ public sealed partial class InventoryStore
                 if (step.Kind == OperationKind.CreateBackup && profile.Revision != FileOperationValidation.Read<CreateBackupPayload>(step.Payload).ProfileRevision) throw new InventoryFault(409, "StaleRevision");
             }
         }
-        SaveInventory(host, snapshot.Servers, schedules: snapshot.Schedules.Select(ScheduleValidation.Read).Where(s => s.ScheduleId != definition.ScheduleId).Append(definition).Select(ControlJson.Element).ToArray());
+        var schedules = snapshot.Schedules.Select(ScheduleValidation.Read).Where(s => s.ScheduleId != definition.ScheduleId);
+        if (consolidateDailyProxySchedules && definition.Enabled && IsSimpleDailyProxySchedule(definition, out var dailyTime))
+            schedules = schedules.Select(s => s.Enabled && s.ServerId == definition.ServerId && s.HostId == definition.HostId &&
+                s.Trigger.TimeZoneId == definition.Trigger.TimeZoneId && IsSimpleDailyProxySchedule(s, out var otherTime) && otherTime == dailyTime
+                    ? s with { Enabled = false, Revision = checked(s.Revision + 1) } : s);
+        SaveInventory(host, snapshot.Servers, schedules: schedules.Append(definition).Select(ControlJson.Element).ToArray());
         SaveRequest(key, hash, definition.ScheduleId, "Schedule");
         return definition;
     });
+
+    private static bool IsSimpleDailyProxySchedule(ScheduleDefinition definition, out TimeOnly time)
+    {
+        time = default;
+        var trigger = definition.Trigger;
+        var fields = trigger.Expression?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (trigger.Kind != ScheduleTriggerKind.Cron || trigger.AtUtc.HasValue || trigger.AnchorUtc.HasValue || trigger.Seconds.HasValue || fields is not { Length: 5 } ||
+            fields[2] != "*" || fields[3] != "*" || fields[4] != "*" ||
+            !int.TryParse(fields[0], NumberStyles.None, CultureInfo.InvariantCulture, out var minute) || minute is < 0 or > 59 ||
+            !int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out var hour) || hour is < 0 or > 23 ||
+            definition.Template.ActionType != ScheduleActionType.Operation || definition.Template.Steps is not { Length: 1 } steps || steps[0].DelaySeconds != 0) return false;
+        var step = steps[0];
+        if (step.Kind == OperationKind.Restart && step.StepKey == "restart" && step.Payload.ValueKind == JsonValueKind.Object && !step.Payload.EnumerateObject().Any() ||
+            step.Kind == OperationKind.UpdateGeyser && step.StepKey == "update-geyser" && step.Payload.ValueKind == JsonValueKind.Object &&
+            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" or "restartEvenIfUnchanged" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
+        { time = new TimeOnly(hour, minute); return true; }
+        return false;
+    }
 
     public async Task<ScheduleDefinition> AppliedScheduleAsync(Guid scheduleId)
     {
