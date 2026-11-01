@@ -58,7 +58,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
             if (!capabilities.Contains("P2.Files") || (IsBackupKind(request.Kind) && !capabilities.Contains("P2.Backups"))) throw new InventoryFault(409, "UnsupportedCapability");
             if (request.Kind == OperationKind.UpdateGeyser &&
-                (config.Kind != ServerKind.Velocity || !capabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) || !capabilities.Contains(ServerProcessSupport.VelocityCapability) ||
+                (config.Kind != ServerKind.Velocity || !ServerProcessSupport.HasGeyserUpdateCapabilities(FileOperationValidation.Read<UpdateGeyserPayload>(request.Payload), capabilities) ||
                  config.DependencyReadiness != DependencyReadiness.Running || config.DependsOnServerIds.Length != 0))
                 throw new InventoryFault(409, "UnsupportedCapability");
             if (request.Kind == OperationKind.CreateBackup)

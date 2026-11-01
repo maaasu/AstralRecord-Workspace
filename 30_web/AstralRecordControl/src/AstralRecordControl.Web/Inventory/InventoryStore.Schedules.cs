@@ -49,7 +49,7 @@ public sealed partial class InventoryStore
         {
             if (step.Kind == OperationKind.UpdateGeyser &&
                 (serverConfig.Kind != ServerKind.Velocity || configuration?.GetValue<bool>("Control:EnableFileControl") != true ||
-                 !capabilities.Contains("P2.Files") || !capabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) || !capabilities.Contains(ServerProcessSupport.VelocityCapability)))
+                 !capabilities.Contains("P2.Files") || !ServerProcessSupport.HasGeyserUpdateCapabilities(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload), capabilities)))
                 throw new InventoryFault(409, "UnsupportedCapability");
             if (step.Kind is OperationKind.CreateBackup or OperationKind.PruneBackups)
             {

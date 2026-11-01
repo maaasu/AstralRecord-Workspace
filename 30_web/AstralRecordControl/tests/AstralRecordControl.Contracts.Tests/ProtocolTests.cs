@@ -7,6 +7,21 @@ namespace AstralRecordControl.Contracts.Tests;
 public sealed class ProtocolTests
 {
     [Fact]
+    public void GeyserPayloadLegacyDefaultsAndCombinedCapabilityAreCompatible()
+    {
+        var legacy = ControlJson.Deserialize<UpdateGeyserPayload>("{}");
+        Assert.True(legacy.RestartIfPreviouslyRunning);
+        Assert.False(legacy.UpdateVelocity);
+        Assert.DoesNotContain("updateVelocity", ControlJson.Serialize(legacy));
+        Assert.Contains("updateVelocity", ControlJson.Serialize(legacy with { UpdateVelocity = true }));
+        string[] oldCapabilities = [ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityCapability];
+        Assert.True(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy, oldCapabilities));
+        Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateVelocity = true }, oldCapabilities));
+        Assert.True(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy with { UpdateVelocity = true }, [.. oldCapabilities, ServerProcessSupport.VelocityUpdateCapability]));
+        Assert.False(ServerProcessSupport.HasGeyserUpdateCapabilities(legacy, [ServerProcessSupport.GeyserUpdateCapability]));
+    }
+
+    [Fact]
     public void ImmutableOperationEnvelopeRejectsTamperingHostAndCommandInjection()
     {
         var command = new OperationCommand { OperationId = Guid.NewGuid(), HostId = Host, ServerId = Guid.NewGuid(), WorkflowId = Guid.NewGuid(), ReservationId = Guid.NewGuid(), ReservationFence = 1, Kind = OperationKind.ConsoleCommand, ConfigRevision = 1, ExpectedStateRevision = 0, ExpectedServerSessionId = Guid.NewGuid(), StartBeforeUtc = DateTimeOffset.UtcNow.AddSeconds(60), Payload = ControlJson.Element(new { command = "list" }) };

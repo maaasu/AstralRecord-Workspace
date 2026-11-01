@@ -33,6 +33,21 @@ public sealed class OperationGateTests
         Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
     }
 
+    [Fact]
+    public async Task CombinedUpdateRejectsOldCapabilityBeforeReservation()
+    {
+        await using var fixture = await Fixture.CreateAsync(enableFiles: true);
+        var server = await fixture.ServerAsync("proxy");
+        server.DesiredConfigJson = ControlJson.Serialize(ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { Kind = ServerKind.Velocity });
+        var host = await fixture.Db.Hosts.SingleAsync(x => x.HostId == server.HostId);
+        host.CapabilitiesJson = ControlJson.Serialize(new[] { "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.GeyserUpdate" });
+        await fixture.Db.SaveChangesAsync();
+        await Fault("UnsupportedCapability", () => fixture.Operations.CreateAsync(server.ServerId,
+            new() { Kind = OperationKind.UpdateGeyser, ConfigRevision = 1, ExpectedStateRevision = 1, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: true)) }, Guid.NewGuid()));
+        Assert.Equal(0, fixture.Agent.PrepareCount);
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

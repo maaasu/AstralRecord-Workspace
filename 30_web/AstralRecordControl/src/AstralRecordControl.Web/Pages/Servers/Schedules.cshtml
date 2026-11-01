@@ -50,7 +50,10 @@
         <p>定期再起動は稼働中のサーバーを正常停止して起動します。停止中のサーバーは起動しません。</p>
         @if (Model.IsVelocity)
         {
-            <p>GeyserMC 自動更新は、導入済みの <code>plugins/Geyser-Velocity.jar</code> を公式最新版へ更新します。同じ版なら停止せず、更新時は正常停止し、直前まで稼働していた場合だけ起動します。旧 JAR は退避して残します。</p>
+            <p>GeyserMC 自動更新は、導入済みの <code>plugins/Geyser-Velocity.jar</code> を公式最新版へ更新します。更新対象がすべて同じ版なら停止せず、更新時は正常停止し、直前まで稼働していた場合だけ起動します。旧 JAR は退避して残します。</p>
+            <label><input asp-for="UpdateVelocity" /> Velocity 本体も同時に更新する</label>
+            <p>Velocity は公式 Fill v3 の stable / recommended ビルドを使います。両方のダウンロード・ハッシュ・Java 最低版を停止前に検証し、必要な更新を一度の正常停止で適用します。部分的に失敗した場合は再起動せず、予約を保持して点検を待ちます。</p>
+            @if (!Model.VelocityUpdateAvailable) { <p>同時更新には P3.VelocityUpdate 対応の Agent / Runner が必要です。未対応の場合はチェックを外してください。</p> }
             @if (!Model.GeyserAvailable) { <p>GeyserMC 更新にはファイル操作の有効化と、この機能に対応した Agent / Runner が必要です。</p> }
         }
     </div>

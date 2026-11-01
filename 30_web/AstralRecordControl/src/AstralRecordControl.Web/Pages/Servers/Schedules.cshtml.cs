@@ -25,6 +25,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     public ServerKind Kind { get; private set; }
     public bool IsVelocity => Kind == ServerKind.Velocity;
     public bool GeyserAvailable { get; private set; }
+    public bool VelocityUpdateAvailable { get; private set; }
+    [BindProperty] public bool UpdateVelocity { get; set; } = true;
     [BindProperty] public ScheduleEditorPreset Preset { get; set; } = ScheduleEditorPreset.Advanced;
     [BindProperty] public string? DailyTime { get; set; } = "04:00";
     [BindProperty] public Guid RequestKey { get; set; }
@@ -54,7 +56,11 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
             StepsJson = ControlJson.Serialize(definition.Template.Steps);
             Preset = ScheduleEditorPreset.Advanced;
             if (TryDailyPreset(definition, out var preset, out var dailyTime))
-            { Preset = preset; DailyTime = dailyTime; }
+            {
+                Preset = preset; DailyTime = dailyTime;
+                if (preset == ScheduleEditorPreset.DailyGeyserUpdate)
+                    UpdateVelocity = FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateVelocity;
+            }
         }
         return Page();
     }
@@ -73,12 +79,12 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
                 if (!ServerProcessSupport.IsSupported(Kind)) throw new InventoryFault(409, "UnsupportedCapability");
                 if (!TimeOnly.TryParseExact(DailyTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                     throw new ArgumentException("Invalid daily time.");
-                if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && (!IsVelocity || !GeyserAvailable))
+                if (Preset == ScheduleEditorPreset.DailyGeyserUpdate && (!IsVelocity || !GeyserAvailable || UpdateVelocity && !VelocityUpdateAvailable))
                     throw new InventoryFault(409, "UnsupportedCapability");
                 trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = FormattableString.Invariant($"{time.Minute} {time.Hour} * * *"), TimeZoneId = TimeZoneId };
                 steps = Preset == ScheduleEditorPreset.DailyRestart
                     ? [new() { StepKey = "restart", Kind = OperationKind.Restart }]
-                    : [new() { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload()) }];
+                    : [new() { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, Payload = GeyserPresetPayload() }];
             }
             else
             {
@@ -109,10 +115,24 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         }
     }
 
+    private JsonElement GeyserPresetPayload()
+    {
+        var old = Schedules.SingleOrDefault(s => s.Definition.ScheduleId == ScheduleId)?.Definition;
+        if (old != null && TryDailyPreset(old, out var preset, out _) && preset == ScheduleEditorPreset.DailyGeyserUpdate)
+        {
+            var payload = old.Template.Steps[0].Payload;
+            var value = FileOperationValidation.Read<UpdateGeyserPayload>(payload);
+            // Keep omitted legacy defaults and restart policy when changing only the time.
+            if (value.UpdateVelocity == UpdateVelocity) return payload;
+            return ControlJson.Element(value with { UpdateVelocity = UpdateVelocity });
+        }
+        return ControlJson.Element(new UpdateGeyserPayload(UpdateVelocity: UpdateVelocity));
+    }
+
     public static string Description(ScheduleDefinition definition)
     {
         if (TryDailyPreset(definition, out var preset, out var time))
-            return $"{(preset == ScheduleEditorPreset.DailyRestart ? "定期再起動" : "GeyserMC 自動更新")} — 毎日 {time}（{definition.Trigger.TimeZoneId}）";
+            return $"{(preset == ScheduleEditorPreset.DailyRestart ? "定期再起動" : FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateVelocity ? "GeyserMC・Velocity 自動更新" : "GeyserMC 自動更新")} — 毎日 {time}（{definition.Trigger.TimeZoneId}）";
         return $"予約実行 — {definition.Trigger.Kind}";
     }
 
@@ -120,7 +140,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
     {
         preset = ScheduleEditorPreset.Advanced; time = "04:00";
         var fields = definition.Trigger.Expression?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (definition.Trigger.Kind != ScheduleTriggerKind.Cron || fields is not { Length: 5 } ||
+        if (definition.Trigger.Kind != ScheduleTriggerKind.Cron || definition.Trigger.AtUtc.HasValue || definition.Trigger.AnchorUtc.HasValue || definition.Trigger.Seconds.HasValue || fields is not { Length: 5 } ||
             fields[2] != "*" || fields[3] != "*" || fields[4] != "*" ||
             !int.TryParse(fields[0], NumberStyles.None, CultureInfo.InvariantCulture, out var minute) || minute is < 0 or > 59 ||
             !int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out var hour) || hour is < 0 or > 23 ||
@@ -130,7 +150,7 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         if (step.Kind == OperationKind.Restart && step.StepKey == "restart" && step.Payload.ValueKind == JsonValueKind.Object && !step.Payload.EnumerateObject().Any())
             preset = ScheduleEditorPreset.DailyRestart;
         else if (step.Kind == OperationKind.UpdateGeyser && step.StepKey == "update-geyser" && step.Payload.ValueKind == JsonValueKind.Object &&
-            step.Payload.EnumerateObject().Count() == 1 && step.Payload.TryGetProperty("restartIfPreviouslyRunning", out var restart) && restart.ValueKind == JsonValueKind.True)
+            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
             preset = ScheduleEditorPreset.DailyGeyserUpdate;
         else return false;
         time = new TimeOnly(hour, minute).ToString("HH:mm", CultureInfo.InvariantCulture);
@@ -174,7 +194,8 @@ public sealed class SchedulesModel(InventoryStore store, IAgentOperationTranspor
         var host = await store.HostAsync(Server.HostId);
         var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
         GeyserAvailable = IsVelocity && configuration.GetValue<bool>("Control:EnableFileControl") &&
-            capabilities.Contains("P2.Files") && capabilities.Contains(ServerProcessSupport.GeyserUpdateCapability) && capabilities.Contains(ServerProcessSupport.VelocityCapability);
+            capabilities.Contains("P2.Files") && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(), capabilities);
+        VelocityUpdateAvailable = GeyserAvailable && ServerProcessSupport.HasGeyserUpdateCapabilities(new UpdateGeyserPayload(UpdateVelocity: true), capabilities);
         Schedules = await store.SchedulesAsync(serverId);
         PendingRequests = await store.PendingManualRequestsAsync(serverId);
         foreach (var row in Schedules) History[row.Definition.ScheduleId] = await store.ScheduleHistoryAsync(row.Definition.ScheduleId);

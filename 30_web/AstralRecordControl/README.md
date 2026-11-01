@@ -125,10 +125,12 @@ P1の導入条件に加え、Webの`Control:EnableFileControl=true`、Agent/Runn
 
 `/Servers/{id}/Schedules`で定義・適用版・実行履歴を確認できます。Run Nowは初期offline時に503で拒否し、受付済み要求は同じIdempotency-Keyで照会・再送します。受付後に通信結果が不明なら202と照会先を返し、Agentが開始前の拒否を確定した場合はRejectedとして保存・表示します。新しい要求IDで重複実行しません。バックアップprofileはinventory内で希望版と適用ACKを区別し、定義更新時にも既存profileを保持します。
 
-各サーバーの「定期再起動・予約」で、毎日の再起動時刻（停止中はSkip）と、Velocity専用のGeyserMC自動更新を設定できます。時刻`HH:mm`・タイムゾーン（標準`Asia/Tokyo`）・有効状態を編集でき、既存Cron/適用ACK/履歴/今すぐ実行を使います。同じサーバーの予約は実行時刻を分けてください。GeyserMCは既存`plugins/Geyser-Velocity.jar`のみを公式APIのhash検証後に交換し、最新版と同一なら停止しません。更新がある場合は正常停止して交換し、直前まで稼働していた場合だけ起動します。Web/Agentの予約実行とWeb/Agent/Runnerのファイル操作を有効化し、更新処理に対応するAgent/Runnerを配置してください。必要な能力は`P3.Schedules`、`P2.Files`、`P3.GeyserUpdate`、`P1.Velocity`です。旧JARは`plugins/Geyser-Velocity.jar.control-{operationId:N}.backup`へ退避し、結果の`backupRelativePath`に記録します。
+各サーバーの「定期再起動・予約」で、毎日の再起動時刻（停止中はSkip）と、Velocity専用のGeyserMC自動更新を設定できます。時刻`HH:mm`・タイムゾーン（標準`Asia/Tokyo`）・有効状態を編集でき、既存Cron/適用ACK/履歴/今すぐ実行を使います。同じサーバーの予約は実行時刻を分けてください。GeyserMCは既存`plugins/Geyser-Velocity.jar`のみを公式APIのhash検証後に交換し、更新対象がすべて最新版と同一なら停止しません。更新がある場合は正常停止して交換し、直前まで稼働していた場合だけ起動します。Web/Agentの予約実行とWeb/Agent/Runnerのファイル操作を有効化し、更新処理に対応するAgent/Runnerを配置してください。必要な能力は`P3.Schedules`、`P2.Files`、`P3.GeyserUpdate`、`P1.Velocity`です。旧JARは`plugins/Geyser-Velocity.jar.control-{operationId:N}.backup`へ退避し、結果の`backupRelativePath`に記録します。
 
 Agentは約10秒ごとにHost/プロセスCPU、メモリ、ディスク空き、稼働時間を採取し、Javaの`127.0.0.1` status pingから取得できる人数だけを報告します。取得不能はnull/欠測で、0人や停止へ変換しません。TPS/MSPTはP3のデータ源に含みません。Webの`/Servers/{id}/Metrics`では1分粒度7日、1時間粒度90日の系列を表示します。
 
 `/Notifications`でOwnerがWebhook送信先と履歴を管理します。URL全体をData Protectionで保護し、画面/APIへ戻しません。送信先は公開到達可能なHTTPS・443番だけを許可し、リダイレクトとプロキシを使わずDNS解決先の公開IPへ固定して送ります。Web停止中のAgentイベントもUTC発生時刻と同じeventIdでACKまで保持します。初回失敗後1/5/30分の最大3回再試行後にdead-letterとなり、送信失敗はゲーム操作の結果を変更しません。外部Webhookへの厳密なat-most-once配信は保証しないため、受信側はeventIdで重複排除してください。
 
 完了済み操作・Web/AgentのSchedule履歴・通知は90日で本文を退役させ、再送照合に必要なID/hashを保持します。Runnerの復旧監査も90日を過ぎ、対象の要復旧状態とholdがない場合に削除します。非終端操作・要復旧保守・未ACKイベントは期限だけで削除しません。大量のPruneBackups結果はローカル予約では件数/hashへ要約し、Web転送に依存しません。検証は一時fixtureで行い、実Minecraft、実NAS、外部Webhook、実サービス登録には接続しません。
+
+VelocityのGeyserMC日次更新では「Velocity 本体も同時に更新する」を明示選択できます。新規フォームはON、旧payloadの `updateVelocity` 省略はfalseで、既存予約は編集するまでGeyserのみです。ON時は追加能力 `P3.VelocityUpdate` が必要です。Velocity本体は公式Fill v3のstable / recommendedだけを使い、両方のダウンロード・hash・Java最低版を停止前に検証します。変更がある場合だけ一度正常停止し、現在の `-jar` 対象と同じファイル名へ原子的に交換して旧JARをbackupに残します。部分失敗・中断時は再起動せずholdと要確認状態を保持し、点検を待ちます。自動ロールバックは行いません。NetherNetのTCP 19132とUDP 19132は別々の通信設定として確認してください。
