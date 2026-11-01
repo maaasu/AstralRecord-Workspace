@@ -56,12 +56,17 @@ else { <p>同じサーバーの予約は実行時刻を分けてください。�
                 <label><input asp-for="UpdateGeyser" /> 再起動時に GeyserMC の更新も確認する</label>
                 <p>チェックを外すと、更新を確認せず定期再起動だけを行います。</p>
             </div>
-            <div class="schedule-velocity-update"><label><input asp-for="UpdateVelocity" /> Velocity 本体も同時に更新する</label></div>
+            <div class="schedule-velocity-update">
+                <label><input asp-for="UpdateVelocity" /> Velocity 本体も同時に更新する</label>
+                <label><input asp-for="UpdateGeyserDisplayEntity" /> GeyserDisplayEntity も同時に更新する</label>
+                <p>導入済みの拡張を公式配布から更新します。未導入の場合は追加しません。</p>
+            </div>
             <p>更新を確認した後、稼働中なら新しい版がなくても一度だけ正常停止して起動します。停止中は必要な更新だけを適用し、起動しません。旧予約の「更新のみ」は変更がある場合だけ停止します。</p>
             <p>「毎日の定期再起動・更新」を保存すると、このサーバーの同じ毎日時刻・タイムゾーンにある従来の単独再起動／更新予約を無効化して一本にまとめます。履歴は残り、無効な予約から確認できます。詳細設定・複数処理の予約は変更しません。</p>
             <p>Velocity は公式の安定版を使います。ダウンロード・ハッシュ・Java 最低版を停止前に検証し、失敗時は停止しません。交換途中の失敗は再起動せず、予約を保持して点検を待ちます。</p>
             @if (!Model.ProxyMaintenanceAvailable) { <p>再起動と更新には対応した Agent / Runner が必要です。未対応の場合は更新確認のチェックを外すと再起動のみを保存できます。</p> }
             @if (!Model.VelocityUpdateAvailable) { <p>Velocity 本体更新に未対応です。本体更新のチェックを外してください。</p> }
+            @if (!Model.GeyserDisplayEntityUpdateAvailable) { <p>GeyserDisplayEntity 更新に未対応です。対応した Agent / Runner を配置するか、拡張更新のチェックを外してください。</p> }
 
         }
     </div>

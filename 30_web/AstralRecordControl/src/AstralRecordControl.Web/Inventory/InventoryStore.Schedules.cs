@@ -86,7 +86,7 @@ public sealed partial class InventoryStore
         var step = steps[0];
         if (step.Kind == OperationKind.Restart && step.StepKey == "restart" && step.Payload.ValueKind == JsonValueKind.Object && !step.Payload.EnumerateObject().Any() ||
             step.Kind == OperationKind.UpdateGeyser && step.StepKey == "update-geyser" && step.Payload.ValueKind == JsonValueKind.Object &&
-            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" or "restartEvenIfUnchanged" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
+            step.Payload.EnumerateObject().All(p => p.Name is "restartIfPreviouslyRunning" or "updateVelocity" or "restartEvenIfUnchanged" or "updateGeyserDisplayEntity" && p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False))
         { time = new TimeOnly(hour, minute); return true; }
         return false;
     }

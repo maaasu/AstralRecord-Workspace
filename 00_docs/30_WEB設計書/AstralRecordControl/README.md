@@ -63,3 +63,5 @@
 Velocity本体の同時更新は `UpdateGeyser.updateVelocity=true` の限定的な明示選択として扱う。旧payloadはfalse、新規簡易フォームはON、追加能力は `P3.VelocityUpdate`。公式Fill v3 stable/recommended、停止前検証、一度の停止、同名交換・backup、部分失敗時の点検holdの契約は02〜06に記す。NetherNetのTCP/UDP 19132確認は別に行う。
 
 Velocityの通常日次操作は「毎日の定期再起動・更新」に統合しました。Geyser更新確認とVelocity本体同時更新は新規でONです。Geyser確認を外すと通常再起動だけになります。更新確認後、稼働中なら差分がなくても一度正常停止・起動し、停止中は更新だけで起動しません。`restartEvenIfUnchanged=true` と追加能力 `P3.ProxyMaintenance` を使います。旧更新のみ予約は従来の動作を保ち、編集時だけ旧選択肢を表示します。統合予約の保存で同Server・同じ毎日時刻/TZの単純な旧再起動／更新予約を一回のinventory保存で無効化して一本化し、履歴は残します。詳細設定や複数処理・別時刻は変更しません。無効な予約は折り畳みから確認できます。
+
+GeyserDisplayEntityも `UpdateGeyser.updateGeyserDisplayEntity=true` と追加能力 `P3.GeyserDisplayEntityUpdate` で同時更新できます。新規フォームはON、既存予約は省略時falseを維持し、未導入の拡張は追加しません。公式rolling releaseの非fabric JARとdigestを停止前に検証し、選択した三対象を一度の停止・起動で更新します。実体versionによる判定、元ファイル名の保持、backupと部分失敗時のhold、既存config/pack不変更の契約は02〜06に記します。

@@ -25,7 +25,7 @@ public sealed partial class LiveTransportTests
             var db = scope.ServiceProvider.GetRequiredService<ControlDbContext>();
             var host = await store.CreateHostAsync(new("schedule-ui", "Schedule UI"), Guid.NewGuid(), "schedule-ui");
             host.ResourcesJson = ControlJson.Serialize(fixture.Resources);
-            host.CapabilitiesJson = ControlJson.Serialize(new[] { "P0.Inventory", "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.Schedules", "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance" });
+            host.CapabilitiesJson = ControlJson.Serialize(new[] { "P0.Inventory", "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.Schedules", "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance", "P3.GeyserDisplayEntityUpdate" });
             await db.SaveChangesAsync();
             var config = new ServerConfig { ServerId = serverId, HostId = host.HostId, Revision = 1, Kind = kind,
                 ManagedRootId = fixture.Resources.Roots.Single(r => !r.BackupOnly).Id, ExecutableId = fixture.Resources.Executables.Single().Id, ServerDirectory = "dev" };
@@ -44,7 +44,7 @@ public sealed partial class LiveTransportTests
         {
             ["__RequestVerificationToken"] = Input("__RequestVerificationToken"),
             ["RequestKey"] = Input("RequestKey"), ["ScheduleId"] = "", ["Revision"] = "",
-            ["UpdateGeyser"] = "true", ["UpdateVelocity"] = "true", ["Enabled"] = "true", ["Preset"] = preset, ["DailyTime"] = "05:23", ["TimeZoneId"] = "Asia/Tokyo",
+            ["UpdateGeyser"] = "true", ["UpdateVelocity"] = "true", ["UpdateGeyserDisplayEntity"] = "true", ["Enabled"] = "true", ["Preset"] = preset, ["DailyTime"] = "05:23", ["TimeZoneId"] = "Asia/Tokyo",
             ["TriggerKind"] = "Once", ["AtUtc"] = "", ["Seconds"] = "3600", ["Expression"] = "", ["StepsJson"] = ""
         };
         using var post = new HttpRequestMessage(HttpMethod.Post, path + "?handler=Save") { Content = new FormUrlEncodedContent(values) };
@@ -59,6 +59,9 @@ public sealed partial class LiveTransportTests
         if (kind == ServerKind.Velocity)
         {
             Assert.Contains("Velocity 本体も同時に更新する", html);
+            Assert.Contains("GeyserDisplayEntity も同時に更新する", html);
+            Assert.Matches("<input(?=[^>]*name=\"UpdateGeyserDisplayEntity\")(?=[^>]*checked=\"checked\")[^>]*>", html);
+            Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateGeyserDisplayEntity);
             Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).UpdateVelocity);
             Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(definition.Template.Steps[0].Payload).RestartEvenIfUnchanged);
             Assert.DoesNotContain("value=\"DailyGeyserUpdate\"", html);

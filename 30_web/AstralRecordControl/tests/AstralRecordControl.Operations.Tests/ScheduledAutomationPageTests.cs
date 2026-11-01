@@ -53,6 +53,8 @@ public sealed class ScheduledAutomationPageTests
         var page = f.Page();
         await page.OnGetAsync(f.ServerId);
         Assert.True(page.GeyserAvailable);
+        Assert.True(page.GeyserDisplayEntityUpdateAvailable);
+        Assert.True(page.UpdateGeyserDisplayEntity);
         page.Preset = ScheduleEditorPreset.DailyProxyMaintenance;
         page.DailyTime = "03:10";
         Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
@@ -62,6 +64,8 @@ public sealed class ScheduledAutomationPageTests
         Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).RestartIfPreviouslyRunning);
         Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).UpdateVelocity);
         Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).RestartEvenIfUnchanged);
+        Assert.True(FileOperationValidation.Read<UpdateGeyserPayload>(step.Payload).UpdateGeyserDisplayEntity);
+        Assert.Contains("GeyserDisplayEntity", SchedulesModel.Description(saved));
         Assert.Contains("Velocity", SchedulesModel.Description(saved));
         var edit = f.Page();
         await edit.OnGetAsync(f.ServerId, saved.ScheduleId);
@@ -74,6 +78,8 @@ public sealed class ScheduledAutomationPageTests
     [InlineData("{\"restartIfPreviouslyRunning\":true}")]
     [InlineData("{\"restartIfPreviouslyRunning\":false}")]
     [InlineData("{\"restartIfPreviouslyRunning\":false,\"updateVelocity\":true}")]
+    [InlineData("{\"updateGeyserDisplayEntity\":false}")]
+    [InlineData("{\"restartIfPreviouslyRunning\":false,\"updateGeyserDisplayEntity\":true}")]
     public async Task EditingDailyGeyserPreservesLegacyAndExplicitPayloads(string json)
     {
         await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
@@ -86,6 +92,7 @@ public sealed class ScheduledAutomationPageTests
         await page.OnGetAsync(f.ServerId, definition.ScheduleId);
         Assert.Equal(ScheduleEditorPreset.DailyGeyserUpdate, page.Preset);
         Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateVelocity, page.UpdateVelocity);
+        Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateGeyserDisplayEntity, page.UpdateGeyserDisplayEntity);
         page.DailyTime = "05:15";
         Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
         var saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
@@ -96,6 +103,7 @@ public sealed class ScheduledAutomationPageTests
         Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
         var changed = FileOperationValidation.Read<UpdateGeyserPayload>(Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition.Template.Steps[0].Payload);
         Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).RestartIfPreviouslyRunning, changed.RestartIfPreviouslyRunning);
+        Assert.Equal(FileOperationValidation.Read<UpdateGeyserPayload>(payload).UpdateGeyserDisplayEntity, changed.UpdateGeyserDisplayEntity);
     }
 
     [Theory]
@@ -128,7 +136,7 @@ public sealed class ScheduledAutomationPageTests
         await page.OnGetAsync(f.ServerId);
         page.Preset = ScheduleEditorPreset.Advanced;
         page.TriggerKind = ScheduleTriggerKind.Cron;
-        page.StepsJson = ControlJson.Serialize(new[] { new ScheduleStep { StepKey = "update", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload()) } });
+        page.StepsJson = ControlJson.Serialize(new[] { new ScheduleStep { StepKey = "update", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateGeyserDisplayEntity: true)) } });
         Assert.IsType<PageResult>(await page.OnPostSaveAsync(f.ServerId));
         Assert.False(page.ModelState.IsValid);
         Assert.Empty(await f.Store.SchedulesAsync(f.ServerId));
@@ -174,7 +182,7 @@ public sealed class ScheduledAutomationPageTests
         var definition = new ScheduleDefinition { ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = f.ServerId, Revision = 1, Enabled = true,
             Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = "0 4 * * *", TimeZoneId = "Asia/Tokyo" },
             Template = new() { ActionType = actionType, Steps = [new() { StepKey = stepKey, Kind = kind,
-                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload()) : ControlJson.Element(new { }) }] } };
+                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload(UpdateGeyserDisplayEntity: true)) : ControlJson.Element(new { }) }] } };
         await f.Store.SaveScheduleAsync(definition, null, Guid.NewGuid());
         var edit = f.Page();
         await edit.OnGetAsync(f.ServerId, definition.ScheduleId);
@@ -218,7 +226,7 @@ public sealed class ScheduledAutomationPageTests
             ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = server, Revision = 1, Enabled = true,
             Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = time, TimeZoneId = zone },
             Template = new() { ActionType = action, Steps = [new() { Kind = kind, StepKey = key ?? (kind == OperationKind.Restart ? "restart" : "update-geyser"),
-                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload(false)) : ControlJson.Element(new { }) }] } };
+                Payload = kind == OperationKind.UpdateGeyser ? ControlJson.Element(new UpdateGeyserPayload(false, UpdateGeyserDisplayEntity: true)) : ControlJson.Element(new { }) }] } };
         var restart = Definition(OperationKind.Restart, f.ServerId, "00 04 * * *");
         var update = Definition(OperationKind.UpdateGeyser, f.ServerId);
         var untouched = new[] { Definition(OperationKind.Restart, second), Definition(OperationKind.Restart, f.ServerId, "0 5 * * *"),
@@ -274,6 +282,83 @@ public sealed class ScheduledAutomationPageTests
         Assert.Equal(ScheduleEditorPreset.DailyProxyMaintenance, edit.Preset);
         Assert.False(edit.UpdateGeyser);
         Assert.False(edit.UpdateVelocity);
+        Assert.False(edit.UpdateGeyserDisplayEntity);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExtensionUpdateRequiresCapabilityInPresetAdvancedAndStore(bool advanced)
+    {
+        await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
+        f.Host.CapabilitiesJson = ControlJson.Serialize(ControlJson.Deserialize<string[]>(f.Host.CapabilitiesJson).Where(c => c != ServerProcessSupport.GeyserDisplayEntityUpdateCapability).ToArray());
+        await f.Db.SaveChangesAsync();
+        var page = f.Page();
+        await page.OnGetAsync(f.ServerId);
+        Assert.False(page.GeyserDisplayEntityUpdateAvailable);
+        var step = new ScheduleStep { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, Payload = ControlJson.Element(new UpdateGeyserPayload(UpdateGeyserDisplayEntity: true)) };
+        page.Preset = advanced ? ScheduleEditorPreset.Advanced : ScheduleEditorPreset.DailyProxyMaintenance;
+        page.TriggerKind = ScheduleTriggerKind.Cron;
+        page.StepsJson = ControlJson.Serialize(new[] { step });
+        Assert.IsType<PageResult>(await page.OnPostSaveAsync(f.ServerId));
+        Assert.Empty(await f.Store.SchedulesAsync(f.ServerId));
+        var definition = new ScheduleDefinition { ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = f.ServerId, Revision = 1, Enabled = true,
+            Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = "0 4 * * *", TimeZoneId = "Asia/Tokyo" }, Template = new() { Steps = [step] } };
+        var fault = await Assert.ThrowsAsync<InventoryFault>(() => f.Store.SaveScheduleAsync(definition, null, Guid.NewGuid()));
+        Assert.Equal("UnsupportedCapability", fault.Code);
+        // The parent switch makes both child update selections inapplicable.
+        page = f.Page(); await page.OnGetAsync(f.ServerId);
+        page.UpdateGeyser = false;
+        Assert.True(page.UpdateGeyserDisplayEntity);
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        var saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+        Assert.Equal(OperationKind.Restart, Assert.Single(saved.Template.Steps).Kind);
+        Assert.Equal("{}", saved.Template.Steps[0].Payload.GetRawText());
+    }
+
+    [Theory]
+    [InlineData("{\"restartEvenIfUnchanged\":true}")]
+    [InlineData("{\"restartEvenIfUnchanged\":true,\"updateGeyserDisplayEntity\":false}")]
+    [InlineData("{\"restartEvenIfUnchanged\":true,\"updateGeyserDisplayEntity\":true,\"updateVelocity\":true}")]
+    [InlineData("{\"restartIfPreviouslyRunning\":false}")]
+    public async Task ExtensionSelectionRoundTripsAndCanBeChangedIndependently(string json)
+    {
+        await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
+        var payload = ControlJson.Deserialize<System.Text.Json.JsonElement>(json);
+        var initial = FileOperationValidation.Read<UpdateGeyserPayload>(payload);
+        var definition = new ScheduleDefinition { ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = f.ServerId, Revision = 1, Enabled = true,
+            Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = "0 4 * * *", TimeZoneId = "Asia/Tokyo" },
+            Template = new() { Steps = [new() { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, Payload = payload }] } };
+        await f.Store.SaveScheduleAsync(definition, null, Guid.NewGuid());
+        var page = f.Page(); await page.OnGetAsync(f.ServerId, definition.ScheduleId);
+        Assert.Equal(initial.UpdateGeyserDisplayEntity, page.UpdateGeyserDisplayEntity);
+        page.DailyTime = "04:12";
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        var saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+        Assert.Equal(json, saved.Template.Steps[0].Payload.GetRawText());
+        foreach (var selection in new[] { !initial.UpdateGeyserDisplayEntity, initial.UpdateGeyserDisplayEntity })
+        {
+            page = f.Page(); await page.OnGetAsync(f.ServerId, definition.ScheduleId);
+            page.UpdateGeyserDisplayEntity = selection;
+            Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+            saved = Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition;
+            Assert.Equal(initial with { UpdateGeyserDisplayEntity = selection }, FileOperationValidation.Read<UpdateGeyserPayload>(saved.Template.Steps[0].Payload));
+        }
+    }
+
+    [Fact]
+    public async Task ExtensionFlagDoesNotTurnDelayedDailyStepIntoPreset()
+    {
+        await using var f = await Fixture.CreateAsync(ServerKind.Velocity);
+        var definition = new ScheduleDefinition { ScheduleId = Guid.NewGuid(), HostId = f.Host.HostId, ServerId = f.ServerId, Revision = 1, Enabled = true,
+            Trigger = new() { Kind = ScheduleTriggerKind.Cron, Expression = "0 4 * * *", TimeZoneId = "Asia/Tokyo" },
+            Template = new() { Steps = [new() { StepKey = "update-geyser", Kind = OperationKind.UpdateGeyser, DelaySeconds = 30, Payload = ControlJson.Element(new UpdateGeyserPayload(false, UpdateGeyserDisplayEntity: true)) }] } };
+        await f.Store.SaveScheduleAsync(definition, null, Guid.NewGuid());
+        var page = f.Page(); await page.OnGetAsync(f.ServerId, definition.ScheduleId);
+        Assert.Equal(ScheduleEditorPreset.Advanced, page.Preset);
+        page.Enabled = false;
+        Assert.IsType<RedirectToPageResult>(await page.OnPostSaveAsync(f.ServerId));
+        Assert.Equal(ControlJson.Serialize(definition.Template), ControlJson.Serialize(Assert.Single(await f.Store.SchedulesAsync(f.ServerId)).Definition.Template));
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -298,7 +383,7 @@ public sealed class ScheduledAutomationPageTests
             f.Host = await f.Store.CreateHostAsync(new("fixture", "Fixture"), Guid.NewGuid(), "fixture");
             f.Host.ResourcesJson = ControlJson.Serialize(new HostResources { Roots = [new() { Id = f.root }], Executables = [new() { Id = f.executable }] });
             string[] capabilities = ["P0.Inventory", "P1.Operations", "P1.LegacyGate", "P1.Velocity", "P2.Files", "P3.Schedules"];
-            f.Host.CapabilitiesJson = ControlJson.Serialize(capability ? [.. capabilities, "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance"] : capabilities);
+            f.Host.CapabilitiesJson = ControlJson.Serialize(capability ? [.. capabilities, "P3.GeyserUpdate", "P3.VelocityUpdate", "P3.ProxyMaintenance", "P3.GeyserDisplayEntityUpdate"] : capabilities);
             await f.Db.SaveChangesAsync();
             f.ServerId = await f.AddServerAsync("server", kind);
             return f;
