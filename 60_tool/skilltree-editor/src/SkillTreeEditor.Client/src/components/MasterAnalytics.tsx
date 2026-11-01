@@ -258,15 +258,17 @@ export function MasterAnalytics() {
     }
   }
   const point = useMemo(() => simulation?.points.find(value => value.playerLevel === inspect) ?? simulation?.points[0], [simulation, inspect])
-  const graph = useMemo(() => simulation?.classes.map(definition => ({
-    id: definition.id, name: plainName(definition.name),
-    displayName: definition.name,
-    values: simulation.points.map(item => {
-      const current = item.classes.find(value => value.id === definition.id)!
-      const master = classes?.find(value => value.content.id === definition.id)
-      return { x: item.playerLevel, y: growthView === 'level' ? current.level : growthView === 'experience' ? current.totalExperience : master ? classBonus(master, growthStat, current.level) : 0 }
-    }),
-  })) ?? [], [simulation, classes, growthView, growthStat])
+  const graph = useMemo(() => simulation?.classes.map(definition => {
+    const master = growthView === 'bonus' ? classes?.find(value => value.content.id === definition.id) : undefined
+    return {
+      id: definition.id, name: plainName(definition.name),
+      displayName: definition.name,
+      values: simulation.points.map(item => {
+        const current = item.classes.find(value => value.id === definition.id)!
+        return { x: item.playerLevel, y: growthView === 'level' ? current.level : growthView === 'experience' ? current.totalExperience : master ? classBonus(master, growthStat, current.level) : 0 }
+      }),
+    }
+  }) ?? [], [simulation, classes, growthView, growthStat])
 
   return <section className="master-analytics">
     <header className="analytics-header"><div><h1>比較・成長グラフ</h1><p>保存済みのFilebaseから計算。変更後は再読込してください。</p></div><button className="button" onClick={reloadMasters}>マスター再読込</button></header>

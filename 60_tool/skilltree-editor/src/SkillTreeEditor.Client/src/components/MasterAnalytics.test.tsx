@@ -102,6 +102,7 @@ describe('analysis calculation reuse', () => {
         growthPerLevel: [{ status: 'MAX_HEALTH', value: 2 }, { status: 'MELEE_ATTACK', value: 1 }],
       },
     })) }
+    const masterLookup = vi.spyOn(catalog.classes, 'find')
     let offset = 0
     const simulation = (): GrowthSimulation => ({
       accountUuid: `result-${offset}`, startPlayerLevel: 1, startClassLevel: 1, classes: definitions, sources: [], assumption: 'fixture',
@@ -115,55 +116,62 @@ describe('analysis calculation reuse', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'クラス成長' }))
     fireEvent.click(screen.getByRole('button', { name: 'グラフを計算' }))
     await screen.findByRole('slider')
-    const observations: { action: string; graphNames: number; bonusCalls: number }[] = []
-    function measure(action: string, change: () => void, graphNames: number, bonusCalls: number) {
-      vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear()
+    expect.soft(masterLookup).toHaveBeenCalledTimes(12) // Only the inspection table searches in level view.
+    const initialLevelPaths = Array.from(screen.getByRole('img', { name: /の比較グラフ/ }).querySelectorAll('path'), path => path.getAttribute('d'))
+    const observations: { action: string; graphNames: number; bonusCalls: number; masterLookups: number }[] = []
+    function measure(action: string, change: () => void, graphNames: number, bonusCalls: number, masterLookups: number) {
+      vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear(); masterLookup.mockClear()
       change()
-      const observed = { action, graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length }
+      const observed = { action, graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length, masterLookups: masterLookup.mock.calls.length }
       observations.push(observed)
       expect.soft(observed.graphNames, action).toBe(graphNames)
       expect.soft(observed.bonusCalls, action).toBe(bonusCalls)
+      expect.soft(observed.masterLookups, action).toBe(masterLookups)
     }
-    measure('switch to bonus', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'bonus' } }), 12, 2412)
+    measure('switch to bonus', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'bonus' } }), 12, 2412, 24)
     const chart = () => screen.getByRole('img', { name: /の比較グラフ/ })
     const firstPath = chart().querySelector('path')!.getAttribute('d')
     const firstRow = () => within(screen.getByRole('region', { name: '指定レベルの成長表' })).getAllByRole('row')[1]
     vi.mocked(formatNumber).mockClear(); vi.mocked(normalizeStatus).mockClear()
-    measure('inspect level 20', () => fireEvent.change(screen.getByRole('slider'), { target: { value: '20' } }), 0, 12)
+    measure('inspect level 20', () => fireEvent.change(screen.getByRole('slider'), { target: { value: '20' } }), 0, 12, 12)
     expect(formatNumber).toHaveBeenCalledTimes(49) // Caption + 4 cells × 12 rows; chart ticks are reused.
     expect(normalizeStatus).toHaveBeenCalledTimes(12) // Inspection rows only; catalog status options are reused.
     expect(within(firstRow()).getByRole('cell', { name: '138' })).toBeInTheDocument()
     expect(chart().querySelector('path')!.getAttribute('d')).toBe(firstPath)
-    measure('edit UUID', () => fireEvent.change(screen.getByRole('textbox', { name: 'アカウントUUID' }), { target: { value: 'new-request-uuid' } }), 0, 12)
-    measure('edit pending maximum', () => fireEvent.change(screen.getByRole('spinbutton', { name: '表示上限プレイヤーLv' }), { target: { value: '150' } }), 0, 12)
-    measure('open equipment tab', () => fireEvent.click(screen.getByRole('tab', { name: '装備を比較' })), 0, 0)
-    measure('edit equipment search', () => fireEvent.change(screen.getByRole('textbox', { name: '名前・ID' }), { target: { value: 'gear' } }), 0, 0)
-    measure('return to growth', () => fireEvent.click(screen.getByRole('tab', { name: 'クラス成長' })), 0, 12)
-    measure('change bonus status', () => fireEvent.change(screen.getByRole('combobox', { name: 'ステータス' }), { target: { value: 'MELEE_ATTACK' } }), 12, 2412)
+    measure('edit UUID', () => fireEvent.change(screen.getByRole('textbox', { name: 'アカウントUUID' }), { target: { value: 'new-request-uuid' } }), 0, 12, 12)
+    measure('edit pending maximum', () => fireEvent.change(screen.getByRole('spinbutton', { name: '表示上限プレイヤーLv' }), { target: { value: '150' } }), 0, 12, 12)
+    measure('open equipment tab', () => fireEvent.click(screen.getByRole('tab', { name: '装備を比較' })), 0, 0, 0)
+    measure('edit equipment search', () => fireEvent.change(screen.getByRole('textbox', { name: '名前・ID' }), { target: { value: 'gear' } }), 0, 0, 0)
+    measure('return to growth', () => fireEvent.click(screen.getByRole('tab', { name: 'クラス成長' })), 0, 12, 12)
+    measure('change bonus status', () => fireEvent.change(screen.getByRole('combobox', { name: 'ステータス' }), { target: { value: 'MELEE_ATTACK' } }), 12, 2412, 24)
     expect(within(firstRow()).getByRole('cell', { name: '29' })).toBeInTheDocument()
     expect(chart().querySelector('path')!.getAttribute('d')).not.toBe(firstPath)
-    measure('change to experience', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'experience' } }), 12, 12)
+    measure('change to experience', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'experience' } }), 12, 12, 12)
     expect(chart()).toHaveAccessibleName('プレイヤーLvに対するクラス累積EXPの比較グラフ')
-    measure('change to level', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'level' } }), 12, 12)
+    measure('change to level', () => fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'level' } }), 12, 12, 12)
     expect(chart()).toHaveAccessibleName('プレイヤーLvに対するクラスLvの比較グラフ')
+    expect(Array.from(chart().querySelectorAll('path'), path => path.getAttribute('d'))).toEqual(initialLevelPaths)
     fireEvent.change(screen.getByRole('combobox', { name: 'グラフの種類' }), { target: { value: 'bonus' } })
-    vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear()
+    vi.mocked(plainName).mockClear(); vi.mocked(classBonus).mockClear(); masterLookup.mockClear()
     offset = 1
     fireEvent.click(screen.getByRole('button', { name: 'グラフを計算' }))
     await screen.findByText('アカウントUUID: result-1。EXPERIENCE_GAIN_RATEは両方へ加算する前に適用されるため、この累積EXP対レベルの比較には影響しません。')
-    observations.push({ action: 'new simulation', graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length })
+    observations.push({ action: 'new simulation', graphNames: vi.mocked(plainName).mock.calls.length, bonusCalls: vi.mocked(classBonus).mock.calls.length, masterLookups: masterLookup.mock.calls.length })
+    expect.soft(masterLookup).toHaveBeenCalledTimes(36) // 12 graph lookups + two inspection-table renders.
     expect.soft(plainName).toHaveBeenCalledTimes(12)
     expect.soft(classBonus).toHaveBeenCalledTimes(2424) // Pending render keeps the inspection table current.
     expect(within(firstRow()).getByRole('cell', { name: '30' })).toBeInTheDocument()
     catalog = { ...catalog, classes: catalog.classes.map(master => ({ ...master, content: { ...master.content, baseStats: [{ status: 'MELEE_ATTACK', value: 200 }], growthPerLevel: [{ status: 'MELEE_ATTACK', value: 3 }] } })) }
+    const reloadedMasterLookup = vi.spyOn(catalog.classes, 'find')
     fireEvent.click(screen.getByRole('button', { name: 'マスター再読込' }))
     await screen.findByRole('heading', { name: '職業ごとの成長を比較' })
     expect(screen.queryByRole('img', { name: /の比較グラフ/ })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'グラフを計算' }))
     await screen.findByRole('slider')
+    expect.soft(reloadedMasterLookup).toHaveBeenCalledTimes(24)
     expect(within(firstRow()).getByRole('cell', { name: '260' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'ステータス' }).querySelector('option[value="MAX_HEALTH"]')).toBeNull()
-    console.info('12 classes × 200 points: graph name and classBonus call counts', observations)
+    console.info('12 classes × 200 points: graph names, bonus calls and master searches', observations)
   })
 
   it('keeps equipment sorting independent of selection, graph status, pagination and pending growth inputs', async () => {
