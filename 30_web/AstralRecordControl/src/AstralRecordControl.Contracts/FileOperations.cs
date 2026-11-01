@@ -15,7 +15,7 @@ public sealed record FileMutationPayload(FileMutationAction Action, FileTarget S
 public sealed record ExportFilesPayload(FileTarget? Target = null, Guid? BackupId = null, Guid TransferId = default);
 public sealed record ImportArtifactPayload(Artifact Artifact, FileTarget Target, ArtifactImportMode Mode, string ExpectedEtag);
 public sealed record ProvisionServerPayload(Artifact Artifact, string TemplateId, bool EulaAccepted);
-public sealed record UpdateGeyserPayload(bool RestartIfPreviouslyRunning = true, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool UpdateVelocity = false);
+public sealed record UpdateGeyserPayload(bool RestartIfPreviouslyRunning = true, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool UpdateVelocity = false, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool RestartEvenIfUnchanged = false);
 public sealed record FileEntry(string Name, bool IsDirectory, long Bytes, string? Etag);
 public sealed record FileListResult(FileEntry[] Entries, string? NextCursor);
 public sealed record FileReadResult(string ContentUtf8, string Encoding, string Newline, string Etag);
@@ -72,7 +72,8 @@ public static class FileOperationValidation
                 if (string.IsNullOrWhiteSpace(provision.TemplateId) || provision.TemplateId.Length > 128 || provision.TemplateId.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '_')) || !provision.EulaAccepted) throw new ArgumentException("Invalid provision request.");
                 break;
             case OperationKind.UpdateGeyser:
-                _ = Read<UpdateGeyserPayload>(payload);
+                var update = Read<UpdateGeyserPayload>(payload);
+                if (update.RestartEvenIfUnchanged && !update.RestartIfPreviouslyRunning) throw new ArgumentException("Forced restart requires restart policy.");
                 break;
             case OperationKind.CreateBackup or OperationKind.RestoreBackup or OperationKind.PruneBackups or OperationKind.SetBackupProtection or OperationKind.DeleteBackup:
                 BackupValidation.ValidatePayload(kind, payload);
