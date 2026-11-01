@@ -6,7 +6,7 @@ import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics
 import { sortEquipment } from '../data/equipmentSort'
 import { differingEquipmentStatuses } from '../data/equipmentComparisonColumns'
 import { equipmentCsvRows } from '../data/equipmentCsv'
-import { createMasterNameMatcher } from '../data/masterDataFilters'
+import { createMasterNameSearchCache } from '../data/masterDataFilters'
 import type { EquipmentSortDirection, EquipmentSortKey } from '../data/equipmentSort'
 import './masterAnalytics.css'
 import { MinecraftText } from './MinecraftText'
@@ -134,7 +134,8 @@ export function MasterAnalytics() {
   }, [revision])
   const equipment = catalog?.equipment
   const classes = catalog?.classes
-  const matchesClassName = useMemo(() => createMasterNameMatcher(classQuery), [classQuery])
+  const classSearchCache = useMemo(() => createMasterNameSearchCache(), [classes])
+  const matchesClassName = useMemo(() => classSearchCache.matcher(classQuery), [classSearchCache, classQuery])
   const visibleClasses = useMemo(() => (classes ?? []).filter(master =>
     (!classSelectedOnly || classIds.includes(String(master.content.id))) &&
     matchesClassName(String(master.content.name ?? ''), String(master.content.id), master.path)),
@@ -150,7 +151,8 @@ export function MasterAnalytics() {
   const defaultRows = useMemo(() => [...rows].sort((a, b) => a.level - b.level || a.id.localeCompare(b.id)), [rows])
   const slots = useMemo(() => [...new Set(rows.map(row => row.slot))].sort(), [rows])
   const tags = useMemo(() => [...new Set(rows.map(row => row.tag))].sort(), [rows])
-  const matchesEquipmentName = useMemo(() => createMasterNameMatcher(query), [query])
+  const equipmentSearchCache = useMemo(() => createMasterNameSearchCache(), [equipment])
+  const matchesEquipmentName = useMemo(() => equipmentSearchCache.matcher(query), [equipmentSearchCache, query])
   const filtered = useMemo(() => {
     return defaultRows.filter(row => Math.abs(row.level - level) <= band && (!slot || row.slot === slot) && (!tag || row.tag === tag) && matchesEquipmentName(row.name, row.id, row.path))
   }, [defaultRows, level, band, slot, tag, matchesEquipmentName])

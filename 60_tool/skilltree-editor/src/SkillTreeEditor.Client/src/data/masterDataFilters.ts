@@ -84,14 +84,35 @@ export function categoryFacetOptions(files: MasterFileSummary[], index: MasterFi
     .map(([key, items]) => [key, [...items].sort((a, b) => a.localeCompare(b, 'ja'))]))
 }
 
-export function createMasterNameMatcher(query: string): (...values: (string | null | undefined)[]) => boolean {
+const normalizeMasterName = (value: string) => stripMinecraftFormatting(value).toLocaleLowerCase()
+
+function masterNameMatcher(query: string, normalizeValue: (value: string) => string): (...values: (string | null | undefined)[]) => boolean {
   const words = stripMinecraftFormatting(query).trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean)
   if (!words.length) return () => true
   return (...values) => {
     const normalized: (string | undefined)[] = []
     return words.every((word) => values.some((value, index) => value != null
-      && (normalized[index] ??= stripMinecraftFormatting(value).toLocaleLowerCase()).includes(word)))
+      && (normalized[index] ??= normalizeValue(value)).includes(word)))
   }
+}
+
+export function createMasterNameMatcher(query: string) {
+  return masterNameMatcher(query, normalizeMasterName)
+}
+
+// Own this cache for one catalog lifetime. Query text is never retained, and
+// candidate fields are normalized lazily, preserving empty-query/early-match costs.
+export function createMasterNameSearchCache() {
+  const normalized = new Map<string, string>()
+  const normalizeValue = (value: string) => {
+    let result = normalized.get(value)
+    if (result === undefined) {
+      result = normalizeMasterName(value)
+      normalized.set(value, result)
+    }
+    return result
+  }
+  return { matcher: (query: string) => masterNameMatcher(query, normalizeValue) }
 }
 
 export function matchesFileStatus(file: MasterFileSummary, status: string): boolean {
