@@ -69,7 +69,7 @@ public sealed class RunnerDispatcher(RunnerStore store)
         if (request.Body.ValueKind != System.Text.Json.JsonValueKind.Object || request.Body.EnumerateObject().Any()) throw new RunnerFault(ErrorCode.ProtocolMismatch);
         return ControlJson.Element(store.ProcessControlEnabled
             ? store.GeyserUpdateEnabled
-                ? new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability, ServerProcessSupport.ProxyMaintenanceCapability, ServerProcessSupport.GeyserDisplayEntityUpdateCapability }
+                ? new[] { ServerProcessSupport.VelocityCapability, ServerProcessSupport.GeyserUpdateCapability, ServerProcessSupport.VelocityUpdateCapability, ServerProcessSupport.ProxyMaintenanceCapability, ServerProcessSupport.GeyserDisplayEntityUpdateCapability, ServerProcessSupport.ViaVersionUpdateCapability }
                 : new[] { ServerProcessSupport.VelocityCapability }
             : Array.Empty<string>());
     }

@@ -13,17 +13,19 @@ namespace AstralRecordControl.Runner.Tests;
 public sealed class RunnerTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void CapabilitiesRequireProcessControlAndAnEmptyRequest(bool enabled)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CapabilitiesRequireProcessControlAndAnEmptyRequest(bool enabled, bool fileControl)
     {
         using var fixture = new Fixture();
-        using var store = new RunnerStore(Path.Combine(fixture.Root, "capability-runner"), fixture.Configuration with { EnableProcessControl = enabled });
+        using var store = new RunnerStore(Path.Combine(fixture.Root, "capability-runner"), fixture.Configuration with { EnableProcessControl = enabled, EnableFileControl = fileControl });
         var dispatcher = new RunnerDispatcher(store);
         var request = new IpcRequest(1, Guid.NewGuid(), "GetCapabilities", ControlJson.Element(new { }));
         var response = dispatcher.Dispatch(request);
         Assert.True(response.Ok);
         Assert.Equal(enabled, ControlJson.Deserialize<string[]>(response.Body.GetRawText()).Contains(ServerProcessSupport.VelocityCapability));
+        Assert.Equal(enabled && fileControl, ControlJson.Deserialize<string[]>(response.Body.GetRawText()).Contains(ServerProcessSupport.ViaVersionUpdateCapability));
         Assert.Equal("ProtocolMismatch", dispatcher.Dispatch(request with { Body = ControlJson.Element(new { unknown = true }) }).ErrorCode);
     }
 
