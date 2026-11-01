@@ -22,7 +22,7 @@ async function read<T>(url: string, signal?: AbortSignal): Promise<T> {
   return payload as T
 }
 
-interface ChartSeries { name: string; displayName?: string; values: { x: number; y: number }[] }
+interface ChartSeries { id: string; name: string; displayName?: string; values: { x: number; y: number }[] }
 interface GrowthInputsSnapshot { uuid: string; startPlayer: number; startClass: number; maximum: number; classIds: string[] }
 const LineChart = memo(function LineChart({ series, yLabel, xLabel }: { series: ChartSeries[]; yLabel: string; xLabel: string }) {
   const width = 950, height = 360, left = 75, top = 25, right = 20, bottom = 50
@@ -43,10 +43,10 @@ const LineChart = memo(function LineChart({ series, yLabel, xLabel }: { series: 
         const value = minX + (maxX - minX) * index / 5
         return <text key={index} x={x(value)} y={height - 23} textAnchor="middle">{formatNumber(value)}</text>
       })}
-      {series.map((item, index) => <path key={item.name} fill="none" stroke={colors[index % colors.length]} strokeWidth="2.4" d={item.values.map((point, pointIndex) => `${pointIndex === 0 ? 'M' : 'L'}${x(point.x)},${y(point.y)}`).join(' ')}><title>{item.name}</title></path>)}
+      {series.map((item, index) => <path key={item.id} fill="none" stroke={colors[index % colors.length]} strokeWidth="2.4" d={item.values.map((point, pointIndex) => `${pointIndex === 0 ? 'M' : 'L'}${x(point.x)},${y(point.y)}`).join(' ')}><title>{item.name}（{item.id}）</title></path>)}
       <text x={left} y={14}>{yLabel}</text><text x={width - right} y={height - 2} textAnchor="end">{xLabel}</text>
     </svg>
-    <div className="chart-legend">{series.map((item, index) => <span key={item.name}><i style={{ background: colors[index % colors.length] }} /><MinecraftText value={item.displayName ?? item.name} /></span>)}</div>
+    <div className="chart-legend">{series.map((item, index) => <span key={item.id}><i style={{ background: colors[index % colors.length] }} /><MinecraftText value={item.displayName ?? item.name} /><small>{item.id}</small></span>)}</div>
   </div>
 })
 
@@ -259,7 +259,7 @@ export function MasterAnalytics() {
   }
   const point = useMemo(() => simulation?.points.find(value => value.playerLevel === inspect) ?? simulation?.points[0], [simulation, inspect])
   const graph = useMemo(() => simulation?.classes.map(definition => ({
-    name: plainName(definition.name),
+    id: definition.id, name: plainName(definition.name),
     displayName: definition.name,
     values: simulation.points.map(item => {
       const current = item.classes.find(value => value.id === definition.id)!
