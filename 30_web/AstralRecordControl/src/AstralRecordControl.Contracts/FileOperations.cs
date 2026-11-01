@@ -15,7 +15,7 @@ public sealed record FileMutationPayload(FileMutationAction Action, FileTarget S
 public sealed record ExportFilesPayload(FileTarget? Target = null, Guid? BackupId = null, Guid TransferId = default);
 public sealed record ImportArtifactPayload(Artifact Artifact, FileTarget Target, ArtifactImportMode Mode, string ExpectedEtag);
 public sealed record ProvisionServerPayload(Artifact Artifact, string TemplateId, bool EulaAccepted);
-public sealed record UpdateGeyserPayload(bool RestartIfPreviouslyRunning = true, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool UpdateVelocity = false, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool RestartEvenIfUnchanged = false);
+public sealed record UpdateGeyserPayload(bool RestartIfPreviouslyRunning = true, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool UpdateVelocity = false, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool RestartEvenIfUnchanged = false, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool UpdateGeyserDisplayEntity = false);
 public sealed record FileEntry(string Name, bool IsDirectory, long Bytes, string? Etag);
 public sealed record FileListResult(FileEntry[] Entries, string? NextCursor);
 public sealed record FileReadResult(string ContentUtf8, string Encoding, string Newline, string Etag);

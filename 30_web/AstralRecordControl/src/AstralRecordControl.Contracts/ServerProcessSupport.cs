@@ -4,6 +4,7 @@ public static class ServerProcessSupport
 {
     public const string VelocityCapability = "P1.Velocity";
     public const string GeyserUpdateCapability = "P3.GeyserUpdate";
+    public const string GeyserDisplayEntityUpdateCapability = "P3.GeyserDisplayEntityUpdate";
 
     public const string ProxyMaintenanceCapability = "P3.ProxyMaintenance";
     public const string VelocityUpdateCapability = "P3.VelocityUpdate";
@@ -11,6 +12,7 @@ public static class ServerProcessSupport
     public static bool HasGeyserUpdateCapabilities(UpdateGeyserPayload payload, string[] capabilities) =>
         capabilities.Contains(GeyserUpdateCapability) && capabilities.Contains(VelocityCapability)
         && (!payload.UpdateVelocity || capabilities.Contains(VelocityUpdateCapability))
+        && (!payload.UpdateGeyserDisplayEntity || capabilities.Contains(GeyserDisplayEntityUpdateCapability))
         && (!payload.RestartEvenIfUnchanged || capabilities.Contains(ProxyMaintenanceCapability));
 
     public static bool IsSupported(ServerKind kind) => kind is ServerKind.Java or ServerKind.Velocity;
