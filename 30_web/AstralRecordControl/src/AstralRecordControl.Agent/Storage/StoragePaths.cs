@@ -12,6 +12,18 @@ internal sealed class StoragePaths(HostResources resources)
         return Under(root, server.ServerDirectory);
     }
 
+    public string JavaExecutable(ServerConfig server)
+    {
+        var executable = resources.Executables.SingleOrDefault(x => x.Id == server.ExecutableId)
+            ?? throw new InvalidOperationException("Unregistered Java executable.");
+        if (!ServerProcessSupport.IsExecutableCompatible(ServerKind.Velocity, executable.Kind) ||
+            !Path.IsPathFullyQualified(executable.Path) || IsNetwork(executable.Path))
+            throw new InvalidOperationException("Invalid Java executable.");
+        CheckNoReparse(executable.Path);
+        if (!File.Exists(executable.Path)) throw new FileNotFoundException("Registered Java executable is missing.");
+        return executable.Path;
+    }
+
     public string Target(ServerConfig server, FileTarget target)
     {
         FileOperationValidation.ValidateTarget(target);

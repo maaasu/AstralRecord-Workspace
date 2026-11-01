@@ -27,7 +27,8 @@ public sealed partial class AgentOperationHandler
         if (command.Kind == OperationKind.UpdateGeyser)
         {
             var server = store.GetAppliedInventory().Servers.SingleOrDefault(s => s.ServerId == command.ServerId);
-            if (server?.Kind != ServerKind.Velocity || !(await runner.GetCapabilitiesAsync(cancellationToken)).Contains(ServerProcessSupport.GeyserUpdateCapability))
+            if (server?.Kind != ServerKind.Velocity || !ServerProcessSupport.HasGeyserUpdateCapabilities(
+                FileOperationValidation.Read<UpdateGeyserPayload>(command.Payload), await runner.GetCapabilitiesAsync(cancellationToken)))
                 throw new AgentFault(ErrorCode.UnsupportedCapability);
         }
         await gate.WaitAsync(cancellationToken);
@@ -71,6 +72,7 @@ public sealed partial class AgentOperationHandler
             if (server.Revision != command.ConfigRevision) throw new AgentFault(ErrorCode.StaleRevision);
             var profile = command.Kind is OperationKind.CreateBackup or OperationKind.PruneBackups ? ResolveProfile(inventory, command) : null;
             GeyserPreparedUpdate? geyser = null;
+            VelocityPreparedUpdate? velocity = null;
             if (resume)
             {
                 if (command.Kind is not (OperationKind.RestoreBackup or OperationKind.CreateBackup)) throw new AgentFault(ErrorCode.UnsupportedCapability);
@@ -99,13 +101,18 @@ public sealed partial class AgentOperationHandler
             {
                 // The Runner accepts within StartBeforeUtc; only then download before stopping Velocity.
                 if (command.Kind == OperationKind.UpdateGeyser)
-                    geyser = await storage!.PrepareGeyserUpdateAsync(server, command.OperationId, cancellationToken);
-                if (((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && previouslyRunning) || geyser?.Updated == true && previouslyRunning)
                 {
-                    if (geyser?.Updated == true) geyserMayHaveChanged = true;
+                    if (FileOperationValidation.Read<UpdateGeyserPayload>(command.Payload).UpdateVelocity)
+                        velocity = await storage!.PrepareVelocityUpdateAsync(server, command.OperationId, cancellationToken);
+                    geyser = await storage!.PrepareGeyserUpdateAsync(server, command.OperationId, cancellationToken);
+                }
+                var softwareUpdated = geyser?.Updated == true || velocity?.Updated == true;
+                if (((command.Kind is OperationKind.CreateBackup or OperationKind.RestoreBackup) && previouslyRunning) || softwareUpdated && previouslyRunning)
+                {
+                    if (softwareUpdated) geyserMayHaveChanged = true;
                     await RunChildProcessOperationAsync(command, OperationKind.Stop, cancellationToken);
                 }
-                if (command.Kind is not (OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.UpdateGeyser) || geyser?.Updated == true)
+                if (command.Kind is not (OperationKind.ListFiles or OperationKind.ReadFile or OperationKind.UpdateGeyser) || softwareUpdated)
                     await VerifyDataGuardAsync(command.OperationId, cancellationToken);
                 object result;
                 if (resume && command.Kind == OperationKind.CreateBackup)
@@ -118,21 +125,27 @@ public sealed partial class AgentOperationHandler
                     result = await storage!.ResumeRestoreAsync(server, command.OperationId, token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
                 else if (geyser is not null)
                 {
+                    if (velocity?.Updated == true)
+                    {
+                        geyserMayHaveChanged = true;
+                        await storage!.ApplyVelocityUpdateAsync(server, command.OperationId, velocity,
+                            token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
+                    }
                     if (geyser.Updated)
                     {
                         geyserMayHaveChanged = true;
                         await storage!.ApplyGeyserUpdateAsync(server, command.OperationId, geyser,
                             token => VerifyDataGuardAsync(command.OperationId, token), cancellationToken);
                     }
-                    else if (previouslyRunning)
+                    else if (!softwareUpdated && previouslyRunning)
                         await runner.MarkDataReadyForRestartAsync(command.OperationId, cancellationToken);
-                    result = geyser.Summary;
+                    result = velocity is null ? geyser.Summary : new { updated = softwareUpdated, geyser = geyser.Summary, velocity = velocity.Summary };
                 }
                 else result = await ExecuteStorageAsync(command, server, profile, cancellationToken);
                 if (result is RestoreResult restored) result = RestoreResultSummary(restored);
                 restartRequired = command.Kind == OperationKind.CreateBackup && previouslyRunning && profile!.RestartIfPreviouslyRunning
                     || command.Kind == OperationKind.RestoreBackup && FileOperationValidation.Read<RestoreBackupPayload>(command.Payload).RestartAfterRestore
-                    || command.Kind == OperationKind.UpdateGeyser && geyser?.Updated == true && previouslyRunning &&
+                    || command.Kind == OperationKind.UpdateGeyser && softwareUpdated && previouslyRunning &&
                         FileOperationValidation.Read<UpdateGeyserPayload>(command.Payload).RestartIfPreviouslyRunning;
                 store.SavePendingResult(command.OperationId, ControlJson.Serialize(result), restartRequired);
             }
@@ -158,7 +171,12 @@ public sealed partial class AgentOperationHandler
                     await runner.FinishDataOperationAsync(new FinishDataOperationRequest(command.OperationId, execute.CommandSha256, OperationStatus.Rejected), CancellationToken.None);
                     store.AdvanceOperation(command.OperationId, OperationStatus.Rejected, ExecutionPhase.Completed,
                         error: exception is AgentFault preflightFault ? preflightFault.Code : ErrorCode.RecoveryRequired);
-                    try { storage!.DiscardGeyserStage(store.GetAppliedInventory().Servers.Single(s => s.ServerId == command.ServerId), command.OperationId); }
+                    try
+                    {
+                        var server = store.GetAppliedInventory().Servers.Single(s => s.ServerId == command.ServerId);
+                        storage!.DiscardVelocityStage(server, command.OperationId);
+                        storage.DiscardGeyserStage(server, command.OperationId);
+                    }
                     catch (Exception) { /* Stale stage can be inspected without holding the server. */ }
                     return;
                 }
