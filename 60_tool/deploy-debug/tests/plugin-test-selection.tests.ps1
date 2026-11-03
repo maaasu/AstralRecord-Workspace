@@ -6,9 +6,12 @@ New-Item -ItemType Directory -Path $root | Out-Null
 Start-Transcript -LiteralPath (Join-Path $root 'verification.log') | Out-Null
 function Assert($Condition,$Message) { if (!$Condition) { throw $Message } }
 $previousPath=$env:Path
+$powerShell=(Get-Process -Id $PID).Path
 $savedEnvironment=@{}
-foreach ($name in @('AR_TEST_MAVEN_LOG','AR_TEST_MAVEN_EXIT','AR_TEST_JAR')) { $savedEnvironment[$name]=[Environment]::GetEnvironmentVariable($name) }
+foreach ($name in @('AR_TEST_MAVEN_LOG','AR_TEST_MAVEN_PROJECT_LOG','AR_TEST_MAVEN_EXIT','AR_TEST_JAR','ProgramData')) { $savedEnvironment[$name]=[Environment]::GetEnvironmentVariable($name) }
 try {
+    $env:ProgramData=Join-Path $root 'programdata'
+    New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
     $scriptRoot=Split-Path -Parent $PSScriptRoot
     . (Join-Path $scriptRoot 'PluginTestSelection.ps1')
     $configPath=Join-Path $root 'deploy.json'
@@ -16,9 +19,14 @@ try {
     $output=Join-Path $project 'dist'
     $destination=Join-Path $root 'server/plugins'
     $bin=Join-Path $root 'bin'
-    New-Item -ItemType Directory -Path "$project/src/main/java",$output,$destination,$bin -Force | Out-Null
-    Set-Content -LiteralPath "$project/src/main/java/Alpha.java" -Value 'class Alpha {}' -Encoding ASCII
+    New-Item -ItemType Directory -Path "$project/src/main/java","$project/src/test/java","$project/target/test-classes",$output,$destination,$bin -Force | Out-Null
+    Set-Content -LiteralPath "$project/pom.xml" -Value '<project />' -Encoding ASCII
+    Set-Content -LiteralPath "$project/src/main/java/Alpha.java" -Value 'class Alpha {}' -Encoding utf8BOM
     Set-Content -LiteralPath "$project/src/main/java/Beta.java" -Value 'class Beta {}' -Encoding ASCII
+    Set-Content -LiteralPath "$project/src/test/java/Fixture.java" -Value 'class Fixture {}' -Encoding ASCII
+    Set-Content -LiteralPath "$project/target/test-classes/Fixture.class" -Value 'concurrent test output'
+    Set-Content -LiteralPath "$output/AstralRecord-stale.jar" -Value 'concurrent build output'
+    $sourceHash=(Get-FileHash -LiteralPath "$project/src/main/java/Alpha.java").Hash
     $config=@{
         iis=@{enabled=$false};api=@{enabled=$false};web=@{enabled=$false};fileDatabase=@{enabled=$false}
         plugin=@{enabled=$true;projectPath=$project;buildOutputPath=$output;deployPath=$destination;
@@ -28,12 +36,18 @@ try {
     @'
 @echo off
 echo %*>>"%AR_TEST_MAVEN_LOG%"
+echo %CD%>>"%AR_TEST_MAVEN_PROJECT_LOG%"
+if not exist "pom.xml" exit /b 31
+if not exist "src\test\java\Fixture.java" exit /b 32
+if exist "dist\AstralRecord-stale.jar" exit /b 33
 if not "%AR_TEST_MAVEN_EXIT%"=="0" exit /b %AR_TEST_MAVEN_EXIT%
-echo new jar>"%AR_TEST_JAR%"
+if not exist "dist" mkdir "dist"
+echo new jar>"dist\AstralRecord-test.jar"
 exit /b 0
 '@ | Set-Content -LiteralPath (Join-Path $bin 'mvn.cmd') -Encoding ASCII
     $env:Path="$bin;$previousPath"
     $env:AR_TEST_MAVEN_LOG=Join-Path $root 'maven-arguments.log'
+    $env:AR_TEST_MAVEN_PROJECT_LOG=Join-Path $root 'maven-projects.log'
     $env:AR_TEST_JAR=Join-Path $output 'AstralRecord-test.jar'
     $env:AR_TEST_MAVEN_EXIT='0'
 
@@ -73,15 +87,20 @@ exit /b 0
         New-Item -ItemType Directory -Path $output -Force | Out-Null
         Set-Content -LiteralPath "$destination/AstralRecord.jar" -Value 'old jar'
         Remove-Item -LiteralPath $env:AR_TEST_MAVEN_LOG -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $env:AR_TEST_MAVEN_PROJECT_LOG -ErrorAction SilentlyContinue
         $run=Join-Path $root $case.Name
         New-Item -ItemType Directory -Path $run | Out-Null
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath @($case.Flags) *> "$run/backend.log"
+        & $powerShell -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath @($case.Flags) *> "$run/backend.log"
         Assert ($LASTEXITCODE -eq 0) "Backend failed: $($case.Name). See $run/backend.log"
         $arguments=Get-Content -Raw -Encoding UTF8 -LiteralPath $env:AR_TEST_MAVEN_LOG
         Assert ($arguments -match '^clean package ') 'Every test mode must retain clean package.'
         foreach ($argument in $case.Expected) { Assert ($arguments.Contains($argument)) "Missing Maven option: $argument" }
         Assert ((Get-Content -Raw -Encoding UTF8 -LiteralPath "$destination/AstralRecord.jar").Trim() -eq 'new jar') 'Fresh artifact was not deployed.'
-        Assert (!(Test-Path -LiteralPath $output)) 'Existing artifact cleanup changed.'
+        $buildRoot=(Get-Content -Raw -Encoding UTF8 -LiteralPath $env:AR_TEST_MAVEN_PROJECT_LOG).Trim()
+        Assert ($buildRoot -ne $project -and !(Test-Path -LiteralPath $buildRoot)) 'Only the isolated build workspace should be cleaned after deployment.'
+        Assert ((Get-Content -Raw -Encoding UTF8 -LiteralPath "$project/target/test-classes/Fixture.class").Trim() -eq 'concurrent test output') 'Deployment changed the concurrent test classes.'
+        Assert ((Get-Content -Raw -Encoding UTF8 -LiteralPath "$output/AstralRecord-stale.jar").Trim() -eq 'concurrent build output') 'Deployment changed the concurrent build artifacts.'
+        Assert ((Get-FileHash -LiteralPath "$project/src/main/java/Alpha.java").Hash -ceq $sourceHash) 'Encoding normalization changed the source checkout.'
     }
 
     # Maven失敗時は、以前のJARが残っていても配置しない。
@@ -89,16 +108,18 @@ exit /b 0
     Set-Content -LiteralPath $env:AR_TEST_JAR -Value 'stale output'
     Set-Content -LiteralPath "$destination/AstralRecord.jar" -Value 'keep deployed jar'
     $env:AR_TEST_MAVEN_EXIT='17'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath -TestMode Selected -Tests MissingTest *> "$root/maven-failed.log"
+    & $powerShell -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath -TestMode Selected -Tests MissingTest *> "$root/maven-failed.log"
     Assert ($LASTEXITCODE -ne 0) 'Maven/test failure must stop deployment.'
     Assert ((Get-Content -Raw -Encoding UTF8 -LiteralPath "$destination/AstralRecord.jar").Trim() -eq 'keep deployed jar') 'Failed build deployed a stale artifact.'
+    $failedBuildRoot=(Get-Content -Encoding UTF8 -LiteralPath $env:AR_TEST_MAVEN_PROJECT_LOG | Select-Object -Last 1).Trim()
+    Assert ($failedBuildRoot -ne $project -and (Test-Path -LiteralPath "$failedBuildRoot/src/test/java/Fixture.java")) 'Failed isolated builds must retain their diagnostic workspace.'
 
     # 同じrunでもテスト条件を変えたbackend呼び出しは、Maven開始前に拒否する。
     $run=Join-Path $root 'mismatched-run'
     New-Item -ItemType Directory -Path $run | Out-Null
     @{status='Deploying';label='Dev';configurationFingerprint=$allFingerprint} | ConvertTo-Json | Set-Content -LiteralPath "$run/workflow-state.json" -Encoding UTF8
     Remove-Item -LiteralPath $env:AR_TEST_MAVEN_LOG
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath -TestMode Skip -WorkflowRunDirectory $run -WorkflowFingerprint $allFingerprint *> "$run/backend.log"
+    & $powerShell -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath -TestMode Skip -WorkflowRunDirectory $run -WorkflowFingerprint $allFingerprint *> "$run/backend.log"
     Assert ($LASTEXITCODE -ne 0 -and !(Test-Path -LiteralPath $env:AR_TEST_MAVEN_LOG)) 'Mismatched test conditions reached Maven.'
     Assert ((Get-Content -Raw -Encoding UTF8 -LiteralPath "$run/backend.log") -match 'configuration changed') 'Backend failed for a different reason than fingerprint mismatch.'
 
@@ -108,14 +129,14 @@ exit /b 0
         @('-TestMode','All','-Tests','AlphaTest'), @('-MasterDataOnly','-TestMode','Skip'),
         @('-ReleaseManagementOnly','-TestMode','All'), @('-PreflightOnly','-TestMode','All')
     )) {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath @flags *> "$root/invalid-selection.log"
+        & $powerShell -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath @flags *> "$root/invalid-selection.log"
         Assert ($LASTEXITCODE -ne 0 -and !(Test-Path -LiteralPath $env:AR_TEST_MAVEN_LOG)) 'Invalid direct backend selection reached Maven.'
     }
     $config.plugin.enabled=$false
     $config | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $configPath -Encoding UTF8
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath -TestMode All *> "$root/disabled-plugin.log"
+    & $powerShell -NoProfile -ExecutionPolicy Bypass -File $backend -ConfigPath $configPath -TestMode All *> "$root/disabled-plugin.log"
     Assert ($LASTEXITCODE -ne 0 -and !(Test-Path -LiteralPath $env:AR_TEST_MAVEN_LOG)) 'Disabled Plugin accepted explicit tests.'
-    Write-Host "PASS: real backend routing, clean builds, defaults/overrides, selected tests, failure-before-deployment, validation, resume fingerprints. Evidence: $root"
+    Write-Host "PASS: isolated builds preserve concurrent outputs and sources; routing, defaults/overrides, selected tests, failure-before-deployment, validation, resume fingerprints. Evidence: $root"
 }
 finally {
     $env:Path=$previousPath

@@ -437,6 +437,11 @@ function Invoke-HistoryDatabaseMigrations {
     }
 }
 
+<#
+    Plugin の POM とソースを専用の一時フォルダへ複製してビルドし、配置用の設定を返す。
+    元のチェックアウトの target/dist を共有せず、並行する Maven 実行の clean と競合させない。
+    失敗した作業フォルダは調査用に保持する。
+#>
 function Build-Plugin {
     param(
         $Component,
@@ -445,55 +450,80 @@ function Build-Plugin {
 
     Assert-PathExists -Label "Plugin project path" -Path $Component.projectPath
     Assert-PathExists -Label "Encoding normalizer script" -Path $encodingNormalizerPath
-
-    Write-Step "Normalizing plugin source encodings (UTF-8 no BOM)"
-    & $encodingNormalizerPath -RootPath (Join-Path $Component.projectPath "src\main\java")
-
-    $mavenArguments = $TestSelection.MavenArguments
-    if ($TestSelection.Mode -eq 'Skip') {
-        Write-Step "Building plugin without compiling or running tests"
+    $projectRoot = (Resolve-Path -LiteralPath $Component.projectPath).Path.TrimEnd('\','/')
+    $outputRoot = [IO.Path]::GetFullPath($Component.buildOutputPath)
+    if (!$outputRoot.StartsWith($projectRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Plugin build output must be inside the plugin project.'
     }
-    elseif ($TestSelection.Mode -eq 'Selected') {
-        Write-Step "Building plugin with selected tests: $($TestSelection.Tests)"
-    }
-    else {
-        Write-Step "Building plugin with tests"
-    }
+    Assert-PathExists -Label "Plugin POM" -Path (Join-Path $projectRoot 'pom.xml')
+    Assert-PathExists -Label "Plugin sources" -Path (Join-Path $projectRoot 'src')
 
-    Push-Location $Component.projectPath
+    $buildRoot = Join-Path ([IO.Path]::GetTempPath()) ('ar-plugin-build-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $buildRoot | Out-Null
+    Write-Step "Plugin build workspace: $buildRoot"
+    $buildComponent = $Component.PSObject.Copy()
+    $buildComponent.projectPath = $buildRoot
+    $buildComponent.buildOutputPath = Join-Path $buildRoot $outputRoot.Substring($projectRoot.Length + 1)
+
     try {
-        & mvn @mavenArguments
-        if ($LASTEXITCODE -ne 0) {
-            throw "Plugin build failed: mvn $($mavenArguments -join ' ')"
+        Copy-Item -LiteralPath (Join-Path $projectRoot 'pom.xml') -Destination $buildRoot
+        Copy-Item -LiteralPath (Join-Path $projectRoot 'src') -Destination $buildRoot -Recurse
+        $mavenConfig = Join-Path $projectRoot '.mvn'
+        if (Test-Path -LiteralPath $mavenConfig) {
+            Copy-Item -LiteralPath $mavenConfig -Destination $buildRoot -Recurse
         }
+
+        Write-Step "Normalizing plugin source encodings (UTF-8 no BOM)"
+        & $encodingNormalizerPath -RootPath (Join-Path $buildRoot "src\main\java") | Out-Host
+
+        $mavenArguments = $TestSelection.MavenArguments
+        if ($TestSelection.Mode -eq 'Skip') {
+            Write-Step "Building plugin without compiling or running tests"
+        }
+        elseif ($TestSelection.Mode -eq 'Selected') {
+            Write-Step "Building plugin with selected tests: $($TestSelection.Tests)"
+        }
+        else {
+            Write-Step "Building plugin with tests"
+        }
+
+        Push-Location $buildRoot
+        try {
+            & mvn @mavenArguments | Out-Host
+            if ($LASTEXITCODE -ne 0) {
+                throw "Plugin build failed: mvn $($mavenArguments -join ' ')"
+            }
+        }
+        finally {
+            Pop-Location
+        }
+        return $buildComponent
     }
-    finally {
-        Pop-Location
+    catch {
+        Write-Step "Plugin build workspace retained for diagnosis: $buildRoot"
+        throw
     }
 }
 
+<#
+    配置が成功した Plugin ビルドの専用一時フォルダだけを削除する。
+    想定した一時ルートと名前を検証し、元のチェックアウトには触れない。
+#>
 function Cleanup-PluginWorkspace {
     param($Component)
 
     Assert-PathExists -Label "Plugin project path" -Path $Component.projectPath
 
     $projectRoot = (Resolve-Path -LiteralPath $Component.projectPath).Path
-    $cleanupTargets = @("target", "temp", "dist")
-
-    Write-Step "Cleaning plugin workspace artifacts"
-    foreach ($name in $cleanupTargets) {
-        $candidate = Join-Path $projectRoot $name
-        if (-not (Test-Path -LiteralPath $candidate)) {
-            continue
-        }
-
-        $resolved = (Resolve-Path -LiteralPath $candidate).Path
-        if (-not $resolved.StartsWith($projectRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-            throw "Cleanup target escaped project root: $resolved"
-        }
-
-        Remove-Item -LiteralPath $resolved -Recurse -Force
+    $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')
+    if (![IO.Path]::GetDirectoryName($projectRoot).Equals($temporaryRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($projectRoot) -notmatch '^ar-plugin-build-[a-f0-9]{32}$' -or
+        (Get-Item -LiteralPath $projectRoot -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        throw "Unexpected plugin build workspace: $projectRoot"
     }
+
+    Write-Step "Cleaning plugin build workspace $projectRoot"
+    Remove-Item -LiteralPath $projectRoot -Recurse -Force
 }
 
 function Deploy-WebArtifact {
@@ -741,7 +771,7 @@ try {
     }
 
     if ($config.plugin.enabled) {
-        Build-Plugin -Component $config.plugin -TestSelection $testSelection
+        $pluginBuildComponent = Build-Plugin -Component $config.plugin -TestSelection $testSelection
     }
 
     if ($config.api.enabled) {
@@ -766,8 +796,8 @@ try {
     }
 
     if ($config.plugin.enabled) {
-        Deploy-PluginArtifact -Component $config.plugin
-        Cleanup-PluginWorkspace -Component $config.plugin
+        Deploy-PluginArtifact -Component $pluginBuildComponent
+        Cleanup-PluginWorkspace -Component $pluginBuildComponent
     }
 
     if ($config.fileDatabase.enabled) {

@@ -125,7 +125,9 @@ Control管理markerがあるPCの10はManaged設定と`-PreflightOnly`を使用�
 
 `-Tests` は `Selected` の場合だけ必須です。クラス名、パッケージ付きクラス名、`*` / `?`、`ClassTest#method`（複数メソッドは `+` 区切り）を指定できます。正規表現や `!` による除外は扱いません。空要素、不正な組合せ、Pluginをビルドしないモードでの指定は副作用の前に拒否します。指定全体に一致するテストがなければビルド失敗となり、配置しません。複数パターンのうち一部だけが一致する場合は、一致したテストを実行します。変更の影響からテストを自動選択する機能ではありません。
 
-全モードで `clean package` と配置後の生成物削除を維持します。`Skip` でも本体のコンパイルとJAR生成は省略せず、過去のclassやリソースを再利用しません。クリーンビルドの省略やビルドキャッシュは導入していません。
+全モードで、Pluginの `pom.xml`、`src`、存在する場合は `.mvn` を実行ごとの一時フォルダへコピーし、そこで `clean package` を実行します。`target` と `dist` を通常のMaven実行と共有しないため、並行するテストや `clean` によるクラス消失・生成物上書きを防ぎます。文字コードの正規化もコピー側だけで実行します。`Skip` でも本体のコンパイルとJAR生成は省略せず、過去のclassやリソースを再利用しません。
+
+配置するJARは今回の一時フォルダから取得し、配置成功後はそのフォルダだけを削除します。元のPluginプロジェクトにある `target`、`temp`、`dist` は保持します。ビルド失敗時は、ログに表示した `Plugin build workspace` の場所にソース・生成物・Surefireレポートを残します。`plugin.buildOutputPath` は `plugin.projectPath` 配下の出力先を指定します。
 
 再開時も同じテストモード・指定を使用してください。テスト条件は実行記録の識別値に含め、条件が異なる未完了runの再利用を拒否します。未指定と従来の既定値を明示した場合は同じ条件として扱い、従来の未完了runも再開できます。
 
@@ -149,4 +151,4 @@ Control管理markerがあるPCの10はManaged設定と`-PreflightOnly`を使用�
 
 `tests/dev-update-entry.tests.ps1` は一時fixtureの偽ビルドbackendと、実際の配布処理を使って入口のモード・対象制限を検証します。起動待ち・seed・失敗再開は `../maintenance/tests/update-workflow.tests.ps1` のmock APIで検証します。本番環境は操作しません。
 
-`tests/plugin-test-selection.tests.ps1` は一時fixtureと偽Mavenを使って実backendの3モード・引数・既定値・再開条件を検証し、ビルド失敗時に古いJARを配置しないことを確認します。両テストともPowerShell 7で実行し、Mavenの実ビルドや実サーバーへの配置は行いません。
+`tests/plugin-test-selection.tests.ps1` は一時fixtureと偽Mavenを使って実backendの3モード・引数・既定値・再開条件を検証し、元のテストクラス・JAR・ソースを保持したまま隔離ビルドすることと、ビルド失敗時に古いJARを配置しないことを確認します。両テストともPowerShell 7で実行し、Mavenの実ビルドや実サーバーへの配置は行いません。
