@@ -71,6 +71,44 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task OptionalWorldConsumptionBooleanSupportsExistingAndUpdatedDocuments()
+    {
+        const string category = "60.features.world";
+        const string path = category + "/v1.test.yml";
+        Write(category + "/docs.world.YAMLスキーマ定義.md", """
+            # World
+            ```yaml
+            id: string
+            consumeRequiredItem: boolean
+            ```
+            | Key | Required | Description |
+            |---|---|---|
+            | `id` | yes | ワールドID |
+            | `consumeRequiredItem` | no | 省略時は消費しない |
+            """);
+        const string original = "# preserved\nid: test\nfutureField: retained\n";
+        Write(path, original);
+
+        var metadata = await _catalog.GetAsync(category, CancellationToken.None);
+        var field = Assert.Single(metadata.Fields, field => field.Path == "/consumeRequiredItem");
+        Assert.Equal("Boolean", field.Type);
+        Assert.Equal("転送時に必要アイテムを消費", field.Label);
+        Assert.False(field.Required);
+        Assert.True((await _validation.ValidateAsync(path, original, CancellationToken.None)).IsValid);
+        var invalid = await _validation.ValidateAsync(path, original + "consumeRequiredItem: 'true'\n", CancellationToken.None);
+        Assert.Contains(invalid.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == "/consumeRequiredItem");
+
+        var document = await _service.ReadAsync(path, CancellationToken.None);
+        foreach (var value in new[] { true, false })
+        {
+            var raw = original + "consumeRequiredItem: " + value.ToString().ToLowerInvariant() + "\n";
+            document = await _service.SaveAsync(new(path, raw, document.Revision), CancellationToken.None);
+            Assert.Equal(value, document.Content!["consumeRequiredItem"]!.GetValue<bool>());
+            Assert.Equal(raw, document.Raw);
+        }
+    }
+
+    [Fact]
     public async Task WorldRefRejectsMissingTargetWithoutTreatingDescriptiveTextAsReference()
     {
         Write("config.yml", "referenceResolver:\n  - prefix: 'world:'\n    database: world\n    aliases: [wd]\n");

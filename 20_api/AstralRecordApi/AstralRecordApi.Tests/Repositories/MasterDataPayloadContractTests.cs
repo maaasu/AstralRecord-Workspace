@@ -279,10 +279,17 @@ public class MasterDataPayloadContractTests
             """);
 
         Assert.Equal("item:eriva_waystone", world.RequiredItemId);
+        Assert.False(world.ConsumeRequiredItem);
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(world, MasterDataJsonOptions()));
         Assert.Equal(
             "item:eriva_waystone",
             document.RootElement.GetProperty("requiredItemId").GetString());
+
+        var consumed = Deserialize<WorldResponse>(document.RootElement.GetRawText()
+            .Replace("\"consumeRequiredItem\":false", "\"consumeRequiredItem\":true", StringComparison.Ordinal));
+        Assert.True(consumed.ConsumeRequiredItem);
+        using var consumedDocument = JsonDocument.Parse(JsonSerializer.Serialize(consumed, MasterDataJsonOptions()));
+        Assert.True(consumedDocument.RootElement.GetProperty("consumeRequiredItem").GetBoolean());
     }
 
     [Fact]

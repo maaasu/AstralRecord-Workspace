@@ -35,6 +35,9 @@ public class WorldResponse
 
     public string? RequiredItemId { get; init; }
 
+    /// <summary>必要アイテムを転送成功時に1個消費するか。省略時は非消費です。</summary>
+    public bool ConsumeRequiredItem { get; init; }
+
     public string? GuiIconMaterial { get; init; }
 
     public WorldAdventureGuideResponse? AdventureGuide { get; init; }

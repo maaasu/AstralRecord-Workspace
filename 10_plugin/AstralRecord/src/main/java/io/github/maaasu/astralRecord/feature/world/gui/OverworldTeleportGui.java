@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.world.gui;
 
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.world.model.WorldAdventureGuide;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
@@ -31,6 +34,15 @@ public final class OverworldTeleportGui {
 
     public static final int SIZE = 54;
     public static final int CONTENT_SLOT_COUNT = 45;
+    private final OverworldTeleportService teleportService;
+
+    /**
+     * 転送条件の表示に使うサービスを設定します。
+     * @param teleportService 所持条件を転送処理と共用するサービス
+     */
+    public OverworldTeleportGui(@NotNull OverworldTeleportService teleportService) {
+        this.teleportService = teleportService;
+    }
 
     /**
      * GUI を開きます。
@@ -64,7 +76,7 @@ public final class OverworldTeleportGui {
                 SIZE,
                 Component.text("オーバーワールド転送", NamedTextColor.AQUA, TextDecoration.BOLD)
         );
-        render(inventory, destinations, worldIdsBySlot);
+        render(inventory, destinations, worldIdsBySlot, AstPlayerCache.get(player));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, onOpened, onCancelled);
     }
 
@@ -91,10 +103,18 @@ public final class OverworldTeleportGui {
         return null;
     }
 
+    /**
+     * 転送先を定義済みスロットへ配置し、閲覧者の必要アイテム所持状態を表示します。
+     * @param inventory 描画する GUI。既存の内容を置き換える
+     * @param destinations 表示する転送先
+     * @param worldIdsBySlot 重複排除済みのスロットとワールド ID
+     * @param astPlayer 所持数の表示対象。未ロード時は所持数0
+     */
     private void render(
             @NotNull Inventory inventory,
             @NotNull List<WorldMasterData> destinations,
-            @NotNull Map<Integer, String> worldIdsBySlot
+            @NotNull Map<Integer, String> worldIdsBySlot,
+            @Nullable AstPlayer astPlayer
     ) {
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, new ItemStack(Material.AIR));
@@ -104,7 +124,7 @@ public final class OverworldTeleportGui {
             if (destination.overworldTeleportGui() != null
                     && destination.overworldTeleportGui().hasValidSlot()
                     && destination.id().equals(worldIdsBySlot.get(destination.overworldTeleportGui().slot()))) {
-                inventory.setItem(destination.overworldTeleportGui().slot(), destinationItem(destination));
+                inventory.setItem(destination.overworldTeleportGui().slot(), destinationItem(destination, astPlayer));
             }
         }
 
@@ -114,7 +134,13 @@ public final class OverworldTeleportGui {
         }
     }
 
-    private @NotNull ItemStack destinationItem(@NotNull WorldMasterData world) {
+    /**
+     * 冒険ガイドと、ショップと同じ必要数・所持数の併記で入場条件を表示します。
+     * @param world 転送先
+     * @param astPlayer 所持数の表示対象。未ロード時は所持数0
+     * @return 閲覧者の転送可否を反映したアイコン
+     */
+    private @NotNull ItemStack destinationItem(@NotNull WorldMasterData world, @Nullable AstPlayer astPlayer) {
         List<Component> lore = new ArrayList<>();
         if (!world.description().isBlank()) {
             for (String line : world.description().split("\\R", -1)) {
@@ -141,10 +167,30 @@ public final class OverworldTeleportGui {
             }
         }
 
-        lore.add(Component.text("クリックで移動", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
+        var requirement = teleportService.previewRequiredItem(astPlayer, world);
+        if (requirement.required()) {
+            lore.add(Component.empty());
+            lore.add(Component.text("◆ 必要アイテム ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
+                    .decoration(TextDecoration.ITALIC, false));
+            NamedTextColor statusColor = requirement.canTeleport() ? NamedTextColor.GREEN : NamedTextColor.RED;
+            lore.add(Component.text("• ", NamedTextColor.AQUA)
+                    .append(legacy(requirement.displayName(), "未登録のアイテム"))
+                    .append(Component.text(" ×1", NamedTextColor.AQUA))
+                    .append(Component.text(" （所持: " + requirement.ownedAmount() + "）", statusColor))
+                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text(requirement.consumed() ? "転送時に1個消費します" : "消費しません（所持のみ）",
+                    requirement.consumed() ? NamedTextColor.YELLOW : NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text(!requirement.valid() ? "✘ 入場条件を確認できません"
+                            : requirement.canTeleport() ? "✔ 所持済み" : "✘ 必要アイテムが不足しています",
+                    statusColor, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
+        }
+        lore.add(Component.text(requirement.canTeleport() ? "クリックで移動" : "このワールドへ移動できません",
+                requirement.canTeleport() ? NamedTextColor.GREEN : NamedTextColor.RED, TextDecoration.BOLD)
+                .decoration(TextDecoration.ITALIC, false));
         return GuiItems.create(
                 resolveIcon(world.guiIconMaterial()),
-                legacy(world.displayName(), world.id()).decorate(TextDecoration.BOLD),
+                legacy(world.displayName(), world.worldType().getRegionDisplayName()).decorate(TextDecoration.BOLD),
                 lore
         );
     }

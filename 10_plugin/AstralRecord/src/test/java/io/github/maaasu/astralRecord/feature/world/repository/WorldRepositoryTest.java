@@ -14,6 +14,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
 class WorldRepositoryTest {
@@ -115,6 +117,14 @@ class WorldRepositoryTest {
         try (MockedStatic<Logger> logger = mockStatic(Logger.class)) {
             var result = repository.resolveListPayload(detailed);
             assertEquals("eriva_waystone", result.getFirst().requiredItemId());
+            assertFalse(result.getFirst().consumeRequiredItem());
+
+            detailed.get(0).getAsJsonObject().addProperty("consumeRequiredItem", true);
+            assertTrue(repository.resolveListPayload(detailed).getFirst().consumeRequiredItem());
+            detailed.get(0).getAsJsonObject().addProperty("consumeRequiredItem", false);
+            assertFalse(repository.resolveListPayload(detailed).getFirst().consumeRequiredItem());
+            detailed.get(0).getAsJsonObject().add("consumeRequiredItem", com.google.gson.JsonNull.INSTANCE);
+            assertFalse(repository.resolveListPayload(detailed).getFirst().consumeRequiredItem());
         }
     }
 

@@ -27,6 +27,7 @@ spawnLocation:
 description: string
 requiredItemId:
   ref: "item:<id>"
+consumeRequiredItem: boolean
 guiIconMaterial: string?
 adventureGuide:
   recommendedLevelMin: integer?
@@ -57,6 +58,7 @@ overworldTeleportGui:
 | `spawnLocation` | yes | ワールド既定スポーン地点。`x` `y` `z` `yaw` `pitch` を持つ。 |
 | `description` | yes | 説明。複数行は YAML のブロック形式（`|-` など）で記述でき、オーバーワールド転送 GUI では改行ごとに lore の別行として表示する。 |
 | `requiredItemId` | no | 拠点から GUI でオーバーワールドへ転送する際に必要な Currency の参照。`{ ref: "item:<id>" }` 形式で指定し、参照先は `category: currency` の item でなければならない。未指定なら入場条件なし。 |
+| `consumeRequiredItem` | no | `true` の場合、一般プレイヤー用 GUI からの転送成功時に `requiredItemId` の Currency を1個消費する。省略時・`false` は所持確認のみで消費しない。`requiredItemId` が未指定なら効果なし。転送失敗時は消費しない。管理者用 GUI や `/world tp` には適用しない。 |
 | `guiIconMaterial` | no | オーバーワールド転送 GUI に表示する `Material` 名。未指定または不正な場合は `GRASS_BLOCK` を使う。 |
 | `adventureGuide.recommendedLevelMin` | no | 推奨レベル下限。 |
 | `adventureGuide.recommendedLevelMax` | no | 推奨レベル上限。 |

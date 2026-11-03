@@ -161,6 +161,11 @@ public class WorldRepository {
         }
     }
 
+    /**
+     * API の World 詳細を変換し、省略された必要アイテム消費設定を非消費として扱います。
+     * @param obj API の詳細 JSON
+     * @return 正規化したワールド定義。ID がない場合は {@code null}
+     */
     @Nullable
     private WorldMasterData parse(@NotNull JsonObject obj) {
         String id = optionalString(obj, "id");
@@ -187,7 +192,9 @@ public class WorldRepository {
                 optionalString(obj, "guiIconMaterial"),
                 parseAdventureGuide(obj),
                 parseOverworldTeleportGui(obj),
-                parseRequiredItemId(obj)
+                parseRequiredItemId(obj),
+                obj.has("consumeRequiredItem") && !obj.get("consumeRequiredItem").isJsonNull()
+                        && obj.get("consumeRequiredItem").getAsBoolean()
         );
     }
 

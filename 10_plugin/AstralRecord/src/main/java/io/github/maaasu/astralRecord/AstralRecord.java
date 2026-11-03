@@ -890,6 +890,7 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (overworldTeleportService != null) overworldTeleportService.stop();
         if (defenseService != null) defenseService.stop();
         RuntimeException shadeHedgehogStopFailure = null;
         try {
@@ -1571,8 +1572,8 @@ public final class AstralRecord extends JavaPlugin {
         waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
         teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler, particleDisplayService);
         waystonePacketView.start();
-        overworldTeleportService = new OverworldTeleportService(this, worldService, inventoryService);
-        overworldTeleportGui = new OverworldTeleportGui();
+        overworldTeleportService = new OverworldTeleportService(this, worldService, inventoryService, itemService);
+        overworldTeleportGui = new OverworldTeleportGui(overworldTeleportService);
         overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(overworldTeleportGui, overworldTeleportService);
         adminWorldTeleportGui = new AdminWorldTeleportGui();
         adminWorldTeleportItemEventHandler = new AdminWorldTeleportItemEventHandler(

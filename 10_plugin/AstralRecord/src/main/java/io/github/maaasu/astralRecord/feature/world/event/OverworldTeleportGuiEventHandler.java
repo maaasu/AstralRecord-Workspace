@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,6 +66,18 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
      */
     public boolean isOpen(@NotNull Player player) {
         return gui.isInventory(player.getOpenInventory().getTopInventory());
+    }
+
+    /**
+     * 消費ありの転送中は別 GUI からの両替・通貨移動を開始させません。
+     * @param event 開こうとしたインベントリ
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
+        if (event.getPlayer() instanceof Player player && teleportService.isPaymentPending(player)) {
+            event.setCancelled(true);
+            GuiSound.DENY.play(player);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
