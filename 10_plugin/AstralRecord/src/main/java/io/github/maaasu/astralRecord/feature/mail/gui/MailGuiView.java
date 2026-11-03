@@ -109,14 +109,21 @@ public final class MailGuiView {
         return pagedGuiView.hasNextPage(pageIndex, mails.size());
     }
 
+    /**
+     * メール全件を保持したまま、表示ページの最大45件だけアイコンと説明文を生成します。
+     *
+     * @param inventory 主スレッドで更新する描画先
+     * @param mails フィルター適用後のメール全件
+     * @param filter 現在のフィルター
+     * @param pageIndex 補正済みページ番号
+     */
     private void render(
         @NotNull Inventory inventory,
         @NotNull List<MailEntry> mails,
         @NotNull MailFilter filter,
         int pageIndex
     ) {
-        List<ItemStack> items = mails.stream().map(this::createMailItem).toList();
-        pagedGuiView.render(inventory, items, pageIndex);
+        pagedGuiView.render(inventory, mails, pageIndex, this::createMailItem);
         inventory.setItem(FILTER_SLOT, createFilterItem(filter));
     }
 

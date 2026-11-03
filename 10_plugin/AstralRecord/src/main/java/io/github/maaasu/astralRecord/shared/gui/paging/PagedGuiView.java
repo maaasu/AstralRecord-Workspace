@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * 54 スロット GUI のページング表示とナビゲーションスロットを提供します。
@@ -23,10 +24,36 @@ public final class PagedGuiView {
     public static final int BACK_SLOT = 49;
     public static final int NEXT_SLOT = 53;
 
+    /**
+     * 生成済みアイテムの指定ページとナビゲーションを描画します。
+     *
+     * @param inventory 主スレッドで更新する描画先
+     * @param items 全ページの表示アイテム
+     * @param pageIndex 有効範囲へ補正するページ番号
+     */
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
+        render(inventory, items, pageIndex, Function.identity());
+    }
+
+    /**
+     * 指定ページの最大45件だけを表示アイテムへ変換して描画します。
+     * 全件数からページ番号とナビゲーションを決め、生成したアイテムは複製して配置します。
+     *
+     * @param inventory 主スレッドで更新する描画先
+     * @param items 全ページの元データ。描画中は変更しないこと
+     * @param pageIndex 有効範囲へ補正するページ番号
+     * @param itemFactory 表示範囲の各データに一度だけ適用する変換。nullの結果は空欄にする
+     * @param <T> 元データの型
+     */
+    public <T> void render(
+        @NotNull Inventory inventory,
+        @NotNull List<T> items,
+        int pageIndex,
+        @NotNull Function<? super T, ? extends ItemStack> itemFactory
+    ) {
         int normalizedPage = normalizePage(pageIndex, items.size());
         clear(inventory);
-        renderPageItems(inventory, items, normalizedPage);
+        renderPageItems(inventory, items, normalizedPage, itemFactory);
         renderNavigation(inventory, items.size(), normalizedPage);
     }
 
@@ -52,11 +79,25 @@ public final class PagedGuiView {
         }
     }
 
-    private void renderPageItems(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
+    /**
+     * 指定ページの範囲だけを変換し、描画先の先頭スロットから複製して配置します。
+     *
+     * @param inventory 主スレッドで更新する描画先
+     * @param items 全ページの元データ
+     * @param pageIndex 補正済みページ番号
+     * @param itemFactory 表示アイテムへの変換。nullの結果は配置しない
+     * @param <T> 元データの型
+     */
+    private <T> void renderPageItems(
+        @NotNull Inventory inventory,
+        @NotNull List<T> items,
+        int pageIndex,
+        @NotNull Function<? super T, ? extends ItemStack> itemFactory
+    ) {
         int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(pageIndex, items.size(), CONTENT_SLOT_COUNT);
         for (int i = start; i < end; i++) {
-            ItemStack itemStack = items.get(i);
+            ItemStack itemStack = itemFactory.apply(items.get(i));
             if (itemStack != null) {
                 inventory.setItem(i - start, itemStack.clone());
             }
