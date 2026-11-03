@@ -24,8 +24,18 @@ public static class BalanceLabEndpoints
             }
             catch (JsonException) { return Results.Problem("条件JSONの形式が正しくありません。", statusCode: 400); }
         });
-        api.MapGet("/jobs/{id}", (string id, BalanceLabJobs jobs) => jobs.Read(id));
-        api.MapDelete("/jobs/{id}", (string id, BalanceLabJobs jobs) => jobs.Cancel(id));
+        api.MapGet("/jobs/{id}", (string id, BalanceLabJobs jobs) => JobResponse(() => jobs.Read(id)));
+        api.MapDelete("/jobs/{id}", (string id, BalanceLabJobs jobs) => JobResponse(() => jobs.Cancel(id)));
         return endpoints;
+    }
+
+    private static IResult JobResponse(Func<JsonObject> readOrCancel)
+    {
+        try { return Results.Json(readOrCancel()); }
+        // IDs kept by the browser can outlive the bounded, in-memory job history.
+        catch (FileNotFoundException exception)
+        {
+            return Results.Problem(title: exception.Message, statusCode: StatusCodes.Status404NotFound);
+        }
     }
 }

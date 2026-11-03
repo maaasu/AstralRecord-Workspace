@@ -84,6 +84,8 @@ Goldは計算に含めた入金・支出を内訳に残します。素材、オ�
 
 `DELETE`が消すのはマスターではなく計算の継続です。これらのAPIは既存のloopback/Origin境界を通ります。`BalanceLabCatalog`は既存の`MasterDataService`/`MasterDataPaths`を読み取り専用で使い、保存・削除・バックアップを呼びません。`ApplyProposal`もメモリのdeep cloneだけを扱います。
 
+再起動・保存上限などで見つからない実行IDへのGETとDELETEは、再実行を案内する404のProblemDetailsを返します。これは保持対象から外れた実行IDの想定内の応答としてAPI内で処理し、共通例外処理の未処理例外ログへ流しません。失われた結果は、保存した条件から再実行してください。
+
 ## 保守と追加効果
 
 1. Pluginの実処理、呼出元、マスター読込と既定値を追跡します。YAMLの名前だけから式を推測しません。
