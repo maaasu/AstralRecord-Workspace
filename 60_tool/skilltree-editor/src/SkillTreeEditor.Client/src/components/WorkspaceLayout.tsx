@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 
 interface WorkspaceLayoutProps {
   left: ReactNode
@@ -26,8 +27,30 @@ export function WorkspaceLayout({
   rightVisible,
   onActivatePane,
 }: WorkspaceLayoutProps) {
-  const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
-  const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
+  const [leftWidth, setLeftWidth] = usePanelSize('tree-left', LEFT_DEFAULT, LEFT_MIN, LEFT_MAX)
+  const [rightWidth, setRightWidth] = usePanelSize('tree-right', RIGHT_DEFAULT, RIGHT_MIN, RIGHT_MAX)
+  const grid = useRef<HTMLDivElement>(null)
+  const leftPane = useRef<HTMLDivElement>(null)
+  const rightPane = useRef<HTMLDivElement>(null)
+  const [measured, setMeasured] = useState<{ left?: number; right?: number }>({})
+  useEffect(() => {
+    const host = grid.current
+    if (!host || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      if (!host.clientWidth || window.innerWidth <= 980) return
+      const left = leftPane.current?.getBoundingClientRect().width || undefined
+      const right = rightPane.current?.getBoundingClientRect().width || undefined
+      setMeasured(current => current.left === left && current.right === right ? current : { left, right })
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(host)
+    if (leftPane.current) observer.observe(leftPane.current)
+    if (rightPane.current) observer.observe(rightPane.current)
+    measure()
+    return () => observer.disconnect()
+  }, [leftWidth, rightWidth, leftVisible, centerVisible, rightVisible])
+  const actualLeft = measured.left ?? leftWidth
+  const actualRight = measured.right ?? rightWidth
   const [focusedPane, setFocusedPane] = useState('center')
   const panes = [
     { id: 'left', label: 'ノード一覧', visible: leftVisible },
@@ -39,96 +62,35 @@ export function WorkspaceLayout({
   return (
     <div className="workspace-layout">
     <div className="compact-pane-navigation" role="group" aria-label="作業領域の切替">{panes.filter((pane) => pane.visible || onActivatePane).map((pane) => <button key={pane.id} type="button" className={`button ${activePane === pane.id ? 'active' : ''}`} aria-pressed={activePane === pane.id} onClick={() => { setFocusedPane(pane.id); onActivatePane?.(pane.id) }}>{pane.label}</button>)}</div>
-    <div className={centerVisible ? 'workspace-grid' : 'workspace-grid no-center'}>
-      {leftVisible && <div className="workspace-pane left-pane" data-compact-active={activePane === 'left'} style={{ flexBasis: leftWidth }}>{left}</div>}
+    <div ref={grid} className={centerVisible ? 'workspace-grid' : 'workspace-grid no-center'}>
+      {leftVisible && <div ref={leftPane} className="workspace-pane left-pane" data-compact-active={activePane === 'left'} style={{ flexBasis: leftWidth }}>{left}</div>}
       {leftVisible && centerVisible && (
         <ResizeHandle
           label="ノード一覧の幅を変更"
-          width={leftWidth}
+          size={actualLeft}
           min={LEFT_MIN}
           max={LEFT_MAX}
-          defaultWidth={LEFT_DEFAULT}
+          defaultSize={LEFT_DEFAULT}
+          minRemaining={280 + (rightVisible ? actualRight + 7 : 0)}
           direction={1}
-          onResize={setLeftWidth}
+          onResize={width => { setLeftWidth(width); if (rightVisible) setRightWidth(actualRight) }}
         />
       )}
       {centerVisible && <div className="workspace-pane center-pane" data-compact-active={activePane === 'center'}>{center}</div>}
       {rightVisible && (centerVisible || leftVisible) && (
         <ResizeHandle
           label="インスペクターの幅を変更"
-          width={rightWidth}
+          size={actualRight}
           min={RIGHT_MIN}
-          max={RIGHT_MAX}
-          defaultWidth={RIGHT_DEFAULT}
+          max={centerVisible ? RIGHT_MAX : Number.MAX_SAFE_INTEGER}
+          defaultSize={RIGHT_DEFAULT}
+          minRemaining={(centerVisible ? 280 : 0) + (leftVisible ? (centerVisible ? actualLeft + 7 : LEFT_MIN) : 0)}
           direction={-1}
-          onResize={setRightWidth}
+          onResize={width => { setRightWidth(width); if (leftVisible) setLeftWidth(centerVisible ? actualLeft : actualLeft + actualRight - width) }}
         />
       )}
-      {rightVisible && <div className="workspace-pane right-pane" data-compact-active={activePane === 'right'} style={{ flexBasis: rightWidth }}>{right}</div>}
+      {rightVisible && <div ref={rightPane} className="workspace-pane right-pane" data-compact-active={activePane === 'right'} style={{ flexBasis: rightWidth }}>{right}</div>}
     </div>
     </div>
   )
 }
-
-interface ResizeHandleProps {
-  label: string
-  width: number
-  min: number
-  max: number
-  defaultWidth: number
-  direction: 1 | -1
-  onResize: (width: number) => void
-}
-
-function ResizeHandle({ label, width, min, max, defaultWidth, direction, onResize }: ResizeHandleProps) {
-  const cleanupRef = useRef<() => void>(() => undefined)
-
-  useEffect(() => () => cleanupRef.current(), [])
-
-  const startResize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return
-    event.preventDefault()
-    cleanupRef.current()
-    const startX = event.clientX
-    const startWidth = width
-    document.body.classList.add('resizing-panels')
-
-    const move = (pointerEvent: PointerEvent) => {
-      onResize(clamp(startWidth + ((pointerEvent.clientX - startX) * direction), min, max))
-    }
-    const stop = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', stop)
-      window.removeEventListener('pointercancel', stop)
-      document.body.classList.remove('resizing-panels')
-    }
-    cleanupRef.current = stop
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', stop)
-    window.addEventListener('pointercancel', stop)
-  }
-
-  return (
-    <div
-      className="workspace-resizer"
-      role="separator"
-      aria-label={label}
-      aria-orientation="vertical"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={width}
-      tabIndex={0}
-      onPointerDown={startResize}
-      onDoubleClick={() => onResize(defaultWidth)}
-      onKeyDown={(event) => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-        event.preventDefault()
-        const screenDirection = event.key === 'ArrowRight' ? 1 : -1
-        onResize(clamp(width + (screenDirection * direction * 16), min, max))
-      }}
-      title={`${label}（ダブルクリックで初期幅）`}
-    />
-  )
-}
-
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, Math.round(value)))

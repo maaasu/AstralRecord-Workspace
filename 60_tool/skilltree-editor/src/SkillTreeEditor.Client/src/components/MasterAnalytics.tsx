@@ -1,5 +1,6 @@
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { ChangeEvent, KeyboardEvent } from 'react'
+import type { CSSProperties, ChangeEvent, KeyboardEvent } from 'react'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, createClassBonusCalculator, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
@@ -51,6 +52,9 @@ const LineChart = memo(function LineChart({ series, yLabel, xLabel }: { series: 
 })
 
 export function MasterAnalytics() {
+  const [settingsWidth, setSettingsWidth] = usePanelSize('analytics-settings', 306, 240, 600)
+  const settingsStyle = { '--analytics-settings-width': `${settingsWidth}px` } as CSSProperties
+  const settingsDivider = <ResizeHandle label="分析条件と結果の幅を変更" size={settingsWidth} min={240} max={600} defaultSize={306} minRemaining={360} onResize={setSettingsWidth} className="analytics-resizer" />
   const [catalog, setCatalog] = useState<AnalyticsCatalog | null>(null)
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const catalogRequest = useRef<AbortController | null>(null)
@@ -290,7 +294,7 @@ export function MasterAnalytics() {
     {mode !== 'lab' && (!catalog ? <p role={error ? 'alert' : 'status'}>{error || 'マスターを読み込んでいます…'}</p> : <>
     {error && <p role="alert" className="analytics-error">{error}</p>}
     {catalog.diagnostics.length > 0 && <details><summary>読み込めないマスター {catalog.diagnostics.length}件</summary>{catalog.diagnostics.map(item => <p key={item.path}>{item.path}: {item.message}</p>)}</details>}
-    {mode === 'equipment' ? <div id="analytics-equipment-panel" role="tabpanel" aria-labelledby="analytics-equipment-tab" className="analytics-workspace">
+    {mode === 'equipment' ? <div id="analytics-equipment-panel" role="tabpanel" aria-labelledby="analytics-equipment-tab" className="analytics-workspace" style={settingsStyle}>
       <section className="analytics-panel analytics-settings" aria-labelledby="equipment-settings-heading">
       <div className="analytics-section-heading"><h2 id="equipment-settings-heading">比較条件</h2><button type="button" className="button" disabled={!hasEquipmentFilters && !selectedOnly} aria-describedby={equipmentResetHelpId} onClick={clearEquipmentConditions}>装備の条件を解除</button></div>
       <p id={equipmentResetHelpId} className="analytics-note">候補をチェックして比較に追加します。「条件を解除」は全Lvの候補一覧へ戻ります。比較選択・強化Lv・並び順は保持します。</p>
@@ -311,6 +315,7 @@ export function MasterAnalytics() {
       <p id={bulkSelectionHelpId} className="analytics-note">全ページの絞り込み結果 {filtered.length}件が対象です。ボタンの件数は追加・解除する件数です。条件外の選択は保持し、操作後は「選択した装備」を表示します。</p>
       <details className="analytics-explanation"><summary>比較の計算方法と対象範囲</summary><p className="analytics-note">マスターの下限〜上限を比較します。強化は上限Lvまでの差分を累積し、同じ装備のFLAT合計 × 最後に採用されるSCALARを計算します。強化SCALARがある場合は基礎SCALARを置き換えます。SCALARだけのステータスは効果を持ちません。個体の乱数・エンチャント・ルーン・セット・超越・装備可否による無効化は含みません。</p></details>
       </section>
+      {settingsDivider}
       <section className="analytics-panel analytics-results" aria-labelledby="equipment-results-heading">
       <div className="analytics-section-heading"><div><h2 id="equipment-results-heading">比較結果</h2><p className="analytics-result-count" role="status">{active.length}件を比較 <span>／ 条件一致 {filtered.length}件</span></p></div><div className="analytics-actions"><button className="button" disabled={!selectedPaths.length} onClick={() => { setSelectedPaths([]); setSelectedOnly(false); setPage(0) }}>選択を解除</button><button className="button" disabled={!active.length} aria-describedby={equipmentExportHelpId} onClick={() => downloadCsv('equipment-comparison.csv', equipmentCsvRows(active, statuses, enhance))}>比較表をCSV出力</button></div></div>
       <p id={equipmentExportHelpId} className="analytics-note">CSVは比較対象の全件・全ステータスを出力します。末尾に期待値（未定義は空欄）、指定強化Lv、40_filebaseからのソースパスを付けます。計算は装備ごとの強化上限を適用しています。</p>
@@ -343,7 +348,7 @@ export function MasterAnalytics() {
       <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>{selectedOnly ? '選択した装備を指定の並び順で表示。標準では選択順です。チェックを外すと比較から解除します。' : '条件に一致する候補を表示。チェックして比較に追加できます。未選択の場合は条件に一致する全装備を比較します。'}</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{visibleTableStatuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPathSet.has(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPathSet.has(row.path)} onChange={event => selectEquipment(event, row.path)} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{visibleTableStatuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!tableRows.length && <p className="analytics-empty">{selectedOnly ? '表示できる選択装備がないため比較は0件です。「条件に一致する装備」から比較に追加してください。' : rows.length ? '条件に一致する装備がありません。「装備の条件を解除」で全Lvの候補に戻れます。' : '読み込めた装備がありません。マスターの定義や読込エラーを確認してください。'}</p>}</div>
       <div className="analytics-actions"><button className="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>前の50件</button><span>{currentPage + 1} / {pageCount}ページ</span><button className="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>次の50件</button></div>
       </section>
-    </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace">
+    </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace" style={settingsStyle}>
       <section className="analytics-panel analytics-settings" aria-labelledby="growth-settings-heading">
       <div className="analytics-section-heading"><h2 id="growth-settings-heading">成長の計算条件</h2></div>
       <div className="analytics-compute"><span>{classIds.length} / 12職業を選択</span><button className="button primary" disabled={catalogStatus !== 'ready' || growing || !classIds.length} onClick={() => void generate()}>{growing ? '計算中…' : 'グラフを計算'}</button></div>
@@ -369,6 +374,7 @@ export function MasterAnalytics() {
       <fieldset className="class-selection"><legend>比較する職業（最大12件）</legend>{visibleClasses.map(master => { const id = String(master.content.id); return <label key={master.path} title={`解放プレイヤーLv ${numeric(master.content.unlockLevel, 1)} / 必要経験値係数 ${numeric(master.content.expRate, 100)} / 最大レベル ${numeric(master.content.maxLevel, 100)}`}><input type="checkbox" checked={classIds.includes(id)} disabled={!classIds.includes(id) && classIds.length >= 12} onChange={event => selectClass(event, id)} /><MinecraftText value={String(master.content.name ?? '')} /><small>{id}</small></label> })}{!visibleClasses.length && <p className="analytics-note class-selection-empty">表示条件に一致する{classSelectedOnly ? '選択済みの' : ''}職業候補はありません。検索・表示条件を変えても選択は解除されません。</p>}</fieldset>
       <details className="analytics-explanation"><summary>育成シナリオの前提</summary><p className="analytics-note">入力変更後は「グラフを計算」で反映します。開始Lvは到達直後として計算します。通常育成・転生なし、同じEXPをプレイヤーと1職へ加算する仮定です。各職の曲線はそれぞれ独立した育成シナリオです。</p></details>
       </section>
+      {settingsDivider}
       <section className="analytics-panel analytics-results" aria-labelledby="growth-results-heading" aria-busy={growing}>
       <div className="analytics-section-heading"><h2 id="growth-results-heading">成長の計算結果</h2>{simulation && <span className="analytics-badge">{simulation.classes.length}職業を比較</span>}</div>
       {changedGrowthInputs.length > 0 && <div className="analytics-selection-warning" role="group" aria-label="成長結果の計算条件" aria-live="polite">

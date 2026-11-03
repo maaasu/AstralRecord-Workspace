@@ -434,7 +434,7 @@ describe('Dev 配置の編集', () => {
     const props = { snapshot, point: null, selectedId: null, onSelected: vi.fn(), onPlacements: visible, placing: false, onPlacing: vi.fn() }
     const view = render(<WorldPlacementEditor {...props} editing />)
     await screen.findByText(/2 件を表示/)
-    const inspector = view.container.querySelector<HTMLDivElement>('.wp-inspector')!
+    const inspector = view.container.querySelector<HTMLDivElement>('.wp-inspector-controls')!
     inspector.scrollTop = 400
     view.rerender(<WorldPlacementEditor {...props} editing selectedId="one" />)
     expect(inspector.scrollTop).toBe(0)

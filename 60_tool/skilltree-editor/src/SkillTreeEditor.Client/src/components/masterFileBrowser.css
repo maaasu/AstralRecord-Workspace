@@ -1,4 +1,4 @@
-.master-workbench { display: grid; grid-template-columns: 520px minmax(0, 1fr); flex: 1; min-height: 0; position: relative; }
+.master-workbench { display: grid; grid-template-columns: clamp(400px, var(--browser-width, 520px), calc(100% - 427px)) 7px minmax(0, 1fr); flex: 1; min-height: 0; position: relative; }
 .master-workbench.browser-hidden { grid-template-columns: minmax(0, 1fr); }
 .master-document-area { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .master-editor.master-document-only { display: block; height: 100%; }
@@ -6,26 +6,27 @@
 .master-document-only > .master-workspace { height: 100%; }
 .master-sidebar.master-browser { padding: 0; gap: 0; overflow: hidden; background: #101722; border-right: 1px solid var(--line-bright); }
 .master-browser[hidden] { display: none; }
-.master-browser-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; min-height: 58px; border-bottom: 1px solid var(--line); }
+.master-browser-heading { display: flex; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 10px; min-height: 44px; border-bottom: 1px solid var(--line); }
 .master-browser-heading h2 { font-size: 13px; letter-spacing: .03em; white-space: nowrap; }
 .master-browser-heading > div { display: flex; gap: 4px; }
 .master-browser-heading .button { padding: 5px 7px; min-height: 30px; font-size: 11px; }
-.master-current-file { display: grid; gap: 5px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.master-current-file { display: grid; flex-shrink: 0; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
 .master-current-file .button { justify-self: start; font-size: 11px; }
 .master-current-file small { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
-.master-browser-columns { display: grid; grid-template-columns: 210px minmax(0, 1fr); flex: 1; min-height: 0; }
+.master-browser-columns { display: grid; grid-template-columns: clamp(150px, var(--folder-width, 200px), calc(100% - 227px)) 7px minmax(0, 1fr); flex: 1; min-height: 0; }
 .master-folder-pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
 .master-folder-pane > .master-category-browser { flex: 1; min-height: 0; }
 .master-folder-pane > footer { padding: 10px; border-top: 1px solid var(--line); display: grid; gap: 8px; font-size: 10px; color: var(--text-muted); }
 .master-folder-pane > footer .text-button { text-align: left; font-size: 11px; }
 .master-results-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #151e2b; }
-.master-result-search { padding: 12px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.master-result-search { padding: 10px; border-bottom: 1px solid var(--line); display: grid; flex-shrink: 0; gap: 7px; }
+.master-result-search > small { color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 .master-result-search > label { color: var(--text); font-weight: 600; }
 .master-search-input { position: relative; display: flex; align-items: center; }
 .master-search-input > span { position: absolute; left: 10px; font-size: 20px; font-weight: 400; color: var(--text-muted); }
 .master-search-input input { min-width: 0; width: 100%; padding: 9px 30px 9px 32px; font-size: 12px; }
 .master-search-input > button { position: absolute; right: 5px; padding: 5px; background: none; border: 0; color: var(--text); cursor: pointer; }
-.master-search-scope { display: flex; gap: 8px; align-items: end; }
+.master-search-scope { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; }
 .master-search-scope label { flex: 1; min-width: 0; font-size: 10px; }
 .master-search-scope select { padding: 7px 4px; font-size: 11px; }
 .master-open-filters { display: flex; gap: 5px; align-items: center; justify-content: center; min-height: 34px; font-size: 11px; white-space: nowrap; }
@@ -41,7 +42,7 @@
 .master-filter-chip { flex-shrink: 0; display: flex; align-items: center; gap: 6px; max-width: 230px; border: 1px solid #576a82; border-radius: 5px; background: #29384d; color: #e2edf9; cursor: pointer; padding: 5px 7px; font-size: 11px; }
 .master-filter-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .master-applied-filters > .text-button { justify-self: end; font-size: 10px; }
-.master-results-pane .master-file-list { border-top: 1px solid var(--line); padding: 4px; min-height: 100px; }
+.master-results-pane .master-file-list { border-top: 1px solid var(--line); padding: 4px; min-height: 0; flex: 1 1 0; }
 .master-results-pane .master-file { border-radius: 5px; margin: 2px 0; padding: 10px 8px; gap: 4px; }
 .master-results-pane .master-file-identity { align-items: center; gap: 8px; }
 .master-results-pane .master-file strong { font-size: 13px; line-height: 1.5; }
@@ -81,19 +82,17 @@
 .master-paths-modal dd { margin: 8px 0 24px; overflow-wrap: anywhere; color: var(--text-muted); }
 .master-browser button:focus-visible, .master-filter-dialog button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 @media (min-width: 1101px) and (max-width: 1300px) {
-  .master-workbench { grid-template-columns: 480px minmax(0, 1fr); }
-  .master-browser-columns { grid-template-columns: 190px minmax(0, 1fr); }
   .master-browser-heading .button { font-size: 10px; }
 }
 
 .master-sidebar.master-browser { background: #101925; }
-.master-browser-heading { min-height: 61px; padding: 12px 14px; background: var(--surface-raised); }
+.master-browser-heading { background: var(--surface-raised); }
 .master-browser-heading h2 { font-size: 13px; font-weight: 650; }
 .master-browser-heading .button { font-size: 11px; }
 .master-results-pane { background: var(--surface); }
-.master-result-search { background: #111b29; padding: 14px; }
+.master-result-search { background: #111b29; }
 .master-search-input input { min-height: 38px; background: var(--surface); }
-.master-results-heading { padding: 13px 14px; }
+.master-results-heading { padding: 8px 10px; }
 .master-results-heading h3 { font-size: 13px; }
 .master-results-pane .master-file-list { padding: 6px; }
 .master-results-pane .master-file { border: 1px solid transparent; border-bottom-color: var(--line); border-radius: 6px; padding: 11px 10px; }
@@ -101,7 +100,7 @@
 .master-results-pane .master-file:hover:not(.selected) { background: var(--surface-raised); border-color: var(--line-bright); }
 .master-results-pane .master-file:focus-visible { outline-offset: -2px; }
 .master-result-badges small { background: var(--surface-soft); }
-.master-results-footer { padding: 10px 14px; line-height: 1.5; }
+.master-results-footer { padding: 6px 10px; flex-shrink: 0; line-height: 1.5; }
 .master-browser-switch [aria-pressed="true"] { color: #d7f7f2; border-color: #497b7e; background: var(--accent-soft); }
 @media (max-width: 680px) {
   .master-browser-heading { padding: 10px; }
@@ -110,15 +109,16 @@
 }
 @media (max-width: 1100px) {
   .master-workbench { grid-template-columns: minmax(0, 1fr); }
+  .master-browser-resizer { display: none; }
   .master-sidebar.master-browser { position: absolute; z-index: 20; inset: 0 auto 0 0; width: min(620px, calc(100% - 22px)); box-shadow: 8px 0 28px #0009; }
   .master-workbench:not(.browser-hidden) > .master-document-area { visibility: hidden; }
-  .master-browser-columns { grid-template-columns: 220px minmax(0, 1fr); }
 }
 @media (max-width: 680px) {
   .master-browser-switch { display: flex; flex-shrink: 0; padding: 8px 12px; gap: 8px; border-bottom: 1px solid var(--line); }
   .master-browser-switch button { flex: 1; font-size: 12px; }
   .master-browser-switch [aria-pressed="true"] { color: var(--gold); border-color: var(--gold-dark); background: #30291e; }
   .master-browser-columns { display: flex; flex-direction: column; }
+  .master-folder-resizer { display: none; }
   .master-folder-pane, .master-results-pane { flex: 1; min-height: 0; }
   .master-browser[data-browser-view="files"] .master-folder-pane, .master-browser[data-browser-view="folders"] .master-results-pane { display: none; }
   .master-browser-heading h2 { font-size: 12px; }

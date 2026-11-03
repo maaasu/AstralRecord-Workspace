@@ -31,6 +31,22 @@ beforeEach(() => {
 })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
+it('keeps the editing map visible while display and coordinate controls are collapsed and retains their inputs', () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  render(<SpawnerPlanningMap {...props} compactControls />)
+  const summary = screen.getByText('地図の表示・座標移動')
+  expect(summary.closest('details')).not.toHaveAttribute('open')
+  expect(screen.getByRole('button', { name: '地図を拡大' })).toBeVisible()
+  fireEvent.click(summary)
+  const x = screen.getByLabelText('移動先X')
+  fireEvent.change(x, { target: { value: '120' } })
+  fireEvent.click(summary)
+  expect(summary.closest('details')).not.toHaveAttribute('open')
+  fireEvent.click(summary)
+  expect(screen.getByLabelText('移動先X')).toBe(x)
+  expect(x).toHaveValue('120')
+})
+
 it('fits the measured narrow map, keeps zoom after resize, and falls back without a detail image', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
   const { rerender } = render(<SpawnerPlanningMap {...props} />)

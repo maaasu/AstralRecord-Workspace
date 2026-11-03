@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import type { MasterDataWorkspace } from '../state/masterDataWorkspace'
 import { MasterCategoryTree } from './MasterCategoryTree'
 import { MasterFilterDialog, masterFacetValueLabel } from './MasterFilterDialog'
@@ -23,6 +24,7 @@ interface MasterFileBrowserProps {
 }
 
 export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, onOpen, onNew, onImport, onDialogChange }: MasterFileBrowserProps) {
+  const [folderWidth, setFolderWidth] = usePanelSize('master-folders', 200, 150, 500)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [pathsOpen, setPathsOpen] = useState(false)
   const fileList = useRef<HTMLDivElement>(null)
@@ -131,8 +133,9 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     <header className="master-browser-heading"><h2>マスターファイル</h2><div><button type="button" className="button compact subtle" disabled={busy} onClick={onNew}>＋ 新規</button><button type="button" className="button compact subtle" disabled={busy} onClick={onImport}>原稿を読込</button><button type="button" className="button compact subtle" disabled={w.refreshing} aria-label="一覧と定義を再読込" title="一覧と定義メタデータを再読込" onClick={() => void w.refresh().catch((reason) => w.setError(reason instanceof Error ? reason.message : String(reason)))}>↻</button><button type="button" className="button compact subtle" aria-label="ナビを閉じる" onClick={() => w.setSidebarCollapsed(true)}>×</button></div></header>
     <div className="master-browser-switch" role="group" aria-label="ファイル一覧の表示"><button type="button" className="button" aria-pressed={w.browserView === 'folders'} onClick={() => w.setBrowserView('folders')}>フォルダ</button><button type="button" className="button" aria-pressed={w.browserView === 'files'} onClick={() => w.setBrowserView('files')}>ファイル・検索結果</button></div>
     <div className="master-current-file"><button type="button" className="button compact subtle" disabled={!canReveal} onClick={revealCurrent} title={selectedPath}>編集中のファイルを一覧に表示</button><small>{!selectedPath ? 'ファイルを開くと移動できます。' : !selectedExists ? 'このファイルは現在の一覧にありません。' : '検索・詳細条件を解除し、対象の行へ移動します。'}</small></div>
-    <div className="master-browser-columns">
+    <div className="master-browser-columns" style={{ '--folder-width': `${folderWidth}px` } as CSSProperties}>
       <section className="master-folder-pane" aria-label="フォルダ一覧"><MasterCategoryTree categories={w.catalog?.categories ?? []} files={w.files} selectedId={w.categoryId} onSelect={changeCategory} expanded={w.expandedCategories} onExpandedChange={w.setExpandedCategories} /><footer><span>← → で開閉・Enterで選択</span><button type="button" className="text-button" onClick={() => setPathsOpen(true)}>読込先・バックアップ先</button></footer></section>
+      <ResizeHandle label="フォルダと検索結果の幅を変更" size={folderWidth} min={150} max={500} defaultSize={200} minRemaining={220} onResize={setFolderWidth} className="master-folder-resizer" />
       <section className="master-results-pane" aria-label="ファイル検索と結果">
         <header className="master-result-search"><label>ファイルを検索<div className="master-search-input"><span aria-hidden="true">⌕</span><input ref={searchInput} aria-label="マスター検索" value={w.query} onChange={(event) => w.setQuery(event.target.value)} onKeyDown={(event) => { if (!isComposing(event) && (event.key === 'ArrowDown' || event.key === 'Enter') && visibleFiles.length) { event.preventDefault(); focusResult(0) } }} placeholder="名前・ID・ファイル名" />{w.query && <button type="button" aria-label="ファイル検索をクリア" onClick={() => { w.setQuery(''); searchInput.current?.focus() }}>×</button>}</div></label><small>空白で複数語を区切ると、すべてに一致するファイルを表示します。</small><div className="master-search-scope"><label>検索範囲<select aria-label="検索範囲" value={w.searchScope} onChange={(event) => w.setSearchScope(event.target.value as 'folder' | 'all')}><option value="folder">選択フォルダ以下</option><option value="all">Filebase 全体</option></select></label><button type="button" className={'button master-open-filters' + (chips.length ? ' active' : '')} aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}>詳細フィルター{chips.length > 0 && <b>{chips.length}</b>}</button></div></header>
         <div className="master-results-heading"><div><span className="master-result-eyebrow">{w.query.trim() || chips.length ? '検索結果' : 'フォルダのファイル'}</span><h3 title={w.searchScope === 'all' ? 'Filebase 全体' : `${scopeLabel}\n${directory}`}>{scopeLabel}</h3></div><strong aria-label="検索結果の件数">{visibleFiles.length}<small> / {files.length} 件</small></strong></div>

@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
 import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
@@ -14,6 +15,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 const number = (value: number) => value.toLocaleString('ja-JP')
 const proposalPageSize = 40
 export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: boolean; onDirtyChange?: (dirty: boolean) => void }) {
+  const [sidebarWidth, setSidebarWidth] = usePanelSize('planning-sidebar', 330, 260, 700)
   const searchHelpId = useId()
   const proposalListId = useId()
   const proposalList = useRef<HTMLDivElement>(null)
@@ -147,9 +149,9 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     anchor.href = url; anchor.download = `${snapshot.manifest.worldId}-preview-${radius}m.json`; anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
-  return <section className="sp-workspace" aria-label="ワールド配置・編集">
-    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD PLACEMENTS</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置・編集</small></h1></div><div className="sp-header-actions"><button className="button" onClick={() => { setLoading(true); setReload(value => value + 1) }} disabled={loading}>解析結果を再読込</button></div></header>
-    <div className="sp-mode-switch" aria-label="表示モード"><button className="button" aria-pressed={editing} onClick={() => { setEditing(true); setSelectedProposal(null) }}>配置編集</button><button className="button" aria-pressed={!editing} onClick={() => { setEditing(false); setPlacing(false); setMoving(false) }}>AI 配置案</button></div>
+  return <section className={`sp-workspace ${editing ? 'sp-editing-workspace' : ''}`} aria-label="ワールド配置・編集">
+    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD PLACEMENTS</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置・編集</small></h1></div><div className="sp-mode-switch" aria-label="表示モード"><button className="button" aria-pressed={editing} onClick={() => { setEditing(true); setSelectedProposal(null) }}>配置編集</button><button className="button" aria-pressed={!editing} onClick={() => { setEditing(false); setPlacing(false); setMoving(false) }}>AI 配置案</button></div><div className="sp-header-actions"><button className="button" onClick={() => { setLoading(true); setReload(value => value + 1) }} disabled={loading}>解析結果を再読込</button></div></header>
+
     {!editing && <p className="sp-intro">{road ? `${levelStep ? `開始地点からの${road.terrainExtension ? '地形経路距離' : '道路距離'}${number(levelStep)}mごとにレベルを一段階上げます。` : '開始地点につながる道の距離でレベルを決めます。'}配置の上限はLv.45で、未到達の距離帯は配置しません。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。${road.terrainExtension ? '水色の点線は水域・斜面・足場を調べて延長した推定経路です。周辺のレベルも地表をたどる距離で決めています。実際の歩行可能性は未検証です。' : ''}` : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>}
     {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>全大陸の解析と配置計算の出力一式を用意してから、再読込してください。</p></div>}
     {!editing && planningError && <div className="sp-error" role="alert"><strong>配置案を表示できません</strong><p>{planningError}</p></div>}
@@ -172,16 +174,17 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
         <div><strong>{plan ? number(stats.counts.failed ?? stats.counts.unknown ?? 0) : '—'}</strong><span>未完成・解析不可区画</span></div>
         <div><strong>{plan ? number(stats.counts.absent ?? 0) : '—'}</strong><span>未保存の区画</span></div>
       </div>}
-      <div className={`sp-main ${editing ? 'sp-main-editing' : ''}`}>
+      <div className={`sp-main ${editing ? 'sp-main-editing' : ''}`} style={{ '--planning-sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
         <div className="sp-map-column">
           <WorldPlacementEditor editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} selectionKey={placementSelectionKey} onSelected={selectPlacement} onPlacements={(next, catalog, ready) => { setPlacements(next); setPlacementCatalog(catalog); setPlacementsReady(ready) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={onDirtyChange ?? (() => {})} map={<>
-            <SpawnerPlanningMap snapshot={snapshot} plan={plan} layer={editing ? 'terrain' : layer} region={editing ? '' : region} reason={editing ? '' : reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={editing ? null : selectedProposal} showProposals={!editing} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementsReady={placementsReady} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { if (!editing) setEditing(true); selectPlacement(id) }} placing={(placing || moving) && !placementBusy} onPlacePoint={(x, y, z) => { if (!placementBusy) setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z })) }} />
+            <SpawnerPlanningMap compactControls={editing} snapshot={snapshot} plan={plan} layer={editing ? 'terrain' : layer} region={editing ? '' : region} reason={editing ? '' : reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={editing ? null : selectedProposal} showProposals={!editing} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementsReady={placementsReady} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { if (!editing) setEditing(true); selectPlacement(id) }} placing={(placing || moving) && !placementBusy} onPlacePoint={(x, y, z) => { if (!placementBusy) setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z })) }} />
             <div className="sp-map-caption"><span><span className="sp-spawn-dot">●</span> 開始地点　金色実線: 道路 / 水色点線: 推定経路</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
           </>} />
           {!editing && layer === 'levels' && <div className="sp-level-key">推奨レベル {[15, 20, 25, 30, 35, 40, 45].map(value => <span key={value}><i style={{ background: levelColor(value) }} />{value}</span>)}</div>}
           {!editing && <p className="sp-scope">カバー率の分母は、地形・足場・モブ条件を満たす配置対象です。全大陸すべてが配置可能という意味ではありません。区画の全256列を測定していますが、実際の移動経路や戦闘負荷は未検証です。</p>}
           {!editing && <section className="sp-region-section"><h2>地域ごとの計画</h2><p>地域を選ぶと地図と配置案の一覧を絞り込みます。</p><div className="sp-region-list">{snapshot.regions.map(value => <button key={value.id} className={`sp-region-row ${region === value.id ? 'selected' : ''}`} onClick={() => selectRegion(value.id)}><i style={{ background: levelColor(value.levelMin) }} /><span><strong>{value.name}</strong><small>{habitatNames[value.habitat] ?? value.habitat} · {number(value.cellCount)}区画</small></span><b>{value.levelMin == null ? '未選定' : `Lv.${value.levelMin}–${value.levelMax}`}</b><span>{number(value.coveredCellsByRadius?.[String(radius)] ?? 0)} / {number(value.eligibleCells)}<small>カバー / 対象</small></span></button>)}</div></section>}
         </div>
+        {!editing && <ResizeHandle label="地図と配置案の幅を変更" size={sidebarWidth} min={260} max={700} defaultSize={330} minRemaining={360} direction={-1} onResize={setSidebarWidth} className="sp-planning-resizer" />}
         {!editing && <aside className="sp-sidebar">
           {planning && <p role="status" className="sp-loading">半径{radius}mの配置案を読み込んでいます…</p>}
           <section><div className="sp-section-heading"><h2>地点・スポナーの詳細</h2><button className="button" disabled={!plan || planning} onClick={download}>案をJSON保存</button></div>

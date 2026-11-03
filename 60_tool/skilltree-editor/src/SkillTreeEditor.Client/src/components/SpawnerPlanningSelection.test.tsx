@@ -53,7 +53,7 @@ it.each(['一覧', '地図'])('%s から同じ配置を再選択すると編集�
   fireEvent.change(screen.getByLabelText('保存済み配置を検索'), { target: { value: 'one' } })
   fireEvent.change(screen.getByLabelText('X'), { target: { value: '12' } })
   await waitFor(() => expect(dirty).toHaveBeenLastCalledWith(true))
-  const inspector = container.querySelector<HTMLDivElement>('.wp-inspector')!
+  const inspector = container.querySelector<HTMLDivElement>('.wp-inspector-controls')!
   inspector.scrollTop = 500
   const target = source === '地図' ? screen.getByRole('button', { name: '地図で配置を選択' })
     : within(container.querySelector<HTMLElement>('.wp-list')!).getByRole('button', { pressed: true })

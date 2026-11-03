@@ -26,6 +26,7 @@ interface Props {
   onPlacement?: (id: string) => void; onPlacePoint?: (x: number, y: number | null, z: number) => void; placing?: boolean
   showProposals?: boolean
   placementsReady?: boolean
+  compactControls?: boolean
 }
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
@@ -512,6 +513,7 @@ export function SpawnerPlanningMap(props: Props) {
   }
   const coordinateDescription = `${coordinateHelpId}${coordinateInput.error ? ` ${coordinateHelpId}-error` : ''}`
   return <div className="sp-map-panel">
+    <details className="sp-map-options" open={props.compactControls ? undefined : true}><summary>地図の表示・座標移動</summary>
     <div className="sp-coverage-controls" aria-label="出現範囲の重複と未カバー">
       <label><input type="checkbox" checked={showCoverage} onChange={event => setShowCoverage(event.target.checked)} />重複・未カバーを色で確認</label>
       <strong>判定: {props.showProposals === false ? '表示中の有効な Dev スポナー' : '選択地域の AI 配置案のみ'}</strong>
@@ -547,6 +549,7 @@ export function SpawnerPlanningMap(props: Props) {
       {coordinateInput.error && <p id={`${coordinateHelpId}-error`} role="alert">{coordinateInput.error}</p>}
       {coordinateTarget && <p role="status">移動先 X {coordinateTarget.x} / Z {coordinateTarget.z}（十字の目印）</p>}
     </form>
+    </details>
     <div className="sp-map-wrap">
     <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
       onPointerDown={event => {

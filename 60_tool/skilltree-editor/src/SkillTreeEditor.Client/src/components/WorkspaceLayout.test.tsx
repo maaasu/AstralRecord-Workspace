@@ -1,8 +1,29 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorkspaceLayout } from './WorkspaceLayout'
 
+beforeEach(() => localStorage.clear())
+
 describe('WorkspaceLayout', () => {
+  it('reserves the opposite pane at 1000px so resizing does not squeeze it or change its saved width', () => {
+    const clientWidth = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function(this: HTMLElement) { return this.classList.contains('workspace-grid') ? 1000 : 0 })
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function(this: HTMLElement) { return { width: Number.parseFloat(this.style.flexBasis) || 1000, height: 600 } as DOMRect })
+    try {
+      const { container } = render(<WorkspaceLayout left={<div>left</div>} center={<div>center</div>} right={<div>right</div>} leftVisible centerVisible rightVisible />)
+      const left = screen.getByRole('separator', { name: 'ノード一覧の幅を変更' })
+      expect(left).toHaveAttribute('aria-valuemax', '336')
+      fireEvent.keyDown(left, { key: 'End' })
+      expect(left).toHaveAttribute('aria-valuenow', '336')
+      expect(container.querySelector('.right-pane')).toHaveStyle({ flexBasis: '370px' })
+      expect(localStorage.getItem('astralrecord.layout.tree-right')).toBe('370')
+      fireEvent.keyDown(left, { key: 'Home' })
+      const right = screen.getByRole('separator', { name: 'インスペクターの幅を変更' })
+      expect(right).toHaveAttribute('aria-valuemax', '496')
+      fireEvent.keyDown(right, { key: 'End' })
+      expect(right).toHaveAttribute('aria-valuenow', '496')
+      expect(container.querySelector('.left-pane')).toHaveStyle({ flexBasis: '210px' })
+    } finally { clientWidth.mockRestore(); rect.mockRestore() }
+  })
   it('renders only visible panes and resizes the left pane with the keyboard', () => {
     const { rerender } = render(
       <WorkspaceLayout

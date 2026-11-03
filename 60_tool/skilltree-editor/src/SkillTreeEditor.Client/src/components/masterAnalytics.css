@@ -1,14 +1,19 @@
-.master-analytics { padding: 24px; overflow: auto; height: 100%; min-height: 0; min-width: 0; color: var(--text); background: var(--surface); scrollbar-gutter: stable; }
+.master-analytics { display: flex; flex-direction: column; padding: 12px 14px; overflow: auto; height: 100%; min-height: 0; min-width: 0; color: var(--text); background: var(--surface); }
+.master-analytics > * { flex-shrink: 0; }
+.master-analytics > [role="tabpanel"]:not([hidden]) { flex: 1; min-height: 0; }
+.master-analytics > [role="tabpanel"][hidden] { display: none; }
+.master-analytics > #analytics-lab-panel { overflow: auto; }
 .analytics-header, .analytics-actions, .analytics-tabs, .analytics-section-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.analytics-header { margin-bottom: 20px; }
-.analytics-header h1 { font-size: 22px; line-height: 1.35; margin: 0 0 6px; }
+.analytics-header { margin-bottom: 10px; gap: 8px; }
+.analytics-header h1 { font-size: 16px; line-height: 1.4; margin: 0 0 3px; }
 .analytics-header p, .analytics-note { color: var(--text-muted); line-height: 1.7; font-size: 12px; margin: 6px 0 14px; }
 .analytics-header p { margin: 0; }
-.analytics-tabs { justify-content: flex-start; gap: 4px; padding: 5px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); width: fit-content; max-width: 100%; }
+.analytics-tabs { justify-content: flex-start; gap: 4px; padding: 3px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); width: fit-content; max-width: 100%; }
 .analytics-tabs .button { border-color: transparent; background: transparent; }
 .analytics-tabs [aria-selected=true] { border-color: var(--line-bright); background: var(--accent-soft); color: var(--accent); }
-.analytics-workspace { display: grid; grid-template-columns: 306px minmax(0, 1fr); gap: 20px; align-items: start; min-width: 0; }
-.analytics-panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-raised); padding: 20px; }
+.analytics-workspace { display: grid; grid-template-columns: clamp(240px, var(--analytics-settings-width, 306px), calc(100% - 367px)) 7px minmax(0, 1fr); align-items: stretch; min-width: 0; overflow: hidden; }
+.analytics-panel { min-width: 0; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-raised); padding: 14px; container-type: inline-size; }
+.analytics-resizer { align-self: stretch; }
 .analytics-section-heading { margin-bottom: 14px; }
 .analytics-section-heading h2 { font-size: 15px; line-height: 1.5; margin: 0; }
 .analytics-results h3 { font-size: 13px; margin: 20px 0 8px; }
@@ -78,17 +83,24 @@
 .master-analytics :is(button, input, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 1100px) {
   .master-analytics { padding: 18px; }
-  .analytics-workspace { grid-template-columns: 260px minmax(0, 1fr); gap: 14px; }
   .analytics-panel { padding: 16px; }
   .analytics-badge { padding: 3px 6px; }
 }
 @media (max-width: 950px) {
   .analytics-workspace { grid-template-columns: minmax(0, 1fr); }
+  .master-analytics > .analytics-workspace { flex: 0 0 auto; overflow: visible; }
+  .analytics-panel { overflow: visible; }
+  .analytics-resizer { display: none; }
   .analytics-settings .analytics-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .analytics-settings .analytics-field-wide { grid-column: span 2; }
   .class-selection { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 230px; }
   .analytics-compute { display: flex; justify-content: space-between; align-items: center; }
   .analytics-compute .button { width: auto; min-width: 160px; }
+}
+@container (max-width: 300px) {
+  .analytics-controls { grid-template-columns: minmax(0, 1fr); }
+  .analytics-controls > .analytics-field-wide { grid-column: 1 / -1; }
+  .analytics-section-heading { gap: 7px; }
 }
 @media (max-width: 600px) {
   .master-analytics { padding: 12px; }

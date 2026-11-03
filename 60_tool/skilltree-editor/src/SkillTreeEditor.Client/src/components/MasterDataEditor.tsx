@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { useHistory } from '../state/history'
@@ -45,6 +46,7 @@ interface MasterDataEditorProps { active?: boolean; onDirtyChange?: (dirty: bool
 
 export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree }: MasterDataEditorProps) {
   const workspace = useMasterDataWorkspace()
+  const [browserWidth, setBrowserWidth] = usePanelSize('master-browser', 520, 400, 1000)
   const [tabsState, dispatch] = useReducer(masterTabsReducer, emptyMasterTabs)
   const tabPrefix = useId()
   const tabButtons = useRef(new Map<string, HTMLButtonElement>())
@@ -148,8 +150,9 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     {(workspace.error || workspace.notice) && <div className={`master-message master-global-message ${workspace.error ? 'error' : 'success'}`} role={workspace.error ? 'alert' : 'status'}><span>{workspace.error || workspace.notice}</span><button type="button" className="button compact subtle" onClick={() => { workspace.setError(''); workspace.setNotice('') }}>閉じる</button></div>}
     {workspace.error && !workspace.catalog && <div className="master-empty"><p>マスターを読み込めませんでした。接続を確認して再試行してください。</p><button type="button" className="button" disabled={workspace.refreshing} onClick={() => void workspace.refresh().catch((reason) => workspace.setError(reason instanceof Error ? reason.message : String(reason)))}>再試行</button></div>}
     {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>同じブラウザタブの再読込前の編集です。ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
-    <div className={'master-workbench' + (workspace.sidebarCollapsed ? ' browser-hidden' : '')}>
+    <div className={'master-workbench' + (workspace.sidebarCollapsed ? ' browser-hidden' : '')} style={{ '--browser-width': `${browserWidth}px` } as CSSProperties}>
       <MasterFileBrowser workspace={workspace} selectedPath={tabsState.tabs.find((tab) => tab.id === tabsState.activeId)?.path} busy={tabsState.tabs.find((tab) => tab.id === tabsState.activeId)?.busy ?? welcomeBusy} active={active} onOpen={openFile} onNew={() => browserActions.current.get(tabsState.activeId || 'welcome')?.create()} onImport={() => browserActions.current.get(tabsState.activeId || 'welcome')?.import()} onDialogChange={setBrowserDialogOpen} />
+      {!workspace.sidebarCollapsed && <ResizeHandle label="ファイル一覧と編集領域の幅を変更" size={browserWidth} min={400} max={1000} defaultSize={520} minRemaining={420} onResize={setBrowserWidth} className="master-browser-resizer" />}
       <section className="master-document-area" aria-label="マスターの編集領域">
     {tabsState.tabs.length > 0 && <div className="master-tab-bar"><div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{displayTabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId

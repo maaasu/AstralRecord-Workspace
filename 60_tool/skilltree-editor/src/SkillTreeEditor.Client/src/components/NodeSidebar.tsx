@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import type { ClassMasterSummary, NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -53,6 +54,7 @@ export function NodeSidebar({
   classMasters = EMPTY_CLASS_MASTERS,
 }: NodeSidebarProps) {
   const searchHelpId = useId()
+  const [groupHeight, setGroupHeight] = usePanelSize('tree-node-groups', 280, 100, 1000)
   const pageContext = JSON.stringify([query, selectedTag, paginationContext])
   const entries = useMemo<NodeListingEntry[]>(() => nodes.map(node => {
     const effects = describeNodeEffects(node, skillMasters)
@@ -99,8 +101,11 @@ export function NodeSidebar({
           {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
         </select>
       </div>
+      <div className="node-groups" data-split={unplaced.length > 0 && placed.length > 0} style={{ '--node-group-height': `${groupHeight}px` } as CSSProperties}>
       <NodeGroup label="未配置" pageContext={pageContext} entries={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} />
+      {unplaced.length > 0 && placed.length > 0 && <ResizeHandle label="未配置と配置済み一覧の高さを変更" size={groupHeight} min={100} max={1000} defaultSize={280} minRemaining={100} orientation="horizontal" onResize={setGroupHeight} />}
       <NodeGroup label="配置済み" pageContext={pageContext} entries={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
+      </div>
     </aside>
   )
 }
