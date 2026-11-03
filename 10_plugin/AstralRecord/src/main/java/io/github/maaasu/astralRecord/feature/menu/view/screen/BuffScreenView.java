@@ -3,8 +3,13 @@ package io.github.maaasu.astralRecord.feature.menu.view.screen;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffModifier;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffModifierDisplayFormatter;
+import io.github.maaasu.astralRecord.feature.menu.MenuMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -27,16 +32,41 @@ public final class BuffScreenView extends BaseMenuScreenView {
     private static final int LAST_SLOT = 43;
     private static final int[] SKIP_SLOTS = {17, 18, 26, 27, 35, 36};
     private static final int EMPTY_SLOT = 22;
+    public static final int PAGE_SIZE = 28;
+    private static final int COUNT_SLOT = 4;
+
+    /**
+     * 現在の件数に対してページ番号を補正します。
+     * @param pageIndex 0始まりのページ番号
+     * @param buffCount 現在の効果件数
+     * @return 有効範囲内のページ番号。0件では0
+     */
+    public static int normalizePage(int pageIndex, int buffCount) {
+        return GuiPagination.normalizePage(pageIndex, buffCount, PAGE_SIZE);
+    }
 
     /**
      * バフ一覧を描画します。
      *
      * @param inventory 描画先インベントリ
      * @param buffs     現在有効なバフ一覧
+     * @param pageIndex 0始まりのページ番号
      */
-    public void render(@NotNull Inventory inventory, @NotNull List<ActiveBuff> buffs) {
+    public void render(@NotNull Inventory inventory, @NotNull List<ActiveBuff> buffs, int pageIndex) {
         fill(inventory);
         inventory.setItem(BACK_SLOT, backItem());
+        int page = normalizePage(pageIndex, buffs.size());
+        int pageCount = GuiPagination.totalPages(buffs.size(), PAGE_SIZE);
+        inventory.setItem(COUNT_SLOT, createItem(Material.PAPER,
+            PlayerMsgResource.getComponent(MenuMsgId.P_5654.getId()),
+            List.of(PlayerMsgResource.formatComponent(MenuMsgId.P_5655.getId(), buffs.size(), page + 1, pageCount))
+        ));
+        inventory.setItem(PagedGuiView.PREVIOUS_SLOT, GuiItems.previousPageButton(
+            PlayerMsgResource.getComponent(MenuMsgId.P_5656.getId()), List.of(), page > 0
+        ));
+        inventory.setItem(PagedGuiView.NEXT_SLOT, GuiItems.nextPageButton(
+            PlayerMsgResource.getComponent(MenuMsgId.P_5657.getId()), List.of(), page + 1 < pageCount
+        ));
         if (buffs.isEmpty()) {
             inventory.setItem(EMPTY_SLOT, createItem(
                 Material.GLASS_BOTTLE,
@@ -47,7 +77,9 @@ public final class BuffScreenView extends BaseMenuScreenView {
         }
 
         int slot = FIRST_SLOT;
-        for (ActiveBuff buff : buffs) {
+        int start = GuiPagination.pageStart(page, PAGE_SIZE);
+        int end = GuiPagination.pageEnd(page, buffs.size(), PAGE_SIZE);
+        for (ActiveBuff buff : buffs.subList(start, end)) {
             while (slot <= LAST_SLOT && isSkipped(slot)) {
                 slot++;
             }

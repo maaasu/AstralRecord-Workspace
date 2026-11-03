@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class PlayerHudService {
     private static final long DPS_SAMPLE_WINDOW_MS = 10_000L;
@@ -57,6 +58,16 @@ public class PlayerHudService {
     private AstralRecord plugin;
     private BukkitTask task;
     private boolean proxyOwnsTabHeader;
+    private final Map<UUID, UUID> sidebarAccounts = new HashMap<>();
+    private Predicate<Player> sidebarInputBlocked = ignored -> false;
+
+    /**
+     * ロード・セッション遷移・スキル選択など、効果ページ入力を停止する判定を設定します。
+     * @param blocked メインスレッド上で入力を拒否する場合trueを返す判定
+     */
+    public void setSidebarInputBlocked(@NotNull Predicate<Player> blocked) {
+        sidebarInputBlocked = blocked;
+    }
 
     /**
      * HUD サービスを構築します。
@@ -140,6 +151,8 @@ public class PlayerHudService {
             actionBarOverrideTask.cancel();
         }
         actionBarOverrideTasks.clear();
+        sidebarAccounts.clear();
+        playerHudView.clearBuffPages();
         proxyOwnsTabHeader = false;
         plugin = null;
     }
@@ -263,59 +276,11 @@ public class PlayerHudService {
                 } else {
                 renderPrimaryActionBar(astPlayer, snapshot);
                 }
-                String className = playerClassService.getDisplayName(astPlayer.getClassId());
-                double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
-                boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
-                    astPlayer.getUser().getUuid()
-                );
-                boolean showBuffInfo = playerSettingService.isBuffSidebarDisplayEnabled(
-                    astPlayer.getUser().getUuid()
-                );
-                BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
-                DungeonSidebarInfo dungeonInfo = dungeonService == null
-                        ? null : dungeonService.findSidebarInfo(player.getUniqueId());
-                WorldType worldType = worldService.resolveWorldType(player.getWorld());
-                boolean isSkillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
-                String skillTreeClassPointLabel = isSkillTreeWorld
-                        ? skillTreeService.currentClassPointLabel(astPlayer)
-                        : null;
-                int availableClassPoints = isSkillTreeWorld
-                        ? skillTreeService.availableClassPoints(astPlayer)
-                        : 0;
-                int availablePassivePoints = isSkillTreeWorld
-                        ? skillTreeService.availablePassivePoints(astPlayer)
-                        : 0;
-                String regionName = astPlayer.getCurrentRegion();
-                if (regionName == null || regionName.isBlank()) {
-                    regionName = worldType == null
-                            ? player.getWorld().getName()
-                            : worldType.getRegionDisplayName();
-                }
-                playerHudView.renderSidebar(
-                    player,
-                    mspt,
-                    playerLevel,
-                    classExperienceProgress,
-                    astPlayer.getClassLevel(),
-                    playerClassService.isMaxClassLevel(astPlayer),
-                    className,
-                    currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
-                    skillTreeClassPointLabel,
-                    availableClassPoints,
-                    availablePassivePoints,
-                    worldService.resolveDisplayName(player.getWorld()),
-                    regionName,
-                    resolveRegionLevel(astPlayer, worldType, bossInfo),
-                    showPerformanceInfo,
-                    bossInfo,
-                    dungeonInfo,
-                    showBuffInfo,
-                    statusService.getActiveBuffs(astPlayer),
-                    astPlayer.getAccount().getRebirthOriginalLevel()
-                );
+                renderSidebar(astPlayer, mspt);
             } else {
                 cancelActionBarOverrideTask(player.getUniqueId());
                 playerHudView.removeSidebar(player);
+                clearSidebarBuffPage(player.getUniqueId());
             }
             playerHudView.renderBars(
                 player,
@@ -333,6 +298,99 @@ public class PlayerHudService {
                 );
             }
         }
+    }
+
+    /** 現在の状態・表示設定・挑戦情報を使い、選択中の効果ページを再描画します。 */
+    private void renderSidebar(@NotNull AstPlayer astPlayer, double mspt) {
+        Player player = astPlayer.getBukkit();
+        prepareSidebarBuffPage(astPlayer);
+        int playerLevel = astPlayer.getAccount().getLevel();
+        String className = playerClassService.getDisplayName(astPlayer.getClassId());
+        double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
+        boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
+            astPlayer.getUser().getUuid()
+        );
+        boolean showBuffInfo = playerSettingService.isBuffSidebarDisplayEnabled(
+            astPlayer.getUser().getUuid()
+        );
+        BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
+        DungeonSidebarInfo dungeonInfo = dungeonService == null
+                ? null : dungeonService.findSidebarInfo(player.getUniqueId());
+        WorldType worldType = worldService.resolveWorldType(player.getWorld());
+        boolean isSkillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
+        String skillTreeClassPointLabel = isSkillTreeWorld
+                ? skillTreeService.currentClassPointLabel(astPlayer)
+                : null;
+        int availableClassPoints = isSkillTreeWorld
+                ? skillTreeService.availableClassPoints(astPlayer)
+                : 0;
+        int availablePassivePoints = isSkillTreeWorld
+                ? skillTreeService.availablePassivePoints(astPlayer)
+                : 0;
+        String regionName = astPlayer.getCurrentRegion();
+        if (regionName == null || regionName.isBlank()) {
+            regionName = worldType == null
+                    ? player.getWorld().getName()
+                    : worldType.getRegionDisplayName();
+        }
+        playerHudView.renderSidebar(
+            player,
+            mspt,
+            playerLevel,
+            classExperienceProgress,
+            astPlayer.getClassLevel(),
+            playerClassService.isMaxClassLevel(astPlayer),
+            className,
+            currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
+            skillTreeClassPointLabel,
+            availableClassPoints,
+            availablePassivePoints,
+            worldService.resolveDisplayName(player.getWorld()),
+            regionName,
+            resolveRegionLevel(astPlayer, worldType, bossInfo),
+            showPerformanceInfo,
+            bossInfo,
+            dungeonInfo,
+            showBuffInfo,
+            statusService.getActiveBuffs(astPlayer),
+            astPlayer.getAccount().getRebirthOriginalLevel()
+        );
+    }
+
+    /**
+     * 自分のサイドバー効果ページを切り替えて即時描画します。メインスレッド専用です。
+     * @param astPlayer 操作したプレイヤー
+     * @param direction 前ページは負、次ページは正
+     * @return 通常プレイ中で、ページ操作を受け付けた場合true
+     */
+    public boolean changeSidebarBuffPage(@NotNull AstPlayer astPlayer, int direction) {
+        Player player = astPlayer.getBukkit();
+        if (plugin == null || !player.isOnline() || player.isDead() || sidebarInputBlocked.test(player)
+                || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return false;
+        }
+        prepareSidebarBuffPage(astPlayer);
+        playerHudView.moveBuffPage(player.getUniqueId(), direction);
+        renderSidebar(astPlayer, Bukkit.getServer().getAverageTickTime());
+        return true;
+    }
+
+    /** アカウント切替を検出し、別アカウントのページを引き継がないようにします。 */
+    private void prepareSidebarBuffPage(@NotNull AstPlayer astPlayer) {
+        UUID playerId = astPlayer.getBukkit().getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (!accountId.equals(sidebarAccounts.put(playerId, accountId))) {
+            playerHudView.clearBuffPage(playerId);
+        }
+    }
+
+    /**
+     * 退出・復旧・ワールド移動時に、プレイヤーの効果ページ状態を破棄します。
+     * @param playerId 対象プレイヤーUUID
+     */
+    public void clearSidebarBuffPage(@NotNull UUID playerId) {
+        sidebarAccounts.remove(playerId);
+        playerHudView.clearBuffPage(playerId);
     }
 
     /**

@@ -79,6 +79,7 @@ import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService
 import io.github.maaasu.astralRecord.feature.hud.event.AdminMessageBossBarEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.hud.event.SidebarBuffPagingEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.FishingRodInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.fishing.event.FishingEntityEventHandler;
 import io.github.maaasu.astralRecord.feature.fishing.service.FishingMasterService;
@@ -3001,6 +3002,11 @@ public final class AstralRecord extends JavaPlugin {
         eventManager.registerHandler(hookshotInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(fishingRodInteractionEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(new FishingEntityEventHandler(), getServer().getPluginManager());
+        playerHudService.setSidebarInputBlocked(player -> playerJoinEventHandler.isLoading(player)
+            || playerAdminDrainService.isBlocked(player.getUniqueId())
+            || playerSessionTransitionGuard.current(player.getUniqueId()) != null
+            || skillActionRingService.isOpen(player));
+        eventManager.registerHandler(new SidebarBuffPagingEventHandler(playerHudService), getServer().getPluginManager());
         menuOpenEventHandler = new MenuOpenEventHandler(
             this,
             menuView,
@@ -3008,6 +3014,7 @@ public final class AstralRecord extends JavaPlugin {
             currencyService,
             currencyExchangeGuiEventHandler,
             statusService,
+            playerHudService,
             playerGuiRenderContextFactory,
             menuGuiTransitionService,
             trashService,

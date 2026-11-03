@@ -27,7 +27,7 @@
 クラス名: `MainMenuScreenView`
 物理名: `render`
 
-54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。クエスト icon は slot `24` に配置する。`ACCOUNT_INFO` は描画対象 `Player` のスキンを `PLAYER_HEAD` へ設定する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
+54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。slot `47` / `51` は自分のサイドバーの表示効果を前／次ページへ切り替える。クエスト icon は slot `24` に配置する。`ACCOUNT_INFO` は描画対象 `Player` のスキンを `PLAYER_HEAD` へ設定する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
 
 メールiconは直近取得の未読件数、未確認、更新中を区別する。メインメニューの表示完了後だけ、未取得・期限切れの件数を `MailService` へ非同期更新要求する。取得結果の反映は通知iconだけに限定し、現在の `AstPlayer`、account UUID、開いたinventoryが一致する場合だけ主スレッドで行う。閉じた画面やアカウント切替後の画面へ再描画しない。
 
@@ -116,3 +116,12 @@ accessory slot の逆引きは `23=AMULET`、`31=TALISMAN_1`、`33=TALISMAN_2`�
 
 プレイヤー情報 shortcut の status lore は、`StatusValue` の合計範囲が基礎範囲と異なる項目だけを `StatusType` のカタログ順に表示する。表示上限は8件とし、超過時は末尾へ `… ほかN件` を追加する。変更項目がない場合と status 未取得の場合は、それぞれ判別できる案内を表示する。
 `AstPlayer.isBedrock=true` の残存 shortcut 消去は、クラフト枠・所持品・カーソルのいずれかに実際の shortcut item が存在する場合だけ対象を変更する。ログイン・ワールド変更などの一連の cleanup では、変更があった場合だけ `updateInventory()` を最大1回実行し、すでに除去済みなら inventory 全体同期を発生させない。
+
+## 7. バフ一覧のページ描画
+
+クラス名: `BuffScreenView`
+物理名: `render` / `normalizePage`
+
+外周を除いた既存の内側28枠を1ページとする。slot `4` は総件数と現在ページ／総ページ数、`45` / `53` は前／次ページ、`49` は戻る。前後がないボタンは無効表示し、ページを循環させない。バフごとの残り時間・補正値の表示は従来どおりとする。
+
+`MenuView.openBuff` は対象UUIDと正規化済みページを `MenuInventoryHolder` へ保持する。`renderBuff` はそのページを再描画する。期限切れによってページが範囲外となった場合は、定期更新で同一対象の最終有効ページへ開き直してholderも補正する。ページ切替は同じnavigation IDを使用し、戻る履歴を増やさない。

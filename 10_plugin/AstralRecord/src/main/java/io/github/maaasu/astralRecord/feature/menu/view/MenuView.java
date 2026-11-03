@@ -63,6 +63,8 @@ public class MenuView {
     public static final int PLAYER_INFO_SLOT = MainMenuScreenView.PLAYER_INFO_SLOT;
     public static final int ADVENTURE_RECORD_SLOT = MainMenuScreenView.ADVENTURE_RECORD_SLOT;
     public static final int MAIL_SLOT = MainMenuScreenView.MAIL_SLOT;
+    public static final int SIDEBAR_BUFF_PREVIOUS_SLOT = MainMenuScreenView.SIDEBAR_BUFF_PREVIOUS_SLOT;
+    public static final int SIDEBAR_BUFF_NEXT_SLOT = MainMenuScreenView.SIDEBAR_BUFF_NEXT_SLOT;
     public static final int EQUIPMENT_PLAYER_STATUS_SLOT = EquipmentMenuScreenView.PLAYER_STATUS_SLOT;
     public static final int EQUIPMENT_BACK_SLOT = EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT;
     public static final int EQUIPMENT_MAIN_HAND_SLOT = EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT;
@@ -264,23 +266,40 @@ public class MenuView {
         @NotNull UUID targetId,
         @NotNull List<ActiveBuff> activeBuffs
     ) {
+        openBuff(viewer, targetId, activeBuffs, 0);
+    }
+
+    /**
+     * 対象プレイヤーのバフ一覧を指定ページで開きます。範囲外のページは現在の件数へ補正します。
+     * @param viewer 閲覧者
+     * @param targetId 効果の表示対象プレイヤーUUID
+     * @param activeBuffs 現在有効な効果の獲得順一覧
+     * @param pageIndex 0始まりのページ番号
+     */
+    public void openBuff(
+        @NotNull Player viewer,
+        @NotNull UUID targetId,
+        @NotNull List<ActiveBuff> activeBuffs,
+        int pageIndex
+    ) {
         Inventory inventory = Bukkit.createInventory(
-            new MenuInventoryHolder(MenuScreen.BUFF, -1, 0, targetId.toString()),
+            new MenuInventoryHolder(MenuScreen.BUFF, -1,
+                BuffScreenView.normalizePage(pageIndex, activeBuffs.size()), targetId.toString()),
             SIZE,
             BUFF_TITLE
         );
-        buffScreenView.render(inventory, activeBuffs);
+        renderBuff(inventory, activeBuffs);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     /**
-     * バフ一覧 GUI の内容を再描画します。
+     * バフ一覧 GUI の選択ページを維持して内容を再描画します。
      *
      * @param inventory   再描画するインベントリ
      * @param activeBuffs 現在有効なバフ一覧
      */
     public void renderBuff(@NotNull Inventory inventory, @NotNull List<ActiveBuff> activeBuffs) {
-        buffScreenView.render(inventory, activeBuffs);
+        buffScreenView.render(inventory, activeBuffs, getPageIndex(inventory));
     }
 
     public void openClass(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull List<ClassViewEntry> classes) {

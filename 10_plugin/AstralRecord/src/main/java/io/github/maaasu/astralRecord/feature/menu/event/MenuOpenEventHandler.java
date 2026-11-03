@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
+import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -90,6 +92,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     private final CurrencyService currencyService;
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private final StatusService statusService;
+    private final PlayerHudService playerHudService;
     private final PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final TrashService trashService;
@@ -109,6 +112,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
      * @param currencyService 通貨サービス
      * @param currencyExchangeGuiEventHandler 両替GUIハンドラ
      * @param statusService ステータスサービス
+     * @param playerHudService 自分のサイドバー効果ページを操作するサービス
      * @param playerGuiRenderContextFactory GUI 描画コンテキスト生成ファクトリ
      * @param menuGuiTransitionService GUI 切替サービス
      * @param trashService ゴミ箱 GUI サービス
@@ -123,6 +127,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         @NotNull CurrencyService currencyService,
         @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
         @NotNull StatusService statusService,
+        @NotNull PlayerHudService playerHudService,
         @NotNull PlayerGuiRenderContextFactory playerGuiRenderContextFactory,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
         @NotNull TrashService trashService,
@@ -136,6 +141,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         this.currencyService = currencyService;
         this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
         this.statusService = statusService;
+        this.playerHudService = playerHudService;
         this.playerGuiRenderContextFactory = playerGuiRenderContextFactory;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.trashService = trashService;
@@ -542,7 +548,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
+    /** メインメニューの各機能へ委譲し、効果の前後ボタンでは閲覧者自身のHUDを切り替えます。 */
     private void handleMainMenuClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == MenuView.SIDEBAR_BUFF_PREVIOUS_SLOT || rawSlot == MenuView.SIDEBAR_BUFF_NEXT_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            boolean handled = astPlayer != null && playerHudService.changeSidebarBuffPage(
+                astPlayer, rawSlot == MenuView.SIDEBAR_BUFF_PREVIOUS_SLOT ? -1 : 1
+            );
+            (handled ? GuiSound.SELECT : GuiSound.DENY).play(player);
+            return;
+        }
         if (rawSlot == MenuView.STATUS_SLOT) {
             PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler = plugin.getPlayerBrowserGuiEventHandler();
             if (playerBrowserGuiEventHandler == null) {
@@ -820,10 +835,24 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         return true;
     }
 
+    /** 表示対象の効果一覧を28件単位で前後に移動し、戻る操作では元の詳細画面へ戻します。 */
     private void handleBuffClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
             navigateBack(player);
             return;
+        }
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        AstPlayer target = findBuffMenuTarget(inventory);
+        if (target != null && (rawSlot == MenuView.PAGING_PREVIOUS_SLOT || rawSlot == MenuView.PAGING_NEXT_SLOT)) {
+            var buffs = statusService.getActiveBuffs(target);
+            int page = BuffScreenView.normalizePage(menuView.getPageIndex(inventory), buffs.size());
+            int next = page + (rawSlot == MenuView.PAGING_PREVIOUS_SLOT ? -1 : 1);
+            if (next >= 0 && next == BuffScreenView.normalizePage(next, buffs.size())) {
+                GuiSound.SELECT.play(player);
+                switchGuiWithoutInventoryReload(player,
+                    () -> menuView.openBuff(player, target.getBukkit().getUniqueId(), buffs, next));
+                return;
+            }
         }
         GuiSound.DENY.play(player);
     }
@@ -836,6 +865,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         );
     }
 
+    /** 選択ページの残り時間・補正値を更新し、期限切れで消滅したページは最終ページへ補正します。 */
     private void refreshOpenBuffMenus() {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             Inventory inventory = player.getOpenInventory().getTopInventory();
@@ -843,19 +873,29 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 continue;
             }
 
-            String contentId = menuView.getContentId(inventory);
-            UUID targetId;
-            try {
-                targetId = contentId == null ? null : UUID.fromString(contentId);
-            } catch (IllegalArgumentException exception) {
-                targetId = null;
-            }
-            Player targetPlayer = targetId == null ? null : plugin.getServer().getPlayer(targetId);
-            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
-            if (target == null) {
+            AstPlayer target = findBuffMenuTarget(inventory);
+            if (target == null || !AccountModeGuard.isGameplayPlayer(player)) {
                 continue;
             }
-            menuView.renderBuff(inventory, statusService.getActiveBuffs(target));
+            var buffs = statusService.getActiveBuffs(target);
+            int page = BuffScreenView.normalizePage(menuView.getPageIndex(inventory), buffs.size());
+            if (page != menuView.getPageIndex(inventory)) {
+                switchGuiWithoutInventoryReload(player,
+                    () -> menuView.openBuff(player, target.getBukkit().getUniqueId(), buffs, page));
+            } else {
+                menuView.renderBuff(inventory, buffs);
+            }
+        }
+    }
+
+    /** バフ画面の表示対象を取得します。不正・退出済みの対象ではnullを返します。 */
+    private @Nullable AstPlayer findBuffMenuTarget(@NotNull Inventory inventory) {
+        String contentId = menuView.getContentId(inventory);
+        try {
+            Player target = contentId == null ? null : plugin.getServer().getPlayer(UUID.fromString(contentId));
+            return target == null ? null : AstPlayerCache.get(target);
+        } catch (IllegalArgumentException exception) {
+            return null;
         }
     }
 

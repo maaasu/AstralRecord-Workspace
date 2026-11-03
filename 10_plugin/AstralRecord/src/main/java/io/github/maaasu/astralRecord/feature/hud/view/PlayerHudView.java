@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.hud.HudMsgId;
+import io.github.maaasu.astralRecord.feature.hud.model.SidebarBuffPageState;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
@@ -37,6 +39,8 @@ import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.HashMap;
 
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
@@ -50,6 +54,29 @@ public class PlayerHudView {
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
     private static final String SIDEBAR_BAR_CHAR = "▰";
+    private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
+
+    /**
+     * 次回描画時の効果ページ切替を予約します。Bukkitメインスレッドから呼び出します。
+     * @param playerId 表示対象のプレイヤーUUID
+     * @param direction 前ページは負、次ページは正
+     */
+    public void moveBuffPage(UUID playerId, int direction) {
+        buffPages.computeIfAbsent(playerId, ignored -> new SidebarBuffPageState()).move(direction);
+    }
+
+    /**
+     * プレイヤーの効果ページと新規デバフ検出状態を破棄します。
+     * @param playerId 対象プレイヤーUUID
+     */
+    public void clearBuffPage(UUID playerId) {
+        buffPages.remove(playerId);
+    }
+
+    /** プラグイン停止時にすべての効果ページ状態を破棄します。 */
+    public void clearBuffPages() {
+        buffPages.clear();
+    }
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         renderActionBar(player, snapshot, List.of(), null, 0.0D);
@@ -641,6 +668,7 @@ public class PlayerHudView {
         boolean hideClassExperience = linesToReserve >= 2;
         baseLineCount -= (hideGold ? 1 : 0) + (hideClassExperience ? 1 : 0);
         List<String> buffLines = buildBuffLines(
+                player.getUniqueId(),
                 activeBuffs,
                 showBuffInfo,
                 requiredChallengeLineCount,
@@ -893,51 +921,47 @@ public class PlayerHudView {
     private record SidebarLineCandidate(String text, int order, int priority, boolean required) {
     }
 
+    /** 現在の空き行数でページを区切り、1行しかない場合は件数案内を効果行へ併記します。 */
     private List<String> buildBuffLines(
+            UUID playerId,
             List<ActiveBuff> activeBuffs,
             boolean showBuffInfo,
             int challengeLineCount,
             int baseLineCount
     ) {
-        List<ActiveBuff> visibleBuffs = activeBuffs.stream()
-                .filter(buff -> showBuffInfo || buff.getType().isDebuff())
-                .sorted(Comparator.comparing(buff -> !buff.getType().isDebuff()))
-                .toList();
-        if (visibleBuffs.isEmpty()) {
-            return List.of();
-        }
-
         int availableLines = Math.max(0, SIDEBAR_LINE_LIMIT - baseLineCount - challengeLineCount);
         boolean showSeparator = availableLines >= 2;
         int availableEntries = availableLines - (showSeparator ? 1 : 0);
-        int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, visibleBuffs.size()), availableEntries);
+        SidebarBuffPageState.Page page = buffPages.computeIfAbsent(playerId, ignored -> new SidebarBuffPageState())
+                .select(activeBuffs, showBuffInfo, Math.min(BUFF_DISPLAY_LIMIT, availableEntries));
+        int displayCount = page.buffs().size();
         if (displayCount == 0) {
             return List.of();
         }
 
         List<String> lines = new ArrayList<>(displayCount + 1);
+        String pageLabel = PlayerMsgResource.format(HudMsgId.P_5660.getId(),
+                page.totalCount(), page.pageIndex() + 1, page.pageCount());
         if (showSeparator) {
-            lines.add(buildSeparator("buff"));
+            lines.add(pageLabel);
         }
         LocalDateTime now = LocalDateTime.now();
         for (int index = 0; index < displayCount; index++) {
-            ActiveBuff buff = visibleBuffs.get(index);
-            int hiddenCount = index == displayCount - 1 ? visibleBuffs.size() - displayCount : 0;
-            lines.add(formatBuffLine(buff, index + 1, hiddenCount, now));
+            ActiveBuff buff = page.buffs().get(index);
+            String prefix = !showSeparator && index == 0 ? pageLabel + " " : "";
+            lines.add(prefix + formatBuffLine(buff, page.startIndex() + index + 1, now));
         }
         return lines;
     }
 
-    private String formatBuffLine(ActiveBuff buff, int position, int hiddenCount, LocalDateTime now) {
+    /** バフ・デバフの色分けと残り時間を一覧内の通し番号付きで表示します。 */
+    private String formatBuffLine(ActiveBuff buff, int position, LocalDateTime now) {
         String color = buff.getType().isDebuff() ? ColorCodeUtil.RED : ColorCodeUtil.GREEN;
         String displayName = ColorCodeUtil.toLegacyText(buff.getType().getDisplayName(), buff.getType().getId());
         long remainingSeconds = Math.max(0L, Duration.between(now, buff.getExpiresAt()).toSeconds());
-        String overflow = hiddenCount > 0
-                ? ColorCodeUtil.DARK_GRAY + " …ほか" + ColorCodeUtil.WHITE + hiddenCount + ColorCodeUtil.GRAY + "件"
-                : "";
         return ColorCodeUtil.DARK_GRAY + position + ". " + color + ColorCodeUtil.BOLD + "◆ "
                 + ColorCodeUtil.RESET + displayName + ColorCodeUtil.GRAY + " [" + ColorCodeUtil.YELLOW
-                + formatRemaining(remainingSeconds) + ColorCodeUtil.GRAY + "]" + overflow;
+                + formatRemaining(remainingSeconds) + ColorCodeUtil.GRAY + "]";
     }
 
     private String formatRemaining(long remainingSeconds) {
