@@ -418,21 +418,8 @@ public final class MarketGui {
 
     private @NotNull ItemStack listingItem(@NotNull MarketListing listing, boolean ownListing) {
         ItemModel model = itemService.findLoadedById(listing.itemId());
-        EquipmentInstance equipmentInstance = listing.equipmentInstance();
-        ItemStack stack;
-        if (model == null) {
-            stack = new ItemStack(Material.CHEST);
-        } else if (equipmentInstance != null
-            && listing.instanceId() != null
-            && equipmentInstance.getEquipmentInstanceId().equalsIgnoreCase(listing.instanceId().toString())
-            && equipmentInstance.getItemId().equalsIgnoreCase(listing.itemId())) {
-            stack = itemStackFactory.asDisplayStack(itemStackFactory.create(model, equipmentInstance, 1));
-        } else {
-            stack = itemStackFactory.createDisplay(
-                model,
-                Math.max(1, (int) Math.min(64L, listing.remainingQuantity()))
-            );
-        }
+        ItemStack stack = previewItem(model, listing.instanceId(), listing.equipmentInstance(),
+            listing.remainingQuantity());
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return stack;
@@ -480,11 +467,18 @@ public final class MarketGui {
         return stack;
     }
 
+    /**
+     * 出品案で選択された装備個体をロード済み状態から解決し、出品予定数を追記します。
+     * API 通信や所持品の変更は行いません。
+     *
+     * @param draft 表示対象の出品案
+     * @return 個体性能と出品予定数を含む表示専用スタック
+     */
     private @NotNull ItemStack draftItem(@NotNull MarketListingDraft draft) {
         ItemModel model = itemService.findLoadedById(draft.itemId());
-        ItemStack stack = model == null
-            ? new ItemStack(Material.CHEST)
-            : itemStackFactory.createDisplay(model, Math.max(1, (int) Math.min(64L, draft.quantity())));
+        EquipmentInstance equipmentInstance = draft.instanceId() == null ? null
+            : itemService.findLoadedEquipmentInstanceById(draft.instanceId().toString());
+        ItemStack stack = previewItem(model, draft.instanceId(), equipmentInstance, draft.quantity());
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             List<Component> lore = new ArrayList<>();
@@ -497,6 +491,33 @@ public final class MarketGui {
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    /**
+     * 公開出品と確定前の出品案に共通する、個体性能付きプレビューを生成します。
+     * 個体 ID とアイテム ID が一致する場合だけ個体を使い、未解決時はマスタ表示へ戻します。
+     *
+     * @param model ロード済みアイテムマスタ。未解決時は {@code null}
+     * @param instanceId 表示対象の個体 ID。スタック品は {@code null}
+     * @param equipmentInstance 表示する装備個体。未解決時は {@code null}
+     * @param quantity 表示数量。1〜64 に補正し、個体品は常に 1
+     * @return 表示専用スタック。マスタ未解決時はチェスト
+     */
+    private @NotNull ItemStack previewItem(
+        @Nullable ItemModel model,
+        @Nullable UUID instanceId,
+        @Nullable EquipmentInstance equipmentInstance,
+        long quantity
+    ) {
+        if (model == null) {
+            return new ItemStack(Material.CHEST);
+        }
+        if (equipmentInstance != null && instanceId != null
+            && equipmentInstance.getEquipmentInstanceId().equalsIgnoreCase(instanceId.toString())
+            && equipmentInstance.getItemId().equalsIgnoreCase(model.getId())) {
+            return itemStackFactory.asDisplayStack(itemStackFactory.create(model, equipmentInstance, 1));
+        }
+        return itemStackFactory.createDisplay(model, Math.max(1, (int) Math.min(64L, quantity)));
     }
 
     private @NotNull ItemStack summaryItem(@Nullable MarketAccountSummary summary, long goldAmount) {
