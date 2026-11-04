@@ -33,7 +33,7 @@
 .ar-player .ar-panel { border: 1px solid var(--ar-border); background: var(--ar-bg-panel); border-radius: 4px; box-shadow: none; }
 .ar-player .ar-panel h2 { font-family: var(--ar-display); font-weight: 600; line-height: 1.6; }
 .ar-player .ar-panel > p { line-height: 1.9; }
-.ar-player :is(.ar-profile-facts > div, .ar-class-chip, .ar-profile-presence, .market-detail-grid > section, .market-history-facts > div) { background: #142820; border-color: var(--ar-border); border-radius: 4px; }
+.ar-player :is(.ar-class-chip, .ar-profile-presence, .market-detail-grid > section, .market-history-facts > div) { background: #142820; border-color: var(--ar-border); border-radius: 4px; }
 .ar-player :is(.ar-profile-presence, .ar-class-chip, .ar-player-card, .ar-mob-card, .ar-mob-dossier) { color: var(--ar-text); }
 .ar-player :is(.ar-profile-badge, .ar-bestiary-private, .ar-mob-category) { color: var(--ar-teal); border-color: #b3d3bf66; background: #b3d3bf0d; }
 .ar-player :is(.ar-profile-badge--private, .ar-mob-category.is-boss) { color: #f4c6ad; border-color: #f4c6ad66; }
