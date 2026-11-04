@@ -1,9 +1,13 @@
 @model AstralRecordWeb.Models.WebSkillTreeProfileResponse
 @using System.Text.Json
 @{ var editable = ViewData["SkillTreeEditor"] as bool? == true; }
-    <section class="ar-tree-sanctum" aria-labelledby="skilltree-title">
+    <section class="ar-tree-sanctum" data-tree-mode="@(editable ? "edit" : "view")" aria-labelledby="skilltree-title">
         <header class="ar-tree-heading">
-            <div><p class="ar-tree-eyebrow">成長の星図</p><h2 id="skilltree-title">スキルツリー <small data-editor-heading-account></small></h2><p>星を辿り、あなたの力のつながりを見渡す。</p></div>
+            <div class="ar-tree-heading-identity">
+                <p class="ar-tree-eyebrow">成長の星図</p>
+                <div class="ar-tree-title-row"><h2 id="skilltree-title">スキルツリー <small data-editor-heading-account></small></h2><span class="ar-tree-mode-badge">@(editable ? "編集モード" : "閲覧モード")</span></div>
+                <p class="ar-tree-mode-description">@(editable ? "変更案を作成し、確認後にまとめて送信します。送信するまで適用されません。" : "習得状況と効果を確認できます。この画面では変更できません。")</p>
+            </div>
             <span class="ar-tree-heading-balance-kind" data-editor-heading-kind></span><div class="ar-tree-progress"><strong>@Model.Nodes.Count(n => n.IsUnlocked)<span> / @Model.Nodes.Count</span></strong><span>表示中の解放ノード</span></div>
             <button type="button" class="ar-tree-collapse" data-tree-collapse>通常表示に戻る <small>Esc</small></button>
         </header>

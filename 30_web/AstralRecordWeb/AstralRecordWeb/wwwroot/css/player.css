@@ -76,24 +76,29 @@
 .ar-player .market-browse .ar-item-icon { background: #10231e; border-color: var(--ar-border); border-radius: 4px; }
 .ar-player :is(.market-guide, .market-item-meta, .market-listing-time, .market-stock, .market-wallet-note) { color: var(--ar-text-muted); }
 
-/* Keep map colors for skill state and class identity; unify its surrounding frame. */
-.ar-player .ar-tree-sanctum { --tree-muted: #b8c5bb; --tree-gold: #e5d3b0; background: var(--ar-bg-panel); border-color: var(--ar-border); border-radius: 4px; box-shadow: none; }
+/* Neutral map surfaces keep the gold actions and skill states distinct. */
+.ar-player .ar-skilltree-editor { background-color: #101621; }
+.ar-player .ar-skilltree-editor::before { background-image: linear-gradient(180deg, #0b142480, #101621 96%), url('/images/bg-night-1672.webp'); }
+.ar-player .ar-tree-sanctum { --tree-muted: #adb8ca; --tree-gold: #e5d3b0; background: #171e2b; border-color: #7e8da455; border-radius: 4px; box-shadow: none; }
 .ar-player .ar-tree-sanctum::before, .ar-player .ar-tree-sanctum::after { content: none; }
 .ar-player .ar-tree-heading h2 { font-family: var(--ar-display); font-weight: 500; }
 .ar-player .ar-tree-layout { border-radius: 4px; }
-.ar-player .ar-tree-preferences { color: var(--ar-text-muted); }
-.ar-player .ar-tree-search { background: #10231e; border-color: var(--ar-border); }
-.ar-player .ar-tree-controls button { background: #253c35; border-color: var(--ar-border); color: var(--ar-text); }
-.ar-player .ar-tree-viewport { background: radial-gradient(ellipse at 45% 45%, #42634c30, #091b17 72%); }
-.ar-player :is(.ar-tree-account-state, .ar-tree-cp-list > span) { background: #10231e; border-color: var(--ar-border); }
-.ar-player :is(.ar-tree-detail, .ar-tree-detail-header) { background: #253c35; }
-.ar-player :is(.ar-tree-search-options select, .ar-tree-operation select) { background: #10231e; color: var(--ar-text); border-color: var(--ar-border); }
+.ar-player .ar-tree-preferences { color: #adb8ca; }
+.ar-player .ar-tree-search { background: #101722; border-color: #7e8da455; }
+.ar-player .ar-tree-controls button { background: #242e3e; border-color: #7e8da455; color: #e6ebf3; }
+.ar-player .ar-tree-controls button:hover { background: #344159; border-color: #b1bfd3; }
+.ar-player .ar-tree-viewport { background: radial-gradient(ellipse at 45% 45%, #57658d24, #090f1b 72%); }
+.ar-player .ar-tree-account-state { background: #101722; border-color: #7e8da455; }
+.ar-player :is(.ar-tree-point-card, .ar-tree-cp-list > span) { background: #1c2635; border-color: #7e8da455; }
+.ar-player :is(.ar-tree-detail, .ar-tree-detail-header) { background: #202a3a; }
+.ar-player :is(.ar-tree-search-options select, .ar-tree-operation select) { background: #101722; color: #e6ebf3; border-color: #7e8da455; }
 
 @media (max-width: 767px) {
     .ar-player .ar-portal::before, .ar-player .ar-section-dark:has(.ar-card)::before {
         height: 380px;
         background-image: linear-gradient(180deg, #08192080, #132521 96%), image-set(url('/images/bg-night-640.webp') 1x, url('/images/bg-night-1280.webp') 2x);
     }
+    .ar-player .ar-skilltree-editor::before { background-image: linear-gradient(180deg, #0b142480, #101621 96%), image-set(url('/images/bg-night-640.webp') 1x, url('/images/bg-night-1280.webp') 2x); }
     .ar-player .ar-portal-heading { align-items: flex-start; flex-direction: column; gap: 1rem; padding-block: .5rem 1.5rem; }
     .ar-player .ar-portal-heading h1 { font-size: clamp(1.6rem, 6vw, 2rem); }
     .ar-player .ar-portal-heading > .btn, .ar-player .ar-portal-heading > a { max-width: 100%; }

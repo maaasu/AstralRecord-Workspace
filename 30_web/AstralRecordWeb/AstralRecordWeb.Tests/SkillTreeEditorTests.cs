@@ -108,6 +108,8 @@ public sealed class SkillTreeEditorTests
         Assert.False(changes[0].TryGetProperty("gold", out _));
         Assert.DoesNotContain("data-editor-location", html);
         Assert.Contains("最大表示", WebUtility.HtmlDecode(html));
+        Assert.Contains("編集モード", WebUtility.HtmlDecode(html));
+        Assert.DoesNotContain("閲覧モード", WebUtility.HtmlDecode(html));
     }
 
     [Fact]
@@ -123,6 +125,9 @@ public sealed class SkillTreeEditorTests
         Assert.Contains($"https://crafatar.com/avatars/{Actor:N}", html);
         Assert.Contains("referrerpolicy=\"no-referrer\"", html);
         Assert.Contains("data-player-avatar", html);
+        Assert.Contains("閲覧モード", html);
+        Assert.DoesNotContain("編集モード", html);
+        Assert.DoesNotContain("data-editor-submit", html);
     }
 
     internal static readonly Guid Actor = Guid.Parse("11111111-1111-1111-1111-111111111111");
