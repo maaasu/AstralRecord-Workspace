@@ -299,6 +299,7 @@ function Invoke-UpdateWorkflow {
         $rootLock = [IO.File]::Open((Join-Path $validated.RunRoot 'workflow.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
         $activePath = Join-Path $validated.RunRoot 'active-run.json'
         $active = if (Test-Path -LiteralPath $activePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $activePath | ConvertFrom-Json -AsHashtable } else { $null }
+        $managedBuildRetry=$false
         if ($active -and $active.status -ne 'Completed') {
             $runDirectory = Get-UpdateWorkflowRunDirectory $validated.RunRoot $active.relativeRunDirectory
             if (!(Test-Path -LiteralPath $runDirectory -PathType Container)) { throw 'The active workflow run directory is missing.' }
@@ -313,8 +314,16 @@ function Invoke-UpdateWorkflow {
             }
             $configurationChanged=$active.configurationFingerprint -cne $ConfigurationFingerprint
             if ($GateContext -and $GateContext.Mode -eq 'Managed') {
+                $managedBuildRetry=(!$configurationChanged -and !$restored -and $Recovery -ceq 'Auto' -and $Label -ceq 'Dev' -and
+                    (Get-UpdateWorkflowValue $GateContext 'RemoteStatus') -ceq 'Prepared' -and $PreferredRunDirectory -and
+                    [IO.Path]::GetFullPath($runDirectory) -ieq [IO.Path]::GetFullPath($PreferredRunDirectory) -and
+                    (Get-UpdateWorkflowValue $GateContext 'RunReference') -ceq $PreferredRunDirectory -and
+                    (Test-Path -LiteralPath (Join-Path $runDirectory 'control-gate-run.json') -PathType Leaf) -and
+                    (Test-UpdateWorkflowFailedBuildRetry $prior $runDirectory $ConfigurationFingerprint))
+                $unverifiedDeployment=$prior -and ($prior.status -in @('Deploying','DeploymentFailed') -or
+                    ($prior.status -ceq 'ReadyToDeploy' -and (Test-Path -LiteralPath (Join-Path $runDirectory 'dev-deployment-progress.json'))))
                 if ($configurationChanged -or $restored -or $Recovery -ne 'Auto' -or
-                    (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -and !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label))) {
+                    ($unverifiedDeployment -and !$managedBuildRetry -and !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label))) {
                     throw 'Control-managed recovery requires inspection of the existing reservation and run before starting a new run.'
                 }
             }
@@ -328,7 +337,7 @@ function Invoke-UpdateWorkflow {
                     -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
                     -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -ConfigurationChanged
                 if ($archived) { $active=$null }
-            } elseif (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto')) {
+            } elseif (!$managedBuildRetry -and (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto'))) {
                 if ($Recovery -ne 'Auto' -or !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) {
                     $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
                         -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
@@ -372,6 +381,7 @@ function Invoke-UpdateWorkflow {
         $statePath = Join-Path $runDirectory 'workflow-state.json'
         $state = if (Test-Path -LiteralPath $statePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json -AsHashtable } else { $null }
         if ($state -and ($state.schemaVersion -ne 1 -or $state.configurationFingerprint -ne $ConfigurationFingerprint -or $state.label -cne $Label)) { throw 'Configuration or workflow label changed within this run.' }
+        if ($managedBuildRetry) { $state=Restart-UpdateWorkflowFailedBuild $runDirectory $ConfigurationFingerprint $GateContext }
         # Optional entry-specific choices are fixed under the root lock, before any API/deployment action.
         $preparedFingerprint=$null
         if ($PrepareRunAction) {

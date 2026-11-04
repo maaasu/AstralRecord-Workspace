@@ -11,9 +11,12 @@ try {
     $env:AR_LIFECYCLE_API='fixture-api';$env:AR_LIFECYCLE_MIGRATION='fixture-migration'
     $leaseFile=Join-Path $temp 'lease.json'
     @{workflowId=[Guid]::NewGuid().ToString('D');reservationId=[Guid]::NewGuid().ToString('D');adapterId='01'} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $leaseFile
-    $script:events=[Collections.Generic.List[string]]::new();$script:failedStop=$false;$script:baselineCalls=0
+    $script:events=[Collections.Generic.List[string]]::new();$script:failedStop=$false;$script:baselineCalls=0;$script:denyDeploy=$false
     $script:newSession=[Guid]::NewGuid().ToString('D');$script:generation='a'*64
-    function Assert-ControlGateStep($Context,$Step) { $script:events.Add('gate:'+ $Step) }
+    function Assert-ControlGateStep($Context,$Step) {
+        $script:events.Add('gate:'+ $Step)
+        if ($Step -ceq 'Deploy' -and $script:denyDeploy) { throw 'fixture stopped-state validation rejected' }
+    }
     $mock={param($Method,$Uri,$Headers,$Body)
         if ($Method -ceq 'GET' -and $Uri -match '/runtime/servers/Dev$') {
             $script:events.Add('runtime');$script:baselineCalls++
@@ -61,6 +64,82 @@ try {
         [array]::IndexOf($order,'seed') -gt [array]::IndexOf($order,'deploy') -and
         [array]::IndexOf($order,'start') -gt [array]::IndexOf($order,'seed') -and
         [array]::IndexOf($order,'publish') -gt [array]::IndexOf($order,'start')) 'Required order: stop, deploy, seed, start, readiness, publication.'
+
+    # A confirmed build failure retries in the same reservation/run and preserves old evidence.
+    function New-FailedBuildFixture {
+        $retryRuns=Join-Path $temp ('retry-runs-'+[guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $retryRuns | Out-Null
+        $retryRun=New-UpdateWorkflowRunDirectory $retryRuns
+        $savedLease=Get-Content -Raw -Encoding UTF8 -LiteralPath $leaseFile | ConvertFrom-Json
+        Write-MaintenanceJson $savedLease (Join-Path $retryRun.Path 'control-gate-run.json')
+        $retryState=@{schemaVersion=1;configurationFingerprint=('c'*64);label='Dev';status='DeploymentFailed';seedStatus='PENDING';deployedRuntimes=@();baselineRuntimes=@{Dev=$null};baselineSessions=@{Dev=$null}}
+        $progress=@{schemaVersion=1;configurationFingerprint=('c'*64);stage='Build';status='Failed';buildIsolated=$true}
+        Write-MaintenanceJson $retryState (Join-Path $retryRun.Path 'workflow-state.json')
+        Write-MaintenanceJson $progress (Join-Path $retryRun.Path 'dev-deployment-progress.json')
+        Set-Content -Encoding UTF8 -LiteralPath (Join-Path $retryRun.Path 'dev-deploy.log') -Value 'failed build log'
+        Write-MaintenanceJson @{schemaVersion=1;relativeRunDirectory=$retryRun.Relative;configurationFingerprint=('c'*64);status='Created'} (Join-Path $retryRuns 'active-run.json')
+        $retryParameters=$parameters.Clone()
+        $retryParameters.WorkflowConfig=@{runRoot=$retryRuns;startupTimeoutSeconds=4;pollIntervalSeconds=1;seedMasterData=$true}
+        $retryParameters.PreferredRunDirectory=$retryRun.Path
+        $retryParameters.GateContext=@{Mode='Managed';LeaseFile=$leaseFile;RemoteStatus='Prepared';RunReference=$retryRun.Path}
+        $retryParameters.DeployAction={param($RunDirectory)
+            Assert (!(Test-Path -LiteralPath (Join-Path $RunDirectory 'dev-deployment-progress.json'))) 'Retry must clear old progress before the child starts.'
+            $handle=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None');$handle.Dispose()
+            $script:events.Add('retry-deploy')
+            Set-Content -Encoding UTF8 -LiteralPath (Join-Path $RunDirectory 'deploy-action-success.json') -Value '{}'
+        }
+        return @{Run=$retryRun;State=$retryState;Progress=$progress;Arguments=$retryParameters}
+    }
+    $fixture=New-FailedBuildFixture;$retryArguments=$fixture.Arguments
+    $hashes=@{};foreach ($name in @('workflow-state.json','dev-deployment-progress.json','dev-deploy.log')) { $hashes[$name]=(Get-FileHash -LiteralPath (Join-Path $fixture.Run.Path $name)).Hash }
+    $leaseHash=(Get-FileHash -LiteralPath $leaseFile).Hash
+    $retryResult=Invoke-UpdateWorkflow @retryArguments
+    Assert ($retryResult.Status -ceq 'COMPLETED' -and $retryResult.RunDirectory -ceq $fixture.Run.Path) 'Build failure must resume the same run.'
+    Assert (@($script:events | Where-Object { $_ -ceq 'retry-deploy' }).Count -eq 1) 'A build retry must invoke deployment once.'
+    Assert ((Get-FileHash -LiteralPath $leaseFile).Hash -ceq $leaseHash) 'Build retry must preserve the Control lease.'
+    $attempts=@(Get-ChildItem -LiteralPath (Join-Path $fixture.Run.Path 'build-retries') -Directory)
+    Assert ($attempts.Count -eq 1) 'Build retry must preserve the failed attempt.'
+    foreach ($name in $hashes.Keys) { Assert ((Get-FileHash -LiteralPath (Join-Path $attempts[0].FullName $name)).Hash -ceq $hashes[$name]) "Build retry lost the original record: $name" }
+
+    # A durable ReadyToDeploy intent resumes on either side of old-progress removal.
+    foreach ($progressRemains in @($true,$false)) {
+        $fixture=New-FailedBuildFixture;$retryArguments=$fixture.Arguments
+        $fixture.State.status='ReadyToDeploy'
+        Write-MaintenanceJson $fixture.State (Join-Path $fixture.Run.Path 'workflow-state.json')
+        if (!$progressRemains) { Remove-Item -LiteralPath (Join-Path $fixture.Run.Path 'dev-deployment-progress.json') }
+        $retryResult=Invoke-UpdateWorkflow @retryArguments
+        Assert ($retryResult.Status -ceq 'COMPLETED' -and $retryResult.RunDirectory -ceq $fixture.Run.Path) 'Interrupted retry preparation must resume in the same run.'
+    }
+    foreach ($case in @('Database','Files','Running','NotIsolated','StringIsolation','Deploying','Seeded','Published','Migration','Start','Configuration','Reservation','GateRejected','StoppedCondition','Locked')) {
+        $fixture=New-FailedBuildFixture;$retryArguments=$fixture.Arguments;$handle=$null
+        switch ($case) {
+            'Database' { $fixture.Progress.stage='Database' }
+            'Files' { $fixture.Progress.stage='Files' }
+            'Running' { $fixture.Progress.status='Running' }
+            'NotIsolated' { $fixture.Progress.buildIsolated=$false }
+            'StringIsolation' { $fixture.Progress.buildIsolated='true' }
+            'Deploying' { $fixture.State.status='Deploying' }
+            'Seeded' { $fixture.State.seedStatus='SUCCEEDED' }
+            'Published' { Write-MaintenanceJson @{} (Join-Path $fixture.Run.Path 'patch-publication-result.json') }
+            'Migration' { Write-MaintenanceJson @{} (Join-Path $fixture.Run.Path 'migration-commit-started.json') }
+            'Start' { Write-MaintenanceJson @{} (Join-Path $fixture.Run.Path 'control-dev-start.request.json') }
+            'Configuration' { $retryArguments.ConfigurationFingerprint='d'*64 }
+            'Reservation' { Write-MaintenanceJson @{workflowId=[guid]::NewGuid().ToString('D');reservationId=[guid]::NewGuid().ToString('D')} (Join-Path $fixture.Run.Path 'control-gate-run.json') }
+            'GateRejected' { $retryArguments.GateContext.RemoteStatus='Released' }
+            'StoppedCondition' { $script:denyDeploy=$true }
+            'Locked' { $handle=[IO.File]::Open((Join-Path $fixture.Run.Path 'run.lock'),'OpenOrCreate','ReadWrite','None') }
+        }
+        Write-MaintenanceJson $fixture.State (Join-Path $fixture.Run.Path 'workflow-state.json')
+        Write-MaintenanceJson $fixture.Progress (Join-Path $fixture.Run.Path 'dev-deployment-progress.json')
+        $stateHash=(Get-FileHash -LiteralPath (Join-Path $fixture.Run.Path 'workflow-state.json')).Hash
+        $progressHash=(Get-FileHash -LiteralPath (Join-Path $fixture.Run.Path 'dev-deployment-progress.json')).Hash
+        $deployCount=@($script:events | Where-Object { $_ -ceq 'retry-deploy' }).Count;$message=''
+        try { Invoke-UpdateWorkflow @retryArguments | Out-Null } catch { $message=$_.Exception.Message } finally { if ($handle) { $handle.Dispose() };$script:denyDeploy=$false }
+        Assert ($message -and @($script:events | Where-Object { $_ -ceq 'retry-deploy' }).Count -eq $deployCount) "Unsafe retry reached deployment: $case"
+        Assert ((Get-FileHash -LiteralPath (Join-Path $fixture.Run.Path 'workflow-state.json')).Hash -ceq $stateHash) "Blocked retry changed state: $case"
+        Assert ((Get-FileHash -LiteralPath (Join-Path $fixture.Run.Path 'dev-deployment-progress.json')).Hash -ceq $progressHash) "Blocked retry changed progress: $case"
+        Assert (!(Test-Path -LiteralPath (Join-Path $fixture.Run.Path 'build-retries'))) "Blocked retry archived records: $case"
+    }
 
     # A 404 baseline followed by a late old heartbeat must not qualify as a new boot.
     $migration=ConvertTo-SkillTreeRuntimeConfig $parameters.MigrationConfig

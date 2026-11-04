@@ -34,6 +34,64 @@ function Test-UpdateWorkflowStartupRestart([string]$RunDirectory, [string]$Label
         $state.configurationFingerprint -ceq $Fingerprint -and $state.status -ceq 'WaitingForStartup')
 }
 
+<#
+    同じControl予約で再試行できる、外部処理前の確定したDevビルド失敗だけを判定する。
+    ReadyToDeploy は再試行準備の状態保存後、旧進行記録の退避前に中断した場合に限って扱う。
+#>
+function Test-UpdateWorkflowFailedBuildRetry($State, [string]$RunDirectory, [string]$Fingerprint) {
+    if (!$State -or $State.schemaVersion -ne 1 -or $State.label -cne 'Dev' -or
+        $State.configurationFingerprint -cne $Fingerprint -or $State.status -cnotin @('DeploymentFailed','ReadyToDeploy') -or
+        $State.seedStatus -cne 'PENDING' -or !$State.Contains('deployedRuntimes') -or @($State.deployedRuntimes).Count -ne 0 -or
+        $State.Contains('deployedAtUtc') -or $State.Contains('seededAtUtc')) { return $false }
+    if (Test-UpdateWorkflowMigrationEvidence $RunDirectory) { return $false }
+    foreach ($name in @('deploy-action-success.json','deployment.json','patch-publication-result.json','control-dev-start.json','control-dev-start.request.json')) {
+        if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { return $false }
+    }
+    $path=Join-Path $RunDirectory 'dev-deployment-progress.json'
+    if (!(Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
+    $progress=Get-Content -Raw -Encoding UTF8 -LiteralPath $path | ConvertFrom-Json -AsHashtable
+    return ($progress.schemaVersion -eq 1 -and $progress.configurationFingerprint -ceq $Fingerprint -and
+        $progress.stage -ceq 'Build' -and $progress.status -ceq 'Failed' -and
+        $progress.buildIsolated -is [bool] -and $progress.buildIsolated)
+}
+
+<#
+    workflow.lock保持中に、検証済みControl予約のDevビルド失敗を同じrunで再試行可能にする。
+    run.lockと停止条件を再確認し、旧記録をハッシュ照合して保全してから状態と進行記録を更新する。
+#>
+function Restart-UpdateWorkflowFailedBuild([string]$RunDirectory, [string]$Fingerprint, $GateContext) {
+    $lock=$null
+    try {
+        try { $lock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None') }
+        catch [IO.IOException] { throw '前回の処理が実行中、または記録がロックされています。終了を待ってから再実行してください。' }
+        $statePath=Join-Path $RunDirectory 'workflow-state.json'
+        $state=Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json -AsHashtable
+        if (!(Test-UpdateWorkflowFailedBuildRetry $state $RunDirectory $Fingerprint)) { throw 'Dev build failure changed before retry preparation.' }
+        Assert-ControlGateStep $GateContext 'Deploy'
+        $archive=Join-Path $RunDirectory ('build-retries/attempt-'+[Guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $archive -Force | Out-Null
+        foreach ($name in @('workflow-state.json','dev-deployment-progress.json','dev-deploy.log')) {
+            $source=Join-Path $RunDirectory $name
+            if (Test-Path -LiteralPath $source -PathType Leaf) {
+                $hash=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+                $destination=Join-Path $archive $name
+                Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
+                if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -cne $hash) { throw 'Build retry record preservation failed.' }
+            }
+        }
+        Write-MaintenanceJson @{schemaVersion=1;action='RetryBuildInSameRun';configurationFingerprint=$Fingerprint;
+            atUtc=[DateTime]::UtcNow.ToString('o')} (Join-Path $archive 'retry.json')
+        # Persist intent before removing the old progress. An interruption at either boundary remains resumable:
+        # ReadyToDeploy + Failed progress repeats this preparation; ReadyToDeploy without progress starts the child.
+        $state.status='ReadyToDeploy'
+        Save-UpdateWorkflowJson $state $statePath
+        Remove-Item -LiteralPath (Join-Path $RunDirectory 'dev-deployment-progress.json') -ErrorAction Stop
+        Write-Host "前回のビルド失敗記録を保全しました: $archive"
+        Write-Host '同じControl予約と実行記録でビルドを再試行します。'
+        return $state
+    } finally { if ($lock) { $lock.Dispose() } }
+}
+
 function Stop-UpdateWorkflowConfigurationChange($Active, $State, [string]$RunDirectory, [string]$Fingerprint, [string]$Label) {
     $status=if ($State) { $State.status } else { '不明（workflow-state.jsonなし）' }
     $seed=if ($State -and $State.Contains('seedStatus')) { $State.seedStatus } else { '不明' }
