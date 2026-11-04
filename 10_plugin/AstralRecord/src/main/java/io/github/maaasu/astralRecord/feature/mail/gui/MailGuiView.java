@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
@@ -175,7 +176,7 @@ public final class MailGuiView {
         lore.add(Component.empty());
         for (String line : mail.body().split("\\R")) {
             if (!line.isBlank()) {
-                lore.add(Component.text(line, NamedTextColor.WHITE));
+                lore.add(ColorCodeUtil.toComponent(line, "", NamedTextColor.WHITE));
             }
         }
         if (!mail.rewards().isEmpty()) {
