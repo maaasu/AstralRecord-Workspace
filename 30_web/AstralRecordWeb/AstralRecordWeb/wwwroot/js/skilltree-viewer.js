@@ -1,9 +1,10 @@
-import { projectNodes, graphBounds, fitCamera, zoomCamera, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
 
 // Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
+const expandedViews = new WeakMap();
 const make = (tag, attrs = {}, text) => {
     const element = document.createElementNS(ns, tag);
     Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, String(value)));
@@ -24,6 +25,14 @@ export function initializeViewer(viewer, viewState) {
     if (!nodes.size) return;
     let bounds = graphBounds(projected.nodes);
     const viewport = viewer.querySelector('.ar-tree-viewport');
+    const sanctum = viewer.closest('.ar-tree-sanctum');
+    const lifecycle = new AbortController();
+    const detailToggle = viewer.querySelector('[data-tree-detail-toggle]');
+    const setDetailVisible = visible => {
+        viewer.classList.toggle('is-detail-hidden', !visible);
+        detailToggle.textContent = visible ? '詳細を隠す' : '詳細を表示';
+        detailToggle.setAttribute('aria-pressed', String(visible));
+    };
     const svg = viewer.querySelector('.ar-tree-canvas');
     const minimap = viewer.querySelector('[data-tree-minimap]');
     svg.replaceChildren(); minimap.replaceChildren();
@@ -109,15 +118,20 @@ export function initializeViewer(viewer, viewState) {
     };
     const draw = () => { if (!frame) frame = requestAnimationFrame(paint); };
     const focusNode = (node, readable = true) => {
+        // A detail toggle can resize the map before ResizeObserver delivers its callback.
+        viewportWidth = previousWidth = viewport.clientWidth;
+        viewportHeight = previousHeight = viewport.clientHeight;
+        cullBounds = null;
         if (readable) camera.zoom = .95;
-        camera.x = viewport.clientWidth / 2 - node.px * camera.zoom;
+        camera.x = viewportWidth / 2 - node.px * camera.zoom;
         const labelCenter = node.nodeId ? 9 + (node.labelExtent ?? nodeLabelLines(node).length * 20) / 2 : 0;
-        camera.y = viewport.clientHeight / 2 - (node.py + labelCenter) * camera.zoom;
+        camera.y = viewportHeight / 2 - (node.py + labelCenter) * camera.zoom;
         draw();
     };
     const showDetails = (node, announce = true) => {
+        const selectionChanged = selectedId !== node.nodeId;
         selectedId = node.nodeId;
-        if (announce) viewer.classList.remove('is-detail-hidden');
+        if (announce) setDetailVisible(true);
         groups.forEach((g, id) => {
             g.setAttribute('aria-pressed', String(id === selectedId));
             g.classList.toggle('is-neighbor', neighbors.get(selectedId).some(n => n.nodeId === id));
@@ -125,6 +139,7 @@ export function initializeViewer(viewer, viewState) {
         links.forEach(edge => edge.line.classList.toggle('is-connected', edge.source === selectedId || edge.target === selectedId));
         miniNodes.forEach((point, id) => point.classList.toggle('is-selected', id === selectedId));
         const detail = viewer.querySelector('.ar-tree-detail');
+        if (selectionChanged) detail.scrollTop = 0;
         detail.dataset.state = node.isUnlocked ? 'unlocked' : 'locked';
         detail.dataset.pointType = node.pointType;
         viewer.querySelector('[data-node-name]').textContent = node.name;
@@ -193,7 +208,6 @@ export function initializeViewer(viewer, viewState) {
                 && !viewer.dispatchEvent(new CustomEvent('skilltree:action', { bubbles: true, cancelable: true, detail: { nodeId: node.nodeId, action: 'UNLOCK' } }))) return;
             const wasOverview = camera.zoom < .4;
             showDetails(node);
-            viewer.classList.remove('is-detail-hidden');
             if (wasOverview) focusNode(node);
         });
         g.addEventListener('keydown', event => {
@@ -239,16 +253,47 @@ export function initializeViewer(viewer, viewState) {
     viewer.querySelector('[data-tree-fit]').addEventListener('click', () => { camera = fitCamera(bounds, viewport.clientWidth, viewport.clientHeight); draw(); });
     viewer.querySelector('[data-tree-home]').addEventListener('click', () => focusNode(nodes.get(selectedId) ?? root));
     viewer.querySelector('[data-tree-reset]')?.addEventListener('click', () => focusNode(root));
-    viewer.querySelector('[data-tree-detail-close]')?.addEventListener('click', () => viewer.classList.add('is-detail-hidden'));
-    viewer.querySelector('[data-tree-expand]')?.addEventListener('click', event => {
-        const expanded = viewer.closest('.ar-tree-sanctum').classList.toggle('is-expanded');
-        event.currentTarget.textContent = expanded ? '通常表示' : '最大表示';
-        event.currentTarget.setAttribute('aria-pressed', String(expanded));
-        document.body.classList.toggle('ar-tree-expanded', expanded);
+    viewer.querySelector('[data-tree-detail-close]')?.addEventListener('click', () => {
+        setDetailVisible(false); viewport.focus({ preventScroll: true });
     });
+    detailToggle.addEventListener('click', () => setDetailVisible(viewer.classList.contains('is-detail-hidden')));
+    const expandButton = viewer.querySelector('[data-tree-expand]');
+    const collapseButton = sanctum.querySelector('[data-tree-collapse]');
+    const setExpanded = expanded => {
+        if (expanded === sanctum.classList.contains('is-expanded')) return;
+        if (expanded) expandedViews.set(sanctum, { focus: document.activeElement, x: window.scrollX, y: window.scrollY });
+        sanctum.classList.toggle('is-expanded', expanded);
+        expandButton.textContent = expanded ? '通常表示' : '最大表示';
+        expandButton.setAttribute('aria-pressed', String(expanded));
+        document.body.classList.toggle('ar-tree-expanded', expanded);
+        if (expanded) collapseButton.focus({ preventScroll: true });
+        else {
+            const previous = expandedViews.get(sanctum);
+            (previous?.focus?.isConnected ? previous.focus : expandButton).focus({ preventScroll: true });
+            if (previous) window.scrollTo({ left: previous.x, top: previous.y, behavior: 'instant' });
+            expandedViews.delete(sanctum);
+        }
+    };
+    expandButton.addEventListener('click', () => setExpanded(!sanctum.classList.contains('is-expanded')));
+    collapseButton.addEventListener('click', () => setExpanded(false), { signal: lifecycle.signal });
+    document.addEventListener('keydown', event => {
+        if (!sanctum.classList.contains('is-expanded') || event.defaultPrevented) return;
+        if (event.key === 'Escape') { event.preventDefault(); setExpanded(false); }
+        else if (event.key === 'Tab') {
+            const focusable = [...sanctum.querySelectorAll('button, input, select, a[href], summary, [tabindex="0"]')]
+                .filter(element => !element.disabled && element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden');
+            const first = focusable[0], last = focusable.at(-1);
+            if (event.shiftKey && (document.activeElement === first || !sanctum.contains(document.activeElement))) {
+                event.preventDefault(); last?.focus({ preventScroll: true });
+            } else if (!event.shiftKey && (document.activeElement === last || !sanctum.contains(document.activeElement))) {
+                event.preventDefault(); first?.focus({ preventScroll: true });
+            }
+        }
+    }, { signal: lifecycle.signal });
     const pointers = new Map();
     let pinch = null;
     viewport.addEventListener('pointerdown', event => {
+        if (event.button === 0 && pointers.size >= 2) { primaryPress = null; return; }
         primaryPress = event.button === 0 ? { type: event.pointerType, nodeId: event.target.closest('[data-node-key]')?.dataset.nodeKey } : null;
         rightPress = event.button === 2 && event.pointerType === 'mouse'
             ? { nodeId: event.target.closest('[data-node-key]')?.dataset.nodeKey, x: event.clientX, y: event.clientY, moved: false } : null;
@@ -257,9 +302,10 @@ export function initializeViewer(viewer, viewState) {
         drag = { id: event.pointerId, x: event.clientX, y: event.clientY, originX: camera.x, originY: camera.y };
         dragged = false;
         if (pointers.size === 2) {
-            const [a, b] = [...pointers.values()];
-            pinch = { distance: Math.hypot(a.x - b.x, a.y - b.y), camera: { ...camera } };
-            dragged = true;
+            const [a, b] = [...pointers.values()], rect = viewport.getBoundingClientRect();
+            pinch = { distance: Math.hypot(a.x - b.x, a.y - b.y), camera: { ...camera }, center: { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top } };
+            primaryPress = null; dragged = true;
+            for (const id of pointers.keys()) viewport.setPointerCapture(id);
         }
     });
     viewport.addEventListener('pointermove', event => {
@@ -268,24 +314,32 @@ export function initializeViewer(viewer, viewState) {
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (pinch && pointers.size === 2) {
             const [a, b] = [...pointers.values()], rect = viewport.getBoundingClientRect();
-            camera = zoomCamera(pinch.camera, Math.max(minZoom(), Math.min(2, pinch.camera.zoom * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.distance))), (a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top);
+            camera = pinchCamera(pinch.camera, Math.max(minZoom(), Math.min(2, pinch.camera.zoom * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.distance))), pinch.center, { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top });
             dragged = true; viewer.classList.add('is-panning'); draw(); return;
         }
         if (!drag || drag.id !== event.pointerId) return;
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
-        if (!dragged && Math.abs(dx) + Math.abs(dy) > 6) { dragged = true; viewport.setPointerCapture(event.pointerId); viewer.classList.add('is-panning'); }
+        if (!dragged && Math.abs(dx) + Math.abs(dy) > 6) { primaryPress = null; dragged = true; viewport.setPointerCapture(event.pointerId); viewer.classList.add('is-panning'); }
         if (!dragged) return;
         camera.x = drag.originX + dx; camera.y = drag.originY + dy; draw();
     });
-    const endDrag = event => { pointers.delete(event.pointerId); pinch = null; drag = null; viewer.classList.remove('is-panning'); };
+    const endDrag = event => {
+        if (!pointers.delete(event.pointerId)) return;
+        pinch = null;
+        const remaining = [...pointers.entries()][0];
+        drag = remaining ? { id: remaining[0], ...remaining[1], originX: camera.x, originY: camera.y } : null;
+        if (!remaining) viewer.classList.remove('is-panning');
+    };
     viewport.addEventListener('pointerup', endDrag);
     viewport.addEventListener('pointercancel', event => { primaryPress = null; rightPress = null; endDrag(event); });
-    viewport.addEventListener('lostpointercapture', endDrag);
+    viewport.addEventListener('lostpointercapture', event => { if (event.target === viewport) endDrag(event); });
+    window.addEventListener('pointerup', endDrag, { signal: lifecycle.signal });
+    window.addEventListener('pointercancel', endDrag, { signal: lifecycle.signal });
     viewport.addEventListener('wheel', event => {
         event.preventDefault();
         interactionUntil = performance.now() + 180;
         const rect = viewport.getBoundingClientRect();
-        zoomBy(Math.exp(-Math.sign(event.deltaY) * .15), event.clientX - rect.left, event.clientY - rect.top);
+        zoomBy(wheelZoomFactor(event, viewportHeight), event.clientX - rect.left, event.clientY - rect.top);
     }, { passive: false });
     viewport.addEventListener('keydown', event => {
         const shifts = { ArrowLeft: [70, 0], ArrowRight: [-70, 0], ArrowUp: [0, 70], ArrowDown: [0, -70] };
@@ -390,12 +444,13 @@ export function initializeViewer(viewer, viewState) {
         draw();
     });
     observer.observe(viewport);
-    viewer.dispose = () => { disposed = true; observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
-    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
+    viewer.dispose = () => { disposed = true; lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
+    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !viewer.classList.contains('is-detail-hidden'), width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
     viewer.selectNode = (id, openDetails = true) => { const node = nodes.get(id); if (node) showDetails(node, openDetails); };
     viewer.isInteracting = () => pointers.size > 0 || performance.now() < interactionUntil;
     showDetails(nodes.get(viewState?.selectedId) ?? root, false);
+    setDetailVisible(viewState?.detailVisible ?? !window.matchMedia('(max-width: 760px)').matches);
     if (viewState) { camera = { ...viewState.camera }; draw(); }
-    else { focusNode(root); if (viewport.clientWidth < 760) viewer.classList.add('is-detail-hidden'); }
+    else focusNode(root);
 }
 for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) initializeViewer(viewer);

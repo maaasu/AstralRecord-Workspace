@@ -34,6 +34,17 @@ export function zoomCamera(camera, zoom, anchorX, anchorY) {
     return { zoom, x: anchorX - (anchorX - camera.x) * zoom / camera.zoom, y: anchorY - (anchorY - camera.y) * zoom / camera.zoom };
 }
 
+export function pinchCamera(camera, zoom, start, current) {
+    const next = zoomCamera(camera, zoom, start.x, start.y);
+    return { ...next, x: next.x + current.x - start.x, y: next.y + current.y - start.y };
+}
+
+export function wheelZoomFactor(event, viewportHeight) {
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewportHeight : 1;
+    const delta = Math.max(-100, Math.min(100, event.deltaY * unit));
+    return Math.exp(-delta * (event.ctrlKey ? .01 : .0015));
+}
+
 export { materialId } from './minecraft-icons.mjs';
 
 export function nodeState(node) {

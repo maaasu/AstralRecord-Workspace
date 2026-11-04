@@ -5,6 +5,7 @@
         <header class="ar-tree-heading">
             <div><p class="ar-tree-eyebrow">成長の星図</p><h2 id="skilltree-title">スキルツリー <small data-editor-heading-account></small></h2><p>星を辿り、あなたの力のつながりを見渡す。</p></div>
             <span class="ar-tree-heading-balance-kind" data-editor-heading-kind></span><div class="ar-tree-progress"><strong>@Model.Nodes.Count(n => n.IsUnlocked)<span> / @Model.Nodes.Count</span></strong><span>表示中の解放ノード</span></div>
+            <button type="button" class="ar-tree-collapse" data-tree-collapse>通常表示に戻る <small>Esc</small></button>
         </header>
         @if (Model.Nodes.Count == 0)
         {
@@ -12,6 +13,7 @@
         }
             <div data-skilltree-viewer>
                 <script type="application/json" data-tree-json>@Html.Raw(JsonSerializer.Serialize(Model, new JsonSerializerOptions(JsonSerializerDefaults.Web)))</script>
+                <div class="ar-tree-tools">
                 @if (editable)
                 {
                     <div class="ar-tree-account-state">
@@ -58,10 +60,12 @@
                         <button type="button" data-tree-home aria-label="選択ノードへ移動">選択へ</button>
                         <button type="button" data-tree-fit>全体図</button>
                         <button type="button" data-tree-reset aria-label="開始位置に戻る">起点へ</button>
+                        <button type="button" data-tree-detail-toggle aria-pressed="true">詳細を隠す</button>
                         <button type="button" data-tree-expand aria-pressed="false">最大表示</button>
                     </div>
                 </div>
                 <div class="ar-tree-search-options"><select data-tree-effect-filter aria-label="指定した効果のノードを強調"><option value="">効果を選んで強調</option></select><span data-tree-match-count role="status"></span><button type="button" data-tree-match-prev aria-label="前の検索結果へ">前へ</button><button type="button" data-tree-match-next aria-label="次の検索結果へ">次へ</button><button type="button" data-tree-search-clear>強調を解除</button></div>
+                </div>
                 <div class="ar-tree-layout">
                     <div class="ar-tree-map-shell">
                         <div class="ar-tree-viewport" tabindex="0" role="region" aria-label="スキルツリーマップ。ドラッグと矢印キーで移動、プラス・マイナスキーで拡大縮小">

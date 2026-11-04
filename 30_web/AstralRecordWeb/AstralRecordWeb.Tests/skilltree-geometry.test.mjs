@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNodes, graphBounds, fitCamera, zoomCamera, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
 
 test('all pairwise distances and directions retain the source proportions', () => {
     const source = [{ x: -9, z: 2 }, { x: -7, z: 2 }, { x: 4, z: 10 }, { x: 11, z: -8 }];
@@ -57,6 +57,28 @@ test('zoom leaves the pointer location anchored in graph coordinates', () => {
     const next = zoomCamera(camera, 1.3, 311, 247);
     assert.ok(Math.abs((311 - camera.x) / camera.zoom - (311 - next.x) / next.zoom) < 1e-9);
     assert.ok(Math.abs((247 - camera.y) / camera.zoom - (247 - next.y) / next.zoom) < 1e-9);
+});
+
+test('pinch keeps the starting graph point under the moving two-finger midpoint', () => {
+    const camera = { x: 125, y: -210, zoom: .8 };
+    const start = { x: 300, y: 200 }, current = { x: 340, y: 230 };
+    for (const zoom of [.8, 1.3, 2]) {
+        const next = pinchCamera(camera, zoom, start, current);
+        assert.ok(Math.abs((start.x - camera.x) / camera.zoom - (current.x - next.x) / next.zoom) < 1e-9);
+        assert.ok(Math.abs((start.y - camera.y) / camera.zoom - (current.y - next.y) / next.zoom) < 1e-9);
+    }
+    assert.deepEqual(pinchCamera(camera, .8, start, current), { x: 165, y: -180, zoom: .8 });
+});
+
+test('wheel zoom respects small trackpad deltas, browser units and input limits', () => {
+    const factor = (deltaY, deltaMode = 0) => wheelZoomFactor({ deltaY, deltaMode }, 600);
+    assert.equal(factor(0), 1);
+    assert.ok(factor(1) > .998 && factor(1) < 1);
+    assert.equal(factor(3, 1), factor(48));
+    assert.equal(factor(1, 2), factor(100));
+    assert.equal(factor(10000), factor(100));
+    assert.ok(Math.abs(factor(25) * factor(-25) - 1) < 1e-9);
+    assert.ok(wheelZoomFactor({ deltaY: -1, ctrlKey: true }, 600) > factor(-1));
 });
 
 test('material paths allow Bukkit names but reject URLs and traversal', () => {

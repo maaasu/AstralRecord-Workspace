@@ -198,16 +198,28 @@
 .is-detail-hidden .ar-tree-detail { display: none; }
 .is-detail-hidden .ar-tree-layout { grid-template-columns: minmax(0, 1fr); }
 .ar-tree-expanded { overflow: hidden; }
+/* Let the fixed map escape the player portal's isolated stacking context. */
+.ar-player.ar-tree-expanded .ar-portal:has(.ar-tree-sanctum.is-expanded) { isolation: auto; }
+.ar-tree-expanded > :is(.ar-navbar, .ar-footer, .ar-skip-link) { visibility: hidden; }
+.ar-tree-collapse { display: none; border: 1px solid #d9b97c66; border-radius: 4px; background: #221f2c; color: #f7e3b4; padding: .5rem .7rem; flex-shrink: 0; }
+.ar-tree-collapse small { margin-left: .4rem; color: #b8b0c4; }
+.is-expanded .ar-tree-collapse { display: block; }
+.is-expanded .ar-tree-heading { flex-shrink: 0; }
+.is-expanded .ar-tree-tools { display: flex; flex-direction: column; min-height: 0; max-height: 46%; flex-shrink: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.is-expanded .ar-tree-tools > * { flex-shrink: 0; }
+.is-expanded .ar-tree-toolbar { order: -2; }
+.is-expanded .ar-tree-search-options { order: -1; }
+.ar-tree-viewport { user-select: none; }
 .ar-tree-sanctum.is-expanded { position: fixed; inset: 0; z-index: 1100; margin: 0; padding: .5rem .8rem; border: none; border-radius: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .is-expanded .ar-tree-heading { padding: .2rem .3rem; }
 .is-expanded .ar-tree-heading h2 { font-size: 1.1rem; }
 .is-expanded .ar-tree-heading p, .is-expanded .ar-tree-progress { display: none; }
 .is-expanded [data-skilltree-viewer] { min-height: 0; flex: 1; display: flex; flex-direction: column; }
-.is-expanded .ar-tree-toolbar { margin: 0; padding: .4rem 0; gap: .4rem; }
+.is-expanded .ar-tree-toolbar { margin: 0; padding: .4rem 0; gap: .4rem; flex-direction: row; flex-wrap: wrap; }
 .is-expanded .ar-tree-layout { flex: 1; min-height: 0; }
 .is-expanded .ar-tree-map-shell, .is-expanded .ar-tree-viewport { height: 100%; min-height: 0; }
 .is-expanded .ar-tree-detail { max-height: 100%; }
-.is-expanded .ar-tree-map-footer { padding: .3rem; }
+.is-expanded .ar-tree-map-footer { padding: .3rem; flex-shrink: 0; }
 .is-expanded .ar-tree-accessible, .is-expanded .ar-tree-map-caption { display: none; }
 .ar-tree-legend { flex-wrap: wrap; gap: .6rem 1rem; }
 .ar-tree-legend .edge { width: 24px; height: 0; transform: none; border: 0; border-top: 3px dashed #aba4bd; }
@@ -230,8 +242,13 @@
 [data-editor-operation-reason] { color: #f3c697; }
 [data-editor-confirm] { padding: .8rem; border: 1px solid #d9b97c; margin-top: 1rem; }
 @media (max-width: 760px) {
-    .ar-tree-layout { position: relative; }
-    .ar-tree-detail { position: absolute; right: 0; top: 0; bottom: 0; width: min(285px, 80%); max-height: 100%; z-index: 4; border: 1px solid #d9b97c; padding: .8rem; }
+    .ar-tree-layout { display: flex; flex-direction: column; height: min(75dvh, 690px); min-height: 420px; }
+    .ar-tree-map-shell { flex: 1; min-height: 0; }
+    .ar-tree-viewport { height: 100%; }
+    .ar-tree-detail { position: relative; flex: 0 1 auto; min-height: 0; max-height: 45%; width: 100%; border: 0; border-top: 1px solid #d9b97c55; padding: .8rem; overscroll-behavior: contain; }
+    .is-expanded .ar-tree-layout { height: auto; min-height: 0; }
+    .is-expanded .ar-tree-map-shell { height: auto; }
+    .is-expanded .ar-tree-detail { max-height: 45%; }
     .ar-tree-relic { display: none; }
     .ar-tree-controls button { min-height: 40px; }
     .is-expanded .ar-tree-toolbar { flex-direction: row; flex-wrap: wrap; }
@@ -242,6 +259,8 @@
     .ar-tree-cp-list { max-height: 60px; }
     .ar-tree-presence small { display: none; }
     .ar-tree-minimap { display: none; }
+    .ar-tree-collapse { font-size: .7rem; padding: .4rem; }
+    .ar-tree-collapse small { display: none; }
 }
 
 /* The ledger separates saved points from an unsent plan; location belongs to My Page. */
@@ -345,4 +364,13 @@
     .is-expanded .ar-tree-controls { flex-basis: 100%; gap: .2rem; }
     .is-expanded .ar-tree-controls output { min-width: 36px; }
     .is-expanded .ar-tree-control-divider { margin: 0 .1rem; }
+}
+
+@media (max-height: 500px) {
+    .is-expanded .ar-tree-heading { padding: .1rem .3rem; gap: .5rem; }
+    .is-expanded .ar-tree-heading h2 { font-size: 1rem; }
+    .is-expanded .ar-tree-heading h2 small, .is-expanded .ar-tree-heading-balance-kind,
+    .is-expanded .ar-tree-map-footer { display: none; }
+    .is-expanded .ar-tree-collapse { padding: .3rem .5rem; font-size: .75rem; }
+    .is-expanded .ar-tree-tools { max-height: 40%; }
 }
