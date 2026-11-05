@@ -1,0 +1,616 @@
+{
+  "id": "lapis_sword",
+  "master_id": "20a00400",
+  "kind": "sword",
+  "intent": "Lv20 RARE。鉄剣の段付き輪郭を基準に、青い鉱石の幅広い中芯を銀鉄の刃で挟んだ実用的な片手剣。ラピスブロックの濃淡と少量の黄鉄鉱を8pxの素材面で見せる。ノクスより整った鍛造縁と石の面取りを持つが、翼・冠・発光は付けず上位の豪華さを残す。剣の長い平刃、鎚の石塊、槍の木長柄を輪郭で区別する。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#102654",
+        "#173879",
+        "#214C9A",
+        "#3267B1",
+        "#4A83C6",
+        "#B5A16B"
+      ],
+      "pattern": [
+        "22212322",
+        "23322332",
+        "23222343",
+        "12231233",
+        "22332223",
+        "23532212",
+        "23322332",
+        "32212323"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "#193972",
+        "#2858A0",
+        "#3C76B9",
+        "#5B95D0",
+        "#8AB5DC"
+      ],
+      "pattern": [
+        "12222321",
+        "23322332",
+        "22333232",
+        "12322221",
+        "12233222",
+        "23323232",
+        "22332221",
+        "12222321"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "#3A4952",
+        "#677C86",
+        "#9EADB0",
+        "#CFD7D1",
+        "#EDF1E4"
+      ],
+      "pattern": [
+        "22233222",
+        "23333332",
+        "23323332",
+        "12223222",
+        "12222212",
+        "22233222",
+        "23333322",
+        "12222212"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "#71868B",
+        "#A4B7B5",
+        "#D8E1D4",
+        "#F2F3DF"
+      ],
+      "pattern": [
+        "23333223",
+        "22233222",
+        "12222221",
+        "12222221",
+        "22233222",
+        "23333322",
+        "22333222",
+        "12222221"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "#273640",
+        "#3B505C",
+        "#536B75",
+        "#788B8D"
+      ],
+      "pattern": [
+        "12222221",
+        "23322232",
+        "23222222",
+        "12212221",
+        "12222211",
+        "23322222",
+        "23222232",
+        "12212221"
+      ]
+    },
+    "cord": {
+      "palette": [
+        "#122639",
+        "#1C3B51",
+        "#31576A",
+        "#4D7180"
+      ],
+      "pattern": [
+        "11221122",
+        "22332233",
+        "22222222",
+        "11001100",
+        "22112211",
+        "33223322",
+        "22222222",
+        "00110011"
+      ]
+    },
+    "wood": {
+      "palette": [
+        "#302927",
+        "#4F3B30",
+        "#745840",
+        "#98734D"
+      ],
+      "pattern": [
+        "12211221",
+        "12211221",
+        "13312231",
+        "12211221",
+        "12212221",
+        "12213221",
+        "12212231",
+        "12211221"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "solid_wrapped_grip",
+      "from": [
+        7.35,
+        2.15,
+        7.35
+      ],
+      "to": [
+        8.65,
+        6.35,
+        8.65
+      ],
+      "material": "cord",
+      "side": "cord",
+      "cap": "wood"
+    },
+    {
+      "name": "pommel_iron_block",
+      "from": [
+        7,
+        1.25,
+        7
+      ],
+      "to": [
+        9,
+        2.3,
+        9
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel"
+    },
+    {
+      "name": "pommel_lapis_end",
+      "from": [
+        7.3,
+        0.85,
+        7.3
+      ],
+      "to": [
+        8.7,
+        1.3,
+        8.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "pommel_front_stone",
+      "from": [
+        7.5,
+        1.4,
+        6.7
+      ],
+      "to": [
+        8.5,
+        2.05,
+        7.05
+      ],
+      "material": "lapis",
+      "side": "lapis_facet"
+    },
+    {
+      "name": "pommel_back_stone",
+      "from": [
+        7.5,
+        1.4,
+        8.95
+      ],
+      "to": [
+        8.5,
+        2.05,
+        9.3
+      ],
+      "material": "lapis",
+      "side": "lapis_facet"
+    },
+    {
+      "name": "upper_grip_ferrule",
+      "from": [
+        7.1,
+        5.85,
+        7.1
+      ],
+      "to": [
+        8.9,
+        6.5,
+        8.9
+      ],
+      "material": "iron_dark",
+      "side": "steel",
+      "cap": "steel"
+    },
+    {
+      "name": "straight_iron_crossguard",
+      "from": [
+        4.75,
+        6.2,
+        7
+      ],
+      "to": [
+        11.25,
+        6.95,
+        9
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "left_guard_step",
+      "from": [
+        4.25,
+        6.6,
+        7.1
+      ],
+      "to": [
+        5.5,
+        7.45,
+        8.9
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "right_guard_step",
+      "from": [
+        10.5,
+        6.6,
+        7.1
+      ],
+      "to": [
+        11.75,
+        7.45,
+        8.9
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "left_guard_lapis_cap",
+      "from": [
+        4.05,
+        6.85,
+        7.3
+      ],
+      "to": [
+        4.8,
+        7.55,
+        8.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "right_guard_lapis_cap",
+      "from": [
+        11.2,
+        6.85,
+        7.3
+      ],
+      "to": [
+        11.95,
+        7.55,
+        8.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "front_guard_setting",
+      "from": [
+        7.1,
+        6.2,
+        6.6
+      ],
+      "to": [
+        8.9,
+        7.5,
+        7.05
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "front_guard_lapis",
+      "from": [
+        7.4,
+        6.45,
+        6.3
+      ],
+      "to": [
+        8.6,
+        7.25,
+        6.65
+      ],
+      "material": "lapis",
+      "side": "lapis_facet"
+    },
+    {
+      "name": "back_guard_setting",
+      "from": [
+        7.1,
+        6.2,
+        8.95
+      ],
+      "to": [
+        8.9,
+        7.5,
+        9.4
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "back_guard_lapis",
+      "from": [
+        7.4,
+        6.45,
+        9.35
+      ],
+      "to": [
+        8.6,
+        7.25,
+        9.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet"
+    },
+    {
+      "name": "blade_iron_root",
+      "from": [
+        6.75,
+        6.9,
+        7.15
+      ],
+      "to": [
+        9.25,
+        8.2,
+        8.85
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "broad_lapis_blade_shoulder",
+      "from": [
+        6.25,
+        8.05,
+        7.3
+      ],
+      "to": [
+        9.75,
+        10,
+        8.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "left_shoulder_cutting_edge",
+      "from": [
+        5.75,
+        8.5,
+        7.45
+      ],
+      "to": [
+        6.3,
+        10,
+        8.55
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "right_shoulder_cutting_edge",
+      "from": [
+        9.7,
+        8.5,
+        7.45
+      ],
+      "to": [
+        10.25,
+        10,
+        8.55
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "long_lapis_blade_flat",
+      "from": [
+        6.7,
+        10,
+        7.3
+      ],
+      "to": [
+        9.3,
+        16.6,
+        8.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "left_long_cutting_edge",
+      "from": [
+        6.2,
+        10,
+        7.45
+      ],
+      "to": [
+        6.75,
+        16.6,
+        8.55
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "right_long_cutting_edge",
+      "from": [
+        9.25,
+        10,
+        7.45
+      ],
+      "to": [
+        9.8,
+        16.6,
+        8.55
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "first_point_stone_step",
+      "from": [
+        7.05,
+        16.55,
+        7.35
+      ],
+      "to": [
+        8.95,
+        17.8,
+        8.65
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "left_point_bevel",
+      "from": [
+        6.55,
+        16.55,
+        7.5
+      ],
+      "to": [
+        7.1,
+        17.8,
+        8.5
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "right_point_bevel",
+      "from": [
+        8.9,
+        16.55,
+        7.5
+      ],
+      "to": [
+        9.45,
+        17.8,
+        8.5
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "second_point_stone_step",
+      "from": [
+        7.5,
+        17.75,
+        7.45
+      ],
+      "to": [
+        8.5,
+        18.85,
+        8.55
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "left_tip_bevel",
+      "from": [
+        7.05,
+        17.75,
+        7.55
+      ],
+      "to": [
+        7.55,
+        18.85,
+        8.45
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "right_tip_bevel",
+      "from": [
+        8.45,
+        17.75,
+        7.55
+      ],
+      "to": [
+        8.95,
+        18.85,
+        8.45
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "square_iron_point",
+      "from": [
+        7.55,
+        18.8,
+        7.6
+      ],
+      "to": [
+        8.45,
+        19.55,
+        8.4
+      ],
+      "material": "steel_edge",
+      "side": "steel",
+      "cap": "steel_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -22,
+      -35
+    ],
+    "translation": [
+      0,
+      -0.7,
+      0
+    ],
+    "scale": 0.9
+  }
+}

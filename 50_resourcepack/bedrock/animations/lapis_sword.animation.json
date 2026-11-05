@@ -1,0 +1,76 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.lapis_sword.first_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            97,
+            -77,
+            119
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.9
+        }
+      }
+    },
+    "animation.astralrecord.lapis_sword.third_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            87,
+            0,
+            0
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ]
+        }
+      }
+    },
+    "animation.astralrecord.lapis_sword.attack": {
+      "loop": true,
+      "animation_length": 0.3,
+      "anim_time_update": "variable.nox_swing * 0.3",
+      "bones": {
+        "weapon": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.05": [
+              -7,
+              6,
+              -10
+            ],
+            "0.15": [
+              11,
+              -12,
+              18
+            ],
+            "0.2": [
+              3,
+              -4,
+              8
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  }
+}

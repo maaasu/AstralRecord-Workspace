@@ -1,0 +1,570 @@
+{
+  "id": "lapis_hammer",
+  "master_id": "20a00401",
+  "kind": "hammer",
+  "intent": "Lv20 RARE。ラピスブロックを鉄帯で締めた角形の片手鎚。鉄の斧に近い短めの木柄と、左の幅広い打撃面・右の小さな釣合い頭を組み合わせて重量を輪郭で見せる。青い石の大きな面、面取り、二本の鉄帯を主役にし、黄鉄鉱はテクスチャの少数ピクセルに留める。初期の木石道具より加工精度を上げ、上位の金装飾や翼は付けない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#102755",
+        "#193F84",
+        "#2859A4",
+        "#3A73BB",
+        "#6398CF",
+        "#A39A65"
+      ],
+      "pattern": [
+        "22212222",
+        "23323322",
+        "23332332",
+        "12222322",
+        "22335223",
+        "23232233",
+        "23322232",
+        "12223222"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "#1C3D76",
+        "#2F5F9F",
+        "#477FB9",
+        "#70A0D0"
+      ],
+      "pattern": [
+        "12222221",
+        "23322332",
+        "23333322",
+        "12222221",
+        "12222221",
+        "23332332",
+        "22332232",
+        "12222221"
+      ]
+    },
+    "iron_band": {
+      "palette": [
+        "#2E414C",
+        "#4E6571",
+        "#7D9297",
+        "#ACBAB6"
+      ],
+      "pattern": [
+        "12222221",
+        "23322232",
+        "23222222",
+        "12222221",
+        "12211221",
+        "22222222",
+        "23222232",
+        "12222221"
+      ]
+    },
+    "striking_steel": {
+      "palette": [
+        "#4E626B",
+        "#7D9295",
+        "#B2BFB7",
+        "#E2E5D1"
+      ],
+      "pattern": [
+        "12222221",
+        "23333332",
+        "23322332",
+        "23222232",
+        "23221232",
+        "23322232",
+        "23333332",
+        "12222221"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "#23343D",
+        "#364F5B",
+        "#53717C",
+        "#789099"
+      ],
+      "pattern": [
+        "12222221",
+        "22222222",
+        "23222232",
+        "12211221",
+        "12211221",
+        "23222232",
+        "22222222",
+        "12222221"
+      ]
+    },
+    "ash_wood": {
+      "palette": [
+        "#493728",
+        "#705338",
+        "#997549",
+        "#BA945F"
+      ],
+      "pattern": [
+        "12211221",
+        "12211221",
+        "13312231",
+        "12312231",
+        "12211221",
+        "12211221",
+        "12213221",
+        "12212221"
+      ]
+    },
+    "grip_leather": {
+      "palette": [
+        "#142B39",
+        "#234552",
+        "#3C626B",
+        "#64848A"
+      ],
+      "pattern": [
+        "11221122",
+        "22332233",
+        "22222222",
+        "11001100",
+        "22112211",
+        "33223322",
+        "22222222",
+        "00110011"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "solid_ash_handle",
+      "from": [
+        7.3,
+        1.8,
+        7.3
+      ],
+      "to": [
+        8.7,
+        13.4,
+        8.7
+      ],
+      "material": "ash_wood",
+      "side": "ash_wood",
+      "cap": "ash_wood"
+    },
+    {
+      "name": "blue_bound_hand_grip",
+      "from": [
+        7.1,
+        2.55,
+        7.1
+      ],
+      "to": [
+        8.9,
+        6.35,
+        8.9
+      ],
+      "material": "grip_leather",
+      "side": "grip_leather",
+      "cap": "ash_wood"
+    },
+    {
+      "name": "bottom_iron_ferrule",
+      "from": [
+        7,
+        1.25,
+        7
+      ],
+      "to": [
+        9,
+        2.6,
+        9
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "bottom_lapis_stop",
+      "from": [
+        7.3,
+        0.75,
+        7.3
+      ],
+      "to": [
+        8.7,
+        1.3,
+        8.7
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "upper_grip_iron_ring",
+      "from": [
+        7,
+        6.25,
+        7
+      ],
+      "to": [
+        9,
+        7.05,
+        9
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "head_socket",
+      "from": [
+        6.9,
+        11.35,
+        6.9
+      ],
+      "to": [
+        9.1,
+        13.15,
+        9.1
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "lapis_head_main_block",
+      "from": [
+        3.15,
+        12.5,
+        6.05
+      ],
+      "to": [
+        12.9,
+        17,
+        9.95
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "lapis_head_top_bevel",
+      "from": [
+        3.65,
+        17,
+        6.55
+      ],
+      "to": [
+        12.4,
+        17.5,
+        9.45
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "lapis_head_bottom_bevel",
+      "from": [
+        3.65,
+        12,
+        6.55
+      ],
+      "to": [
+        12.4,
+        12.55,
+        9.45
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "left_steel_striking_face",
+      "from": [
+        2.2,
+        12.25,
+        5.8
+      ],
+      "to": [
+        3.25,
+        17.25,
+        10.2
+      ],
+      "material": "striking_steel",
+      "side": "iron_band",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "left_face_raised_square",
+      "from": [
+        1.7,
+        12.85,
+        6.4
+      ],
+      "to": [
+        2.25,
+        16.65,
+        9.6
+      ],
+      "material": "striking_steel",
+      "side": "iron_band",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "small_lapis_counterweight",
+      "from": [
+        12.85,
+        13.15,
+        6.55
+      ],
+      "to": [
+        14.2,
+        16.35,
+        9.45
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "counterweight_iron_cap",
+      "from": [
+        14.15,
+        13.4,
+        6.8
+      ],
+      "to": [
+        14.85,
+        16.1,
+        9.2
+      ],
+      "material": "iron_band",
+      "side": "striking_steel",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "left_band_front",
+      "from": [
+        4.05,
+        12.15,
+        5.7
+      ],
+      "to": [
+        4.95,
+        17.35,
+        6.15
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "left_band_back",
+      "from": [
+        4.05,
+        12.15,
+        9.85
+      ],
+      "to": [
+        4.95,
+        17.35,
+        10.3
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "left_band_top",
+      "from": [
+        4.05,
+        17,
+        6.1
+      ],
+      "to": [
+        4.95,
+        17.8,
+        9.9
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "left_band_bottom",
+      "from": [
+        4.05,
+        11.8,
+        6.1
+      ],
+      "to": [
+        4.95,
+        12.55,
+        9.9
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "right_band_front",
+      "from": [
+        10.9,
+        12.15,
+        5.7
+      ],
+      "to": [
+        11.8,
+        17.35,
+        6.15
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "right_band_back",
+      "from": [
+        10.9,
+        12.15,
+        9.85
+      ],
+      "to": [
+        11.8,
+        17.35,
+        10.3
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "right_band_top",
+      "from": [
+        10.9,
+        17,
+        6.1
+      ],
+      "to": [
+        11.8,
+        17.8,
+        9.9
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "right_band_bottom",
+      "from": [
+        10.9,
+        11.8,
+        6.1
+      ],
+      "to": [
+        11.8,
+        12.55,
+        9.9
+      ],
+      "material": "iron_band",
+      "side": "iron_dark",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "front_stone_inset_face",
+      "from": [
+        5,
+        13,
+        5.7
+      ],
+      "to": [
+        10.85,
+        16.55,
+        6.1
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "back_stone_inset_face",
+      "from": [
+        5,
+        13,
+        9.9
+      ],
+      "to": [
+        10.85,
+        16.55,
+        10.3
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "shaft_wedge_above_head",
+      "from": [
+        7.15,
+        16.85,
+        7.15
+      ],
+      "to": [
+        8.85,
+        17.85,
+        8.85
+      ],
+      "material": "iron_dark",
+      "side": "iron_band",
+      "cap": "striking_steel"
+    },
+    {
+      "name": "front_socket_bolt",
+      "from": [
+        7.55,
+        11.7,
+        6.5
+      ],
+      "to": [
+        8.45,
+        12.55,
+        6.95
+      ],
+      "material": "striking_steel",
+      "side": "iron_dark"
+    },
+    {
+      "name": "back_socket_bolt",
+      "from": [
+        7.55,
+        11.7,
+        9.05
+      ],
+      "to": [
+        8.45,
+        12.55,
+        9.5
+      ],
+      "material": "striking_steel",
+      "side": "iron_dark"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      15,
+      -25,
+      -28
+    ],
+    "translation": [
+      0,
+      -0.4,
+      0
+    ],
+    "scale": 0.91
+  }
+}

@@ -1,0 +1,540 @@
+{
+  "id": "lapis_spear",
+  "master_id": "20a00402",
+  "kind": "spear",
+  "intent": "Lv20 RARE。説明文の木のスピアを守り、長い明るい木柄に青石の葉形穂先と短い鉄のソケットを付ける。木槍の素直な縦長輪郭、ラピスの太い段差、中央の細い鉄の稜線を主役にする。剣よりも木の割合が多く、鎚と違う細長い形。ノクスより丁寧な革巻きと面取りを持たせる一方、金や飾り翼は用いず中位の実用品に留める。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#112B58",
+        "#1F478B",
+        "#2E62AB",
+        "#4A7FBC",
+        "#76A3D1",
+        "#B6A76E"
+      ],
+      "pattern": [
+        "22212222",
+        "23322332",
+        "23323332",
+        "12223222",
+        "22235223",
+        "23322232",
+        "23223222",
+        "12222322"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "#204779",
+        "#3566A1",
+        "#558AC2",
+        "#83ACD4"
+      ],
+      "pattern": [
+        "12222221",
+        "22333322",
+        "23333332",
+        "12222221",
+        "12222221",
+        "23323332",
+        "22333222",
+        "12222221"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "#3B505B",
+        "#647E88",
+        "#9AAFAD",
+        "#D6DECE"
+      ],
+      "pattern": [
+        "12222221",
+        "23333332",
+        "23323332",
+        "12222221",
+        "12222221",
+        "23333232",
+        "22222222",
+        "12222221"
+      ]
+    },
+    "dark_steel": {
+      "palette": [
+        "#263B45",
+        "#3C5661",
+        "#5D7A82",
+        "#8BA0A2"
+      ],
+      "pattern": [
+        "12222221",
+        "23222232",
+        "22222222",
+        "12211221",
+        "12222221",
+        "23222232",
+        "22222222",
+        "12211221"
+      ]
+    },
+    "ash_wood": {
+      "palette": [
+        "#523D2B",
+        "#7B5C3D",
+        "#AA8451",
+        "#CEAA70"
+      ],
+      "pattern": [
+        "12211221",
+        "12211221",
+        "12213221",
+        "12313231",
+        "12211221",
+        "12211221",
+        "13312231",
+        "12211221"
+      ]
+    },
+    "endgrain": {
+      "palette": [
+        "#6A5034",
+        "#987647",
+        "#BE995F",
+        "#D9B779"
+      ],
+      "pattern": [
+        "11122111",
+        "12233221",
+        "12322321",
+        "23211232",
+        "23211232",
+        "12322321",
+        "12233221",
+        "11122111"
+      ]
+    },
+    "blue_binding": {
+      "palette": [
+        "#183441",
+        "#2C4F59",
+        "#4C7378",
+        "#769491"
+      ],
+      "pattern": [
+        "11221122",
+        "22332233",
+        "22222222",
+        "11001100",
+        "22112211",
+        "33223322",
+        "22222222",
+        "00110011"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "solid_long_ash_shaft",
+      "from": [
+        7.5,
+        1,
+        7.5
+      ],
+      "to": [
+        8.5,
+        17.4,
+        8.5
+      ],
+      "material": "ash_wood",
+      "side": "ash_wood",
+      "cap": "endgrain"
+    },
+    {
+      "name": "wrapped_grip_at_hand",
+      "from": [
+        7.25,
+        2.5,
+        7.25
+      ],
+      "to": [
+        8.75,
+        6,
+        8.75
+      ],
+      "material": "blue_binding",
+      "side": "blue_binding",
+      "cap": "endgrain"
+    },
+    {
+      "name": "lower_grip_binding_ring",
+      "from": [
+        7.15,
+        2.05,
+        7.15
+      ],
+      "to": [
+        8.85,
+        2.65,
+        8.85
+      ],
+      "material": "dark_steel",
+      "side": "steel",
+      "cap": "steel"
+    },
+    {
+      "name": "upper_grip_binding_ring",
+      "from": [
+        7.15,
+        5.85,
+        7.15
+      ],
+      "to": [
+        8.85,
+        6.45,
+        8.85
+      ],
+      "material": "dark_steel",
+      "side": "steel",
+      "cap": "steel"
+    },
+    {
+      "name": "shaft_butt_ferrule",
+      "from": [
+        7.25,
+        0.8,
+        7.25
+      ],
+      "to": [
+        8.75,
+        1.95,
+        8.75
+      ],
+      "material": "dark_steel",
+      "side": "steel",
+      "cap": "steel"
+    },
+    {
+      "name": "square_butt_tip",
+      "from": [
+        7.5,
+        0.25,
+        7.5
+      ],
+      "to": [
+        8.5,
+        0.85,
+        8.5
+      ],
+      "material": "steel",
+      "side": "dark_steel",
+      "cap": "steel"
+    },
+    {
+      "name": "lapis_socket_binding",
+      "from": [
+        7.25,
+        13.6,
+        7.25
+      ],
+      "to": [
+        8.75,
+        14.55,
+        8.75
+      ],
+      "material": "blue_binding",
+      "side": "blue_binding",
+      "cap": "endgrain"
+    },
+    {
+      "name": "iron_socket",
+      "from": [
+        7.1,
+        14.5,
+        7.1
+      ],
+      "to": [
+        8.9,
+        17.25,
+        8.9
+      ],
+      "material": "steel",
+      "side": "dark_steel",
+      "cap": "steel"
+    },
+    {
+      "name": "socket_lower_ring",
+      "from": [
+        6.95,
+        14.45,
+        6.95
+      ],
+      "to": [
+        9.05,
+        15.05,
+        9.05
+      ],
+      "material": "dark_steel",
+      "side": "steel",
+      "cap": "steel"
+    },
+    {
+      "name": "socket_top_ring",
+      "from": [
+        6.95,
+        16.7,
+        6.95
+      ],
+      "to": [
+        9.05,
+        17.3,
+        9.05
+      ],
+      "material": "dark_steel",
+      "side": "steel",
+      "cap": "steel"
+    },
+    {
+      "name": "blue_stone_heel",
+      "from": [
+        7,
+        17.2,
+        7.35
+      ],
+      "to": [
+        9,
+        18.15,
+        8.65
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "left_socket_prong",
+      "from": [
+        6.65,
+        16.9,
+        7.15
+      ],
+      "to": [
+        7.15,
+        18.45,
+        8.85
+      ],
+      "material": "steel",
+      "side": "dark_steel",
+      "cap": "steel"
+    },
+    {
+      "name": "right_socket_prong",
+      "from": [
+        8.85,
+        16.9,
+        7.15
+      ],
+      "to": [
+        9.35,
+        18.45,
+        8.85
+      ],
+      "material": "steel",
+      "side": "dark_steel",
+      "cap": "steel"
+    },
+    {
+      "name": "wide_leaf_shoulder",
+      "from": [
+        5.75,
+        18.1,
+        7.35
+      ],
+      "to": [
+        10.25,
+        19.55,
+        8.65
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "first_leaf_step",
+      "from": [
+        6.25,
+        19.5,
+        7.35
+      ],
+      "to": [
+        9.75,
+        21.05,
+        8.65
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "second_leaf_step",
+      "from": [
+        6.75,
+        21,
+        7.4
+      ],
+      "to": [
+        9.25,
+        22.55,
+        8.6
+      ],
+      "material": "lapis",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "third_leaf_step",
+      "from": [
+        7.25,
+        22.5,
+        7.45
+      ],
+      "to": [
+        8.75,
+        23.55,
+        8.55
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "stone_square_point",
+      "from": [
+        7.65,
+        23.5,
+        7.55
+      ],
+      "to": [
+        8.35,
+        24,
+        8.45
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "left_leaf_lower_facet",
+      "from": [
+        5.5,
+        18.4,
+        7.5
+      ],
+      "to": [
+        5.85,
+        19.35,
+        8.5
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "right_leaf_lower_facet",
+      "from": [
+        10.15,
+        18.4,
+        7.5
+      ],
+      "to": [
+        10.5,
+        19.35,
+        8.5
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "front_iron_midrib",
+      "from": [
+        7.7,
+        17.25,
+        7
+      ],
+      "to": [
+        8.3,
+        21.6,
+        7.4
+      ],
+      "material": "steel",
+      "side": "dark_steel",
+      "cap": "steel"
+    },
+    {
+      "name": "back_iron_midrib",
+      "from": [
+        7.7,
+        17.25,
+        8.6
+      ],
+      "to": [
+        8.3,
+        21.6,
+        9
+      ],
+      "material": "steel",
+      "side": "dark_steel",
+      "cap": "steel"
+    },
+    {
+      "name": "front_stone_upper_ridge",
+      "from": [
+        7.65,
+        21.5,
+        7.15
+      ],
+      "to": [
+        8.35,
+        23,
+        7.5
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "back_stone_upper_ridge",
+      "from": [
+        7.65,
+        21.5,
+        8.5
+      ],
+      "to": [
+        8.35,
+        23,
+        8.85
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_facet",
+      "cap": "lapis_facet"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      10,
+      -22,
+      -32
+    ],
+    "translation": [
+      0,
+      -2.2,
+      0
+    ],
+    "scale": 0.73
+  }
+}
