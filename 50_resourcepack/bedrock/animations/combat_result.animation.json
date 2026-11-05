@@ -1,0 +1,21 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.combat_result.motion": {
+      "loop": true,
+      "bones": {
+        "billboard": {
+          "rotation": [ "query.camera_rotation(0)", "query.camera_rotation(1) - query.body_y_rotation", 0 ]
+        },
+        "crest": {
+          "position": [ 0, "-0.8 + 0.8 * variable.pop", 0 ],
+          "scale": [
+            "(0.62 + 0.53 * variable.pop - 0.15 * variable.settle) * variable.fade",
+            "(0.62 + 0.53 * variable.pop - 0.15 * variable.settle) * variable.fade",
+            "(0.62 + 0.53 * variable.pop - 0.15 * variable.settle) * variable.fade"
+          ]
+        }
+      }
+    }
+  }
+}

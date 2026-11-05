@@ -1,0 +1,26 @@
+{
+  "namespace": "astralrecord_hud",
+  "ornament_glow_in": {
+    "anim_type": "alpha",
+    "easing": "out_quad",
+    "duration": 0.22,
+    "from": 0.42,
+    "to": 0.82,
+    "next": "@astralrecord_hud.ornament_glow_out"
+  },
+  "ornament_glow_out": {
+    "anim_type": "alpha",
+    "easing": "in_quad",
+    "duration": 0.22,
+    "from": 0.82,
+    "to": 0.42,
+    "next": "@astralrecord_hud.ornament_glow_in"
+  },
+  "actionbar_ornament": {
+    "type": "image",
+    "texture": "textures/ui/astralrecord/actionbar_ornament",
+    "size": [ 5, 5 ],
+    "layer": 30,
+    "alpha": "@astralrecord_hud.ornament_glow_in"
+  }
+}

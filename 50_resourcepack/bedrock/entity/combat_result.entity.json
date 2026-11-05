@@ -1,0 +1,23 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:combat_result",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": { "default": "textures/entity/combat_result" },
+      "geometry": { "default": "geometry.astralrecord.combat_result" },
+      "animations": { "motion": "animation.astralrecord.combat_result.motion" },
+      "scripts": {
+        "pre_animation": [
+          "variable.age = query.life_time;",
+          "variable.pop = math.clamp(variable.age / 0.16, 0.0, 1.0);",
+          "variable.settle = math.clamp((variable.age - 0.16) / 0.34, 0.0, 1.0);",
+          "variable.fade = 1.0 - math.clamp((variable.age - 1.45) / 0.45, 0.0, 1.0);",
+          "variable.shimmer = 0.88 + 0.12 * math.sin(variable.age * 18.0);"
+        ],
+        "animate": [ "motion" ]
+      },
+      "render_controllers": [ "controller.render.astralrecord.combat_result" ]
+    }
+  }
+}
