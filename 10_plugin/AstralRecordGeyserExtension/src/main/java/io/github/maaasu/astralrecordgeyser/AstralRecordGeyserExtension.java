@@ -33,6 +33,8 @@ public final class AstralRecordGeyserExtension implements Extension {
     private DamageNumberEntity damageNumberProperties;
     private CustomEntityDefinition actionRingDefinition;
     private ActionRingEntity actionRingProperties;
+    private CustomEntityDefinition weaponAttackDefinition;
+    private WeaponAttackEntity weaponAttackProperties;
     private HeldWeaponModelDisplay heldWeaponModels;
 
     @Subscribe
@@ -48,6 +50,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         var ringDefinition = ActionRingEntity.definition();
         event.register(ringDefinition);
         actionRingDefinition = ringDefinition;
+        var attackDefinition = WeaponAttackEntity.definition();
+        event.register(attackDefinition);
+        weaponAttackDefinition = attackDefinition;
         event.register(COMBAT_RESULT);
     }
 
@@ -58,6 +63,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
         if (actionRingDefinition != null) {
             actionRingProperties = ActionRingEntity.registerProperties(event);
+        }
+        if (weaponAttackDefinition != null) {
+            weaponAttackProperties = WeaponAttackEntity.registerProperties(event);
         }
     }
 
@@ -108,6 +116,17 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
+        if (WeaponAttackEntity.isMarker(event.uuid())) {
+            var properties = weaponAttackProperties;
+            int style = WeaponAttackEntity.styleOf(event.uuid());
+            if (style > WeaponAttackEntity.MAX_STYLE || properties == null || !damagePacks.weaponAttackReady(event.connection())) {
+                event.setCancelled(true);
+            } else {
+                event.definition(weaponAttackDefinition);
+                event.preSpawnConsumer(entity -> properties.initialize(entity, style));
+            }
+            return;
+        }
         HeldWeaponModel heldWeapon = HeldWeaponModel.decode(event.uuid());
         if (heldWeapon != null) {
             event.setCancelled(true);

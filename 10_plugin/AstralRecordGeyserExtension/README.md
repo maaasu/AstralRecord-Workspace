@@ -46,6 +46,10 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 1.6.0 以降は、必要なアセットを登録した接続で、RPG が印を付けた個人リザルトの TextDisplay に `astralrecord:combat_result` モデルを割り当てます。Geyser の本文変換で報酬を表示し、クライアントが紋章のアニメーションを再生します。対応アセットが揃わない接続では元の TextDisplay 変換を使います。
 
+## Bedrockの武器通常攻撃
+
+拡張 `1.7.0` 以降は、通常攻撃の描画ファイルを含むパックを登録してログインまで進んだ接続で、RPG が送る演出用 TextDisplay を `astralrecord:weapon_attack` に置き換えます。武器に応じて剣・ハンマー・槍・弓・ワンド・杖の外観を切り替えます。対応パックを使えない接続では演出用 TextDisplay のみを取り消し、従来の腕振り・攻撃音・弾体を使います。
+
 ## Bedrockのアイテムモデル
 
 拡張 `1.3.0` 以降は、起動時に検証済みBedrockパックのルートにある `astralrecord_item_models.json` を読み、`GeyserDefineCustomItemsEvent` でモデルを登録する。カタログを含むパックでは、同名のアーカイブ項目がないこと、各モデルのアイコンとアトラスの対応、アタッチャブル・ジオメトリ・アニメーション・テクスチャのファイルが揃うことを検証する。Java側の基本素材と `minecraft:custom_model_data` の先頭floatが一致したアイテムを、Bedrock側の `astralrecord:<id>` に変換する。モデル定義を含むパックをAPIで公開してからProxyを起動し、Bedrockクライアントを再接続する。

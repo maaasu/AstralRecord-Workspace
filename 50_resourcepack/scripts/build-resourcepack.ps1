@@ -69,6 +69,9 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
     'assets/astralrecord/textures/font/combat_hud.png'
+    'assets/astralrecord/font/weapon_attack.json'
+    'assets/astralrecord/lang/en_us.json'
+    'assets/astralrecord/textures/font/weapon_attack.png'
     'assets/astralrecord/items/action_ring.json'
     'assets/astralrecord/models/item/action_ring.json'
     'assets/astralrecord/textures/item/action_ring.png'
@@ -103,6 +106,16 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'models/entity/combat_result.geo.json'
     'render_controllers/combat_result.render_controllers.json'
     'textures/entity/combat_result.png'
+    'entity/weapon_attack.entity.json'
+    'animations/weapon_attack.animation.json'
+    'models/entity/weapon_attack.geo.json'
+    'render_controllers/weapon_attack.render_controllers.json'
+    'textures/entity/weapon_attack/sword.png'
+    'textures/entity/weapon_attack/hammer.png'
+    'textures/entity/weapon_attack/spear.png'
+    'textures/entity/weapon_attack/bow.png'
+    'textures/entity/weapon_attack/wand.png'
+    'textures/entity/weapon_attack/staff.png'
 )
 Add-ItemModelEntries $java $bedrock
 

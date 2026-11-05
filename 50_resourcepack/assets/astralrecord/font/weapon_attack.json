@@ -1,0 +1,17 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/weapon_attack.png",
+      "height": 16,
+      "ascent": 14,
+      "chars": [
+        "\uE100\uE101\uE102\uE103\uE104\uE105"
+      ]
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

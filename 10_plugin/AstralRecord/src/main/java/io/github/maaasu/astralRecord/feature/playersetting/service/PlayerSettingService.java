@@ -192,6 +192,18 @@ public final class PlayerSettingService {
         Object value = getPlayerSetting(userId, PlayerSettingKey.PARTICLE_DENSITY);
         return value instanceof ParticleDensity density ? density.getDensityScale() : ParticleDensity.NORMAL.getDensityScale();
     }
+
+    /**
+     * 戦闘演出の送信中に API を呼ばず、読込済みの粒子密度を返します。
+     * @param userId 設定を所有するユーザーUUID
+     * @return 粒子密度の倍率。未読込時は設定の既定値
+     */
+    public double getCachedParticleDensityScale(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        PlayerSettingEntry entry = snapshot == null ? null : snapshot.getEntry(PlayerSettingKey.PARTICLE_DENSITY);
+        Object value = entry == null ? defaults.resolveDefault(PlayerSettingKey.PARTICLE_DENSITY) : entry.getValue();
+        return value instanceof ParticleDensity density ? density.getDensityScale() : ParticleDensity.NORMAL.getDensityScale();
+    }
     public boolean isDamageLogDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, true); }
     public boolean isDamageLogMessageEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE, false); }
     public boolean isPerformanceInfoDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY, false); }

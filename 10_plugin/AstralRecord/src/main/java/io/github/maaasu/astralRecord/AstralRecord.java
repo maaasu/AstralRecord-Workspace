@@ -94,6 +94,7 @@ import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconSer
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskUseService;
 import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
+import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackPackDisplay;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
@@ -2155,7 +2156,8 @@ public final class AstralRecord extends JavaPlugin {
             damageService,
             conditionService,
             normalAttackDegradationService,
-            paladinHolyFieldRuntimeService
+            paladinHolyFieldRuntimeService,
+            new WeaponAttackPackDisplay(this, resourcePackService, playerSettingService, particleDisplayService)
         );
         skillService.registerExecutor(weaponAttackSkillExecutor);
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);

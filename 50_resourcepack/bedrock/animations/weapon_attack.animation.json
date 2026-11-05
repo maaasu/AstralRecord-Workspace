@@ -1,0 +1,16 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.weapon_attack.motion": {
+      "loop": true,
+      "bones": {
+        "billboard": {
+          "rotation": ["query.camera_rotation(0)", "query.camera_rotation(1) - query.body_y_rotation", 0]
+        },
+        "sprite": {
+          "scale": ["variable.scale", "variable.scale", "variable.scale"]
+        }
+      }
+    }
+  }
+}

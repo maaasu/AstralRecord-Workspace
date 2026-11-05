@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデルを配布します。配布するアイテムモデルは `item-models.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃の演出を配布します。配布するアイテムモデルは `item-models.json` で管理します。
 
 ## 対象と構成
 
@@ -38,6 +38,12 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 8枠分の輪郭を一枚の透過テクスチャにまとめています。1番は真上で、時計回りに8番まで並びます。青緑は通常枠、金色は選択中、灰色はクールダウン中です。スキル固有のアイコンと名前、枠番号、発動不可の理由、クールダウンの秒数とバーを RPG プラグインが表示します。
 
 Java 版は管理パックの適用成功後に `astralrecord:action_ring` のアイテムモデルを使います。統合版は接続時に輪郭を含むパックが登録された場合に、Geyser 拡張が同名のクライアントエンティティを使います。管理パックを利用できない場合や Java 版の固定 URL 配布では、スキルアイコンと状態ラベルで操作できます。
+
+### 武器通常攻撃
+
+発動時に斬撃、打撃、突き、矢、ワンドの閃光、スタッフの紋を5 tick表示します。ボウ・ショートボウ・ロングボウは矢の演出を共用します。Java版は `astralrecord:weapon_attack` フォントの字形を使います。統合版はGeyser拡張 `1.7.0` 以降が `astralrecord:weapon_attack` のモデルを選び、クライアントで拡大・フェードさせます。どちらも閲覧者専用の表示で、ワールド内に演出用エンティティを追加しません。
+
+Java版の管理パックを適用していない場合は標準粒子を1つ表示し、旧管理パックでは星を表示します。統合版で対応パックを利用できない場合も腕振りと効果音で発動を確認できます。両版の新しいパックをAPIに配置してから、RPG PluginとGeyser拡張を更新してください。表示確認は通常攻撃が使用できる武器で、空振りと命中、粒子OFF、別のプレイヤーからの見え方を各版で確認します。
 
 ## アイテムモデル
 
@@ -79,6 +85,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-resourcepack.p
 字形の修正時は `scripts/generate-damage-number-assets.py` を Python で実行し、両版の PNG と関連 JSON を再生成します。通常のパックビルドに Python は不要です。
 
 輪郭を変更するときは `scripts/generate-action-ring-assets.py` で両版の PNG とモデルを再生成します。128 px の面に対するアイコン中心の半径は42 px、輪郭の最大半径は61 pxです。寸法や枠の色を変えるときは `SkillActionRingService`、`SkillActionRingDisplay` と Geyser 拡張の `ActionRingFrame` も確認します。
+
+通常攻撃の絵柄を変更するときは `scripts/generate-weapon-attack-assets.py` で両版の16 pxスプライトを再生成します。
 
 ## サーバー配布
 

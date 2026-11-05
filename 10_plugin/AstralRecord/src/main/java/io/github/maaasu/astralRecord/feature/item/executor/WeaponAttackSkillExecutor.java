@@ -77,6 +77,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final ConditionService conditionService;
     private final NormalAttackDegradationService normalAttackDegradationService;
     private final PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService;
+    private final WeaponAttackPackDisplay weaponAttackPackDisplay;
     private PassiveSkillService passiveSkillService;
     private InheritanceBuffService inheritanceBuffService;
     private RangedStarweaveRuntimeService rangedStarweaveRuntimeService;
@@ -143,11 +144,33 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @Nullable NormalAttackDegradationService normalAttackDegradationService,
             @Nullable PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService
     ) {
+        this(particleDisplayService, damageService, conditionService, normalAttackDegradationService,
+                paladinHolyFieldRuntimeService, null);
+    }
+
+    /**
+     * 武器攻撃 executor にリソースパックの発動演出を接続します。
+     * @param particleDisplayService パーティクル表示サービス
+     * @param damageService custom damage 適用サービス
+     * @param conditionService 通常攻撃に付随する状態異常サービス
+     * @param normalAttackDegradationService 通常攻撃劣化サービス
+     * @param paladinHolyFieldRuntimeService ホーリーフィールド実行時状態サービス
+     * @param weaponAttackPackDisplay 組み込み武器通常攻撃の発動演出。nullは従来の粒子描画
+     */
+    public WeaponAttackSkillExecutor(
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DamageService damageService,
+            @Nullable ConditionService conditionService,
+            @Nullable NormalAttackDegradationService normalAttackDegradationService,
+            @Nullable PaladinHolyFieldRuntimeService paladinHolyFieldRuntimeService,
+            @Nullable WeaponAttackPackDisplay weaponAttackPackDisplay
+    ) {
         this.particleDisplayService = particleDisplayService;
         this.damageService = damageService;
         this.conditionService = conditionService;
         this.normalAttackDegradationService = normalAttackDegradationService;
         this.paladinHolyFieldRuntimeService = paladinHolyFieldRuntimeService;
+        this.weaponAttackPackDisplay = weaponAttackPackDisplay;
     }
 
     /**
@@ -199,22 +222,22 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 "particle",
                 SharedParticleDefinitions.WEAPON_ATTACK_DEFAULT.particle()
         );
-        int particleCount = readIntParam(context.skill(), "particleCount", 10);
-        double spreadX = readDoubleParam(context.skill(), "spreadX", 0.15D);
-        double spreadY = readDoubleParam(context.skill(), "spreadY", 0.15D);
-        double spreadZ = readDoubleParam(context.skill(), "spreadZ", 0.15D);
-        double extra = readDoubleParam(context.skill(), "extra", 0.0D);
-
-        particleDisplayService.spawnForNearbyViewers(
-                effectLocation,
-                particle,
-                particleCount,
-                spreadX,
-                spreadY,
-                spreadZ,
-                extra
-        );
-        spawnSecondaryParticle(context.skill(), "secondaryCastParticle", effectLocation);
+        boolean packPresentation = weaponAttackPackDisplay != null
+                && context.trigger() == SkillCastTrigger.AUTO_ATTACK
+                && context.caster() instanceof PlayerSkillCaster caster
+                && weaponAttackPackDisplay.show(caster.player().getBukkit(), context.skill().getId(),
+                        effectLocation, particle);
+        if (!packPresentation) {
+            int particleCount = readIntParam(context.skill(), "particleCount", 10);
+            double spreadX = readDoubleParam(context.skill(), "spreadX", 0.15D);
+            double spreadY = readDoubleParam(context.skill(), "spreadY", 0.15D);
+            double spreadZ = readDoubleParam(context.skill(), "spreadZ", 0.15D);
+            double extra = readDoubleParam(context.skill(), "extra", 0.0D);
+            particleDisplayService.spawnForNearbyViewers(effectLocation, particle, particleCount, spreadX, spreadY, spreadZ, extra);
+            spawnSecondaryParticle(context.skill(), "secondaryCastParticle", effectLocation);
+            spawnForwardEffectTrail(context.skill(), effectLocation, direction, particle, particleCount,
+                    spreadX, spreadY, spreadZ, extra, readAttackType(context.skill()));
+        }
 
         String soundKey = readStringParam(context.skill(), "sound");
         if (!soundKey.isBlank() && effectLocation.getWorld() != null) {
@@ -223,24 +246,13 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             effectLocation.getWorld().playSound(effectLocation, soundKey, SoundCategory.PLAYERS, volume, pitch);
         }
 
-        spawnForwardEffectTrail(
-                context.skill(),
-                effectLocation,
-                direction,
-                particle,
-                particleCount,
-                spreadX,
-                spreadY,
-                spreadZ,
-                extra,
-                readAttackType(context.skill())
-        );
         applyAttackDamage(
                 context,
                 origin.attacker(),
                 effectLocation,
                 direction,
-                resolveNormalAttackDamageMultiplier(context)
+                resolveNormalAttackDamageMultiplier(context),
+                packPresentation
         );
         return SkillCastResult.succeeded();
     }
@@ -300,6 +312,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
      * Plugin停止時に呼び出し、非永続表示がワールドへ残ることを防ぎます。
      */
     public void stop() {
+        if (weaponAttackPackDisplay != null) {
+            weaponAttackPackDisplay.stop();
+        }
         activeProjectileTasks.forEach(BukkitTask::cancel);
         activeProjectileTasks.clear();
         activeProjectileDisplays.forEach(this::removeDisplay);
@@ -312,7 +327,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull AstEntity attacker,
             @NotNull Location startLocation,
             @NotNull Vector direction,
-            double normalAttackDamageMultiplier
+            double normalAttackDamageMultiplier,
+            boolean packPresentation
     ) {
         SkillDefinition skill = context.skill();
         PreparedAttack inheritanceAttack = inheritanceBuffService == null
@@ -340,7 +356,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         for (Vector shotDirection : directions) {
             launchProjectileAttack(
                     skill, attacker, startLocation, shotDirection, attackType,
-                    damageComponents, normalAttackDamageMultiplier, inheritedElements, inheritanceHit
+                    damageComponents, normalAttackDamageMultiplier, inheritedElements, inheritanceHit, packPresentation
             );
         }
     }
@@ -448,7 +464,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull List<DamageComponent> damageComponents,
             double normalAttackDamageMultiplier,
             @NotNull Set<DamageElement> inheritedElements,
-            @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit
+            @NotNull java.util.function.Consumer<InheritanceImpact> inheritanceHit,
+            boolean packPresentation
     ) {
         PhantomArcherRuntime.ShotEpoch launchEpoch = PhantomArcherRuntime.captureShotEpoch(attacker.id());
         boolean normalBow = BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW.equals(skill.getId())
@@ -538,8 +555,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     return;
                 }
 
-                spawnProjectileTrail(currentLocation, particle, trailParticleCount,
-                        trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType, secondaryTrailParticle);
+                if (!packPresentation || (tick & 1) == 1) {
+                    spawnProjectileTrail(currentLocation, particle, trailParticleCount,
+                            trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType, secondaryTrailParticle);
+                }
                 if ((tick & 1) == 1) {
                     spawnInheritedElementEffects(currentLocation, inheritedElements, false);
                 }

@@ -28,7 +28,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, Set<Integer> heldWeaponModels, Set<ItemModel> itemModels
+    boolean combatResult, boolean weaponAttack, Set<Integer> heldWeaponModels, Set<ItemModel> itemModels
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -50,6 +50,13 @@ record DamagePack(
         "entity/combat_result.entity.json", "animations/combat_result.animation.json",
         "models/entity/combat_result.geo.json", "render_controllers/combat_result.render_controllers.json",
         "textures/entity/combat_result.png"
+    );
+    private static final List<String> WEAPON_ATTACK_ENTRIES = List.of(
+        "entity/weapon_attack.entity.json", "animations/weapon_attack.animation.json",
+        "models/entity/weapon_attack.geo.json", "render_controllers/weapon_attack.render_controllers.json",
+        "textures/entity/weapon_attack/sword.png", "textures/entity/weapon_attack/hammer.png",
+        "textures/entity/weapon_attack/spear.png", "textures/entity/weapon_attack/bow.png",
+        "textures/entity/weapon_attack/wand.png", "textures/entity/weapon_attack/staff.png"
     );
 
     static DamagePack refresh(HeadApiConfig config, Path directory, DamagePack current)
@@ -85,6 +92,7 @@ record DamagePack(
             boolean damageNumberAssets;
             boolean actionRing;
             boolean combatResult;
+            boolean weaponAttack;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             try (ZipFile zip = new ZipFile(file.toFile())) {
@@ -104,6 +112,8 @@ record DamagePack(
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
                 combatResult = COMBAT_RESULT_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
+                weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry)
+                    .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -115,7 +125,8 @@ record DamagePack(
                 && (version.major() > 1 || (version.major() == 1 && version.minor() >= 1));
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, heldWeaponModels, itemModels);
+            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
+                heldWeaponModels, itemModels);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
