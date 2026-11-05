@@ -1,0 +1,721 @@
+{
+  "id": "eriva_beast_bone_boots",
+  "master_id": "20a00089",
+  "kind": "armor",
+  "intent": "Lv15。暗い革 #292C32 の長めの靴に、大きな獣骨の爪先・二段の足甲・踵骨板を添え、木の厚底で足元を支える。二足を後ろの幅広い生皮帯で接続して実際の携行点を確保。履き口は中空のまま、青緑の小結晶と森林色の帯でエリヴァ系列をつなぐ。細い爪や写実足骨にはしない。",
+  "grip": [
+    8,
+    10.2,
+    10.8
+  ],
+  "materials": {
+    "bone": {
+      "palette": [
+        "817660",
+        "A79B7D",
+        "C5B998",
+        "DFD5B5",
+        "ECE5CA"
+      ],
+      "pattern": [
+        "23333332",
+        "23444332",
+        "23333332",
+        "23332332",
+        "23333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "625C4D",
+        "A19776",
+        "C4BA98",
+        "DBD1B0",
+        "F4EFD9"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "horn": {
+      "palette": [
+        "625C4D",
+        "82785F",
+        "ABA07E",
+        "D2C6A3",
+        "E8DFC0"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "23323322",
+        "22323322",
+        "22323322",
+        "12323221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "171B20",
+        "22262C",
+        "292C32",
+        "3C4044",
+        "51565A"
+      ],
+      "pattern": [
+        "23333332",
+        "22333222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382A20",
+        "573E2B",
+        "775738",
+        "9B7750",
+        "B59968"
+      ],
+      "pattern": [
+        "23333332",
+        "22223332",
+        "12222222",
+        "22222222",
+        "22222222",
+        "22222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292A20",
+        "41422C",
+        "5C5837",
+        "7D7045",
+        "9E8D58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302C20",
+        "4D442C",
+        "6C5E3A",
+        "90804D",
+        "B29D65"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222231",
+        "13222231",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "forest": {
+      "palette": [
+        "253327",
+        "3C4D31",
+        "586840",
+        "7C8653",
+        "A1A66C"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22333222",
+        "22323222",
+        "22333222",
+        "22333222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "crystal": {
+      "palette": [
+        "143F3C",
+        "24615A",
+        "3D9285",
+        "70B8A1",
+        "A5D5BC"
+      ],
+      "pattern": [
+        "01122110",
+        "12333221",
+        "12344321",
+        "12333321",
+        "12333221",
+        "12332221",
+        "11222211",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left thick timber full sole",
+      "from": [
+        1.7,
+        0.7,
+        3.8
+      ],
+      "to": [
+        6.7,
+        1.9,
+        11.0
+      ],
+      "material": "bark",
+      "side": "rawhide",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left dark leather foot",
+      "from": [
+        2.0,
+        1.9,
+        4.2
+      ],
+      "to": [
+        6.4,
+        4.2,
+        10.7
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left broad bone toe",
+      "from": [
+        1.95,
+        1.9,
+        3.45
+      ],
+      "to": [
+        6.45,
+        3.3,
+        5.9
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left raised bone instep step",
+      "from": [
+        2.35,
+        3.3,
+        4.8
+      ],
+      "to": [
+        6.05,
+        4.4,
+        6.8
+      ],
+      "material": "horn",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left front tall dark ankle",
+      "from": [
+        2.2,
+        3.8,
+        6.6
+      ],
+      "to": [
+        6.2,
+        10.6,
+        7.6
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left rear tall dark ankle",
+      "from": [
+        2.2,
+        3.8,
+        9.9
+      ],
+      "to": [
+        6.2,
+        10.6,
+        10.9
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left outer ankle wall",
+      "from": [
+        2.05,
+        3.8,
+        7.4
+      ],
+      "to": [
+        2.9,
+        10.6,
+        10.2
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left inner ankle wall",
+      "from": [
+        5.5,
+        3.8,
+        7.4
+      ],
+      "to": [
+        6.3500000000000005,
+        10.6,
+        10.2
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left open rawhide cuff front",
+      "from": [
+        2.05,
+        9.7,
+        6.4
+      ],
+      "to": [
+        6.3500000000000005,
+        10.9,
+        7.7
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left open rawhide cuff back",
+      "from": [
+        2.05,
+        9.7,
+        9.9
+      ],
+      "to": [
+        6.3500000000000005,
+        10.9,
+        11.1
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left open rawhide cuff left",
+      "from": [
+        2.05,
+        9.7,
+        7.7
+      ],
+      "to": [
+        2.95,
+        10.9,
+        9.9
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left open rawhide cuff right",
+      "from": [
+        5.45,
+        9.7,
+        7.7
+      ],
+      "to": [
+        6.3500000000000005,
+        10.9,
+        9.9
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left front bone ankle brace",
+      "from": [
+        2.8,
+        5.1,
+        6.15
+      ],
+      "to": [
+        5.6,
+        8.4,
+        6.8
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left rear bone heel brace",
+      "from": [
+        2.4,
+        1.9,
+        10.45
+      ],
+      "to": [
+        6.0,
+        4.9,
+        11.35
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left rear forest ankle strap",
+      "from": [
+        1.95,
+        6.6,
+        10.75
+      ],
+      "to": [
+        6.45,
+        7.6,
+        11.3
+      ],
+      "material": "forest",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left side square bone toggle",
+      "from": [
+        1.8,
+        6.4,
+        8.0
+      ],
+      "to": [
+        2.35,
+        7.8,
+        9.4
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Left small teal cuff inset",
+      "from": [
+        3.8,
+        9.9,
+        6.1
+      ],
+      "to": [
+        4.6,
+        10.7,
+        6.6
+      ],
+      "material": "crystal"
+    },
+    {
+      "name": "Right thick timber full sole",
+      "from": [
+        9.3,
+        0.7,
+        3.8
+      ],
+      "to": [
+        14.3,
+        1.9,
+        11.0
+      ],
+      "material": "bark",
+      "side": "rawhide",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right dark leather foot",
+      "from": [
+        9.600000000000001,
+        1.9,
+        4.2
+      ],
+      "to": [
+        14.0,
+        4.2,
+        10.7
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right broad bone toe",
+      "from": [
+        9.55,
+        1.9,
+        3.45
+      ],
+      "to": [
+        14.05,
+        3.3,
+        5.9
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right raised bone instep step",
+      "from": [
+        9.950000000000001,
+        3.3,
+        4.8
+      ],
+      "to": [
+        13.65,
+        4.4,
+        6.8
+      ],
+      "material": "horn",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right front tall dark ankle",
+      "from": [
+        9.8,
+        3.8,
+        6.6
+      ],
+      "to": [
+        13.8,
+        10.6,
+        7.6
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right rear tall dark ankle",
+      "from": [
+        9.8,
+        3.8,
+        9.9
+      ],
+      "to": [
+        13.8,
+        10.6,
+        10.9
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right outer ankle wall",
+      "from": [
+        9.65,
+        3.8,
+        7.4
+      ],
+      "to": [
+        10.5,
+        10.6,
+        10.2
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right inner ankle wall",
+      "from": [
+        13.100000000000001,
+        3.8,
+        7.4
+      ],
+      "to": [
+        13.950000000000001,
+        10.6,
+        10.2
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right open rawhide cuff front",
+      "from": [
+        9.65,
+        9.7,
+        6.4
+      ],
+      "to": [
+        13.950000000000001,
+        10.9,
+        7.7
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right open rawhide cuff back",
+      "from": [
+        9.65,
+        9.7,
+        9.9
+      ],
+      "to": [
+        13.950000000000001,
+        10.9,
+        11.1
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right open rawhide cuff left",
+      "from": [
+        9.65,
+        9.7,
+        7.7
+      ],
+      "to": [
+        10.55,
+        10.9,
+        9.9
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right open rawhide cuff right",
+      "from": [
+        13.05,
+        9.7,
+        7.7
+      ],
+      "to": [
+        13.950000000000001,
+        10.9,
+        9.9
+      ],
+      "material": "rawhide",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right front bone ankle brace",
+      "from": [
+        10.4,
+        5.1,
+        6.15
+      ],
+      "to": [
+        13.200000000000001,
+        8.4,
+        6.8
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right rear bone heel brace",
+      "from": [
+        10.0,
+        1.9,
+        10.45
+      ],
+      "to": [
+        13.600000000000001,
+        4.9,
+        11.35
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right rear forest ankle strap",
+      "from": [
+        9.55,
+        6.6,
+        10.75
+      ],
+      "to": [
+        14.05,
+        7.6,
+        11.3
+      ],
+      "material": "forest",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right side square bone toggle",
+      "from": [
+        9.4,
+        6.4,
+        8.0
+      ],
+      "to": [
+        9.950000000000001,
+        7.8,
+        9.4
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Right small teal cuff inset",
+      "from": [
+        11.4,
+        9.9,
+        6.1
+      ],
+      "to": [
+        12.200000000000001,
+        10.7,
+        6.6
+      ],
+      "material": "crystal"
+    },
+    {
+      "name": "Paired rear rawhide carry strap",
+      "from": [
+        5.95,
+        9.85,
+        10.45
+      ],
+      "to": [
+        10.05,
+        10.6,
+        11.15
+      ],
+      "material": "rawhide"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      3
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

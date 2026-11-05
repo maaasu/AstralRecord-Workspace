@@ -1,0 +1,632 @@
+{
+  "id": "eriva_beast_bone_armor",
+  "master_id": "20a00087",
+  "kind": "armor",
+  "intent": "Lv15。身体を守る重ね獣骨を、革胴の上の六枚の大きな角形骨板と木を芯にした段肩で表す。肋骨や写実骨格にはせず、大きな色面と一段ずつの厚みを優先。原典の暗い革色 #292C32 に系列の骨・生皮・木・森林色を合わせ、青緑の結晶は襟の小さな留め具。背面も骨板と幅広の結び帯で構成。",
+  "grip": [
+    8,
+    3.7,
+    10.2
+  ],
+  "materials": {
+    "bone": {
+      "palette": [
+        "817660",
+        "A79B7D",
+        "C5B998",
+        "DFD5B5",
+        "ECE5CA"
+      ],
+      "pattern": [
+        "23333332",
+        "23444332",
+        "23333332",
+        "23332332",
+        "23333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "625C4D",
+        "A19776",
+        "C4BA98",
+        "DBD1B0",
+        "F4EFD9"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "horn": {
+      "palette": [
+        "625C4D",
+        "82785F",
+        "ABA07E",
+        "D2C6A3",
+        "E8DFC0"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "23323322",
+        "22323322",
+        "22323322",
+        "12323221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "171B20",
+        "22262C",
+        "292C32",
+        "3C4044",
+        "51565A"
+      ],
+      "pattern": [
+        "23333332",
+        "22333222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382A20",
+        "573E2B",
+        "775738",
+        "9B7750",
+        "B59968"
+      ],
+      "pattern": [
+        "23333332",
+        "22223332",
+        "12222222",
+        "22222222",
+        "22222222",
+        "22222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292A20",
+        "41422C",
+        "5C5837",
+        "7D7045",
+        "9E8D58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302C20",
+        "4D442C",
+        "6C5E3A",
+        "90804D",
+        "B29D65"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222231",
+        "13222231",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "forest": {
+      "palette": [
+        "253327",
+        "3C4D31",
+        "586840",
+        "7C8653",
+        "A1A66C"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22333222",
+        "22323222",
+        "22333222",
+        "22333222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "crystal": {
+      "palette": [
+        "143F3C",
+        "24615A",
+        "3D9285",
+        "70B8A1",
+        "A5D5BC"
+      ],
+      "pattern": [
+        "01122110",
+        "12333221",
+        "12344321",
+        "12333321",
+        "12333221",
+        "12332221",
+        "11222211",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Dark hide back garment",
+      "from": [
+        3.5,
+        3.1,
+        9.4
+      ],
+      "to": [
+        12.5,
+        14.5,
+        10.8
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Dark hide front garment",
+      "from": [
+        3.1,
+        3.1,
+        5.7
+      ],
+      "to": [
+        12.9,
+        13.7,
+        6.8
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left thick leather flank",
+      "from": [
+        2.8,
+        3.1,
+        6.5
+      ],
+      "to": [
+        4.0,
+        14.2,
+        10.2
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right thick leather flank",
+      "from": [
+        12.0,
+        3.1,
+        6.5
+      ],
+      "to": [
+        13.2,
+        14.2,
+        10.2
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Wood waist backing",
+      "from": [
+        2.8,
+        3.0,
+        5.8
+      ],
+      "to": [
+        13.2,
+        4.4,
+        10.9
+      ],
+      "material": "bark",
+      "side": "rawhide",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad overlapping bone scale left",
+      "from": [
+        3.9,
+        10.3,
+        4.8
+      ],
+      "to": [
+        7.8,
+        13.0,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Broad overlapping bone scale right",
+      "from": [
+        8.2,
+        10.3,
+        4.8
+      ],
+      "to": [
+        12.1,
+        13.0,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Broad overlapping bone scale left",
+      "from": [
+        3.4,
+        7.4,
+        4.8
+      ],
+      "to": [
+        7.8,
+        10.100000000000001,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Broad overlapping bone scale right",
+      "from": [
+        8.2,
+        7.4,
+        4.8
+      ],
+      "to": [
+        12.6,
+        10.100000000000001,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Broad overlapping bone scale left",
+      "from": [
+        4.1,
+        4.6,
+        4.8
+      ],
+      "to": [
+        7.8,
+        7.3,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Broad overlapping bone scale right",
+      "from": [
+        8.2,
+        4.6,
+        4.8
+      ],
+      "to": [
+        11.9,
+        7.3,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Central broad rawhide seam",
+      "from": [
+        7.7,
+        4.3,
+        5.0
+      ],
+      "to": [
+        8.3,
+        13.6,
+        6.4
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper forest collar band",
+      "from": [
+        4.2,
+        13.0,
+        5.65
+      ],
+      "to": [
+        11.8,
+        14.1,
+        6.75
+      ],
+      "material": "forest",
+      "side": "rawhide"
+    },
+    {
+      "name": "Small teal collar clasp",
+      "from": [
+        7.4,
+        12.8,
+        4.35
+      ],
+      "to": [
+        8.6,
+        14.0,
+        5.2
+      ],
+      "material": "crystal",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left solid timber shoulder",
+      "from": [
+        0.65,
+        12.7,
+        6.4
+      ],
+      "to": [
+        4.3500000000000005,
+        15.1,
+        10.5
+      ],
+      "material": "bark",
+      "side": "rawhide",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left broad shoulder bone cap",
+      "from": [
+        0.4,
+        14.7,
+        5.9
+      ],
+      "to": [
+        4.6000000000000005,
+        16.0,
+        10.9
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left lowered outer shoulder step",
+      "from": [
+        0.55,
+        12.1,
+        5.55
+      ],
+      "to": [
+        4.45,
+        14.7,
+        6.8
+      ],
+      "material": "horn",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left rear shoulder hide tie",
+      "from": [
+        1.1,
+        12.5,
+        10.3
+      ],
+      "to": [
+        3.85,
+        15.4,
+        11.2
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right solid timber shoulder",
+      "from": [
+        11.65,
+        12.7,
+        6.4
+      ],
+      "to": [
+        15.350000000000001,
+        15.1,
+        10.5
+      ],
+      "material": "bark",
+      "side": "rawhide",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right broad shoulder bone cap",
+      "from": [
+        11.4,
+        14.7,
+        5.9
+      ],
+      "to": [
+        15.600000000000001,
+        16.0,
+        10.9
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right lowered outer shoulder step",
+      "from": [
+        11.55,
+        12.1,
+        5.55
+      ],
+      "to": [
+        15.45,
+        14.7,
+        6.8
+      ],
+      "material": "horn",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right rear shoulder hide tie",
+      "from": [
+        12.1,
+        12.5,
+        10.3
+      ],
+      "to": [
+        14.850000000000001,
+        15.4,
+        11.2
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Back timber spine batten",
+      "from": [
+        7.2,
+        4.3,
+        10.5
+      ],
+      "to": [
+        8.8,
+        14.8,
+        11.5
+      ],
+      "material": "bark",
+      "side": "rawhide",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Back upper broad bone panel",
+      "from": [
+        4.4,
+        9.2,
+        10.75
+      ],
+      "to": [
+        11.6,
+        12.7,
+        11.65
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Back lower broad bone panel",
+      "from": [
+        4.8,
+        5.1,
+        10.75
+      ],
+      "to": [
+        11.2,
+        8.8,
+        11.65
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Rear shoulder harness crossbar",
+      "from": [
+        3.9,
+        8.5,
+        11.25
+      ],
+      "to": [
+        12.1,
+        9.5,
+        11.9
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Side square tie toggle",
+      "from": [
+        3.15,
+        6.4,
+        7.7
+      ],
+      "to": [
+        3.8499999999999996,
+        7.6,
+        9.2
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Side square tie toggle",
+      "from": [
+        12.15,
+        6.4,
+        7.7
+      ],
+      "to": [
+        12.85,
+        7.6,
+        9.2
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Waist front forest securing band",
+      "from": [
+        3.4,
+        3.4,
+        5.3
+      ],
+      "to": [
+        12.6,
+        4.5,
+        6.1
+      ],
+      "material": "forest",
+      "side": "rawhide"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      3
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

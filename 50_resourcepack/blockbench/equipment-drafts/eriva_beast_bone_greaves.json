@@ -1,0 +1,674 @@
+{
+  "id": "eriva_beast_bone_greaves",
+  "master_id": "20a00088",
+  "kind": "armor",
+  "intent": "Lv15。原典 #612F37 の赤茶革を主面に残し、太腿に大きな骨当て、段付きの下板、幅広い角膝当てを追加した堅牢な腿甲。左右の隙間は残し、背後は生皮の二本帯と木の角留め具で支える。骨は解剖学的な形にせず、Minecraftの厚い板と四角い関節。青緑結晶は腰の一点。",
+  "grip": [
+    8,
+    15.0,
+    10.2
+  ],
+  "materials": {
+    "bone": {
+      "palette": [
+        "817660",
+        "A79B7D",
+        "C5B998",
+        "DFD5B5",
+        "ECE5CA"
+      ],
+      "pattern": [
+        "23333332",
+        "23444332",
+        "23333332",
+        "23332332",
+        "23333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "625C4D",
+        "A19776",
+        "C4BA98",
+        "DBD1B0",
+        "F4EFD9"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "horn": {
+      "palette": [
+        "625C4D",
+        "82785F",
+        "ABA07E",
+        "D2C6A3",
+        "E8DFC0"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "23323322",
+        "22323322",
+        "22323322",
+        "12323221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "171B20",
+        "22262C",
+        "292C32",
+        "3C4044",
+        "51565A"
+      ],
+      "pattern": [
+        "23333332",
+        "22333222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "wine_hide": {
+      "palette": [
+        "311F25",
+        "4B2830",
+        "612F37",
+        "80424A",
+        "A36162"
+      ],
+      "pattern": [
+        "23333332",
+        "22333222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382A20",
+        "573E2B",
+        "775738",
+        "9B7750",
+        "B59968"
+      ],
+      "pattern": [
+        "23333332",
+        "22223332",
+        "12222222",
+        "22222222",
+        "22222222",
+        "22222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292A20",
+        "41422C",
+        "5C5837",
+        "7D7045",
+        "9E8D58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302C20",
+        "4D442C",
+        "6C5E3A",
+        "90804D",
+        "B29D65"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222231",
+        "13222231",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "crystal": {
+      "palette": [
+        "143F3C",
+        "24615A",
+        "3D9285",
+        "70B8A1",
+        "A5D5BC"
+      ],
+      "pattern": [
+        "01122110",
+        "12333221",
+        "12344321",
+        "12333321",
+        "12333221",
+        "12332221",
+        "11222211",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Open rawhide waist ring front",
+      "from": [
+        2.8,
+        14.3,
+        5.3
+      ],
+      "to": [
+        13.2,
+        15.8,
+        6.5
+      ],
+      "material": "rawhide",
+      "side": "wine_hide"
+    },
+    {
+      "name": "Open rawhide waist ring back",
+      "from": [
+        2.8,
+        14.3,
+        9.6
+      ],
+      "to": [
+        13.2,
+        15.8,
+        10.8
+      ],
+      "material": "rawhide",
+      "side": "wine_hide"
+    },
+    {
+      "name": "Open rawhide waist ring left",
+      "from": [
+        2.8,
+        14.3,
+        6.5
+      ],
+      "to": [
+        4,
+        15.8,
+        9.6
+      ],
+      "material": "rawhide",
+      "side": "wine_hide"
+    },
+    {
+      "name": "Open rawhide waist ring right",
+      "from": [
+        12,
+        14.3,
+        6.5
+      ],
+      "to": [
+        13.2,
+        15.8,
+        9.6
+      ],
+      "material": "rawhide",
+      "side": "wine_hide"
+    },
+    {
+      "name": "Left wine leather thigh front",
+      "from": [
+        3.0,
+        1.4,
+        5.8
+      ],
+      "to": [
+        7.4,
+        14.4,
+        6.8
+      ],
+      "material": "wine_hide",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left wine leather rear",
+      "from": [
+        3.0,
+        1.4,
+        9.4
+      ],
+      "to": [
+        7.4,
+        14.4,
+        10.4
+      ],
+      "material": "wine_hide",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left dark outer seam",
+      "from": [
+        3.0,
+        1.4,
+        6.8
+      ],
+      "to": [
+        3.7,
+        14.4,
+        9.4
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left wine inner seam",
+      "from": [
+        6.7,
+        1.4,
+        6.8
+      ],
+      "to": [
+        7.4,
+        14.4,
+        9.4
+      ],
+      "material": "wine_hide",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left upper broad thigh bone",
+      "from": [
+        3.35,
+        10.7,
+        5.0
+      ],
+      "to": [
+        7.05,
+        14.3,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left lower thigh bone step",
+      "from": [
+        3.6,
+        8.8,
+        5.1
+      ],
+      "to": [
+        6.8,
+        10.9,
+        6.0
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left wide square knee bone",
+      "from": [
+        2.8,
+        6.2,
+        4.55
+      ],
+      "to": [
+        7.6,
+        8.9,
+        6.1
+      ],
+      "material": "horn",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left smaller shin bone",
+      "from": [
+        3.8,
+        2.3,
+        5.1
+      ],
+      "to": [
+        6.6,
+        6.3,
+        6.2
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Left broad rear knee tie",
+      "from": [
+        2.95,
+        6.6,
+        10.2
+      ],
+      "to": [
+        7.45,
+        7.75,
+        10.8
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Left broad rear thigh tie",
+      "from": [
+        2.95,
+        11.3,
+        10.2
+      ],
+      "to": [
+        7.45,
+        12.45,
+        10.8
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Left side timber knee toggle",
+      "from": [
+        2.8,
+        6.8,
+        7.4
+      ],
+      "to": [
+        3.6,
+        7.9,
+        8.9
+      ],
+      "material": "bark",
+      "side": "wood_end"
+    },
+    {
+      "name": "Left lower dark cuff front",
+      "from": [
+        2.95,
+        1.1,
+        5.6
+      ],
+      "to": [
+        7.45,
+        2.2,
+        6.8
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Left lower dark cuff rear",
+      "from": [
+        2.95,
+        1.1,
+        9.4
+      ],
+      "to": [
+        7.45,
+        2.2,
+        10.6
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right wine leather thigh front",
+      "from": [
+        8.6,
+        1.4,
+        5.8
+      ],
+      "to": [
+        13.0,
+        14.4,
+        6.8
+      ],
+      "material": "wine_hide",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right wine leather rear",
+      "from": [
+        8.6,
+        1.4,
+        9.4
+      ],
+      "to": [
+        13.0,
+        14.4,
+        10.4
+      ],
+      "material": "wine_hide",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right dark outer seam",
+      "from": [
+        8.6,
+        1.4,
+        6.8
+      ],
+      "to": [
+        9.299999999999999,
+        14.4,
+        9.4
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right wine inner seam",
+      "from": [
+        12.3,
+        1.4,
+        6.8
+      ],
+      "to": [
+        13.0,
+        14.4,
+        9.4
+      ],
+      "material": "wine_hide",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right upper broad thigh bone",
+      "from": [
+        8.95,
+        10.7,
+        5.0
+      ],
+      "to": [
+        12.649999999999999,
+        14.3,
+        6.15
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right lower thigh bone step",
+      "from": [
+        9.2,
+        8.8,
+        5.1
+      ],
+      "to": [
+        12.399999999999999,
+        10.9,
+        6.0
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right wide square knee bone",
+      "from": [
+        8.4,
+        6.2,
+        4.55
+      ],
+      "to": [
+        13.2,
+        8.9,
+        6.1
+      ],
+      "material": "horn",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right smaller shin bone",
+      "from": [
+        9.4,
+        2.3,
+        5.1
+      ],
+      "to": [
+        12.2,
+        6.3,
+        6.2
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Right broad rear knee tie",
+      "from": [
+        8.549999999999999,
+        6.6,
+        10.2
+      ],
+      "to": [
+        13.05,
+        7.75,
+        10.8
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right broad rear thigh tie",
+      "from": [
+        8.549999999999999,
+        11.3,
+        10.2
+      ],
+      "to": [
+        13.05,
+        12.45,
+        10.8
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right side timber knee toggle",
+      "from": [
+        8.4,
+        6.8,
+        7.4
+      ],
+      "to": [
+        9.2,
+        7.9,
+        8.9
+      ],
+      "material": "bark",
+      "side": "wood_end"
+    },
+    {
+      "name": "Right lower dark cuff front",
+      "from": [
+        8.549999999999999,
+        1.1,
+        5.6
+      ],
+      "to": [
+        13.05,
+        2.2,
+        6.8
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Right lower dark cuff rear",
+      "from": [
+        8.549999999999999,
+        1.1,
+        9.4
+      ],
+      "to": [
+        13.05,
+        2.2,
+        10.6
+      ],
+      "material": "leather",
+      "side": "rawhide"
+    },
+    {
+      "name": "Waist bone clasp square",
+      "from": [
+        6.9,
+        14.5,
+        4.8
+      ],
+      "to": [
+        9.1,
+        15.6,
+        5.7
+      ],
+      "material": "bone",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Small waist teal inset",
+      "from": [
+        7.6,
+        14.65,
+        4.45
+      ],
+      "to": [
+        8.4,
+        15.45,
+        5.0
+      ],
+      "material": "crystal"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      3
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}
