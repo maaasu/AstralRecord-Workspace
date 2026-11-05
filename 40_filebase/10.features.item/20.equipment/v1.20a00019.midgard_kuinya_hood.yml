@@ -6,7 +6,9 @@ id: 20a00019
 category: equipment
 name: "&6クウィンヤフード"
 icon: LEATHER_HELMET
+customModelData: 220019
 appearance:
+  equipmentAsset: "astralrecord:kuinya_ranger"
   color: "#3A8F5C"
 rarity: UNCOMMON
 maxStack: 1

@@ -6,10 +6,12 @@ id: 20a00010
 category: equipment
 name: "&bノクスメイル"
 icon: LEATHER_CHESTPLATE
+customModelData: 220010
 rarity: COMMON
 maxStack: 1
 saleValue: 30
 appearance:
+  equipmentAsset: "astralrecord:nox_traveler"
   color: "#243B5A"
 lore:
   - "&7星影の街ノクスで仕立てられた、旅立ちのための革製メイル。"

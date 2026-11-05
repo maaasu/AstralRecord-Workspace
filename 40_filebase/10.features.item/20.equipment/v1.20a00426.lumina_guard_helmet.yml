@@ -6,7 +6,9 @@ id: 20a00426
 category: equipment
 name: '&bルミナヘルム'
 icon: LEATHER_HELMET
+customModelData: 220426
 appearance:
+  equipmentAsset: "astralrecord:lumina_guard"
   color: '#E8D7A0'
 rarity: RARE
 maxStack: 1

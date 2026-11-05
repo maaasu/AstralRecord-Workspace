@@ -6,7 +6,9 @@ id: 20a00046
 category: equipment
 name: "&4メルコールグリーブ"
 icon: LEATHER_LEGGINGS
+customModelData: 220046
 appearance:
+  equipmentAsset: "astralrecord:melkor_guard"
   color: "#4A1F2D"
 rarity: RARE
 maxStack: 1

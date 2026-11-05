@@ -6,7 +6,9 @@ id: 20a00020
 category: equipment
 name: "&6クウィンヤレギンス"
 icon: LEATHER_LEGGINGS
+customModelData: 220020
 appearance:
+  equipmentAsset: "astralrecord:kuinya_ranger"
   color: "#3A8F5C"
 rarity: UNCOMMON
 maxStack: 1

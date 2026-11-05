@@ -6,7 +6,9 @@ id: 20a00090
 category: equipment
 name: '&aエリヴァの風狩帽'
 icon: LEATHER_HELMET
+customModelData: 220090
 appearance:
+  equipmentAsset: "astralrecord:eriva_ranger"
   color: '#294A34'
 rarity: RARE
 maxStack: 1

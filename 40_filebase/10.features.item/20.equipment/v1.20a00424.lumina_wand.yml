@@ -6,6 +6,7 @@ id: 20a00424
 category: equipment
 name: '&bルミナワンド'
 icon: IRON_HOE
+customModelData: 220424
 iconGlint: false
 rarity: RARE
 maxStack: 1

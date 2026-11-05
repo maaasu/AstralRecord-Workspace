@@ -6,6 +6,7 @@ id: 20a00073
 category: equipment
 name: '&aエリヴァソード'
 icon: WOODEN_SWORD
+customModelData: 220073
 rarity: RARE
 maxStack: 1
 lore:

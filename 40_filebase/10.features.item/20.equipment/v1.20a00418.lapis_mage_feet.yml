@@ -6,7 +6,9 @@ id: 20a00418
 category: equipment
 name: '&bラピスメイジブーツ'
 icon: LEATHER_BOOTS
+customModelData: 220418
 appearance:
+  equipmentAsset: "astralrecord:lapis_mage"
   color: '#637DBD'
 rarity: RARE
 maxStack: 1

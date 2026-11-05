@@ -6,7 +6,9 @@ id: 20a00048
 category: equipment
 name: "&2メルコールフード"
 icon: LEATHER_HELMET
+customModelData: 220048
 appearance:
+  equipmentAsset: "astralrecord:melkor_ranger"
   color: "#263D32"
 rarity: RARE
 maxStack: 1

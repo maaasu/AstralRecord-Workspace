@@ -6,7 +6,9 @@ id: 20a00434
 category: equipment
 name: '&bルミナフード'
 icon: LEATHER_HELMET
+customModelData: 220434
 appearance:
+  equipmentAsset: "astralrecord:lumina_magia"
   color: '#B9AFD8'
 rarity: RARE
 maxStack: 1

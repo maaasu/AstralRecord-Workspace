@@ -6,7 +6,9 @@ id: 20a00093
 category: equipment
 name: '&aエリヴァの風狩靴'
 icon: LEATHER_BOOTS
+customModelData: 220093
 appearance:
+  equipmentAsset: "astralrecord:eriva_ranger"
   color: '#5A3C29'
 rarity: RARE
 maxStack: 1

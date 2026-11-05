@@ -6,6 +6,7 @@ id: 20a00007
 category: equipment
 name: "&f簡素な護符"
 icon: TORCH
+customModelData: 220007
 rarity: COMMON
 maxStack: 1
 saleValue: 1

@@ -6,6 +6,7 @@ id: 20a00446
 category: equipment
 name: '&bアストラメイル'
 icon: LEATHER_CHESTPLATE
+customModelData: 220446
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -268,4 +269,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_guard"
   color: '#657CA8'

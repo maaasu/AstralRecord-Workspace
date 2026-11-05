@@ -6,6 +6,7 @@ id: 20a00041
 category: equipment
 name: "&6メルコールプレート"
 icon: GOLDEN_CHESTPLATE
+customModelData: 220041
 rarity: RARE
 maxStack: 1
 saleValue: 1100
@@ -59,3 +60,6 @@ equipment:
       - { level: 13, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.05, failAction: NONE }
       - { level: 14, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.05, failAction: NONE }
       - { level: 15, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.05, failAction: NONE }
+
+appearance:
+  equipmentAsset: "astralrecord:melkor_guard"

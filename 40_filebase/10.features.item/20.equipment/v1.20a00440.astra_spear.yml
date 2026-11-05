@@ -6,6 +6,7 @@ id: 20a00440
 category: equipment
 name: '&bアストラスピア'
 icon: DIAMOND_SPEAR
+customModelData: 220440
 rarity: RARE
 maxStack: 1
 saleValue: 5000

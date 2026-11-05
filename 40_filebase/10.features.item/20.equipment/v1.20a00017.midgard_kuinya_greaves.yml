@@ -6,7 +6,9 @@ id: 20a00017
 category: equipment
 name: "&6クウィンヤグリーブ"
 icon: LEATHER_LEGGINGS
+customModelData: 220017
 appearance:
+  equipmentAsset: "astralrecord:kuinya_guard"
   color: "#A33A3A"
 rarity: UNCOMMON
 maxStack: 1

@@ -6,7 +6,9 @@ id: 20a00431
 category: equipment
 name: '&bルミナジャケット'
 icon: LEATHER_CHESTPLATE
+customModelData: 220431
 appearance:
+  equipmentAsset: "astralrecord:lumina_hunt"
   color: '#9AC6B6'
 rarity: RARE
 maxStack: 1

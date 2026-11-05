@@ -6,6 +6,7 @@ id: 20a00040
 category: equipment
 name: "&dヴェノムの矢筒"
 icon: FLOWER_POT
+customModelData: 220040
 rarity: RARE
 maxStack: 1
 saleValue: 620

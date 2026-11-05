@@ -6,6 +6,7 @@ id: 20a00001
 category: equipment
 name: "&f簡素な武器"
 icon: STICK
+customModelData: 220001
 rarity: COMMON
 maxStack: 1
 saleValue: 1

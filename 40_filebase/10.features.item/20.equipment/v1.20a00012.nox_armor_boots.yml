@@ -6,10 +6,12 @@ id: 20a00012
 category: equipment
 name: "&bノクスブーツ"
 icon: LEATHER_BOOTS
+customModelData: 220012
 rarity: COMMON
 maxStack: 1
 saleValue: 15
 appearance:
+  equipmentAsset: "astralrecord:nox_traveler"
   color: "#243B5A"
 lore:
   - "&7星影の街ノクスで仕立てられた、旅立ちのための革製ブーツ。"

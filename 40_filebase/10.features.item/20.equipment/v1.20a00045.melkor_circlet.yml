@@ -6,7 +6,9 @@ id: 20a00045
 category: equipment
 name: "&5メルコールサークレット"
 icon: LEATHER_HELMET
+customModelData: 220045
 appearance:
+  equipmentAsset: "astralrecord:melkor_mage"
   color: "#38264F"
 rarity: RARE
 maxStack: 1

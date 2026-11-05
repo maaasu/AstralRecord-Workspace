@@ -6,7 +6,9 @@ id: 20a00051
 category: equipment
 name: "&5メルコールサンダル"
 icon: LEATHER_BOOTS
+customModelData: 220051
 appearance:
+  equipmentAsset: "astralrecord:melkor_mage"
   color: "#38264F"
 rarity: RARE
 maxStack: 1

@@ -6,7 +6,9 @@ id: 20a00088
 category: equipment
 name: '&aエリヴァの獣骨腿甲'
 icon: LEATHER_LEGGINGS
+customModelData: 220088
 appearance:
+  equipmentAsset: "astralrecord:eriva_guard"
   color: '#612F37'
 rarity: RARE
 maxStack: 1

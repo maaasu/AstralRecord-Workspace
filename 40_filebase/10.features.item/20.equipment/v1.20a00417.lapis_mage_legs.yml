@@ -6,7 +6,9 @@ id: 20a00417
 category: equipment
 name: '&bラピスメイジレギンス'
 icon: LEATHER_LEGGINGS
+customModelData: 220417
 appearance:
+  equipmentAsset: "astralrecord:lapis_mage"
   color: '#637DBD'
 rarity: RARE
 maxStack: 1

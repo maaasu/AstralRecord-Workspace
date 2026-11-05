@@ -6,7 +6,9 @@ id: 20a00089
 category: equipment
 name: '&aエリヴァの獣骨靴'
 icon: LEATHER_BOOTS
+customModelData: 220089
 appearance:
+  equipmentAsset: "astralrecord:eriva_guard"
   color: '#292C32'
 rarity: RARE
 maxStack: 1

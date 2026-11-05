@@ -6,7 +6,9 @@ id: 20a00433
 category: equipment
 name: '&bルミナシューズ'
 icon: LEATHER_BOOTS
+customModelData: 220433
 appearance:
+  equipmentAsset: "astralrecord:lumina_hunt"
   color: '#9AC6B6'
 rarity: RARE
 maxStack: 1

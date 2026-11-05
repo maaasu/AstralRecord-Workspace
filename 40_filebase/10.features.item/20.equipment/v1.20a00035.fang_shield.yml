@@ -6,6 +6,7 @@ id: 20a00035
 category: equipment
 name: "&eファングの盾"
 icon: SHIELD
+customModelData: 220035
 rarity: RARE
 maxStack: 1
 saleValue: 760

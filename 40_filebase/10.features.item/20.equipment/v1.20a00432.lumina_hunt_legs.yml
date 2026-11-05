@@ -6,7 +6,9 @@ id: 20a00432
 category: equipment
 name: '&bルミナパンツ'
 icon: LEATHER_LEGGINGS
+customModelData: 220432
 appearance:
+  equipmentAsset: "astralrecord:lumina_hunt"
   color: '#9AC6B6'
 rarity: RARE
 maxStack: 1

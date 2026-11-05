@@ -6,6 +6,7 @@ id: 20a00401
 category: equipment
 name: '&bラピスハンマー'
 icon: IRON_AXE
+customModelData: 220401
 rarity: RARE
 maxStack: 1
 lore:

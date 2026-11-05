@@ -6,7 +6,9 @@ id: 20a00409
 category: equipment
 name: '&bラピスガードレギンス'
 icon: LEATHER_LEGGINGS
+customModelData: 220409
 appearance:
+  equipmentAsset: "astralrecord:lapis_guard"
   color: '#334A8A'
 rarity: RARE
 maxStack: 1

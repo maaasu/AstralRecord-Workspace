@@ -6,7 +6,9 @@ id: 20a00058
 category: equipment
 name: "&5始源遺跡の星冠"
 icon: LEATHER_HELMET
+customModelData: 220058
 appearance:
+  equipmentAsset: "astralrecord:alda_mage"
   color: "#4A2A69"
 rarity: RARE
 maxStack: 1

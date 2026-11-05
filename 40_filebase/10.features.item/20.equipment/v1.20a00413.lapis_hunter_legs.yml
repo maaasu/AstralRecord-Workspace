@@ -6,7 +6,9 @@ id: 20a00413
 category: equipment
 name: '&bラピスハンターレギンス'
 icon: LEATHER_LEGGINGS
+customModelData: 220413
 appearance:
+  equipmentAsset: "astralrecord:lapis_ranger"
   color: '#4B6AA3'
 rarity: RARE
 maxStack: 1

@@ -6,6 +6,7 @@ id: 20a00054
 category: equipment
 name: "&6太陽鳥の弓"
 icon: BOW
+customModelData: 220054
 rarity: EPIC
 maxStack: 1
 saleValue: 1200

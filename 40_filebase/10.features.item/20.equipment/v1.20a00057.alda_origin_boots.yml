@@ -6,7 +6,9 @@ id: 20a00057
 category: equipment
 name: "&3始源遺跡の軽足具"
 icon: LEATHER_BOOTS
+customModelData: 220057
 appearance:
+  equipmentAsset: "astralrecord:alda_ranger"
   color: "#214D5A"
 rarity: RARE
 maxStack: 1

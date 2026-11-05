@@ -6,7 +6,9 @@ id: 20a00435
 category: equipment
 name: '&bルミナローブ'
 icon: LEATHER_CHESTPLATE
+customModelData: 220435
 appearance:
+  equipmentAsset: "astralrecord:lumina_magia"
   color: '#B9AFD8'
 rarity: RARE
 maxStack: 1

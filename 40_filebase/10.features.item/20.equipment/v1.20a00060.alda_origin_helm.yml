@@ -6,7 +6,9 @@ id: 20a00060
 category: equipment
 name: "&6始源遺跡の戦冠"
 icon: LEATHER_HELMET
+customModelData: 220060
 appearance:
+  equipmentAsset: "astralrecord:alda_guard"
   color: "#5A3B24"
 rarity: RARE
 maxStack: 1

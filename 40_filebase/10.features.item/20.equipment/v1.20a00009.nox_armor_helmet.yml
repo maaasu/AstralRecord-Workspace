@@ -6,10 +6,12 @@ id: 20a00009
 category: equipment
 name: "&bノクスヘルム"
 icon: LEATHER_HELMET
+customModelData: 220009
 rarity: COMMON
 maxStack: 1
 saleValue: 15
 appearance:
+  equipmentAsset: "astralrecord:nox_traveler"
   color: "#243B5A"
 lore:
   - "&7星影の街ノクスで仕立てられた、旅立ちのための革製ヘルム。"

@@ -6,10 +6,12 @@ id: 20a00011
 category: equipment
 name: "&bノクスグリーブ"
 icon: LEATHER_LEGGINGS
+customModelData: 220011
 rarity: COMMON
 maxStack: 1
 saleValue: 25
 appearance:
+  equipmentAsset: "astralrecord:nox_traveler"
   color: "#243B5A"
 lore:
   - "&7星影の街ノクスで仕立てられた、旅立ちのための革製グリーブ。"

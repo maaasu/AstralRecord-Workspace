@@ -6,7 +6,9 @@ id: 20a00091
 category: equipment
 name: '&aエリヴァの風狩衣'
 icon: LEATHER_CHESTPLATE
+customModelData: 220091
 appearance:
+  equipmentAsset: "astralrecord:eriva_ranger"
   color: '#294A34'
 rarity: RARE
 maxStack: 1

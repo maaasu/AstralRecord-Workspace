@@ -6,7 +6,9 @@ id: 20a00050
 category: equipment
 name: "&4メルコールサバトン"
 icon: LEATHER_BOOTS
+customModelData: 220050
 appearance:
+  equipmentAsset: "astralrecord:melkor_guard"
   color: "#4A1F2D"
 rarity: RARE
 maxStack: 1

@@ -6,7 +6,9 @@ id: 20a00416
 category: equipment
 name: '&bラピスメイジローブ'
 icon: LEATHER_CHESTPLATE
+customModelData: 220416
 appearance:
+  equipmentAsset: "astralrecord:lapis_mage"
   color: '#637DBD'
 rarity: RARE
 maxStack: 1

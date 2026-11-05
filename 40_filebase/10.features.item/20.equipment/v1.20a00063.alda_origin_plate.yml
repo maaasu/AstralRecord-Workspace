@@ -6,6 +6,7 @@ id: 20a00063
 category: equipment
 name: "&8始源遺跡の共通胸甲"
 icon: GOLDEN_CHESTPLATE
+customModelData: 220063
 rarity: RARE
 maxStack: 1
 saleValue: 2600
@@ -53,3 +54,6 @@ equipment:
       - { level: 13, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.05, failAction: NONE }
       - { level: 14, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.05, failAction: NONE }
       - { level: 15, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.05, failAction: NONE }
+
+appearance:
+  equipmentAsset: "astralrecord:alda_guard"

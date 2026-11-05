@@ -6,6 +6,7 @@ id: 20a00423
 category: equipment
 name: '&bルミナロングボウ'
 icon: BOW
+customModelData: 220423
 iconGlint: false
 rarity: RARE
 maxStack: 1

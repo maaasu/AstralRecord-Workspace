@@ -6,6 +6,7 @@ id: 20a00078
 category: equipment
 name: '&aエリヴァガンボウ'
 icon: LEATHER_HORSE_ARMOR
+customModelData: 220078
 rarity: RARE
 maxStack: 1
 lore:

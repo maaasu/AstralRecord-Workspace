@@ -6,7 +6,9 @@ id: 20a00061
 category: equipment
 name: "&3始源遺跡の狩帽"
 icon: LEATHER_HELMET
+customModelData: 220061
 appearance:
+  equipmentAsset: "astralrecord:alda_ranger"
   color: "#214D5A"
 rarity: RARE
 maxStack: 1

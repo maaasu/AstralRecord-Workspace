@@ -6,7 +6,9 @@ id: 20a00086
 category: equipment
 name: '&aエリヴァの獣角兜'
 icon: LEATHER_HELMET
+customModelData: 220086
 appearance:
+  equipmentAsset: "astralrecord:eriva_guard"
   color: '#D6CCB8'
 rarity: RARE
 maxStack: 1

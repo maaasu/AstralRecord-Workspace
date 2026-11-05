@@ -6,6 +6,7 @@ id: 20a00029
 category: equipment
 name: "&bミドルアース・ワンド"
 icon: BLAZE_ROD
+customModelData: 220029
 rarity: RARE
 maxStack: 1
 saleValue: 420

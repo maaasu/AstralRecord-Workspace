@@ -6,7 +6,9 @@ id: 20a00096
 category: equipment
 name: '&aエリヴァの霊樹脚衣'
 icon: LEATHER_LEGGINGS
+customModelData: 220096
 appearance:
+  equipmentAsset: "astralrecord:eriva_mage"
   color: '#243354'
 rarity: RARE
 maxStack: 1

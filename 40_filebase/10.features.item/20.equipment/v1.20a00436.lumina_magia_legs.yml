@@ -6,7 +6,9 @@ id: 20a00436
 category: equipment
 name: '&bルミナレギンス'
 icon: LEATHER_LEGGINGS
+customModelData: 220436
 appearance:
+  equipmentAsset: "astralrecord:lumina_magia"
   color: '#B9AFD8'
 rarity: RARE
 maxStack: 1

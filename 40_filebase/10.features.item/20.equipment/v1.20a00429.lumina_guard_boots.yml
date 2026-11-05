@@ -6,7 +6,9 @@ id: 20a00429
 category: equipment
 name: '&bルミナブーツ'
 icon: LEATHER_BOOTS
+customModelData: 220429
 appearance:
+  equipmentAsset: "astralrecord:lumina_guard"
   color: '#E8D7A0'
 rarity: RARE
 maxStack: 1

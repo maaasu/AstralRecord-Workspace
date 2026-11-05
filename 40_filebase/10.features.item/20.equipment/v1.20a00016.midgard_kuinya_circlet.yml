@@ -6,7 +6,9 @@ id: 20a00016
 category: equipment
 name: "&6クウィンヤサークレット"
 icon: LEATHER_HELMET
+customModelData: 220016
 appearance:
+  equipmentAsset: "astralrecord:kuinya_mage"
   color: "#6A4DB3"
 rarity: UNCOMMON
 maxStack: 1

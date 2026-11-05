@@ -6,7 +6,9 @@ id: 20a00094
 category: equipment
 name: '&aエリヴァの霊樹冠'
 icon: LEATHER_HELMET
+customModelData: 220094
 appearance:
+  equipmentAsset: "astralrecord:eriva_mage"
   color: '#D8D6C5'
 rarity: RARE
 maxStack: 1

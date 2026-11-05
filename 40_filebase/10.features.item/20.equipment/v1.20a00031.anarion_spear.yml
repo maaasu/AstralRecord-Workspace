@@ -6,6 +6,7 @@ id: 20a00031
 category: equipment
 name: "&6アナーリオンの槍"
 icon: COPPER_SPEAR
+customModelData: 220031
 rarity: EPIC
 maxStack: 1
 saleValue: 1000

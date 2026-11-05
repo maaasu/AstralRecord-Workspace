@@ -6,6 +6,7 @@ id: 20a00421
 category: equipment
 name: '&bルミナスピア'
 icon: IRON_SPEAR
+customModelData: 220421
 iconGlint: false
 rarity: RARE
 maxStack: 1

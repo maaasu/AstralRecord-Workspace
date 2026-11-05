@@ -6,6 +6,7 @@ id: 20a00442
 category: equipment
 name: '&bアストラロングボウ'
 icon: BOW
+customModelData: 220442
 rarity: RARE
 maxStack: 1
 saleValue: 5000

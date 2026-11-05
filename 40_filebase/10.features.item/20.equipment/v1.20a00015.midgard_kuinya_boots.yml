@@ -6,7 +6,9 @@ id: 20a00015
 category: equipment
 name: "&6クウィンヤブーツ"
 icon: LEATHER_BOOTS
+customModelData: 220015
 appearance:
+  equipmentAsset: "astralrecord:kuinya_ranger"
   color: "#3A8F5C"
 rarity: UNCOMMON
 maxStack: 1

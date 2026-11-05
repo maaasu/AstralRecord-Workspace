@@ -6,6 +6,7 @@ id: 20a00405
 category: equipment
 name: '&bラピスワンド'
 icon: IRON_HOE
+customModelData: 220405
 rarity: RARE
 maxStack: 1
 lore:

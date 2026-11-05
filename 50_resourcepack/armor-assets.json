@@ -1,4 +1,579 @@
 {
   "format_version": 1,
-  "items": []
+  "items": [
+    {
+      "id": "nox_armor_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220009,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:nox_traveler"
+    },
+    {
+      "id": "nox_armor_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220010,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:nox_traveler"
+    },
+    {
+      "id": "nox_armor_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220011,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:nox_traveler"
+    },
+    {
+      "id": "nox_armor_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220012,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:nox_traveler"
+    },
+    {
+      "id": "midgard_clay_guardian_plate",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220014,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:clay_guardian"
+    },
+    {
+      "id": "midgard_kuinya_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220018,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:kuinya_guard"
+    },
+    {
+      "id": "midgard_kuinya_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220017,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:kuinya_guard"
+    },
+    {
+      "id": "midgard_kuinya_sabaton",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220021,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:kuinya_guard"
+    },
+    {
+      "id": "midgard_kuinya_circlet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220016,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:kuinya_mage"
+    },
+    {
+      "id": "midgard_kuinya_trousers",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220023,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:kuinya_mage"
+    },
+    {
+      "id": "midgard_kuinya_sandals",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220022,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:kuinya_mage"
+    },
+    {
+      "id": "midgard_kuinya_hood",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220019,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:kuinya_ranger"
+    },
+    {
+      "id": "midgard_kuinya_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220020,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:kuinya_ranger"
+    },
+    {
+      "id": "midgard_kuinya_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220015,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:kuinya_ranger"
+    },
+    {
+      "id": "melkor_plate",
+      "base_item": "minecraft:golden_chestplate",
+      "custom_model_data": 220041,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:melkor_guard"
+    },
+    {
+      "id": "melkor_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220047,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:melkor_guard"
+    },
+    {
+      "id": "melkor_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220046,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:melkor_guard"
+    },
+    {
+      "id": "melkor_sabaton",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220050,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:melkor_guard"
+    },
+    {
+      "id": "melkor_hood",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220048,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:melkor_ranger"
+    },
+    {
+      "id": "melkor_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220049,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:melkor_ranger"
+    },
+    {
+      "id": "melkor_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220044,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:melkor_ranger"
+    },
+    {
+      "id": "melkor_circlet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220045,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:melkor_mage"
+    },
+    {
+      "id": "melkor_trousers",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220052,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:melkor_mage"
+    },
+    {
+      "id": "melkor_sandals",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220051,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:melkor_mage"
+    },
+    {
+      "id": "alda_origin_plate",
+      "base_item": "minecraft:golden_chestplate",
+      "custom_model_data": 220063,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:alda_guard"
+    },
+    {
+      "id": "alda_origin_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220060,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:alda_guard"
+    },
+    {
+      "id": "alda_origin_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220059,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:alda_guard"
+    },
+    {
+      "id": "alda_origin_sabaton",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220064,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:alda_guard"
+    },
+    {
+      "id": "alda_origin_hood",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220061,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:alda_ranger"
+    },
+    {
+      "id": "alda_origin_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220062,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:alda_ranger"
+    },
+    {
+      "id": "alda_origin_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220057,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:alda_ranger"
+    },
+    {
+      "id": "alda_origin_circlet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220058,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:alda_mage"
+    },
+    {
+      "id": "alda_origin_trousers",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220066,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:alda_mage"
+    },
+    {
+      "id": "alda_origin_sandals",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220065,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:alda_mage"
+    },
+    {
+      "id": "eriva_beast_horn_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220086,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:eriva_guard"
+    },
+    {
+      "id": "eriva_beast_bone_armor",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220087,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:eriva_guard"
+    },
+    {
+      "id": "eriva_beast_bone_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220088,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:eriva_guard"
+    },
+    {
+      "id": "eriva_beast_bone_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220089,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:eriva_guard"
+    },
+    {
+      "id": "eriva_wind_hunter_cap",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220090,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:eriva_ranger"
+    },
+    {
+      "id": "eriva_wind_hunter_coat",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220091,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:eriva_ranger"
+    },
+    {
+      "id": "eriva_wind_hunter_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220092,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:eriva_ranger"
+    },
+    {
+      "id": "eriva_wind_hunter_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220093,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:eriva_ranger"
+    },
+    {
+      "id": "eriva_spirit_tree_crown",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220094,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:eriva_mage"
+    },
+    {
+      "id": "eriva_spirit_tree_robe",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220095,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:eriva_mage"
+    },
+    {
+      "id": "eriva_spirit_tree_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220096,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:eriva_mage"
+    },
+    {
+      "id": "eriva_spirit_tree_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220097,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:eriva_mage"
+    },
+    {
+      "id": "lapis_guard_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220407,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:lapis_guard"
+    },
+    {
+      "id": "lapis_guard_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220408,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:lapis_guard"
+    },
+    {
+      "id": "lapis_guard_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220409,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:lapis_guard"
+    },
+    {
+      "id": "lapis_guard_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220410,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:lapis_guard"
+    },
+    {
+      "id": "lapis_hunter_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220411,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:lapis_ranger"
+    },
+    {
+      "id": "lapis_hunter_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220412,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:lapis_ranger"
+    },
+    {
+      "id": "lapis_hunter_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220413,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:lapis_ranger"
+    },
+    {
+      "id": "lapis_hunter_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220414,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:lapis_ranger"
+    },
+    {
+      "id": "lapis_mage_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220415,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:lapis_mage"
+    },
+    {
+      "id": "lapis_mage_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220416,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:lapis_mage"
+    },
+    {
+      "id": "lapis_mage_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220417,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:lapis_mage"
+    },
+    {
+      "id": "lapis_mage_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220418,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:lapis_mage"
+    },
+    {
+      "id": "lumina_guard_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220426,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:lumina_guard"
+    },
+    {
+      "id": "lumina_guard_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220427,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:lumina_guard"
+    },
+    {
+      "id": "lumina_guard_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220428,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:lumina_guard"
+    },
+    {
+      "id": "lumina_guard_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220429,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:lumina_guard"
+    },
+    {
+      "id": "lumina_hunt_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220430,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:lumina_hunt"
+    },
+    {
+      "id": "lumina_hunt_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220431,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:lumina_hunt"
+    },
+    {
+      "id": "lumina_hunt_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220432,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:lumina_hunt"
+    },
+    {
+      "id": "lumina_hunt_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220433,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:lumina_hunt"
+    },
+    {
+      "id": "lumina_magia_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220434,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:lumina_magia"
+    },
+    {
+      "id": "lumina_magia_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220435,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:lumina_magia"
+    },
+    {
+      "id": "lumina_magia_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220436,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:lumina_magia"
+    },
+    {
+      "id": "lumina_magia_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220437,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:lumina_magia"
+    },
+    {
+      "id": "astra_hunt_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220449,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:astra_hunt"
+    },
+    {
+      "id": "astra_hunt_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220450,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:astra_hunt"
+    },
+    {
+      "id": "astra_hunt_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220451,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:astra_hunt"
+    },
+    {
+      "id": "astra_hunt_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220452,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:astra_hunt"
+    },
+    {
+      "id": "astra_guard_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220445,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:astra_guard"
+    },
+    {
+      "id": "astra_guard_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220446,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:astra_guard"
+    },
+    {
+      "id": "astra_guard_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220447,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:astra_guard"
+    },
+    {
+      "id": "astra_guard_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220448,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:astra_guard"
+    },
+    {
+      "id": "astra_magia_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220453,
+      "slot": "HEAD",
+      "equipment_asset": "astralrecord:astra_magia"
+    },
+    {
+      "id": "astra_magia_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220454,
+      "slot": "CHEST",
+      "equipment_asset": "astralrecord:astra_magia"
+    },
+    {
+      "id": "astra_magia_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220455,
+      "slot": "LEGS",
+      "equipment_asset": "astralrecord:astra_magia"
+    },
+    {
+      "id": "astra_magia_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220456,
+      "slot": "FEET",
+      "equipment_asset": "astralrecord:astra_magia"
+    }
+  ]
 }

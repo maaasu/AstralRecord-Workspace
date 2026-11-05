@@ -6,6 +6,7 @@ id: 20a00439
 category: equipment
 name: '&bアストラハンマー'
 icon: DIAMOND_AXE
+customModelData: 220439
 rarity: RARE
 maxStack: 1
 saleValue: 5000

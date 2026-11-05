@@ -6,6 +6,7 @@ id: 20a00443
 category: equipment
 name: '&bアストラワンド'
 icon: DIAMOND_HOE
+customModelData: 220443
 rarity: RARE
 maxStack: 1
 saleValue: 5000

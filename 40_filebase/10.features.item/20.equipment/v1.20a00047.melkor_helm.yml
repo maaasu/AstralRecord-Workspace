@@ -6,7 +6,9 @@ id: 20a00047
 category: equipment
 name: "&4メルコールヘルム"
 icon: LEATHER_HELMET
+customModelData: 220047
 appearance:
+  equipmentAsset: "astralrecord:melkor_guard"
   color: "#4A1F2D"
 rarity: RARE
 maxStack: 1

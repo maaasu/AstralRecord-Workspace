@@ -6,6 +6,7 @@ id: 20a00400
 category: equipment
 name: '&bラピスソード'
 icon: IRON_SWORD
+customModelData: 220400
 rarity: RARE
 maxStack: 1
 lore:

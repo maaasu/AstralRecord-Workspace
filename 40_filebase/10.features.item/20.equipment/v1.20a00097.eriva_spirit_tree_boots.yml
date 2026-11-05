@@ -6,7 +6,9 @@ id: 20a00097
 category: equipment
 name: '&aエリヴァの霊樹靴'
 icon: LEATHER_BOOTS
+customModelData: 220097
 appearance:
+  equipmentAsset: "astralrecord:eriva_mage"
   color: '#8DC6BD'
 rarity: RARE
 maxStack: 1

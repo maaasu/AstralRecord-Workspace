@@ -6,6 +6,7 @@ id: 20a00026
 category: equipment
 name: "&bミドルアース・ロングボウ"
 icon: BOW
+customModelData: 220026
 rarity: RARE
 maxStack: 1
 saleValue: 420

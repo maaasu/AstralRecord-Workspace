@@ -6,7 +6,9 @@ id: 20a00414
 category: equipment
 name: '&bラピスハンターブーツ'
 icon: LEATHER_BOOTS
+customModelData: 220414
 appearance:
+  equipmentAsset: "astralrecord:lapis_ranger"
   color: '#4B6AA3'
 rarity: RARE
 maxStack: 1

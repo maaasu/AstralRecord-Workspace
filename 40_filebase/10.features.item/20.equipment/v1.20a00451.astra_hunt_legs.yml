@@ -6,6 +6,7 @@ id: 20a00451
 category: equipment
 name: '&bアストラパンツ'
 icon: LEATHER_LEGGINGS
+customModelData: 220451
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -265,4 +266,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_hunt"
   color: '#6D9C9A'

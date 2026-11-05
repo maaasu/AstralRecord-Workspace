@@ -6,6 +6,7 @@ id: 20a00438
 category: equipment
 name: '&bアストラソード'
 icon: DIAMOND_SWORD
+customModelData: 220438
 rarity: RARE
 maxStack: 1
 saleValue: 5000

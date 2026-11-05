@@ -6,6 +6,7 @@ id: 20a00032
 category: equipment
 name: "&6アナーリオンのスタッフ"
 icon: END_ROD
+customModelData: 220032
 rarity: EPIC
 maxStack: 1
 saleValue: 1000

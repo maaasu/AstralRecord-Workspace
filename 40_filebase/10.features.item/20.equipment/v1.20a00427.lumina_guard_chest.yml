@@ -6,7 +6,9 @@ id: 20a00427
 category: equipment
 name: '&bルミナメイル'
 icon: LEATHER_CHESTPLATE
+customModelData: 220427
 appearance:
+  equipmentAsset: "astralrecord:lumina_guard"
   color: '#E8D7A0'
 rarity: RARE
 maxStack: 1

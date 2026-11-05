@@ -6,7 +6,9 @@ id: 20a00065
 category: equipment
 name: "&5始源遺跡の魔導靴"
 icon: LEATHER_BOOTS
+customModelData: 220065
 appearance:
+  equipmentAsset: "astralrecord:alda_mage"
   color: "#4A2A69"
 rarity: RARE
 maxStack: 1

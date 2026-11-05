@@ -6,6 +6,7 @@ id: 20a00441
 category: equipment
 name: '&bアストラショートボウ'
 icon: BOW
+customModelData: 220441
 rarity: RARE
 maxStack: 1
 saleValue: 5000

@@ -114,6 +114,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-resourcepack.p
 
 通常攻撃の絵柄を変更するときは `scripts/generate-weapon-attack-assets.py` で両版の16 pxスプライトを再生成します。
 
+## 全装備アートの編集元と確認範囲
+
+通常実装の武器41点、防具82点、アクセサリ12点、オフハンドに実表示する補助装備4点を登録しています。既存のノクス武器3点を保持し、新規124点は3D、装着表示のないアクセサリ12点は2Dです。採集道具、スキル書、デバッグ専用マスターはこの装備アート台帳に含めません。
+
+Minecraftの角形と粗い画素の材質分けを基準に、ノクスは簡素な初期装備、上位は素材の分離、縁、留め具、各系統の意匠を増やしています。防具のインベントリ・手持ち用の立体と、着用用の標準リグ・64×32原画は別の編集データです。JE着用時の自由形状の角・帽頂などは追加していません。
+
+- `blockbench/items/`: native Blockbench 5.2.2で書き出した両版の編集元。防具は `<id>_worn.bedrock.bbmodel`、弓は3段階のJava draw原稿も保持します。
+- `blockbench/equipment-drafts/`: 新規3D124点の個別cuboid・素材swatch設計原稿。
+- `blockbench/armor-pixels/`: 着用原画のpalette・pixel-grid記録。原画PNGはJE/BE着用テクスチャと着用Blockbench原稿にも保存しています。
+- `blockbench/pixel-art/`: 2Dアクセサリ12点の再生成可能な原画。
+- `blockbench/equipment-source-manifest.json`: 全139点のマスター対応と編集元・配布元アセットのSHA-256。
+
+制作は原則3〜4点ずつ分担し、native前後・斜め、実32pxアイコン、持ち点、全周UV、着用人形の顔開口を確認しています。弓はJava draw3段階とBE draw4状態・attack5状態を確認しました。パック参照、PowerShell間の決定性、独立レビューと実Minecraftクライアント検証は別の確認です。実クライアントの一・三人称、着用中の動作、装備切替、表示設定の切替は未確認です。
+
 ## サーバー配布
 
 1. 初回は [Geyser Extension の導入手順](../10_plugin/AstralRecordGeyserExtension/README.md) に従い、Velocity の拡張を更新します。起動時と以後60秒ごとにAPIのBedrockパックを確認し、新しい接続へ配布します。

@@ -6,6 +6,7 @@ id: 20a00056
 category: equipment
 name: "&6太陽鳥の剣"
 icon: GOLDEN_SWORD
+customModelData: 220056
 rarity: EPIC
 maxStack: 1
 saleValue: 1200

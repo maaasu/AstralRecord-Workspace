@@ -6,6 +6,7 @@ id: 20a00079
 category: equipment
 name: '&aエリヴァロッド'
 icon: WOODEN_HOE
+customModelData: 220079
 rarity: RARE
 maxStack: 1
 lore:

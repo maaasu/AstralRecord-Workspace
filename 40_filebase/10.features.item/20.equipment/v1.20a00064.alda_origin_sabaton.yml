@@ -6,7 +6,9 @@ id: 20a00064
 category: equipment
 name: "&6始源遺跡の踏破甲"
 icon: LEATHER_BOOTS
+customModelData: 220064
 appearance:
+  equipmentAsset: "astralrecord:alda_guard"
   color: "#5A3B24"
 rarity: RARE
 maxStack: 1

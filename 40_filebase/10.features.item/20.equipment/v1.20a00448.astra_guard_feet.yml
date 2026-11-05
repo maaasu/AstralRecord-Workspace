@@ -6,6 +6,7 @@ id: 20a00448
 category: equipment
 name: '&bアストラブーツ'
 icon: LEATHER_BOOTS
+customModelData: 220448
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -265,4 +266,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_guard"
   color: '#657CA8'

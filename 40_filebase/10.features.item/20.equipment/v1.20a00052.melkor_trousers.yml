@@ -6,7 +6,9 @@ id: 20a00052
 category: equipment
 name: "&5メルコールトラウザーズ"
 icon: LEATHER_LEGGINGS
+customModelData: 220052
 appearance:
+  equipmentAsset: "astralrecord:melkor_mage"
   color: "#38264F"
 rarity: RARE
 maxStack: 1

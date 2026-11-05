@@ -6,6 +6,7 @@ id: 20a00455
 category: equipment
 name: '&bアストラレギンス'
 icon: LEATHER_LEGGINGS
+customModelData: 220455
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -265,4 +266,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_magia"
   color: '#8D79B1'

@@ -6,7 +6,9 @@ id: 20a00044
 category: equipment
 name: "&2メルコールブーツ"
 icon: LEATHER_BOOTS
+customModelData: 220044
 appearance:
+  equipmentAsset: "astralrecord:melkor_ranger"
   color: "#263D32"
 rarity: RARE
 maxStack: 1

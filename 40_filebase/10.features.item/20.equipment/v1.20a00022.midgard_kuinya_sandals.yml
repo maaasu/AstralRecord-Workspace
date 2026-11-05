@@ -6,7 +6,9 @@ id: 20a00022
 category: equipment
 name: "&6クウィンヤサンダル"
 icon: LEATHER_BOOTS
+customModelData: 220022
 appearance:
+  equipmentAsset: "astralrecord:kuinya_mage"
   color: "#6A4DB3"
 rarity: UNCOMMON
 maxStack: 1

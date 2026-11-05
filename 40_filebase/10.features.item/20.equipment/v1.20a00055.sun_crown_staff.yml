@@ -6,6 +6,7 @@ id: 20a00055
 category: equipment
 name: "&6太陽鳥の長杖"
 icon: BREEZE_ROD
+customModelData: 220055
 rarity: EPIC
 maxStack: 1
 saleValue: 1200

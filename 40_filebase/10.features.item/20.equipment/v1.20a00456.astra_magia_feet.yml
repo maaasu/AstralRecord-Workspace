@@ -6,6 +6,7 @@ id: 20a00456
 category: equipment
 name: '&bアストラサンダル'
 icon: LEATHER_BOOTS
+customModelData: 220456
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -265,4 +266,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_magia"
   color: '#8D79B1'

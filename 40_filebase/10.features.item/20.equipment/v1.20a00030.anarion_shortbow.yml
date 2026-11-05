@@ -6,6 +6,7 @@ id: 20a00030
 category: equipment
 name: "&6アナーリオンのショートボウ"
 icon: BOW
+customModelData: 220030
 rarity: EPIC
 maxStack: 1
 saleValue: 1000

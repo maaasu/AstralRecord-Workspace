@@ -6,6 +6,7 @@ id: 20a00034
 category: equipment
 name: "&cシンダーの魔導書"
 icon: FLOWER_BANNER_PATTERN
+customModelData: 220034
 rarity: RARE
 maxStack: 1
 saleValue: 800

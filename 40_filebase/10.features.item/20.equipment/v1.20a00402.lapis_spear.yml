@@ -6,6 +6,7 @@ id: 20a00402
 category: equipment
 name: '&bラピススピア'
 icon: WOODEN_SPEAR
+customModelData: 220402
 rarity: RARE
 maxStack: 1
 lore:

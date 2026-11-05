@@ -6,6 +6,7 @@ id: 20a00444
 category: equipment
 name: '&bアストラスタッフ'
 icon: DIAMOND_SHOVEL
+customModelData: 220444
 rarity: RARE
 maxStack: 1
 saleValue: 5000

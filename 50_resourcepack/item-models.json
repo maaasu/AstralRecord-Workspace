@@ -105,6 +105,1370 @@
       "custom_model_data": 220457,
       "java_virtual_trident": false,
       "render_mode": "generated"
+    },
+    {
+      "id": "simple_weapon",
+      "base_item": "minecraft:stick",
+      "custom_model_data": 220001,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "middle_earth_hammer",
+      "base_item": "minecraft:mace",
+      "custom_model_data": 220025,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "middle_earth_longbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220026,
+      "java_virtual_trident": true,
+      "grip": [
+        6.1,
+        9,
+        8
+      ]
+    },
+    {
+      "id": "middle_earth_wand",
+      "base_item": "minecraft:blaze_rod",
+      "custom_model_data": 220029,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "anarion_shortbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220030,
+      "java_virtual_trident": true,
+      "grip": [
+        6.5,
+        8,
+        8
+      ]
+    },
+    {
+      "id": "anarion_spear",
+      "base_item": "minecraft:copper_spear",
+      "custom_model_data": 220031,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "anarion_staff",
+      "base_item": "minecraft:end_rod",
+      "custom_model_data": 220032,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "sun_crown_bow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220054,
+      "java_virtual_trident": true,
+      "grip": [
+        5.8,
+        9,
+        8
+      ]
+    },
+    {
+      "id": "sun_crown_staff",
+      "base_item": "minecraft:breeze_rod",
+      "custom_model_data": 220055,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "sun_crown_sword",
+      "base_item": "minecraft:golden_sword",
+      "custom_model_data": 220056,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "eriva_sword",
+      "base_item": "minecraft:wooden_sword",
+      "custom_model_data": 220073,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "eriva_hammer",
+      "base_item": "minecraft:wooden_axe",
+      "custom_model_data": 220074,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "eriva_spear",
+      "base_item": "minecraft:wooden_spear",
+      "custom_model_data": 220075,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "eriva_shortbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220077,
+      "java_virtual_trident": true,
+      "grip": [
+        6.35,
+        8,
+        8
+      ]
+    },
+    {
+      "id": "eriva_longbow",
+      "base_item": "minecraft:leather_horse_armor",
+      "custom_model_data": 220078,
+      "java_virtual_trident": true,
+      "grip": [
+        5.5,
+        10,
+        8
+      ]
+    },
+    {
+      "id": "eriva_wand",
+      "base_item": "minecraft:wooden_hoe",
+      "custom_model_data": 220079,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "eriva_staff",
+      "base_item": "minecraft:wooden_shovel",
+      "custom_model_data": 220080,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lapis_sword",
+      "base_item": "minecraft:iron_sword",
+      "custom_model_data": 220400,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lapis_hammer",
+      "base_item": "minecraft:iron_axe",
+      "custom_model_data": 220401,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lapis_spear",
+      "base_item": "minecraft:wooden_spear",
+      "custom_model_data": 220402,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lapis_shortbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220403,
+      "java_virtual_trident": true,
+      "grip": [
+        5.65,
+        8,
+        8
+      ]
+    },
+    {
+      "id": "lapis_longbow",
+      "base_item": "minecraft:crossbow",
+      "custom_model_data": 220404,
+      "java_virtual_trident": true,
+      "grip": [
+        11.65,
+        7.65,
+        8
+      ]
+    },
+    {
+      "id": "simple_talisman",
+      "base_item": "minecraft:torch",
+      "custom_model_data": 220007,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lapis_wand",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 220405,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lapis_staff",
+      "base_item": "minecraft:iron_shovel",
+      "custom_model_data": 220406,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lumina_sword",
+      "base_item": "minecraft:iron_sword",
+      "custom_model_data": 220419,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lumina_hammer",
+      "base_item": "minecraft:iron_axe",
+      "custom_model_data": 220420,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lumina_spear",
+      "base_item": "minecraft:iron_spear",
+      "custom_model_data": 220421,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lumina_wand",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 220424,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "lumina_staff",
+      "base_item": "minecraft:iron_shovel",
+      "custom_model_data": 220425,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "astra_sword",
+      "base_item": "minecraft:diamond_sword",
+      "custom_model_data": 220438,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "astra_hammer",
+      "base_item": "minecraft:diamond_axe",
+      "custom_model_data": 220439,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "astra_spear",
+      "base_item": "minecraft:diamond_spear",
+      "custom_model_data": 220440,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "astra_wand",
+      "base_item": "minecraft:diamond_hoe",
+      "custom_model_data": 220443,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "astra_staff",
+      "base_item": "minecraft:diamond_shovel",
+      "custom_model_data": 220444,
+      "java_virtual_trident": true,
+      "grip": [
+        8,
+        4,
+        8
+      ]
+    },
+    {
+      "id": "cinder_grimoire",
+      "base_item": "minecraft:flower_banner_pattern",
+      "custom_model_data": 220034,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.5,
+        10.75
+      ]
+    },
+    {
+      "id": "fang_shield",
+      "base_item": "minecraft:shield",
+      "custom_model_data": 220035,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.5,
+        10.75
+      ]
+    },
+    {
+      "id": "venom_quiver",
+      "base_item": "minecraft:flower_pot",
+      "custom_model_data": 220040,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.5,
+        11.25
+      ]
+    },
+    {
+      "id": "lumina_shortbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220422,
+      "java_virtual_trident": true,
+      "grip": [
+        6.2,
+        8,
+        8
+      ]
+    },
+    {
+      "id": "lumina_longbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220423,
+      "java_virtual_trident": true,
+      "grip": [
+        5.9,
+        10,
+        8
+      ]
+    },
+    {
+      "id": "astra_shortbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220441,
+      "java_virtual_trident": true,
+      "grip": [
+        6.15,
+        8,
+        8
+      ]
+    },
+    {
+      "id": "astra_longbow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 220442,
+      "java_virtual_trident": true,
+      "grip": [
+        5.8,
+        10,
+        8
+      ]
+    },
+    {
+      "id": "nox_armor_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220009,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.2,
+        10.9
+      ]
+    },
+    {
+      "id": "nox_armor_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220010,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.4,
+        5.8
+      ]
+    },
+    {
+      "id": "nox_armor_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220011,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.0,
+        6.1
+      ]
+    },
+    {
+      "id": "nox_armor_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220012,
+      "java_virtual_trident": false,
+      "grip": [
+        9.9,
+        3.3,
+        7.5
+      ]
+    },
+    {
+      "id": "midgard_clay_guardian_plate",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220014,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        11.5,
+        5.1
+      ]
+    },
+    {
+      "id": "midgard_kuinya_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220018,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5,
+        10.7
+      ]
+    },
+    {
+      "id": "midgard_kuinya_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220017,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        11.2,
+        5.6
+      ]
+    },
+    {
+      "id": "midgard_kuinya_sabaton",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220021,
+      "java_virtual_trident": false,
+      "grip": [
+        5.6,
+        8.25,
+        6.55
+      ]
+    },
+    {
+      "id": "midgard_kuinya_circlet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220016,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9,
+        11
+      ]
+    },
+    {
+      "id": "midgard_kuinya_trousers",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220023,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        11.8,
+        5.4
+      ]
+    },
+    {
+      "id": "midgard_kuinya_sandals",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220022,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        6.3,
+        10.7
+      ]
+    },
+    {
+      "id": "midgard_kuinya_hood",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220019,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.15,
+        10.65
+      ]
+    },
+    {
+      "id": "midgard_kuinya_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220020,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.1,
+        6.1
+      ]
+    },
+    {
+      "id": "midgard_kuinya_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220015,
+      "java_virtual_trident": false,
+      "grip": [
+        10.7,
+        8.15,
+        6.45
+      ]
+    },
+    {
+      "id": "melkor_plate",
+      "base_item": "minecraft:golden_chestplate",
+      "custom_model_data": 220041,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        3.65,
+        10.2
+      ]
+    },
+    {
+      "id": "melkor_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220047,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.2,
+        11.2
+      ]
+    },
+    {
+      "id": "melkor_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220046,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        15,
+        10.3
+      ]
+    },
+    {
+      "id": "melkor_sabaton",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220050,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        10.2,
+        10.95
+      ]
+    },
+    {
+      "id": "melkor_hood",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220048,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.15,
+        10.8
+      ]
+    },
+    {
+      "id": "melkor_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220049,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.5,
+        6.1
+      ]
+    },
+    {
+      "id": "melkor_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220044,
+      "java_virtual_trident": false,
+      "grip": [
+        10.65,
+        8.25,
+        6.4
+      ]
+    },
+    {
+      "id": "melkor_circlet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220045,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.7,
+        11.2
+      ]
+    },
+    {
+      "id": "melkor_trousers",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220052,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.15,
+        5.45
+      ]
+    },
+    {
+      "id": "melkor_sandals",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220051,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.25,
+        11.15
+      ]
+    },
+    {
+      "id": "alda_origin_plate",
+      "base_item": "minecraft:golden_chestplate",
+      "custom_model_data": 220063,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        15,
+        11.4
+      ]
+    },
+    {
+      "id": "alda_origin_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220060,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.2,
+        11.4
+      ]
+    },
+    {
+      "id": "alda_origin_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220059,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        16.6,
+        11.3
+      ]
+    },
+    {
+      "id": "alda_origin_sabaton",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220064,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.8,
+        11.2
+      ]
+    },
+    {
+      "id": "alda_origin_hood",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220061,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4,
+        11.4
+      ]
+    },
+    {
+      "id": "alda_origin_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220062,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.25,
+        8.0
+      ]
+    },
+    {
+      "id": "alda_origin_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220057,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.5,
+        11.15
+      ]
+    },
+    {
+      "id": "alda_origin_circlet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220058,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.3,
+        11.0
+      ]
+    },
+    {
+      "id": "alda_origin_trousers",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220066,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.1,
+        5.25
+      ]
+    },
+    {
+      "id": "alda_origin_sandals",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220065,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        6.0,
+        11.0
+      ]
+    },
+    {
+      "id": "eriva_beast_horn_helm",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220086,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.2,
+        11.5
+      ]
+    },
+    {
+      "id": "eriva_beast_bone_armor",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220087,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        3.7,
+        10.2
+      ]
+    },
+    {
+      "id": "eriva_beast_bone_greaves",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220088,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        15.0,
+        10.2
+      ]
+    },
+    {
+      "id": "eriva_beast_bone_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220089,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        10.2,
+        10.8
+      ]
+    },
+    {
+      "id": "eriva_wind_hunter_cap",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220090,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.2,
+        11.2
+      ]
+    },
+    {
+      "id": "eriva_wind_hunter_coat",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220091,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        13.8,
+        10.2
+      ]
+    },
+    {
+      "id": "eriva_wind_hunter_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220092,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.3,
+        8.0
+      ]
+    },
+    {
+      "id": "eriva_wind_hunter_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220093,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        8.95,
+        11.15
+      ]
+    },
+    {
+      "id": "eriva_spirit_tree_crown",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220094,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.4,
+        11.0
+      ]
+    },
+    {
+      "id": "eriva_spirit_tree_robe",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220095,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        6.2,
+        10.7
+      ]
+    },
+    {
+      "id": "eriva_spirit_tree_leggings",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220096,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.0,
+        10.8
+      ]
+    },
+    {
+      "id": "eriva_spirit_tree_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220097,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        6.5,
+        10.8
+      ]
+    },
+    {
+      "id": "lapis_guard_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220407,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.3,
+        11.5
+      ]
+    },
+    {
+      "id": "lapis_guard_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220408,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        3.55,
+        10.3
+      ]
+    },
+    {
+      "id": "lapis_guard_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220409,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        15.0,
+        10.3
+      ]
+    },
+    {
+      "id": "lapis_guard_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220410,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        10.2,
+        10.85
+      ]
+    },
+    {
+      "id": "lapis_hunter_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220411,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        7.5,
+        4.25
+      ]
+    },
+    {
+      "id": "lapis_hunter_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220412,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        8.5,
+        5.8
+      ]
+    },
+    {
+      "id": "lapis_hunter_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220413,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        13.25,
+        8
+      ]
+    },
+    {
+      "id": "lapis_hunter_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220414,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        11,
+        10.5
+      ]
+    },
+    {
+      "id": "lapis_mage_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220415,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.95,
+        4.0
+      ]
+    },
+    {
+      "id": "lapis_mage_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220416,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        7.5,
+        4.6
+      ]
+    },
+    {
+      "id": "lapis_mage_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220417,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.5,
+        5.4
+      ]
+    },
+    {
+      "id": "lapis_mage_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220418,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.15,
+        11.5
+      ]
+    },
+    {
+      "id": "lumina_guard_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220426,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        3.7,
+        11.5
+      ]
+    },
+    {
+      "id": "lumina_guard_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220427,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        3.5,
+        10.3
+      ]
+    },
+    {
+      "id": "lumina_guard_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220428,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.85,
+        11.0
+      ]
+    },
+    {
+      "id": "lumina_guard_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220429,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        10.4,
+        11.05
+      ]
+    },
+    {
+      "id": "lumina_hunt_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220430,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        7.0,
+        5.6
+      ]
+    },
+    {
+      "id": "lumina_hunt_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220431,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.35,
+        10.3
+      ]
+    },
+    {
+      "id": "lumina_hunt_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220432,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.35,
+        8.0
+      ]
+    },
+    {
+      "id": "lumina_hunt_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220433,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        9.7,
+        11.2
+      ]
+    },
+    {
+      "id": "lumina_magia_helmet",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220434,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.8,
+        4.25
+      ]
+    },
+    {
+      "id": "lumina_magia_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220435,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        8,
+        4.2
+      ]
+    },
+    {
+      "id": "lumina_magia_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220436,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        12.6,
+        4.3
+      ]
+    },
+    {
+      "id": "lumina_magia_boots",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220437,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.25,
+        11.1
+      ]
+    },
+    {
+      "id": "astra_hunt_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220449,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        7.9,
+        5.3
+      ]
+    },
+    {
+      "id": "astra_hunt_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220450,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.45,
+        10.4
+      ]
+    },
+    {
+      "id": "astra_hunt_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220451,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        14.4,
+        8
+      ]
+    },
+    {
+      "id": "astra_hunt_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220452,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        10.4,
+        11.2
+      ]
+    },
+    {
+      "id": "astra_guard_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220445,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        4.0,
+        11.6
+      ]
+    },
+    {
+      "id": "astra_guard_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220446,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        3.5,
+        10.4
+      ]
+    },
+    {
+      "id": "astra_guard_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220447,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        15.0,
+        10.3
+      ]
+    },
+    {
+      "id": "astra_guard_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220448,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        10.2,
+        10.9
+      ]
+    },
+    {
+      "id": "astra_magia_head",
+      "base_item": "minecraft:leather_helmet",
+      "custom_model_data": 220453,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.6,
+        4.7
+      ]
+    },
+    {
+      "id": "astra_magia_chest",
+      "base_item": "minecraft:leather_chestplate",
+      "custom_model_data": 220454,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        7.4,
+        4.75
+      ]
+    },
+    {
+      "id": "astra_magia_legs",
+      "base_item": "minecraft:leather_leggings",
+      "custom_model_data": 220455,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        13,
+        4.75
+      ]
+    },
+    {
+      "id": "astra_magia_feet",
+      "base_item": "minecraft:leather_boots",
+      "custom_model_data": 220456,
+      "java_virtual_trident": false,
+      "grip": [
+        8,
+        5.7,
+        11.5
+      ]
     }
   ]
 }

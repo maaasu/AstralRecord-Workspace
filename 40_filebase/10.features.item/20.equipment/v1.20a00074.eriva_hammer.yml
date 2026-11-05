@@ -6,6 +6,7 @@ id: 20a00074
 category: equipment
 name: '&aエリヴァハンマー'
 icon: WOODEN_AXE
+customModelData: 220074
 rarity: RARE
 maxStack: 1
 lore:

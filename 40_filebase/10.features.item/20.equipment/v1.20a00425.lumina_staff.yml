@@ -6,6 +6,7 @@ id: 20a00425
 category: equipment
 name: '&bルミナスタッフ'
 icon: IRON_SHOVEL
+customModelData: 220425
 iconGlint: false
 rarity: RARE
 maxStack: 1

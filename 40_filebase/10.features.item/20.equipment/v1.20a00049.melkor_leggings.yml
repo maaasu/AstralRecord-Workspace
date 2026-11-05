@@ -6,7 +6,9 @@ id: 20a00049
 category: equipment
 name: "&2メルコールレギンス"
 icon: LEATHER_LEGGINGS
+customModelData: 220049
 appearance:
+  equipmentAsset: "astralrecord:melkor_ranger"
   color: "#263D32"
 rarity: RARE
 maxStack: 1

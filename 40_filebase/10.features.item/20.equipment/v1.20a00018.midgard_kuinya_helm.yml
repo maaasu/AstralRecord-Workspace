@@ -6,7 +6,9 @@ id: 20a00018
 category: equipment
 name: "&6クウィンヤヘルム"
 icon: LEATHER_HELMET
+customModelData: 220018
 appearance:
+  equipmentAsset: "astralrecord:kuinya_guard"
   color: "#A33A3A"
 rarity: UNCOMMON
 maxStack: 1

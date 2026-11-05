@@ -6,6 +6,7 @@ id: 20a00080
 category: equipment
 name: '&aエリヴァスタッフ'
 icon: WOODEN_SHOVEL
+customModelData: 220080
 rarity: RARE
 maxStack: 1
 lore:

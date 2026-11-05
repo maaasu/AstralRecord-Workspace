@@ -6,7 +6,9 @@ id: 20a00410
 category: equipment
 name: '&bラピスガードブーツ'
 icon: LEATHER_BOOTS
+customModelData: 220410
 appearance:
+  equipmentAsset: "astralrecord:lapis_guard"
   color: '#334A8A'
 rarity: RARE
 maxStack: 1

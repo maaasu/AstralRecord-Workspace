@@ -6,7 +6,9 @@ id: 20a00408
 category: equipment
 name: '&bラピスガードメイル'
 icon: LEATHER_CHESTPLATE
+customModelData: 220408
 appearance:
+  equipmentAsset: "astralrecord:lapis_guard"
   color: '#334A8A'
 rarity: RARE
 maxStack: 1

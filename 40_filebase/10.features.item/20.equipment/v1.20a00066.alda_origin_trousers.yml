@@ -6,7 +6,9 @@ id: 20a00066
 category: equipment
 name: "&5始源遺跡の魔導脚衣"
 icon: LEATHER_LEGGINGS
+customModelData: 220066
 appearance:
+  equipmentAsset: "astralrecord:alda_mage"
   color: "#4A2A69"
 rarity: RARE
 maxStack: 1

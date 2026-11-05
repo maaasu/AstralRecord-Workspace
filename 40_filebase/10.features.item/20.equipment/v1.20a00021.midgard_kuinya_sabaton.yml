@@ -6,7 +6,9 @@ id: 20a00021
 category: equipment
 name: "&6クウィンヤサバトン"
 icon: LEATHER_BOOTS
+customModelData: 220021
 appearance:
+  equipmentAsset: "astralrecord:kuinya_guard"
   color: "#A33A3A"
 rarity: UNCOMMON
 maxStack: 1

@@ -6,6 +6,7 @@ id: 20a00403
 category: equipment
 name: '&bラピスショートボウ'
 icon: BOW
+customModelData: 220403
 rarity: RARE
 maxStack: 1
 lore:

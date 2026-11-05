@@ -6,6 +6,7 @@ id: 20a00420
 category: equipment
 name: '&bルミナハンマー'
 icon: IRON_AXE
+customModelData: 220420
 iconGlint: false
 rarity: RARE
 maxStack: 1

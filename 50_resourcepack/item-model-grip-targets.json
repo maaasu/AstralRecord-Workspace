@@ -16,5 +16,1555 @@
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "firstperson_righthand": { "position": [1.13, -0.5379, -0.1282], "up": [0, 0.9397, 0.3420] },
     "firstperson_lefthand": { "position": [-1.13, -0.5379, -0.1282], "up": [0, 0.9397, 0.3420] }
+  },
+  "minecraft:stick": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:mace": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:blaze_rod": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:copper_spear": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:end_rod": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:breeze_rod": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:golden_sword": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:wooden_axe": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:wooden_spear": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:leather_horse_armor": {
+    "thirdperson_righthand": {
+      "position": [
+        -0.9016,
+        -2.0589,
+        -0.3791
+      ],
+      "up": [
+        -0.171,
+        0.9853,
+        -0.0026
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0.9016,
+        -2.0589,
+        -0.3791
+      ],
+      "up": [
+        0.171,
+        0.9853,
+        -0.0026
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        3.7141,
+        -0.9855
+      ],
+      "up": [
+        0,
+        0.9659,
+        0.2588
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        3.7141,
+        -0.9855
+      ],
+      "up": [
+        0,
+        0.9659,
+        0.2588
+      ]
+    }
+  },
+  "minecraft:wooden_hoe": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:iron_sword": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:iron_axe": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:crossbow": {
+    "thirdperson_righthand": {
+      "position": [
+        -0.9016,
+        -2.0589,
+        -0.3791
+      ],
+      "up": [
+        -0.171,
+        0.9853,
+        -0.0026
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0.9016,
+        -2.0589,
+        -0.3791
+      ],
+      "up": [
+        0.171,
+        0.9853,
+        -0.0026
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        3.7141,
+        -0.9855
+      ],
+      "up": [
+        0,
+        0.9659,
+        0.2588
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        3.7141,
+        -0.9855
+      ],
+      "up": [
+        0,
+        0.9659,
+        0.2588
+      ]
+    }
+  },
+  "minecraft:torch": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:iron_hoe": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:iron_shovel": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:iron_spear": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:diamond_sword": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:diamond_axe": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:diamond_spear": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:diamond_hoe": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:diamond_shovel": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -0.5379,
+        -0.1282
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:flower_banner_pattern": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:shield": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:flower_pot": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:leather_helmet": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:leather_chestplate": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:leather_leggings": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:leather_boots": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
+  },
+  "minecraft:golden_chestplate": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -2.1559,
+        1.5854
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -1.13,
+        -1.4991,
+        -0.5803
+      ],
+      "up": [
+        0,
+        0.9397,
+        0.342
+      ]
+    }
   }
 }

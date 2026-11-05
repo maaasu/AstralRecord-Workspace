@@ -6,6 +6,7 @@ id: 20a00077
 category: equipment
 name: '&aエリヴァショートボウ'
 icon: BOW
+customModelData: 220077
 rarity: RARE
 maxStack: 1
 lore:

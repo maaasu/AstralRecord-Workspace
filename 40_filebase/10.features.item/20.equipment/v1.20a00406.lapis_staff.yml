@@ -6,6 +6,7 @@ id: 20a00406
 category: equipment
 name: '&bラピススタッフ'
 icon: IRON_SHOVEL
+customModelData: 220406
 rarity: RARE
 maxStack: 1
 lore:

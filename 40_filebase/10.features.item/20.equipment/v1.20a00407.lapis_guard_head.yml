@@ -6,7 +6,9 @@ id: 20a00407
 category: equipment
 name: '&bラピスガードヘルム'
 icon: LEATHER_HELMET
+customModelData: 220407
 appearance:
+  equipmentAsset: "astralrecord:lapis_guard"
   color: '#334A8A'
 rarity: RARE
 maxStack: 1

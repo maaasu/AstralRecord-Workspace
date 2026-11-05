@@ -6,6 +6,7 @@ id: 20a00449
 category: equipment
 name: '&bアストラキャップ'
 icon: LEATHER_HELMET
+customModelData: 220449
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -262,4 +263,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_hunt"
   color: '#6D9C9A'

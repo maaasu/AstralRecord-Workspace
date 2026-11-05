@@ -6,6 +6,7 @@ id: 20a00404
 category: equipment
 name: '&bラピスロングボウ'
 icon: CROSSBOW
+customModelData: 220404
 rarity: RARE
 maxStack: 1
 lore:

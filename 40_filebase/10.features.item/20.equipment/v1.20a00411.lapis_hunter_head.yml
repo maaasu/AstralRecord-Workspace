@@ -6,7 +6,9 @@ id: 20a00411
 category: equipment
 name: '&bラピスハンターハット'
 icon: LEATHER_HELMET
+customModelData: 220411
 appearance:
+  equipmentAsset: "astralrecord:lapis_ranger"
   color: '#4B6AA3'
 rarity: RARE
 maxStack: 1

@@ -6,6 +6,7 @@ id: 20a00450
 category: equipment
 name: '&bアストラジャケット'
 icon: LEATHER_CHESTPLATE
+customModelData: 220450
 rarity: RARE
 maxStack: 1
 saleValue: 3000
@@ -265,4 +266,5 @@ equipment:
       enhance:
         maxLevel: 30
 appearance:
+  equipmentAsset: "astralrecord:astra_hunt"
   color: '#6D9C9A'

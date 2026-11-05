@@ -6,7 +6,9 @@ id: 20a00014
 category: equipment
 name: "&6クレイガーディアンプレート"
 icon: LEATHER_CHESTPLATE
+customModelData: 220014
 appearance:
+  equipmentAsset: "astralrecord:clay_guardian"
   color: "#8C6A4A"
 rarity: UNCOMMON
 maxStack: 1
