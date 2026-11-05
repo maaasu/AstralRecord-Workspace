@@ -6,6 +6,7 @@ id: 20a00008
 category: equipment
 name: "&fノクスチャーム"
 icon: IRON_CHAIN
+customModelData: 220008
 rarity: COMMON
 maxStack: 1
 saleValue: 1

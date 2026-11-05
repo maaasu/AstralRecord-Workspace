@@ -6,6 +6,7 @@ id: 20a00038
 category: equipment
 name: "&5メリアンのチャーム"
 icon: activator_rail
+customModelData: 220038
 rarity: EPIC
 maxStack: 1
 saleValue: 800

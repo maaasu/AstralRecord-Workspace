@@ -6,6 +6,7 @@ id: 20a00027
 category: equipment
 name: "&bアース遺跡のレリック"
 icon: stone_brick_wall
+customModelData: 220027
 rarity: RARE
 maxStack: 1
 saleValue: 320

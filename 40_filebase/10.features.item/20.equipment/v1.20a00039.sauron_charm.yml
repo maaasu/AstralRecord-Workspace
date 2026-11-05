@@ -6,6 +6,7 @@ id: 20a00039
 category: equipment
 name: "&5サウロンのチャーム"
 icon: powered_rail
+customModelData: 220039
 rarity: EPIC
 maxStack: 1
 saleValue: 800

@@ -6,6 +6,7 @@ id: 20a00028
 category: equipment
 name: "&b凍気のタリスマン"
 icon: PRISMARINE_CRYSTALS
+customModelData: 220028
 rarity: RARE
 maxStack: 1
 saleValue: 320

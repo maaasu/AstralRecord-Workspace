@@ -6,6 +6,7 @@ id: 20a00033
 category: equipment
 name: "&5バルログのチャーム"
 icon: detector_rail
+customModelData: 220033
 rarity: EPIC
 maxStack: 1
 saleValue: 800

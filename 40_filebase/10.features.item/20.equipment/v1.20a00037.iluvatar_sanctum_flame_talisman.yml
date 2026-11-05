@@ -6,6 +6,7 @@ id: 20a00037
 category: equipment
 name: "&c焔詠のタリスマン"
 icon: ENDER_EYE
+customModelData: 220037
 rarity: RARE
 maxStack: 1
 saleValue: 640

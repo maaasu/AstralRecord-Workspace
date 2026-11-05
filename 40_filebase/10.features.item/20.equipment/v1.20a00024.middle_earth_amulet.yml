@@ -6,6 +6,7 @@ id: 20a00024
 category: equipment
 name: "&bミドルアースのアミュレット"
 icon: warped_hanging_sign
+customModelData: 220024
 rarity: RARE
 maxStack: 1
 saleValue: 320

@@ -21,6 +21,90 @@
       "custom_model_data": 21003,
       "java_virtual_trident": true,
       "grip": [8, 4.70, 8]
+    },
+    {
+      "id": "nox_charm",
+      "base_item": "minecraft:iron_chain",
+      "custom_model_data": 220008,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_amulet",
+      "base_item": "minecraft:warped_hanging_sign",
+      "custom_model_data": 220024,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_relic",
+      "base_item": "minecraft:stone_brick_wall",
+      "custom_model_data": 220027,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_talisman",
+      "base_item": "minecraft:prismarine_crystals",
+      "custom_model_data": 220028,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "balrog_charm",
+      "base_item": "minecraft:detector_rail",
+      "custom_model_data": 220033,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iluvatar_sanctum_ember_talisman",
+      "base_item": "minecraft:spectral_arrow",
+      "custom_model_data": 220036,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iluvatar_sanctum_flame_talisman",
+      "base_item": "minecraft:ender_eye",
+      "custom_model_data": 220037,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "merian_charm",
+      "base_item": "minecraft:activator_rail",
+      "custom_model_data": 220038,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "sauron_charm",
+      "base_item": "minecraft:powered_rail",
+      "custom_model_data": 220039,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "silmarilsil_core",
+      "base_item": "minecraft:nether_star",
+      "custom_model_data": 220053,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "origin_alda_core",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 220069,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "horologium_pocket_watch",
+      "base_item": "minecraft:clock",
+      "custom_model_data": 220457,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
     }
   ]
 }

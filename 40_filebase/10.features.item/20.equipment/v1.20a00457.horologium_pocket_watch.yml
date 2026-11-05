@@ -6,6 +6,7 @@ id: 20a00457
 category: equipment
 name: "&6巻戻しの懐中時計"
 icon: CLOCK
+customModelData: 220457
 rarity: EPIC
 maxStack: 1
 saleValue: 0

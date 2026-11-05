@@ -6,6 +6,7 @@ id: 20a00069
 category: equipment
 name: "&a始源アルダコア"
 icon: PLAYER_HEAD
+customModelData: 220069
 iconTexture: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTliZWFkZGZjZTRmM2VlMzYzMTBhOWQzN2IyODE0NTc4NTU3M2JmNDA2YjFmODIxMTY4ZGRhYTFkZGY1NDY0YSJ9fX0=
 rarity: LEGENDARY
 maxStack: 1

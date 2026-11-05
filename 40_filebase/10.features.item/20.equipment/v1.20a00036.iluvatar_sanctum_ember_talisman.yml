@@ -6,6 +6,7 @@ id: 20a00036
 category: equipment
 name: "&6灼光のタリスマン"
 icon: SPECTRAL_ARROW
+customModelData: 220036
 rarity: RARE
 maxStack: 1
 saleValue: 640

@@ -6,6 +6,7 @@ id: 20a00053
 category: equipment
 name: "&dシルマリルシルコア"
 icon: NETHER_STAR
+customModelData: 220053
 rarity: EPIC
 maxStack: 1
 saleValue: 1200
