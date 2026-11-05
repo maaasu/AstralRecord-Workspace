@@ -1,0 +1,653 @@
+{
+  "id": "sun_crown_sword",
+  "master_id": "20a00056",
+  "kind": "sword",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftの金の剣を起点に、刃の大きな段差と太い翼形の護拳を加えた太陽鳥の剣。琥珀色の熱を中央の太い一条で表し、赤革と金の数色でEPICの陽冠を読む。細い透かし彫りや写実的な薄刃は用いない。",
+  "materials": {
+    "sun_gold": {
+      "palette": [
+        "5b3921",
+        "8c5928",
+        "bc8234",
+        "e7b64d",
+        "ffdb73"
+      ],
+      "pattern": [
+        "23344321",
+        "23444321",
+        "23344321",
+        "22343321",
+        "23344321",
+        "23343321",
+        "22343221",
+        "12332210"
+      ]
+    },
+    "gold_edge": {
+      "palette": [
+        "70451f",
+        "aa7129",
+        "d9a33e",
+        "f2c55c",
+        "ffe48a"
+      ],
+      "pattern": [
+        "44332100",
+        "44332100",
+        "44332210",
+        "44333210",
+        "44332100",
+        "43332100",
+        "44332100",
+        "44332100"
+      ]
+    },
+    "gold_dark": {
+      "palette": [
+        "4c2e1b",
+        "70441f",
+        "94632b",
+        "ba8738"
+      ],
+      "pattern": [
+        "12233211",
+        "12223211",
+        "12233211",
+        "12223211",
+        "12223211",
+        "12233211",
+        "11222211",
+        "00111000"
+      ]
+    },
+    "sun_amber": {
+      "palette": [
+        "77321c",
+        "a94a22",
+        "d7772e",
+        "f2ad45",
+        "fbd273"
+      ],
+      "pattern": [
+        "23344321",
+        "23444321",
+        "24444321",
+        "23343221",
+        "22343221",
+        "22333221",
+        "12332211",
+        "01222110"
+      ]
+    },
+    "redwood": {
+      "palette": [
+        "36231f",
+        "593226",
+        "7d4830",
+        "a6653e",
+        "c28b56"
+      ],
+      "pattern": [
+        "12334321",
+        "12344321",
+        "12334321",
+        "12334421",
+        "12344321",
+        "12334321",
+        "12344221",
+        "12334321"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "33221a",
+        "573522",
+        "7b4d2d",
+        "a47543",
+        "bc935b"
+      ],
+      "pattern": [
+        "01111110",
+        "12333321",
+        "13222231",
+        "13244231",
+        "13243231",
+        "13222231",
+        "12333321",
+        "01111110"
+      ]
+    },
+    "warm_wrap": {
+      "palette": [
+        "38202a",
+        "5d2c35",
+        "823e3e",
+        "a95344",
+        "c46e4c"
+      ],
+      "pattern": [
+        "12330122",
+        "23301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012",
+        "23330122"
+      ]
+    },
+    "wrap_dark": {
+      "palette": [
+        "2d1e24",
+        "47262d",
+        "623139",
+        "80413d"
+      ],
+      "pattern": [
+        "12230122",
+        "22301223",
+        "23012230",
+        "30122301",
+        "01223012",
+        "12230122",
+        "22301223",
+        "23012230"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Redwood handle core",
+      "from": [
+        7.43,
+        1.53,
+        7.43
+      ],
+      "to": [
+        8.57,
+        5.72,
+        8.57
+      ],
+      "material": "redwood",
+      "side": "warm_wrap",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Crimson leather grip",
+      "from": [
+        7.3,
+        2.2,
+        7.3
+      ],
+      "to": [
+        8.7,
+        5.2,
+        8.7
+      ],
+      "material": "warm_wrap",
+      "side": "wrap_dark"
+    },
+    {
+      "name": "Golden block pommel",
+      "from": [
+        6.94,
+        1.2,
+        7.02
+      ],
+      "to": [
+        9.06,
+        2.0,
+        8.98
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Pommel amber tablet",
+      "from": [
+        7.5,
+        1.36,
+        6.86
+      ],
+      "to": [
+        8.5,
+        1.87,
+        7.08
+      ],
+      "material": "sun_amber",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Pommel amber back",
+      "from": [
+        7.5,
+        1.36,
+        8.92
+      ],
+      "to": [
+        8.5,
+        1.87,
+        9.14
+      ],
+      "material": "sun_amber",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Grip lower seam",
+      "from": [
+        7.25,
+        2.28,
+        7.25
+      ],
+      "to": [
+        8.75,
+        2.57,
+        8.75
+      ],
+      "material": "wrap_dark",
+      "side": "warm_wrap"
+    },
+    {
+      "name": "Grip upper seam",
+      "from": [
+        7.25,
+        4.68,
+        7.25
+      ],
+      "to": [
+        8.75,
+        4.97,
+        8.75
+      ],
+      "material": "wrap_dark",
+      "side": "warm_wrap"
+    },
+    {
+      "name": "Gold sword crossguard",
+      "from": [
+        4.35,
+        5.2,
+        7.15
+      ],
+      "to": [
+        11.65,
+        6.1,
+        8.85
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left wing step",
+      "from": [
+        4.0,
+        5.9,
+        7.21
+      ],
+      "to": [
+        5.75,
+        6.55,
+        8.79
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Right wing step",
+      "from": [
+        10.25,
+        5.9,
+        7.21
+      ],
+      "to": [
+        12.0,
+        6.55,
+        8.79
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left raised feather",
+      "from": [
+        3.58,
+        6.43,
+        7.31
+      ],
+      "to": [
+        4.76,
+        7.1,
+        8.69
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Right raised feather",
+      "from": [
+        11.24,
+        6.43,
+        7.31
+      ],
+      "to": [
+        12.42,
+        7.1,
+        8.69
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Sun guard central block",
+      "from": [
+        6.64,
+        5.75,
+        6.95
+      ],
+      "to": [
+        9.36,
+        7.55,
+        9.05
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Warm sun guard front",
+      "from": [
+        7.2,
+        6.06,
+        6.72
+      ],
+      "to": [
+        8.8,
+        7.35,
+        7.06
+      ],
+      "material": "sun_amber",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Warm sun guard back",
+      "from": [
+        7.2,
+        6.06,
+        8.94
+      ],
+      "to": [
+        8.8,
+        7.35,
+        9.28
+      ],
+      "material": "sun_amber",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Golden sword blade step 1",
+      "from": [
+        7.135,
+        7.2,
+        7.42
+      ],
+      "to": [
+        8.865,
+        13.5,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left square cutting edge 1",
+      "from": [
+        6.575,
+        7.2,
+        7.62
+      ],
+      "to": [
+        7.135,
+        13.5,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Right square cutting edge 1",
+      "from": [
+        8.865,
+        7.2,
+        7.62
+      ],
+      "to": [
+        9.425,
+        13.5,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Golden sword blade step 2",
+      "from": [
+        7.4350000000000005,
+        13.5,
+        7.42
+      ],
+      "to": [
+        8.565,
+        15.65,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left square cutting edge 2",
+      "from": [
+        6.875,
+        13.5,
+        7.62
+      ],
+      "to": [
+        7.4350000000000005,
+        15.65,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Right square cutting edge 2",
+      "from": [
+        8.565,
+        13.5,
+        7.62
+      ],
+      "to": [
+        9.125,
+        15.65,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Golden sword blade step 3",
+      "from": [
+        7.681,
+        15.65,
+        7.42
+      ],
+      "to": [
+        8.318999999999999,
+        16.85,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left square cutting edge 3",
+      "from": [
+        7.275,
+        15.65,
+        7.62
+      ],
+      "to": [
+        7.681,
+        16.85,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Right square cutting edge 3",
+      "from": [
+        8.318999999999999,
+        15.65,
+        7.62
+      ],
+      "to": [
+        8.725,
+        16.85,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Golden sword blade step 4",
+      "from": [
+        7.8416,
+        16.85,
+        7.42
+      ],
+      "to": [
+        8.1584,
+        17.6,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left square cutting edge 4",
+      "from": [
+        7.64,
+        16.85,
+        7.62
+      ],
+      "to": [
+        7.8416,
+        17.6,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Right square cutting edge 4",
+      "from": [
+        8.1584,
+        16.85,
+        7.62
+      ],
+      "to": [
+        8.36,
+        17.6,
+        8.38
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Sun heat inlay front",
+      "from": [
+        7.66,
+        8.2,
+        7.3
+      ],
+      "to": [
+        8.34,
+        13.2,
+        7.46
+      ],
+      "material": "sun_amber",
+      "side": "gold_dark"
+    },
+    {
+      "name": "Sun heat inlay back",
+      "from": [
+        7.66,
+        8.2,
+        8.54
+      ],
+      "to": [
+        8.34,
+        13.2,
+        8.7
+      ],
+      "material": "sun_amber",
+      "side": "gold_dark"
+    },
+    {
+      "name": "Left sun ray tooth",
+      "from": [
+        5.58,
+        6.03,
+        7.24
+      ],
+      "to": [
+        6.24,
+        7.08,
+        8.76
+      ],
+      "material": "sun_gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Right sun ray tooth",
+      "from": [
+        9.76,
+        6.03,
+        7.24
+      ],
+      "to": [
+        10.42,
+        7.08,
+        8.76
+      ],
+      "material": "sun_gold",
+      "side": "gold_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      -20,
+      -36
+    ],
+    "translation": [
+      0,
+      -0.6,
+      0
+    ],
+    "scale": 0.84
+  }
+}

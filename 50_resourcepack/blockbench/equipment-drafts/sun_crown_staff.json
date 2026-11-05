@@ -1,0 +1,647 @@
+{
+  "id": "sun_crown_staff",
+  "master_id": "20a00055",
+  "kind": "staff",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftのロッドを長くした赤木の軸と、金ブロックを階段状に組んだ太陽鳥の儀式杖。太い角翼と三本の冠で長杖の輪郭を作り、正背に大きな琥珀面を置く。光は色面として扱い発光素材は使わない。",
+  "materials": {
+    "sun_gold": {
+      "palette": [
+        "5b3921",
+        "8c5928",
+        "bc8234",
+        "e7b64d",
+        "ffdb73"
+      ],
+      "pattern": [
+        "23344321",
+        "23444321",
+        "23344321",
+        "22343321",
+        "23344321",
+        "23343321",
+        "22343221",
+        "12332210"
+      ]
+    },
+    "gold_edge": {
+      "palette": [
+        "70451f",
+        "aa7129",
+        "d9a33e",
+        "f2c55c",
+        "ffe48a"
+      ],
+      "pattern": [
+        "44332100",
+        "44332100",
+        "44332210",
+        "44333210",
+        "44332100",
+        "43332100",
+        "44332100",
+        "44332100"
+      ]
+    },
+    "gold_dark": {
+      "palette": [
+        "4c2e1b",
+        "70441f",
+        "94632b",
+        "ba8738"
+      ],
+      "pattern": [
+        "12233211",
+        "12223211",
+        "12233211",
+        "12223211",
+        "12223211",
+        "12233211",
+        "11222211",
+        "00111000"
+      ]
+    },
+    "sun_amber": {
+      "palette": [
+        "77321c",
+        "a94a22",
+        "d7772e",
+        "f2ad45",
+        "fbd273"
+      ],
+      "pattern": [
+        "23344321",
+        "23444321",
+        "24444321",
+        "23343221",
+        "22343221",
+        "22333221",
+        "12332211",
+        "01222110"
+      ]
+    },
+    "redwood": {
+      "palette": [
+        "36231f",
+        "593226",
+        "7d4830",
+        "a6653e",
+        "c28b56"
+      ],
+      "pattern": [
+        "12334321",
+        "12344321",
+        "12334321",
+        "12334421",
+        "12344321",
+        "12334321",
+        "12344221",
+        "12334321"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "33221a",
+        "573522",
+        "7b4d2d",
+        "a47543",
+        "bc935b"
+      ],
+      "pattern": [
+        "01111110",
+        "12333321",
+        "13222231",
+        "13244231",
+        "13243231",
+        "13222231",
+        "12333321",
+        "01111110"
+      ]
+    },
+    "warm_wrap": {
+      "palette": [
+        "38202a",
+        "5d2c35",
+        "823e3e",
+        "a95344",
+        "c46e4c"
+      ],
+      "pattern": [
+        "12330122",
+        "23301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012",
+        "23330122"
+      ]
+    },
+    "wrap_dark": {
+      "palette": [
+        "2d1e24",
+        "47262d",
+        "623139",
+        "80413d"
+      ],
+      "pattern": [
+        "12230122",
+        "22301223",
+        "23012230",
+        "30122301",
+        "01223012",
+        "12230122",
+        "22301223",
+        "23012230"
+      ]
+    },
+    "feather_cream": {
+      "palette": [
+        "75604a",
+        "a48b5c",
+        "d3b77b",
+        "f1d69a",
+        "f8e6b9"
+      ],
+      "pattern": [
+        "23344321",
+        "23444321",
+        "23344321",
+        "23343321",
+        "22343321",
+        "12333221",
+        "12332211",
+        "01222110"
+      ]
+    },
+    "bird_eye": {
+      "palette": [
+        "281e25",
+        "44262c",
+        "68332e",
+        "97462f"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12332221",
+        "12333221",
+        "12233221",
+        "12222221",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Long warm redwood shaft",
+      "from": [
+        7.46,
+        0.8,
+        7.46
+      ],
+      "to": [
+        8.54,
+        14.1,
+        8.54
+      ],
+      "material": "redwood",
+      "side": "warm_wrap",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad crimson hand wrap",
+      "from": [
+        7.28,
+        2.1,
+        7.28
+      ],
+      "to": [
+        8.72,
+        6.2,
+        8.72
+      ],
+      "material": "warm_wrap",
+      "side": "wrap_dark"
+    },
+    {
+      "name": "Square lower gold ferrule",
+      "from": [
+        7.15,
+        0.63,
+        7.15
+      ],
+      "to": [
+        8.85,
+        1.56,
+        8.85
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Gold foot cap",
+      "from": [
+        7.3,
+        0.26,
+        7.3
+      ],
+      "to": [
+        8.7,
+        0.8,
+        8.7
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Grip bottom band",
+      "from": [
+        7.18,
+        2.02,
+        7.18
+      ],
+      "to": [
+        8.82,
+        2.45,
+        8.82
+      ],
+      "material": "gold_dark",
+      "side": "sun_gold",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Grip top band",
+      "from": [
+        7.18,
+        5.85,
+        7.18
+      ],
+      "to": [
+        8.82,
+        6.28,
+        8.82
+      ],
+      "material": "gold_dark",
+      "side": "sun_gold",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Upper shaft band",
+      "from": [
+        7.2,
+        9.48,
+        7.2
+      ],
+      "to": [
+        8.8,
+        10.04,
+        8.8
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Head lower socket",
+      "from": [
+        6.9,
+        12.57,
+        6.96
+      ],
+      "to": [
+        9.1,
+        13.37,
+        9.04
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Sun crown lower step",
+      "from": [
+        6.36,
+        13.18,
+        7.12
+      ],
+      "to": [
+        9.64,
+        13.88,
+        8.88
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Block sun face",
+      "from": [
+        6.36,
+        13.83,
+        7.03
+      ],
+      "to": [
+        9.64,
+        17.12,
+        8.97
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Amber sun face front",
+      "from": [
+        6.96,
+        14.43,
+        6.8
+      ],
+      "to": [
+        9.04,
+        16.52,
+        7.14
+      ],
+      "material": "sun_amber",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Amber sun face back",
+      "from": [
+        6.96,
+        14.43,
+        8.86
+      ],
+      "to": [
+        9.04,
+        16.52,
+        9.2
+      ],
+      "material": "sun_amber",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Sun face crest bridge",
+      "from": [
+        6.72,
+        17.1,
+        7.24
+      ],
+      "to": [
+        9.28,
+        17.67,
+        8.76
+      ],
+      "material": "sun_gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Left crown pixel",
+      "from": [
+        5.76,
+        16.9,
+        7.42
+      ],
+      "to": [
+        6.82,
+        18.2,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Right crown pixel",
+      "from": [
+        9.18,
+        16.9,
+        7.42
+      ],
+      "to": [
+        10.24,
+        18.2,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Middle crown pixel",
+      "from": [
+        7.43,
+        17.63,
+        7.43
+      ],
+      "to": [
+        8.57,
+        19.15,
+        8.57
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Left wing root",
+      "from": [
+        5.18,
+        14.15,
+        7.22
+      ],
+      "to": [
+        6.64,
+        16.28,
+        8.78
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Right wing root",
+      "from": [
+        9.36,
+        14.15,
+        7.22
+      ],
+      "to": [
+        10.82,
+        16.28,
+        8.78
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left wing middle",
+      "from": [
+        4.14,
+        14.74,
+        7.33
+      ],
+      "to": [
+        5.42,
+        16.17,
+        8.67
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Right wing middle",
+      "from": [
+        10.58,
+        14.74,
+        7.33
+      ],
+      "to": [
+        11.86,
+        16.17,
+        8.67
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Left wing feather tip",
+      "from": [
+        3.51,
+        15.39,
+        7.46
+      ],
+      "to": [
+        4.4,
+        16.52,
+        8.54
+      ],
+      "material": "feather_cream",
+      "side": "sun_gold",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Right wing feather tip",
+      "from": [
+        11.6,
+        15.39,
+        7.46
+      ],
+      "to": [
+        12.49,
+        16.52,
+        8.54
+      ],
+      "material": "feather_cream",
+      "side": "sun_gold",
+      "cap": "gold_edge"
+    },
+    {
+      "name": "Left lower ray",
+      "from": [
+        5.29,
+        13.2,
+        7.42
+      ],
+      "to": [
+        6.71,
+        14.33,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark"
+    },
+    {
+      "name": "Right lower ray",
+      "from": [
+        9.29,
+        13.2,
+        7.42
+      ],
+      "to": [
+        10.71,
+        14.33,
+        8.58
+      ],
+      "material": "sun_gold",
+      "side": "gold_dark"
+    },
+    {
+      "name": "Front square bird eye",
+      "from": [
+        7.18,
+        15.43,
+        6.69
+      ],
+      "to": [
+        7.76,
+        16.05,
+        6.91
+      ],
+      "material": "bird_eye"
+    },
+    {
+      "name": "Back square bird eye",
+      "from": [
+        8.24,
+        15.43,
+        9.09
+      ],
+      "to": [
+        8.82,
+        16.05,
+        9.31
+      ],
+      "material": "bird_eye"
+    },
+    {
+      "name": "Front gold beak pixel",
+      "from": [
+        7.74,
+        14.82,
+        6.63
+      ],
+      "to": [
+        8.8,
+        15.38,
+        6.94
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    },
+    {
+      "name": "Back gold beak pixel",
+      "from": [
+        7.2,
+        14.82,
+        9.06
+      ],
+      "to": [
+        8.26,
+        15.38,
+        9.37
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      10,
+      -20,
+      -25
+    ],
+    "translation": [
+      0,
+      -1.1,
+      0
+    ],
+    "scale": 0.77
+  }
+}
