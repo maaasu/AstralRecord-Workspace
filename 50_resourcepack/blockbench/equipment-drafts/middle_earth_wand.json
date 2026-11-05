@@ -1,0 +1,702 @@
+{
+  "id": "middle_earth_wand",
+  "master_id": "20a00029",
+  "kind": "wand",
+  "intent": "Minecraftのブレイズロッドの短い軸を起点にした遺跡の短杖。灰青の石を砂岩と古銅の太い叉で挟み、ブロック階段状の石を冷たい焦点にする。ノクスの木杖より仕立てはよいが、小型で非発光のLv5遺跡品。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "ash_wood": {
+      "palette": [
+        "302a24",
+        "493a2d",
+        "614b35",
+        "7a5e3f",
+        "96764c",
+        "b08f60"
+      ],
+      "pattern": [
+        "12344321",
+        "12334321",
+        "12334421",
+        "12334321",
+        "12344221",
+        "12344321",
+        "12344321",
+        "12334421"
+      ]
+    },
+    "wood_edge": {
+      "palette": [
+        "29251f",
+        "403126",
+        "5c4430",
+        "785b3b",
+        "96784f"
+      ],
+      "pattern": [
+        "12333210",
+        "12333210",
+        "12332210",
+        "12333210",
+        "12343210",
+        "12333210",
+        "12332210",
+        "12333210"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "2d2820",
+        "4a3827",
+        "6d5133",
+        "8b6b43",
+        "a38657"
+      ],
+      "pattern": [
+        "01111110",
+        "12333321",
+        "13222231",
+        "13244231",
+        "13243231",
+        "13222231",
+        "12333321",
+        "01111110"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "27251e",
+        "393529",
+        "4d4735",
+        "635a42",
+        "7e7152"
+      ],
+      "pattern": [
+        "12330122",
+        "23301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012",
+        "23330122"
+      ]
+    },
+    "leather_side": {
+      "palette": [
+        "24231c",
+        "353326",
+        "454231",
+        "5d573e"
+      ],
+      "pattern": [
+        "12230122",
+        "22301223",
+        "23012230",
+        "30122301",
+        "01223012",
+        "12230122",
+        "22301223",
+        "23012230"
+      ]
+    },
+    "copper": {
+      "palette": [
+        "382d25",
+        "594332",
+        "7a5c3d",
+        "9c7950",
+        "b89a6d"
+      ],
+      "pattern": [
+        "23344332",
+        "12233221",
+        "12233221",
+        "12223221",
+        "12323221",
+        "12223221",
+        "11122111",
+        "00111000"
+      ]
+    },
+    "copper_edge": {
+      "palette": [
+        "4a372a",
+        "715139",
+        "96744a",
+        "bfa273",
+        "d0b886"
+      ],
+      "pattern": [
+        "44333210",
+        "44332210",
+        "44333210",
+        "43333210",
+        "44333210",
+        "44332210",
+        "43333210",
+        "44333210"
+      ]
+    },
+    "patina": {
+      "palette": [
+        "23312c",
+        "344a3d",
+        "49624c",
+        "66765b",
+        "8b9271"
+      ],
+      "pattern": [
+        "12332111",
+        "12232111",
+        "12332121",
+        "12332221",
+        "12332111",
+        "12232111",
+        "12332121",
+        "12332111"
+      ]
+    },
+    "masonry_iron": {
+      "palette": [
+        "2b3031",
+        "3c4546",
+        "56605f",
+        "747e76",
+        "9ca59a"
+      ],
+      "pattern": [
+        "22333221",
+        "23343221",
+        "23333221",
+        "23333231",
+        "22343221",
+        "23333221",
+        "23333221",
+        "12332211"
+      ]
+    },
+    "sandstone": {
+      "palette": [
+        "4e4939",
+        "70674d",
+        "918363",
+        "aca07c",
+        "c9bd96"
+      ],
+      "pattern": [
+        "23344322",
+        "23343222",
+        "22343221",
+        "23333221",
+        "23343222",
+        "22333221",
+        "23333221",
+        "12232211"
+      ]
+    },
+    "rune_cut": {
+      "palette": [
+        "182322",
+        "22332f",
+        "31483f",
+        "526151"
+      ],
+      "pattern": [
+        "00110000",
+        "01221000",
+        "01221100",
+        "00122110",
+        "00012210",
+        "00012210",
+        "00122100",
+        "00111000"
+      ]
+    },
+    "cold_stone": {
+      "palette": [
+        "314447",
+        "496466",
+        "638385",
+        "88a5a2",
+        "b0c5ba",
+        "d5ddd0"
+      ],
+      "pattern": [
+        "33455432",
+        "34555432",
+        "34444332",
+        "33444321",
+        "33443221",
+        "33333221",
+        "23332211",
+        "12222110"
+      ]
+    },
+    "cold_edge": {
+      "palette": [
+        "3b5455",
+        "638180",
+        "8aa7a2",
+        "bad0c2",
+        "dbe4d5"
+      ],
+      "pattern": [
+        "44333210",
+        "44333210",
+        "44332210",
+        "44333210",
+        "43333210",
+        "44333210",
+        "43332210",
+        "44333210"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Short carved ash handle",
+      "from": [
+        7.47,
+        1.8,
+        7.47
+      ],
+      "to": [
+        8.53,
+        10.55,
+        8.53
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Soft leather hand sleeve",
+      "from": [
+        7.34,
+        2.35,
+        7.34
+      ],
+      "to": [
+        8.66,
+        5.48,
+        8.66
+      ],
+      "material": "leather",
+      "side": "leather_side"
+    },
+    {
+      "name": "Lower copper seal",
+      "from": [
+        7.22,
+        1.72,
+        7.22
+      ],
+      "to": [
+        8.78,
+        2.39,
+        8.78
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Stone butt cap",
+      "from": [
+        7.35,
+        1.18,
+        7.35
+      ],
+      "to": [
+        8.65,
+        1.78,
+        8.65
+      ],
+      "material": "sandstone",
+      "side": "masonry_iron"
+    },
+    {
+      "name": "Lower cap peen",
+      "from": [
+        7.68,
+        0.98,
+        7.68
+      ],
+      "to": [
+        8.32,
+        1.22,
+        8.32
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Upper copper seal",
+      "from": [
+        7.2,
+        5.36,
+        7.2
+      ],
+      "to": [
+        8.8,
+        5.83,
+        8.8
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Long patinated neck brace",
+      "from": [
+        7.3,
+        8.7,
+        7.3
+      ],
+      "to": [
+        8.7,
+        10.65,
+        8.7
+      ],
+      "material": "patina",
+      "side": "copper"
+    },
+    {
+      "name": "Fork lower saddle",
+      "from": [
+        6.7,
+        10.22,
+        7.16
+      ],
+      "to": [
+        9.3,
+        10.83,
+        8.84
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Left relic fork",
+      "from": [
+        6.35,
+        10.61,
+        7.35
+      ],
+      "to": [
+        6.96,
+        14.13,
+        8.65
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Right relic fork",
+      "from": [
+        9.04,
+        10.61,
+        7.35
+      ],
+      "to": [
+        9.65,
+        14.13,
+        8.65
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Left sandstone socket",
+      "from": [
+        6.18,
+        11.13,
+        7.23
+      ],
+      "to": [
+        7.14,
+        13.77,
+        8.77
+      ],
+      "material": "sandstone",
+      "side": "masonry_iron"
+    },
+    {
+      "name": "Right sandstone socket",
+      "from": [
+        8.86,
+        11.13,
+        7.23
+      ],
+      "to": [
+        9.82,
+        13.77,
+        8.77
+      ],
+      "material": "sandstone",
+      "side": "masonry_iron"
+    },
+    {
+      "name": "Cold focus lower step",
+      "from": [
+        7.3,
+        10.72,
+        7.35
+      ],
+      "to": [
+        8.7,
+        11.44,
+        8.65
+      ],
+      "material": "cold_stone",
+      "side": "cold_edge"
+    },
+    {
+      "name": "Cold focus main prism",
+      "from": [
+        7.08,
+        11.43,
+        7.19
+      ],
+      "to": [
+        8.92,
+        13.63,
+        8.81
+      ],
+      "material": "cold_stone",
+      "side": "cold_edge",
+      "cap": "cold_edge"
+    },
+    {
+      "name": "Cold focus upper facet",
+      "from": [
+        7.39,
+        13.62,
+        7.42
+      ],
+      "to": [
+        8.61,
+        14.31,
+        8.58
+      ],
+      "material": "cold_edge",
+      "side": "cold_stone"
+    },
+    {
+      "name": "Cold focus crown facet",
+      "from": [
+        7.67,
+        14.3,
+        7.66
+      ],
+      "to": [
+        8.33,
+        14.72,
+        8.34
+      ],
+      "material": "cold_edge",
+      "side": "cold_stone"
+    },
+    {
+      "name": "Lower front retaining tooth",
+      "from": [
+        7.44,
+        10.57,
+        6.99
+      ],
+      "to": [
+        8.56,
+        11.61,
+        7.29
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Lower back retaining tooth",
+      "from": [
+        7.44,
+        10.57,
+        8.71
+      ],
+      "to": [
+        8.56,
+        11.61,
+        9.01
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Upper left retaining tooth",
+      "from": [
+        6.62,
+        13.62,
+        7.09
+      ],
+      "to": [
+        7.51,
+        14.21,
+        8.91
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Upper right retaining tooth",
+      "from": [
+        8.49,
+        13.62,
+        7.09
+      ],
+      "to": [
+        9.38,
+        14.21,
+        8.91
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Front old seal tablet",
+      "from": [
+        7.49,
+        8.95,
+        7.07
+      ],
+      "to": [
+        8.51,
+        9.95,
+        7.31
+      ],
+      "material": "sandstone",
+      "side": "copper"
+    },
+    {
+      "name": "Rear old seal tablet",
+      "from": [
+        7.49,
+        8.95,
+        8.69
+      ],
+      "to": [
+        8.51,
+        9.95,
+        8.93
+      ],
+      "material": "sandstone",
+      "side": "copper"
+    },
+    {
+      "name": "Front seal pixel",
+      "from": [
+        7.78,
+        9.18,
+        7
+      ],
+      "to": [
+        8.22,
+        9.72,
+        7.11
+      ],
+      "material": "rune_cut"
+    },
+    {
+      "name": "Back seal pixel",
+      "from": [
+        7.78,
+        9.18,
+        8.89
+      ],
+      "to": [
+        8.22,
+        9.72,
+        9
+      ],
+      "material": "rune_cut"
+    },
+    {
+      "name": "Broad leather binding seam",
+      "from": [
+        7.29,
+        2.8,
+        7.29
+      ],
+      "to": [
+        8.71,
+        3.05,
+        8.71
+      ],
+      "material": "leather_side",
+      "side": "leather"
+    },
+    {
+      "name": "Broad leather binding seam",
+      "from": [
+        7.29,
+        4.8,
+        7.29
+      ],
+      "to": [
+        8.71,
+        5.05,
+        8.71
+      ],
+      "material": "leather_side",
+      "side": "leather"
+    },
+    {
+      "name": "Square fork pin",
+      "from": [
+        6.41,
+        11.75,
+        7.04
+      ],
+      "to": [
+        6.91,
+        12.25,
+        7.34
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Square fork pin",
+      "from": [
+        9.09,
+        11.75,
+        7.04
+      ],
+      "to": [
+        9.59,
+        12.25,
+        7.34
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -22,
+      -35
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.9
+  }
+}

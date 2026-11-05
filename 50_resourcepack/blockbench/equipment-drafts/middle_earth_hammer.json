@@ -1,0 +1,727 @@
+{
+  "id": "middle_earth_hammer",
+  "master_id": "20a00025",
+  "kind": "hammer",
+  "intent": "Minecraftのメイスを起点にした、遺跡の石壁を砕く片手槌。ブロック状の灰鉄頭に二つの打面、古銅の固定帯と太いピクセル石工印を設ける。ノクスの軽い初期装備より頑丈だが、宝石・発光・王冠装飾を使わずLv5の実用品に留める。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "ash_wood": {
+      "palette": [
+        "302a24",
+        "493a2d",
+        "614b35",
+        "7a5e3f",
+        "96764c",
+        "b08f60"
+      ],
+      "pattern": [
+        "12344321",
+        "12334321",
+        "12334421",
+        "12334321",
+        "12344221",
+        "12344321",
+        "12344321",
+        "12334421"
+      ]
+    },
+    "wood_edge": {
+      "palette": [
+        "29251f",
+        "403126",
+        "5c4430",
+        "785b3b",
+        "96784f"
+      ],
+      "pattern": [
+        "12333210",
+        "12333210",
+        "12332210",
+        "12333210",
+        "12343210",
+        "12333210",
+        "12332210",
+        "12333210"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "2d2820",
+        "4a3827",
+        "6d5133",
+        "8b6b43",
+        "a38657"
+      ],
+      "pattern": [
+        "01111110",
+        "12333321",
+        "13222231",
+        "13244231",
+        "13243231",
+        "13222231",
+        "12333321",
+        "01111110"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "27251e",
+        "393529",
+        "4d4735",
+        "635a42",
+        "7e7152"
+      ],
+      "pattern": [
+        "12330122",
+        "23301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012",
+        "23330122"
+      ]
+    },
+    "leather_side": {
+      "palette": [
+        "24231c",
+        "353326",
+        "454231",
+        "5d573e"
+      ],
+      "pattern": [
+        "12230122",
+        "22301223",
+        "23012230",
+        "30122301",
+        "01223012",
+        "12230122",
+        "22301223",
+        "23012230"
+      ]
+    },
+    "copper": {
+      "palette": [
+        "382d25",
+        "594332",
+        "7a5c3d",
+        "9c7950",
+        "b89a6d"
+      ],
+      "pattern": [
+        "23344332",
+        "12233221",
+        "12233221",
+        "12223221",
+        "12323221",
+        "12223221",
+        "11122111",
+        "00111000"
+      ]
+    },
+    "copper_edge": {
+      "palette": [
+        "4a372a",
+        "715139",
+        "96744a",
+        "bfa273",
+        "d0b886"
+      ],
+      "pattern": [
+        "44333210",
+        "44332210",
+        "44333210",
+        "43333210",
+        "44333210",
+        "44332210",
+        "43333210",
+        "44333210"
+      ]
+    },
+    "patina": {
+      "palette": [
+        "23312c",
+        "344a3d",
+        "49624c",
+        "66765b",
+        "8b9271"
+      ],
+      "pattern": [
+        "12332111",
+        "12232111",
+        "12332121",
+        "12332221",
+        "12332111",
+        "12232111",
+        "12332121",
+        "12332111"
+      ]
+    },
+    "masonry_iron": {
+      "palette": [
+        "2b3031",
+        "3c4546",
+        "56605f",
+        "747e76",
+        "9ca59a"
+      ],
+      "pattern": [
+        "22333221",
+        "23343221",
+        "23333221",
+        "23333231",
+        "22343221",
+        "23333221",
+        "23333221",
+        "12332211"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "353d3d",
+        "55615f",
+        "7c8981",
+        "a4b2a5",
+        "c7cdbd"
+      ],
+      "pattern": [
+        "44332100",
+        "44332100",
+        "43332100",
+        "44333210",
+        "44332100",
+        "44332100",
+        "43332100",
+        "44332100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "202629",
+        "2d3538",
+        "3b484a",
+        "52615e"
+      ],
+      "pattern": [
+        "12222211",
+        "12322211",
+        "12222311",
+        "12222211",
+        "12232211",
+        "12222211",
+        "12222311",
+        "01222110"
+      ]
+    },
+    "sandstone": {
+      "palette": [
+        "4e4939",
+        "70674d",
+        "918363",
+        "aca07c",
+        "c9bd96"
+      ],
+      "pattern": [
+        "23344322",
+        "23343222",
+        "22343221",
+        "23333221",
+        "23343222",
+        "22333221",
+        "23333221",
+        "12232211"
+      ]
+    },
+    "rune_cut": {
+      "palette": [
+        "182322",
+        "22332f",
+        "31483f",
+        "526151"
+      ],
+      "pattern": [
+        "00110000",
+        "01221000",
+        "01221100",
+        "00122110",
+        "00012210",
+        "00012210",
+        "00122100",
+        "00111000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Straight ash haft",
+      "from": [
+        7.48,
+        1.5,
+        7.48
+      ],
+      "to": [
+        8.52,
+        11.35,
+        8.52
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Worn hand wrapping",
+      "from": [
+        7.37,
+        2.05,
+        7.37
+      ],
+      "to": [
+        8.63,
+        6.05,
+        8.63
+      ],
+      "material": "leather",
+      "side": "leather_side"
+    },
+    {
+      "name": "Lower copper ferrule",
+      "from": [
+        7.22,
+        1.57,
+        7.22
+      ],
+      "to": [
+        8.78,
+        2.2,
+        8.78
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Square end cap",
+      "from": [
+        7.13,
+        1.15,
+        7.12
+      ],
+      "to": [
+        8.87,
+        1.66,
+        8.88
+      ],
+      "material": "iron_dark",
+      "side": "copper",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Pommel peen",
+      "from": [
+        7.65,
+        0.92,
+        7.63
+      ],
+      "to": [
+        8.35,
+        1.16,
+        8.37
+      ],
+      "material": "masonry_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "Upper grip collar",
+      "from": [
+        7.21,
+        5.91,
+        7.21
+      ],
+      "to": [
+        8.79,
+        6.35,
+        8.79
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Neck reinforcement",
+      "from": [
+        7.3,
+        8.3,
+        7.3
+      ],
+      "to": [
+        8.7,
+        10.65,
+        8.7
+      ],
+      "material": "iron_dark",
+      "side": "masonry_iron"
+    },
+    {
+      "name": "Lower head socket",
+      "from": [
+        6.82,
+        10.16,
+        6.97
+      ],
+      "to": [
+        9.18,
+        10.85,
+        9.03
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Forged masonry hammer core",
+      "from": [
+        4.71,
+        10.75,
+        6.7
+      ],
+      "to": [
+        11.29,
+        13.68,
+        9.3
+      ],
+      "material": "masonry_iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper head bevel",
+      "from": [
+        4.9,
+        13.68,
+        6.94
+      ],
+      "to": [
+        11.1,
+        14.03,
+        9.06
+      ],
+      "material": "iron_edge",
+      "side": "masonry_iron"
+    },
+    {
+      "name": "Lower head bevel",
+      "from": [
+        4.9,
+        10.4,
+        6.94
+      ],
+      "to": [
+        11.1,
+        10.75,
+        9.06
+      ],
+      "material": "iron_dark",
+      "side": "masonry_iron"
+    },
+    {
+      "name": "Left striking face",
+      "from": [
+        4.18,
+        10.7,
+        6.6
+      ],
+      "to": [
+        4.91,
+        13.77,
+        9.4
+      ],
+      "material": "iron_edge",
+      "side": "masonry_iron",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right striking face",
+      "from": [
+        11.09,
+        10.7,
+        6.6
+      ],
+      "to": [
+        11.82,
+        13.77,
+        9.4
+      ],
+      "material": "iron_edge",
+      "side": "masonry_iron",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left face inset",
+      "from": [
+        4.05,
+        11.12,
+        7.04
+      ],
+      "to": [
+        4.2,
+        13.32,
+        8.96
+      ],
+      "material": "masonry_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "Right face inset",
+      "from": [
+        11.8,
+        11.12,
+        7.04
+      ],
+      "to": [
+        11.95,
+        13.32,
+        8.96
+      ],
+      "material": "masonry_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "Left retaining band",
+      "from": [
+        5.47,
+        10.51,
+        6.55
+      ],
+      "to": [
+        6.16,
+        13.9,
+        9.45
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Right retaining band",
+      "from": [
+        9.84,
+        10.51,
+        6.55
+      ],
+      "to": [
+        10.53,
+        13.9,
+        9.45
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Head haft wedge",
+      "from": [
+        7.5,
+        13.9,
+        7.5
+      ],
+      "to": [
+        8.5,
+        14.34,
+        8.5
+      ],
+      "material": "wood_end",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Front ancient mason tablet",
+      "from": [
+        6.64,
+        11.05,
+        6.49
+      ],
+      "to": [
+        9.36,
+        13.39,
+        6.71
+      ],
+      "material": "sandstone",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Rear ancient mason tablet",
+      "from": [
+        6.64,
+        11.05,
+        9.29
+      ],
+      "to": [
+        9.36,
+        13.39,
+        9.51
+      ],
+      "material": "sandstone",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Blocky leather seam",
+      "from": [
+        7.28,
+        2.7,
+        7.28
+      ],
+      "to": [
+        8.72,
+        2.9800000000000004,
+        8.72
+      ],
+      "material": "leather_side",
+      "side": "leather"
+    },
+    {
+      "name": "Blocky leather seam",
+      "from": [
+        7.28,
+        5.2,
+        7.28
+      ],
+      "to": [
+        8.72,
+        5.48,
+        8.72
+      ],
+      "material": "leather_side",
+      "side": "leather"
+    },
+    {
+      "name": "Square copper band pin",
+      "from": [
+        5.55,
+        11.75,
+        6.36
+      ],
+      "to": [
+        6.05,
+        12.25,
+        6.64
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Square copper band pin",
+      "from": [
+        5.55,
+        11.75,
+        9.36
+      ],
+      "to": [
+        6.05,
+        12.25,
+        9.64
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Square copper band pin",
+      "from": [
+        9.95,
+        11.75,
+        6.36
+      ],
+      "to": [
+        10.45,
+        12.25,
+        6.64
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Square copper band pin",
+      "from": [
+        9.95,
+        11.75,
+        9.36
+      ],
+      "to": [
+        10.45,
+        12.25,
+        9.64
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Pixel mason mark stem",
+      "from": [
+        7.76,
+        11.45,
+        6.44
+      ],
+      "to": [
+        8.24,
+        13.02,
+        6.5200000000000005
+      ],
+      "material": "rune_cut"
+    },
+    {
+      "name": "Pixel mason mark crossbar",
+      "from": [
+        7.24,
+        12.48,
+        6.44
+      ],
+      "to": [
+        8.76,
+        12.96,
+        6.5200000000000005
+      ],
+      "material": "rune_cut"
+    },
+    {
+      "name": "Pixel mason mark stem",
+      "from": [
+        7.76,
+        11.45,
+        9.51
+      ],
+      "to": [
+        8.24,
+        13.02,
+        9.59
+      ],
+      "material": "rune_cut"
+    },
+    {
+      "name": "Pixel mason mark crossbar",
+      "from": [
+        7.24,
+        12.48,
+        9.51
+      ],
+      "to": [
+        8.76,
+        12.96,
+        9.59
+      ],
+      "material": "rune_cut"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      -24,
+      -28
+    ],
+    "translation": [
+      0,
+      -0.1,
+      0
+    ],
+    "scale": 0.93
+  }
+}

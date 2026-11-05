@@ -1,0 +1,991 @@
+{
+  "id": "middle_earth_longbow",
+  "master_id": "20a00026",
+  "kind": "longbow",
+  "intent": "Minecraftの弓の大きなD形を起点にした長射程弓。ノクスの短い素木弓より長く、太い積層材と古銅のブロック状の補修継ぎを加える。握りには砂岩の小さな印、弦の先端には骨製ノック。大宝石や金の翼は使わない。",
+  "grip": [
+    6.1,
+    9,
+    8
+  ],
+  "materials": {
+    "ash_wood": {
+      "palette": [
+        "302a24",
+        "493a2d",
+        "614b35",
+        "7a5e3f",
+        "96764c",
+        "b08f60"
+      ],
+      "pattern": [
+        "12344321",
+        "12334321",
+        "12334421",
+        "12334321",
+        "12344221",
+        "12344321",
+        "12344321",
+        "12334421"
+      ]
+    },
+    "wood_edge": {
+      "palette": [
+        "29251f",
+        "403126",
+        "5c4430",
+        "785b3b",
+        "96784f"
+      ],
+      "pattern": [
+        "12333210",
+        "12333210",
+        "12332210",
+        "12333210",
+        "12343210",
+        "12333210",
+        "12332210",
+        "12333210"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "2d2820",
+        "4a3827",
+        "6d5133",
+        "8b6b43",
+        "a38657"
+      ],
+      "pattern": [
+        "01111110",
+        "12333321",
+        "13222231",
+        "13244231",
+        "13243231",
+        "13222231",
+        "12333321",
+        "01111110"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "27251e",
+        "393529",
+        "4d4735",
+        "635a42",
+        "7e7152"
+      ],
+      "pattern": [
+        "12330122",
+        "23301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012",
+        "23330122"
+      ]
+    },
+    "leather_side": {
+      "palette": [
+        "24231c",
+        "353326",
+        "454231",
+        "5d573e"
+      ],
+      "pattern": [
+        "12230122",
+        "22301223",
+        "23012230",
+        "30122301",
+        "01223012",
+        "12230122",
+        "22301223",
+        "23012230"
+      ]
+    },
+    "copper": {
+      "palette": [
+        "382d25",
+        "594332",
+        "7a5c3d",
+        "9c7950",
+        "b89a6d"
+      ],
+      "pattern": [
+        "23344332",
+        "12233221",
+        "12233221",
+        "12223221",
+        "12323221",
+        "12223221",
+        "11122111",
+        "00111000"
+      ]
+    },
+    "copper_edge": {
+      "palette": [
+        "4a372a",
+        "715139",
+        "96744a",
+        "bfa273",
+        "d0b886"
+      ],
+      "pattern": [
+        "44333210",
+        "44332210",
+        "44333210",
+        "43333210",
+        "44333210",
+        "44332210",
+        "43333210",
+        "44333210"
+      ]
+    },
+    "patina": {
+      "palette": [
+        "23312c",
+        "344a3d",
+        "49624c",
+        "66765b",
+        "8b9271"
+      ],
+      "pattern": [
+        "12332111",
+        "12232111",
+        "12332121",
+        "12332221",
+        "12332111",
+        "12232111",
+        "12332121",
+        "12332111"
+      ]
+    },
+    "sandstone": {
+      "palette": [
+        "4e4939",
+        "70674d",
+        "918363",
+        "aca07c",
+        "c9bd96"
+      ],
+      "pattern": [
+        "23344322",
+        "23343222",
+        "22343221",
+        "23333221",
+        "23343222",
+        "22333221",
+        "23333221",
+        "12232211"
+      ]
+    },
+    "rune_cut": {
+      "palette": [
+        "182322",
+        "22332f",
+        "31483f",
+        "526151"
+      ],
+      "pattern": [
+        "00110000",
+        "01221000",
+        "01221100",
+        "00122110",
+        "00012210",
+        "00012210",
+        "00122100",
+        "00111000"
+      ]
+    },
+    "cord": {
+      "palette": [
+        "5c5742",
+        "81775a",
+        "a59a72",
+        "c8bd8f",
+        "e0d5a5"
+      ],
+      "pattern": [
+        "22333211",
+        "22223211",
+        "22333211",
+        "22222211",
+        "22233211",
+        "22223211",
+        "22333211",
+        "22222211"
+      ]
+    },
+    "limb_laminate": {
+      "palette": [
+        "4b3d2b",
+        "716044",
+        "95845c",
+        "b4a574",
+        "cdc294"
+      ],
+      "pattern": [
+        "44333210",
+        "44333210",
+        "44332210",
+        "44333210",
+        "44333210",
+        "43333210",
+        "44332210",
+        "44333210"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Old forest heartwood grip",
+      "from": [
+        5.49,
+        7.58,
+        7.4
+      ],
+      "to": [
+        6.71,
+        10.42,
+        8.6
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Supple hand leather",
+      "from": [
+        5.4,
+        7.83,
+        7.31
+      ],
+      "to": [
+        6.8,
+        10.12,
+        8.69
+      ],
+      "material": "leather",
+      "side": "leather_side"
+    },
+    {
+      "name": "Lower grip ferrule",
+      "from": [
+        5.3,
+        7.5,
+        7.21
+      ],
+      "to": [
+        6.9,
+        7.94,
+        8.79
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Upper grip ferrule",
+      "from": [
+        5.3,
+        10.06,
+        7.21
+      ],
+      "to": [
+        6.9,
+        10.5,
+        8.79
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Arrow shelf",
+      "from": [
+        6.43,
+        9.18,
+        7.2
+      ],
+      "to": [
+        7.38,
+        9.45,
+        8.8
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Grip maker tablet",
+      "from": [
+        5.6,
+        8.49,
+        7.14
+      ],
+      "to": [
+        6.6,
+        9.36,
+        7.33
+      ],
+      "material": "sandstone",
+      "side": "copper"
+    },
+    {
+      "name": "Tablet cut",
+      "from": [
+        5.9,
+        8.65,
+        7.07
+      ],
+      "to": [
+        6.12,
+        9.17,
+        7.16
+      ],
+      "material": "rune_cut"
+    },
+    {
+      "name": "Upper heartwood limb 1",
+      "from": [
+        5.52,
+        10.11,
+        7.4399999999999995
+      ],
+      "to": [
+        6.68,
+        12.65,
+        8.56
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          6.1,
+          10.25,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper pale laminate 1",
+      "from": [
+        5.7752,
+        10.17,
+        7.43
+      ],
+      "to": [
+        6.424799999999999,
+        12.610000000000001,
+        7.5
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          6.1,
+          10.25,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper old copper splice 1",
+      "from": [
+        5.449999999999999,
+        11.469,
+        7.34
+      ],
+      "to": [
+        6.75,
+        11.838999999999999,
+        8.66
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          6.1,
+          10.25,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper heartwood limb 2",
+      "from": [
+        6.460000000000001,
+        12.2,
+        7.52
+      ],
+      "to": [
+        7.5,
+        14.889999999999999,
+        8.48
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          6.98,
+          12.34,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper pale laminate 2",
+      "from": [
+        6.6888000000000005,
+        12.26,
+        7.51
+      ],
+      "to": [
+        7.2712,
+        14.85,
+        7.58
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          6.98,
+          12.34,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper heartwood limb 3",
+      "from": [
+        7.4799999999999995,
+        14.43,
+        7.595
+      ],
+      "to": [
+        8.36,
+        16.39,
+        8.405
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          7.92,
+          14.57,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper pale laminate 3",
+      "from": [
+        7.6735999999999995,
+        14.49,
+        7.585
+      ],
+      "to": [
+        8.1664,
+        16.349999999999998,
+        7.655
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          7.92,
+          14.57,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper old copper splice 3",
+      "from": [
+        7.409999999999999,
+        15.4816,
+        7.495
+      ],
+      "to": [
+        8.43,
+        15.8516,
+        8.504999999999999
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          7.92,
+          14.57,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper heartwood limb 4",
+      "from": [
+        8.22,
+        15.98,
+        7.67
+      ],
+      "to": [
+        8.94,
+        17.720000000000002,
+        8.33
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          8.58,
+          16.12,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper pale laminate 4",
+      "from": [
+        8.3784,
+        16.040000000000003,
+        7.66
+      ],
+      "to": [
+        8.781600000000001,
+        17.68,
+        7.73
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          8.58,
+          16.12,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower heartwood limb 1",
+      "from": [
+        5.52,
+        5.35,
+        7.4399999999999995
+      ],
+      "to": [
+        6.68,
+        7.890000000000001,
+        8.56
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          6.1,
+          7.75,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower pale laminate 1",
+      "from": [
+        5.7752,
+        5.389999999999999,
+        7.43
+      ],
+      "to": [
+        6.424799999999999,
+        7.83,
+        7.5
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          6.1,
+          7.75,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower old copper splice 1",
+      "from": [
+        5.449999999999999,
+        6.161000000000001,
+        7.34
+      ],
+      "to": [
+        6.75,
+        6.531000000000001,
+        8.66
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          6.1,
+          7.75,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower heartwood limb 2",
+      "from": [
+        6.460000000000001,
+        3.110000000000001,
+        7.52
+      ],
+      "to": [
+        7.5,
+        5.800000000000001,
+        8.48
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          6.98,
+          5.66,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower pale laminate 2",
+      "from": [
+        6.6888000000000005,
+        3.1500000000000004,
+        7.51
+      ],
+      "to": [
+        7.2712,
+        5.74,
+        7.58
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          6.98,
+          5.66,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower heartwood limb 3",
+      "from": [
+        7.4799999999999995,
+        1.6099999999999994,
+        7.595
+      ],
+      "to": [
+        8.36,
+        3.5700000000000003,
+        8.405
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          7.92,
+          3.4299999999999997,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower pale laminate 3",
+      "from": [
+        7.6735999999999995,
+        1.6500000000000021,
+        7.585
+      ],
+      "to": [
+        8.1664,
+        3.51,
+        7.655
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          7.92,
+          3.4299999999999997,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower old copper splice 3",
+      "from": [
+        7.409999999999999,
+        2.1484000000000005,
+        7.495
+      ],
+      "to": [
+        8.43,
+        2.5183999999999997,
+        8.504999999999999
+      ],
+      "material": "copper",
+      "side": "patina",
+      "cap": "copper_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          7.92,
+          3.4299999999999997,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower heartwood limb 4",
+      "from": [
+        8.22,
+        0.2799999999999976,
+        7.67
+      ],
+      "to": [
+        8.94,
+        2.0199999999999996,
+        8.33
+      ],
+      "material": "ash_wood",
+      "side": "wood_edge",
+      "cap": "wood_end",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          8.58,
+          1.879999999999999,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower pale laminate 4",
+      "from": [
+        8.3784,
+        0.3200000000000003,
+        7.66
+      ],
+      "to": [
+        8.781600000000001,
+        1.9599999999999973,
+        7.73
+      ],
+      "material": "limb_laminate",
+      "side": "wood_edge",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          8.58,
+          1.879999999999999,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Carved antler nock",
+      "from": [
+        8.85,
+        0.38,
+        7.61
+      ],
+      "to": [
+        9.52,
+        0.88,
+        8.39
+      ],
+      "material": "sandstone",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Carved antler nock",
+      "from": [
+        8.85,
+        17.22,
+        7.61
+      ],
+      "to": [
+        9.52,
+        17.72,
+        8.39
+      ],
+      "material": "sandstone",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Upper forest-linen string",
+      "from": [
+        9.15,
+        9,
+        7.88
+      ],
+      "to": [
+        9.39,
+        17.58,
+        8.12
+      ],
+      "material": "cord",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "Lower forest-linen string",
+      "from": [
+        9.15,
+        0.42,
+        7.88
+      ],
+      "to": [
+        9.39,
+        9,
+        8.12
+      ],
+      "material": "cord",
+      "bone": "cord_lower"
+    },
+    {
+      "name": "String serving above nock",
+      "from": [
+        9.09,
+        9.12,
+        7.8
+      ],
+      "to": [
+        9.45,
+        9.52,
+        8.2
+      ],
+      "material": "leather_side",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "String serving below nock",
+      "from": [
+        9.09,
+        8.48,
+        7.8
+      ],
+      "to": [
+        9.45,
+        8.88,
+        8.2
+      ],
+      "material": "leather_side",
+      "bone": "cord_lower"
+    },
+    {
+      "name": "Broad grip thong seam",
+      "from": [
+        5.35,
+        8.15,
+        7.28
+      ],
+      "to": [
+        6.85,
+        8.35,
+        8.72
+      ],
+      "material": "leather_side",
+      "side": "leather"
+    },
+    {
+      "name": "Broad grip thong seam",
+      "from": [
+        5.35,
+        9.6,
+        7.28
+      ],
+      "to": [
+        6.85,
+        9.799999999999999,
+        8.72
+      ],
+      "material": "leather_side",
+      "side": "leather"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      10,
+      18,
+      -27
+    ],
+    "translation": [
+      0.35,
+      -0.55,
+      0
+    ],
+    "scale": 0.82
+  },
+  "bow": {
+    "upper_tip": [
+      9.27,
+      17.5,
+      8
+    ],
+    "lower_tip": [
+      9.27,
+      0.5,
+      8
+    ],
+    "string_center": [
+      9.27,
+      9,
+      8
+    ]
+  }
+}
