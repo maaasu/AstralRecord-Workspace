@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "astralrecord:melkor_guard"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "astralrecord:melkor_guard"
+      }
+    ]
+  }
+}

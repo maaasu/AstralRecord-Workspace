@@ -1,0 +1,743 @@
+{
+  "id": "melkor_sabaton",
+  "master_id": "20a00050",
+  "kind": "armor",
+  "intent": "Lv10。黒鋼の厚い底と三段に重なる足甲を主役にし、赤紫の足首と四角い留め具を持つ重量級サバトン。左右を実物の後部携行帯で接続し、手持ちでも対の靴と判読できる。履き口は空洞のまま残す。",
+  "grip": [
+    8,
+    10.2,
+    10.95
+  ],
+  "materials": {
+    "blacksteel": {
+      "palette": [
+        "17191F",
+        "24272E",
+        "363941",
+        "4B4D55",
+        "62626A"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "14161C",
+        "2A2D35",
+        "454953",
+        "62646D",
+        "85858D"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "wine_plate": {
+      "palette": [
+        "24151E",
+        "361B28",
+        "4A1F2D",
+        "662C3D",
+        "864150"
+      ],
+      "pattern": [
+        "34444332",
+        "23333332",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "wine_edge": {
+      "palette": [
+        "21151C",
+        "3B1C2A",
+        "562839",
+        "75384A",
+        "985365"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "strap": {
+      "palette": [
+        "211B21",
+        "352630",
+        "51343F",
+        "6C4852"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "13161B",
+        "252830",
+        "383B43",
+        "4A4E56"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "11111111",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "rivet": {
+      "palette": [
+        "292A31",
+        "51545D",
+        "80838B",
+        "B1AFAC"
+      ],
+      "pattern": [
+        "22222222",
+        "23333332",
+        "23333332",
+        "23333332",
+        "22222222",
+        "12222221",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left heavy blacksteel full sole",
+      "from": [
+        1.7,
+        0.7,
+        3.6
+      ],
+      "to": [
+        6.7,
+        1.9,
+        11.1
+      ],
+      "material": "sole",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Left chamfered toe bottom",
+      "from": [
+        2.05,
+        1.9,
+        3.5
+      ],
+      "to": [
+        6.3500000000000005,
+        3.2,
+        6.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left broad instep foundation",
+      "from": [
+        1.95,
+        1.9,
+        5.4
+      ],
+      "to": [
+        6.45,
+        4.3,
+        10.7
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left overlapping foot plate",
+      "from": [
+        2.0999999999999996,
+        3.1,
+        4.0
+      ],
+      "to": [
+        6.300000000000001,
+        3.75,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left overlapping foot plate",
+      "from": [
+        1.9999999999999998,
+        3.65,
+        5.5
+      ],
+      "to": [
+        6.4,
+        4.3,
+        7.3
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left overlapping foot plate",
+      "from": [
+        2.1500000000000004,
+        4.15,
+        7.0
+      ],
+      "to": [
+        6.25,
+        4.800000000000001,
+        8.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left ankle front shell",
+      "from": [
+        2.2,
+        4.0,
+        6.4
+      ],
+      "to": [
+        6.2,
+        10.9,
+        7.4
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left reinforced shin front",
+      "from": [
+        2.6,
+        4.7,
+        6.0
+      ],
+      "to": [
+        5.8,
+        9.7,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left ankle rear shell",
+      "from": [
+        2.2,
+        4.0,
+        10.0
+      ],
+      "to": [
+        6.2,
+        10.9,
+        11.0
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left outer ankle side",
+      "from": [
+        2.05,
+        3.5,
+        7.4
+      ],
+      "to": [
+        2.9,
+        10.9,
+        10.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left inner ankle side",
+      "from": [
+        5.5,
+        3.5,
+        7.4
+      ],
+      "to": [
+        6.3500000000000005,
+        10.9,
+        10.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left open boot cuff front",
+      "from": [
+        2.05,
+        10.2,
+        6.2
+      ],
+      "to": [
+        6.3500000000000005,
+        11.2,
+        7.4
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left open boot cuff back",
+      "from": [
+        2.05,
+        10.2,
+        10.0
+      ],
+      "to": [
+        6.3500000000000005,
+        11.2,
+        11.2
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left open boot cuff left",
+      "from": [
+        2.05,
+        10.2,
+        7.4
+      ],
+      "to": [
+        2.9,
+        11.2,
+        10
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left open boot cuff right",
+      "from": [
+        5.5,
+        10.2,
+        7.4
+      ],
+      "to": [
+        6.3500000000000005,
+        11.2,
+        10
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left ankle rear strap",
+      "from": [
+        1.95,
+        6.6,
+        10.9
+      ],
+      "to": [
+        6.45,
+        7.5,
+        11.3
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Left side square buckle",
+      "from": [
+        1.8,
+        6.3,
+        8.2
+      ],
+      "to": [
+        2.25,
+        7.6,
+        9.5
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Left heel cap",
+      "from": [
+        2.3,
+        1.9,
+        10.4
+      ],
+      "to": [
+        6.1000000000000005,
+        4.8,
+        11.4
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left toe centre wine ridge",
+      "from": [
+        3.8499999999999996,
+        2.5,
+        3.25
+      ],
+      "to": [
+        4.55,
+        3.4,
+        3.65
+      ],
+      "material": "wine_edge"
+    },
+    {
+      "name": "Right heavy blacksteel full sole",
+      "from": [
+        9.3,
+        0.7,
+        3.6
+      ],
+      "to": [
+        14.3,
+        1.9,
+        11.1
+      ],
+      "material": "sole",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Right chamfered toe bottom",
+      "from": [
+        9.65,
+        1.9,
+        3.5
+      ],
+      "to": [
+        13.950000000000001,
+        3.2,
+        6.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right broad instep foundation",
+      "from": [
+        9.55,
+        1.9,
+        5.4
+      ],
+      "to": [
+        14.05,
+        4.3,
+        10.7
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right overlapping foot plate",
+      "from": [
+        9.700000000000001,
+        3.1,
+        4.0
+      ],
+      "to": [
+        13.9,
+        3.75,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right overlapping foot plate",
+      "from": [
+        9.600000000000001,
+        3.65,
+        5.5
+      ],
+      "to": [
+        14.0,
+        4.3,
+        7.3
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right overlapping foot plate",
+      "from": [
+        9.75,
+        4.15,
+        7.0
+      ],
+      "to": [
+        13.850000000000001,
+        4.800000000000001,
+        8.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right ankle front shell",
+      "from": [
+        9.8,
+        4.0,
+        6.4
+      ],
+      "to": [
+        13.8,
+        10.9,
+        7.4
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right reinforced shin front",
+      "from": [
+        10.200000000000001,
+        4.7,
+        6.0
+      ],
+      "to": [
+        13.4,
+        9.7,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right ankle rear shell",
+      "from": [
+        9.8,
+        4.0,
+        10.0
+      ],
+      "to": [
+        13.8,
+        10.9,
+        11.0
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right outer ankle side",
+      "from": [
+        9.65,
+        3.5,
+        7.4
+      ],
+      "to": [
+        10.5,
+        10.9,
+        10.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right inner ankle side",
+      "from": [
+        13.100000000000001,
+        3.5,
+        7.4
+      ],
+      "to": [
+        13.950000000000001,
+        10.9,
+        10.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right open boot cuff front",
+      "from": [
+        9.65,
+        10.2,
+        6.2
+      ],
+      "to": [
+        13.950000000000001,
+        11.2,
+        7.4
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right open boot cuff back",
+      "from": [
+        9.65,
+        10.2,
+        10.0
+      ],
+      "to": [
+        13.950000000000001,
+        11.2,
+        11.2
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right open boot cuff left",
+      "from": [
+        9.65,
+        10.2,
+        7.4
+      ],
+      "to": [
+        10.5,
+        11.2,
+        10
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right open boot cuff right",
+      "from": [
+        13.100000000000001,
+        10.2,
+        7.4
+      ],
+      "to": [
+        13.950000000000001,
+        11.2,
+        10
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right ankle rear strap",
+      "from": [
+        9.55,
+        6.6,
+        10.9
+      ],
+      "to": [
+        14.05,
+        7.5,
+        11.3
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Right side square buckle",
+      "from": [
+        9.4,
+        6.3,
+        8.2
+      ],
+      "to": [
+        9.850000000000001,
+        7.6,
+        9.5
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Right heel cap",
+      "from": [
+        9.9,
+        1.9,
+        10.4
+      ],
+      "to": [
+        13.700000000000001,
+        4.8,
+        11.4
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right toe centre wine ridge",
+      "from": [
+        11.450000000000001,
+        2.5,
+        3.25
+      ],
+      "to": [
+        12.15,
+        3.4,
+        3.65
+      ],
+      "material": "wine_edge"
+    },
+    {
+      "name": "Paired boots rear carry strap",
+      "from": [
+        5.9,
+        9.8,
+        10.65
+      ],
+      "to": [
+        10.1,
+        10.65,
+        11.25
+      ],
+      "material": "strap",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Carry strap square centre clasp",
+      "from": [
+        7.6,
+        9.85,
+        11.15
+      ],
+      "to": [
+        8.4,
+        10.6,
+        11.55
+      ],
+      "material": "steel_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      5
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

@@ -1,0 +1,739 @@
+{
+  "id": "melkor_plate",
+  "master_id": "20a00041",
+  "kind": "armor",
+  "intent": "Lv10。原典の黄金胸甲と黒王意匠を、太い黄金板・暗い三叉冠印・角を落とした肩甲で表す。黒鋼の帯と背中の接合材で重厚さを出し、序盤装備より広い肩・明瞭な留め具・二段の腹甲を備える。宝石や光彩は使わない。",
+  "grip": [
+    8,
+    3.65,
+    10.2
+  ],
+  "materials": {
+    "gold": {
+      "palette": [
+        "594322",
+        "96712B",
+        "C79B37",
+        "E5BE4D",
+        "F4D66C"
+      ],
+      "pattern": [
+        "34444433",
+        "23334332",
+        "23333332",
+        "23333322",
+        "23333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "gold_edge": {
+      "palette": [
+        "473823",
+        "78602C",
+        "B48B35",
+        "DAB34B",
+        "F0D16D"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "blacksteel": {
+      "palette": [
+        "17191F",
+        "24272E",
+        "363941",
+        "4B4D55",
+        "62626A"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "14161C",
+        "2A2D35",
+        "454953",
+        "62646D",
+        "85858D"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "wine_plate": {
+      "palette": [
+        "24151E",
+        "361B28",
+        "4A1F2D",
+        "662C3D",
+        "864150"
+      ],
+      "pattern": [
+        "34444332",
+        "23333332",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "wine_edge": {
+      "palette": [
+        "21151C",
+        "3B1C2A",
+        "562839",
+        "75384A",
+        "985365"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "17171C",
+        "27232C",
+        "37303B",
+        "4A3A46"
+      ],
+      "pattern": [
+        "22222222",
+        "22232222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "rivet": {
+      "palette": [
+        "292A31",
+        "51545D",
+        "80838B",
+        "B1AFAC"
+      ],
+      "pattern": [
+        "22222222",
+        "23333332",
+        "23333332",
+        "23333332",
+        "22222222",
+        "12222221",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "seal": {
+      "palette": [
+        "14161C",
+        "20232B",
+        "353741",
+        "51515A"
+      ],
+      "pattern": [
+        "22222222",
+        "22322322",
+        "22322322",
+        "23333332",
+        "12333321",
+        "11233211",
+        "11122111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Wine padded back",
+      "from": [
+        3.5,
+        3,
+        9.6
+      ],
+      "to": [
+        12.5,
+        14.4,
+        10.7
+      ],
+      "material": "lining",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Golden backplate",
+      "from": [
+        3.4,
+        4,
+        10.3
+      ],
+      "to": [
+        12.6,
+        14.2,
+        11.15
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Left body side",
+      "from": [
+        2.9,
+        3,
+        6
+      ],
+      "to": [
+        4,
+        14.4,
+        10.5
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right body side",
+      "from": [
+        12,
+        3,
+        6
+      ],
+      "to": [
+        13.1,
+        14.4,
+        10.5
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Gold front cuirass foundation",
+      "from": [
+        3.1,
+        3,
+        5.7
+      ],
+      "to": [
+        12.9,
+        13.4,
+        6.8
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Broad chamfered breast panel",
+      "from": [
+        3.7,
+        6.5,
+        5.05
+      ],
+      "to": [
+        12.3,
+        12.6,
+        5.8
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Breast top bevel",
+      "from": [
+        4.4,
+        12.6,
+        5.25
+      ],
+      "to": [
+        11.6,
+        13.55,
+        6.5
+      ],
+      "material": "gold_edge"
+    },
+    {
+      "name": "Waist reinforcing belt",
+      "from": [
+        2.8,
+        3,
+        5.4
+      ],
+      "to": [
+        13.2,
+        4.3,
+        10.9
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Abdominal gold lames upper",
+      "from": [
+        3.5,
+        5.5,
+        5.3
+      ],
+      "to": [
+        12.5,
+        6.8,
+        6.3
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Abdominal gold lames lower",
+      "from": [
+        3.8,
+        4.3,
+        5.25
+      ],
+      "to": [
+        12.2,
+        5.65,
+        6.2
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Left heavy shoulder base",
+      "from": [
+        0.8,
+        12.8,
+        6.2
+      ],
+      "to": [
+        4.2,
+        16.3,
+        10.4
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right heavy shoulder base",
+      "from": [
+        11.8,
+        12.8,
+        6.2
+      ],
+      "to": [
+        15.2,
+        16.3,
+        10.4
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left golden shoulder face",
+      "from": [
+        0.6,
+        13.5,
+        5.7
+      ],
+      "to": [
+        4.3999999999999995,
+        16.1,
+        7
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Left shoulder crown bevel",
+      "from": [
+        1.0,
+        16.1,
+        6.3
+      ],
+      "to": [
+        4.0,
+        16.8,
+        10.1
+      ],
+      "material": "gold_edge"
+    },
+    {
+      "name": "Left rear shoulder gold",
+      "from": [
+        0.7,
+        13.5,
+        10.1
+      ],
+      "to": [
+        4.3,
+        16.1,
+        10.8
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Left hanging shoulder lame",
+      "from": [
+        0.85,
+        11.9,
+        6.0
+      ],
+      "to": [
+        4.1499999999999995,
+        13.5,
+        7.15
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right golden shoulder face",
+      "from": [
+        11.6,
+        13.5,
+        5.7
+      ],
+      "to": [
+        15.399999999999999,
+        16.1,
+        7
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Right shoulder crown bevel",
+      "from": [
+        12.0,
+        16.1,
+        6.3
+      ],
+      "to": [
+        15.0,
+        16.8,
+        10.1
+      ],
+      "material": "gold_edge"
+    },
+    {
+      "name": "Right rear shoulder gold",
+      "from": [
+        11.7,
+        13.5,
+        10.1
+      ],
+      "to": [
+        15.3,
+        16.1,
+        10.8
+      ],
+      "material": "gold",
+      "side": "gold_edge"
+    },
+    {
+      "name": "Right hanging shoulder lame",
+      "from": [
+        11.85,
+        11.9,
+        6.0
+      ],
+      "to": [
+        15.149999999999999,
+        13.5,
+        7.15
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Open neckline rear collar",
+      "from": [
+        4.1,
+        13.8,
+        9.7
+      ],
+      "to": [
+        11.9,
+        15.3,
+        10.8
+      ],
+      "material": "gold_edge",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Left raised collar",
+      "from": [
+        4.1,
+        13.5,
+        6.3
+      ],
+      "to": [
+        5.3,
+        15.6,
+        10.2
+      ],
+      "material": "gold_edge",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Right raised collar",
+      "from": [
+        10.7,
+        13.5,
+        6.3
+      ],
+      "to": [
+        11.9,
+        15.6,
+        10.2
+      ],
+      "material": "gold_edge",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Lower neckline front",
+      "from": [
+        5.3,
+        12.7,
+        5.9
+      ],
+      "to": [
+        10.7,
+        13.5,
+        6.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Black king seal transverse",
+      "from": [
+        5.9,
+        9.2,
+        4.76
+      ],
+      "to": [
+        10.1,
+        10.1,
+        5.1
+      ],
+      "material": "seal",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Black king seal central prong",
+      "from": [
+        7.45,
+        10.1,
+        4.76
+      ],
+      "to": [
+        8.55,
+        12.3,
+        5.1
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Black king seal left prong",
+      "from": [
+        5.9,
+        10.1,
+        4.76
+      ],
+      "to": [
+        6.85,
+        11.45,
+        5.1
+      ],
+      "material": "blacksteel"
+    },
+    {
+      "name": "Black king seal right prong",
+      "from": [
+        9.15,
+        10.1,
+        4.76
+      ],
+      "to": [
+        10.1,
+        11.45,
+        5.1
+      ],
+      "material": "blacksteel"
+    },
+    {
+      "name": "Black king seal descending stem",
+      "from": [
+        7.45,
+        7.6,
+        4.76
+      ],
+      "to": [
+        8.55,
+        9.2,
+        5.1
+      ],
+      "material": "blacksteel"
+    },
+    {
+      "name": "Rear spine join",
+      "from": [
+        7.6,
+        5.1,
+        11.05
+      ],
+      "to": [
+        8.4,
+        13.8,
+        11.45
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Rear horizontal brace",
+      "from": [
+        4.4,
+        8.2,
+        11.05
+      ],
+      "to": [
+        11.6,
+        9.0,
+        11.45
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Squared gold panel fastener",
+      "from": [
+        3.25,
+        7,
+        4.95
+      ],
+      "to": [
+        3.85,
+        7.6,
+        5.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Squared gold panel fastener",
+      "from": [
+        3.25,
+        11.7,
+        4.95
+      ],
+      "to": [
+        3.85,
+        12.299999999999999,
+        5.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Squared gold panel fastener",
+      "from": [
+        12.15,
+        7,
+        4.95
+      ],
+      "to": [
+        12.75,
+        7.6,
+        5.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Squared gold panel fastener",
+      "from": [
+        12.15,
+        11.7,
+        4.95
+      ],
+      "to": [
+        12.75,
+        12.299999999999999,
+        5.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Shoulder broad square pin",
+      "from": [
+        2.4,
+        14.3,
+        5.35
+      ],
+      "to": [
+        3.05,
+        15.0,
+        5.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Shoulder broad square pin",
+      "from": [
+        13.0,
+        14.3,
+        5.35
+      ],
+      "to": [
+        13.65,
+        15.0,
+        5.8
+      ],
+      "material": "rivet"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      5
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

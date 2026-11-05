@@ -1,0 +1,524 @@
+{
+  "id": "melkor_helm",
+  "master_id": "20a00047",
+  "kind": "armor",
+  "intent": "Lv10。黒王の重厚な兜を三段の低い冠と深い頬甲、赤紫の面材、黒鋼の枠で構成。中央鼻当てを細くし、左右の目と下顔面の開口を残す。後頭の継ぎ目と項甲を独立させ、序盤の一枚帽子より強い輪郭にする。",
+  "grip": [
+    8,
+    5.2,
+    11.2
+  ],
+  "materials": {
+    "blacksteel": {
+      "palette": [
+        "17191F",
+        "24272E",
+        "363941",
+        "4B4D55",
+        "62626A"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "14161C",
+        "2A2D35",
+        "454953",
+        "62646D",
+        "85858D"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "wine_plate": {
+      "palette": [
+        "24151E",
+        "361B28",
+        "4A1F2D",
+        "662C3D",
+        "864150"
+      ],
+      "pattern": [
+        "34444332",
+        "23333332",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "wine_edge": {
+      "palette": [
+        "21151C",
+        "3B1C2A",
+        "562839",
+        "75384A",
+        "985365"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "17171C",
+        "27232C",
+        "37303B",
+        "4A3A46"
+      ],
+      "pattern": [
+        "22222222",
+        "22232222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "strap": {
+      "palette": [
+        "211B21",
+        "352630",
+        "51343F",
+        "6C4852"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "rivet": {
+      "palette": [
+        "292A31",
+        "51545D",
+        "80838B",
+        "B1AFAC"
+      ],
+      "pattern": [
+        "22222222",
+        "23333332",
+        "23333332",
+        "23333332",
+        "22222222",
+        "12222221",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Rear blacksteel shell",
+      "from": [
+        3.4,
+        3.8,
+        10.6
+      ],
+      "to": [
+        12.6,
+        12.6,
+        12.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left shell wall",
+      "from": [
+        3.0,
+        4.8,
+        5.5
+      ],
+      "to": [
+        4.7,
+        12.6,
+        11.5
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right shell wall",
+      "from": [
+        11.3,
+        4.8,
+        5.5
+      ],
+      "to": [
+        13.0,
+        12.6,
+        11.5
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Full heavy crown shell",
+      "from": [
+        3.0,
+        12.0,
+        5.5
+      ],
+      "to": [
+        13.0,
+        13.4,
+        12.0
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Stepped crown upper",
+      "from": [
+        4.0,
+        13.4,
+        6.2
+      ],
+      "to": [
+        12.0,
+        14.2,
+        11.4
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left deep cheek plate",
+      "from": [
+        3.2,
+        4.0,
+        4.8
+      ],
+      "to": [
+        5.4,
+        10.5,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right deep cheek plate",
+      "from": [
+        10.6,
+        4.0,
+        4.8
+      ],
+      "to": [
+        12.8,
+        10.5,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Broad angular brow",
+      "from": [
+        3.0,
+        10.5,
+        4.65
+      ],
+      "to": [
+        13.0,
+        12.2,
+        6.2
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Brow lower steel rim",
+      "from": [
+        3.1,
+        10.25,
+        4.45
+      ],
+      "to": [
+        12.9,
+        10.8,
+        5.7
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Narrow nasal guard",
+      "from": [
+        7.5,
+        7.6,
+        4.4
+      ],
+      "to": [
+        8.5,
+        10.6,
+        5.2
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Nape lower wine rim",
+      "from": [
+        3.1,
+        3.0,
+        10.5
+      ],
+      "to": [
+        12.9,
+        4.4,
+        12.2
+      ],
+      "material": "wine_edge",
+      "side": "blacksteel"
+    },
+    {
+      "name": "Left cheek red front inset",
+      "from": [
+        3.35,
+        4.3,
+        4.5
+      ],
+      "to": [
+        4.3,
+        8.5,
+        4.85
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left side cheek join",
+      "from": [
+        2.8,
+        5.5,
+        7.6
+      ],
+      "to": [
+        4.9,
+        6.25,
+        9.0
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left side square pin",
+      "from": [
+        2.7,
+        8.8,
+        6.8
+      ],
+      "to": [
+        4.95,
+        9.45,
+        7.5
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Right cheek red front inset",
+      "from": [
+        11.65,
+        4.3,
+        4.5
+      ],
+      "to": [
+        12.600000000000001,
+        8.5,
+        4.85
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right side cheek join",
+      "from": [
+        11.100000000000001,
+        5.5,
+        7.6
+      ],
+      "to": [
+        13.200000000000001,
+        6.25,
+        9.0
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right side square pin",
+      "from": [
+        11.0,
+        8.8,
+        6.8
+      ],
+      "to": [
+        13.25,
+        9.45,
+        7.5
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Crown front king band",
+      "from": [
+        4.8,
+        12.1,
+        5.1
+      ],
+      "to": [
+        11.2,
+        13.1,
+        5.7
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Central broad crown tooth",
+      "from": [
+        7.15,
+        13.0,
+        5.35
+      ],
+      "to": [
+        8.85,
+        15.6,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left low crown tooth",
+      "from": [
+        4.9,
+        13,
+        5.35
+      ],
+      "to": [
+        6.2,
+        14.5,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right low crown tooth",
+      "from": [
+        9.8,
+        13,
+        5.35
+      ],
+      "to": [
+        11.1,
+        14.5,
+        6.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Central crown face wine",
+      "from": [
+        7.5,
+        13.1,
+        5.1
+      ],
+      "to": [
+        8.5,
+        15.2,
+        5.4
+      ],
+      "material": "wine_edge"
+    },
+    {
+      "name": "Rear crown seam",
+      "from": [
+        7.6,
+        6.2,
+        11.95
+      ],
+      "to": [
+        8.4,
+        13.7,
+        12.35
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Rear paired strap upper",
+      "from": [
+        4.3,
+        8.3,
+        11.95
+      ],
+      "to": [
+        11.7,
+        9.1,
+        12.35
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Rear padded lining",
+      "from": [
+        4.7,
+        4.5,
+        10.35
+      ],
+      "to": [
+        11.3,
+        11.8,
+        10.65
+      ],
+      "material": "lining"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      5
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

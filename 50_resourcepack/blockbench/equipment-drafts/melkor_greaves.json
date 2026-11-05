@@ -1,0 +1,780 @@
+{
+  "id": "melkor_greaves",
+  "master_id": "20a00046",
+  "kind": "armor",
+  "intent": "Lv10。原典の重ね鍛えた黒鋼を左右独立の五段の脚甲、厚い膝当て、細い脛稜線で示す。赤紫 #4A1F2D の下地と実用的な側面クランプ、背面の幅広い継ぎ帯を備える。腰輪で左右を接続し股の隙間を保つ。",
+  "grip": [
+    8,
+    15,
+    10.3
+  ],
+  "materials": {
+    "blacksteel": {
+      "palette": [
+        "17191F",
+        "24272E",
+        "363941",
+        "4B4D55",
+        "62626A"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "14161C",
+        "2A2D35",
+        "454953",
+        "62646D",
+        "85858D"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "wine_plate": {
+      "palette": [
+        "24151E",
+        "361B28",
+        "4A1F2D",
+        "662C3D",
+        "864150"
+      ],
+      "pattern": [
+        "34444332",
+        "23333332",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "wine_edge": {
+      "palette": [
+        "21151C",
+        "3B1C2A",
+        "562839",
+        "75384A",
+        "985365"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "strap": {
+      "palette": [
+        "211B21",
+        "352630",
+        "51343F",
+        "6C4852"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "rivet": {
+      "palette": [
+        "292A31",
+        "51545D",
+        "80838B",
+        "B1AFAC"
+      ],
+      "pattern": [
+        "22222222",
+        "23333332",
+        "23333332",
+        "23333332",
+        "22222222",
+        "12222221",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Waist ring front",
+      "from": [
+        2.8,
+        14.2,
+        5.1
+      ],
+      "to": [
+        13.2,
+        15.8,
+        6.3
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Waist ring back",
+      "from": [
+        2.8,
+        14.2,
+        9.7
+      ],
+      "to": [
+        13.2,
+        15.8,
+        10.9
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Waist ring left",
+      "from": [
+        2.8,
+        14.2,
+        6.3
+      ],
+      "to": [
+        4.0,
+        15.8,
+        9.7
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Waist ring right",
+      "from": [
+        12.0,
+        14.2,
+        6.3
+      ],
+      "to": [
+        13.2,
+        15.8,
+        9.7
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left wine front underlay",
+      "from": [
+        3.0,
+        1.9,
+        5.5
+      ],
+      "to": [
+        7.4,
+        14.2,
+        6.4
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left wine back shell",
+      "from": [
+        3.0,
+        1.9,
+        9.6
+      ],
+      "to": [
+        7.4,
+        14.2,
+        10.5
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left outer wall",
+      "from": [
+        3.0,
+        1.9,
+        6.4
+      ],
+      "to": [
+        3.7,
+        14.2,
+        9.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left inner wall",
+      "from": [
+        6.7,
+        1.9,
+        6.4
+      ],
+      "to": [
+        7.4,
+        14.2,
+        9.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left thigh top broad lame",
+      "from": [
+        2.9,
+        11.7,
+        4.9
+      ],
+      "to": [
+        7.5,
+        14.2,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left thigh lower overlapping lame",
+      "from": [
+        3.15,
+        9.2,
+        4.75
+      ],
+      "to": [
+        7.25,
+        11.8,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left chamfered knee plate",
+      "from": [
+        2.85,
+        6.7,
+        4.4
+      ],
+      "to": [
+        7.55,
+        9.25,
+        5.75
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left central knee bevel",
+      "from": [
+        3.55,
+        7.1,
+        4.1
+      ],
+      "to": [
+        6.85,
+        8.8,
+        4.6
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Left shin upper lame",
+      "from": [
+        3.1,
+        4.2,
+        4.8
+      ],
+      "to": [
+        7.3,
+        6.8,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left shin lower lame",
+      "from": [
+        3.4,
+        1.5,
+        4.9
+      ],
+      "to": [
+        7.0,
+        4.3,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left front shin ridge",
+      "from": [
+        4.9,
+        2.3,
+        4.55
+      ],
+      "to": [
+        5.5,
+        6.6,
+        4.95
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left ankle cuff front",
+      "from": [
+        3.25,
+        1.1,
+        5.05
+      ],
+      "to": [
+        7.15,
+        1.9,
+        6.2
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left rear ankle cuff",
+      "from": [
+        3.25,
+        1.1,
+        9.55
+      ],
+      "to": [
+        7.15,
+        1.9,
+        10.6
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left rear broad joint strap",
+      "from": [
+        2.95,
+        5.1,
+        10.45
+      ],
+      "to": [
+        7.45,
+        6.1,
+        10.85
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Left side clamp",
+      "from": [
+        2.8,
+        5.1,
+        7.4
+      ],
+      "to": [
+        3.25,
+        6.0,
+        8.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Left rear broad joint strap",
+      "from": [
+        2.95,
+        10.2,
+        10.45
+      ],
+      "to": [
+        7.45,
+        11.2,
+        10.85
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Left side clamp",
+      "from": [
+        2.8,
+        10.2,
+        7.4
+      ],
+      "to": [
+        3.25,
+        11.1,
+        8.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Left upper lame fastener",
+      "from": [
+        3.4,
+        12.4,
+        4.65
+      ],
+      "to": [
+        3.95,
+        13.05,
+        4.95
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Left upper lame fastener",
+      "from": [
+        6.4,
+        12.4,
+        4.65
+      ],
+      "to": [
+        6.95,
+        13.05,
+        4.95
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Right wine front underlay",
+      "from": [
+        8.6,
+        1.9,
+        5.5
+      ],
+      "to": [
+        13.0,
+        14.2,
+        6.4
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right wine back shell",
+      "from": [
+        8.6,
+        1.9,
+        9.6
+      ],
+      "to": [
+        13.0,
+        14.2,
+        10.5
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right outer wall",
+      "from": [
+        8.6,
+        1.9,
+        6.4
+      ],
+      "to": [
+        9.299999999999999,
+        14.2,
+        9.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right inner wall",
+      "from": [
+        12.3,
+        1.9,
+        6.4
+      ],
+      "to": [
+        13.0,
+        14.2,
+        9.6
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right thigh top broad lame",
+      "from": [
+        8.5,
+        11.7,
+        4.9
+      ],
+      "to": [
+        13.1,
+        14.2,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right thigh lower overlapping lame",
+      "from": [
+        8.75,
+        9.2,
+        4.75
+      ],
+      "to": [
+        12.85,
+        11.8,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right chamfered knee plate",
+      "from": [
+        8.45,
+        6.7,
+        4.4
+      ],
+      "to": [
+        13.149999999999999,
+        9.25,
+        5.75
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right central knee bevel",
+      "from": [
+        9.15,
+        7.1,
+        4.1
+      ],
+      "to": [
+        12.45,
+        8.8,
+        4.6
+      ],
+      "material": "wine_plate",
+      "side": "wine_edge"
+    },
+    {
+      "name": "Right shin upper lame",
+      "from": [
+        8.7,
+        4.2,
+        4.8
+      ],
+      "to": [
+        12.899999999999999,
+        6.8,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right shin lower lame",
+      "from": [
+        9.0,
+        1.5,
+        4.9
+      ],
+      "to": [
+        12.6,
+        4.3,
+        5.8
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right front shin ridge",
+      "from": [
+        10.5,
+        2.3,
+        4.55
+      ],
+      "to": [
+        11.1,
+        6.6,
+        4.95
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right ankle cuff front",
+      "from": [
+        8.85,
+        1.1,
+        5.05
+      ],
+      "to": [
+        12.75,
+        1.9,
+        6.2
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right rear ankle cuff",
+      "from": [
+        8.85,
+        1.1,
+        9.55
+      ],
+      "to": [
+        12.75,
+        1.9,
+        10.6
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Right rear broad joint strap",
+      "from": [
+        8.549999999999999,
+        5.1,
+        10.45
+      ],
+      "to": [
+        13.05,
+        6.1,
+        10.85
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Right side clamp",
+      "from": [
+        8.4,
+        5.1,
+        7.4
+      ],
+      "to": [
+        8.85,
+        6.0,
+        8.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Right rear broad joint strap",
+      "from": [
+        8.549999999999999,
+        10.2,
+        10.45
+      ],
+      "to": [
+        13.05,
+        11.2,
+        10.85
+      ],
+      "material": "strap"
+    },
+    {
+      "name": "Right side clamp",
+      "from": [
+        8.4,
+        10.2,
+        7.4
+      ],
+      "to": [
+        8.85,
+        11.1,
+        8.8
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Right upper lame fastener",
+      "from": [
+        9.0,
+        12.4,
+        4.65
+      ],
+      "to": [
+        9.55,
+        13.05,
+        4.95
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Right upper lame fastener",
+      "from": [
+        12.0,
+        12.4,
+        4.65
+      ],
+      "to": [
+        12.55,
+        13.05,
+        4.95
+      ],
+      "material": "rivet"
+    },
+    {
+      "name": "Waist broad square buckle",
+      "from": [
+        7.0,
+        14.55,
+        4.7
+      ],
+      "to": [
+        9.0,
+        15.55,
+        5.2
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Buckle dark wine centre",
+      "from": [
+        7.45,
+        14.8,
+        4.45
+      ],
+      "to": [
+        8.55,
+        15.3,
+        4.75
+      ],
+      "material": "wine_plate"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      5
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}
