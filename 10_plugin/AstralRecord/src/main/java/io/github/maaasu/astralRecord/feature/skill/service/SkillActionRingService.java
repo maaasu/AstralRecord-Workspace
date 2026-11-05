@@ -67,6 +67,7 @@ public final class SkillActionRingService {
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
+    private static final int BEDROCK_CLICK_COOLDOWN_TICKS = 2;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final ItemStack HIDDEN_ITEM = new ItemStack(Material.AIR);
 
@@ -322,7 +323,8 @@ public final class SkillActionRingService {
     }
 
     /**
-     * 表示中の選択を発動し、リングを閉じます。
+     * 表示中の選択を確定し、確定済みの場合は発動してリングを閉じます。
+     * 統合版では同じリング内の左クリックを2 tick間隔で受け付けます。
      *
      * @param astPlayer 対象プレイヤー
      */
@@ -331,6 +333,15 @@ public final class SkillActionRingService {
         RingSession session = sessions.get(player.getUniqueId());
         if (session == null) {
             return;
+        }
+
+        if (astPlayer.isBedrock()) {
+            int currentTick = plugin.getServer().getCurrentTick();
+            if (session.lastBedrockClickTick != null
+                && currentTick - session.lastBedrockClickTick < BEDROCK_CLICK_COOLDOWN_TICKS) {
+                return;
+            }
+            session.lastBedrockClickTick = currentTick;
         }
 
         if (!hasUsableMainHandWeapon(astPlayer)) {
@@ -950,6 +961,7 @@ public final class SkillActionRingService {
         private int ticksSinceCollisionCheck;
         private int selectedIndex;
         private int confirmedIndex = -1;
+        private Integer lastBedrockClickTick;
         private RingPhase phase = RingPhase.SELECTING;
         private long phaseElapsedTicks;
         private PlayerMsgId selectionInstruction = PlayerMsgId.P_5854;
