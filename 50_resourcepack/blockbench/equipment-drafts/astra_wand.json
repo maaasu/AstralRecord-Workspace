@@ -1,0 +1,465 @@
+{
+  "id": "astra_wand",
+  "master_id": "20a00443",
+  "kind": "wand",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Lv30 RARE。Minecraftのダイヤクワの横へ張る頭を、左右非対称の太い星叉へ再構成した短ワンド。左の長い顎、右の短歯、中央の高い焦点でスタッフの四芒星と区別する。青緑の大面と白い稜線、藍柄、口金一面のアメジストで近接アストラと統一。微細な宝飾や光源は持たせない。",
+  "materials": {
+    "diamond": {
+      "palette": [
+        "164352",
+        "246979",
+        "369DA2",
+        "62D2CC",
+        "A4EDE2",
+        "DFFDEE"
+      ],
+      "pattern": [
+        "34444321",
+        "34454321",
+        "33444321",
+        "23344321",
+        "23343321",
+        "23333221",
+        "22333211",
+        "12222110"
+      ]
+    },
+    "diamond_edge": {
+      "palette": [
+        "377D8A",
+        "6BBDBF",
+        "ACEBE1",
+        "EFFFF0"
+      ],
+      "pattern": [
+        "33322100",
+        "33322100",
+        "33222100",
+        "33221100",
+        "33222100",
+        "33221100",
+        "32221100",
+        "22211000"
+      ]
+    },
+    "diamond_shadow": {
+      "palette": [
+        "12303D",
+        "1C4E5C",
+        "2F7681",
+        "4D9F9F"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "midnight": {
+      "palette": [
+        "101A2A",
+        "1A2C42",
+        "2D465D",
+        "46647A",
+        "708B9B"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12323211",
+        "12333221",
+        "12333211",
+        "12323211",
+        "12333211",
+        "12223211"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "3D2B56",
+        "654A80",
+        "8F72A3",
+        "BCA7CC",
+        "DFD3E6"
+      ],
+      "pattern": [
+        "33344321",
+        "33444321",
+        "33333221",
+        "23333221",
+        "23332211",
+        "22332211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "silver": {
+      "palette": [
+        "516D7A",
+        "8BA9AD",
+        "CEDFD9",
+        "EFF9E7"
+      ],
+      "pattern": [
+        "23333221",
+        "23333221",
+        "23332211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222110",
+        "01111100"
+      ]
+    },
+    "silver_dark": {
+      "palette": [
+        "233746",
+        "3B5667",
+        "6B8793",
+        "A8BDC0"
+      ],
+      "pattern": [
+        "12222211",
+        "12322211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "indigo_wrap": {
+      "palette": [
+        "111A2B",
+        "1D2D45",
+        "314663",
+        "51637F",
+        "8190A2"
+      ],
+      "pattern": [
+        "12233211",
+        "23322112",
+        "33221122",
+        "22112233",
+        "11223322",
+        "22332211",
+        "33221122",
+        "22112233"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid midnight shaft",
+      "from": [
+        7.3,
+        1.15,
+        7.3
+      ],
+      "to": [
+        8.7,
+        10.2,
+        8.7
+      ],
+      "material": "midnight",
+      "side": "silver_dark",
+      "cap": "silver"
+    },
+    {
+      "name": "Unrotated indigo palm wrap",
+      "from": [
+        7.12,
+        2.7,
+        7.12
+      ],
+      "to": [
+        8.88,
+        6.2,
+        8.88
+      ],
+      "material": "indigo_wrap",
+      "side": "midnight",
+      "cap": "silver_dark"
+    },
+    {
+      "name": "Lower broad silver grip collar",
+      "from": [
+        6.98,
+        2.45,
+        6.98
+      ],
+      "to": [
+        9.02,
+        2.93,
+        9.02
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad silver grip collar",
+      "from": [
+        6.98,
+        5.95,
+        6.98
+      ],
+      "to": [
+        9.02,
+        6.43,
+        9.02
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Squared diamond heel",
+      "from": [
+        6.95,
+        0.65,
+        6.95
+      ],
+      "to": [
+        9.05,
+        1.6,
+        9.05
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Violet focus socket",
+      "from": [
+        6.8,
+        8.8,
+        6.8
+      ],
+      "to": [
+        9.2,
+        10.7,
+        9.2
+      ],
+      "material": "amethyst",
+      "side": "midnight",
+      "cap": "silver"
+    },
+    {
+      "name": "Broad horizontal diamond hoe jaw",
+      "from": [
+        3.65,
+        10.1,
+        6.92
+      ],
+      "to": [
+        10.7,
+        11.35,
+        9.08
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Left ascending star jaw step",
+      "from": [
+        3.45,
+        11.1,
+        7.1
+      ],
+      "to": [
+        5.1,
+        12.5,
+        8.9
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Left high blunt diamond tooth",
+      "from": [
+        3.9,
+        12.25,
+        7.26
+      ],
+      "to": [
+        4.8,
+        13.15,
+        8.74
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_shadow",
+      "cap": "silver"
+    },
+    {
+      "name": "Right short diamond tooth",
+      "from": [
+        9.95,
+        11.1,
+        7.16
+      ],
+      "to": [
+        11.1,
+        12.0,
+        8.84
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Central square focus step",
+      "from": [
+        6.25,
+        11.25,
+        6.95
+      ],
+      "to": [
+        8.9,
+        12.75,
+        9.05
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Central narrow focus crown",
+      "from": [
+        6.85,
+        12.5,
+        7.15
+      ],
+      "to": [
+        8.3,
+        13.7,
+        8.85
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Front broad white focus face",
+      "from": [
+        6.8,
+        11.65,
+        6.62
+      ],
+      "to": [
+        8.32,
+        12.35,
+        6.98
+      ],
+      "material": "diamond_edge",
+      "side": "silver_dark",
+      "cap": "silver"
+    },
+    {
+      "name": "Back broad white focus face",
+      "from": [
+        6.8,
+        11.65,
+        8.92
+      ],
+      "to": [
+        8.32,
+        12.35,
+        9.28
+      ],
+      "material": "diamond_edge",
+      "side": "silver_dark",
+      "cap": "silver"
+    },
+    {
+      "name": "Front square star vertical",
+      "from": [
+        7.81,
+        9.025,
+        6.62
+      ],
+      "to": [
+        8.19,
+        10.175,
+        6.88
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Front square star horizontal",
+      "from": [
+        7.525,
+        9.37,
+        6.608
+      ],
+      "to": [
+        8.475,
+        9.83,
+        6.868
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Back square star vertical",
+      "from": [
+        7.81,
+        9.025,
+        9.12
+      ],
+      "to": [
+        8.19,
+        10.175,
+        9.38
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Back square star horizontal",
+      "from": [
+        7.525,
+        9.37,
+        9.108
+      ],
+      "to": [
+        8.475,
+        9.83,
+        9.368
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -28
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

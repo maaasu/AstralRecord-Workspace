@@ -1,0 +1,433 @@
+{
+  "id": "astra_staff",
+  "master_id": "20a00444",
+  "kind": "staff",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Lv30 RARE。Minecraftのダイヤシャベルの長い軸と幅広い頭を、大きな段付き四芒星へ発展させた長杖。短ワンドの横叉より高く対称な輪郭で区別し、白い上端と青緑の大きな平面で星の光を示す。藍の柄と小面積のアメジスト口金を近接系列と共有し、写実的彫金や発光素材は使わない。",
+  "materials": {
+    "diamond": {
+      "palette": [
+        "164352",
+        "246979",
+        "369DA2",
+        "62D2CC",
+        "A4EDE2",
+        "DFFDEE"
+      ],
+      "pattern": [
+        "34444321",
+        "34454321",
+        "33444321",
+        "23344321",
+        "23343321",
+        "23333221",
+        "22333211",
+        "12222110"
+      ]
+    },
+    "diamond_edge": {
+      "palette": [
+        "377D8A",
+        "6BBDBF",
+        "ACEBE1",
+        "EFFFF0"
+      ],
+      "pattern": [
+        "33322100",
+        "33322100",
+        "33222100",
+        "33221100",
+        "33222100",
+        "33221100",
+        "32221100",
+        "22211000"
+      ]
+    },
+    "diamond_shadow": {
+      "palette": [
+        "12303D",
+        "1C4E5C",
+        "2F7681",
+        "4D9F9F"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "midnight": {
+      "palette": [
+        "101A2A",
+        "1A2C42",
+        "2D465D",
+        "46647A",
+        "708B9B"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12323211",
+        "12333221",
+        "12333211",
+        "12323211",
+        "12333211",
+        "12223211"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "3D2B56",
+        "654A80",
+        "8F72A3",
+        "BCA7CC",
+        "DFD3E6"
+      ],
+      "pattern": [
+        "33344321",
+        "33444321",
+        "33333221",
+        "23333221",
+        "23332211",
+        "22332211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "silver": {
+      "palette": [
+        "516D7A",
+        "8BA9AD",
+        "CEDFD9",
+        "EFF9E7"
+      ],
+      "pattern": [
+        "23333221",
+        "23333221",
+        "23332211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222110",
+        "01111100"
+      ]
+    },
+    "silver_dark": {
+      "palette": [
+        "233746",
+        "3B5667",
+        "6B8793",
+        "A8BDC0"
+      ],
+      "pattern": [
+        "12222211",
+        "12322211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "indigo_wrap": {
+      "palette": [
+        "111A2B",
+        "1D2D45",
+        "314663",
+        "51637F",
+        "8190A2"
+      ],
+      "pattern": [
+        "12233211",
+        "23322112",
+        "33221122",
+        "22112233",
+        "11223322",
+        "22332211",
+        "33221122",
+        "22112233"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid midnight shaft",
+      "from": [
+        7.3,
+        1.15,
+        7.3
+      ],
+      "to": [
+        8.7,
+        18.5,
+        8.7
+      ],
+      "material": "midnight",
+      "side": "silver_dark",
+      "cap": "silver"
+    },
+    {
+      "name": "Unrotated indigo palm wrap",
+      "from": [
+        7.12,
+        2.7,
+        7.12
+      ],
+      "to": [
+        8.88,
+        6.2,
+        8.88
+      ],
+      "material": "indigo_wrap",
+      "side": "midnight",
+      "cap": "silver_dark"
+    },
+    {
+      "name": "Lower broad silver grip collar",
+      "from": [
+        6.98,
+        2.45,
+        6.98
+      ],
+      "to": [
+        9.02,
+        2.93,
+        9.02
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad silver grip collar",
+      "from": [
+        6.98,
+        5.95,
+        6.98
+      ],
+      "to": [
+        9.02,
+        6.43,
+        9.02
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Squared diamond heel",
+      "from": [
+        6.95,
+        0.65,
+        6.95
+      ],
+      "to": [
+        9.05,
+        1.6,
+        9.05
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper long-shaft silver join",
+      "from": [
+        6.98,
+        11.8,
+        6.98
+      ],
+      "to": [
+        9.02,
+        12.48,
+        9.02
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Violet star socket",
+      "from": [
+        6.75,
+        16.45,
+        6.75
+      ],
+      "to": [
+        9.25,
+        18.3,
+        9.25
+      ],
+      "material": "amethyst",
+      "side": "midnight",
+      "cap": "silver"
+    },
+    {
+      "name": "Central broad diamond star",
+      "from": [
+        6.1,
+        18.5,
+        6.85
+      ],
+      "to": [
+        9.9,
+        21.2,
+        9.15
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Long vertical diamond star core",
+      "from": [
+        7.15,
+        17.05,
+        6.98
+      ],
+      "to": [
+        8.85,
+        22.65,
+        9.02
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "White star upper point",
+      "from": [
+        7.58,
+        22.4,
+        7.2
+      ],
+      "to": [
+        8.42,
+        23.4,
+        8.8
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_shadow",
+      "cap": "silver"
+    },
+    {
+      "name": "Left star inner shoulder",
+      "from": [
+        5.15,
+        19.12,
+        7.0
+      ],
+      "to": [
+        6.45,
+        20.65,
+        9.0
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Left star far blunt point",
+      "from": [
+        4.1,
+        19.55,
+        7.25
+      ],
+      "to": [
+        5.45,
+        20.22,
+        8.75
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_shadow",
+      "cap": "silver"
+    },
+    {
+      "name": "Right star inner shoulder",
+      "from": [
+        9.55,
+        19.12,
+        7.015
+      ],
+      "to": [
+        10.85,
+        20.65,
+        8.985
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Right star far blunt point",
+      "from": [
+        10.55,
+        19.55,
+        7.265
+      ],
+      "to": [
+        11.9,
+        20.22,
+        8.735
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_shadow",
+      "cap": "silver"
+    },
+    {
+      "name": "Front large pale central star plane",
+      "from": [
+        7.25,
+        19.02,
+        6.47
+      ],
+      "to": [
+        8.75,
+        20.63,
+        6.95
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_shadow",
+      "cap": "silver"
+    },
+    {
+      "name": "Back large pale central star plane",
+      "from": [
+        7.25,
+        19.02,
+        9.05
+      ],
+      "to": [
+        8.75,
+        20.63,
+        9.53
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_shadow",
+      "cap": "silver"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -26
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.7
+  }
+}

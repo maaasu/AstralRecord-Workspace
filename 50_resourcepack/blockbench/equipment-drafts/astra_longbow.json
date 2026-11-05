@@ -1,0 +1,674 @@
+{
+  "id": "astra_longbow",
+  "master_id": "20a00442",
+  "kind": "longbow",
+  "intent": "Lv30 RARE。Minecraftの弓を長く伸ばした六段の青緑リムと白いノックを持つ長弓。短弓より細長い星の稜線と大きい中央星留めで区別する。暗い藍柄、青緑の大きな石面、白い稜線と小面積のアメジストを近接アストラと共有。写実的な彫金、金の宝飾、発光素材は使わない。",
+  "grip": [
+    5.8,
+    10,
+    8
+  ],
+  "materials": {
+    "diamond": {
+      "palette": [
+        "164352",
+        "246979",
+        "369DA2",
+        "62D2CC",
+        "A4EDE2",
+        "DFFDEE"
+      ],
+      "pattern": [
+        "34444321",
+        "34454321",
+        "33444321",
+        "23344321",
+        "23343321",
+        "23333221",
+        "22333211",
+        "12222110"
+      ]
+    },
+    "diamond_edge": {
+      "palette": [
+        "377D8A",
+        "6BBDBF",
+        "ACEBE1",
+        "EFFFF0"
+      ],
+      "pattern": [
+        "33322100",
+        "33322100",
+        "33222100",
+        "33221100",
+        "33222100",
+        "33221100",
+        "32221100",
+        "22211000"
+      ]
+    },
+    "diamond_shadow": {
+      "palette": [
+        "12303D",
+        "1C4E5C",
+        "2F7681",
+        "4D9F9F"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "midnight": {
+      "palette": [
+        "101A2A",
+        "1A2C42",
+        "2D465D",
+        "46647A",
+        "708B9B"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12323211",
+        "12333221",
+        "12333211",
+        "12323211",
+        "12333211",
+        "12223211"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "3D2B56",
+        "654A80",
+        "8F72A3",
+        "BCA7CC",
+        "DFD3E6"
+      ],
+      "pattern": [
+        "33344321",
+        "33444321",
+        "33333221",
+        "23333221",
+        "23332211",
+        "22332211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "silver": {
+      "palette": [
+        "516D7A",
+        "8BA9AD",
+        "CEDFD9",
+        "EFF9E7"
+      ],
+      "pattern": [
+        "23333221",
+        "23333221",
+        "23332211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222110",
+        "01111100"
+      ]
+    },
+    "silver_dark": {
+      "palette": [
+        "233746",
+        "3B5667",
+        "6B8793",
+        "A8BDC0"
+      ],
+      "pattern": [
+        "12222211",
+        "12322211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222110",
+        "01111100"
+      ]
+    },
+    "indigo_wrap": {
+      "palette": [
+        "111A2B",
+        "1D2D45",
+        "314663",
+        "51637F",
+        "8190A2"
+      ],
+      "pattern": [
+        "12233211",
+        "23322112",
+        "33221122",
+        "22112233",
+        "11223322",
+        "22332211",
+        "33221122",
+        "22112233"
+      ]
+    },
+    "cord": {
+      "palette": [
+        "596D7A",
+        "8FA9AE",
+        "C3D8D1",
+        "E9F2DA"
+      ],
+      "pattern": [
+        "12233211",
+        "12223211",
+        "12233211",
+        "12223211",
+        "12233211",
+        "12223211",
+        "12233211",
+        "01122100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Unrotated indigo palm grip",
+      "from": [
+        5.05,
+        8.65,
+        7.15
+      ],
+      "to": [
+        6.55,
+        11.35,
+        8.85
+      ],
+      "material": "indigo_wrap",
+      "side": "midnight",
+      "cap": "silver_dark"
+    },
+    {
+      "name": "Upper broad diamond limb 1",
+      "from": [
+        5.48,
+        11.05,
+        7.26
+      ],
+      "to": [
+        6.92,
+        13.1,
+        8.74
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad diamond limb 2",
+      "from": [
+        6.25,
+        12.8,
+        7.34
+      ],
+      "to": [
+        7.78,
+        14.7,
+        8.66
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad diamond limb 3",
+      "from": [
+        7.15,
+        14.4,
+        7.42
+      ],
+      "to": [
+        8.8,
+        16.15,
+        8.58
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad diamond limb 4",
+      "from": [
+        8.2,
+        15.85,
+        7.5
+      ],
+      "to": [
+        9.95,
+        17.4,
+        8.5
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad diamond limb 5",
+      "from": [
+        9.35,
+        17.1,
+        7.57
+      ],
+      "to": [
+        10.85,
+        18.45,
+        8.43
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper broad diamond limb 6",
+      "from": [
+        10.2,
+        18.15,
+        7.63
+      ],
+      "to": [
+        11.45,
+        19.55,
+        8.37
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper squared silver grip collar",
+      "from": [
+        4.9,
+        11.2,
+        7.02
+      ],
+      "to": [
+        6.7,
+        11.65,
+        8.98
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower broad diamond limb 1",
+      "from": [
+        5.48,
+        6.9,
+        7.26
+      ],
+      "to": [
+        6.92,
+        8.95,
+        8.74
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower broad diamond limb 2",
+      "from": [
+        6.25,
+        5.3,
+        7.34
+      ],
+      "to": [
+        7.78,
+        7.2,
+        8.66
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower broad diamond limb 3",
+      "from": [
+        7.15,
+        3.85,
+        7.42
+      ],
+      "to": [
+        8.8,
+        5.6,
+        8.58
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower broad diamond limb 4",
+      "from": [
+        8.2,
+        2.6,
+        7.5
+      ],
+      "to": [
+        9.95,
+        4.15,
+        8.5
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower broad diamond limb 5",
+      "from": [
+        9.35,
+        1.55,
+        7.57
+      ],
+      "to": [
+        10.85,
+        2.9,
+        8.43
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower broad diamond limb 6",
+      "from": [
+        10.2,
+        0.45,
+        7.63
+      ],
+      "to": [
+        11.45,
+        1.85,
+        8.37
+      ],
+      "material": "diamond",
+      "side": "diamond_shadow",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower squared silver grip collar",
+      "from": [
+        4.9,
+        8.35,
+        7.02
+      ],
+      "to": [
+        6.7,
+        8.8,
+        8.98
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper longbow white spanning shoulder",
+      "from": [
+        4.95,
+        12.35,
+        7.04
+      ],
+      "to": [
+        7.24,
+        12.9,
+        8.96
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower longbow white spanning shoulder",
+      "from": [
+        4.95,
+        7.1,
+        7.04
+      ],
+      "to": [
+        7.24,
+        7.65,
+        8.96
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper solid silver string nock",
+      "from": [
+        10.52,
+        18.86,
+        7.52
+      ],
+      "to": [
+        11.48,
+        19.7,
+        8.48
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper front broad violet limb inset",
+      "from": [
+        7.5,
+        15.0,
+        7.28
+      ],
+      "to": [
+        8.4,
+        15.8,
+        7.52
+      ],
+      "material": "amethyst",
+      "side": "midnight",
+      "cap": "silver"
+    },
+    {
+      "name": "Upper back broad violet limb inset",
+      "from": [
+        7.5,
+        15.0,
+        8.48
+      ],
+      "to": [
+        8.4,
+        15.8,
+        8.72
+      ],
+      "material": "amethyst",
+      "side": "midnight",
+      "cap": "silver"
+    },
+    {
+      "name": "Lower solid silver string nock",
+      "from": [
+        10.52,
+        0.3,
+        7.52
+      ],
+      "to": [
+        11.48,
+        1.14,
+        8.48
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Lower front broad violet limb inset",
+      "from": [
+        7.5,
+        4.2,
+        7.28
+      ],
+      "to": [
+        8.4,
+        5.0,
+        7.52
+      ],
+      "material": "amethyst",
+      "side": "midnight",
+      "cap": "silver"
+    },
+    {
+      "name": "Lower back broad violet limb inset",
+      "from": [
+        7.5,
+        4.2,
+        8.48
+      ],
+      "to": [
+        8.4,
+        5.0,
+        8.72
+      ],
+      "material": "amethyst",
+      "side": "midnight",
+      "cap": "silver"
+    },
+    {
+      "name": "Front square star vertical",
+      "from": [
+        5.52,
+        9.25,
+        6.97
+      ],
+      "to": [
+        6.08,
+        10.75,
+        7.23
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Front square star horizontal",
+      "from": [
+        5.1,
+        9.7,
+        6.958
+      ],
+      "to": [
+        6.5,
+        10.3,
+        7.218
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Back square star vertical",
+      "from": [
+        5.52,
+        9.25,
+        8.77
+      ],
+      "to": [
+        6.08,
+        10.75,
+        9.03
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Back square star horizontal",
+      "from": [
+        5.1,
+        9.7,
+        8.758
+      ],
+      "to": [
+        6.5,
+        10.3,
+        9.018
+      ],
+      "material": "silver",
+      "side": "silver_dark",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "Upper pale braided string",
+      "from": [
+        10.88,
+        10,
+        7.88
+      ],
+      "to": [
+        11.12,
+        19.28,
+        8.12
+      ],
+      "material": "cord",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "Lower pale braided string",
+      "from": [
+        10.88,
+        0.72,
+        7.88
+      ],
+      "to": [
+        11.12,
+        10,
+        8.12
+      ],
+      "material": "cord",
+      "bone": "cord_lower"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -25
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.78
+  },
+  "bow": {
+    "upper_tip": [
+      11.0,
+      19.28,
+      8
+    ],
+    "lower_tip": [
+      11.0,
+      0.72,
+      8
+    ],
+    "string_center": [
+      11.0,
+      10,
+      8
+    ]
+  }
+}
