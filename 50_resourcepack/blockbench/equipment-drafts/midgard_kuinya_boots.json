@@ -1,0 +1,582 @@
+{
+  "id": "midgard_kuinya_boots",
+  "master_id": "20a00015",
+  "kind": "armor",
+  "intent": "Lv3 UNCOMMON、移動速度を助ける緑の短靴一足。薄い暗色底、角形の革つま先、開いた柔らかい緑布の履き口、単純な革帯と木の留めを左右一組にする。軽い構造を保ち、重いサバトンや写実靴紐は付けない。carry点は右靴の実在する前履き口内。",
+  "grip": [
+    10.7,
+    8.15,
+    6.45
+  ],
+  "materials": {
+    "green_cloth": {
+      "palette": [
+        "203F31",
+        "2B5D42",
+        "3A8F5C",
+        "5B9C69",
+        "7CAE7A"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12221221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "green_fold": {
+      "palette": [
+        "1F3D2E",
+        "2D6042",
+        "468453",
+        "679760",
+        "86AC73"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12332221",
+        "12332221",
+        "12222211",
+        "12222211",
+        "11222110",
+        "00111000"
+      ]
+    },
+    "green_edge": {
+      "palette": [
+        "1D3529",
+        "2C4D34",
+        "4D7047",
+        "78945F",
+        "9CB47B"
+      ],
+      "pattern": [
+        "22333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "bark_leather": {
+      "palette": [
+        "302D23",
+        "51432D",
+        "775B38",
+        "9D7C4D",
+        "B39B65"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12333221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "00111100"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "292D23",
+        "494632",
+        "6F6544",
+        "99885B",
+        "B4A875"
+      ],
+      "pattern": [
+        "23333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "stitch": {
+      "palette": [
+        "2C5038",
+        "416B47",
+        "8C9B63",
+        "C3BA85"
+      ],
+      "pattern": [
+        "11111111",
+        "11111111",
+        "11221122",
+        "11331133",
+        "11111111",
+        "11111111",
+        "11221122",
+        "11221122"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "242A22",
+        "363C2B",
+        "505239",
+        "6B6847"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "wood_toggle": {
+      "palette": [
+        "343525",
+        "555637",
+        "7D8050",
+        "A3A369",
+        "BFC18A"
+      ],
+      "pattern": [
+        "00111100",
+        "01222210",
+        "12333321",
+        "12344321",
+        "12233221",
+        "01222210",
+        "00111100",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left thin dark sole",
+      "from": [
+        3.1,
+        2.05,
+        4.2
+      ],
+      "to": [
+        7.5,
+        2.7,
+        10.3
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left leather foot",
+      "from": [
+        3.25,
+        2.6,
+        4.5
+      ],
+      "to": [
+        7.35,
+        4.35,
+        10.1
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left square flexible toe",
+      "from": [
+        3.3,
+        2.7,
+        3.95
+      ],
+      "to": [
+        7.3,
+        3.9,
+        5.15
+      ],
+      "material": "bark_leather",
+      "side": "sole"
+    },
+    {
+      "name": "Left green shaft front",
+      "from": [
+        3.3,
+        4.15,
+        6.1
+      ],
+      "to": [
+        7.3,
+        7.95,
+        6.9
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Left green shaft rear",
+      "from": [
+        3.3,
+        4.15,
+        9.35
+      ],
+      "to": [
+        7.3,
+        7.95,
+        10.15
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Left shaft left wall",
+      "from": [
+        3.25,
+        4.15,
+        6.85
+      ],
+      "to": [
+        3.95,
+        7.95,
+        9.4
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Left shaft right wall",
+      "from": [
+        6.6499999999999995,
+        4.15,
+        6.85
+      ],
+      "to": [
+        7.35,
+        7.95,
+        9.4
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Left open cuff front",
+      "from": [
+        3.15,
+        7.8,
+        5.9
+      ],
+      "to": [
+        7.449999999999999,
+        8.55,
+        7.0
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Left open cuff rear",
+      "from": [
+        3.15,
+        7.8,
+        9.2
+      ],
+      "to": [
+        7.449999999999999,
+        8.55,
+        10.3
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Left open cuff left",
+      "from": [
+        3.15,
+        7.8,
+        6.95
+      ],
+      "to": [
+        3.95,
+        8.55,
+        9.25
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Left open cuff right",
+      "from": [
+        6.6499999999999995,
+        7.8,
+        6.95
+      ],
+      "to": [
+        7.449999999999999,
+        8.55,
+        9.25
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Left simple ankle hide strap",
+      "from": [
+        3.27,
+        5.25,
+        5.85
+      ],
+      "to": [
+        7.33,
+        5.95,
+        6.2
+      ],
+      "material": "bark_leather"
+    },
+    {
+      "name": "Left strap wooden toggle",
+      "from": [
+        4.95,
+        5.25,
+        5.6
+      ],
+      "to": [
+        5.6499999999999995,
+        5.95,
+        5.95
+      ],
+      "material": "wood_toggle"
+    },
+    {
+      "name": "Left rear stitched join",
+      "from": [
+        5.1,
+        4.5,
+        10.1
+      ],
+      "to": [
+        5.5,
+        7.75,
+        10.35
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Right thin dark sole",
+      "from": [
+        8.5,
+        2.05,
+        4.2
+      ],
+      "to": [
+        12.9,
+        2.7,
+        10.3
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right leather foot",
+      "from": [
+        8.65,
+        2.6,
+        4.5
+      ],
+      "to": [
+        12.75,
+        4.35,
+        10.1
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right square flexible toe",
+      "from": [
+        8.700000000000001,
+        2.7,
+        3.95
+      ],
+      "to": [
+        12.7,
+        3.9,
+        5.15
+      ],
+      "material": "bark_leather",
+      "side": "sole"
+    },
+    {
+      "name": "Right green shaft front",
+      "from": [
+        8.700000000000001,
+        4.15,
+        6.1
+      ],
+      "to": [
+        12.7,
+        7.95,
+        6.9
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Right green shaft rear",
+      "from": [
+        8.700000000000001,
+        4.15,
+        9.35
+      ],
+      "to": [
+        12.7,
+        7.95,
+        10.15
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Right shaft left wall",
+      "from": [
+        8.65,
+        4.15,
+        6.85
+      ],
+      "to": [
+        9.35,
+        7.95,
+        9.4
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Right shaft right wall",
+      "from": [
+        12.05,
+        4.15,
+        6.85
+      ],
+      "to": [
+        12.75,
+        7.95,
+        9.4
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Right open cuff front",
+      "from": [
+        8.55,
+        7.8,
+        5.9
+      ],
+      "to": [
+        12.85,
+        8.55,
+        7.0
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Right open cuff rear",
+      "from": [
+        8.55,
+        7.8,
+        9.2
+      ],
+      "to": [
+        12.85,
+        8.55,
+        10.3
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Right open cuff left",
+      "from": [
+        8.55,
+        7.8,
+        6.95
+      ],
+      "to": [
+        9.35,
+        8.55,
+        9.25
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Right open cuff right",
+      "from": [
+        12.05,
+        7.8,
+        6.95
+      ],
+      "to": [
+        12.85,
+        8.55,
+        9.25
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Right simple ankle hide strap",
+      "from": [
+        8.67,
+        5.25,
+        5.85
+      ],
+      "to": [
+        12.73,
+        5.95,
+        6.2
+      ],
+      "material": "bark_leather"
+    },
+    {
+      "name": "Right strap wooden toggle",
+      "from": [
+        10.35,
+        5.25,
+        5.6
+      ],
+      "to": [
+        11.049999999999999,
+        5.95,
+        5.95
+      ],
+      "material": "wood_toggle"
+    },
+    {
+      "name": "Right rear stitched join",
+      "from": [
+        10.5,
+        4.5,
+        10.1
+      ],
+      "to": [
+        10.899999999999999,
+        7.75,
+        10.35
+      ],
+      "material": "stitch"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "kuinya_ranger",
+  "wearable_source": "armor/kuinya_ranger.pixels.json"
+}

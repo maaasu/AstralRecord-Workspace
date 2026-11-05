@@ -1,0 +1,478 @@
+{
+  "id": "midgard_kuinya_leggings",
+  "master_id": "20a00020",
+  "kind": "armor",
+  "intent": "Lv3 UNCOMMONの軽量な間接職向け脚装備。緑布の長い二本脚、開いた革腰帯、薄い革の膝当て、植物の葉を思わせる外側の折りで動きやすさを表す。ノクスより色面と縁を整え、上位の金属グリーヴや細密細工は避ける。carry点は前腰帯の実体内。",
+  "grip": [
+    8,
+    12.1,
+    6.1
+  ],
+  "materials": {
+    "green_cloth": {
+      "palette": [
+        "203F31",
+        "2B5D42",
+        "3A8F5C",
+        "5B9C69",
+        "7CAE7A"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12221221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "green_fold": {
+      "palette": [
+        "1F3D2E",
+        "2D6042",
+        "468453",
+        "679760",
+        "86AC73"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12332221",
+        "12332221",
+        "12222211",
+        "12222211",
+        "11222110",
+        "00111000"
+      ]
+    },
+    "green_edge": {
+      "palette": [
+        "1D3529",
+        "2C4D34",
+        "4D7047",
+        "78945F",
+        "9CB47B"
+      ],
+      "pattern": [
+        "22333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "bark_leather": {
+      "palette": [
+        "302D23",
+        "51432D",
+        "775B38",
+        "9D7C4D",
+        "B39B65"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12333221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "00111100"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "292D23",
+        "494632",
+        "6F6544",
+        "99885B",
+        "B4A875"
+      ],
+      "pattern": [
+        "23333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "stitch": {
+      "palette": [
+        "2C5038",
+        "416B47",
+        "8C9B63",
+        "C3BA85"
+      ],
+      "pattern": [
+        "11111111",
+        "11111111",
+        "11221122",
+        "11331133",
+        "11111111",
+        "11111111",
+        "11221122",
+        "11221122"
+      ]
+    },
+    "wood_toggle": {
+      "palette": [
+        "343525",
+        "555637",
+        "7D8050",
+        "A3A369",
+        "BFC18A"
+      ],
+      "pattern": [
+        "00111100",
+        "01222210",
+        "12333321",
+        "12344321",
+        "12233221",
+        "01222210",
+        "00111100",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left lightweight cloth leg",
+      "from": [
+        4.5,
+        2.6,
+        6.0
+      ],
+      "to": [
+        7.65,
+        10.7,
+        9.75
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Right lightweight cloth leg",
+      "from": [
+        8.35,
+        2.6,
+        6.0
+      ],
+      "to": [
+        11.5,
+        10.7,
+        9.75
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Front trouser rise",
+      "from": [
+        4.5,
+        10.25,
+        5.85
+      ],
+      "to": [
+        11.5,
+        11.65,
+        6.8
+      ],
+      "material": "green_cloth"
+    },
+    {
+      "name": "Rear trouser rise",
+      "from": [
+        4.5,
+        10.25,
+        9.0
+      ],
+      "to": [
+        11.5,
+        11.65,
+        9.9
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Left side of open waist",
+      "from": [
+        4.3,
+        10.25,
+        6.7
+      ],
+      "to": [
+        5.15,
+        11.65,
+        9.1
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Right side of open waist",
+      "from": [
+        10.85,
+        10.25,
+        6.7
+      ],
+      "to": [
+        11.7,
+        11.65,
+        9.1
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Short cloth crotch gusset",
+      "from": [
+        7.6,
+        9.5,
+        6.55
+      ],
+      "to": [
+        8.4,
+        10.65,
+        9.2
+      ],
+      "material": "green_cloth"
+    },
+    {
+      "name": "Front carrying waistband",
+      "from": [
+        4.2,
+        11.6,
+        5.55
+      ],
+      "to": [
+        11.8,
+        12.65,
+        6.65
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Rear waistband",
+      "from": [
+        4.2,
+        11.6,
+        9.1
+      ],
+      "to": [
+        11.8,
+        12.65,
+        10.1
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left waist band",
+      "from": [
+        4.0,
+        11.6,
+        6.6
+      ],
+      "to": [
+        5.0,
+        12.65,
+        9.15
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right waist band",
+      "from": [
+        11.0,
+        11.6,
+        6.6
+      ],
+      "to": [
+        12.0,
+        12.65,
+        9.15
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Wood belt toggle",
+      "from": [
+        7.35,
+        11.85,
+        5.3
+      ],
+      "to": [
+        8.65,
+        12.45,
+        5.65
+      ],
+      "material": "wood_toggle"
+    },
+    {
+      "name": "Left knee hide reinforcement",
+      "from": [
+        4.7,
+        5.75,
+        5.55
+      ],
+      "to": [
+        7.45,
+        7.8,
+        6.1
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right knee hide reinforcement",
+      "from": [
+        8.55,
+        5.75,
+        5.55
+      ],
+      "to": [
+        11.3,
+        7.8,
+        6.1
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left knee upper sewn edge",
+      "from": [
+        4.7,
+        7.45,
+        5.4
+      ],
+      "to": [
+        7.45,
+        7.85,
+        5.7
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Right knee upper sewn edge",
+      "from": [
+        8.55,
+        7.45,
+        5.4
+      ],
+      "to": [
+        11.3,
+        7.85,
+        5.7
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Left lower cloth cuff",
+      "from": [
+        4.4,
+        2.2,
+        5.9
+      ],
+      "to": [
+        7.75,
+        2.9,
+        9.85
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Right lower cloth cuff",
+      "from": [
+        8.25,
+        2.2,
+        5.9
+      ],
+      "to": [
+        11.6,
+        2.9,
+        9.85
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Left outer leaf-like cloth fold",
+      "from": [
+        4.25,
+        3.4,
+        7.15
+      ],
+      "to": [
+        4.6,
+        9.85,
+        8.25
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Right outer leaf-like cloth fold",
+      "from": [
+        11.4,
+        3.4,
+        7.15
+      ],
+      "to": [
+        11.75,
+        9.85,
+        8.25
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Left rear seam",
+      "from": [
+        5.85,
+        3.1,
+        9.7
+      ],
+      "to": [
+        6.25,
+        10.15,
+        9.98
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Right rear seam",
+      "from": [
+        9.75,
+        3.1,
+        9.7
+      ],
+      "to": [
+        10.15,
+        10.15,
+        9.98
+      ],
+      "material": "green_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "kuinya_ranger",
+  "wearable_source": "armor/kuinya_ranger.pixels.json"
+}

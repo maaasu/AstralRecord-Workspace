@@ -1,0 +1,444 @@
+{
+  "id": "midgard_kuinya_hood",
+  "master_id": "20a00019",
+  "kind": "armor",
+  "intent": "Lv3 UNCOMMON、視界と命中を助ける緑の頭巾。広い顔開口、低い布の庇、長い頬の折り、後頭部の簡素な葉状縫いを持つ。革の細い縁と実在する後ろ裾をcarry点にし、金属の兜や高位装備の装飾にはしない。Minecraftの革帽子と植物の太い面分割を参照した原作。",
+  "grip": [
+    8,
+    4.15,
+    10.65
+  ],
+  "materials": {
+    "green_cloth": {
+      "palette": [
+        "203F31",
+        "2B5D42",
+        "3A8F5C",
+        "5B9C69",
+        "7CAE7A"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12221221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "green_fold": {
+      "palette": [
+        "1F3D2E",
+        "2D6042",
+        "468453",
+        "679760",
+        "86AC73"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12332221",
+        "12332221",
+        "12222211",
+        "12222211",
+        "11222110",
+        "00111000"
+      ]
+    },
+    "green_edge": {
+      "palette": [
+        "1D3529",
+        "2C4D34",
+        "4D7047",
+        "78945F",
+        "9CB47B"
+      ],
+      "pattern": [
+        "22333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "bark_leather": {
+      "palette": [
+        "302D23",
+        "51432D",
+        "775B38",
+        "9D7C4D",
+        "B39B65"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12333221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "00111100"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "292D23",
+        "494632",
+        "6F6544",
+        "99885B",
+        "B4A875"
+      ],
+      "pattern": [
+        "23333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "172E25",
+        "264635",
+        "3A6042",
+        "58805A"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Cloth hood rear and carrying hem",
+      "from": [
+        4.15,
+        4.0,
+        10.25
+      ],
+      "to": [
+        11.85,
+        10.75,
+        11.1
+      ],
+      "material": "green_cloth"
+    },
+    {
+      "name": "Left hood cloth wall",
+      "from": [
+        3.8,
+        5.2,
+        5.7
+      ],
+      "to": [
+        4.8,
+        11.2,
+        10.6
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Right hood cloth wall",
+      "from": [
+        11.2,
+        5.2,
+        5.7
+      ],
+      "to": [
+        12.2,
+        11.2,
+        10.6
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Broad cloth crown",
+      "from": [
+        4.0,
+        10.65,
+        5.5
+      ],
+      "to": [
+        12.0,
+        12.0,
+        10.9
+      ],
+      "material": "green_cloth",
+      "side": "green_fold"
+    },
+    {
+      "name": "Soft raised crown fold",
+      "from": [
+        5.1,
+        11.95,
+        6.15
+      ],
+      "to": [
+        10.9,
+        12.9,
+        10.3
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Low crown seam",
+      "from": [
+        7.65,
+        12.85,
+        6.2
+      ],
+      "to": [
+        8.35,
+        13.15,
+        10.35
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Short overhanging hood brow",
+      "from": [
+        3.75,
+        10.05,
+        4.8
+      ],
+      "to": [
+        12.25,
+        11.15,
+        5.9
+      ],
+      "material": "green_fold",
+      "side": "green_edge"
+    },
+    {
+      "name": "Brow hide piping",
+      "from": [
+        3.8,
+        9.95,
+        4.65
+      ],
+      "to": [
+        12.2,
+        10.35,
+        5.15
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Left long face fold",
+      "from": [
+        3.9,
+        4.7,
+        4.95
+      ],
+      "to": [
+        5.2,
+        10.2,
+        6.05
+      ],
+      "material": "green_fold",
+      "side": "green_edge"
+    },
+    {
+      "name": "Right long face fold",
+      "from": [
+        10.8,
+        4.7,
+        4.95
+      ],
+      "to": [
+        12.1,
+        10.2,
+        6.05
+      ],
+      "material": "green_fold",
+      "side": "green_edge"
+    },
+    {
+      "name": "Left narrow leather face trim",
+      "from": [
+        3.85,
+        4.65,
+        4.7
+      ],
+      "to": [
+        4.4,
+        10.1,
+        5.1
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Right narrow leather face trim",
+      "from": [
+        11.6,
+        4.65,
+        4.7
+      ],
+      "to": [
+        12.15,
+        10.1,
+        5.1
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Rear reinforced carrying rim",
+      "from": [
+        4.0,
+        3.65,
+        10.05
+      ],
+      "to": [
+        12.0,
+        4.55,
+        11.25
+      ],
+      "material": "bark_leather",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left lower neck drape",
+      "from": [
+        3.8,
+        3.7,
+        6.0
+      ],
+      "to": [
+        4.8,
+        5.35,
+        10.4
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Right lower neck drape",
+      "from": [
+        11.2,
+        3.7,
+        6.0
+      ],
+      "to": [
+        12.2,
+        5.35,
+        10.4
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Left lower leather tie",
+      "from": [
+        4.0,
+        4.35,
+        5.65
+      ],
+      "to": [
+        5.2,
+        5.0,
+        6.5
+      ],
+      "material": "bark_leather"
+    },
+    {
+      "name": "Right lower leather tie",
+      "from": [
+        10.8,
+        4.35,
+        5.65
+      ],
+      "to": [
+        12.0,
+        5.0,
+        6.5
+      ],
+      "material": "bark_leather"
+    },
+    {
+      "name": "Inner rear cloth lining",
+      "from": [
+        4.8,
+        4.6,
+        10.0
+      ],
+      "to": [
+        11.2,
+        10.6,
+        10.28
+      ],
+      "material": "lining"
+    },
+    {
+      "name": "Rear simple sewn leaf stem",
+      "from": [
+        7.7,
+        5.25,
+        11.08
+      ],
+      "to": [
+        8.3,
+        9.95,
+        11.32
+      ],
+      "material": "green_edge"
+    },
+    {
+      "name": "Rear left leaf fold",
+      "from": [
+        6.75,
+        7.7,
+        11.08
+      ],
+      "to": [
+        7.8,
+        8.5,
+        11.34
+      ],
+      "material": "green_fold"
+    },
+    {
+      "name": "Rear right leaf fold",
+      "from": [
+        8.2,
+        8.5,
+        11.08
+      ],
+      "to": [
+        9.25,
+        9.3,
+        11.34
+      ],
+      "material": "green_fold"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "kuinya_ranger",
+  "wearable_source": "armor/kuinya_ranger.pixels.json"
+}
