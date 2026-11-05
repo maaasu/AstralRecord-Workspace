@@ -1,0 +1,427 @@
+{
+  "id": "melkor_circlet",
+  "master_id": "20a00045",
+  "kind": "armor",
+  "intent": "影の晶核を織り込んだLv10の魔法冠。紫の太い織布を黒鋼の短い額縁で締め、角形の晶核だけを二段に立ち上げる。顔と頭頂を大きく開け、左右の短いこめかみ留め、後頭の調整金具と短い布端で全周を仕上げた。序盤の紐冠より素材の分離と縫い合わせを丁寧にし、上位の王冠・写実宝飾・発光は用いない。実体ある後頭革帯を携行基準とする。",
+  "grip": [
+    8,
+    9.7,
+    11.2
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "292131",
+        "38264F",
+        "503664",
+        "65467B",
+        "79598C"
+      ],
+      "pattern": [
+        "12232212",
+        "12232212",
+        "12333212",
+        "12232212",
+        "12232212",
+        "12332212",
+        "11222111",
+        "01121110"
+      ]
+    },
+    "hem": {
+      "palette": [
+        "29232F",
+        "413248",
+        "685172",
+        "92769D",
+        "B29ABE"
+      ],
+      "pattern": [
+        "33333332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "181B22",
+        "292C35",
+        "40414C",
+        "5B5967",
+        "7C7686"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "20222B",
+        "363842",
+        "575461",
+        "82798B"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "12222211",
+        "11111111",
+        "11111111",
+        "11111111",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "shadow_core": {
+      "palette": [
+        "201B2A",
+        "31243F",
+        "4D355E",
+        "75518C",
+        "A17CB6"
+      ],
+      "pattern": [
+        "01222110",
+        "12322110",
+        "12243210",
+        "11233221",
+        "12223210",
+        "11232110",
+        "01121100",
+        "00110000"
+      ]
+    },
+    "seam": {
+      "palette": [
+        "30263C",
+        "4D3B60",
+        "7E668E",
+        "A38AB1"
+      ],
+      "pattern": [
+        "00110000",
+        "00220000",
+        "00112200",
+        "00002200",
+        "00001100",
+        "00221100",
+        "00220000",
+        "00110000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "231E24",
+        "3C2C37",
+        "59414E",
+        "775766",
+        "957783"
+      ],
+      "pattern": [
+        "12232221",
+        "12233221",
+        "12232221",
+        "12333221",
+        "12232221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Purple woven brow band",
+      "from": [
+        3.1,
+        9.0,
+        4.65
+      ],
+      "to": [
+        12.9,
+        10.55,
+        5.45
+      ],
+      "material": "cloth",
+      "side": "hem",
+      "cap": "hem"
+    },
+    {
+      "name": "Left open temple band",
+      "from": [
+        3.1,
+        9.0,
+        5.35
+      ],
+      "to": [
+        3.95,
+        10.55,
+        10.9
+      ],
+      "material": "cloth",
+      "side": "steel"
+    },
+    {
+      "name": "Right open temple band",
+      "from": [
+        12.05,
+        9.0,
+        5.35
+      ],
+      "to": [
+        12.9,
+        10.55,
+        10.9
+      ],
+      "material": "cloth",
+      "side": "steel"
+    },
+    {
+      "name": "Rear leather carry band",
+      "from": [
+        3.1,
+        9.0,
+        10.8
+      ],
+      "to": [
+        12.9,
+        10.55,
+        11.6
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Brow dark steel upper lip",
+      "from": [
+        3.05,
+        10.35,
+        4.5
+      ],
+      "to": [
+        12.95,
+        10.8,
+        4.9
+      ],
+      "material": "steel_edge"
+    },
+    {
+      "name": "Left short temple guard",
+      "from": [
+        2.95,
+        7.9,
+        6.0
+      ],
+      "to": [
+        3.95,
+        9.7,
+        7.7
+      ],
+      "material": "steel",
+      "side": "hem"
+    },
+    {
+      "name": "Right short temple guard",
+      "from": [
+        12.05,
+        7.9,
+        6.0
+      ],
+      "to": [
+        13.05,
+        9.7,
+        7.7
+      ],
+      "material": "steel",
+      "side": "hem"
+    },
+    {
+      "name": "Left folded temple inset",
+      "from": [
+        2.8,
+        8.45,
+        6.35
+      ],
+      "to": [
+        3.1,
+        9.25,
+        7.35
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Right folded temple inset",
+      "from": [
+        12.9,
+        8.45,
+        6.35
+      ],
+      "to": [
+        13.2,
+        9.25,
+        7.35
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Central square dark steel seat",
+      "from": [
+        6.5,
+        8.85,
+        4.05
+      ],
+      "to": [
+        9.5,
+        11.3,
+        4.75
+      ],
+      "material": "steel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Central shadow crystal lower step",
+      "from": [
+        6.9,
+        9.05,
+        3.75
+      ],
+      "to": [
+        9.1,
+        10.95,
+        4.15
+      ],
+      "material": "shadow_core"
+    },
+    {
+      "name": "Central shadow crystal upper step",
+      "from": [
+        7.35,
+        10.85,
+        3.85
+      ],
+      "to": [
+        8.65,
+        11.6,
+        4.45
+      ],
+      "material": "shadow_core",
+      "side": "steel"
+    },
+    {
+      "name": "Left circuit stitch",
+      "from": [
+        4.0,
+        9.55,
+        4.4
+      ],
+      "to": [
+        5.7,
+        10.0,
+        4.72
+      ],
+      "material": "seam"
+    },
+    {
+      "name": "Right circuit stitch",
+      "from": [
+        10.3,
+        9.55,
+        4.4
+      ],
+      "to": [
+        12.0,
+        10.0,
+        4.72
+      ],
+      "material": "seam"
+    },
+    {
+      "name": "Rear adjustable steel clasp",
+      "from": [
+        7.2,
+        9.05,
+        11.45
+      ],
+      "to": [
+        8.8,
+        10.5,
+        12.0
+      ],
+      "material": "steel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Rear short cloth fall left",
+      "from": [
+        6.2,
+        7.5,
+        11.3
+      ],
+      "to": [
+        7.1,
+        9.2,
+        11.8
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Rear short cloth fall right",
+      "from": [
+        8.9,
+        8.0,
+        11.3
+      ],
+      "to": [
+        9.8,
+        9.2,
+        11.8
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Rear stitched cloth joint",
+      "from": [
+        7.0,
+        9.4,
+        11.75
+      ],
+      "to": [
+        9.0,
+        9.85,
+        12.1
+      ],
+      "material": "seam"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      19,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "melkor_mage",
+  "wearable_source": "armor/author-melkor-mage.py"
+}

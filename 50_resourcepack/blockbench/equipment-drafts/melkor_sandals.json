@@ -1,0 +1,680 @@
+{
+  "id": "melkor_sandals",
+  "master_id": "20a00051",
+  "kind": "armor",
+  "intent": "影の中を滑るように歩くLv10の軽いサンダル対。平たい革底、開いた爪先、紫織布の二つの橋状ベルトと低い踵ひもで、ブーツと異なる輪郭を作る。黒鋼の四角い留めと粗い紫縫いだけを加え、写実的な金具や宝石を避けた。序盤より底の層・縁縫い・甲紐の接続を整え、上位ほど厚い外装は足さない。対を結んだ後ろの実体ある革ひもを携行基準に置く。",
+  "grip": [
+    8,
+    5.25,
+    11.15
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "292131",
+        "38264F",
+        "503664",
+        "65467B",
+        "79598C"
+      ],
+      "pattern": [
+        "12232212",
+        "12232212",
+        "12333212",
+        "12232212",
+        "12232212",
+        "12332212",
+        "11222111",
+        "01121110"
+      ]
+    },
+    "hem": {
+      "palette": [
+        "29232F",
+        "413248",
+        "685172",
+        "92769D",
+        "B29ABE"
+      ],
+      "pattern": [
+        "33333332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "181B22",
+        "292C35",
+        "40414C",
+        "5B5967",
+        "7C7686"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "20222B",
+        "363842",
+        "575461",
+        "82798B"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "12222211",
+        "11111111",
+        "11111111",
+        "11111111",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "seam": {
+      "palette": [
+        "30263C",
+        "4D3B60",
+        "7E668E",
+        "A38AB1"
+      ],
+      "pattern": [
+        "00110000",
+        "00220000",
+        "00112200",
+        "00002200",
+        "00001100",
+        "00221100",
+        "00220000",
+        "00110000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "231E24",
+        "3C2C37",
+        "59414E",
+        "775766",
+        "957783"
+      ],
+      "pattern": [
+        "12232221",
+        "12233221",
+        "12232221",
+        "12333221",
+        "12232221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "1B1C22",
+        "2D2C35",
+        "45404B",
+        "605362"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "11111111",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left flat dark sole",
+      "from": [
+        2.8,
+        1.0,
+        4.05
+      ],
+      "to": [
+        7.1,
+        1.7,
+        11.35
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left warm leather footbed",
+      "from": [
+        2.92,
+        1.7,
+        4.2
+      ],
+      "to": [
+        6.9799999999999995,
+        2.05,
+        11.18
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Left broad purple toe bridge",
+      "from": [
+        2.8,
+        2.65,
+        5.3
+      ],
+      "to": [
+        7.1,
+        3.35,
+        6.45
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Left toe bridge left leather anchor",
+      "from": [
+        2.8,
+        1.7,
+        5.3
+      ],
+      "to": [
+        3.4,
+        2.75,
+        6.45
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left toe bridge right leather anchor",
+      "from": [
+        6.5,
+        1.7,
+        5.3
+      ],
+      "to": [
+        7.1,
+        2.75,
+        6.45
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left toe bridge sewn edge",
+      "from": [
+        3.3,
+        3.2,
+        5.1
+      ],
+      "to": [
+        6.6,
+        3.5,
+        5.55
+      ],
+      "material": "hem"
+    },
+    {
+      "name": "Left broad instep bridge",
+      "from": [
+        2.8,
+        3.9,
+        8.1
+      ],
+      "to": [
+        7.1,
+        4.65,
+        9.1
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Left instep left anchor",
+      "from": [
+        2.8,
+        1.75,
+        8.1
+      ],
+      "to": [
+        3.4499999999999997,
+        4.05,
+        9.1
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left instep right anchor",
+      "from": [
+        6.449999999999999,
+        1.75,
+        8.1
+      ],
+      "to": [
+        7.1,
+        4.05,
+        9.1
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left inner stepped instep tie",
+      "from": [
+        4.4,
+        2.0,
+        6.35
+      ],
+      "to": [
+        5.199999999999999,
+        3.0,
+        7.35
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Left upper stepped instep tie",
+      "from": [
+        4.4,
+        2.8,
+        7.1
+      ],
+      "to": [
+        5.199999999999999,
+        4.1,
+        8.25
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Left heel sling rear",
+      "from": [
+        3.25,
+        3.2,
+        10.65
+      ],
+      "to": [
+        6.65,
+        4.7,
+        11.25
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Left heel sling left",
+      "from": [
+        2.8,
+        1.7,
+        9.0
+      ],
+      "to": [
+        3.4499999999999997,
+        4.7,
+        10.95
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left heel sling right",
+      "from": [
+        6.449999999999999,
+        1.7,
+        9.0
+      ],
+      "to": [
+        7.1,
+        4.7,
+        10.95
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left square dark steel instep clasp",
+      "from": [
+        3.05,
+        3.75,
+        7.8
+      ],
+      "to": [
+        4.15,
+        4.8,
+        8.25
+      ],
+      "material": "steel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left purple clasp stitch",
+      "from": [
+        3.3499999999999996,
+        4.0,
+        7.6
+      ],
+      "to": [
+        3.8499999999999996,
+        4.55,
+        7.95
+      ],
+      "material": "seam"
+    },
+    {
+      "name": "Left rear leather carry rise",
+      "from": [
+        5.8,
+        4.55,
+        10.8
+      ],
+      "to": [
+        6.5,
+        5.35,
+        11.3
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right flat dark sole",
+      "from": [
+        8.9,
+        1.0,
+        4.05
+      ],
+      "to": [
+        13.2,
+        1.7,
+        11.35
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right warm leather footbed",
+      "from": [
+        9.02,
+        1.7,
+        4.2
+      ],
+      "to": [
+        13.08,
+        2.05,
+        11.18
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Right broad purple toe bridge",
+      "from": [
+        8.9,
+        2.65,
+        5.3
+      ],
+      "to": [
+        13.2,
+        3.35,
+        6.45
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Right toe bridge left leather anchor",
+      "from": [
+        8.9,
+        1.7,
+        5.3
+      ],
+      "to": [
+        9.5,
+        2.75,
+        6.45
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right toe bridge right leather anchor",
+      "from": [
+        12.600000000000001,
+        1.7,
+        5.3
+      ],
+      "to": [
+        13.2,
+        2.75,
+        6.45
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right toe bridge sewn edge",
+      "from": [
+        9.4,
+        3.2,
+        5.1
+      ],
+      "to": [
+        12.7,
+        3.5,
+        5.55
+      ],
+      "material": "hem"
+    },
+    {
+      "name": "Right broad instep bridge",
+      "from": [
+        8.9,
+        3.9,
+        8.1
+      ],
+      "to": [
+        13.2,
+        4.65,
+        9.1
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Right instep left anchor",
+      "from": [
+        8.9,
+        1.75,
+        8.1
+      ],
+      "to": [
+        9.55,
+        4.05,
+        9.1
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right instep right anchor",
+      "from": [
+        12.55,
+        1.75,
+        8.1
+      ],
+      "to": [
+        13.2,
+        4.05,
+        9.1
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right inner stepped instep tie",
+      "from": [
+        10.5,
+        2.0,
+        6.35
+      ],
+      "to": [
+        11.3,
+        3.0,
+        7.35
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Right upper stepped instep tie",
+      "from": [
+        10.5,
+        2.8,
+        7.1
+      ],
+      "to": [
+        11.3,
+        4.1,
+        8.25
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Right heel sling rear",
+      "from": [
+        9.35,
+        3.2,
+        10.65
+      ],
+      "to": [
+        12.75,
+        4.7,
+        11.25
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Right heel sling left",
+      "from": [
+        8.9,
+        1.7,
+        9.0
+      ],
+      "to": [
+        9.55,
+        4.7,
+        10.95
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right heel sling right",
+      "from": [
+        12.55,
+        1.7,
+        9.0
+      ],
+      "to": [
+        13.2,
+        4.7,
+        10.95
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right square dark steel instep clasp",
+      "from": [
+        9.15,
+        3.75,
+        7.8
+      ],
+      "to": [
+        10.25,
+        4.8,
+        8.25
+      ],
+      "material": "steel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right purple clasp stitch",
+      "from": [
+        9.450000000000001,
+        4.0,
+        7.6
+      ],
+      "to": [
+        9.950000000000001,
+        4.55,
+        7.95
+      ],
+      "material": "seam"
+    },
+    {
+      "name": "Right rear leather carry rise",
+      "from": [
+        9.4,
+        4.55,
+        10.8
+      ],
+      "to": [
+        10.1,
+        5.35,
+        11.3
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Short leather loop tying the pair",
+      "from": [
+        6.3,
+        4.95,
+        10.9
+      ],
+      "to": [
+        10.0,
+        5.55,
+        11.4
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Rear carrying loop knot",
+      "from": [
+        7.55,
+        4.75,
+        10.75
+      ],
+      "to": [
+        8.45,
+        5.85,
+        11.55
+      ],
+      "material": "leather",
+      "side": "hem"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      19,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "melkor_mage",
+  "wearable_source": "armor/author-melkor-mage.py"
+}

@@ -1,0 +1,703 @@
+{
+  "id": "melkor_trousers",
+  "master_id": "20a00052",
+  "kind": "armor",
+  "intent": "影をまとい魔力の流れを整えるLv10の布脚衣。紫のゆとりある二本の脚筒、深い縦ひだ、狭く縫い留めた足首、革の幅広い腰結びを固有の輪郭とする。外側の角張った粗い縫い目は魔力循環の意匠で、光る回路にはしない。黒鋼と晶核は腰の小さな留めに限定し、序盤より縁と裏地を整えつつ上位の装飾量は抑える。空洞でなく前腰帯の布を携行基準とする。",
+  "grip": [
+    8,
+    12.15,
+    5.45
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "292131",
+        "38264F",
+        "503664",
+        "65467B",
+        "79598C"
+      ],
+      "pattern": [
+        "12232212",
+        "12232212",
+        "12333212",
+        "12232212",
+        "12232212",
+        "12332212",
+        "11222111",
+        "01121110"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "241F2B",
+        "352740",
+        "483251",
+        "5B4069",
+        "725181"
+      ],
+      "pattern": [
+        "12332110",
+        "12332110",
+        "12332110",
+        "12332110",
+        "12332110",
+        "12332110",
+        "11221100",
+        "01110000"
+      ]
+    },
+    "hem": {
+      "palette": [
+        "29232F",
+        "413248",
+        "685172",
+        "92769D",
+        "B29ABE"
+      ],
+      "pattern": [
+        "33333332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "181B22",
+        "292C35",
+        "40414C",
+        "5B5967",
+        "7C7686"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "20222B",
+        "363842",
+        "575461",
+        "82798B"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "12222211",
+        "11111111",
+        "11111111",
+        "11111111",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "shadow_core": {
+      "palette": [
+        "201B2A",
+        "31243F",
+        "4D355E",
+        "75518C",
+        "A17CB6"
+      ],
+      "pattern": [
+        "01222110",
+        "12322110",
+        "12243210",
+        "11233221",
+        "12223210",
+        "11232110",
+        "01121100",
+        "00110000"
+      ]
+    },
+    "seam": {
+      "palette": [
+        "30263C",
+        "4D3B60",
+        "7E668E",
+        "A38AB1"
+      ],
+      "pattern": [
+        "00110000",
+        "00220000",
+        "00112200",
+        "00002200",
+        "00001100",
+        "00221100",
+        "00220000",
+        "00110000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "231E24",
+        "3C2C37",
+        "59414E",
+        "775766",
+        "957783"
+      ],
+      "pattern": [
+        "12232221",
+        "12233221",
+        "12232221",
+        "12333221",
+        "12232221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "25212D",
+        "382D42",
+        "4C3C56",
+        "65506E"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Waist fabric front",
+      "from": [
+        2.7,
+        11.15,
+        4.95
+      ],
+      "to": [
+        13.3,
+        12.8,
+        5.85
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Waist fabric rear",
+      "from": [
+        2.7,
+        11.15,
+        10.15
+      ],
+      "to": [
+        13.3,
+        12.8,
+        11.05
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Waist fabric left",
+      "from": [
+        2.7,
+        11.15,
+        5.85
+      ],
+      "to": [
+        3.6,
+        12.8,
+        10.15
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Waist fabric right",
+      "from": [
+        12.4,
+        11.15,
+        5.85
+      ],
+      "to": [
+        13.3,
+        12.8,
+        10.15
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left loose cloth front",
+      "from": [
+        2.9,
+        3.1,
+        5.0
+      ],
+      "to": [
+        7.5,
+        11.55,
+        5.85
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left loose cloth rear",
+      "from": [
+        2.9,
+        3.1,
+        10.15
+      ],
+      "to": [
+        7.5,
+        11.55,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left outside cloth panel",
+      "from": [
+        2.9,
+        3.1,
+        5.8
+      ],
+      "to": [
+        3.7,
+        11.55,
+        10.2
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left inside cloth panel",
+      "from": [
+        6.699999999999999,
+        3.1,
+        5.8
+      ],
+      "to": [
+        7.5,
+        11.55,
+        10.2
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left deep front pleat",
+      "from": [
+        3.95,
+        4.2,
+        4.7
+      ],
+      "to": [
+        4.7,
+        10.9,
+        5.15
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left rear loose fold",
+      "from": [
+        5.75,
+        5.2,
+        10.85
+      ],
+      "to": [
+        6.449999999999999,
+        11.25,
+        11.25
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left upper front folded step",
+      "from": [
+        3.0,
+        10.2,
+        4.8
+      ],
+      "to": [
+        3.95,
+        11.5,
+        5.2
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left lowered cuff front",
+      "from": [
+        3.1,
+        1.8,
+        5.1
+      ],
+      "to": [
+        7.300000000000001,
+        3.5,
+        5.95
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Left lowered cuff rear",
+      "from": [
+        3.1,
+        1.8,
+        10.0
+      ],
+      "to": [
+        7.300000000000001,
+        3.5,
+        10.9
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Left lowered cuff left",
+      "from": [
+        3.1,
+        1.8,
+        5.9
+      ],
+      "to": [
+        3.8499999999999996,
+        3.5,
+        10.05
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Left lowered cuff right",
+      "from": [
+        6.55,
+        1.8,
+        5.9
+      ],
+      "to": [
+        7.300000000000001,
+        3.5,
+        10.05
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Left coarse outside mana seam",
+      "from": [
+        2.7199999999999998,
+        4.1,
+        6.6
+      ],
+      "to": [
+        3.02,
+        10.7,
+        7.5
+      ],
+      "material": "seam",
+      "side": "cloth"
+    },
+    {
+      "name": "Right loose cloth front",
+      "from": [
+        8.5,
+        3.1,
+        5.0
+      ],
+      "to": [
+        13.1,
+        11.55,
+        5.85
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right loose cloth rear",
+      "from": [
+        8.5,
+        3.1,
+        10.15
+      ],
+      "to": [
+        13.1,
+        11.55,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right outside cloth panel",
+      "from": [
+        8.5,
+        3.1,
+        5.8
+      ],
+      "to": [
+        9.3,
+        11.55,
+        10.2
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right inside cloth panel",
+      "from": [
+        12.3,
+        3.1,
+        5.8
+      ],
+      "to": [
+        13.1,
+        11.55,
+        10.2
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right deep front pleat",
+      "from": [
+        9.55,
+        4.2,
+        4.7
+      ],
+      "to": [
+        10.3,
+        10.9,
+        5.15
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Right rear loose fold",
+      "from": [
+        11.35,
+        5.2,
+        10.85
+      ],
+      "to": [
+        12.05,
+        11.25,
+        11.25
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right upper front folded step",
+      "from": [
+        8.6,
+        10.2,
+        4.8
+      ],
+      "to": [
+        9.55,
+        11.5,
+        5.2
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right lowered cuff front",
+      "from": [
+        8.7,
+        1.8,
+        5.1
+      ],
+      "to": [
+        12.9,
+        3.5,
+        5.95
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Right lowered cuff rear",
+      "from": [
+        8.7,
+        1.8,
+        10.0
+      ],
+      "to": [
+        12.9,
+        3.5,
+        10.9
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Right lowered cuff left",
+      "from": [
+        8.7,
+        1.8,
+        5.9
+      ],
+      "to": [
+        9.45,
+        3.5,
+        10.05
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Right lowered cuff right",
+      "from": [
+        12.15,
+        1.8,
+        5.9
+      ],
+      "to": [
+        12.9,
+        3.5,
+        10.05
+      ],
+      "material": "hem",
+      "side": "lining"
+    },
+    {
+      "name": "Right coarse outside mana seam",
+      "from": [
+        8.32,
+        4.1,
+        6.6
+      ],
+      "to": [
+        8.62,
+        10.7,
+        7.5
+      ],
+      "material": "seam",
+      "side": "cloth"
+    },
+    {
+      "name": "Wide leather waist tie",
+      "from": [
+        2.7,
+        11.65,
+        4.65
+      ],
+      "to": [
+        13.3,
+        12.4,
+        5.15
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Plain black steel belt toggle",
+      "from": [
+        7.25,
+        11.45,
+        4.25
+      ],
+      "to": [
+        8.75,
+        12.65,
+        4.75
+      ],
+      "material": "steel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Small square shadow toggle inset",
+      "from": [
+        7.6,
+        11.7,
+        4.0
+      ],
+      "to": [
+        8.4,
+        12.4,
+        4.3
+      ],
+      "material": "shadow_core"
+    },
+    {
+      "name": "Left short waist tie end",
+      "from": [
+        6.25,
+        9.7,
+        4.7
+      ],
+      "to": [
+        7.0,
+        11.85,
+        5.25
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Right short waist tie end",
+      "from": [
+        8.95,
+        10.25,
+        4.7
+      ],
+      "to": [
+        9.7,
+        11.85,
+        5.25
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Rear broad cloth seam",
+      "from": [
+        7.6,
+        11.3,
+        10.9
+      ],
+      "to": [
+        8.4,
+        12.6,
+        11.25
+      ],
+      "material": "seam",
+      "side": "hem"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      19,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "melkor_mage",
+  "wearable_source": "armor/author-melkor-mage.py"
+}
