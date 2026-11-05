@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordgeyser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
@@ -146,6 +147,33 @@ class ItemModelTest {
         try (var zip = new ZipFile(pack.toFile())) {
             assertEquals(new ItemModel.Catalog(Set.of(), Set.of()), ItemModel.read(zip));
         }
+    }
+
+    @Test
+    void generatedItemsRequireIconsWithoutRequiringAttachables(@TempDir Path directory) throws IOException {
+        String catalog = CATALOG.replace("\"custom_model_data\":21001", "\"custom_model_data\":21001,\"render_mode\":\"generated\"");
+        var entries = new HashMap<>(Map.of(
+            "astralrecord_item_models.json", catalog,
+            "textures/item_texture.json", "{\"texture_data\":{\"astralrecord.nox_sword\":{\"textures\":\"textures/items/nox_sword\"}}}",
+            "textures/items/nox_sword.png", "icon"
+        ));
+        Path pack = directory.resolve("generated.mcpack");
+        writePack(pack, entries);
+        try (var zip = new ZipFile(pack.toFile())) {
+            assertEquals(Set.of(new ItemModel("nox_sword", "minecraft:wooden_sword", 21001, true)), ItemModel.read(zip).models());
+        }
+        entries.remove("textures/items/nox_sword.png");
+        writePack(pack, entries);
+        try (var zip = new ZipFile(pack.toFile())) {
+            assertThrows(IOException.class, () -> ItemModel.read(zip));
+        }
+        assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("\"generated\"", "\"unknown\"")));
+        assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("\"generated\"", "null")));
+        assertEquals(ItemModel.parse(CATALOG), ItemModel.parse(catalog.replace("\"generated\"", "\"3d\"")));
+        assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("\"generated\"", "\"generated\",\"held_weapon\":true")));
+        // Distribution uses containsAll to keep packs incompatible with a changed render mode unpublished.
+        assertFalse(ItemModel.parse(catalog).models().containsAll(ItemModel.parse(CATALOG).models()));
+        assertFalse(ItemModel.parse(CATALOG).models().containsAll(ItemModel.parse(catalog).models()));
     }
 
     private static void writePack(Path pack, Map<String, String> entries) throws IOException {

@@ -1,4 +1,5 @@
 . (Join-Path $PSScriptRoot 'item-model-grips.ps1')
+. (Join-Path $PSScriptRoot 'item-models-generated.ps1')
 
 function Get-PackJson {
     param([string] $Path)
@@ -38,7 +39,7 @@ function Get-ItemModelRegistry {
     $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $models = [System.Collections.Generic.SortedDictionary[int, object]]::new()
     foreach ($item in $registry.items) {
-        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip')
+        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip', 'render_mode')
         $unknown = @($item.PSObject.Properties.Name | Where-Object { $_ -cnotin $properties })
         if ($unknown.Count -gt 0) {
             throw "Unrecognized item model fields: $($unknown -join ', ')"
@@ -67,6 +68,7 @@ function Get-ItemModelRegistry {
             !(Test-ItemGripVector $item.grip)) {
             throw "grip for $($item.id) must contain three model coordinates."
         }
+        $null = Test-GeneratedItemModel $item
         $models.Add($modelData, $item)
     }
     return ,$models
@@ -273,6 +275,10 @@ function Add-ItemModelEntries {
     $iconTextures = [ordered] @{}
     $byBase = @{}
     foreach ($item in $models.Values) {
+        if (Test-GeneratedItemModel $item) {
+            $bedrockItems += Add-GeneratedItemAssets $JavaEntries $BedrockEntries $item $iconTextures $byBase
+            continue
+        }
         $id = $item.id
         $base = $item.base_item.Substring('minecraft:'.Length)
         $isBow = $base -ceq 'bow'
@@ -325,6 +331,7 @@ function Add-ItemModelEntries {
 
     foreach ($base in $byBase.Keys) {
         Add-JavaItemDispatch $JavaEntries $base $byBase[$base]
+        Add-GeneratedItemOverlayDispatch $JavaEntries $base $byBase[$base]
     }
     if ($byBase.ContainsKey('trident')) {
         # Format 83 moved the native trident transform from the renderer into the item model.

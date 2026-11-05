@@ -22,7 +22,7 @@ import org.geysermc.geyser.api.item.custom.v2.CustomItemDefinition;
 import org.geysermc.geyser.api.util.Identifier;
 
 /** Bedrockパックと一緒に公開された、JavaアイテムとBedrockモデルの対応。 */
-record ItemModel(String id, String baseItem, int customModelData) {
+record ItemModel(String id, String baseItem, int customModelData, boolean generated) {
     private static final String CATALOG = "astralrecord_item_models.json";
     private static final String ATLAS = "textures/item_texture.json";
     private static final String HELD_ATTACHABLE = "attachables/trident.entity.json";
@@ -31,6 +31,10 @@ record ItemModel(String id, String baseItem, int customModelData) {
     private static final int MAX_HELD_ASSET_BYTES = 4 * 1024 * 1024;
 
     record Catalog(Set<ItemModel> models, Set<Integer> heldWeaponModels) {}
+
+    ItemModel(String id, String baseItem, int customModelData) {
+        this(id, baseItem, customModelData, false);
+    }
 
     static Catalog read(ZipFile zip) throws IOException {
         if (zip.getEntry(CATALOG) == null) return new Catalog(Set.of(), Set.of());
@@ -92,6 +96,7 @@ record ItemModel(String id, String baseItem, int customModelData) {
                 throw new IOException("Invalid Bedrock item texture atlas mapping for " + id);
             }
             requireFile(zip, icon + ".png");
+            if (model.generated()) continue;
             requireFile(zip, "textures/entity/items/" + id + ".png");
             requireFile(zip, "attachables/" + id + ".json");
             requireFile(zip, "models/entity/items/" + id + ".geo.json");
@@ -146,10 +151,20 @@ record ItemModel(String id, String baseItem, int customModelData) {
                     || !ids.add(id) || !modelData.add(data)) {
                     throw new IOException("Invalid or duplicate Bedrock item model");
                 }
-                models.add(new ItemModel(id, base, data));
+                boolean generated = false;
+                if (item.has("render_mode")) {
+                    var mode = item.getAsJsonPrimitive("render_mode");
+                    if (!mode.isString() || !(mode.getAsString().equals("3d") || mode.getAsString().equals("generated"))) {
+                        throw new IOException("Invalid render_mode for " + id);
+                    }
+                    generated = mode.getAsString().equals("generated");
+                }
+                models.add(new ItemModel(id, base, data, generated));
                 if (item.has("held_weapon")) {
                     var heldWeapon = item.getAsJsonPrimitive("held_weapon");
-                    if (!heldWeapon.isBoolean()) throw new IOException("Invalid held_weapon flag for " + id);
+                    if (!heldWeapon.isBoolean() || (generated && heldWeapon.getAsBoolean())) {
+                        throw new IOException("Invalid held_weapon flag for " + id);
+                    }
                     if (heldWeapon.getAsBoolean()) heldWeaponModels.add(data);
                 }
             }

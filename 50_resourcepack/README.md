@@ -72,6 +72,14 @@ BE では仮想トライデントで長押し入力を受け取りながら、�
 
 新しい BE 登録はパックを API に配置した後の Proxy 再起動で有効になります。
 
+### 2Dアクセサリー
+
+アクセサリーのピクセルアイコンを配布するときは、台帳に `render_mode: "generated"` を指定します。省略または `"3d"` は従来の立体モデルです。`generated` は `java_virtual_trident: true` や `grip` と併用できません。
+
+入力は `assets/astralrecord/textures/item/custom/<id>.png` と `bedrock/textures/items/<id>.png` の2枚です。ビルドはJEの `minecraft:item/generated` を親にしたモデルを生成し、BEではアイコンとアトラスを登録します。Blockbench編集元や手持ちattachable、geometry、animationは要求しません。カタログの `render_mode` を読む対応Geyser拡張が必要です。アクセサリースロットの装備は性能に反映され、体にモデルを取り付ける処理は追加しません。
+
+未登録の同素材を維持するため、基本素材ごとのバニラ定義を `java-item-fallbacks/` に用意します。プレイヤーヘッドは形式83以降の座標変換が異なるため、`transformed_item_models/player_head.json` も使います。時計の時刻表示、プレイヤーヘッドのスキン、壁などのブロック形状を含め、fallback全体を保持します。
+
 ## ビルド
 
 このディレクトリで以下を実行します。
