@@ -1,0 +1,337 @@
+{
+  "id": "simple_weapon",
+  "master_id": "20a00001",
+  "kind": "sword",
+  "intent": "Minecraftの木の剣と棒を起点にした冒険者への支給練習剣。幅広い樫の板刃、太い直線鍔、二段のピクセル切先、暗い木柄と二本の革帯だけで組む。ノクスの鉄剣より素材も装飾も素朴。明るい木の面取りと大きな木目面で立体を読み、写実的な細刃・金属擦り傷・星章・宝石・発光は用いない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -24,
+      -38
+    ],
+    "translation": [
+      0,
+      0.25,
+      0
+    ],
+    "scale": 1.1
+  },
+  "materials": {
+    "oak_face": {
+      "palette": [
+        "49331e",
+        "6b4c2b",
+        "8b6639",
+        "b08a4c",
+        "c6a663"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333221",
+        "12343221",
+        "12333221",
+        "12333211"
+      ]
+    },
+    "oak_bevel": {
+      "palette": [
+        "614324",
+        "876334",
+        "ac8648",
+        "c6a35e",
+        "d9bc7a"
+      ],
+      "pattern": [
+        "43322110",
+        "43322110",
+        "43322110",
+        "43221100",
+        "43322110",
+        "43322110",
+        "43322110",
+        "33221100"
+      ]
+    },
+    "dark_oak": {
+      "palette": [
+        "30261b",
+        "493522",
+        "634a2e",
+        "80623c",
+        "97784b"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12333221",
+        "12323221",
+        "12323221",
+        "12333221",
+        "12333221",
+        "01222110"
+      ]
+    },
+    "oak_end": {
+      "palette": [
+        "3e2d1b",
+        "5a4025",
+        "79572f",
+        "9c753e",
+        "b99657"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "30251f",
+        "49362a",
+        "654c35",
+        "826246",
+        "9c7c56"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "wooden_peg": {
+      "palette": [
+        "4a321e",
+        "70502b",
+        "95713e",
+        "b18c51",
+        "c7a769"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23444321",
+        "23433221",
+        "23322221",
+        "12222211",
+        "11222110",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Sturdy oak handle",
+      "from": [
+        7.3,
+        2.52,
+        7.3
+      ],
+      "to": [
+        8.7,
+        5.35,
+        8.7
+      ],
+      "material": "dark_oak",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Lower rawhide grip band",
+      "from": [
+        7.19,
+        2.98,
+        7.19
+      ],
+      "to": [
+        8.81,
+        3.41,
+        8.81
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper rawhide grip band",
+      "from": [
+        7.19,
+        4.12,
+        7.19
+      ],
+      "to": [
+        8.81,
+        4.55,
+        8.81
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Squared wooden pommel",
+      "from": [
+        7.03,
+        2.01,
+        7.06
+      ],
+      "to": [
+        8.97,
+        2.64,
+        8.94
+      ],
+      "material": "dark_oak",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Thick straight practice guard",
+      "from": [
+        5.79,
+        5.09,
+        7.02
+      ],
+      "to": [
+        10.21,
+        5.81,
+        8.98
+      ],
+      "material": "dark_oak",
+      "side": "oak_face",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Dark blade heel",
+      "from": [
+        6.94,
+        5.78,
+        7.29
+      ],
+      "to": [
+        9.06,
+        6.49,
+        8.71
+      ],
+      "material": "dark_oak",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Broad oak practice blade",
+      "from": [
+        7.04,
+        6.44,
+        7.34
+      ],
+      "to": [
+        8.96,
+        11.63,
+        8.66
+      ],
+      "material": "oak_face",
+      "side": "dark_oak",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Left pale planed blade edge",
+      "from": [
+        6.59,
+        6.47,
+        7.57
+      ],
+      "to": [
+        7.08,
+        11.65,
+        8.43
+      ],
+      "material": "oak_bevel",
+      "side": "oak_face"
+    },
+    {
+      "name": "Right pale planed blade edge",
+      "from": [
+        8.92,
+        6.47,
+        7.57
+      ],
+      "to": [
+        9.41,
+        11.65,
+        8.43
+      ],
+      "material": "oak_bevel",
+      "side": "oak_face"
+    },
+    {
+      "name": "First stepped wooden point",
+      "from": [
+        7.03,
+        11.61,
+        7.4
+      ],
+      "to": [
+        8.97,
+        12.29,
+        8.6
+      ],
+      "material": "oak_face",
+      "side": "oak_bevel",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Second stepped wooden point",
+      "from": [
+        7.49,
+        12.27,
+        7.53
+      ],
+      "to": [
+        8.51,
+        13.05,
+        8.47
+      ],
+      "material": "oak_bevel",
+      "side": "oak_face",
+      "cap": "oak_end"
+    },
+    {
+      "name": "Front square guard peg",
+      "from": [
+        7.68,
+        5.24,
+        6.87
+      ],
+      "to": [
+        8.32,
+        5.68,
+        7.05
+      ],
+      "material": "wooden_peg"
+    },
+    {
+      "name": "Rear square guard peg",
+      "from": [
+        7.68,
+        5.24,
+        8.95
+      ],
+      "to": [
+        8.32,
+        5.68,
+        9.13
+      ],
+      "material": "wooden_peg"
+    }
+  ]
+}

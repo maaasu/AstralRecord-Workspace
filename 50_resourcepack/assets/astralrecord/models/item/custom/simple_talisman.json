@@ -1,0 +1,2087 @@
+{
+  "credit": "Made with Blockbench",
+  "texture_size": [
+    64,
+    64
+  ],
+  "textures": {
+    "particle": "astralrecord:item/custom/simple_talisman",
+    "surface": "astralrecord:item/custom/simple_talisman"
+  },
+  "elements": [
+    {
+      "name": "Short holding peg",
+      "from": [
+        7.47,
+        2.42,
+        7.46
+      ],
+      "to": [
+        8.53,
+        6.34,
+        8.54
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Peg rounded lower end",
+      "from": [
+        7.6,
+        2.17,
+        7.57
+      ],
+      "to": [
+        8.4,
+        2.44,
+        8.43
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Peg linen hand binding",
+      "from": [
+        7.36,
+        3.38,
+        7.36
+      ],
+      "to": [
+        8.64,
+        4.25,
+        8.64
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Carved cedar backboard",
+      "from": [
+        5.75,
+        5.88,
+        7.53
+      ],
+      "to": [
+        10.25,
+        12.35,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Upper cross slat",
+      "from": [
+        5.52,
+        12.13,
+        7.36
+      ],
+      "to": [
+        10.48,
+        12.62,
+        8.61
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lower cross slat",
+      "from": [
+        5.62,
+        5.67,
+        7.41
+      ],
+      "to": [
+        10.38,
+        6.12,
+        8.57
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Handmade paper with one protective mark",
+      "from": [
+        6.08,
+        6.22,
+        7.25
+      ],
+      "to": [
+        9.92,
+        11.99,
+        7.55
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Uninked folded paper border left",
+      "from": [
+        5.98,
+        6.51,
+        7.19
+      ],
+      "to": [
+        6.34,
+        11.86,
+        7.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Uninked folded paper border right",
+      "from": [
+        9.66,
+        6.44,
+        7.2
+      ],
+      "to": [
+        10.02,
+        11.81,
+        7.51
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Uneven paper foot left",
+      "from": [
+        6.15,
+        6.04,
+        7.27
+      ],
+      "to": [
+        7.27,
+        6.35,
+        7.54
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Uneven paper foot right",
+      "from": [
+        8.51,
+        6.09,
+        7.26
+      ],
+      "to": [
+        9.83,
+        6.36,
+        7.54
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Linen front tie across top",
+      "from": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "to": [
+        10.45,
+        11.17,
+        7.29
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Linen rear tie across top",
+      "from": [
+        5.55,
+        10.83,
+        8.46
+      ],
+      "to": [
+        10.45,
+        11.17,
+        8.66
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Linen tie around left board edge",
+      "from": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "to": [
+        5.85,
+        11.17,
+        8.66
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Linen tie around right board edge",
+      "from": [
+        10.15,
+        10.83,
+        7.09
+      ],
+      "to": [
+        10.45,
+        11.17,
+        8.66
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Square tied linen knot",
+      "from": [
+        8.92,
+        10.66,
+        6.98
+      ],
+      "to": [
+        9.51,
+        11.33,
+        7.24
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left hanging cord tail",
+      "from": [
+        8.83,
+        9.94,
+        6.98
+      ],
+      "to": [
+        9.27,
+        10.77,
+        7.29
+      ],
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          9.05,
+          10.75,
+          7.15
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right hanging cord tail",
+      "from": [
+        9.21,
+        10.05,
+        6.98
+      ],
+      "to": [
+        9.65,
+        10.8,
+        7.29
+      ],
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          9.43,
+          10.75,
+          7.15
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Small earthy red wax seal",
+      "from": [
+        7.39,
+        6.95,
+        7.03
+      ],
+      "to": [
+        8.61,
+        8.14,
+        7.27
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Pressed simple wax stamp",
+      "from": [
+        7.61,
+        7.17,
+        6.92
+      ],
+      "to": [
+        8.39,
+        7.92,
+        7.05
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            2.75,
+            9.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            2.75,
+            9.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left slat fixing pin front",
+      "from": [
+        6.42,
+        12.22,
+        7.23
+      ],
+      "to": [
+        6.78,
+        12.52,
+        7.39
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right slat fixing pin front",
+      "from": [
+        9.22,
+        12.22,
+        7.23
+      ],
+      "to": [
+        9.58,
+        12.52,
+        7.39
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rear peg fixing pin",
+      "from": [
+        7.8,
+        6.26,
+        8.45
+      ],
+      "to": [
+        8.2,
+        6.65,
+        8.63
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            2.75,
+            12.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left loop support",
+      "from": [
+        6.92,
+        12.56,
+        7.74
+      ],
+      "to": [
+        7.38,
+        13.27,
+        8.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right loop support",
+      "from": [
+        8.62,
+        12.56,
+        7.74
+      ],
+      "to": [
+        9.08,
+        13.27,
+        8.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Loop left shoulder",
+      "from": [
+        6.93,
+        13.12,
+        7.74
+      ],
+      "to": [
+        7.39,
+        14.01,
+        8.2
+      ],
+      "rotation": {
+        "angle": -45,
+        "axis": "z",
+        "origin": [
+          7.16,
+          13.12,
+          7.96
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Loop right shoulder",
+      "from": [
+        8.61,
+        13.12,
+        7.74
+      ],
+      "to": [
+        9.07,
+        14.01,
+        8.2
+      ],
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          8.84,
+          13.12,
+          7.96
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Loop top arch",
+      "from": [
+        7.69,
+        13.56,
+        7.74
+      ],
+      "to": [
+        8.31,
+        14.02,
+        8.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        10
+      ],
+      "translation": [
+        0,
+        1.3107,
+        0.97422
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        -10
+      ],
+      "translation": [
+        0,
+        1.3107,
+        0.97422
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        -20
+      ],
+      "translation": [
+        1.13,
+        1.88385,
+        0.65097
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        20
+      ],
+      "translation": [
+        1.13,
+        1.88385,
+        0.65097
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2.25,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "gui": {
+      "rotation": [
+        12,
+        154,
+        -15
+      ],
+      "translation": [
+        0.32511,
+        -0.06308,
+        0
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        154,
+        0
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    }
+  }
+}

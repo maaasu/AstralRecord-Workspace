@@ -1,0 +1,689 @@
+{
+  "id": "simple_talisman",
+  "master_id": "20a00007",
+  "kind": "talisman",
+  "intent": "Minecraftの紙・名札・看板を起点にした、オフハンドで持てる短い木柄付きの支給護符。四角い杉の背板へ生成りの紙を貼り、太いピクセルの墨印一つと赤土色の小さな蝋印を置く。太めの麻紐ループと大きな木目面で形を読み、上位の宝石護符・魔導書と輪郭を分ける。微細な写実表現や発光は用いない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      -15
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  },
+  "materials": {
+    "backing_wood": {
+      "palette": [
+        "3a291e",
+        "553b27",
+        "735136",
+        "8d6844",
+        "a78154"
+      ],
+      "pattern": [
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333221",
+        "12343221",
+        "12333221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_edge": {
+      "palette": [
+        "30251d",
+        "493325",
+        "634831",
+        "7b5a3a",
+        "956e45"
+      ],
+      "pattern": [
+        "12333210",
+        "12333210",
+        "12343210",
+        "12333210",
+        "12333210",
+        "12343210",
+        "12333210",
+        "12333210"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "35261c",
+        "503825",
+        "6b4c30",
+        "89653f",
+        "a07a4b"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "paper": {
+      "palette": [
+        "9a8865",
+        "bba77c",
+        "d1c49a",
+        "e4d8b1",
+        "efe5c7"
+      ],
+      "pattern": [
+        "23333322",
+        "33433323",
+        "33333323",
+        "33343323",
+        "23333333",
+        "33333323",
+        "33334323",
+        "22233221"
+      ]
+    },
+    "paper_glyph": {
+      "palette": [
+        "9a8865",
+        "c4b58b",
+        "e2d5ad",
+        "ece2c4",
+        "4a4333",
+        "746346"
+      ],
+      "pattern": [
+        "22233222",
+        "22244222",
+        "22444422",
+        "22244222",
+        "22544522",
+        "22444422",
+        "22244222",
+        "22233222"
+      ]
+    },
+    "paper_edge": {
+      "palette": [
+        "8a7652",
+        "ae986e",
+        "c3b385",
+        "d7c89e",
+        "e2d7b1"
+      ],
+      "pattern": [
+        "23333221",
+        "23333321",
+        "23333221",
+        "23333321",
+        "23333221",
+        "23333321",
+        "23333221",
+        "12222110"
+      ]
+    },
+    "linen_cord": {
+      "palette": [
+        "68533b",
+        "8e7450",
+        "b49a6c",
+        "d0bc8c",
+        "e0cfa4"
+      ],
+      "pattern": [
+        "22332211",
+        "23322112",
+        "33221123",
+        "32211233",
+        "22112332",
+        "21123322",
+        "11233221",
+        "12332211"
+      ]
+    },
+    "linen_shadow": {
+      "palette": [
+        "5a4934",
+        "796241",
+        "9b8157",
+        "b49d70",
+        "c4ad7d"
+      ],
+      "pattern": [
+        "12233211",
+        "12332211",
+        "13322111",
+        "13221121",
+        "12211231",
+        "12112331",
+        "11123321",
+        "11233211"
+      ]
+    },
+    "wax_clay": {
+      "palette": [
+        "4e2b22",
+        "733b2b",
+        "914a33",
+        "ac6140",
+        "c07e51"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23443321",
+        "23433221",
+        "23322321",
+        "12222211",
+        "11222110",
+        "00111100"
+      ]
+    },
+    "wax_stamp": {
+      "palette": [
+        "562d22",
+        "7f4130",
+        "a25939",
+        "c7814d",
+        "dec497"
+      ],
+      "pattern": [
+        "12233211",
+        "23333321",
+        "23343321",
+        "23444321",
+        "23343321",
+        "22333211",
+        "11222110",
+        "00111100"
+      ]
+    },
+    "dull_pin": {
+      "palette": [
+        "3b3931",
+        "5d5949",
+        "817962",
+        "a69a7d",
+        "c2b18c"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23444321",
+        "23433221",
+        "23322221",
+        "12222211",
+        "11222110",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Short holding peg",
+      "from": [
+        7.47,
+        2.42,
+        7.46
+      ],
+      "to": [
+        8.53,
+        6.34,
+        8.54
+      ],
+      "material": "backing_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Peg rounded lower end",
+      "from": [
+        7.6,
+        2.17,
+        7.57
+      ],
+      "to": [
+        8.4,
+        2.44,
+        8.43
+      ],
+      "material": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Peg linen hand binding",
+      "from": [
+        7.36,
+        3.38,
+        7.36
+      ],
+      "to": [
+        8.64,
+        4.25,
+        8.64
+      ],
+      "material": "linen_cord",
+      "side": "linen_shadow"
+    },
+    {
+      "name": "Carved cedar backboard",
+      "from": [
+        5.75,
+        5.88,
+        7.53
+      ],
+      "to": [
+        10.25,
+        12.35,
+        8.47
+      ],
+      "material": "backing_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper cross slat",
+      "from": [
+        5.52,
+        12.13,
+        7.36
+      ],
+      "to": [
+        10.48,
+        12.62,
+        8.61
+      ],
+      "material": "backing_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower cross slat",
+      "from": [
+        5.62,
+        5.67,
+        7.41
+      ],
+      "to": [
+        10.38,
+        6.12,
+        8.57
+      ],
+      "material": "backing_wood",
+      "side": "wood_edge",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Handmade paper with one protective mark",
+      "from": [
+        6.08,
+        6.22,
+        7.25
+      ],
+      "to": [
+        9.92,
+        11.99,
+        7.55
+      ],
+      "material": "paper_glyph",
+      "side": "paper_edge",
+      "cap": "paper"
+    },
+    {
+      "name": "Uninked folded paper border left",
+      "from": [
+        5.98,
+        6.51,
+        7.19
+      ],
+      "to": [
+        6.34,
+        11.86,
+        7.5
+      ],
+      "material": "paper",
+      "side": "paper_edge"
+    },
+    {
+      "name": "Uninked folded paper border right",
+      "from": [
+        9.66,
+        6.44,
+        7.2
+      ],
+      "to": [
+        10.02,
+        11.81,
+        7.51
+      ],
+      "material": "paper",
+      "side": "paper_edge"
+    },
+    {
+      "name": "Uneven paper foot left",
+      "from": [
+        6.15,
+        6.04,
+        7.27
+      ],
+      "to": [
+        7.27,
+        6.35,
+        7.54
+      ],
+      "material": "paper",
+      "side": "paper_edge"
+    },
+    {
+      "name": "Uneven paper foot right",
+      "from": [
+        8.51,
+        6.09,
+        7.26
+      ],
+      "to": [
+        9.83,
+        6.36,
+        7.54
+      ],
+      "material": "paper",
+      "side": "paper_edge"
+    },
+    {
+      "name": "Linen front tie across top",
+      "from": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "to": [
+        10.45,
+        11.17,
+        7.29
+      ],
+      "material": "linen_cord",
+      "side": "linen_shadow"
+    },
+    {
+      "name": "Linen rear tie across top",
+      "from": [
+        5.55,
+        10.83,
+        8.46
+      ],
+      "to": [
+        10.45,
+        11.17,
+        8.66
+      ],
+      "material": "linen_shadow"
+    },
+    {
+      "name": "Linen tie around left board edge",
+      "from": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "to": [
+        5.85,
+        11.17,
+        8.66
+      ],
+      "material": "linen_shadow"
+    },
+    {
+      "name": "Linen tie around right board edge",
+      "from": [
+        10.15,
+        10.83,
+        7.09
+      ],
+      "to": [
+        10.45,
+        11.17,
+        8.66
+      ],
+      "material": "linen_cord"
+    },
+    {
+      "name": "Square tied linen knot",
+      "from": [
+        8.92,
+        10.66,
+        6.98
+      ],
+      "to": [
+        9.51,
+        11.33,
+        7.24
+      ],
+      "material": "linen_cord",
+      "side": "linen_shadow"
+    },
+    {
+      "name": "Left hanging cord tail",
+      "from": [
+        8.83,
+        9.94,
+        6.98
+      ],
+      "to": [
+        9.27,
+        10.77,
+        7.29
+      ],
+      "material": "linen_cord",
+      "side": "linen_shadow",
+      "rotation": {
+        "axis": "z",
+        "angle": -22.5,
+        "origin": [
+          9.05,
+          10.75,
+          7.15
+        ]
+      }
+    },
+    {
+      "name": "Right hanging cord tail",
+      "from": [
+        9.21,
+        10.05,
+        6.98
+      ],
+      "to": [
+        9.65,
+        10.8,
+        7.29
+      ],
+      "material": "linen_cord",
+      "side": "linen_shadow",
+      "rotation": {
+        "axis": "z",
+        "angle": 22.5,
+        "origin": [
+          9.43,
+          10.75,
+          7.15
+        ]
+      }
+    },
+    {
+      "name": "Small earthy red wax seal",
+      "from": [
+        7.39,
+        6.95,
+        7.03
+      ],
+      "to": [
+        8.61,
+        8.14,
+        7.27
+      ],
+      "material": "wax_clay",
+      "side": "wax_clay"
+    },
+    {
+      "name": "Pressed simple wax stamp",
+      "from": [
+        7.61,
+        7.17,
+        6.92
+      ],
+      "to": [
+        8.39,
+        7.92,
+        7.05
+      ],
+      "material": "wax_stamp",
+      "side": "wax_clay"
+    },
+    {
+      "name": "Left slat fixing pin front",
+      "from": [
+        6.42,
+        12.22,
+        7.23
+      ],
+      "to": [
+        6.78,
+        12.52,
+        7.39
+      ],
+      "material": "dull_pin"
+    },
+    {
+      "name": "Right slat fixing pin front",
+      "from": [
+        9.22,
+        12.22,
+        7.23
+      ],
+      "to": [
+        9.58,
+        12.52,
+        7.39
+      ],
+      "material": "dull_pin"
+    },
+    {
+      "name": "Rear peg fixing pin",
+      "from": [
+        7.8,
+        6.26,
+        8.45
+      ],
+      "to": [
+        8.2,
+        6.65,
+        8.63
+      ],
+      "material": "dull_pin"
+    },
+    {
+      "name": "Left loop support",
+      "from": [
+        6.92,
+        12.56,
+        7.74
+      ],
+      "to": [
+        7.38,
+        13.27,
+        8.2
+      ],
+      "material": "linen_shadow"
+    },
+    {
+      "name": "Right loop support",
+      "from": [
+        8.62,
+        12.56,
+        7.74
+      ],
+      "to": [
+        9.08,
+        13.27,
+        8.2
+      ],
+      "material": "linen_cord"
+    },
+    {
+      "name": "Loop left shoulder",
+      "from": [
+        6.93,
+        13.12,
+        7.74
+      ],
+      "to": [
+        7.39,
+        14.01,
+        8.2
+      ],
+      "material": "linen_shadow",
+      "rotation": {
+        "axis": "z",
+        "angle": -45,
+        "origin": [
+          7.16,
+          13.12,
+          7.96
+        ]
+      }
+    },
+    {
+      "name": "Loop right shoulder",
+      "from": [
+        8.61,
+        13.12,
+        7.74
+      ],
+      "to": [
+        9.07,
+        14.01,
+        8.2
+      ],
+      "material": "linen_cord",
+      "rotation": {
+        "axis": "z",
+        "angle": 45,
+        "origin": [
+          8.84,
+          13.12,
+          7.96
+        ]
+      }
+    },
+    {
+      "name": "Loop top arch",
+      "from": [
+        7.69,
+        13.56,
+        7.74
+      ],
+      "to": [
+        8.31,
+        14.02,
+        8.2
+      ],
+      "material": "linen_cord",
+      "side": "linen_shadow"
+    }
+  ]
+}

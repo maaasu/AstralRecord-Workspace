@@ -1,0 +1,1021 @@
+{
+  "credit": "Made with Blockbench",
+  "texture_size": [
+    64,
+    64
+  ],
+  "textures": {
+    "particle": "astralrecord:item/custom/simple_weapon",
+    "surface": "astralrecord:item/custom/simple_weapon"
+  },
+  "elements": [
+    {
+      "name": "Sturdy oak handle",
+      "from": [
+        7.3,
+        2.52,
+        7.3
+      ],
+      "to": [
+        8.7,
+        5.35,
+        8.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lower rawhide grip band",
+      "from": [
+        7.19,
+        2.98,
+        7.19
+      ],
+      "to": [
+        8.81,
+        3.41,
+        8.81
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Upper rawhide grip band",
+      "from": [
+        7.19,
+        4.12,
+        7.19
+      ],
+      "to": [
+        8.81,
+        4.55,
+        8.81
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Squared wooden pommel",
+      "from": [
+        7.03,
+        2.01,
+        7.06
+      ],
+      "to": [
+        8.97,
+        2.64,
+        8.94
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Thick straight practice guard",
+      "from": [
+        5.79,
+        5.09,
+        7.02
+      ],
+      "to": [
+        10.21,
+        5.81,
+        8.98
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Dark blade heel",
+      "from": [
+        6.94,
+        5.78,
+        7.29
+      ],
+      "to": [
+        9.06,
+        6.49,
+        8.71
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Broad oak practice blade",
+      "from": [
+        7.04,
+        6.44,
+        7.34
+      ],
+      "to": [
+        8.96,
+        11.63,
+        8.66
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left pale planed blade edge",
+      "from": [
+        6.59,
+        6.47,
+        7.57
+      ],
+      "to": [
+        7.08,
+        11.65,
+        8.43
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right pale planed blade edge",
+      "from": [
+        8.92,
+        6.47,
+        7.57
+      ],
+      "to": [
+        9.41,
+        11.65,
+        8.43
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "First stepped wooden point",
+      "from": [
+        7.03,
+        11.61,
+        7.4
+      ],
+      "to": [
+        8.97,
+        12.29,
+        8.6
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Second stepped wooden point",
+      "from": [
+        7.49,
+        12.27,
+        7.53
+      ],
+      "to": [
+        8.51,
+        13.05,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front square guard peg",
+      "from": [
+        7.68,
+        5.24,
+        6.87
+      ],
+      "to": [
+        8.32,
+        5.68,
+        7.05
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rear square guard peg",
+      "from": [
+        7.68,
+        5.24,
+        8.95
+      ],
+      "to": [
+        8.32,
+        5.68,
+        9.13
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        10
+      ],
+      "translation": [
+        0,
+        1.3107,
+        0.97422
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        -10
+      ],
+      "translation": [
+        0,
+        1.3107,
+        0.97422
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        -20
+      ],
+      "translation": [
+        1.13,
+        1.88385,
+        0.65097
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        20
+      ],
+      "translation": [
+        1.13,
+        1.88385,
+        0.65097
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2.25,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "gui": {
+      "rotation": [
+        12,
+        -24,
+        -38
+      ],
+      "translation": [
+        0.57805,
+        0.5899,
+        0
+      ],
+      "scale": [
+        1.1,
+        1.1,
+        1.1
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        -24,
+        0
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    }
+  }
+}
