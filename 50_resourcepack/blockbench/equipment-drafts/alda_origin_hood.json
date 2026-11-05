@@ -1,0 +1,474 @@
+{
+  "id": "alda_origin_hood",
+  "master_id": "20a00061",
+  "kind": "armor",
+  "intent": "Lv15 RARE。建築／巨石の始源遺跡を、青緑の帆布頭巾の段状の縫い縁と後頭部の門型縫いで表す。射手の顔を広く開け、石色の小さな留め具、二重仕立ての庇と革の後裾で序盤より丁寧な作りにする。重い石兜や上位の宝飾にはしない。carryは後裾の革補強の実体。",
+  "grip": [
+    8,
+    4,
+    11.4
+  ],
+  "materials": {
+    "teal_canvas": {
+      "palette": [
+        "162E38",
+        "214D5A",
+        "2D6170",
+        "3D7480",
+        "568A92"
+      ],
+      "pattern": [
+        "12222221",
+        "12223221",
+        "12223221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "teal_fold": {
+      "palette": [
+        "122C35",
+        "1B404D",
+        "285563",
+        "396977",
+        "4E7D86"
+      ],
+      "pattern": [
+        "12333221",
+        "12332221",
+        "12322221",
+        "12222211",
+        "12222211",
+        "12222111",
+        "11221110",
+        "00111000"
+      ]
+    },
+    "bound_edge": {
+      "palette": [
+        "1E3438",
+        "3E5A5B",
+        "648280",
+        "8FA39A",
+        "B8C2AD"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "smoked_hide": {
+      "palette": [
+        "252824",
+        "3E4238",
+        "5A5E4B",
+        "7A7C60",
+        "9A9B77"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11122111",
+        "00111100"
+      ]
+    },
+    "quiet_sole": {
+      "palette": [
+        "172225",
+        "263437",
+        "39474A",
+        "4B5958"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "00111100"
+      ]
+    },
+    "pale_stone": {
+      "palette": [
+        "424F50",
+        "667775",
+        "91A09A",
+        "BDC4AE",
+        "D4D6BE"
+      ],
+      "pattern": [
+        "23333332",
+        "12333321",
+        "12222221",
+        "12222221",
+        "12232221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "inside_cloth": {
+      "palette": [
+        "10232C",
+        "183641",
+        "244C58",
+        "38606A"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Deep rear hood cloth",
+      "from": [
+        4,
+        3.6,
+        10.1
+      ],
+      "to": [
+        12,
+        11.8,
+        11.3
+      ],
+      "material": "teal_canvas",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Left full side hood wall",
+      "from": [
+        3.6,
+        4.8,
+        5.8
+      ],
+      "to": [
+        4.8,
+        11.9,
+        10.65
+      ],
+      "material": "teal_canvas",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Right full side hood wall",
+      "from": [
+        11.2,
+        4.8,
+        5.8
+      ],
+      "to": [
+        12.399999999999999,
+        11.9,
+        10.65
+      ],
+      "material": "teal_canvas",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Broad square hood crown",
+      "from": [
+        3.8,
+        11.2,
+        5.3
+      ],
+      "to": [
+        12.2,
+        12.35,
+        11.2
+      ],
+      "material": "teal_canvas",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Soft folded back of crown",
+      "from": [
+        4.7,
+        12.2,
+        8.0
+      ],
+      "to": [
+        11.3,
+        13.0,
+        10.95
+      ],
+      "material": "teal_fold"
+    },
+    {
+      "name": "Crown seam binding",
+      "from": [
+        7.65,
+        12.31,
+        5.6
+      ],
+      "to": [
+        8.35,
+        12.65,
+        8.15
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Upper brow folded band",
+      "from": [
+        3.6,
+        10.75,
+        4.9
+      ],
+      "to": [
+        12.4,
+        11.75,
+        6.15
+      ],
+      "material": "teal_fold",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Brow thin stone-color stitch",
+      "from": [
+        4.25,
+        10.67,
+        4.67
+      ],
+      "to": [
+        11.75,
+        11.02,
+        5.25
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Left open-face lower lapel",
+      "from": [
+        3.65,
+        3.8,
+        5.2
+      ],
+      "to": [
+        5.15,
+        8.9,
+        6.4
+      ],
+      "material": "teal_fold",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Left upper stepped opening hem",
+      "from": [
+        3.65,
+        8.8,
+        4.87
+      ],
+      "to": [
+        4.9,
+        10.85,
+        5.58
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Left short side mantle",
+      "from": [
+        3.65,
+        3.45,
+        6.2
+      ],
+      "to": [
+        5.15,
+        5.5,
+        10.6
+      ],
+      "material": "teal_canvas",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Right open-face lower lapel",
+      "from": [
+        10.85,
+        3.8,
+        5.2
+      ],
+      "to": [
+        12.35,
+        8.9,
+        6.4
+      ],
+      "material": "teal_fold",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Right upper stepped opening hem",
+      "from": [
+        10.85,
+        8.8,
+        4.87
+      ],
+      "to": [
+        12.35,
+        10.85,
+        5.58
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Right short side mantle",
+      "from": [
+        10.85,
+        3.45,
+        6.2
+      ],
+      "to": [
+        12.35,
+        5.5,
+        10.6
+      ],
+      "material": "teal_canvas",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Rear hem leather grip reinforcement",
+      "from": [
+        4,
+        3.3,
+        10.9
+      ],
+      "to": [
+        12,
+        4.5,
+        11.9
+      ],
+      "material": "smoked_hide",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Interior back lining",
+      "from": [
+        4.8,
+        4.5,
+        9.8
+      ],
+      "to": [
+        11.2,
+        11.1,
+        10.2
+      ],
+      "material": "inside_cloth"
+    },
+    {
+      "name": "Left rear architectural seam",
+      "from": [
+        5.2,
+        4.4,
+        11.25
+      ],
+      "to": [
+        5.7,
+        10.8,
+        11.57
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Right rear architectural seam",
+      "from": [
+        10.3,
+        4.4,
+        11.25
+      ],
+      "to": [
+        10.8,
+        10.8,
+        11.57
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Rear lintel stitching",
+      "from": [
+        5.5,
+        9.9,
+        11.25
+      ],
+      "to": [
+        10.5,
+        10.4,
+        11.6
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Rear lintel lower step",
+      "from": [
+        6.35,
+        9.1,
+        11.25
+      ],
+      "to": [
+        9.65,
+        9.55,
+        11.6
+      ],
+      "material": "teal_fold"
+    },
+    {
+      "name": "Left cheek leather tie",
+      "from": [
+        3.8,
+        5.4,
+        4.96
+      ],
+      "to": [
+        5.25,
+        6.15,
+        5.7
+      ],
+      "material": "smoked_hide"
+    },
+    {
+      "name": "Single square stone toggle",
+      "from": [
+        3.82,
+        5.35,
+        4.65
+      ],
+      "to": [
+        4.68,
+        6.2,
+        5.16
+      ],
+      "material": "pale_stone"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "alda_ranger",
+  "wearable_source": "armor/alda_ranger.pixels.json"
+}

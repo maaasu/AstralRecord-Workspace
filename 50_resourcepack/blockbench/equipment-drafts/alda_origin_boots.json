@@ -1,0 +1,487 @@
+{
+  "id": "alda_origin_boots",
+  "master_id": "20a00057",
+  "kind": "armor",
+  "intent": "Lv15 RARE。遺跡の狙撃地点へ静かに進むための柔らかな革靴を一対として造形。青緑の折り返しと角留め、段状の踵と幅広い静音底で始源遺跡を小さく表す。板金で覆わず、序盤より堅実な革の仕立てを増す。後ろの引き革と結び革を連結し、その実体をcarryとする。",
+  "grip": [
+    8,
+    9.5,
+    11.15
+  ],
+  "materials": {
+    "teal_canvas": {
+      "palette": [
+        "162E38",
+        "214D5A",
+        "2D6170",
+        "3D7480",
+        "568A92"
+      ],
+      "pattern": [
+        "12222221",
+        "12223221",
+        "12223221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "teal_fold": {
+      "palette": [
+        "122C35",
+        "1B404D",
+        "285563",
+        "396977",
+        "4E7D86"
+      ],
+      "pattern": [
+        "12333221",
+        "12332221",
+        "12322221",
+        "12222211",
+        "12222211",
+        "12222111",
+        "11221110",
+        "00111000"
+      ]
+    },
+    "bound_edge": {
+      "palette": [
+        "1E3438",
+        "3E5A5B",
+        "648280",
+        "8FA39A",
+        "B8C2AD"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "smoked_hide": {
+      "palette": [
+        "252824",
+        "3E4238",
+        "5A5E4B",
+        "7A7C60",
+        "9A9B77"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11122111",
+        "00111100"
+      ]
+    },
+    "quiet_sole": {
+      "palette": [
+        "172225",
+        "263437",
+        "39474A",
+        "4B5958"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "00111100"
+      ]
+    },
+    "pale_stone": {
+      "palette": [
+        "424F50",
+        "667775",
+        "91A09A",
+        "BDC4AE",
+        "D4D6BE"
+      ],
+      "pattern": [
+        "23333332",
+        "12333321",
+        "12222221",
+        "12222221",
+        "12232221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "inside_cloth": {
+      "palette": [
+        "10232C",
+        "183641",
+        "244C58",
+        "38606A"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left soft leather upper",
+      "from": [
+        3.0,
+        3.25,
+        6.55
+      ],
+      "to": [
+        7.0,
+        9.45,
+        10.8
+      ],
+      "material": "smoked_hide",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Left forward leather toe",
+      "from": [
+        3.0,
+        2.6,
+        4.7
+      ],
+      "to": [
+        7.0,
+        5.25,
+        7.2
+      ],
+      "material": "smoked_hide",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Left quiet full sole",
+      "from": [
+        2.85,
+        1.9,
+        4.55
+      ],
+      "to": [
+        7.15,
+        2.85,
+        10.95
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "Left raised heel layer",
+      "from": [
+        3.2,
+        2.75,
+        9.0
+      ],
+      "to": [
+        6.8,
+        3.65,
+        10.8
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "Left teal folded cuff",
+      "from": [
+        2.75,
+        8.4,
+        6.35
+      ],
+      "to": [
+        7.25,
+        10.0,
+        11.0
+      ],
+      "material": "teal_canvas",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Left thin cuff binding",
+      "from": [
+        2.7,
+        9.7,
+        6.3
+      ],
+      "to": [
+        7.3,
+        10.15,
+        11.05
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Left front ankle gusset",
+      "from": [
+        4.0,
+        5.05,
+        6.15
+      ],
+      "to": [
+        6.0,
+        8.65,
+        6.9
+      ],
+      "material": "teal_fold"
+    },
+    {
+      "name": "Left ankle fastening",
+      "from": [
+        2.9,
+        6.25,
+        5.94
+      ],
+      "to": [
+        7.1,
+        7.0,
+        6.67
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Left small stone lace toggle",
+      "from": [
+        4.65,
+        6.14,
+        5.65
+      ],
+      "to": [
+        5.35,
+        6.95,
+        6.13
+      ],
+      "material": "pale_stone"
+    },
+    {
+      "name": "Left rear pull leather loop",
+      "from": [
+        4.4,
+        8.85,
+        10.75
+      ],
+      "to": [
+        5.6,
+        10.65,
+        11.35
+      ],
+      "material": "smoked_hide",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Left back vertical seam",
+      "from": [
+        4.75,
+        3.55,
+        10.72
+      ],
+      "to": [
+        5.25,
+        8.95,
+        11.05
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Right soft leather upper",
+      "from": [
+        9.0,
+        3.25,
+        6.55
+      ],
+      "to": [
+        13.0,
+        9.45,
+        10.8
+      ],
+      "material": "smoked_hide",
+      "side": "teal_fold"
+    },
+    {
+      "name": "Right forward leather toe",
+      "from": [
+        9.0,
+        2.6,
+        4.7
+      ],
+      "to": [
+        13.0,
+        5.25,
+        7.2
+      ],
+      "material": "smoked_hide",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Right quiet full sole",
+      "from": [
+        8.85,
+        1.9,
+        4.55
+      ],
+      "to": [
+        13.15,
+        2.85,
+        10.95
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "Right raised heel layer",
+      "from": [
+        9.2,
+        2.75,
+        9.0
+      ],
+      "to": [
+        12.8,
+        3.65,
+        10.8
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "Right teal folded cuff",
+      "from": [
+        8.75,
+        8.4,
+        6.35
+      ],
+      "to": [
+        13.25,
+        10.0,
+        11.0
+      ],
+      "material": "teal_canvas",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Right thin cuff binding",
+      "from": [
+        8.7,
+        9.7,
+        6.3
+      ],
+      "to": [
+        13.3,
+        10.15,
+        11.05
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Right front ankle gusset",
+      "from": [
+        10.0,
+        5.05,
+        6.15
+      ],
+      "to": [
+        12.0,
+        8.65,
+        6.9
+      ],
+      "material": "teal_fold"
+    },
+    {
+      "name": "Right ankle fastening",
+      "from": [
+        8.9,
+        6.25,
+        5.94
+      ],
+      "to": [
+        13.1,
+        7.0,
+        6.67
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Right small stone lace toggle",
+      "from": [
+        10.65,
+        6.14,
+        5.65
+      ],
+      "to": [
+        11.35,
+        6.95,
+        6.13
+      ],
+      "material": "pale_stone"
+    },
+    {
+      "name": "Right rear pull leather loop",
+      "from": [
+        10.4,
+        8.85,
+        10.75
+      ],
+      "to": [
+        11.6,
+        10.65,
+        11.35
+      ],
+      "material": "smoked_hide",
+      "side": "bound_edge"
+    },
+    {
+      "name": "Right back vertical seam",
+      "from": [
+        10.75,
+        3.55,
+        10.72
+      ],
+      "to": [
+        11.25,
+        8.95,
+        11.05
+      ],
+      "material": "bound_edge"
+    },
+    {
+      "name": "Paired boots leather carrying tie",
+      "from": [
+        5.7,
+        9.15,
+        10.8
+      ],
+      "to": [
+        10.3,
+        9.85,
+        11.45
+      ],
+      "material": "smoked_hide",
+      "side": "bound_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "alda_ranger",
+  "wearable_source": "armor/alda_ranger.pixels.json"
+}

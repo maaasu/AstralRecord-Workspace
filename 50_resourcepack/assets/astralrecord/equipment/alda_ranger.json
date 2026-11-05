@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "astralrecord:alda_ranger"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "astralrecord:alda_ranger"
+      }
+    ]
+  }
+}
