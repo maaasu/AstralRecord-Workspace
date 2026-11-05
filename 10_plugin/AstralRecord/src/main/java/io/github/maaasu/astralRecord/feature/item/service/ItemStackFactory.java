@@ -111,6 +111,10 @@ public class ItemStackFactory {
     private static final NamespacedKey KEY_POTION_TYPE =
             new NamespacedKey("astralrecord", "potion_type");
 
+    /** PDC キー: 着用防具のレイヤーアセット */
+    private static final NamespacedKey KEY_EQUIPMENT_ASSET =
+            new NamespacedKey("astralrecord", "equipment_asset");
+
     /** PDC キー: カテゴリ */
     private static final NamespacedKey KEY_CATEGORY =
             new NamespacedKey("astralrecord", "category");
@@ -273,6 +277,7 @@ public class ItemStackFactory {
         }
         hideBundleContentsTooltip(replaced);
         applyAppearance(replaced);
+        EquipmentAssetSupport.apply(replaced, getEquipmentAsset(item));
         applyDurabilityVisual(replaced);
         return replaced;
     }
@@ -573,6 +578,18 @@ public class ItemStackFactory {
         }
         return item.getItemMeta().getPersistentDataContainer()
                 .get(KEY_APPEARANCE_COLOR, PersistentDataType.STRING);
+    }
+
+    /**
+     * 保存済みの防具レイヤーアセット参照を取得します。
+     *
+     * @param item AstralRecordアイテム
+     * @return 初期表示用の参照。未設定・不正値ではnull
+     */
+    public static @Nullable String getEquipmentAsset(@NotNull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? null : EquipmentAssetSupport.normalize(meta.getPersistentDataContainer()
+                .get(KEY_EQUIPMENT_ASSET, PersistentDataType.STRING));
     }
 
     /**
@@ -2100,6 +2117,10 @@ public class ItemStackFactory {
             pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
         }
         if (model.getAppearance() != null) {
+            String equipmentAsset = EquipmentAssetSupport.normalize(model.getAppearance().getEquipmentAsset());
+            if (equipmentAsset != null) {
+                pdc.set(KEY_EQUIPMENT_ASSET, PersistentDataType.STRING, equipmentAsset);
+            }
             if (model.getAppearance().getColor() != null && !model.getAppearance().getColor().isBlank()) {
                 pdc.set(KEY_APPEARANCE_COLOR, PersistentDataType.STRING, model.getAppearance().getColor().trim());
             }

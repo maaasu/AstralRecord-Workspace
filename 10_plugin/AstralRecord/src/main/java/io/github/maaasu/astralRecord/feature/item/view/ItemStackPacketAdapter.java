@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentAssetSupport;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndReason;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
@@ -629,6 +630,10 @@ public class ItemStackPacketAdapter {
         var embeddedModelData = ItemStackFactory.getCustomModelData(original);
         var customModelData = resolveCustomModelData(itemId, embeddedModelData);
         boolean clearCustomModelData = embeddedModelData != null && customModelData == null;
+        var embeddedEquipmentAsset = ItemStackFactory.getEquipmentAsset(original);
+        var equipmentAsset = itemMaster == null ? embeddedEquipmentAsset
+            : itemMaster.getAppearance() == null ? null : itemMaster.getAppearance().getEquipmentAsset();
+        boolean clearEquipmentAsset = embeddedEquipmentAsset != null && equipmentAsset == null;
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
@@ -640,6 +645,8 @@ public class ItemStackPacketAdapter {
             && iconTexture == null
             && customModelData == null
             && !clearCustomModelData
+            && equipmentAsset == null
+            && !clearEquipmentAsset
             && appearanceColor == null
             && potionType == null) {
             if (randomStatusRangeDisplayEnabled || itemId == null) {
@@ -687,6 +694,14 @@ public class ItemStackPacketAdapter {
 
         if (ItemStackFactory.applyAppearance(replaced)) {
             modified = true;
+        }
+        modified |= EquipmentAssetSupport.apply(replaced, equipmentAsset);
+        if (bedrockViewer && customModelData != null && EquipmentAssetSupport.isNativeBodyArmor(replaced)) {
+            var meta = replaced.getItemMeta();
+            if (meta != null && CustomModelDataComponentUtil.updateArmorHiddenFlag(meta, !armorDisplayEnabled)) {
+                replaced.setItemMeta(meta);
+                modified = true;
+            }
         }
         if (ItemStackFactory.applyDurabilityVisual(replaced)) {
             modified = true;

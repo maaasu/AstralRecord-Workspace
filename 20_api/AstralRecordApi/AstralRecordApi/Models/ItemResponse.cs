@@ -53,6 +53,9 @@ public class ItemAppearanceResponse
     public string? Color { get; init; }
 
     public string? PotionType { get; init; }
+
+    /// <summary>着用防具のレイヤー定義を参照する astralrecord 名前空間のアセットID。</summary>
+    public string? EquipmentAsset { get; init; }
 }
 
 public class ItemSummaryResponse

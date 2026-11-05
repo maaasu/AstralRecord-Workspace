@@ -323,10 +323,11 @@ class ItemRepository {
         val appearanceObj = parseObjectOrNull(obj, "appearance") ?: return null
         val color = parseStringOrNull(appearanceObj, "color")
         val potionType = parseStringOrNull(appearanceObj, "potionType")
-        if (color == null && potionType == null) {
+        val equipmentAsset = parseStringOrNull(appearanceObj, "equipmentAsset")
+        if (color == null && potionType == null && equipmentAsset == null) {
             return null
         }
-        return ItemAppearance(color = color, potionType = potionType)
+        return ItemAppearance(color = color, potionType = potionType, equipmentAsset = equipmentAsset)
     }
 
     private fun parseBundle(obj: JsonObject): ItemBundle? {

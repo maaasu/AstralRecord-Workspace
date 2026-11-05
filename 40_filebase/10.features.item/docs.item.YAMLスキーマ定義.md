@@ -76,6 +76,9 @@ ITEMの基本的なスキーマ定義。
 |:--|:--|:--:|:--|:--|
 | `appearance.color` | String | × | Null | 色指定。`#RRGGBB` または `R,G,B`。`LEATHER_*` 装備と `POTION` / `SPLASH_POTION` / `LINGERING_POTION` / `TIPPED_ARROW` の表示色に使用する |
 | `appearance.potionType` | String | × | Null | Bukkit `PotionType` 名。`HEALING`, `STRONG_HEALING`, `SWIFTNESS` など。PotionMeta を持つ Material に使用する |
+| `appearance.equipmentAsset` | String | × | Null | 着用時の防具レイヤー定義。`astralrecord:<path>`（160文字以内、pathは小文字英数字と`_`、`/`区切り）。`equipment.slot` が `HEAD` / `CHEST` / `LEGS` / `FEET` の標準防具だけに使用する |
+
+`equipmentAsset` は Java の `assets/astralrecord/equipment/<path>.json` を参照します。`customModelData` のインベントリ・手持ちモデルとは別の契約です。Java の着用表示は標準の立体鎧へ固有テクスチャ層を貼ります。BE は同じモデルIDのカスタム防具に身体部位へ結合した attachable を用意します。対応する防具は `50_resourcepack/armor-assets.json` にも登録し、両版の着用アセットを検証・梱包します。未設定・不正値・対応しない基本素材では通常防具へ戻り、仮想アクセサリの身体表示や装備部位は追加しません。
 
 
 ## YAML 例

@@ -84,6 +84,20 @@ BE では仮想トライデントで長押し入力を受け取りながら、�
 
 ## ビルド
 
+### 着用防具
+
+防具のインベントリ・手持ちは `item-models.json` の3Dアイテムを使い、着用外観は追加台帳 `armor-assets.json` で管理します。各行は同じ `id` / `base_item` / `custom_model_data` と、身体部位 `slot`（`HEAD` / `CHEST` / `LEGS` / `FEET`）、`equipment_asset` を持ちます。マスターの `appearance.equipmentAsset` と同じ `astralrecord:<path>` を指定します。
+
+- JE: `assets/astralrecord/equipment/<path>.json` の `layers.humanoid`（脚だけは `humanoid_leggings`）から、`textures/entity/equipment/<layer>/<texture>.png` を参照します。標準の立体鎧へ固有の層を貼る方式で、自由形状の全身itemモデルへ置き換える方式ではありません。
+- BE: `models/entity/armor/<id>.geo.json` と `textures/models/armor/<id>.png` を追加します。既存attachableの `geometry.worn` と `textures.armor` がこれらを参照します。可視部位には公式の身体binding（`'head'` / `'body'` / `'rightarm'` / `'leftarm'` / `'rightleg'` / `'leftleg'`）を設定し、身体動作へ追随させます。
+- 同attachableのrender controllerは、`controller.render.item_default` に `context.item_slot == 'main_hand' || context.item_slot == 'off_hand'`、`controller.render.astralrecord.armor_worn` に `context.item_slot != 'main_hand' && context.item_slot != 'off_hand'` の条件を付けます。手持ちと着用を同時描画しません。
+
+`scripts/armor-assets.ps1` が台帳と登録済みitemの一致、標準防具素材とslot、JEレイヤー参照、BE着用geometry・texture・身体binding・描画条件を検証して梱包します。防具のPNGは標準UVと同じ2:1（64×32、128×64、256×128）を使います。パックの検査は編集データの整合確認であり、両版の実クライアントでの着用確認を代替しません。
+
+配布用itemカタログでは明示登録した身体防具だけ `armor: true` を付けます。Geyserはその防具に通常表示と非着用表示の2定義を用意し、Bedrock向け送信コピーの `custom_model_data.flags[0]`（trueが非表示）で選びます。このflagは標準4部位の防具でモデルIDがある場合だけ予約し、閲覧者の設定に従ってtrue/falseを毎回明示します。モデルID・追加float・他flag・string・colorは維持します。非着用表示の識別子 `hidden_armor_<id>` は生成用に予約し、同じアイコン `astralrecord.<id>` と手持ちアセットを使います。helperが身体描画を持たない派生attachableを生成するため、防具表示OFFでもGUI・手持ちは維持されます。通常の3D武器・2Dアイテム・馬鎧素材の武器はこの派生登録を行いません。台帳へのgenerated項目と仮想トライデント項目の登録も拒否します。
+
+Geyserは基本素材の `EQUIPPABLE.slot` から `minecraft:wearable` の身体部位を生成します。creative categoryはレシピ帳等の分類だけで、装備部位を指定しません。新しい防具登録は通常のitemと同様にProxy再起動・BE再接続で反映します。[Geyser custom items](https://geysermc.org/wiki/geyser/custom-items/)、[Minecraft JE 1.21.4](https://www.minecraft.net/en-us/article/minecraft-java-edition-1-21-4)、[Bedrock custom armor](https://learn.microsoft.com/en-us/minecraft/creator/documents/addcustomitems?view=minecraft-bedrock-stable)
+
 このディレクトリで以下を実行します。
 
 ```powershell

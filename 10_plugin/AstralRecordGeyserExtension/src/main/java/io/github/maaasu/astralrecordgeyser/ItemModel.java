@@ -19,10 +19,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.item.custom.v2.CustomItemDefinition;
+import org.geysermc.geyser.api.item.custom.v2.CustomItemBedrockOptions;
+import org.geysermc.geyser.api.item.custom.v2.component.java.JavaItemDataComponents;
+import org.geysermc.geyser.api.predicate.context.item.ItemPredicateContext;
 import org.geysermc.geyser.api.util.Identifier;
 
 /** Bedrockパックと一緒に公開された、JavaアイテムとBedrockモデルの対応。 */
-record ItemModel(String id, String baseItem, int customModelData, boolean generated) {
+record ItemModel(String id, String baseItem, int customModelData, boolean generated, boolean armor) {
     private static final String CATALOG = "astralrecord_item_models.json";
     private static final String ATLAS = "textures/item_texture.json";
     private static final String HELD_ATTACHABLE = "attachables/trident.entity.json";
@@ -33,7 +36,11 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
     record Catalog(Set<ItemModel> models, Set<Integer> heldWeaponModels) {}
 
     ItemModel(String id, String baseItem, int customModelData) {
-        this(id, baseItem, customModelData, false);
+        this(id, baseItem, customModelData, false, false);
+    }
+
+    ItemModel(String id, String baseItem, int customModelData, boolean generated) {
+        this(id, baseItem, customModelData, generated, false);
     }
 
     static Catalog read(ZipFile zip) throws IOException {
@@ -101,6 +108,11 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
             requireFile(zip, "attachables/" + id + ".json");
             requireFile(zip, "models/entity/items/" + id + ".geo.json");
             requireFile(zip, "animations/" + id + ".animation.json");
+            if (model.armor()) {
+                requireFile(zip, "attachables/" + model.hiddenArmorId() + ".json");
+                requireFile(zip, "models/entity/armor/" + id + ".geo.json");
+                requireFile(zip, "textures/models/armor/" + id + ".png");
+            }
         }
     }
 
@@ -145,10 +157,17 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
                 String id = idValue.getAsString();
                 String base = item.getAsJsonPrimitive("base_item").getAsString();
                 int data = integer(item, "custom_model_data");
+                boolean armor = false;
+                if (item.has("armor")) {
+                    var armorValue = item.getAsJsonPrimitive("armor");
+                    if (!armorValue.isBoolean()) throw new IOException("Invalid Bedrock armor marker");
+                    armor = armorValue.getAsBoolean();
+                }
                 if (!idValue.isString() || !id.matches("[a-z0-9]+(?:_[a-z0-9]+)*")
                     || !base.matches("minecraft:[a-z0-9]+(?:_[a-z0-9]+)*")
                     || data <= 0 || data >= (1 << 24)
-                    || !ids.add(id) || !modelData.add(data)) {
+                    || !ids.add(id) || !modelData.add(data)
+                    || armor && !isNativeArmorBase(base)) {
                     throw new IOException("Invalid or duplicate Bedrock item model");
                 }
                 boolean generated = false;
@@ -159,13 +178,19 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
                     }
                     generated = mode.getAsString().equals("generated");
                 }
-                models.add(new ItemModel(id, base, data, generated));
+                if (generated && armor) throw new IOException("Generated items cannot be wearable armor");
+                models.add(new ItemModel(id, base, data, generated, armor));
                 if (item.has("held_weapon")) {
                     var heldWeapon = item.getAsJsonPrimitive("held_weapon");
-                    if (!heldWeapon.isBoolean() || (generated && heldWeapon.getAsBoolean())) {
+                    if (!heldWeapon.isBoolean() || ((generated || armor) && heldWeapon.getAsBoolean())) {
                         throw new IOException("Invalid held_weapon flag for " + id);
                     }
                     if (heldWeapon.getAsBoolean()) heldWeaponModels.add(data);
+                }
+            }
+            for (ItemModel model : models) {
+                if (model.armor() && ids.contains(model.hiddenArmorId())) {
+                    throw new IOException("Bedrock armor hidden identifier collides with an item");
                 }
             }
         } catch (RuntimeException exception) {
@@ -225,11 +250,36 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
         return value.getAsBigDecimal().intValueExact();
     }
 
+    /** 台帳で明示した身体防具だけに、表示設定OFF用の手持ち専用定義も登録します。 */
     void register(GeyserDefineCustomItemsEvent event) {
         var javaItem = Identifier.of(baseItem);
         var bedrockItem = Identifier.of("astralrecord", id);
         event.register(javaItem, CustomItemDefinition.builder(bedrockItem, javaItem)
-            .predicate(context -> context.customModelDataFloat(0) == customModelData)
+            .predicate(context -> matches(context, true))
             .build());
+        if (armor) {
+            event.register(javaItem, CustomItemDefinition.builder(Identifier.of("astralrecord", hiddenArmorId()), javaItem)
+                .bedrockOptions(CustomItemBedrockOptions.builder().icon("astralrecord." + id))
+                .removeComponent(JavaItemDataComponents.EQUIPPABLE)
+                .predicate(context -> matches(context, false))
+                .build());
+        }
+    }
+
+    /** 元のモデル番号と、送信コピーの予約済み非表示flagで表示用定義を選びます。 */
+    boolean matches(ItemPredicateContext context, boolean armorVisible) {
+        return context.customModelDataFloat(0) == customModelData
+            && (!armor || context.customModelDataFlag(0) != armorVisible);
+    }
+
+    /** 防具非表示時に同じアイコン・手持ちモデルを使用する派生attachableの識別子です。 */
+    String hiddenArmorId() {
+        return "hidden_armor_" + id;
+    }
+
+    /** Geyserがnativeの身体装備componentを継承できる基本素材だけを受け入れます。 */
+    private static boolean isNativeArmorBase(String base) {
+        return base.matches("minecraft:(?:(?:leather|chainmail|iron|golden|diamond|netherite|copper)_"
+            + "(?:helmet|chestplate|leggings|boots)|turtle_helmet)");
     }
 }

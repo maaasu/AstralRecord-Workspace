@@ -3,6 +3,8 @@ package io.github.maaasu.astralrecordgeyser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,11 +13,13 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.lang.reflect.Proxy;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.geysermc.geyser.api.predicate.context.item.ItemPredicateContext;
 
 class ItemModelTest {
     private static final String CATALOG = """
@@ -174,6 +178,45 @@ class ItemModelTest {
         // Distribution uses containsAll to keep packs incompatible with a changed render mode unpublished.
         assertFalse(ItemModel.parse(catalog).models().containsAll(ItemModel.parse(CATALOG).models()));
         assertFalse(ItemModel.parse(CATALOG).models().containsAll(ItemModel.parse(catalog).models()));
+    }
+
+    @Test
+    void armorVisibilityDefinitionsAreMutuallyExclusiveAndDoNotAffectOtherModels() {
+        ItemModel armor = new ItemModel("fixture", "minecraft:leather_helmet", 24000, false, true);
+        assertTrue(armor.matches(context(24000, false), true));
+        assertFalse(armor.matches(context(24000, false), false));
+        assertFalse(armor.matches(context(24000, true), true));
+        assertTrue(armor.matches(context(24000, true), false));
+        assertFalse(armor.matches(context(24001, true), false));
+        ItemModel weapon = new ItemModel("weapon", "minecraft:iron_horse_armor", 24001);
+        assertTrue(weapon.matches(context(24001, false), true));
+        assertTrue(weapon.matches(context(24001, true), true));
+    }
+
+    @Test
+    void onlyExplicitNativeArmorCanRegisterHiddenVariantsAndNamesCannotCollide() throws IOException {
+        String armor = CATALOG.replace("minecraft:wooden_sword", "minecraft:leather_helmet")
+            .replace("\"custom_model_data\":21001", "\"custom_model_data\":21001,\"armor\":true");
+        assertEquals(Set.of(new ItemModel("nox_sword", "minecraft:leather_helmet", 21001, false, true)), ItemModel.parse(armor).models());
+        assertThrows(IOException.class, () -> ItemModel.parse(armor.replace("true", "\"true\"")));
+        assertThrows(IOException.class, () -> ItemModel.parse(armor.replace("leather_helmet", "iron_horse_armor")));
+        assertThrows(IOException.class, () -> ItemModel.parse(armor.replace("leather_helmet", "paper")));
+        assertThrows(IOException.class, () -> ItemModel.parse(armor.replace("\"armor\":true", "\"armor\":true,\"render_mode\":\"generated\"")));
+        assertThrows(IOException.class, () -> ItemModel.parse(armor.replace("\"armor\":true", "\"armor\":true,\"held_weapon\":true")));
+        var parsed = com.google.gson.JsonParser.parseString(armor).getAsJsonObject();
+        parsed.getAsJsonArray("items").add(com.google.gson.JsonParser.parseString("""
+            {"id":"hidden_armor_nox_sword","base_item":"minecraft:paper","custom_model_data":24001}
+            """));
+        assertThrows(IOException.class, () -> ItemModel.parse(parsed.toString()));
+    }
+
+    private static ItemPredicateContext context(float modelData, boolean hidden) {
+        return (ItemPredicateContext) Proxy.newProxyInstance(ItemModelTest.class.getClassLoader(),
+            new Class<?>[] { ItemPredicateContext.class }, (proxy, method, args) -> switch (method.getName()) {
+                case "customModelDataFloat" -> modelData;
+                case "customModelDataFlag" -> hidden;
+                default -> throw new UnsupportedOperationException(method.getName());
+            });
     }
 
     private static void writePack(Path pack, Map<String, String> entries) throws IOException {

@@ -70,5 +70,25 @@ public final class CustomModelDataComponentUtil {
         meta.setCustomModelDataComponent(component);
         return true;
     }
+
+    /**
+     * Bedrock向け身体防具の送信コピーで、予約済みflag index 0へ非表示状態を明示します。
+     *
+     * @param meta 更新する送信コピーのメタデータ
+     * @param hidden 身体描画を非表示にする場合はtrue
+     * @return flagを変更した場合はtrue。他のflag、float、string、colorは維持する
+     */
+    @SuppressWarnings("UnstableApiUsage")
+    public static boolean updateArmorHiddenFlag(@NotNull ItemMeta meta, boolean hidden) {
+        CustomModelDataComponent component = meta.getCustomModelDataComponent();
+        List<Boolean> current = component.getFlags();
+        if (!current.isEmpty() && current.getFirst() == hidden) return false;
+        List<Boolean> updated = new ArrayList<>(current);
+        if (updated.isEmpty()) updated.add(hidden);
+        else updated.set(0, hidden);
+        component.setFlags(updated);
+        meta.setCustomModelDataComponent(component);
+        return true;
+    }
 }
 

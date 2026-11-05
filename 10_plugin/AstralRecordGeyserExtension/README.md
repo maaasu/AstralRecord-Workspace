@@ -64,6 +64,8 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 カタログ項目の `render_mode` が `"generated"` の場合は、アトラスと `textures/items/<id>.png` のみを必須にします。省略または `"3d"` は従来どおり立体モデルの全ファイルを検証します。アイコンのみの項目も同じGeyserカスタムアイテムAPIに登録し、`astralrecord.<id>` のアトラスキーを使います。稼働中に同じIDの描画方式を変更したパックは互換性がないため、Proxy再起動まで現在のパックを保持します。
 
+配布カタログの任意フィールド `armor: true` は、パックの `armor-assets.json` に明示登録したネイティブの頭・胴・脚・足防具だけに付く。Geyserは通常定義に加え `astralrecord:hidden_armor_<id>` を登録し、送信コピーの `custom_model_data.flags[0]`（trueが非表示）を `ItemPredicateContext.customModelDataFlag(0)` で読み、排他的に選ぶ。削除componentの列挙には依存しない。非表示定義はそのcomponentを除去し、同じ `astralrecord.<id>` のアイコンと手持ち専用attachableを使う。これによりRPGの閲覧者別防具表示設定が、装備実体やGUI表示を変えずにBEの固定wearable定義へ反映される。元の3D武器・2Dアイテム・馬鎧素材は未指定のままで従来の登録を維持する。派生識別子の衝突と必要アセット不足はパック読込時に拒否する。`armor: true` と `render_mode: generated` または `held_weapon: true` の併記は拒否し、2D装飾や仮想手持ち武器へ身体防具の契約を適用しない。
+
 ## 起動・障害時の契約
 
 ヘッドAPI取得は起動時イベント内のタイムアウト付きGET一回。全レスポンスの構造を検証した後に登録し、テクスチャとUUIDをそれぞれ重複排除する。リダイレクトは追跡しない。固定ヘッドはAPI接続失敗時も登録し、API由来ヘッドを読み込めなかったことをエラーログに出す。復旧後はProxyを再起動する。
