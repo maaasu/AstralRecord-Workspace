@@ -1,0 +1,211 @@
+{
+  "width": 64,
+  "height": 32,
+  "palette": {
+    ".": "00000000",
+    "a": "786746FF",
+    "b": "AC9464FF",
+    "c": "D0B980FF",
+    "d": "E8D7A0FF",
+    "e": "F6E8BCFF",
+    "i": "33454DFF",
+    "j": "4D6670FF",
+    "k": "A7BAB9FF",
+    "l": "D2DFD8FF",
+    "m": "EDF2E3FF",
+    "n": "FBF7E8FF",
+    "r": "285B58FF",
+    "s": "5B9C8BFF",
+    "t": "87BC9DFF",
+    "u": "3B342BFF",
+    "v": "594C38FF"
+  },
+  "pixels": [
+    "........klmnnmlkj......j........................................",
+    "........kdkkddkkj......j........................................",
+    "........kdkkddkkj......j........................................",
+    "........kdkkddkkj......j........................................",
+    "........kdkkddkkj......j........................................",
+    "........kdkkddkkj......j........................................",
+    "........kdkkddkkjddddddj........................................",
+    "........klmnnmlkklmmmmlk........................................",
+    "klmnnmlkklmnnmlkklmnnmlkklmnnmlk................................",
+    "kddddddkkcdrsdckkddddddkkddkkddk................................",
+    "kdekkedkk......kkdekkedkkdekkedk................................",
+    "kddkkddkk......kkddkkddkkddkkddk................................",
+    "bcddddcbj......jbcddddcbbcddddcb................................",
+    "bcrssrcbj......jbcrssrcbbcdccdcb................................",
+    "bcddddcbk......kbcddddcbbckllkcb................................",
+    "klmmmmlkj......jklmmmmlkklmmmmlk................................",
+    "........uvvu........kk....kkjkkkkkkj........kllkjkkj............",
+    "........vccv........kl....lkkcddddck........lddlkddk............",
+    "........vccv........kl....lkkcddddck........lddlkddk............",
+    "........uvvu........kk....kkjkkkkkkj........kllkjkkj............",
+    "................kkkkkk....kkkkkkkk....kkkllkkllkkllkkllk........",
+    "................klmkklmmmmlkklmkklmmmmlklmmllmmllmmllmml........",
+    "................bcdblkddddklbcdbbckllkcbkddkkddkkddkkddk........",
+    "................cddclkeddeklcddcbcddddcbbcdbbcdbbcdbbcdb........",
+    "klmkklmkklmkklmkcddclkddddklcddcbcdeedcbcddccddccddccddc........",
+    "bcdbbcdbbcdbbcdbjkkjkkdkkdkkjkkjbcddddcbcddccddccddccddc........",
+    "cddccddccddccddccddcbcddddcbcddcrsskkssrjkkjrssrjkkjrssr........",
+    "rssrrssrrssrbcdbcddcbcddddcbcddcrsskkssrcddccddccddccddc........",
+    "jkkjcddcjkkjcddcrssrbcdkkdcbrssrbcddddcbrssrcddcrssrcddc........",
+    "bcdbbcdbbcdbjkkjcddcbcrssrcbcddcbcdeedcbcddcjkkjcddcjkkj........",
+    "kllklmmlkllkkllkklmkklmmmmlkklmkbcddddcbbcdbbcdbbcdbbcdb........",
+    "uvvuuvvuuvvuuvvujkkjjkkkkkkjjkkjjkkkkkkjjkkjjkkjjkkjjkkj........"
+  ],
+  "uv": {
+    "head": {
+      "front": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "back": [
+        24,
+        8,
+        8,
+        8
+      ],
+      "left": [
+        0,
+        8,
+        8,
+        8
+      ],
+      "right": [
+        16,
+        8,
+        8,
+        8
+      ],
+      "top": [
+        8,
+        0,
+        8,
+        8
+      ],
+      "bottom": [
+        16,
+        0,
+        8,
+        8
+      ]
+    },
+    "body": {
+      "front": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "back": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "left": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "bottom": [
+        28,
+        16,
+        8,
+        4
+      ]
+    },
+    "arm": {
+      "front": [
+        44,
+        20,
+        4,
+        12
+      ],
+      "back": [
+        52,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        40,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        48,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        44,
+        16,
+        4,
+        4
+      ],
+      "bottom": [
+        48,
+        16,
+        4,
+        4
+      ]
+    },
+    "leg": {
+      "front": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "back": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "bottom": [
+        8,
+        16,
+        4,
+        4
+      ]
+    }
+  }
+}

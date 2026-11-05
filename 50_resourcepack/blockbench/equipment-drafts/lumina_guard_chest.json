@@ -1,0 +1,638 @@
+{
+  "id": "lumina_guard_chest",
+  "master_id": "20a00427",
+  "kind": "armor",
+  "intent": "Lv25 RARE。クリーム染め革の胴に幅広い光沢鉄の胸枠・中央角継ぎ・平たい肩当てを重ねる。左右の大きいクリーム胸面と下段革板、低いミント留めで工芸感を作る。背は横鉄ヨークと二本革帯、側面は鉄フック。兜の二本冠レールとは違う横に広い胸当て輪郭。大きな面分割と8px材質でNoxからの進行を表し、上位の豪華装飾や写実金属には進めない。",
+  "grip": [
+    8,
+    3.5,
+    10.3
+  ],
+  "materials": {
+    "cream_leather": {
+      "palette": [
+        "#786746",
+        "#AC9464",
+        "#D0B980",
+        "#E8D7A0",
+        "#F6E8BC"
+      ],
+      "pattern": [
+        "23333332",
+        "23433332",
+        "23333332",
+        "23323332",
+        "23333332",
+        "23333432",
+        "22333322",
+        "12222221"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#5F523B",
+        "#8F7953",
+        "#B49A68",
+        "#D7C18C",
+        "#EBDDAD"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "#46585E",
+        "#738B90",
+        "#A7BAB9",
+        "#D2DFD8",
+        "#EDF2E3",
+        "#FBF7E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23344432",
+        "23333332",
+        "23433332",
+        "23333332",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#62797E",
+        "#8DA6A7",
+        "#B8CCC7",
+        "#E0EADD",
+        "#FFF9E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "#33454D",
+        "#4D6670",
+        "#718B93",
+        "#A4B7B8",
+        "#D1DCD5"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "mint_fastener": {
+      "palette": [
+        "#285B58",
+        "#3D7E73",
+        "#5B9C8B",
+        "#87BC9D",
+        "#B7D6AE"
+      ],
+      "pattern": [
+        "23333332",
+        "23343332",
+        "22333322",
+        "22333322",
+        "22333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Cream front leather garment",
+      "from": [
+        3.1,
+        3.1,
+        5.6
+      ],
+      "to": [
+        12.9,
+        14.35,
+        6.85
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Cream back leather garment",
+      "from": [
+        3.1,
+        3.1,
+        9.5
+      ],
+      "to": [
+        12.9,
+        14.35,
+        10.85
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream flank",
+      "from": [
+        2.8,
+        3.1,
+        6.6
+      ],
+      "to": [
+        4.0,
+        14.3,
+        10.1
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream flank",
+      "from": [
+        12.0,
+        3.1,
+        6.6
+      ],
+      "to": [
+        13.2,
+        14.3,
+        10.1
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Bright iron front belt",
+      "from": [
+        2.8,
+        2.85,
+        5.25
+      ],
+      "to": [
+        13.2,
+        4.2,
+        6.75
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Cream rear belt",
+      "from": [
+        2.8,
+        2.85,
+        9.55
+      ],
+      "to": [
+        13.2,
+        4.2,
+        11.1
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left iron belt return",
+      "from": [
+        2.8,
+        2.85,
+        6.6
+      ],
+      "to": [
+        4.0,
+        4.2,
+        10.0
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right iron belt return",
+      "from": [
+        12.0,
+        2.85,
+        6.6
+      ],
+      "to": [
+        13.2,
+        4.2,
+        10.0
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left bright iron upper breast frame",
+      "from": [
+        3.5,
+        8.4,
+        4.75
+      ],
+      "to": [
+        7.8,
+        13.05,
+        6.05
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left cream upper breast panel",
+      "from": [
+        4.15,
+        9.1,
+        4.35
+      ],
+      "to": [
+        7.15,
+        12.4,
+        4.95
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream lower breast step",
+      "from": [
+        3.7,
+        5.4,
+        4.95
+      ],
+      "to": [
+        7.6,
+        8.55,
+        6.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right bright iron upper breast frame",
+      "from": [
+        8.2,
+        8.4,
+        4.75
+      ],
+      "to": [
+        12.5,
+        13.05,
+        6.05
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right cream upper breast panel",
+      "from": [
+        8.85,
+        9.1,
+        4.35
+      ],
+      "to": [
+        11.85,
+        12.4,
+        4.95
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream lower breast step",
+      "from": [
+        8.399999999999999,
+        5.4,
+        4.95
+      ],
+      "to": [
+        12.299999999999999,
+        8.55,
+        6.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Iron center squared joining bar",
+      "from": [
+        7.55,
+        4.1,
+        4.6
+      ],
+      "to": [
+        8.45,
+        13.4,
+        5.85
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Mint center low fastening",
+      "from": [
+        6.75,
+        4.6,
+        4.15
+      ],
+      "to": [
+        9.25,
+        6.1,
+        5.05
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Broad iron collar front",
+      "from": [
+        4.0,
+        13.0,
+        5.15
+      ],
+      "to": [
+        12.0,
+        14.45,
+        6.7
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left cream shoulder root",
+      "from": [
+        0.9,
+        12.3,
+        6.3
+      ],
+      "to": [
+        4.2,
+        15.0,
+        10.25
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left broad flat iron shoulder cap",
+      "from": [
+        0.65,
+        14.5,
+        5.7
+      ],
+      "to": [
+        4.45,
+        15.65,
+        10.9
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left cream raised shoulder tablet",
+      "from": [
+        1.2000000000000002,
+        15.55,
+        6.4
+      ],
+      "to": [
+        3.9,
+        16.35,
+        10.15
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left bright shoulder front lip",
+      "from": [
+        0.75,
+        12.4,
+        5.15
+      ],
+      "to": [
+        4.3500000000000005,
+        14.65,
+        6.45
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right cream shoulder root",
+      "from": [
+        11.8,
+        12.3,
+        6.3
+      ],
+      "to": [
+        15.100000000000001,
+        15.0,
+        10.25
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right broad flat iron shoulder cap",
+      "from": [
+        11.55,
+        14.5,
+        5.7
+      ],
+      "to": [
+        15.350000000000001,
+        15.65,
+        10.9
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right cream raised shoulder tablet",
+      "from": [
+        12.100000000000001,
+        15.55,
+        6.4
+      ],
+      "to": [
+        14.8,
+        16.35,
+        10.15
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right bright shoulder front lip",
+      "from": [
+        11.65,
+        12.4,
+        5.15
+      ],
+      "to": [
+        15.25,
+        14.65,
+        6.45
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad rear iron yoke",
+      "from": [
+        3.7,
+        11.55,
+        10.55
+      ],
+      "to": [
+        12.3,
+        13.35,
+        11.7
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left cream rear securing strap",
+      "from": [
+        4.2,
+        4.1,
+        10.7
+      ],
+      "to": [
+        5.5,
+        12.0,
+        11.7
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream rear securing strap",
+      "from": [
+        10.5,
+        4.1,
+        10.7
+      ],
+      "to": [
+        11.8,
+        12.0,
+        11.7
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Rear mint cross strap",
+      "from": [
+        3.7,
+        6.1,
+        11.45
+      ],
+      "to": [
+        12.3,
+        7.35,
+        12.1
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Rear iron square buckle",
+      "from": [
+        6.7,
+        5.9,
+        11.8
+      ],
+      "to": [
+        9.3,
+        7.6,
+        12.4
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left iron side hook",
+      "from": [
+        2.4,
+        7.2,
+        7.6
+      ],
+      "to": [
+        3.3,
+        8.7,
+        9.1
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right iron side hook",
+      "from": [
+        12.7,
+        7.2,
+        7.6
+      ],
+      "to": [
+        13.6,
+        8.7,
+        9.1
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

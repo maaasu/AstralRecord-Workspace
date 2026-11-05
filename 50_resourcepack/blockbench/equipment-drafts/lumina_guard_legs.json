@@ -1,0 +1,651 @@
+{
+  "id": "lumina_guard_legs",
+  "master_id": "20a00428",
+  "kind": "armor",
+  "intent": "Lv25 RARE。二本に分かれたクリーム革ズボンに短い鉄腰板と四角い膝、細すぎない縦鉄すねを置く。長い二脚の形を守り、胴の広い肩・ブーツの前出し爪先とは輪郭を変える。背はミントの膝留め帯と鉄のふくらはぎ留め。大きいクリーム色面 #E8D7A0 と光沢鉄の縁で実masterの工芸を表す。Noxより仕上げと区分を増やし、細密彫刻や輝く宝石にはしない。",
+  "grip": [
+    8,
+    14.85,
+    11.0
+  ],
+  "materials": {
+    "cream_leather": {
+      "palette": [
+        "#786746",
+        "#AC9464",
+        "#D0B980",
+        "#E8D7A0",
+        "#F6E8BC"
+      ],
+      "pattern": [
+        "23333332",
+        "23433332",
+        "23333332",
+        "23323332",
+        "23333332",
+        "23333432",
+        "22333322",
+        "12222221"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#5F523B",
+        "#8F7953",
+        "#B49A68",
+        "#D7C18C",
+        "#EBDDAD"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "#46585E",
+        "#738B90",
+        "#A7BAB9",
+        "#D2DFD8",
+        "#EDF2E3",
+        "#FBF7E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23344432",
+        "23333332",
+        "23433332",
+        "23333332",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#62797E",
+        "#8DA6A7",
+        "#B8CCC7",
+        "#E0EADD",
+        "#FFF9E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "#33454D",
+        "#4D6670",
+        "#718B93",
+        "#A4B7B8",
+        "#D1DCD5"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "mint_fastener": {
+      "palette": [
+        "#285B58",
+        "#3D7E73",
+        "#5B9C8B",
+        "#87BC9D",
+        "#B7D6AE"
+      ],
+      "pattern": [
+        "23333332",
+        "23343332",
+        "22333322",
+        "22333322",
+        "22333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Open cream waistband front",
+      "from": [
+        2.8,
+        14.1,
+        5.4
+      ],
+      "to": [
+        13.2,
+        15.65,
+        6.7
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open cream waistband back",
+      "from": [
+        2.8,
+        14.1,
+        9.6
+      ],
+      "to": [
+        13.2,
+        15.65,
+        10.9
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open cream waistband left",
+      "from": [
+        2.8,
+        14.1,
+        6.5
+      ],
+      "to": [
+        4.0,
+        15.65,
+        9.9
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open cream waistband right",
+      "from": [
+        12.0,
+        14.1,
+        6.5
+      ],
+      "to": [
+        13.2,
+        15.65,
+        9.9
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left long cream trouser front",
+      "from": [
+        3.0,
+        1.15,
+        5.8
+      ],
+      "to": [
+        7.3,
+        14.3,
+        6.95
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left long cream trouser back",
+      "from": [
+        3.0,
+        1.15,
+        9.2
+      ],
+      "to": [
+        7.3,
+        14.3,
+        10.4
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left outer leather seam",
+      "from": [
+        3.0,
+        1.15,
+        6.75
+      ],
+      "to": [
+        3.9,
+        14.3,
+        9.5
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left inner leather seam",
+      "from": [
+        6.4,
+        1.15,
+        6.75
+      ],
+      "to": [
+        7.3,
+        14.3,
+        9.5
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left short iron hip plate",
+      "from": [
+        2.85,
+        11.25,
+        5.0
+      ],
+      "to": [
+        7.45,
+        14.25,
+        6.25
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left hip cream inset",
+      "from": [
+        3.65,
+        11.7,
+        4.65
+      ],
+      "to": [
+        6.65,
+        13.7,
+        5.25
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left broad square iron knee",
+      "from": [
+        2.85,
+        6.1,
+        4.7
+      ],
+      "to": [
+        7.45,
+        8.75,
+        6.2
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left knee cream tablet",
+      "from": [
+        3.75,
+        6.55,
+        4.25
+      ],
+      "to": [
+        6.55,
+        8.35,
+        4.95
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left long narrow iron shin stripe",
+      "from": [
+        4.6,
+        1.8,
+        5.2
+      ],
+      "to": [
+        5.7,
+        6.25,
+        6.25
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left rear mint knee securing tie",
+      "from": [
+        2.95,
+        6.95,
+        10.2
+      ],
+      "to": [
+        7.35,
+        8.05,
+        10.95
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left rear iron calf closure",
+      "from": [
+        3.75,
+        3.0,
+        10.2
+      ],
+      "to": [
+        6.55,
+        4.4,
+        11.1
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left iron lower front hem",
+      "from": [
+        2.95,
+        0.8,
+        5.55
+      ],
+      "to": [
+        7.35,
+        1.9,
+        6.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left iron lower back hem",
+      "from": [
+        2.95,
+        0.8,
+        9.2
+      ],
+      "to": [
+        7.35,
+        1.9,
+        10.65
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right long cream trouser front",
+      "from": [
+        8.7,
+        1.15,
+        5.8
+      ],
+      "to": [
+        13.0,
+        14.3,
+        6.95
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right long cream trouser back",
+      "from": [
+        8.7,
+        1.15,
+        9.2
+      ],
+      "to": [
+        13.0,
+        14.3,
+        10.4
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right outer leather seam",
+      "from": [
+        8.7,
+        1.15,
+        6.75
+      ],
+      "to": [
+        9.6,
+        14.3,
+        9.5
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right inner leather seam",
+      "from": [
+        12.1,
+        1.15,
+        6.75
+      ],
+      "to": [
+        13.0,
+        14.3,
+        9.5
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right short iron hip plate",
+      "from": [
+        8.549999999999999,
+        11.25,
+        5.0
+      ],
+      "to": [
+        13.149999999999999,
+        14.25,
+        6.25
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right hip cream inset",
+      "from": [
+        9.35,
+        11.7,
+        4.65
+      ],
+      "to": [
+        12.35,
+        13.7,
+        5.25
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right broad square iron knee",
+      "from": [
+        8.549999999999999,
+        6.1,
+        4.7
+      ],
+      "to": [
+        13.149999999999999,
+        8.75,
+        6.2
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right knee cream tablet",
+      "from": [
+        9.45,
+        6.55,
+        4.25
+      ],
+      "to": [
+        12.25,
+        8.35,
+        4.95
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right long narrow iron shin stripe",
+      "from": [
+        10.299999999999999,
+        1.8,
+        5.2
+      ],
+      "to": [
+        11.399999999999999,
+        6.25,
+        6.25
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right rear mint knee securing tie",
+      "from": [
+        8.649999999999999,
+        6.95,
+        10.2
+      ],
+      "to": [
+        13.049999999999999,
+        8.05,
+        10.95
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right rear iron calf closure",
+      "from": [
+        9.45,
+        3.0,
+        10.2
+      ],
+      "to": [
+        12.25,
+        4.4,
+        11.1
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right iron lower front hem",
+      "from": [
+        8.649999999999999,
+        0.8,
+        5.55
+      ],
+      "to": [
+        13.049999999999999,
+        1.9,
+        6.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right iron lower back hem",
+      "from": [
+        8.649999999999999,
+        0.8,
+        9.2
+      ],
+      "to": [
+        13.049999999999999,
+        1.9,
+        10.65
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Waist iron square clasp",
+      "from": [
+        6.5,
+        14.1,
+        4.8
+      ],
+      "to": [
+        9.5,
+        15.65,
+        5.85
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Waist mint inset",
+      "from": [
+        7.1,
+        14.45,
+        4.4
+      ],
+      "to": [
+        8.9,
+        15.3,
+        5.05
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Rear cream waistband carry band",
+      "from": [
+        4.0,
+        14.3,
+        10.65
+      ],
+      "to": [
+        12.0,
+        15.35,
+        11.4
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

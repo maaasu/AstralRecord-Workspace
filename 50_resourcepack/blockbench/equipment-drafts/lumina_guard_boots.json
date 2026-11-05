@@ -1,0 +1,670 @@
+{
+  "id": "lumina_guard_boots",
+  "master_id": "20a00429",
+  "kind": "armor",
+  "intent": "Lv25 RARE。左右一対のクリーム革ブーツ。大きく前に出る四角い鉄爪先、平たい暗い靴底、開いた鉄履き口、ミントの短い足首留めでMinecraftのブーツに読む。後ろのクリーム持ち帯が二足を実際につなぎ、把持点を空洞に置かない。踵の鉄補強と側面留めも描く。実masterの明るい革と光沢鉄に合わせ、Noxより明快な工芸の面分割を加える。",
+  "grip": [
+    8,
+    10.4,
+    11.05
+  ],
+  "materials": {
+    "cream_leather": {
+      "palette": [
+        "#786746",
+        "#AC9464",
+        "#D0B980",
+        "#E8D7A0",
+        "#F6E8BC"
+      ],
+      "pattern": [
+        "23333332",
+        "23433332",
+        "23333332",
+        "23323332",
+        "23333332",
+        "23333432",
+        "22333322",
+        "12222221"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#5F523B",
+        "#8F7953",
+        "#B49A68",
+        "#D7C18C",
+        "#EBDDAD"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "#46585E",
+        "#738B90",
+        "#A7BAB9",
+        "#D2DFD8",
+        "#EDF2E3",
+        "#FBF7E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23344432",
+        "23333332",
+        "23433332",
+        "23333332",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#62797E",
+        "#8DA6A7",
+        "#B8CCC7",
+        "#E0EADD",
+        "#FFF9E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "#33454D",
+        "#4D6670",
+        "#718B93",
+        "#A4B7B8",
+        "#D1DCD5"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "mint_fastener": {
+      "palette": [
+        "#285B58",
+        "#3D7E73",
+        "#5B9C8B",
+        "#87BC9D",
+        "#B7D6AE"
+      ],
+      "pattern": [
+        "23333332",
+        "23343332",
+        "22333322",
+        "22333322",
+        "22333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "dark_lining": {
+      "palette": [
+        "#3B342B",
+        "#594C38",
+        "#7B6846",
+        "#A18B61"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left thick dark sole",
+      "from": [
+        1.55,
+        0.7,
+        3.6
+      ],
+      "to": [
+        6.7,
+        1.85,
+        11.1
+      ],
+      "material": "dark_lining",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Left broad cream foot",
+      "from": [
+        1.75,
+        1.75,
+        4.0
+      ],
+      "to": [
+        6.5,
+        4.1,
+        10.85
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left broad squared iron toe",
+      "from": [
+        1.6,
+        1.8,
+        3.2
+      ],
+      "to": [
+        6.6499999999999995,
+        3.3,
+        5.9
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left raised cream instep",
+      "from": [
+        2.1,
+        3.2,
+        4.7
+      ],
+      "to": [
+        6.1499999999999995,
+        4.5,
+        7.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream ankle front",
+      "from": [
+        2.05,
+        3.9,
+        6.7
+      ],
+      "to": [
+        6.2,
+        10.6,
+        7.9
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream ankle back",
+      "from": [
+        2.05,
+        3.9,
+        9.8
+      ],
+      "to": [
+        6.2,
+        10.6,
+        11.0
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream ankle left",
+      "from": [
+        2.05,
+        3.9,
+        7.7
+      ],
+      "to": [
+        3.0,
+        10.6,
+        10.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream ankle right",
+      "from": [
+        5.25,
+        3.9,
+        7.7
+      ],
+      "to": [
+        6.2,
+        10.6,
+        10.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left open iron cuff front",
+      "from": [
+        1.8,
+        9.7,
+        6.4
+      ],
+      "to": [
+        6.45,
+        11.0,
+        8.0
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left open iron cuff back",
+      "from": [
+        1.8,
+        9.7,
+        9.75
+      ],
+      "to": [
+        6.45,
+        11.0,
+        11.3
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left open iron cuff left",
+      "from": [
+        1.8,
+        9.7,
+        7.8
+      ],
+      "to": [
+        2.95,
+        11.0,
+        9.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left open iron cuff right",
+      "from": [
+        5.3,
+        9.7,
+        7.8
+      ],
+      "to": [
+        6.45,
+        11.0,
+        9.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left mint ankle fastening front",
+      "from": [
+        2.25,
+        6.4,
+        6.35
+      ],
+      "to": [
+        6.0,
+        7.65,
+        7.15
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left rear iron heel brace",
+      "from": [
+        2.1,
+        1.8,
+        10.6
+      ],
+      "to": [
+        6.1499999999999995,
+        4.9,
+        11.5
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left rear cream ankle band",
+      "from": [
+        1.9,
+        6.4,
+        10.75
+      ],
+      "to": [
+        6.35,
+        7.65,
+        11.45
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left iron side fastening",
+      "from": [
+        1.6,
+        6.25,
+        8.2
+      ],
+      "to": [
+        2.55,
+        7.85,
+        9.6
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right thick dark sole",
+      "from": [
+        9.3,
+        0.7,
+        3.6
+      ],
+      "to": [
+        14.450000000000001,
+        1.85,
+        11.1
+      ],
+      "material": "dark_lining",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Right broad cream foot",
+      "from": [
+        9.5,
+        1.75,
+        4.0
+      ],
+      "to": [
+        14.25,
+        4.1,
+        10.85
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right broad squared iron toe",
+      "from": [
+        9.350000000000001,
+        1.8,
+        3.2
+      ],
+      "to": [
+        14.4,
+        3.3,
+        5.9
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right raised cream instep",
+      "from": [
+        9.850000000000001,
+        3.2,
+        4.7
+      ],
+      "to": [
+        13.9,
+        4.5,
+        7.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream ankle front",
+      "from": [
+        9.8,
+        3.9,
+        6.7
+      ],
+      "to": [
+        13.950000000000001,
+        10.6,
+        7.9
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream ankle back",
+      "from": [
+        9.8,
+        3.9,
+        9.8
+      ],
+      "to": [
+        13.950000000000001,
+        10.6,
+        11.0
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream ankle left",
+      "from": [
+        9.8,
+        3.9,
+        7.7
+      ],
+      "to": [
+        10.75,
+        10.6,
+        10.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream ankle right",
+      "from": [
+        13.0,
+        3.9,
+        7.7
+      ],
+      "to": [
+        13.950000000000001,
+        10.6,
+        10.05
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right open iron cuff front",
+      "from": [
+        9.55,
+        9.7,
+        6.4
+      ],
+      "to": [
+        14.200000000000001,
+        11.0,
+        8.0
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right open iron cuff back",
+      "from": [
+        9.55,
+        9.7,
+        9.75
+      ],
+      "to": [
+        14.200000000000001,
+        11.0,
+        11.3
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right open iron cuff left",
+      "from": [
+        9.55,
+        9.7,
+        7.8
+      ],
+      "to": [
+        10.700000000000001,
+        11.0,
+        9.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right open iron cuff right",
+      "from": [
+        13.05,
+        9.7,
+        7.8
+      ],
+      "to": [
+        14.200000000000001,
+        11.0,
+        9.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right mint ankle fastening front",
+      "from": [
+        10.0,
+        6.4,
+        6.35
+      ],
+      "to": [
+        13.75,
+        7.65,
+        7.15
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right rear iron heel brace",
+      "from": [
+        9.850000000000001,
+        1.8,
+        10.6
+      ],
+      "to": [
+        13.9,
+        4.9,
+        11.5
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right rear cream ankle band",
+      "from": [
+        9.65,
+        6.4,
+        10.75
+      ],
+      "to": [
+        14.100000000000001,
+        7.65,
+        11.45
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right iron side fastening",
+      "from": [
+        9.350000000000001,
+        6.25,
+        8.2
+      ],
+      "to": [
+        10.3,
+        7.85,
+        9.6
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Paired rear cream leather carry bridge",
+      "from": [
+        5.9,
+        10.0,
+        10.7
+      ],
+      "to": [
+        10.15,
+        10.8,
+        11.4
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

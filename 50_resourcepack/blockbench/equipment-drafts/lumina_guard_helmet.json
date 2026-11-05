@@ -1,0 +1,529 @@
+{
+  "id": "lumina_guard_helmet",
+  "master_id": "20a00426",
+  "kind": "armor",
+  "intent": "Lv25 RARE。実masterの工芸・光沢をもつ鉄と明るい染め革を、クリーム色 #E8D7A0 の大きい革面と明るい鉄の角枠で表す。二本の低い冠レール、広い眉枠、開いた顔、四角いミント留め具。後頭部は折り鉄の縦継ぎと本物のナペ把持部。Noxより明瞭な段差と仕上げを与えるが、写実彫刻・尖角・発光を使わずMinecraft密度に保つ。",
+  "grip": [
+    8,
+    3.7,
+    11.5
+  ],
+  "materials": {
+    "cream_leather": {
+      "palette": [
+        "#786746",
+        "#AC9464",
+        "#D0B980",
+        "#E8D7A0",
+        "#F6E8BC"
+      ],
+      "pattern": [
+        "23333332",
+        "23433332",
+        "23333332",
+        "23323332",
+        "23333332",
+        "23333432",
+        "22333322",
+        "12222221"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#5F523B",
+        "#8F7953",
+        "#B49A68",
+        "#D7C18C",
+        "#EBDDAD"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "#46585E",
+        "#738B90",
+        "#A7BAB9",
+        "#D2DFD8",
+        "#EDF2E3",
+        "#FBF7E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23344432",
+        "23333332",
+        "23433332",
+        "23333332",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#62797E",
+        "#8DA6A7",
+        "#B8CCC7",
+        "#E0EADD",
+        "#FFF9E8"
+      ],
+      "pattern": [
+        "34444443",
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "#33454D",
+        "#4D6670",
+        "#718B93",
+        "#A4B7B8",
+        "#D1DCD5"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "mint_fastener": {
+      "palette": [
+        "#285B58",
+        "#3D7E73",
+        "#5B9C8B",
+        "#87BC9D",
+        "#B7D6AE"
+      ],
+      "pattern": [
+        "23333332",
+        "23343332",
+        "22333322",
+        "22333322",
+        "22333322",
+        "22333322",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Cream rear helmet shell",
+      "from": [
+        3.0,
+        4.0,
+        10.1
+      ],
+      "to": [
+        13.0,
+        13.0,
+        11.7
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left cream side shell",
+      "from": [
+        2.8,
+        4.8,
+        5.8
+      ],
+      "to": [
+        4.3,
+        12.9,
+        10.6
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right cream side shell",
+      "from": [
+        11.7,
+        4.8,
+        5.8
+      ],
+      "to": [
+        13.2,
+        12.9,
+        10.6
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Bright square crown roof",
+      "from": [
+        2.8,
+        12.6,
+        5.5
+      ],
+      "to": [
+        13.2,
+        13.8,
+        11.9
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Cream raised central crown",
+      "from": [
+        4.1,
+        13.65,
+        6.0
+      ],
+      "to": [
+        11.9,
+        14.5,
+        11.3
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left low iron crown rail",
+      "from": [
+        4.0,
+        14.35,
+        6.0
+      ],
+      "to": [
+        5.1,
+        15.1,
+        11.3
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right low iron crown rail",
+      "from": [
+        10.9,
+        14.35,
+        6.0
+      ],
+      "to": [
+        12.0,
+        15.1,
+        11.3
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad bright iron forehead",
+      "from": [
+        2.8,
+        10.8,
+        4.8
+      ],
+      "to": [
+        13.2,
+        12.85,
+        6.1
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Cream brow inset left",
+      "from": [
+        4.1,
+        11.05,
+        4.4
+      ],
+      "to": [
+        7.3,
+        12.5,
+        5.0
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Cream brow inset right",
+      "from": [
+        8.7,
+        11.05,
+        4.4
+      ],
+      "to": [
+        11.9,
+        12.5,
+        5.0
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Square mint maker clasp",
+      "from": [
+        7.2,
+        11.0,
+        4.1
+      ],
+      "to": [
+        8.8,
+        12.6,
+        4.95
+      ],
+      "material": "mint_fastener",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left bright cheek upright",
+      "from": [
+        2.75,
+        5.2,
+        4.85
+      ],
+      "to": [
+        4.4,
+        10.95,
+        6.2
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left cream cheek lower step",
+      "from": [
+        2.9,
+        4.25,
+        5.2
+      ],
+      "to": [
+        4.25,
+        6.5,
+        6.6
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left broad iron temple block",
+      "from": [
+        2.65,
+        8.7,
+        7.0
+      ],
+      "to": [
+        4.65,
+        11.5,
+        9.5
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left mint side securing tab",
+      "from": [
+        2.55,
+        7.4,
+        8.2
+      ],
+      "to": [
+        4.55,
+        8.9,
+        9.35
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right bright cheek upright",
+      "from": [
+        11.6,
+        5.2,
+        4.85
+      ],
+      "to": [
+        13.25,
+        10.95,
+        6.2
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right cream cheek lower step",
+      "from": [
+        11.75,
+        4.25,
+        5.2
+      ],
+      "to": [
+        13.1,
+        6.5,
+        6.6
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right broad iron temple block",
+      "from": [
+        11.5,
+        8.7,
+        7.0
+      ],
+      "to": [
+        13.5,
+        11.5,
+        9.5
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right mint side securing tab",
+      "from": [
+        11.4,
+        7.4,
+        8.2
+      ],
+      "to": [
+        13.4,
+        8.9,
+        9.35
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Cream rear nape skirt",
+      "from": [
+        2.8,
+        3.65,
+        10.5
+      ],
+      "to": [
+        13.2,
+        5.25,
+        12.1
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Bright rear nape lower rim",
+      "from": [
+        2.8,
+        3.2,
+        10.45
+      ],
+      "to": [
+        13.2,
+        4.15,
+        12.3
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Rear cream carry band",
+      "from": [
+        3.3,
+        6.7,
+        11.55
+      ],
+      "to": [
+        12.7,
+        7.9,
+        12.35
+      ],
+      "material": "cream_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Rear rectangular iron closure",
+      "from": [
+        6.6,
+        6.4,
+        12.1
+      ],
+      "to": [
+        9.4,
+        8.15,
+        12.9
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Rear mint closure inset",
+      "from": [
+        7.3,
+        6.8,
+        12.7
+      ],
+      "to": [
+        8.7,
+        7.8,
+        13.1
+      ],
+      "material": "mint_fastener",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Rear center folded iron seam",
+      "from": [
+        7.5,
+        8.0,
+        11.65
+      ],
+      "to": [
+        8.5,
+        13.85,
+        12.3
+      ],
+      "material": "iron_shadow",
+      "side": "iron_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}
