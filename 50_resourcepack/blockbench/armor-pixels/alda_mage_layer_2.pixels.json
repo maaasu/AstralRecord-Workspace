@@ -1,0 +1,292 @@
+{
+  "size": [
+    64,
+    32
+  ],
+  "palette": {
+    ".": "00000000",
+    "p": "4A2A69FF",
+    "l": "65448AFF",
+    "d": "332240FF",
+    "e": "AFB2AEFF",
+    "s": "82818BFF",
+    "r": "B396CAFF",
+    "h": "D5C4DEFF",
+    "b": "604B5CFF",
+    "k": "443747FF",
+    "o": "30343EFF",
+    "f": "42324DFF"
+  },
+  "face_grids": {
+    "body/front": [
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "eeeeeeee",
+      "ppbrhbpp",
+      "dddbpddd"
+    ],
+    "body/back": [
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "eeeeeeee",
+      "pppldppp",
+      "dddddddd"
+    ],
+    "body/left": [
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "eeee",
+      "pppp",
+      "dddd"
+    ],
+    "body/right": [
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "eeee",
+      "pppp",
+      "dddd"
+    ],
+    "body/top": [
+      "........",
+      "........",
+      "........",
+      "........"
+    ],
+    "body/bottom": [
+      "eeeeeeee",
+      "e......e",
+      "e......e",
+      "eeeeeeee"
+    ],
+    "leg/front": [
+      "dplp",
+      "dprp",
+      "dphp",
+      "dprp",
+      "dprp",
+      "dphd",
+      "dplp",
+      "dpld",
+      "spps",
+      "dpld",
+      "eeee",
+      "sssd"
+    ],
+    "leg/back": [
+      "pldp",
+      "eeep",
+      "pldp",
+      "pddp",
+      "pldp",
+      "pldp",
+      "pddp",
+      "pldp",
+      "dpld",
+      "dpld",
+      "eeee",
+      "sssd"
+    ],
+    "leg/left": [
+      "dplp",
+      "dplp",
+      "dprp",
+      "dpdp",
+      "dprp",
+      "dplp",
+      "dplp",
+      "dpld",
+      "dpld",
+      "dpld",
+      "eeee",
+      "sssd"
+    ],
+    "leg/right": [
+      "dplp",
+      "dplp",
+      "dprp",
+      "dpdp",
+      "dprp",
+      "dplp",
+      "dplp",
+      "dpld",
+      "dpld",
+      "dpld",
+      "eeee",
+      "sssd"
+    ],
+    "leg/top": [
+      "eeee",
+      "e..e",
+      "e..e",
+      "eeee"
+    ],
+    "leg/bottom": [
+      "eeee",
+      "e..e",
+      "e..e",
+      "eeee"
+    ]
+  },
+  "used_regions": [
+    {
+      "part": "body",
+      "face": "front",
+      "rect": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "nontransparent": 24
+    },
+    {
+      "part": "body",
+      "face": "back",
+      "rect": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "nontransparent": 24
+    },
+    {
+      "part": "body",
+      "face": "left",
+      "rect": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 12
+    },
+    {
+      "part": "body",
+      "face": "right",
+      "rect": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 12
+    },
+    {
+      "part": "body",
+      "face": "top",
+      "rect": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "nontransparent": 0
+    },
+    {
+      "part": "body",
+      "face": "bottom",
+      "rect": [
+        28,
+        16,
+        8,
+        4
+      ],
+      "nontransparent": 20
+    },
+    {
+      "part": "leg",
+      "face": "front",
+      "rect": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 48
+    },
+    {
+      "part": "leg",
+      "face": "back",
+      "rect": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 48
+    },
+    {
+      "part": "leg",
+      "face": "left",
+      "rect": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 48
+    },
+    {
+      "part": "leg",
+      "face": "right",
+      "rect": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 48
+    },
+    {
+      "part": "leg",
+      "face": "top",
+      "rect": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "nontransparent": 12
+    },
+    {
+      "part": "leg",
+      "face": "bottom",
+      "rect": [
+        8,
+        16,
+        4,
+        4
+      ],
+      "nontransparent": 12
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "id": "alda_origin_circlet",
+  "master_id": "20a00058",
+  "kind": "armor",
+  "intent": "Lv15 RARE・始源遺跡の星冠。始源の光を編み込む紫の織帯を、巨石建築の段型まぐさと低い側柱で表現。中央は角形文字の織りで宝飾品にはしない。額より下と頭頂は大きく開放。後頭部の実体のある帯をcarry点とする。Lv3の単純な石留めから段型構成と全周の文字縁へ進歩し、上位の豪華な冠にはしない。",
+  "grip": [
+    8,
+    9.3,
+    11.0
+  ],
+  "materials": {
+    "purple_weave": {
+      "palette": [
+        "281B3D",
+        "3B2557",
+        "4A2A69",
+        "65448A",
+        "80639F"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12223221",
+        "12222221",
+        "11222211",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "21192E",
+        "332240",
+        "483055",
+        "60436E",
+        "775B86"
+      ],
+      "pattern": [
+        "12333221",
+        "12332221",
+        "12322221",
+        "12322221",
+        "12322221",
+        "12222211",
+        "11222110",
+        "00111000"
+      ]
+    },
+    "binding": {
+      "palette": [
+        "31303F",
+        "555363",
+        "82818B",
+        "AFB2AE",
+        "CED2BF"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "stone": {
+      "palette": [
+        "43434F",
+        "6B6D76",
+        "969B9C",
+        "C0C6B9",
+        "D9DDC8"
+      ],
+      "pattern": [
+        "23333332",
+        "12333321",
+        "12222221",
+        "12223221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "rune": {
+      "palette": [
+        "322140",
+        "563969",
+        "8D6BA8",
+        "B396CA",
+        "D5C4DE"
+      ],
+      "pattern": [
+        "11111111",
+        "12222111",
+        "12112111",
+        "12112111",
+        "12223111",
+        "11113111",
+        "11223111",
+        "11111111"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "2B2430",
+        "443747",
+        "604B5C",
+        "7D6473",
+        "99818C"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11122111",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Purple woven lintel brow",
+      "from": [
+        3.35,
+        8.7,
+        4.8
+      ],
+      "to": [
+        12.65,
+        10.0,
+        5.8
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Left woven temple band",
+      "from": [
+        3.35,
+        8.7,
+        5.7
+      ],
+      "to": [
+        4.25,
+        10.0,
+        11.0
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Right woven temple band",
+      "from": [
+        11.75,
+        8.7,
+        5.7
+      ],
+      "to": [
+        12.65,
+        10.0,
+        11.0
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Rear continuous cloth carrying band",
+      "from": [
+        3.35,
+        8.7,
+        10.5
+      ],
+      "to": [
+        12.65,
+        10.0,
+        11.4
+      ],
+      "material": "leather",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Lower square stone brow edging",
+      "from": [
+        3.35,
+        8.6,
+        4.6
+      ],
+      "to": [
+        12.65,
+        9.0,
+        5.0
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Stepped centre lintel base",
+      "from": [
+        5.7,
+        9.8,
+        4.6
+      ],
+      "to": [
+        10.3,
+        10.6,
+        5.65
+      ],
+      "material": "binding",
+      "side": "stone"
+    },
+    {
+      "name": "Stepped centre lintel crown",
+      "from": [
+        6.8,
+        10.5,
+        4.75
+      ],
+      "to": [
+        9.2,
+        11.5,
+        5.7
+      ],
+      "material": "stone"
+    },
+    {
+      "name": "Central woven origin glyph",
+      "from": [
+        7.5,
+        9.35,
+        4.3
+      ],
+      "to": [
+        8.5,
+        10.95,
+        4.85
+      ],
+      "material": "rune",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Glyph upper square light stitch",
+      "from": [
+        7.6,
+        10.5,
+        4.15
+      ],
+      "to": [
+        8.4,
+        11.0,
+        4.5
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Left low temple pier",
+      "from": [
+        3.15,
+        8.1,
+        5.0
+      ],
+      "to": [
+        4.35,
+        10.5,
+        6.8
+      ],
+      "material": "stone",
+      "side": "binding"
+    },
+    {
+      "name": "Left temple inset cloth",
+      "from": [
+        3.09,
+        8.5,
+        6.7
+      ],
+      "to": [
+        4.41,
+        9.8,
+        8.6
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Left temple short glyph tab",
+      "from": [
+        3.4,
+        7.6,
+        7.9
+      ],
+      "to": [
+        4.1,
+        9.0,
+        8.7
+      ],
+      "material": "rune",
+      "side": "binding"
+    },
+    {
+      "name": "Right low temple pier",
+      "from": [
+        11.65,
+        8.1,
+        5.0
+      ],
+      "to": [
+        12.85,
+        10.5,
+        6.8
+      ],
+      "material": "stone",
+      "side": "binding"
+    },
+    {
+      "name": "Right temple inset cloth",
+      "from": [
+        11.59,
+        8.5,
+        6.7
+      ],
+      "to": [
+        12.91,
+        9.8,
+        8.6
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Right temple short glyph tab",
+      "from": [
+        11.9,
+        7.6,
+        7.9
+      ],
+      "to": [
+        12.6,
+        9.0,
+        8.7
+      ],
+      "material": "rune",
+      "side": "binding"
+    },
+    {
+      "name": "Rear squared woven join",
+      "from": [
+        6.9,
+        8.5,
+        11.2
+      ],
+      "to": [
+        9.1,
+        10.2,
+        11.85
+      ],
+      "material": "binding",
+      "side": "leather"
+    },
+    {
+      "name": "Rear inset origin stitch",
+      "from": [
+        7.5,
+        9.0,
+        11.75
+      ],
+      "to": [
+        8.5,
+        9.8,
+        12.05
+      ],
+      "material": "rune"
+    },
+    {
+      "name": "Left short rear cloth tail",
+      "from": [
+        6.4,
+        7.1,
+        11.05
+      ],
+      "to": [
+        7.3,
+        8.9,
+        11.65
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Right stepped rear cloth tail",
+      "from": [
+        8.7,
+        7.65,
+        11.05
+      ],
+      "to": [
+        9.6,
+        8.9,
+        11.65
+      ],
+      "material": "fold",
+      "side": "binding"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      18,
+      154,
+      0
+    ],
+    "scale": 1.1
+  },
+  "wearable_texture_set": "alda_mage",
+  "wearable_source": "armor/author_alda_mage.py"
+}

@@ -1,0 +1,284 @@
+{
+  "size": [
+    64,
+    32
+  ],
+  "palette": {
+    ".": "00000000",
+    "p": "4A2A69FF",
+    "l": "65448AFF",
+    "d": "332240FF",
+    "e": "AFB2AEFF",
+    "s": "82818BFF",
+    "r": "B396CAFF",
+    "h": "D5C4DEFF",
+    "b": "604B5CFF",
+    "k": "443747FF",
+    "o": "30343EFF",
+    "f": "42324DFF"
+  },
+  "face_grids": {
+    "head/front": [
+      "..sees..",
+      "ppphrppp",
+      "eesrseee",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........"
+    ],
+    "head/back": [
+      "........",
+      "ppprhplp",
+      "eeeeeeee",
+      "..p..d..",
+      "..e.....",
+      "........",
+      "........",
+      "........"
+    ],
+    "head/left": [
+      "........",
+      "epplpppe",
+      "espplpse",
+      "e..r...e",
+      "........",
+      "........",
+      "........",
+      "........"
+    ],
+    "head/right": [
+      "........",
+      "epplpppe",
+      "espplpse",
+      "e..r...e",
+      "........",
+      "........",
+      "........",
+      "........"
+    ],
+    "head/top": [
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........"
+    ],
+    "head/bottom": [
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........",
+      "........"
+    ],
+    "leg/front": [
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "eeee",
+      "pplp",
+      "b..b",
+      "prhp",
+      "pllp",
+      "oooo"
+    ],
+    "leg/back": [
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "eeee",
+      "pplp",
+      "bkbb",
+      "brhb",
+      "bkkb",
+      "oooo"
+    ],
+    "leg/left": [
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "eeee",
+      "pplp",
+      "b..b",
+      "p..p",
+      "pllp",
+      "oooo"
+    ],
+    "leg/right": [
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "....",
+      "eeee",
+      "pplp",
+      "b..b",
+      "p..p",
+      "pllp",
+      "oooo"
+    ],
+    "leg/top": [
+      "....",
+      "....",
+      "....",
+      "...."
+    ],
+    "leg/bottom": [
+      "oooo",
+      "okko",
+      "okko",
+      "oooo"
+    ]
+  },
+  "used_regions": [
+    {
+      "part": "head",
+      "face": "front",
+      "rect": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "nontransparent": 20
+    },
+    {
+      "part": "head",
+      "face": "back",
+      "rect": [
+        24,
+        8,
+        8,
+        8
+      ],
+      "nontransparent": 19
+    },
+    {
+      "part": "head",
+      "face": "left",
+      "rect": [
+        0,
+        8,
+        8,
+        8
+      ],
+      "nontransparent": 19
+    },
+    {
+      "part": "head",
+      "face": "right",
+      "rect": [
+        16,
+        8,
+        8,
+        8
+      ],
+      "nontransparent": 19
+    },
+    {
+      "part": "head",
+      "face": "top",
+      "rect": [
+        8,
+        0,
+        8,
+        8
+      ],
+      "nontransparent": 0
+    },
+    {
+      "part": "head",
+      "face": "bottom",
+      "rect": [
+        16,
+        0,
+        8,
+        8
+      ],
+      "nontransparent": 0
+    },
+    {
+      "part": "leg",
+      "face": "front",
+      "rect": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 22
+    },
+    {
+      "part": "leg",
+      "face": "back",
+      "rect": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 24
+    },
+    {
+      "part": "leg",
+      "face": "left",
+      "rect": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 20
+    },
+    {
+      "part": "leg",
+      "face": "right",
+      "rect": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "nontransparent": 20
+    },
+    {
+      "part": "leg",
+      "face": "top",
+      "rect": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "nontransparent": 0
+    },
+    {
+      "part": "leg",
+      "face": "bottom",
+      "rect": [
+        8,
+        16,
+        4,
+        4
+      ],
+      "nontransparent": 16
+    }
+  ]
+}

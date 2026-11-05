@@ -1,0 +1,736 @@
+{
+  "id": "alda_origin_trousers",
+  "master_id": "20a00066",
+  "kind": "armor",
+  "intent": "Lv15 RARE・始源遺跡の魔導脚衣。石壁に残る始源文字を紫の垂直織り帯へ入れ、幅広の上脚と一段絞った裾で軽装の脚衣を作る。前後左右を布で連続させ、腰と裾は開口。前の帯実体がcarry点。Lv3から文字織り・段型裾・後ろの折り目へ進歩し、金属の脚鎧や最高位の刺繍過多にはしない。",
+  "grip": [
+    8,
+    12.1,
+    5.25
+  ],
+  "materials": {
+    "purple_weave": {
+      "palette": [
+        "281B3D",
+        "3B2557",
+        "4A2A69",
+        "65448A",
+        "80639F"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12223221",
+        "12222221",
+        "11222211",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "21192E",
+        "332240",
+        "483055",
+        "60436E",
+        "775B86"
+      ],
+      "pattern": [
+        "12333221",
+        "12332221",
+        "12322221",
+        "12322221",
+        "12322221",
+        "12222211",
+        "11222110",
+        "00111000"
+      ]
+    },
+    "binding": {
+      "palette": [
+        "31303F",
+        "555363",
+        "82818B",
+        "AFB2AE",
+        "CED2BF"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "rune": {
+      "palette": [
+        "322140",
+        "563969",
+        "8D6BA8",
+        "B396CA",
+        "D5C4DE"
+      ],
+      "pattern": [
+        "11111111",
+        "12222111",
+        "12112111",
+        "12112111",
+        "12223111",
+        "11113111",
+        "11223111",
+        "11111111"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "2B2430",
+        "443747",
+        "604B5C",
+        "7D6473",
+        "99818C"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11122111",
+        "00111100"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "201927",
+        "302538",
+        "42324D",
+        "5A4564"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Front broad woven waistband",
+      "from": [
+        2.8,
+        11.6,
+        5.0
+      ],
+      "to": [
+        13.2,
+        13.0,
+        6.0
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Rear broad woven waistband",
+      "from": [
+        2.8,
+        11.6,
+        10.0
+      ],
+      "to": [
+        13.2,
+        13.0,
+        11.0
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Left waistband turn",
+      "from": [
+        2.8,
+        11.6,
+        5.9
+      ],
+      "to": [
+        3.8,
+        13.0,
+        10.1
+      ],
+      "material": "fold",
+      "side": "binding"
+    },
+    {
+      "name": "Right waistband turn",
+      "from": [
+        12.2,
+        11.6,
+        5.9
+      ],
+      "to": [
+        13.2,
+        13.0,
+        10.1
+      ],
+      "material": "fold",
+      "side": "binding"
+    },
+    {
+      "name": "Left loose upper leg front",
+      "from": [
+        2.9,
+        6.1,
+        5.1
+      ],
+      "to": [
+        7.75,
+        11.85,
+        6.1
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Left loose upper leg rear",
+      "from": [
+        2.9,
+        6.1,
+        9.9
+      ],
+      "to": [
+        7.75,
+        11.85,
+        10.9
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Left outer side fabric",
+      "from": [
+        2.9,
+        6.1,
+        6.0
+      ],
+      "to": [
+        3.75,
+        11.85,
+        10.0
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left inner side fabric",
+      "from": [
+        6.9,
+        6.1,
+        6.0
+      ],
+      "to": [
+        7.75,
+        11.85,
+        10.0
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left tapered lower leg front",
+      "from": [
+        3.1999999999999997,
+        2.2,
+        5.4
+      ],
+      "to": [
+        7.449999999999999,
+        6.3,
+        6.25
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Left tapered lower leg rear",
+      "from": [
+        3.1999999999999997,
+        2.2,
+        9.8
+      ],
+      "to": [
+        7.449999999999999,
+        6.3,
+        10.6
+      ],
+      "material": "fold",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Left lower outside fabric",
+      "from": [
+        3.1999999999999997,
+        2.2,
+        6.1
+      ],
+      "to": [
+        3.95,
+        6.3,
+        9.95
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left lower inside fabric",
+      "from": [
+        6.699999999999999,
+        2.2,
+        6.1
+      ],
+      "to": [
+        7.449999999999999,
+        6.3,
+        9.95
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left stepped cuff front",
+      "from": [
+        3.15,
+        1.45,
+        5.3
+      ],
+      "to": [
+        7.5,
+        2.4,
+        6.35
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Left stepped cuff rear",
+      "from": [
+        3.15,
+        1.45,
+        9.65
+      ],
+      "to": [
+        7.5,
+        2.4,
+        10.7
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Left cuff outer side",
+      "from": [
+        3.15,
+        1.45,
+        6.25
+      ],
+      "to": [
+        3.9,
+        2.4,
+        9.8
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Left cuff inner side",
+      "from": [
+        6.75,
+        1.45,
+        6.25
+      ],
+      "to": [
+        7.5,
+        2.4,
+        9.8
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Left inset vertical origin cloth strip",
+      "from": [
+        4.5,
+        6.0,
+        4.85
+      ],
+      "to": [
+        5.55,
+        11.65,
+        5.4
+      ],
+      "material": "rune",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Left short lower lintel stitch",
+      "from": [
+        3.9,
+        4.4,
+        5.15
+      ],
+      "to": [
+        6.15,
+        5.0,
+        5.7
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Left rear pocket upper fold",
+      "from": [
+        3.5,
+        9.6,
+        10.75
+      ],
+      "to": [
+        6.5,
+        10.2,
+        11.05
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Left rear soft fold",
+      "from": [
+        6.05,
+        6.5,
+        10.65
+      ],
+      "to": [
+        6.65,
+        9.8,
+        11.05
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right loose upper leg front",
+      "from": [
+        8.25,
+        6.1,
+        5.1
+      ],
+      "to": [
+        13.1,
+        11.85,
+        6.1
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Right loose upper leg rear",
+      "from": [
+        8.25,
+        6.1,
+        9.9
+      ],
+      "to": [
+        13.1,
+        11.85,
+        10.9
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Right outer side fabric",
+      "from": [
+        8.25,
+        6.1,
+        6.0
+      ],
+      "to": [
+        9.1,
+        11.85,
+        10.0
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right inner side fabric",
+      "from": [
+        12.25,
+        6.1,
+        6.0
+      ],
+      "to": [
+        13.1,
+        11.85,
+        10.0
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right tapered lower leg front",
+      "from": [
+        8.55,
+        2.2,
+        5.4
+      ],
+      "to": [
+        12.8,
+        6.3,
+        6.25
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Right tapered lower leg rear",
+      "from": [
+        8.55,
+        2.2,
+        9.8
+      ],
+      "to": [
+        12.8,
+        6.3,
+        10.6
+      ],
+      "material": "fold",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Right lower outside fabric",
+      "from": [
+        8.55,
+        2.2,
+        6.1
+      ],
+      "to": [
+        9.3,
+        6.3,
+        9.95
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right lower inside fabric",
+      "from": [
+        12.05,
+        2.2,
+        6.1
+      ],
+      "to": [
+        12.8,
+        6.3,
+        9.95
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right stepped cuff front",
+      "from": [
+        8.5,
+        1.45,
+        5.3
+      ],
+      "to": [
+        12.85,
+        2.4,
+        6.35
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Right stepped cuff rear",
+      "from": [
+        8.5,
+        1.45,
+        9.65
+      ],
+      "to": [
+        12.85,
+        2.4,
+        10.7
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Right cuff outer side",
+      "from": [
+        8.5,
+        1.45,
+        6.25
+      ],
+      "to": [
+        9.25,
+        2.4,
+        9.8
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Right cuff inner side",
+      "from": [
+        12.1,
+        1.45,
+        6.25
+      ],
+      "to": [
+        12.85,
+        2.4,
+        9.8
+      ],
+      "material": "binding",
+      "side": "lining"
+    },
+    {
+      "name": "Right inset vertical origin cloth strip",
+      "from": [
+        9.85,
+        6.0,
+        4.85
+      ],
+      "to": [
+        10.9,
+        11.65,
+        5.4
+      ],
+      "material": "rune",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Right short lower lintel stitch",
+      "from": [
+        9.25,
+        4.4,
+        5.15
+      ],
+      "to": [
+        11.5,
+        5.0,
+        5.7
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Right rear pocket upper fold",
+      "from": [
+        8.85,
+        9.6,
+        10.75
+      ],
+      "to": [
+        11.85,
+        10.2,
+        11.05
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Right rear soft fold",
+      "from": [
+        11.4,
+        6.5,
+        10.65
+      ],
+      "to": [
+        12.0,
+        9.8,
+        11.05
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Front narrow stonecolour waist seam",
+      "from": [
+        2.8,
+        12.55,
+        4.8
+      ],
+      "to": [
+        13.2,
+        12.95,
+        5.25
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Squared woven belt join",
+      "from": [
+        7.15,
+        11.65,
+        4.65
+      ],
+      "to": [
+        8.85,
+        12.9,
+        5.4
+      ],
+      "material": "leather",
+      "side": "binding"
+    },
+    {
+      "name": "Inset square cloth origin seal",
+      "from": [
+        7.5,
+        11.9,
+        4.4
+      ],
+      "to": [
+        8.5,
+        12.6,
+        4.85
+      ],
+      "material": "rune"
+    },
+    {
+      "name": "Offset hanging belt cloth",
+      "from": [
+        8.8,
+        9.7,
+        4.75
+      ],
+      "to": [
+        9.55,
+        11.8,
+        5.4
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Rear waist reinforcement seam",
+      "from": [
+        7.6,
+        11.6,
+        10.8
+      ],
+      "to": [
+        8.4,
+        12.8,
+        11.25
+      ],
+      "material": "binding"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      18,
+      154,
+      0
+    ],
+    "scale": 1.1
+  },
+  "wearable_texture_set": "alda_mage",
+  "wearable_source": "armor/author_alda_mage.py"
+}

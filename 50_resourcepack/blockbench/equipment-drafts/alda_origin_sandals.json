@@ -1,0 +1,665 @@
+{
+  "id": "alda_origin_sandals",
+  "master_id": "20a00065",
+  "kind": "armor",
+  "intent": "Lv15 RARE・始源遺跡の魔導靴。足元へ魔力を流す軽い靴を、低い角形つま先・開いた甲と足首・紫織りの幅広ストラップで表現。厚い金属靴ではなく、薄い段型ソールと小さな始源文字を全周へ配置。左右対を後ろの布紐で実際に結び、その結び目がcarry点。Lv3サンダルから閉じたつま先と踵補強へ進歩し、上位の装飾や写実皮革にはしない。",
+  "grip": [
+    8,
+    6.0,
+    11.0
+  ],
+  "materials": {
+    "purple_weave": {
+      "palette": [
+        "281B3D",
+        "3B2557",
+        "4A2A69",
+        "65448A",
+        "80639F"
+      ],
+      "pattern": [
+        "12222221",
+        "12322221",
+        "12222221",
+        "12223221",
+        "12222221",
+        "11222211",
+        "11222211",
+        "00111100"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "21192E",
+        "332240",
+        "483055",
+        "60436E",
+        "775B86"
+      ],
+      "pattern": [
+        "12333221",
+        "12332221",
+        "12322221",
+        "12322221",
+        "12322221",
+        "12222211",
+        "11222110",
+        "00111000"
+      ]
+    },
+    "binding": {
+      "palette": [
+        "31303F",
+        "555363",
+        "82818B",
+        "AFB2AE",
+        "CED2BF"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "rune": {
+      "palette": [
+        "322140",
+        "563969",
+        "8D6BA8",
+        "B396CA",
+        "D5C4DE"
+      ],
+      "pattern": [
+        "11111111",
+        "12222111",
+        "12112111",
+        "12112111",
+        "12223111",
+        "11113111",
+        "11223111",
+        "11111111"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "2B2430",
+        "443747",
+        "604B5C",
+        "7D6473",
+        "99818C"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11122111",
+        "00111100"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "1C2029",
+        "30343E",
+        "454B55",
+        "616773"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left light squared sole",
+      "from": [
+        2.7,
+        1.1,
+        4.0
+      ],
+      "to": [
+        7.3,
+        1.85,
+        11.4
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left purple leather footbed",
+      "from": [
+        2.8000000000000003,
+        1.8,
+        4.15
+      ],
+      "to": [
+        7.2,
+        2.2,
+        11.25
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left low squared toe cap",
+      "from": [
+        2.8000000000000003,
+        2.1,
+        4.15
+      ],
+      "to": [
+        7.2,
+        3.6,
+        6.1
+      ],
+      "material": "purple_weave",
+      "side": "fold",
+      "cap": "purple_weave"
+    },
+    {
+      "name": "Left upper toe step",
+      "from": [
+        3.2,
+        3.55,
+        4.55
+      ],
+      "to": [
+        6.8,
+        3.95,
+        5.8
+      ],
+      "material": "fold",
+      "side": "binding"
+    },
+    {
+      "name": "Left narrow toe binding",
+      "from": [
+        2.8000000000000003,
+        2.8,
+        4.0
+      ],
+      "to": [
+        7.2,
+        3.25,
+        4.35
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Left outer low shoe wall",
+      "from": [
+        2.75,
+        2.1,
+        5.8
+      ],
+      "to": [
+        3.5500000000000003,
+        4.45,
+        10.8
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Left inner low shoe wall",
+      "from": [
+        6.45,
+        2.1,
+        5.8
+      ],
+      "to": [
+        7.25,
+        4.45,
+        10.8
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Left square heel counter",
+      "from": [
+        2.8000000000000003,
+        2.1,
+        10.4
+      ],
+      "to": [
+        7.2,
+        6.1,
+        11.25
+      ],
+      "material": "leather",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Left broad instep woven strap",
+      "from": [
+        3.25,
+        3.75,
+        7.25
+      ],
+      "to": [
+        6.75,
+        4.55,
+        8.6
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Left outer strap anchor",
+      "from": [
+        2.8000000000000003,
+        2.2,
+        7.25
+      ],
+      "to": [
+        3.5,
+        4.45,
+        8.6
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left inner strap anchor",
+      "from": [
+        6.5,
+        2.2,
+        7.25
+      ],
+      "to": [
+        7.2,
+        4.45,
+        8.6
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left small origin strap tab",
+      "from": [
+        4.550000000000001,
+        4.45,
+        7.4
+      ],
+      "to": [
+        5.45,
+        4.8,
+        8.4
+      ],
+      "material": "rune"
+    },
+    {
+      "name": "Left front ankle cuff",
+      "from": [
+        2.8000000000000003,
+        5.4,
+        9.0
+      ],
+      "to": [
+        7.2,
+        6.2,
+        9.7
+      ],
+      "material": "binding",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Left outer ankle turn",
+      "from": [
+        2.8000000000000003,
+        4.25,
+        9.0
+      ],
+      "to": [
+        3.5500000000000003,
+        6.2,
+        10.7
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Left inner ankle turn",
+      "from": [
+        6.45,
+        4.25,
+        9.0
+      ],
+      "to": [
+        7.2,
+        6.2,
+        10.7
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Left rear cuff edge",
+      "from": [
+        2.8000000000000003,
+        5.85,
+        10.6
+      ],
+      "to": [
+        7.2,
+        6.3,
+        11.4
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Left rear sole origin notch",
+      "from": [
+        4.45,
+        1.7,
+        11.15
+      ],
+      "to": [
+        5.550000000000001,
+        3.2,
+        11.6
+      ],
+      "material": "rune",
+      "side": "leather"
+    },
+    {
+      "name": "Right light squared sole",
+      "from": [
+        8.7,
+        1.1,
+        4.0
+      ],
+      "to": [
+        13.299999999999999,
+        1.85,
+        11.4
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right purple leather footbed",
+      "from": [
+        8.799999999999999,
+        1.8,
+        4.15
+      ],
+      "to": [
+        13.2,
+        2.2,
+        11.25
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right low squared toe cap",
+      "from": [
+        8.799999999999999,
+        2.1,
+        4.15
+      ],
+      "to": [
+        13.2,
+        3.6,
+        6.1
+      ],
+      "material": "purple_weave",
+      "side": "fold",
+      "cap": "purple_weave"
+    },
+    {
+      "name": "Right upper toe step",
+      "from": [
+        9.2,
+        3.55,
+        4.55
+      ],
+      "to": [
+        12.799999999999999,
+        3.95,
+        5.8
+      ],
+      "material": "fold",
+      "side": "binding"
+    },
+    {
+      "name": "Right narrow toe binding",
+      "from": [
+        8.799999999999999,
+        2.8,
+        4.0
+      ],
+      "to": [
+        13.2,
+        3.25,
+        4.35
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Right outer low shoe wall",
+      "from": [
+        8.75,
+        2.1,
+        5.8
+      ],
+      "to": [
+        9.549999999999999,
+        4.45,
+        10.8
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Right inner low shoe wall",
+      "from": [
+        12.45,
+        2.1,
+        5.8
+      ],
+      "to": [
+        13.25,
+        4.45,
+        10.8
+      ],
+      "material": "purple_weave",
+      "side": "fold"
+    },
+    {
+      "name": "Right square heel counter",
+      "from": [
+        8.799999999999999,
+        2.1,
+        10.4
+      ],
+      "to": [
+        13.2,
+        6.1,
+        11.25
+      ],
+      "material": "leather",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Right broad instep woven strap",
+      "from": [
+        9.25,
+        3.75,
+        7.25
+      ],
+      "to": [
+        12.75,
+        4.55,
+        8.6
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Right outer strap anchor",
+      "from": [
+        8.799999999999999,
+        2.2,
+        7.25
+      ],
+      "to": [
+        9.5,
+        4.45,
+        8.6
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right inner strap anchor",
+      "from": [
+        12.5,
+        2.2,
+        7.25
+      ],
+      "to": [
+        13.2,
+        4.45,
+        8.6
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right small origin strap tab",
+      "from": [
+        10.549999999999999,
+        4.45,
+        7.4
+      ],
+      "to": [
+        11.45,
+        4.8,
+        8.4
+      ],
+      "material": "rune"
+    },
+    {
+      "name": "Right front ankle cuff",
+      "from": [
+        8.799999999999999,
+        5.4,
+        9.0
+      ],
+      "to": [
+        13.2,
+        6.2,
+        9.7
+      ],
+      "material": "binding",
+      "side": "purple_weave"
+    },
+    {
+      "name": "Right outer ankle turn",
+      "from": [
+        8.799999999999999,
+        4.25,
+        9.0
+      ],
+      "to": [
+        9.549999999999999,
+        6.2,
+        10.7
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Right inner ankle turn",
+      "from": [
+        12.45,
+        4.25,
+        9.0
+      ],
+      "to": [
+        13.2,
+        6.2,
+        10.7
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    },
+    {
+      "name": "Right rear cuff edge",
+      "from": [
+        8.799999999999999,
+        5.85,
+        10.6
+      ],
+      "to": [
+        13.2,
+        6.3,
+        11.4
+      ],
+      "material": "binding"
+    },
+    {
+      "name": "Right rear sole origin notch",
+      "from": [
+        10.45,
+        1.7,
+        11.15
+      ],
+      "to": [
+        11.549999999999999,
+        3.2,
+        11.6
+      ],
+      "material": "rune",
+      "side": "leather"
+    },
+    {
+      "name": "Paired shoes rear cloth carrying tie",
+      "from": [
+        6.55,
+        5.65,
+        10.85
+      ],
+      "to": [
+        9.45,
+        6.35,
+        11.3
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Paired carrying tie square knot",
+      "from": [
+        7.5,
+        5.45,
+        10.7
+      ],
+      "to": [
+        8.5,
+        6.65,
+        11.65
+      ],
+      "material": "purple_weave",
+      "side": "binding"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      18,
+      154,
+      0
+    ],
+    "scale": 1.1
+  },
+  "wearable_texture_set": "alda_mage",
+  "wearable_source": "armor/author_alda_mage.py"
+}
