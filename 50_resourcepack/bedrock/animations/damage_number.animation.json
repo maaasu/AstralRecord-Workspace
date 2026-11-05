@@ -20,7 +20,7 @@
           ]
         },
         "line": {
-          "position": ["1.5 * math.max(0, variable.length - 1.0)", 0, 0]
+          "position": ["-1.5 * math.max(0, variable.length - 1.0)", 0, 0]
         }
       }
     }

@@ -133,14 +133,14 @@ def model_and_controller():
         "part_visibility": [],
     }
     for slot in range(SLOTS):
-        # The front face is north in geometry space. Screen-right is negative X.
-        x = round(-slot * 3.0 - 1.4, 3)
+        # The billboard shows the south face to the camera. Screen-right is positive X.
+        x = round(slot * 3.0 - 1.4, 3)
         for glyph in range(len(PATTERNS)):
             name = f"slot_{slot}_glyph_{glyph}"
             bones.append({
                 "name": name, "parent": "line", "pivot": [0, 0, 0],
-                "cubes": [{"origin": [x, -1.8, 0], "size": [2.8, 3.6, 0.125],
-                           "uv": {"north": {"uv": [glyph * CELL, 0], "uv_size": [CELL, HEIGHT]}}}],
+                "cubes": [{"origin": [x, -1.8, -0.125], "size": [2.8, 3.6, 0.125],
+                           "uv": {"south": {"uv": [glyph * CELL, 0], "uv_size": [CELL, HEIGHT]}}}],
             })
             controller["part_visibility"].append({
                 name: f"variable.length > {slot} && query.property('astralrecord:glyph_{slot}') == {glyph}"
