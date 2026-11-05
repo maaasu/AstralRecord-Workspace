@@ -1,0 +1,442 @@
+{
+  "id": "alda_origin_helm",
+  "master_id": "20a00060",
+  "kind": "armor",
+  "intent": "Lv15・建築／巨石の始源遺跡。マスターの重厚な戦冠を、巨石の門の梁と左右の柱に見立てた兜へ。顔中央は大きく開け、上端の一段石と短い青銅の帯で整える。前面の刻み・側頭の留め具・後頭の継ぎ目を区別。実体のある後頭の革帯を手持ち点にする。",
+  "grip": [
+    8,
+    5.2,
+    11.4
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      0
+    ],
+    "scale": 0.95
+  },
+  "materials": {
+    "stone": {
+      "palette": [
+        "44453E",
+        "5E6055",
+        "7B7D6C",
+        "9B9D86",
+        "C2C1A6"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "stone_edge": {
+      "palette": [
+        "373B35",
+        "555E51",
+        "7E8973",
+        "A6AF94",
+        "D0D2B2"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "stone_side": {
+      "palette": [
+        "33382F",
+        "474E40",
+        "5C6652",
+        "778268",
+        "99A286"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12221221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "bronze": {
+      "palette": [
+        "382C20",
+        "59442C",
+        "80633C",
+        "AC8B54",
+        "D4B67C"
+      ],
+      "pattern": [
+        "34444332",
+        "23333321",
+        "12222211",
+        "12233221",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "281D17",
+        "3C2A1D",
+        "5A3B24",
+        "765135",
+        "986C48"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12212221",
+        "12222221",
+        "12222121",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "joint": {
+      "palette": [
+        "252C28",
+        "343C33",
+        "465143",
+        "5B6553"
+      ],
+      "pattern": [
+        "12222221",
+        "12212221",
+        "12222221",
+        "12222221",
+        "12221221",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "carving": {
+      "palette": [
+        "333B33",
+        "535F4B",
+        "7C896C",
+        "A7B18D"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21222212",
+        "21211212",
+        "21211212",
+        "21222212",
+        "21111112",
+        "22222222"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "lintel_crown_roof",
+      "from": [
+        3.2,
+        13,
+        4.5
+      ],
+      "to": [
+        12.8,
+        14.3,
+        12
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "rear_stone_shell",
+      "from": [
+        3.2,
+        5,
+        10.8
+      ],
+      "to": [
+        12.8,
+        13,
+        12
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_temple_pier",
+      "from": [
+        3.2,
+        5.8,
+        4.8
+      ],
+      "to": [
+        4.6,
+        13,
+        10.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_temple_pier",
+      "from": [
+        11.4,
+        5.8,
+        4.8
+      ],
+      "to": [
+        12.8,
+        13,
+        10.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "brow_lintel",
+      "from": [
+        4.5,
+        11.5,
+        4.5
+      ],
+      "to": [
+        11.5,
+        13,
+        5.7
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_cheek_pier",
+      "from": [
+        3.6,
+        5.8,
+        4.5
+      ],
+      "to": [
+        5,
+        10.4,
+        5.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_cheek_pier",
+      "from": [
+        11,
+        5.8,
+        4.5
+      ],
+      "to": [
+        12.4,
+        10.4,
+        5.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "nape_carry_band",
+      "from": [
+        4.5,
+        4.5,
+        10.8
+      ],
+      "to": [
+        11.5,
+        5.8,
+        12
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "dark_inner_rear_liner",
+      "from": [
+        4.55,
+        5.8,
+        10.5
+      ],
+      "to": [
+        11.45,
+        11.5,
+        10.85
+      ],
+      "material": "joint",
+      "side": "joint",
+      "cap": "joint"
+    },
+    {
+      "name": "central_crown_block",
+      "from": [
+        6.4,
+        14.3,
+        6
+      ],
+      "to": [
+        9.6,
+        15.2,
+        10
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "forehead_meander",
+      "from": [
+        6.4,
+        11.8,
+        4.2
+      ],
+      "to": [
+        9.6,
+        12.8,
+        4.55
+      ],
+      "material": "carving",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "brow_bronze_binding",
+      "from": [
+        4.6,
+        11.3,
+        4.2
+      ],
+      "to": [
+        11.4,
+        11.9,
+        4.7
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "left_temple_binding",
+      "from": [
+        3,
+        8,
+        6.4
+      ],
+      "to": [
+        3.5,
+        8.8,
+        11.6
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "left_rear_stud",
+      "from": [
+        3,
+        10.4,
+        10.1
+      ],
+      "to": [
+        3.5,
+        11.2,
+        11.3
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "right_temple_binding",
+      "from": [
+        12.5,
+        8,
+        6.4
+      ],
+      "to": [
+        13,
+        8.8,
+        11.6
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "right_rear_stud",
+      "from": [
+        12.5,
+        10.4,
+        10.1
+      ],
+      "to": [
+        13,
+        11.2,
+        11.3
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "rear_vertical_seam",
+      "from": [
+        7.6,
+        6.3,
+        11.9
+      ],
+      "to": [
+        8.4,
+        13,
+        12.3
+      ],
+      "material": "joint",
+      "side": "joint",
+      "cap": "joint"
+    },
+    {
+      "name": "rear_crown_bind",
+      "from": [
+        5.2,
+        12.2,
+        11.9
+      ],
+      "to": [
+        10.8,
+        12.8,
+        12.4
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    }
+  ]
+}

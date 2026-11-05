@@ -1,0 +1,442 @@
+{
+  "id": "alda_origin_sabaton",
+  "master_id": "20a00064",
+  "kind": "armor",
+  "intent": "Lv15・始源遺跡の踏破甲。床を踏みしめる厚い石の爪先、暗い積層底、立った脛当てと後踵を別形状にする。左右一対は後ろ上部の褐色革の吊り帯で実際につながり、その帯の内側が手持ち点。軽い靴や写実的な宝飾を避ける。",
+  "grip": [
+    8,
+    9.8,
+    11.2
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      0
+    ],
+    "scale": 0.95
+  },
+  "materials": {
+    "stone": {
+      "palette": [
+        "44453E",
+        "5E6055",
+        "7B7D6C",
+        "9B9D86",
+        "C2C1A6"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "stone_edge": {
+      "palette": [
+        "373B35",
+        "555E51",
+        "7E8973",
+        "A6AF94",
+        "D0D2B2"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "stone_side": {
+      "palette": [
+        "33382F",
+        "474E40",
+        "5C6652",
+        "778268",
+        "99A286"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12221221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "bronze": {
+      "palette": [
+        "382C20",
+        "59442C",
+        "80633C",
+        "AC8B54",
+        "D4B67C"
+      ],
+      "pattern": [
+        "34444332",
+        "23333321",
+        "12222211",
+        "12233221",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "281D17",
+        "3C2A1D",
+        "5A3B24",
+        "765135",
+        "986C48"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12212221",
+        "12222221",
+        "12222121",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "tread": {
+      "palette": [
+        "201F1A",
+        "333026",
+        "494332",
+        "635A40"
+      ],
+      "pattern": [
+        "22222222",
+        "11111111",
+        "11111111",
+        "22222222",
+        "11111111",
+        "11111111",
+        "22222222",
+        "00000000"
+      ]
+    },
+    "carving": {
+      "palette": [
+        "333B33",
+        "535F4B",
+        "7C896C",
+        "A7B18D"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21222212",
+        "21211212",
+        "21211212",
+        "21222212",
+        "21111112",
+        "22222222"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "left_tread_sole",
+      "from": [
+        2.6,
+        2.5,
+        3.9
+      ],
+      "to": [
+        7.2,
+        3.5,
+        11.5
+      ],
+      "material": "tread",
+      "side": "tread",
+      "cap": "tread"
+    },
+    {
+      "name": "left_leather_foot",
+      "from": [
+        2.8000000000000003,
+        3.5,
+        4.2
+      ],
+      "to": [
+        7.0,
+        5.4,
+        11.3
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_ankle_sleeve",
+      "from": [
+        3.0,
+        5,
+        7
+      ],
+      "to": [
+        6.8,
+        10.5,
+        11.5
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_broad_toe_stone",
+      "from": [
+        2.7,
+        4,
+        3.9
+      ],
+      "to": [
+        7.1000000000000005,
+        6,
+        7.7
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_shin_guard",
+      "from": [
+        3.0,
+        6,
+        6.6
+      ],
+      "to": [
+        6.8,
+        10.2,
+        7.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_heel_block",
+      "from": [
+        2.7,
+        3.4,
+        10.8
+      ],
+      "to": [
+        7.1000000000000005,
+        8.3,
+        11.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_ankle_bronze_band",
+      "from": [
+        2.8000000000000003,
+        8.2,
+        6.5
+      ],
+      "to": [
+        7.0,
+        8.8,
+        11.7
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "left_toe_meander",
+      "from": [
+        3.9000000000000004,
+        4.5,
+        3.7
+      ],
+      "to": [
+        5.9,
+        5.6,
+        4.1
+      ],
+      "material": "carving",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_tread_sole",
+      "from": [
+        8.8,
+        2.5,
+        3.9
+      ],
+      "to": [
+        13.4,
+        3.5,
+        11.5
+      ],
+      "material": "tread",
+      "side": "tread",
+      "cap": "tread"
+    },
+    {
+      "name": "right_leather_foot",
+      "from": [
+        9.0,
+        3.5,
+        4.2
+      ],
+      "to": [
+        13.200000000000001,
+        5.4,
+        11.3
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "right_ankle_sleeve",
+      "from": [
+        9.200000000000001,
+        5,
+        7
+      ],
+      "to": [
+        13.0,
+        10.5,
+        11.5
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "right_broad_toe_stone",
+      "from": [
+        8.9,
+        4,
+        3.9
+      ],
+      "to": [
+        13.3,
+        6,
+        7.7
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_shin_guard",
+      "from": [
+        9.200000000000001,
+        6,
+        6.6
+      ],
+      "to": [
+        13.0,
+        10.2,
+        7.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_heel_block",
+      "from": [
+        8.9,
+        3.4,
+        10.8
+      ],
+      "to": [
+        13.3,
+        8.3,
+        11.8
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_ankle_bronze_band",
+      "from": [
+        9.0,
+        8.2,
+        6.5
+      ],
+      "to": [
+        13.200000000000001,
+        8.8,
+        11.7
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "right_toe_meander",
+      "from": [
+        10.100000000000001,
+        4.5,
+        3.7
+      ],
+      "to": [
+        12.1,
+        5.6,
+        4.1
+      ],
+      "material": "carving",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "paired_boot_carry_yoke",
+      "from": [
+        6.6,
+        9.3,
+        10.8
+      ],
+      "to": [
+        9.4,
+        10.4,
+        11.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "yoke_bronze_clasp",
+      "from": [
+        7.5,
+        9.5,
+        11.6
+      ],
+      "to": [
+        8.5,
+        10.2,
+        12
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    }
+  ]
+}

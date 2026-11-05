@@ -1,0 +1,520 @@
+{
+  "id": "alda_origin_greaves",
+  "master_id": "20a00059",
+  "kind": "armor",
+  "intent": "Lv15・始源遺跡の脚甲。揺るがぬ重ね巨石という実マスターを、腰の梁から吊る左右別の腿・膝・脛の三段甲として設計。間に褐色の可動革を残し、背面は三本の留め帯にする。後腰の実体ある吊り革を手持ち点とする。",
+  "grip": [
+    8,
+    16.6,
+    11.3
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      0
+    ],
+    "scale": 0.95
+  },
+  "materials": {
+    "stone": {
+      "palette": [
+        "44453E",
+        "5E6055",
+        "7B7D6C",
+        "9B9D86",
+        "C2C1A6"
+      ],
+      "pattern": [
+        "34444332",
+        "23333322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22233222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "stone_edge": {
+      "palette": [
+        "373B35",
+        "555E51",
+        "7E8973",
+        "A6AF94",
+        "D0D2B2"
+      ],
+      "pattern": [
+        "34444432",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "stone_side": {
+      "palette": [
+        "33382F",
+        "474E40",
+        "5C6652",
+        "778268",
+        "99A286"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12221221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "bronze": {
+      "palette": [
+        "382C20",
+        "59442C",
+        "80633C",
+        "AC8B54",
+        "D4B67C"
+      ],
+      "pattern": [
+        "34444332",
+        "23333321",
+        "12222211",
+        "12233221",
+        "12222211",
+        "12222211",
+        "11111111",
+        "00011000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "281D17",
+        "3C2A1D",
+        "5A3B24",
+        "765135",
+        "986C48"
+      ],
+      "pattern": [
+        "23333332",
+        "12222221",
+        "12212221",
+        "12222221",
+        "12222121",
+        "12222221",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "carving": {
+      "palette": [
+        "333B33",
+        "535F4B",
+        "7C896C",
+        "A7B18D"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21222212",
+        "21211212",
+        "21211212",
+        "21222212",
+        "21111112",
+        "22222222"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "continuous_waist_belt",
+      "from": [
+        3.4,
+        16,
+        5.5
+      ],
+      "to": [
+        12.6,
+        17.4,
+        11
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "front_waist_lintel",
+      "from": [
+        3.6,
+        14.6,
+        5.1
+      ],
+      "to": [
+        12.4,
+        16.4,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "waist_central_clasp",
+      "from": [
+        7,
+        15.5,
+        4.7
+      ],
+      "to": [
+        9,
+        17.5,
+        5.8
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "rear_belt_carry_loop",
+      "from": [
+        6.7,
+        16,
+        10.8
+      ],
+      "to": [
+        9.3,
+        17.2,
+        11.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_continuous_leather_leg",
+      "from": [
+        4,
+        3,
+        6
+      ],
+      "to": [
+        7.6,
+        16,
+        10
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_thigh_slab",
+      "from": [
+        3.8,
+        11,
+        5.3
+      ],
+      "to": [
+        7.8,
+        15.6,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_knee_stone",
+      "from": [
+        3.7,
+        7.8,
+        5
+      ],
+      "to": [
+        7.8999999999999995,
+        10.7,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_shin_slab",
+      "from": [
+        4,
+        3.5,
+        5.3
+      ],
+      "to": [
+        7.6,
+        7.5,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_knee_meander",
+      "from": [
+        4.9,
+        8.4,
+        4.8
+      ],
+      "to": [
+        6.699999999999999,
+        10.1,
+        5.2
+      ],
+      "material": "carving",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "left_rear_leather_strap_5.2",
+      "from": [
+        3.9,
+        5.2,
+        9.8
+      ],
+      "to": [
+        7.699999999999999,
+        5.9,
+        10.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_rear_leather_strap_10.5",
+      "from": [
+        3.9,
+        10.5,
+        9.8
+      ],
+      "to": [
+        7.699999999999999,
+        11.2,
+        10.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_rear_leather_strap_14.2",
+      "from": [
+        3.9,
+        14.2,
+        9.8
+      ],
+      "to": [
+        7.699999999999999,
+        14.899999999999999,
+        10.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "left_overlap_binding_7.3",
+      "from": [
+        3.85,
+        7.3,
+        5.15
+      ],
+      "to": [
+        7.75,
+        7.7,
+        6.5
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "left_overlap_binding_10.7",
+      "from": [
+        3.85,
+        10.7,
+        5.15
+      ],
+      "to": [
+        7.75,
+        11.1,
+        6.5
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "right_continuous_leather_leg",
+      "from": [
+        8.4,
+        3,
+        6
+      ],
+      "to": [
+        12,
+        16,
+        10
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "right_thigh_slab",
+      "from": [
+        8.200000000000001,
+        11,
+        5.3
+      ],
+      "to": [
+        12.2,
+        15.6,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_knee_stone",
+      "from": [
+        8.1,
+        7.8,
+        5
+      ],
+      "to": [
+        12.3,
+        10.7,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_shin_slab",
+      "from": [
+        8.4,
+        3.5,
+        5.3
+      ],
+      "to": [
+        12,
+        7.5,
+        6.4
+      ],
+      "material": "stone",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_knee_meander",
+      "from": [
+        9.3,
+        8.4,
+        4.8
+      ],
+      "to": [
+        11.1,
+        10.1,
+        5.2
+      ],
+      "material": "carving",
+      "side": "stone_side",
+      "cap": "stone_edge"
+    },
+    {
+      "name": "right_rear_leather_strap_5.2",
+      "from": [
+        8.3,
+        5.2,
+        9.8
+      ],
+      "to": [
+        12.1,
+        5.9,
+        10.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "right_rear_leather_strap_10.5",
+      "from": [
+        8.3,
+        10.5,
+        9.8
+      ],
+      "to": [
+        12.1,
+        11.2,
+        10.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "right_rear_leather_strap_14.2",
+      "from": [
+        8.3,
+        14.2,
+        9.8
+      ],
+      "to": [
+        12.1,
+        14.899999999999999,
+        10.7
+      ],
+      "material": "leather",
+      "side": "leather",
+      "cap": "leather"
+    },
+    {
+      "name": "right_overlap_binding_7.3",
+      "from": [
+        8.25,
+        7.3,
+        5.15
+      ],
+      "to": [
+        12.15,
+        7.7,
+        6.5
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    },
+    {
+      "name": "right_overlap_binding_10.7",
+      "from": [
+        8.25,
+        10.7,
+        5.15
+      ],
+      "to": [
+        12.15,
+        11.1,
+        6.5
+      ],
+      "material": "bronze",
+      "side": "bronze",
+      "cap": "bronze"
+    }
+  ]
+}

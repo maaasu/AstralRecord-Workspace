@@ -1,0 +1,1780 @@
+{
+  "credit": "Made with Blockbench",
+  "texture_size": [
+    64,
+    64
+  ],
+  "textures": {
+    "particle": "astralrecord:item/custom/alda_origin_greaves",
+    "surface": "astralrecord:item/custom/alda_origin_greaves"
+  },
+  "elements": [
+    {
+      "name": "continuous_waist_belt",
+      "from": [
+        3.4,
+        16,
+        5.5
+      ],
+      "to": [
+        12.6,
+        17.4,
+        11
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "front_waist_lintel",
+      "from": [
+        3.6,
+        14.6,
+        5.1
+      ],
+      "to": [
+        12.4,
+        16.4,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "waist_central_clasp",
+      "from": [
+        7,
+        15.5,
+        4.7
+      ],
+      "to": [
+        9,
+        17.5,
+        5.8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "rear_belt_carry_loop",
+      "from": [
+        6.7,
+        16,
+        10.8
+      ],
+      "to": [
+        9.3,
+        17.2,
+        11.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_continuous_leather_leg",
+      "from": [
+        4,
+        3,
+        6
+      ],
+      "to": [
+        7.6,
+        16,
+        10
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_thigh_slab",
+      "from": [
+        3.8,
+        11,
+        5.3
+      ],
+      "to": [
+        7.8,
+        15.6,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_knee_stone",
+      "from": [
+        3.7,
+        7.8,
+        5
+      ],
+      "to": [
+        7.9,
+        10.7,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_shin_slab",
+      "from": [
+        4,
+        3.5,
+        5.3
+      ],
+      "to": [
+        7.6,
+        7.5,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_knee_meander",
+      "from": [
+        4.9,
+        8.4,
+        4.8
+      ],
+      "to": [
+        6.7,
+        10.1,
+        5.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_rear_leather_strap_5.2",
+      "from": [
+        3.9,
+        5.2,
+        9.8
+      ],
+      "to": [
+        7.7,
+        5.9,
+        10.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_rear_leather_strap_10.5",
+      "from": [
+        3.9,
+        10.5,
+        9.8
+      ],
+      "to": [
+        7.7,
+        11.2,
+        10.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_rear_leather_strap_14.2",
+      "from": [
+        3.9,
+        14.2,
+        9.8
+      ],
+      "to": [
+        7.7,
+        14.9,
+        10.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_overlap_binding_7.3",
+      "from": [
+        3.85,
+        7.3,
+        5.15
+      ],
+      "to": [
+        7.75,
+        7.7,
+        6.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "left_overlap_binding_10.7",
+      "from": [
+        3.85,
+        10.7,
+        5.15
+      ],
+      "to": [
+        7.75,
+        11.1,
+        6.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_continuous_leather_leg",
+      "from": [
+        8.4,
+        3,
+        6
+      ],
+      "to": [
+        12,
+        16,
+        10
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_thigh_slab",
+      "from": [
+        8.2,
+        11,
+        5.3
+      ],
+      "to": [
+        12.2,
+        15.6,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_knee_stone",
+      "from": [
+        8.1,
+        7.8,
+        5
+      ],
+      "to": [
+        12.3,
+        10.7,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_shin_slab",
+      "from": [
+        8.4,
+        3.5,
+        5.3
+      ],
+      "to": [
+        12,
+        7.5,
+        6.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_knee_meander",
+      "from": [
+        9.3,
+        8.4,
+        4.8
+      ],
+      "to": [
+        11.1,
+        10.1,
+        5.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_rear_leather_strap_5.2",
+      "from": [
+        8.3,
+        5.2,
+        9.8
+      ],
+      "to": [
+        12.1,
+        5.9,
+        10.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_rear_leather_strap_10.5",
+      "from": [
+        8.3,
+        10.5,
+        9.8
+      ],
+      "to": [
+        12.1,
+        11.2,
+        10.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_rear_leather_strap_14.2",
+      "from": [
+        8.3,
+        14.2,
+        9.8
+      ],
+      "to": [
+        12.1,
+        14.9,
+        10.7
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_overlap_binding_7.3",
+      "from": [
+        8.25,
+        7.3,
+        5.15
+      ],
+      "to": [
+        12.15,
+        7.7,
+        6.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "right_overlap_binding_10.7",
+      "from": [
+        8.25,
+        10.7,
+        5.15
+      ],
+      "to": [
+        12.15,
+        11.1,
+        6.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        10
+      ],
+      "translation": [
+        2.904,
+        -9.60884,
+        2.89963
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        -10
+      ],
+      "translation": [
+        -2.904,
+        -9.60884,
+        2.89963
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        -20
+      ],
+      "translation": [
+        4.1,
+        -8.77227,
+        -3.22754
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        20
+      ],
+      "translation": [
+        -1.84,
+        -8.77227,
+        -3.22754
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2.25,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "gui": {
+      "rotation": [
+        12,
+        154,
+        0
+      ],
+      "translation": [
+        -0.09709,
+        -2.01334,
+        0
+      ],
+      "scale": [
+        0.88588,
+        0.88588,
+        0.88588
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        154,
+        0
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    }
+  }
+}
