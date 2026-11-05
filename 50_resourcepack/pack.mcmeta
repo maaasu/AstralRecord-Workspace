@@ -1,7 +1,16 @@
 {
   "pack": {
-    "description": "AstralRecord Damage Numbers",
+    "description": "AstralRecord Resource Pack",
     "min_format": [75, 0],
     "max_format": [97, 1]
+  },
+  "overlays": {
+    "entries": [
+      {
+        "directory": "transformed_item_models",
+        "min_format": [83, 0],
+        "max_format": [97, 1]
+      }
+    ]
   }
 }

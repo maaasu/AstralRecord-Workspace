@@ -16,6 +16,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["entry"] = "入場地点", ["party"] = "パーティー", ["challenge"] = "挑戦ルール",
         ["clearRewards"] = "クリア報酬", ["generation"] = "生成設定", ["theme"] = "外観テーマ", ["encounter"] = "モブの出現設定",
         ["category"] = "カテゴリ", ["icon"] = "アイコン素材", ["iconTexture"] = "頭アイコンのテクスチャ",
+        ["customModelData"] = "カスタムモデルID",
         ["defenseEligible"] = "防衛戦への参加を許可",
         ["consumeRequiredItem"] = "転送時に必要アイテムを消費",
         ["iconGlint"] = "アイコンのエンチャントエフェクト", ["chargeSaleValue"] = "売却額分のGoldを消費",

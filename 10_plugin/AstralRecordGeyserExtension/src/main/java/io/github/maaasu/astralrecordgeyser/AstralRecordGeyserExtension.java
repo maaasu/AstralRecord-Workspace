@@ -7,6 +7,7 @@ import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
 import org.geysermc.geyser.api.event.java.ServerSpawnEntityEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomSkullsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomSkullsEvent.SkullTextureType;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntitiesEvent;
@@ -17,7 +18,7 @@ import org.geysermc.geyser.api.util.Identifier;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 
-/** AstralRecord のヘッドと Bedrock 向け専用モデルを Geyser へ登録します。 */
+/** AstralRecord のヘッド、アイテム、Bedrock 向け専用エンティティを Geyser へ登録します。 */
 public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
@@ -26,6 +27,11 @@ public final class AstralRecordGeyserExtension implements Extension {
     private DamageNumberEntity damageNumberProperties;
     private CustomEntityDefinition actionRingDefinition;
     private ActionRingEntity actionRingProperties;
+
+    @Subscribe
+    public void onDefineCustomItems(GeyserDefineCustomItemsEvent event) {
+        damagePacks.defineItems(event);
+    }
 
     @Subscribe
     public void onDefineEntities(GeyserDefineEntitiesEvent event) {
@@ -49,7 +55,7 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
-        if (damageNumberProperties != null || actionRingProperties != null) damagePacks.start();
+        damagePacks.start();
     }
 
     @Subscribe

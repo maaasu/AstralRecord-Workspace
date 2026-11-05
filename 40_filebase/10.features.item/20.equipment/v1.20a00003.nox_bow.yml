@@ -6,6 +6,7 @@ id: 20a00003
 category: equipment
 name: "&fノクスボウ"
 icon: BOW
+customModelData: 21002
 rarity: COMMON
 maxStack: 1
 saleValue: 1

@@ -1,8 +1,8 @@
 {
   "format_version": 2,
   "header": {
-    "name": "AstralRecord Damage Numbers",
-    "description": "Damage, critical hits, and shield absorption",
+    "name": "AstralRecord Resource Pack",
+    "description": "AstralRecord damage numbers and item models",
     "uuid": "a1bf0ccc-1ac6-5c7e-8dbf-34d4f1afad13",
     "version": [1, 0, 0],
     "min_engine_version": [1, 21, 0]

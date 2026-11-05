@@ -14,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -25,7 +26,7 @@ import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
 
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
-record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRing) {
+record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRing, Set<ItemModel> itemModels) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
     private static final int MAX_PACK_BYTES = 32 * 1024 * 1024;
@@ -66,6 +67,7 @@ record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRin
         try {
             Files.write(file, bytes);
             boolean actionRing;
+            Set<ItemModel> itemModels;
             try (ZipFile zip = new ZipFile(file.toFile())) {
                 var manifest = zip.getEntry("manifest.json");
                 // Geyser reads entries containing manifest.json. Require only the root manifest and bound its size.
@@ -79,12 +81,13 @@ record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRin
                     }
                 }
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
+                itemModels = ItemModel.read(zip);
             }
             var pack = ResourcePack.create(PackCodec.path(file));
             if (!uuid.equals(pack.uuid())) throw new IOException("Bedrock pack UUID mismatch");
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack, actionRing);
+            return new DamagePack(sha256, file, pack, actionRing, itemModels);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

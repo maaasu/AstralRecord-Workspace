@@ -1,0 +1,244 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.nox_bow.first_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            7,
+            -41,
+            -21
+          ],
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.9
+        }
+      }
+    },
+    "animation.astralrecord.nox_bow.third_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            78,
+            -9,
+            5
+          ],
+          "position": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "animation.astralrecord.nox_bow.attack": {
+      "loop": true,
+      "animation_length": 0.3,
+      "anim_time_update": "variable.nox_swing * 0.3",
+      "bones": {
+        "weapon": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.05": [
+              -6,
+              2,
+              -4
+            ],
+            "0.15": [
+              5,
+              -3,
+              6
+            ],
+            "0.2": [
+              1,
+              0,
+              2
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          },
+          "position": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.05": [
+              0,
+              0.1,
+              0.38
+            ],
+            "0.15": [
+              0,
+              0.07,
+              -0.35
+            ],
+            "0.2": [
+              0,
+              0,
+              0.15
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "cord_lower": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.05": [
+              0,
+              0,
+              -9
+            ],
+            "0.15": [
+              0,
+              0,
+              3
+            ],
+            "0.2": [
+              0,
+              0,
+              -2
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.05": [
+              1,
+              1.012,
+              1
+            ],
+            "0.15": [
+              1,
+              1.002,
+              1
+            ],
+            "0.2": [
+              1,
+              1.001,
+              1
+            ],
+            "0.3": [
+              1,
+              1,
+              1
+            ]
+          }
+        },
+        "cord_upper": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.05": [
+              0,
+              0,
+              9
+            ],
+            "0.15": [
+              0,
+              0,
+              -3
+            ],
+            "0.2": [
+              0,
+              0,
+              2
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.05": [
+              1,
+              1.012,
+              1
+            ],
+            "0.15": [
+              1,
+              1.002,
+              1
+            ],
+            "0.2": [
+              1,
+              1.001,
+              1
+            ],
+            "0.3": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      }
+    },
+    "animation.astralrecord.nox_bow.draw": {
+      "loop": true,
+      "bones": {
+        "cord_lower": {
+          "rotation": [
+            0,
+            0,
+            "-math.atan(0.55 * variable.nox_draw)"
+          ],
+          "scale": [
+            1,
+            "math.sqrt(1.0 + (0.55 * variable.nox_draw) * (0.55 * variable.nox_draw))",
+            1
+          ]
+        },
+        "cord_upper": {
+          "rotation": [
+            0,
+            0,
+            "math.atan(0.55 * variable.nox_draw)"
+          ],
+          "scale": [
+            1,
+            "math.sqrt(1.0 + (0.55 * variable.nox_draw) * (0.55 * variable.nox_draw))",
+            1
+          ]
+        }
+      }
+    }
+  }
+}

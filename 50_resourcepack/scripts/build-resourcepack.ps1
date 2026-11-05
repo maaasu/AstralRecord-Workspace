@@ -15,6 +15,13 @@ function Read-PackEntries {
     param([string] $BasePath, [string[]] $Names)
 
     $entries = [System.Collections.Generic.SortedDictionary[string, byte[]]]::new([StringComparer]::Ordinal)
+    Add-PackEntries $entries $BasePath $Names
+    return ,$entries
+}
+
+function Add-PackEntries {
+    param($Entries, [string] $BasePath, [string[]] $Names)
+
     foreach ($name in $Names) {
         $bytes = [System.IO.File]::ReadAllBytes((Join-Path $BasePath $name))
         if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta')) {
@@ -23,7 +30,6 @@ function Read-PackEntries {
         }
         $entries.Add($name, $bytes)
     }
-    return ,$entries
 }
 
 function Get-ContentUuid {
@@ -55,7 +61,8 @@ function Write-Pack {
     Write-Host "Created $Path"
 }
 
-# The dormant item, menu and audio assets at the pack root are not distributed.
+# Package damage numbers plus the custom items selected by the registry.
+. (Join-Path $PSScriptRoot 'item-models.ps1')
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
     'assets/astralrecord/font/damage_number.json'
@@ -79,6 +86,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'render_controllers/action_ring.render_controllers.json'
     'textures/entity/action_ring.png'
 )
+Add-ItemModelEntries $java $bedrock
 
 # Include the template and file names in the fingerprint. Any distributed
 # Bedrock asset change results in a new pack ID, bypassing client pack caching.

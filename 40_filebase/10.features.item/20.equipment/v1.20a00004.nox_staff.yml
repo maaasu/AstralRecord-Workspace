@@ -6,6 +6,7 @@ id: 20a00004
 category: equipment
 name: "&fノクススタッフ"
 icon: wooden_shovel
+customModelData: 21003
 rarity: COMMON
 maxStack: 1
 saleValue: 1

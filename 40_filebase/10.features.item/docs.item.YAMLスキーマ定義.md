@@ -15,7 +15,7 @@ ITEMの基本的なスキーマ定義。
 | `rarity`          | String       | ○  | -         | rarityヘッダ参照                                            |
 | `iconGlint`       | Boolean      | ×  | false     | 原則falseまたは省略とし、エンチャントの光沢を付けない。光沢が必要と明示された場合だけtrueを指定する。装備効果は付与しない |
 | `saleValue`       | Integer      | ×  | 0         | 売却した際に得られるお金                                           |
-| `customModelData` | Integer      | ×  | Null      | クライアント側リソースパック用のモデルデータID (未実装予定)                       |
+| `customModelData` | Integer      | ×  | Null      | リソースパックのカスタムモデルID。省略時は `icon` の通常表示 |
 | `appearance`      | Map          | ×  | Null      | 同じ `icon` Material 内のバニラ外見差分を固定する設定。革装備色、ポーション色/種別などに使用する |
 | `lore`            | List<String> | ×  | emptyList | アイテムの説明文（§または、&を使用した色コード利用可能）                          |
 | `unTradeable`     | Boolean      | ×  | false     | trueでトレード不可                                            |
@@ -63,6 +63,10 @@ ITEMの基本的なスキーマ定義。
 - EPIC (E, e, 3)
 - LEGENDARY (L, l, 0)
 - MYTHIC (M, m, 0)
+
+#### customModelData
+
+モデルを追加する場合は、Java 版の `minecraft:custom_model_data` の先頭 float で正確に表現できる正の整数を採番し、同じ値を Java 版と統合版のモデル割り当てに使用します。マスターの `icon` は未対応クライアントの表示とモデル割り当ての基準になるため、モデルの追加だけを目的とした変更は不要です。アクションリングの長押し選択に使う主武器では、JE の本人向け仮想 `TRIDENT` にも同じモデルIDを割り当てられます。BE は長押し入力用のトライデントを表示します。
 
 #### appearance
 

@@ -181,7 +181,7 @@ class ItemWeaponAttackServiceTest {
         when(skillService.isOnCooldown(any(), eq(SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID)))
             .thenReturn(false);
         when(skillService.castSkill(any(), anyString(), eq(SkillCastTrigger.AUTO_ATTACK),
-            any(Location.class), isNull(), any())).thenReturn(SkillCastResult.succeeded());
+            any(Location.class), isNull(), any(), any())).thenReturn(SkillCastResult.succeeded());
         ItemWeaponAttackService service = new ItemWeaponAttackService(inventoryService, skillService);
         Location location = new Location(null, 0.0D, 0.0D, 0.0D);
 
@@ -222,6 +222,7 @@ class ItemWeaponAttackServiceTest {
                 eq(SkillCastTrigger.AUTO_ATTACK),
                 any(Location.class),
                 isNull(),
+                any(),
                 any()
         )).thenReturn(SkillCastResult.succeeded(), SkillCastResult.failure(null));
 

@@ -1,6 +1,6 @@
 # AstralRecord リソースパック指示
 
-このディレクトリは Java Edition と Bedrock Edition のダメージ数値とアクションリングのリソースパックを管理します。旧アイテム・バニラ GUI・音声アセットは保管のみとし、ユーザーの明示指示なしに編集や配布対象への追加を行わないでください。
+このディレクトリは Java Edition と Bedrock Edition のダメージ数値、アクションリング、アイテムモデルを管理します。配布対象のアイテムは `item-models.json` に登録します。旧アイテム・バニラ GUI・音声アセットは保管用です。ユーザーの明示指示がある場合に編集・配布します。
 
 ## 必ず確認する情報
 
@@ -40,7 +40,7 @@
 
 - `pack.mcmeta` が有効な JSON であること。
 - モデルファイルが有効な JSON であること。
-- モデルから参照しているテクスチャが存在すること。
+- マスターとアイテム台帳の番号・素材が一致し、両版のモデル、テクスチャ、アニメーション参照が解決すること。
 - `scripts/build-resourcepack.ps1` で `dist/AstralRecordResourcePack.zip` と `dist/AstralRecordResourcePack.mcpack` を作成できること。両アーカイブに旧アセットが含まれず、同じ入力で再生成した SHA-256 が一致すること。
 
 ## GitHub Copilot

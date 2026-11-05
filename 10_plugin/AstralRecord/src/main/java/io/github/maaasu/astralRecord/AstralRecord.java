@@ -2684,7 +2684,8 @@ public final class AstralRecord extends JavaPlugin {
             this,
             playerSettingService,
             skillActionRingService,
-            skillPermissionService
+            skillPermissionService,
+            itemService
         );
         itemStackPacketAdapter.register();
 

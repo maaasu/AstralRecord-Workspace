@@ -1,0 +1,48 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "astralrecord:nox_bow",
+      "materials": {
+        "default": "entity_alphatest",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/entity/items/nox_bow",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.nox_bow"
+      },
+      "animations": {
+        "first_person": "animation.astralrecord.nox_bow.first_person",
+        "third_person": "animation.astralrecord.nox_bow.third_person",
+        "attack": "animation.astralrecord.nox_bow.attack",
+        "draw": "animation.astralrecord.nox_bow.draw"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.nox_swing = math.clamp((context.owning_entity->variable.attack_time) ?? 0.0, 0.0, 1.0);",
+          "variable.nox_draw = query.main_hand_item_use_duration > 0.0 ? math.clamp((query.main_hand_item_max_duration - (query.main_hand_item_use_duration - query.frame_alpha + 1.0)) / 20.0, 0.0, 1.0) : 0.0;"
+        ],
+        "animate": [
+          {
+            "first_person": "context.is_first_person"
+          },
+          {
+            "third_person": "!context.is_first_person"
+          },
+          {
+            "attack": "context.item_slot == 'main_hand' && variable.nox_swing > 0.0"
+          },
+          {
+            "draw": "context.item_slot == 'main_hand' && variable.nox_draw > 0.0"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.item_default"
+      ]
+    }
+  }
+}

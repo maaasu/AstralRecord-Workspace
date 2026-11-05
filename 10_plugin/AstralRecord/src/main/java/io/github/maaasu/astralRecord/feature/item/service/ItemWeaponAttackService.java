@@ -248,6 +248,17 @@ public final class ItemWeaponAttackService {
         return result;
     }
 
+    /**
+     * プレイヤーが入力した通常攻撃を実行し、実際の発動に成功した時点で主手を振ります。
+     *
+     * @param caster 攻撃の発動者
+     * @param skillId 発動する組み込み通常攻撃のスキル ID
+     * @param castLocation 発動位置
+     * @param degradationTicket 不発時に戻す通常攻撃連打の予約。なければ null
+     * @param player 主手を振るプレイヤー
+     * @param completionListener 発動結果の通知先。不要なら null
+     * @return 発動開始または即時実行の結果
+     */
     private @NotNull SkillCastResult castNormalAttack(
             @NotNull SkillCaster caster,
             @NotNull String skillId,
@@ -257,24 +268,22 @@ public final class ItemWeaponAttackService {
             @Nullable Consumer<SkillCastResult> completionListener
     ) {
         try {
-            var result = completionListener == null
-                ? skillService.castSkill(
-                    caster,
-                    skillId,
-                    SkillCastTrigger.AUTO_ATTACK,
-                    castLocation,
-                    null,
-                    List.of()
-                )
-                : skillService.castSkill(
-                    caster,
-                    skillId,
-                    SkillCastTrigger.AUTO_ATTACK,
-                    castLocation,
-                    null,
-                    List.of(),
-                    completionListener
-                );
+            var result = skillService.castSkill(
+                caster,
+                skillId,
+                SkillCastTrigger.AUTO_ATTACK,
+                castLocation,
+                null,
+                List.of(),
+                completed -> {
+                    if (completed.success()) {
+                        player.getBukkit().swingMainHand();
+                    }
+                    if (completionListener != null) {
+                        completionListener.accept(completed);
+                    }
+                }
+            );
             if (!result.success() && degradationTicket != null) {
                 normalAttackDegradationService.rollbackNormalAttack(player, degradationTicket);
             }

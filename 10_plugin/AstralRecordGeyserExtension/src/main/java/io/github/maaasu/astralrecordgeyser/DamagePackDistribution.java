@@ -3,14 +3,17 @@ package io.github.maaasu.astralrecordgeyser;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.pack.exception.ResourcePackException;
 import org.geysermc.geyser.api.pack.option.PriorityOption;
 
@@ -21,33 +24,55 @@ final class DamagePackDistribution {
     private final List<DamagePack> retired = new ArrayList<>();
     private final Object publicationLock = new Object();
     private DamagePack current;
+    // 配布を見送ったパックのSHAも保持し、同じアーカイブを再取得しない。
+    private DamagePack lastVerified;
+    private Set<ItemModel> registeredModels = Set.of();
     private boolean fetchFailed;
 
     DamagePackDistribution(AstralRecordGeyserExtension extension) {
         this.extension = extension;
     }
 
+    void defineItems(GeyserDefineCustomItemsEvent event) {
+        refresh(event);
+    }
+
+    private void registerModels(GeyserDefineCustomItemsEvent event, Set<ItemModel> models) {
+        Set<ItemModel> registered = new HashSet<>();
+        for (ItemModel model : models) {
+            try {
+                model.register(event);
+                registered.add(model);
+            } catch (RuntimeException exception) {
+                extension.logger().error("Bedrock item model registration failed for " + model.id() + " ("
+                    + exception.getClass().getSimpleName() + "). Check the catalog and restart the proxy.");
+            }
+        }
+        registeredModels = Set.copyOf(registered);
+        if (!registeredModels.isEmpty()) {
+            extension.logger().info("Registered AstralRecord Bedrock item models: " + registeredModels.size());
+        }
+    }
+
     void start() {
-        refresh();
+        if (current == null && !fetchFailed) refresh(null);
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             Thread.ofPlatform().daemon().name("astralrecord-bedrock-pack").factory());
         scheduler.scheduleWithFixedDelay(() -> {
-            if (extension.isEnabled()) refresh();
+            if (extension.isEnabled()) refresh(null);
             else scheduler.shutdown();
         }, 60, 60, TimeUnit.SECONDS);
     }
 
-    private void refresh() {
+    private void refresh(GeyserDefineCustomItemsEvent itemRegistration) {
         try {
             var folder = extension.dataFolder();
             var config = HeadApiConfig.load(folder);
-            DamagePack next = DamagePack.refresh(config, folder.resolve("downloaded-packs"), current);
-            if (next != current) {
-                synchronized (publicationLock) {
-                    if (current != null) retired.add(current);
-                    current = next;
-                }
-                extension.logger().info("Bedrock damage resource pack ready: " + next.pack().uuid());
+            DamagePack next = DamagePack.refresh(config, folder.resolve("downloaded-packs"), lastVerified);
+            if (next != lastVerified) {
+                if (itemRegistration != null) registerModels(itemRegistration, next.itemModels());
+                publish(next, itemRegistration == null);
+                lastVerified = next;
             }
             fetchFailed = false;
         } catch (InterruptedException exception) {
@@ -60,6 +85,24 @@ final class DamagePackDistribution {
             fetchFailed = true;
         }
         removeRetiredPacks();
+    }
+
+    private void publish(DamagePack next, boolean warnAboutNewModels) throws IOException {
+        // Geyserのアイテム登録は起動時のみ。既存の登録に必要な定義を含むパックだけを配布する。
+        if (!next.itemModels().containsAll(registeredModels)) {
+            Files.deleteIfExists(next.file());
+            extension.logger().warning("Bedrock item model catalog is incompatible with registered mappings; "
+                + "retaining the current pack until the proxy restarts or a compatible pack is published.");
+            return;
+        }
+        if (warnAboutNewModels && !next.itemModels().equals(registeredModels)) {
+            extension.logger().warning("Bedrock item model catalog has unregistered models; restart the proxy to use them.");
+        }
+        synchronized (publicationLock) {
+            if (current != null) retired.add(current);
+            current = next;
+        }
+        extension.logger().info("Bedrock damage resource pack ready: " + next.pack().uuid());
     }
 
     private void removeRetiredPacks() {

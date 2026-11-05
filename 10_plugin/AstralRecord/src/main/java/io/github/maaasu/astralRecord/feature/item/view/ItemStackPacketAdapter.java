@@ -9,6 +9,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -61,7 +62,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * 対象パケット:
  * <ul>
- *   <li>{@code SET_SLOT} — 単一スロットの更新</li>
+ *   <li>{@code SET_SLOT} / {@code SET_PLAYER_INVENTORY} — 単一スロットの更新</li>
+ *   <li>{@code SET_CURSOR_ITEM} — カーソルで保持しているアイテムの更新</li>
  *   <li>{@code WINDOW_ITEMS} — インベントリ全体の一括送信</li>
  *   <li>{@code ENTITY_EQUIPMENT} — 本人を含むエンティティの手持ち・装備更新</li>
  * </ul>
@@ -88,6 +90,7 @@ public class ItemStackPacketAdapter {
     private final PlayerSettingService playerSettingService;
     private final SkillActionRingService actionRingService;
     private final @Nullable SkillPermissionService skillPermissionService;
+    private final ItemService itemService;
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> actionRingHoldEligibleSnapshots = new ConcurrentHashMap<>();
@@ -96,38 +99,26 @@ public class ItemStackPacketAdapter {
     private boolean registered = false;
 
     /**
-     * アダプタを初期化します。
-     *
-     * @param plugin プラグインインスタンス
-     * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
-     * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
-     */
-    public ItemStackPacketAdapter(
-        @NotNull Plugin plugin,
-        @NotNull PlayerSettingService playerSettingService,
-        @NotNull SkillActionRingService actionRingService
-    ) {
-        this(plugin, playerSettingService, actionRingService, null);
-    }
-
-    /**
      * 受信者ごとのスキル使用可否表示を含めてアダプタを初期化します。
      *
      * @param plugin プラグインインスタンス
      * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
      * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
      * @param skillPermissionService 受信者のスキル使用可否を判定するサービス
+     * @param itemService 公開済みアイテムマスタを参照するサービス
      */
     public ItemStackPacketAdapter(
         @NotNull Plugin plugin,
         @NotNull PlayerSettingService playerSettingService,
         @NotNull SkillActionRingService actionRingService,
-        @Nullable SkillPermissionService skillPermissionService
+        @Nullable SkillPermissionService skillPermissionService,
+        @NotNull ItemService itemService
     ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
         this.actionRingService = actionRingService;
         this.skillPermissionService = skillPermissionService;
+        this.itemService = itemService;
     }
 
     /**
@@ -145,6 +136,8 @@ public class ItemStackPacketAdapter {
                 plugin,
                 ListenerPriority.NORMAL,
                 PacketType.Play.Server.SET_SLOT,
+                PacketType.Play.Server.SET_PLAYER_INVENTORY,
+                PacketType.Play.Server.SET_CURSOR_ITEM,
                 PacketType.Play.Server.WINDOW_ITEMS,
                 PacketType.Play.Server.ENTITY_EQUIPMENT
         ) {
@@ -180,13 +173,22 @@ public class ItemStackPacketAdapter {
                     ? actionRingService.getSelectedHotbarSlot(viewer)
                     : selectedHotbarSlots.getOrDefault(viewer.getUniqueId(), -1);
 
-                if (type == PacketType.Play.Server.SET_SLOT) {
+                if (type == PacketType.Play.Server.SET_SLOT
+                    || type == PacketType.Play.Server.SET_PLAYER_INVENTORY
+                    || type == PacketType.Play.Server.SET_CURSOR_ITEM) {
+                    int hotbarSlot = -1;
+                    if (type == PacketType.Play.Server.SET_SLOT) {
+                        hotbarSlot = hotbarSlotForSetSlot(packet);
+                    } else if (type == PacketType.Play.Server.SET_PLAYER_INVENTORY) {
+                        Integer slot = packet.getIntegers().readSafely(0);
+                        hotbarSlot = slot == null ? -1 : slot;
+                    }
                     handleSetSlot(
                         packet,
                         armorDisplayEnabled,
                         shouldVirtualizeHotbarWeapon(
                             actionRingHoldSelectEnabled,
-                            hotbarSlotForSetSlot(packet),
+                            hotbarSlot,
                             selectedHotbarSlot
                         ),
                         permittedSkillIds,
@@ -319,7 +321,7 @@ public class ItemStackPacketAdapter {
     // region --- パケットハンドラ ---
 
     /**
-     * SET_SLOT パケット内の単一 ItemStack を書き換えます。
+     * 単一スロットまたはカーソルの ItemStack を書き換えます。
      *
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
@@ -567,7 +569,11 @@ public class ItemStackPacketAdapter {
     ) {
         var iconName = ItemStackFactory.getIconName(original);
         var iconTexture = ItemStackFactory.getIconTexture(original);
-        var customModelData = ItemStackFactory.getCustomModelData(original);
+        var itemId = ItemStackFactory.getAstralItemId(original);
+        var itemMaster = itemId == null ? null : itemService.findLoadedById(itemId);
+        var embeddedModelData = ItemStackFactory.getCustomModelData(original);
+        var customModelData = itemMaster == null ? embeddedModelData : itemMaster.getCustomModelData();
+        boolean clearCustomModelData = embeddedModelData != null && customModelData == null;
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
@@ -577,9 +583,10 @@ public class ItemStackPacketAdapter {
             && iconName == null
             && iconTexture == null
             && customModelData == null
+            && !clearCustomModelData
             && appearanceColor == null
             && potionType == null) {
-            if (randomStatusRangeDisplayEnabled || ItemStackFactory.getAstralItemId(original) == null) {
+            if (randomStatusRangeDisplayEnabled || itemId == null) {
                 return null;
             }
             ItemStack loreCopy = original.clone();
@@ -612,15 +619,11 @@ public class ItemStackPacketAdapter {
             modified |= ItemStackFactory.hideRandomStatusRangeLore(replaced);
         }
 
-        if (customModelData != null) {
+        if (customModelData != null || clearCustomModelData) {
             var meta = replaced.getItemMeta();
-            if (meta != null) {
-                Integer currentCustomModelData = CustomModelDataComponentUtil.readAsInt(meta);
-                if (needsCustomModelDataUpdate(customModelData, currentCustomModelData)) {
-                    CustomModelDataComponentUtil.writeFromInt(meta, customModelData);
-                    replaced.setItemMeta(meta);
-                    modified = true;
-                }
+            if (meta != null && CustomModelDataComponentUtil.updateModelId(meta, customModelData)) {
+                replaced.setItemMeta(meta);
+                modified = true;
             }
         }
 
@@ -1077,10 +1080,6 @@ public class ItemStackPacketAdapter {
         private PendingEquipmentOverride consume() {
             return count > 1 ? new PendingEquipmentOverride(count - 1, expiresAtMillis) : null;
         }
-    }
-
-    static boolean needsCustomModelDataUpdate(int desiredCustomModelData, @Nullable Integer currentCustomModelData) {
-        return currentCustomModelData == null || currentCustomModelData != desiredCustomModelData;
     }
 
     /**

@@ -1,0 +1,23 @@
+{
+  "format_version": 1,
+  "items": [
+    {
+      "id": "nox_sword",
+      "base_item": "minecraft:wooden_sword",
+      "custom_model_data": 21001,
+      "java_virtual_trident": true
+    },
+    {
+      "id": "nox_bow",
+      "base_item": "minecraft:bow",
+      "custom_model_data": 21002,
+      "java_virtual_trident": true
+    },
+    {
+      "id": "nox_staff",
+      "base_item": "minecraft:wooden_shovel",
+      "custom_model_data": 21003,
+      "java_virtual_trident": true
+    }
+  ]
+}

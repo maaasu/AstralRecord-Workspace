@@ -6,6 +6,7 @@ id: 20a00002
 category: equipment
 name: "&fノクスソード"
 icon: wooden_sword
+customModelData: 21001
 rarity: COMMON
 maxStack: 1
 saleValue: 1

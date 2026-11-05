@@ -1,0 +1,136 @@
+{
+  "credit": "Made with Blockbench",
+  "texture_size": [
+    64,
+    64
+  ],
+  "textures": {
+    "particle": "astralrecord:item/custom/nox_staff",
+    "surface": "astralrecord:item/custom/nox_staff"
+  },
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        55
+      ],
+      "translation": [
+        0,
+        3.1,
+        0.6
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        -90,
+        55
+      ],
+      "translation": [
+        0,
+        3.1,
+        0.6
+      ],
+      "scale": [
+        0.88,
+        0.88,
+        0.88
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        1,
+        -75,
+        27
+      ],
+      "translation": [
+        1.4,
+        3.3,
+        -0.3
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        1,
+        -75,
+        27
+      ],
+      "translation": [
+        1.4,
+        3.3,
+        -0.3
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2.25,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "gui": {
+      "rotation": [
+        13,
+        -22,
+        -38
+      ],
+      "scale": [
+        1.08,
+        1.08,
+        1.08
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        -34
+      ],
+      "scale": [
+        0.86,
+        0.86,
+        0.86
+      ]
+    }
+  },
+  "elements": [
+    {"name": "Ash shaft","from": [7.41,1.35,7.46],"to": [8.59,11.48,8.54],"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
+    {"name": "Pale ash grain","from": [7.62,6.08,8.52],"to": [7.94,10.77,8.61],"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"down": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"}}},
+    {"name": "Butt ferrule","from": [7.31,0.9,7.34],"to": [8.69,1.67,8.66],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"down": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"}}},
+    {"name": "Ferrule seam","from": [7.28,1.19,7.31],"to": [8.72,1.42,8.69],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Plum hide grip","from": [7.27,3.32,7.31],"to": [8.73,6.08,8.69],"faces": {"north": {"uv": [12.75,0.25,14.75,2.25],"texture": "#surface"},"east": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"south": {"uv": [12.75,0.25,14.75,2.25],"texture": "#surface"},"west": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"up": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"down": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"}}},
+    {"name": "Binding collar","from": [7.25,3.25,7.29],"to": [8.75,3.45,8.71],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Binding collar","from": [7.25,5.92,7.29],"to": [8.75,6.12,8.71],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Socket stem","from": [7.28,10.86,7.32],"to": [8.72,11.77,8.68],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"down": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"}}},
+    {"name": "Cup rim","from": [6.93,11.61,7.09],"to": [9.07,12.02,8.91],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Moonstone foot","from": [7.37,12.02,7.45],"to": [8.63,12.43,8.55],"faces": {"north": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
+    {"name": "Moonstone","from": [7.09,12.43,7.28],"to": [8.91,14.12,8.72],"faces": {"north": {"uv": [5.25,5.25,7.25,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [5.25,5.25,7.25,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
+    {"name": "Cut crown","from": [7.4,14.12,7.48],"to": [8.6,14.59,8.52],"faces": {"north": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
+    {"name": "Crown table","from": [7.68,14.59,7.68],"to": [8.32,14.76,8.32],"faces": {"north": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
+    {"name": "Forged retaining tine","from": [6.92,11.94,7.22],"to": [7.28,13.1,8.78],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Forged retaining tine","from": [8.72,11.94,7.22],"to": [9.08,13.1,8.78],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Nox socket medallion","from": [7.65,11.91,7.075],"to": [8.35,12.58,7.285],"faces": {"north": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
+    {"name": "Nox socket medallion","from": [7.65,11.91,8.715],"to": [8.35,12.58,8.925],"faces": {"north": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}}
+  ]
+}

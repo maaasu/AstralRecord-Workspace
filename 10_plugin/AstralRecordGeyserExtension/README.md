@@ -1,6 +1,6 @@
 # AstralRecord Geyser Extension
 
-Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドとBedrock用のダメージ表示・アクションリングを登録するJava 21 / Mavenモジュール。Geyser API 2.11.2を使用する。
+Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッド、カスタムアイテム、Bedrock用のダメージ表示・アクションリングを登録するJava 21 / Mavenモジュール。Geyser API 2.11.2を使用する。
 
 ## 登録元
 
@@ -30,9 +30,9 @@ iconTexture: "<texturesプロパティのBase64値>"
 
 RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。このJARはGeyserが読み込む。
 
-## Bedrockのダメージ表示
+## Bedrockパックの配布とダメージ表示
 
-拡張 `1.2.0` はダメージ表示とアクションリングに対応します。差し替え後は Proxy を起動し、`Bedrock damage resource pack ready:` がログに出てから再接続します。
+拡張 `1.2.0` 以降はダメージ表示とアクションリングに対応します。差し替え後は Proxy を起動し、`Bedrock damage resource pack ready:` がログに出てから再接続します。
 
 起動時と以降約1分ごとに認証付き `GET /api/resource-packs/manifest` を取得する。SHA-256が変わったときだけ、同APIの `GET /api/resource-packs/bedrock/{sha256}.mcpack` から更新パックを取得する。SHA-256とアーカイブのmanifest header UUIDを検証し、新規接続へ配布する。同一のProxy起動中に取得や検証に失敗した場合は最後に検証済みのパックを維持する。Proxy起動時に取得できなければ従来の文字表示を使い、取得が復旧した後の新規接続から専用モデルを使う。パックの更新は次回のBedrock接続時に適用される。
 
@@ -41,6 +41,14 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 ## Bedrockのアクションリング
 
 同じ配布パックに輪郭用アセットが含まれる接続では、RPG から送られる輪郭用 TextDisplay を `astralrecord:action_ring` に置き換えます。後続の状態通知を受けて、同じモデルの向き・縮尺・選択枠・クールダウン枠を更新します。各スキルのアイコンは元のアイテムを閲覧者専用のドロップアイテムとして表示し、輪郭と同じ縮尺で調整します。ラベルには Geyser の TextDisplay 変換を使います。発動判定は RPG 側で行います。
+
+## Bedrockのアイテムモデル
+
+起動時に検証済みBedrockパックのルートにある `astralrecord_item_models.json` を読み、`GeyserDefineCustomItemsEvent` でモデルを登録する。カタログを含むパックでは、同名のアーカイブ項目がないこと、各モデルのアイコンとアトラスの対応、アタッチャブル・ジオメトリ・アニメーション・テクスチャのファイルが揃うことを検証する。Java側の基本素材と `minecraft:custom_model_data` の先頭floatが一致したアイテムを、Bedrock側の `astralrecord:<id>` に変換する。モデル定義を含むパックをAPIで公開してからProxyを起動し、Bedrockクライアントを再接続する。
+
+プレイヤー設定の「アクションリング長押し選択」は既定で無効。有効で発動候補が2つ以上の場合は、Bedrockの長押し入力に使うトライデントを本人の選択中の主武器として表示する。
+
+起動時にパックを取得できなかった場合や、新しいマッピングを公開した場合はProxyを再起動する。稼働中のProxyは、登録済みマッピングをすべて含むパック更新を配布できる。登録済みマッピングを変更または削除したパックが公開された場合は、互換性のあるパックが公開されるかProxyを再起動するまで、現在のパックを維持する。
 
 ## 起動・障害時の契約
 

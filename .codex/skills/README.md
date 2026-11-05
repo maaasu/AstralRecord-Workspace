@@ -30,6 +30,7 @@
 
 | 対象・目的 | スキル |
 |:--|:--|
+| 新規プレイヤー用アイテムと外観変更の Blockbench 制作・両版配布 | `$astralrecord-item-model-author` |
 | AstralArchitect の建築候補 | `$astralarchitect-builder` |
 | Minecraft建築の共通完成度基準（チケット外の建築データにも適用） | `$minecraft-build-quality` |
 | プラグインの恒久・診断・統合テスト | `$astralrecord-plugin-test` |
