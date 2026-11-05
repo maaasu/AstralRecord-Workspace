@@ -1,0 +1,772 @@
+{
+  "id": "eriva_spirit_tree_robe",
+  "master_id": "20a00095",
+  "kind": "armor",
+  "intent": "Lv15 RARE。原作の「霊樹の根模様を織り込んだ法衣」を、濃紺 #243354 の大きな布面、段のある裾、幅広の袖で表す。白樹皮と淡い根の分岐を前後へ別々に配置し、葉の襟と小さな青緑結晶で自然の魔法具とする。胸板や写実的な刺繍にはしない。持ち点は後ろの腰帯内。初期の単色布より素材の分離と根の意匠を進め、上位の豪華な祭服にはしない。",
+  "grip": [
+    8,
+    6.2,
+    10.7
+  ],
+  "materials": {
+    "bark": {
+      "palette": [
+        "777866",
+        "A2A38E",
+        "BBBCA8",
+        "D8D6C5",
+        "EBE9DA"
+      ],
+      "pattern": [
+        "33333332",
+        "33443332",
+        "33333332",
+        "33113332",
+        "33333332",
+        "33333222",
+        "33222332",
+        "22222221"
+      ]
+    },
+    "branch": {
+      "palette": [
+        "3C4335",
+        "59634B",
+        "7B8568",
+        "A3AD89",
+        "C6CBAA"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12232221",
+        "12332221",
+        "12332221",
+        "12232221",
+        "12233221",
+        "11222211"
+      ]
+    },
+    "cloth": {
+      "palette": [
+        "17243C",
+        "243354",
+        "344968",
+        "4D6380",
+        "718697"
+      ],
+      "pattern": [
+        "12222221",
+        "12223221",
+        "12223221",
+        "12223221",
+        "12223221",
+        "12223221",
+        "12222221",
+        "11222211"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "111D30",
+        "1B2A43",
+        "2C3F5A",
+        "425974",
+        "627991"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12333221",
+        "12332221",
+        "12332221",
+        "12332221",
+        "12332221",
+        "11222211"
+      ]
+    },
+    "leaf": {
+      "palette": [
+        "2D4B3E",
+        "466957",
+        "638975",
+        "88AA8C",
+        "B4C9A4"
+      ],
+      "pattern": [
+        "01122110",
+        "12333221",
+        "12343221",
+        "12233221",
+        "12232221",
+        "11222211",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "crystal": {
+      "palette": [
+        "174E49",
+        "287C70",
+        "4EAD9B",
+        "8CD2BB",
+        "CAEAD5"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12344321",
+        "12343321",
+        "12333221",
+        "01233210",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "root_stitch": {
+      "palette": [
+        "4D665D",
+        "719082",
+        "9EB7A2",
+        "CDD5B8",
+        "E1E5CD"
+      ],
+      "pattern": [
+        "11122111",
+        "11122111",
+        "11122111",
+        "11222211",
+        "11211211",
+        "12211221",
+        "12111121",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Front broad midnight woven robe",
+      "from": [
+        3.3,
+        3.0,
+        5.4
+      ],
+      "to": [
+        12.7,
+        14.0,
+        6.5
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Rear broad midnight robe",
+      "from": [
+        3.3,
+        3.0,
+        9.5
+      ],
+      "to": [
+        12.7,
+        15.1,
+        10.6
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left continuous fabric side",
+      "from": [
+        3.0,
+        3.0,
+        6.3
+      ],
+      "to": [
+        4.1,
+        14.6,
+        9.7
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right continuous fabric side",
+      "from": [
+        11.9,
+        3.0,
+        6.3
+      ],
+      "to": [
+        13.0,
+        14.6,
+        9.7
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left short square shoulder",
+      "from": [
+        1.2,
+        12.3,
+        5.6
+      ],
+      "to": [
+        4.5,
+        15.4,
+        10.4
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right short square shoulder",
+      "from": [
+        11.5,
+        12.3,
+        5.6
+      ],
+      "to": [
+        14.8,
+        15.4,
+        10.4
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left wide hanging sleeve",
+      "from": [
+        0.8,
+        9.0,
+        5.55
+      ],
+      "to": [
+        3.5999999999999996,
+        13.7,
+        10.45
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left leaf green cuff",
+      "from": [
+        0.7000000000000001,
+        8.7,
+        5.35
+      ],
+      "to": [
+        3.7,
+        9.7,
+        10.65
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Left pale root cuff front",
+      "from": [
+        1.3,
+        9.4,
+        5.2
+      ],
+      "to": [
+        2.05,
+        12.6,
+        5.8
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Right wide hanging sleeve",
+      "from": [
+        12.4,
+        9.0,
+        5.55
+      ],
+      "to": [
+        15.2,
+        13.7,
+        10.45
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right leaf green cuff",
+      "from": [
+        12.3,
+        8.7,
+        5.35
+      ],
+      "to": [
+        15.3,
+        9.7,
+        10.65
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Right pale root cuff front",
+      "from": [
+        12.9,
+        9.4,
+        5.2
+      ],
+      "to": [
+        13.65,
+        12.6,
+        5.8
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Left raised open collar",
+      "from": [
+        3.8,
+        13.65,
+        5.2
+      ],
+      "to": [
+        6.45,
+        15.6,
+        6.6
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Right raised open collar",
+      "from": [
+        9.55,
+        13.65,
+        5.2
+      ],
+      "to": [
+        12.2,
+        15.6,
+        6.6
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Rear open neck collar",
+      "from": [
+        4.1,
+        14.5,
+        9.65
+      ],
+      "to": [
+        11.9,
+        15.7,
+        10.9
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Narrow leafy collar fall",
+      "from": [
+        6.35,
+        12.6,
+        5.05
+      ],
+      "to": [
+        9.65,
+        14.0,
+        6.0
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Small blue green collar crystal",
+      "from": [
+        7.55,
+        12.75,
+        4.6
+      ],
+      "to": [
+        8.45,
+        13.65,
+        5.4
+      ],
+      "material": "crystal"
+    },
+    {
+      "name": "Left stepped front robe tail",
+      "from": [
+        3.2,
+        1.35,
+        5.2
+      ],
+      "to": [
+        7.65,
+        4.6,
+        6.45
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left squared rear robe tail",
+      "from": [
+        3.2,
+        1.7,
+        9.65
+      ],
+      "to": [
+        7.65,
+        4.5,
+        10.85
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left pale tail hem front",
+      "from": [
+        3.2,
+        1.2,
+        5.0
+      ],
+      "to": [
+        7.65,
+        1.95,
+        6.5
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Left pale tail hem rear",
+      "from": [
+        3.2,
+        1.55,
+        9.55
+      ],
+      "to": [
+        7.65,
+        2.25,
+        11.0
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Right stepped front robe tail",
+      "from": [
+        8.35,
+        1.35,
+        5.2
+      ],
+      "to": [
+        12.8,
+        4.6,
+        6.45
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right squared rear robe tail",
+      "from": [
+        8.35,
+        1.7,
+        9.65
+      ],
+      "to": [
+        12.8,
+        4.5,
+        10.85
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right pale tail hem front",
+      "from": [
+        8.35,
+        1.2,
+        5.0
+      ],
+      "to": [
+        12.8,
+        1.95,
+        6.5
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Right pale tail hem rear",
+      "from": [
+        8.35,
+        1.55,
+        9.55
+      ],
+      "to": [
+        12.8,
+        2.25,
+        11.0
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Front root woven waist sash",
+      "from": [
+        3.0,
+        5.7,
+        5.0
+      ],
+      "to": [
+        13.0,
+        6.8,
+        6.0
+      ],
+      "material": "branch",
+      "side": "leaf"
+    },
+    {
+      "name": "Rear root woven waist sash",
+      "from": [
+        3.0,
+        5.7,
+        10.2
+      ],
+      "to": [
+        13.0,
+        6.8,
+        11.05
+      ],
+      "material": "branch",
+      "side": "leaf"
+    },
+    {
+      "name": "Side sash turn",
+      "from": [
+        3.0,
+        5.7,
+        5.8
+      ],
+      "to": [
+        3.85,
+        6.8,
+        10.5
+      ],
+      "material": "branch",
+      "side": "leaf"
+    },
+    {
+      "name": "Side sash turn",
+      "from": [
+        12.15,
+        5.7,
+        5.8
+      ],
+      "to": [
+        13.0,
+        6.8,
+        10.5
+      ],
+      "material": "branch",
+      "side": "leaf"
+    },
+    {
+      "name": "Front main root embroidery",
+      "from": [
+        7.55,
+        3.6,
+        5.0
+      ],
+      "to": [
+        8.45,
+        11.8,
+        5.7
+      ],
+      "material": "root_stitch",
+      "side": "bark"
+    },
+    {
+      "name": "Angular fork of front woven root",
+      "from": [
+        5.3,
+        9.8,
+        5.0
+      ],
+      "to": [
+        7.8,
+        10.5,
+        5.6
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Angular fork of front woven root",
+      "from": [
+        8.2,
+        8.2,
+        5.0
+      ],
+      "to": [
+        10.899999999999999,
+        8.899999999999999,
+        5.6
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Angular fork of front woven root",
+      "from": [
+        4.5,
+        4.2,
+        5.0
+      ],
+      "to": [
+        7.7,
+        4.9,
+        5.6
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Angular fork of front woven root",
+      "from": [
+        8.25,
+        3.7,
+        5.0
+      ],
+      "to": [
+        11.75,
+        4.4,
+        5.6
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Left upward root prong",
+      "from": [
+        5.3,
+        9.8,
+        5.0
+      ],
+      "to": [
+        6.05,
+        12.3,
+        5.65
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Right upward root prong",
+      "from": [
+        10.15,
+        8.2,
+        5.0
+      ],
+      "to": [
+        10.9,
+        10.8,
+        5.65
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Rear quiet root trunk",
+      "from": [
+        7.5,
+        3.6,
+        10.3
+      ],
+      "to": [
+        8.5,
+        13.1,
+        11.0
+      ],
+      "material": "root_stitch",
+      "side": "branch"
+    },
+    {
+      "name": "Rear square branch stitch",
+      "from": [
+        5.0,
+        10.5,
+        10.3
+      ],
+      "to": [
+        8.0,
+        11.15,
+        11.0
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Rear square branch stitch",
+      "from": [
+        8.0,
+        8.3,
+        10.3
+      ],
+      "to": [
+        11.0,
+        8.950000000000001,
+        11.0
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Rear square branch stitch",
+      "from": [
+        4.7,
+        4.0,
+        10.3
+      ],
+      "to": [
+        8.0,
+        4.65,
+        11.0
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Rear square branch stitch",
+      "from": [
+        8.1,
+        4.5,
+        10.3
+      ],
+      "to": [
+        11.3,
+        5.15,
+        11.0
+      ],
+      "material": "branch",
+      "side": "bark"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      154,
+      0
+    ],
+    "scale": 1.0
+  },
+  "wearable_texture_set": "eriva_mage",
+  "wearable_source": "armor/author_eriva_mage.py"
+}

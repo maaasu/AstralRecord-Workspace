@@ -1,0 +1,522 @@
+{
+  "id": "eriva_spirit_tree_crown",
+  "master_id": "20a00094",
+  "kind": "armor",
+  "intent": "Lv15 RARE。原作「植物／霊樹の枝と根」と静かな枝の冠。白樹皮色 #D8D6C5 の低い環に、左右で角形に分かれる枝と少数の葉を載せる。小さな青緑結晶は額の一点のみ。前面と頭頂の大半を開け、顔を塞がない。持ち点は後頭部の実体のある枝環内。初期防具より分枝と全周の接ぎを増し、高位の光輪・宝冠にはしない。",
+  "grip": [
+    8,
+    9.4,
+    11.0
+  ],
+  "materials": {
+    "bark": {
+      "palette": [
+        "777866",
+        "A2A38E",
+        "BBBCA8",
+        "D8D6C5",
+        "EBE9DA"
+      ],
+      "pattern": [
+        "33333332",
+        "33443332",
+        "33333332",
+        "33113332",
+        "33333332",
+        "33333222",
+        "33222332",
+        "22222221"
+      ]
+    },
+    "branch": {
+      "palette": [
+        "3C4335",
+        "59634B",
+        "7B8568",
+        "A3AD89",
+        "C6CBAA"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12232221",
+        "12332221",
+        "12332221",
+        "12232221",
+        "12233221",
+        "11222211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "454837",
+        "707458",
+        "989D78",
+        "C0C5A0",
+        "DDDFC1"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222231",
+        "13222231",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "leaf": {
+      "palette": [
+        "2D4B3E",
+        "466957",
+        "638975",
+        "88AA8C",
+        "B4C9A4"
+      ],
+      "pattern": [
+        "01122110",
+        "12333221",
+        "12343221",
+        "12233221",
+        "12232221",
+        "11222211",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "crystal": {
+      "palette": [
+        "174E49",
+        "287C70",
+        "4EAD9B",
+        "8CD2BB",
+        "CAEAD5"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12344321",
+        "12343321",
+        "12333221",
+        "01233210",
+        "01122110",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Front pale living bark circlet",
+      "from": [
+        3.0,
+        8.8,
+        4.8
+      ],
+      "to": [
+        13.0,
+        10.0,
+        5.8
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left root temple turn",
+      "from": [
+        3.0,
+        8.8,
+        5.6
+      ],
+      "to": [
+        4.05,
+        10.0,
+        11.1
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Right root temple turn",
+      "from": [
+        11.95,
+        8.8,
+        5.6
+      ],
+      "to": [
+        13.0,
+        10.0,
+        11.1
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Rear complete birch carrying band",
+      "from": [
+        3.0,
+        8.8,
+        10.5
+      ],
+      "to": [
+        13.0,
+        10.0,
+        11.6
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Low front branch crossing",
+      "from": [
+        4.0,
+        9.7,
+        4.55
+      ],
+      "to": [
+        12.0,
+        10.4,
+        5.3
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Small square teal seed setting",
+      "from": [
+        7.25,
+        9.35,
+        4.2
+      ],
+      "to": [
+        8.75,
+        10.6,
+        5.05
+      ],
+      "material": "leaf",
+      "side": "bark"
+    },
+    {
+      "name": "Tiny blue green crystal seed",
+      "from": [
+        7.6,
+        9.6,
+        3.95
+      ],
+      "to": [
+        8.4,
+        10.35,
+        4.55
+      ],
+      "material": "crystal"
+    },
+    {
+      "name": "Left upright branch root",
+      "from": [
+        3.2,
+        9.7,
+        5.1
+      ],
+      "to": [
+        4.5,
+        12.9,
+        6.45
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left outward branch elbow",
+      "from": [
+        2.3000000000000003,
+        12.2,
+        5.1
+      ],
+      "to": [
+        4.5,
+        13.2,
+        6.45
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left square upper branch",
+      "from": [
+        2.3000000000000003,
+        12.9,
+        5.3
+      ],
+      "to": [
+        3.6000000000000005,
+        14.9,
+        6.5
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left inner fork arm",
+      "from": [
+        3.2,
+        11.4,
+        5.2
+      ],
+      "to": [
+        5.4,
+        12.2,
+        6.35
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Left inner fork shoot",
+      "from": [
+        4.2,
+        12.0,
+        5.25
+      ],
+      "to": [
+        5.2,
+        13.8,
+        6.3
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left broad angular leaf",
+      "from": [
+        1.7500000000000002,
+        13.7,
+        5.2
+      ],
+      "to": [
+        3.6500000000000004,
+        15.3,
+        6.65
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Left side branch node",
+      "from": [
+        3.1,
+        9.3,
+        7.3
+      ],
+      "to": [
+        4.6,
+        11.3,
+        8.5
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left low side leaf",
+      "from": [
+        2.75,
+        9.6,
+        8.2
+      ],
+      "to": [
+        4.95,
+        10.8,
+        10.0
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Right upright branch root",
+      "from": [
+        11.5,
+        9.7,
+        5.1
+      ],
+      "to": [
+        12.8,
+        12.9,
+        6.45
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right outward branch elbow",
+      "from": [
+        11.5,
+        12.2,
+        5.1
+      ],
+      "to": [
+        13.700000000000001,
+        13.2,
+        6.45
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right square upper branch",
+      "from": [
+        12.4,
+        12.9,
+        5.3
+      ],
+      "to": [
+        13.700000000000001,
+        14.9,
+        6.5
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right inner fork arm",
+      "from": [
+        10.5,
+        11.4,
+        5.2
+      ],
+      "to": [
+        12.7,
+        12.2,
+        6.35
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Right inner fork shoot",
+      "from": [
+        10.5,
+        12.0,
+        5.25
+      ],
+      "to": [
+        11.5,
+        13.8,
+        6.3
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right broad angular leaf",
+      "from": [
+        13.0,
+        13.7,
+        5.2
+      ],
+      "to": [
+        14.9,
+        15.3,
+        6.65
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Right side branch node",
+      "from": [
+        11.4,
+        9.3,
+        7.3
+      ],
+      "to": [
+        12.9,
+        11.3,
+        8.5
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right low side leaf",
+      "from": [
+        11.05,
+        9.6,
+        8.2
+      ],
+      "to": [
+        13.25,
+        10.8,
+        10.0
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Rear branch join",
+      "from": [
+        7.35,
+        8.6,
+        11.2
+      ],
+      "to": [
+        8.65,
+        10.9,
+        12.1
+      ],
+      "material": "branch",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Rear horizontal branch step",
+      "from": [
+        6.1,
+        10.3,
+        11.25
+      ],
+      "to": [
+        9.9,
+        11.0,
+        12.05
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Rear pair of leaf tabs",
+      "from": [
+        8.8,
+        10.7,
+        11.25
+      ],
+      "to": [
+        10.8,
+        11.8,
+        12.1
+      ],
+      "material": "leaf",
+      "side": "branch"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      154,
+      0
+    ],
+    "scale": 1.0
+  },
+  "wearable_texture_set": "eriva_mage",
+  "wearable_source": "armor/author_eriva_mage.py"
+}

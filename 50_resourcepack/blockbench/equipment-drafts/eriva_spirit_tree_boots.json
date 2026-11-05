@@ -1,0 +1,690 @@
+{
+  "id": "eriva_spirit_tree_boots",
+  "master_id": "20a00097",
+  "kind": "armor",
+  "intent": "Lv15 RARE。原作 #8DC6BD の青緑の術者靴。低い角形のつま先と柔らかな足首、暗い根の靴底、白樹皮の甲の分枝と緑の葉で「霊樹とともに歩む」を表す。二足は後ろの根紐で実際につなぎ、その結びを持ち点とする。少数の青緑結晶は足首に留める。初期の単純な革靴より素材差を増し、高位の重い板金や写実的な縫製にはしない。",
+  "grip": [
+    8,
+    6.5,
+    10.8
+  ],
+  "materials": {
+    "bark": {
+      "palette": [
+        "777866",
+        "A2A38E",
+        "BBBCA8",
+        "D8D6C5",
+        "EBE9DA"
+      ],
+      "pattern": [
+        "33333332",
+        "33443332",
+        "33333332",
+        "33113332",
+        "33333332",
+        "33333222",
+        "33222332",
+        "22222221"
+      ]
+    },
+    "branch": {
+      "palette": [
+        "3C4335",
+        "59634B",
+        "7B8568",
+        "A3AD89",
+        "C6CBAA"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12232221",
+        "12332221",
+        "12332221",
+        "12232221",
+        "12233221",
+        "11222211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "454837",
+        "707458",
+        "989D78",
+        "C0C5A0",
+        "DDDFC1"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222231",
+        "13222231",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "111D30",
+        "1B2A43",
+        "2C3F5A",
+        "425974",
+        "627991"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12333221",
+        "12332221",
+        "12332221",
+        "12332221",
+        "12332221",
+        "11222211"
+      ]
+    },
+    "leaf": {
+      "palette": [
+        "2D4B3E",
+        "466957",
+        "638975",
+        "88AA8C",
+        "B4C9A4"
+      ],
+      "pattern": [
+        "01122110",
+        "12333221",
+        "12343221",
+        "12233221",
+        "12232221",
+        "11222211",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "teal": {
+      "palette": [
+        "254B49",
+        "3C6B66",
+        "60928B",
+        "8DC6BD",
+        "B9DFD0"
+      ],
+      "pattern": [
+        "12233321",
+        "12333321",
+        "12343321",
+        "12333321",
+        "12333221",
+        "12233221",
+        "12222221",
+        "11222211"
+      ]
+    },
+    "crystal": {
+      "palette": [
+        "174E49",
+        "287C70",
+        "4EAD9B",
+        "8CD2BB",
+        "CAEAD5"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12344321",
+        "12343321",
+        "12333221",
+        "01233210",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "202B2B",
+        "344342",
+        "4D5C54",
+        "6B7966"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left broad root dark sole",
+      "from": [
+        2.1,
+        0.9,
+        3.8
+      ],
+      "to": [
+        7.0,
+        1.85,
+        11.0
+      ],
+      "material": "sole",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left teal soft foot",
+      "from": [
+        2.3000000000000003,
+        1.8,
+        4.0
+      ],
+      "to": [
+        6.800000000000001,
+        4.2,
+        10.75
+      ],
+      "material": "teal",
+      "side": "fold"
+    },
+    {
+      "name": "Left squared pale teal toe",
+      "from": [
+        2.3000000000000003,
+        2.0,
+        3.65
+      ],
+      "to": [
+        6.800000000000001,
+        3.4,
+        5.7
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Left shallow toe step",
+      "from": [
+        2.75,
+        3.35,
+        4.25
+      ],
+      "to": [
+        6.35,
+        3.95,
+        6.4
+      ],
+      "material": "teal",
+      "side": "leaf"
+    },
+    {
+      "name": "Left front open ankle wall",
+      "from": [
+        2.6500000000000004,
+        3.8,
+        7.1
+      ],
+      "to": [
+        6.449999999999999,
+        7.2,
+        8.1
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Left rear ankle wall",
+      "from": [
+        2.6500000000000004,
+        3.8,
+        10.0
+      ],
+      "to": [
+        6.449999999999999,
+        7.2,
+        10.9
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Left outer ankle wall",
+      "from": [
+        2.5,
+        3.8,
+        7.8
+      ],
+      "to": [
+        3.35,
+        7.2,
+        10.3
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Left inner ankle wall",
+      "from": [
+        5.75,
+        3.8,
+        7.8
+      ],
+      "to": [
+        6.6,
+        7.2,
+        10.3
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Left front root wrap",
+      "from": [
+        2.4,
+        5.7,
+        6.85
+      ],
+      "to": [
+        6.699999999999999,
+        6.45,
+        7.65
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Left rear root wrap",
+      "from": [
+        2.4,
+        5.7,
+        10.45
+      ],
+      "to": [
+        6.699999999999999,
+        6.45,
+        11.2
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Left outer root wrap turn",
+      "from": [
+        2.4,
+        5.7,
+        7.5
+      ],
+      "to": [
+        3.1500000000000004,
+        6.45,
+        10.6
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Left inner root wrap turn",
+      "from": [
+        5.95,
+        5.7,
+        7.5
+      ],
+      "to": [
+        6.699999999999999,
+        6.45,
+        10.6
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Left broad angular root over toe",
+      "from": [
+        3.95,
+        3.4,
+        4.1
+      ],
+      "to": [
+        4.75,
+        4.3,
+        7.25
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left small leaf on instep",
+      "from": [
+        3.4000000000000004,
+        4.05,
+        6.2
+      ],
+      "to": [
+        5.5,
+        4.7,
+        7.5
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Left small teal ankle seed",
+      "from": [
+        4.1,
+        6.3,
+        7.0
+      ],
+      "to": [
+        5.0,
+        7.0,
+        7.65
+      ],
+      "material": "crystal",
+      "side": "teal"
+    },
+    {
+      "name": "Left pale back heel bark",
+      "from": [
+        3.2,
+        1.7,
+        10.55
+      ],
+      "to": [
+        5.9,
+        3.45,
+        11.35
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Right broad root dark sole",
+      "from": [
+        9.0,
+        0.9,
+        3.8
+      ],
+      "to": [
+        13.9,
+        1.85,
+        11.0
+      ],
+      "material": "sole",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right teal soft foot",
+      "from": [
+        9.2,
+        1.8,
+        4.0
+      ],
+      "to": [
+        13.7,
+        4.2,
+        10.75
+      ],
+      "material": "teal",
+      "side": "fold"
+    },
+    {
+      "name": "Right squared pale teal toe",
+      "from": [
+        9.2,
+        2.0,
+        3.65
+      ],
+      "to": [
+        13.7,
+        3.4,
+        5.7
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Right shallow toe step",
+      "from": [
+        9.65,
+        3.35,
+        4.25
+      ],
+      "to": [
+        13.25,
+        3.95,
+        6.4
+      ],
+      "material": "teal",
+      "side": "leaf"
+    },
+    {
+      "name": "Right front open ankle wall",
+      "from": [
+        9.55,
+        3.8,
+        7.1
+      ],
+      "to": [
+        13.35,
+        7.2,
+        8.1
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Right rear ankle wall",
+      "from": [
+        9.55,
+        3.8,
+        10.0
+      ],
+      "to": [
+        13.35,
+        7.2,
+        10.9
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Right outer ankle wall",
+      "from": [
+        9.4,
+        3.8,
+        7.8
+      ],
+      "to": [
+        10.25,
+        7.2,
+        10.3
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Right inner ankle wall",
+      "from": [
+        12.65,
+        3.8,
+        7.8
+      ],
+      "to": [
+        13.5,
+        7.2,
+        10.3
+      ],
+      "material": "teal",
+      "side": "branch"
+    },
+    {
+      "name": "Right front root wrap",
+      "from": [
+        9.3,
+        5.7,
+        6.85
+      ],
+      "to": [
+        13.6,
+        6.45,
+        7.65
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Right rear root wrap",
+      "from": [
+        9.3,
+        5.7,
+        10.45
+      ],
+      "to": [
+        13.6,
+        6.45,
+        11.2
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Right outer root wrap turn",
+      "from": [
+        9.3,
+        5.7,
+        7.5
+      ],
+      "to": [
+        10.05,
+        6.45,
+        10.6
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Right inner root wrap turn",
+      "from": [
+        12.85,
+        5.7,
+        7.5
+      ],
+      "to": [
+        13.6,
+        6.45,
+        10.6
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Right broad angular root over toe",
+      "from": [
+        10.85,
+        3.4,
+        4.1
+      ],
+      "to": [
+        11.65,
+        4.3,
+        7.25
+      ],
+      "material": "bark",
+      "side": "branch",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Right small leaf on instep",
+      "from": [
+        10.3,
+        4.05,
+        6.2
+      ],
+      "to": [
+        12.4,
+        4.7,
+        7.5
+      ],
+      "material": "leaf",
+      "side": "branch"
+    },
+    {
+      "name": "Right small teal ankle seed",
+      "from": [
+        11.0,
+        6.3,
+        7.0
+      ],
+      "to": [
+        11.9,
+        7.0,
+        7.65
+      ],
+      "material": "crystal",
+      "side": "teal"
+    },
+    {
+      "name": "Right pale back heel bark",
+      "from": [
+        10.1,
+        1.7,
+        10.55
+      ],
+      "to": [
+        12.8,
+        3.45,
+        11.35
+      ],
+      "material": "bark",
+      "side": "branch"
+    },
+    {
+      "name": "Paired rear root carrying tie",
+      "from": [
+        6.2,
+        6.1,
+        10.55
+      ],
+      "to": [
+        9.8,
+        6.85,
+        11.1
+      ],
+      "material": "branch",
+      "side": "bark"
+    },
+    {
+      "name": "Rear carrying tie leaf knot",
+      "from": [
+        7.55,
+        5.9,
+        10.45
+      ],
+      "to": [
+        8.45,
+        7.15,
+        11.25
+      ],
+      "material": "leaf",
+      "side": "branch"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      154,
+      0
+    ],
+    "scale": 1.0
+  },
+  "wearable_texture_set": "eriva_mage",
+  "wearable_source": "armor/author_eriva_mage.py"
+}
