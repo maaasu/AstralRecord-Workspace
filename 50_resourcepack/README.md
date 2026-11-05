@@ -94,7 +94,7 @@ BE では仮想トライデントで長押し入力を受け取りながら、�
 
 `scripts/armor-assets.ps1` が台帳と登録済みitemの一致、標準防具素材とslot、JEレイヤー参照、BE着用geometry・texture・身体binding・描画条件を検証して梱包します。防具のPNGは標準UVと同じ2:1（64×32、128×64、256×128）を使います。パックの検査は編集データの整合確認であり、両版の実クライアントでの着用確認を代替しません。
 
-配布用itemカタログでは明示登録した身体防具だけ `armor: true` を付けます。Geyserはその防具に通常表示と非着用表示の2定義を用意し、Bedrock向け送信コピーの `custom_model_data.flags[0]`（trueが非表示）で選びます。このflagは標準4部位の防具でモデルIDがある場合だけ予約し、閲覧者の設定に従ってtrue/falseを毎回明示します。モデルID・追加float・他flag・string・colorは維持します。非着用表示の識別子 `hidden_armor_<id>` は生成用に予約し、同じアイコン `astralrecord.<id>` と手持ちアセットを使います。helperが身体描画を持たない派生attachableを生成するため、防具表示OFFでもGUI・手持ちは維持されます。通常の3D武器・2Dアイテム・馬鎧素材の武器はこの派生登録を行いません。台帳へのgenerated項目と仮想トライデント項目の登録も拒否します。
+配布用itemカタログでは明示登録した身体防具だけ `armor: true` を付けます。Geyserはその防具に通常表示と非着用表示の2定義を用意し、Bedrock向け送信コピーの `custom_model_data.flags[0]`（trueが非表示）で選びます。このflagは標準4部位の防具でモデルIDがある場合だけ予約し、閲覧者の設定に従ってtrue/falseを毎回明示します。モデルID・追加float・他flag・string・colorは維持します。非着用表示の識別子 `hidden_armor_<id>` は生成用に予約し、同じアイコン `astralrecord.<id>` と手持ちアセットを使います。helperが身体描画を持たない派生attachableを生成するため、防具表示OFFでもGUI・手持ちは維持されます。通常の3D武器・2Dアイテム・馬鎧素材の武器はこの派生登録を行いません。台帳へのgenerated項目と仮想トライデント項目の登録も拒否します。 明示した防具にもJavaの4hand pose・握り点とBedrockのgrip原点・保持姿勢を同じ検査で要求します。conditional rendererの例外は台帳で照合できた防具の厳密な2条件だけで、その他の3D itemは標準controller一つを維持します。
 
 Geyserは基本素材の `EQUIPPABLE.slot` から `minecraft:wearable` の身体部位を生成します。creative categoryはレシピ帳等の分類だけで、装備部位を指定しません。新しい防具登録は通常のitemと同様にProxy再起動・BE再接続で反映します。[Geyser custom items](https://geysermc.org/wiki/geyser/custom-items/)、[Minecraft JE 1.21.4](https://www.minecraft.net/en-us/article/minecraft-java-edition-1-21-4)、[Bedrock custom armor](https://learn.microsoft.com/en-us/minecraft/creator/documents/addcustomitems?view=minecraft-bedrock-stable)
 

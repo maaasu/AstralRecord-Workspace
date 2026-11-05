@@ -71,6 +71,35 @@ function Get-ArmorAssetRegistry {
     return ,$catalog.items
 }
 
+function Confirm-BedrockArmorRenderers {
+    param($Description, [string] $id)
+
+    if (@($Description.render_controllers).Count -ne 2) {
+        throw "Armor attachable $id must use exactly one conditional held and one conditional worn renderer."
+    }
+    foreach ($entry in $Description.render_controllers) {
+        if ($entry -is [string] -or @($entry.PSObject.Properties.Name).Count -ne 1) {
+            throw "Armor attachable $id must declare exactly one renderer per condition."
+        }
+    }
+    $renderer = @($Description.render_controllers | Where-Object {
+        $_ -isnot [string] -and $_.PSObject.Properties.Name -ccontains 'controller.render.astralrecord.armor_worn'
+    })
+    $condition = "context.item_slot != 'main_hand' && context.item_slot != 'off_hand'"
+    if ($renderer.Count -ne 1 -or $renderer[0].'controller.render.astralrecord.armor_worn' -isnot [string] -or
+        $renderer[0].'controller.render.astralrecord.armor_worn' -cne $condition) {
+        throw "Armor attachable $id must render its worn geometry only outside the hand slots."
+    }
+    $held = @($Description.render_controllers | Where-Object {
+        $_ -isnot [string] -and $_.PSObject.Properties.Name -ccontains 'controller.render.item_default'
+    })
+    $heldCondition = "context.item_slot == 'main_hand' || context.item_slot == 'off_hand'"
+    if ($held.Count -ne 1 -or $held[0].'controller.render.item_default' -isnot [string] -or
+        $held[0].'controller.render.item_default' -cne $heldCondition) {
+        throw "Armor attachable $id must render its held geometry only in the hand slots."
+    }
+}
+
 function Confirm-BedrockArmorAsset {
     param($Entries, $Item)
 
@@ -86,7 +115,9 @@ function Confirm-BedrockArmorAsset {
     $worn = @($geometry.'minecraft:geometry' | Where-Object {
         $_.description.identifier -ceq $description.geometry.worn
     })
-    if ($worn.Count -ne 1 -or $description.textures.armor -cne "textures/models/armor/$id" -or
+    if ($worn.Count -ne 1 -or $description.geometry.worn -isnot [string] -or
+        $description.textures.armor -isnot [string] -or $worn[0].description.identifier -isnot [string] -or
+        $description.textures.armor -cne "textures/models/armor/$id" -or
         $worn[0].description.texture_width -ne $size[0] -or $worn[0].description.texture_height -ne $size[1]) {
         throw "Armor attachable $id must reference its worn geometry and humanoid armor texture."
     }
@@ -102,22 +133,10 @@ function Confirm-BedrockArmorAsset {
             throw "Armor geometry $id must bind visible cuboids to $binding for $($Item.slot)."
         }
     }
-    $renderer = @($description.render_controllers | Where-Object {
-        $_ -isnot [string] -and $_.PSObject.Properties.Name -ccontains 'controller.render.astralrecord.armor_worn'
-    })
-    $condition = "context.item_slot != 'main_hand' && context.item_slot != 'off_hand'"
-    if ($renderer.Count -ne 1 -or $renderer[0].'controller.render.astralrecord.armor_worn' -cne $condition) {
-        throw "Armor attachable $id must render its worn geometry only outside the hand slots."
-    }
-    $held = @($description.render_controllers | Where-Object {
-        $_ -isnot [string] -and $_.PSObject.Properties.Name -ccontains 'controller.render.item_default'
-    })
-    $heldCondition = "context.item_slot == 'main_hand' || context.item_slot == 'off_hand'"
-    if ($held.Count -ne 1 -or $held[0].'controller.render.item_default' -cne $heldCondition) {
-        throw "Armor attachable $id must render its held geometry only in the hand slots."
-    }
+    Confirm-BedrockArmorRenderers $description $id
     # A second static Bedrock item represents the sender's explicit armor-hidden flag.
     # It keeps the same held geometry/texture/animation and can never render on the body.
+    $heldCondition = "context.item_slot == 'main_hand' || context.item_slot == 'off_hand'"
     $hidden = ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $attachable -Depth 32)
     $hiddenDescription = $hidden.'minecraft:attachable'.description
     $hiddenDescription.identifier = "astralrecord:hidden_armor_$id"
@@ -172,8 +191,9 @@ function Add-ArmorAssetEntries {
         Add-UniqueArmorEntry $BedrockEntries $bedrockRoot $controllerPath
         $controllers = Get-PackJson (Join-Path $bedrockRoot $controllerPath)
         $controller = $controllers.render_controllers.'controller.render.astralrecord.armor_worn'
-        if ($controller.geometry -cne 'Geometry.worn' -or $controller.textures -isnot [array] -or
-            $controller.textures.Count -ne 1 -or $controller.textures[0] -cne 'Texture.armor') {
+        if ($controller.geometry -isnot [string] -or $controller.geometry -cne 'Geometry.worn' -or
+            $controller.textures -isnot [array] -or $controller.textures.Count -ne 1 -or
+            $controller.textures[0] -isnot [string] -or $controller.textures[0] -cne 'Texture.armor') {
             throw 'The armor worn render controller must use Geometry.worn and Texture.armor.'
         }
     }

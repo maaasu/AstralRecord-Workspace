@@ -114,7 +114,7 @@ function Add-JavaItemAssets {
 }
 
 function Add-BedrockItemAssets {
-    param($Entries, [string] $Id, [bool] $CheckGrip)
+    param($Entries, [string] $Id, [bool] $CheckGrip, [bool] $ArmorItem = $false)
 
     $attachablePath = "attachables/$Id.json"
     $geometryPath = "models/entity/items/$Id.geo.json"
@@ -143,6 +143,13 @@ function Add-BedrockItemAssets {
     $animationReferences = $description.animations.PSObject.Properties.Value
     if (!$animationReferences -or ($animationReferences | Where-Object { $_ -cnotin $animationIds })) {
         throw "$attachablePath must reference animations from $animationPath."
+    }
+    if ($ArmorItem) {
+        Confirm-BedrockArmorRenderers $description $Id
+    } elseif (@($description.render_controllers).Count -ne 1 -or
+        $description.render_controllers[0] -isnot [string] -or
+        $description.render_controllers[0] -cne 'controller.render.item_default') {
+        throw "$attachablePath must use only the standard item render controller."
     }
     if ($CheckGrip) { Confirm-BedrockItemGrip $geometry.'minecraft:geometry' $description $animation.animations $Id }
     return $description
@@ -269,6 +276,8 @@ function Add-ItemModelEntries {
     param($JavaEntries, $BedrockEntries)
 
     $models = Get-ItemModelRegistry
+    $armorItems = @{}
+    foreach ($armor in (Get-ArmorAssetRegistry)) { $armorItems.Add($armor.id, $armor) }
     $gripTargets = Get-PackJson (Join-Path $root 'item-model-grip-targets.json')
     $bedrockItems = @()
     $heldWeapons = [System.Collections.Generic.SortedDictionary[int, object]]::new()
@@ -280,11 +289,13 @@ function Add-ItemModelEntries {
             continue
         }
         $id = $item.id
+        $isArmor = $armorItems.ContainsKey($id)
         $base = $item.base_item.Substring('minecraft:'.Length)
         $isBow = $base -ceq 'bow'
-        $grip = if ($item.java_virtual_trident) { $item.grip }
+        $grip = if ($item.java_virtual_trident -or $isArmor) { $item.grip }
+        if ($isArmor -and !(Test-ItemGripVector $grip)) { throw "Armor $id must declare its held grip point." }
         Add-JavaItemAssets $JavaEntries $id $isBow $grip $gripTargets.($item.base_item)
-        $description = Add-BedrockItemAssets $BedrockEntries $id $item.java_virtual_trident
+        $description = Add-BedrockItemAssets $BedrockEntries $id ($item.java_virtual_trident -or $isArmor) $isArmor
         if ($item.java_virtual_trident) {
             $heldWeapons.Add($item.custom_model_data, $description)
         }

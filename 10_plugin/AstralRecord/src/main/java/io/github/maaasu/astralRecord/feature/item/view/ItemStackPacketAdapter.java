@@ -630,6 +630,7 @@ public class ItemStackPacketAdapter {
         var embeddedModelData = ItemStackFactory.getCustomModelData(original);
         var customModelData = resolveCustomModelData(itemId, embeddedModelData);
         boolean clearCustomModelData = embeddedModelData != null && customModelData == null;
+        var itemMaster = itemId == null ? null : itemService.findLoadedById(itemId);
         var embeddedEquipmentAsset = ItemStackFactory.getEquipmentAsset(original);
         var equipmentAsset = itemMaster == null ? embeddedEquipmentAsset
             : itemMaster.getAppearance() == null ? null : itemMaster.getAppearance().getEquipmentAsset();
