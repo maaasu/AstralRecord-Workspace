@@ -89,6 +89,8 @@ Control管理markerがあるPCの10はManaged設定と`-PreflightOnly`を使用�
 - `10`：リリース管理API/Webの専用入口を維持。Dev更新の停止待ち・公開登録を混ぜない。
 - `17`：大きな仕様変更・復旧用のプレイヤー一括更新。通常更新とは別の [専用手順](../player-patch-migration/README.md)。
 
+`01` と `10` は API 配置が有効な場合、API の publish 後に `50_resourcepack/scripts/build-resourcepack.ps1` で Java の ZIP と Bedrock の MCPACK を再生成します。ファイル名にハッシュを使い、両ハッシュと Bedrock UUID を記録した `manifest.json` と一緒に API の `resource-packs` ディレクトリへ配置します。パック作成に失敗した場合は DB 更新とサーバーへの配置を始める前に停止します。マニフェストは最新世代へ更新し、デプロイ前後に取得が重なったクライアント向けに各エディションの直前のハッシュ付きファイルを一つ引き継ぎます。公開 Web の Java 配布口を初めて導入する場合は、API とあわせて Web も配置してください。
+
 `03` の設定元は旧 `master-data-reload.config.json` から01と同じdeploy-debug設定へ統合しました。旧PowerShellは詳細操作用に残しています。旧 `-Mode rebuild` は日常入口には引き継がず、通常はdiff seedだけを使用します。
 
 ```powershell

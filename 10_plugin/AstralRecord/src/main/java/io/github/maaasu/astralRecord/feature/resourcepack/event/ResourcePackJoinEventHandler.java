@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
  * Java Edition プレイヤーの参加時にリソースパック要求を送信するイベントハンドラ。
@@ -41,5 +42,15 @@ public class ResourcePackJoinEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerJoin(PlayerJoinEvent event) {
         runSafely(() -> resourcePackService.applyTo(event.getPlayer()), LogId.E_5550, event.getPlayer().getName());
+    }
+
+    /**
+     * 接続単位の適用状態を破棄します。
+     *
+     * @param event プレイヤー退出イベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        resourcePackService.forgetViewer(event.getPlayer().getUniqueId());
     }
 }

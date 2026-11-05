@@ -1,0 +1,5 @@
+namespace AstralRecordApi.Models;
+
+public sealed record ResourcePackManifest(JavaResourcePack Java, BedrockResourcePack Bedrock);
+public sealed record JavaResourcePack(string Sha1);
+public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

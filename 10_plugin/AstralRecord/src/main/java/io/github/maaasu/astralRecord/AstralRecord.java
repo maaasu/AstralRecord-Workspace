@@ -1564,7 +1564,8 @@ public final class AstralRecord extends JavaPlugin {
         hookshotUseService = new HookshotUseService(this, inventoryService, itemService, particleDisplayService);
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
-        displayTextService = new DisplayTextService();
+        resourcePackService = new ResourcePackService(this, ConfigProperties.getInstance());
+        displayTextService = new DisplayTextService(playerSettingService, resourcePackService);
         textDisplayPlacementService.setDisplayTextService(displayTextService);
         waystonePacketView = new WaystonePacketView(this, teleporterService, particleDisplayService);
         teleporterGui = new TeleporterGui(teleporterService);
@@ -1885,8 +1886,6 @@ public final class AstralRecord extends JavaPlugin {
         );
         airActionService = new AirActionService(this, playerHudService, particleDisplayService);
 
-        // resource pack
-        resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
         guideService = new GuideService(
             this,
             new GuideRepository(),

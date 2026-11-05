@@ -65,6 +65,8 @@ public final class ConfigKeys {
     public static final String RESOURCE_PACK_PROMPT = "resourcePack.prompt";
     public static final String RESOURCE_PACK_SKIP_BEDROCK = "resourcePack.skipBedrock";
     public static final String RESOURCE_PACK_BEDROCK_NAME_PREFIXES = "resourcePack.bedrockNamePrefixes";
+    public static final String RESOURCE_PACK_MANAGED_ENABLED = "resourcePack.managed.enabled";
+    public static final String RESOURCE_PACK_PUBLIC_BASE_URL = "resourcePack.managed.publicBaseUrl";
 
     // DiscordSRV chat bridge settings
     public static final String DISCORD_ENABLED = "discord.enabled";

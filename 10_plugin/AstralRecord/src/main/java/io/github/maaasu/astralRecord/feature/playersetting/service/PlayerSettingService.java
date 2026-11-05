@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
+import io.github.maaasu.astralRecord.feature.playersetting.model.DamageNumberSize;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingEntry;
@@ -173,6 +174,18 @@ public final class PlayerSettingService {
     public @NotNull Object getPlayerSetting(@NotNull UUID userId, @NotNull PlayerSettingKey key) {
         PlayerSettingEntry entry = getSnapshot(userId).getEntry(key);
         return entry == null ? defaults.resolveDefault(key) : entry.getValue();
+    }
+
+    /**
+     * ロード済みのダメージ数値サイズを取得します。パケット送信中もAPI通信を行いません。
+     *
+     * @param userId 設定を所有するユーザーUUID
+     * @return 設定済みサイズ。未読込・未設定・型不正の場合は標準
+     */
+    public @NotNull DamageNumberSize getCachedDamageNumberSize(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        PlayerSettingEntry entry = snapshot == null ? null : snapshot.getEntry(PlayerSettingKey.DAMAGE_NUMBER_SIZE);
+        return entry != null && entry.getValue() instanceof DamageNumberSize size ? size : DamageNumberSize.NORMAL;
     }
 
     public double getParticleDensityScale(@NotNull UUID userId) {
@@ -407,10 +420,22 @@ public final class PlayerSettingService {
         return entries;
     }
     private PlayerSettingEntry defaultEntry(PlayerSettingKey key) { return new PlayerSettingEntry(null, key, defaults.resolveDefault(key), null); }
+    /**
+     * 保存済みJSONをキーに対応する値へ変換し、不正な値はログを記録して既定値へ戻します。
+     *
+     * @param key 設定キー
+     * @param source 保存済みJSON
+     * @param userId 設定を所有するユーザーUUID
+     * @return 読み取った値または既定値
+     */
     private Object parseJsonValue(PlayerSettingKey key, String source, UUID userId) {
         try {
             JsonObject value = JsonParser.parseString(source).getAsJsonObject();
             if (key.isBooleanValue()) return value.get("enabled").getAsBoolean();
+            if (key == PlayerSettingKey.DAMAGE_NUMBER_SIZE) {
+                DamageNumberSize size = DamageNumberSize.fromInput(value.get("value").getAsString());
+                if (size != null) return size;
+            }
             if (key.isParticleDensityValue()) {
                 ParticleDensity density = ParticleDensity.fromInput(value.get("value").getAsString());
                 if (density != null) return density;
@@ -425,9 +450,21 @@ public final class PlayerSettingService {
             return defaults.resolveDefault(key);
         }
     }
+    /**
+     * 型を確認済みの設定値を保存用JSONへ変換します。
+     *
+     * @param key 設定キー
+     * @param value 保存する設定値
+     * @return 保存用JSON
+     * @throws IllegalArgumentException 保存形式を持たない設定キーの場合
+     */
     private String serializeValue(PlayerSettingKey key, Object value) {
         JsonObject result = new JsonObject();
         if (key.isBooleanValue()) { result.addProperty("enabled", (Boolean) value); return result.toString(); }
+        if (key == PlayerSettingKey.DAMAGE_NUMBER_SIZE) {
+            result.addProperty("value", ((DamageNumberSize) value).name());
+            return result.toString();
+        }
         if (key.isParticleDensityValue()) { result.addProperty("value", ((ParticleDensity) value).getCode()); return result.toString(); }
         if (key.isSpawnerVisualModeValue()) { result.addProperty("value", ((MobSpawnerVisualMode) value).name()); return result.toString(); }
         throw new IllegalArgumentException("Unsupported player setting key: " + key.getCode());

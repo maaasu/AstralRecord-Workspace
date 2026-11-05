@@ -1,0 +1,23 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        " ": 4
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/damage_number.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        "0123456789,\u2212\u2726\u25c7"
+      ]
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # AstralRecord Geyser Extension
 
-Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドを起動時に登録するJava 21 / Mavenモジュール。Geyser API 2.11.2を使用する。
+Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドとBedrock用ダメージ表示を登録するJava 21 / Mavenモジュール。Geyser API 2.11.2を使用する。
 
 ## 登録元
 
@@ -23,16 +23,22 @@ iconTexture: "<texturesプロパティのBase64値>"
 
 1. ワークスペースの `60_tool/12-build-network-plugins.bat` を実行する。Extension単体は `-Target Extension`。
 2. `60_tool/network-plugin-build/output/AstralRecordGeyserExtension.jar` をVelocityの `plugins/Geyser-Velocity/extensions/` へ配置する。
-3. Geyserのカスタムコンテンツを有効にする（現行設定では `gameplay.enable-custom-content: true`）。
+3. Geyserの `gameplay.enable-custom-content: true` と `gameplay.force-resource-packs: true` を設定する。
 4. 初回起動でExtensionデータフォルダに作成される `config.yml` の `api.baseUrl` と認証を設定する。フォルダは通常 `plugins/Geyser-Velocity/extensions/astralrecordgeyser/`。事前に配置してもよい。
 5. `api.apiKey` を設定するか、既定の `ASTRALRECORD_API_KEY` 環境変数をVelocityプロセスへ渡す。キーはGitへコミットしない。通常はTLS証明書をJVMから信頼できるものにする。APIが信頼できるローカル・閉域環境からのみ到達可能な開発環境では、`api.allowInsecureTls: true` により証明書とホスト名の検証を無効化できる。本番では必ず `false` にする。
 6. 更新済みAPIを起動し、マスターをseedした後にProxyを再起動する。Bedrockクライアントで生成パックを適用して再接続する。
 
 RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。このJARはGeyserが読み込む。
 
+## Bedrockのダメージ表示
+
+起動時と以降約1分ごとに認証付き `GET /api/resource-packs/manifest` を取得する。SHA-256が変わったときだけ、同APIの `GET /api/resource-packs/bedrock/{sha256}.mcpack` から更新パックを取得する。SHA-256とアーカイブのmanifest header UUIDを検証し、新規接続へ配布する。同一のProxy起動中に取得や検証に失敗した場合は最後に検証済みのパックを維持する。Proxy起動時に取得できなければ従来の文字表示を使い、取得が復旧した後の新規接続から専用モデルを使う。パックの更新は次回のBedrock接続時に適用される。
+
+パックを登録してログインまで進んだ接続では、RPGが送る対応するTextDisplayを `astralrecord:damage_number` に置き換える。利用できるパックがない場合や登録に失敗した場合は、従来のTextDisplayを使う。Geyserの公開APIでは個別パックの適用確認を取得できないため、Geyserの強制パック設定を使う。Bedrockクライアントでパックの受け取りを拒否すると、Geyserが接続を終了する。
+
 ## 起動・障害時の契約
 
-API取得は起動時イベント内のタイムアウト付きGET一回。全レスポンスの構造を検証した後に登録し、テクスチャとUUIDをそれぞれ重複排除する。リダイレクトは追跡しない。固定ヘッドはAPI接続失敗時も登録し、API由来ヘッドを読み込めなかったことをエラーログに出す。復旧後はProxyを再起動する。
+ヘッドAPI取得は起動時イベント内のタイムアウト付きGET一回。全レスポンスの構造を検証した後に登録し、テクスチャとUUIDをそれぞれ重複排除する。リダイレクトは追跡しない。固定ヘッドはAPI接続失敗時も登録し、API由来ヘッドを読み込めなかったことをエラーログに出す。復旧後はProxyを再起動する。
 
 登録対象を増やした場合やプレイヤーがスキンを変更した場合、RPGのマスター再読込だけではBedrock側へ新しい定義を追加できない。APIのマスター更新後、Proxy再起動と再接続が必要。通常のGeyser reloadでカスタム定義が再構築されることは前提にしない。
 

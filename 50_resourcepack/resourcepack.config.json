@@ -3,8 +3,9 @@
     "name": "AstralRecordResourcePack",
     "root": ".",
     "namespace": "astralrecord",
-    "minecraftVersion": "1.21.4",
-    "packFormat": 46
+    "minecraftVersion": "1.21.11",
+    "packFormat": [75, 0],
+    "maxPackFormat": [97, 1]
   },
   "referenceStrategy": "Prefer relative paths so the repository works across environments. Use absolutePathOverrides only when a local checkout cannot use the relative paths.",
   "references": {

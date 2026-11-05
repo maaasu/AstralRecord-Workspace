@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  */
 public enum PlayerSettingKey {
     DAMAGE_LOG_DISPLAY("DAMAGE_LOG_DISPLAY", "ダメージ数値表示", true),
+    DAMAGE_NUMBER_SIZE("DAMAGE_NUMBER_SIZE", "ダメージ数値の大きさ", DamageNumberSize.NORMAL),
     DAMAGE_LOG_MESSAGE("DAMAGE_LOG_MESSAGE", "ダメージ詳細メッセージ", false),
     PARTICLE_DENSITY("PARTICLE_DENSITY", "パーティクル密度", ParticleDensity.NORMAL),
     DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "ドロップログ表示", true),
@@ -67,6 +68,12 @@ public enum PlayerSettingKey {
         return defaultValue instanceof MobSpawnerVisualMode;
     }
 
+    /**
+     * コマンド入力をキーに応じた型へ変換します。
+     *
+     * @param input プレイヤーが入力した設定値
+     * @return 変換した値。設定値として不正な場合はnull
+     */
     public @Nullable Object parseInputValue(@Nullable String input) {
         if (isBooleanValue()) {
             if (input == null) {
@@ -79,6 +86,9 @@ public enum PlayerSettingKey {
                 default -> null;
             };
         }
+        if (this == DAMAGE_NUMBER_SIZE) {
+            return DamageNumberSize.fromInput(input);
+        }
         if (isParticleDensityValue()) {
             return ParticleDensity.fromInput(input);
         }
@@ -88,9 +98,18 @@ public enum PlayerSettingKey {
         return null;
     }
 
+    /**
+     * 設定値を表示用に整形します。
+     *
+     * @param value 整形対象の設定値
+     * @return GUIとコマンドで使う表示値
+     */
     public @NotNull String formatValue(@Nullable Object value) {
         if (value instanceof Boolean booleanValue) {
             return booleanValue ? "ON" : "OFF";
+        }
+        if (value instanceof DamageNumberSize size) {
+            return size.getDisplayNameJa();
         }
         if (value instanceof ParticleDensity density) {
             return density.getDisplayNameJa();
@@ -101,9 +120,13 @@ public enum PlayerSettingKey {
         return String.valueOf(value);
     }
 
+    /** @return このキーで選択できる設定値のコマンド補完候補 */
     public @NotNull List<String> completionValues() {
         if (isBooleanValue()) {
             return List.of("on", "off");
+        }
+        if (this == DAMAGE_NUMBER_SIZE) {
+            return DamageNumberSize.completionValues();
         }
         if (isParticleDensityValue()) {
             return ParticleDensity.completionValues();

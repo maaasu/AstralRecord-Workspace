@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.shared.display;
 
+import com.comphenix.protocol.ProtocolLibrary;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -12,6 +15,7 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
@@ -52,11 +56,27 @@ public final class DisplayTextService {
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
+    private final ConcurrentHashMap<Integer, DamageNumberPacketAdapter.NumberDisplay> damageNumbers = new ConcurrentHashMap<>();
+    private final PlayerSettingService playerSettingService;
+    private final ResourcePackService resourcePackService;
+    private DamageNumberPacketAdapter damageNumberPacketAdapter;
     private Plugin plugin;
     private BukkitTask task;
 
     /**
-     * 定期更新を開始します。
+     * 表示サービスを構成します。リスナー登録や実体の生成は開始時以降に行います。
+     *
+     * @param playerSettingService 閲覧者のダメージ数値サイズ設定の参照先
+     * @param resourcePackService Javaのパック適用状態とエディションの参照先
+     */
+    public DisplayTextService(@NotNull PlayerSettingService playerSettingService,
+                              @NotNull ResourcePackService resourcePackService) {
+        this.playerSettingService = playerSettingService;
+        this.resourcePackService = resourcePackService;
+    }
+
+    /**
+     * 定期更新と、ダメージ数値のエディション・受信者別送信を開始します。
      *
      * @param plugin scheduler を起動するプラグイン
      */
@@ -65,22 +85,34 @@ public final class DisplayTextService {
             return;
         }
         this.plugin = plugin;
+        damageNumberPacketAdapter = new DamageNumberPacketAdapter(plugin, damageNumbers,
+                playerSettingService, resourcePackService);
+        ProtocolLibrary.getProtocolManager().addPacketListener(damageNumberPacketAdapter);
+        plugin.getServer().getPluginManager().registerEvents(damageNumberPacketAdapter, plugin);
+        plugin.getServer().getOnlinePlayers().forEach(damageNumberPacketAdapter::trackViewer);
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, (Runnable) this::tick, 1L, UPDATE_INTERVAL_TICKS);
     }
 
     /**
-     * すべての TextDisplay を破棄して定期更新を停止します。
+     * すべての TextDisplay を破棄して、定期更新とパケットリスナーを停止します。
      */
     public void stop() {
         if (task != null) {
             task.cancel();
             task = null;
         }
-        plugin = null;
         for (ManagedDisplayState state : displays.values()) {
             destroyEntity(state);
         }
         displays.clear();
+        damageNumbers.clear();
+        if (damageNumberPacketAdapter != null) {
+            ProtocolLibrary.getProtocolManager().removePacketListener(damageNumberPacketAdapter);
+            HandlerList.unregisterAll(damageNumberPacketAdapter);
+            if (plugin != null) damageNumberPacketAdapter.removeMarkers(plugin);
+            damageNumberPacketAdapter = null;
+        }
+        plugin = null;
     }
 
     /**
@@ -150,7 +182,7 @@ public final class DisplayTextService {
     public @NotNull ManagedTextDisplay spawnEvadedText(@NotNull Location origin) {
         pruneDamageDisplays();
         return spawnFloatingText(origin, PlayerMsgResource.getMessage(FloatingStyle.EVADE.messageId.getId()),
-                FloatingStyle.EVADE);
+                FloatingStyle.EVADE, -1);
     }
 
     /**
@@ -163,9 +195,11 @@ public final class DisplayTextService {
     private @NotNull ManagedTextDisplay spawnFloatingNumber(
             @NotNull Location origin, double amount, @NotNull FloatingStyle style
     ) {
+        double nonNegativeAmount = Math.max(0.0D, amount);
         String text = PlayerMsgResource.format(style.messageId.getId(),
-                String.format(Locale.ROOT, "%,.0f", Math.max(0.0D, amount)));
-        return spawnFloatingText(origin, text, style);
+                String.format(Locale.ROOT, "%,.0f", nonNegativeAmount));
+        long roundedAmount = Double.isFinite(nonNegativeAmount) ? Math.round(nonNegativeAmount) : -1;
+        return spawnFloatingText(origin, text, style, roundedAmount);
     }
 
     /**
@@ -174,10 +208,11 @@ public final class DisplayTextService {
      * @param origin 表示起点
      * @param text 表示文字列
      * @param style 種別に応じた拡大率・上昇量・寿命
+     * @param roundedAmount 統合版で表示する整数値。数値でない場合は負値
      * @return 管理ハンドル
      */
     private @NotNull ManagedTextDisplay spawnFloatingText(
-            @NotNull Location origin, @NotNull String text, @NotNull FloatingStyle style
+            @NotNull Location origin, @NotNull String text, @NotNull FloatingStyle style, long roundedAmount
     ) {
         ManagedTextDisplay display = create(
                 DisplayAnchor.fixed(origin),
@@ -187,7 +222,7 @@ public final class DisplayTextService {
 
         double xDrift = ThreadLocalRandom.current().nextDouble(-0.32D, 0.32D) * style.drift;
         double zDrift = ThreadLocalRandom.current().nextDouble(-0.22D, 0.22D) * style.drift;
-        display.requireState().floatingAnimation = new FloatingAnimation(style, xDrift, zDrift);
+        display.requireState().floatingAnimation = new FloatingAnimation(style, xDrift, zDrift, roundedAmount);
         return display;
     }
 
@@ -335,7 +370,7 @@ public final class DisplayTextService {
 
     /**
      * 浮遊表示を種別ごとに拡大・上昇させ、終盤の文字と背景をフェードして回収します。
-     * 変換と透過の更新は4tickごととし、1表示1実体と共通の表示数上限を維持します。
+     * 変換と透過の更新は4tickごととし、ワールド側は1表示1実体と共通の表示数上限を維持します。
      * @param state 浮遊表示の管理状態
      * @param anchorLocation 表示起点
      */
@@ -352,7 +387,12 @@ public final class DisplayTextService {
         if (entity == null) return;
         applyOptionsIfNeeded(entity, state);
         applyFrame(entity, state, new DisplayAnimationFrame(state.options.text(), new Vector(), 1L));
-        if (state.animationAge % FLOATING_FRAME_TICKS == 0L) {
+        if (style.isDamageNumber()) {
+            // 初回追跡に開始時の大きさを送り、次のtickから補間します。
+            if (state.animationAge > 0L && (state.animationAge - 1L) % FLOATING_FRAME_TICKS == 0L) {
+                updateDamageNumberAnimation(entity, animation, state.animationAge);
+            }
+        } else if (state.animationAge % FLOATING_FRAME_TICKS == 0L) {
             double progress = state.animationAge / (double) style.durationTicks;
             double rise = 1.0D - Math.pow(1.0D - progress, 2.0D);
             double entrance = Math.min(1.0D, state.animationAge / (double) FLOATING_ENTRANCE_TICKS);
@@ -376,6 +416,38 @@ public final class DisplayTextService {
             entity.setBackgroundColor(Color.fromARGB((int) Math.round(64.0D * (1.0D - fade)), 8, 8, 16));
         }
         state.animationAge++;
+    }
+
+    /**
+     * 次の補間区間の終点を送ります。着弾時に跳ね、少し伸びながら浮き、終盤に縮んで消えます。
+     *
+     * @param entity Java版と統合版のパックなし表示で使用する共有実体
+     * @param animation 軌跡と種別
+     * @param age 出現後の経過tick
+     */
+    private static void updateDamageNumberAnimation(TextDisplay entity, FloatingAnimation animation, long age) {
+        FloatingStyle style = animation.style();
+        long nextFrame = Math.min(age + FLOATING_FRAME_TICKS, style.durationTicks);
+        double progress = nextFrame / (double) style.durationTicks;
+        double rise = 1.0D - Math.pow(1.0D - progress, 2.0D);
+        double exit = Math.clamp((nextFrame - style.durationTicks + FLOATING_EXIT_TICKS)
+                / (double) FLOATING_EXIT_TICKS, 0.0D, 1.0D);
+        double fade = exit * exit * (3.0D - 2.0D * exit);
+        double pop = nextFrame <= FLOATING_ENTRANCE_TICKS
+                ? Math.sin(Math.PI * nextFrame / FLOATING_ENTRANCE_TICKS) * style.pop : 0.0D;
+        float scale = (float) ((style.scale + pop) * (1.0D - 0.38D * fade));
+        float height = (float) (scale * (1.0D + pop * 0.16D));
+        float depth = scale == 1.0F && height == 1.0F ? Math.nextUp(scale) : scale;
+        entity.setInterpolationDelay(0);
+        entity.setInterpolationDuration((int) (nextFrame - age));
+        entity.setTransformation(new Transformation(
+                new Vector3f((float) (animation.xDrift() * rise),
+                        (float) (0.08D + style.rise * rise + pop * 0.20D),
+                        (float) (animation.zDrift() * rise)),
+                new Quaternionf(), new Vector3f(scale, height, depth), new Quaternionf()));
+        // 0〜3は文字の透過指定として使えないため、回収直前の下限を4にします。
+        entity.setTextOpacity((byte) Math.max(4L, Math.round(255.0D * (1.0D - fade))));
+        entity.setBackgroundColor(Color.fromARGB((int) Math.round(64.0D * (1.0D - fade)), 8, 8, 16));
     }
 
     /**
@@ -481,6 +553,13 @@ public final class DisplayTextService {
         return List.copyOf(pages);
     }
 
+    /**
+     * 実体を取得または生成し、対象のダメージ数値を初回追跡より前に登録します。
+     *
+     * @param state 表示の管理状態
+     * @param location 生成先
+     * @return 有効な実体。ワールド未確定の場合はnull
+     */
     private @Nullable TextDisplay ensureEntity(@NotNull ManagedDisplayState state, @NotNull Location location) {
         TextDisplay entity = state.entity;
         if (entity != null && entity.isValid() && entity.getWorld().equals(location.getWorld())) {
@@ -509,10 +588,19 @@ public final class DisplayTextService {
                 display.setBackgroundColor(Color.fromARGB(44, 8, 8, 24));
             } else if (state.floatingAnimation != null) {
                 applyOptions(display, state.options);
-                float scale = state.floatingAnimation.style().scale * 0.72F;
+                FloatingAnimation animation = state.floatingAnimation;
+                FloatingStyle style = animation.style();
+                float scale = style.scale * (style.isDamageNumber() ? 0.62F : 0.72F);
+                float height = style.isDamageNumber() ? scale * 0.88F : scale;
                 display.setTransformation(new Transformation(
                         new Vector3f(0.0F, 0.08F, 0.0F), new Quaternionf(),
-                        new Vector3f(scale, scale, scale), new Quaternionf()));
+                        new Vector3f(scale, height, scale), new Quaternionf()));
+                if (style.isDamageNumber()) {
+                    String text = ColorCodeUtil.translateAlternateColorCodes(state.options.text());
+                    display.text(LegacyComponentSerializer.legacySection().deserialize(text));
+                    damageNumbers.put(display.getEntityId(), new DamageNumberPacketAdapter.NumberDisplay(
+                            animation.roundedAmount(), style.bedrockCode(), display.text()));
+                }
             }
         });
         if (state.resultAnimation != null && state.resultAnimation.viewerId() != null && plugin != null) {
@@ -713,7 +801,7 @@ public final class DisplayTextService {
     }
 
     /**
-     * 管理中の TextDisplay を削除し、表示状態を初期化します。
+     * 管理中の TextDisplay とダメージ数値実体の登録を削除し、表示状態を初期化します。
      *
      * <p>生成直後などに {@code isValid()} が一時的に false を返しても、
      * 実体への参照を失う前に削除を試みます。</p>
@@ -724,6 +812,7 @@ public final class DisplayTextService {
         Entity entity = state.entity;
         if (entity != null) {
             entity.remove();
+            damageNumbers.remove(entity.getEntityId());
         }
         state.entity = null;
         state.lastLocation = null;
@@ -918,6 +1007,21 @@ public final class DisplayTextService {
         private final double rise;
         private final double drift;
 
+        /** @return 閲覧者ごとのサイズ設定が適用されるダメージ数値ならtrue */
+        private boolean isDamageNumber() {
+            return this == DAMAGE || this == CRITICAL || this == SHIELD;
+        }
+
+        /** @return 統合版の数値パックへ渡す演出コード */
+        private int bedrockCode() {
+            return switch (this) {
+                case DAMAGE -> 0;
+                case CRITICAL -> 1;
+                case SHIELD -> 2;
+                default -> throw new IllegalStateException();
+            };
+        }
+
         FloatingStyle(PlayerMsgId messageId, float scale, float pop, long durationTicks, double rise, double drift) {
             this.messageId = messageId;
             this.scale = scale;
@@ -928,6 +1032,11 @@ public final class DisplayTextService {
         }
     }
 
-    /** @param style 表示種別 @param xDrift 横方向の移動幅 @param zDrift 奥行方向の移動幅 */
-    private record FloatingAnimation(FloatingStyle style, double xDrift, double zDrift) { }
+    /**
+     * @param style 表示種別
+     * @param xDrift 横方向の移動幅
+     * @param zDrift 奥行方向の移動幅
+     * @param roundedAmount 統合版モデル用の整数値。数値でない場合は負値
+     */
+    private record FloatingAnimation(FloatingStyle style, double xDrift, double zDrift, long roundedAmount) { }
 }

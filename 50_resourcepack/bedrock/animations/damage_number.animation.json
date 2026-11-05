@@ -1,0 +1,31 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.damage_number.motion": {
+      "loop": true,
+      "bones": {
+        "rise": {
+          "position": [0, "variable.hop + 4.8 * variable.progress", 0]
+        },
+        "billboard_yaw": {
+          "rotation": [0, "query.camera_rotation(1) - query.body_y_rotation", 0]
+        },
+        "billboard_pitch": {
+          "rotation": ["query.camera_rotation(0)", 0, 0]
+        },
+        "impact": {
+          "position": ["(variable.shield ? -2.0 : 2.4) * variable.progress", 0, 0],
+          "rotation": [0, 0, "variable.critical ? -7.0 * (1.0 - variable.settle) : 0.0"],
+          "scale": [
+            "variable.scale * (1.0 + variable.squash)",
+            "variable.scale * (1.0 - variable.squash)",
+            "variable.scale"
+          ]
+        },
+        "line": {
+          "position": ["math.max(0, variable.length - 1.0)", 0, 0]
+        }
+      }
+    }
+  }
+}

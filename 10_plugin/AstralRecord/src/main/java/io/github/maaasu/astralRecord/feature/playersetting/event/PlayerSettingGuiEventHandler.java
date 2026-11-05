@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
+import io.github.maaasu.astralRecord.feature.playersetting.model.DamageNumberSize;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
@@ -286,9 +287,21 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         return results;
     }
 
+    /**
+     * クリック後の下書き値を求めます。選択式の値は末尾から先頭へ戻ります。
+     *
+     * @param key クリックされた設定キー
+     * @param currentValue キーに対応する型の現在値
+     * @return 次の値。GUIで切替対象外のキーなら現在値
+     */
     private @NotNull Object nextValue(@NotNull PlayerSettingKey key, @NotNull Object currentValue) {
         if (key.isBooleanValue()) {
             return !((Boolean) currentValue);
+        }
+        if (key == PlayerSettingKey.DAMAGE_NUMBER_SIZE) {
+            DamageNumberSize[] values = DamageNumberSize.values();
+            DamageNumberSize current = (DamageNumberSize) currentValue;
+            return values[(current.ordinal() + 1) % values.length];
         }
         if (key.isParticleDensityValue()) {
             ParticleDensity[] values = ParticleDensity.values();

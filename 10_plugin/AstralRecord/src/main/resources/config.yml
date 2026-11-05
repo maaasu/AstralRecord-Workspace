@@ -105,6 +105,11 @@ serverRecord:
 
 # リソースパック設定
 resourcePack:
+  # 01-deploy-debug.bat がAPIへ配置したパックを接続時に配信する。
+  managed:
+    enabled: true
+    publicBaseUrl: "https://astralrecord.com"
+  # 従来の固定URL方式。APIで未配布の場合やmanaged.enabled=falseの場合に使用する。
   enabled: false
   url: "https://example.com/resourcepack/AstralRecordResourcePack.zip"
   sha1: ""

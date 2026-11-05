@@ -19,15 +19,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 final class HeadApiClient {
     /** タイムアウト付きGETを実行する。リダイレクト先へAPIキーは転送しない。 */
     static HeadCatalog fetch(HeadApiConfig config) throws IOException, InterruptedException {
-        HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(config.timeout)
-            .followRedirects(HttpClient.Redirect.NEVER);
-        if (config.allowInsecureTls) {
-            builder.sslContext(createInsecureSslContext());
-            SSLParameters sslParameters = new SSLParameters();
-            sslParameters.setEndpointIdentificationAlgorithm(null);
-            builder.sslParameters(sslParameters);
-        }
-        try (HttpClient client = builder.build()) {
+        try (HttpClient client = newClient(config)) {
             HttpRequest request = HttpRequest.newBuilder(config.endpoint).timeout(config.timeout)
                 .header("X-Api-Key", config.apiKey).header("Accept", "application/json").GET().build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -38,6 +30,18 @@ final class HeadApiClient {
                 throw new IOException("Invalid head catalog response");
             }
         }
+    }
+
+    static HttpClient newClient(HeadApiConfig config) {
+        HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(config.timeout)
+            .followRedirects(HttpClient.Redirect.NEVER);
+        if (config.allowInsecureTls) {
+            builder.sslContext(createInsecureSslContext());
+            SSLParameters sslParameters = new SSLParameters();
+            sslParameters.setEndpointIdentificationAlgorithm(null);
+            builder.sslParameters(sslParameters);
+        }
+        return builder.build();
     }
 
     private static SSLContext createInsecureSslContext() {

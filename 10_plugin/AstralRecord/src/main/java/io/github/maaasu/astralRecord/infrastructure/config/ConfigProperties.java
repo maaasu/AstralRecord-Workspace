@@ -74,6 +74,8 @@ public class ConfigProperties {
     private String resourcePackPrompt;
     private boolean resourcePackSkipBedrock;
     private List<String> resourcePackBedrockNamePrefixes;
+    private boolean resourcePackManagedEnabled;
+    private String resourcePackPublicBaseUrl;
 
     // DiscordSRV chat bridge settings
     private boolean discordEnabled;
@@ -222,6 +224,9 @@ public class ConfigProperties {
                 "AstralRecord のリソースパックを適用してください。"
         );
         this.resourcePackSkipBedrock = configManager.getConfig().getBoolean(ConfigKeys.RESOURCE_PACK_SKIP_BEDROCK, true);
+        this.resourcePackManagedEnabled = configManager.getConfig().getBoolean(ConfigKeys.RESOURCE_PACK_MANAGED_ENABLED, true);
+        this.resourcePackPublicBaseUrl = configManager.getConfig().getString(
+            ConfigKeys.RESOURCE_PACK_PUBLIC_BASE_URL, "https://astralrecord.com");
         this.resourcePackBedrockNamePrefixes = configManager.getConfig().getStringList(
                 ConfigKeys.RESOURCE_PACK_BEDROCK_NAME_PREFIXES
         );
@@ -533,6 +538,16 @@ public class ConfigProperties {
 
     public List<String> getResourcePackBedrockNamePrefixes() {
         return resourcePackBedrockNamePrefixes;
+    }
+
+    /** @return API が配布するエディション別のパックを使用する場合はtrue */
+    public boolean isResourcePackManagedEnabled() {
+        return resourcePackManagedEnabled;
+    }
+
+    /** @return Javaクライアントが接続する配布サイトのベースURL */
+    public String getResourcePackPublicBaseUrl() {
+        return resourcePackPublicBaseUrl;
     }
 
     public boolean isDiscordEnabled() {

@@ -386,6 +386,68 @@ function Publish-DotNetProject {
     }
 }
 
+function Publish-ResourcePacks {
+    param($Component)
+
+    Write-Step "Building Minecraft resource packs for API"
+    $buildScript = Join-Path $scriptDir '../../50_resourcepack/scripts/build-resourcepack.ps1'
+    $output = Join-Path $Component.buildOutputPath 'resource-packs'
+    $archiveNamePattern = '^([a-f0-9]{40}\.zip|[a-f0-9]{64}\.mcpack)$'
+    New-Item -ItemType Directory -Path $output -Force | Out-Null
+    & $buildScript -OutputDirectory $output
+
+    $java = Join-Path $output 'AstralRecordResourcePack.zip'
+    $bedrock = Join-Path $output 'AstralRecordResourcePack.mcpack'
+    $archive = [IO.Compression.ZipFile]::OpenRead($bedrock)
+    try {
+        $reader = [IO.StreamReader]::new($archive.GetEntry('manifest.json').Open())
+        try {
+            $bedrockManifest = $reader.ReadToEnd() | ConvertFrom-Json
+        }
+        finally {
+            $reader.Dispose()
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+
+    $sha1 = (Get-FileHash -LiteralPath $java -Algorithm SHA1).Hash.ToLowerInvariant()
+    $sha256 = (Get-FileHash -LiteralPath $bedrock -Algorithm SHA256).Hash.ToLowerInvariant()
+    $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
+    $javaName = "$sha1.zip"
+    $bedrockName = "$sha256.mcpack"
+    Move-Item -LiteralPath $java -Destination (Join-Path $output $javaName) -Force
+    Move-Item -LiteralPath $bedrock -Destination (Join-Path $output $bedrockName) -Force
+
+    [ordered]@{
+        java = @{ sha1 = $sha1 }
+        bedrock = [ordered]@{
+            sha256 = $sha256
+            uuid = $uuid
+        }
+    } | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $output 'manifest.json') -Encoding UTF8
+
+    Get-ChildItem -LiteralPath $output -File |
+        Where-Object { $_.Name -cmatch $archiveNamePattern -and $_.Name -cnotin @($javaName, $bedrockName) } |
+        Remove-Item -Force
+
+    # Keep the previous hash available for clients already fetching a pack during deployment.
+    $previousOutput = Join-Path $Component.deployPath 'resource-packs'
+    $previousManifestPath = Join-Path $previousOutput 'manifest.json'
+    if (Test-Path -LiteralPath $previousManifestPath -PathType Leaf) {
+        $previousManifest = Read-JsonFile -Label 'Deployed resource pack manifest' -Path $previousManifestPath
+        $previousNames = @("$($previousManifest.java.sha1).zip", "$($previousManifest.bedrock.sha256).mcpack")
+        $previousArchives = Get-ChildItem -LiteralPath $previousOutput -File |
+            Where-Object { $_.Name -cmatch $archiveNamePattern -and $_.Name -cnotin @($javaName, $bedrockName) }
+        foreach ($extension in @('.zip', '.mcpack')) {
+            $previousArchives | Where-Object Extension -CEQ $extension |
+                Sort-Object -Property @{ Expression = { $_.Name -cin $previousNames }; Descending = $true }, Name |
+                Select-Object -First 1 | Copy-Item -Destination $output
+        }
+    }
+}
+
 function Invoke-DatabaseMigrations {
     param($MigrationConfig)
 
@@ -764,6 +826,7 @@ try {
     try {
     if ($config.api.enabled) {
         Publish-DotNetProject -Component $config.api -Name "API"
+        Publish-ResourcePacks -Component $config.api
     }
 
     if ($config.web.enabled) {

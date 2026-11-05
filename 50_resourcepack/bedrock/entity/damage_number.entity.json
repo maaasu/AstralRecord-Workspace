@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:damage_number",
+      "materials": {
+        "default": "entity_alphablend"
+      },
+      "textures": {
+        "normal": "textures/entity/damage_number/normal",
+        "critical": "textures/entity/damage_number/critical",
+        "shield": "textures/entity/damage_number/shield"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.damage_number"
+      },
+      "animations": {
+        "motion": "animation.astralrecord.damage_number.motion"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.length = math.clamp(query.property('astralrecord:length'), 0, 17);",
+          "variable.style = math.clamp(query.property('astralrecord:style'), 0, 2);",
+          "variable.critical = variable.style == 1;",
+          "variable.shield = variable.style == 2;",
+          "variable.size = math.clamp(query.property('astralrecord:size'), 0.5, 2.0);",
+          "variable.age = query.life_time;",
+          "variable.duration = variable.critical ? 1.8 : 1.6;",
+          "variable.progress = math.clamp(variable.age / variable.duration, 0.0, 1.0);",
+          "variable.fade = math.clamp((variable.progress - 0.64) / 0.36, 0.0, 1.0);",
+          "variable.kick = math.clamp(variable.age / (variable.critical ? 0.12 : 0.09), 0.0, 1.0);",
+          "variable.settle = math.clamp((variable.age - (variable.critical ? 0.12 : 0.09)) / 0.22, 0.0, 1.0);",
+          "variable.pop = math.lerp(0.62, variable.critical ? 1.36 : 1.18, 1.0 - (1.0 - variable.kick) * (1.0 - variable.kick));",
+          "variable.scale = variable.size * math.lerp(variable.pop, 1.0, variable.settle) * (1.0 - 0.40 * variable.fade * variable.fade);",
+          "variable.squash = variable.shield ? 0.23 * (1.0 - variable.kick) : 0.0;",
+          "variable.hop = (variable.critical ? 5.5 : 3.2) * (1.0 - (1.0 - variable.progress) * (1.0 - variable.progress));"
+        ],
+        "animate": ["motion"]
+      },
+      "render_controllers": ["controller.render.astralrecord.damage_number"]
+    }
+  }
+}

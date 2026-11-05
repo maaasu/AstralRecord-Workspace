@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playersetting.gui;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
+import io.github.maaasu.astralRecord.feature.playersetting.model.DamageNumberSize;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
@@ -33,19 +34,20 @@ import java.util.UUID;
 public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int SIZE = BaseMenuScreenView.SIZE;
     public static final int DAMAGE_LOG_SLOT = 20;
-    public static final int DAMAGE_LOG_MESSAGE_SLOT = 21;
-    public static final int PARTICLE_DENSITY_SLOT = 22;
-    public static final int PERFORMANCE_INFO_SLOT = 23;
-    public static final int DROP_LOG_SLOT = 24;
-    public static final int AUTO_SAVE_MESSAGE_SLOT = 29;
-    public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 30;
-    public static final int ARMOR_DISPLAY_SLOT = 31;
-    public static final int ACTION_RING_HOLD_SELECT_SLOT = 32;
-    public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 33;
-    public static final int NIGHT_VISION_SLOT = 38;
-    public static final int RANDOM_STATUS_RANGE_DISPLAY_SLOT = 39;
-    public static final int COMBAT_DPS_DISPLAY_SLOT = 40;
-    public static final int GUIDE_REMINDER_SLOT = 41;
+    public static final int DAMAGE_NUMBER_SIZE_SLOT = 21;
+    public static final int DAMAGE_LOG_MESSAGE_SLOT = 22;
+    public static final int PARTICLE_DENSITY_SLOT = 29;
+    public static final int PERFORMANCE_INFO_SLOT = 41;
+    public static final int DROP_LOG_SLOT = 38;
+    public static final int AUTO_SAVE_MESSAGE_SLOT = 39;
+    public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 24;
+    public static final int ARMOR_DISPLAY_SLOT = 30;
+    public static final int ACTION_RING_HOLD_SELECT_SLOT = 42;
+    public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 32;
+    public static final int NIGHT_VISION_SLOT = 31;
+    public static final int RANDOM_STATUS_RANGE_DISPLAY_SLOT = 33;
+    public static final int COMBAT_DPS_DISPLAY_SLOT = 23;
+    public static final int GUIDE_REMINDER_SLOT = 40;
     public static final int SAVE_GUIDE_SLOT = 13;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
@@ -81,7 +83,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     }
 
     /**
-     * 定期ガイド通知を含む通常の設定項目をGUIスロットから解決します。
+     * GUIスロットから設定項目を解決します。
      *
      * @param rawSlot 設定GUI内のスロット番号
      * @return 対応する設定キー。設定項目以外はnull
@@ -89,6 +91,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public @Nullable PlayerSettingKey getKeyAtSlot(int rawSlot) {
         return switch (rawSlot) {
             case DAMAGE_LOG_SLOT -> PlayerSettingKey.DAMAGE_LOG_DISPLAY;
+            case DAMAGE_NUMBER_SIZE_SLOT -> PlayerSettingKey.DAMAGE_NUMBER_SIZE;
             case DAMAGE_LOG_MESSAGE_SLOT -> PlayerSettingKey.DAMAGE_LOG_MESSAGE;
             case PARTICLE_DENSITY_SLOT -> PlayerSettingKey.PARTICLE_DENSITY;
             case PERFORMANCE_INFO_SLOT -> PlayerSettingKey.PERFORMANCE_INFO_DISPLAY;
@@ -114,7 +117,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     }
 
     /**
-     * 定期ガイド通知を含む設定項目を、保存済み値または下書きから主スレッドで描画します。
+     * 設定項目を、保存済み値または下書きから主スレッドで描画します。
      *
      * @param inventory 描画先の設定GUI
      * @param userId 設定を所有するユーザーUUID
@@ -136,6 +139,19 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.REDSTONE,
             PlayerSettingKey.DAMAGE_LOG_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, draftValues)
+        ));
+        DamageNumberSize damageNumberSize = (DamageNumberSize) resolveValue(
+            userId, PlayerSettingKey.DAMAGE_NUMBER_SIZE, draftValues
+        );
+        inventory.setItem(DAMAGE_NUMBER_SIZE_SLOT, createItem(
+            Material.NAME_TAG,
+            Component.text(PlayerSettingKey.DAMAGE_NUMBER_SIZE.getDisplayNameJa(), NamedTextColor.GOLD),
+            List.of(
+                ColorCodeUtil.toComponent(PlayerMsgResource.format(
+                    PlayerSettingMsgId.P_5396.getId(), damageNumberSize.getDisplayNameJa()
+                ), ""),
+                PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5397.getId())
+            )
         ));
         inventory.setItem(DAMAGE_LOG_MESSAGE_SLOT, createBooleanItem(
             Material.PAPER,

@@ -201,6 +201,19 @@ builder.Services.AddHttpClient<ReleaseNoteApiClient>((serviceProvider, httpClien
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
 });
+builder.Services.AddHttpClient<ResourcePackApiClient>((services, client) =>
+{
+    var api = services.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    client.BaseAddress = new Uri(api.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.MaxResponseContentBufferSize = 16 * 1024 * 1024;
+    if (!string.IsNullOrWhiteSpace(api.ApiKey))
+        client.DefaultRequestHeaders.Add("X-Api-Key", api.ApiKey);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect = false,
+    UseCookies = false
+}).RedactLoggedHeaders(new[] { "X-Api-Key" });
 builder.Services.AddSingleton<ReleaseNoteCatalog>();
 builder.Services.AddHostedService<ReleaseNotePublicationHostedService>();
 
@@ -225,6 +238,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapGet("/resource-packs/java/{sha1}.zip",
+    (string sha1, ResourcePackApiClient api, HttpContext context, CancellationToken cancellationToken) =>
+        api.GetJavaAsync(sha1, context, cancellationToken))
+    .AllowAnonymous();
 app.MapRazorPages()
    .WithStaticAssets();
 

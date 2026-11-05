@@ -12,7 +12,7 @@
 | `30_web/AstralRecordControl/` | 独立管理Web / Agent / Runner / C# | `30_web/AstralRecordControl/AGENTS.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema docs | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | YAML master data | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
-| `50_resourcepack/` | Resource Pack（開発停止） | `50_resourcepack/AGENTS.md` |
+| `50_resourcepack/` | Java / Bedrock リソースパック | `50_resourcepack/AGENTS.md` |
 | `60_tool/` | build/deploy/dev tools | `60_tool/README.md` |
 | `.codex/skills/` | workspace skills | `.codex/skills/README.md` と対象 `SKILL.md` |
 

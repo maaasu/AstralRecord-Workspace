@@ -1,49 +1,99 @@
-$ErrorActionPreference = 'Stop'
-
-$root = Split-Path -Parent $PSScriptRoot
-$dist = Join-Path $root 'dist'
-$output = Join-Path $dist 'AstralRecordResourcePack.zip'
-
-New-Item -ItemType Directory -Force -Path $dist | Out-Null
-if (Test-Path $output) {
-    Remove-Item -LiteralPath $output -Force
-}
-
-Add-Type -AssemblyName System.IO.Compression
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-$zip = [System.IO.Compression.ZipFile]::Open(
-    $output,
-    [System.IO.Compression.ZipArchiveMode]::Create
+param(
+    [string] $OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist')
 )
 
+$ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent $PSScriptRoot
+$bedrockRoot = Join-Path $root 'bedrock'
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+
+if (-not ('AstralRecordPackZip' -as [type])) {
+    Add-Type -Path (Join-Path $PSScriptRoot 'pack-zip.cs')
+}
+
+function Read-PackEntries {
+    param([string] $BasePath, [string[]] $Names)
+
+    $entries = [System.Collections.Generic.SortedDictionary[string, byte[]]]::new([StringComparer]::Ordinal)
+    foreach ($name in $Names) {
+        $bytes = [System.IO.File]::ReadAllBytes((Join-Path $BasePath $name))
+        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta')) {
+            # Keep tracked JSON byte-identical across LF and CRLF checkouts.
+            $bytes = $utf8.GetBytes($utf8.GetString($bytes).Replace("`r`n", "`n"))
+        }
+        $entries.Add($name, $bytes)
+    }
+    return ,$entries
+}
+
+function Get-ContentUuid {
+    param([string] $Namespace, [string] $Fingerprint)
+
+    # RFC 9562 UUIDv5 with the namespace bytes in network order.
+    $hex = $Namespace.Replace('-', '')
+    $namespaceBytes = [byte[]]::new(16)
+    for ($i = 0; $i -lt 16; $i++) {
+        $namespaceBytes[$i] = [Convert]::ToByte($hex.Substring($i * 2, 2), 16)
+    }
+    $sha1 = [System.Security.Cryptography.SHA1]::Create()
+    try {
+        $hash = $sha1.ComputeHash([byte[]] ($namespaceBytes + $utf8.GetBytes($Fingerprint)))
+        $hash[6] = ($hash[6] -band 0x0f) -bor 0x50
+        $hash[8] = ($hash[8] -band 0x3f) -bor 0x80
+        $uuidHex = [BitConverter]::ToString($hash, 0, 16).Replace('-', '').ToLowerInvariant()
+        return [Guid]::ParseExact($uuidHex, 'N').ToString('D')
+    }
+    finally {
+        $sha1.Dispose()
+    }
+}
+
+function Write-Pack {
+    param([string] $Path, $Entries)
+
+    [AstralRecordPackZip]::Write($Path, $Entries)
+    Write-Host "Created $Path"
+}
+
+# The dormant item, menu and audio assets at the pack root are not distributed.
+$java = Read-PackEntries $root @(
+    'pack.mcmeta'
+    'assets/astralrecord/font/damage_number.json'
+    'assets/astralrecord/textures/font/damage_number.png'
+)
+$bedrock = Read-PackEntries $bedrockRoot @(
+    'manifest.json'
+    'entity/damage_number.entity.json'
+    'animations/damage_number.animation.json'
+    'models/entity/damage_number.geo.json'
+    'render_controllers/damage_number.render_controllers.json'
+    'textures/entity/damage_number/normal.png'
+    'textures/entity/damage_number/critical.png'
+    'textures/entity/damage_number/shield.png'
+)
+
+# Include the template and file names in the fingerprint. Any distributed
+# Bedrock asset change results in a new pack ID, bypassing client pack caching.
+$sha256 = [System.Security.Cryptography.SHA256]::Create()
 try {
-    $files = @(
-        Get-Item -LiteralPath (Join-Path $root 'pack.mcmeta')
-    )
-
-    $packIcon = Join-Path $root 'pack.png'
-    if (Test-Path $packIcon) {
-        $files += Get-Item -LiteralPath $packIcon
-    }
-
-    $files += Get-ChildItem -LiteralPath (Join-Path $root 'assets') -Recurse -File
-
-    foreach ($file in $files) {
-        $rootPrefix = $root.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
-        $relativePath = $file.FullName.Substring($rootPrefix.Length)
-        $entryName = $relativePath.Replace('\', '/')
-
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-            $zip,
-            $file.FullName,
-            $entryName,
-            [System.IO.Compression.CompressionLevel]::Optimal
-        ) | Out-Null
-    }
+    $fingerprint = ($bedrock.GetEnumerator() | ForEach-Object {
+        $_.Key + ':' + [BitConverter]::ToString($sha256.ComputeHash($_.Value)).Replace('-', '')
+    }) -join "`n"
 }
 finally {
-    $zip.Dispose()
+    $sha256.Dispose()
 }
+$template = $utf8.GetString($bedrock['manifest.json'])
+$manifest = ConvertFrom-Json -InputObject $template
+$headerUuid = $manifest.header.uuid
+$moduleUuid = $manifest.modules[0].uuid
+$bedrock['manifest.json'] = $utf8.GetBytes($template.Replace(
+    $headerUuid, (Get-ContentUuid $headerUuid $fingerprint)
+).Replace(
+    $moduleUuid, (Get-ContentUuid $moduleUuid $fingerprint)
+))
 
-Write-Host "Created $output"
+$destination = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
+[System.IO.Directory]::CreateDirectory($destination) | Out-Null
+Write-Pack (Join-Path $destination 'AstralRecordResourcePack.zip') $java
+Write-Pack (Join-Path $destination 'AstralRecordResourcePack.mcpack') $bedrock

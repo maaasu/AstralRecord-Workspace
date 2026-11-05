@@ -9,13 +9,13 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 | `10_plugin/AstralRecord/` | Minecraft MMO RPG Plugin | [Pluginガイド](PLUGIN_GUIDE.md) |
 | `10_plugin/AstralRecordLobby/` | Lobby Plugin | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) |
 | `10_plugin/AstralRecordProxy/` | Velocity Proxy Plugin | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) |
-| `10_plugin/AstralRecordGeyserExtension/` | Bedrock向けカスタムヘッド登録 | [Extension README](10_plugin/AstralRecordGeyserExtension/README.md) |
+| `10_plugin/AstralRecordGeyserExtension/` | Bedrock向けカスタムヘッド、パック配布、ダメージ数値変換 | [Extension README](10_plugin/AstralRecordGeyserExtension/README.md) |
 | `10_plugin/AstralArchitect/` | AI建築候補の作成・適用 | [AstralArchitect README](10_plugin/AstralArchitect/README.md) |
 | `20_api/AstralRecordApi/` | Plugin・Web向けREST API | [APIガイド](API_GUIDE.md) |
 | `30_web/AstralRecordWeb/` | 管理・公開用Web UI | [Webの資料](#astralrecord-web) |
 | `00_docs/40_Database設計書/` | SQL Serverのスキーマ・テーブル定義 | [Database設計書](00_docs/40_Database設計書/README.md) |
 | `40_filebase/` | YAML・JSONのマスタデータ | [Filebaseの資料](#astralrecord-filebase) |
-| `50_resourcepack/` | Resource Pack（開発停止中） | [Resource Packの資料](#astralrecord-resource-pack) |
+| `50_resourcepack/` | Java / Bedrock 向けリソースパック | [Resource Packの資料](#astralrecord-resource-pack) |
 | `60_tool/` | ビルド・配置・開発ツール | [ツール一覧・運用手順](60_tool/README.md) |
 
 ## コミットルール
@@ -55,4 +55,4 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 
 ## AstralRecord Resource Pack
 
-現在は開発停止中です。作成・修正を再開するときだけ、[Resource Pack README](50_resourcepack/README.md) と [作業ルール](50_resourcepack/AGENTS.md) を参照してください。対象バージョン・アセット構成・ビルド・検証手順はそちらで管理します。
+Java 版と統合版にダメージ数値のリソースパックを配布します。対象バージョン、ビルド、配布方法は [Resource Pack README](50_resourcepack/README.md) と [作業ルール](50_resourcepack/AGENTS.md) を参照してください。

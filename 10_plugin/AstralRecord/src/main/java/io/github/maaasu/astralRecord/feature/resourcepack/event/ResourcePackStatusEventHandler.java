@@ -45,7 +45,7 @@ public class ResourcePackStatusEventHandler extends AbstractEventHandler {
         }
 
         runSafely(
-                () -> resourcePackService.handleStatus(event.getPlayer(), event.getStatus()),
+                () -> resourcePackService.handleStatus(event.getPlayer(), event.getID(), event.getStatus()),
                 LogId.E_5550,
                 event.getPlayer().getName()
         );
