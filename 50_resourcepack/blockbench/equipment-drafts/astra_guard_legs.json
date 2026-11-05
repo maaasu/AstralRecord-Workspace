@@ -1,0 +1,801 @@
+{
+  "id": "astra_guard_legs",
+  "master_id": "20a00447",
+  "kind": "armor",
+  "intent": "Lv30 RARE。二本に分かれる星色の革ズボン。太い青緑の膝と角形白星、上腿の白い段、青い脛を大きな区画で読む。背面は青緑の軌道帯と紫核、細い白いふくらはぎ片で正面と区別。Noxの素朴なズボンより段差と星光の白縁を増すが、細い彫刻や現実の鎧の写実性は使わない。実キャリーは中空の腰ではなく後ろの帯。",
+  "grip": [
+    8,
+    15.0,
+    10.3
+  ],
+  "materials": {
+    "astra_leather": {
+      "palette": [
+        "#253A5D",
+        "#40577F",
+        "#657CA8",
+        "#8298BF",
+        "#A7B8D5"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#19283F",
+        "#304768",
+        "#4E678E",
+        "#7891B5"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "midnight": {
+      "palette": [
+        "#101A2A",
+        "#1A2C42",
+        "#2D465D",
+        "#46647A",
+        "#708B9B"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "starlight": {
+      "palette": [
+        "#3B5A6A",
+        "#678993",
+        "#A0BCC1",
+        "#CEDFD9",
+        "#EFF9E7"
+      ],
+      "pattern": [
+        "23344332",
+        "23344332",
+        "22333322",
+        "22333322",
+        "22233222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "light_edge": {
+      "palette": [
+        "#718F99",
+        "#ABC7C7",
+        "#DFEBDF",
+        "#F9FFE8"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "22222222",
+        "22222222",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "star_cyan": {
+      "palette": [
+        "#164352",
+        "#246979",
+        "#369DA2",
+        "#62D2CC",
+        "#A4EDE2",
+        "#DFFDEE"
+      ],
+      "pattern": [
+        "23344332",
+        "23455432",
+        "23455432",
+        "22344322",
+        "22344322",
+        "22233222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "cyan_edge": {
+      "palette": [
+        "#153848",
+        "#20576B",
+        "#337B8C",
+        "#57A4AC",
+        "#92CDC9"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "#3D2B56",
+        "#654A80",
+        "#8F72A3",
+        "#BCA7CC",
+        "#DFD3E6"
+      ],
+      "pattern": [
+        "23333332",
+        "23344332",
+        "22333322",
+        "22333322",
+        "22233222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Open blue waistband front",
+      "from": [
+        2.9,
+        14.2,
+        5.3
+      ],
+      "to": [
+        13.1,
+        15.8,
+        6.55
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open blue waistband back",
+      "from": [
+        2.9,
+        14.2,
+        9.65
+      ],
+      "to": [
+        13.1,
+        15.8,
+        10.95
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open blue waistband left",
+      "from": [
+        2.9,
+        14.2,
+        6.4
+      ],
+      "to": [
+        4.05,
+        15.8,
+        9.85
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open blue waistband right",
+      "from": [
+        11.95,
+        14.2,
+        6.4
+      ],
+      "to": [
+        13.1,
+        15.8,
+        9.85
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue trouser front",
+      "from": [
+        3.1,
+        1.3,
+        5.8
+      ],
+      "to": [
+        7.300000000000001,
+        14.5,
+        6.95
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue trouser rear",
+      "from": [
+        3.1,
+        1.3,
+        9.25
+      ],
+      "to": [
+        7.300000000000001,
+        14.5,
+        10.45
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left trouser outer seam",
+      "from": [
+        3.1,
+        1.3,
+        6.8
+      ],
+      "to": [
+        3.95,
+        14.5,
+        9.5
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left trouser inner seam",
+      "from": [
+        6.45,
+        1.3,
+        6.8
+      ],
+      "to": [
+        7.3,
+        14.5,
+        9.5
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left large stepped thigh",
+      "from": [
+        3.3000000000000003,
+        10.1,
+        5.0
+      ],
+      "to": [
+        7.1,
+        13.7,
+        6.15
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left pale upper thigh rim",
+      "from": [
+        3.25,
+        12.8,
+        4.65
+      ],
+      "to": [
+        7.15,
+        13.9,
+        5.6
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Left broad cyan knee",
+      "from": [
+        2.95,
+        6.2,
+        4.65
+      ],
+      "to": [
+        7.449999999999999,
+        9.2,
+        6.15
+      ],
+      "material": "star_cyan",
+      "side": "cyan_edge"
+    },
+    {
+      "name": "Left white knee star transverse",
+      "from": [
+        3.45,
+        7.25,
+        4.2
+      ],
+      "to": [
+        6.95,
+        8.2,
+        4.95
+      ],
+      "material": "light_edge",
+      "side": "starlight"
+    },
+    {
+      "name": "Left white knee star upright",
+      "from": [
+        4.65,
+        6.6,
+        4.05
+      ],
+      "to": [
+        5.75,
+        8.8,
+        4.95
+      ],
+      "material": "light_edge",
+      "side": "starlight"
+    },
+    {
+      "name": "Left blue shin face",
+      "from": [
+        3.6500000000000004,
+        2.15,
+        5.2
+      ],
+      "to": [
+        6.75,
+        6.4,
+        6.25
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left pale shin seam",
+      "from": [
+        4.8,
+        2.1,
+        4.8
+      ],
+      "to": [
+        5.6,
+        6.35,
+        5.65
+      ],
+      "material": "starlight",
+      "side": "midnight"
+    },
+    {
+      "name": "Left rear dark knee band",
+      "from": [
+        3.0500000000000003,
+        7.0,
+        10.2
+      ],
+      "to": [
+        7.35,
+        8.2,
+        11.0
+      ],
+      "material": "midnight",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left rear cyan thigh orbit",
+      "from": [
+        3.0500000000000003,
+        11.3,
+        10.2
+      ],
+      "to": [
+        7.35,
+        12.4,
+        11.0
+      ],
+      "material": "star_cyan",
+      "side": "cyan_edge"
+    },
+    {
+      "name": "Left rear violet square",
+      "from": [
+        4.3,
+        10.8,
+        10.7
+      ],
+      "to": [
+        6.1,
+        12.8,
+        11.45
+      ],
+      "material": "amethyst",
+      "side": "midnight"
+    },
+    {
+      "name": "Left rear pale calf patch",
+      "from": [
+        4.3,
+        2.4,
+        10.2
+      ],
+      "to": [
+        6.1,
+        5.25,
+        11.0
+      ],
+      "material": "starlight",
+      "side": "midnight"
+    },
+    {
+      "name": "Left pale lower hem front",
+      "from": [
+        3.0500000000000003,
+        0.95,
+        5.5
+      ],
+      "to": [
+        7.35,
+        2.1,
+        6.9
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Left pale lower hem back",
+      "from": [
+        3.0500000000000003,
+        0.95,
+        9.2
+      ],
+      "to": [
+        7.35,
+        2.1,
+        10.6
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Right blue trouser front",
+      "from": [
+        8.7,
+        1.3,
+        5.8
+      ],
+      "to": [
+        12.899999999999999,
+        14.5,
+        6.95
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right blue trouser rear",
+      "from": [
+        8.7,
+        1.3,
+        9.25
+      ],
+      "to": [
+        12.899999999999999,
+        14.5,
+        10.45
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right trouser outer seam",
+      "from": [
+        8.7,
+        1.3,
+        6.8
+      ],
+      "to": [
+        9.549999999999999,
+        14.5,
+        9.5
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right trouser inner seam",
+      "from": [
+        12.049999999999999,
+        1.3,
+        6.8
+      ],
+      "to": [
+        12.899999999999999,
+        14.5,
+        9.5
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right large stepped thigh",
+      "from": [
+        8.899999999999999,
+        10.1,
+        5.0
+      ],
+      "to": [
+        12.7,
+        13.7,
+        6.15
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right pale upper thigh rim",
+      "from": [
+        8.85,
+        12.8,
+        4.65
+      ],
+      "to": [
+        12.75,
+        13.9,
+        5.6
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Right broad cyan knee",
+      "from": [
+        8.549999999999999,
+        6.2,
+        4.65
+      ],
+      "to": [
+        13.049999999999999,
+        9.2,
+        6.15
+      ],
+      "material": "star_cyan",
+      "side": "cyan_edge"
+    },
+    {
+      "name": "Right white knee star transverse",
+      "from": [
+        9.049999999999999,
+        7.25,
+        4.2
+      ],
+      "to": [
+        12.549999999999999,
+        8.2,
+        4.95
+      ],
+      "material": "light_edge",
+      "side": "starlight"
+    },
+    {
+      "name": "Right white knee star upright",
+      "from": [
+        10.25,
+        6.6,
+        4.05
+      ],
+      "to": [
+        11.35,
+        8.8,
+        4.95
+      ],
+      "material": "light_edge",
+      "side": "starlight"
+    },
+    {
+      "name": "Right blue shin face",
+      "from": [
+        9.25,
+        2.15,
+        5.2
+      ],
+      "to": [
+        12.35,
+        6.4,
+        6.25
+      ],
+      "material": "astra_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right pale shin seam",
+      "from": [
+        10.399999999999999,
+        2.1,
+        4.8
+      ],
+      "to": [
+        11.2,
+        6.35,
+        5.65
+      ],
+      "material": "starlight",
+      "side": "midnight"
+    },
+    {
+      "name": "Right rear dark knee band",
+      "from": [
+        8.649999999999999,
+        7.0,
+        10.2
+      ],
+      "to": [
+        12.95,
+        8.2,
+        11.0
+      ],
+      "material": "midnight",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right rear cyan thigh orbit",
+      "from": [
+        8.649999999999999,
+        11.3,
+        10.2
+      ],
+      "to": [
+        12.95,
+        12.4,
+        11.0
+      ],
+      "material": "star_cyan",
+      "side": "cyan_edge"
+    },
+    {
+      "name": "Right rear violet square",
+      "from": [
+        9.899999999999999,
+        10.8,
+        10.7
+      ],
+      "to": [
+        11.7,
+        12.8,
+        11.45
+      ],
+      "material": "amethyst",
+      "side": "midnight"
+    },
+    {
+      "name": "Right rear pale calf patch",
+      "from": [
+        9.899999999999999,
+        2.4,
+        10.2
+      ],
+      "to": [
+        11.7,
+        5.25,
+        11.0
+      ],
+      "material": "starlight",
+      "side": "midnight"
+    },
+    {
+      "name": "Right pale lower hem front",
+      "from": [
+        8.649999999999999,
+        0.95,
+        5.5
+      ],
+      "to": [
+        12.95,
+        2.1,
+        6.9
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Right pale lower hem back",
+      "from": [
+        8.649999999999999,
+        0.95,
+        9.2
+      ],
+      "to": [
+        12.95,
+        2.1,
+        10.6
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Waist pale star bar",
+      "from": [
+        5.8,
+        14.35,
+        4.7
+      ],
+      "to": [
+        10.2,
+        15.6,
+        5.75
+      ],
+      "material": "starlight",
+      "side": "midnight",
+      "cap": "light_edge"
+    },
+    {
+      "name": "Waist cyan star upright",
+      "from": [
+        7.25,
+        13.8,
+        4.2
+      ],
+      "to": [
+        8.75,
+        16.2,
+        5.15
+      ],
+      "material": "star_cyan",
+      "side": "cyan_edge"
+    },
+    {
+      "name": "Waist violet square center",
+      "from": [
+        7.4,
+        14.5,
+        3.85
+      ],
+      "to": [
+        8.6,
+        15.55,
+        4.5
+      ],
+      "material": "amethyst",
+      "side": "midnight"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      1
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}
