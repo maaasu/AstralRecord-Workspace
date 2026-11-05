@@ -1,0 +1,529 @@
+{
+  "id": "lumina_hunt_legs",
+  "master_id": "20a00432",
+  "kind": "armor",
+  "intent": "実master「ルミナパンツ」。工芸の明るい革を腰と段状の膝当てへ、動く膝裏と下腿は濃い青緑織物へ分ける。左右が読める二脚と片側小袋、磨き鉄の小留具。重い金属脛当てにせず狩装束の細身を保ち、Noxより縫い端・腰革・後座当てを加える。連続した腰帯の実体を持つ。",
+  "grip": [
+    8,
+    14.35,
+    8.0
+  ],
+  "materials": {
+    "mint_hide": {
+      "palette": [
+        "#547F75",
+        "#78A798",
+        "#9AC6B6",
+        "#C2E3CF"
+      ],
+      "pattern": [
+        "12221221",
+        "22212222",
+        "22122212",
+        "12222122",
+        "22212222",
+        "22122221",
+        "21222212",
+        "12221222"
+      ]
+    },
+    "hide_fold": {
+      "palette": [
+        "#3D655F",
+        "#628D81",
+        "#86B4A3",
+        "#B4D7BF"
+      ],
+      "pattern": [
+        "01122110",
+        "12233221",
+        "12222221",
+        "11222111",
+        "01122110",
+        "01222110",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "stitched_edge": {
+      "palette": [
+        "#31514E",
+        "#618D80",
+        "#A4CBB5",
+        "#DFE9CA"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "woven_teal": {
+      "palette": [
+        "#254845",
+        "#35625C",
+        "#4E8173",
+        "#6B9C89"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12111211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "warm_leather": {
+      "palette": [
+        "#493C32",
+        "#6B5540",
+        "#927357",
+        "#B89A72"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12211211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "warm_edge": {
+      "palette": [
+        "#44392F",
+        "#715A43",
+        "#A18360",
+        "#D2B58A"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "polished_iron": {
+      "palette": [
+        "#4E6A6C",
+        "#7A9391",
+        "#B7CEBF",
+        "#E4F0D8"
+      ],
+      "pattern": [
+        "01122210",
+        "11233221",
+        "12333221",
+        "12322221",
+        "12222111",
+        "12221111",
+        "11221110",
+        "01111100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#334E52",
+        "#627F7F",
+        "#9DBBB0",
+        "#D9E8D0"
+      ],
+      "pattern": [
+        "33333333",
+        "32222223",
+        "32111123",
+        "32122123",
+        "32122123",
+        "32111123",
+        "32222223",
+        "33333333"
+      ]
+    },
+    "dark_lining": {
+      "palette": [
+        "#203B39",
+        "#304F49",
+        "#476A5E",
+        "#658976"
+      ],
+      "pattern": [
+        "00111000",
+        "01121110",
+        "11211211",
+        "12111211",
+        "11211211",
+        "01121110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "solid_mint_waist_carry",
+      "from": [
+        3.6,
+        13.7,
+        5.8
+      ],
+      "to": [
+        12.4,
+        15.0,
+        10.65
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "continuous_warm_belt",
+      "from": [
+        3.5,
+        14.0,
+        5.55
+      ],
+      "to": [
+        12.5,
+        14.85,
+        10.9
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "small_iron_waist_clasp",
+      "from": [
+        7.2,
+        13.85,
+        5.25
+      ],
+      "to": [
+        8.8,
+        15.0,
+        5.95
+      ],
+      "material": "iron_edge",
+      "side": "polished_iron"
+    },
+    {
+      "name": "clasp_mint_center",
+      "from": [
+        7.7,
+        14.15,
+        5.08
+      ],
+      "to": [
+        8.3,
+        14.7,
+        5.5
+      ],
+      "material": "mint_hide"
+    },
+    {
+      "name": "rear_belt_short_end",
+      "from": [
+        9.9,
+        12.95,
+        10.6
+      ],
+      "to": [
+        10.9,
+        14.6,
+        11.25
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_teal_trouser",
+      "from": [
+        3.85,
+        3.3,
+        6.15
+      ],
+      "to": [
+        7.25,
+        13.85,
+        10.3
+      ],
+      "material": "woven_teal",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_mint_hip_yoke",
+      "from": [
+        3.75,
+        11.35,
+        5.95
+      ],
+      "to": [
+        7.35,
+        13.9,
+        10.5
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "left_knee_hide_square",
+      "from": [
+        4.2,
+        6.9,
+        5.7
+      ],
+      "to": [
+        6.9,
+        9.35,
+        6.55
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_knee_upper_step",
+      "from": [
+        4.7,
+        9.2,
+        5.8
+      ],
+      "to": [
+        6.4,
+        10.0,
+        6.5
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_knee_lower_tie",
+      "from": [
+        3.9,
+        6.6,
+        5.5
+      ],
+      "to": [
+        7.2,
+        7.35,
+        6.35
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_outer_seam",
+      "from": [
+        4.0,
+        3.8,
+        10.15
+      ],
+      "to": [
+        4.5,
+        11.5,
+        10.65
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "left_narrow_ankle_binding",
+      "from": [
+        3.8000000000000003,
+        3.0,
+        6.0
+      ],
+      "to": [
+        7.300000000000001,
+        4.0,
+        10.45
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_rear_seat_patch",
+      "from": [
+        4.05,
+        10.5,
+        10.2
+      ],
+      "to": [
+        7.050000000000001,
+        12.9,
+        10.7
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_teal_trouser",
+      "from": [
+        8.75,
+        3.3,
+        6.15
+      ],
+      "to": [
+        12.15,
+        13.85,
+        10.3
+      ],
+      "material": "woven_teal",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_mint_hip_yoke",
+      "from": [
+        8.65,
+        11.35,
+        5.95
+      ],
+      "to": [
+        12.25,
+        13.9,
+        10.5
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "right_knee_hide_square",
+      "from": [
+        9.1,
+        6.9,
+        5.7
+      ],
+      "to": [
+        11.8,
+        9.35,
+        6.55
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_knee_upper_step",
+      "from": [
+        9.6,
+        9.2,
+        5.8
+      ],
+      "to": [
+        11.3,
+        10.0,
+        6.5
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_knee_lower_tie",
+      "from": [
+        8.8,
+        6.6,
+        5.5
+      ],
+      "to": [
+        12.1,
+        7.35,
+        6.35
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "right_outer_seam",
+      "from": [
+        8.9,
+        3.8,
+        10.15
+      ],
+      "to": [
+        9.4,
+        11.5,
+        10.65
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "right_narrow_ankle_binding",
+      "from": [
+        8.7,
+        3.0,
+        6.0
+      ],
+      "to": [
+        12.2,
+        4.0,
+        10.45
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_rear_seat_patch",
+      "from": [
+        8.95,
+        10.5,
+        10.2
+      ],
+      "to": [
+        11.95,
+        12.9,
+        10.7
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_hip_pouch",
+      "from": [
+        3.1,
+        10.35,
+        6.75
+      ],
+      "to": [
+        4.1,
+        12.6,
+        9.4
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_pouch_mint_flap",
+      "from": [
+        2.95,
+        12.2,
+        6.6
+      ],
+      "to": [
+        4.25,
+        13.1,
+        9.55
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 1.06
+  },
+  "wearable_texture_set": "lumina_hunt",
+  "wearable_source": "armor/lumina_hunt.pixels.json"
+}

@@ -1,0 +1,451 @@
+{
+  "id": "lumina_hunt_helmet",
+  "master_id": "20a00430",
+  "kind": "armor",
+  "intent": "実master「ルミナキャップ」。Lv25 RARE、工芸／光沢をもつ鉄と明るい染め革、淡い緑 #9AC6B6。低い段状の革帽と短い角庇に、薄い磨き鉄の縁と片側の留具。顔は開放し、実体の庇を持ち手とする。Noxより整った縫い縁と素材の分離を持ち、guardの鉄兜やmageのフードとは異なる軽い狩装束。",
+  "grip": [
+    8,
+    7.0,
+    5.6
+  ],
+  "materials": {
+    "mint_hide": {
+      "palette": [
+        "#547F75",
+        "#78A798",
+        "#9AC6B6",
+        "#C2E3CF"
+      ],
+      "pattern": [
+        "12221221",
+        "22212222",
+        "22122212",
+        "12222122",
+        "22212222",
+        "22122221",
+        "21222212",
+        "12221222"
+      ]
+    },
+    "hide_fold": {
+      "palette": [
+        "#3D655F",
+        "#628D81",
+        "#86B4A3",
+        "#B4D7BF"
+      ],
+      "pattern": [
+        "01122110",
+        "12233221",
+        "12222221",
+        "11222111",
+        "01122110",
+        "01222110",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "stitched_edge": {
+      "palette": [
+        "#31514E",
+        "#618D80",
+        "#A4CBB5",
+        "#DFE9CA"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "warm_leather": {
+      "palette": [
+        "#493C32",
+        "#6B5540",
+        "#927357",
+        "#B89A72"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12211211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "warm_edge": {
+      "palette": [
+        "#44392F",
+        "#715A43",
+        "#A18360",
+        "#D2B58A"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "polished_iron": {
+      "palette": [
+        "#4E6A6C",
+        "#7A9391",
+        "#B7CEBF",
+        "#E4F0D8"
+      ],
+      "pattern": [
+        "01122210",
+        "11233221",
+        "12333221",
+        "12322221",
+        "12222111",
+        "12221111",
+        "11221110",
+        "01111100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#334E52",
+        "#627F7F",
+        "#9DBBB0",
+        "#D9E8D0"
+      ],
+      "pattern": [
+        "33333333",
+        "32222223",
+        "32111123",
+        "32122123",
+        "32122123",
+        "32111123",
+        "32222223",
+        "33333333"
+      ]
+    },
+    "dark_lining": {
+      "palette": [
+        "#203B39",
+        "#304F49",
+        "#476A5E",
+        "#658976"
+      ],
+      "pattern": [
+        "00111000",
+        "01121110",
+        "11211211",
+        "12111211",
+        "11211211",
+        "01121110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "rear_cap_band",
+      "from": [
+        3.8,
+        6.3,
+        10.25
+      ],
+      "to": [
+        12.2,
+        7.45,
+        11.4
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "rear_mint_crown",
+      "from": [
+        4.0,
+        7.2,
+        10.2
+      ],
+      "to": [
+        12.0,
+        10.7,
+        11.25
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "lower_soft_crown",
+      "from": [
+        3.9,
+        10.1,
+        6.2
+      ],
+      "to": [
+        12.1,
+        11.15,
+        10.9
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "upper_soft_crown",
+      "from": [
+        4.65,
+        11.05,
+        6.8
+      ],
+      "to": [
+        11.35,
+        11.85,
+        10.4
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "brow_leather_panel",
+      "from": [
+        4.0,
+        8.0,
+        5.85
+      ],
+      "to": [
+        12.0,
+        10.5,
+        6.9
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "brow_warm_band",
+      "from": [
+        3.8,
+        7.3,
+        5.6
+      ],
+      "to": [
+        12.2,
+        8.2,
+        6.8
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "short_square_visor_carry",
+      "from": [
+        3.1,
+        6.65,
+        4.25
+      ],
+      "to": [
+        12.9,
+        7.45,
+        6.65
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "visor_left_step",
+      "from": [
+        2.85,
+        6.7,
+        5.1
+      ],
+      "to": [
+        4.1,
+        7.4,
+        6.9
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "visor_right_step",
+      "from": [
+        11.9,
+        6.7,
+        5.1
+      ],
+      "to": [
+        13.15,
+        7.4,
+        6.9
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "thin_polished_visor_lip",
+      "from": [
+        3.25,
+        6.62,
+        4.05
+      ],
+      "to": [
+        12.75,
+        6.98,
+        4.55
+      ],
+      "material": "polished_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "crown_top_seam",
+      "from": [
+        7.65,
+        11.75,
+        6.9
+      ],
+      "to": [
+        8.35,
+        12.05,
+        10.3
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "rear_crown_seam",
+      "from": [
+        7.65,
+        7.25,
+        11.1
+      ],
+      "to": [
+        8.35,
+        10.65,
+        11.5
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "rear_adjusting_tab",
+      "from": [
+        9.8,
+        5.65,
+        10.8
+      ],
+      "to": [
+        11.05,
+        7.2,
+        11.7
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_flat_iron_clasp",
+      "from": [
+        3.2,
+        7.4,
+        6.4
+      ],
+      "to": [
+        3.85,
+        8.75,
+        8.2
+      ],
+      "material": "polished_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "left_clasp_mint_inset",
+      "from": [
+        3.08,
+        7.75,
+        6.75
+      ],
+      "to": [
+        3.38,
+        8.4,
+        7.85
+      ],
+      "material": "mint_hide"
+    },
+    {
+      "name": "left_crown_wall",
+      "from": [
+        3.45,
+        7.1,
+        6.35
+      ],
+      "to": [
+        4.45,
+        10.65,
+        10.9
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_bound_lower_edge",
+      "from": [
+        3.4000000000000004,
+        6.5,
+        6.25
+      ],
+      "to": [
+        4.5,
+        7.45,
+        11.0
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "right_crown_wall",
+      "from": [
+        11.55,
+        7.1,
+        6.35
+      ],
+      "to": [
+        12.55,
+        10.65,
+        10.9
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_bound_lower_edge",
+      "from": [
+        11.5,
+        6.5,
+        6.25
+      ],
+      "to": [
+        12.600000000000001,
+        7.45,
+        11.0
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 1.06
+  },
+  "wearable_texture_set": "lumina_hunt",
+  "wearable_source": "armor/lumina_hunt.pixels.json"
+}

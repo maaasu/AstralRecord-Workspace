@@ -1,0 +1,508 @@
+{
+  "id": "lumina_hunt_boots",
+  "master_id": "20a00433",
+  "kind": "armor",
+  "intent": "実master「ルミナシューズ」。二足の角つま先と静かな厚底、短めの革足首、淡緑のゲートルと折返し縁。鉄は足首の小角留具のみで、明るい染め革が主役。前は広い革つま先、後ろは縦縫いと引き輪、側面は暖色革。Noxより素材と仕立てを分離し、重装甲靴にはしない。二足を実体の後革帯で結び、その内側をcarryとする。",
+  "grip": [
+    8,
+    9.7,
+    11.2
+  ],
+  "materials": {
+    "mint_hide": {
+      "palette": [
+        "#547F75",
+        "#78A798",
+        "#9AC6B6",
+        "#C2E3CF"
+      ],
+      "pattern": [
+        "12221221",
+        "22212222",
+        "22122212",
+        "12222122",
+        "22212222",
+        "22122221",
+        "21222212",
+        "12221222"
+      ]
+    },
+    "hide_fold": {
+      "palette": [
+        "#3D655F",
+        "#628D81",
+        "#86B4A3",
+        "#B4D7BF"
+      ],
+      "pattern": [
+        "01122110",
+        "12233221",
+        "12222221",
+        "11222111",
+        "01122110",
+        "01222110",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "stitched_edge": {
+      "palette": [
+        "#31514E",
+        "#618D80",
+        "#A4CBB5",
+        "#DFE9CA"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "warm_leather": {
+      "palette": [
+        "#493C32",
+        "#6B5540",
+        "#927357",
+        "#B89A72"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12211211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "warm_edge": {
+      "palette": [
+        "#44392F",
+        "#715A43",
+        "#A18360",
+        "#D2B58A"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "polished_iron": {
+      "palette": [
+        "#4E6A6C",
+        "#7A9391",
+        "#B7CEBF",
+        "#E4F0D8"
+      ],
+      "pattern": [
+        "01122210",
+        "11233221",
+        "12333221",
+        "12322221",
+        "12222111",
+        "12221111",
+        "11221110",
+        "01111100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#334E52",
+        "#627F7F",
+        "#9DBBB0",
+        "#D9E8D0"
+      ],
+      "pattern": [
+        "33333333",
+        "32222223",
+        "32111123",
+        "32122123",
+        "32122123",
+        "32111123",
+        "32222223",
+        "33333333"
+      ]
+    },
+    "quiet_sole": {
+      "palette": [
+        "#293C37",
+        "#3F5144",
+        "#5A6A51",
+        "#7A8667"
+      ],
+      "pattern": [
+        "11111111",
+        "12211221",
+        "11222111",
+        "11111111",
+        "12211221",
+        "11222111",
+        "11111111",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "left_warm_ankle_upper",
+      "from": [
+        2.85,
+        3.0,
+        6.45
+      ],
+      "to": [
+        6.85,
+        8.25,
+        10.65
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_short_square_toe",
+      "from": [
+        2.85,
+        2.5,
+        4.3
+      ],
+      "to": [
+        6.85,
+        5.0,
+        7.0
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_quiet_full_sole",
+      "from": [
+        2.75,
+        1.8,
+        4.15
+      ],
+      "to": [
+        6.949999999999999,
+        2.85,
+        10.8
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "left_rear_heel_pad",
+      "from": [
+        3.0500000000000003,
+        2.6,
+        9.2
+      ],
+      "to": [
+        6.65,
+        3.4,
+        10.75
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "left_mint_gaiter",
+      "from": [
+        2.8000000000000003,
+        6.6,
+        6.25
+      ],
+      "to": [
+        6.9,
+        9.1,
+        10.85
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "left_folded_bound_cuff",
+      "from": [
+        2.65,
+        8.6,
+        6.1
+      ],
+      "to": [
+        7.050000000000001,
+        9.65,
+        11.0
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_front_tongue",
+      "from": [
+        3.85,
+        4.7,
+        5.85
+      ],
+      "to": [
+        5.85,
+        8.5,
+        6.65
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_front_ankle_strap",
+      "from": [
+        2.8000000000000003,
+        5.6,
+        5.6
+      ],
+      "to": [
+        6.9,
+        6.45,
+        6.35
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "left_small_iron_strap_clasp",
+      "from": [
+        4.25,
+        5.4,
+        5.3
+      ],
+      "to": [
+        5.45,
+        6.65,
+        5.95
+      ],
+      "material": "iron_edge",
+      "side": "polished_iron"
+    },
+    {
+      "name": "left_heel_seam",
+      "from": [
+        4.55,
+        3.1,
+        10.5
+      ],
+      "to": [
+        5.15,
+        8.8,
+        11.0
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "left_rear_pull_loop",
+      "from": [
+        4.15,
+        9.0,
+        10.5
+      ],
+      "to": [
+        5.550000000000001,
+        10.2,
+        11.3
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "right_warm_ankle_upper",
+      "from": [
+        9.15,
+        3.0,
+        6.45
+      ],
+      "to": [
+        13.15,
+        8.25,
+        10.65
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "right_short_square_toe",
+      "from": [
+        9.15,
+        2.5,
+        4.3
+      ],
+      "to": [
+        13.15,
+        5.0,
+        7.0
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_quiet_full_sole",
+      "from": [
+        9.05,
+        1.8,
+        4.15
+      ],
+      "to": [
+        13.25,
+        2.85,
+        10.8
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "right_rear_heel_pad",
+      "from": [
+        9.35,
+        2.6,
+        9.2
+      ],
+      "to": [
+        12.95,
+        3.4,
+        10.75
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "right_mint_gaiter",
+      "from": [
+        9.1,
+        6.6,
+        6.25
+      ],
+      "to": [
+        13.2,
+        9.1,
+        10.85
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "right_folded_bound_cuff",
+      "from": [
+        8.950000000000001,
+        8.6,
+        6.1
+      ],
+      "to": [
+        13.350000000000001,
+        9.65,
+        11.0
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_front_tongue",
+      "from": [
+        10.15,
+        4.7,
+        5.85
+      ],
+      "to": [
+        12.15,
+        8.5,
+        6.65
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "right_front_ankle_strap",
+      "from": [
+        9.1,
+        5.6,
+        5.6
+      ],
+      "to": [
+        13.2,
+        6.45,
+        6.35
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "right_small_iron_strap_clasp",
+      "from": [
+        10.55,
+        5.4,
+        5.3
+      ],
+      "to": [
+        11.75,
+        6.65,
+        5.95
+      ],
+      "material": "iron_edge",
+      "side": "polished_iron"
+    },
+    {
+      "name": "right_heel_seam",
+      "from": [
+        10.85,
+        3.1,
+        10.5
+      ],
+      "to": [
+        11.45,
+        8.8,
+        11.0
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "right_rear_pull_loop",
+      "from": [
+        10.450000000000001,
+        9.0,
+        10.5
+      ],
+      "to": [
+        11.850000000000001,
+        10.2,
+        11.3
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "paired_boot_rear_carry_tie",
+      "from": [
+        5.5,
+        9.35,
+        10.85
+      ],
+      "to": [
+        10.5,
+        10.05,
+        11.55
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 1.06
+  },
+  "wearable_texture_set": "lumina_hunt",
+  "wearable_source": "armor/lumina_hunt.pixels.json"
+}

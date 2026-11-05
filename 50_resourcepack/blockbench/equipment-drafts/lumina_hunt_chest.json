@@ -1,0 +1,647 @@
+{
+  "id": "lumina_hunt_chest",
+  "master_id": "20a00431",
+  "kind": "armor",
+  "intent": "実master「ルミナジャケット」。#9AC6B6の明るい染め革を大きく見せる短い狩猟ジャケット。開いた立ち襟、三分袖、段状の斜め革帯、片側の道具ポケット、二つの小さな裾を作る。磨き鉄は肩の細い金具と角留具のみ。Noxより縫い縁と前後の仕立てを増し、guardの板胸やmageの長衣とは別シルエット。持ち点は後襟の実体内。",
+  "grip": [
+    8,
+    14.35,
+    10.3
+  ],
+  "materials": {
+    "mint_hide": {
+      "palette": [
+        "#547F75",
+        "#78A798",
+        "#9AC6B6",
+        "#C2E3CF"
+      ],
+      "pattern": [
+        "12221221",
+        "22212222",
+        "22122212",
+        "12222122",
+        "22212222",
+        "22122221",
+        "21222212",
+        "12221222"
+      ]
+    },
+    "hide_fold": {
+      "palette": [
+        "#3D655F",
+        "#628D81",
+        "#86B4A3",
+        "#B4D7BF"
+      ],
+      "pattern": [
+        "01122110",
+        "12233221",
+        "12222221",
+        "11222111",
+        "01122110",
+        "01222110",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "stitched_edge": {
+      "palette": [
+        "#31514E",
+        "#618D80",
+        "#A4CBB5",
+        "#DFE9CA"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "warm_leather": {
+      "palette": [
+        "#493C32",
+        "#6B5540",
+        "#927357",
+        "#B89A72"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12211211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "warm_edge": {
+      "palette": [
+        "#44392F",
+        "#715A43",
+        "#A18360",
+        "#D2B58A"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "polished_iron": {
+      "palette": [
+        "#4E6A6C",
+        "#7A9391",
+        "#B7CEBF",
+        "#E4F0D8"
+      ],
+      "pattern": [
+        "01122210",
+        "11233221",
+        "12333221",
+        "12322221",
+        "12222111",
+        "12221111",
+        "11221110",
+        "01111100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "#334E52",
+        "#627F7F",
+        "#9DBBB0",
+        "#D9E8D0"
+      ],
+      "pattern": [
+        "33333333",
+        "32222223",
+        "32111123",
+        "32122123",
+        "32122123",
+        "32111123",
+        "32222223",
+        "33333333"
+      ]
+    },
+    "dark_lining": {
+      "palette": [
+        "#203B39",
+        "#304F49",
+        "#476A5E",
+        "#658976"
+      ],
+      "pattern": [
+        "00111000",
+        "01121110",
+        "11211211",
+        "12111211",
+        "11211211",
+        "01121110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "rear_jacket_panel",
+      "from": [
+        4.15,
+        5.4,
+        9.9
+      ],
+      "to": [
+        11.85,
+        14.15,
+        10.8
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_front_jacket",
+      "from": [
+        4.15,
+        5.4,
+        6.0
+      ],
+      "to": [
+        7.8,
+        13.4,
+        7.0
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_front_jacket",
+      "from": [
+        7.8,
+        5.4,
+        6.0
+      ],
+      "to": [
+        11.85,
+        13.4,
+        7.0
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "rear_stand_collar_carry",
+      "from": [
+        5.0,
+        13.6,
+        9.6
+      ],
+      "to": [
+        11.0,
+        15.2,
+        10.9
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_open_stand_collar",
+      "from": [
+        4.1,
+        13.1,
+        6.2
+      ],
+      "to": [
+        5.65,
+        15.05,
+        10.3
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_open_stand_collar",
+      "from": [
+        10.35,
+        13.1,
+        6.2
+      ],
+      "to": [
+        11.9,
+        15.05,
+        10.3
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "front_vertical_warm_placket",
+      "from": [
+        7.5,
+        6.35,
+        5.65
+      ],
+      "to": [
+        8.5,
+        12.7,
+        6.3
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "front_waist_belt",
+      "from": [
+        3.95,
+        5.5,
+        5.65
+      ],
+      "to": [
+        12.05,
+        6.5,
+        7.1
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "small_square_iron_buckle",
+      "from": [
+        7.15,
+        5.3,
+        5.3
+      ],
+      "to": [
+        8.85,
+        6.8,
+        5.95
+      ],
+      "material": "iron_edge",
+      "side": "polished_iron"
+    },
+    {
+      "name": "buckle_hide_center",
+      "from": [
+        7.65,
+        5.7,
+        5.13
+      ],
+      "to": [
+        8.35,
+        6.4,
+        5.5
+      ],
+      "material": "mint_hide"
+    },
+    {
+      "name": "diagonal_strap_upper",
+      "from": [
+        4.8,
+        11.65,
+        5.5
+      ],
+      "to": [
+        6.1,
+        13.6,
+        6.2
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "diagonal_strap_middle",
+      "from": [
+        5.85,
+        9.9,
+        5.5
+      ],
+      "to": [
+        7.15,
+        11.95,
+        6.2
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "diagonal_strap_lower",
+      "from": [
+        6.9,
+        8.2,
+        5.5
+      ],
+      "to": [
+        8.2,
+        10.2,
+        6.2
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "diagonal_strap_waist_join",
+      "from": [
+        7.95,
+        6.25,
+        5.5
+      ],
+      "to": [
+        9.25,
+        8.5,
+        6.2
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "strap_small_iron_keeper",
+      "from": [
+        5.75,
+        11.05,
+        5.25
+      ],
+      "to": [
+        7.25,
+        11.6,
+        5.9
+      ],
+      "material": "polished_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "left_short_hem",
+      "from": [
+        4.1,
+        4.4,
+        6.1
+      ],
+      "to": [
+        7.25,
+        5.7,
+        10.7
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_short_hem",
+      "from": [
+        8.75,
+        4.4,
+        6.1
+      ],
+      "to": [
+        11.9,
+        5.7,
+        10.7
+      ],
+      "material": "mint_hide",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "rear_waist_binding",
+      "from": [
+        4.0,
+        5.4,
+        10.6
+      ],
+      "to": [
+        12.0,
+        6.4,
+        11.05
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "rear_shoulder_yoke",
+      "from": [
+        4.1,
+        12.6,
+        10.65
+      ],
+      "to": [
+        11.9,
+        13.7,
+        11.15
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "rear_center_stitch",
+      "from": [
+        7.7,
+        6.3,
+        10.65
+      ],
+      "to": [
+        8.3,
+        12.8,
+        11.1
+      ],
+      "material": "stitched_edge"
+    },
+    {
+      "name": "right_trail_pocket",
+      "from": [
+        11.3,
+        7.1,
+        6.9
+      ],
+      "to": [
+        12.5,
+        10.0,
+        9.6
+      ],
+      "material": "warm_leather",
+      "side": "warm_edge"
+    },
+    {
+      "name": "pocket_mint_fold",
+      "from": [
+        11.2,
+        9.6,
+        6.8
+      ],
+      "to": [
+        12.65,
+        10.55,
+        9.7
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_jacket_side",
+      "from": [
+        3.8,
+        5.6,
+        6.6
+      ],
+      "to": [
+        4.8,
+        13.7,
+        10.3
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_jacket_side",
+      "from": [
+        11.2,
+        5.6,
+        6.6
+      ],
+      "to": [
+        12.2,
+        13.7,
+        10.3
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_soft_shoulder",
+      "from": [
+        1.8,
+        12.25,
+        6.2
+      ],
+      "to": [
+        4.4,
+        14.1,
+        10.6
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "left_threequarter_sleeve",
+      "from": [
+        1.9000000000000001,
+        8.8,
+        6.45
+      ],
+      "to": [
+        4.3,
+        12.8,
+        10.4
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_turned_cuff",
+      "from": [
+        1.75,
+        8.4,
+        6.25
+      ],
+      "to": [
+        4.45,
+        9.3,
+        10.6
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "left_small_iron_shoulder_keeper",
+      "from": [
+        2.45,
+        13.9,
+        7.0
+      ],
+      "to": [
+        3.75,
+        14.3,
+        9.6
+      ],
+      "material": "polished_iron",
+      "side": "iron_edge"
+    },
+    {
+      "name": "right_soft_shoulder",
+      "from": [
+        11.6,
+        12.25,
+        6.2
+      ],
+      "to": [
+        14.2,
+        14.1,
+        10.6
+      ],
+      "material": "mint_hide",
+      "side": "hide_fold"
+    },
+    {
+      "name": "right_threequarter_sleeve",
+      "from": [
+        11.7,
+        8.8,
+        6.45
+      ],
+      "to": [
+        14.1,
+        12.8,
+        10.4
+      ],
+      "material": "mint_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_turned_cuff",
+      "from": [
+        11.549999999999999,
+        8.4,
+        6.25
+      ],
+      "to": [
+        14.25,
+        9.3,
+        10.6
+      ],
+      "material": "hide_fold",
+      "side": "stitched_edge"
+    },
+    {
+      "name": "right_small_iron_shoulder_keeper",
+      "from": [
+        12.25,
+        13.9,
+        7.0
+      ],
+      "to": [
+        13.549999999999999,
+        14.3,
+        9.6
+      ],
+      "material": "polished_iron",
+      "side": "iron_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 1.06
+  },
+  "wearable_texture_set": "lumina_hunt",
+  "wearable_source": "armor/lumina_hunt.pixels.json"
+}
