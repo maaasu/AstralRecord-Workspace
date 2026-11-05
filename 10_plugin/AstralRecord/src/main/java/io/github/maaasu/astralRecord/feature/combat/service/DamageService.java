@@ -915,8 +915,9 @@ public final class DamageService {
         }
         ensureStatusLoaded(victim);
         DamageResult result = new DamageResult(0.0D).withAddedFixedHealthDamage(Math.max(0.0D, victim.currentHealth()));
+        Location displayOrigin = captureDamageDisplayOrigin(attacker, victim, result);
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
-        spawnDamageDisplay(attacker, victim, result);
+        spawnDamageDisplay(displayOrigin, result);
         return result;
     }
 
@@ -968,8 +969,9 @@ public final class DamageService {
         damage *= finalDamageMultiplier(attacker);
 
         DamageResult result = capBossBoundaryDamage(victim, new DamageResult(damage, false));
+        Location displayOrigin = captureDamageDisplayOrigin(attacker, victim, result);
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
-        spawnDamageDisplay(attacker, victim, result);
+        spawnDamageDisplay(displayOrigin, result);
         return result;
     }
 
@@ -1408,6 +1410,7 @@ public final class DamageService {
         boolean projectileDamage = superStarCriticalMode == SuperStarCriticalMode.FORCE;
         double victimCurrentHealthBefore = victim.currentHealth();
         double victimMaxHealth = victim.maxHealth();
+        Location displayOrigin = captureDamageDisplayOrigin(attacker, victim, result);
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
         if (petRuntimeService != null) petRuntimeService.onDamage(attacker, victim, result, source);
         if (archmagePhoenixRuntimeService != null
@@ -1449,7 +1452,7 @@ public final class DamageService {
         if (!projectileDamage) {
             applyDurabilityWear(attacker, victim, result);
         }
-        spawnDamageDisplay(attacker, victim, result);
+        spawnDamageDisplay(displayOrigin, result);
         sendDamageLog(attacker, victim, result, context, victimCurrentHealthBefore, victimMaxHealth, victimCurrentHealthAfter);
         if (superStarOrigin != null && attacker != null) {
             spawnSuperStarCriticalProjectiles(
@@ -1482,11 +1485,12 @@ public final class DamageService {
         AstEntity target = AstEntity.player(protector);
         double maximumHealth = target.maxHealth();
         DamageResult redirected = new DamageResult(damage);
+        Location displayOrigin = captureDamageDisplayOrigin(null, target, redirected);
         applyDamageResult(null, target, redirected, attackType, false);
         if (paladinGuardRuntimeService != null) {
             paladinGuardRuntimeService.recordDamage(protector, damage, damage, maximumHealth);
         }
-        spawnDamageDisplay(null, target, redirected);
+        spawnDamageDisplay(displayOrigin, redirected);
     }
 
     private boolean usesDefenseConversion(@NotNull AstEntity victim) {
@@ -2082,42 +2086,54 @@ public final class DamageService {
     }
 
     /**
-     * 回避・シールド・HP ダメージに対応する表示を生成します。
-     * 通常会心または超星会心が成立したダメージは会心表示を使用します。
+     * 致死ダメージで実体が除去される前に、被弾時の表示位置を取得します。
      *
      * @param attacker 攻撃者。環境ダメージでは {@code null}
      * @param victim 被弾者
      * @param result 表示対象のダメージ結果
+     * @return 表示位置。表示対象外なら null
      */
-    private void spawnDamageDisplay(
+    private @Nullable Location captureDamageDisplayOrigin(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result
     ) {
+        if ((!result.evaded() && result.shieldDamage() <= 0.0D && result.finalDamage() <= 0.0D)
+                || !shouldDisplayDamage(attacker, victim)) {
+            return null;
+        }
         if (result.evaded()) {
-            if (shouldDisplayDamage(attacker, victim)) {
-                displayTextService.spawnEvadedText(victim.location().clone().add(0.0D, 1.2D, 0.0D));
-            }
+            return victim.location().add(0.0D, 1.2D, 0.0D);
+        }
+        Entity entity = victim.isMob() && victim.mob() != null
+                ? resolveBukkitEntity(victim.mob().bukkitEntityId())
+                : victim.bukkitEntity();
+        if (entity == null) {
+            return victim.location().add(0.0D, 2.8D, 0.0D);
+        }
+        Location origin = entity.getLocation();
+        origin.setY(entity.getBoundingBox().getMaxY() + 1.0D);
+        return origin;
+    }
+
+    /**
+     * 回避・シールド・HP ダメージを、被弾時に確定した位置に表示します。
+     * @param origin 表示位置。表示しない場合は null
+     * @param result 表示するダメージ結果
+     */
+    private void spawnDamageDisplay(@Nullable Location origin, @NotNull DamageResult result) {
+        if (origin == null) {
             return;
         }
-        if (result.shieldDamage() > 0.0D) {
-            if (!shouldDisplayDamage(attacker, victim)) {
-                return;
-            }
-            displayTextService.spawnShieldDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.shieldDamage());
-            return;
+        if (result.evaded()) {
+            displayTextService.spawnEvadedText(origin);
+        } else if (result.shieldDamage() > 0.0D) {
+            displayTextService.spawnShieldDamageNumber(origin, result.shieldDamage());
+        } else {
+            displayTextService.spawnDamageNumber(
+                    origin, result.finalDamage(), result.critical() || result.superStarCritical()
+            );
         }
-        if (result.finalDamage() <= 0.0D) {
-            return;
-        }
-        if (!shouldDisplayDamage(attacker, victim)) {
-            return;
-        }
-        displayTextService.spawnDamageNumber(
-                victim.location().clone().add(0.0D, 1.2D, 0.0D),
-                result.finalDamage(),
-                result.critical() || result.superStarCritical()
-        );
     }
 
     /**

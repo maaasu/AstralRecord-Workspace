@@ -1,8 +1,12 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
+import io.papermc.paper.dialog.Dialog;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -11,6 +15,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * プラグイン管理 GUI 間の画面遷移を安全な tick 境界で実行します。
@@ -35,7 +41,7 @@ public final class GuiOpenSupport {
     }
 
     /**
-     * GUI を開きます。プラグイン GUI からの遷移はクリック同期ずれを避けるため 2 tick 後に実行します。
+     * GUI を開きます。プラグイン GUI からの遷移と統合版の表示は入力処理の後に実行します。
      *
      * @param player 対象プレイヤー
      * @param inventory 開く GUI
@@ -46,7 +52,7 @@ public final class GuiOpenSupport {
     }
 
     /**
-     * GUI を開き、実際に表示できた場合だけ完了処理を実行します。プラグイン GUI からの遷移はクリック同期ずれを避けるため 2 tick 後に実行します。
+     * GUI を開き、実際に表示できた場合だけ完了処理を実行します。
      *
      * @param player 対象プレイヤー
      * @param inventory 開く GUI
@@ -58,7 +64,7 @@ public final class GuiOpenSupport {
     }
 
     /**
-     * GUI を開き、遷移結果を一度だけ通知します。プラグイン GUI からの遷移はクリック同期ずれを避けるため 2 tick 後に実行します。
+     * GUI を開き、遷移結果を一度だけ通知します。
      *
      * @param player 対象プレイヤー
      * @param inventory 開く GUI
@@ -72,12 +78,11 @@ public final class GuiOpenSupport {
         @NotNull Runnable onCancelled
     ) {
         UUID playerId = player.getUniqueId();
-        PendingTransition previousTransition = PENDING_TRANSITIONS.remove(playerId);
-        if (previousTransition != null) {
-            previousTransition.cancel();
-        }
+        cancelPending(playerId);
         Inventory source = player.getOpenInventory().getTopInventory();
-        if (!isPluginGui(source)) {
+        var astPlayer = AstPlayerCache.get(player);
+        boolean bedrock = astPlayer != null && astPlayer.isBedrock();
+        if (!isPluginGui(source) && !bedrock) {
             player.openInventory(inventory);
             if (player.getOpenInventory().getTopInventory() == inventory) {
                 io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.afterOpen(player, source);
@@ -88,14 +93,49 @@ public final class GuiOpenSupport {
             return;
         }
 
+        scheduleTransition(playerId, new PendingTransition(onOpened, onCancelled),
+            () -> openIfSourceIsCurrent(player, source, inventory));
+    }
+
+    /**
+     * フォームをインベントリと同じ予約で開き、先行する表示要求を取り消します。
+     * @param player フォームを開くプレイヤー
+     * @param createDialog 入力処理後にフォームを作る処理。セッションが無効なら null を返す
+     */
+    public static void showDialog(@NotNull Player player, @NotNull Supplier<@Nullable Dialog> createDialog) {
+        UUID playerId = player.getUniqueId();
+        cancelPending(playerId);
+        Inventory source = player.getOpenInventory().getTopInventory();
+        scheduleTransition(playerId, new PendingTransition(() -> { }, () -> { }), () -> {
+            if (!isSourceCurrent(player, source)) {
+                return false;
+            }
+            Dialog dialog = createDialog.get();
+            if (dialog == null) {
+                return false;
+            }
+            if (source.getType() != InventoryType.CRAFTING) {
+                player.closeInventory(InventoryCloseEvent.Reason.OPEN_NEW);
+            }
+            player.showDialog(dialog);
+            return true;
+        });
+    }
+
+    /**
+     * 次の表示処理を予約し、有効な予約の結果だけを通知します。
+     * @param playerId 表示するプレイヤー
+     * @param transition 表示の完了と取消を通知する予約
+     * @param open 遷移元を確認して表示を行う処理
+     */
+    private static void scheduleTransition(UUID playerId, PendingTransition transition, BooleanSupplier open) {
         AstralRecord plugin = AstralRecord.getPlugin(AstralRecord.class);
-        PendingTransition transition = new PendingTransition(onOpened, onCancelled);
         PENDING_TRANSITIONS.put(playerId, transition);
         BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!PENDING_TRANSITIONS.remove(playerId, transition)) {
                 return;
             }
-            if (openIfSourceIsCurrent(player, source, inventory)) {
+            if (open.getAsBoolean()) {
                 transition.opened();
             } else {
                 transition.cancelled();
@@ -136,7 +176,7 @@ public final class GuiOpenSupport {
         @NotNull Inventory source,
         @NotNull Inventory target
     ) {
-        if (!player.isOnline() || player.getOpenInventory().getTopInventory() != source) {
+        if (!isSourceCurrent(player, source)) {
             return false;
         }
         player.openInventory(target);
@@ -145,6 +185,15 @@ public final class GuiOpenSupport {
         }
         io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.afterOpen(player, source);
         return true;
+    }
+
+    /**
+     * @param player 表示対象プレイヤー
+     * @param source 予約時の遷移元
+     * @return プレイヤーが接続中で、遷移元が引き続き表示されている場合は true
+     */
+    private static boolean isSourceCurrent(Player player, Inventory source) {
+        return player.isOnline() && player.getOpenInventory().getTopInventory() == source;
     }
 
     private static boolean isPluginGui(@Nullable Inventory inventory) {

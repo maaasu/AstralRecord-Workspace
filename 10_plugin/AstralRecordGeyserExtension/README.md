@@ -32,6 +32,8 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ## Bedrockのダメージ表示
 
+今回配布する拡張の版番号は `1.1.0`。差し替え後は Proxy を起動し、`Bedrock damage resource pack ready:` がログに出てから再接続する。
+
 起動時と以降約1分ごとに認証付き `GET /api/resource-packs/manifest` を取得する。SHA-256が変わったときだけ、同APIの `GET /api/resource-packs/bedrock/{sha256}.mcpack` から更新パックを取得する。SHA-256とアーカイブのmanifest header UUIDを検証し、新規接続へ配布する。同一のProxy起動中に取得や検証に失敗した場合は最後に検証済みのパックを維持する。Proxy起動時に取得できなければ従来の文字表示を使い、取得が復旧した後の新規接続から専用モデルを使う。パックの更新は次回のBedrock接続時に適用される。
 
 パックを登録してログインまで進んだ接続では、RPGが送る対応するTextDisplayを `astralrecord:damage_number` に置き換える。利用できるパックがない場合や登録に失敗した場合は、従来のTextDisplayを使う。Geyserの公開APIでは個別パックの適用確認を取得できないため、Geyserの強制パック設定を使う。Bedrockクライアントでパックの受け取りを拒否すると、Geyserが接続を終了する。

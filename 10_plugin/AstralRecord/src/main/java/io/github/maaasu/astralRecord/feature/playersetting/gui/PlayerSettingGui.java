@@ -1,17 +1,30 @@
 package io.github.maaasu.astralRecord.feature.playersetting.gui;
 
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.model.DamageNumberSize;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingGuiSaveService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
+import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.dialog.DialogResponseView;
+import io.papermc.paper.registry.data.dialog.ActionButton;
+import io.papermc.paper.registry.data.dialog.DialogBase;
+import io.papermc.paper.registry.data.dialog.action.DialogAction;
+import io.papermc.paper.registry.data.dialog.input.DialogInput;
+import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput;
+import io.papermc.paper.registry.data.dialog.type.DialogType;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -22,7 +35,9 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +47,7 @@ import java.util.UUID;
  * プレイヤー設定 GUI です。
  */
 public final class PlayerSettingGui extends BaseMenuScreenView {
+    private static final Component TITLE = Component.text("プレイヤー設定", NamedTextColor.AQUA);
     public static final int SIZE = BaseMenuScreenView.SIZE;
     public static final int DAMAGE_LOG_SLOT = 20;
     public static final int DAMAGE_NUMBER_SIZE_SLOT = 21;
@@ -53,21 +69,123 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
     private final PlayerSettingService playerSettingService;
+    private final PlayerSettingGuiSaveService guiSaveService;
 
-    public PlayerSettingGui(@NotNull PlayerSettingService playerSettingService) {
+    /**
+     * @param playerSettingService 表示するプレイヤー設定の参照元
+     * @param guiSaveService 統合版フォームの保存処理
+     */
+    public PlayerSettingGui(
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull PlayerSettingGuiSaveService guiSaveService
+    ) {
         this.playerSettingService = playerSettingService;
+        this.guiSaveService = guiSaveService;
     }
 
+    /** @param player 設定画面を開くプレイヤー */
     public void open(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null && astPlayer.isBedrock()) {
+            GuiOpenSupport.showDialog(player, () -> AstPlayerCache.get(player) == astPlayer
+                ? createBedrockForm(player, astPlayer) : null);
+            return;
+        }
         UUID userId = player.getUniqueId();
         PlayerSettingSnapshot snapshot = playerSettingService.getSnapshot(userId);
         Inventory inventory = Bukkit.createInventory(
             new Holder(userId),
             SIZE,
-            Component.text("プレイヤー設定", NamedTextColor.AQUA)
+            TITLE
         );
         render(inventory, snapshot.getUserId(), null);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * 現在の設定と接続に対応するフォームを作成します。
+     * @param player フォームを開くプレイヤー
+     * @param astPlayer フォーム送信時に照合するプレイヤー状態
+     * @return 現在値を選択済みにした統合版フォーム
+     */
+    private @NotNull Dialog createBedrockForm(@NotNull Player player, @NotNull AstPlayer astPlayer) {
+        UUID userId = astPlayer.getUser().getUuid();
+        long sessionToken = playerSettingService.captureSessionToken(userId);
+        PlayerSettingSnapshot snapshot = playerSettingService.getSnapshot(userId);
+        Map<PlayerSettingKey, Object> initial = new EnumMap<>(PlayerSettingKey.class);
+        List<DialogInput> inputs = new ArrayList<>();
+        for (int slot = 0; slot < SIZE; slot++) {
+            PlayerSettingKey key = getKeyAtSlot(slot);
+            if (key == null) {
+                continue;
+            }
+            var entry = snapshot.getEntry(key);
+            Object value = entry == null ? key.getDefaultValue() : entry.getValue();
+            initial.put(key, value);
+            inputs.add(formInput(key, value));
+        }
+
+        DialogAction save = DialogAction.customClick((response, audience) -> {
+            if (audience == player && player.isOnline() && AstPlayerCache.get(player) == astPlayer) {
+                saveBedrockForm(player, userId, sessionToken, initial, response);
+            }
+        }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(5)).build());
+        ActionButton saveButton = ActionButton.builder(Component.text(
+            PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5398.getId())
+        )).action(save).build();
+        ActionButton cancelButton = ActionButton.builder(Component.translatable("gui.cancel")).build();
+        return Dialog.create(factory -> factory.empty()
+            .base(DialogBase.builder(TITLE).inputs(inputs).pause(false).build())
+            .type(DialogType.confirmation(saveButton, cancelButton)));
+    }
+
+    /**
+     * @param key フォームに表示する設定キー
+     * @param value 現在値
+     * @return 真偽値の切替欄、または列挙値の選択欄
+     */
+    private static @NotNull DialogInput formInput(@NotNull PlayerSettingKey key, @NotNull Object value) {
+        Component label = Component.text(key.getDisplayNameJa());
+        if (value instanceof Boolean enabled) {
+            return DialogInput.bool(key.getCode(), label).initial(enabled).build();
+        }
+        List<SingleOptionDialogInput.OptionEntry> options = key.completionValues().stream().map(option -> {
+            Object parsed = key.parseInputValue(option);
+            return SingleOptionDialogInput.OptionEntry.create(
+                option, Component.text(key.formatValue(parsed)), value.equals(parsed)
+            );
+        }).toList();
+        return DialogInput.singleOption(key.getCode(), label, options).build();
+    }
+
+    /**
+     * 全項目を検証し、フォームを開いた時点から変わった項目だけを反映します。
+     * @param player フォームを送信したプレイヤー
+     * @param userId 設定の所有ユーザー
+     * @param sessionToken フォームを開いた時点の設定セッション
+     * @param initial フォームを開いた時点の設定値
+     * @param response フォームの送信値
+     */
+    private void saveBedrockForm(
+        @NotNull Player player,
+        @NotNull UUID userId,
+        long sessionToken,
+        @NotNull Map<PlayerSettingKey, Object> initial,
+        @NotNull DialogResponseView response
+    ) {
+        Map<PlayerSettingKey, Object> changes = new EnumMap<>(PlayerSettingKey.class);
+        for (var entry : initial.entrySet()) {
+            PlayerSettingKey key = entry.getKey();
+            Object submitted = key.isBooleanValue() ? response.getBoolean(key.getCode())
+                : key.parseInputValue(response.getText(key.getCode()));
+            if (submitted == null) {
+                return;
+            }
+            if (!submitted.equals(entry.getValue())) {
+                changes.put(key, submitted);
+            }
+        }
+        guiSaveService.save(player, userId, sessionToken, changes);
     }
 
     public void refresh(

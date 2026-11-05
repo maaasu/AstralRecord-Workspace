@@ -265,6 +265,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingDefaults;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingEffectService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingGuiSaveService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
@@ -593,6 +594,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerSettingService playerSettingService;
     private PlayerSettingEffectService playerSettingEffectService;
     private PlayerSettingGui playerSettingGui;
+    private PlayerSettingGuiSaveService playerSettingGuiSaveService;
     private ItemStackPacketAdapter itemStackPacketAdapter;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
@@ -1955,7 +1957,8 @@ public final class AstralRecord extends JavaPlugin {
         gatheringService.setEquipmentDurabilityService(equipmentDurabilityService);
         playerListGui = new PlayerListGui(worldService);
         playerDetailGui = new PlayerDetailGui(worldService);
-        playerSettingGui = new PlayerSettingGui(playerSettingService);
+        playerSettingGuiSaveService = new PlayerSettingGuiSaveService(this, playerSettingService);
+        playerSettingGui = new PlayerSettingGui(playerSettingService, playerSettingGuiSaveService);
         adventureRecordGuiEventHandler = new AdventureRecordGuiEventHandler(
             new AdventureRecordGui(itemService, lootService),
             adventureRecordService,
@@ -3097,9 +3100,8 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingGuiEventHandler(
                 playerSettingGui,
                 playerSettingService,
-                playerSettingEffectService,
-                inventoryService,
-                itemStackPacketAdapter
+                playerSettingGuiSaveService,
+                inventoryService
             ),
             getServer().getPluginManager()
         );

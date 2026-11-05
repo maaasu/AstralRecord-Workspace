@@ -3,23 +3,17 @@ package io.github.maaasu.astralRecord.feature.playersetting.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.playersetting.model.DamageNumberSize;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
-import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
-import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingEffectService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingGuiSaveService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -34,8 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -46,9 +38,8 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
 
     private final PlayerSettingGui gui;
     private final PlayerSettingService playerSettingService;
-    private final PlayerSettingEffectService playerSettingEffectService;
+    private final PlayerSettingGuiSaveService guiSaveService;
     private final InventoryService inventoryService;
-    private final ItemStackPacketAdapter itemStackPacketAdapter;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, EnumMap<PlayerSettingKey, Object>> draftValues = new ConcurrentHashMap<>();
 
@@ -57,22 +48,19 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
      *
      * @param gui プレイヤー設定 GUI
      * @param playerSettingService プレイヤー設定サービス
-     * @param playerSettingEffectService プレイヤー設定由来の効果同期サービス
+     * @param guiSaveService GUI の設定保存サービス
      * @param inventoryService hotbar shortcut 用 inventory サービス
-     * @param itemStackPacketAdapter 装備表示を再同期するパケットアダプタ
      */
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
         @NotNull PlayerSettingService playerSettingService,
-        @NotNull PlayerSettingEffectService playerSettingEffectService,
-        @NotNull InventoryService inventoryService,
-        @NotNull ItemStackPacketAdapter itemStackPacketAdapter
+        @NotNull PlayerSettingGuiSaveService guiSaveService,
+        @NotNull InventoryService inventoryService
     ) {
         this.gui = gui;
         this.playerSettingService = playerSettingService;
-        this.playerSettingEffectService = playerSettingEffectService;
+        this.guiSaveService = guiSaveService;
         this.inventoryService = inventoryService;
-        this.itemStackPacketAdapter = itemStackPacketAdapter;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -208,83 +196,8 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         if (astPlayer == null) {
             return;
         }
-        EnumMap<PlayerSettingKey, Object> pendingCopy = new EnumMap<>(PlayerSettingKey.class);
-        pendingCopy.putAll(pending);
-        if (!astPlayer.hasAdminPermission()) {
-            pendingCopy.remove(PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE);
-        }
-        if (pendingCopy.isEmpty()) {
-            return;
-        }
-
         UUID userId = astPlayer.getUser().getUuid();
-        long sessionToken = playerSettingService.captureSessionToken(userId);
-        AstralRecord plugin = AstralRecord.getInstance();
-        List<PersistResult> results = persistChanges(userId, sessionToken, pendingCopy);
-        for (PersistResult persisted : results) {
-            if (persisted.result().staleSession()) {
-                continue;
-            }
-            PlayerMessageService.getInstance().sendRaw(player, PlayerMsgResource.format(
-                PlayerSettingMsgId.P_5321.getId(),
-                persisted.key().getDisplayNameJa(),
-                persisted.key().formatValue(persisted.value())
-            ));
-        }
-        boolean armorSettingSynchronized = results.stream().anyMatch(persisted ->
-            persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
-                && !persisted.result().staleSession()
-        );
-        if (armorSettingSynchronized) {
-            itemStackPacketAdapter.refreshEquipmentView(player);
-        }
-        boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->
-            (persisted.key() == PlayerSettingKey.ACTION_RING_HOLD_SELECT
-                || persisted.key() == PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY)
-                && !persisted.result().staleSession()
-        );
-        if (actionRingHoldSelectSynchronized) {
-            player.updateInventory();
-        }
-        boolean skillTreeCompactDisplaySynchronized = results.stream().anyMatch(persisted ->
-            persisted.key() == PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY
-                && !persisted.result().staleSession()
-        );
-        if (skillTreeCompactDisplaySynchronized) {
-            plugin.getSkillTreeService().markViewerContextDirty(player);
-        }
-        boolean nightVisionSynchronized = results.stream().anyMatch(persisted ->
-            persisted.key() == PlayerSettingKey.NIGHT_VISION
-                && persisted.result().success()
-        );
-        if (nightVisionSynchronized) {
-            playerSettingEffectService.synchronizeNightVision(player);
-        }
-    }
-
-    private @NotNull List<PersistResult> persistChanges(
-        @NotNull UUID userId,
-        long sessionToken,
-        @NotNull Map<PlayerSettingKey, Object> pending
-    ) {
-        List<PersistResult> results = new ArrayList<>();
-        for (Map.Entry<PlayerSettingKey, Object> entry : pending.entrySet()) {
-            PlayerSettingKey key = entry.getKey();
-            Object nextValue = entry.getValue();
-            Object currentValue = playerSettingService.getPlayerSetting(userId, key);
-            if (currentValue.equals(nextValue)) {
-                continue;
-            }
-            PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
-                new PlayerSettingChangeRequest(userId, key, nextValue, userId),
-                sessionToken
-            );
-            results.add(new PersistResult(key, nextValue, result));
-            if (result.staleSession()) {
-                break;
-            }
-        }
-        return results;
+        guiSaveService.save(player, userId, playerSettingService.captureSessionToken(userId), new EnumMap<>(pending));
     }
 
     /**
@@ -312,10 +225,4 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         return currentValue;
     }
 
-    private record PersistResult(
-        @NotNull PlayerSettingKey key,
-        @NotNull Object value,
-        @NotNull PlayerSettingService.UpdateResult result
-    ) {
-    }
 }
