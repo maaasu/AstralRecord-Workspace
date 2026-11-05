@@ -1,0 +1,528 @@
+{
+  "id": "astra_sword",
+  "master_id": "20a00438",
+  "kind": "sword",
+  "intent": "Lv30 RARE・天体と星の光。Minecraftのダイヤ剣の太い段付き刃を基準に、白いダイヤの稜線で青緑の広い中央面を挟んだ片手剣。水平な鍔から一段だけ上がる左右の角で四芒星の輪郭を作り、鍔の中心にはアメジストを一面だけ置く。夜空色の太い柄と白い鍛造留めで、ノクスの簡素な鉄・ラピスの石芯・ルミナの鉄面から素材品質が上がる。細い宝飾、写実的研磨、発光機構は使わず、刃の厚みと大きな面色で最高位を示す。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "diamond": {
+      "palette": [
+        "#164352",
+        "#246979",
+        "#369DA2",
+        "#62D2CC",
+        "#A4EDE2",
+        "#DFFDEE"
+      ],
+      "pattern": [
+        "00112233",
+        "01122334",
+        "11223344",
+        "12233445",
+        "22334445",
+        "23344455",
+        "33444554",
+        "34445543"
+      ]
+    },
+    "diamond_edge": {
+      "palette": [
+        "#377D8A",
+        "#6BBDBF",
+        "#ACEBE1",
+        "#EFFFF0"
+      ],
+      "pattern": [
+        "22233333",
+        "22223333",
+        "12222333",
+        "11222233",
+        "01122223",
+        "00112222",
+        "00111222",
+        "00011122"
+      ]
+    },
+    "diamond_side": {
+      "palette": [
+        "#153848",
+        "#20576B",
+        "#337B8C",
+        "#57A4AC",
+        "#92CDC9"
+      ],
+      "pattern": [
+        "11222221",
+        "12223321",
+        "12233321",
+        "22333332",
+        "22343332",
+        "12233321",
+        "11223321",
+        "01122210"
+      ]
+    },
+    "midnight": {
+      "palette": [
+        "#101A2A",
+        "#1A2C42",
+        "#2D465D",
+        "#46647A",
+        "#708B9B"
+      ],
+      "pattern": [
+        "01122210",
+        "11222211",
+        "12232221",
+        "12222221",
+        "12222221",
+        "12232221",
+        "11222211",
+        "01122210"
+      ]
+    },
+    "silver": {
+      "palette": [
+        "#3B5A6A",
+        "#678993",
+        "#A0BCC1",
+        "#CEDFD9",
+        "#EFF9E7"
+      ],
+      "pattern": [
+        "12223332",
+        "22333343",
+        "22333443",
+        "12233332",
+        "12223332",
+        "11222332",
+        "11222221",
+        "01122211"
+      ]
+    },
+    "silver_edge": {
+      "palette": [
+        "#718F99",
+        "#ABC7C7",
+        "#DFEBDF",
+        "#F9FFE8"
+      ],
+      "pattern": [
+        "22333322",
+        "23333332",
+        "22333332",
+        "12223322",
+        "11222221",
+        "12223222",
+        "22333322",
+        "12222221"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "#3D2B56",
+        "#654A80",
+        "#8F72A3",
+        "#BCA7CC",
+        "#DFD3E6"
+      ],
+      "pattern": [
+        "01122233",
+        "11222334",
+        "12223334",
+        "12223343",
+        "12233432",
+        "22334322",
+        "23343221",
+        "22332210"
+      ]
+    },
+    "wrap": {
+      "palette": [
+        "#111F31",
+        "#24384D",
+        "#3C576B",
+        "#5D7B8C"
+      ],
+      "pattern": [
+        "00112233",
+        "01122332",
+        "11223321",
+        "12233211",
+        "22332110",
+        "23321101",
+        "33211011",
+        "32110112"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "midnight_full_tang",
+      "from": [
+        7.25,
+        1.5,
+        7.25
+      ],
+      "to": [
+        8.75,
+        7.0,
+        8.75
+      ],
+      "material": "midnight"
+    },
+    {
+      "name": "wrapped_grip",
+      "from": [
+        7.1,
+        2.25,
+        7.1
+      ],
+      "to": [
+        8.9,
+        5.7,
+        8.9
+      ],
+      "material": "wrap"
+    },
+    {
+      "name": "silver_lower_ferrule",
+      "from": [
+        6.95,
+        1.5,
+        6.95
+      ],
+      "to": [
+        9.05,
+        2.3,
+        9.05
+      ],
+      "material": "silver",
+      "side": "midnight",
+      "cap": "silver_edge"
+    },
+    {
+      "name": "crystal_pommel_body",
+      "from": [
+        6.5,
+        0.25,
+        6.75
+      ],
+      "to": [
+        9.5,
+        1.5,
+        9.25
+      ],
+      "material": "diamond",
+      "side": "diamond_side",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "crystal_pommel_step",
+      "from": [
+        7,
+        0,
+        7
+      ],
+      "to": [
+        9,
+        0.25,
+        9
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "silver_upper_ferrule",
+      "from": [
+        6.95,
+        5.65,
+        6.95
+      ],
+      "to": [
+        9.05,
+        6.45,
+        9.05
+      ],
+      "material": "silver",
+      "side": "midnight",
+      "cap": "silver_edge"
+    },
+    {
+      "name": "star_guard_cross",
+      "from": [
+        4,
+        6.4,
+        6.5
+      ],
+      "to": [
+        12,
+        7.65,
+        9.5
+      ],
+      "material": "diamond",
+      "side": "diamond_side",
+      "cap": "diamond_edge"
+    },
+    {
+      "name": "left_guard_star_step",
+      "from": [
+        4.5,
+        7.65,
+        6.75
+      ],
+      "to": [
+        6.1,
+        8.65,
+        9.25
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "right_guard_star_step",
+      "from": [
+        9.9,
+        7.65,
+        6.75
+      ],
+      "to": [
+        11.5,
+        8.65,
+        9.25
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "left_guard_point",
+      "from": [
+        3.25,
+        6.65,
+        6.9
+      ],
+      "to": [
+        4,
+        7.4,
+        9.1
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "right_guard_point",
+      "from": [
+        12,
+        6.65,
+        6.9
+      ],
+      "to": [
+        12.75,
+        7.4,
+        9.1
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "star_guard_socket",
+      "from": [
+        6.25,
+        6.1,
+        6.25
+      ],
+      "to": [
+        9.75,
+        8.25,
+        9.75
+      ],
+      "material": "silver",
+      "side": "midnight",
+      "cap": "silver_edge"
+    },
+    {
+      "name": "amethyst_guard_front",
+      "from": [
+        7.15,
+        6.65,
+        6.0
+      ],
+      "to": [
+        8.85,
+        7.8,
+        6.25
+      ],
+      "material": "amethyst",
+      "side": "midnight"
+    },
+    {
+      "name": "amethyst_guard_back",
+      "from": [
+        7.15,
+        6.65,
+        9.75
+      ],
+      "to": [
+        8.85,
+        7.8,
+        10.0
+      ],
+      "material": "amethyst",
+      "side": "midnight"
+    },
+    {
+      "name": "diamond_blade_shoulder",
+      "from": [
+        6,
+        8.25,
+        7
+      ],
+      "to": [
+        10,
+        10.25,
+        9
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "diamond_blade_long",
+      "from": [
+        6.5,
+        10.25,
+        7.1
+      ],
+      "to": [
+        9.5,
+        17.5,
+        8.9
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "diamond_blade_tip_step",
+      "from": [
+        7,
+        17.5,
+        7.2
+      ],
+      "to": [
+        9,
+        19.25,
+        8.8
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "diamond_blade_tip",
+      "from": [
+        7.5,
+        19.25,
+        7.35
+      ],
+      "to": [
+        8.5,
+        20.25,
+        8.65
+      ],
+      "material": "diamond_edge",
+      "side": "diamond_side"
+    },
+    {
+      "name": "cyan_blade_broad_front",
+      "from": [
+        6.65,
+        8.75,
+        6.8
+      ],
+      "to": [
+        9.35,
+        10.25,
+        7
+      ],
+      "material": "diamond",
+      "side": "diamond_side"
+    },
+    {
+      "name": "cyan_blade_long_front",
+      "from": [
+        7.15,
+        10.25,
+        6.9
+      ],
+      "to": [
+        8.85,
+        17.5,
+        7.1
+      ],
+      "material": "diamond",
+      "side": "diamond_side"
+    },
+    {
+      "name": "cyan_blade_tip_front",
+      "from": [
+        7.5,
+        17.5,
+        7.0
+      ],
+      "to": [
+        8.5,
+        18.5,
+        7.2
+      ],
+      "material": "diamond",
+      "side": "diamond_side"
+    },
+    {
+      "name": "cyan_blade_broad_back",
+      "from": [
+        6.65,
+        8.75,
+        9
+      ],
+      "to": [
+        9.35,
+        10.25,
+        9.2
+      ],
+      "material": "diamond",
+      "side": "diamond_side"
+    },
+    {
+      "name": "cyan_blade_long_back",
+      "from": [
+        7.15,
+        10.25,
+        8.9
+      ],
+      "to": [
+        8.85,
+        17.5,
+        9.1
+      ],
+      "material": "diamond",
+      "side": "diamond_side"
+    },
+    {
+      "name": "cyan_blade_tip_back",
+      "from": [
+        7.5,
+        17.5,
+        8.8
+      ],
+      "to": [
+        8.5,
+        18.5,
+        9
+      ],
+      "material": "diamond",
+      "side": "diamond_side"
+    }
+  ]
+}
