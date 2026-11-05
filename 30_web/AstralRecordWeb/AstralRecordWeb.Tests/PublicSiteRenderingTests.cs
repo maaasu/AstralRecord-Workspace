@@ -14,7 +14,7 @@ namespace AstralRecordWeb.Tests;
 public sealed class PublicSiteRenderingTests
 {
     [Fact]
-    public async Task Home_OpenAlpha_ShowsOneParticipationNoticeAndOneCopyAction()
+    public async Task Home_OpenAlpha_KeepsStatusAndConnectionInfoSeparateFromTheHero()
     {
         await using var factory = new PublicSiteWebApplicationFactory("OpenAlpha");
         using var client = CreateClient(factory);
@@ -23,52 +23,40 @@ public sealed class PublicSiteRenderingTests
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
         var hero = ExtractSection(body, "<section class=\"ar-home-hero\"");
-        var discord = ExtractSection(body, "<section class=\"ar-discord-section\" id=\"discord\"");
-        var join = ExtractSection(body, "<section class=\"ar-home-section ar-join-section\" id=\"join\"");
-
-        var cssResponse = await client.GetAsync("/css/site.css");
-        cssResponse.EnsureSuccessStatusCode();
-        var css = await cssResponse.Content.ReadAsStringAsync();
+        var connect = ExtractSection(body, "<section class=\"ar-home-connect\"");
+        var discord = ExtractSection(body, "<section class=\"ar-home-community\" id=\"discord\"");
+        var join = ExtractSection(body, "<section class=\"ar-home-join\" id=\"join\"");
 
         Assert.Contains("data-public-phase=\"open-alpha\"", body);
         Assert.Contains("href=\"#join\"", hero);
-        Assert.Contains("今すぐ参加する", hero);
+        Assert.Contains("参加方法を見る", hero);
         Assert.DoesNotContain("mc.astralrecord.com", hero);
         Assert.DoesNotContain("data-copy-server", hero);
-        Assert.DoesNotContain("ar-quick-connect", body);
-        Assert.DoesNotContain("<noscript", body);
-
-        Assert.Single(Regex.Matches(body, "class=\"ar-alpha-notice\"").Cast<Match>());
-        Assert.Single(Regex.Matches(body, @"data-copy-server(?:\s|>)").Cast<Match>());
+        Assert.Contains("data-server-status", connect);
+        Assert.Contains("data-server-players>17", connect);
+        Assert.Contains("data-server-maximum>100", connect);
+        Assert.Contains("data-copy-value=\"mc.astralrecord.com\"", connect);
+        Assert.Single(Regex.Matches(body, "class=\"ar-home-alpha-notice\"").Cast<Match>());
+        Assert.Equal(2, Regex.Matches(body, @"data-copy-server(?:\s|>)").Count);
         Assert.Contains("mc.astralrecord.com", join);
-        Assert.Contains("急な再起動や停止が頻繁に発生", join);
+        Assert.Contains("予告なく再起動や停止が発生することがあります", join);
         Assert.Contains("個別の復旧や補償の対象外", join);
         Assert.Contains("正式リリース時に引き継がれません", join);
         Assert.Contains("予告なく変更されることがあります", join);
-        Assert.Contains("Minecraft Bedrock Edition", join);
-        Assert.Contains("対応中", join);
-        Assert.Contains("統合版にも対応しています", join);
-        Assert.Contains("IPアドレスはJava版と同じ", join);
-        Assert.Contains(
-            "IPアドレスはJava版と同じ <strong>mc.astralrecord.com</strong>、ポートは <strong>19132</strong>",
-            join);
-        Assert.Contains("Java版でのプレイを前提としているため", join);
-        Assert.Contains("公式Discordの改善案チャンネル", join);
-        Assert.Contains("修正される可能性があります", join);
+        Assert.Contains("Java版ポート</dt><dd>25565", join);
+        Assert.Contains("統合版ポート</dt><dd>19132", join);
+        Assert.Contains("name=\"minecraft-edition\" value=\"java\"", join);
+        Assert.Contains("name=\"minecraft-edition\" value=\"bedrock\"", join);
+        Assert.Contains("一部の機能や操作に支障が出る場合があります", join);
+        Assert.Contains("href=\"#discord\"", join);
         Assert.DoesNotContain("discord.gg", join, StringComparison.OrdinalIgnoreCase);
 
-        Assert.Contains("冒険の続きは、公式Discordで。", discord);
         Assert.Contains("公式Discordに参加する", discord);
         Assert.Contains("https://discord.gg/Fja6zmpjGX", discord);
-        Assert.Matches(
-            "<a[^>]*class=\"nav-link ar-nav-link ar-nav-discord\"[^>]*href=\"https://discord\\.gg/Fja6zmpjGX\"[^>]*>公式Discord</a>",
-            body);
-
-        foreach (var featureImage in new[] { "combat", "adventure", "community" })
-        {
-            Assert.Contains($"/images/feature-{featureImage}-800.webp", css);
-            Assert.Contains($"/images/feature-{featureImage}-1600.webp", css);
-        }
+        Assert.Contains("href=\"/#features\"", body);
+        Assert.Contains("href=\"/#join\"", body);
+        Assert.Contains("/images/bg-town-640.webp", body);
+        Assert.Contains("/images/feature-combat-800.webp", body);
 
         foreach (var forbiddenPhrase in new[]
                  {
@@ -96,9 +84,9 @@ public sealed class PublicSiteRenderingTests
 
         Assert.Contains("data-public-phase=\"release\"", body);
         Assert.DoesNotContain("OPEN ALPHA", body, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("ar-alpha-notice", body);
+        Assert.DoesNotContain("ar-home-alpha-notice", body);
         Assert.DoesNotContain("正式リリース時に引き継がれません", body);
-        Assert.Single(Regex.Matches(body, @"data-copy-server(?:\s|>)").Cast<Match>());
+        Assert.Equal(2, Regex.Matches(body, @"data-copy-server(?:\s|>)").Count);
         Assert.Contains("mc.astralrecord.com", body);
 
         foreach (var path in new[] { "/Privacy", "/Terms" })
@@ -226,6 +214,10 @@ public sealed class PublicSiteRenderingTests
 
             Assert.Contains("2026年8月24日", listBody);
             Assert.Contains("datetime=\"2026-08-24T03:00:00+09:00\"", listBody);
+
+            var homeBody = WebUtility.HtmlDecode(await client.GetStringAsync("/"));
+            Assert.Contains("日本時間表示テスト", homeBody);
+            Assert.Contains("/releases/utc-release", homeBody);
 
             var detailResponse = await client.GetAsync("/releases/utc-release");
             detailResponse.EnsureSuccessStatusCode();

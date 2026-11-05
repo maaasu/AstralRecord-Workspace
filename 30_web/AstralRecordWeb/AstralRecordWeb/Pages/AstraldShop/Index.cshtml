@@ -11,7 +11,7 @@
             <h1>有償アストラルドショップ</h1>
             <p class="ar-portal-sub">優先接続回数、VIP特典、チャンネルブーストを購入できます。効果は現在のアカウントまたは対象チャンネルへ直接適用され、ゲーム内メールでの受取操作はありません。</p>
         </div>
-        <a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a>
+        <a asp-page="/AstraldShop/Index" class="btn ar-btn-outline">最新の情報に更新</a>
     </header>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
     @if (Model.PurchaseResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.AstraldShop.IndexModel.PurchaseStatus(result)</div> }
@@ -23,7 +23,7 @@
                 @if (Model.Benefits?.PaidAstraldBalance is { } balance) { <strong>@balance.ToString("N0")</strong> }
                 else { <strong>確認できません</strong> }
             </div>
-            <a asp-page="/MyPage">現在の特典を確認する →</a>
+            <a asp-page="/MyPage">現在の特典を確認する</a>
         </section>
         <p class="ar-shop-account-note">ゲーム内で選択中のアカウントが変わった場合、購入は受け付けません。残高を確認できない間も購入できません。</p>
     }

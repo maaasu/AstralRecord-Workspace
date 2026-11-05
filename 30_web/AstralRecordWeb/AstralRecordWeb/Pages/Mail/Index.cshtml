@@ -2,7 +2,7 @@
 @model AstralRecordWeb.Pages.Mail.IndexModel
 @{ ViewData["Title"] = "メール"; }
 <section class="ar-portal"><div class="container">
-    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">受信箱</p><h1>メール</h1><p class="ar-portal-sub">現在のアカウント宛のメールです。通貨報酬はWebで受け取れます。アイテム報酬はゲーム内で受け取ってください。</p></div><a asp-page="/Mail/Index" class="btn ar-btn-outline">最新の情報に更新 ↻</a></header>
+    <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">受信箱</p><h1>メール</h1><p class="ar-portal-sub">現在のアカウント宛のメールです。通貨報酬はWebで受け取れます。アイテム報酬はゲーム内で受け取ってください。</p></div><a asp-page="/Mail/Index" class="btn ar-btn-outline">最新の情報に更新</a></header>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
     @if (Model.ClaimResult is { } result) { <div class="alert @(result.Status == "COMPLETED" ? "alert-success" : "alert-warning")" role="status">@AstralRecordWeb.Pages.Mail.IndexModel.ClaimStatus(result)</div> }
     @if (Model.Account is { } account)

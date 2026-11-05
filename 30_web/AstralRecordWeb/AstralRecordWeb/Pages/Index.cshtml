@@ -1,222 +1,199 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Minecraft RPGサーバー｜マイクラRPGの世界を冒険しよう";
+    ViewData["Title"] = "Minecraft RPGサーバー";
+    var site = Model.PublicSite;
+    var javaEndpoint = site.JavaServerPort == 25565
+        ? site.JavaServerAddress
+        : $"{site.JavaServerAddress}:{site.JavaServerPort}";
 }
 
-<div class="ar-home" data-public-phase="@(Model.PublicSite.IsOpenAlpha ? "open-alpha" : "release")">
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+}
+
+<div class="ar-home" data-public-phase="@(site.IsOpenAlpha ? "open-alpha" : "release")">
     <section class="ar-home-hero" aria-labelledby="hero-title" data-astral-scene>
         <picture class="ar-journal-landscape" aria-hidden="true">
-            <source media="(max-width: 600px)" srcset="/images/bg-night-640.webp 640w, /images/bg-night-1280.webp 1280w" sizes="100vw" />
-            <img src="~/images/bg-night-1672.webp" srcset="/images/bg-night-640.webp 640w, /images/bg-night-1280.webp 1280w, /images/bg-night-1672.webp 1672w"
+            <img src="~/images/bg-night-1672.webp"
+                 srcset="/images/bg-night-640.webp 640w, /images/bg-night-1280.webp 1280w, /images/bg-night-1672.webp 1672w"
                  sizes="100vw" width="1672" height="941" alt="" fetchpriority="high" />
         </picture>
-        <div class="ar-journal-hero-shade" aria-hidden="true"></div>
         <partial name="_AstralAtmosphere" />
+        <div class="ar-journal-hero-shade" aria-hidden="true"></div>
         <partial name="_MotionControl" />
         <div class="container ar-home-hero__content">
-            <p class="ar-home-kicker"><span class="ar-journal-star" aria-hidden="true">✦</span> A WORLD WORTH EXPLORING</p>
-            <h1 class="ar-home-title" id="hero-title">
-                <span>剣と魔法で、</span>
-                <span>まだ見ぬ世界へ。</span>
-            </h1>
-            <p class="ar-home-intro">
-                いつものMinecraftから、あなただけの冒険へ。<br />
-                クラス、装備、スキルを組み合わせ、<br class="ar-desktop-break" />
-                仲間とともに、まだ知らない景色に出会おう。
-            </p>
-            <div class="ar-home-actions">
-                <a href="#join" class="btn ar-home-button ar-home-button--primary">今すぐ参加する <span aria-hidden="true">↗</span></a>
-                <a href="#features" class="ar-journal-link">遊び方を見る <span aria-hidden="true">↓</span></a>
-            </div>
-        </div>
-        <div class="ar-journal-hero-foot container">
-            <span>MINECRAFT JAVA &amp; BEDROCK</span>
-            <span>EXPLORE. BUILD YOUR STYLE. BELONG.</span>
+            <p class="ar-home-kicker">Minecraft RPG サーバー</p>
+            <h1 class="ar-home-title" id="hero-title">仲間と挑む、<br />剣と魔法の世界。</h1>
+            <p class="ar-home-intro">クラスを育て、装備をそろえる。<br />自分の戦い方で、ダンジョンやボスに挑もう。</p>
+            <a href="#join" class="ar-plate ar-home-cta">参加方法を見る</a>
         </div>
     </section>
 
-    <section class="ar-server-strip" aria-label="現在のサーバー状況" data-server-status data-status-url="@Url.Page("/Index", "ServerStatus")" data-state="@Model.ServerStatus.State">
-        <div class="container ar-server-strip-inner">
-            <div class="ar-server-presence"><span class="ar-server-beacon" aria-hidden="true"></span><div><small>現在のサーバー状況</small><strong data-server-state>@Model.ServerStatus.Label</strong></div></div>
-            <div class="ar-server-population"><small>参加人数</small><strong><span data-server-players>@(Model.ServerStatus.Players?.ToString("N0") ?? "—")</span><span class="ar-server-capacity"> / <span data-server-maximum>@(Model.ServerStatus.MaximumPlayers?.ToString("N0") ?? "—")</span> 人</span></strong></div>
-            <div class="ar-server-checked"><span>@Model.PublicSite.JavaServerAddress</span><small>最終確認 <time data-server-checked>@Model.ServerStatus.CheckedAt.ToOffset(TimeSpan.FromHours(9)).ToString("HH:mm:ss")</time>（日本時間）</small></div>
-        </div>
-    </section>
-
-    <section class="ar-home-section ar-feature-section" id="features" aria-labelledby="features-title">
-        <div class="container">
-            <div class="ar-journal-heading">
+    <section class="ar-home-connect" aria-label="サーバー状況と接続先" data-server-status
+             data-status-url="@Url.Page("/Index", "ServerStatus")" data-state="@Model.ServerStatus.State">
+        <div class="container ar-home-connect__inner">
+            <div class="ar-home-connect__address">
                 <div>
-                    <p class="ar-home-kicker">THE ASTRAL EXPERIENCE</p>
-                    <h2 id="features-title">この世界で<br />楽しめること。</h2>
+                    <span class="ar-home-caption">サーバーアドレス</span>
+                    <code class="ar-home-address">@site.JavaServerAddress</code>
                 </div>
-                <p>Minecraftの操作感はそのままに。<br />装備を整え、スキルを選び、気の向く方へ。<br />冒険の楽しみ方は、ひとつではありません。</p>
+                <button type="button" class="ar-home-copy" data-copy-server data-copy-value="@site.JavaServerAddress"
+                        aria-describedby="home-copy-status" hidden><span data-copy-label>コピー</span></button>
+                <span class="visually-hidden" id="home-copy-status" role="status" data-copy-status></span>
             </div>
+            <div class="ar-home-connect__status">
+                <div class="ar-home-connect__presence">
+                    <span class="ar-home-connect__beacon" aria-hidden="true"></span>
+                    <strong data-server-state>@Model.ServerStatus.Label</strong>
+                </div>
+                <span class="ar-home-connect__population">
+                    <span class="visually-hidden">参加人数：</span><span data-server-players>@(Model.ServerStatus.Players?.ToString("N0") ?? "—")</span> / <span data-server-maximum>@(Model.ServerStatus.MaximumPlayers?.ToString("N0") ?? "—")</span> 人
+                </span>
+                <span class="ar-home-connect__checked">最終確認 <time data-server-checked>@Model.ServerStatus.CheckedAt.ToOffset(TimeSpan.FromHours(9)).ToString("HH:mm:ss")</time>（日本時間）</span>
+            </div>
+            <a class="ar-home-link ar-home-connect__link" href="#join">Java版・統合版の接続情報</a>
+        </div>
+    </section>
 
-            <article class="ar-journal-story ar-journal-story--adventure">
-                <figure class="ar-journal-photo">
-                    <img src="~/images/feature-adventure-800.webp" srcset="/images/feature-adventure-800.webp 800w, /images/feature-adventure-1600.webp 1600w"
-                         sizes="(max-width: 767px) 100vw, 60vw" width="1600" height="994" alt="水面に映る、石と木で築かれた大きな門" loading="lazy" decoding="async" />
-                    <figcaption>EXPLORATION / 冒険のある風景</figcaption>
-                </figure>
-                <div class="ar-journal-story-copy">
-                    <p class="ar-journal-label">FOLLOW YOUR CURIOSITY</p>
-                    <h3>寄り道の先に、<br />次の冒険がある。</h3>
-                    <p>Mobとの戦闘、採集、クエスト、ボスやダンジョン。装備を整えて挑む日も、気ままに探索する日も、自分のペースで楽しめます。</p>
-                    <ul class="ar-journal-tags" aria-label="冒険の関連システム"><li>クエスト</li><li>採集</li><li>ボス</li><li>ダンジョン</li></ul>
+    <div class="container ar-home-paper">
+        <section class="ar-home-features" id="features" aria-labelledby="features-title">
+            <article class="ar-home-story">
+                <img class="ar-home-story__photo" src="~/images/bg-town-640.webp"
+                     srcset="/images/bg-town-640.webp 640w, /images/bg-town-1280.webp 1280w"
+                     sizes="(max-width: 767px) 100vw, 55vw" width="1280" height="720"
+                     alt="ランタンが灯る、木と石で築かれた Minecraft の街" loading="lazy" decoding="async" />
+                <div class="ar-home-story__copy">
+                    <p class="ar-home-caption">ゲーム紹介</p>
+                    <h2 id="features-title">街を出たら、<br />次はどこへ行こう。</h2>
+                    <p>クエストを進める。素材を集める。パーティーを組んで強敵に挑む。自分のペースで冒険できます。</p>
                 </div>
             </article>
-
-            <div class="ar-journal-stories">
-                <article class="ar-journal-story ar-journal-story--combat">
-                    <figure class="ar-journal-photo">
-                        <img src="~/images/feature-combat-800.webp" srcset="/images/feature-combat-800.webp 800w, /images/feature-combat-1600.webp 1600w"
-                             sizes="(max-width: 767px) 100vw, 50vw" width="1600" height="994" alt="緑に覆われた石造りの街に並ぶ、装備とスキルの案内" loading="lazy" decoding="async" />
-                        <figcaption>YOUR PLAYSTYLE / 自分だけの戦い方</figcaption>
-                    </figure>
-                    <div class="ar-journal-story-copy">
-                        <p class="ar-journal-label">MAKE IT YOUR OWN</p>
-                        <h3>戦って、組み替える。</h3>
-                        <p>近接・遠距離・魔法、属性やシールドを含む独自戦闘。クラス、スキル、装備を組み合わせ、自分に合った戦い方を見つけよう。</p>
-                        <ul class="ar-journal-tags" aria-label="戦闘の関連システム"><li>クラス</li><li>スキル</li><li>装備</li><li>ステータス</li></ul>
-                    </div>
-                </article>
-                <article class="ar-journal-story ar-journal-story--community">
-                    <figure class="ar-journal-photo">
-                        <img src="~/images/feature-community-800.webp" srcset="/images/feature-community-800.webp 800w, /images/feature-community-1600.webp 1600w"
-                             sizes="(max-width: 767px) 100vw, 50vw" width="1600" height="994" alt="人々の冒険が交わる、木造の建物と緑が広がる街" loading="lazy" decoding="async" />
-                        <figcaption>BETTER TOGETHER / この世界でつながる</figcaption>
-                    </figure>
-                    <div class="ar-journal-story-copy">
-                        <p class="ar-journal-label">FIND YOUR PEOPLE</p>
-                        <h3>ひとりでも、仲間とも。</h3>
-                        <p>パーティーでの共闘やショップ、プレイヤー同士の取引、マーケット。それぞれの遊び方が、この世界の中でつながっていきます。</p>
-                        <ul class="ar-journal-tags" aria-label="交流の関連システム"><li>パーティー</li><li>ショップ</li><li>取引</li><li>マーケット</li></ul>
-                    </div>
-                </article>
-            </div>
-        </div>
-    </section>
-
-    <section class="ar-journal-world" aria-labelledby="world-title" data-astral-scene>
-        <img class="ar-journal-world-photo" src="~/images/bg-town-1920.webp" srcset="/images/bg-town-640.webp 640w, /images/bg-town-1280.webp 1280w, /images/bg-town-1920.webp 1920w"
-             sizes="100vw" width="1920" height="1080" alt="" loading="lazy" decoding="async" />
-        <partial name="_AstralAtmosphere" />
-        <div class="container">
-            <div class="ar-journal-world-copy">
-                <p class="ar-home-kicker">A GROWING WORLD</p>
-                <h2 id="world-title">訪れるたびに、<br />新しい発見を。</h2>
-                <p>新しいクエストやダンジョン、装備などを継続して追加していきます。長く遊べる世界を目指して、冒険の続きを育てています。</p>
-                <a asp-page="/Releases/Index" class="ar-journal-link">お知らせ・更新情報 <span aria-hidden="true">↗</span></a>
-            </div>
-        </div>
-    </section>
-
-    <section class="ar-discord-section" id="discord" aria-labelledby="discord-title">
-        <div class="container">
-            <div class="ar-discord-panel">
-                <div class="ar-journal-community-sign" aria-hidden="true">Let's<br /> meet.</div>
-                <div class="ar-discord-panel__copy">
-                    <p class="ar-discord-panel__eyebrow">OFFICIAL DISCORD COMMUNITY</p>
-                    <h2 id="discord-title">冒険の続きは、公式Discordで。</h2>
-                    <p>最新のお知らせや更新情報、攻略の相談、プレイヤー同士の交流に。<br />不具合や小さな改善案も、公式Discordでお聞かせください。</p>
-                    <a href="https://discord.gg/Fja6zmpjGX" class="btn ar-discord-panel__button" target="_blank"
-                       rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">
-                        公式Discordに参加する <span aria-hidden="true">↗</span>
-                    </a>
+            <article class="ar-home-story ar-home-story--combat">
+                <img class="ar-home-story__photo" src="~/images/feature-combat-800.webp"
+                     srcset="/images/feature-combat-800.webp 800w, /images/feature-combat-1600.webp 1600w"
+                     sizes="(max-width: 767px) 100vw, 55vw" width="1600" height="994"
+                     alt="緑に覆われた石造りの街に並ぶ、装備とスキルの案内" loading="lazy" decoding="async" />
+                <div class="ar-home-story__copy">
+                    <h3>自分の戦い方を見つける。</h3>
+                    <p>近接・遠距離・魔法。クラスやスキル、装備を組み合わせ、仲間とダンジョンやボスに挑めます。</p>
                 </div>
-            </div>
-        </div>
-    </section>
+            </article>
+        </section>
 
-    <section class="ar-home-section ar-join-section" id="join" aria-labelledby="join-title">
-        <div class="container">
-            <div class="ar-home-heading ar-home-heading--center">
-                <p class="ar-home-kicker">Join Astral Record</p>
-                <h2 id="join-title">さあ、冒険をはじめよう。</h2>
-                <p>Java版はバージョン1.21.11以上に対応しており、1.21.11を推奨しています。Java版でのプレイを前提に作られたサーバーですが、統合版からも参加できます。統合版ではプレイに支障が出る場合があるため、あらかじめご了承ください。</p>
-            </div>
-
-            @if (Model.PublicSite.IsOpenAlpha)
+        <section class="ar-home-news" aria-labelledby="home-news-title">
+            <h2 id="home-news-title">お知らせ</h2>
+            @if (Model.LatestRelease is { } release)
             {
-                <aside class="ar-alpha-notice" aria-labelledby="alpha-notice-title">
-                    <div class="ar-alpha-notice__mark" aria-hidden="true">!</div>
-                    <div>
-                        <p class="ar-alpha-notice__eyebrow">OPEN ALPHA</p>
-                        <h3 id="alpha-notice-title">参加前にご確認ください</h3>
-                        <p class="ar-alpha-notice__lead">
-                            現在は、開発中のサーバーを公開して遊べるようにしているオープンアルファ期間です。
-                        </p>
-                        <ul>
-                            <li>予告の有無にかかわらず、急な再起動や停止が頻繁に発生することがあります。</li>
-                            <li>プレイヤーデータの不具合、消失、巻き戻りは個別の復旧や補償の対象外です。</li>
-                            <li>この期間のプレイヤーデータは、正式リリース時に引き継がれません。</li>
-                            <li>機能、仕様、バランス、遊べる範囲は予告なく変更されることがあります。</li>
-                        </ul>
+                var publishedAt = release.PublishedAt.ToOffset(TimeSpan.FromHours(9));
+                <a class="ar-home-news__latest" asp-page="/Releases/Details" asp-route-slug="@release.Slug">
+                    <time datetime="@publishedAt.ToString("yyyy-MM-ddTHH:mm:sszzz")">@publishedAt.ToString("yyyy.MM.dd")</time>
+                    <span>@release.Title</span>
+                </a>
+            }
+            else
+            {
+                <p class="ar-home-news__latest">公開済みのお知らせはありません。</p>
+            }
+            <a class="ar-home-link" asp-page="/Releases/Index">お知らせ一覧</a>
+        </section>
+
+        <section class="ar-home-community" id="discord" aria-labelledby="discord-title">
+            <div>
+                <h2 id="discord-title">冒険の続きは、公式Discordで。</h2>
+                <p>攻略の相談や仲間探しに。不具合や改善案もお聞かせください。</p>
+            </div>
+            <a href="https://discord.gg/Fja6zmpjGX" class="ar-home-link" target="_blank" rel="noopener noreferrer"
+               aria-label="公式Discordに参加する（新しいタブで開く）">公式Discordに参加する</a>
+        </section>
+    </div>
+
+    <section class="ar-home-join" id="join" aria-labelledby="join-title">
+        <div class="container">
+            <div class="ar-home-join__heading">
+                <h2 id="join-title">サーバーへの参加方法</h2>
+                <p>お使いの Minecraft を選んでください。サーバーへの参加に Web ログインは不要です。</p>
+            </div>
+
+            <div class="ar-home-join__layout">
+                <fieldset class="ar-home-edition">
+                    <legend>Minecraft の種類</legend>
+                    <div class="ar-home-edition__options">
+                        <label><input type="radio" name="minecraft-edition" value="java" checked /> Java版 <small>推奨</small></label>
+                        <label><input type="radio" name="minecraft-edition" value="bedrock" /> 統合版</label>
+                    </div>
+
+                    <div class="ar-home-connection">
+                        <div class="ar-home-connection__address">
+                            <div>
+                                <span class="ar-home-caption">サーバーアドレス</span>
+                                <code class="ar-home-address">@site.JavaServerAddress</code>
+                            </div>
+                            <button type="button" class="ar-home-copy" data-copy-server data-copy-value="@site.JavaServerAddress"
+                                    aria-describedby="join-copy-status" hidden><span data-copy-label>コピー</span></button>
+                            <span class="visually-hidden" id="join-copy-status" role="status" data-copy-status></span>
+                        </div>
+
+                        <dl class="ar-home-connection__meta ar-home-edition__java">
+                            <div><dt>Java版ポート</dt><dd>@site.JavaServerPort</dd></div>
+                            <div><dt>推奨バージョン</dt><dd>1.21.11</dd></div>
+                        </dl>
+                        <dl class="ar-home-connection__meta ar-home-edition__bedrock">
+                            <div><dt>統合版ポート</dt><dd>@site.BedrockServerPort</dd></div>
+                        </dl>
+                    </div>
+
+                    <div class="ar-home-steps ar-home-edition__java">
+                        <h3>Java版で接続する</h3>
+                        <p>Java版は 1.21.11 以上に対応しています。</p>
+                        <ol>
+                            <li>「マルチプレイ」を開き、「サーバーを追加」を選びます。</li>
+                            @if (site.JavaServerPort != 25565)
+                            {
+                                <li>サーバーアドレス欄に、ポートを含めた <code class="ar-home-address">@javaEndpoint</code> を入力します。</li>
+                            }
+                            else
+                            {
+                                <li>上のサーバーアドレスを入力します。</li>
+                            }
+                            <li>注意事項と利用規約を確認し、追加したサーバーへ接続します。</li>
+                        </ol>
+                    </div>
+
+                    <div class="ar-home-steps ar-home-edition__bedrock">
+                        <h3>統合版で接続する</h3>
+                        <p>Java版を前提に開発しているため、統合版では一部の機能や操作に支障が出る場合があります。</p>
+                        <ol>
+                            <li>「遊ぶ」から「サーバー」を開き、「サーバーを追加」を選びます。</li>
+                            <li>上のサーバーアドレスと統合版ポートを入力します。</li>
+                            <li>注意事項と利用規約を確認し、追加したサーバーへ接続します。</li>
+                        </ol>
+                        <a class="ar-home-link" href="#discord">公式Discordで改善案を伝える</a>
+                    </div>
+                </fieldset>
+
+                <aside class="ar-home-notices" aria-labelledby="join-notices-title">
+                    <h3 id="join-notices-title">参加前にご確認ください</h3>
+                    @if (site.IsOpenAlpha)
+                    {
+                        <div class="ar-home-alpha-notice">
+                            <p>現在はオープンアルファ期間です。予告なく再起動や停止が発生することがあります。この期間のプレイヤーデータは正式リリース時に引き継がれません。</p>
+                            <details>
+                                <summary>データと仕様に関する注意事項</summary>
+                                <p>プレイヤーデータの不具合、消失、巻き戻りは個別の復旧や補償の対象外です。機能、仕様、バランス、遊べる範囲は予告なく変更されることがあります。</p>
+                            </details>
+                        </div>
+                    }
+                    <div class="ar-home-notices__links">
+                        <a class="ar-home-link" asp-page="/Terms">利用規約</a>
+                        <a class="ar-home-link" asp-page="/Privacy">プライバシーポリシー</a>
                     </div>
                 </aside>
-            }
-
-            <div class="row g-4 justify-content-center">
-                <div class="col-lg-7">
-                    <article class="ar-edition-card ar-edition-card--available">
-                        <div class="ar-edition-card__head">
-                            <div>
-                                <span class="ar-edition-card__eyebrow">AVAILABLE NOW</span>
-                                <h3>Minecraft Java Edition (ver 1.21.11)</h3>
-                            </div>
-                            <span class="ar-edition-state ar-edition-state--open">公開中</span>
-                        </div>
-
-                        <button class="ar-address-button" type="button"
-                                data-copy-server data-copy-value="@Model.PublicSite.JavaServerAddress"
-                                aria-describedby="join-copy-help join-copy-status">
-                            <span>
-                                <small>サーバーアドレス</small>
-                                <strong>@Model.PublicSite.JavaServerAddress</strong>
-                            </span>
-                            <span class="ar-address-button__copy" data-copy-label>クリックしてコピー</span>
-                        </button>
-                        <p class="ar-address-help" id="join-copy-help">ポート: @Model.PublicSite.JavaServerPort（標準ポート）</p>
-                        <p class="ar-copy-status" id="join-copy-status" role="status" aria-live="polite" data-copy-status></p>
-
-                        <ol class="ar-join-steps">
-                            <li><span>1</span>Java版の「マルチプレイ」を開く</li>
-                            <li><span>2</span>「サーバーを追加」に上のアドレスを入力</li>
-                            <li><span>3</span>利用規約と注意事項を確認して参加</li>
-                        </ol>
-                    </article>
-                </div>
-
-                <div class="col-lg-5">
-                    <article class="ar-edition-card ar-edition-card--available">
-                        <div class="ar-edition-card__head">
-                            <div>
-                                <span class="ar-edition-card__eyebrow">AVAILABLE NOW</span>
-                                <h3>Minecraft Bedrock Edition</h3>
-                            </div>
-                            <span class="ar-edition-state ar-edition-state--open">対応中</span>
-                        </div>
-                        <p>
-                            統合版にも対応しています。IPアドレスはJava版と同じ <strong>@Model.PublicSite.JavaServerAddress</strong>、ポートは <strong>@Model.PublicSite.BedrockServerPort</strong>（標準ポート）です。
-                        </p>
-                        <p>当サーバーはJava版でのプレイを前提としているため、統合版では一部の機能やプレイに支障があるかもしれません。細かいことでも、公式Discordの改善案チャンネルでお知らせいただければ修正される可能性があります。</p>
-                    </article>
-                </div>
-            </div>
-
-            <div class="ar-join-footer">
-                <p>参加前に、利用規約とプライバシーポリシーをご確認ください。</p>
-                <div>
-                    <a asp-page="/Terms" class="ar-text-link">利用規約</a>
-                    <a asp-page="/Privacy" class="ar-text-link">プライバシーポリシー</a>
-                    <a asp-page="/Login" class="ar-text-link">ログイン</a>
-                </div>
             </div>
         </div>
     </section>
-
 </div>
 
-@section Scripts { <script src="~/js/server-status.js" asp-append-version="true"></script> }
+@section Scripts {
+    <script src="~/js/server-status.js" asp-append-version="true"></script>
+}

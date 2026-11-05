@@ -4,7 +4,7 @@
     const toggle = document.querySelector('[data-bs-target="#site-menu"]');
     menu?.addEventListener('show.bs.offcanvas', () => toggle?.setAttribute('aria-expanded', 'true'));
     menu?.addEventListener('hidden.bs.offcanvas', () => toggle?.setAttribute('aria-expanded', 'false'));
-    menu?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+    menu?.querySelectorAll('a:not([data-logout-open])').forEach(link => link.addEventListener('click', () => {
         window.bootstrap?.Offcanvas.getInstance(menu)?.hide();
     }));
 

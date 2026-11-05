@@ -14,7 +14,7 @@
                 <h1>マーケット<span class="market-title-dot" aria-hidden="true">.</span></h1>
                 <p class="ar-portal-sub">冒険に必要な一品を、プレイヤーから。</p>
             </div>
-            <a class="btn ar-btn-outline market-history-link" asp-page="/Market/History">取引履歴を見る <span aria-hidden="true">↗</span></a>
+            <a class="btn ar-btn-outline market-history-link" asp-page="/Market/History">取引履歴を見る</a>
         </header>
 
         <section class="market-wallet" aria-labelledby="market-wallet-title">
@@ -130,7 +130,7 @@
                                         <span class="market-seller-icon" aria-hidden="true">♙</span><span>出品者</span>
                                         @if (listing.SellerUserUuid is { } sellerUuid)
                                         {
-                                            <a asp-page="/Players/Detail" asp-route-userUuid="@sellerUuid" asp-route-accountId="@listing.SellerAccountId">@Model.SellerName(listing)<span aria-hidden="true"> ↗</span></a>
+                                            <a asp-page="/Players/Detail" asp-route-userUuid="@sellerUuid" asp-route-accountId="@listing.SellerAccountId">@Model.SellerName(listing)</a>
                                         }
                                         else { <strong>@Model.SellerName(listing)</strong> }
                                     </div>
@@ -166,7 +166,7 @@
                                                    value="1" readonly="@listing.InstanceId.HasValue" required />
                                             <div class="market-total"><span>支払合計</span><strong data-purchase-total>@listing.UnitPrice.ToString("N0") @currency（1個）</strong></div>
                                             <p class="market-balance-after" data-purchase-balance aria-live="polite">数量を変更すると合計を確認できます。</p>
-                                            <button type="submit" class="btn ar-btn-primary market-buy-button">購入する <span aria-hidden="true">→</span></button>
+                                            <button type="submit" class="btn ar-btn-primary market-buy-button">購入する</button>
                                             <p class="market-purchase-account">受取先：@buyer.AccountName #@buyer.SlotIndex</p>
                                         </form>
                                     }

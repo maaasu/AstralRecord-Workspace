@@ -1305,6 +1305,32 @@ img {
 .mc-yellow { color: #ffff55; }
 .mc-white { color: #ffffff; }
 
+/* Keep the game hues distinct when names and lore are printed on paper. */
+:is(.ar-player .ar-portal, .ar-admin main) .mc-white { color: var(--ar-ink); }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-dark-green { color: #28562a; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-dark-aqua { color: #205455; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-gold { color: #86500c; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-gray { color: #66645b; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-blue { color: #405bb0; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-green { color: #367138; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-aqua { color: #136772; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-red { color: #a14236; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-light-purple { color: #96378d; }
+:is(.ar-player .ar-portal, .ar-admin main) .mc-yellow { color: #746010; }
+
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-icon span { color: var(--ar-cream); }
+:is(.ar-player .ar-portal, .ar-admin main) :is(.ar-item-lore, .ar-item-block li, .ar-item-tags span, .ar-item-extra span) {
+    background: #f1ebdc;
+    border-color: var(--ar-rule);
+}
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-card.rarity-common { border-left-color: #8c867b; }
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-card.rarity-uncommon { border-left-color: #367138; }
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-card.rarity-rare { border-left-color: #136772; }
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-card.rarity-epic { border-left-color: #96378d; }
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-card.rarity-legendary { border-left-color: #a56a19; }
+:is(.ar-player .ar-portal, .ar-admin main) .ar-item-card.rarity-mythic { border-left-color: #a14236; }
+
+
 /* ===== Footer ===== */
 .ar-footer {
     background: #05070b;
@@ -1356,9 +1382,6 @@ img {
 }
 
 /* ===== Scrollbar ===== */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--ar-bg-dark); }
-::-webkit-scrollbar-thumb { background: var(--ar-gold); border-radius: 3px; }
 
 @media (max-width: 991.98px) {
     .ar-navbar {

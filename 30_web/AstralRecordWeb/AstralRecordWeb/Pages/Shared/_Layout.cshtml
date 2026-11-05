@@ -10,6 +10,9 @@
     var isHomePage = string.Equals(pagePath, "/Index", StringComparison.OrdinalIgnoreCase);
     var isAdminPage = pagePath.StartsWith("/Admin/", StringComparison.OrdinalIgnoreCase)
         || string.Equals(pagePath, "/Players/Vip", StringComparison.OrdinalIgnoreCase);
+    var isReleasePage = pagePath.StartsWith("/Releases/", StringComparison.OrdinalIgnoreCase);
+    var isPublicPage = isHomePage || isReleasePage || pagePath is "/Terms" or "/Privacy" or "/Login";
+    var signedIn = User.Identity?.IsAuthenticated == true;
     var metaDescription = publicSite.IsOpenAlpha
         ? "Minecraft RPGサーバー Astral Record。Java版オープンアルファ公開中。"
         : "Minecraft RPGサーバー Astral Record。クラス、スキル、装備を組み合わせて冒険しよう。";
@@ -18,7 +21,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="@metaDescription" />
-    <meta name="theme-color" content="#152b28" />
+    <meta name="theme-color" content="#1e1c17" />
     <title>@ViewData["Title"] - Astral Record</title>
     <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -33,7 +36,7 @@
     {
         <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
     }
-    else if (!isHomePage)
+    else if (!isPublicPage)
     {
         <link rel="stylesheet" href="~/css/player.css" asp-append-version="true" />
     }
@@ -41,75 +44,64 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="ar-journal @(isHomePage ? "ar-journal--home" : "ar-journal--inner") @(isAdminPage ? "ar-admin" : "ar-player")">
+<body class="ar-journal @(isHomePage ? "ar-journal--home" : "ar-journal--inner") @(isAdminPage ? "ar-admin" : isPublicPage ? "ar-public" : "ar-player")">
     <a class="ar-skip-link" href="#main-content">本文へ移動</a>
     <nav class="navbar ar-navbar fixed-top" aria-label="メインナビゲーション">
-        <div class="container">
-            <a class="navbar-brand ar-brand" asp-page="/Index">
-                <img src="~/images/icon-128.webp" width="40" height="40" alt="" class="ar-brand-icon" />
-                <span class="ar-brand-text">Astral Record<small>MINECRAFT RPG</small></span>
-                @if (publicSite.IsOpenAlpha)
-                {
-                    <span class="ar-brand-alpha">OPEN ALPHA</span>
-                }
+        <div class="container ar-navbar-inner">
+            <a class="navbar-brand ar-brand" asp-page="/Index" aria-label="Astral Record ホーム"
+               aria-current="@(isHomePage ? "page" : null)">
+                <img src="~/images/icon-128.webp" width="36" height="36" alt="" class="ar-brand-icon" />
+                <span class="ar-brand-text">Astral Record</span>
             </a>
-            <div class="ar-nav-actions">
-                <div class="ar-nav-explore">
-                    <a asp-page="/Index" asp-fragment="features">この世界について</a>
-                    <a asp-page="/Releases/Index">お知らせ</a>
-                </div>
-                @if (!isHomePage)
+            <div class="ar-nav-explore">
+                <a asp-page="/Index" asp-fragment="features">ゲーム紹介</a>
+                <a asp-page="/Releases/Index" aria-current="@(isReleasePage ? "page" : null)">お知らせ</a>
+                @if (signedIn)
                 {
-                    <a class="ar-nav-home" asp-page="/Index">ホーム</a>
+                    <a asp-page="/MyPage" aria-current="@(pagePath == "/MyPage" ? "page" : null)">マイページ</a>
                 }
-                <div class="ar-header-session" aria-label="アカウント">
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        <a asp-page="/MyPage" class="ar-header-account"><span class="ar-header-session-label"><i class="ar-status-dot" aria-hidden="true"></i>ログイン中</span><strong>@User.Identity.Name</strong></a>
-                    }
-                    else
-                    {
-                        <a asp-page="/Login" class="ar-header-login">ログイン</a>
-                    }
-                </div>
-                <a class="nav-link ar-nav-link ar-nav-discord" href="https://discord.gg/Fja6zmpjGX" target="_blank"
-                   rel="noopener noreferrer" aria-label="Astral Record公式Discordに参加する（新しいタブで開く）">公式Discord</a>
+                else
+                {
+                    <a asp-page="/Login" aria-current="@(pagePath == "/Login" ? "page" : null)">ログイン</a>
+                }
+            </div>
+            <a class="ar-plate ar-nav-join" asp-page="/Index" asp-fragment="join">参加方法</a>
+            @if (signedIn)
+            {
                 <button class="ar-menu-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#site-menu"
-                        aria-controls="site-menu" aria-expanded="false" aria-label="メニューを開く">
+                        aria-controls="site-menu" aria-expanded="false" aria-label="プレイヤーメニュー">
                     <span class="ar-menu-lines" aria-hidden="true"><i></i><i></i></span><span>メニュー</span>
                 </button>
-            </div>
+            }
         </div>
     </nav>
-    <div class="offcanvas offcanvas-end ar-menu" tabindex="-1" id="site-menu" aria-labelledby="site-menu-title">
-        <div class="offcanvas-header">
-            <h2 class="offcanvas-title" id="site-menu-title">Astral Record</h2>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="メニューを閉じる"></button>
-        </div>
-        <div class="offcanvas-body">
-            <nav class="ar-menu-section" aria-label="サイト案内">
-                <p class="ar-menu-label">サイト案内</p>
-                <a asp-page="/Index" asp-fragment="features"><span>特徴</span><span aria-hidden="true">↗</span></a>
-                <a asp-page="/Index" asp-fragment="join"><span>参加情報</span><span aria-hidden="true">↗</span></a>
-                <a asp-page="/Releases/Index"><span>お知らせ</span><span aria-hidden="true">↗</span></a>
-                <a asp-page="/Terms"><span>利用規約</span><span aria-hidden="true">↗</span></a>
-                <a asp-page="/Privacy"><span>プライバシーポリシー</span><span aria-hidden="true">↗</span></a>
-            </nav>
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <nav class="ar-menu-section ar-menu-account" aria-label="ログイン中のプレイヤー">
-                    <p class="ar-menu-label"><span class="ar-status-dot"></span>ログイン中</p>
-                    <strong class="ar-menu-player">@User.Identity.Name</strong>
-                    <a asp-page="/MyPage"><span>マイページ</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/AstraldShop/Index"><span>有償アストラルドショップ</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/Mail/Index"><span>メール</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/Donations/Index"><span>寄付フォーム・履歴</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/Bestiary/Index"><span>討伐モブ図鑑</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/Players/Index"><span>プレイヤー一覧</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/Market/Index"><span>マーケット</span><span aria-hidden="true">↗</span></a>
-                    <a asp-page="/Logout" data-logout-open><span>ログアウト</span><span aria-hidden="true">↗</span></a>
+    @if (signedIn)
+    {
+        <div class="offcanvas offcanvas-end ar-menu" tabindex="-1" id="site-menu" aria-labelledby="site-menu-title">
+            <div class="offcanvas-header">
+                <div>
+                    <h2 class="offcanvas-title" id="site-menu-title">プレイヤーメニュー</h2>
+                    <span class="ar-menu-player">@User.Identity?.Name</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="メニューを閉じる"></button>
+            </div>
+            <div class="offcanvas-body">
+                <nav class="ar-menu-section" aria-label="ゲーム">
+                    <p class="ar-menu-label">ゲーム</p>
+                    <a asp-page="/Bestiary/Index">討伐モブ図鑑</a>
+                    <a asp-page="/Players/Index">プレイヤー一覧</a>
+                    <a asp-page="/Market/Index">マーケット</a>
                 </nav>
-                var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminVisible");
+                <nav class="ar-menu-section" aria-label="アカウント">
+                    <p class="ar-menu-label">アカウント</p>
+                    <a asp-page="/Mail/Index">メール</a>
+                    <a asp-page="/AstraldShop/Index">有償アストラルドショップ</a>
+                    <a asp-page="/Donations/Index">寄付フォーム・履歴</a>
+                    <a asp-page="/LoginSettings">ログイン設定</a>
+                </nav>
+                @{
+                    var webAdminAuthorization = await AuthorizationService.AuthorizeAsync(User, resource: null, policyName: "WebAdminVisible");
+                }
                 @if (webAdminAuthorization.Succeeded)
                 {
                     var pendingDonationCount = 0;
@@ -119,7 +111,7 @@
                         var countResult = await DonationApi.PendingCountAsync(actor, Context.RequestAborted);
                         if (countResult.Succeeded) pendingDonationCount = countResult.Value!.PendingCount;
                     }
-                    <nav class="ar-menu-section ar-menu-admin" aria-label="管理者専用">
+                    <nav class="ar-menu-section" aria-label="管理者専用">
                         <p class="ar-menu-label">管理者専用</p>
                         <a asp-page="/Admin/Donations/Index">
                             <span>寄付申請管理</span>
@@ -127,35 +119,18 @@
                             {
                                 <span class="ar-menu-badge"><span class="visually-hidden">申請中 </span>@pendingDonationCount<span class="visually-hidden">件</span></span>
                             }
-                            else
-                            {
-                                <span aria-hidden="true">↗</span>
-                            }
                         </a>
-                        <a asp-page="/Admin/Items"><span>アイテム</span><span aria-hidden="true">↗</span></a>
-                        <a asp-page="/Admin/Network"><span>ネットワーク設定</span><span aria-hidden="true">↗</span></a>
-                        <a asp-page="/Admin/Defense"><span>防衛戦管理</span><span aria-hidden="true">↗</span></a>
-                        <a asp-page="/Admin/History/SameIp"><span>プレイヤー活動履歴</span><span aria-hidden="true">↗</span></a>
-                        <a asp-page="/Players/Vip"><span>VIPプレイヤー一覧</span><span aria-hidden="true">↗</span></a>
+                        <a asp-page="/Admin/Items">アイテム</a>
+                        <a asp-page="/Admin/Network">ネットワーク設定</a>
+                        <a asp-page="/Admin/Defense">防衛戦管理</a>
+                        <a asp-page="/Admin/History/SameIp">プレイヤー活動履歴</a>
+                        <a asp-page="/Players/Vip">VIPプレイヤー一覧</a>
                     </nav>
                 }
-            }
-            else
-            {
-                <div class="ar-menu-section ar-menu-account">
-                    <a asp-page="/Login"><span>ログイン</span><span aria-hidden="true">↗</span></a>
-                </div>
-            }
-            <nav class="ar-menu-legal" aria-label="ポリシー">
-                <a asp-page="/Terms">利用規約</a>
-                <a asp-page="/Privacy">プライバシーポリシー</a>
-            </nav>
+                <a class="ar-menu-logout" asp-page="/Logout" data-logout-open>ログアウト</a>
+            </div>
         </div>
-    </div>
-    @if (User.Identity?.IsAuthenticated == true)
-    {
         <dialog class="ar-confirm" id="logout-confirm" aria-labelledby="logout-title" aria-describedby="logout-description">
-            <span class="ar-confirm-icon" aria-hidden="true">◇</span>
             <h2 id="logout-title">ログアウトしますか？</h2>
             <p id="logout-description">現在の Web セッションを終了します。</p>
             <div class="ar-confirm-actions">
@@ -173,22 +148,24 @@
 
     <footer class="ar-footer" aria-label="Astral Record">
         <div class="container">
-            <div class="ar-footer-wordmark" aria-hidden="true">Astral Record<span>YOUR NEXT ADVENTURE.</span></div>
             <div class="ar-footer-bottom">
-                <p class="ar-footer-sub mb-0">Minecraft Java &amp; Bedrock · Fantasy RPG</p>
+                <div>
+                    <a class="ar-footer-wordmark" asp-page="/Index">Astral Record</a>
+                    <p class="ar-footer-sub mb-0">Minecraft RPG サーバー</p>
+                </div>
                 <nav class="ar-footer-links" aria-label="フッターナビゲーション">
-                        <a asp-page="/Index">ホーム</a>
-                        <a asp-page="/Index" asp-fragment="join">参加情報</a>
+                        <a asp-page="/Index" asp-fragment="join">参加方法</a>
                         <a asp-page="/Terms">利用規約</a>
                         <a asp-page="/Privacy">プライバシーポリシー</a>
                         <a href="https://discord.gg/Fja6zmpjGX" target="_blank" rel="noopener noreferrer"
-                           aria-label="Astral Record公式Discordを新しいタブで開く">Discord</a>
+                           aria-label="Astral Record公式Discordを新しいタブで開く">公式Discord</a>
                 </nav>
             </div>
-            <hr class="ar-footer-hr" />
-            <p class="ar-footer-copy text-center mb-0">&copy; 2026 Astral Record. All rights reserved.</p>
-            <p class="ar-video-credit">背景映像：<a href="https://svs.gsfc.nasa.gov/30679" target="_blank" rel="noopener noreferrer">NASA / ESA / STScI</a><br />
-                G. Bacon, T. Davis, L. Frattare, Z. Levay, F. Summers (Viz 3D Team)</p>
+            <div class="ar-footer-meta">
+                <p class="ar-footer-copy mb-0">&copy; 2026 Astral Record</p>
+                <p class="ar-video-credit">背景映像：<a href="https://svs.gsfc.nasa.gov/30679" target="_blank" rel="noopener noreferrer">NASA / ESA / STScI</a>
+                    <span>G. Bacon, T. Davis, L. Frattare, Z. Levay, F. Summers (Viz 3D Team)</span></p>
+            </div>
         </div>
     </footer>
 

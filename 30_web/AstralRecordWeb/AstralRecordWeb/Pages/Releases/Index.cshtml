@@ -1,53 +1,40 @@
 @page
 @model AstralRecordWeb.Pages.Releases.IndexModel
 @{
-    ViewData["Title"] = "リリースノート";
+    ViewData["Title"] = "お知らせ";
 }
 
-<div class="ar-release-page">
-    <section class="ar-page-hero ar-page-hero--sky ar-release-hero" aria-labelledby="release-title">
-        <div class="ar-hero-overlay"></div>
-        <div class="container position-relative text-center py-5">
-            <p class="ar-home-kicker">Astral Record Updates</p>
-            <h1 class="ar-page-hero-title" id="release-title">リリースノート</h1>
-            <p class="ar-page-hero-sub">Release Notes</p>
-        </div>
-    </section>
-
-    <section class="ar-release-content">
-        <div class="container">
-            <div class="ar-release-heading">
-                <p class="ar-kicker">LATEST NEWS</p>
-                <h2 class="ar-section-title">更新情報</h2>
-                <p class="ar-section-lead">Astral Recordのアップデート内容と変更点をお知らせします。</p>
+<section class="ar-reading-page" aria-labelledby="release-title">
+    <div class="container">
+        <p class="ar-breadcrumb"><a asp-page="/Index">ホーム</a><span aria-hidden="true">/</span> お知らせ</p>
+        <header class="ar-reading-mast">
+            <div>
+                <h1 id="release-title">お知らせ</h1>
+                <p>アップデートやサイトの変更を確認できます。</p>
             </div>
-
-            @if (Model.Releases.Count == 0)
-            {
-                <p class="ar-empty">公開済みのリリースノートはありません。</p>
-            }
-            else
-            {
-                <div class="ar-release-grid">
-                    @foreach (var release in Model.Releases)
-                    {
-                        var publishedAtJst = release.PublishedAt.ToOffset(TimeSpan.FromHours(9));
-                        <article class="ar-release-card">
-                            <div class="ar-release-card__meta">
-                                <span class="ar-release-version">@release.Version</span>
-                                <time datetime="@publishedAtJst.ToString("yyyy-MM-ddTHH:mm:sszzz")">
-                                    @publishedAtJst.ToString("yyyy年M月d日")
-                                </time>
-                            </div>
+        </header>
+        @if (Model.Releases.Count == 0)
+        {
+            <p class="ar-release-empty">公開済みのお知らせはありません。</p>
+        }
+        else
+        {
+            <ul class="ar-release-list">
+                @foreach (var release in Model.Releases)
+                {
+                    var publishedAtJst = release.PublishedAt.ToOffset(TimeSpan.FromHours(9));
+                    <li class="ar-release-row">
+                        <div class="ar-release-row__meta">
+                            <time datetime="@publishedAtJst.ToString("yyyy-MM-ddTHH:mm:sszzz")">@publishedAtJst.ToString("yyyy年M月d日")</time>
+                            <span class="ar-release-version">@release.Version</span>
+                        </div>
+                        <div>
                             <h2><a asp-page="/Releases/Details" asp-route-slug="@release.Slug">@release.Title</a></h2>
                             <p>@release.Summary</p>
-                            <a class="ar-text-link" asp-page="/Releases/Details" asp-route-slug="@release.Slug">
-                                詳細を見る <span aria-hidden="true">→</span>
-                            </a>
-                        </article>
-                    }
-                </div>
-            }
-        </div>
-    </section>
-</div>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>

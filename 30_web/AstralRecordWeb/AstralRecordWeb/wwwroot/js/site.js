@@ -29,6 +29,7 @@
     };
 
     document.querySelectorAll('[data-copy-server]').forEach((button) => {
+        button.hidden = false;
         const defaultLabel = button.querySelector('[data-copy-label]')?.textContent ?? 'コピー';
         const describedByIds = (button.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
         const status = describedByIds
@@ -55,6 +56,9 @@
                     status.textContent = `${value} をクリップボードにコピーしました。`;
                 }
             } catch {
+                button.dataset.copyState = 'failed';
+                const label = button.querySelector('[data-copy-label]');
+                if (label) label.textContent = 'コピーできません';
                 if (status) {
                     status.textContent = `コピーできませんでした。${value} を選択してコピーしてください。`;
                 }

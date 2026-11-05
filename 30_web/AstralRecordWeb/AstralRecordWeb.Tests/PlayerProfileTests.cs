@@ -46,10 +46,10 @@ public sealed class PlayerProfileTests
         Assert.Contains("森のかけら", detailBody);
         Assert.Contains("選択中のレベル（Lv. 5）", detailBody);
         Assert.Contains("data-mob-viewer", detailBody);
-        var header = Regex.Match(body, "<div[^>]*class=\"ar-header-session\"[\\s\\S]*?</div>").Value;
-        Assert.Contains("ログイン中", header);
-        Assert.Contains("CookiePlayer", header);
-        Assert.DoesNotContain("未ログイン", header);
+        var header = Regex.Match(body, "<div[^>]*class=\"ar-nav-explore\"[\\s\\S]*?</div>").Value;
+        Assert.Contains("マイページ", header);
+        Assert.DoesNotContain("ログイン", header);
+        Assert.Matches("class=\"ar-menu-player\">CookiePlayer</span>", body);
         using var module = await client.GetAsync("/js/mob-viewer.mjs");
         Assert.Equal(HttpStatusCode.OK, module.StatusCode);
         Assert.Contains(module.Content.Headers.ContentType!.MediaType, new[] { "text/javascript", "application/javascript" });

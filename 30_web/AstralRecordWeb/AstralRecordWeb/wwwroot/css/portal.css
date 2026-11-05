@@ -206,7 +206,7 @@ main, .ar-footer { position: relative; }
 @media (max-width: 991px) { .ar-home-hero { min-height: 760px; } .ar-player-grid { grid-template-columns: repeat(2, 1fr); } .ar-filter-grid { grid-template-columns: repeat(2, 1fr); } .ar-profile-facts { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) {
     .ar-brand { gap: 6px; margin-right: .4rem; } .ar-brand-icon { width: 28px; height: 28px; } .ar-brand-text { font-size: .85rem; } .ar-brand-alpha { display: none; }
-    .ar-nav-actions { gap: .5rem; } .ar-nav-discord { font-size: .7rem; padding: .5rem !important; } .ar-menu-toggle { padding: .55rem; } .ar-menu-toggle > span:last-child { display: none; }
+    .ar-nav-actions { gap: .5rem; } .ar-nav-discord { font-size: .7rem; padding: .5rem !important; } .ar-menu-toggle { padding: .55rem; }
     .ar-home-hero { min-height: 720px; } .ar-home-title { font-size: clamp(2.4rem, 8vw, 3.5rem); }
     .ar-portal { padding-top: 2rem; } .ar-portal-heading, .ar-visibility { align-items: start; flex-direction: column; }
     .ar-profile-facts, .ar-player-grid { grid-template-columns: 1fr; } .ar-player-emblem { flex-basis: 60px; height: 60px; font-size: 2rem; }

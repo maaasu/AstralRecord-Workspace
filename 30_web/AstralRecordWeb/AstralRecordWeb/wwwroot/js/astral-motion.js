@@ -75,7 +75,6 @@
             scene.element.dataset.sceneVisible = String(scene.visible);
             const progress = Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height)));
             scene.element.style.setProperty('--ar-scene-shift', `${(progress * 65).toFixed(1)}px`);
-            scene.element.style.setProperty('--ar-copy-shift', `${(progress * -30).toFixed(1)}px`);
             syncVideo(scene);
             if (!scene.context || (scene.width === rect.width && scene.height === rect.height)) return;
 
@@ -154,7 +153,6 @@
             scenes.forEach(syncVideo);
             if (reducedMotion.matches) scenes.forEach(scene => {
                 scene.element.style.setProperty('--ar-scene-shift', '0px');
-                scene.element.style.setProperty('--ar-copy-shift', '0px');
             });
             return;
         }
@@ -170,7 +168,7 @@
         updateState();
     }));
 
-    const revealElements = [...document.querySelectorAll('.ar-journal-heading, .ar-journal-story, .ar-journal-world-copy')];
+    const revealElements = [...document.querySelectorAll('.ar-home-story__photo')];
     if ('IntersectionObserver' in window && !paused && !reducedMotion.matches) {
         const revealObserver = new IntersectionObserver(entries => entries.forEach(entry => {
             if (entry.isIntersecting) {

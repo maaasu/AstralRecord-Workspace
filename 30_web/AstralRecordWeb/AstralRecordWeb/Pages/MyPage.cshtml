@@ -4,14 +4,38 @@
 <section class="ar-portal">
     <div class="container">
         <header class="ar-portal-heading">
-            <div><p class="ar-portal-eyebrow">あなたの冒険の記録</p><h1>マイページ</h1><p class="ar-portal-sub">現在選択しているアカウントの情報を確認できます。</p></div>
-            <a asp-page="/MyPage" class="btn ar-btn-outline">最新の情報に更新 ↻</a>
+            <div><h1>マイページ</h1><p class="ar-portal-sub">現在のアカウントと冒険の記録を確認できます。</p></div>
+            <a asp-page="/MyPage" class="btn ar-btn-outline">情報を更新する</a>
         </header>
         @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
-        <section class="ar-panel"><h2>ログイン設定</h2><p>任意のID・パスワードで、次回からMinecraftを起動せずログインできます。IDの確認やパスワードの再設定もこちらから行えます。</p><a asp-page="/LoginSettings" class="btn ar-btn-primary">ログイン設定を開く →</a></section>
-        <section class="ar-panel"><h2>寄付・Discord連携</h2><p>活動への支援の申請、Discord連携、申請結果の確認を行えます。</p><a asp-page="/Donations/Index" class="btn ar-btn-primary">寄付フォーム・履歴を開く →</a></section>
-        <section class="ar-panel"><h2>有償アストラルドとメール</h2><p>現在のアカウントに直接適用する特典を購入できます。メールの通貨報酬はWebで、その他のアイテムはゲーム内で受け取れます。</p><a asp-page="/AstraldShop/Index" class="btn ar-btn-primary">ショップを開く →</a> <a asp-page="/Mail/Index" class="btn ar-btn-outline">メールを開く →</a></section>
+        <nav class="ar-account-links" aria-label="プレイヤー機能">
+            <div>
+                <h2>ゲーム</h2>
+                <ul>
+                    @if (Model.Profile is not null)
+                    {
+                        <li><a asp-page="/Bestiary/Index">自分の討伐モブ図鑑</a></li>
+                    }
+                    <li><a asp-page="/Market/Index">マーケット</a></li>
+                    <li><a asp-page="/Players/Index">プレイヤー一覧</a></li>
+                </ul>
+            </div>
+            <div>
+                <h2>受け取り・購入</h2>
+                <ul>
+                    <li><a asp-page="/Mail/Index">メールと報酬</a></li>
+                    <li><a asp-page="/AstraldShop/Index">有償アストラルドショップ</a></li>
+                </ul>
+            </div>
+            <div>
+                <h2>アカウント</h2>
+                <ul>
+                    <li><a asp-page="/LoginSettings">ログイン設定</a></li>
+                    <li><a asp-page="/Donations/Index">寄付とDiscord連携</a></li>
+                </ul>
+            </div>
+        </nav>
         @if (Model.Profile is { } profile)
         {
             @if (profile.CurrentAccount is { } selectedAccount)
@@ -30,7 +54,6 @@
                 </section>
             }
             <partial name="_PlayerProfile" model="profile" />
-            <section class="ar-panel"><h2>討伐モブ図鑑</h2><p>自分が討伐したモブの能力値やドロップ、討伐回数を確認できます。この図鑑を他のプレイヤーが見ることはできません。</p><a asp-page="/Bestiary/Index" class="btn ar-btn-primary">自分の図鑑を開く →</a></section>
             <section class="ar-panel ar-visibility" aria-labelledby="visibility-title">
                 <div>
                     <h2 id="visibility-title">プロフィールの公開設定</h2>
