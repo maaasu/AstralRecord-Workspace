@@ -131,24 +131,36 @@ public final class AstralRecordGeyserExtension implements Extension {
     public void onDefineCustomSkulls(GeyserDefineCustomSkullsEvent event) {
         LinkedHashSet<String> textures = new LinkedHashSet<>(BuiltinHeadTextures.ALL);
         for (String texture : textures) event.register(texture, SkullTextureType.PROFILE);
+        HeadCatalog catalog;
         try {
             HeadApiConfig config = HeadApiConfig.load(dataFolder());
             if (config.allowInsecureTls) {
                 logger().warning("AstralRecord head API TLS certificate and hostname verification are disabled; use only in a trusted local or private network.");
             }
-            HeadCatalog catalog = HeadApiClient.fetch(config);
-            for (String texture : catalog.textures()) {
-                if (textures.add(texture)) event.register(texture, SkullTextureType.PROFILE);
-            }
-            for (var uuid : catalog.playerUuids()) event.register(uuid.toString(), SkullTextureType.UUID);
-            logger().info("Registered AstralRecord heads: textures=" + textures.size()
-                + ", player UUIDs=" + catalog.playerUuids().size());
+            catalog = HeadApiClient.fetch(config);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             logger().error("AstralRecord head API loading interrupted; only built-in heads were registered. Restart the proxy after recovery.");
+            return;
         } catch (IOException | RuntimeException exception) {
             logger().error("AstralRecord head API loading failed (" + exception.getClass().getSimpleName()
                 + "); only built-in heads are guaranteed. Check config.yml, API availability, credentials and TLS trust, then restart the proxy.");
+            return;
+        }
+        for (String texture : catalog.textures()) {
+            if (textures.add(texture)) event.register(texture, SkullTextureType.PROFILE);
+        }
+        try (var mojang = new MojangSkinClient()) {
+            var playerSkins = PlayerHeadCache.resolve(dataFolder().resolve("player-head-skins.json"),
+                catalog.playerUuids(), mojang::fetch, logger()::warning);
+            var distinctHashes = new LinkedHashSet<>(playerSkins.values());
+            for (String hash : distinctHashes) event.register(hash, SkullTextureType.SKIN_HASH);
+            logger().info("Registered AstralRecord heads: textures=" + textures.size()
+                + ", player UUIDs resolved=" + playerSkins.size() + "/" + catalog.playerUuids().size()
+                + ", distinct player skins=" + distinctHashes.size());
+        } catch (RuntimeException exception) {
+            logger().error("AstralRecord player head registration failed (" + exception.getClass().getSimpleName()
+                + "); built-in and master heads were registered.");
         }
     }
 }

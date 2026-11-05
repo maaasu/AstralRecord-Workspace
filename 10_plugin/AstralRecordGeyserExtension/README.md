@@ -8,7 +8,7 @@ Velocity上のGeyserへ、AstralRecordのカスタムプレイヤーヘッドと
 - 認証付き `GET /api/geyser/heads` の `textures`: item / mail / mob / skill / classマスターの `icon: PLAYER_HEAD` と `iconTexture`（Base64のtexturesプロパティ）。
 - 同レスポンスの `playerUuids`: 削除されていない登録ユーザーのMinecraft UUID。オンライン一覧やアカウントIDではない。
 
-テクスチャは `PROFILE`、ユーザーUUIDは `UUID` として `GeyserDefineCustomSkullsEvent` 内で登録する。Geyserが生成するBedrockパックをクライアントが適用すると、RPGから送られた対応するヘッドの見た目が変換される。クリックやスクロールの処理はRPGが引き続き担当する。
+固定・マスターのテクスチャは `PROFILE`、ユーザーUUIDから解決したテクスチャは `SKIN_HASH` として `GeyserDefineCustomSkullsEvent` 内で登録する。Geyserが生成するBedrockパックをクライアントが適用すると、RPGから送られた対応するヘッドの見た目が変換される。クリックやスクロールの処理はRPGが引き続き担当する。
 
 マスターの指定例（値は使用するスキンのBase64に置換する）:
 
@@ -46,9 +46,11 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ヘッドAPI取得は起動時イベント内のタイムアウト付きGET一回。全レスポンスの構造を検証した後に登録し、テクスチャとUUIDをそれぞれ重複排除する。リダイレクトは追跡しない。固定ヘッドはAPI接続失敗時も登録し、API由来ヘッドを読み込めなかったことをエラーログに出す。復旧後はProxyを再起動する。
 
-登録対象を増やした場合やプレイヤーがスキンを変更した場合、RPGのマスター再読込だけではBedrock側へ新しい定義を追加できない。APIのマスター更新後、Proxy再起動と再接続が必要。通常のGeyser reloadでカスタム定義が再構築されることは前提にしない。
+登録対象を増やした場合は、Proxy再起動とBedrockクライアントの再接続が必要。通常のGeyser reloadでカスタム定義が再構築されることは前提にしない。
 
-UUID登録はGeyserのスキン解決に依存する。Floodgate由来UUIDなど、Mojangでスキンを解決できないUUIDの表示は保証しない。UUID一覧の取得・登録と、Geyserによる各スキンの解決成功は別である。
+各UUIDで最初に解決できたスキンのテクスチャIDを、Extensionデータフォルダの `player-head-skins.json` に期限なしで保存する。次の起動では現在のUUID一覧にある保存済みの値を再利用し、未保存のUUIDだけMojangへ問い合わせる。初回は起動時にキャッシュを埋める。Mojangで解決できないUUID（Floodgate由来など）、通信失敗、起動時の取得上限で残ったUUIDは保存せず、次回の起動で再試行する。後からスキンを変えても、Extensionは自動で新しいテクスチャを登録しない。RPGが新しいテクスチャを送る場合、そのテクスチャに一致するカスタムヘッド定義が別途必要になる。
+
+Mojang への問い合わせは起動ごとに順序を変え、最大8件並行で全体30秒まで待つ。HTTP 429を受け取った場合は、その起動中の新規問い合わせを打ち切る。キャッシュファイルを読み取れない場合は元ファイルを保持し、その起動ではユーザーUUID由来のヘッド登録を見送る。正常なバックアップの復元、ファイルの修復、または破損ファイルの退避を行ってからProxyを再起動する。
 
 ## 固定ヘッドを追加する場合
 
