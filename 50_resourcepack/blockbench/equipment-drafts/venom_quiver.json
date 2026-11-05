@@ -1,0 +1,653 @@
+{
+  "id": "venom_quiver",
+  "master_id": "20a00040",
+  "kind": "quiver",
+  "intent": "レベル8・RAREのヴェノムの矢筒。Minecraftの革・羽根・クモの目の大きなピクセル面を参考に、細長い暗紫革の筒、口から見える三本の異なる高さの矢、前の毒袋を個別の輪郭にする。毒袋には落ち着いた緑の眼形の留めを置き、光らせない。初期の革筒より毒袋と幅広い羽根を追加し、上位弓具の宝石や豪華な金具を避けた。筒の口は四壁と縁に囲まれた実際の開口で、矢軸は底まで繋がる。背面の革ハンドルを握るオフハンド補助装備。全ての部材と8x8ピクセル面はコードによる原作。",
+  "grip": [
+    8,
+    4.5,
+    11.25
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      -12
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.76
+  },
+  "materials": {
+    "plum_leather": {
+      "palette": [
+        "241f28",
+        "3c2b40",
+        "5e3d57",
+        "7d5268"
+      ],
+      "pattern": [
+        "22222111",
+        "22322211",
+        "22222211",
+        "12222221",
+        "12221221",
+        "12222211",
+        "11222211",
+        "01111100"
+      ]
+    },
+    "dark_leather": {
+      "palette": [
+        "1d2021",
+        "2c3031",
+        "414546",
+        "5b6060"
+      ],
+      "pattern": [
+        "21111110",
+        "22111110",
+        "21121110",
+        "11111110",
+        "12111110",
+        "11112110",
+        "11111110",
+        "01000000"
+      ]
+    },
+    "leather_band": {
+      "palette": [
+        "3d3227",
+        "604d35",
+        "87704a",
+        "ab9467"
+      ],
+      "pattern": [
+        "33332210",
+        "32222210",
+        "32222210",
+        "32222210",
+        "33333210",
+        "32222210",
+        "32222210",
+        "11111000"
+      ]
+    },
+    "arrow_wood": {
+      "palette": [
+        "4c3828",
+        "765539",
+        "a78150",
+        "c0a16d"
+      ],
+      "pattern": [
+        "23222110",
+        "23222110",
+        "23222110",
+        "23222110",
+        "23222110",
+        "23222110",
+        "23222110",
+        "12111000"
+      ]
+    },
+    "feather": {
+      "palette": [
+        "574e60",
+        "81748a",
+        "aca0b4",
+        "d2c8d6"
+      ],
+      "pattern": [
+        "33332211",
+        "23332211",
+        "12332211",
+        "12332211",
+        "11233211",
+        "11233211",
+        "11123311",
+        "00112200"
+      ]
+    },
+    "venom_sack": {
+      "palette": [
+        "2a1f31",
+        "4a2b50",
+        "713c70",
+        "965789"
+      ],
+      "pattern": [
+        "22222110",
+        "23322210",
+        "23322210",
+        "22222210",
+        "22222210",
+        "22222110",
+        "12221110",
+        "01111000"
+      ]
+    },
+    "poison_eye": {
+      "palette": [
+        "263b28",
+        "456438",
+        "6f8e47",
+        "9caf65"
+      ],
+      "pattern": [
+        "00111100",
+        "01222210",
+        "12233221",
+        "12300321",
+        "12300321",
+        "12233221",
+        "01222210",
+        "00111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Tapered leather bottom foot",
+      "from": [
+        6,
+        2,
+        6.5
+      ],
+      "to": [
+        10,
+        3.25,
+        10.5
+      ],
+      "material": "dark_leather",
+      "side": "leather_band"
+    },
+    {
+      "name": "Closed leather floor supporting arrows",
+      "from": [
+        5.5,
+        3.25,
+        6
+      ],
+      "to": [
+        10.5,
+        4.75,
+        10.5
+      ],
+      "material": "plum_leather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Quiver broad front wall",
+      "from": [
+        5.5,
+        4.75,
+        6
+      ],
+      "to": [
+        10.5,
+        12.25,
+        6.9
+      ],
+      "material": "plum_leather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Quiver broad rear wall",
+      "from": [
+        5.5,
+        4.75,
+        9.6
+      ],
+      "to": [
+        10.5,
+        12.25,
+        10.5
+      ],
+      "material": "plum_leather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Quiver left side wall",
+      "from": [
+        4.5,
+        4.75,
+        6.7
+      ],
+      "to": [
+        5.6,
+        12.25,
+        9.8
+      ],
+      "material": "plum_leather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Quiver right side wall",
+      "from": [
+        10.4,
+        4.75,
+        6.7
+      ],
+      "to": [
+        11.5,
+        12.25,
+        9.8
+      ],
+      "material": "plum_leather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Thick open front lip",
+      "from": [
+        4.25,
+        11.75,
+        5.75
+      ],
+      "to": [
+        11.75,
+        12.75,
+        7.05
+      ],
+      "material": "leather_band",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Thick open rear lip",
+      "from": [
+        4.25,
+        11.75,
+        9.45
+      ],
+      "to": [
+        11.75,
+        12.75,
+        10.75
+      ],
+      "material": "leather_band",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Thick open left lip",
+      "from": [
+        4.25,
+        11.75,
+        7.05
+      ],
+      "to": [
+        5.65,
+        12.75,
+        9.45
+      ],
+      "material": "leather_band",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Thick open right lip",
+      "from": [
+        10.35,
+        11.75,
+        7.05
+      ],
+      "to": [
+        11.75,
+        12.75,
+        9.45
+      ],
+      "material": "leather_band",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Front lower leather band",
+      "from": [
+        4.25,
+        4.5,
+        5.75
+      ],
+      "to": [
+        11.75,
+        5.5,
+        6.95
+      ],
+      "material": "leather_band"
+    },
+    {
+      "name": "Left lower leather band",
+      "from": [
+        4.25,
+        4.5,
+        7.05
+      ],
+      "to": [
+        5.65,
+        5.5,
+        9.45
+      ],
+      "material": "leather_band"
+    },
+    {
+      "name": "Right lower leather band",
+      "from": [
+        10.35,
+        4.5,
+        7.05
+      ],
+      "to": [
+        11.75,
+        5.5,
+        9.45
+      ],
+      "material": "leather_band"
+    },
+    {
+      "name": "Rear lower leather band",
+      "from": [
+        4.25,
+        4.5,
+        9.45
+      ],
+      "to": [
+        11.75,
+        5.5,
+        10.75
+      ],
+      "material": "leather_band"
+    },
+    {
+      "name": "Spider poison sack broad lobe",
+      "from": [
+        6.25,
+        6.25,
+        4.65
+      ],
+      "to": [
+        9.75,
+        9.25,
+        6.2
+      ],
+      "material": "venom_sack",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Spider poison sack lower lobe",
+      "from": [
+        7,
+        5.5,
+        4.9
+      ],
+      "to": [
+        9,
+        6.5,
+        6.2
+      ],
+      "material": "venom_sack",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Spider poison sack neck",
+      "from": [
+        7.25,
+        9,
+        5.1
+      ],
+      "to": [
+        8.75,
+        10,
+        6.2
+      ],
+      "material": "dark_leather",
+      "side": "leather_band"
+    },
+    {
+      "name": "Large green spider eye clasp",
+      "from": [
+        7,
+        7,
+        4.25
+      ],
+      "to": [
+        9,
+        8.75,
+        4.85
+      ],
+      "material": "poison_eye",
+      "side": "venom_sack"
+    },
+    {
+      "name": "Left angular spider leg upper",
+      "from": [
+        5.5,
+        8.25,
+        5.1
+      ],
+      "to": [
+        6.5,
+        9,
+        6
+      ],
+      "material": "dark_leather"
+    },
+    {
+      "name": "Left angular spider leg lower",
+      "from": [
+        5,
+        7.5,
+        5.5
+      ],
+      "to": [
+        5.75,
+        8.5,
+        6
+      ],
+      "material": "dark_leather"
+    },
+    {
+      "name": "Right angular spider leg upper",
+      "from": [
+        9.5,
+        8.25,
+        5.1
+      ],
+      "to": [
+        10.5,
+        9,
+        6
+      ],
+      "material": "dark_leather"
+    },
+    {
+      "name": "Right angular spider leg lower",
+      "from": [
+        10.25,
+        7.5,
+        5.5
+      ],
+      "to": [
+        11,
+        8.5,
+        6
+      ],
+      "material": "dark_leather"
+    },
+    {
+      "name": "Left arrow full shaft to floor",
+      "from": [
+        5.9,
+        4.25,
+        7.4
+      ],
+      "to": [
+        6.5,
+        17,
+        8
+      ],
+      "material": "arrow_wood"
+    },
+    {
+      "name": "Tall center arrow full shaft to floor",
+      "from": [
+        7.7,
+        4.25,
+        8.2
+      ],
+      "to": [
+        8.3,
+        18.5,
+        8.8
+      ],
+      "material": "arrow_wood"
+    },
+    {
+      "name": "Right arrow full shaft to floor",
+      "from": [
+        9.3,
+        4.25,
+        7.4
+      ],
+      "to": [
+        9.9,
+        16.5,
+        8
+      ],
+      "material": "arrow_wood"
+    },
+    {
+      "name": "Left broad feather vane",
+      "from": [
+        5.3,
+        14.25,
+        7.2
+      ],
+      "to": [
+        7.1,
+        16.5,
+        7.7
+      ],
+      "material": "feather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Left rear feather vane",
+      "from": [
+        6.05,
+        14.25,
+        7.7
+      ],
+      "to": [
+        6.45,
+        16.5,
+        8.55
+      ],
+      "material": "feather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Tall center broad feather vane",
+      "from": [
+        7,
+        15.5,
+        8
+      ],
+      "to": [
+        9,
+        18,
+        8.5
+      ],
+      "material": "feather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Tall center rear feather vane",
+      "from": [
+        7.75,
+        15.5,
+        8.5
+      ],
+      "to": [
+        8.25,
+        18,
+        9.4
+      ],
+      "material": "feather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Right broad feather vane",
+      "from": [
+        8.7,
+        13.75,
+        7.2
+      ],
+      "to": [
+        10.5,
+        16,
+        7.7
+      ],
+      "material": "feather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Right rear feather vane",
+      "from": [
+        9.45,
+        13.75,
+        7.7
+      ],
+      "to": [
+        9.85,
+        16,
+        8.55
+      ],
+      "material": "feather",
+      "side": "dark_leather"
+    },
+    {
+      "name": "Rear lower hand grip mounting tab",
+      "from": [
+        6.5,
+        2.9,
+        9.9
+      ],
+      "to": [
+        9.5,
+        3.9,
+        11.65
+      ],
+      "material": "dark_leather",
+      "side": "leather_band"
+    },
+    {
+      "name": "Rear upper hand grip mounting tab",
+      "from": [
+        6.5,
+        6,
+        10.25
+      ],
+      "to": [
+        9.5,
+        7,
+        11.65
+      ],
+      "material": "dark_leather",
+      "side": "leather_band"
+    },
+    {
+      "name": "Rear actual leather hand grip",
+      "from": [
+        7.15,
+        3.5,
+        10.75
+      ],
+      "to": [
+        8.85,
+        6.3,
+        11.9
+      ],
+      "material": "leather_band",
+      "side": "dark_leather"
+    }
+  ]
+}
