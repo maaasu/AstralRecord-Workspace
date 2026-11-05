@@ -1,0 +1,519 @@
+{
+  "id": "lumina_staff",
+  "master_id": "20a00425",
+  "kind": "staff",
+  "intent": "Lv25 RARE。Minecraftの鉄シャベルの幅広い頭を、段付きの鉄枠と淡い面を持つ長杖へ再構成する。ミント色の大きな二つの象嵌と長い木芯で、横叉の短ワンドとは明確に違う姿にした。仕立ての良さは面の整いと太い留め具で示し、光沢は少数色の段差だけに留める。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "62797E",
+        "8DA6A7",
+        "B8CCC7",
+        "E0EADD",
+        "FFF9E8"
+      ],
+      "pattern": [
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "33322110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "iron_cap": {
+      "palette": [
+        "536D74",
+        "7E969B",
+        "AFBFBF",
+        "DAE3DA",
+        "F3F2DF"
+      ],
+      "pattern": [
+        "12222211",
+        "23333321",
+        "23344321",
+        "23444321",
+        "23443321",
+        "23333321",
+        "12333321",
+        "01111100"
+      ]
+    },
+    "mint_leather": {
+      "palette": [
+        "285B58",
+        "3D7E73",
+        "5B9C8B",
+        "87BC9D",
+        "B7D6AE"
+      ],
+      "pattern": [
+        "12333211",
+        "23333321",
+        "23343321",
+        "23333321",
+        "23333321",
+        "23343321",
+        "23333321",
+        "01222100"
+      ]
+    },
+    "mint_wrap": {
+      "palette": [
+        "285B58",
+        "4B8778",
+        "75AD91",
+        "A2CB9F",
+        "D6E6BD"
+      ],
+      "pattern": [
+        "12333012",
+        "23330122",
+        "33301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012"
+      ]
+    },
+    "linen_seam": {
+      "palette": [
+        "68745B",
+        "98A181",
+        "C4C9A0",
+        "ECE8BE"
+      ],
+      "pattern": [
+        "12222111",
+        "12332111",
+        "12222111",
+        "12222111",
+        "12332111",
+        "12222111",
+        "12332111",
+        "01111000"
+      ]
+    },
+    "pale_ash": {
+      "palette": [
+        "64523A",
+        "8A7452",
+        "AB956B",
+        "C7B388",
+        "E2D0A4"
+      ],
+      "pattern": [
+        "12233211",
+        "12333211",
+        "12333221",
+        "12233221",
+        "12333221",
+        "12333211",
+        "12333211",
+        "12233211"
+      ]
+    },
+    "ivory_inset": {
+      "palette": [
+        "7F8E83",
+        "ABB8A7",
+        "CDD6BD",
+        "EAF0D3",
+        "FFF8E4"
+      ],
+      "pattern": [
+        "12333211",
+        "23444321",
+        "23443321",
+        "23343321",
+        "23333321",
+        "23343321",
+        "12333211",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Straight pale ash staff core",
+      "from": [
+        7.5,
+        0.6,
+        7.5
+      ],
+      "to": [
+        8.5,
+        15.4,
+        8.5
+      ],
+      "material": "pale_ash",
+      "side": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Unrotated broad mint leather grip",
+      "from": [
+        7.1,
+        2.2,
+        7.1
+      ],
+      "to": [
+        8.9,
+        6.9,
+        8.9
+      ],
+      "material": "mint_wrap",
+      "side": "mint_leather",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Broad staff ferrule",
+      "from": [
+        6.95,
+        2.0,
+        6.95
+      ],
+      "to": [
+        9.05,
+        2.6,
+        9.05
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Broad staff ferrule",
+      "from": [
+        6.95,
+        6.6,
+        6.95
+      ],
+      "to": [
+        9.05,
+        7.199999999999999,
+        9.05
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Iron square foot",
+      "from": [
+        7.0,
+        0.3,
+        7.0
+      ],
+      "to": [
+        9.0,
+        1.1,
+        9.0
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Lower head taper",
+      "from": [
+        6.6,
+        12.9,
+        7.25
+      ],
+      "to": [
+        9.4,
+        14.5,
+        8.75
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Shovel inspired broad iron head",
+      "from": [
+        6.1,
+        13.8,
+        7.35
+      ],
+      "to": [
+        9.9,
+        18.8,
+        8.65
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Upper head shoulder",
+      "from": [
+        6.8,
+        18.6,
+        7.4
+      ],
+      "to": [
+        9.2,
+        19.55,
+        8.6
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Square head point",
+      "from": [
+        7.4,
+        19.4,
+        7.5
+      ],
+      "to": [
+        8.6,
+        20.05,
+        8.5
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left stepped head frame",
+      "from": [
+        5.55,
+        14.6,
+        7.2
+      ],
+      "to": [
+        6.3,
+        18.3,
+        8.8
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right stepped head frame",
+      "from": [
+        9.7,
+        14.6,
+        7.2
+      ],
+      "to": [
+        10.45,
+        18.3,
+        8.8
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad ivory head face True",
+      "from": [
+        6.65,
+        14.3,
+        7.08
+      ],
+      "to": [
+        9.35,
+        18.55,
+        7.43
+      ],
+      "material": "ivory_inset",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Lower square mint face inlay True",
+      "from": [
+        7.35,
+        15.05,
+        6.93
+      ],
+      "to": [
+        8.65,
+        16.25,
+        7.16
+      ],
+      "material": "mint_leather",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Upper square mint face inlay True",
+      "from": [
+        7.35,
+        16.6,
+        6.93
+      ],
+      "to": [
+        8.65,
+        17.8,
+        7.16
+      ],
+      "material": "mint_leather",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Pale neck face True",
+      "from": [
+        7.35,
+        11.3,
+        7.05
+      ],
+      "to": [
+        8.65,
+        13.35,
+        7.32
+      ],
+      "material": "ivory_inset",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Broad ivory head face False",
+      "from": [
+        6.65,
+        14.3,
+        8.57
+      ],
+      "to": [
+        9.35,
+        18.55,
+        8.92
+      ],
+      "material": "ivory_inset",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Lower square mint face inlay False",
+      "from": [
+        7.35,
+        15.05,
+        8.84
+      ],
+      "to": [
+        8.65,
+        16.25,
+        9.07
+      ],
+      "material": "mint_leather",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Upper square mint face inlay False",
+      "from": [
+        7.35,
+        16.6,
+        8.84
+      ],
+      "to": [
+        8.65,
+        17.8,
+        9.07
+      ],
+      "material": "mint_leather",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Pale neck face False",
+      "from": [
+        7.35,
+        11.3,
+        8.68
+      ],
+      "to": [
+        8.65,
+        13.35,
+        8.95
+      ],
+      "material": "ivory_inset",
+      "side": "bright_iron",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Structural neck collar",
+      "from": [
+        7.05,
+        10.9,
+        7.05
+      ],
+      "to": [
+        8.95,
+        11.65,
+        8.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      10,
+      -20,
+      -25
+    ],
+    "translation": [
+      0,
+      -1,
+      0
+    ],
+    "scale": 0.76
+  }
+}

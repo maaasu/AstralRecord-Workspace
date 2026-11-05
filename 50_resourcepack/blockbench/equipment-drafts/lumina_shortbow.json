@@ -1,0 +1,603 @@
+{
+  "id": "lumina_shortbow",
+  "master_id": "20a00422",
+  "kind": "shortbow",
+  "intent": "Lv25 RARE。Minecraftの弓を起点に、短く太い段付き淡木リムと広い鉄の面、ミント革の肩当てで仕立てを整えた。ノクスより接合と留め具が明瞭だが、宝石・発光・微細な写実装飾を使わない。長弓とは背丈だけでなく太い肩と短いD輪郭で区別する。",
+  "grip": [
+    6.2,
+    8,
+    8
+  ],
+  "materials": {
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "62797E",
+        "8DA6A7",
+        "B8CCC7",
+        "E0EADD",
+        "FFF9E8"
+      ],
+      "pattern": [
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "33322110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "iron_cap": {
+      "palette": [
+        "536D74",
+        "7E969B",
+        "AFBFBF",
+        "DAE3DA",
+        "F3F2DF"
+      ],
+      "pattern": [
+        "12222211",
+        "23333321",
+        "23344321",
+        "23444321",
+        "23443321",
+        "23333321",
+        "12333321",
+        "01111100"
+      ]
+    },
+    "mint_leather": {
+      "palette": [
+        "285B58",
+        "3D7E73",
+        "5B9C8B",
+        "87BC9D",
+        "B7D6AE"
+      ],
+      "pattern": [
+        "12333211",
+        "23333321",
+        "23343321",
+        "23333321",
+        "23333321",
+        "23343321",
+        "23333321",
+        "01222100"
+      ]
+    },
+    "mint_wrap": {
+      "palette": [
+        "285B58",
+        "4B8778",
+        "75AD91",
+        "A2CB9F",
+        "D6E6BD"
+      ],
+      "pattern": [
+        "12333012",
+        "23330122",
+        "33301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012"
+      ]
+    },
+    "linen_seam": {
+      "palette": [
+        "68745B",
+        "98A181",
+        "C4C9A0",
+        "ECE8BE"
+      ],
+      "pattern": [
+        "12222111",
+        "12332111",
+        "12222111",
+        "12222111",
+        "12332111",
+        "12222111",
+        "12332111",
+        "01111000"
+      ]
+    },
+    "pale_ash": {
+      "palette": [
+        "64523A",
+        "8A7452",
+        "AB956B",
+        "C7B388",
+        "E2D0A4"
+      ],
+      "pattern": [
+        "12233211",
+        "12333211",
+        "12333221",
+        "12233221",
+        "12333221",
+        "12333211",
+        "12333211",
+        "12233211"
+      ]
+    },
+    "linen_cord": {
+      "palette": [
+        "65745E",
+        "A1AD87",
+        "D4D9AE",
+        "F3EBC8"
+      ],
+      "pattern": [
+        "12233211",
+        "12223211",
+        "12233211",
+        "12223211",
+        "12233211",
+        "12223211",
+        "12233211",
+        "01122100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Unrotated mint leather palm grip",
+      "from": [
+        5.45,
+        6.75,
+        7.25
+      ],
+      "to": [
+        6.95,
+        9.25,
+        8.75
+      ],
+      "material": "mint_wrap",
+      "side": "mint_leather",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Upper pale ash limb step 1",
+      "from": [
+        5.8,
+        9.1,
+        7.45
+      ],
+      "to": [
+        7.3,
+        10.7,
+        8.55
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Upper pale ash limb step 2",
+      "from": [
+        6.6,
+        10.45,
+        7.47
+      ],
+      "to": [
+        8.15,
+        11.85,
+        8.53
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Upper pale ash limb step 3",
+      "from": [
+        7.65,
+        11.6,
+        7.5
+      ],
+      "to": [
+        9.15,
+        12.85,
+        8.5
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Upper pale ash limb step 4",
+      "from": [
+        8.75,
+        12.6,
+        7.54
+      ],
+      "to": [
+        10.2,
+        13.75,
+        8.46
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Upper pale ash limb step 5",
+      "from": [
+        9.7,
+        13.5,
+        7.57
+      ],
+      "to": [
+        10.9,
+        14.65,
+        8.43
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Lower pale ash limb step 1",
+      "from": [
+        5.8,
+        5.300000000000001,
+        7.45
+      ],
+      "to": [
+        7.3,
+        6.9,
+        8.55
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Lower pale ash limb step 2",
+      "from": [
+        6.6,
+        4.15,
+        7.47
+      ],
+      "to": [
+        8.15,
+        5.550000000000001,
+        8.53
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Lower pale ash limb step 3",
+      "from": [
+        7.65,
+        3.1500000000000004,
+        7.5
+      ],
+      "to": [
+        9.15,
+        4.4,
+        8.5
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Lower pale ash limb step 4",
+      "from": [
+        8.75,
+        2.25,
+        7.54
+      ],
+      "to": [
+        10.2,
+        3.4000000000000004,
+        8.46
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Lower pale ash limb step 5",
+      "from": [
+        9.7,
+        1.3499999999999996,
+        7.57
+      ],
+      "to": [
+        10.9,
+        2.5,
+        8.43
+      ],
+      "material": "pale_ash",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Squared iron grip ferrule",
+      "from": [
+        5.3,
+        6.55,
+        7.15
+      ],
+      "to": [
+        7.1,
+        7.05,
+        8.85
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Squared iron grip ferrule",
+      "from": [
+        5.3,
+        9.05,
+        7.15
+      ],
+      "to": [
+        7.1,
+        9.55,
+        8.85
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Solid iron nock block upper",
+      "from": [
+        9.85,
+        13.9,
+        7.45
+      ],
+      "to": [
+        11.0,
+        14.75,
+        8.55
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Broad mint shoulder plate False True",
+      "from": [
+        5.9,
+        9.2,
+        7.27
+      ],
+      "to": [
+        7.05,
+        10.7,
+        7.52
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Iron limb facing False True",
+      "from": [
+        7.78,
+        11.65,
+        7.27
+      ],
+      "to": [
+        8.88,
+        12.9,
+        7.52
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad mint shoulder plate False False",
+      "from": [
+        5.9,
+        9.2,
+        8.48
+      ],
+      "to": [
+        7.05,
+        10.7,
+        8.73
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Iron limb facing False False",
+      "from": [
+        7.78,
+        11.65,
+        8.48
+      ],
+      "to": [
+        8.88,
+        12.9,
+        8.73
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Solid iron nock block lower",
+      "from": [
+        9.85,
+        1.25,
+        7.45
+      ],
+      "to": [
+        11.0,
+        2.1,
+        8.55
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Broad mint shoulder plate True True",
+      "from": [
+        5.9,
+        5.3,
+        7.27
+      ],
+      "to": [
+        7.05,
+        6.8,
+        7.52
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Iron limb facing True True",
+      "from": [
+        7.78,
+        3.1,
+        7.27
+      ],
+      "to": [
+        8.88,
+        4.35,
+        7.52
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad mint shoulder plate True False",
+      "from": [
+        5.9,
+        5.3,
+        8.48
+      ],
+      "to": [
+        7.05,
+        6.8,
+        8.73
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Iron limb facing True False",
+      "from": [
+        7.78,
+        3.1,
+        8.48
+      ],
+      "to": [
+        8.88,
+        4.35,
+        8.73
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper linen string",
+      "from": [
+        10.38,
+        8,
+        7.88
+      ],
+      "to": [
+        10.62,
+        14.4,
+        8.12
+      ],
+      "material": "linen_cord",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "Lower linen string",
+      "from": [
+        10.38,
+        1.6,
+        7.88
+      ],
+      "to": [
+        10.62,
+        8,
+        8.12
+      ],
+      "material": "linen_cord",
+      "bone": "cord_lower"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -25
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.95
+  },
+  "bow": {
+    "upper_tip": [
+      10.5,
+      14.4,
+      8
+    ],
+    "lower_tip": [
+      10.5,
+      1.6,
+      8
+    ],
+    "string_center": [
+      10.5,
+      8,
+      8
+    ]
+  }
+}

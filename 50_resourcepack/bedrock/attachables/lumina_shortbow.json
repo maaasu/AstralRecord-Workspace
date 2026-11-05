@@ -1,0 +1,49 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "astralrecord:lumina_shortbow",
+      "materials": {
+        "default": "entity_alphatest",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/entity/items/lumina_shortbow",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.lumina_shortbow"
+      },
+      "animations": {
+        "first_person": "animation.astralrecord.lumina_shortbow.first_person",
+        "third_person": "animation.astralrecord.lumina_shortbow.third_person",
+        "attack": "animation.astralrecord.lumina_shortbow.attack",
+        "draw": "animation.astralrecord.lumina_shortbow.draw"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.astral_bow_swing = math.clamp((context.owning_entity->variable.attack_time) ?? 0.0, 0.0, 1.0);",
+          "variable.astral_bow_hold_input = context.item_slot == 'main_hand' && ((context.owning_entity->query.has_property('astralrecord:held_weapon_model')) ?? 0.0) ? ((context.owning_entity->query.property('astralrecord:held_weapon_model')) ?? 0.0) > 0.0 : 0.0;",
+          "variable.astral_bow_draw = !variable.astral_bow_hold_input && query.main_hand_item_use_duration > 0.0 ? math.clamp((query.main_hand_item_max_duration - (query.main_hand_item_use_duration - query.frame_alpha + 1.0)) / 20.0, 0.0, 1.0) : 0.0;"
+        ],
+        "animate": [
+          {
+            "first_person": "context.is_first_person"
+          },
+          {
+            "third_person": "!context.is_first_person"
+          },
+          {
+            "attack": "context.item_slot == 'main_hand' && variable.astral_bow_swing > 0.0 && variable.astral_bow_draw <= 0.0"
+          },
+          {
+            "draw": "context.item_slot == 'main_hand' && variable.astral_bow_draw > 0.0"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.item_default"
+      ]
+    }
+  }
+}

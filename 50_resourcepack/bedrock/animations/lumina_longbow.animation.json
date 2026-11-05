@@ -1,0 +1,129 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.lumina_longbow.first_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            84,
+            -65,
+            127
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.9
+        }
+      }
+    },
+    "animation.astralrecord.lumina_longbow.third_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            78,
+            -9,
+            5
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ]
+        }
+      }
+    },
+    "animation.astralrecord.lumina_longbow.attack": {
+      "loop": true,
+      "animation_length": 0.3,
+      "anim_time_update": "variable.astral_bow_swing * 0.3",
+      "bones": {
+        "weapon": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.05": [
+              -6,
+              2,
+              -4
+            ],
+            "0.15": [
+              5,
+              -3,
+              6
+            ],
+            "0.2": [
+              1,
+              0,
+              2
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "cord_upper": {
+          "rotation": [
+            0,
+            0,
+            "math.atan(0.047619048 * math.sin(variable.astral_bow_swing * 360.0))"
+          ],
+          "scale": [
+            1,
+            "math.sqrt(1.0 + (0.047619048 * math.sin(variable.astral_bow_swing * 360.0)) * (0.047619048 * math.sin(variable.astral_bow_swing * 360.0)))",
+            1
+          ]
+        },
+        "cord_lower": {
+          "rotation": [
+            0,
+            0,
+            "-math.atan(0.047619048 * math.sin(variable.astral_bow_swing * 360.0))"
+          ],
+          "scale": [
+            1,
+            "math.sqrt(1.0 + (0.047619048 * math.sin(variable.astral_bow_swing * 360.0)) * (0.047619048 * math.sin(variable.astral_bow_swing * 360.0)))",
+            1
+          ]
+        }
+      }
+    },
+    "animation.astralrecord.lumina_longbow.draw": {
+      "loop": true,
+      "bones": {
+        "cord_upper": {
+          "rotation": [
+            0,
+            0,
+            "math.atan(0.34920635 * variable.astral_bow_draw)"
+          ],
+          "scale": [
+            1,
+            "math.sqrt(1.0 + (0.34920635 * variable.astral_bow_draw) * (0.34920635 * variable.astral_bow_draw))",
+            1
+          ]
+        },
+        "cord_lower": {
+          "rotation": [
+            0,
+            0,
+            "-math.atan(0.34920635 * variable.astral_bow_draw)"
+          ],
+          "scale": [
+            1,
+            "math.sqrt(1.0 + (0.34920635 * variable.astral_bow_draw) * (0.34920635 * variable.astral_bow_draw))",
+            1
+          ]
+        }
+      }
+    }
+  }
+}
