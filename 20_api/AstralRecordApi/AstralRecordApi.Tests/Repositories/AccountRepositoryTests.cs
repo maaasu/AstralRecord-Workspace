@@ -146,8 +146,10 @@ public class AccountRepositoryTests
         Assert.Equal(targetAccountId, user.AccountId);
     }
 
-    [Fact]
-    public async Task CreateAsync_LeavesAdditionalAccountInactiveUntilItIsSelected()
+    [Theory]
+    [InlineData("second")]
+    [InlineData(".second")]
+    public async Task CreateAsync_LeavesAdditionalAccountInactiveUntilItIsSelected(string accountName)
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -175,23 +177,26 @@ public class AccountRepositoryTests
         var created = await repository.CreateAsync(new AccountCreateRequest
         {
             UserId = userId,
-            AccountName = "second",
+            AccountName = accountName,
             SlotIndex = 1,
             Mode = 0,
             CreatedBy = userId,
         });
 
         Assert.False(created.IsActive);
+        Assert.Equal(accountName, created.AccountName);
         Assert.True(interceptor.WasThrown);
         Assert.Equal(2, await dbContext.Accounts.CountAsync(account => account.UserId == userId));
     }
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
-    /// 検証契約: 自動作成名は ASCII 英数字とアンダースコアを保持し、大小文字を区別せず重複を避け、連番の空き名を返す。
+    /// 検証契約: 自動作成名は先頭のピリオドと ASCII 英数字・アンダースコアを保持し、大小文字を区別せず重複を避け、連番の空き名を返す。
     /// </summary>
-    [Fact]
-    public async Task CreateAsync_GeneratesCaseInsensitiveUniqueNamesWithIncrementingSuffix()
+    [Theory]
+    [InlineData("")]
+    [InlineData(".")]
+    public async Task CreateAsync_GeneratesCaseInsensitiveUniqueNamesWithIncrementingSuffix(string prefix)
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -225,20 +230,125 @@ public class AccountRepositoryTests
 
         var first = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userIds[0], AccountName = "Alice_Test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[0],
+            UserId = userIds[0], AccountName = prefix + "Alice_Test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[0],
         });
         var second = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userIds[1], AccountName = "alice_test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[1],
+            UserId = userIds[1], AccountName = prefix + "alice_test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[1],
         });
         var third = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userIds[2], AccountName = "Alice_Test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[2],
+            UserId = userIds[2], AccountName = prefix + "Alice_Test", SlotIndex = 0, Mode = 0, CreatedBy = userIds[2],
         });
 
-        Assert.Equal("Alice_Test", first.AccountName);
-        Assert.Equal("alice_test1", second.AccountName);
-        Assert.Equal("Alice_Test2", third.AccountName);
+        Assert.Equal(prefix + "Alice_Test", first.AccountName);
+        Assert.Equal(prefix + "alice_test1", second.AccountName);
+        Assert.Equal(prefix + "Alice_Test2", third.AccountName);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
+    /// 検証契約: 入力の先頭のピリオドだけを保持し、本文の許可文字・最小長の規則は維持する。
+    /// </summary>
+    [Theory]
+    [InlineData(".Bedrock_123", ".Bedrock_123")]
+    [InlineData("Java_123", "Java_123")]
+    [InlineData("Name.Other", "NameOther")]
+    [InlineData("..Bedrock.Other", ".BedrockOther")]
+    [InlineData(".x_", ".Player")]
+    [InlineData("x_", "Player")]
+    public async Task CreateAsync_PreservesOnlyAnIncomingLeadingPeriod(string requestedName, string expectedName)
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+        var userId = Guid.NewGuid();
+        dbContext.Users.Add(CreateUser(userId, Guid.Empty, DateTime.UtcNow));
+        await dbContext.SaveChangesAsync();
+        var repository = new AccountRepository(dbContext);
+
+        var created = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userId, AccountName = requestedName, SlotIndex = 0, CreatedBy = userId,
+        });
+
+        Assert.Equal(expectedName, created.AccountName);
+        Assert.Equal(expectedName, (await repository.GetByUuidAsync(created.Uuid))!.AccountName);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
+    /// 検証契約: 先頭のピリオドと重複時サフィックスを含め、自動作成名は50文字以内とする。
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData(".")]
+    public async Task CreateAsync_BoundsGeneratedNameAndCollisionSuffixToFiftyCharacters(string prefix)
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+        var userId = Guid.NewGuid();
+        dbContext.Users.Add(CreateUser(userId, Guid.Empty, DateTime.UtcNow));
+        await dbContext.SaveChangesAsync();
+        var repository = new AccountRepository(dbContext);
+        var requestedName = prefix + new string('A', 60);
+
+        var first = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userId, AccountName = requestedName, SlotIndex = 0, CreatedBy = userId,
+        });
+        var second = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userId, AccountName = requestedName, SlotIndex = 1, CreatedBy = userId,
+        });
+
+        Assert.Equal(prefix + new string('A', 50 - prefix.Length), first.AccountName);
+        Assert.Equal(prefix + new string('A', 49 - prefix.Length) + "1", second.AccountName);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
+    /// 検証契約: ピリオド付き名と通常名を別名として照合し、既存のピリオドなし名・UUID・選択状態・MCIDを変更しない。
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_KeepsBedrockNamesDistinctAndLeavesLegacyAccountsUnchanged()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+        var userId = Guid.NewGuid();
+        var legacyAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var user = CreateUser(userId, legacyAccountId, now);
+        user.Mcid = ".Bedrock";
+        var legacy = CreateAccount(legacyAccountId, userId, 0, true, now);
+        legacy.AccountName = "Bedrock";
+        dbContext.Users.Add(user);
+        dbContext.Accounts.Add(legacy);
+        await dbContext.SaveChangesAsync();
+        var repository = new AccountRepository(dbContext);
+
+        var created = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userId, AccountName = ".Bedrock", SlotIndex = 1, CreatedBy = userId,
+        });
+
+        Assert.Equal(".Bedrock", created.AccountName);
+        Assert.Equal(created.Uuid, (await repository.ResolveAsync(".bedrock", ".Bedrock"))!.Uuid);
+        Assert.Equal(legacyAccountId, (await repository.ResolveAsync("Bedrock", ".Bedrock"))!.Uuid);
+        Assert.Equal("Bedrock", (await repository.GetByUuidAsync(legacyAccountId))!.AccountName);
+        var savedUser = await dbContext.Users.AsNoTracking().SingleAsync();
+        Assert.Equal(".Bedrock", savedUser.Mcid);
+        Assert.Equal(legacyAccountId, savedUser.AccountId);
+        Assert.True((await repository.GetByUuidAsync(legacyAccountId))!.IsActive);
+        Assert.False(created.IsActive);
     }
 
     /// <summary>
@@ -576,8 +686,10 @@ public class AccountRepositoryTests
         }));
     }
 
-    [Fact]
-    public async Task CreateAndCloneAsync_AssignsLowestSlotAndCopiesReidentifiedPlayerState()
+    [Theory]
+    [InlineData("Source_1")]
+    [InlineData(".Source_1")]
+    public async Task CreateAndCloneAsync_AssignsLowestSlotAndCopiesReidentifiedPlayerState(string sourceAccountName)
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -602,7 +714,7 @@ public class AccountRepositoryTests
             });
             var source = CreateAccount(sourceAccountId, sourceUserId, 3, true, now);
             source.Mode = 2;
-            source.AccountName = "Source_1";
+            source.AccountName = sourceAccountName;
             source.Level = 12;
             source.TotalExperience = 3456;
             source.ClassProgresses.Add(new AccountClassProgressEntity
@@ -680,7 +792,7 @@ public class AccountRepositoryTests
         Assert.Equal(targetUserId, cloned.Account.UserId);
         Assert.Equal(0, cloned.Account.SlotIndex);
         Assert.Equal(12, cloned.Account.Level);
-        Assert.Equal("Source_11", cloned.Account.AccountName);
+        Assert.Equal(sourceAccountName + "1", cloned.Account.AccountName);
         Assert.Equal(0, cloned.Account.Mode);
         Assert.Equal(cloned.Account.Uuid, (await dbContext.Users.SingleAsync(row => row.Uuid == targetUserId)).AccountId);
         var cloneInventory = await dbContext.Inventories.SingleAsync(row => row.AccountId == cloned.Account.Uuid);

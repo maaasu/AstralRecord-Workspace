@@ -914,17 +914,19 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     private static string NormalizeGeneratedAccountName(string requestedName)
     {
+        // 接続名に含まれる先頭の Bedrock 接頭辞だけを保持し、未指定の名前には付与しない。
+        var prefix = requestedName?.StartsWith(".", StringComparison.Ordinal) == true ? "." : string.Empty;
         var characters = (requestedName ?? string.Empty)
             .Where(character => (character >= 'A' && character <= 'Z')
                 || (character >= 'a' && character <= 'z')
                 || (character >= '0' && character <= '9')
                 || character == '_')
-            .Take(AccountNameMaxLength)
+            .Take(AccountNameMaxLength - prefix.Length)
             .ToArray();
         var normalized = new string(characters);
         if (normalized.Length < 3)
             normalized = "Player";
-        return normalized;
+        return prefix + normalized;
     }
 
     private async Task<int> FindLowestAvailableSlotAsync(Guid userId)
