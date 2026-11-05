@@ -1,0 +1,544 @@
+{
+  "id": "anarion_spear",
+  "master_id": "20a00031",
+  "kind": "spear",
+  "intent": "Minecraftの銅の槍を基準に、長い四角い木柄と幅のある段付き銅穂先を作る。光る細工ではなく、明るい銅の切断面、赤い短い旗、ソケットの大きな太陽印で王統を表現。ノクス相当の素朴な柄より補強を増やし、上位品の多重刃・冠・大結晶には進めない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      10,
+      -20,
+      -37
+    ],
+    "translation": [
+      0,
+      -1.15,
+      0
+    ],
+    "scale": 0.73
+  },
+  "parts": [
+    {
+      "name": "Straight cedar spear shaft",
+      "from": [
+        7.36,
+        0.85,
+        7.36
+      ],
+      "to": [
+        8.64,
+        16.6,
+        8.64
+      ],
+      "material": "cedar",
+      "cap": "cedar_end"
+    },
+    {
+      "name": "Broad red hand wrap",
+      "from": [
+        7.22,
+        2.9,
+        7.22
+      ],
+      "to": [
+        8.78,
+        5.27,
+        8.78
+      ],
+      "material": "royal_red",
+      "side": "red_edge",
+      "cap": "linen"
+    },
+    {
+      "name": "Lower copper wrap collar",
+      "from": [
+        7.18,
+        2.62,
+        7.18
+      ],
+      "to": [
+        8.82,
+        3.02,
+        8.82
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Upper copper wrap collar",
+      "from": [
+        7.18,
+        5.16,
+        7.18
+      ],
+      "to": [
+        8.82,
+        5.56,
+        8.82
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Simple copper butt shoe",
+      "from": [
+        7.17,
+        0.35,
+        7.17
+      ],
+      "to": [
+        8.83,
+        1.2,
+        8.83
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Butt shoe pale end",
+      "from": [
+        7.39,
+        0.12,
+        7.39
+      ],
+      "to": [
+        8.61,
+        0.4,
+        8.61
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Copper spear socket",
+      "from": [
+        7.04,
+        15.09,
+        7.04
+      ],
+      "to": [
+        8.96,
+        17.29,
+        8.96
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Socket foot rim",
+      "from": [
+        6.86,
+        14.83,
+        6.94
+      ],
+      "to": [
+        9.14,
+        15.32,
+        9.06
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Broad stepped copper blade core",
+      "from": [
+        7.14,
+        17.24,
+        7.38
+      ],
+      "to": [
+        8.86,
+        20.7,
+        8.62
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Left copper cutting plane",
+      "from": [
+        6.57,
+        17.64,
+        7.6
+      ],
+      "to": [
+        7.18,
+        19.89,
+        8.4
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Right copper cutting plane",
+      "from": [
+        8.82,
+        17.64,
+        7.6
+      ],
+      "to": [
+        9.43,
+        19.89,
+        8.4
+      ],
+      "material": "copper_edge",
+      "side": "copper"
+    },
+    {
+      "name": "Left lower blade shoulder",
+      "from": [
+        6.97,
+        17.26,
+        7.57
+      ],
+      "to": [
+        7.47,
+        17.89,
+        8.43
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Right lower blade shoulder",
+      "from": [
+        8.53,
+        17.26,
+        7.57
+      ],
+      "to": [
+        9.03,
+        17.89,
+        8.43
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Blade upper step",
+      "from": [
+        7.44,
+        20.67,
+        7.46
+      ],
+      "to": [
+        8.56,
+        21.47,
+        8.54
+      ],
+      "material": "copper",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Square point",
+      "from": [
+        7.73,
+        21.44,
+        7.65
+      ],
+      "to": [
+        8.27,
+        22.22,
+        8.35
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Left upper cutting step",
+      "from": [
+        6.95,
+        19.86,
+        7.64
+      ],
+      "to": [
+        7.49,
+        20.74,
+        8.36
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Right upper cutting step",
+      "from": [
+        8.51,
+        19.86,
+        7.64
+      ],
+      "to": [
+        9.05,
+        20.74,
+        8.36
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Front sun stamp socket plate",
+      "from": [
+        7.3,
+        15.6,
+        6.81
+      ],
+      "to": [
+        8.7,
+        16.94,
+        7.06
+      ],
+      "material": "sun_stamp",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Rear plain socket plate",
+      "from": [
+        7.3,
+        15.6,
+        8.94
+      ],
+      "to": [
+        8.7,
+        16.94,
+        9.15
+      ],
+      "material": "copper",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Red square pennant fixed edge",
+      "from": [
+        8.61,
+        13.35,
+        7.65
+      ],
+      "to": [
+        9.12,
+        15.05,
+        8.35
+      ],
+      "material": "royal_red",
+      "side": "red_edge"
+    },
+    {
+      "name": "Red pennant broad upper field",
+      "from": [
+        9.02,
+        14.09,
+        7.65
+      ],
+      "to": [
+        11.41,
+        15.05,
+        8.35
+      ],
+      "material": "royal_red",
+      "side": "red_edge",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Red pennant lower short tongue",
+      "from": [
+        9.02,
+        13.35,
+        7.65
+      ],
+      "to": [
+        10.23,
+        14.16,
+        8.35
+      ],
+      "material": "royal_red",
+      "side": "red_edge"
+    },
+    {
+      "name": "Pennant pale hem",
+      "from": [
+        9.06,
+        14.89,
+        7.57
+      ],
+      "to": [
+        11.41,
+        15.17,
+        8.43
+      ],
+      "material": "linen"
+    }
+  ],
+  "materials": {
+    "copper": {
+      "palette": [
+        "603b2b",
+        "8a5035",
+        "b66e42",
+        "d68c55",
+        "e6b178"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "22333321",
+        "22333221",
+        "22333221",
+        "12332211",
+        "01222110"
+      ]
+    },
+    "copper_edge": {
+      "palette": [
+        "785034",
+        "a66e43",
+        "cc925d",
+        "e1b477",
+        "eacb93"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "copper_shadow": {
+      "palette": [
+        "423025",
+        "633d2b",
+        "895134",
+        "ae7044",
+        "c18d5d"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12333221",
+        "12323221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "cedar": {
+      "palette": [
+        "38281f",
+        "553925",
+        "775236",
+        "9a7147",
+        "b99361"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12333221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "cedar_end": {
+      "palette": [
+        "38281f",
+        "553925",
+        "775236",
+        "9a7147",
+        "b99361"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "royal_red": {
+      "palette": [
+        "422626",
+        "653332",
+        "8c4540",
+        "b3614e",
+        "ce8d65"
+      ],
+      "pattern": [
+        "23333221",
+        "23333221",
+        "22333221",
+        "23333221",
+        "23323221",
+        "23333221",
+        "22333211",
+        "11222110"
+      ]
+    },
+    "red_edge": {
+      "palette": [
+        "382424",
+        "532e2d",
+        "743e36",
+        "985443",
+        "b57455"
+      ],
+      "pattern": [
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "12222100"
+      ]
+    },
+    "linen": {
+      "palette": [
+        "776341",
+        "9d865a",
+        "bda675",
+        "d6c391",
+        "e5d8af"
+      ],
+      "pattern": [
+        "22332211",
+        "23322112",
+        "33221123",
+        "32211233",
+        "22112332",
+        "21123322",
+        "11233221",
+        "12332211"
+      ]
+    },
+    "sun_stamp": {
+      "palette": [
+        "6b412c",
+        "9b623b",
+        "c48a50",
+        "e0b477",
+        "e8cc96"
+      ],
+      "pattern": [
+        "00111100",
+        "01233210",
+        "12344321",
+        "13444431",
+        "13444431",
+        "12344321",
+        "01233210",
+        "00111100"
+      ]
+    }
+  }
+}

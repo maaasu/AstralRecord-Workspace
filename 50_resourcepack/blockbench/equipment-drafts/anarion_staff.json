@@ -1,0 +1,558 @@
+{
+  "id": "anarion_staff",
+  "master_id": "20a00032",
+  "kind": "staff",
+  "intent": "Minecraftのエンドロッドと棒を起点にした象牙色の四角い長杖。頭部は大きな銅のピクセル太陽一つと淡い琥珀の面、赤い握りだけで聖域の光を表す。光源や光芒は足さず、ブロック色と面の段差で読む。ノクスの小石杖より象徴が大きいが、サンクラウン系の王冠や複数結晶ほど豪華にしない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -22,
+      -28
+    ],
+    "translation": [
+      0,
+      -1.15,
+      0
+    ],
+    "scale": 0.76
+  },
+  "parts": [
+    {
+      "name": "Ivory square staff rod",
+      "from": [
+        7.3,
+        1.12,
+        7.3
+      ],
+      "to": [
+        8.7,
+        14.55,
+        8.7
+      ],
+      "material": "ivory",
+      "side": "ivory_edge",
+      "cap": "ivory"
+    },
+    {
+      "name": "Red blocky hand wrap",
+      "from": [
+        7.17,
+        2.84,
+        7.17
+      ],
+      "to": [
+        8.83,
+        5.3,
+        8.83
+      ],
+      "material": "royal_red",
+      "side": "red_edge",
+      "cap": "linen"
+    },
+    {
+      "name": "Lower copper hand collar",
+      "from": [
+        7.03,
+        2.59,
+        7.03
+      ],
+      "to": [
+        8.97,
+        2.99,
+        8.97
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Upper copper hand collar",
+      "from": [
+        7.03,
+        5.16,
+        7.03
+      ],
+      "to": [
+        8.97,
+        5.57,
+        8.97
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Square copper staff foot",
+      "from": [
+        7.05,
+        0.54,
+        7.05
+      ],
+      "to": [
+        8.95,
+        1.31,
+        8.95
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Foot pale edge",
+      "from": [
+        7.32,
+        0.29,
+        7.32
+      ],
+      "to": [
+        8.68,
+        0.57,
+        8.68
+      ],
+      "material": "copper_edge"
+    },
+    {
+      "name": "Head supporting copper neck",
+      "from": [
+        7.03,
+        13.43,
+        7.03
+      ],
+      "to": [
+        8.97,
+        15.2,
+        8.97
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Sun frame left",
+      "from": [
+        5.22,
+        15.02,
+        7.12
+      ],
+      "to": [
+        6.42,
+        18.8,
+        8.88
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Sun frame right",
+      "from": [
+        9.58,
+        15.02,
+        7.12
+      ],
+      "to": [
+        10.78,
+        18.8,
+        8.88
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Sun frame top",
+      "from": [
+        6.2,
+        18.6,
+        7.12
+      ],
+      "to": [
+        9.8,
+        19.82,
+        8.88
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Sun frame bottom",
+      "from": [
+        6.2,
+        14.0,
+        7.12
+      ],
+      "to": [
+        9.8,
+        15.22,
+        8.88
+      ],
+      "material": "copper",
+      "side": "copper_shadow",
+      "cap": "copper_edge"
+    },
+    {
+      "name": "Pale amber square sunlight lens",
+      "from": [
+        6.4,
+        15.18,
+        7.4
+      ],
+      "to": [
+        9.6,
+        18.62,
+        8.6
+      ],
+      "material": "amber",
+      "side": "ivory_edge",
+      "cap": "ivory"
+    },
+    {
+      "name": "Front central sun stamp",
+      "from": [
+        7.3,
+        16.13,
+        6.94
+      ],
+      "to": [
+        8.7,
+        17.53,
+        7.43
+      ],
+      "material": "sun_stamp",
+      "side": "copper_edge"
+    },
+    {
+      "name": "Rear central sun stamp",
+      "from": [
+        7.3,
+        16.13,
+        8.57
+      ],
+      "to": [
+        8.7,
+        17.53,
+        9.06
+      ],
+      "material": "sun_stamp",
+      "side": "copper"
+    },
+    {
+      "name": "Left cardinal copper ray",
+      "from": [
+        4.3,
+        16.09,
+        7.32
+      ],
+      "to": [
+        5.3,
+        17.73,
+        8.68
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Right cardinal copper ray",
+      "from": [
+        10.7,
+        16.09,
+        7.32
+      ],
+      "to": [
+        11.7,
+        17.73,
+        8.68
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Upper cardinal copper ray",
+      "from": [
+        7.22,
+        19.72,
+        7.32
+      ],
+      "to": [
+        8.78,
+        20.72,
+        8.68
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Upper left pixel ray",
+      "from": [
+        5.37,
+        18.68,
+        7.36
+      ],
+      "to": [
+        6.48,
+        19.83,
+        8.64
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Upper right pixel ray",
+      "from": [
+        9.52,
+        18.68,
+        7.36
+      ],
+      "to": [
+        10.63,
+        19.83,
+        8.64
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Lower left pixel ray",
+      "from": [
+        5.37,
+        14.0,
+        7.36
+      ],
+      "to": [
+        6.48,
+        15.15,
+        8.64
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Lower right pixel ray",
+      "from": [
+        9.52,
+        14.0,
+        7.36
+      ],
+      "to": [
+        10.63,
+        15.15,
+        8.64
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    },
+    {
+      "name": "Lower cardinal copper ray collar",
+      "from": [
+        7.22,
+        13.19,
+        7.22
+      ],
+      "to": [
+        8.78,
+        14.18,
+        8.78
+      ],
+      "material": "copper_edge",
+      "side": "copper_shadow"
+    }
+  ],
+  "materials": {
+    "copper": {
+      "palette": [
+        "603b2b",
+        "8a5035",
+        "b66e42",
+        "d68c55",
+        "e6b178"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "22333321",
+        "22333221",
+        "22333221",
+        "12332211",
+        "01222110"
+      ]
+    },
+    "copper_edge": {
+      "palette": [
+        "785034",
+        "a66e43",
+        "cc925d",
+        "e1b477",
+        "eacb93"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "copper_shadow": {
+      "palette": [
+        "423025",
+        "633d2b",
+        "895134",
+        "ae7044",
+        "c18d5d"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12333221",
+        "12323221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "royal_red": {
+      "palette": [
+        "422626",
+        "653332",
+        "8c4540",
+        "b3614e",
+        "ce8d65"
+      ],
+      "pattern": [
+        "23333221",
+        "23333221",
+        "22333221",
+        "23333221",
+        "23323221",
+        "23333221",
+        "22333211",
+        "11222110"
+      ]
+    },
+    "red_edge": {
+      "palette": [
+        "382424",
+        "532e2d",
+        "743e36",
+        "985443",
+        "b57455"
+      ],
+      "pattern": [
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "23333210",
+        "12222100"
+      ]
+    },
+    "linen": {
+      "palette": [
+        "776341",
+        "9d865a",
+        "bda675",
+        "d6c391",
+        "e5d8af"
+      ],
+      "pattern": [
+        "22332211",
+        "23322112",
+        "33221123",
+        "32211233",
+        "22112332",
+        "21123322",
+        "11233221",
+        "12332211"
+      ]
+    },
+    "sun_stamp": {
+      "palette": [
+        "6b412c",
+        "9b623b",
+        "c48a50",
+        "e0b477",
+        "e8cc96"
+      ],
+      "pattern": [
+        "00111100",
+        "01233210",
+        "12344321",
+        "13444431",
+        "13444431",
+        "12344321",
+        "01233210",
+        "00111100"
+      ]
+    },
+    "ivory": {
+      "palette": [
+        "8e8164",
+        "b4a17c",
+        "d2c49b",
+        "e5d9b5",
+        "f0e8cb"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333221",
+        "12222210"
+      ]
+    },
+    "ivory_edge": {
+      "palette": [
+        "766e56",
+        "998a69",
+        "b7a77e",
+        "cfc09b",
+        "e1d4b2"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12333221",
+        "12333221",
+        "12333221",
+        "12333221",
+        "12332211",
+        "01222110"
+      ]
+    },
+    "amber": {
+      "palette": [
+        "845832",
+        "b38145",
+        "d1a35f",
+        "e7c580",
+        "f1dca4"
+      ],
+      "pattern": [
+        "22333221",
+        "23444321",
+        "23444321",
+        "23433321",
+        "23333321",
+        "23333221",
+        "12332211",
+        "01222110"
+      ]
+    }
+  }
+}
