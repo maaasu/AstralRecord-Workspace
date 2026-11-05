@@ -3,6 +3,7 @@ package io.github.maaasu.astralrecordproxy;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 
 import java.net.URI;
 import java.net.Socket;
@@ -286,10 +287,25 @@ final class NetworkApiClient {
         return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> {
                 if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    throw new NetworkApiException(response.statusCode());
+                    throw new NetworkApiException(response.statusCode(), isDatabaseUnavailable(response));
                 }
                 return response.body();
             });
+    }
+
+    private boolean isDatabaseUnavailable(HttpResponse<String> response) {
+        if (response.statusCode() != 503 || !response.headers().firstValue("Content-Type")
+            .map(value -> value.split(";", 2)[0].trim().equalsIgnoreCase("application/problem+json"))
+            .orElse(false)) {
+            return false;
+        }
+        try {
+            JsonObject problem = gson.fromJson(response.body(), JsonObject.class);
+            return problem != null && problem.has("title") && problem.get("title").isJsonPrimitive()
+                && "Database unavailable".equals(problem.get("title").getAsString());
+        } catch (JsonParseException ignored) {
+            return false;
+        }
     }
 
     private static SSLContext createInsecureSslContext() {
@@ -397,9 +413,14 @@ final class NetworkApiClient {
     }
 
     static boolean isNotFound(Throwable failure) {
+        NetworkApiException apiFailure = findHttpFailure(failure);
+        return apiFailure != null && apiFailure.statusCode == 404;
+    }
+
+    static NetworkApiException findHttpFailure(Throwable failure) {
         Throwable cause = failure;
         while (cause.getCause() != null && !(cause instanceof NetworkApiException)) cause = cause.getCause();
-        return cause instanceof NetworkApiException apiFailure && apiFailure.statusCode == 404;
+        return cause instanceof NetworkApiException apiFailure ? apiFailure : null;
     }
 
     private static String optionalText(JsonObject value, String name) {
@@ -411,11 +432,12 @@ final class NetworkApiClient {
         return raw == null || raw.isBlank() ? null : OffsetDateTime.parse(raw);
     }
 
-    private static final class NetworkApiException extends IllegalStateException {
+    static final class NetworkApiException extends IllegalStateException {
         private final int statusCode;
 
-        private NetworkApiException(int statusCode) {
-            super("Network API returned HTTP " + statusCode);
+        private NetworkApiException(int statusCode, boolean databaseUnavailable) {
+            super("Network API returned HTTP " + statusCode
+                + (databaseUnavailable ? " (Database unavailable)" : ""));
             this.statusCode = statusCode;
         }
     }

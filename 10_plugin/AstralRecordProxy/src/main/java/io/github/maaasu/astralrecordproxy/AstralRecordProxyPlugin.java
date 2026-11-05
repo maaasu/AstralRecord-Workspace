@@ -1457,18 +1457,25 @@ public final class AstralRecordProxyPlugin {
                 .thenRun(() -> runtimeRegistered = true);
         registered.thenCompose(ignored -> api.getEditDrains(config.runtimeServerId(), runtimeSessionId))
             .whenComplete((drains, failure) -> {
-                editDrainPollRunning.set(false);
                 if (failure != null) {
+                    String operation = runtimeRegistered ? "drain polling" : "runtime registration";
                     runtimeRegistered = false;
                     if (editDrainFailureLogged.compareAndSet(false, true)) {
-                        logger.warn("Player edit runtime is unavailable; retrying registration and drain polling.", failure);
+                        NetworkApiClient.NetworkApiException httpFailure = NetworkApiClient.findHttpFailure(failure);
+                        if (httpFailure != null) {
+                            logger.warn("Player edit {} failed; retrying. {}", operation, httpFailure.getMessage());
+                        } else {
+                            logger.warn("Player edit {} failed; retrying.", operation, failure);
+                        }
                     }
                     return;
                 }
-                editDrainFailureLogged.set(false);
                 Set<UUID> active = new HashSet<>();
                 for (NetworkApiClient.EditDrain drain : drains) active.add(drain.userUuid());
                 editingPlayers.set(Set.copyOf(active));
+                if (editDrainFailureLogged.getAndSet(false)) {
+                    logger.info("Player edit runtime registration and drain polling recovered.");
+                }
                 editAckIds.keySet().retainAll(drains.stream()
                     .map(NetworkApiClient.EditDrain::editSessionId).collect(java.util.stream.Collectors.toSet()));
                 for (NetworkApiClient.EditDrain drain : drains) {
@@ -1488,7 +1495,7 @@ public final class AstralRecordProxyPlugin {
                             return null;
                         });
                 }
-            });
+            }).whenComplete((ignored, failure) -> editDrainPollRunning.set(false));
     }
 
     /** BAN種別・期限・理由を含むプレイヤー向けの切断理由を生成する。 */

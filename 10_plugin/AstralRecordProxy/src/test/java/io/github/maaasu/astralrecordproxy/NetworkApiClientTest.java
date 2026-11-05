@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -17,6 +18,7 @@ import java.security.KeyStore;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -186,6 +188,50 @@ class NetworkApiClientTest {
             assertEquals(true, requests.get(2).contains("/drain-ack|"));
             assertEquals(true, requests.get(3).startsWith("/api/network/admissions/"));
             assertEquals(true, requests.get(3).endsWith("|common-key|null"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void runtime503ReportsOnlyKnownDatabaseProblem() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/player-admin/runtime/servers/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            String contentType = path.endsWith("/offline") ? "text/html" : "application/problem+json; charset=utf-8";
+            exchange.getResponseHeaders().set("Content-Type", contentType);
+            String payload = switch (path.substring(path.lastIndexOf('/') + 1)) {
+                case "database" -> """
+                    {"title":"Database unavailable","detail":"private SQL details"}
+                    """;
+                case "other" -> """
+                    {"title":"internal deployment details"}
+                    """;
+                case "malformed" -> "{";
+                default -> "<html>API is being deployed.</html>";
+            };
+            byte[] body = payload.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(503, body.length);
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(body);
+            }
+        });
+        server.start();
+        try {
+            ProxyConfig config = new ProxyConfig(
+                "lobby", List.of("dev"), Map.of(), Map.of(), 30L, 2L, 10L,
+                "http://127.0.0.1:" + server.getAddress().getPort(), "common-key", "sync-key",
+                3000, 500L, 5L, false, "mc.astralrecord.com", List.of(), java.util.Set.of(),
+                "proxy");
+            NetworkApiClient api = new NetworkApiClient(config);
+            UUID boot = UUID.randomUUID();
+            for (String serverId : List.of("database", "other", "malformed", "offline")) {
+                var failure = assertThrows(CompletionException.class,
+                    () -> api.registerRuntimeServer(serverId, boot).join());
+                String expected = "Network API returned HTTP 503"
+                    + ("database".equals(serverId) ? " (Database unavailable)" : "");
+                assertEquals(expected, NetworkApiClient.findHttpFailure(failure).getMessage());
+            }
         } finally {
             server.stop(0);
         }
