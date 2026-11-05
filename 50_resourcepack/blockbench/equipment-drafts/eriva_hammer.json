@@ -1,0 +1,559 @@
+{
+  "id": "eriva_hammer",
+  "master_id": "20a00074",
+  "kind": "hammer",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftの木の斧・骨ブロックを起点に、節木の四角い大頭を獣の骨端で左右から挟んだ槌。左右の骨端は大きい段差で関節らしさを示し、二本の太い革帯と一本の骨栓で木柄へ固定する。小さな苔面を森の留め色にするが、説明通り牙と骨が主素材。ノクスより大きく巧い組木、天体武器より自然な素材感を保つ。",
+  "gui": {
+    "rotation": [
+      13,
+      -27,
+      -30
+    ],
+    "translation": [
+      0,
+      -0.15,
+      0
+    ],
+    "scale": 0.92
+  },
+  "parts": [
+    {
+      "name": "Thick knotted wood hammer haft",
+      "from": [
+        7.19,
+        1.52,
+        7.2
+      ],
+      "to": [
+        8.81,
+        14.21,
+        8.8
+      ],
+      "material": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Forest cloth hammer grip",
+      "from": [
+        7.03,
+        2.75,
+        7.04
+      ],
+      "to": [
+        8.97,
+        5.05,
+        8.96
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Lower broad hide grip band",
+      "from": [
+        6.93,
+        2.43,
+        6.94
+      ],
+      "to": [
+        9.07,
+        2.9,
+        9.06
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper broad hide grip band",
+      "from": [
+        6.93,
+        4.94,
+        6.94
+      ],
+      "to": [
+        9.07,
+        5.41,
+        9.06
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Bone knob pommel",
+      "from": [
+        6.84,
+        1.09,
+        6.87
+      ],
+      "to": [
+        9.16,
+        1.95,
+        9.13
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Main knotted timber hammer head",
+      "from": [
+        5.1,
+        10.74,
+        6.16
+      ],
+      "to": [
+        10.9,
+        14.41,
+        9.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Left large bone joint cap",
+      "from": [
+        3.79,
+        10.96,
+        6.34
+      ],
+      "to": [
+        5.25,
+        14.28,
+        9.66
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left stepped striking face",
+      "from": [
+        3.1,
+        11.5,
+        6.81
+      ],
+      "to": [
+        3.87,
+        13.76,
+        9.19
+      ],
+      "material": "bone_edge",
+      "side": "bone_face",
+      "cap": "bone_joint"
+    },
+    {
+      "name": "Left high bone joint lobe",
+      "from": [
+        4.13,
+        14.22,
+        6.69
+      ],
+      "to": [
+        5.24,
+        15.08,
+        9.31
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left low bone joint lobe",
+      "from": [
+        4.13,
+        10.22,
+        6.69
+      ],
+      "to": [
+        5.24,
+        11.03,
+        9.31
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right broad bone joint cap",
+      "from": [
+        10.75,
+        10.58,
+        6.34
+      ],
+      "to": [
+        12.21,
+        14.1,
+        9.66
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right stepped striking face",
+      "from": [
+        12.13,
+        11.13,
+        6.81
+      ],
+      "to": [
+        12.9,
+        13.47,
+        9.19
+      ],
+      "material": "bone_edge",
+      "side": "bone_face",
+      "cap": "bone_joint"
+    },
+    {
+      "name": "Right upper bone joint lobe",
+      "from": [
+        10.76,
+        14.04,
+        6.69
+      ],
+      "to": [
+        11.87,
+        14.82,
+        9.31
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right lower bone joint lobe",
+      "from": [
+        10.76,
+        9.83,
+        6.69
+      ],
+      "to": [
+        11.87,
+        10.66,
+        9.31
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Head left front hide strap",
+      "from": [
+        6.01,
+        10.52,
+        5.96
+      ],
+      "to": [
+        6.7,
+        14.57,
+        6.24
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head left rear hide strap",
+      "from": [
+        6.01,
+        10.52,
+        9.76
+      ],
+      "to": [
+        6.7,
+        14.57,
+        10.04
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head left top hide strap",
+      "from": [
+        6.01,
+        14.31,
+        5.96
+      ],
+      "to": [
+        6.7,
+        14.6,
+        10.04
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head left bottom hide strap",
+      "from": [
+        6.01,
+        10.45,
+        5.96
+      ],
+      "to": [
+        6.7,
+        10.82,
+        10.04
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head right front hide strap",
+      "from": [
+        9.3,
+        10.52,
+        5.96
+      ],
+      "to": [
+        9.99,
+        14.57,
+        6.24
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head right rear hide strap",
+      "from": [
+        9.3,
+        10.52,
+        9.76
+      ],
+      "to": [
+        9.99,
+        14.57,
+        10.04
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head right top hide strap",
+      "from": [
+        9.3,
+        14.31,
+        5.96
+      ],
+      "to": [
+        9.99,
+        14.6,
+        10.04
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Head right bottom hide strap",
+      "from": [
+        9.3,
+        10.45,
+        5.96
+      ],
+      "to": [
+        9.99,
+        10.82,
+        10.04
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Green moss on old head knot",
+      "from": [
+        7.03,
+        13.23,
+        5.94
+      ],
+      "to": [
+        8.97,
+        14.47,
+        6.19
+      ],
+      "material": "moss",
+      "side": "forest_wrap"
+    },
+    {
+      "name": "Broad ivory shaft securing peg",
+      "from": [
+        7.47,
+        12.13,
+        5.8
+      ],
+      "to": [
+        8.53,
+        13.03,
+        6.18
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow"
+    }
+  ],
+  "materials": {
+    "bone_face": {
+      "palette": [
+        "817660",
+        "a79b7d",
+        "c5b998",
+        "dfd5b5",
+        "ece5ca"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23323321",
+        "23333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "a2997c",
+        "c4ba98",
+        "dbd1b0",
+        "eae2c6",
+        "f4efd9"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "bone_shadow": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "a19776",
+        "bfb28f",
+        "d3c8a6"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "bone_joint": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "aba07e",
+        "d2c6a3",
+        "e8dfc0"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23433321",
+        "23322321",
+        "23322321",
+        "23433321",
+        "23333221",
+        "11222110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292a20",
+        "41422c",
+        "5c5837",
+        "7d7045",
+        "9e8d58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302c20",
+        "4d442c",
+        "6c5e3a",
+        "90804d",
+        "b29d65"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382a20",
+        "573e2b",
+        "775738",
+        "9b7750",
+        "b59968"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "forest_wrap": {
+      "palette": [
+        "253327",
+        "3c4d31",
+        "586840",
+        "7c8653",
+        "a1a66c"
+      ],
+      "pattern": [
+        "23333211",
+        "23333211",
+        "22333211",
+        "23333211",
+        "23323211",
+        "23333211",
+        "22333211",
+        "11222100"
+      ]
+    },
+    "moss": {
+      "palette": [
+        "2b3523",
+        "455435",
+        "637446",
+        "87945a",
+        "aab17a"
+      ],
+      "pattern": [
+        "12233211",
+        "23333321",
+        "23443321",
+        "23433321",
+        "23334321",
+        "23333221",
+        "12333211",
+        "01222110"
+      ]
+    }
+  }
+}

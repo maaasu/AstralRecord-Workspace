@@ -1,0 +1,481 @@
+{
+  "id": "eriva_sword",
+  "master_id": "20a00073",
+  "kind": "sword",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftの木の剣と骨を起点にした、獣の牙と骨の幅広い葉形刃。暗い木の芯へ白骨の刃板を重ね、段付き切先と両側の太い牙の切断面で輪郭を作る。柄は森色の布と革留め、鍔と柄尻は四角い骨端。マスターの動物素材を優先し、緑は留め布だけ。ノクスより素材を組み合わせる巧さを見せ、金属の写実細工・宝石・発光は足さない。",
+  "gui": {
+    "rotation": [
+      12,
+      -23,
+      -36
+    ],
+    "translation": [
+      0,
+      0.05,
+      0
+    ],
+    "scale": 0.98
+  },
+  "parts": [
+    {
+      "name": "Dark forestwood handle",
+      "from": [
+        7.25,
+        1.97,
+        7.28
+      ],
+      "to": [
+        8.75,
+        5.44,
+        8.72
+      ],
+      "material": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad forest cloth grip",
+      "from": [
+        7.12,
+        2.71,
+        7.15
+      ],
+      "to": [
+        8.88,
+        4.72,
+        8.85
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Lower hide retaining band",
+      "from": [
+        7.01,
+        2.46,
+        7.04
+      ],
+      "to": [
+        8.99,
+        2.89,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper hide retaining band",
+      "from": [
+        7.01,
+        4.62,
+        7.04
+      ],
+      "to": [
+        8.99,
+        5.05,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Squared bone pommel",
+      "from": [
+        6.94,
+        1.56,
+        6.98
+      ],
+      "to": [
+        9.06,
+        2.28,
+        9.02
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Bone crossguard bridge",
+      "from": [
+        5.97,
+        5.11,
+        7.0
+      ],
+      "to": [
+        10.03,
+        5.89,
+        9.0
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left blunt guard joint",
+      "from": [
+        5.51,
+        5.18,
+        7.13
+      ],
+      "to": [
+        6.26,
+        6.23,
+        8.87
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Right blunt guard joint",
+      "from": [
+        9.74,
+        5.18,
+        7.13
+      ],
+      "to": [
+        10.49,
+        6.23,
+        8.87
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Dark wood blade spine",
+      "from": [
+        7.48,
+        5.87,
+        7.23
+      ],
+      "to": [
+        8.52,
+        12.13,
+        8.77
+      ],
+      "material": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad bone blade heel",
+      "from": [
+        6.98,
+        5.86,
+        7.4
+      ],
+      "to": [
+        9.02,
+        7.24,
+        8.6
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Leaf blade lower shoulder",
+      "from": [
+        6.48,
+        7.21,
+        7.46
+      ],
+      "to": [
+        9.52,
+        8.42,
+        8.54
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Wide leaf blade face",
+      "from": [
+        6.14,
+        8.39,
+        7.49
+      ],
+      "to": [
+        9.86,
+        11.43,
+        8.51
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left pale fang cutting plane",
+      "from": [
+        5.72,
+        8.93,
+        7.65
+      ],
+      "to": [
+        6.19,
+        10.71,
+        8.35
+      ],
+      "material": "bone_edge",
+      "side": "bone_face"
+    },
+    {
+      "name": "Right pale fang cutting plane",
+      "from": [
+        9.81,
+        8.93,
+        7.65
+      ],
+      "to": [
+        10.28,
+        10.71,
+        8.35
+      ],
+      "material": "bone_edge",
+      "side": "bone_face"
+    },
+    {
+      "name": "Leaf blade narrowing upper step",
+      "from": [
+        6.56,
+        11.39,
+        7.53
+      ],
+      "to": [
+        9.44,
+        12.57,
+        8.47
+      ],
+      "material": "bone_face",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Leaf blade second upper step",
+      "from": [
+        7.03,
+        12.53,
+        7.6
+      ],
+      "to": [
+        8.97,
+        13.71,
+        8.4
+      ],
+      "material": "bone_face",
+      "side": "bone_edge"
+    },
+    {
+      "name": "Ivory fang point",
+      "from": [
+        7.54,
+        13.67,
+        7.68
+      ],
+      "to": [
+        8.46,
+        14.73,
+        8.32
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Front broad root lashing",
+      "from": [
+        6.73,
+        6.24,
+        7.11
+      ],
+      "to": [
+        9.27,
+        6.73,
+        7.46
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Rear broad root lashing",
+      "from": [
+        6.73,
+        6.24,
+        8.54
+      ],
+      "to": [
+        9.27,
+        6.73,
+        8.89
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Front forest binding square",
+      "from": [
+        7.47,
+        6.13,
+        6.96
+      ],
+      "to": [
+        8.53,
+        6.88,
+        7.14
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    }
+  ],
+  "materials": {
+    "bone_face": {
+      "palette": [
+        "817660",
+        "a79b7d",
+        "c5b998",
+        "dfd5b5",
+        "ece5ca"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23323321",
+        "23333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "a2997c",
+        "c4ba98",
+        "dbd1b0",
+        "eae2c6",
+        "f4efd9"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "bone_shadow": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "a19776",
+        "bfb28f",
+        "d3c8a6"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "bone_joint": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "aba07e",
+        "d2c6a3",
+        "e8dfc0"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23433321",
+        "23322321",
+        "23322321",
+        "23433321",
+        "23333221",
+        "11222110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292a20",
+        "41422c",
+        "5c5837",
+        "7d7045",
+        "9e8d58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302c20",
+        "4d442c",
+        "6c5e3a",
+        "90804d",
+        "b29d65"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382a20",
+        "573e2b",
+        "775738",
+        "9b7750",
+        "b59968"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "forest_wrap": {
+      "palette": [
+        "253327",
+        "3c4d31",
+        "586840",
+        "7c8653",
+        "a1a66c"
+      ],
+      "pattern": [
+        "23333211",
+        "23333211",
+        "22333211",
+        "23333211",
+        "23323211",
+        "23333211",
+        "22333211",
+        "11222100"
+      ]
+    }
+  }
+}

@@ -1,0 +1,511 @@
+{
+  "id": "eriva_spear",
+  "master_id": "20a00075",
+  "kind": "spear",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftの木の槍と骨を起点に、獣の大牙一本を木の割り口へ固定した森の槍。太い木柄、革と森色布の留め帯、大きい段差で少し曲がる白い牙を主役とする。根元の二本の小牙は骨端の付け根として短く抑える。金属穂先の色替えにせず、牙の非対称輪郭と木の節でエリヴァの素材を示す。",
+  "gui": {
+    "rotation": [
+      11,
+      -22,
+      -36
+    ],
+    "translation": [
+      0,
+      -1.35,
+      0
+    ],
+    "scale": 0.72
+  },
+  "parts": [
+    {
+      "name": "Long straight forestwood shaft",
+      "from": [
+        7.28,
+        0.78,
+        7.28
+      ],
+      "to": [
+        8.72,
+        17.49,
+        8.72
+      ],
+      "material": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Forest cloth spear hand wrap",
+      "from": [
+        7.13,
+        2.84,
+        7.13
+      ],
+      "to": [
+        8.87,
+        5.2,
+        8.87
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Lower thick hide hand band",
+      "from": [
+        7.0,
+        2.57,
+        7.0
+      ],
+      "to": [
+        9.0,
+        3.0,
+        9.0
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper thick hide hand band",
+      "from": [
+        7.0,
+        5.09,
+        7.0
+      ],
+      "to": [
+        9.0,
+        5.52,
+        9.0
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Blunt bone shaft heel",
+      "from": [
+        7.02,
+        0.32,
+        7.02
+      ],
+      "to": [
+        8.98,
+        1.12,
+        8.98
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Squared wood branch node",
+      "from": [
+        7.06,
+        10.36,
+        7.06
+      ],
+      "to": [
+        8.94,
+        10.96,
+        8.94
+      ],
+      "material": "wood_end",
+      "side": "bark"
+    },
+    {
+      "name": "Dark wood split fang socket",
+      "from": [
+        6.93,
+        15.55,
+        6.94
+      ],
+      "to": [
+        9.07,
+        17.8,
+        9.06
+      ],
+      "material": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad hide fang root binding",
+      "from": [
+        6.77,
+        15.8,
+        6.78
+      ],
+      "to": [
+        9.23,
+        16.5,
+        9.22
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper forest root tie",
+      "from": [
+        6.87,
+        17.23,
+        6.89
+      ],
+      "to": [
+        9.13,
+        17.78,
+        9.11
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Large fang root face",
+      "from": [
+        7.0,
+        17.7,
+        7.33
+      ],
+      "to": [
+        9.31,
+        19.36,
+        8.67
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Large fang pale lower edge",
+      "from": [
+        6.54,
+        18.13,
+        7.54
+      ],
+      "to": [
+        7.06,
+        19.37,
+        8.46
+      ],
+      "material": "bone_edge",
+      "side": "bone_face"
+    },
+    {
+      "name": "Large fang pale broad back",
+      "from": [
+        9.26,
+        17.97,
+        7.54
+      ],
+      "to": [
+        9.74,
+        19.08,
+        8.46
+      ],
+      "material": "bone_edge",
+      "side": "bone_face"
+    },
+    {
+      "name": "Fang second segment",
+      "from": [
+        7.0,
+        19.33,
+        7.39
+      ],
+      "to": [
+        9.02,
+        20.54,
+        8.61
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Fang narrowing curve segment",
+      "from": [
+        6.94,
+        20.5,
+        7.46
+      ],
+      "to": [
+        8.51,
+        21.66,
+        8.54
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Fang curved upper step",
+      "from": [
+        6.74,
+        21.62,
+        7.55
+      ],
+      "to": [
+        7.94,
+        22.65,
+        8.45
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Fang blunt pixel point",
+      "from": [
+        6.55,
+        22.61,
+        7.64
+      ],
+      "to": [
+        7.26,
+        23.43,
+        8.36
+      ],
+      "material": "bone_edge",
+      "side": "bone_face"
+    },
+    {
+      "name": "Left short root fang",
+      "from": [
+        6.1,
+        16.68,
+        7.4
+      ],
+      "to": [
+        6.99,
+        17.73,
+        8.6
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left root fang upper step",
+      "from": [
+        6.32,
+        17.68,
+        7.57
+      ],
+      "to": [
+        6.93,
+        18.23,
+        8.43
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Right short root fang",
+      "from": [
+        9.01,
+        16.68,
+        7.4
+      ],
+      "to": [
+        9.9,
+        17.73,
+        8.6
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right root fang upper step",
+      "from": [
+        9.07,
+        17.68,
+        7.57
+      ],
+      "to": [
+        9.68,
+        18.23,
+        8.43
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Front large root binding knot",
+      "from": [
+        7.44,
+        16.35,
+        6.58
+      ],
+      "to": [
+        8.56,
+        17.3,
+        6.97
+      ],
+      "material": "rawhide",
+      "side": "forest_wrap"
+    },
+    {
+      "name": "Rear large root binding knot",
+      "from": [
+        7.44,
+        16.35,
+        9.03
+      ],
+      "to": [
+        8.56,
+        17.3,
+        9.42
+      ],
+      "material": "rawhide",
+      "side": "forest_wrap"
+    }
+  ],
+  "materials": {
+    "bone_face": {
+      "palette": [
+        "817660",
+        "a79b7d",
+        "c5b998",
+        "dfd5b5",
+        "ece5ca"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23323321",
+        "23333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "a2997c",
+        "c4ba98",
+        "dbd1b0",
+        "eae2c6",
+        "f4efd9"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "bone_shadow": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "a19776",
+        "bfb28f",
+        "d3c8a6"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "bone_joint": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "aba07e",
+        "d2c6a3",
+        "e8dfc0"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23433321",
+        "23322321",
+        "23322321",
+        "23433321",
+        "23333221",
+        "11222110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292a20",
+        "41422c",
+        "5c5837",
+        "7d7045",
+        "9e8d58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302c20",
+        "4d442c",
+        "6c5e3a",
+        "90804d",
+        "b29d65"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382a20",
+        "573e2b",
+        "775738",
+        "9b7750",
+        "b59968"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "forest_wrap": {
+      "palette": [
+        "253327",
+        "3c4d31",
+        "586840",
+        "7c8653",
+        "a1a66c"
+      ],
+      "pattern": [
+        "23333211",
+        "23333211",
+        "22333211",
+        "23333211",
+        "23323211",
+        "23333211",
+        "22333211",
+        "11222100"
+      ]
+    }
+  }
+}
