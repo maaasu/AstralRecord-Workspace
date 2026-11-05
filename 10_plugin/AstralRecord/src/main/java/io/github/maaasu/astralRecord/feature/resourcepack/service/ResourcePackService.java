@@ -35,6 +35,7 @@ public class ResourcePackService {
     private final ConfigProperties configProperties;
     private final ResourcePackRepository repository = new ResourcePackRepository();
     private final Set<UUID> loadedManagedJavaPacks = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, String> requestedActionRingPanels = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -77,15 +78,15 @@ public class ResourcePackService {
 
     /** 同時に参加したプレイヤーは一度のAPI取得にまとめ、送信だけメインスレッドで行います。 */
     private void loadManifest() {
-        String sha1 = null;
+        ResourcePackRepository.JavaPack pack = null;
         try {
-            sha1 = repository.loadJavaSha1();
+            pack = repository.loadJavaPack();
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         } catch (IOException | RuntimeException exception) {
             Logger.log(LogId.W_5553, exception);
         }
-        String result = sha1;
+        ResourcePackRepository.JavaPack result = pack;
         if (plugin.isEnabled()) {
             plugin.getServer().getScheduler().runTask(plugin, () -> applyManifest(result));
         }
@@ -94,20 +95,26 @@ public class ResourcePackService {
     /**
      * 現在の接続だけにパックを要求し、未配布・取得失敗時は固定URL方式を確認します。
      *
-     * @param sha1 API が返した SHA-1。現在のパックがなければnull
+     * @param pack API の配布情報。現在のパックがなければ null
      */
-    private void applyManifest(@Nullable String sha1) {
+    private void applyManifest(@Nullable ResourcePackRepository.JavaPack pack) {
         manifestLoading = false;
         List<Player> viewers = List.copyOf(pendingViewers.values());
         pendingViewers.clear();
-        String url = sha1 == null ? null : managedPackUrl(sha1);
+        String url = pack == null ? null : managedPackUrl(pack.sha1());
         for (Player player : viewers) {
             if (plugin.getServer().getPlayer(player.getUniqueId()) != player) {
                 continue;
             }
             try {
                 if (url != null) {
-                    player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(sha1),
+                    UUID viewer = player.getUniqueId();
+                    loadedManagedJavaPacks.remove(viewer);
+                    requestedActionRingPanels.remove(viewer);
+                    if (pack.actionRingPanel() != null) {
+                        requestedActionRingPanels.put(viewer, pack.actionRingPanel());
+                    }
+                    player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
                     Logger.log(LogId.I_5550, player.getName(), url, configProperties.isResourcePackForce());
                 } else {
@@ -230,6 +237,17 @@ public class ResourcePackService {
     }
 
     /**
+     * 適用済みの管理パックが RPG プラグインと同じスプライト台帳を含むか判定します。
+     *
+     * @param playerId 閲覧者の UUID
+     * @param revision RPG プラグインの台帳の SHA-256
+     * @return 台帳が一致するパックを適用済みなら true
+     */
+    public boolean hasActionRingPanel(UUID playerId, String revision) {
+        return hasManagedJavaPack(playerId) && revision.equals(requestedActionRingPanels.get(playerId));
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -237,6 +255,7 @@ public class ResourcePackService {
     public void forgetViewer(UUID playerId) {
         pendingViewers.remove(playerId);
         loadedManagedJavaPacks.remove(playerId);
+        requestedActionRingPanels.remove(playerId);
     }
 
     /**

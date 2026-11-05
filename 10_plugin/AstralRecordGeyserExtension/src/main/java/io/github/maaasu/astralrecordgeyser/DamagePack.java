@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -22,13 +23,15 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipEntry;
 import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
 
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean weaponAttack, Set<Integer> heldWeaponModels, Set<ItemModel> itemModels
+    boolean combatResult, boolean weaponAttack, Set<Integer> heldWeaponModels, Set<ItemModel> itemModels,
+    Set<Integer> actionRingSprites
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -46,6 +49,13 @@ record DamagePack(
         "models/entity/action_ring.geo.json", "render_controllers/action_ring.render_controllers.json",
         "textures/entity/action_ring.png"
     );
+    private static final List<String> ACTION_RING_PANEL_ENTRIES = List.of(
+        "entity/action_ring_panel.entity.json", "animations/action_ring_panel.animation.json",
+        "animations/action_ring.animation.json", "models/entity/action_ring_panel.geo.json",
+        "render_controllers/action_ring_panel.render_controllers.json",
+        "textures/entity/action_ring_rim.png", "textures/entity/action_ring_panel.png"
+    );
+    private static final String PANEL_SPRITES_PREFIX = "textures/entity/action_ring_icons/";
     private static final List<String> COMBAT_RESULT_ENTRIES = List.of(
         "entity/combat_result.entity.json", "animations/combat_result.animation.json",
         "models/entity/combat_result.geo.json", "render_controllers/combat_result.render_controllers.json",
@@ -95,6 +105,7 @@ record DamagePack(
             boolean weaponAttack;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
+            Set<Integer> actionRingSprites;
             try (ZipFile zip = new ZipFile(file.toFile())) {
                 var manifest = zip.getEntry("manifest.json");
                 // Geyser reads entries containing manifest.json. Require only the root manifest and bound its size.
@@ -117,6 +128,7 @@ record DamagePack(
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
+                actionRingSprites = readActionRingSprites(zip);
             }
             var pack = ResourcePack.create(PackCodec.path(file));
             if (!uuid.equals(pack.uuid())) throw new IOException("Bedrock pack UUID mismatch");
@@ -126,10 +138,27 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                heldWeaponModels, itemModels);
+                heldWeaponModels, itemModels, actionRingSprites);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
+    }
+
+    private static Set<Integer> readActionRingSprites(ZipFile zip) {
+        if (ACTION_RING_PANEL_ENTRIES.stream().map(zip::getEntry).anyMatch(entry -> !present(entry))) {
+            return Set.of();
+        }
+        Set<Integer> sprites = new HashSet<>();
+        for (int id = 1; id <= 254; id++) {
+            if (present(zip.getEntry(PANEL_SPRITES_PREFIX + id + ".png"))) {
+                sprites.add(id);
+            }
+        }
+        return Set.copyOf(sprites);
+    }
+
+    private static boolean present(ZipEntry entry) {
+        return entry != null && !entry.isDirectory() && entry.getSize() > 0;
     }
 
     private static String sha256(byte[] bytes) {

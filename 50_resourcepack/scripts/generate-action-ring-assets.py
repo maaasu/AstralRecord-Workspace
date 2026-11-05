@@ -64,14 +64,50 @@ def make_atlas():
         right, bottom = (max(point[axis] for point in points) + 1 for axis in range(2))
         sectors.append((left, top, right, bottom, tile_x + left, tile_y + top))
 
+    return png(WIDTH, HEIGHT, rows), sectors
+
+
+def png(width, height, rows):
     def chunk(tag, data):
         return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data))
 
-    atlas = (b"\x89PNG\r\n\x1a\n"
-             + chunk(b"IHDR", struct.pack(">IIBBBBB", WIDTH, HEIGHT, 8, 6, 0, 0, 0))
-             + chunk(b"IDAT", zlib.compress(b"".join(b"\0" + row for row in rows), 9))
-             + chunk(b"IEND", b""))
-    return atlas, sectors
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"".join(b"\0" + row for row in rows), 9))
+            + chunk(b"IEND", b""))
+
+
+def panel_textures():
+    # Bake the neutral ring as one face for Bedrock's standard alpha-test material.
+    rows = [bytearray(SIZE * 4) for _ in range(SIZE)]
+    tint = [((COLORS["normal"] >> shift) & 255) for shift in (16, 8, 0)]
+    for slot in range(SLOT_COUNT):
+        angle = slot * math.tau / SLOT_COUNT
+        for y in range(SIZE):
+            for x in range(SIZE):
+                shade, alpha = sector_pixel(x, y, angle)
+                if alpha >= 200 or alpha and (x + y) % 2 == 0:
+                    rows[y][x * 4:x * 4 + 4] = bytes([int(shade * color / 255) for color in tint] + [255])
+    write(BEDROCK / "textures/entity/action_ring_rim.png", png(SIZE, SIZE, rows))
+
+    decor = []
+    for y in range(8):
+        row = bytearray()
+        for x in range(32):
+            column = x % 8
+            if x < 24:
+                shades = ((18, 26, 46), (249, 184, 92), (135, 228, 241))
+                color = shades[x // 8]
+                rgb = tuple(max(0, component - 25) for component in color) if y >= 6 else color
+                row.extend((*rgb, 255))
+            else:
+                radius = abs(column - 3.5) + abs(y - 3.5)
+                row.extend((255, 238, 171, 255) if radius <= 2 else
+                           (255, 183, 75, 255) if radius <= 4 else (0, 0, 0, 0))
+        decor.append(row)
+    overlay = png(32, 8, decor)
+    write(JAVA / "textures/item/action_ring_panel.png", overlay)
+    write(BEDROCK / "textures/entity/action_ring_panel.png", overlay)
 
 
 def write(path, data):
@@ -185,6 +221,7 @@ def main():
     write(BEDROCK / "textures/entity/action_ring.png", atlas)
     java_models(sectors)
     bedrock_models(sectors)
+    panel_textures()
 
 
 if __name__ == "__main__":

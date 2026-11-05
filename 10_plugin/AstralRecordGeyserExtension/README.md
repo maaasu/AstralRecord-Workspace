@@ -40,7 +40,9 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ## Bedrockのアクションリング
 
-同じ配布パックに輪郭用アセットが含まれる接続では、RPG から送られる輪郭用 TextDisplay を `astralrecord:action_ring` に置き換えます。後続の状態通知を受けて、同じモデルの向き・縮尺・選択枠・クールダウン枠を更新します。各スキルのアイコンは元のアイテムを閲覧者専用のドロップアイテムとして表示し、輪郭と同じ縮尺で調整します。ラベルには Geyser の TextDisplay 変換を使います。発動判定は RPG 側で行います。
+接続時に一体型アセットを含むパックを登録した接続では、輪郭用 TextDisplay を `astralrecord:action_ring_panel` に置き換えます。一枚の両面モデルを輪郭に使い、後続の状態通知でスプライト、選択マーカー、ゲージ、向きと縮尺を更新します。一体型表示に含まれるアイコンとゲージの個別表示を抑止し、パックにないアイコンは元のアイテムで表示します。ラベルには Geyser の TextDisplay 変換を使い、発動判定は RPG 側で行います。
+
+一体型アセットを利用できない接続では、RPG が送る8方向の水色の目印、個別アイコン、ラベルを表示します。パック配布には `gameplay.enable-custom-content: true` と `gameplay.force-resource-packs: true` を使います。更新後のパックは再接続時に配布します。
 
 ## Bedrockの討伐リザルト
 

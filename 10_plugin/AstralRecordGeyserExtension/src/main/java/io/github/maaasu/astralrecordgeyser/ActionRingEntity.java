@@ -19,13 +19,17 @@ record ActionRingEntity(GeyserFloatEntityProperty yaw, GeyserFloatEntityProperty
     }
 
     static ActionRingEntity registerProperties(GeyserDefineEntityPropertiesEvent event) {
+        return registerProperties(event, IDENTIFIER);
+    }
+
+    static ActionRingEntity registerProperties(GeyserDefineEntityPropertiesEvent event, Identifier identifier) {
         return new ActionRingEntity(
-            event.registerFloatProperty(IDENTIFIER, property("yaw"), -180f, 180f, 0f),
-            event.registerFloatProperty(IDENTIFIER, property("pitch"), -90f, 90f, 0f),
-            event.registerFloatProperty(IDENTIFIER, property("roll"), -180f, 180f, 0f),
-            event.registerFloatProperty(IDENTIFIER, property("size"), 0f, 4f, 1f),
-            event.registerIntegerProperty(IDENTIFIER, property("selected"), 0, 8, 0),
-            event.registerIntegerProperty(IDENTIFIER, property("cooldowns"), 0, 255, 0)
+            event.registerFloatProperty(identifier, property("yaw"), -180f, 180f, 0f),
+            event.registerFloatProperty(identifier, property("pitch"), -90f, 90f, 0f),
+            event.registerFloatProperty(identifier, property("roll"), -180f, 180f, 0f),
+            event.registerFloatProperty(identifier, property("size"), 0f, 4f, 1f),
+            event.registerIntegerProperty(identifier, property("selected"), 0, 8, 0),
+            event.registerIntegerProperty(identifier, property("cooldowns"), 0, 255, 0)
         );
     }
 

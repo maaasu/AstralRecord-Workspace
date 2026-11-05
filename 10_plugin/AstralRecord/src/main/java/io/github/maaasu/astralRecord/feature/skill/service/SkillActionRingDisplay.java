@@ -44,9 +44,11 @@ import java.util.UUID;
  */
 final class SkillActionRingDisplay {
     private static final NamespacedKey OUTLINE_MODEL = new NamespacedKey("astralrecord", "action_ring");
+    private static final NamespacedKey PANEL_MODEL = new NamespacedKey("astralrecord", "action_ring_panel");
     private static final Color NORMAL_OUTLINE = Color.fromRGB(0xa6e8ff);
     private static final Color SELECTED_OUTLINE = Color.fromRGB(0xffcb70);
     private static final Color COOLDOWN_OUTLINE = Color.fromRGB(0x737c90);
+    private static final Color COOLDOWN_ICON = Color.fromRGB(0x9e9e9e);
     private static final double BEDROCK_ITEM_OFFSET = 0.125D;
     private static final int TEXT_LINE_WIDTH = 180;
     private static final int TELEPORT_DURATION_TICKS = 1;
@@ -89,7 +91,11 @@ final class SkillActionRingDisplay {
     }
 
     DisplayEntity text(@NotNull Location location, @NotNull Component text, float scale) {
-        return new DisplayEntity(DisplayKind.TEXT, location, null, text, scale, null);
+        return text(location, text, scale, null);
+    }
+
+    DisplayEntity text(@NotNull Location location, @NotNull Component text, float scale, @Nullable UUID uuid) {
+        return new DisplayEntity(DisplayKind.TEXT, location, null, text, scale, uuid);
     }
 
     /**
@@ -115,8 +121,8 @@ final class SkillActionRingDisplay {
         entity.updateText(player, text, scale);
     }
 
-    Outline outline(boolean bedrock) {
-        return new Outline(bedrock);
+    Outline outline(boolean bedrock, boolean javaPanel) {
+        return new Outline(bedrock, javaPanel);
     }
 
     private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale, Display.Billboard billboard) {
@@ -184,7 +190,7 @@ final class SkillActionRingDisplay {
 
     final class DisplayEntity {
         private final DisplayKind kind;
-        private final @Nullable UUID bedrockIconUuid;
+        private final @Nullable UUID markerUuid;
         private Location location;
         private ItemStack itemStack;
         private Component text;
@@ -198,10 +204,10 @@ final class SkillActionRingDisplay {
             ItemStack itemStack,
             Component text,
             float scale,
-            @Nullable UUID bedrockIconUuid
+            @Nullable UUID markerUuid
         ) {
             this.kind = kind;
-            this.bedrockIconUuid = bedrockIconUuid;
+            this.markerUuid = markerUuid;
             this.location = renderLocation(location);
             this.itemStack = itemStack == null ? null : itemStack.clone();
             this.text = text;
@@ -241,9 +247,9 @@ final class SkillActionRingDisplay {
         }
 
         private PacketEntity createPacketEntity() {
-            return bedrockIconUuid == null
+            return markerUuid == null
                 ? new PacketEntity(kind.type, location)
-                : new PacketEntity(PacketEntityIdAllocator.nextEntityId(), bedrockIconUuid, kind.type, location);
+                : new PacketEntity(PacketEntityIdAllocator.nextEntityId(), markerUuid, kind.type, location);
         }
 
         /**
@@ -336,9 +342,10 @@ final class SkillActionRingDisplay {
         }
     }
 
-    /** リングの全輪郭を表示する単一モデルです。 */
+    /** リングの一体型モデルと、旧パックの輪郭モデルを送信します。 */
     final class Outline {
         private final boolean bedrock;
+        private final boolean javaPanel;
         private final int bedrockId;
         private PacketEntity entity;
         private Location location;
@@ -347,14 +354,27 @@ final class SkillActionRingDisplay {
         private int selected;
         private int cooldowns;
         private long bedrockState;
+        private ActionRingPanel panel;
 
-        private Outline(boolean bedrock) {
+        private Outline(boolean bedrock, boolean javaPanel) {
             this.bedrock = bedrock;
+            this.javaPanel = javaPanel;
             this.bedrockId = bedrock ? PacketEntityIdAllocator.nextEntityId() : 0;
         }
 
         @Nullable UUID iconUuid(int index) {
             return bedrock ? ActionRingFrame.icon(bedrockId, index) : null;
+        }
+
+        @Nullable UUID fallbackUuid(int part) {
+            return bedrock ? ActionRingFrame.fallback(bedrockId, part) : null;
+        }
+
+        /** 一体型パックを使えず生成した統合版アイコンに初期縮尺を反映します。 */
+        void syncBedrockIcons(Player player) {
+            if (bedrock && entity != null) {
+                sendMarker(player, ActionRingFrame.marker(bedrockId, bedrockState));
+            }
         }
 
         /**
@@ -368,15 +388,16 @@ final class SkillActionRingDisplay {
          * @param nextScale モデルの表示幅
          * @param nextSelected 選択中の枠番号。0 は選択なし
          * @param nextCooldowns クールダウン中の枠を表すビットマスク
+         * @param nextPanel スプライトとゲージの表示状態
          */
         void update(Player player, Location center, Vector normal, Vector right, Vector up,
-                    float nextScale, int nextSelected, int nextCooldowns) {
+                    float nextScale, int nextSelected, int nextCooldowns, ActionRingPanel nextPanel) {
             Location target = withoutRotation(center);
             if (location != null && location.getWorld() != target.getWorld()) {
                 destroy(player);
             }
             if (entity == null) {
-                spawn(player, target, normal, right, up, nextScale, nextSelected, nextCooldowns);
+                spawn(player, target, normal, right, up, nextScale, nextSelected, nextCooldowns, nextPanel);
                 return;
             }
             if (!target.equals(location)) {
@@ -387,13 +408,15 @@ final class SkillActionRingDisplay {
                 long nextState = ActionRingFrame.pack(normal, up, nextScale, nextSelected, nextCooldowns);
                 if (bedrockState != nextState) {
                     bedrockState = nextState;
-                    int id = PacketEntityIdAllocator.nextEntityId();
-                    PacketEntity marker = new PacketEntity(id, ActionRingFrame.marker(entity.entityId, nextState),
-                        EntityType.TEXT_DISPLAY, target);
-                    // Geyser はマーカーを描画せず、すでに存在するモデルへ状態を反映します。
-                    marker.spawn(player, List.of());
-                    marker.destroy(player);
+                    sendMarker(player, ActionRingFrame.marker(bedrockId, nextState));
                 }
+                if (panel.icons() != nextPanel.icons()) {
+                    sendMarker(player, ActionRingFrame.panelIcons(bedrockId, nextPanel.icons()));
+                }
+                if (panel.gauges() != nextPanel.gauges()) {
+                    sendMarker(player, ActionRingFrame.panelGauges(bedrockId, nextPanel.gauges()));
+                }
+                panel = nextPanel;
                 return;
             }
             List<WrappedDataValue> values = new ArrayList<>();
@@ -406,21 +429,25 @@ final class SkillActionRingDisplay {
                 scale = nextScale;
                 values.add(scaleValue(scale));
             }
-            if (selected != nextSelected || cooldowns != nextCooldowns) {
+            if (selected != nextSelected || cooldowns != nextCooldowns || javaPanel && !nextPanel.equals(panel)) {
                 selected = nextSelected;
                 cooldowns = nextCooldowns;
-                values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, outlineItem(selected, cooldowns)));
+                panel = nextPanel;
+                values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, outlineItem(selected, cooldowns, javaPanel ? panel : null)));
             }
             entity.updateMetadata(player, values);
         }
 
         private void spawn(Player player, Location center, Vector normal, Vector right, Vector up,
-                           float initialScale, int initialSelected, int initialCooldowns) {
+                           float initialScale, int initialSelected, int initialCooldowns, ActionRingPanel initialPanel) {
             location = center;
+            panel = initialPanel;
             if (bedrock) {
                 bedrockState = ActionRingFrame.pack(normal, up, initialScale, initialSelected, initialCooldowns);
                 entity = new PacketEntity(bedrockId, ActionRingFrame.marker(bedrockId, bedrockState), EntityType.TEXT_DISPLAY, center);
                 entity.spawn(player, List.of());
+                sendMarker(player, ActionRingFrame.panelIcons(bedrockId, panel.icons()));
+                sendMarker(player, ActionRingFrame.panelGauges(bedrockId, panel.gauges()));
                 return;
             }
             entity = new PacketEntity(EntityType.ITEM_DISPLAY, center);
@@ -431,10 +458,18 @@ final class SkillActionRingDisplay {
             List<WrappedDataValue> values = baseDisplayMetadata(scale, Display.Billboard.FIXED);
             values.add(rotationValue(rotation));
             values.add(value(DISPLAY_BRIGHTNESS_INDEX, serializer(Integer.class), FULL_BRIGHT));
-            values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, outlineItem(selected, cooldowns)));
+            values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, outlineItem(selected, cooldowns, javaPanel ? panel : null)));
             values.add(value(ITEM_DISPLAY_TRANSFORM_INDEX, serializer(Byte.class),
                 (byte) ItemDisplay.ItemDisplayTransform.FIXED.ordinal()));
             entity.spawn(player, values);
+        }
+
+        private void sendMarker(Player player, UUID uuid) {
+            int id = PacketEntityIdAllocator.nextEntityId();
+            PacketEntity marker = new PacketEntity(id, uuid, EntityType.TEXT_DISPLAY, location);
+            // Geyser はマーカーを描画せず、すでに存在するモデルへ状態を反映します。
+            marker.spawn(player, List.of());
+            marker.destroy(player);
         }
 
         void destroy(Player player) {
@@ -462,12 +497,12 @@ final class SkillActionRingDisplay {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private static ItemStack outlineItem(int selected, int cooldowns) {
+    private static ItemStack outlineItem(int selected, int cooldowns, @Nullable ActionRingPanel panel) {
         ItemStack stack = new ItemStack(Material.PAPER);
         ItemMeta meta = stack.getItemMeta();
-        meta.setItemModel(OUTLINE_MODEL);
+        meta.setItemModel(panel == null ? OUTLINE_MODEL : PANEL_MODEL);
         var modelData = meta.getCustomModelDataComponent();
-        List<Color> colors = new ArrayList<>(SkillBindPreset.ACTION_RING_SLOT_COUNT);
+        List<Color> colors = new ArrayList<>();
         for (int slot = 0; slot < SkillBindPreset.ACTION_RING_SLOT_COUNT; slot++) {
             Color color = NORMAL_OUTLINE;
             if (slot + 1 == selected) {
@@ -476,6 +511,13 @@ final class SkillActionRingDisplay {
                 color = COOLDOWN_OUTLINE;
             }
             colors.add(color);
+        }
+        if (panel != null) {
+            for (int slot = 0; slot < SkillBindPreset.ACTION_RING_SLOT_COUNT; slot++) {
+                colors.add((cooldowns & (1 << slot)) == 0 ? Color.WHITE : COOLDOWN_ICON);
+            }
+            colors.add(Color.WHITE);
+            modelData.setFloats(panel.modelValues(selected));
         }
         modelData.setColors(colors);
         meta.setCustomModelDataComponent(modelData);

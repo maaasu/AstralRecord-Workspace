@@ -4,6 +4,7 @@ import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.entity.custom.CustomEntityDefinition;
 import org.geysermc.geyser.api.entity.data.GeyserEntityDataTypes;
+import org.geysermc.geyser.api.entity.type.GeyserEntity;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
@@ -33,6 +34,8 @@ public final class AstralRecordGeyserExtension implements Extension {
     private DamageNumberEntity damageNumberProperties;
     private CustomEntityDefinition actionRingDefinition;
     private ActionRingEntity actionRingProperties;
+    private CustomEntityDefinition actionRingPanelDefinition;
+    private ActionRingPanelEntity actionRingPanelProperties;
     private CustomEntityDefinition weaponAttackDefinition;
     private WeaponAttackEntity weaponAttackProperties;
     private HeldWeaponModelDisplay heldWeaponModels;
@@ -50,6 +53,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         var ringDefinition = ActionRingEntity.definition();
         event.register(ringDefinition);
         actionRingDefinition = ringDefinition;
+        var panelDefinition = ActionRingPanelEntity.definition();
+        event.register(panelDefinition);
+        actionRingPanelDefinition = panelDefinition;
         var attackDefinition = WeaponAttackEntity.definition();
         event.register(attackDefinition);
         weaponAttackDefinition = attackDefinition;
@@ -63,6 +69,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
         if (actionRingDefinition != null) {
             actionRingProperties = ActionRingEntity.registerProperties(event);
+        }
+        if (actionRingPanelDefinition != null) {
+            actionRingPanelProperties = ActionRingPanelEntity.registerProperties(event);
         }
         if (weaponAttackDefinition != null) {
             weaponAttackProperties = WeaponAttackEntity.registerProperties(event);
@@ -109,6 +118,11 @@ public final class AstralRecordGeyserExtension implements Extension {
     @Subscribe(ignoreCancelled = true)
     public void onServerSpawn(ServerSpawnEntityEvent event) {
         if (event.entityType().is(DROPPED_ITEM) && ActionRingFrame.isIcon(event.uuid())) {
+            GeyserEntity panel = panelFor(event, ActionRingPanelEntity.targetId(event.uuid()));
+            if (panel != null && ActionRingPanelEntity.replacesFallback(panel, (int) event.uuid().getLeastSignificantBits())) {
+                event.setCancelled(true);
+                return;
+            }
             event.preSpawnConsumer(entity -> {
                 entity.override(GeyserEntityDataTypes.WIDTH, 0f);
                 entity.override(GeyserEntityDataTypes.HEIGHT, 0f);
@@ -146,6 +160,21 @@ public final class AstralRecordGeyserExtension implements Extension {
             }
             return;
         }
+        if (ActionRingPanelEntity.isUpdate(event.uuid())) {
+            event.setCancelled(true);
+            GeyserEntity panel = panelFor(event, ActionRingPanelEntity.targetId(event.uuid()));
+            if (panel != null) {
+                actionRingPanelProperties.apply(panel, event.uuid(), damagePacks.actionRingSprites(event.connection()));
+            }
+            return;
+        }
+        if (ActionRingPanelEntity.isFallback(event.uuid())) {
+            GeyserEntity panel = panelFor(event, ActionRingPanelEntity.targetId(event.uuid()));
+            if (panel != null && ActionRingPanelEntity.replacesFallback(panel, 8)) {
+                event.setCancelled(true);
+            }
+            return;
+        }
         ActionRingFrame frame = ActionRingFrame.decode(event.uuid(), event.entityId());
         if (frame != null) {
             onActionRingFrame(event, frame);
@@ -171,6 +200,12 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
     }
 
+    private GeyserEntity panelFor(ServerSpawnEntityEvent event, int targetId) {
+        GeyserEntity ring = event.connection().entities().byJavaId(targetId);
+        return ring != null && actionRingPanelProperties != null && actionRingPanelDefinition.equals(ring.definition())
+            ? ring : null;
+    }
+
     private void onActionRingFrame(ServerSpawnEntityEvent event, ActionRingFrame frame) {
         var entities = event.connection().entities();
         for (int slot = 0; slot < 8; slot++) {
@@ -182,20 +217,24 @@ public final class AstralRecordGeyserExtension implements Extension {
                 }
             }
         }
-        var properties = actionRingProperties;
-        if (properties == null || !damagePacks.actionRingReady(event.connection())) {
-            event.setCancelled(true);
-            return;
-        }
         if (!frame.update()) {
-            event.definition(actionRingDefinition);
-            event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
+            if (actionRingPanelProperties != null && !damagePacks.actionRingSprites(event.connection()).isEmpty()) {
+                event.definition(actionRingPanelDefinition);
+                event.preSpawnConsumer(entity -> actionRingPanelProperties.pose().initialize(entity, frame));
+            } else if (actionRingProperties != null && damagePacks.actionRingReady(event.connection())) {
+                event.definition(actionRingDefinition);
+                event.preSpawnConsumer(entity -> actionRingProperties.initialize(entity, frame));
+            } else {
+                event.setCancelled(true);
+            }
             return;
         }
         event.setCancelled(true);
         var ring = entities.byJavaId(frame.targetId());
-        if (ring != null && actionRingDefinition.equals(ring.definition())) {
-            properties.apply(ring, frame, true);
+        if (ring != null && actionRingPanelProperties != null && actionRingPanelDefinition.equals(ring.definition())) {
+            actionRingPanelProperties.pose().apply(ring, frame, true);
+        } else if (ring != null && actionRingProperties != null && actionRingDefinition.equals(ring.definition())) {
+            actionRingProperties.apply(ring, frame, true);
         }
     }
 

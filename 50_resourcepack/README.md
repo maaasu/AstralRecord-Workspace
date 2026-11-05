@@ -35,9 +35,9 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 ### アクションリング
 
-8枠分の輪郭を一枚の透過テクスチャにまとめています。1番は真上で、時計回りに8番まで並びます。青緑は通常枠、金色は選択中、灰色はクールダウン中です。スキル固有のアイコンと名前、枠番号、発動不可の理由、クールダウンの秒数とバーを RPG プラグインが表示します。
+輪郭、8方向のスキル専用アイコン、金色の選択マーカー、クールダウンゲージと操作時間ゲージを `astralrecord:action_ring_panel` の1体で表示します。1番は真上で、時計回りに8番まで並びます。クールダウン中はアイコンを暗くし、残り割合をゲージで表示します。名前、枠番号、発動不可の理由と秒数は RPG プラグインが文字として重ねます。
 
-Java 版は管理パックの適用成功後に `astralrecord:action_ring` のアイテムモデルを使います。統合版は接続時に輪郭を含むパックが登録された場合に、Geyser 拡張が同名のクライアントエンティティを使います。管理パックを利用できない場合や Java 版の固定 URL 配布では、スキルアイコンと状態ラベルで操作できます。
+Java 版は管理パックの適用成功後、配布マニフェストの `java.actionRingPanel` が RPG プラグインのスプライト台帳と一致する接続で一体型モデルを使います。旧管理パックは専用輪郭と個別アイコン、固定 URL やパック適用前は個別アイコンと状態ラベルで表示します。統合版は Geyser 拡張が接続時のパックにあるスプライトだけを一体化します。一体型モデルを利用できない場合は、8方向の水色の目印と個別アイコン、文字の操作時間バーを表示します。
 
 ### 武器通常攻撃
 
@@ -85,6 +85,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-resourcepack.p
 字形の修正時は `scripts/generate-damage-number-assets.py` を Python で実行し、両版の PNG と関連 JSON を再生成します。通常のパックビルドに Python は不要です。
 
 輪郭を変更するときは `scripts/generate-action-ring-assets.py` で両版の PNG とモデルを再生成します。128 px の面に対するアイコン中心の半径は42 px、輪郭の最大半径は61 pxです。寸法や枠の色を変えるときは `SkillActionRingService`、`SkillActionRingDisplay` と Geyser 拡張の `ActionRingFrame` も確認します。
+
+スキルアイコンは `scripts/generate-action-ring-icons.py` で生成します。生成元の既存番号を保持し、新しいスキルは未使用の番号に追加します。ビルドは RPG プラグイン内の `action-ring-icons.json` と両版のテクスチャをもとに一体型モデルを生成します。台帳にないスキルは従来のアイテムアイコンを表示します。
 
 通常攻撃の絵柄を変更するときは `scripts/generate-weapon-attack-assets.py` で両版の16 pxスプライトを再生成します。
 

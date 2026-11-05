@@ -8,6 +8,9 @@ import java.util.UUID;
 final class ActionRingFrame {
     private static final long TAG = 0xa57a710900000000L;
     private static final long ICON_TAG = 0xa57a710a00000000L;
+    private static final long PANEL_ICONS_TAG = 0xa57a710b00000000L;
+    private static final long PANEL_GAUGES_TAG = 0xa57a710c00000000L;
+    private static final long FALLBACK_TAG = 0xa57a710d00000000L;
     private static final int ANGLE_PRECISION = 16;
     private static final int SIZE_PRECISION = 128;
 
@@ -41,6 +44,18 @@ final class ActionRingFrame {
 
     static UUID icon(int targetId, int slot) {
         return new UUID(ICON_TAG | Integer.toUnsignedLong(targetId), slot);
+    }
+
+    static UUID panelIcons(int targetId, long icons) {
+        return new UUID(PANEL_ICONS_TAG | Integer.toUnsignedLong(targetId), icons);
+    }
+
+    static UUID panelGauges(int targetId, long gauges) {
+        return new UUID(PANEL_GAUGES_TAG | Integer.toUnsignedLong(targetId), gauges);
+    }
+
+    static UUID fallback(int targetId, int part) {
+        return new UUID(FALLBACK_TAG | Integer.toUnsignedLong(targetId), part);
     }
 
     private static long angle(double radians, int mask) {

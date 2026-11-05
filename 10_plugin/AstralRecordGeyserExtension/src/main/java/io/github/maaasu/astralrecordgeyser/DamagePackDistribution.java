@@ -139,7 +139,8 @@ final class DamagePackDistribution {
         // SessionLogin follows Bedrock pack negotiation. There is no per-pack ACK in the public API.
         sessions.computeIfPresent(connection, (key, selection) -> {
             if (selection.event() == null) return selection;
-            boolean registered = selection.event().resourcePacks().stream().anyMatch(pack -> pack == selection.pack().pack());
+            boolean registered = selection.event().resourcePacks().stream()
+                .anyMatch(pack -> pack.uuid().equals(selection.pack().pack().uuid()));
             return new SessionPack(selection.pack(), null, registered);
         });
     }
@@ -171,6 +172,11 @@ final class DamagePackDistribution {
     boolean combatResultReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() && selection.pack().combatResult();
+    }
+
+    Set<Integer> actionRingSprites(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() ? selection.pack().actionRingSprites() : Set.of();
     }
 
     void disconnect(GeyserConnection connection) {

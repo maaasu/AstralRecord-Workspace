@@ -63,6 +63,7 @@ function Write-Pack {
 
 # Package damage numbers plus the custom items selected by the registry.
 . (Join-Path $PSScriptRoot 'item-models.ps1')
+. (Join-Path $PSScriptRoot 'action-ring-panel.ps1')
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
     'assets/astralrecord/font/damage_number.json'
@@ -75,6 +76,8 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/items/action_ring.json'
     'assets/astralrecord/models/item/action_ring.json'
     'assets/astralrecord/textures/item/action_ring.png'
+    'assets/astralrecord/textures/item/action_ring_icons.png'
+    'assets/astralrecord/textures/item/action_ring_panel.png'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -95,6 +98,8 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'models/entity/action_ring.geo.json'
     'render_controllers/action_ring.render_controllers.json'
     'textures/entity/action_ring.png'
+    'textures/entity/action_ring_rim.png'
+    'textures/entity/action_ring_panel.png'
     'ui/_ui_defs.json'
     'ui/hud_screen.json'
     'ui/astralrecord_hud.json'
@@ -118,6 +123,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/weapon_attack/staff.png'
 )
 Add-ItemModelEntries $java $bedrock
+Add-ActionRingPanelEntries $java $bedrock
 
 # Include the template and file names in the fingerprint. Any distributed
 # Bedrock asset change results in a new pack ID, bypassing client pack caching.

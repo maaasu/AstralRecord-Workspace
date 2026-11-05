@@ -13,15 +13,20 @@ import java.util.regex.Pattern;
 public final class ResourcePackRepository {
     private static final String MANIFEST_PATH = "/api/resource-packs/manifest";
     private static final Pattern SHA1 = Pattern.compile("[0-9a-f]{40}");
+    private static final Pattern PANEL_REVISION = Pattern.compile("[0-9a-f]{64}");
+
+    /** 配布物のハッシュと、含まれるアクションリングのスプライト台帳を識別します。 */
+    public record JavaPack(String sha1, @Nullable String actionRingPanel) {
+    }
 
     /**
-     * 配信中のJava用パックのSHA-1を取得します。HTTPを待つため非同期タスクから呼び出します。
+     * 配信中の Java 版パックの情報を取得します。HTTP を待つため非同期タスクから呼び出します。
      *
-     * @return 40桁の小文字SHA-1。未配布ならnull
+     * @return 配布情報。未配布なら null
      * @throws IOException 通信または配布情報が異常な場合
      * @throws InterruptedException 待機中に割り込まれた場合
      */
-    public @Nullable String loadJavaSha1() throws IOException, InterruptedException {
+    public @Nullable JavaPack loadJavaPack() throws IOException, InterruptedException {
         var request = ApiRequestUtil.buildRequestBuilder(MANIFEST_PATH).GET().build();
         var response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
@@ -31,11 +36,15 @@ public final class ResourcePackRepository {
             throw new IOException("HTTP " + response.statusCode());
         }
         try {
-            JsonElement sha1 = JsonParser.parseString(response.body()).getAsJsonObject()
-                    .getAsJsonObject("java").get("sha1");
+            var java = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("java");
+            JsonElement sha1 = java.get("sha1");
             if (sha1 != null && sha1.isJsonPrimitive() && sha1.getAsJsonPrimitive().isString()
                     && SHA1.matcher(sha1.getAsString()).matches()) {
-                return sha1.getAsString();
+                JsonElement revision = java.get("actionRingPanel");
+                String panel = revision != null && revision.isJsonPrimitive()
+                    && revision.getAsJsonPrimitive().isString()
+                    && PANEL_REVISION.matcher(revision.getAsString()).matches() ? revision.getAsString() : null;
+                return new JavaPack(sha1.getAsString(), panel);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

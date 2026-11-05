@@ -69,11 +69,10 @@ public final class SkillActionRingService {
     private static final float LABEL_TEXT_SCALE = 0.60F;
     private static final float SLOT_TEXT_SCALE = 0.48F;
     private static final double ORIENTATION_EPSILON_SQUARED = 1.0E-6D;
-    private static final int TIMER_BAR_LENGTH = 24;
-    private static final int COOLDOWN_BAR_LENGTH = 10;
+    private static final int TIMER_BAR_LENGTH = ActionRingPanel.TIMER_STEPS;
+    private static final int COOLDOWN_BAR_LENGTH = ActionRingPanel.GAUGE_STEPS;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
-    private static final long SELECT_ANIMATION_TICKS = 4L;
     private static final int BEDROCK_CLICK_COOLDOWN_TICKS = 2;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final SlotView EMPTY_SLOT = new SlotView(null, null, "", Material.AIR, false, SlotAvailability.UNAVAILABLE);
@@ -247,6 +246,7 @@ public final class SkillActionRingService {
             caster,
             astPlayer.isBedrock() || resourcePackService.hasManagedJavaPack(playerId),
             astPlayer.isBedrock(),
+            !astPlayer.isBedrock() && resourcePackService.hasActionRingPanel(playerId, ActionRingIconCatalog.revision()),
             selectionInstruction
         );
         sessions.put(playerId, session);
@@ -866,9 +866,21 @@ public final class SkillActionRingService {
                 : new SlotView(skillId, definition, name, material, true, nextAvailability, learnedResolution);
         }
 
-        private @NotNull String label(@NotNull SkillService skillService, @NotNull PlayerSkillCaster caster) {
-            if (availability == SlotAvailability.COOLDOWN && definition != null && skillId != null) {
-                return name + "\n" + cooldownBar(skillService, caster);
+        private int sprite() {
+            if (!configured()) {
+                return 0;
+            }
+            if (definition == null || material == Material.BARRIER) {
+                return ActionRingIconCatalog.sprite("__unavailable__");
+            }
+            String spriteKey = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)
+                ? skillId : definition.getId();
+            return ActionRingIconCatalog.sprite(spriteKey);
+        }
+
+        private @NotNull String label(@Nullable CooldownView cooldown, boolean javaPanel, boolean bedrock) {
+            if (cooldown != null) {
+                return name + "\n" + cooldown.text(javaPanel, bedrock);
             }
             if (availability.label().isBlank()) {
                 return name;
@@ -876,10 +888,13 @@ public final class SkillActionRingService {
             return name + "\n" + availability.label();
         }
 
-        private @NotNull String cooldownBar(
+        private @Nullable CooldownView cooldown(
             @NotNull SkillService skillService,
             @NotNull PlayerSkillCaster caster
         ) {
+            if (availability != SlotAvailability.COOLDOWN || definition == null || skillId == null) {
+                return null;
+            }
             String cooldownId = skillService.resolveCooldownId(definition.getId());
             long totalTicks = skillService.getCooldownDurationTicks(caster, cooldownId);
             if (totalTicks <= 0L) {
@@ -892,19 +907,7 @@ public final class SkillActionRingService {
                 totalTicks,
                 skillService.getRemainingCooldownTicks(caster, cooldownId)
             );
-            int filled = (int) Math.ceil((double) remainingTicks / totalTicks * COOLDOWN_BAR_LENGTH);
-            long tenths = remainingTicks / 2 + remainingTicks % 2;
-            String seconds = (tenths / 10) + "." + (tenths % 10);
-            StringBuilder bar = new StringBuilder(PlayerMsgResource.format(PlayerMsgId.P_5857.getId(), seconds));
-            bar.append(' ').append(ColorCodeUtil.YELLOW);
-            for (int index = 0; index < filled; index++) {
-                bar.append('|');
-            }
-            bar.append(ColorCodeUtil.DARK_GRAY);
-            for (int index = filled; index < COOLDOWN_BAR_LENGTH; index++) {
-                bar.append('|');
-            }
-            return bar.toString();
+            return new CooldownView(remainingTicks, totalTicks);
         }
 
         private @NotNull String color(boolean selected) {
@@ -918,6 +921,32 @@ public final class SkillActionRingService {
                 return ColorCodeUtil.RED;
             }
             return ColorCodeUtil.GREEN;
+        }
+    }
+
+    private record CooldownView(long remaining, long total) {
+        private int filled() {
+            return (int) Math.ceil((double) remaining / total * COOLDOWN_BAR_LENGTH);
+        }
+
+        private String text(boolean javaPanel, boolean bedrock) {
+            String value = seconds(remaining);
+            if (bedrock) {
+                // 同じ残量情報を、専用パックの有無にかかわらず文字で読めます。
+                value += " / " + seconds(total);
+            }
+            String label = PlayerMsgResource.format(PlayerMsgId.P_5857.getId(), value);
+            if (javaPanel || bedrock) {
+                return label;
+            }
+            int filled = filled();
+            return label + " " + ColorCodeUtil.YELLOW + "|".repeat(filled)
+                + ColorCodeUtil.DARK_GRAY + "|".repeat(COOLDOWN_BAR_LENGTH - filled);
+        }
+
+        private static String seconds(long ticks) {
+            long tenths = ticks / 2 + ticks % 2;
+            return (tenths / 10) + "." + (tenths % 10);
         }
     }
 
@@ -963,12 +992,17 @@ public final class SkillActionRingService {
         private Vector up;
         private final List<SlotView> slots;
         private final List<ItemStack> iconItemStacks;
+        private final long spriteIds;
+        private final CooldownView[] cooldownViews = new CooldownView[SLOT_COUNT];
+        private final boolean bedrock;
+        private final boolean javaPanel;
         private final Player viewer;
         private final SkillActionRingDisplay actionRingDisplay;
         private final SkillService skillService;
         private final PlayerSkillCaster caster;
         private final List<SkillActionRingDisplay.DisplayEntity> icons;
         private final List<SkillActionRingDisplay.DisplayEntity> labels;
+        private final List<SkillActionRingDisplay.DisplayEntity> fallbackRim = new ArrayList<>();
         private final @Nullable SkillActionRingDisplay.Outline outline;
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
@@ -989,6 +1023,7 @@ public final class SkillActionRingService {
         private int selectedIndex = -1;
         private int renderedSelection = -1;
         private int renderedCooldowns = -1;
+        private long renderedGauges = -1;
         private int confirmedIndex = -1;
         private Integer lastBedrockClickTick;
         private RingPhase phase = RingPhase.SELECTING;
@@ -1006,6 +1041,7 @@ public final class SkillActionRingService {
             @NotNull PlayerSkillCaster caster,
             boolean useOutline,
             boolean bedrock,
+            boolean javaPanel,
             int hotbarSlot,
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed
@@ -1014,12 +1050,15 @@ public final class SkillActionRingService {
             this.right = right.clone();
             this.up = up.clone();
             this.slots = slots;
-            this.iconItemStacks = slots.stream().map(this::createIconItemStack).toList();
+            this.iconItemStacks = new ArrayList<>(slots.size());
+            this.spriteIds = packSprites(slots);
+            this.bedrock = bedrock;
+            this.javaPanel = javaPanel;
             this.viewer = viewer;
             this.actionRingDisplay = actionRingDisplay;
             this.skillService = skillService;
             this.caster = caster;
-            this.outline = useOutline ? actionRingDisplay.outline(bedrock) : null;
+            this.outline = useOutline ? actionRingDisplay.outline(bedrock, javaPanel) : null;
             this.icons = new ArrayList<>(slots.size());
             this.labels = new ArrayList<>(slots.size());
             this.hotbarSlot = hotbarSlot;
@@ -1035,6 +1074,7 @@ public final class SkillActionRingService {
             @NotNull PlayerSkillCaster caster,
             boolean useOutline,
             boolean bedrock,
+            boolean javaPanel,
             @NotNull PlayerMsgId selectionInstruction
         ) {
             Location eye = player.getEyeLocation();
@@ -1063,6 +1103,7 @@ public final class SkillActionRingService {
                 caster,
                 useOutline,
                 bedrock,
+                javaPanel,
                 player.getInventory().getHeldItemSlot(),
                 blockBreakSpeed,
                 originalBlockBreakSpeed
@@ -1077,6 +1118,18 @@ public final class SkillActionRingService {
             return hotbarSlot;
         }
 
+        private static long packSprites(List<SlotView> slots) {
+            long packed = 0;
+            for (int index = 0; index < slots.size(); index++) {
+                packed |= (long) slots.get(index).sprite() << (8 * index);
+            }
+            return packed;
+        }
+
+        private int spriteAt(int index) {
+            return (int) ((spriteIds >>> (8 * index)) & 0xff);
+        }
+
         /**
          * 現在の衝突回避レイアウトで表示 entity を生成します。
          *
@@ -1085,10 +1138,18 @@ public final class SkillActionRingService {
         private void spawnEntities(@NotNull Player player) {
             Location center = currentCenter();
             for (int index = 0; index < slots.size(); index++) {
+                cooldownViews[index] = slots.get(index).cooldown(skillService, caster);
+            }
+            // 統合版の拡張は一体型モデルの内容を確認してから、不要な個別表示を抑止します。
+            updateOutline(center, true);
+            for (int index = 0; index < slots.size(); index++) {
                 SlotView slot = slots.get(index);
                 Location location = iconLocation(center, index);
-                SkillActionRingDisplay.DisplayEntity icon = slot.configured() ? actionRingDisplay.item(
-                    location, iconItemStacks.get(index), scaledItemScale(slot, false),
+                boolean separateIcon = slot.configured() && (!javaPanel || spriteAt(index) == 0);
+                ItemStack item = separateIcon ? createIconItemStack(slot) : null;
+                iconItemStacks.add(item);
+                SkillActionRingDisplay.DisplayEntity icon = item != null ? actionRingDisplay.item(
+                    location, item, scaledItemScale(slot, false),
                     outline != null ? outline.iconUuid(index) : null
                 ) : null;
                 SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(
@@ -1103,14 +1164,23 @@ public final class SkillActionRingService {
                 icons.add(icon);
                 labels.add(label);
             }
-            // 統合版は先にアイコンを生成し、続く輪郭の初期状態でアイコンも同時に縮尺を揃えます。
-            updateOutline(center, true);
-            timerLabel = actionRingDisplay.text(
-                timerLocation(center),
-                legacyComponent(timerText()),
-                scaledTextScale(LABEL_TEXT_SCALE)
-            );
-            timerLabel.spawn(player);
+            if (bedrock && outline != null) {
+                outline.syncBedrockIcons(player);
+                for (int index = 0; index < SLOT_COUNT; index++) {
+                    var dot = actionRingDisplay.text(fallbackRimLocation(center, index),
+                        Component.text("◆", NamedTextColor.AQUA), scaledTextScale(SLOT_TEXT_SCALE),
+                        outline.fallbackUuid(index));
+                    dot.spawn(player);
+                    fallbackRim.add(dot);
+                }
+            }
+            if (!javaPanel) {
+                timerLabel = actionRingDisplay.text(
+                    timerLocation(center), legacyComponent(timerText()), scaledTextScale(LABEL_TEXT_SCALE),
+                    outline != null ? outline.fallbackUuid(SLOT_COUNT) : null
+                );
+                timerLabel.spawn(player);
+            }
             instructionLabel = actionRingDisplay.text(
                 instructionLocation(center),
                 PlayerMsgResource.getComponent(selectionInstruction.getId()),
@@ -1168,7 +1238,7 @@ public final class SkillActionRingService {
                 || !renderedRight.equals(right)
                 || !renderedUp.equals(up)
                 || Double.compare(renderedScale, layoutScale) != 0
-                || isSelectionAnimationActive();
+                || phase == RingPhase.WAITING_CAST && phaseElapsedTicks == 1;
             if (layoutChanged) {
                 renderedCenter = center.clone();
                 renderedNormal = normal.clone();
@@ -1177,6 +1247,11 @@ public final class SkillActionRingService {
                 renderedScale = layoutScale;
             }
             updateOutline(center, layoutChanged);
+            if (layoutChanged) {
+                for (int index = 0; index < fallbackRim.size(); index++) {
+                    fallbackRim.get(index).teleport(player, fallbackRimLocation(center, index));
+                }
+            }
             for (int index = 0; index < slots.size(); index++) {
                 if (phase == RingPhase.WAITING_CAST && index != confirmedIndex) {
                     continue;
@@ -1220,7 +1295,9 @@ public final class SkillActionRingService {
 
         private void refreshSlotAvailability() {
             for (int index = 0; index < slots.size(); index++) {
-                slots.set(index, slots.get(index).refreshAvailability(skillService, caster));
+                SlotView slot = slots.get(index).refreshAvailability(skillService, caster);
+                slots.set(index, slot);
+                cooldownViews[index] = slot.cooldown(skillService, caster);
             }
         }
 
@@ -1513,7 +1590,10 @@ public final class SkillActionRingService {
          * @return アイコン表示位置
          */
         private @NotNull Location iconLocation(@NotNull Location center, int index) {
-            return center.clone().add(animatedSlotOffset(index));
+            if (phase == RingPhase.WAITING_CAST && index == confirmedIndex) {
+                return center.clone();
+            }
+            return center.clone().add(slotOffset(index).multiply(layoutScale));
         }
 
         /**
@@ -1551,7 +1631,7 @@ public final class SkillActionRingService {
             if (phase == RingPhase.SELECTING) {
                 return center.clone().add(up.clone().multiply(0.30D * layoutScale));
             }
-            return center.clone().add(animatedSlotOffset(confirmedIndex)).add(up.clone().multiply(0.42D * layoutScale));
+            return center.clone().add(up.clone().multiply(0.42D * layoutScale));
         }
 
         /**
@@ -1574,25 +1654,6 @@ public final class SkillActionRingService {
             return (float) (baseScale * layoutScale);
         }
 
-        /**
-         * 衝突回避倍率と確定アニメーションを反映したスロットの中心オフセットを返します。
-         *
-         * @param index スロット番号
-         * @return リング中心からのオフセット
-         */
-        private @NotNull Vector animatedSlotOffset(int index) {
-            Vector offset = slotOffset(index).multiply(layoutScale);
-            if (phase != RingPhase.WAITING_CAST || index != confirmedIndex) {
-                return offset;
-            }
-            double progress = Math.min(1.0D, (double) phaseElapsedTicks / SELECT_ANIMATION_TICKS);
-            return offset.multiply(1.0D - progress);
-        }
-
-        private boolean isSelectionAnimationActive() {
-            return phase == RingPhase.WAITING_CAST && phaseElapsedTicks <= SELECT_ANIMATION_TICKS;
-        }
-
         private @NotNull Component labelComponent(
             int index,
             @NotNull SlotView slot,
@@ -1603,7 +1664,7 @@ public final class SkillActionRingService {
             }
             String prefix = (selected ? "▶ " : "") + "[" + (index + 1) + "] ";
             Component label = Component.text(prefix, selected ? NamedTextColor.GOLD : NamedTextColor.GRAY)
-                .append(legacyComponent(slot.color(selected) + slot.label(skillService, caster)));
+                .append(legacyComponent(slot.color(selected) + slot.label(cooldownViews[index], javaPanel, bedrock)));
             return selected ? label.decorate(TextDecoration.BOLD) : label;
         }
 
@@ -1612,20 +1673,36 @@ public final class SkillActionRingService {
                 return;
             }
             int cooldowns = 0;
+            long gauges = 0;
             if (phase == RingPhase.SELECTING) {
                 for (int index = 0; index < slots.size(); index++) {
-                    if (slots.get(index).availability() == SlotAvailability.COOLDOWN) {
+                    CooldownView view = cooldownViews[index];
+                    if (view != null) {
                         cooldowns |= 1 << index;
+                        gauges |= (long) view.filled() << (4 * index);
                     }
                 }
+                gauges |= (long) timerFilled() << 32;
+            } else {
+                gauges = ((long) (confirmedIndex + 1) << 37) | ((long) spriteAt(confirmedIndex) << 41);
             }
             int selected = selectedIndex + 1;
-            if (layoutChanged || selected != renderedSelection || cooldowns != renderedCooldowns) {
+            boolean panelChanged = (bedrock || javaPanel) && gauges != renderedGauges;
+            if (layoutChanged || selected != renderedSelection || cooldowns != renderedCooldowns || panelChanged) {
                 Location location = center.clone().add(normal.clone().multiply(OUTLINE_DEPTH * layoutScale));
-                outline.update(viewer, location, normal, right, up, (float) (OUTLINE_SIZE * layoutScale), selected, cooldowns);
+                outline.update(viewer, location, normal, right, up, (float) (OUTLINE_SIZE * layoutScale),
+                    selected, cooldowns, new ActionRingPanel(spriteIds, gauges));
                 renderedSelection = selected;
                 renderedCooldowns = cooldowns;
+                renderedGauges = gauges;
             }
+        }
+
+        private Location fallbackRimLocation(Location center, int index) {
+            double angle = 2 * Math.PI * index / SLOT_COUNT;
+            return center.clone()
+                .add(up.clone().multiply(Math.cos(angle) * OUTLINE_RADIUS * layoutScale))
+                .add(right.clone().multiply(Math.sin(angle) * OUTLINE_RADIUS * layoutScale));
         }
 
         /**
@@ -1668,10 +1745,13 @@ public final class SkillActionRingService {
             actionRingDisplay.updateText(viewer, instructionLabel, instruction, scaledTextScale(LABEL_TEXT_SCALE));
         }
 
-        private @NotNull String timerText() {
+        private int timerFilled() {
             long remainingTicks = Math.max(0L, RING_DISPLAY_LIMIT_TICKS - phaseElapsedTicks);
-            double remaining = Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / RING_DISPLAY_LIMIT_TICKS));
-            int filled = (int) Math.round(remaining * TIMER_BAR_LENGTH);
+            return (int) Math.round((double) remainingTicks / RING_DISPLAY_LIMIT_TICKS * TIMER_BAR_LENGTH);
+        }
+
+        private @NotNull String timerText() {
+            int filled = timerFilled();
             StringBuilder bar = new StringBuilder(TIMER_BAR_LENGTH + 16);
             bar.append(ColorCodeUtil.GREEN);
             for (int index = 0; index < filled; index++) {
@@ -1699,6 +1779,10 @@ public final class SkillActionRingService {
                 label.destroy(viewer);
             }
             labels.clear();
+            for (var dot : fallbackRim) {
+                dot.destroy(viewer);
+            }
+            fallbackRim.clear();
             if (outline != null) {
                 outline.destroy(viewer);
             }

@@ -415,13 +415,25 @@ function Publish-ResourcePacks {
     $sha1 = (Get-FileHash -LiteralPath $java -Algorithm SHA1).Hash.ToLowerInvariant()
     $sha256 = (Get-FileHash -LiteralPath $bedrock -Algorithm SHA256).Hash.ToLowerInvariant()
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
+    $archive = [IO.Compression.ZipFile]::OpenRead($java)
+    try {
+        $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
+        if ($null -eq $panelEntry -or $panelEntry.Length -ne 64) { throw 'Missing action ring panel revision in Java pack.' }
+        $reader = [IO.StreamReader]::new($panelEntry.Open())
+        try { $panelRevision = $reader.ReadToEnd() }
+        finally { $reader.Dispose() }
+        if ($panelRevision -cnotmatch '^[a-f0-9]{64}$') { throw 'Invalid action ring panel revision.' }
+    }
+    finally {
+        $archive.Dispose()
+    }
     $javaName = "$sha1.zip"
     $bedrockName = "$sha256.mcpack"
     Move-Item -LiteralPath $java -Destination (Join-Path $output $javaName) -Force
     Move-Item -LiteralPath $bedrock -Destination (Join-Path $output $bedrockName) -Force
 
     [ordered]@{
-        java = @{ sha1 = $sha1 }
+        java = [ordered]@{ sha1 = $sha1; actionRingPanel = $panelRevision }
         bedrock = [ordered]@{
             sha256 = $sha256
             uuid = $uuid
