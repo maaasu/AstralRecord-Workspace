@@ -1,0 +1,530 @@
+{
+  "id": "eriva_wind_hunter_boots",
+  "master_id": "20a00093",
+  "kind": "armor",
+  "intent": "Lv15 RARE。森の小径を踏む #5A3C29 の革靴。短い茶革の足首、緑の折返し、浅い踵と静かな厚底。革帯の木留めに最小の青緑結晶。膝までの金属靴にせず、つま先・踵・底を明確化。二足を後ろの実革紐でつなぎcarryにする。",
+  "grip": [
+    8,
+    8.95,
+    11.15
+  ],
+  "materials": {
+    "forest_cloth": {
+      "palette": [
+        "#1D3225",
+        "#294A34",
+        "#3D5E3C",
+        "#587448"
+      ],
+      "pattern": [
+        "11211121",
+        "12111211",
+        "21121112",
+        "11221121",
+        "12111211",
+        "21112112",
+        "11211221",
+        "12112111"
+      ]
+    },
+    "leaf_fold": {
+      "palette": [
+        "#243B29",
+        "#3F603A",
+        "#5E7A46",
+        "#789153"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12322321",
+        "12212221",
+        "01121110",
+        "00121000",
+        "00121000",
+        "00110000"
+      ]
+    },
+    "warm_hide": {
+      "palette": [
+        "#3C291F",
+        "#5A3C29",
+        "#765338",
+        "#946E49"
+      ],
+      "pattern": [
+        "11211111",
+        "12111121",
+        "21121111",
+        "11211211",
+        "11121121",
+        "21111112",
+        "11211121",
+        "12112111"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "#3C291F",
+        "#67482E",
+        "#987245",
+        "#B49663"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "bark_toggle": {
+      "palette": [
+        "#3B3221",
+        "#665236",
+        "#8C7045",
+        "#B0935B"
+      ],
+      "pattern": [
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "00111100"
+      ]
+    },
+    "bluegreen_crystal": {
+      "palette": [
+        "#174C48",
+        "#26776C",
+        "#51AA91",
+        "#96D0AB"
+      ],
+      "pattern": [
+        "00011000",
+        "00122100",
+        "01233210",
+        "12332221",
+        "01222210",
+        "00121100",
+        "00011000",
+        "00000000"
+      ]
+    },
+    "soft_sole": {
+      "palette": [
+        "#25271F",
+        "#35392B",
+        "#4C5037",
+        "#626249"
+      ],
+      "pattern": [
+        "00111100",
+        "01122110",
+        "11211211",
+        "11111111",
+        "11211211",
+        "01122110",
+        "00111100",
+        "00000000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "#17271D",
+        "#233B29",
+        "#344F34",
+        "#4D6741"
+      ],
+      "pattern": [
+        "00111000",
+        "01111110",
+        "11121111",
+        "11211211",
+        "11121111",
+        "01111110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left brown ankle upper",
+      "from": [
+        2.9,
+        3.0,
+        6.5
+      ],
+      "to": [
+        6.9,
+        8.1,
+        10.6
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left short forward toe",
+      "from": [
+        2.9,
+        2.5,
+        4.45
+      ],
+      "to": [
+        6.9,
+        4.9,
+        7.1
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left quiet flexible full sole",
+      "from": [
+        2.8,
+        1.8,
+        4.3
+      ],
+      "to": [
+        7.0,
+        2.85,
+        10.8
+      ],
+      "material": "soft_sole"
+    },
+    {
+      "name": "Left shallow heel pad",
+      "from": [
+        3.1,
+        2.7,
+        9.2
+      ],
+      "to": [
+        6.699999999999999,
+        3.4,
+        10.7
+      ],
+      "material": "soft_sole"
+    },
+    {
+      "name": "Left green folded gaiter cuff",
+      "from": [
+        2.75,
+        7.45,
+        6.3
+      ],
+      "to": [
+        7.050000000000001,
+        8.8,
+        10.85
+      ],
+      "material": "forest_cloth",
+      "side": "leaf_fold"
+    },
+    {
+      "name": "Left cuff lip",
+      "from": [
+        2.6999999999999997,
+        8.55,
+        6.25
+      ],
+      "to": [
+        7.1,
+        9.0,
+        10.9
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Left front split tongue",
+      "from": [
+        3.9,
+        4.7,
+        6.1
+      ],
+      "to": [
+        5.9,
+        7.65,
+        6.7
+      ],
+      "material": "warm_hide",
+      "side": "lining"
+    },
+    {
+      "name": "Left single ankle leather strap",
+      "from": [
+        2.85,
+        5.5,
+        5.8
+      ],
+      "to": [
+        6.949999999999999,
+        6.3,
+        6.6
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Left wood strap toggle",
+      "from": [
+        4.35,
+        5.4,
+        5.5
+      ],
+      "to": [
+        5.449999999999999,
+        6.5,
+        6.05
+      ],
+      "material": "bark_toggle"
+    },
+    {
+      "name": "Left tiny bluegreen strap pin",
+      "from": [
+        4.65,
+        5.65,
+        5.25
+      ],
+      "to": [
+        5.15,
+        6.2,
+        5.65
+      ],
+      "material": "bluegreen_crystal"
+    },
+    {
+      "name": "Left heel vertical seam",
+      "from": [
+        4.65,
+        3.2,
+        10.45
+      ],
+      "to": [
+        5.15,
+        7.8,
+        10.9
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Left rear pulling tab",
+      "from": [
+        4.25,
+        8.3,
+        10.5
+      ],
+      "to": [
+        5.55,
+        9.6,
+        11.2
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right brown ankle upper",
+      "from": [
+        9.1,
+        3.0,
+        6.5
+      ],
+      "to": [
+        13.1,
+        8.1,
+        10.6
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right short forward toe",
+      "from": [
+        9.1,
+        2.5,
+        4.45
+      ],
+      "to": [
+        13.1,
+        4.9,
+        7.1
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right quiet flexible full sole",
+      "from": [
+        9.0,
+        1.8,
+        4.3
+      ],
+      "to": [
+        13.2,
+        2.85,
+        10.8
+      ],
+      "material": "soft_sole"
+    },
+    {
+      "name": "Right shallow heel pad",
+      "from": [
+        9.299999999999999,
+        2.7,
+        9.2
+      ],
+      "to": [
+        12.899999999999999,
+        3.4,
+        10.7
+      ],
+      "material": "soft_sole"
+    },
+    {
+      "name": "Right green folded gaiter cuff",
+      "from": [
+        8.95,
+        7.45,
+        6.3
+      ],
+      "to": [
+        13.25,
+        8.8,
+        10.85
+      ],
+      "material": "forest_cloth",
+      "side": "leaf_fold"
+    },
+    {
+      "name": "Right cuff lip",
+      "from": [
+        8.9,
+        8.55,
+        6.25
+      ],
+      "to": [
+        13.3,
+        9.0,
+        10.9
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Right front split tongue",
+      "from": [
+        10.1,
+        4.7,
+        6.1
+      ],
+      "to": [
+        12.1,
+        7.65,
+        6.7
+      ],
+      "material": "warm_hide",
+      "side": "lining"
+    },
+    {
+      "name": "Right single ankle leather strap",
+      "from": [
+        9.049999999999999,
+        5.5,
+        5.8
+      ],
+      "to": [
+        13.149999999999999,
+        6.3,
+        6.6
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Right wood strap toggle",
+      "from": [
+        10.549999999999999,
+        5.4,
+        5.5
+      ],
+      "to": [
+        11.649999999999999,
+        6.5,
+        6.05
+      ],
+      "material": "bark_toggle"
+    },
+    {
+      "name": "Right tiny bluegreen strap pin",
+      "from": [
+        10.85,
+        5.65,
+        5.25
+      ],
+      "to": [
+        11.35,
+        6.2,
+        5.65
+      ],
+      "material": "bluegreen_crystal"
+    },
+    {
+      "name": "Right heel vertical seam",
+      "from": [
+        10.85,
+        3.2,
+        10.45
+      ],
+      "to": [
+        11.35,
+        7.8,
+        10.9
+      ],
+      "material": "hide_edge"
+    },
+    {
+      "name": "Right rear pulling tab",
+      "from": [
+        10.45,
+        8.3,
+        10.5
+      ],
+      "to": [
+        11.75,
+        9.6,
+        11.2
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Paired boot real rear carrying tie",
+      "from": [
+        5.6,
+        8.6,
+        10.8
+      ],
+      "to": [
+        10.4,
+        9.3,
+        11.5
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "eriva_ranger",
+  "wearable_source": "armor/eriva_ranger.pixels.json"
+}

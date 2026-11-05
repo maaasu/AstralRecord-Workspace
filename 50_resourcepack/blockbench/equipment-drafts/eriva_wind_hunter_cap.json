@@ -1,0 +1,443 @@
+{
+  "id": "eriva_wind_hunter_cap",
+  "master_id": "20a00090",
+  "kind": "armor",
+  "intent": "Lv15 RARE。植物／風を渡る森の狩人。深緑 #294A34 の低い帽体と短いひさし、片側の葉形留め具と小さな青緑結晶。フードや重兜と異なる軽い段付き冠。裏面を開き、後帯の実体をcarryにする。",
+  "grip": [
+    8,
+    5.2,
+    11.2
+  ],
+  "materials": {
+    "forest_cloth": {
+      "palette": [
+        "#1D3225",
+        "#294A34",
+        "#3D5E3C",
+        "#587448"
+      ],
+      "pattern": [
+        "11211121",
+        "12111211",
+        "21121112",
+        "11221121",
+        "12111211",
+        "21112112",
+        "11211221",
+        "12112111"
+      ]
+    },
+    "leaf_fold": {
+      "palette": [
+        "#243B29",
+        "#3F603A",
+        "#5E7A46",
+        "#789153"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12322321",
+        "12212221",
+        "01121110",
+        "00121000",
+        "00121000",
+        "00110000"
+      ]
+    },
+    "warm_hide": {
+      "palette": [
+        "#3C291F",
+        "#5A3C29",
+        "#765338",
+        "#946E49"
+      ],
+      "pattern": [
+        "11211111",
+        "12111121",
+        "21121111",
+        "11211211",
+        "11121121",
+        "21111112",
+        "11211121",
+        "12112111"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "#3C291F",
+        "#67482E",
+        "#987245",
+        "#B49663"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "bark_toggle": {
+      "palette": [
+        "#3B3221",
+        "#665236",
+        "#8C7045",
+        "#B0935B"
+      ],
+      "pattern": [
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "00111100"
+      ]
+    },
+    "bluegreen_crystal": {
+      "palette": [
+        "#174C48",
+        "#26776C",
+        "#51AA91",
+        "#96D0AB"
+      ],
+      "pattern": [
+        "00011000",
+        "00122100",
+        "01233210",
+        "12332221",
+        "01222210",
+        "00121100",
+        "00011000",
+        "00000000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "#17271D",
+        "#233B29",
+        "#344F34",
+        "#4D6741"
+      ],
+      "pattern": [
+        "00111000",
+        "01111110",
+        "11121111",
+        "11211211",
+        "11121111",
+        "01111110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Rear cap band real carry",
+      "from": [
+        3.8,
+        4.6,
+        10.5
+      ],
+      "to": [
+        12.2,
+        5.8,
+        11.7
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Crown rear cloth",
+      "from": [
+        4.1,
+        5.5,
+        10.0
+      ],
+      "to": [
+        11.9,
+        10.7,
+        11.2
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Crown lower tier",
+      "from": [
+        3.9,
+        9.8,
+        5.8
+      ],
+      "to": [
+        12.1,
+        11.0,
+        10.8
+      ],
+      "material": "forest_cloth",
+      "side": "leaf_fold"
+    },
+    {
+      "name": "Crown upper soft step",
+      "from": [
+        4.8,
+        10.8,
+        6.8
+      ],
+      "to": [
+        11.2,
+        11.8,
+        10.5
+      ],
+      "material": "forest_cloth",
+      "side": "leaf_fold"
+    },
+    {
+      "name": "Brow cloth panel",
+      "from": [
+        4.1,
+        7.7,
+        5.65
+      ],
+      "to": [
+        11.9,
+        10.1,
+        6.7
+      ],
+      "material": "forest_cloth",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Brow leather band",
+      "from": [
+        3.6,
+        6.85,
+        5.4
+      ],
+      "to": [
+        12.4,
+        7.9,
+        6.5
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Short flat visor",
+      "from": [
+        3.1,
+        6.6,
+        3.95
+      ],
+      "to": [
+        12.9,
+        7.35,
+        6.2
+      ],
+      "material": "forest_cloth",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Visor stepped left corner",
+      "from": [
+        2.8,
+        6.65,
+        4.8
+      ],
+      "to": [
+        4.0,
+        7.3,
+        6.4
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Visor stepped right corner",
+      "from": [
+        12.0,
+        6.65,
+        4.8
+      ],
+      "to": [
+        13.2,
+        7.3,
+        6.4
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Crown central cloth seam",
+      "from": [
+        7.7,
+        11.72,
+        7.0
+      ],
+      "to": [
+        8.3,
+        12.0,
+        10.4
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Rear seam",
+      "from": [
+        7.7,
+        5.7,
+        11.0
+      ],
+      "to": [
+        8.3,
+        10.6,
+        11.4
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Back band short tail",
+      "from": [
+        10.7,
+        3.8,
+        10.7
+      ],
+      "to": [
+        11.8,
+        5.5,
+        11.7
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Leaf pin stem",
+      "from": [
+        3.55,
+        7.6,
+        6.2
+      ],
+      "to": [
+        4.1,
+        10.2,
+        7.1
+      ],
+      "material": "bark_toggle"
+    },
+    {
+      "name": "Leaf pin wide base",
+      "from": [
+        3.25,
+        8.0,
+        6.3
+      ],
+      "to": [
+        4.3,
+        9.35,
+        7.4
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Leaf pin pointed top",
+      "from": [
+        3.55,
+        9.25,
+        6.5
+      ],
+      "to": [
+        4.05,
+        10.5,
+        7.2
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Small crystal pin",
+      "from": [
+        3.0,
+        7.3,
+        5.9
+      ],
+      "to": [
+        3.8,
+        8.15,
+        6.9
+      ],
+      "material": "bluegreen_crystal"
+    },
+    {
+      "name": "Left crown side",
+      "from": [
+        3.5,
+        5.5,
+        6.05
+      ],
+      "to": [
+        4.5,
+        10.15,
+        10.85
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Left side leather band",
+      "from": [
+        3.45,
+        5.3,
+        6.2
+      ],
+      "to": [
+        4.55,
+        6.4,
+        10.9
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right crown side",
+      "from": [
+        11.5,
+        5.5,
+        6.05
+      ],
+      "to": [
+        12.5,
+        10.15,
+        10.85
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Right side leather band",
+      "from": [
+        11.45,
+        5.3,
+        6.2
+      ],
+      "to": [
+        12.55,
+        6.4,
+        10.9
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "eriva_ranger",
+  "wearable_source": "armor/eriva_ranger.pixels.json"
+}

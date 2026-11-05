@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "astralrecord:eriva_ranger"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "astralrecord:eriva_ranger"
+      }
+    ]
+  }
+}

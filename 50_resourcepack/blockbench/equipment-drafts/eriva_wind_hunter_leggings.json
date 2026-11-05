@@ -1,0 +1,475 @@
+{
+  "id": "eriva_wind_hunter_leggings",
+  "master_id": "20a00092",
+  "kind": "armor",
+  "intent": "Lv15 RARE。長い狩りを支える #3D4932 のしなやかな脚衣。離れた二脚、布主体の細身、葉形の膝当て、片側の薄い道具袋。革の腰帯と木留めに小さな青緑結晶。重いグリーヴとは別の軽装。carryは連続した腰帯の実体。",
+  "grip": [
+    8,
+    14.3,
+    8.0
+  ],
+  "materials": {
+    "forest_cloth": {
+      "palette": [
+        "#1D3225",
+        "#294A34",
+        "#3D5E3C",
+        "#587448"
+      ],
+      "pattern": [
+        "11211121",
+        "12111211",
+        "21121112",
+        "11221121",
+        "12111211",
+        "21112112",
+        "11211221",
+        "12112111"
+      ]
+    },
+    "leaf_fold": {
+      "palette": [
+        "#243B29",
+        "#3F603A",
+        "#5E7A46",
+        "#789153"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12322321",
+        "12212221",
+        "01121110",
+        "00121000",
+        "00121000",
+        "00110000"
+      ]
+    },
+    "olive_trouser": {
+      "palette": [
+        "#2C3526",
+        "#3D4932",
+        "#566143",
+        "#6D7653"
+      ],
+      "pattern": [
+        "11121111",
+        "12211121",
+        "12111211",
+        "11121121",
+        "21112111",
+        "12111211",
+        "11121121",
+        "21111112"
+      ]
+    },
+    "warm_hide": {
+      "palette": [
+        "#3C291F",
+        "#5A3C29",
+        "#765338",
+        "#946E49"
+      ],
+      "pattern": [
+        "11211111",
+        "12111121",
+        "21121111",
+        "11211211",
+        "11121121",
+        "21111112",
+        "11211121",
+        "12112111"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "#3C291F",
+        "#67482E",
+        "#987245",
+        "#B49663"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "bark_toggle": {
+      "palette": [
+        "#3B3221",
+        "#665236",
+        "#8C7045",
+        "#B0935B"
+      ],
+      "pattern": [
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "00111100"
+      ]
+    },
+    "bluegreen_crystal": {
+      "palette": [
+        "#174C48",
+        "#26776C",
+        "#51AA91",
+        "#96D0AB"
+      ],
+      "pattern": [
+        "00011000",
+        "00122100",
+        "01233210",
+        "12332221",
+        "01222210",
+        "00121100",
+        "00011000",
+        "00000000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "#17271D",
+        "#233B29",
+        "#344F34",
+        "#4D6741"
+      ],
+      "pattern": [
+        "00111000",
+        "01111110",
+        "11121111",
+        "11211211",
+        "11121111",
+        "01111110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Real continuous leather waist carry",
+      "from": [
+        3.6,
+        13.7,
+        5.8
+      ],
+      "to": [
+        12.4,
+        15.0,
+        10.7
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Front narrow olive waistband",
+      "from": [
+        3.7,
+        14.9,
+        6.0
+      ],
+      "to": [
+        12.3,
+        15.55,
+        10.55
+      ],
+      "material": "olive_trouser",
+      "side": "forest_cloth"
+    },
+    {
+      "name": "Wood waist clasp",
+      "from": [
+        7.25,
+        13.55,
+        5.45
+      ],
+      "to": [
+        8.75,
+        15.1,
+        6.2
+      ],
+      "material": "bark_toggle"
+    },
+    {
+      "name": "Small bluegreen clasp inset",
+      "from": [
+        7.7,
+        14.05,
+        5.15
+      ],
+      "to": [
+        8.3,
+        14.7,
+        5.65
+      ],
+      "material": "bluegreen_crystal"
+    },
+    {
+      "name": "Rear short belt tail",
+      "from": [
+        9.4,
+        13.7,
+        10.5
+      ],
+      "to": [
+        10.4,
+        15.0,
+        11.1
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left flexible olive leg",
+      "from": [
+        4.0,
+        3.8,
+        6.2
+      ],
+      "to": [
+        7.3,
+        13.9,
+        10.25
+      ],
+      "material": "olive_trouser",
+      "side": "forest_cloth"
+    },
+    {
+      "name": "Left soft tied cuff",
+      "from": [
+        3.9,
+        3.2,
+        6.05
+      ],
+      "to": [
+        7.4,
+        4.4,
+        10.4
+      ],
+      "material": "forest_cloth",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left leaf knee central patch",
+      "from": [
+        4.45,
+        7.3,
+        5.8
+      ],
+      "to": [
+        6.85,
+        9.35,
+        6.5
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Left leaf knee pointed upper",
+      "from": [
+        5.1,
+        9.2,
+        5.85
+      ],
+      "to": [
+        6.2,
+        10.0,
+        6.45
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Left leather knee lower tie",
+      "from": [
+        4.1,
+        6.8,
+        5.7
+      ],
+      "to": [
+        7.2,
+        7.5,
+        6.4
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left outer cloth seam",
+      "from": [
+        4.2,
+        4.3,
+        10.1
+      ],
+      "to": [
+        4.7,
+        13.8,
+        10.6
+      ],
+      "material": "forest_cloth"
+    },
+    {
+      "name": "Left rear seat cloth",
+      "from": [
+        4.1,
+        11.6,
+        10.1
+      ],
+      "to": [
+        7.2,
+        13.8,
+        10.55
+      ],
+      "material": "olive_trouser",
+      "side": "lining"
+    },
+    {
+      "name": "Right flexible olive leg",
+      "from": [
+        8.7,
+        3.8,
+        6.2
+      ],
+      "to": [
+        12.0,
+        13.9,
+        10.25
+      ],
+      "material": "olive_trouser",
+      "side": "forest_cloth"
+    },
+    {
+      "name": "Right soft tied cuff",
+      "from": [
+        8.6,
+        3.2,
+        6.05
+      ],
+      "to": [
+        12.1,
+        4.4,
+        10.4
+      ],
+      "material": "forest_cloth",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right leaf knee central patch",
+      "from": [
+        9.149999999999999,
+        7.3,
+        5.8
+      ],
+      "to": [
+        11.549999999999999,
+        9.35,
+        6.5
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Right leaf knee pointed upper",
+      "from": [
+        9.799999999999999,
+        9.2,
+        5.85
+      ],
+      "to": [
+        10.899999999999999,
+        10.0,
+        6.45
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Right leather knee lower tie",
+      "from": [
+        8.799999999999999,
+        6.8,
+        5.7
+      ],
+      "to": [
+        11.899999999999999,
+        7.5,
+        6.4
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right outer cloth seam",
+      "from": [
+        8.899999999999999,
+        4.3,
+        10.1
+      ],
+      "to": [
+        9.399999999999999,
+        13.8,
+        10.6
+      ],
+      "material": "forest_cloth"
+    },
+    {
+      "name": "Right rear seat cloth",
+      "from": [
+        8.799999999999999,
+        11.6,
+        10.1
+      ],
+      "to": [
+        11.899999999999999,
+        13.8,
+        10.55
+      ],
+      "material": "olive_trouser",
+      "side": "lining"
+    },
+    {
+      "name": "Left narrow trail pocket",
+      "from": [
+        3.45,
+        10.2,
+        6.7
+      ],
+      "to": [
+        4.2,
+        12.6,
+        9.4
+      ],
+      "material": "warm_hide",
+      "side": "forest_cloth"
+    },
+    {
+      "name": "Pocket leaf flap",
+      "from": [
+        3.25,
+        12.2,
+        6.6
+      ],
+      "to": [
+        4.25,
+        13.0,
+        9.5
+      ],
+      "material": "leaf_fold"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "eriva_ranger",
+  "wearable_source": "armor/eriva_ranger.pixels.json"
+}

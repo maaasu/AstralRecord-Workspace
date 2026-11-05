@@ -1,0 +1,573 @@
+{
+  "id": "eriva_wind_hunter_coat",
+  "master_id": "20a00091",
+  "kind": "armor",
+  "intent": "Lv15 RARE。森を渡る動きやすい衣。深緑布、短い袖、左の葉形肩布、斜めの革帯と前後で異なる葉脈。裾を割って歩ける輪郭にし、小さな青緑結晶は胸留め一点。開いた首と背の実襟carry。金属鎧化しない。",
+  "grip": [
+    8,
+    13.8,
+    10.2
+  ],
+  "materials": {
+    "forest_cloth": {
+      "palette": [
+        "#1D3225",
+        "#294A34",
+        "#3D5E3C",
+        "#587448"
+      ],
+      "pattern": [
+        "11211121",
+        "12111211",
+        "21121112",
+        "11221121",
+        "12111211",
+        "21112112",
+        "11211221",
+        "12112111"
+      ]
+    },
+    "leaf_fold": {
+      "palette": [
+        "#243B29",
+        "#3F603A",
+        "#5E7A46",
+        "#789153"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12322321",
+        "12212221",
+        "01121110",
+        "00121000",
+        "00121000",
+        "00110000"
+      ]
+    },
+    "warm_hide": {
+      "palette": [
+        "#3C291F",
+        "#5A3C29",
+        "#765338",
+        "#946E49"
+      ],
+      "pattern": [
+        "11211111",
+        "12111121",
+        "21121111",
+        "11211211",
+        "11121121",
+        "21111112",
+        "11211121",
+        "12112111"
+      ]
+    },
+    "hide_edge": {
+      "palette": [
+        "#3C291F",
+        "#67482E",
+        "#987245",
+        "#B49663"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21211212",
+        "21111112",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "bark_toggle": {
+      "palette": [
+        "#3B3221",
+        "#665236",
+        "#8C7045",
+        "#B0935B"
+      ],
+      "pattern": [
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "01221210",
+        "01211210",
+        "00111100"
+      ]
+    },
+    "bluegreen_crystal": {
+      "palette": [
+        "#174C48",
+        "#26776C",
+        "#51AA91",
+        "#96D0AB"
+      ],
+      "pattern": [
+        "00011000",
+        "00122100",
+        "01233210",
+        "12332221",
+        "01222210",
+        "00121100",
+        "00011000",
+        "00000000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "#17271D",
+        "#233B29",
+        "#344F34",
+        "#4D6741"
+      ],
+      "pattern": [
+        "00111000",
+        "01111110",
+        "11121111",
+        "11211211",
+        "11121111",
+        "01111110",
+        "00111000",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Back lightweight coat panel",
+      "from": [
+        4.2,
+        5.0,
+        9.8
+      ],
+      "to": [
+        11.8,
+        13.5,
+        10.7
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Front cloth panel",
+      "from": [
+        4.2,
+        5.0,
+        6.1
+      ],
+      "to": [
+        11.8,
+        12.8,
+        7.15
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Rear collar real carry",
+      "from": [
+        5.0,
+        13.2,
+        9.4
+      ],
+      "to": [
+        11.0,
+        14.7,
+        10.8
+      ],
+      "material": "leaf_fold",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left open collar",
+      "from": [
+        4.2,
+        12.6,
+        6.2
+      ],
+      "to": [
+        6.0,
+        14.5,
+        9.9
+      ],
+      "material": "leaf_fold",
+      "side": "lining"
+    },
+    {
+      "name": "Right open collar",
+      "from": [
+        10.0,
+        12.6,
+        6.2
+      ],
+      "to": [
+        11.8,
+        14.5,
+        9.9
+      ],
+      "material": "leaf_fold",
+      "side": "lining"
+    },
+    {
+      "name": "Left short chest lapel",
+      "from": [
+        4.6,
+        10.4,
+        5.8
+      ],
+      "to": [
+        6.0,
+        13.15,
+        6.55
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Right short chest lapel",
+      "from": [
+        10.0,
+        10.4,
+        5.8
+      ],
+      "to": [
+        11.4,
+        13.15,
+        6.55
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Waist leather belt",
+      "from": [
+        4.0,
+        5.7,
+        5.8
+      ],
+      "to": [
+        12.0,
+        6.7,
+        7.2
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Wood belt toggle",
+      "from": [
+        7.25,
+        5.55,
+        5.4
+      ],
+      "to": [
+        8.75,
+        6.95,
+        6.1
+      ],
+      "material": "bark_toggle"
+    },
+    {
+      "name": "Single tiny chest crystal",
+      "from": [
+        6.25,
+        10.9,
+        5.45
+      ],
+      "to": [
+        7.05,
+        11.8,
+        6.25
+      ],
+      "material": "bluegreen_crystal"
+    },
+    {
+      "name": "Shoulder strap upper step",
+      "from": [
+        6.4,
+        11.8,
+        5.75
+      ],
+      "to": [
+        7.45,
+        13.0,
+        6.35
+      ],
+      "material": "warm_hide"
+    },
+    {
+      "name": "Shoulder strap middle step",
+      "from": [
+        7.3,
+        10.4,
+        5.75
+      ],
+      "to": [
+        8.35,
+        12.0,
+        6.35
+      ],
+      "material": "warm_hide"
+    },
+    {
+      "name": "Shoulder strap lower step",
+      "from": [
+        8.2,
+        8.8,
+        5.75
+      ],
+      "to": [
+        9.25,
+        10.6,
+        6.35
+      ],
+      "material": "warm_hide"
+    },
+    {
+      "name": "Shoulder strap belt join",
+      "from": [
+        9.1,
+        6.45,
+        5.75
+      ],
+      "to": [
+        10.15,
+        9.0,
+        6.35
+      ],
+      "material": "warm_hide"
+    },
+    {
+      "name": "Rear vertical leaf vein",
+      "from": [
+        7.65,
+        6.0,
+        10.6
+      ],
+      "to": [
+        8.35,
+        12.4,
+        11.0
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Rear leaf upper left step",
+      "from": [
+        5.8,
+        10.5,
+        10.5
+      ],
+      "to": [
+        7.8,
+        11.2,
+        11.0
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Rear leaf lower right step",
+      "from": [
+        8.2,
+        8.7,
+        10.5
+      ],
+      "to": [
+        10.3,
+        9.4,
+        11.0
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Left long split hem",
+      "from": [
+        4.15,
+        3.9,
+        6.25
+      ],
+      "to": [
+        7.4,
+        5.7,
+        10.6
+      ],
+      "material": "forest_cloth",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right shorter split hem",
+      "from": [
+        8.6,
+        4.5,
+        6.25
+      ],
+      "to": [
+        11.85,
+        5.7,
+        10.6
+      ],
+      "material": "forest_cloth",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Left side cloth seam",
+      "from": [
+        3.9,
+        5.2,
+        6.7
+      ],
+      "to": [
+        4.9,
+        13.3,
+        10.3
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Right side cloth seam",
+      "from": [
+        11.1,
+        5.2,
+        6.7
+      ],
+      "to": [
+        12.1,
+        13.3,
+        10.3
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Left short sleeve shoulder",
+      "from": [
+        2.3,
+        11.7,
+        6.3
+      ],
+      "to": [
+        4.8,
+        13.2,
+        10.5
+      ],
+      "material": "forest_cloth",
+      "side": "leaf_fold"
+    },
+    {
+      "name": "Left hanging sleeve",
+      "from": [
+        2.3,
+        9.2,
+        6.5
+      ],
+      "to": [
+        4.8,
+        12.2,
+        10.3
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Left rolled sleeve cuff",
+      "from": [
+        2.1999999999999997,
+        8.8,
+        6.25
+      ],
+      "to": [
+        4.8999999999999995,
+        9.75,
+        10.55
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "Right short sleeve shoulder",
+      "from": [
+        11.2,
+        11.7,
+        6.3
+      ],
+      "to": [
+        13.7,
+        13.2,
+        10.5
+      ],
+      "material": "forest_cloth",
+      "side": "leaf_fold"
+    },
+    {
+      "name": "Right hanging sleeve",
+      "from": [
+        11.2,
+        9.2,
+        6.5
+      ],
+      "to": [
+        13.7,
+        12.2,
+        10.3
+      ],
+      "material": "forest_cloth",
+      "side": "lining"
+    },
+    {
+      "name": "Right rolled sleeve cuff",
+      "from": [
+        11.1,
+        8.8,
+        6.25
+      ],
+      "to": [
+        13.799999999999999,
+        9.75,
+        10.55
+      ],
+      "material": "warm_hide",
+      "side": "hide_edge"
+    },
+    {
+      "name": "One left leaf shoulder flap",
+      "from": [
+        2.1,
+        12.8,
+        6.1
+      ],
+      "to": [
+        5.15,
+        13.9,
+        10.8
+      ],
+      "material": "leaf_fold"
+    },
+    {
+      "name": "Left leaf pointed step",
+      "from": [
+        2.7,
+        13.8,
+        6.7
+      ],
+      "to": [
+        4.6,
+        14.5,
+        10.1
+      ],
+      "material": "leaf_fold"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1.08
+  },
+  "wearable_texture_set": "eriva_ranger",
+  "wearable_source": "armor/eriva_ranger.pixels.json"
+}
