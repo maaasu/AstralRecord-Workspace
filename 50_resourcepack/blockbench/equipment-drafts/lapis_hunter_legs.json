@@ -1,0 +1,379 @@
+{
+  "id": "lapis_hunter_legs",
+  "master_id": "20a00413",
+  "kind": "armor",
+  "intent": "青染め革と紺布の軽い脚衣。左右の脚、細い脛、角形膝当て、外腿の革ポケットを別の立体にして脚装備と読ませる。腰は小さな木留め具にラピスを一石だけ付ける。背面には青い補強布を置き、重い金属のグリーヴとは異なる軽装にする。持点は実体のある腰帯内部。",
+  "grip": [
+    8,
+    13.25,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 0.9
+  },
+  "materials": {
+    "blue_leather": {
+      "palette": [
+        "263B65",
+        "385582",
+        "4B6AA3",
+        "6F8FBC"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "33251F",
+        "513A2A",
+        "7E5336",
+        "AC7A4B"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "cloth": {
+      "palette": [
+        "26374E",
+        "33466A",
+        "4B6290",
+        "647DA6"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "192B62",
+        "2856A8",
+        "4381D0",
+        "86B6EA"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12332221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "wood": {
+      "palette": [
+        "4A3524",
+        "73522D",
+        "9C7841",
+        "C49D62"
+      ],
+      "pattern": [
+        "11222111",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "11111111"
+      ]
+    },
+    "seam": {
+      "palette": [
+        "263B65",
+        "385582",
+        "6887B4",
+        "A6BBD4"
+      ],
+      "pattern": [
+        "11111111",
+        "11222211",
+        "11222211",
+        "11222211",
+        "11322211",
+        "11222211",
+        "11222211",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "waistband_carry",
+      "from": [
+        3.3,
+        12,
+        6
+      ],
+      "to": [
+        12.7,
+        14.5,
+        10
+      ],
+      "material": "leather_edge",
+      "side": "leather_edge",
+      "cap": "cloth"
+    },
+    {
+      "name": "left_thigh",
+      "from": [
+        3.5,
+        7.5,
+        6.2
+      ],
+      "to": [
+        7.5,
+        12.2,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "cloth"
+    },
+    {
+      "name": "right_thigh",
+      "from": [
+        8.5,
+        7.5,
+        6.2
+      ],
+      "to": [
+        12.5,
+        12.2,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "cloth"
+    },
+    {
+      "name": "left_tapered_shin",
+      "from": [
+        4,
+        3.2,
+        6.5
+      ],
+      "to": [
+        7.5,
+        7.7,
+        9.8
+      ],
+      "material": "cloth",
+      "side": "blue_leather"
+    },
+    {
+      "name": "right_tapered_shin",
+      "from": [
+        8.5,
+        3.2,
+        6.5
+      ],
+      "to": [
+        12,
+        7.7,
+        9.8
+      ],
+      "material": "cloth",
+      "side": "blue_leather"
+    },
+    {
+      "name": "left_cuff",
+      "from": [
+        3.8,
+        2.5,
+        6.3
+      ],
+      "to": [
+        7.7,
+        3.6,
+        10
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_cuff",
+      "from": [
+        8.3,
+        2.5,
+        6.3
+      ],
+      "to": [
+        12.2,
+        3.6,
+        10
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "left_knee_leather",
+      "from": [
+        3.9,
+        6.8,
+        5.55
+      ],
+      "to": [
+        7.6,
+        9.3,
+        6.7
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_knee_leather",
+      "from": [
+        8.4,
+        6.8,
+        5.55
+      ],
+      "to": [
+        12.1,
+        9.3,
+        6.7
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "left_blue_knee_patch",
+      "from": [
+        4.5,
+        7.25,
+        5.2
+      ],
+      "to": [
+        7,
+        8.8,
+        5.75
+      ],
+      "material": "blue_leather"
+    },
+    {
+      "name": "right_blue_knee_patch",
+      "from": [
+        9,
+        7.25,
+        5.2
+      ],
+      "to": [
+        11.5,
+        8.8,
+        5.75
+      ],
+      "material": "blue_leather"
+    },
+    {
+      "name": "wood_belt_toggle",
+      "from": [
+        7,
+        12.5,
+        5.4
+      ],
+      "to": [
+        9,
+        13.7,
+        6.2
+      ],
+      "material": "wood"
+    },
+    {
+      "name": "lapis_toggle_inset",
+      "from": [
+        7.5,
+        12.7,
+        5.05
+      ],
+      "to": [
+        8.5,
+        13.5,
+        5.55
+      ],
+      "material": "lapis"
+    },
+    {
+      "name": "left_side_pocket",
+      "from": [
+        2.8,
+        9.2,
+        6.9
+      ],
+      "to": [
+        3.8,
+        11.3,
+        9.4
+      ],
+      "material": "leather_edge",
+      "side": "wood"
+    },
+    {
+      "name": "right_side_pocket",
+      "from": [
+        12.2,
+        9.2,
+        6.9
+      ],
+      "to": [
+        13.2,
+        11.3,
+        9.4
+      ],
+      "material": "leather_edge",
+      "side": "wood"
+    },
+    {
+      "name": "rear_left_patch",
+      "from": [
+        4.1,
+        9.1,
+        9.8
+      ],
+      "to": [
+        6.9,
+        11.4,
+        10.5
+      ],
+      "material": "blue_leather",
+      "side": "seam"
+    },
+    {
+      "name": "rear_right_patch",
+      "from": [
+        9.1,
+        9.1,
+        9.8
+      ],
+      "to": [
+        11.9,
+        11.4,
+        10.5
+      ],
+      "material": "blue_leather",
+      "side": "seam"
+    }
+  ]
+}

@@ -1,0 +1,397 @@
+{
+  "id": "lapis_hunter_head",
+  "master_id": "20a00411",
+  "kind": "armor",
+  "intent": "Lv20・RARE。実マスターの鉱物／ラピスの青い石と青染め革に従う低いハンターハット。広い前庇と短い後庇、段状の低い天井、革帯と角形ラピスの木留め具。内側は空洞で、持点は空洞でなく前庇の実体内。初期装備より素材境界を整え、上位装備の角や豪華な金細工は使わない。",
+  "grip": [
+    8,
+    7.5,
+    4.25
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 0.9
+  },
+  "materials": {
+    "blue_leather": {
+      "palette": [
+        "263B65",
+        "385582",
+        "4B6AA3",
+        "6F8FBC"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "33251F",
+        "513A2A",
+        "7E5336",
+        "AC7A4B"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "192B62",
+        "2856A8",
+        "4381D0",
+        "86B6EA"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12332221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "wood": {
+      "palette": [
+        "4A3524",
+        "73522D",
+        "9C7841",
+        "C49D62"
+      ],
+      "pattern": [
+        "11222111",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "11111111"
+      ]
+    },
+    "seam": {
+      "palette": [
+        "263B65",
+        "385582",
+        "6887B4",
+        "A6BBD4"
+      ],
+      "pattern": [
+        "11111111",
+        "11222211",
+        "11222211",
+        "11222211",
+        "11322211",
+        "11222211",
+        "11222211",
+        "11111111"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "192339",
+        "27374F",
+        "3D5069"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "front_wide_brim",
+      "from": [
+        1.5,
+        7,
+        3.5
+      ],
+      "to": [
+        14.5,
+        8,
+        6
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge",
+      "cap": "blue_leather"
+    },
+    {
+      "name": "left_brim",
+      "from": [
+        1.5,
+        7,
+        6
+      ],
+      "to": [
+        3.5,
+        8,
+        11.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "right_brim",
+      "from": [
+        12.5,
+        7,
+        6
+      ],
+      "to": [
+        14.5,
+        8,
+        11.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "short_rear_brim",
+      "from": [
+        3.5,
+        7,
+        10.5
+      ],
+      "to": [
+        12.5,
+        8,
+        12
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "left_crown_wall",
+      "from": [
+        3.5,
+        8,
+        5.5
+      ],
+      "to": [
+        4.75,
+        12.5,
+        11.5
+      ],
+      "material": "blue_leather",
+      "side": "blue_leather",
+      "cap": "seam"
+    },
+    {
+      "name": "right_crown_wall",
+      "from": [
+        11.25,
+        8,
+        5.5
+      ],
+      "to": [
+        12.5,
+        12.5,
+        11.5
+      ],
+      "material": "blue_leather",
+      "side": "blue_leather",
+      "cap": "seam"
+    },
+    {
+      "name": "rear_crown_wall",
+      "from": [
+        4.75,
+        8,
+        10.25
+      ],
+      "to": [
+        11.25,
+        12.5,
+        11.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge",
+      "cap": "seam"
+    },
+    {
+      "name": "brow_crown_wall",
+      "from": [
+        4.75,
+        8,
+        5.5
+      ],
+      "to": [
+        11.25,
+        11.5,
+        6.75
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "low_crown_top",
+      "from": [
+        4.5,
+        11.5,
+        5.5
+      ],
+      "to": [
+        11.5,
+        13.5,
+        11.5
+      ],
+      "material": "blue_leather",
+      "side": "blue_leather",
+      "cap": "blue_leather"
+    },
+    {
+      "name": "crown_step",
+      "from": [
+        5.5,
+        13.5,
+        6.5
+      ],
+      "to": [
+        10.5,
+        14,
+        10.5
+      ],
+      "material": "blue_leather"
+    },
+    {
+      "name": "front_leather_hatband",
+      "from": [
+        3.5,
+        8,
+        5.1
+      ],
+      "to": [
+        12.5,
+        9.25,
+        5.65
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "left_hatband",
+      "from": [
+        3.15,
+        8,
+        5.5
+      ],
+      "to": [
+        3.65,
+        9.25,
+        11.5
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_hatband",
+      "from": [
+        12.35,
+        8,
+        5.5
+      ],
+      "to": [
+        12.85,
+        9.25,
+        11.5
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "rear_hatband",
+      "from": [
+        3.5,
+        8,
+        11.35
+      ],
+      "to": [
+        12.5,
+        9.25,
+        11.85
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "wood_pin_socket",
+      "from": [
+        4,
+        8.25,
+        4.55
+      ],
+      "to": [
+        6.5,
+        10.75,
+        5.4
+      ],
+      "material": "wood",
+      "side": "leather_edge"
+    },
+    {
+      "name": "square_lapis_pin",
+      "from": [
+        4.5,
+        8.75,
+        4.2
+      ],
+      "to": [
+        6,
+        10.25,
+        4.65
+      ],
+      "material": "lapis"
+    },
+    {
+      "name": "rear_band_tail",
+      "from": [
+        9.5,
+        7.4,
+        11.65
+      ],
+      "to": [
+        11,
+        9.2,
+        12.2
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "inner_top_liner",
+      "from": [
+        4.75,
+        11.25,
+        6.75
+      ],
+      "to": [
+        11.25,
+        11.6,
+        10.25
+      ],
+      "material": "lining"
+    }
+  ]
+}

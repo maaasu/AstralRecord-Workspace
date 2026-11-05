@@ -1,0 +1,398 @@
+{
+  "id": "lapis_hunter_feet",
+  "master_id": "20a00414",
+  "kind": "armor",
+  "intent": "青い折返し革カフ、角張った茶革の爪先、厚い暗色の底を持つ左右一対のハンターブーツ。革主体の軽装を保ち、木のカフ留めに小さなラピスを入れる。背面の革ループと運搬帯が実際に左右の靴をつなぎ、その帯内部を持点とする。初期の単純な靴より縁と素材面を整理し、宝飾過多にしない。",
+  "grip": [
+    8,
+    11,
+    10.5
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 0.9
+  },
+  "materials": {
+    "blue_leather": {
+      "palette": [
+        "263B65",
+        "385582",
+        "4B6AA3",
+        "6F8FBC"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "33251F",
+        "513A2A",
+        "7E5336",
+        "AC7A4B"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "cloth": {
+      "palette": [
+        "26374E",
+        "33466A",
+        "4B6290",
+        "647DA6"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "192B62",
+        "2856A8",
+        "4381D0",
+        "86B6EA"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12332221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "wood": {
+      "palette": [
+        "4A3524",
+        "73522D",
+        "9C7841",
+        "C49D62"
+      ],
+      "pattern": [
+        "11222111",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "11111111"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "241E1C",
+        "3A2C25",
+        "59412E"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111",
+        "11111111"
+      ]
+    },
+    "seam": {
+      "palette": [
+        "263B65",
+        "385582",
+        "6887B4",
+        "A6BBD4"
+      ],
+      "pattern": [
+        "11111111",
+        "11222211",
+        "11222211",
+        "11222211",
+        "11322211",
+        "11222211",
+        "11222211",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "left_sole",
+      "from": [
+        3,
+        2,
+        4.3
+      ],
+      "to": [
+        6.5,
+        3.15,
+        10.7
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "left_square_toe",
+      "from": [
+        3,
+        3.15,
+        4.3
+      ],
+      "to": [
+        6.5,
+        5.2,
+        7.2
+      ],
+      "material": "leather_edge",
+      "side": "leather_edge",
+      "cap": "blue_leather"
+    },
+    {
+      "name": "left_ankle",
+      "from": [
+        3.15,
+        3.15,
+        6.7
+      ],
+      "to": [
+        6.35,
+        9.5,
+        10.4
+      ],
+      "material": "leather_edge",
+      "side": "leather_edge",
+      "cap": "cloth"
+    },
+    {
+      "name": "left_blue_shaft_front",
+      "from": [
+        3.55,
+        5.2,
+        6.1
+      ],
+      "to": [
+        5.95,
+        9.4,
+        6.9
+      ],
+      "material": "blue_leather",
+      "side": "seam"
+    },
+    {
+      "name": "left_folded_blue_cuff",
+      "from": [
+        2.8,
+        9,
+        6.3
+      ],
+      "to": [
+        6.7,
+        10.6,
+        10.6
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "left_wood_cuff_toggle",
+      "from": [
+        3.6,
+        9.25,
+        5.8
+      ],
+      "to": [
+        5.9,
+        10.2,
+        6.5
+      ],
+      "material": "wood"
+    },
+    {
+      "name": "left_lapis_toggle",
+      "from": [
+        4.25,
+        9.4,
+        5.45
+      ],
+      "to": [
+        5.25,
+        10.05,
+        5.9
+      ],
+      "material": "lapis"
+    },
+    {
+      "name": "left_rear_carry_loop",
+      "from": [
+        4.25,
+        9.8,
+        10.2
+      ],
+      "to": [
+        5.25,
+        11.5,
+        10.85
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_sole",
+      "from": [
+        9.5,
+        2,
+        4.3
+      ],
+      "to": [
+        13.0,
+        3.15,
+        10.7
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "right_square_toe",
+      "from": [
+        9.5,
+        3.15,
+        4.3
+      ],
+      "to": [
+        13.0,
+        5.2,
+        7.2
+      ],
+      "material": "leather_edge",
+      "side": "leather_edge",
+      "cap": "blue_leather"
+    },
+    {
+      "name": "right_ankle",
+      "from": [
+        9.65,
+        3.15,
+        6.7
+      ],
+      "to": [
+        12.85,
+        9.5,
+        10.4
+      ],
+      "material": "leather_edge",
+      "side": "leather_edge",
+      "cap": "cloth"
+    },
+    {
+      "name": "right_blue_shaft_front",
+      "from": [
+        10.05,
+        5.2,
+        6.1
+      ],
+      "to": [
+        12.45,
+        9.4,
+        6.9
+      ],
+      "material": "blue_leather",
+      "side": "seam"
+    },
+    {
+      "name": "right_folded_blue_cuff",
+      "from": [
+        9.3,
+        9,
+        6.3
+      ],
+      "to": [
+        13.2,
+        10.6,
+        10.6
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "right_wood_cuff_toggle",
+      "from": [
+        10.1,
+        9.25,
+        5.8
+      ],
+      "to": [
+        12.4,
+        10.2,
+        6.5
+      ],
+      "material": "wood"
+    },
+    {
+      "name": "right_lapis_toggle",
+      "from": [
+        10.75,
+        9.4,
+        5.45
+      ],
+      "to": [
+        11.75,
+        10.05,
+        5.9
+      ],
+      "material": "lapis"
+    },
+    {
+      "name": "right_rear_carry_loop",
+      "from": [
+        10.75,
+        9.8,
+        10.2
+      ],
+      "to": [
+        11.75,
+        11.5,
+        10.85
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "paired_boot_carry_strap",
+      "from": [
+        4.25,
+        10.55,
+        10.25
+      ],
+      "to": [
+        11.75,
+        11.5,
+        10.85
+      ],
+      "material": "leather_edge"
+    }
+  ]
+}

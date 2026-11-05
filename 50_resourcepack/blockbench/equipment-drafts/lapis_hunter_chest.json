@@ -1,0 +1,494 @@
+{
+  "id": "lapis_hunter_chest",
+  "master_id": "20a00412",
+  "kind": "armor",
+  "intent": "Lv20の青染め革ハンターコート。角襟、短い筒袖、中央が割れた裾で衣服のT字輪郭を作る。前は木の留め具とラピス石、後ろは横革ヨーク、側面は紺の布。青い大きな面を主体に、鍛えた装備らしい革縁で進行差を出す。持点は前の革ベルト内部。",
+  "grip": [
+    8,
+    8.5,
+    5.8
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 0.9
+  },
+  "materials": {
+    "blue_leather": {
+      "palette": [
+        "263B65",
+        "385582",
+        "4B6AA3",
+        "6F8FBC"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12232221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "33251F",
+        "513A2A",
+        "7E5336",
+        "AC7A4B"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "cloth": {
+      "palette": [
+        "26374E",
+        "33466A",
+        "4B6290",
+        "647DA6"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "192B62",
+        "2856A8",
+        "4381D0",
+        "86B6EA"
+      ],
+      "pattern": [
+        "11111111",
+        "12222221",
+        "12332221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111"
+      ]
+    },
+    "wood": {
+      "palette": [
+        "4A3524",
+        "73522D",
+        "9C7841",
+        "C49D62"
+      ],
+      "pattern": [
+        "11222111",
+        "12222221",
+        "12322221",
+        "12322221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "front_coat_panel",
+      "from": [
+        4,
+        6,
+        5.8
+      ],
+      "to": [
+        12,
+        16,
+        7.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge",
+      "cap": "cloth"
+    },
+    {
+      "name": "rear_coat_panel",
+      "from": [
+        4,
+        6,
+        9
+      ],
+      "to": [
+        12,
+        16,
+        10.2
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge",
+      "cap": "cloth"
+    },
+    {
+      "name": "left_side_seam",
+      "from": [
+        4,
+        6,
+        7
+      ],
+      "to": [
+        5.2,
+        16,
+        9.2
+      ],
+      "material": "cloth",
+      "side": "blue_leather"
+    },
+    {
+      "name": "right_side_seam",
+      "from": [
+        10.8,
+        6,
+        7
+      ],
+      "to": [
+        12,
+        16,
+        9.2
+      ],
+      "material": "cloth",
+      "side": "blue_leather"
+    },
+    {
+      "name": "left_shoulder",
+      "from": [
+        2.5,
+        14.5,
+        6
+      ],
+      "to": [
+        6.4,
+        16.5,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "right_shoulder",
+      "from": [
+        9.6,
+        14.5,
+        6
+      ],
+      "to": [
+        13.5,
+        16.5,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "left_sleeve",
+      "from": [
+        1.5,
+        8.6,
+        6
+      ],
+      "to": [
+        4.5,
+        14.6,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "cloth"
+    },
+    {
+      "name": "right_sleeve",
+      "from": [
+        11.5,
+        8.6,
+        6
+      ],
+      "to": [
+        14.5,
+        14.6,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "cloth"
+    },
+    {
+      "name": "left_leather_cuff",
+      "from": [
+        1.3,
+        7.5,
+        5.8
+      ],
+      "to": [
+        4.6,
+        9,
+        10.2
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_leather_cuff",
+      "from": [
+        11.4,
+        7.5,
+        5.8
+      ],
+      "to": [
+        14.7,
+        9,
+        10.2
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "left_collar",
+      "from": [
+        4.8,
+        16,
+        6.2
+      ],
+      "to": [
+        6.2,
+        18.2,
+        9.8
+      ],
+      "material": "leather_edge",
+      "side": "blue_leather"
+    },
+    {
+      "name": "right_collar",
+      "from": [
+        9.8,
+        16,
+        6.2
+      ],
+      "to": [
+        11.2,
+        18.2,
+        9.8
+      ],
+      "material": "leather_edge",
+      "side": "blue_leather"
+    },
+    {
+      "name": "rear_collar",
+      "from": [
+        6.2,
+        16,
+        8.8
+      ],
+      "to": [
+        9.8,
+        18.2,
+        10
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "left_square_lapel",
+      "from": [
+        5,
+        12.3,
+        5.25
+      ],
+      "to": [
+        6.5,
+        16.4,
+        6
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_square_lapel",
+      "from": [
+        9.5,
+        12.3,
+        5.25
+      ],
+      "to": [
+        11,
+        16.4,
+        6
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "center_fabric_placket",
+      "from": [
+        7.5,
+        9,
+        5.4
+      ],
+      "to": [
+        8.5,
+        16,
+        5.95
+      ],
+      "material": "cloth"
+    },
+    {
+      "name": "front_carry_belt",
+      "from": [
+        3.8,
+        7.8,
+        5.45
+      ],
+      "to": [
+        12.2,
+        9.15,
+        6.25
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "back_waist_belt",
+      "from": [
+        3.8,
+        7.8,
+        9.9
+      ],
+      "to": [
+        12.2,
+        9.15,
+        10.65
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "left_belt_join",
+      "from": [
+        3.6,
+        7.8,
+        6
+      ],
+      "to": [
+        4.5,
+        9.15,
+        10.3
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "right_belt_join",
+      "from": [
+        11.5,
+        7.8,
+        6
+      ],
+      "to": [
+        12.4,
+        9.15,
+        10.3
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "wood_toggle",
+      "from": [
+        7,
+        8,
+        4.85
+      ],
+      "to": [
+        9,
+        9.05,
+        5.6
+      ],
+      "material": "wood"
+    },
+    {
+      "name": "left_split_hem",
+      "from": [
+        4,
+        3.4,
+        5.8
+      ],
+      "to": [
+        7.5,
+        6.1,
+        10.2
+      ],
+      "material": "blue_leather",
+      "side": "cloth",
+      "cap": "leather_edge"
+    },
+    {
+      "name": "right_split_hem",
+      "from": [
+        8.5,
+        3.4,
+        5.8
+      ],
+      "to": [
+        12,
+        6.1,
+        10.2
+      ],
+      "material": "blue_leather",
+      "side": "cloth",
+      "cap": "leather_edge"
+    },
+    {
+      "name": "rear_shoulder_yoke",
+      "from": [
+        4.7,
+        13.3,
+        10
+      ],
+      "to": [
+        11.3,
+        14.5,
+        10.55
+      ],
+      "material": "leather_edge"
+    },
+    {
+      "name": "pin_socket",
+      "from": [
+        10,
+        10.2,
+        5.35
+      ],
+      "to": [
+        11.7,
+        12,
+        5.95
+      ],
+      "material": "wood"
+    },
+    {
+      "name": "lapis_coat_pin",
+      "from": [
+        10.3,
+        10.5,
+        4.95
+      ],
+      "to": [
+        11.4,
+        11.7,
+        5.45
+      ],
+      "material": "lapis"
+    }
+  ]
+}
