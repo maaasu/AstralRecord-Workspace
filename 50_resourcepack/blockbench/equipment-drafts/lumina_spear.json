@@ -1,0 +1,551 @@
+{
+  "id": "lumina_spear",
+  "master_id": "20a00421",
+  "kind": "spear",
+  "intent": "Lv25 RARE。Minecraftの鉄の槍を起点に、長柄の先に幅のある鉄製の菱形穂と大きな段差を付ける。白鉄の両刃、淡い灰木の柄、ミント色の上下二段の染め革で系列感を持たせる。ラピスの木柄と青い石葉に対し、金属の差し込み口と面取りの整い方で仕立てを上げる。天体・宝石・長い旗は付けない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "62797E",
+        "8DA6A7",
+        "B8CCC7",
+        "E0EADD",
+        "FFF9E8"
+      ],
+      "pattern": [
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "33322110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "iron_cap": {
+      "palette": [
+        "536D74",
+        "7E969B",
+        "AFBFBF",
+        "DAE3DA",
+        "F3F2DF"
+      ],
+      "pattern": [
+        "12222211",
+        "23333321",
+        "23344321",
+        "23444321",
+        "23443321",
+        "23333321",
+        "12333321",
+        "01111100"
+      ]
+    },
+    "mint_leather": {
+      "palette": [
+        "285B58",
+        "3D7E73",
+        "5B9C8B",
+        "87BC9D",
+        "B7D6AE"
+      ],
+      "pattern": [
+        "12333211",
+        "23333321",
+        "23343321",
+        "23333321",
+        "23333321",
+        "23343321",
+        "23333321",
+        "01222100"
+      ]
+    },
+    "mint_wrap": {
+      "palette": [
+        "285B58",
+        "4B8778",
+        "75AD91",
+        "A2CB9F",
+        "D6E6BD"
+      ],
+      "pattern": [
+        "12333012",
+        "23330122",
+        "33301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012"
+      ]
+    },
+    "linen_seam": {
+      "palette": [
+        "68745B",
+        "98A181",
+        "C4C9A0",
+        "ECE8BE"
+      ],
+      "pattern": [
+        "12222111",
+        "12332111",
+        "12222111",
+        "12222111",
+        "12332111",
+        "12222111",
+        "12332111",
+        "01111000"
+      ]
+    },
+    "pale_ash": {
+      "palette": [
+        "64523A",
+        "8A7452",
+        "AB956B",
+        "C7B388",
+        "E2D0A4"
+      ],
+      "pattern": [
+        "12233211",
+        "12333211",
+        "12333221",
+        "12233221",
+        "12333221",
+        "12333211",
+        "12333211",
+        "12233211"
+      ]
+    },
+    "ivory_inset": {
+      "palette": [
+        "7F8E83",
+        "ABB8A7",
+        "CDD6BD",
+        "EAF0D3",
+        "FFF8E4"
+      ],
+      "pattern": [
+        "12333211",
+        "23444321",
+        "23443321",
+        "23343321",
+        "23333321",
+        "23343321",
+        "12333211",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Continuous pale ash shaft",
+      "from": [
+        7.5,
+        0.55,
+        7.48
+      ],
+      "to": [
+        8.5,
+        17.48,
+        8.52
+      ],
+      "material": "pale_ash",
+      "side": "pale_ash",
+      "cap": "ivory_inset"
+    },
+    {
+      "name": "Unrotated lower mint hand wrap",
+      "from": [
+        7.3,
+        1.45,
+        7.28
+      ],
+      "to": [
+        8.7,
+        5.92,
+        8.72
+      ],
+      "material": "mint_wrap",
+      "side": "mint_leather",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Lower handle ferrule",
+      "from": [
+        7.14,
+        1.16,
+        7.12
+      ],
+      "to": [
+        8.86,
+        1.69,
+        8.88
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Upper handle ferrule",
+      "from": [
+        7.14,
+        5.7,
+        7.12
+      ],
+      "to": [
+        8.86,
+        6.24,
+        8.88
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Butt iron cap",
+      "from": [
+        7.2,
+        0.18,
+        7.18
+      ],
+      "to": [
+        8.8,
+        0.86,
+        8.82
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "High mint hand binding",
+      "from": [
+        7.31,
+        12.5,
+        7.29
+      ],
+      "to": [
+        8.69,
+        15.1,
+        8.71
+      ],
+      "material": "mint_leather",
+      "side": "mint_wrap",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "High wrap lower ring",
+      "from": [
+        7.13,
+        12.2,
+        7.11
+      ],
+      "to": [
+        8.87,
+        12.72,
+        8.89
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Forged socket collar",
+      "from": [
+        7.0,
+        14.83,
+        7.0
+      ],
+      "to": [
+        9.0,
+        17.4,
+        9.0
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Flared socket shoulder",
+      "from": [
+        6.48,
+        16.1,
+        7.23
+      ],
+      "to": [
+        9.52,
+        17.17,
+        8.77
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad lower blade",
+      "from": [
+        6.61,
+        17.0,
+        7.45
+      ],
+      "to": [
+        9.39,
+        19.8,
+        8.55
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Left lower blade bevel",
+      "from": [
+        6.18,
+        17.32,
+        7.68
+      ],
+      "to": [
+        6.69,
+        19.72,
+        8.32
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right lower blade bevel",
+      "from": [
+        9.31,
+        17.32,
+        7.68
+      ],
+      "to": [
+        9.82,
+        19.72,
+        8.32
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Long upper leaf",
+      "from": [
+        6.97,
+        19.69,
+        7.51
+      ],
+      "to": [
+        9.03,
+        21.68,
+        8.49
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Upper leaf left bevel",
+      "from": [
+        6.65,
+        19.68,
+        7.71
+      ],
+      "to": [
+        7.05,
+        21.68,
+        8.29
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper leaf right bevel",
+      "from": [
+        8.95,
+        19.68,
+        7.71
+      ],
+      "to": [
+        9.35,
+        21.68,
+        8.29
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Narrow spear tip",
+      "from": [
+        7.35,
+        21.57,
+        7.61
+      ],
+      "to": [
+        8.65,
+        22.96,
+        8.39
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Terminal tip block",
+      "from": [
+        7.69,
+        22.85,
+        7.7
+      ],
+      "to": [
+        8.31,
+        23.79,
+        8.3
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Pale central blade face True",
+      "from": [
+        7.56,
+        17.3,
+        7.24
+      ],
+      "to": [
+        8.44,
+        21.31,
+        7.52
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Broad mint socket inset True",
+      "from": [
+        7.45,
+        15.34,
+        6.91
+      ],
+      "to": [
+        8.55,
+        16.41,
+        7.85
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Pale central blade face False",
+      "from": [
+        7.56,
+        17.3,
+        8.48
+      ],
+      "to": [
+        8.44,
+        21.31,
+        8.76
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Broad mint socket inset False",
+      "from": [
+        7.45,
+        15.34,
+        8.15
+      ],
+      "to": [
+        8.55,
+        16.41,
+        9.09
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Socket crosspin",
+      "from": [
+        6.9,
+        16.54,
+        6.83
+      ],
+      "to": [
+        9.1,
+        17.0,
+        9.17
+      ],
+      "material": "iron_cap",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      10,
+      -24,
+      -37
+    ],
+    "translation": [
+      0,
+      -1.4,
+      0
+    ],
+    "scale": 0.69
+  }
+}

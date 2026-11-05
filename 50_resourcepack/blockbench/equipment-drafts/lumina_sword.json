@@ -1,0 +1,567 @@
+{
+  "id": "lumina_sword",
+  "master_id": "20a00419",
+  "kind": "sword",
+  "intent": "Lv25 RARE。Minecraftの鉄剣を起点に、明るい鉄の幅広い段付き平刃と左右へ開く角形護拳を組み合わせる。ミント色の染め革を太い柄巻きに使い、淡い象牙色の面を鍛造鉄の留め枠へはめる。ラピスの石芯より整った鉄の面取りで上位感を出すが、発光・冠・宝石・細かな彫刻は付けず、アストラの天体意匠に進む余地を残す。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "materials": {
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "62797E",
+        "8DA6A7",
+        "B8CCC7",
+        "E0EADD",
+        "FFF9E8"
+      ],
+      "pattern": [
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "44332110",
+        "43322110",
+        "44332110",
+        "33322110"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "iron_cap": {
+      "palette": [
+        "536D74",
+        "7E969B",
+        "AFBFBF",
+        "DAE3DA",
+        "F3F2DF"
+      ],
+      "pattern": [
+        "12222211",
+        "23333321",
+        "23344321",
+        "23444321",
+        "23443321",
+        "23333321",
+        "12333321",
+        "01111100"
+      ]
+    },
+    "mint_leather": {
+      "palette": [
+        "285B58",
+        "3D7E73",
+        "5B9C8B",
+        "87BC9D",
+        "B7D6AE"
+      ],
+      "pattern": [
+        "12333211",
+        "23333321",
+        "23343321",
+        "23333321",
+        "23333321",
+        "23343321",
+        "23333321",
+        "01222100"
+      ]
+    },
+    "mint_wrap": {
+      "palette": [
+        "285B58",
+        "4B8778",
+        "75AD91",
+        "A2CB9F",
+        "D6E6BD"
+      ],
+      "pattern": [
+        "12333012",
+        "23330122",
+        "33301223",
+        "33012233",
+        "30122333",
+        "01223330",
+        "12233301",
+        "22333012"
+      ]
+    },
+    "linen_seam": {
+      "palette": [
+        "68745B",
+        "98A181",
+        "C4C9A0",
+        "ECE8BE"
+      ],
+      "pattern": [
+        "12222111",
+        "12332111",
+        "12222111",
+        "12222111",
+        "12332111",
+        "12222111",
+        "12332111",
+        "01111000"
+      ]
+    },
+    "pale_ash": {
+      "palette": [
+        "64523A",
+        "8A7452",
+        "AB956B",
+        "C7B388",
+        "E2D0A4"
+      ],
+      "pattern": [
+        "12233211",
+        "12333211",
+        "12333221",
+        "12233221",
+        "12333221",
+        "12333211",
+        "12333211",
+        "12233211"
+      ]
+    },
+    "ivory_inset": {
+      "palette": [
+        "7F8E83",
+        "ABB8A7",
+        "CDD6BD",
+        "EAF0D3",
+        "FFF8E4"
+      ],
+      "pattern": [
+        "12333211",
+        "23444321",
+        "23443321",
+        "23343321",
+        "23333321",
+        "23343321",
+        "12333211",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Forged flat blade",
+      "from": [
+        6.85,
+        6.0,
+        7.45
+      ],
+      "to": [
+        9.15,
+        15.55,
+        8.55
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Left cutting bevel",
+      "from": [
+        6.28,
+        6.55,
+        7.66
+      ],
+      "to": [
+        6.9,
+        15.55,
+        8.34
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right cutting bevel",
+      "from": [
+        9.1,
+        6.55,
+        7.66
+      ],
+      "to": [
+        9.72,
+        15.55,
+        8.34
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad blade shoulder",
+      "from": [
+        6.52,
+        6.0,
+        7.55
+      ],
+      "to": [
+        9.48,
+        7.2,
+        8.45
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper blade step",
+      "from": [
+        7.05,
+        15.45,
+        7.48
+      ],
+      "to": [
+        8.95,
+        17.45,
+        8.52
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Upper left edge",
+      "from": [
+        6.62,
+        15.45,
+        7.69
+      ],
+      "to": [
+        7.1,
+        17.45,
+        8.31
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper right edge",
+      "from": [
+        8.9,
+        15.45,
+        7.69
+      ],
+      "to": [
+        9.38,
+        17.45,
+        8.31
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Narrow point step",
+      "from": [
+        7.34,
+        17.35,
+        7.55
+      ],
+      "to": [
+        8.66,
+        18.68,
+        8.45
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Block point",
+      "from": [
+        7.65,
+        18.58,
+        7.66
+      ],
+      "to": [
+        8.35,
+        19.42,
+        8.34
+      ],
+      "material": "iron_edge",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad pale blade face True",
+      "from": [
+        7.34,
+        7.2,
+        7.28
+      ],
+      "to": [
+        8.66,
+        14.8,
+        7.5
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Short mint maker block True",
+      "from": [
+        7.53,
+        6.4,
+        7.24
+      ],
+      "to": [
+        8.47,
+        7.35,
+        7.54
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Broad pale blade face False",
+      "from": [
+        7.34,
+        7.2,
+        8.5
+      ],
+      "to": [
+        8.66,
+        14.8,
+        8.72
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Short mint maker block False",
+      "from": [
+        7.53,
+        6.4,
+        8.46
+      ],
+      "to": [
+        8.47,
+        7.35,
+        8.76
+      ],
+      "material": "mint_leather",
+      "side": "iron_shadow",
+      "cap": "bright_iron"
+    },
+    {
+      "name": "Squared iron crossguard",
+      "from": [
+        4.88,
+        5.22,
+        7.11
+      ],
+      "to": [
+        11.12,
+        6.12,
+        8.89
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Left lifted quillon",
+      "from": [
+        4.3,
+        5.63,
+        7.19
+      ],
+      "to": [
+        5.25,
+        6.75,
+        8.81
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Right lifted quillon",
+      "from": [
+        10.75,
+        5.63,
+        7.19
+      ],
+      "to": [
+        11.7,
+        6.75,
+        8.81
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Left broad guard inset",
+      "from": [
+        4.68,
+        5.3,
+        6.95
+      ],
+      "to": [
+        6.03,
+        5.95,
+        7.17
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Right broad guard inset",
+      "from": [
+        9.97,
+        5.3,
+        6.95
+      ],
+      "to": [
+        11.32,
+        5.95,
+        7.17
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Unrotated dyed leather grip",
+      "from": [
+        7.3,
+        1.18,
+        7.29
+      ],
+      "to": [
+        8.7,
+        5.33,
+        8.71
+      ],
+      "material": "mint_wrap",
+      "side": "mint_leather",
+      "cap": "linen_seam"
+    },
+    {
+      "name": "Top grip ferrule",
+      "from": [
+        7.12,
+        4.92,
+        7.11
+      ],
+      "to": [
+        8.88,
+        5.43,
+        8.89
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Lower grip ferrule",
+      "from": [
+        7.12,
+        1.06,
+        7.11
+      ],
+      "to": [
+        8.88,
+        1.57,
+        8.89
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Square palm pommel",
+      "from": [
+        6.86,
+        0.5,
+        6.94
+      ],
+      "to": [
+        9.14,
+        1.24,
+        9.06
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    },
+    {
+      "name": "Pommel pale inset",
+      "from": [
+        7.31,
+        0.64,
+        6.78
+      ],
+      "to": [
+        8.69,
+        1.08,
+        7.03
+      ],
+      "material": "ivory_inset",
+      "side": "iron_shadow",
+      "cap": "iron_cap"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -24,
+      -35
+    ],
+    "translation": [
+      0,
+      -1,
+      0
+    ],
+    "scale": 0.83
+  }
+}
