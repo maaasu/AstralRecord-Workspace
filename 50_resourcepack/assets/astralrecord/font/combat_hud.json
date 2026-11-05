@@ -1,0 +1,17 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_hud.png",
+      "height": 14,
+      "ascent": 10,
+      "chars": [
+        "\ue900\ue901\ue902\ue910\ue911\ue912\ue913\ue914\ue915\ue916\ue917\ue918\ue919\ue91a\ue920\ue921\ue922\ue923"
+      ]
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}
