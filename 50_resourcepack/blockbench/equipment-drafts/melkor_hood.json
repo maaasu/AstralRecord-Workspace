@@ -1,0 +1,495 @@
+{
+  "id": "melkor_hood",
+  "master_id": "20a00048",
+  "kind": "armor",
+  "intent": "Lv10 RARE。影を縫い込み、狙いを妨げない黒緑の布頭巾。目と頬の前を大きく開け、短い庇と厚い布の折返しで柔らかさを表す。黒鋼は小留具1点だけ。序盤より縁と縫目を整えるが、Astra級の冠・大型金属装飾は付けない。carry点は空洞ではなく後頭部の実厚革裾。",
+  "grip": [
+    8,
+    4.15,
+    10.8
+  ],
+  "materials": {
+    "shadow_cloth": {
+      "palette": [
+        "141D1C",
+        "1C2926",
+        "263D32",
+        "355044",
+        "476254"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12222221",
+        "12221221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "fold_cloth": {
+      "palette": [
+        "121B1B",
+        "1B2825",
+        "2B4036",
+        "3D5748",
+        "536C58"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12332221",
+        "12232221",
+        "12222211",
+        "12222211",
+        "11222110",
+        "01111100"
+      ]
+    },
+    "cloth_edge": {
+      "palette": [
+        "15211F",
+        "263D32",
+        "405A49",
+        "66785D"
+      ],
+      "pattern": [
+        "22222222",
+        "12222221",
+        "11111111",
+        "11111111",
+        "11211121",
+        "11111111",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "dark_hide": {
+      "palette": [
+        "171C1B",
+        "292F29",
+        "404438",
+        "5D604B",
+        "7A7C60"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "blacksteel": {
+      "palette": [
+        "161D22",
+        "2A3339",
+        "434D51",
+        "647173",
+        "8A9591"
+      ],
+      "pattern": [
+        "12333321",
+        "23444322",
+        "23333221",
+        "12322221",
+        "12222211",
+        "12222111",
+        "11221110",
+        "00111100"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "1D282D",
+        "354349",
+        "58696B",
+        "83938D"
+      ],
+      "pattern": [
+        "22333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "11111111",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "0E1718",
+        "172421",
+        "24352D",
+        "354A3C"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "shadow_seam": {
+      "palette": [
+        "17241F",
+        "2D4436",
+        "4E6248",
+        "718366"
+      ],
+      "pattern": [
+        "11111111",
+        "11211121",
+        "11211121",
+        "11111111",
+        "11111111",
+        "11211121",
+        "11211121",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Soft shadow cloth rear shell",
+      "from": [
+        3.95,
+        4.2,
+        10.25
+      ],
+      "to": [
+        12.05,
+        11.0,
+        11.35
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Left tapered cloth wall",
+      "from": [
+        3.65,
+        5.2,
+        5.7
+      ],
+      "to": [
+        4.75,
+        11.15,
+        10.6
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Right tapered cloth wall",
+      "from": [
+        11.25,
+        5.2,
+        5.7
+      ],
+      "to": [
+        12.35,
+        11.15,
+        10.6
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Low broad hood crown",
+      "from": [
+        3.85,
+        10.75,
+        5.3
+      ],
+      "to": [
+        12.15,
+        12.0,
+        11.15
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Centered soft crown fold",
+      "from": [
+        5.0,
+        11.9,
+        5.9
+      ],
+      "to": [
+        11.0,
+        12.65,
+        10.6
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Flat sewn crown seam",
+      "from": [
+        7.7,
+        12.6,
+        6.0
+      ],
+      "to": [
+        8.3,
+        12.9,
+        10.6
+      ],
+      "material": "shadow_seam"
+    },
+    {
+      "name": "Short sight clear hood brim",
+      "from": [
+        3.7,
+        10.35,
+        4.55
+      ],
+      "to": [
+        12.3,
+        11.15,
+        5.85
+      ],
+      "material": "fold_cloth",
+      "side": "cloth_edge"
+    },
+    {
+      "name": "Muted brim stitched edge",
+      "from": [
+        3.75,
+        10.25,
+        4.4
+      ],
+      "to": [
+        12.25,
+        10.65,
+        4.9
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Left long open face fold",
+      "from": [
+        3.8,
+        4.65,
+        4.85
+      ],
+      "to": [
+        5.0,
+        10.55,
+        6.0
+      ],
+      "material": "fold_cloth",
+      "side": "cloth_edge"
+    },
+    {
+      "name": "Right long open face fold",
+      "from": [
+        11.0,
+        4.65,
+        4.85
+      ],
+      "to": [
+        12.2,
+        10.55,
+        6.0
+      ],
+      "material": "fold_cloth",
+      "side": "cloth_edge"
+    },
+    {
+      "name": "Left face aperture piping",
+      "from": [
+        4.65,
+        4.7,
+        4.6
+      ],
+      "to": [
+        5.15,
+        10.4,
+        5.0
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Right face aperture piping",
+      "from": [
+        10.85,
+        4.7,
+        4.6
+      ],
+      "to": [
+        11.35,
+        10.4,
+        5.0
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Rear reinforced carry hem",
+      "from": [
+        3.85,
+        3.75,
+        10.1
+      ],
+      "to": [
+        12.15,
+        4.6,
+        11.5
+      ],
+      "material": "dark_hide",
+      "side": "cloth_edge"
+    },
+    {
+      "name": "Left flexible neck drape",
+      "from": [
+        3.65,
+        3.95,
+        6.0
+      ],
+      "to": [
+        4.85,
+        5.55,
+        10.55
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Right flexible neck drape",
+      "from": [
+        11.15,
+        3.95,
+        6.0
+      ],
+      "to": [
+        12.35,
+        5.55,
+        10.55
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Left lower tie reinforced root",
+      "from": [
+        3.8,
+        4.55,
+        5.55
+      ],
+      "to": [
+        5.15,
+        5.15,
+        6.5
+      ],
+      "material": "dark_hide"
+    },
+    {
+      "name": "Right lower tie reinforced root",
+      "from": [
+        10.85,
+        4.55,
+        5.55
+      ],
+      "to": [
+        12.2,
+        5.15,
+        6.5
+      ],
+      "material": "dark_hide"
+    },
+    {
+      "name": "Small left blacksteel tie clasp",
+      "from": [
+        4.2,
+        4.6,
+        5.25
+      ],
+      "to": [
+        4.9,
+        5.1,
+        5.7
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Inner rear shadow lining",
+      "from": [
+        4.75,
+        4.65,
+        10.0
+      ],
+      "to": [
+        11.25,
+        10.7,
+        10.35
+      ],
+      "material": "lining"
+    },
+    {
+      "name": "Rear straight shadow seam",
+      "from": [
+        7.7,
+        4.55,
+        11.25
+      ],
+      "to": [
+        8.3,
+        10.8,
+        11.55
+      ],
+      "material": "shadow_seam"
+    },
+    {
+      "name": "Rear seam left upper stitch",
+      "from": [
+        6.85,
+        8.5,
+        11.3
+      ],
+      "to": [
+        7.8,
+        8.95,
+        11.6
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Rear seam right lower stitch",
+      "from": [
+        8.2,
+        6.85,
+        11.3
+      ],
+      "to": [
+        9.15,
+        7.3,
+        11.6
+      ],
+      "material": "cloth_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "melkor_ranger",
+  "wearable_source": "armor/melkor_ranger.pixels.json"
+}

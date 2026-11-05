@@ -1,0 +1,650 @@
+{
+  "id": "melkor_boots",
+  "master_id": "20a00044",
+  "kind": "armor",
+  "intent": "Lv10 RARE。音を立てず歩くための柔らかな短靴。薄い暗色革底、段付きつま先、開いた折返し履口、曲がる黒緑布の短い筒を採用。金属は小留具だけで爪先・底は硬い鋼で覆わない。序盤より輪郭と留具を整えるが高位の重いsabatonsや装飾は避ける。itemでは後ろの細い携帯革紐で対を接続し、carry点は右の実厚履口前帯。",
+  "grip": [
+    10.65,
+    8.25,
+    6.4
+  ],
+  "materials": {
+    "shadow_cloth": {
+      "palette": [
+        "141D1C",
+        "1C2926",
+        "263D32",
+        "355044",
+        "476254"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12222221",
+        "12221221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "fold_cloth": {
+      "palette": [
+        "121B1B",
+        "1B2825",
+        "2B4036",
+        "3D5748",
+        "536C58"
+      ],
+      "pattern": [
+        "12333221",
+        "12333221",
+        "12332221",
+        "12232221",
+        "12222211",
+        "12222211",
+        "11222110",
+        "01111100"
+      ]
+    },
+    "cloth_edge": {
+      "palette": [
+        "15211F",
+        "263D32",
+        "405A49",
+        "66785D"
+      ],
+      "pattern": [
+        "22222222",
+        "12222221",
+        "11111111",
+        "11111111",
+        "11211121",
+        "11111111",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "dark_hide": {
+      "palette": [
+        "171C1B",
+        "292F29",
+        "404438",
+        "5D604B",
+        "7A7C60"
+      ],
+      "pattern": [
+        "12222221",
+        "12332221",
+        "12332221",
+        "12222221",
+        "12222221",
+        "11222211",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "quiet_sole": {
+      "palette": [
+        "111717",
+        "202824",
+        "344036",
+        "505746"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "12222221",
+        "11111111",
+        "11111111",
+        "11111111",
+        "00000000",
+        "00000000"
+      ]
+    },
+    "blacksteel": {
+      "palette": [
+        "161D22",
+        "2A3339",
+        "434D51",
+        "647173",
+        "8A9591"
+      ],
+      "pattern": [
+        "12333321",
+        "23444322",
+        "23333221",
+        "12322221",
+        "12222211",
+        "12222111",
+        "11221110",
+        "00111100"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "1D282D",
+        "354349",
+        "58696B",
+        "83938D"
+      ],
+      "pattern": [
+        "22333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "11111111",
+        "01111110",
+        "00000000"
+      ]
+    },
+    "shadow_seam": {
+      "palette": [
+        "17241F",
+        "2D4436",
+        "4E6248",
+        "718366"
+      ],
+      "pattern": [
+        "11111111",
+        "11211121",
+        "11211121",
+        "11111111",
+        "11111111",
+        "11211121",
+        "11211121",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left quiet flexible sole",
+      "from": [
+        3.25,
+        2.0,
+        4.2
+      ],
+      "to": [
+        7.449999999999999,
+        2.6,
+        10.3
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "Left light leather foot",
+      "from": [
+        3.35,
+        2.5,
+        4.55
+      ],
+      "to": [
+        7.35,
+        4.2,
+        10.15
+      ],
+      "material": "dark_hide",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Left soft square toe",
+      "from": [
+        3.6,
+        2.45,
+        3.85
+      ],
+      "to": [
+        7.1,
+        3.65,
+        5.35
+      ],
+      "material": "dark_hide",
+      "side": "quiet_sole"
+    },
+    {
+      "name": "Left low toe folded welt",
+      "from": [
+        3.7,
+        3.6,
+        4.15
+      ],
+      "to": [
+        7.0,
+        3.95,
+        5.45
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Left low shaft front",
+      "from": [
+        3.4,
+        4.05,
+        6.05
+      ],
+      "to": [
+        7.3,
+        8.15,
+        6.9
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Left low shaft rear",
+      "from": [
+        3.4,
+        4.05,
+        9.35
+      ],
+      "to": [
+        7.3,
+        8.15,
+        10.2
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Left low shaft left wall",
+      "from": [
+        3.35,
+        4.05,
+        6.85
+      ],
+      "to": [
+        4.05,
+        8.15,
+        9.45
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Left low shaft right wall",
+      "from": [
+        6.6499999999999995,
+        4.05,
+        6.85
+      ],
+      "to": [
+        7.35,
+        8.15,
+        9.45
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Left folded open cuff front",
+      "from": [
+        3.25,
+        7.9,
+        5.85
+      ],
+      "to": [
+        7.449999999999999,
+        8.65,
+        7.0
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Left folded open cuff rear",
+      "from": [
+        3.25,
+        7.9,
+        9.2
+      ],
+      "to": [
+        7.449999999999999,
+        8.65,
+        10.4
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Left folded open cuff left",
+      "from": [
+        3.25,
+        7.9,
+        6.9
+      ],
+      "to": [
+        4.1,
+        8.65,
+        9.3
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Left folded open cuff right",
+      "from": [
+        6.6,
+        7.9,
+        6.9
+      ],
+      "to": [
+        7.449999999999999,
+        8.65,
+        9.3
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Left ankle wrap strap",
+      "from": [
+        3.37,
+        5.0,
+        5.75
+      ],
+      "to": [
+        7.33,
+        5.65,
+        6.15
+      ],
+      "material": "dark_hide"
+    },
+    {
+      "name": "Left small muted strap clasp",
+      "from": [
+        3.7,
+        5.05,
+        5.45
+      ],
+      "to": [
+        4.5,
+        5.6,
+        5.85
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Left rear stitched heel join",
+      "from": [
+        5.1,
+        3.9,
+        10.1
+      ],
+      "to": [
+        5.6,
+        7.95,
+        10.45
+      ],
+      "material": "shadow_seam"
+    },
+    {
+      "name": "Left rear soft heel reinforcement",
+      "from": [
+        3.75,
+        2.55,
+        9.95
+      ],
+      "to": [
+        6.949999999999999,
+        4.3,
+        10.4
+      ],
+      "material": "dark_hide"
+    },
+    {
+      "name": "Right quiet flexible sole",
+      "from": [
+        8.55,
+        2.0,
+        4.2
+      ],
+      "to": [
+        12.75,
+        2.6,
+        10.3
+      ],
+      "material": "quiet_sole"
+    },
+    {
+      "name": "Right light leather foot",
+      "from": [
+        8.65,
+        2.5,
+        4.55
+      ],
+      "to": [
+        12.65,
+        4.2,
+        10.15
+      ],
+      "material": "dark_hide",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Right soft square toe",
+      "from": [
+        8.9,
+        2.45,
+        3.85
+      ],
+      "to": [
+        12.4,
+        3.65,
+        5.35
+      ],
+      "material": "dark_hide",
+      "side": "quiet_sole"
+    },
+    {
+      "name": "Right low toe folded welt",
+      "from": [
+        9.0,
+        3.6,
+        4.15
+      ],
+      "to": [
+        12.3,
+        3.95,
+        5.45
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Right low shaft front",
+      "from": [
+        8.700000000000001,
+        4.05,
+        6.05
+      ],
+      "to": [
+        12.6,
+        8.15,
+        6.9
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Right low shaft rear",
+      "from": [
+        8.700000000000001,
+        4.05,
+        9.35
+      ],
+      "to": [
+        12.6,
+        8.15,
+        10.2
+      ],
+      "material": "shadow_cloth",
+      "side": "fold_cloth"
+    },
+    {
+      "name": "Right low shaft left wall",
+      "from": [
+        8.65,
+        4.05,
+        6.85
+      ],
+      "to": [
+        9.35,
+        8.15,
+        9.45
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Right low shaft right wall",
+      "from": [
+        11.950000000000001,
+        4.05,
+        6.85
+      ],
+      "to": [
+        12.65,
+        8.15,
+        9.45
+      ],
+      "material": "fold_cloth"
+    },
+    {
+      "name": "Right folded open cuff front",
+      "from": [
+        8.55,
+        7.9,
+        5.85
+      ],
+      "to": [
+        12.75,
+        8.65,
+        7.0
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Right folded open cuff rear",
+      "from": [
+        8.55,
+        7.9,
+        9.2
+      ],
+      "to": [
+        12.75,
+        8.65,
+        10.4
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Right folded open cuff left",
+      "from": [
+        8.55,
+        7.9,
+        6.9
+      ],
+      "to": [
+        9.4,
+        8.65,
+        9.3
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Right folded open cuff right",
+      "from": [
+        11.9,
+        7.9,
+        6.9
+      ],
+      "to": [
+        12.75,
+        8.65,
+        9.3
+      ],
+      "material": "cloth_edge"
+    },
+    {
+      "name": "Right ankle wrap strap",
+      "from": [
+        8.67,
+        5.0,
+        5.75
+      ],
+      "to": [
+        12.63,
+        5.65,
+        6.15
+      ],
+      "material": "dark_hide"
+    },
+    {
+      "name": "Right small muted strap clasp",
+      "from": [
+        9.0,
+        5.05,
+        5.45
+      ],
+      "to": [
+        9.8,
+        5.6,
+        5.85
+      ],
+      "material": "blacksteel",
+      "side": "steel_edge"
+    },
+    {
+      "name": "Right rear stitched heel join",
+      "from": [
+        10.4,
+        3.9,
+        10.1
+      ],
+      "to": [
+        10.9,
+        7.95,
+        10.45
+      ],
+      "material": "shadow_seam"
+    },
+    {
+      "name": "Right rear soft heel reinforcement",
+      "from": [
+        9.05,
+        2.55,
+        9.95
+      ],
+      "to": [
+        12.25,
+        4.3,
+        10.4
+      ],
+      "material": "dark_hide"
+    },
+    {
+      "name": "Rear narrow paired boot carrying tie",
+      "from": [
+        7.15,
+        8.05,
+        9.9
+      ],
+      "to": [
+        8.85,
+        8.5,
+        10.25
+      ],
+      "material": "dark_hide"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "melkor_ranger",
+  "wearable_source": "armor/melkor_ranger.pixels.json"
+}
