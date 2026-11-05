@@ -1,0 +1,657 @@
+{
+  "id": "lapis_guard_legs",
+  "master_id": "20a00409",
+  "kind": "armor",
+  "intent": "Lv20 RARE。青染めの革ズボンを二本の中空の脚にし、大きい太腿石板と鉄枠の四角い膝を段差で重ねる。脚間を残し、濃い青の脛と鉄裾でレギンスの輪郭を読む。背面は革の二本帯と小さなラピス当て。既存ラピス武器と同じ群青と鉄色だが、板の配置と輪郭は防具専用。微細な鎖模様や写実反射は使わない。",
+  "grip": [
+    8,
+    15.0,
+    10.3
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#102654",
+        "#173879",
+        "#214C9A",
+        "#3267B1",
+        "#4A83C6",
+        "#B5A16B"
+      ],
+      "pattern": [
+        "22222322",
+        "22333322",
+        "23322332",
+        "22222332",
+        "22332222",
+        "22352222",
+        "22222322",
+        "12222221"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "#193972",
+        "#2858A0",
+        "#3C76B9",
+        "#5B95D0",
+        "#8AB5DC"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "#3A4952",
+        "#677C86",
+        "#9EADB0",
+        "#CFD7D1",
+        "#EDF1E4"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "#71868B",
+        "#A4B7B5",
+        "#D8E1D4",
+        "#F2F3DF"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "#273640",
+        "#3B505C",
+        "#536B75",
+        "#788B8D"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "blue_leather": {
+      "palette": [
+        "#1C294C",
+        "#293B6B",
+        "#334A8A",
+        "#455E9C",
+        "#5C72AB"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#15213A",
+        "#25365A",
+        "#3A4D77",
+        "#536791"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "brown_leather": {
+      "palette": [
+        "#30251E",
+        "#4C3828",
+        "#6B5036",
+        "#8F704B",
+        "#B39463"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Open blue leather waistband front",
+      "from": [
+        2.9,
+        14.3,
+        5.3
+      ],
+      "to": [
+        13.1,
+        15.8,
+        6.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open blue leather waistband back",
+      "from": [
+        2.9,
+        14.3,
+        9.7
+      ],
+      "to": [
+        13.1,
+        15.8,
+        10.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open blue leather waistband left",
+      "from": [
+        2.9,
+        14.3,
+        6.4
+      ],
+      "to": [
+        4.0,
+        15.8,
+        9.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Open blue leather waistband right",
+      "from": [
+        12.0,
+        14.3,
+        6.4
+      ],
+      "to": [
+        13.1,
+        15.8,
+        9.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue trouser front",
+      "from": [
+        3.1,
+        1.3,
+        5.8
+      ],
+      "to": [
+        7.300000000000001,
+        14.5,
+        6.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue trouser back",
+      "from": [
+        3.1,
+        1.3,
+        9.3
+      ],
+      "to": [
+        7.300000000000001,
+        14.5,
+        10.4
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left outside trouser seam",
+      "from": [
+        3.1,
+        1.3,
+        6.8
+      ],
+      "to": [
+        3.95,
+        14.5,
+        9.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left inside trouser seam",
+      "from": [
+        6.45,
+        1.3,
+        6.8
+      ],
+      "to": [
+        7.300000000000001,
+        14.5,
+        9.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left broad lapis thigh tile",
+      "from": [
+        3.45,
+        10.0,
+        4.9
+      ],
+      "to": [
+        6.95,
+        13.7,
+        6.2
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left square iron knee frame",
+      "from": [
+        2.9,
+        6.25,
+        4.65
+      ],
+      "to": [
+        7.5,
+        9.15,
+        6.15
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Left lapis knee inset",
+      "from": [
+        3.75,
+        6.7,
+        4.15
+      ],
+      "to": [
+        6.65,
+        8.75,
+        4.95
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left lower blue shin reinforcement",
+      "from": [
+        3.75,
+        2.2,
+        5.25
+      ],
+      "to": [
+        6.65,
+        6.35,
+        6.2
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left back knee leather tie",
+      "from": [
+        3.0500000000000003,
+        7.0,
+        10.2
+      ],
+      "to": [
+        7.35,
+        8.05,
+        10.95
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Left back thigh leather tie",
+      "from": [
+        3.0500000000000003,
+        11.4,
+        10.2
+      ],
+      "to": [
+        7.35,
+        12.45,
+        10.95
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Left rear lapis calf patch",
+      "from": [
+        3.9000000000000004,
+        2.5,
+        10.1
+      ],
+      "to": [
+        6.5,
+        5.7,
+        10.85
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left lower iron hem front",
+      "from": [
+        3.0500000000000003,
+        0.95,
+        5.55
+      ],
+      "to": [
+        7.35,
+        2.1,
+        6.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left lower iron hem back",
+      "from": [
+        3.0500000000000003,
+        0.95,
+        9.3
+      ],
+      "to": [
+        7.35,
+        2.1,
+        10.65
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right blue trouser front",
+      "from": [
+        8.7,
+        1.3,
+        5.8
+      ],
+      "to": [
+        12.899999999999999,
+        14.5,
+        6.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right blue trouser back",
+      "from": [
+        8.7,
+        1.3,
+        9.3
+      ],
+      "to": [
+        12.899999999999999,
+        14.5,
+        10.4
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right outside trouser seam",
+      "from": [
+        8.7,
+        1.3,
+        6.8
+      ],
+      "to": [
+        9.549999999999999,
+        14.5,
+        9.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right inside trouser seam",
+      "from": [
+        12.049999999999999,
+        1.3,
+        6.8
+      ],
+      "to": [
+        12.899999999999999,
+        14.5,
+        9.5
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right broad lapis thigh tile",
+      "from": [
+        9.049999999999999,
+        10.0,
+        4.9
+      ],
+      "to": [
+        12.549999999999999,
+        13.7,
+        6.2
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right square iron knee frame",
+      "from": [
+        8.5,
+        6.25,
+        4.65
+      ],
+      "to": [
+        13.1,
+        9.15,
+        6.15
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Right lapis knee inset",
+      "from": [
+        9.35,
+        6.7,
+        4.15
+      ],
+      "to": [
+        12.25,
+        8.75,
+        4.95
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right lower blue shin reinforcement",
+      "from": [
+        9.35,
+        2.2,
+        5.25
+      ],
+      "to": [
+        12.25,
+        6.35,
+        6.2
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right back knee leather tie",
+      "from": [
+        8.649999999999999,
+        7.0,
+        10.2
+      ],
+      "to": [
+        12.95,
+        8.05,
+        10.95
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Right back thigh leather tie",
+      "from": [
+        8.649999999999999,
+        11.4,
+        10.2
+      ],
+      "to": [
+        12.95,
+        12.45,
+        10.95
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Right rear lapis calf patch",
+      "from": [
+        9.5,
+        2.5,
+        10.1
+      ],
+      "to": [
+        12.1,
+        5.7,
+        10.85
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right lower iron hem front",
+      "from": [
+        8.649999999999999,
+        0.95,
+        5.55
+      ],
+      "to": [
+        12.95,
+        2.1,
+        6.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right lower iron hem back",
+      "from": [
+        8.649999999999999,
+        0.95,
+        9.3
+      ],
+      "to": [
+        12.95,
+        2.1,
+        10.65
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Waist broad iron clasp",
+      "from": [
+        6.65,
+        14.35,
+        4.75
+      ],
+      "to": [
+        9.35,
+        15.7,
+        5.8
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Waist lapis clasp center",
+      "from": [
+        7.35,
+        14.55,
+        4.25
+      ],
+      "to": [
+        8.65,
+        15.5,
+        5.0
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

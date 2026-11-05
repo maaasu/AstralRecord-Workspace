@@ -1,0 +1,672 @@
+{
+  "id": "lapis_guard_feet",
+  "master_id": "20a00410",
+  "kind": "armor",
+  "intent": "Lv20 RARE。二足の青革ブーツに幅広い鉄爪先、低いラピス甲、上端のラピス板を載せる。鉄裾のレギンスと異なり、張り出した爪先と革底でブーツらしさを明快にする。背面には踵当てと実際につながる運搬用革帯。ラピス武器の青石と鉄の色分けを保ち、主役は原作の青革。大きい面と一段の段差で仕立てる。",
+  "grip": [
+    8,
+    10.2,
+    10.85
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#102654",
+        "#173879",
+        "#214C9A",
+        "#3267B1",
+        "#4A83C6",
+        "#B5A16B"
+      ],
+      "pattern": [
+        "22222322",
+        "22333322",
+        "23322332",
+        "22222332",
+        "22332222",
+        "22352222",
+        "22222322",
+        "12222221"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "#193972",
+        "#2858A0",
+        "#3C76B9",
+        "#5B95D0",
+        "#8AB5DC"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "#3A4952",
+        "#677C86",
+        "#9EADB0",
+        "#CFD7D1",
+        "#EDF1E4"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "#71868B",
+        "#A4B7B5",
+        "#D8E1D4",
+        "#F2F3DF"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "#273640",
+        "#3B505C",
+        "#536B75",
+        "#788B8D"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "blue_leather": {
+      "palette": [
+        "#1C294C",
+        "#293B6B",
+        "#334A8A",
+        "#455E9C",
+        "#5C72AB"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#15213A",
+        "#25365A",
+        "#3A4D77",
+        "#536791"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "brown_leather": {
+      "palette": [
+        "#30251E",
+        "#4C3828",
+        "#6B5036",
+        "#8F704B",
+        "#B39463"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left thick dark leather sole",
+      "from": [
+        1.6,
+        0.7,
+        3.7
+      ],
+      "to": [
+        6.75,
+        1.85,
+        11.0
+      ],
+      "material": "brown_leather",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Left broad blue leather foot",
+      "from": [
+        1.8,
+        1.8,
+        4.0
+      ],
+      "to": [
+        6.550000000000001,
+        4.1,
+        10.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left square iron toe",
+      "from": [
+        1.7000000000000002,
+        1.85,
+        3.3
+      ],
+      "to": [
+        6.65,
+        3.2,
+        5.75
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Left raised lapis instep",
+      "from": [
+        2.2,
+        3.15,
+        4.8
+      ],
+      "to": [
+        6.15,
+        4.35,
+        6.9
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left blue ankle front",
+      "from": [
+        2.1,
+        3.8,
+        6.7
+      ],
+      "to": [
+        6.25,
+        10.35,
+        7.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue ankle back",
+      "from": [
+        2.1,
+        3.8,
+        9.8
+      ],
+      "to": [
+        6.25,
+        10.35,
+        10.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue ankle left",
+      "from": [
+        2.1,
+        3.8,
+        7.6
+      ],
+      "to": [
+        3.0,
+        10.35,
+        10.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue ankle right",
+      "from": [
+        5.35,
+        3.8,
+        7.6
+      ],
+      "to": [
+        6.25,
+        10.35,
+        10.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left open iron cuff front",
+      "from": [
+        1.9000000000000001,
+        9.55,
+        6.4
+      ],
+      "to": [
+        6.449999999999999,
+        10.8,
+        7.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left open iron cuff back",
+      "from": [
+        1.9000000000000001,
+        9.55,
+        9.75
+      ],
+      "to": [
+        6.449999999999999,
+        10.8,
+        11.25
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left open iron cuff left",
+      "from": [
+        1.9000000000000001,
+        9.55,
+        7.8
+      ],
+      "to": [
+        3.0,
+        10.8,
+        9.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left open iron cuff right",
+      "from": [
+        5.35,
+        9.55,
+        7.8
+      ],
+      "to": [
+        6.449999999999999,
+        10.8,
+        9.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left broad lapis cuff plate",
+      "from": [
+        2.6,
+        9.7,
+        5.8
+      ],
+      "to": [
+        5.75,
+        11.1,
+        6.75
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left rear iron heel brace",
+      "from": [
+        2.25,
+        1.9,
+        10.5
+      ],
+      "to": [
+        6.1,
+        4.8,
+        11.4
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left rear leather ankle band",
+      "from": [
+        1.9500000000000002,
+        6.25,
+        10.7
+      ],
+      "to": [
+        6.4,
+        7.4,
+        11.35
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Left square iron side fastening",
+      "from": [
+        1.7000000000000002,
+        6.3,
+        8.0
+      ],
+      "to": [
+        2.55,
+        7.65,
+        9.5
+      ],
+      "material": "steel",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Right thick dark leather sole",
+      "from": [
+        9.25,
+        0.7,
+        3.7
+      ],
+      "to": [
+        14.4,
+        1.85,
+        11.0
+      ],
+      "material": "brown_leather",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Right broad blue leather foot",
+      "from": [
+        9.45,
+        1.8,
+        4.0
+      ],
+      "to": [
+        14.2,
+        4.1,
+        10.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right square iron toe",
+      "from": [
+        9.35,
+        1.85,
+        3.3
+      ],
+      "to": [
+        14.3,
+        3.2,
+        5.75
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Right raised lapis instep",
+      "from": [
+        9.85,
+        3.15,
+        4.8
+      ],
+      "to": [
+        13.8,
+        4.35,
+        6.9
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right blue ankle front",
+      "from": [
+        9.75,
+        3.8,
+        6.7
+      ],
+      "to": [
+        13.9,
+        10.35,
+        7.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right blue ankle back",
+      "from": [
+        9.75,
+        3.8,
+        9.8
+      ],
+      "to": [
+        13.9,
+        10.35,
+        10.9
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right blue ankle left",
+      "from": [
+        9.75,
+        3.8,
+        7.6
+      ],
+      "to": [
+        10.65,
+        10.35,
+        10.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right blue ankle right",
+      "from": [
+        13.0,
+        3.8,
+        7.6
+      ],
+      "to": [
+        13.9,
+        10.35,
+        10.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right open iron cuff front",
+      "from": [
+        9.55,
+        9.55,
+        6.4
+      ],
+      "to": [
+        14.1,
+        10.8,
+        7.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right open iron cuff back",
+      "from": [
+        9.55,
+        9.55,
+        9.75
+      ],
+      "to": [
+        14.1,
+        10.8,
+        11.25
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right open iron cuff left",
+      "from": [
+        9.55,
+        9.55,
+        7.8
+      ],
+      "to": [
+        10.65,
+        10.8,
+        9.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right open iron cuff right",
+      "from": [
+        13.0,
+        9.55,
+        7.8
+      ],
+      "to": [
+        14.1,
+        10.8,
+        9.9
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right broad lapis cuff plate",
+      "from": [
+        10.25,
+        9.7,
+        5.8
+      ],
+      "to": [
+        13.4,
+        11.1,
+        6.75
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right rear iron heel brace",
+      "from": [
+        9.9,
+        1.9,
+        10.5
+      ],
+      "to": [
+        13.75,
+        4.8,
+        11.4
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right rear leather ankle band",
+      "from": [
+        9.6,
+        6.25,
+        10.7
+      ],
+      "to": [
+        14.05,
+        7.4,
+        11.35
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Right square iron side fastening",
+      "from": [
+        9.35,
+        6.3,
+        8.0
+      ],
+      "to": [
+        10.2,
+        7.65,
+        9.5
+      ],
+      "material": "steel",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Paired rear leather carry strap",
+      "from": [
+        5.85,
+        9.85,
+        10.5
+      ],
+      "to": [
+        10.15,
+        10.65,
+        11.2
+      ],
+      "material": "brown_leather"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

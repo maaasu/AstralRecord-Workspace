@@ -1,0 +1,452 @@
+{
+  "id": "lapis_guard_head",
+  "master_id": "20a00407",
+  "kind": "armor",
+  "intent": "Lv20 RARE。青く染めた革 #334A8A の兜に、鉄の額縁と低い二段のラピス冠を重ねる。鉱物の角張りを大きい面で示し、既存ラピス武器の群青・鉄色と統一。顔中央を大きく開け、側面は石のこめかみ、背面は革帯と四角い留め石。初期装備より仕立てと段差を増やすが、写実反射・細密彫刻・発光にはしない。",
+  "grip": [
+    8,
+    4.3,
+    11.5
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#102654",
+        "#173879",
+        "#214C9A",
+        "#3267B1",
+        "#4A83C6",
+        "#B5A16B"
+      ],
+      "pattern": [
+        "22222322",
+        "22333322",
+        "23322332",
+        "22222332",
+        "22332222",
+        "22352222",
+        "22222322",
+        "12222221"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "#193972",
+        "#2858A0",
+        "#3C76B9",
+        "#5B95D0",
+        "#8AB5DC"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "#3A4952",
+        "#677C86",
+        "#9EADB0",
+        "#CFD7D1",
+        "#EDF1E4"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "#71868B",
+        "#A4B7B5",
+        "#D8E1D4",
+        "#F2F3DF"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "#273640",
+        "#3B505C",
+        "#536B75",
+        "#788B8D"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "blue_leather": {
+      "palette": [
+        "#1C294C",
+        "#293B6B",
+        "#334A8A",
+        "#455E9C",
+        "#5C72AB"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#15213A",
+        "#25365A",
+        "#3A4D77",
+        "#536791"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "brown_leather": {
+      "palette": [
+        "#30251E",
+        "#4C3828",
+        "#6B5036",
+        "#8F704B",
+        "#B39463"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Blue leather rear shell",
+      "from": [
+        3.0,
+        3.9,
+        10.2
+      ],
+      "to": [
+        13.0,
+        12.7,
+        11.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left blue leather wall",
+      "from": [
+        2.9,
+        4.6,
+        5.5
+      ],
+      "to": [
+        4.3,
+        12.7,
+        10.7
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right blue leather wall",
+      "from": [
+        11.7,
+        4.6,
+        5.5
+      ],
+      "to": [
+        13.1,
+        12.7,
+        10.7
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Broad flat iron crown",
+      "from": [
+        2.8,
+        12.2,
+        5.3
+      ],
+      "to": [
+        13.2,
+        13.4,
+        11.9
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Low lapis crown step",
+      "from": [
+        3.8,
+        13.3,
+        6.1
+      ],
+      "to": [
+        12.2,
+        14.3,
+        11.2
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Square central lapis crest",
+      "from": [
+        6.5,
+        14.15,
+        6.6
+      ],
+      "to": [
+        9.5,
+        15.1,
+        10.8
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Iron forehead lintel",
+      "from": [
+        2.8,
+        10.8,
+        4.7
+      ],
+      "to": [
+        13.2,
+        12.7,
+        6.0
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Lapis forehead panel",
+      "from": [
+        4.5,
+        11.1,
+        4.15
+      ],
+      "to": [
+        11.5,
+        12.45,
+        4.95
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left square cheek frame",
+      "from": [
+        2.8,
+        4.5,
+        4.8
+      ],
+      "to": [
+        4.5,
+        10.9,
+        6.1
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Left lower blue cheek tab",
+      "from": [
+        3.0,
+        4.0,
+        5.1
+      ],
+      "to": [
+        4.3,
+        6.2,
+        6.3
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left lapis temple block",
+      "from": [
+        2.5,
+        8.4,
+        6.6
+      ],
+      "to": [
+        4.6,
+        11.3,
+        9.7
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right square cheek frame",
+      "from": [
+        11.5,
+        4.5,
+        4.8
+      ],
+      "to": [
+        13.2,
+        10.9,
+        6.1
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Right lower blue cheek tab",
+      "from": [
+        11.7,
+        4.0,
+        5.1
+      ],
+      "to": [
+        13.0,
+        6.2,
+        6.3
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right lapis temple block",
+      "from": [
+        11.2,
+        8.4,
+        6.6
+      ],
+      "to": [
+        13.3,
+        11.3,
+        9.7
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Broad rear iron nape",
+      "from": [
+        3.0,
+        3.4,
+        10.6
+      ],
+      "to": [
+        13.0,
+        5.0,
+        12.25
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Back leather securing strap",
+      "from": [
+        3.4,
+        6.5,
+        11.6
+      ],
+      "to": [
+        12.6,
+        7.65,
+        12.35
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Rear square lapis closure",
+      "from": [
+        6.8,
+        6.25,
+        12.15
+      ],
+      "to": [
+        9.2,
+        8.0,
+        12.8
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Rear iron crown seam",
+      "from": [
+        7.5,
+        8.0,
+        11.6
+      ],
+      "to": [
+        8.5,
+        13.6,
+        12.3
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

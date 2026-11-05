@@ -1,0 +1,600 @@
+{
+  "id": "lapis_guard_chest",
+  "master_id": "20a00408",
+  "kind": "armor",
+  "intent": "Lv20 RARE。原作の青革を胴と脇に残し、左右四枚の幅広いラピス板と一段ずつ張り出す鉄肩でガードメイルの安定した輪郭。既存武器の石・鉄・革の大面積の組合せを使う。正面は中央鉄継ぎ、背面は大石板と二本の革ハーネス、側面は四角い留め具。高位の豪華な彫刻ではなく、Minecraftの素材ブロックと良い仕立て。",
+  "grip": [
+    8,
+    3.55,
+    10.3
+  ],
+  "materials": {
+    "lapis": {
+      "palette": [
+        "#102654",
+        "#173879",
+        "#214C9A",
+        "#3267B1",
+        "#4A83C6",
+        "#B5A16B"
+      ],
+      "pattern": [
+        "22222322",
+        "22333322",
+        "23322332",
+        "22222332",
+        "22332222",
+        "22352222",
+        "22222322",
+        "12222221"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "#193972",
+        "#2858A0",
+        "#3C76B9",
+        "#5B95D0",
+        "#8AB5DC"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "steel": {
+      "palette": [
+        "#3A4952",
+        "#677C86",
+        "#9EADB0",
+        "#CFD7D1",
+        "#EDF1E4"
+      ],
+      "pattern": [
+        "23333332",
+        "23333332",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "steel_edge": {
+      "palette": [
+        "#71868B",
+        "#A4B7B5",
+        "#D8E1D4",
+        "#F2F3DF"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "#273640",
+        "#3B505C",
+        "#536B75",
+        "#788B8D"
+      ],
+      "pattern": [
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "blue_leather": {
+      "palette": [
+        "#1C294C",
+        "#293B6B",
+        "#334A8A",
+        "#455E9C",
+        "#5C72AB"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22232222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "leather_edge": {
+      "palette": [
+        "#15213A",
+        "#25365A",
+        "#3A4D77",
+        "#536791"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "01111110"
+      ]
+    },
+    "brown_leather": {
+      "palette": [
+        "#30251E",
+        "#4C3828",
+        "#6B5036",
+        "#8F704B",
+        "#B39463"
+      ],
+      "pattern": [
+        "23333332",
+        "22333322",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Blue leather rear garment",
+      "from": [
+        3.1,
+        3.1,
+        9.5
+      ],
+      "to": [
+        12.9,
+        14.4,
+        10.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Blue leather front garment",
+      "from": [
+        3.1,
+        3.1,
+        5.6
+      ],
+      "to": [
+        12.9,
+        14.0,
+        6.8
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left thick blue flank",
+      "from": [
+        2.8,
+        3.1,
+        6.6
+      ],
+      "to": [
+        4.0,
+        14.3,
+        10.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right thick blue flank",
+      "from": [
+        12.0,
+        3.1,
+        6.6
+      ],
+      "to": [
+        13.2,
+        14.3,
+        10.1
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Broad dark iron lower rim",
+      "from": [
+        2.8,
+        2.8,
+        5.5
+      ],
+      "to": [
+        13.2,
+        4.2,
+        11.0
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Left lapis upper breast plate",
+      "from": [
+        3.6,
+        8.2,
+        4.7
+      ],
+      "to": [
+        7.75,
+        12.8,
+        6.1
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left lapis lower stepped plate",
+      "from": [
+        3.95,
+        5.6,
+        4.85
+      ],
+      "to": [
+        7.4,
+        8.4,
+        6.15
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right lapis upper breast plate",
+      "from": [
+        8.25,
+        8.2,
+        4.7
+      ],
+      "to": [
+        12.4,
+        12.8,
+        6.1
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right lapis lower stepped plate",
+      "from": [
+        8.6,
+        5.6,
+        4.85
+      ],
+      "to": [
+        12.05,
+        8.4,
+        6.15
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Central iron plate join",
+      "from": [
+        7.55,
+        5.3,
+        4.5
+      ],
+      "to": [
+        8.45,
+        13.1,
+        5.9
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Wide iron collar front",
+      "from": [
+        4.0,
+        13.0,
+        5.25
+      ],
+      "to": [
+        12.0,
+        14.3,
+        6.7
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Collar square lapis clasp",
+      "from": [
+        6.9,
+        12.9,
+        4.5
+      ],
+      "to": [
+        9.1,
+        14.5,
+        5.5
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left blue leather shoulder root",
+      "from": [
+        1.0,
+        12.6,
+        6.4
+      ],
+      "to": [
+        4.2,
+        15.2,
+        10.2
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Left broad iron shoulder cap",
+      "from": [
+        0.7,
+        14.4,
+        5.9
+      ],
+      "to": [
+        4.5,
+        15.6,
+        10.8
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Left lapis shoulder step",
+      "from": [
+        1.1,
+        15.5,
+        6.5
+      ],
+      "to": [
+        4.1,
+        16.4,
+        10.3
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left lowered front shoulder lip",
+      "from": [
+        0.7999999999999999,
+        12.5,
+        5.25
+      ],
+      "to": [
+        4.4,
+        14.5,
+        6.45
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Right blue leather shoulder root",
+      "from": [
+        11.8,
+        12.6,
+        6.4
+      ],
+      "to": [
+        15.0,
+        15.2,
+        10.2
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Right broad iron shoulder cap",
+      "from": [
+        11.5,
+        14.4,
+        5.9
+      ],
+      "to": [
+        15.3,
+        15.6,
+        10.8
+      ],
+      "material": "steel",
+      "side": "iron_dark",
+      "cap": "steel_edge"
+    },
+    {
+      "name": "Right lapis shoulder step",
+      "from": [
+        11.9,
+        15.5,
+        6.5
+      ],
+      "to": [
+        14.9,
+        16.4,
+        10.3
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right lowered front shoulder lip",
+      "from": [
+        11.6,
+        12.5,
+        5.25
+      ],
+      "to": [
+        15.2,
+        14.5,
+        6.45
+      ],
+      "material": "iron_dark",
+      "side": "steel"
+    },
+    {
+      "name": "Rear upper broad lapis panel",
+      "from": [
+        4.0,
+        9.5,
+        10.5
+      ],
+      "to": [
+        12.0,
+        13.1,
+        11.6
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Rear lower blue reinforced panel",
+      "from": [
+        4.1,
+        4.6,
+        10.5
+      ],
+      "to": [
+        11.9,
+        8.5,
+        11.4
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    },
+    {
+      "name": "Rear vertical leather harness",
+      "from": [
+        5.0,
+        4.0,
+        11.25
+      ],
+      "to": [
+        5.9,
+        14.4,
+        12.0
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Rear vertical leather harness",
+      "from": [
+        10.1,
+        4.0,
+        11.25
+      ],
+      "to": [
+        11.0,
+        14.4,
+        12.0
+      ],
+      "material": "brown_leather"
+    },
+    {
+      "name": "Rear broad iron belt buckle",
+      "from": [
+        6.65,
+        3.0,
+        10.8
+      ],
+      "to": [
+        9.35,
+        4.4,
+        11.7
+      ],
+      "material": "steel",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Left square flank fastening",
+      "from": [
+        2.45,
+        7.0,
+        7.4
+      ],
+      "to": [
+        3.3000000000000003,
+        8.6,
+        9.0
+      ],
+      "material": "steel",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Right square flank fastening",
+      "from": [
+        12.7,
+        7.0,
+        7.4
+      ],
+      "to": [
+        13.549999999999999,
+        8.6,
+        9.0
+      ],
+      "material": "steel",
+      "side": "iron_dark"
+    },
+    {
+      "name": "Front blue leather belt",
+      "from": [
+        3.1,
+        3.15,
+        4.95
+      ],
+      "to": [
+        12.9,
+        4.4,
+        5.85
+      ],
+      "material": "blue_leather",
+      "side": "leather_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      2
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.0
+  }
+}

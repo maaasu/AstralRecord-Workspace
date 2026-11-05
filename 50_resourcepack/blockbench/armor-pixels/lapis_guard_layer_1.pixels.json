@@ -1,0 +1,214 @@
+{
+  "width": 64,
+  "height": 32,
+  "palette": {
+    ".": "00000000",
+    "0": "15213AFF",
+    "1": "293B6BFF",
+    "2": "334A8AFF",
+    "3": "455E9CFF",
+    "4": "5C72ABFF",
+    "a": "102654FF",
+    "b": "173879FF",
+    "c": "214C9AFF",
+    "d": "3267B1FF",
+    "e": "4A83C6FF",
+    "g": "B5A16BFF",
+    "i": "273640FF",
+    "j": "536B75FF",
+    "k": "9EADB0FF",
+    "l": "CFD7D1FF",
+    "m": "EDF1E4FF",
+    "r": "4C3828FF",
+    "s": "6B5036FF",
+    "t": "8F704BFF"
+  },
+  "pixels": [
+    "........jkllllkjj......j........................................",
+    "........kcccccckj......j........................................",
+    "........kcddddckj......j........................................",
+    "........kcddddckj......j........................................",
+    "........kcddgdckj......j........................................",
+    "........kcddddckj......j........................................",
+    "........kcccccckj222222j........................................",
+    "........jkllllkjjkllllkj........................................",
+    "jkllllkjjkllllkjjkllllkjjkllllkj................................",
+    "jccddccjklcddclkjccddccjjccddccj................................",
+    "jcddddcjk......kjcddddcjjcccdccj................................",
+    "jccdcc2jj......jjccdcc2jj222222j................................",
+    "j222222jj......jj222222jj233332j................................",
+    "j233332jj......jj233332jrsskkssr................................",
+    "rssssrrjk......krssssrrjrskddksr................................",
+    "jkllllkjj......jjkllllkjjkllllkj................................",
+    "........issi........jj....jjjkkkkkkj........jkkjjkkj............",
+    "........stts........jk....kjk222222k........kddkk22k............",
+    "........stts........jk....kjk222222k........kddkk22k............",
+    "........issi........jj....jjjkkkkkkj........jkkjjkkj............",
+    "................jjjjjj....jjjjjjjj....jjjkkjjkkjjkkjjkkj........",
+    "................kllkklkccklkkllkjccccccjklmkklmkklmkklmk........",
+    "................1221jddkkddj1221jddrrddjjddjjddjjddjjddj........",
+    "................2332jcdkkdcj2332jcdrrdcjjccjjccjjccjjccj........",
+    "jkkjjkkjjkkjjkkj2222jcdkkdcj2222jcdrrdcj1221122112211221........",
+    "1221jcdj122112212kk2jcckkccj2kk2jccrrccj2222233222222332........",
+    "rssrjddjrssrrssr2jj2j22jj22j2jj2122rr2212kk222222kk22222........",
+    "2kk212212kk212212222jcdjjdcj2222123rr3212jj222222jj22222........",
+    "22222332222223322332jcdjjdcj2332122rr221rssrrssrrssrrssr........",
+    "ijjijccjijjiijji2222jccjjccj2222122rr221jkkjjkkjjkkjjkkj........",
+    "jkkjkllkjkkjjkkjrssr12222221rssrrsskkssr1221122112211221........",
+    "issiissiissiissijkkjjkkkkkkjjkkjjkkkkkkjjkkjjkkjjkkjjkkj........"
+  ],
+  "uv": {
+    "head": {
+      "front": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "back": [
+        24,
+        8,
+        8,
+        8
+      ],
+      "left": [
+        0,
+        8,
+        8,
+        8
+      ],
+      "right": [
+        16,
+        8,
+        8,
+        8
+      ],
+      "top": [
+        8,
+        0,
+        8,
+        8
+      ],
+      "bottom": [
+        16,
+        0,
+        8,
+        8
+      ]
+    },
+    "body": {
+      "front": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "back": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "left": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "bottom": [
+        28,
+        16,
+        8,
+        4
+      ]
+    },
+    "arm": {
+      "front": [
+        44,
+        20,
+        4,
+        12
+      ],
+      "back": [
+        52,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        40,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        48,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        44,
+        16,
+        4,
+        4
+      ],
+      "bottom": [
+        48,
+        16,
+        4,
+        4
+      ]
+    },
+    "leg": {
+      "front": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "back": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "bottom": [
+        8,
+        16,
+        4,
+        4
+      ]
+    }
+  }
+}
