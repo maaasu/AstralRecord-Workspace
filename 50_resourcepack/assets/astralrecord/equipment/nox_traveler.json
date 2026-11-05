@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "astralrecord:nox_traveler"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "astralrecord:nox_traveler"
+      }
+    ]
+  }
+}

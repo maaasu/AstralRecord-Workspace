@@ -1,0 +1,425 @@
+{
+  "id": "nox_armor_legs",
+  "master_id": "20a00011",
+  "kind": "armor",
+  "intent": "Minecraftの革レギンスを起点にした紺布と革の旅立ち用脚装備。左右に分かれた太い脚、素朴な膝当て、外側の縫い目、茶革の帯と小さな鉄留めで作る。上位の板金グリーヴと違い、布の折り目と交換しやすい革当てが主役。carry基準は中空ではない前帯。",
+  "grip": [
+    8,
+    12.0,
+    6.1
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.02
+  },
+  "materials": {
+    "navy_leather": {
+      "palette": [
+        "192B3B",
+        "243B50",
+        "345168",
+        "4A667A",
+        "637F8C"
+      ],
+      "pattern": [
+        "12233221",
+        "12333321",
+        "12333321",
+        "12333221",
+        "12233221",
+        "12233221",
+        "12222221",
+        "01122110"
+      ]
+    },
+    "navy_cloth": {
+      "palette": [
+        "192C3F",
+        "243D54",
+        "314E66",
+        "425F75",
+        "5A7385"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12333221",
+        "12332221",
+        "12222221",
+        "01122110"
+      ]
+    },
+    "navy_edge": {
+      "palette": [
+        "203447",
+        "324D63",
+        "4E6B7C",
+        "738995",
+        "9BA6A5"
+      ],
+      "pattern": [
+        "33222211",
+        "33222211",
+        "33222211",
+        "33222211",
+        "33222211",
+        "33222211",
+        "22211100",
+        "11110000"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "302923",
+        "49372D",
+        "644C37",
+        "806345",
+        "9A7E56"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "stitch": {
+      "palette": [
+        "20364A",
+        "324C61",
+        "8E7956",
+        "B19B6D"
+      ],
+      "pattern": [
+        "11111111",
+        "11111111",
+        "11221122",
+        "11331133",
+        "11111111",
+        "11111111",
+        "11221122",
+        "11331133"
+      ]
+    },
+    "iron_pin": {
+      "palette": [
+        "37434C",
+        "56666E",
+        "899A9C",
+        "B8C5C1",
+        "D4DBD2"
+      ],
+      "pattern": [
+        "00111100",
+        "01233210",
+        "12344321",
+        "12333221",
+        "12222221",
+        "01222110",
+        "00111100",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left cloth trouser leg",
+      "from": [
+        4.65,
+        4.4,
+        6.0
+      ],
+      "to": [
+        7.65,
+        10.55,
+        9.9
+      ],
+      "material": "navy_cloth",
+      "side": "navy_leather"
+    },
+    {
+      "name": "Right cloth trouser leg",
+      "from": [
+        8.35,
+        4.4,
+        6.0
+      ],
+      "to": [
+        11.35,
+        10.55,
+        9.9
+      ],
+      "material": "navy_cloth",
+      "side": "navy_leather"
+    },
+    {
+      "name": "Front upper trouser rise",
+      "from": [
+        4.65,
+        10.2,
+        5.9
+      ],
+      "to": [
+        11.35,
+        11.65,
+        6.7
+      ],
+      "material": "navy_cloth"
+    },
+    {
+      "name": "Back upper trouser rise",
+      "from": [
+        4.65,
+        10.2,
+        9.2
+      ],
+      "to": [
+        11.35,
+        11.65,
+        10.0
+      ],
+      "material": "navy_cloth"
+    },
+    {
+      "name": "Left hip",
+      "from": [
+        4.4,
+        10.2,
+        6.7
+      ],
+      "to": [
+        5.2,
+        11.65,
+        9.2
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Right hip",
+      "from": [
+        10.8,
+        10.2,
+        6.7
+      ],
+      "to": [
+        11.6,
+        11.65,
+        9.2
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Cloth crotch gusset",
+      "from": [
+        7.6,
+        9.55,
+        6.45
+      ],
+      "to": [
+        8.4,
+        11.5,
+        9.45
+      ],
+      "material": "navy_cloth"
+    },
+    {
+      "name": "Front leather waistband carrying edge",
+      "from": [
+        4.3,
+        11.55,
+        5.65
+      ],
+      "to": [
+        11.7,
+        12.55,
+        6.7
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Back leather waistband",
+      "from": [
+        4.3,
+        11.55,
+        9.2
+      ],
+      "to": [
+        11.7,
+        12.55,
+        10.25
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Left leather waistband",
+      "from": [
+        4.05,
+        11.55,
+        6.65
+      ],
+      "to": [
+        5.15,
+        12.55,
+        9.25
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right leather waistband",
+      "from": [
+        10.85,
+        11.55,
+        6.65
+      ],
+      "to": [
+        11.95,
+        12.55,
+        9.25
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Small iron belt catch",
+      "from": [
+        7.4,
+        11.7,
+        5.43
+      ],
+      "to": [
+        8.6,
+        12.35,
+        5.7
+      ],
+      "material": "iron_pin"
+    },
+    {
+      "name": "Left leather knee patch",
+      "from": [
+        4.88,
+        6.95,
+        5.74
+      ],
+      "to": [
+        7.42,
+        8.8,
+        6.05
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right leather knee patch",
+      "from": [
+        8.58,
+        6.95,
+        5.74
+      ],
+      "to": [
+        11.12,
+        8.8,
+        6.05
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Left knee stitch",
+      "from": [
+        4.88,
+        6.9,
+        5.62
+      ],
+      "to": [
+        7.42,
+        7.24,
+        5.83
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Right knee stitch",
+      "from": [
+        8.58,
+        6.9,
+        5.62
+      ],
+      "to": [
+        11.12,
+        7.24,
+        5.83
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Left lower cuff",
+      "from": [
+        4.55,
+        4.0,
+        5.9
+      ],
+      "to": [
+        7.75,
+        4.55,
+        10.0
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Right lower cuff",
+      "from": [
+        8.25,
+        4.0,
+        5.9
+      ],
+      "to": [
+        11.45,
+        4.55,
+        10.0
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Left outside seam",
+      "from": [
+        4.45,
+        4.65,
+        7.6
+      ],
+      "to": [
+        4.7,
+        10.2,
+        8.1
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Right outside seam",
+      "from": [
+        11.3,
+        4.65,
+        7.6
+      ],
+      "to": [
+        11.55,
+        10.2,
+        8.1
+      ],
+      "material": "stitch"
+    }
+  ],
+  "wearable_texture_set": "nox_traveler",
+  "wearable_source": "armor/nox_traveler_texture_source.json"
+}

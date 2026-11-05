@@ -1,0 +1,536 @@
+{
+  "id": "nox_armor_boots",
+  "master_id": "20a00012",
+  "kind": "armor",
+  "intent": "Minecraftの革ブーツを起点にした紺革の旅行靴一足。角形のつま先、厚い茶色の靴底、開いた筒、太い履き口、木ボタン付きの短い革帯で構成する。豪華な金属飾りや細い写実的な靴紐を避け、ノクスの序盤装備らしい重さにする。carry基準は右靴の実在する靴底。",
+  "grip": [
+    9.9,
+    3.3,
+    7.5
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.06
+  },
+  "materials": {
+    "navy_leather": {
+      "palette": [
+        "192B3B",
+        "243B50",
+        "345168",
+        "4A667A",
+        "637F8C"
+      ],
+      "pattern": [
+        "12233221",
+        "12333321",
+        "12333321",
+        "12333221",
+        "12233221",
+        "12233221",
+        "12222221",
+        "01122110"
+      ]
+    },
+    "navy_edge": {
+      "palette": [
+        "203447",
+        "324D63",
+        "4E6B7C",
+        "738995",
+        "9BA6A5"
+      ],
+      "pattern": [
+        "33222211",
+        "33222211",
+        "33222211",
+        "33222211",
+        "33222211",
+        "33222211",
+        "22211100",
+        "11110000"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "302923",
+        "49372D",
+        "644C37",
+        "806345",
+        "9A7E56"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "stitch": {
+      "palette": [
+        "20364A",
+        "324C61",
+        "8E7956",
+        "B19B6D"
+      ],
+      "pattern": [
+        "11111111",
+        "11111111",
+        "11221122",
+        "11331133",
+        "11111111",
+        "11111111",
+        "11221122",
+        "11331133"
+      ]
+    },
+    "wood_button": {
+      "palette": [
+        "3B3027",
+        "5C4530",
+        "806342",
+        "A18152",
+        "BEA06A"
+      ],
+      "pattern": [
+        "00111100",
+        "01233210",
+        "12344321",
+        "12333221",
+        "12222221",
+        "01222110",
+        "00111100",
+        "00000000"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "262627",
+        "36332F",
+        "494337",
+        "62563E"
+      ],
+      "pattern": [
+        "22222211",
+        "22222211",
+        "11111100",
+        "11111100",
+        "22222211",
+        "22222211",
+        "11111100",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left dark leather sole",
+      "from": [
+        3.15,
+        3.0,
+        4.25
+      ],
+      "to": [
+        7.65,
+        3.65,
+        10.7
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left sturdy leather foot",
+      "from": [
+        3.35,
+        3.6,
+        4.55
+      ],
+      "to": [
+        7.45,
+        5.4,
+        10.45
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Left squared toe",
+      "from": [
+        3.4,
+        3.7,
+        4.05
+      ],
+      "to": [
+        7.4,
+        4.95,
+        5.4
+      ],
+      "material": "rawhide",
+      "side": "sole"
+    },
+    {
+      "name": "Left navy shaft front",
+      "from": [
+        3.45,
+        5.2,
+        6.15
+      ],
+      "to": [
+        7.3500000000000005,
+        10.0,
+        6.95
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Left navy shaft back",
+      "from": [
+        3.45,
+        5.2,
+        9.65
+      ],
+      "to": [
+        7.3500000000000005,
+        10.0,
+        10.4
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Left shaft left",
+      "from": [
+        3.35,
+        5.2,
+        6.9
+      ],
+      "to": [
+        4.1,
+        10.0,
+        9.7
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Left shaft right",
+      "from": [
+        6.7,
+        5.2,
+        6.9
+      ],
+      "to": [
+        7.45,
+        10.0,
+        9.7
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Left front rolled cuff",
+      "from": [
+        3.2,
+        9.85,
+        5.95
+      ],
+      "to": [
+        7.6000000000000005,
+        10.6,
+        7.05
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Left back rolled cuff",
+      "from": [
+        3.2,
+        9.85,
+        9.55
+      ],
+      "to": [
+        7.6000000000000005,
+        10.6,
+        10.6
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Left left rolled cuff",
+      "from": [
+        3.2,
+        9.85,
+        7.0
+      ],
+      "to": [
+        4.1,
+        10.6,
+        9.6
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Left right rolled cuff",
+      "from": [
+        6.7,
+        9.85,
+        7.0
+      ],
+      "to": [
+        7.6000000000000005,
+        10.6,
+        9.6
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Left plain leather ankle tie",
+      "from": [
+        3.38,
+        8.3,
+        5.98
+      ],
+      "to": [
+        7.42,
+        8.9,
+        6.25
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Left wooden ankle button",
+      "from": [
+        5.0200000000000005,
+        8.17,
+        5.77
+      ],
+      "to": [
+        5.78,
+        8.98,
+        6.02
+      ],
+      "material": "wood_button"
+    },
+    {
+      "name": "Left back seam",
+      "from": [
+        5.180000000000001,
+        5.4,
+        10.4
+      ],
+      "to": [
+        5.62,
+        9.8,
+        10.56
+      ],
+      "material": "stitch"
+    },
+    {
+      "name": "Right dark leather sole",
+      "from": [
+        8.350000000000001,
+        3.0,
+        4.25
+      ],
+      "to": [
+        12.85,
+        3.65,
+        10.7
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right sturdy leather foot",
+      "from": [
+        8.55,
+        3.6,
+        4.55
+      ],
+      "to": [
+        12.65,
+        5.4,
+        10.45
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right squared toe",
+      "from": [
+        8.600000000000001,
+        3.7,
+        4.05
+      ],
+      "to": [
+        12.6,
+        4.95,
+        5.4
+      ],
+      "material": "rawhide",
+      "side": "sole"
+    },
+    {
+      "name": "Right navy shaft front",
+      "from": [
+        8.65,
+        5.2,
+        6.15
+      ],
+      "to": [
+        12.55,
+        10.0,
+        6.95
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Right navy shaft back",
+      "from": [
+        8.65,
+        5.2,
+        9.65
+      ],
+      "to": [
+        12.55,
+        10.0,
+        10.4
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Right shaft left",
+      "from": [
+        8.55,
+        5.2,
+        6.9
+      ],
+      "to": [
+        9.3,
+        10.0,
+        9.7
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Right shaft right",
+      "from": [
+        11.9,
+        5.2,
+        6.9
+      ],
+      "to": [
+        12.65,
+        10.0,
+        9.7
+      ],
+      "material": "navy_leather"
+    },
+    {
+      "name": "Right front rolled cuff",
+      "from": [
+        8.4,
+        9.85,
+        5.95
+      ],
+      "to": [
+        12.8,
+        10.6,
+        7.05
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Right back rolled cuff",
+      "from": [
+        8.4,
+        9.85,
+        9.55
+      ],
+      "to": [
+        12.8,
+        10.6,
+        10.6
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Right left rolled cuff",
+      "from": [
+        8.4,
+        9.85,
+        7.0
+      ],
+      "to": [
+        9.3,
+        10.6,
+        9.6
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Right right rolled cuff",
+      "from": [
+        11.9,
+        9.85,
+        7.0
+      ],
+      "to": [
+        12.8,
+        10.6,
+        9.6
+      ],
+      "material": "navy_edge"
+    },
+    {
+      "name": "Right plain leather ankle tie",
+      "from": [
+        8.58,
+        8.3,
+        5.98
+      ],
+      "to": [
+        12.620000000000001,
+        8.9,
+        6.25
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Right wooden ankle button",
+      "from": [
+        10.22,
+        8.17,
+        5.77
+      ],
+      "to": [
+        10.980000000000002,
+        8.98,
+        6.02
+      ],
+      "material": "wood_button"
+    },
+    {
+      "name": "Right back seam",
+      "from": [
+        10.38,
+        5.4,
+        10.4
+      ],
+      "to": [
+        10.820000000000002,
+        9.8,
+        10.56
+      ],
+      "material": "stitch"
+    }
+  ],
+  "wearable_texture_set": "nox_traveler",
+  "wearable_source": "armor/nox_traveler_texture_source.json"
+}
