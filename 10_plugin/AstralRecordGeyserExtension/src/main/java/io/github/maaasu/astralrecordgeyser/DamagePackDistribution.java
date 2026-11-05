@@ -105,6 +105,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready();
     }
 
+    boolean actionRingReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().actionRing();
+    }
+
     void disconnect(GeyserConnection connection) {
         sessions.remove(connection);
     }

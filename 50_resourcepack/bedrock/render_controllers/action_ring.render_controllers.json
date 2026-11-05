@@ -1,0 +1,137 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.action_ring.normal": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true,
+      "color": {
+        "r": 0.6509803921568628,
+        "g": 0.9098039215686274,
+        "b": 1.0,
+        "a": 1
+      },
+      "part_visibility": [
+        {
+          "slot_0": "!(query.property('astralrecord:ring_selected') == 1) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 1), 2) == 1)"
+        },
+        {
+          "slot_1": "!(query.property('astralrecord:ring_selected') == 2) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 2), 2) == 1)"
+        },
+        {
+          "slot_2": "!(query.property('astralrecord:ring_selected') == 3) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 4), 2) == 1)"
+        },
+        {
+          "slot_3": "!(query.property('astralrecord:ring_selected') == 4) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 8), 2) == 1)"
+        },
+        {
+          "slot_4": "!(query.property('astralrecord:ring_selected') == 5) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 16), 2) == 1)"
+        },
+        {
+          "slot_5": "!(query.property('astralrecord:ring_selected') == 6) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 32), 2) == 1)"
+        },
+        {
+          "slot_6": "!(query.property('astralrecord:ring_selected') == 7) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 64), 2) == 1)"
+        },
+        {
+          "slot_7": "!(query.property('astralrecord:ring_selected') == 8) && !(math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 128), 2) == 1)"
+        }
+      ]
+    },
+    "controller.render.astralrecord.action_ring.selected": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true,
+      "color": {
+        "r": 1.0,
+        "g": 0.796078431372549,
+        "b": 0.4392156862745098,
+        "a": 1
+      },
+      "part_visibility": [
+        {
+          "slot_0": "query.property('astralrecord:ring_selected') == 1"
+        },
+        {
+          "slot_1": "query.property('astralrecord:ring_selected') == 2"
+        },
+        {
+          "slot_2": "query.property('astralrecord:ring_selected') == 3"
+        },
+        {
+          "slot_3": "query.property('astralrecord:ring_selected') == 4"
+        },
+        {
+          "slot_4": "query.property('astralrecord:ring_selected') == 5"
+        },
+        {
+          "slot_5": "query.property('astralrecord:ring_selected') == 6"
+        },
+        {
+          "slot_6": "query.property('astralrecord:ring_selected') == 7"
+        },
+        {
+          "slot_7": "query.property('astralrecord:ring_selected') == 8"
+        }
+      ]
+    },
+    "controller.render.astralrecord.action_ring.cooldown": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true,
+      "color": {
+        "r": 0.45098039215686275,
+        "g": 0.48627450980392156,
+        "b": 0.5647058823529412,
+        "a": 1
+      },
+      "part_visibility": [
+        {
+          "slot_0": "!(query.property('astralrecord:ring_selected') == 1) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 1), 2) == 1)"
+        },
+        {
+          "slot_1": "!(query.property('astralrecord:ring_selected') == 2) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 2), 2) == 1)"
+        },
+        {
+          "slot_2": "!(query.property('astralrecord:ring_selected') == 3) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 4), 2) == 1)"
+        },
+        {
+          "slot_3": "!(query.property('astralrecord:ring_selected') == 4) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 8), 2) == 1)"
+        },
+        {
+          "slot_4": "!(query.property('astralrecord:ring_selected') == 5) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 16), 2) == 1)"
+        },
+        {
+          "slot_5": "!(query.property('astralrecord:ring_selected') == 6) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 32), 2) == 1)"
+        },
+        {
+          "slot_6": "!(query.property('astralrecord:ring_selected') == 7) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 64), 2) == 1)"
+        },
+        {
+          "slot_7": "!(query.property('astralrecord:ring_selected') == 8) && (math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / 128), 2) == 1)"
+        }
+      ]
+    }
+  }
+}

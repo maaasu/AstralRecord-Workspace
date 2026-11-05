@@ -2,6 +2,7 @@ package io.github.maaasu.astralrecordgeyser;
 
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.api.entity.custom.CustomEntityDefinition;
+import org.geysermc.geyser.api.entity.data.GeyserEntityDataTypes;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
@@ -16,17 +17,24 @@ import org.geysermc.geyser.api.util.Identifier;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 
-/** AstralRecordのヘッドとBedrock向けダメージ表示をGeyserへ登録する。 */
+/** AstralRecord のヘッドと Bedrock 向け専用モデルを Geyser へ登録します。 */
 public final class AstralRecordGeyserExtension implements Extension {
+    private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
+    private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
     private final DamagePackDistribution damagePacks = new DamagePackDistribution(this);
     private CustomEntityDefinition damageNumberDefinition;
     private DamageNumberEntity damageNumberProperties;
+    private CustomEntityDefinition actionRingDefinition;
+    private ActionRingEntity actionRingProperties;
 
     @Subscribe
     public void onDefineEntities(GeyserDefineEntitiesEvent event) {
         var definition = DamageNumberEntity.definition();
         event.register(definition);
         damageNumberDefinition = definition;
+        var ringDefinition = ActionRingEntity.definition();
+        event.register(ringDefinition);
+        actionRingDefinition = ringDefinition;
     }
 
     @Subscribe
@@ -34,11 +42,14 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (damageNumberDefinition != null) {
             damageNumberProperties = DamageNumberEntity.registerProperties(event);
         }
+        if (actionRingDefinition != null) {
+            actionRingProperties = ActionRingEntity.registerProperties(event);
+        }
     }
 
     @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
-        if (damageNumberProperties != null) damagePacks.start();
+        if (damageNumberProperties != null || actionRingProperties != null) damagePacks.start();
     }
 
     @Subscribe
@@ -58,7 +69,19 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe(ignoreCancelled = true)
     public void onServerSpawn(ServerSpawnEntityEvent event) {
-        if (!event.entityType().is(Identifier.of("minecraft", "text_display"))) return;
+        if (event.entityType().is(DROPPED_ITEM) && ActionRingFrame.isIcon(event.uuid())) {
+            event.preSpawnConsumer(entity -> {
+                entity.override(GeyserEntityDataTypes.WIDTH, 0f);
+                entity.override(GeyserEntityDataTypes.HEIGHT, 0f);
+            });
+            return;
+        }
+        if (!event.entityType().is(TEXT_DISPLAY)) return;
+        ActionRingFrame frame = ActionRingFrame.decode(event.uuid(), event.entityId());
+        if (frame != null) {
+            onActionRingFrame(event, frame);
+            return;
+        }
         DamageNumber number = DamageNumber.decode(event.uuid(), event.entityId());
         if (number == null) return;
 
@@ -69,6 +92,34 @@ public final class AstralRecordGeyserExtension implements Extension {
         } else if (usePack) {
             event.definition(damageNumberDefinition);
             event.preSpawnConsumer(entity -> properties.initialize(entity, number));
+        }
+    }
+
+    private void onActionRingFrame(ServerSpawnEntityEvent event, ActionRingFrame frame) {
+        var entities = event.connection().entities();
+        for (int slot = 0; slot < 8; slot++) {
+            var icon = entities.byUuid(frame.iconUuid(slot));
+            if (icon != null) {
+                float scale = frame.iconScale(slot);
+                if (!Float.valueOf(scale).equals(icon.override(GeyserEntityDataTypes.SCALE))) {
+                    icon.override(GeyserEntityDataTypes.SCALE, scale);
+                }
+            }
+        }
+        var properties = actionRingProperties;
+        if (properties == null || !damagePacks.actionRingReady(event.connection())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!frame.update()) {
+            event.definition(actionRingDefinition);
+            event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
+            return;
+        }
+        event.setCancelled(true);
+        var ring = entities.byJavaId(frame.targetId());
+        if (ring != null && actionRingDefinition.equals(ring.definition())) {
+            properties.apply(ring, frame, true);
         }
     }
 

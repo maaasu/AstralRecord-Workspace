@@ -7,19 +7,28 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
+import org.joml.Quaternionf;
+import org.joml.Quaternionfc;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
@@ -34,14 +43,24 @@ import java.util.UUID;
  * アクションリングを閲覧者専用の packet-only Display entity として描画します。
  */
 final class SkillActionRingDisplay {
+    private static final NamespacedKey OUTLINE_MODEL = new NamespacedKey("astralrecord", "action_ring");
+    private static final Color NORMAL_OUTLINE = Color.fromRGB(0xa6e8ff);
+    private static final Color SELECTED_OUTLINE = Color.fromRGB(0xffcb70);
+    private static final Color COOLDOWN_OUTLINE = Color.fromRGB(0x737c90);
+    private static final double BEDROCK_ITEM_OFFSET = 0.125D;
     private static final int TEXT_LINE_WIDTH = 180;
     private static final int TELEPORT_DURATION_TICKS = 1;
     private static final float DEFAULT_VIEW_RANGE = 16.0F;
     private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
     private static final byte ENTITY_FLAG_GLOWING = 0x40;
+    private static final int ENTITY_NO_GRAVITY_INDEX = 5;
+    private static final int DROPPED_ITEM_STACK_INDEX = 8;
     private static final int DISPLAY_POSITION_ROTATION_DURATION_INDEX = 10;
     private static final int DISPLAY_SCALE_INDEX = 12;
+    private static final int DISPLAY_LEFT_ROTATION_INDEX = 13;
     private static final int DISPLAY_BILLBOARD_INDEX = 15;
+    private static final int DISPLAY_BRIGHTNESS_INDEX = 16;
+    private static final int FULL_BRIGHT = (15 << 4) | (15 << 20);
     private static final int DISPLAY_VIEW_RANGE_INDEX = 17;
     private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
     private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
@@ -52,28 +71,25 @@ final class SkillActionRingDisplay {
     private static final int TEXT_DISPLAY_FLAGS_INDEX = 27;
     private static final byte TEXT_DISPLAY_SHADOWED = 0x01;
 
-    private final ProtocolManager protocolManager;
+    private final ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
     private TeleportPacketLayout teleportPacketLayout;
-
-    SkillActionRingDisplay(@NotNull Plugin plugin) {
-        this.protocolManager = ProtocolLibrary.getProtocolManager();
-    }
 
     /**
      * 指定した大きさでアイコン用の表示 entity を生成します。
      *
      * @param location 初期位置
      * @param itemStack 表示するアイテム
-     * @param glowing 発光表示する場合は {@code true}
      * @param scale アイテム表示の拡大率
+     * @param bedrockIconUuid Geyser 向けのアイコン識別子。Java 版では null
      * @return 未生成の表示 entity
      */
-    DisplayEntity item(@NotNull Location location, @NotNull ItemStack itemStack, boolean glowing, float scale) {
-        return new DisplayEntity(DisplayKind.ITEM, location, itemStack, null, scale, glowing);
+    DisplayEntity item(@NotNull Location location, @NotNull ItemStack itemStack, float scale, @Nullable UUID bedrockIconUuid) {
+        DisplayKind kind = bedrockIconUuid != null ? DisplayKind.DROPPED_ITEM : DisplayKind.ITEM;
+        return new DisplayEntity(kind, location, itemStack, null, scale, bedrockIconUuid);
     }
 
     DisplayEntity text(@NotNull Location location, @NotNull Component text, float scale) {
-        return new DisplayEntity(DisplayKind.TEXT, location, null, text, scale, false);
+        return new DisplayEntity(DisplayKind.TEXT, location, null, text, scale, null);
     }
 
     /**
@@ -99,17 +115,35 @@ final class SkillActionRingDisplay {
         entity.updateText(player, text, scale);
     }
 
-    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale) {
+    Outline outline(boolean bedrock) {
+        return new Outline(bedrock);
+    }
+
+    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale, Display.Billboard billboard) {
         List<WrappedDataValue> values = new ArrayList<>();
         values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), TELEPORT_DURATION_TICKS));
-        values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
-        values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) Display.Billboard.CENTER.ordinal()));
+        values.add(scaleValue(scale));
+        values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
         values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
         return values;
     }
 
-    private @NotNull WrappedDataValue itemValue(@NotNull ItemStack itemStack) {
-        return value(ITEM_DISPLAY_ITEM_INDEX, WrappedDataWatcher.Registry.getItemStackSerializer(false), itemStack);
+    private WrappedDataValue scaleValue(float scale) {
+        return value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale));
+    }
+
+    private WrappedDataValue rotationValue(Quaternionf rotation) {
+        WrappedDataWatcher.Serializer quaternionSerializer;
+        try {
+            quaternionSerializer = serializer(Quaternionf.class);
+        } catch (IllegalArgumentException ignored) {
+            quaternionSerializer = serializer(Quaternionfc.class);
+        }
+        return value(DISPLAY_LEFT_ROTATION_INDEX, quaternionSerializer, rotation);
+    }
+
+    private @NotNull WrappedDataValue itemValue(int index, @NotNull ItemStack itemStack) {
+        return value(index, WrappedDataWatcher.Registry.getItemStackSerializer(false), itemStack);
     }
 
     private @NotNull WrappedDataValue glowingValue(boolean glowing) {
@@ -150,6 +184,7 @@ final class SkillActionRingDisplay {
 
     final class DisplayEntity {
         private final DisplayKind kind;
+        private final @Nullable UUID bedrockIconUuid;
         private Location location;
         private ItemStack itemStack;
         private Component text;
@@ -163,39 +198,52 @@ final class SkillActionRingDisplay {
             ItemStack itemStack,
             Component text,
             float scale,
-            boolean glowing
+            @Nullable UUID bedrockIconUuid
         ) {
             this.kind = kind;
-            this.location = location.clone();
+            this.bedrockIconUuid = bedrockIconUuid;
+            this.location = renderLocation(location);
             this.itemStack = itemStack == null ? null : itemStack.clone();
             this.text = text;
             this.scale = scale;
-            this.glowing = glowing;
         }
 
         void spawn(@NotNull Player player) {
             if (entity != null) {
                 return;
             }
-            entity = new PacketEntity(kind == DisplayKind.ITEM ? EntityType.ITEM_DISPLAY : EntityType.TEXT_DISPLAY, location);
+            entity = createPacketEntity();
             entity.spawn(player, initialMetadata());
         }
 
-        void teleport(@NotNull Player player, @NotNull Location nextLocation) {
+        void teleport(@NotNull Player player, @NotNull Location center) {
+            Location nextLocation = renderLocation(center);
             if (location.equals(nextLocation)) {
                 return;
             }
             boolean worldChanged = location.getWorld() != nextLocation.getWorld();
-            location = nextLocation.clone();
+            location = nextLocation;
             if (entity != null) {
                 if (worldChanged) {
                     entity.destroy(player);
-                    entity = new PacketEntity(kind == DisplayKind.ITEM ? EntityType.ITEM_DISPLAY : EntityType.TEXT_DISPLAY, location);
+                    entity = createPacketEntity();
                     entity.spawn(player, initialMetadata());
                 } else {
                     entity.teleport(player, location);
                 }
             }
+        }
+
+        private Location renderLocation(Location center) {
+            Location target = withoutRotation(center);
+            // Geyser の AddItemEntity が加える描画オフセットを打ち消します。
+            return kind == DisplayKind.DROPPED_ITEM ? target.subtract(0, BEDROCK_ITEM_OFFSET, 0) : target;
+        }
+
+        private PacketEntity createPacketEntity() {
+            return bedrockIconUuid == null
+                ? new PacketEntity(kind.type, location)
+                : new PacketEntity(PacketEntityIdAllocator.nextEntityId(), bedrockIconUuid, kind.type, location);
         }
 
         /**
@@ -207,22 +255,26 @@ final class SkillActionRingDisplay {
          * @param nextScale 次の表示倍率
          */
         void updateItem(@NotNull Player player, @NotNull ItemStack nextItemStack, boolean nextGlowing, float nextScale) {
-            ItemStack cloned = nextItemStack.clone();
-            boolean itemChanged = itemStack == null || !itemStack.equals(cloned);
+            if (kind == DisplayKind.DROPPED_ITEM) {
+                return;
+            }
+            boolean itemChanged = !nextItemStack.equals(itemStack);
             boolean glowingChanged = glowing != nextGlowing;
             boolean scaleChanged = Float.compare(scale, nextScale) != 0;
             if (!itemChanged && !glowingChanged && !scaleChanged) {
                 return;
             }
-            itemStack = cloned;
             glowing = nextGlowing;
             scale = nextScale;
+            if (itemChanged) {
+                itemStack = nextItemStack.clone();
+            }
             if (entity == null) {
                 return;
             }
             List<WrappedDataValue> values = new ArrayList<>();
             if (itemChanged) {
-                values.add(itemValue(itemStack));
+                values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, itemStack));
             }
             if (glowingChanged) {
                 values.add(glowingValue(glowing));
@@ -262,10 +314,16 @@ final class SkillActionRingDisplay {
         }
 
         private @NotNull List<WrappedDataValue> initialMetadata() {
-            List<WrappedDataValue> values = baseDisplayMetadata(scale);
+            if (kind == DisplayKind.DROPPED_ITEM) {
+                return List.of(
+                    value(ENTITY_NO_GRAVITY_INDEX, serializer(Boolean.class), true),
+                    itemValue(DROPPED_ITEM_STACK_INDEX, itemStack)
+                );
+            }
+            List<WrappedDataValue> values = baseDisplayMetadata(scale, Display.Billboard.CENTER);
             if (kind == DisplayKind.ITEM) {
                 values.add(glowingValue(glowing));
-                values.add(itemValue(itemStack == null ? new ItemStack(org.bukkit.Material.AIR) : itemStack));
+                values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, itemStack));
                 values.add(value(ITEM_DISPLAY_TRANSFORM_INDEX, serializer(Byte.class), (byte) ItemDisplay.ItemDisplayTransform.GUI.ordinal()));
                 return values;
             }
@@ -278,13 +336,166 @@ final class SkillActionRingDisplay {
         }
     }
 
+    /** リングの全輪郭を表示する単一モデルです。 */
+    final class Outline {
+        private final boolean bedrock;
+        private final int bedrockId;
+        private PacketEntity entity;
+        private Location location;
+        private Quaternionf rotation;
+        private float scale;
+        private int selected;
+        private int cooldowns;
+        private long bedrockState;
+
+        private Outline(boolean bedrock) {
+            this.bedrock = bedrock;
+            this.bedrockId = bedrock ? PacketEntityIdAllocator.nextEntityId() : 0;
+        }
+
+        @Nullable UUID iconUuid(int index) {
+            return bedrock ? ActionRingFrame.icon(bedrockId, index) : null;
+        }
+
+        /**
+         * 輪郭を生成し、移動・変形・色の差分を送信します。
+         *
+         * @param player 閲覧者
+         * @param center 輪郭の中心
+         * @param normal 視点からリングへ向かう法線
+         * @param right リングの右方向
+         * @param up リングの上方向
+         * @param nextScale モデルの表示幅
+         * @param nextSelected 選択中の枠番号。0 は選択なし
+         * @param nextCooldowns クールダウン中の枠を表すビットマスク
+         */
+        void update(Player player, Location center, Vector normal, Vector right, Vector up,
+                    float nextScale, int nextSelected, int nextCooldowns) {
+            Location target = withoutRotation(center);
+            if (location != null && location.getWorld() != target.getWorld()) {
+                destroy(player);
+            }
+            if (entity == null) {
+                spawn(player, target, normal, right, up, nextScale, nextSelected, nextCooldowns);
+                return;
+            }
+            if (!target.equals(location)) {
+                entity.teleport(player, target);
+                location = target;
+            }
+            if (bedrock) {
+                long nextState = ActionRingFrame.pack(normal, up, nextScale, nextSelected, nextCooldowns);
+                if (bedrockState != nextState) {
+                    bedrockState = nextState;
+                    int id = PacketEntityIdAllocator.nextEntityId();
+                    PacketEntity marker = new PacketEntity(id, ActionRingFrame.marker(entity.entityId, nextState),
+                        EntityType.TEXT_DISPLAY, target);
+                    // Geyser はマーカーを描画せず、すでに存在するモデルへ状態を反映します。
+                    marker.spawn(player, List.of());
+                    marker.destroy(player);
+                }
+                return;
+            }
+            List<WrappedDataValue> values = new ArrayList<>();
+            Quaternionf nextRotation = outlineRotation(normal, right, up);
+            if (!nextRotation.equals(rotation)) {
+                rotation = nextRotation;
+                values.add(rotationValue(rotation));
+            }
+            if (Float.compare(scale, nextScale) != 0) {
+                scale = nextScale;
+                values.add(scaleValue(scale));
+            }
+            if (selected != nextSelected || cooldowns != nextCooldowns) {
+                selected = nextSelected;
+                cooldowns = nextCooldowns;
+                values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, outlineItem(selected, cooldowns)));
+            }
+            entity.updateMetadata(player, values);
+        }
+
+        private void spawn(Player player, Location center, Vector normal, Vector right, Vector up,
+                           float initialScale, int initialSelected, int initialCooldowns) {
+            location = center;
+            if (bedrock) {
+                bedrockState = ActionRingFrame.pack(normal, up, initialScale, initialSelected, initialCooldowns);
+                entity = new PacketEntity(bedrockId, ActionRingFrame.marker(bedrockId, bedrockState), EntityType.TEXT_DISPLAY, center);
+                entity.spawn(player, List.of());
+                return;
+            }
+            entity = new PacketEntity(EntityType.ITEM_DISPLAY, center);
+            rotation = outlineRotation(normal, right, up);
+            scale = initialScale;
+            selected = initialSelected;
+            cooldowns = initialCooldowns;
+            List<WrappedDataValue> values = baseDisplayMetadata(scale, Display.Billboard.FIXED);
+            values.add(rotationValue(rotation));
+            values.add(value(DISPLAY_BRIGHTNESS_INDEX, serializer(Integer.class), FULL_BRIGHT));
+            values.add(itemValue(ITEM_DISPLAY_ITEM_INDEX, outlineItem(selected, cooldowns)));
+            values.add(value(ITEM_DISPLAY_TRANSFORM_INDEX, serializer(Byte.class),
+                (byte) ItemDisplay.ItemDisplayTransform.FIXED.ordinal()));
+            entity.spawn(player, values);
+        }
+
+        void destroy(Player player) {
+            if (entity != null) {
+                entity.destroy(player);
+                entity = null;
+            }
+        }
+    }
+
+    private static Location withoutRotation(Location center) {
+        Location target = center.clone();
+        target.setYaw(0);
+        target.setPitch(0);
+        return target;
+    }
+
+    private static Quaternionf outlineRotation(Vector normal, Vector right, Vector up) {
+        // ItemDisplay の Y 軸 180 度回転後に南面が視点を向きます。
+        Matrix3f basis = new Matrix3f()
+            .setColumn(0, (float) -right.getX(), (float) -right.getY(), (float) -right.getZ())
+            .setColumn(1, (float) up.getX(), (float) up.getY(), (float) up.getZ())
+            .setColumn(2, (float) normal.getX(), (float) normal.getY(), (float) normal.getZ());
+        return new Quaternionf().setFromNormalized(basis);
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private static ItemStack outlineItem(int selected, int cooldowns) {
+        ItemStack stack = new ItemStack(Material.PAPER);
+        ItemMeta meta = stack.getItemMeta();
+        meta.setItemModel(OUTLINE_MODEL);
+        var modelData = meta.getCustomModelDataComponent();
+        List<Color> colors = new ArrayList<>(SkillBindPreset.ACTION_RING_SLOT_COUNT);
+        for (int slot = 0; slot < SkillBindPreset.ACTION_RING_SLOT_COUNT; slot++) {
+            Color color = NORMAL_OUTLINE;
+            if (slot + 1 == selected) {
+                color = SELECTED_OUTLINE;
+            } else if ((cooldowns & (1 << slot)) != 0) {
+                color = COOLDOWN_OUTLINE;
+            }
+            colors.add(color);
+        }
+        modelData.setColors(colors);
+        meta.setCustomModelDataComponent(modelData);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
     private final class PacketEntity {
-        private final int entityId = PacketEntityIdAllocator.nextEntityId();
-        private final UUID uuid = UUID.randomUUID();
+        private final int entityId;
+        private final UUID uuid;
         private final EntityType entityType;
         private final Location location;
 
         private PacketEntity(@NotNull EntityType entityType, @NotNull Location location) {
+            this(PacketEntityIdAllocator.nextEntityId(), UUID.randomUUID(), entityType, location);
+        }
+
+        private PacketEntity(int entityId, UUID uuid, EntityType entityType, Location location) {
+            this.entityId = entityId;
+            this.uuid = uuid;
             this.entityType = entityType;
             this.location = location.clone();
         }
@@ -392,7 +603,14 @@ final class SkillActionRingDisplay {
     }
 
     private enum DisplayKind {
-        ITEM,
-        TEXT
+        ITEM(EntityType.ITEM_DISPLAY),
+        DROPPED_ITEM(EntityType.ITEM),
+        TEXT(EntityType.TEXT_DISPLAY);
+
+        private final EntityType type;
+
+        DisplayKind(EntityType type) {
+            this.type = type;
+        }
     }
 }

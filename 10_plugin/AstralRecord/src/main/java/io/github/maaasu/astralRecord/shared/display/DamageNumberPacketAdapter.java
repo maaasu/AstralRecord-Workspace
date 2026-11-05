@@ -106,7 +106,7 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
      */
     private void personalizeJavaNumber(PacketEvent event, Player viewer, NumberDisplay number) {
         DamageNumberSize size = resolveSize(viewer);
-        boolean fontAvailable = resourcePackService.hasDamageNumberFont(viewer.getUniqueId());
+        boolean fontAvailable = resourcePackService.hasManagedJavaPack(viewer.getUniqueId());
         if (size == DamageNumberSize.NORMAL && !fontAvailable) {
             return;
         }

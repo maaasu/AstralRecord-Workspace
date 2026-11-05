@@ -60,6 +60,9 @@ $java = Read-PackEntries $root @(
     'pack.mcmeta'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
+    'assets/astralrecord/items/action_ring.json'
+    'assets/astralrecord/models/item/action_ring.json'
+    'assets/astralrecord/textures/item/action_ring.png'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -70,6 +73,11 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/damage_number/normal.png'
     'textures/entity/damage_number/critical.png'
     'textures/entity/damage_number/shield.png'
+    'entity/action_ring.entity.json'
+    'animations/action_ring.animation.json'
+    'models/entity/action_ring.geo.json'
+    'render_controllers/action_ring.render_controllers.json'
+    'textures/entity/action_ring.png'
 )
 
 # Include the template and file names in the fingerprint. Any distributed

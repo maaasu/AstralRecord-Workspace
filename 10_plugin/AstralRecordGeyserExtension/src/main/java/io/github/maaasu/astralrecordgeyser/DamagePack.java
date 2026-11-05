@@ -25,10 +25,15 @@ import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
 
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
-record DamagePack(String sha256, Path file, ResourcePack pack) {
+record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRing) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
     private static final int MAX_PACK_BYTES = 32 * 1024 * 1024;
+    private static final List<String> ACTION_RING_ENTRIES = List.of(
+        "entity/action_ring.entity.json", "animations/action_ring.animation.json",
+        "models/entity/action_ring.geo.json", "render_controllers/action_ring.render_controllers.json",
+        "textures/entity/action_ring.png"
+    );
 
     static DamagePack refresh(HeadApiConfig config, Path directory, DamagePack current)
         throws IOException, InterruptedException {
@@ -60,6 +65,7 @@ record DamagePack(String sha256, Path file, ResourcePack pack) {
         boolean keep = false;
         try {
             Files.write(file, bytes);
+            boolean actionRing;
             try (ZipFile zip = new ZipFile(file.toFile())) {
                 var manifest = zip.getEntry("manifest.json");
                 // Geyser reads entries containing manifest.json. Require only the root manifest and bound its size.
@@ -72,12 +78,13 @@ record DamagePack(String sha256, Path file, ResourcePack pack) {
                         throw new IOException("Bedrock pack archive manifest is too large");
                     }
                 }
+                actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
             }
             var pack = ResourcePack.create(PackCodec.path(file));
             if (!uuid.equals(pack.uuid())) throw new IOException("Bedrock pack UUID mismatch");
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack);
+            return new DamagePack(sha256, file, pack, actionRing);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

@@ -34,7 +34,7 @@ public class ResourcePackService {
     private final Plugin plugin;
     private final ConfigProperties configProperties;
     private final ResourcePackRepository repository = new ResourcePackRepository();
-    private final Set<UUID> loadedDamagePacks = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> loadedManagedJavaPacks = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -200,9 +200,9 @@ public class ResourcePackService {
     public void handleStatus(Player player, UUID packId, PlayerResourcePackStatusEvent.Status status) {
         if (MANAGED_JAVA_PACK_ID.equals(packId)) {
             switch (status) {
-                case SUCCESSFULLY_LOADED -> loadedDamagePacks.add(player.getUniqueId());
+                case SUCCESSFULLY_LOADED -> loadedManagedJavaPacks.add(player.getUniqueId());
                 case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED ->
-                        loadedDamagePacks.remove(player.getUniqueId());
+                        loadedManagedJavaPacks.remove(player.getUniqueId());
                 default -> { }
             }
         }
@@ -220,13 +220,13 @@ public class ResourcePackService {
     }
 
     /**
-     * Java向けダメージフォントを使える接続かを判定します。パケット送信スレッドからも参照できます。
+     * 管理配布された Java 版パックを適用済みか判定します。パケット送信スレッドからも参照できます。
      *
      * @param playerId 閲覧者のUUID
      * @return 適用成功を通知済みならtrue
      */
-    public boolean hasDamageNumberFont(UUID playerId) {
-        return loadedDamagePacks.contains(playerId);
+    public boolean hasManagedJavaPack(UUID playerId) {
+        return loadedManagedJavaPacks.contains(playerId);
     }
 
     /**
@@ -236,7 +236,7 @@ public class ResourcePackService {
      */
     public void forgetViewer(UUID playerId) {
         pendingViewers.remove(playerId);
-        loadedDamagePacks.remove(playerId);
+        loadedManagedJavaPacks.remove(playerId);
     }
 
     /**

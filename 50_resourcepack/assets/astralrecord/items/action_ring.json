@@ -1,0 +1,48 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "astralrecord:item/action_ring",
+    "tints": [
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 0,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 1,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 2,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 3,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 4,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 5,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 6,
+        "default": 10938623
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 7,
+        "default": 10938623
+      }
+    ]
+  }
+}

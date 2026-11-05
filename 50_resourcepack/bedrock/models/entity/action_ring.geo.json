@@ -1,0 +1,327 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.action_ring",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 5,
+        "visible_bounds_height": 5,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "yaw",
+          "pivot": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "pitch",
+          "parent": "yaw",
+          "pivot": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "wheel",
+          "parent": "pitch",
+          "pivot": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "slot_0",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -2.5,
+                3.125,
+                0
+              ],
+              "size": [
+                5.0,
+                4.375,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    44,
+                    4
+                  ],
+                  "uv_size": [
+                    40,
+                    35
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_1",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6.375,
+                1.375,
+                0
+              ],
+              "size": [
+                5.0,
+                5.0,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    203,
+                    13
+                  ],
+                  "uv_size": [
+                    40,
+                    40
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_2",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -7.5,
+                -2.5,
+                0
+              ],
+              "size": [
+                4.375,
+                5.0,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    345,
+                    44
+                  ],
+                  "uv_size": [
+                    35,
+                    40
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_3",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6.375,
+                -6.375,
+                0
+              ],
+              "size": [
+                5.0,
+                5.0,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    459,
+                    75
+                  ],
+                  "uv_size": [
+                    40,
+                    40
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_4",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -2.5,
+                -7.5,
+                0
+              ],
+              "size": [
+                5.0,
+                4.375,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    44,
+                    217
+                  ],
+                  "uv_size": [
+                    40,
+                    35
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_5",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                1.375,
+                -6.375,
+                0
+              ],
+              "size": [
+                5.0,
+                5.0,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    141,
+                    203
+                  ],
+                  "uv_size": [
+                    40,
+                    40
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_6",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                3.125,
+                -2.5,
+                0
+              ],
+              "size": [
+                4.375,
+                5.0,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    260,
+                    172
+                  ],
+                  "uv_size": [
+                    35,
+                    40
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "slot_7",
+          "parent": "wheel",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                1.375,
+                1.375,
+                0
+              ],
+              "size": [
+                5.0,
+                5.0,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    397,
+                    141
+                  ],
+                  "uv_size": [
+                    40,
+                    40
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

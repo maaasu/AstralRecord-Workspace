@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
@@ -21,6 +22,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.attribute.Attribute;
@@ -39,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,6 +54,11 @@ public final class SkillActionRingService {
     private static final int SLOT_COUNT = SkillBindPreset.ACTION_RING_SLOT_COUNT;
     private static final double RING_DISTANCE = 3.0D;
     private static final double RING_RADIUS = 1.12D;
+    // テクスチャの 128 px に対しアイコン中心の半径は 42 px、意匠の最大半径は 61 px。
+    private static final double OUTLINE_SIZE = RING_RADIUS * 128.0D / 42.0D;
+    private static final double OUTLINE_RADIUS = OUTLINE_SIZE * 61.0D / 128.0D;
+    private static final double OUTLINE_DEPTH = 0.14D;
+    private static final double SELECTION_DEAD_ZONE_SQUARED = Math.pow(Math.sin(Math.toRadians(4.0D)), 2);
     private static final double VIEW_FOLLOW_DEAD_ZONE_RADIANS = Math.toRadians(30.0D);
     private static final double COLLISION_SAFETY_MARGIN = 0.06D;
     private static final int COLLISION_REFRESH_INTERVAL_TICKS = 4;
@@ -58,10 +66,9 @@ public final class SkillActionRingService {
     private static final double TEXT_COLLISION_HALF_WIDTH = 1.40D;
     private static final double TEXT_COLLISION_HALF_HEIGHT = 0.24D;
     private static final int COLLISION_PERIMETER_SAMPLES = 12;
-    private static final float CIRCLE_TEXT_SCALE = 0.42F;
     private static final float LABEL_TEXT_SCALE = 0.60F;
+    private static final float SLOT_TEXT_SCALE = 0.48F;
     private static final double ORIENTATION_EPSILON_SQUARED = 1.0E-6D;
-    private static final int CIRCLE_DISPLAY_POINTS = 24;
     private static final int TIMER_BAR_LENGTH = 24;
     private static final int COOLDOWN_BAR_LENGTH = 10;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
@@ -69,13 +76,14 @@ public final class SkillActionRingService {
     private static final long SELECT_ANIMATION_TICKS = 4L;
     private static final int BEDROCK_CLICK_COOLDOWN_TICKS = 2;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
-    private static final ItemStack HIDDEN_ITEM = new ItemStack(Material.AIR);
+    private static final SlotView EMPTY_SLOT = new SlotView(null, null, "", Material.AIR, false, SlotAvailability.UNAVAILABLE);
 
     private final AstralRecord plugin;
     private final SkillBindPresetService presetService;
     private final SkillService skillService;
     private final SkillOwnershipService ownershipService;
     private final SkillPermissionService permissionService;
+    private final ResourcePackService resourcePackService;
     private final SkillActionRingDisplay actionRingDisplay;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
@@ -90,20 +98,26 @@ public final class SkillActionRingService {
      *
      * @param plugin scheduler とエンティティ生成に使用するプラグイン
      * @param presetService スキルバインド数の取得に使用するサービス
+     * @param skillService 発動可否とクールダウンの参照先
+     * @param ownershipService 習得スキルの参照先
+     * @param permissionService スキル使用許可の参照先
+     * @param resourcePackService Java 版のパック適用状態の参照先
      */
     public SkillActionRingService(
         @NotNull AstralRecord plugin,
         @NotNull SkillBindPresetService presetService,
         @NotNull SkillService skillService,
         @NotNull SkillOwnershipService ownershipService,
-        @NotNull SkillPermissionService permissionService
+        @NotNull SkillPermissionService permissionService,
+        @NotNull ResourcePackService resourcePackService
     ) {
         this.plugin = plugin;
         this.presetService = presetService;
         this.skillService = skillService;
         this.ownershipService = ownershipService;
         this.permissionService = permissionService;
-        this.actionRingDisplay = new SkillActionRingDisplay(plugin);
+        this.resourcePackService = resourcePackService;
+        this.actionRingDisplay = new SkillActionRingDisplay();
     }
 
     /**
@@ -154,7 +168,9 @@ public final class SkillActionRingService {
             GuiSound.CLOSE.play(player);
             return;
         }
-        if (configuredActionCount(astPlayer) == 0) {
+        List<String> bindings = ringBindings(astPlayer);
+        int configuredCount = configuredCount(bindings);
+        if (configuredCount == 0) {
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().sendClickable(player, PlayerMsgId.P_5856, "/skill gui");
             return;
@@ -165,9 +181,10 @@ public final class SkillActionRingService {
         }
 
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
-        List<SlotView> slots = resolveSlots(astPlayer, caster);
-        if (slots.size() == 1) {
-            castSlot(astPlayer, slots.getFirst(), 1, 1);
+        List<SlotView> slots = resolveSlots(astPlayer, caster, bindings);
+        if (configuredCount == 1) {
+            SlotView onlySlot = slots.stream().filter(SlotView::configured).findFirst().orElseThrow();
+            castSlot(astPlayer, onlySlot, 1, 1);
             return;
         }
         open(astPlayer, PlayerMsgId.P_5854, slots, caster);
@@ -203,12 +220,12 @@ public final class SkillActionRingService {
             return false;
         }
 
-        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
-        List<SlotView> slots = resolveSlots(astPlayer, caster);
-        if (slots.size() < 2) {
+        List<String> bindings = ringBindings(astPlayer);
+        if (configuredCount(bindings) < 2) {
             return false;
         }
-        return open(astPlayer, selectionInstruction, slots, caster);
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+        return open(astPlayer, selectionInstruction, resolveSlots(astPlayer, caster, bindings), caster);
     }
 
     private boolean open(
@@ -228,6 +245,8 @@ public final class SkillActionRingService {
             actionRingDisplay,
             skillService,
             caster,
+            astPlayer.isBedrock() || resourcePackService.hasManagedJavaPack(playerId),
+            astPlayer.isBedrock(),
             selectionInstruction
         );
         sessions.put(playerId, session);
@@ -481,9 +500,15 @@ public final class SkillActionRingService {
         }
     }
 
-    private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer, @NotNull PlayerSkillCaster caster) {
+    private @NotNull List<SlotView> resolveSlots(
+        @NotNull AstPlayer astPlayer, @NotNull PlayerSkillCaster caster, List<String> bindings
+    ) {
         List<SlotView> slots = new ArrayList<>(SLOT_COUNT);
-        for (String skillId : configuredActionSkillIds(astPlayer)) {
+        for (String skillId : bindings) {
+            if (skillId == null) {
+                slots.add(EMPTY_SLOT);
+                continue;
+            }
             if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
                 String weaponSkillId = itemWeaponAttackService == null ? null : itemWeaponAttackService.currentLeftClickSkillId(astPlayer);
                 SkillDefinition definition = weaponSkillId == null ? null : skillService.registry().getDefinition(weaponSkillId);
@@ -531,7 +556,7 @@ public final class SkillActionRingService {
      * @return 設定済みアクションスキル数
      */
     public int configuredActionCount(@NotNull AstPlayer astPlayer) {
-        return configuredActionSkillIds(astPlayer).size();
+        return configuredCount(ringBindings(astPlayer));
     }
 
     /**
@@ -544,15 +569,13 @@ public final class SkillActionRingService {
         return configuredActionCount(astPlayer) >= 2;
     }
 
-    private @NotNull List<String> configuredActionSkillIds(@NotNull AstPlayer astPlayer) {
+    private static int configuredCount(List<String> bindings) {
+        return (int) bindings.stream().filter(Objects::nonNull).count();
+    }
+
+    private @NotNull List<String> ringBindings(@NotNull AstPlayer astPlayer) {
         SkillBindPreset preset = selectedPreset(astPlayer);
-        if (preset == null) {
-            return List.of();
-        }
-        return preset.getActiveSkillSlots().stream()
-            .limit(SLOT_COUNT)
-            .filter(skillId -> skillId != null && !skillId.isBlank())
-            .toList();
+        return preset == null ? List.of() : preset.getActiveSkillSlots().subList(0, SLOT_COUNT);
     }
 
     /**
@@ -824,6 +847,10 @@ public final class SkillActionRingService {
                     && (owned && definition != null || !owned));
         }
 
+        private boolean configured() {
+            return skillId != null;
+        }
+
         private @NotNull SlotView refreshAvailability(
             @NotNull SkillService skillService,
             @NotNull PlayerSkillCaster caster
@@ -834,7 +861,9 @@ public final class SkillActionRingService {
             SlotAvailability nextAvailability = availabilityFor(learnedResolution == null
                 ? skillService.canCast(caster, definition)
                 : skillService.canCast(caster, learnedResolution));
-            return new SlotView(skillId, definition, name, material, true, nextAvailability, learnedResolution);
+            return nextAvailability == availability
+                ? this
+                : new SlotView(skillId, definition, name, material, true, nextAvailability, learnedResolution);
         }
 
         private @NotNull String label(@NotNull SkillService skillService, @NotNull PlayerSkillCaster caster) {
@@ -845,10 +874,6 @@ public final class SkillActionRingService {
                 return name;
             }
             return name + "\n" + availability.label();
-        }
-
-        private boolean hasSecondaryLine() {
-            return availability == SlotAvailability.COOLDOWN || !availability.label().isBlank();
         }
 
         private @NotNull String cooldownBar(
@@ -868,8 +893,10 @@ public final class SkillActionRingService {
                 skillService.getRemainingCooldownTicks(caster, cooldownId)
             );
             int filled = (int) Math.ceil((double) remainingTicks / totalTicks * COOLDOWN_BAR_LENGTH);
-            StringBuilder bar = new StringBuilder(COOLDOWN_BAR_LENGTH + 8);
-            bar.append(ColorCodeUtil.YELLOW);
+            long tenths = remainingTicks / 2 + remainingTicks % 2;
+            String seconds = (tenths / 10) + "." + (tenths % 10);
+            StringBuilder bar = new StringBuilder(PlayerMsgResource.format(PlayerMsgId.P_5857.getId(), seconds));
+            bar.append(' ').append(ColorCodeUtil.YELLOW);
             for (int index = 0; index < filled; index++) {
                 bar.append('|');
             }
@@ -942,7 +969,7 @@ public final class SkillActionRingService {
         private final PlayerSkillCaster caster;
         private final List<SkillActionRingDisplay.DisplayEntity> icons;
         private final List<SkillActionRingDisplay.DisplayEntity> labels;
-        private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
+        private final @Nullable SkillActionRingDisplay.Outline outline;
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
         private final int hotbarSlot;
@@ -959,7 +986,9 @@ public final class SkillActionRingService {
         private Vector collisionRight;
         private Vector collisionUp;
         private int ticksSinceCollisionCheck;
-        private int selectedIndex;
+        private int selectedIndex = -1;
+        private int renderedSelection = -1;
+        private int renderedCooldowns = -1;
         private int confirmedIndex = -1;
         private Integer lastBedrockClickTick;
         private RingPhase phase = RingPhase.SELECTING;
@@ -975,6 +1004,8 @@ public final class SkillActionRingService {
             @NotNull SkillActionRingDisplay actionRingDisplay,
             @NotNull SkillService skillService,
             @NotNull PlayerSkillCaster caster,
+            boolean useOutline,
+            boolean bedrock,
             int hotbarSlot,
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed
@@ -988,12 +1019,12 @@ public final class SkillActionRingService {
             this.actionRingDisplay = actionRingDisplay;
             this.skillService = skillService;
             this.caster = caster;
+            this.outline = useOutline ? actionRingDisplay.outline(bedrock) : null;
             this.icons = new ArrayList<>(slots.size());
             this.labels = new ArrayList<>(slots.size());
             this.hotbarSlot = hotbarSlot;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
-            this.selectedIndex = firstSelectableSlot(slots);
         }
 
         private static @NotNull RingSession create(
@@ -1002,6 +1033,8 @@ public final class SkillActionRingService {
             @NotNull SkillActionRingDisplay actionRingDisplay,
             @NotNull SkillService skillService,
             @NotNull PlayerSkillCaster caster,
+            boolean useOutline,
+            boolean bedrock,
             @NotNull PlayerMsgId selectionInstruction
         ) {
             Location eye = player.getEyeLocation();
@@ -1028,6 +1061,8 @@ public final class SkillActionRingService {
                 actionRingDisplay,
                 skillService,
                 caster,
+                useOutline,
+                bedrock,
                 player.getInventory().getHeldItemSlot(),
                 blockBreakSpeed,
                 originalBlockBreakSpeed
@@ -1048,34 +1083,28 @@ public final class SkillActionRingService {
          * @param player 表示を受け取るプレイヤー
          */
         private void spawnEntities(@NotNull Player player) {
-            for (int index = 0; index < CIRCLE_DISPLAY_POINTS; index++) {
-                SkillActionRingDisplay.DisplayEntity dot = actionRingDisplay.text(
-                    circleLocation(currentCenter(), index),
-                    legacyComponent(ColorCodeUtil.AQUA + "*"),
-                    scaledTextScale(CIRCLE_TEXT_SCALE)
-                );
-                dot.spawn(player);
-                circleDots.add(dot);
-            }
+            Location center = currentCenter();
             for (int index = 0; index < slots.size(); index++) {
-                Location location = iconLocation(currentCenter(), index);
-                SkillActionRingDisplay.DisplayEntity icon = actionRingDisplay.item(
-                    location,
-                    iconItemStacks.get(index),
-                    false,
-                    scaledItemScale()
-                );
+                SlotView slot = slots.get(index);
+                Location location = iconLocation(center, index);
+                SkillActionRingDisplay.DisplayEntity icon = slot.configured() ? actionRingDisplay.item(
+                    location, iconItemStacks.get(index), scaledItemScale(slot, false),
+                    outline != null ? outline.iconUuid(index) : null
+                ) : null;
                 SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(
-                    labelLocation(location, slots.get(index)),
-                    labelComponent(index, slots.get(index), index == selectedIndex && slots.get(index).selectable(), false),
-                    scaledTextScale(LABEL_TEXT_SCALE)
+                    labelLocation(location, slot),
+                    labelComponent(index, slot, false),
+                    scaledTextScale(SLOT_TEXT_SCALE)
                 );
-                icon.spawn(player);
+                if (icon != null) {
+                    icon.spawn(player);
+                }
                 label.spawn(player);
                 icons.add(icon);
                 labels.add(label);
             }
-            Location center = currentCenter();
+            // 統合版は先にアイコンを生成し、続く輪郭の初期状態でアイコンも同時に縮尺を揃えます。
+            updateOutline(center, true);
             timerLabel = actionRingDisplay.text(
                 timerLocation(center),
                 legacyComponent(timerText()),
@@ -1147,33 +1176,31 @@ public final class SkillActionRingService {
                 renderedUp = up.clone();
                 renderedScale = layoutScale;
             }
-            updateCircle(center, layoutChanged);
+            updateOutline(center, layoutChanged);
             for (int index = 0; index < slots.size(); index++) {
+                if (phase == RingPhase.WAITING_CAST && index != confirmedIndex) {
+                    continue;
+                }
                 SlotView slot = slots.get(index);
                 boolean selected = index == selectedIndex && slot.selectable();
-                boolean hiddenByConfirmedSelection = phase == RingPhase.WAITING_CAST && index != confirmedIndex;
                 Location iconLocation = iconLocation(center, index);
                 Location labelLocation = labelLocation(iconLocation, slot);
                 SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
                 SkillActionRingDisplay.DisplayEntity label = labels.get(index);
-                if (layoutChanged) {
-                    icon.teleport(player, iconLocation);
+                if (icon != null) {
+                    if (layoutChanged) {
+                        icon.teleport(player, iconLocation);
+                    }
+                    actionRingDisplay.updateItem(player, icon, iconItemStacks.get(index), selected, scaledItemScale(slot, selected));
                 }
-                actionRingDisplay.updateItem(
-                    player,
-                    icon,
-                    hiddenByConfirmedSelection ? HIDDEN_ITEM : iconItemStacks.get(index),
-                    selected && !hiddenByConfirmedSelection,
-                    scaledItemScale()
-                );
                 if (layoutChanged) {
                     label.teleport(player, labelLocation);
                 }
                 actionRingDisplay.updateText(
                     player,
                     label,
-                    labelComponent(index, slot, selected, hiddenByConfirmedSelection),
-                    scaledTextScale(LABEL_TEXT_SCALE)
+                    labelComponent(index, slot, selected),
+                    scaledTextScale(SLOT_TEXT_SCALE)
                 );
             }
             updateTimer(center, layoutChanged);
@@ -1195,9 +1222,6 @@ public final class SkillActionRingService {
             for (int index = 0; index < slots.size(); index++) {
                 slots.set(index, slots.get(index).refreshAvailability(skillService, caster));
             }
-            if (selectedIndex >= 0 && selectedIndex < slots.size() && !slots.get(selectedIndex).selectable()) {
-                selectedIndex = firstSelectableSlot(slots);
-            }
         }
 
         /**
@@ -1207,6 +1231,15 @@ public final class SkillActionRingService {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
+            for (int index = 0; index < slots.size(); index++) {
+                if (index != confirmedIndex) {
+                    SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
+                    if (icon != null) {
+                        icon.destroy(viewer);
+                    }
+                    labels.get(index).destroy(viewer);
+                }
+            }
             if (timerLabel != null) {
                 actionRingDisplay.updateText(viewer, timerLabel, Component.empty(), scaledTextScale(LABEL_TEXT_SCALE));
             }
@@ -1229,6 +1262,8 @@ public final class SkillActionRingService {
         private @NotNull Location updateLayout(@NotNull Player player) {
             Location eye = player.getEyeLocation();
             updateOrientation(eye.getDirection());
+            eye.setYaw(0);
+            eye.setPitch(0);
             if (++ticksSinceCollisionCheck >= COLLISION_REFRESH_INTERVAL_TICKS
                 || collisionEye == null
                 || !collisionEye.equals(eye)
@@ -1251,7 +1286,10 @@ public final class SkillActionRingService {
          * @return リング中心
          */
         private @NotNull Location currentCenter() {
-            return currentCenter(viewer.getEyeLocation());
+            Location eye = viewer.getEyeLocation();
+            eye.setYaw(0);
+            eye.setPitch(0);
+            return currentCenter(eye);
         }
 
         /**
@@ -1344,17 +1382,23 @@ public final class SkillActionRingService {
                 return 0.0D;
             }
             double scale = collisionFreeScale(eye, normal.clone().multiply(RING_DISTANCE), 1.0D);
+            Vector outlineCenter = normal.clone().multiply(RING_DISTANCE + OUTLINE_DEPTH);
             for (int index = 0; index < COLLISION_PERIMETER_SAMPLES; index++) {
                 double angle = ((Math.PI * 2.0D) / COLLISION_PERIMETER_SAMPLES) * index;
-                Vector offset = normal.clone().multiply(RING_DISTANCE)
-                    .add(up.clone().multiply(Math.cos(angle) * RING_RADIUS))
-                    .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
+                Vector offset = outlineCenter.clone()
+                    .add(up.clone().multiply(Math.cos(angle) * OUTLINE_RADIUS))
+                    .add(right.clone().multiply(Math.sin(angle) * OUTLINE_RADIUS));
                 scale = collisionFreeScale(eye, offset, scale);
             }
             for (int index = 0; index < slots.size(); index++) {
                 Vector iconOffset = normal.clone().multiply(RING_DISTANCE).add(slotOffset(index));
+                SlotView slot = slots.get(index);
+                if (!slot.configured()) {
+                    scale = collisionFreeBoxScale(eye, iconOffset, 0.13D, 0.10D, 0.02D, scale);
+                    continue;
+                }
                 scale = collisionFreeBoxScale(eye, iconOffset, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, scale);
-                double labelOffset = 0.42D + (slots.get(index).hasSecondaryLine() ? 0.12D : 0.0D);
+                double labelOffset = labelOffset(slot);
                 Vector labelPosition = iconOffset.clone().subtract(up.clone().multiply(labelOffset));
                 scale = collisionFreeBoxScale(
                     eye,
@@ -1444,7 +1488,7 @@ public final class SkillActionRingService {
         private int resolveSelectedIndex(@NotNull Player player) {
             Vector view = player.getEyeLocation().getDirection().normalize();
             Vector projected = view.subtract(normal.clone().multiply(view.dot(normal)));
-            if (projected.lengthSquared() < 1.0E-6D) {
+            if (projected.lengthSquared() < SELECTION_DEAD_ZONE_SQUARED) {
                 return -1;
             }
             projected.normalize();
@@ -1480,22 +1524,11 @@ public final class SkillActionRingService {
          * @return ラベル表示位置
          */
         private @NotNull Location labelLocation(@NotNull Location iconLocation, @NotNull SlotView slot) {
-            double labelOffset = 0.42D + (slot.hasSecondaryLine() ? 0.12D : 0.0D);
-            return iconLocation.clone().subtract(up.clone().multiply(labelOffset * layoutScale));
+            return iconLocation.clone().subtract(up.clone().multiply(labelOffset(slot) * layoutScale));
         }
 
-        /**
-         * 指定した円周点の表示位置を返します。
-         *
-         * @param center 現在のリング中心
-         * @param index 円周点番号
-         * @return 円周点の表示位置
-         */
-        private @NotNull Location circleLocation(@NotNull Location center, int index) {
-            double angle = ((Math.PI * 2.0D) / CIRCLE_DISPLAY_POINTS) * index;
-            Vector offset = up.clone().multiply(Math.cos(angle) * RING_RADIUS * layoutScale)
-                .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS * layoutScale));
-            return center.clone().add(offset);
+        private static double labelOffset(SlotView slot) {
+            return slot.configured() ? 0.41D : 0;
         }
 
         /**
@@ -1526,8 +1559,9 @@ public final class SkillActionRingService {
          *
          * @return アイコンの表示倍率
          */
-        private float scaledItemScale() {
-            return (float) (0.65D * layoutScale);
+        private float scaledItemScale(SlotView slot, boolean selected) {
+            double base = slot.availability() == SlotAvailability.COOLDOWN ? 0.52D : 0.65D;
+            return (float) ((selected ? 0.73D : base) * layoutScale);
         }
 
         /**
@@ -1562,31 +1596,35 @@ public final class SkillActionRingService {
         private @NotNull Component labelComponent(
             int index,
             @NotNull SlotView slot,
-            boolean selected,
-            boolean hidden
+            boolean selected
         ) {
-            if (hidden) {
-                return Component.empty();
+            if (!slot.configured()) {
+                return Component.text("◇ " + (index + 1), NamedTextColor.GRAY);
             }
-            Component label = Component.text("[" + (index + 1) + "] ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
+            String prefix = (selected ? "▶ " : "") + "[" + (index + 1) + "] ";
+            Component label = Component.text(prefix, selected ? NamedTextColor.GOLD : NamedTextColor.GRAY)
                 .append(legacyComponent(slot.color(selected) + slot.label(skillService, caster)));
             return selected ? label.decorate(TextDecoration.BOLD) : label;
         }
 
-        /**
-         * レイアウト変更時に円周点の位置と文字倍率を更新します。
-         *
-         * @param center 現在のリング中心
-         * @param layoutChanged レイアウトが変化した場合は {@code true}
-         */
-        private void updateCircle(@NotNull Location center, boolean layoutChanged) {
-            if (!layoutChanged) {
+        private void updateOutline(@NotNull Location center, boolean layoutChanged) {
+            if (outline == null) {
                 return;
             }
-            for (int index = 0; index < circleDots.size(); index++) {
-                SkillActionRingDisplay.DisplayEntity dot = circleDots.get(index);
-                dot.teleport(viewer, circleLocation(center, index));
-                actionRingDisplay.updateText(viewer, dot, legacyComponent(ColorCodeUtil.AQUA + "*"), scaledTextScale(CIRCLE_TEXT_SCALE));
+            int cooldowns = 0;
+            if (phase == RingPhase.SELECTING) {
+                for (int index = 0; index < slots.size(); index++) {
+                    if (slots.get(index).availability() == SlotAvailability.COOLDOWN) {
+                        cooldowns |= 1 << index;
+                    }
+                }
+            }
+            int selected = selectedIndex + 1;
+            if (layoutChanged || selected != renderedSelection || cooldowns != renderedCooldowns) {
+                Location location = center.clone().add(normal.clone().multiply(OUTLINE_DEPTH * layoutScale));
+                outline.update(viewer, location, normal, right, up, (float) (OUTLINE_SIZE * layoutScale), selected, cooldowns);
+                renderedSelection = selected;
+                renderedCooldowns = cooldowns;
             }
         }
 
@@ -1652,17 +1690,18 @@ public final class SkillActionRingService {
                 return;
             }
             for (SkillActionRingDisplay.DisplayEntity icon : icons) {
-                icon.destroy(viewer);
+                if (icon != null) {
+                    icon.destroy(viewer);
+                }
             }
             icons.clear();
             for (SkillActionRingDisplay.DisplayEntity label : labels) {
                 label.destroy(viewer);
             }
             labels.clear();
-            for (SkillActionRingDisplay.DisplayEntity dot : circleDots) {
-                dot.destroy(viewer);
+            if (outline != null) {
+                outline.destroy(viewer);
             }
-            circleDots.clear();
             if (timerLabel != null) {
                 timerLabel.destroy(viewer);
                 timerLabel = null;
@@ -1680,13 +1719,5 @@ public final class SkillActionRingService {
             }
         }
 
-        private static int firstSelectableSlot(@NotNull List<SlotView> slots) {
-            for (int index = 0; index < slots.size(); index++) {
-                if (slots.get(index).selectable()) {
-                    return index;
-                }
-            }
-            return -1;
-        }
     }
 }

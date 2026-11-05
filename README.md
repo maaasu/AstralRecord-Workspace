@@ -55,4 +55,4 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 
 ## AstralRecord Resource Pack
 
-Java 版と統合版にダメージ数値のリソースパックを配布します。対象バージョン、ビルド、配布方法は [Resource Pack README](50_resourcepack/README.md) と [作業ルール](50_resourcepack/AGENTS.md) を参照してください。
+Java 版と統合版にダメージ数値とアクションリングのリソースパックを配布します。対象バージョン、ビルド、配布方法は [Resource Pack README](50_resourcepack/README.md) と [作業ルール](50_resourcepack/AGENTS.md) を参照してください。
