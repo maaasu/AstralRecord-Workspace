@@ -4,6 +4,31 @@
 }
 .ar-player .ar-bestiary .ar-portal-heading .btn { width: auto; }
 
+/* NASA/ESA/CSA/STScI, Webb: Pillars of Creation (NIRCam); video credit in the site footer. */
+.ar-player .ar-bestiary .ar-bestiary-cosmic-heading {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding-bottom: 2.7rem;
+    background: #10131d url('/images/bestiary-pillars.jpg') center 48% / cover no-repeat;
+}
+.ar-player .ar-bestiary .ar-bestiary-cosmic-heading::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(90deg, #0b101aee, #101523d9 52%, #121520a8);
+    pointer-events: none;
+}
+.ar-player .ar-bestiary .ar-bestiary-cosmic-heading .ar-atmosphere { z-index: 0; }
+.ar-player .ar-bestiary .ar-bestiary-cosmic-heading > div:not(.ar-atmosphere),
+.ar-player .ar-bestiary .ar-bestiary-cosmic-heading > .ar-mob-category { position: relative; z-index: 2; }
+.ar-player .ar-bestiary .ar-bestiary-cosmic-heading h1 {
+    color: #fff4dc;
+    text-shadow: 0 2px 16px #080b17;
+}
+.ar-bestiary-image-credit { margin: -.75rem 0 1.5rem; color: #5f5a50; font-size: .7rem; text-align: right; }
+
 .ar-bestiary-record {
     display: flex;
     align-items: center;

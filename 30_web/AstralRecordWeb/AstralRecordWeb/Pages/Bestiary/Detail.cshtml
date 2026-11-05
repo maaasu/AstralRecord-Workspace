@@ -13,7 +13,9 @@
             ? mob.Levels.OrderBy(level => level.Level).ToList()
             : [new WebBestiaryMobLevelResponse { Level = mob.Level, Name = mob.Name, Title = mob.Title, Icon = null, IconTexture = null, Lore = mob.Lore, BaseStats = mob.BaseStats, Drops = mob.Drops }];
         var selected = levels[0];
-        <header class="ar-portal-heading">
+        <header class="ar-portal-heading ar-bestiary-cosmic-heading" data-astral-scene>
+            <partial name="_AstralAtmosphere" model='"galaxy"' />
+            <partial name="_MotionControl" />
             <div>
                 <p class="ar-portal-eyebrow"><a asp-page="/Players/Detail" asp-route-userUuid="@Model.ViewerUserUuid" asp-route-accountId="@record.AccountId">@record.AccountName</a> の記録</p>
                 <h1 data-bestiary-level-name>@selected.Name</h1>
@@ -21,6 +23,7 @@
             </div>
             <span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)</span>
         </header>
+        <p class="ar-bestiary-image-credit">背景画像：<a href="https://science.nasa.gov/asset/webb/pillars-of-creation-nircam-image/" target="_blank" rel="noopener noreferrer">Pillars of Creation</a> · NASA / ESA / CSA / STScI</p>
         @foreach (var level in levels)
         {
             <template data-bestiary-level-header data-level="@level.Level"><span data-bestiary-level-template-name>@level.Name</span><span data-bestiary-level-template-title>@level.Title</span></template>
