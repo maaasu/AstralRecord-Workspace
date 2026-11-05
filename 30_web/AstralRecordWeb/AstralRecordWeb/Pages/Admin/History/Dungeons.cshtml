@@ -29,25 +29,41 @@
     {
         <p>期間内 @results.TotalCount.ToString("N0") 回の攻略</p>
         @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
-        @for (var index = 0; index < results.Items.Count; index++)
-        {
-            var run = results.Items[index];
-            var maxDistance = Math.Max(1m, run.Participants.Select(p => p.DistanceMeters ?? 0m).DefaultIfEmpty().Max());
-            <article class="ar-history-card">
-                <h2>@if (Model.Sort is "fastest" or "slowest") { <span class="ar-profile-badge">@(((long)Model.PageNumber - 1) * results.PageSize + index + 1) 位</span> } @run.DungeonName <span class="ar-profile-badge">所要時間 @HistoryPageModel.Duration(run.DurationSeconds)</span></h2>
-                <p class="ar-history-note">開始 @HistoryPageModel.Timestamp(run.StartedAt) → 攻略 @HistoryPageModel.Timestamp(run.ClearedAt) JST<br />@run.DungeonId ／ 記録 @run.EventId</p>
-                <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>参加プレイヤー</th><th>アカウント</th><th>移動距離</th><th>観測回数</th></tr></thead><tbody>
-                @foreach (var participant in run.Participants)
-                {
-                    <tr><td>@participant.Player.Mcid</td><td><a asp-page="/Players/Detail" asp-route-userUuid="@participant.Player.UserUuid" asp-route-accountId="@participant.Player.AccountId" asp-route-includePrivate="true">@participant.Player.AccountName</a><small>@participant.Player.AccountId</small></td><td>
-                        @if (participant.DistanceMeters is { } distance && participant.MovementSampleCount > 0)
-                        { <div class="ar-history-distance"><meter min="0" max="@maxDistance.ToString(CultureInfo.InvariantCulture)" value="@distance.ToString(CultureInfo.InvariantCulture)" aria-label="@($"{participant.Player.Mcid} の移動距離 {distance:N1} m")"></meter><strong>@distance.ToString("N1") m</strong></div> }
-                        else { <span>観測なし</span> }
-                    </td><td>@participant.MovementSampleCount.ToString("N0")</td></tr>
-                }
-                </tbody></table></div>
-            </article>
-        }
+        <div class="ar-history-list">
+            @for (var index = 0; index < results.Items.Count; index++)
+            {
+                var run = results.Items[index];
+                var maxDistance = Math.Max(1m, run.Participants.Select(p => p.DistanceMeters ?? 0m).DefaultIfEmpty().Max());
+                <details class="ar-history-entry">
+                    <summary>
+                        <span class="ar-history-entry-main">
+                            <span><span class="ar-history-entry-label">ダンジョン</span>@if (Model.Sort is "fastest" or "slowest") { <span class="ar-history-entry-meta">@(((long)Model.PageNumber - 1) * results.PageSize + index + 1) 位</span> } <strong>@run.DungeonName</strong></span>
+                            <span><span class="ar-history-entry-label">攻略日時（JST）</span><time datetime="@DateTime.SpecifyKind(run.ClearedAt, DateTimeKind.Utc).ToString("O")">@HistoryPageModel.Timestamp(run.ClearedAt)</time></span>
+                            <span><span class="ar-history-entry-label">所要時間</span>@HistoryPageModel.Duration(run.DurationSeconds)</span>
+                            <span><span class="ar-history-entry-label">参加者</span>@run.Participants.Count.ToString("N0") 人</span>
+                        </span>
+                        <span class="ar-history-toggle"><span>詳細を表示</span><span>詳細を閉じる</span></span>
+                    </summary>
+                    <div class="ar-history-entry-body">
+                        <dl class="ar-history-facts">
+                            <div><dt>開始日時（JST）</dt><dd>@HistoryPageModel.Timestamp(run.StartedAt)</dd></div>
+                            <div><dt>ダンジョンID</dt><dd>@run.DungeonId</dd></div>
+                            <div><dt>イベントID</dt><dd>@run.EventId</dd></div>
+                        </dl>
+                        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>参加プレイヤー</th><th>アカウント</th><th>移動距離</th><th>観測回数</th></tr></thead><tbody>
+                        @foreach (var participant in run.Participants)
+                        {
+                            <tr><td>@participant.Player.Mcid</td><td><a asp-page="/Players/Detail" asp-route-userUuid="@participant.Player.UserUuid" asp-route-accountId="@participant.Player.AccountId" asp-route-includePrivate="true">@participant.Player.AccountName</a><small>@participant.Player.AccountId</small></td><td>
+                                @if (participant.DistanceMeters is { } distance && participant.MovementSampleCount > 0)
+                                { <div class="ar-history-distance"><meter min="0" max="@maxDistance.ToString(CultureInfo.InvariantCulture)" value="@distance.ToString(CultureInfo.InvariantCulture)" aria-label="@($"{participant.Player.Mcid} の移動距離 {distance:N1} m")"></meter><strong>@distance.ToString("N1") m</strong></div> }
+                                else { <span>観測なし</span> }
+                            </td><td>@participant.MovementSampleCount.ToString("N0")</td></tr>
+                        }
+                        </tbody></table></div>
+                    </div>
+                </details>
+            }
+        </div>
     }
     @if (Model.Players is { } players)
     {

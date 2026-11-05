@@ -23,7 +23,7 @@ html { scroll-behavior: smooth; }
 body {
     background-color: var(--ar-bg-dark);
     color: var(--ar-text);
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: var(--ar-ui);
     font-weight: 400;
     padding-top: var(--ar-navbar-h);
 }
@@ -1164,7 +1164,7 @@ img {
 }
 
 .ar-item-name {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: var(--ar-ui);
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0;
@@ -1528,7 +1528,7 @@ img {
     border: 1px solid rgba(95, 183, 167, 0.48);
     border-radius: 999px;
     color: #8dd8ca;
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: var(--ar-ui);
     font-size: 0.52rem;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -1660,7 +1660,7 @@ img {
 
 .ar-home-title {
     color: #fff;
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: var(--ar-ui);
     font-size: clamp(2.65rem, 6vw, 4.55rem);
     font-weight: 700;
     letter-spacing: -0.055em;

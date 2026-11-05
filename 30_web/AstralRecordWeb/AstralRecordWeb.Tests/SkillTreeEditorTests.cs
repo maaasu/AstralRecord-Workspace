@@ -109,7 +109,7 @@ public sealed class SkillTreeEditorTests
         Assert.DoesNotContain("data-editor-location", html);
         Assert.Contains("最大表示", WebUtility.HtmlDecode(html));
         Assert.Contains("編集モード", WebUtility.HtmlDecode(html));
-        Assert.DoesNotContain("閲覧モード", WebUtility.HtmlDecode(html));
+        Assert.DoesNotContain("閲覧専用", WebUtility.HtmlDecode(html));
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class SkillTreeEditorTests
         Assert.Contains($"https://crafatar.com/avatars/{Actor:N}", html);
         Assert.Contains("referrerpolicy=\"no-referrer\"", html);
         Assert.Contains("data-player-avatar", html);
-        Assert.Contains("閲覧モード", html);
+        Assert.Contains("閲覧専用", html);
         Assert.DoesNotContain("編集モード", html);
         Assert.DoesNotContain("data-editor-submit", html);
     }

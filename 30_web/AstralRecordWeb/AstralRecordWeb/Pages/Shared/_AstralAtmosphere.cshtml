@@ -1,8 +1,15 @@
-<div class="ar-atmosphere" aria-hidden="true">
+@model string
+@{
+    var galaxy = Model == "galaxy";
+    var video = galaxy ? "astral-galaxy" : "astral-nebula";
+}
+<div class="ar-atmosphere @(galaxy ? "ar-atmosphere--galaxy" : null)" aria-hidden="true">
     <video class="ar-scene-video" data-astral-video
-           data-video-desktop="@Url.Content("~/media/astral-nebula-1280.mp4")"
-           data-video-mobile="@Url.Content("~/media/astral-nebula-640.mp4")"
+           data-video-desktop="@Url.Content($"~/media/{video}-1280.mp4")"
+           data-video-mobile="@Url.Content($"~/media/{video}-640.mp4")"
            muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture disableremoteplayback></video>
+    @if (!galaxy)
+    {
     <div class="ar-aurora-ribbons"><i></i><i></i></div>
     <div class="ar-magic-ripples"><i></i><i></i><i></i></div>
     <div class="ar-light-veils"><i></i><i></i><i></i></div>
@@ -25,4 +32,5 @@
     </div>
     <canvas class="ar-astral-particles" data-astral-particles></canvas>
     <div class="ar-star-trails"><i></i><i></i><i></i><i></i><i></i></div>
+    }
 </div>

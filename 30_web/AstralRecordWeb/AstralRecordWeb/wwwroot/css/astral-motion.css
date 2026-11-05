@@ -6,6 +6,13 @@
 .ar-scene-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; mix-blend-mode: screen; filter: hue-rotate(115deg) saturate(.8); mask-image: linear-gradient(#000 0%, #0008 25%, transparent 65%); transition: opacity 1.2s ease; }
 .ar-motion-ready .ar-scene-video[data-video-ready="true"] { opacity: .2; }
 .ar-motion-ready .ar-legal-hero .ar-scene-video[data-video-ready="true"] { opacity: .12; }
+.ar-atmosphere--galaxy { z-index: -1; border-radius: inherit; }
+.ar-atmosphere--galaxy .ar-scene-video {
+    filter: saturate(.85);
+    mask-image: linear-gradient(90deg, transparent 15%, #0008 45%, #000 78%);
+    object-position: 50% 49%;
+}
+.ar-motion-ready .ar-atmosphere--galaxy .ar-scene-video[data-video-ready="true"] { opacity: .55; }
 .ar-aurora-ribbons { position: absolute; inset: -20%; opacity: .45; mix-blend-mode: screen; filter: blur(22px); }
 .ar-aurora-ribbons i { position: absolute; width: 75%; height: 25%; top: 20%; right: -10%; background: radial-gradient(ellipse, #7cf9d987, #28a6a530 45%, transparent 70%); transform: rotate(-25deg); }
 .ar-aurora-ribbons i:last-child { top: 60%; right: -20%; background: radial-gradient(ellipse, #e1c78d80, #d5a95130 45%, transparent 70%); transform: rotate(25deg); }
@@ -91,6 +98,7 @@
     .ar-light-veils i { width: 65%; }
     .ar-star-trails i { width: 120px; }
     .ar-scene-video { mask-image: linear-gradient(#000 0%, #0006 25%, transparent 55%); }
+    .ar-atmosphere--galaxy .ar-scene-video { mask-image: linear-gradient(90deg, transparent 5%, #0008 50%, #000 100%); }
     .ar-magic-ripples i { width: 420px; top: 28%; left: 85%; }
     .ar-aurora-ribbons { filter: blur(14px); opacity: .3; }
 }

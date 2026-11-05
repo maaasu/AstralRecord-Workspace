@@ -136,6 +136,8 @@ test('canvas and storage failures preserve controls and CSS effects', () => {
     h.step(100);
     assert.equal(h.body.dataset.motionState, 'running');
     assert.equal(h.button.hidden, false);
+    assert.equal(h.video.paused, false);
+    assert.equal(h.frames.size, 0, 'video without particles needs no continuous canvas frame');
     h.button.emit('click');
     assert.equal(h.frames.size, 0);
     assert.equal(h.body.dataset.motionState, 'paused');

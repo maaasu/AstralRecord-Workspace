@@ -27,8 +27,8 @@
     --ar-text-muted: #eee5ce;
     align-items: center;
     flex-wrap: wrap;
-    gap: 1rem 1.75rem;
-    min-height: clamp(9.25rem, 16vw, 12rem);
+    gap: .65rem 1.5rem;
+    min-height: clamp(8.25rem, 14vw, 11.25rem);
     padding: clamp(1rem, 3.5vw, 2.35rem);
     margin-bottom: clamp(1.25rem, 3vw, 2.5rem);
     border: 1px solid var(--ar-brass-dark);
@@ -49,7 +49,7 @@
 .ar-player .ar-portal-eyebrow { color: var(--ar-brass-dark); font-size: .75rem; letter-spacing: .08em; }
 .ar-player .ar-portal-heading .ar-portal-eyebrow { color: var(--ar-brass); margin-bottom: .55rem; }
 .ar-player .ar-portal-heading .ar-portal-eyebrow a:hover { color: var(--ar-cream); }
-.ar-player .ar-portal-heading p:not(.ar-portal-eyebrow) { max-width: 49rem; color: var(--ar-text-muted); line-height: 1.8; margin: .65rem 0 0; }
+.ar-player .ar-portal-heading p:not(.ar-portal-eyebrow) { max-width: 49rem; color: var(--ar-text-muted); line-height: 1.65; margin: .45rem 0 0; }
 .ar-player :is(.ar-portal, .ar-card) .ar-btn-outline { background: transparent; color: var(--ar-ink); border: 1px solid var(--player-input-border); border-radius: 4px; }
 .ar-player :is(.ar-portal, .ar-card) .ar-btn-outline:is(:hover, :focus-visible) { background: var(--ar-bg-panel-2); border-color: var(--ar-brass-dark); color: var(--ar-ink); }
 .ar-player .ar-portal-heading .ar-btn-outline { color: var(--ar-cream); border-color: var(--ar-brass); background: #252116c9; }
@@ -58,7 +58,7 @@
 .ar-player :is(.ar-portal, .ar-card) .ar-btn-primary:is(:hover, :focus-visible) { background: #eed597; transform: none; box-shadow: none; }
 .ar-player .ar-portal .btn { max-width: 100%; min-height: 44px; white-space: normal; line-height: 1.6; }
 
-.ar-player :is(.ar-panel, .ar-stat, .ar-player-card, .ar-mob-card, .ar-mob-dossier, .ar-section-dark > .container .ar-card) {
+.ar-player :is(.ar-panel, .ar-stat, .ar-player-card, .ar-section-dark > .container .ar-card) {
     background: var(--ar-bg-panel);
     border: 1px solid var(--ar-border);
     border-radius: 4px;
@@ -69,18 +69,19 @@
 .ar-player :is(.ar-panel, .ar-shop-section-heading, .market-results-heading) h2 { font-family: var(--ar-display); font-weight: 600; line-height: 1.55; }
 .ar-player .ar-panel > p { line-height: 1.85; }
 .ar-player .ar-section-dark .ar-card-title { color: var(--ar-ink); }
-.ar-player :is(.ar-class-chip, .ar-profile-presence, .market-detail-grid > section, .market-history-facts > div) {
+.ar-player :is(.ar-class-chip, .ar-profile-presence, .market-detail-grid > section) {
     background: var(--ar-bg-panel-2);
     border-color: var(--ar-border);
     border-radius: 4px;
     color: var(--ar-ink);
 }
 .ar-player :is(.ar-class-chip strong, .ar-player-card-footer strong, .ar-stat strong) { color: var(--ar-gold-light); }
+.ar-player :is(.ar-player-card-footer strong, .ar-stat strong) { font-family: var(--ar-ui); font-variant-numeric: tabular-nums; }
 .ar-player .ar-stat { animation: none; }
 .ar-player .ar-stat::after { content: none; }
 .ar-player :is(.ar-stat p, .ar-stat small, .ar-profile-presence small, .ar-profile-coordinates, .ar-player-card p, .ar-player-card-footer) { color: var(--ar-muted); }
 .ar-player .ar-profile-presence strong.is-online { color: #28583c; background: #dce8d6; }
-.ar-player :is(.ar-player-card, .ar-mob-card):is(:hover, :focus-visible) { color: var(--ar-ink); background: #fdfaf0; border-color: var(--ar-brass-dark); transform: none; }
+.ar-player .ar-player-card:is(:hover, :focus-visible) { color: var(--ar-ink); background: #fdfaf0; border-color: var(--ar-brass-dark); transform: none; }
 .ar-player .ar-profile-banner {
     --ar-text: var(--ar-cream);
     --ar-text-muted: #eee5ce;
@@ -94,13 +95,12 @@
 .ar-player .ar-profile-facts dt { color: var(--ar-text-muted); }
 .ar-player .ar-player-emblem { color: var(--ar-cream); border-color: var(--ar-brass); border-radius: 4px; background: var(--ar-wood); animation: none; box-shadow: none; }
 
-.ar-player :is(.ar-profile-badge, .ar-bestiary-private, .ar-mob-category) { color: #2f5144; border-color: #8b9e85; background: #e6ebdc; }
+.ar-player .ar-profile-badge { color: #2f5144; border-color: #8b9e85; background: #e6ebdc; }
 .ar-player .ar-profile-badge--other { color: #564461; border-color: #a193a7; background: #eee6ef; }
-.ar-player :is(.ar-profile-badge--private, .ar-mob-category.is-boss) { color: #7d3926; border-color: #bc8e7d; background: #f6e5dc; }
+.ar-player .ar-profile-badge--private { color: #7d3926; border-color: #bc8e7d; background: #f6e5dc; }
 
 .ar-player .ar-portal :is(label, legend, .form-text) { color: var(--ar-muted); }
 .ar-player .ar-account-picker p { color: var(--ar-muted); font-size: .82rem; }
-.ar-player .ar-portal .ar-bestiary-level-picker { color: inherit; }
 .ar-player :is(.ar-filter-grid, .ar-account-picker, .market-filter-grid, .market-range, .market-numeric-filters, .market-purchase-form, .market-account-controls)
     :is(input:not([type="checkbox"]):not([type="radio"]), select),
 .ar-player .ar-portal :is(.form-control, .form-select) {
@@ -134,16 +134,6 @@
 .ar-player .table-responsive { border: 1px solid var(--ar-border); border-radius: 4px; }
 .ar-player .ar-portal code { color: #6d482f; }
 .ar-player .ar-portal .ar-alert { background: #f6e5dc; border-color: #bc8e7d; color: #7d3926; }
-
-/* Bestiary */
-.ar-player .ar-bestiary { --bestiary-line: var(--ar-border); }
-.ar-player .ar-mob-stage { background: radial-gradient(ellipse, #d8c49b61, transparent 68%); }
-.ar-player :is(.ar-bestiary-note, .ar-mob-stage p, .ar-mob-dates dt, .ar-mob-stats dt, .ar-bestiary-summary span,
-    .ar-bestiary-summary small, .ar-mob-rewards span, .ar-mob-rewards small, .ar-mob-card-top, .ar-mob-card-footer,
-    .ar-mob-thumbnail, .ar-mob-defeats span) { color: var(--ar-muted); }
-.ar-player :is(.ar-bestiary-summary strong, .ar-mob-defeats, .ar-mob-rewards strong, .ar-mob-card-footer strong) { color: var(--ar-gold-light); }
-.ar-player :is(.ar-mob-stats dd, .ar-mob-lore, .ar-drop-table td) { color: var(--ar-ink); }
-.ar-player .ar-drop-table thead { color: var(--ar-ink); background: var(--ar-bg-panel-2); }
 
 /* Shop and marketplace */
 .ar-player :is(.ar-shop-account, .market-wallet) {
@@ -185,37 +175,9 @@
     .market-price > span, .market-recommended-price, .market-total, .market-balance-after, .market-purchase-account, .market-purchase-unavailable,
     .market-filter-disclosure > summary span) { color: var(--ar-muted); }
 .ar-player :is(.market-guide strong, .market-seller strong, .market-recommended-price strong, .market-stock strong,
-    .market-history-facts dd, .market-filter-disclosure > summary) { color: var(--ar-ink); }
+    .market-filter-disclosure > summary) { color: var(--ar-ink); }
 .ar-player :is(.market-balance-after.is-short, .market-instance-missing) { color: #8b3b29; }
 .ar-player .market-buy-button { justify-content: center; }
-
-/* Neutral map surfaces keep the gold actions and skill states distinct. */
-.ar-player .ar-tree-sanctum {
-    --ar-teal: var(--ar-brass);
-    --ar-ink: #f7e9cf;
-    --tree-muted: #adb8ca;
-    --tree-gold: #e5d3b0;
-    color: #e6ebf3;
-    color-scheme: dark;
-    background: #171e2b;
-    border-color: #7e8da455;
-    border-radius: 4px;
-    box-shadow: none;
-}
-.ar-player .ar-portal .ar-tree-sanctum :is(label, legend) { color: var(--tree-muted); }
-.ar-player .ar-tree-sanctum::before, .ar-player .ar-tree-sanctum::after { content: none; }
-.ar-player .ar-tree-heading h2 { font-family: var(--ar-display); font-weight: 500; }
-.ar-player .ar-tree-layout { border-radius: 4px; }
-.ar-player .ar-tree-preferences { color: #adb8ca; }
-.ar-player .ar-portal .ar-tree-search input::placeholder { color: var(--tree-muted); }
-.ar-player .ar-tree-search { background: #101722; border-color: #7e8da455; }
-.ar-player .ar-tree-controls button { background: #242e3e; border-color: #7e8da455; color: #e6ebf3; }
-.ar-player .ar-tree-controls button:hover { background: #344159; border-color: #b1bfd3; }
-.ar-player .ar-tree-viewport { background: radial-gradient(ellipse at 45% 45%, #57658d24, #090f1b 72%); }
-.ar-player .ar-tree-account-state { background: #101722; border-color: #7e8da455; }
-.ar-player :is(.ar-tree-point-card, .ar-tree-cp-list > span) { background: #1c2635; border-color: #7e8da455; }
-.ar-player :is(.ar-tree-detail, .ar-tree-detail-header) { background: #202a3a; }
-.ar-player :is(.ar-tree-search-options select, .ar-tree-operation select) { background: #101722; color: #e6ebf3; border-color: #7e8da455; }
 
 @media (max-width: 767px) {
     .ar-player .ar-portal-heading {

@@ -233,7 +233,7 @@ main, .ar-footer { position: relative; }
 [data-state="offline"] .ar-server-beacon { background: #cb8f9b; box-shadow: 0 0 0 6px #cb8f9b15; }
 [data-state="offline"] .ar-server-presence strong { color: #e4aebb; }
 .ar-server-population > strong { font: 1.7rem 'Cinzel', serif; color: #edd4a3; }
-.ar-server-capacity { font: .8rem 'Noto Sans JP', sans-serif; color: #a99ab5; }
+.ar-server-capacity { font: .8rem var(--ar-ui); color: #a99ab5; }
 .ar-server-checked { display: grid; gap: .4rem; text-align: right; color: #c6b899; font-size: .75rem; }
 .ar-server-checked small { color: #a99ab5; font-size: .63rem; }
 @media (max-width: 600px) {

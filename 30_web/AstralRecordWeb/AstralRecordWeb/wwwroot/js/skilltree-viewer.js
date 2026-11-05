@@ -27,11 +27,13 @@ export function initializeViewer(viewer, viewState) {
     const viewport = viewer.querySelector('.ar-tree-viewport');
     const sanctum = viewer.closest('.ar-tree-sanctum');
     const lifecycle = new AbortController();
+    const detail = viewer.querySelector('.ar-tree-detail');
     const detailToggle = viewer.querySelector('[data-tree-detail-toggle]');
     const setDetailVisible = visible => {
         viewer.classList.toggle('is-detail-hidden', !visible);
+        detail.hidden = !visible;
         detailToggle.textContent = visible ? '詳細を隠す' : '詳細を表示';
-        detailToggle.setAttribute('aria-pressed', String(visible));
+        detailToggle.setAttribute('aria-expanded', String(visible));
     };
     const svg = viewer.querySelector('.ar-tree-canvas');
     const minimap = viewer.querySelector('[data-tree-minimap]');
@@ -138,12 +140,10 @@ export function initializeViewer(viewer, viewState) {
         });
         links.forEach(edge => edge.line.classList.toggle('is-connected', edge.source === selectedId || edge.target === selectedId));
         miniNodes.forEach((point, id) => point.classList.toggle('is-selected', id === selectedId));
-        const detail = viewer.querySelector('.ar-tree-detail');
         if (selectionChanged) detail.scrollTop = 0;
         detail.dataset.state = node.isUnlocked ? 'unlocked' : 'locked';
         detail.dataset.pointType = node.pointType;
         viewer.querySelector('[data-node-name]').textContent = node.name;
-        viewer.querySelector('[data-node-id]').textContent = '';
         viewer.querySelector('[data-node-type]').textContent = node.pointType === 'CP' ? 'クラスの成長 · CP' : 'プレイヤーの成長 · PP';
         viewer.querySelector('[data-node-state]').textContent = nodeState(node);
         viewer.querySelector('[data-node-state]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
@@ -277,7 +277,7 @@ export function initializeViewer(viewer, viewState) {
     expandButton.addEventListener('click', () => setExpanded(!sanctum.classList.contains('is-expanded')));
     collapseButton.addEventListener('click', () => setExpanded(false), { signal: lifecycle.signal });
     document.addEventListener('keydown', event => {
-        if (!sanctum.classList.contains('is-expanded') || event.defaultPrevented) return;
+        if (!sanctum.classList.contains('is-expanded') || event.defaultPrevented || sanctum.querySelector('dialog[open]')) return;
         if (event.key === 'Escape') { event.preventDefault(); setExpanded(false); }
         else if (event.key === 'Tab') {
             const focusable = [...sanctum.querySelectorAll('button, input, select, a[href], summary, [tabindex="0"]')]
@@ -298,6 +298,7 @@ export function initializeViewer(viewer, viewState) {
         rightPress = event.button === 2 && event.pointerType === 'mouse'
             ? { nodeId: event.target.closest('[data-node-key]')?.dataset.nodeKey, x: event.clientX, y: event.clientY, moved: false } : null;
         if (event.button !== 0) return;
+        if (event.pointerType === 'mouse' && !viewport.contains(document.activeElement)) viewport.focus({ preventScroll: true });
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         drag = { id: event.pointerId, x: event.clientX, y: event.clientY, originX: camera.x, originY: camera.y };
         dragged = false;
@@ -336,6 +337,7 @@ export function initializeViewer(viewer, viewState) {
     window.addEventListener('pointerup', endDrag, { signal: lifecycle.signal });
     window.addEventListener('pointercancel', endDrag, { signal: lifecycle.signal });
     viewport.addEventListener('wheel', event => {
+        if (event.ctrlKey || !sanctum.classList.contains('is-expanded') && !viewport.contains(document.activeElement)) return;
         event.preventDefault();
         interactionUntil = performance.now() + 180;
         const rect = viewport.getBoundingClientRect();
@@ -361,9 +363,11 @@ export function initializeViewer(viewer, viewState) {
         const name = String(effect).replace(/\s*[+−-]?[\d,.]+(?:%|％)?(?:\s*.*)?$/, '').trim();
         if (name) effectNames.add(name);
     }
-    effectFilter.replaceChildren(new Option('効果を選んで強調', ''));
+    effectFilter.replaceChildren(new Option('指定なし', ''));
     for (const effect of [...effectNames].sort((a, b) => a.localeCompare(b, 'ja'))) effectFilter.append(new Option(effect, effect));
     if (viewState?.search) { query.value = viewState.search.query; searchMode.value = viewState.search.mode; effectFilter.value = viewState.search.effect; }
+    const searchFeedback = viewer.querySelector('[data-tree-search-feedback]');
+    const matchCount = viewer.querySelector('[data-tree-match-count]');
     let matches = [], matchIndex = -1, searchFrame = 0;
     const search = (showResults = true) => {
         const hasQuery = Boolean(query.value.trim() || effectFilter.value);
@@ -376,31 +380,50 @@ export function initializeViewer(viewer, viewState) {
         results.replaceChildren(); results.hidden = !hasQuery || !showResults;
         for (const node of matches.slice(0, 12)) {
             const button = document.createElement('button'); button.type = 'button';
-            button.textContent = `${node.name} · ${(node.displayEffects ?? []).slice(0, 2).join(' / ')}`;
-            button.addEventListener('click', () => { matchIndex = matches.indexOf(node); showDetails(node); focusNode(node); results.hidden = true; updateMatchCount(); });
+            const effects = (node.displayEffects ?? []).slice(0, 2);
+            button.textContent = [node.name, ...effects].join(' · ');
+            button.addEventListener('click', () => {
+                matchIndex = matches.indexOf(node);
+                showDetails(node);
+                focusNode(node);
+                query.focus({ preventScroll: true });
+                results.hidden = true;
+                updateMatchCount();
+            });
             results.append(button);
         }
         if (hasQuery && !matches.length) results.textContent = '一致するノードはありません';
         updateMatchCount();
     };
     const updateMatchCount = () => {
-        viewer.querySelector('[data-tree-match-count]').textContent = matches.length ? `${matchIndex >= 0 ? (matchIndex + 1) + ' / ' : ''}${matches.length} 件を強調` : query.value.trim() || effectFilter.value ? '一致なし' : '';
+        const hasQuery = Boolean(query.value.trim() || effectFilter.value);
+        searchFeedback.hidden = !hasQuery;
+        matchCount.textContent = matches.length ? `${matchIndex >= 0 ? (matchIndex + 1) + ' / ' : ''}${matches.length} 件を強調` : hasQuery ? '一致なし' : '';
         viewer.querySelector('[data-tree-match-prev]').disabled = !matches.length;
         viewer.querySelector('[data-tree-match-next]').disabled = !matches.length;
     };
     const stepMatch = direction => {
         if (!matches.length) return;
-        matchIndex = (matchIndex + direction + matches.length) % matches.length;
+        matchIndex = matchIndex < 0 && direction < 0 ? matches.length - 1 : (matchIndex + direction + matches.length) % matches.length;
         showDetails(matches[matchIndex]); focusNode(matches[matchIndex]); results.hidden = true; updateMatchCount();
     };
     query.addEventListener('input', () => { cancelAnimationFrame(searchFrame); searchFrame = requestAnimationFrame(() => search()); });
     searchMode.addEventListener('change', () => search());
     effectFilter.addEventListener('change', () => search(false));
-    query.addEventListener('keydown', event => { if (event.key === 'Escape') results.hidden = true; });
-    viewer.querySelector('[data-tree-search]').addEventListener('submit', event => { event.preventDefault(); search(false); stepMatch(1); });
+    const searchForm = viewer.querySelector('[data-tree-search]');
+    searchForm.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || results.hidden) return;
+        event.preventDefault();
+        results.hidden = true;
+        query.focus({ preventScroll: true });
+    });
+    searchForm.addEventListener('submit', event => { event.preventDefault(); search(false); stepMatch(1); });
     viewer.querySelector('[data-tree-match-prev]').addEventListener('click', () => stepMatch(-1));
     viewer.querySelector('[data-tree-match-next]').addEventListener('click', () => stepMatch(1));
-    viewer.querySelector('[data-tree-search-clear]').addEventListener('click', () => { query.value = ''; effectFilter.value = ''; search(false); });
+    viewer.querySelector('[data-tree-search-clear]').addEventListener('click', () => {
+        query.value = ''; effectFilter.value = ''; search(false);
+        query.focus({ preventScroll: true });
+    });
     viewer.addEventListener('click', event => { if (!event.target.closest('[data-tree-search]')) results.hidden = true; });
     const geometryKey = value => JSON.stringify([value.rootNodeId, value.edges, value.nodes.map(node => [node.nodeId, node.x, node.y, node.z, node.name, node.icon, node.pointType, node.pointCost, node.displayEffects, node.costText])]);
     const originalGeometry = geometryKey(tree);

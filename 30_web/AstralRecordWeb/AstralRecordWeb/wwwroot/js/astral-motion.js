@@ -122,7 +122,7 @@
         frame = 0;
         if (!canMove()) return;
         if (geometryDirty) updateGeometry();
-        if (!scenes.some(scene => scene.visible)) { lastTime = 0; return; }
+        if (!scenes.some(scene => scene.visible && scene.context)) { lastTime = 0; return; }
         // Cap particle rendering at 30 fps and prevent jumps after tab restoration.
         if (!lastTime || now - lastTime >= 1000 / 30) {
             elapsed += lastTime ? Math.min(now - lastTime, 80) / 1000 : 0;

@@ -3,7 +3,10 @@
 @{
     ViewData["Title"] = "マーケット取引履歴";
 }
-<link rel="stylesheet" href="~/css/market.css" asp-append-version="true" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/market.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/history.css" asp-append-version="true" />
+}
 
 <section class="ar-portal market-page market-history-page">
     <div class="container">
@@ -48,26 +51,40 @@
             }
             else
             {
-                <div class="market-history-list">
+                <div class="ar-history-list">
                     @foreach (var entry in Model.Transactions)
                     {
                         var transaction = entry.Transaction;
-                        <article class="ar-panel market-history-card">
-                            <div class="ar-item-icon" aria-hidden="true"><img data-market-icon="@entry.Icon" alt="" hidden /><span data-market-icon-fallback>✦</span></div>
-                            <div class="market-history-item">
-                                <p class="ar-portal-eyebrow">@entry.Category</p>
-                                <h3>@entry.DisplayName</h3>
-                                <p class="ar-item-id">@transaction.ItemId</p>
+                        <details class="ar-history-entry market-history-entry">
+                            <summary>
+                                <span class="ar-history-entry-main">
+                                    <span class="market-history-item">
+                                        <span class="ar-item-icon" aria-hidden="true"><img data-market-icon="@entry.Icon" alt="" hidden /><span data-market-icon-fallback>✦</span></span>
+                                        <span><span class="ar-history-entry-label">商品</span><strong>@entry.DisplayName</strong> <span class="ar-history-entry-meta">× @transaction.Quantity.ToString("N0")</span></span>
+                                    </span>
+                                    <span><span class="ar-history-entry-label">出品者</span>@entry.SellerDisplayName</span>
+                                    <span><span class="ar-history-entry-label">購入者</span>@entry.BuyerDisplayName</span>
+                                    <span><span class="ar-history-entry-label">総額</span><strong>@transaction.TotalPrice.ToString("N0")</strong> @transaction.CurrencyId</span>
+                                    <span><span class="ar-history-entry-label">成立日時（JST）</span><time datetime="@DateTime.SpecifyKind(transaction.CompletedAt, DateTimeKind.Utc).ToString("O")">@HistoryModel.CompletedAtText(transaction.CompletedAt)</time></span>
+                                </span>
+                                <span class="ar-history-toggle"><span>詳細を表示</span><span>詳細を閉じる</span></span>
+                            </summary>
+                            <div class="ar-history-entry-body">
+                                <dl class="ar-history-facts">
+                                    <div>
+                                        <dt>出品者</dt>
+                                        <dd>@if (transaction.SellerUserUuid is { } sellerUuid) { <a asp-page="/Players/Detail" asp-route-userUuid="@sellerUuid" asp-route-accountId="@transaction.SellerAccountId">@entry.SellerDisplayName</a> } else { @entry.SellerDisplayName }<small>アカウントID @transaction.SellerAccountId</small></dd>
+                                    </div>
+                                    <div>
+                                        <dt>購入者</dt>
+                                        <dd>@if (transaction.BuyerUserUuid is { } buyerUuid) { <a asp-page="/Players/Detail" asp-route-userUuid="@buyerUuid" asp-route-accountId="@transaction.BuyerAccountId">@entry.BuyerDisplayName</a> } else { @entry.BuyerDisplayName }<small>アカウントID @transaction.BuyerAccountId</small></dd>
+                                    </div>
+                                    <div><dt>アイテムID</dt><dd>@transaction.ItemId</dd></div>
+                                    <div><dt>カテゴリ</dt><dd>@entry.Category</dd></div>
+                                    <div><dt>単価</dt><dd>@transaction.UnitPrice.ToString("N0") @transaction.CurrencyId</dd></div>
+                                </dl>
                             </div>
-                            <dl class="market-history-facts">
-                                <div><dt>出品者</dt><dd>@if (transaction.SellerUserUuid is { } sellerUuid) { <a asp-page="/Players/Detail" asp-route-userUuid="@sellerUuid" asp-route-accountId="@transaction.SellerAccountId">@entry.SellerDisplayName</a> } else { @entry.SellerDisplayName }<small>@transaction.SellerAccountId</small></dd></div>
-                                <div><dt>購入者</dt><dd>@if (transaction.BuyerUserUuid is { } buyerUuid) { <a asp-page="/Players/Detail" asp-route-userUuid="@buyerUuid" asp-route-accountId="@transaction.BuyerAccountId">@entry.BuyerDisplayName</a> } else { @entry.BuyerDisplayName }<small>@transaction.BuyerAccountId</small></dd></div>
-                                <div><dt>数量</dt><dd>@transaction.Quantity.ToString("N0")</dd></div>
-                                <div><dt>単価</dt><dd>@transaction.UnitPrice.ToString("N0") @transaction.CurrencyId</dd></div>
-                                <div><dt>総額</dt><dd>@transaction.TotalPrice.ToString("N0") @transaction.CurrencyId</dd></div>
-                                <div><dt>成立日時</dt><dd>@HistoryModel.CompletedAtText(transaction.CompletedAt)</dd></div>
-                            </dl>
-                        </article>
+                        </details>
                     }
                 </div>
 

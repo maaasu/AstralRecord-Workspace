@@ -70,7 +70,7 @@
 .ar-home .ar-home-kicker {
     margin: 0 0 12px;
     color: #f5d797;
-    font: 700 .875rem/1.6 'Noto Sans JP', sans-serif;
+    font: 700 .875rem/1.6 var(--ar-ui);
     letter-spacing: .055em;
     text-transform: none;
 }

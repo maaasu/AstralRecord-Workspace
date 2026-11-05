@@ -72,7 +72,15 @@ function startEditor(editor) {
         return '';
     };
     const busy = () => Boolean(submitting || unknownSubmission || operation && !terminal.has(operation.status));
-    const invalidateConfirmation = () => { confirmation = null; q('[data-editor-confirm]').hidden = true; };
+    const invalidateConfirmation = () => {
+        confirmation = null;
+        q('[data-editor-confirm]').close();
+    };
+    editor.addEventListener('cancel', event => {
+        if (!event.target.matches('[data-editor-confirm]')) return;
+        event.preventDefault();
+        invalidateConfirmation();
+    }, { capture: true });
     const syncTree = () => {
         if (!draft.tree?.nodes?.length) return;
         if (viewer.updateTree?.(draft.tree)) return;
@@ -122,10 +130,9 @@ function startEditor(editor) {
     const render = () => {
         const fresh = Date.now() - lastRead <= 15000 && state.balanceKind !== 'UNKNOWN';
         const before = fresh ? state.points ?? {} : {}, after = fresh ? draft.points : {};
-        text('[data-editor-account]', state.accountName);
         text('[data-editor-heading-account]', state.accountName);
-        text('[data-editor-heading-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? '保存済み残高・オフラインの変更案' : '確定残高 → 変更後');
-        text('[data-editor-balance-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? '保存済み残高・オフラインの変更案' : 'サーバーで確定済みの残高');
+        text('[data-editor-heading-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? 'オフライン・保存済み残高' : '確定残高');
+        text('[data-editor-balance-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? 'オフライン・保存済み残高' : '確定残高');
         text('[data-editor-pp]', number(before.pp));
         text('[data-editor-pp-after]', changes.length ? `変更後 ${number(after.pp)} PP ${delta(before.pp, after.pp)}` : '変更なし');
         text('[data-editor-gold]', number(before.gold));
@@ -210,8 +217,7 @@ function startEditor(editor) {
             row.textContent = `${change.action === 'UNLOCK' ? '解放' : '解除'}：${node?.name || '再確認が必要なノード'}${change.sourceClassId ? ' ／ ' + (node?.cpSources ?? []).find(c => c.classId === change.sourceClassId)?.className : ''}`;
             list.append(row);
         }
-        q('[data-editor-confirm]').hidden = false;
-        q('[data-editor-confirm-send]').focus();
+        q('[data-editor-confirm]').showModal();
     };
     const applyChanges = (next, cue) => {
         const candidate = createDraft(state, next);

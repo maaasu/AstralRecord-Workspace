@@ -13,7 +13,14 @@
             ? mob.Levels.OrderBy(level => level.Level).ToList()
             : [new WebBestiaryMobLevelResponse { Level = mob.Level, Name = mob.Name, Title = mob.Title, Icon = null, IconTexture = null, Lore = mob.Lore, BaseStats = mob.BaseStats, Drops = mob.Drops }];
         var selected = levels[0];
-        <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">BESTIARY · <a asp-page="/Players/Detail" asp-route-userUuid="@Model.ViewerUserUuid" asp-route-accountId="@record.AccountId">@record.AccountName</a> の記録</p><h1 data-bestiary-level-name>@selected.Name</h1><p class="ar-portal-sub" data-bestiary-level-title hidden="@(string.IsNullOrWhiteSpace(selected.Title) ? "hidden" : null)">@selected.Title</p></div><span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)@if (levels.Count > 1) { <label class="ar-bestiary-level-picker" for="bestiary-level"><span class="visually-hidden">表示するレベル</span><select id="bestiary-level" data-bestiary-level-selector>@foreach (var level in levels) { <option value="@level.Level">Lv. @level.Level</option> }</select></label> }</span></header>
+        <header class="ar-portal-heading">
+            <div>
+                <p class="ar-portal-eyebrow"><a asp-page="/Players/Detail" asp-route-userUuid="@Model.ViewerUserUuid" asp-route-accountId="@record.AccountId">@record.AccountName</a> の記録</p>
+                <h1 data-bestiary-level-name>@selected.Name</h1>
+                <p class="ar-portal-sub" data-bestiary-level-title hidden="@(string.IsNullOrWhiteSpace(selected.Title) ? "hidden" : null)">@selected.Title</p>
+            </div>
+            <span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)</span>
+        </header>
         @foreach (var level in levels)
         {
             <template data-bestiary-level-header data-level="@level.Level"><span data-bestiary-level-template-name>@level.Name</span><span data-bestiary-level-template-title>@level.Title</span></template>
@@ -21,11 +28,23 @@
         }
         <div class="ar-mob-dossier">
             <div class="ar-mob-stage"><div data-mob-viewer data-entity-type="@mob.EntityType" data-mob-name="@mob.Name"><span data-mob-visual-fallback>@mob.EntityType</span></div><p>バニラの外観イメージ · 装備や個体差はゲーム内と異なる場合があります。</p></div>
-            <div class="ar-mob-description"><p class="ar-portal-eyebrow">ENCOUNTER RECORD</p><h2>あなたの討伐記録</h2><p class="ar-mob-defeats">@record.DefeatCount.ToString("N0") <span>体討伐</span></p>
+            <div class="ar-mob-description"><h2>あなたの討伐記録</h2><p class="ar-mob-defeats">@record.DefeatCount.ToString("N0") <span>体討伐</span></p>
                 <dl class="ar-mob-dates"><div><dt>初討伐</dt><dd>@BestiaryDisplay.Date(record.FirstDefeatedAt)</dd></div><div><dt>最終討伐</dt><dd>@BestiaryDisplay.Date(record.LastDefeatedAt)</dd></div></dl><p class="ar-bestiary-note">日時は日本時間です。この記録はあなたにだけ表示されています。</p>
                 <div data-bestiary-level-lore>@foreach (var line in selected.Lore) { <p class="ar-mob-lore">@line</p> }</div>
             </div>
         </div>
+        @if (levels.Count > 1)
+        {
+            <div class="ar-bestiary-level-picker">
+                <label for="bestiary-level">能力値・報酬の表示レベル</label>
+                <select id="bestiary-level" class="form-select" data-bestiary-level-selector>
+                    @foreach (var level in levels)
+                    {
+                        <option value="@level.Level">Lv. @level.Level</option>
+                    }
+                </select>
+            </div>
+        }
         @foreach (var level in levels)
         {
             <div data-bestiary-level-panel data-level="@level.Level" hidden="@(level.Level == selected.Level ? null : "hidden")">

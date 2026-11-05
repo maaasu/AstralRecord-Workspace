@@ -20,31 +20,54 @@
     {
         <p>@results.TotalCount.ToString("N0") 件の履歴</p>
         @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
-        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>日時（JST）</th><th>イベント</th><th>ユーザー</th><th>内容</th><th>発生元</th></tr></thead><tbody>
-        @foreach (var entry in results.Items)
-        {
-            <tr><td>@HistoryPageModel.Timestamp(entry.EventTime)<small>記録 @entry.HistoryId</small></td><td>@EventsModel.EventLabel(entry.EventType)<small>@entry.EventType</small></td><td>
-                @if (entry.Player is { } player)
-                {
-                    <a asp-page="/Players/Detail" asp-route-userUuid="@player.UserUuid" asp-route-accountId="@player.AccountId" asp-route-includePrivate="true">@player.AccountName</a>
-                    <small>@player.Mcid ／ @player.UserUuid</small>
-                    <small><a asp-page="Dungeons" asp-route-userUuid="@player.UserUuid" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ダンジョン</a> ／ <a asp-page="Bosses" asp-route-userUuid="@player.UserUuid" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ボス</a> ／ <a asp-page="Trades" asp-route-userUuid="@player.UserUuid" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">取引</a></small>
-                }
-                else if (entry.UserUuid is { } user)
-                {
-                    <a asp-page="Events" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@user</a>
-                    <small><a asp-page="Dungeons" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ダンジョン</a> ／ <a asp-page="Bosses" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ボス</a> ／ <a asp-page="Trades" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">取引</a></small>
-                }
-                else { <span>対象ユーザーなし</span> }
-            </td><td class="ar-history-message">
-                @if (EventsModel.PartyUuid(entry) is { } partyUuid)
-                {
-                    <span>@EventsModel.PartyDescription(entry)</span><small>パーティーUUID @partyUuid</small>
-                }
-                else { @entry.Message }
-            </td><td>@entry.Source</td></tr>
-        }
-        </tbody></table></div>
+        <div class="ar-history-list">
+            @foreach (var entry in results.Items)
+            {
+                var partyUuid = EventsModel.PartyUuid(entry);
+                var message = partyUuid.HasValue ? EventsModel.PartyDescription(entry) : entry.Message;
+                var userUuid = entry.Player?.UserUuid ?? entry.UserUuid;
+                var userLabel = entry.Player?.AccountName ?? (userUuid.HasValue ? "名前の記録なし" : "対象ユーザーなし");
+                <details class="ar-history-entry">
+                    <summary>
+                        <span class="ar-history-entry-main">
+                            <span><span class="ar-history-entry-label">日時（JST）</span><time datetime="@DateTime.SpecifyKind(entry.EventTime, DateTimeKind.Utc).ToString("O")">@HistoryPageModel.Timestamp(entry.EventTime)</time></span>
+                            <span><span class="ar-history-entry-label">イベント</span><strong>@EventsModel.EventLabel(entry.EventType)</strong></span>
+                            <span><span class="ar-history-entry-label">ユーザー</span>@userLabel</span>
+                            <span aria-hidden="true"><span class="ar-history-entry-label">内容</span><span class="ar-history-preview">@message</span></span>
+                        </span>
+                        <span class="ar-history-toggle"><span>詳細を表示</span><span>詳細を閉じる</span></span>
+                    </summary>
+                    <div class="ar-history-entry-body">
+                        <dl class="ar-history-facts">
+                            <div><dt>記録ID</dt><dd>@entry.HistoryId</dd></div>
+                            <div><dt>イベント種別</dt><dd>@entry.EventType</dd></div>
+                            <div><dt>発生元</dt><dd>@entry.Source</dd></div>
+                            @if (userUuid is { } user)
+                            {
+                                <div>
+                                    <dt>ユーザー</dt>
+                                    <dd>
+                                        @if (entry.Player is { } player)
+                                        {
+                                            <a asp-page="/Players/Detail" asp-route-userUuid="@player.UserUuid" asp-route-accountId="@player.AccountId" asp-route-includePrivate="true">@player.AccountName</a>
+                                            <small>@player.Mcid ／ @player.UserUuid</small>
+                                        }
+                                        else
+                                        {
+                                            <a asp-page="Events" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@user</a>
+                                        }
+                                        <small><a asp-page="Dungeons" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ダンジョン</a> ／ <a asp-page="Bosses" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">ボス</a> ／ <a asp-page="Trades" asp-route-userUuid="@user" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">取引</a></small>
+                                    </dd>
+                                </div>
+                            }
+                        </dl>
+                        <h2>内容</h2>
+                        <p class="ar-history-message">@message</p>
+                        @if (partyUuid is { } party) { <p><small>パーティーUUID @party</small></p> }
+                    </div>
+                </details>
+            }
+        </div>
         <nav class="ar-pagination" aria-label="接続・パーティー履歴のページ">
             @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
             <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(results.TotalCount / (double)results.PageSize))</span>

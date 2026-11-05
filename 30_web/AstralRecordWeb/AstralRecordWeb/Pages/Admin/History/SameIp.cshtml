@@ -13,25 +13,40 @@
     {
         <p>@results.TotalCount 件の関連</p>
         @if (results.Items.Count == 0) { <div class="ar-empty">条件に一致する記録はありません。</div> }
-        @foreach (var relation in results.Items)
-        {
-            <article class="ar-history-card">
-                <h2>同じIPで接続したアカウント <span class="ar-profile-badge">トレード @relation.TradeCount.ToString("N0") 回</span></h2>
-                <p class="ar-history-note">最初の観測 @HistoryPageModel.Timestamp(relation.FirstObservedAt) ／ 最後の観測 @HistoryPageModel.Timestamp(relation.LastObservedAt) JST</p>
-                <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー</th><th>代表アカウント</th><th>代表アカウントの履歴</th></tr></thead><tbody>
-                @foreach (var player in relation.Players)
-                {
-                    <tr><td>@player.Mcid<small>@player.UserUuid</small></td><td><a asp-page="/Players/Detail" asp-route-userUuid="@player.UserUuid" asp-route-accountId="@player.AccountId" asp-route-includePrivate="true">@player.AccountName</a><small>@player.AccountId</small></td><td><a asp-page="Trades" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">トレード</a> ・ <a asp-page="Dungeons" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">攻略履歴</a></td></tr>
-                }
-                </tbody></table></div>
-                @foreach (var pair in relation.Players.Select(p => p.UserUuid).Distinct().SelectMany((id, index) => relation.Players.Select(p => p.UserUuid).Distinct().Skip(index + 1).Select(other => (id, other))))
-                {
-                    var first = relation.Players.First(p => p.UserUuid == pair.id);
-                    var second = relation.Players.First(p => p.UserUuid == pair.other);
-                    <a class="btn ar-btn-outline" asp-page="Trades" asp-route-userUuid="@pair.id" asp-route-otherUserUuid="@pair.other" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@first.Mcid ↔ @second.Mcid のトレード</a>
-                }
-            </article>
-        }
+        <div class="ar-history-list">
+            @foreach (var relation in results.Items)
+            {
+                <details class="ar-history-entry">
+                    <summary>
+                        <span class="ar-history-entry-main">
+                            <span>
+                                <span class="ar-history-entry-label">プレイヤー</span>
+                                <strong>@string.Join(" / ", relation.Players.Take(2).Select(player => player.Mcid))</strong>
+                                @if (relation.Players.Count > 2) { <span class="ar-history-entry-meta">ほか @((relation.Players.Count - 2).ToString("N0")) 人</span> }
+                            </span>
+                            <span><span class="ar-history-entry-label">最初の観測（JST）</span><time datetime="@DateTime.SpecifyKind(relation.FirstObservedAt, DateTimeKind.Utc).ToString("O")">@HistoryPageModel.Timestamp(relation.FirstObservedAt)</time></span>
+                            <span><span class="ar-history-entry-label">最後の観測（JST）</span><time datetime="@DateTime.SpecifyKind(relation.LastObservedAt, DateTimeKind.Utc).ToString("O")">@HistoryPageModel.Timestamp(relation.LastObservedAt)</time></span>
+                            <span><span class="ar-history-entry-label">トレード</span>@relation.TradeCount.ToString("N0") 回</span>
+                        </span>
+                        <span class="ar-history-toggle"><span>詳細を表示</span><span>詳細を閉じる</span></span>
+                    </summary>
+                    <div class="ar-history-entry-body">
+                        <div class="ar-history-table-wrap"><table class="ar-history-table"><thead><tr><th>プレイヤー</th><th>代表アカウント</th><th>代表アカウントの履歴</th></tr></thead><tbody>
+                        @foreach (var player in relation.Players)
+                        {
+                            <tr><td>@player.Mcid<small>@player.UserUuid</small></td><td><a asp-page="/Players/Detail" asp-route-userUuid="@player.UserUuid" asp-route-accountId="@player.AccountId" asp-route-includePrivate="true">@player.AccountName</a><small>@player.AccountId</small></td><td><a asp-page="Trades" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">トレード</a> ・ <a asp-page="Dungeons" asp-route-accountId="@player.AccountId" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">攻略履歴</a></td></tr>
+                        }
+                        </tbody></table></div>
+                        @foreach (var pair in relation.Players.Select(p => p.UserUuid).Distinct().SelectMany((id, index) => relation.Players.Select(p => p.UserUuid).Distinct().Skip(index + 1).Select(other => (id, other))))
+                        {
+                            var first = relation.Players.First(p => p.UserUuid == pair.id);
+                            var second = relation.Players.First(p => p.UserUuid == pair.other);
+                            <a class="btn ar-btn-outline" asp-page="Trades" asp-route-userUuid="@pair.id" asp-route-otherUserUuid="@pair.other" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">@first.Mcid ↔ @second.Mcid のトレード</a>
+                        }
+                    </div>
+                </details>
+            }
+        </div>
         <nav class="ar-pagination" aria-label="同IP一覧のページ">
             @if (Model.PageNumber > 1) { <a href="@Model.PageLink(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> }
             <span>@Model.PageNumber / @Math.Max(1, (int)Math.Ceiling(results.TotalCount / (double)results.PageSize))</span>
