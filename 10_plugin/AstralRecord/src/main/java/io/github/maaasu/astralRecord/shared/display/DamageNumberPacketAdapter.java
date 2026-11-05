@@ -29,22 +29,25 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
 
 /**
- * 共有のダメージ数値を、接続先のエディションと閲覧者の設定に合わせて送信します。
+ * ダメージ数値と個人リザルトを、接続先のエディションと閲覧者の設定に合わせて送信します。
  */
 final class DamageNumberPacketAdapter extends PacketAdapter implements Listener {
     private static final int NO_GRAVITY_INDEX = 5;
     private static final int DISPLAY_SCALE_INDEX = 12;
     private static final int DISPLAY_TEXT_INDEX = 23;
     private static final long BEDROCK_DISPLAY_TAG = 0xa57ad00d00000000L;
+    private static final long BEDROCK_RESULT_TAG = 0xa57ac2e570000001L;
     private static final long MAX_BEDROCK_AMOUNT = 999_999_999_999L;
     private static final Key DAMAGE_FONT = Key.key("astralrecord", "damage_number");
 
     private final Map<Integer, NumberDisplay> activeNumbers;
+    private final Set<UUID> bedrockResults;
     private final PlayerSettingService playerSettingService;
     private final ResourcePackService resourcePackService;
     private final Map<UUID, Map<Integer, Integer>> bedrockMarkers = new ConcurrentHashMap<>();
@@ -54,18 +57,21 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
      *
      * @param plugin リスナーを所有するプラグイン
      * @param activeNumbers 表示サービスが更新する並行アクセス可能な実体情報
+     * @param bedrockResults 統合版向け個人リザルトの実体UUID
      * @param playerSettingService ロード済みの設定の参照先
      * @param resourcePackService エディションとJavaパック適用状態の参照先
      */
     DamageNumberPacketAdapter(
             Plugin plugin,
             Map<Integer, NumberDisplay> activeNumbers,
+            Set<UUID> bedrockResults,
             PlayerSettingService playerSettingService,
             ResourcePackService resourcePackService
     ) {
-        super(params(plugin, PacketType.Play.Server.BUNDLE, PacketType.Play.Server.ENTITY_METADATA,
+        super(params(plugin, PacketType.Play.Server.BUNDLE, PacketType.Play.Server.SPAWN_ENTITY, PacketType.Play.Server.ENTITY_METADATA,
                 PacketType.Play.Server.ENTITY_DESTROY).optionAsync());
         this.activeNumbers = activeNumbers;
+        this.bedrockResults = bedrockResults;
         this.playerSettingService = playerSettingService;
         this.resourcePackService = resourcePackService;
     }
@@ -89,9 +95,12 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
                 personalizeJavaNumber(event, viewer, number);
             }
         } else if (type == PacketType.Play.Server.BUNDLE) {
-            if (!activeNumbers.isEmpty() && resourcePackService.isBedrock(viewer.getName())) {
-                pairBedrockMarker(event, viewer);
+            if ((!activeNumbers.isEmpty() || !bedrockResults.isEmpty()) && resourcePackService.isBedrock(viewer.getName())) {
+                adaptBedrockBundle(event, viewer);
             }
+        } else if (type == PacketType.Play.Server.SPAWN_ENTITY && isBedrockResult(packet)
+                && resourcePackService.isBedrock(viewer.getName())) {
+            event.setPacket(markBedrockResult(packet));
         } else if (type == PacketType.Play.Server.ENTITY_DESTROY && !bedrockMarkers.isEmpty()) {
             appendBedrockRemovals(event, viewer.getUniqueId());
         }
@@ -138,24 +147,27 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
     }
 
     /**
-     * Paper の追跡開始バンドルに、Geyser がモデルに置き換えられる空の表示を添えます。
-     * パック未取得時は Geyser が元の文字表示を選びます。
+     * Paperの追跡開始バンドルでリザルトに種別を付け、数値にはモデル表示用の実体を添えます。
+     * パックを利用できない接続ではGeyserが元の文字表示を使います。
      *
      * @param event 追跡開始のバンドル
      * @param viewer 統合版の閲覧者
      */
-    private void pairBedrockMarker(PacketEvent event, Player viewer) {
+    private void adaptBedrockBundle(PacketEvent event, Player viewer) {
         PacketContainer bundle = event.getPacket();
         Iterable<PacketContainer> packets = bundle.getPacketBundles().read(0);
         Map<Integer, Integer> viewerMarkers = bedrockMarkers.get(viewer.getUniqueId());
-        if (viewerMarkers == null || StreamSupport.stream(packets.spliterator(), false)
-                .noneMatch(packet -> bedrockNumber(packet) != null)) {
+        if (StreamSupport.stream(packets.spliterator(), false)
+                .noneMatch(packet -> isBedrockResult(packet) || (viewerMarkers != null && bedrockNumber(packet) != null))) {
             return;
         }
         List<PacketContainer> outgoing = new ArrayList<>();
-        boolean addedMarker = false;
         for (PacketContainer packet : packets) {
-            NumberDisplay number = bedrockNumber(packet);
+            if (isBedrockResult(packet)) {
+                outgoing.add(markBedrockResult(packet));
+                continue;
+            }
+            NumberDisplay number = viewerMarkers == null ? null : bedrockNumber(packet);
             if (number == null) {
                 outgoing.add(packet);
                 continue;
@@ -175,13 +187,30 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
             outgoing.add(original);
             outgoing.add(marker);
             outgoing.add(noGravity(markerId));
-            addedMarker = true;
         }
-        if (addedMarker) {
-            PacketContainer personalized = bundle.shallowClone();
-            personalized.getPacketBundles().write(0, outgoing);
-            event.setPacket(personalized);
-        }
+        PacketContainer personalized = bundle.shallowClone();
+        personalized.getPacketBundles().write(0, outgoing);
+        event.setPacket(personalized);
+    }
+
+    /**
+     * @param packet バンドル内のパケット
+     * @return 統合版の個人リザルト生成パケットならtrue
+     */
+    private boolean isBedrockResult(PacketContainer packet) {
+        return !bedrockResults.isEmpty() && packet.getType() == PacketType.Play.Server.SPAWN_ENTITY
+                && bedrockResults.contains(packet.getUUIDs().read(0));
+    }
+
+    /**
+     * @param packet 統合版へ送る個人リザルトの生成パケット
+     * @return Geyser拡張が種別を解決できるように印を付けたコピー
+     */
+    private PacketContainer markBedrockResult(PacketContainer packet) {
+        PacketContainer result = packet.shallowClone();
+        int entityId = packet.getIntegers().read(0);
+        result.getUUIDs().write(0, new UUID(BEDROCK_RESULT_TAG, Integer.toUnsignedLong(entityId)));
+        return result;
     }
 
     /**

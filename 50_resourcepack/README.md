@@ -1,11 +1,17 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition にダメージ数値、アクションリング、アイテムモデルを配布します。配布するアイテムモデルは `item-models.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデルを配布します。配布するアイテムモデルは `item-models.json` で管理します。
 
 ## 対象と構成
 
 - Java Edition 1.21.11〜26.3（リソースパック形式 75.0〜97.1）は `astralrecord:damage_number` フォントを使います。縁付きの数字と記号を収録し、色と動きはサーバープラグインで設定します。
 - Bedrock Edition は `astralrecord:damage_number` クライアントエンティティを使います。数字をカメラに向けて中央に揃え、上昇しながら縮小・フェードさせます。
+
+### 戦闘 HUD と討伐リザルト
+
+- Java 版は管理配布パックの適用成功後に `astralrecord:combat_hud` を使います。通常アクションバーの HP・MP・ENG は専用アイコン、現在値と最大値、10段階ゲージで表示します。HP が25%以下のときは通常の10 tick 更新でゲージが明滅します。討伐報酬は紋章が光る見出しと金の区切り線で表示します。
+- 統合版は `ui/hud_screen.json` のアクションバーに金縁のプレートと装飾を重ねます。Geyser 拡張 1.6.0 以降は、必要な紋章アセットを登録した接続で、受取人専用のリザルト TextDisplay に `astralrecord:combat_result` モデルを割り当てます。既存の本文表示を使い、紋章はクライアントで弾んで光り、フェードします。
+- パックを使えない接続は各版の通常テキストで読めます。更新は両パックを公開した後に RPG Plugin と Geyser 拡張へ反映し、クライアントを再接続します。
 
 ### ダメージ数値
 

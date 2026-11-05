@@ -17,8 +17,11 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.ParticipantNameLineFormatter;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.shared.display.CombatHudGlyphs;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
@@ -43,6 +46,10 @@ import java.util.UUID;
 import java.util.HashMap;
 
 public class PlayerHudView {
+    private static final TextColor HEALTH_METER = TextColor.color(0xE35F73);
+    private static final TextColor HEALTH_METER_PULSE = TextColor.color(0xFFB092);
+    private static final TextColor MANA_METER = TextColor.color(0x68D8F5);
+    private static final TextColor ENERGY_METER = TextColor.color(0xEBC165);
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int COMPACT_TRANSIENT_BAR_LENGTH = 10;
@@ -55,6 +62,14 @@ public class PlayerHudView {
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
     private static final String SIDEBAR_BAR_CHAR = "▰";
     private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
+    private final ResourcePackService resourcePackService;
+
+    /**
+     * @param resourcePackService Java版のパック適用状態の参照先
+     */
+    public PlayerHudView(ResourcePackService resourcePackService) {
+        this.resourcePackService = resourcePackService;
+    }
 
     /**
      * 次回描画時の効果ページ切替を予約します。Bukkitメインスレッドから呼び出します。
@@ -293,12 +308,18 @@ public class PlayerHudView {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
+        boolean pack = resourcePackService.hasManagedJavaPack(player.getUniqueId());
+        TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
+                && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
         player.sendActionBar(Component.empty()
-            .append(statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
+            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter)
+                    : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
+            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER)
+                    : statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
+            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER)
+                    : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
             .append(guardActionText(showGuard, currentGuard, maximumGuard))
             .append(showPhoenix && currentPhoenix > 0.0D
                     ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
@@ -1091,6 +1112,23 @@ public class PlayerHudView {
             .append(Component.text(String.format("%.0f", current), NamedTextColor.WHITE))
             .append(Component.text("/", NamedTextColor.DARK_GRAY))
             .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY)));
+    }
+
+    /**
+     * 専用アイコンと10段階のゲージを、現在値と最大値の横へ描画します。
+     * @param icon リソース種別の字形
+     * @param current 現在値
+     * @param max 最大値
+     * @param color ゲージ色
+     * @return パック適用済みの接続向けの表示
+     */
+    private Component resourceGauge(Component icon, double current, double max, TextColor color) {
+        int fill = max > 0.0D ? (int) Math.round(Math.clamp(current / max, 0.0D, 1.0D) * 10.0D) : 0;
+        return icon.append(Component.text(String.format(Locale.ROOT, "%.0f", current), NamedTextColor.WHITE))
+                .append(Component.text("/", NamedTextColor.DARK_GRAY))
+                .append(Component.text(String.format(Locale.ROOT, "%.0f", max), NamedTextColor.GRAY))
+                .append(Component.space())
+                .append(CombatHudGlyphs.meter(fill).color(color));
     }
 
     private Component shieldActionText(

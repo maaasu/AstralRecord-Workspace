@@ -42,6 +42,10 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 同じ配布パックに輪郭用アセットが含まれる接続では、RPG から送られる輪郭用 TextDisplay を `astralrecord:action_ring` に置き換えます。後続の状態通知を受けて、同じモデルの向き・縮尺・選択枠・クールダウン枠を更新します。各スキルのアイコンは元のアイテムを閲覧者専用のドロップアイテムとして表示し、輪郭と同じ縮尺で調整します。ラベルには Geyser の TextDisplay 変換を使います。発動判定は RPG 側で行います。
 
+## Bedrockの討伐リザルト
+
+拡張 1.6.0 以降は、必要なアセットを登録した接続で、RPG が印を付けた個人リザルトの TextDisplay に `astralrecord:combat_result` モデルを割り当てます。Geyser の本文変換で報酬を表示し、クライアントが紋章のアニメーションを再生します。対応アセットが揃わない接続では元の TextDisplay 変換を使います。
+
 ## Bedrockのアイテムモデル
 
 拡張 `1.3.0` 以降は、起動時に検証済みBedrockパックのルートにある `astralrecord_item_models.json` を読み、`GeyserDefineCustomItemsEvent` でモデルを登録する。カタログを含むパックでは、同名のアーカイブ項目がないこと、各モデルのアイコンとアトラスの対応、アタッチャブル・ジオメトリ・アニメーション・テクスチャのファイルが揃うことを検証する。Java側の基本素材と `minecraft:custom_model_data` の先頭floatが一致したアイテムを、Bedrock側の `astralrecord:<id>` に変換する。モデル定義を含むパックをAPIで公開してからProxyを起動し、Bedrockクライアントを再接続する。

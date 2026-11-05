@@ -1,14 +1,15 @@
 {
   "namespace": "hud",
   "hud_actionbar_text": {
+    "size": [ "100%c + 18px", "100%c + 5px" ],
     "texture": "textures/ui/astralrecord/actionbar_plate",
     "modifications": [
       {
         "array_name": "controls",
         "operation": "insert_front",
         "value": [
-          { "left_ornament@astralrecord_hud.actionbar_ornament": { "anchor_from": "left_middle", "anchor_to": "left_middle", "offset": [ 4, 0 ] } },
-          { "right_ornament@astralrecord_hud.actionbar_ornament": { "anchor_from": "right_middle", "anchor_to": "right_middle", "offset": [ -4, 0 ] } }
+          { "left_ornament@astralrecord_hud.actionbar_ornament": { "anchor_from": "left_middle", "anchor_to": "left_middle", "offset": [ 3, 0 ] } },
+          { "right_ornament@astralrecord_hud.actionbar_ornament": { "anchor_from": "right_middle", "anchor_to": "right_middle", "offset": [ -3, 0 ] } }
         ]
       }
     ]

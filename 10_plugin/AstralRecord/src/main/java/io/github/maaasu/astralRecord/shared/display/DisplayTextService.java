@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -30,11 +31,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * 実体 TextDisplay を用いて、固定表示・追従表示・アニメーション表示を統一管理するサービスです。
@@ -54,10 +57,12 @@ public final class DisplayTextService {
     private static final long RESULT_REVEAL_TICKS = 36L;
     private static final int MAX_RESULT_LINES = 16;
     private static final int RESULT_HEADER_LINES = 3;
+    private static final Pattern RESULT_DIVIDER = Pattern.compile(Pattern.quote("&8" + DisplaySeparators.SECTION));
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
     private final ConcurrentHashMap<Integer, DamageNumberPacketAdapter.NumberDisplay> damageNumbers = new ConcurrentHashMap<>();
+    private final Set<UUID> bedrockResultDisplays = ConcurrentHashMap.newKeySet();
     private final PlayerSettingService playerSettingService;
     private final ResourcePackService resourcePackService;
     private DamageNumberPacketAdapter damageNumberPacketAdapter;
@@ -86,7 +91,7 @@ public final class DisplayTextService {
             return;
         }
         this.plugin = plugin;
-        damageNumberPacketAdapter = new DamageNumberPacketAdapter(plugin, damageNumbers,
+        damageNumberPacketAdapter = new DamageNumberPacketAdapter(plugin, damageNumbers, bedrockResultDisplays,
                 playerSettingService, resourcePackService);
         ProtocolLibrary.getProtocolManager().addPacketListener(damageNumberPacketAdapter);
         plugin.getServer().getPluginManager().registerEvents(damageNumberPacketAdapter, plugin);
@@ -107,6 +112,7 @@ public final class DisplayTextService {
         }
         displays.clear();
         damageNumbers.clear();
+        bedrockResultDisplays.clear();
         if (damageNumberPacketAdapter != null) {
             ProtocolLibrary.getProtocolManager().removePacketListener(damageNumberPacketAdapter);
             HandlerList.unregisterAll(damageNumberPacketAdapter);
@@ -315,7 +321,7 @@ public final class DisplayTextService {
                 DisplayAnchor.fixed(origin),
                 new DisplayTextOptions(text, new Vector(), Display.Billboard.CENTER,
                         440, 64.0F, (byte) 0xFF, false, true, false,
-                        Color.fromARGB(176, 8, 8, 24), (int) RESULT_FRAME_TICKS, 0,
+                        Color.fromARGB(176, 13, 21, 34), (int) RESULT_FRAME_TICKS, 0,
                         false, 15, 15)
         );
         display.requireState().resultAnimation = new ResultAnimation(viewerId, durationTicks);
@@ -491,6 +497,7 @@ public final class DisplayTextService {
         if (!Objects.equals(state.resultFullText, state.options.text())) {
             state.resultFullText = state.options.text();
             state.resultPages = resultPages(state.resultFullText);
+            state.resultPageIndex = -1;
         }
         long pageDuration = Math.min(120L, Math.max(40L,
                 (animation.durationTicks() - RESULT_EXIT_TICKS) / state.resultPages.size()));
@@ -499,9 +506,15 @@ public final class DisplayTextService {
         long pageAge = state.resultPages.size() == 1 ? state.animationAge : state.animationAge % pageDuration;
         long revealDuration = Math.min(RESULT_REVEAL_TICKS, Math.max(1L, lines.size() * 2L));
         int visibleLines = (int) Math.min(lines.size(), 1L + pageAge * lines.size() / revealDuration);
-        String revealed = String.join("\n", lines.subList(0, visibleLines))
-                + "\n".repeat(lines.size() - visibleLines);
-        applyFrame(entity, state, new DisplayAnimationFrame(revealed, new Vector(), 1L));
+        boolean useFont = viewer != null && resourcePackService.hasManagedJavaPack(viewer.getUniqueId());
+        int crestFrame = useFont ? (int) Math.min(2L, pageAge / RESULT_FRAME_TICKS) : -1;
+        if (state.resultPageIndex != pageIndex || state.resultVisibleLines != visibleLines
+                || state.resultCrestFrame != crestFrame) {
+            entity.text(resultText(lines, visibleLines, crestFrame));
+            state.resultPageIndex = pageIndex;
+            state.resultVisibleLines = visibleLines;
+            state.resultCrestFrame = crestFrame;
+        }
         if (state.animationAge % RESULT_FRAME_TICKS == 0L) {
             double entrance = Math.min(1.0D, state.animationAge / (double) RESULT_ENTRANCE_TICKS);
             double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
@@ -518,11 +531,37 @@ public final class DisplayTextService {
                 state.lastTransformOffset = offset;
                 state.lastResultScale = scale;
             }
-            double opacity = (0.25D + 0.75D * eased) * (1.0D - exit);
-            entity.setTextOpacity((byte) Math.max(4, Math.round(255.0D * opacity)));
-            entity.setBackgroundColor(Color.fromARGB((int) Math.round(176.0D * opacity), 8, 8, 24));
+            if (entrance < 1.0D || exit > 0.0D || state.animationAge == RESULT_ENTRANCE_TICKS) {
+                double opacity = (0.25D + 0.75D * eased) * (1.0D - exit);
+                entity.setTextOpacity((byte) Math.max(4, Math.round(255.0D * opacity)));
+                entity.setBackgroundColor(Color.fromARGB((int) Math.round(176.0D * opacity), 13, 21, 34));
+            }
         }
         state.animationAge++;
+    }
+
+    /**
+     * 開示済みの行を組み立て、パック適用時だけ見出しと区切りに紋章フォントを使います。
+     * @param lines 現在ページの行
+     * @param visibleLines 開示した行数
+     * @param crestFrame 紋章フレーム。通常フォントの場合は負数
+     * @return 表示する本文
+     */
+    private Component resultText(List<String> lines, int visibleLines, int crestFrame) {
+        var legacy = LegacyComponentSerializer.legacySection();
+        String revealed = String.join("\n", lines.subList(0, visibleLines))
+                + "\n".repeat(lines.size() - visibleLines);
+        if (crestFrame < 0) {
+            return legacy.deserialize(ColorCodeUtil.translateAlternateColorCodes(revealed));
+        }
+        var text = Component.text().append(CombatHudGlyphs.crest(crestFrame), Component.space());
+        // 通常の行は一括で変換し、既存本文内の色指定を保持します。
+        String[] sections = RESULT_DIVIDER.split(revealed, -1);
+        for (int index = 0; index < sections.length; index++) {
+            if (index != 0) text.append(CombatHudGlyphs.DIVIDER);
+            text.append(legacy.deserialize(ColorCodeUtil.translateAlternateColorCodes(sections[index])));
+        }
+        return text.build();
     }
 
     /**
@@ -603,7 +642,12 @@ public final class DisplayTextService {
                         new Vector3f(0.0F, -0.24F, 0.0F), new Quaternionf(),
                         new Vector3f(0.55F, 0.55F, 0.55F), new Quaternionf()));
                 display.setTextOpacity((byte) 64);
-                display.setBackgroundColor(Color.fromARGB(44, 8, 8, 24));
+                display.setBackgroundColor(Color.fromARGB(44, 13, 21, 34));
+                UUID viewerId = state.resultAnimation.viewerId();
+                Player viewer = viewerId == null ? null : Bukkit.getPlayer(viewerId);
+                if (viewer != null && resourcePackService.isBedrock(viewer.getName())) {
+                    bedrockResultDisplays.add(display.getUniqueId());
+                }
             } else if (state.floatingAnimation != null) {
                 applyOptions(display, state.options);
                 FloatingAnimation animation = state.floatingAnimation;
@@ -629,6 +673,7 @@ public final class DisplayTextService {
         state.lastText = null;
         state.lastTransformOffset = null;
         state.lastResultScale = Float.NaN;
+        state.resultPageIndex = -1;
         state.lastAppliedOptions = null;
         return state.entity;
     }
@@ -831,6 +876,7 @@ public final class DisplayTextService {
         if (entity != null) {
             entity.remove();
             damageNumbers.remove(entity.getEntityId());
+            bedrockResultDisplays.remove(entity.getUniqueId());
         }
         state.entity = null;
         state.lastLocation = null;
@@ -989,6 +1035,9 @@ public final class DisplayTextService {
         private @Nullable FloatingAnimation floatingAnimation;
         private @Nullable String resultFullText;
         private List<List<String>> resultPages = List.of();
+        private int resultPageIndex = -1;
+        private int resultVisibleLines;
+        private int resultCrestFrame = -1;
         private float lastResultScale = Float.NaN;
 
         private ManagedDisplayState(

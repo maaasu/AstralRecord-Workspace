@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
@@ -80,6 +81,7 @@ public class PlayerHudService {
      * @param bossChallengeService ボス挑戦サービス
      * @param worldService ワールド表示名・種別の解決サービス
      * @param skillTreeService スキルツリーワールド判定と CP / PP 残高の解決サービス
+     * @param resourcePackService Java版のパック適用状態の参照先
      */
     public PlayerHudService(
         StatusService statusService,
@@ -90,7 +92,8 @@ public class PlayerHudService {
         ConditionService conditionService,
         BossChallengeService bossChallengeService,
         WorldService worldService,
-        SkillTreeService skillTreeService
+        SkillTreeService skillTreeService,
+        ResourcePackService resourcePackService
     ) {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
@@ -101,7 +104,7 @@ public class PlayerHudService {
         this.bossChallengeService = bossChallengeService;
         this.worldService = worldService;
         this.skillTreeService = skillTreeService;
-        this.playerHudView = new PlayerHudView();
+        this.playerHudView = new PlayerHudView(resourcePackService);
     }
 
     public void setCombatDpsTrackerService(@NotNull CombatDpsTrackerService combatDpsTrackerService) {

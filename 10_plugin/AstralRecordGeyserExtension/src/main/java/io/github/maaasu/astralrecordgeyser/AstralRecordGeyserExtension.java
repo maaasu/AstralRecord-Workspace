@@ -25,6 +25,9 @@ import java.util.LinkedHashSet;
 public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
+    private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
+    private static final CustomEntityDefinition COMBAT_RESULT =
+        CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
     private final DamagePackDistribution damagePacks = new DamagePackDistribution(this);
     private CustomEntityDefinition damageNumberDefinition;
     private DamageNumberEntity damageNumberProperties;
@@ -45,6 +48,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         var ringDefinition = ActionRingEntity.definition();
         event.register(ringDefinition);
         actionRingDefinition = ringDefinition;
+        event.register(COMBAT_RESULT);
     }
 
     @Subscribe
@@ -108,6 +112,19 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (heldWeapon != null) {
             event.setCancelled(true);
             updateHeldWeaponModel(event.connection(), heldWeapon.id());
+            return;
+        }
+        if (event.uuid().getMostSignificantBits() == COMBAT_RESULT_TAG
+            && event.uuid().getLeastSignificantBits() == Integer.toUnsignedLong(event.entityId())) {
+            if (damagePacks.combatResultReady(event.connection())) {
+                // TextDisplayの本文変換を残したまま、透明な防具立てを紋章へ置き換えます。
+                event.definition(COMBAT_RESULT);
+                event.preSpawnConsumer(entity -> {
+                    entity.override(GeyserEntityDataTypes.SCALE, 1f);
+                    entity.override(GeyserEntityDataTypes.WIDTH, 0f);
+                    entity.override(GeyserEntityDataTypes.HEIGHT, 0f);
+                });
+            }
             return;
         }
         ActionRingFrame frame = ActionRingFrame.decode(event.uuid(), event.entityId());

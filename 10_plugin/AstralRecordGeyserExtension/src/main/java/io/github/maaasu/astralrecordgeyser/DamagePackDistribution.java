@@ -162,6 +162,12 @@ final class DamagePackDistribution {
         return OptionalInt.of(selection.pack().heldWeaponModels().contains(modelId) ? modelId : 0);
     }
 
+    /** @return 接続時に登録したパックに討伐リザルトの紋章が揃っていればtrue */
+    boolean combatResultReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().combatResult();
+    }
+
     void disconnect(GeyserConnection connection) {
         sessions.remove(connection);
     }

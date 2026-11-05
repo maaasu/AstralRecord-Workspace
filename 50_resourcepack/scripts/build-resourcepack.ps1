@@ -67,6 +67,8 @@ $java = Read-PackEntries $root @(
     'pack.mcmeta'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
+    'assets/astralrecord/font/combat_hud.json'
+    'assets/astralrecord/textures/font/combat_hud.png'
     'assets/astralrecord/items/action_ring.json'
     'assets/astralrecord/models/item/action_ring.json'
     'assets/astralrecord/textures/item/action_ring.png'
@@ -90,6 +92,17 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'models/entity/action_ring.geo.json'
     'render_controllers/action_ring.render_controllers.json'
     'textures/entity/action_ring.png'
+    'ui/_ui_defs.json'
+    'ui/hud_screen.json'
+    'ui/astralrecord_hud.json'
+    'textures/ui/astralrecord/actionbar_plate.png'
+    'textures/ui/astralrecord/actionbar_plate.json'
+    'textures/ui/astralrecord/actionbar_ornament.png'
+    'entity/combat_result.entity.json'
+    'animations/combat_result.animation.json'
+    'models/entity/combat_result.geo.json'
+    'render_controllers/combat_result.render_controllers.json'
+    'textures/entity/combat_result.png'
 )
 Add-ItemModelEntries $java $bedrock
 
