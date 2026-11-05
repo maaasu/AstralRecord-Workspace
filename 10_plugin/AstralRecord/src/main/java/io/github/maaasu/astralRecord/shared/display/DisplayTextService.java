@@ -43,6 +43,7 @@ public final class DisplayTextService {
 
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final int MAX_DAMAGE_DISPLAYS = 80;
+    private static final double DAMAGE_NUMBER_SPAWN_RADIUS = 0.75D;
     private static final long FLOATING_FRAME_TICKS = 4L;
     private static final long FLOATING_ENTRANCE_TICKS = 8L;
     private static final long FLOATING_EXIT_TICKS = 12L;
@@ -210,6 +211,12 @@ public final class DisplayTextService {
         String text = PlayerMsgResource.format(style.messageId.getId(),
                 String.format(Locale.ROOT, "%,.0f", nonNegativeAmount));
         long roundedAmount = Double.isFinite(nonNegativeAmount) ? Math.round(nonNegativeAmount) : -1;
+        if (style.isDamageNumber()) {
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            double angle = random.nextDouble(2.0D * Math.PI);
+            double radius = DAMAGE_NUMBER_SPAWN_RADIUS * Math.sqrt(random.nextDouble());
+            origin = origin.clone().add(radius * Math.cos(angle), 0.0D, radius * Math.sin(angle));
+        }
         return spawnFloatingText(origin, text, style, roundedAmount);
     }
 
