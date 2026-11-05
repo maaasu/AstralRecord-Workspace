@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -9,9 +10,11 @@ namespace AstralRecordWeb.Pages;
 
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class MyPageModel(PlayerProfileApiClient profiles, PaidServicesApiClient paid) : PageModel
+public class MyPageModel(PlayerProfileApiClient profiles, PaidServicesApiClient paid, SkillTreeEditorApiClient editor) : PageModel
 {
     public WebPlayerProfileResponse? Profile { get; private set; }
+    public JsonElement? SkillTreeEditorState { get; private set; }
+    public WebSkillTreeProfileResponse? EditableSkillTree { get; private set; }
     public AccountBenefits? Benefits { get; private set; }
     public string? BenefitsError { get; private set; }
     public string? ErrorMessage { get; private set; }
@@ -29,6 +32,26 @@ public class MyPageModel(PlayerProfileApiClient profiles, PaidServicesApiClient 
             var benefits = await paid.BenefitsAsync(viewer, account.AccountId, ct);
             if (benefits.Succeeded && benefits.Value?.AccountId == account.AccountId) Benefits = benefits.Value;
             else BenefitsError = "特典情報を取得できませんでした。時間をおいて再読み込みしてください。";
+        }
+        if (result.Succeeded && result.Value?.UserUuid == viewer && result.Value.CurrentAccount is { } selected)
+        {
+            var editorResult = await editor.GetStateAsync(viewer, selected.AccountId, ct);
+            if (editorResult.Succeeded && editorResult.Value.TryGetProperty("accountId", out var editorAccountId)
+                && editorAccountId.ValueKind == JsonValueKind.String
+                && editorAccountId.TryGetGuid(out var stateAccountId) && stateAccountId == selected.AccountId
+                && editorResult.Value.TryGetProperty("tree", out var tree) && tree.ValueKind == JsonValueKind.Object)
+            {
+                try
+                {
+                    var editableTree = tree.Deserialize<WebSkillTreeProfileResponse>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                    if (editableTree?.Nodes is not null && editableTree.Edges is not null)
+                    {
+                        SkillTreeEditorState = editorResult.Value;
+                        EditableSkillTree = editableTree;
+                    }
+                }
+                catch (JsonException) { /* The profile's read-only tree remains available. */ }
+            }
         }
         return Page();
     }

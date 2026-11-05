@@ -45,7 +45,8 @@ function startEditor(editor) {
     const number = value => Number.isFinite(value) ? value.toLocaleString('ja-JP') : '—';
     const delta = (before, after) => Number.isFinite(before) && Number.isFinite(after) && after !== before ? `（${after > before ? '+' : ''}${number(after - before)}）` : '';
     const endpoint = (handler, extra = {}) => {
-        const url = new URL(location.href); url.search = new URLSearchParams({ handler, ...extra }); return url;
+        const url = new URL(editor.dataset.editorEndpoint || location.href, location.href);
+        url.search = new URLSearchParams({ handler, ...extra }); return url;
     };
     const request = async (handler, method = 'GET', body, extra) => {
         const controller = new AbortController();

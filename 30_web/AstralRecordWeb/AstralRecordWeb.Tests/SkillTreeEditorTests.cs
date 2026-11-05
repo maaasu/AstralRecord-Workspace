@@ -19,6 +19,52 @@ namespace AstralRecordWeb.Tests;
 public sealed class SkillTreeEditorTests
 {
     [Fact]
+    public async Task MyPage_EmbedsOnlyTheOwnedCurrentAccountEditor_AndUsesDedicatedOperationEndpoint()
+    {
+        var api = new EditorHandler();
+        await using var factory = new EditorFactory(api);
+        using var client = Client(factory);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/MyPage")).StatusCode);
+        Assert.DoesNotContain(api.Calls, call => call.StartsWith("GET /api/skilltree/editor/"));
+
+        client.DefaultRequestHeaders.Add("X-Editor-Test-Identity", "yes");
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync("/MyPage"));
+        Assert.Contains($"GET /api/skilltree/editor/{AccountId}?actor_user_id={Actor}", api.Calls);
+        Assert.Contains("data-skilltree-editor", html);
+        Assert.Contains($"data-account-id=\"{AccountId}\"", html);
+        Assert.Contains($"data-editor-endpoint=\"/skilltree/{AccountId}\"", html);
+        Assert.Contains("data-editor-state", html);
+        Assert.Contains("data-tree-mode=\"edit\"", html);
+        Assert.Contains("name=\"__RequestVerificationToken\"", html);
+        Assert.DoesNotContain("data-tree-mode=\"view\"", html);
+        Assert.Contains("skilltree-editor.", html);
+    }
+
+    [Fact]
+    public async Task MyPage_RejectsMismatchedOrUnavailableEditorState_AndKeepsReadonlyFallback()
+    {
+        var api = new EditorHandler { StateOverride = new { accountId = Guid.NewGuid(), tree = JsonSerializer.SerializeToElement(EditorHandler.Fixture()).GetProperty("tree") } };
+        await using var factory = new EditorFactory(api);
+        using var client = Client(factory);
+        client.DefaultRequestHeaders.Add("X-Editor-Test-Identity", "yes");
+        var mismatch = WebUtility.HtmlDecode(await client.GetStringAsync("/MyPage"));
+        Assert.Contains("data-tree-mode=\"view\"", mismatch);
+        Assert.DoesNotContain("data-skilltree-editor", mismatch);
+        Assert.Contains($"/skilltree/{AccountId}", mismatch);
+
+        api.EditorUnavailable = true;
+        var unavailable = WebUtility.HtmlDecode(await client.GetStringAsync("/MyPage"));
+        Assert.Contains("data-tree-mode=\"view\"", unavailable);
+        Assert.DoesNotContain("data-editor-state", unavailable);
+        Assert.Contains($"/skilltree/{AccountId}", unavailable);
+
+        api.NoCurrentAccount = true;
+        var noAccount = WebUtility.HtmlDecode(await client.GetStringAsync("/MyPage"));
+        Assert.DoesNotContain("data-skilltree-editor", noAccount);
+        Assert.DoesNotContain("data-editor-state", noAccount);
+    }
+
+    [Fact]
     public async Task Editor_RequiresAuthentication_AndUsesOnlyAuthenticatedActor()
     {
         var api = new EditorHandler();
@@ -125,9 +171,9 @@ public sealed class SkillTreeEditorTests
         Assert.Contains($"https://crafatar.com/avatars/{Actor:N}", html);
         Assert.Contains("referrerpolicy=\"no-referrer\"", html);
         Assert.Contains("data-player-avatar", html);
-        Assert.Contains("閲覧専用", html);
-        Assert.DoesNotContain("編集モード", html);
-        Assert.DoesNotContain("data-editor-submit", html);
+        Assert.Contains("編集モード", html);
+        Assert.DoesNotContain("閲覧専用", html);
+        Assert.Contains("data-editor-submit", html);
     }
 
     internal static readonly Guid Actor = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -163,6 +209,8 @@ public sealed class SkillTreeEditorTests
         public List<string> Calls { get; } = [];
         public JsonElement? Submitted { get; private set; }
         public bool Conflict { get; set; }
+        public bool EditorUnavailable { get; set; }
+        public bool NoCurrentAccount { get; set; }
         internal object? StateOverride { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
@@ -171,13 +219,13 @@ public sealed class SkillTreeEditorTests
             Calls.Add($"{request.Method} {uri.PathAndQuery}");
             if (uri.AbsolutePath == "/api/web-profiles/me") return Json(new {
                 userUuid = Actor, mcid = "テストの冒険者", permission = 0, isPublic = false, accounts = Array.Empty<object>(),
-                currentAccount = new { accountId = AccountId, accountName = "旅する剣士", slotIndex = 0, playerLevel = 13,
+                currentAccount = NoCurrentAccount ? null : new { accountId = AccountId, accountName = "旅する剣士", slotIndex = 0, playerLevel = 13,
                     classId = "swordsman", className = "剣士", classLevel = 9, classProgresses = Array.Empty<object>(), gold = 15420,
                     updatedAt = DateTime.UtcNow, skillTree = JsonSerializer.SerializeToElement(Fixture()).GetProperty("tree"),
                     connection = new { status = "online", channelName = "冒険チャンネル 1", worldName = "はじまりの街", x = 120, y = 64, z = -30, observedAtUtc = DateTime.UtcNow },
                 },
             });
-            if (!uri.AbsolutePath.StartsWith($"/api/skilltree/editor/{AccountId}")) return new(HttpStatusCode.NotFound);
+            if (!uri.AbsolutePath.StartsWith($"/api/skilltree/editor/{AccountId}") || EditorUnavailable) return new(HttpStatusCode.NotFound);
             if (request.Method == HttpMethod.Post)
             {
                 Submitted = await request.Content!.ReadFromJsonAsync<JsonElement>(ct);

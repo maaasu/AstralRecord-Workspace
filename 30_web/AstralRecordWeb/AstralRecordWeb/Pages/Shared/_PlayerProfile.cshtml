@@ -3,6 +3,8 @@
 @{
     var ownProfile = ViewData["OwnProfile"] as bool? == true;
     var account = Model.CurrentAccount;
+    var inlineTree = ViewData["InlineSkillTree"] as AstralRecordWeb.Models.WebSkillTreeProfileResponse;
+    var inlineState = ViewData["InlineSkillTreeEditorState"] as JsonElement?;
 }
 <section class="ar-profile-banner" aria-label="プレイヤー情報">
     <div class="ar-profile-identity">
@@ -54,11 +56,23 @@
     </div>
     <p class="ar-portal-sub">保存済みの最新情報です。ゲーム内の変更が反映されるまで時間がかかる場合があります。<br />最終保存：@(DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm:ss"))（日本時間）</p>
     <section class="ar-panel"><h2>クラスの成長記録</h2><div class="ar-class-list">@foreach (var c in account.ClassProgresses) { <div class="ar-class-chip"><span>@c.ClassName</span><strong>Lv. @c.Level</strong></div> }</div></section>
-    @if (ownProfile)
+    @if (ownProfile && (inlineTree is null || !inlineState.HasValue))
     {
         <p><a class="ar-btn-outline" asp-page="/SkillTree/Index" asp-route-accountId="@account.AccountId">スキルツリーを編集する</a></p>
     }
-    <partial name="_SkillTreeViewer" model="account.SkillTree" />
+    @if (ownProfile && inlineTree is not null && inlineState.HasValue)
+    {
+        ViewData["SkillTreeEditor"] = true;
+        <div data-skilltree-editor data-account-id="@account.AccountId" data-editor-endpoint="@Url.Page("/SkillTree/Index", new { accountId = account.AccountId })">
+            @Html.AntiForgeryToken()
+            <script type="application/json" data-editor-state>@Html.Raw(JsonSerializer.Serialize(inlineState.Value))</script>
+            <partial name="_SkillTreeViewer" model="inlineTree" />
+        </div>
+    }
+    else
+    {
+        <partial name="_SkillTreeViewer" model="account.SkillTree" />
+    }
 }
 else
 {

@@ -38,6 +38,8 @@
         </nav>
         @if (Model.Profile is { } profile)
         {
+            ViewData["InlineSkillTreeEditorState"] = Model.SkillTreeEditorState;
+            ViewData["InlineSkillTree"] = Model.EditableSkillTree;
             @if (profile.CurrentAccount is { } selectedAccount)
             {
                 <section class="ar-panel"><h2>現在のアカウント特典</h2><p>@selectedAccount.AccountName（スロット @selectedAccount.SlotIndex）</p>
@@ -68,4 +70,4 @@
         }
     </div>
 </section>
-@section Scripts { <script type="module" src="~/js/skilltree-viewer.js" asp-append-version="true"></script> }
+@section Scripts { <script type="module" src="~/js/skilltree-editor.js" asp-append-version="true"></script> }
