@@ -1,0 +1,772 @@
+{
+  "id": "lumina_magia_chest",
+  "master_id": "20a00435",
+  "kind": "armor",
+  "intent": "Lv25ルミナローブ。淡紫に染めた革を、長い二分割前裾・広い垂れ袖・高い襟に仕立てた魔法装束。肩鎧や狩人の短い上着と異なるT形と長い裾、明るい鉄の角留めと裏の二本接ぎを全周へ。#B9AFD8を主色に、折り返しは淡色、腰帯は濃い革、鉄は小面積の光沢。写実細工や発光を使わず、Minecraftの角形・粗い革目でRAREの工芸品質を表す。carryは実在する鉄帯留め。",
+  "grip": [
+    8,
+    8,
+    4.2
+  ],
+  "materials": {
+    "lilac_leather": {
+      "palette": [
+        "625A7A",
+        "8D82A5",
+        "A69AC2",
+        "B9AFD8",
+        "CFC4E5",
+        "E4DBEF"
+      ],
+      "pattern": [
+        "23333321",
+        "23334321",
+        "23334321",
+        "23333321",
+        "23333321",
+        "22333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "leather_fold": {
+      "palette": [
+        "514B68",
+        "746A8E",
+        "968AB0",
+        "B5A8CE",
+        "D0C2E1"
+      ],
+      "pattern": [
+        "12222100",
+        "12232100",
+        "12232100",
+        "12222100",
+        "12222100",
+        "12232100",
+        "12222100",
+        "01111000"
+      ]
+    },
+    "turned_edge": {
+      "palette": [
+        "776B93",
+        "A296B9",
+        "C5B9DB",
+        "DFD4EB",
+        "F1E8F3"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "22222221",
+        "11222211",
+        "11222211",
+        "11222211",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "binding": {
+      "palette": [
+        "4D455F",
+        "6D607F",
+        "8E7EA1",
+        "B29EC2"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left robe front body",
+      "from": [
+        3.6,
+        6.6,
+        5.0
+      ],
+      "to": [
+        7.4,
+        14.0,
+        6.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right robe front body",
+      "from": [
+        8.6,
+        6.6,
+        5.0
+      ],
+      "to": [
+        12.399999999999999,
+        14.0,
+        6.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Full rear robe panel",
+      "from": [
+        3.6,
+        2.0,
+        10.0
+      ],
+      "to": [
+        12.4,
+        14.0,
+        11.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left torso side return",
+      "from": [
+        3.6,
+        6.6,
+        6.0
+      ],
+      "to": [
+        4.7,
+        14.0,
+        10.2
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right torso side return",
+      "from": [
+        11.3,
+        6.6,
+        6.0
+      ],
+      "to": [
+        12.4,
+        14.0,
+        10.2
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left hanging wide sleeve front",
+      "from": [
+        0.9,
+        7.0,
+        5.0
+      ],
+      "to": [
+        4.4,
+        13.7,
+        6.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left sleeve rear",
+      "from": [
+        0.9,
+        7.0,
+        10.0
+      ],
+      "to": [
+        4.4,
+        13.7,
+        11.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left sleeve outer return",
+      "from": [
+        0.9,
+        7.0,
+        6.0
+      ],
+      "to": [
+        2.0,
+        13.7,
+        10.2
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left shoulder top",
+      "from": [
+        0.9,
+        12.8,
+        6.0
+      ],
+      "to": [
+        4.4,
+        14.0,
+        10.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left wide turned cuff front",
+      "from": [
+        0.55,
+        6.1,
+        4.75
+      ],
+      "to": [
+        4.75,
+        7.5,
+        6.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left wide turned cuff back",
+      "from": [
+        0.55,
+        6.1,
+        9.85
+      ],
+      "to": [
+        4.75,
+        7.5,
+        11.45
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left cuff side fold",
+      "from": [
+        0.55,
+        6.1,
+        6.1
+      ],
+      "to": [
+        1.6500000000000001,
+        7.5,
+        10.1
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left small iron cuff fastener",
+      "from": [
+        2.15,
+        6.05,
+        4.35
+      ],
+      "to": [
+        3.15,
+        7.45,
+        4.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Right hanging wide sleeve front",
+      "from": [
+        11.6,
+        7.0,
+        5.0
+      ],
+      "to": [
+        15.1,
+        13.7,
+        6.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right sleeve rear",
+      "from": [
+        11.6,
+        7.0,
+        10.0
+      ],
+      "to": [
+        15.1,
+        13.7,
+        11.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right sleeve outer return",
+      "from": [
+        14.0,
+        7.0,
+        6.0
+      ],
+      "to": [
+        15.1,
+        13.7,
+        10.2
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right shoulder top",
+      "from": [
+        11.6,
+        12.8,
+        6.0
+      ],
+      "to": [
+        15.1,
+        14.0,
+        10.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right wide turned cuff front",
+      "from": [
+        11.25,
+        6.1,
+        4.75
+      ],
+      "to": [
+        15.45,
+        7.5,
+        6.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right wide turned cuff back",
+      "from": [
+        11.25,
+        6.1,
+        9.85
+      ],
+      "to": [
+        15.45,
+        7.5,
+        11.45
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right cuff side fold",
+      "from": [
+        14.35,
+        6.1,
+        6.1
+      ],
+      "to": [
+        15.45,
+        7.5,
+        10.1
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right small iron cuff fastener",
+      "from": [
+        12.85,
+        6.05,
+        4.35
+      ],
+      "to": [
+        13.85,
+        7.45,
+        4.95
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Left tall open collar",
+      "from": [
+        3.4,
+        13.2,
+        4.6
+      ],
+      "to": [
+        6.2,
+        15.1,
+        6.15
+      ],
+      "material": "leather_fold",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Right tall open collar",
+      "from": [
+        9.8,
+        13.2,
+        4.6
+      ],
+      "to": [
+        12.6,
+        15.1,
+        6.15
+      ],
+      "material": "leather_fold",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Rear squared collar",
+      "from": [
+        3.4,
+        13.2,
+        10.0
+      ],
+      "to": [
+        12.6,
+        15.1,
+        11.5
+      ],
+      "material": "leather_fold",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Left pale lapel",
+      "from": [
+        6.3,
+        8.5,
+        4.65
+      ],
+      "to": [
+        7.45,
+        13.6,
+        5.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right pale lapel",
+      "from": [
+        8.55,
+        8.5,
+        4.65
+      ],
+      "to": [
+        9.7,
+        13.6,
+        5.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Leather waist band front",
+      "from": [
+        3.45,
+        7.3,
+        4.6
+      ],
+      "to": [
+        12.55,
+        8.8,
+        5.3
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Leather waist band rear",
+      "from": [
+        3.45,
+        7.3,
+        10.9
+      ],
+      "to": [
+        12.55,
+        8.8,
+        11.55
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Iron belt square seat",
+      "from": [
+        6.6,
+        7.0,
+        4.1
+      ],
+      "to": [
+        9.4,
+        9.0,
+        4.9
+      ],
+      "material": "iron_shadow",
+      "side": "bright_iron"
+    },
+    {
+      "name": "Polished belt bridge",
+      "from": [
+        7.0,
+        7.4,
+        3.75
+      ],
+      "to": [
+        9.0,
+        8.65,
+        4.45
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Left long split robe skirt",
+      "from": [
+        2.9,
+        1.5,
+        4.8
+      ],
+      "to": [
+        7.300000000000001,
+        6.9,
+        6.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left lower turned hem",
+      "from": [
+        2.8,
+        1.1,
+        4.6
+      ],
+      "to": [
+        7.4,
+        2.1,
+        6.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left long rear-facing skirt fold",
+      "from": [
+        4.4,
+        2.0,
+        5.95
+      ],
+      "to": [
+        5.199999999999999,
+        7.35,
+        6.6
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather"
+    },
+    {
+      "name": "Right long split robe skirt",
+      "from": [
+        8.7,
+        1.5,
+        4.8
+      ],
+      "to": [
+        13.1,
+        6.9,
+        6.2
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right lower turned hem",
+      "from": [
+        8.6,
+        1.1,
+        4.6
+      ],
+      "to": [
+        13.2,
+        2.1,
+        6.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right long rear-facing skirt fold",
+      "from": [
+        10.2,
+        2.0,
+        5.95
+      ],
+      "to": [
+        11.0,
+        7.35,
+        6.6
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather"
+    },
+    {
+      "name": "Left skirt side flare",
+      "from": [
+        2.9,
+        1.5,
+        6.0
+      ],
+      "to": [
+        4.1,
+        7.0,
+        10.5
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right skirt side flare",
+      "from": [
+        11.9,
+        1.5,
+        6.0
+      ],
+      "to": [
+        13.1,
+        7.0,
+        10.5
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Rear long skirt hem",
+      "from": [
+        2.9,
+        1.1,
+        10.0
+      ],
+      "to": [
+        13.1,
+        2.1,
+        11.4
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Rear left wide stitched seam",
+      "from": [
+        5.1,
+        2.0,
+        11.0
+      ],
+      "to": [
+        5.8,
+        13.0,
+        11.55
+      ],
+      "material": "leather_fold",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Rear right wide stitched seam",
+      "from": [
+        10.2,
+        2.0,
+        11.0
+      ],
+      "to": [
+        10.9,
+        13.0,
+        11.55
+      ],
+      "material": "leather_fold",
+      "side": "turned_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1
+  },
+  "wearable_texture_set": "lumina_magia",
+  "wearable_source": "armor/author_lumina_magia.py"
+}

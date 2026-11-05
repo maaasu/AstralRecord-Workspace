@@ -1,0 +1,558 @@
+{
+  "id": "lumina_magia_boots",
+  "master_id": "20a00437",
+  "kind": "armor",
+  "intent": "実master名ルミナサンダル。長靴ではなく、薄い平底と露出したつま先床、一本の広い甲革、低い開放足首輪で二足を識別。淡紫の染め革#B9AFD8と小さい光沢鉄の四角留め。後ろの革紐が二足を物理的につなぎ、中央結び目にcarryを実装。Minecraftらしい太い革帯と段差だけで構成し、革面・縁・底・鉄の分離をNox以上に整えたLv25 RAREの魔法装束。",
+  "grip": [
+    8,
+    5.25,
+    11.1
+  ],
+  "materials": {
+    "lilac_leather": {
+      "palette": [
+        "625A7A",
+        "8D82A5",
+        "A69AC2",
+        "B9AFD8",
+        "CFC4E5",
+        "E4DBEF"
+      ],
+      "pattern": [
+        "23333321",
+        "23334321",
+        "23334321",
+        "23333321",
+        "23333321",
+        "22333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "leather_fold": {
+      "palette": [
+        "514B68",
+        "746A8E",
+        "968AB0",
+        "B5A8CE",
+        "D0C2E1"
+      ],
+      "pattern": [
+        "12222100",
+        "12232100",
+        "12232100",
+        "12222100",
+        "12222100",
+        "12232100",
+        "12222100",
+        "01111000"
+      ]
+    },
+    "turned_edge": {
+      "palette": [
+        "776B93",
+        "A296B9",
+        "C5B9DB",
+        "DFD4EB",
+        "F1E8F3"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "22222221",
+        "11222211",
+        "11222211",
+        "11222211",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "binding": {
+      "palette": [
+        "4D455F",
+        "6D607F",
+        "8E7EA1",
+        "B29EC2"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "2D2D3D",
+        "474355",
+        "655D73",
+        "8B7D93"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "11111111",
+        "11111111",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left low flat leather sandal sole",
+      "from": [
+        2.0,
+        0.9,
+        3.4
+      ],
+      "to": [
+        6.8,
+        1.8,
+        11.5
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left pale dyed footbed",
+      "from": [
+        2.15,
+        1.7,
+        3.5
+      ],
+      "to": [
+        6.65,
+        2.15,
+        11.35
+      ],
+      "material": "lilac_leather",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Left broad front sandal strap",
+      "from": [
+        2.1,
+        2.1,
+        5.05
+      ],
+      "to": [
+        6.7,
+        3.25,
+        6.65
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left outer strap join",
+      "from": [
+        2.05,
+        1.8,
+        5.1
+      ],
+      "to": [
+        2.85,
+        3.25,
+        8.0
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left inner strap join",
+      "from": [
+        5.95,
+        1.8,
+        5.1
+      ],
+      "to": [
+        6.75,
+        3.25,
+        8.0
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left open low ankle strap front",
+      "from": [
+        2.2,
+        3.7,
+        8.0
+      ],
+      "to": [
+        6.6,
+        4.8,
+        8.9
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left open low ankle strap back",
+      "from": [
+        2.2,
+        3.7,
+        10.45
+      ],
+      "to": [
+        6.6,
+        4.8,
+        11.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left ankle strap outer return",
+      "from": [
+        2.2,
+        3.7,
+        8.75
+      ],
+      "to": [
+        3.1,
+        4.8,
+        10.6
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left ankle strap inner return",
+      "from": [
+        5.7,
+        3.7,
+        8.75
+      ],
+      "to": [
+        6.6,
+        4.8,
+        10.6
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left back heel leather counter",
+      "from": [
+        2.35,
+        2.0,
+        10.55
+      ],
+      "to": [
+        6.45,
+        4.1,
+        11.3
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left small iron instep clasp",
+      "from": [
+        3.65,
+        3.05,
+        5.35
+      ],
+      "to": [
+        5.15,
+        3.65,
+        6.4
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Left rear carry cord anchor",
+      "from": [
+        3.9,
+        4.65,
+        10.6
+      ],
+      "to": [
+        4.9,
+        5.35,
+        11.35
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Right low flat leather sandal sole",
+      "from": [
+        9.2,
+        0.9,
+        3.4
+      ],
+      "to": [
+        14.0,
+        1.8,
+        11.5
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right pale dyed footbed",
+      "from": [
+        9.35,
+        1.7,
+        3.5
+      ],
+      "to": [
+        13.85,
+        2.15,
+        11.35
+      ],
+      "material": "lilac_leather",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Right broad front sandal strap",
+      "from": [
+        9.299999999999999,
+        2.1,
+        5.05
+      ],
+      "to": [
+        13.899999999999999,
+        3.25,
+        6.65
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right outer strap join",
+      "from": [
+        9.25,
+        1.8,
+        5.1
+      ],
+      "to": [
+        10.049999999999999,
+        3.25,
+        8.0
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right inner strap join",
+      "from": [
+        13.149999999999999,
+        1.8,
+        5.1
+      ],
+      "to": [
+        13.95,
+        3.25,
+        8.0
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right open low ankle strap front",
+      "from": [
+        9.399999999999999,
+        3.7,
+        8.0
+      ],
+      "to": [
+        13.799999999999999,
+        4.8,
+        8.9
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right open low ankle strap back",
+      "from": [
+        9.399999999999999,
+        3.7,
+        10.45
+      ],
+      "to": [
+        13.799999999999999,
+        4.8,
+        11.35
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right ankle strap outer return",
+      "from": [
+        9.399999999999999,
+        3.7,
+        8.75
+      ],
+      "to": [
+        10.299999999999999,
+        4.8,
+        10.6
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right ankle strap inner return",
+      "from": [
+        12.899999999999999,
+        3.7,
+        8.75
+      ],
+      "to": [
+        13.799999999999999,
+        4.8,
+        10.6
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right back heel leather counter",
+      "from": [
+        9.549999999999999,
+        2.0,
+        10.55
+      ],
+      "to": [
+        13.649999999999999,
+        4.1,
+        11.3
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right small iron instep clasp",
+      "from": [
+        10.85,
+        3.05,
+        5.35
+      ],
+      "to": [
+        12.35,
+        3.65,
+        6.4
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Right rear carry cord anchor",
+      "from": [
+        11.1,
+        4.65,
+        10.6
+      ],
+      "to": [
+        12.1,
+        5.35,
+        11.35
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Physical rear leather tie joins sandal pair",
+      "from": [
+        4.0,
+        4.9,
+        10.75
+      ],
+      "to": [
+        11.9,
+        5.55,
+        11.4
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Rear central carrying knot",
+      "from": [
+        7.4,
+        4.75,
+        10.45
+      ],
+      "to": [
+        8.6,
+        5.75,
+        11.75
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1
+  },
+  "wearable_texture_set": "lumina_magia",
+  "wearable_source": "armor/author_lumina_magia.py"
+}

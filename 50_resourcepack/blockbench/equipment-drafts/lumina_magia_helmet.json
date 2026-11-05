@@ -1,0 +1,434 @@
+{
+  "id": "lumina_magia_helmet",
+  "master_id": "20a00434",
+  "kind": "armor",
+  "intent": "Lv25 RARE、実masterの「工芸 / 光沢をもつ鉄と明るい染め革」、#B9AFD8の淡紫革フード。尖った魔女帽や金属兜を避け、階段状の丸い角フードと大きな開顔部、折り返し革、四角い鉄の喉留めを組む。後頭部は縦の革接ぎと低い縫いタブ。Minecraftの大きな色面と角張った輪郭で、Noxより素材境界と仕立てを増やした中級の魔法装束。carryは喉留めの実体内部。",
+  "grip": [
+    8,
+    5.8,
+    4.25
+  ],
+  "materials": {
+    "lilac_leather": {
+      "palette": [
+        "625A7A",
+        "8D82A5",
+        "A69AC2",
+        "B9AFD8",
+        "CFC4E5",
+        "E4DBEF"
+      ],
+      "pattern": [
+        "23333321",
+        "23334321",
+        "23334321",
+        "23333321",
+        "23333321",
+        "22333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "leather_fold": {
+      "palette": [
+        "514B68",
+        "746A8E",
+        "968AB0",
+        "B5A8CE",
+        "D0C2E1"
+      ],
+      "pattern": [
+        "12222100",
+        "12232100",
+        "12232100",
+        "12222100",
+        "12222100",
+        "12232100",
+        "12222100",
+        "01111000"
+      ]
+    },
+    "turned_edge": {
+      "palette": [
+        "776B93",
+        "A296B9",
+        "C5B9DB",
+        "DFD4EB",
+        "F1E8F3"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "22222221",
+        "11222211",
+        "11222211",
+        "11222211",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "bright_iron": {
+      "palette": [
+        "46585E",
+        "738B90",
+        "A7BAB9",
+        "D2DFD8",
+        "EDF2E3",
+        "FBF7E8"
+      ],
+      "pattern": [
+        "23344322",
+        "23445322",
+        "23444322",
+        "23444322",
+        "23344322",
+        "23444322",
+        "23445322",
+        "12333211"
+      ]
+    },
+    "iron_shadow": {
+      "palette": [
+        "33454D",
+        "4D6670",
+        "718B93",
+        "A4B7B8",
+        "D1DCD5"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12233211",
+        "12333211",
+        "12343211",
+        "12333211",
+        "12333211",
+        "01222100"
+      ]
+    },
+    "binding": {
+      "palette": [
+        "4D455F",
+        "6D607F",
+        "8E7EA1",
+        "B29EC2"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left deep hood wall",
+      "from": [
+        2.7,
+        5.7,
+        5.2
+      ],
+      "to": [
+        4.1,
+        13.7,
+        11.5
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right deep hood wall",
+      "from": [
+        11.9,
+        5.7,
+        5.2
+      ],
+      "to": [
+        13.3,
+        13.7,
+        11.5
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Broad rear hood panel",
+      "from": [
+        3.7,
+        5.7,
+        10.5
+      ],
+      "to": [
+        12.3,
+        13.8,
+        11.8
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Hood upper square cap",
+      "from": [
+        2.7,
+        12.9,
+        4.8
+      ],
+      "to": [
+        13.3,
+        14.2,
+        11.8
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Stepped rounded hood crown",
+      "from": [
+        4.0,
+        14.0,
+        5.4
+      ],
+      "to": [
+        12.0,
+        15.3,
+        11.5
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Rear softened crown step",
+      "from": [
+        5.1,
+        15.0,
+        7.1
+      ],
+      "to": [
+        10.9,
+        15.8,
+        11.1
+      ],
+      "material": "leather_fold",
+      "side": "lilac_leather",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Front broad turned hood brow",
+      "from": [
+        2.5,
+        12.1,
+        4.25
+      ],
+      "to": [
+        13.5,
+        13.3,
+        5.6
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Left turned face opening rim",
+      "from": [
+        2.5,
+        6.5,
+        4.25
+      ],
+      "to": [
+        3.7,
+        12.8,
+        5.6
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Right turned face opening rim",
+      "from": [
+        12.3,
+        6.5,
+        4.25
+      ],
+      "to": [
+        13.5,
+        12.8,
+        5.6
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Low throat leather collar",
+      "from": [
+        2.8,
+        5.1,
+        4.65
+      ],
+      "to": [
+        13.2,
+        6.4,
+        5.8
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Left collar rear return",
+      "from": [
+        2.4,
+        5.1,
+        5.6
+      ],
+      "to": [
+        3.9,
+        6.4,
+        11.8
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Right collar rear return",
+      "from": [
+        12.1,
+        5.1,
+        5.6
+      ],
+      "to": [
+        13.6,
+        6.4,
+        11.8
+      ],
+      "material": "lilac_leather",
+      "side": "leather_fold",
+      "cap": "turned_edge"
+    },
+    {
+      "name": "Rear turned collar",
+      "from": [
+        2.4,
+        5.1,
+        10.8
+      ],
+      "to": [
+        13.6,
+        6.4,
+        12.1
+      ],
+      "material": "turned_edge",
+      "side": "leather_fold"
+    },
+    {
+      "name": "Throat clasp dark iron seat",
+      "from": [
+        6.5,
+        4.95,
+        4.2
+      ],
+      "to": [
+        9.5,
+        6.65,
+        4.95
+      ],
+      "material": "iron_shadow",
+      "side": "bright_iron"
+    },
+    {
+      "name": "Throat clasp polished square",
+      "from": [
+        7.0,
+        5.25,
+        3.85
+      ],
+      "to": [
+        9.0,
+        6.35,
+        4.45
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Left iron brow corner",
+      "from": [
+        2.35,
+        11.65,
+        4.0
+      ],
+      "to": [
+        3.85,
+        13.25,
+        4.6
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Right iron brow corner",
+      "from": [
+        12.15,
+        11.65,
+        4.0
+      ],
+      "to": [
+        13.65,
+        13.25,
+        4.6
+      ],
+      "material": "bright_iron",
+      "side": "iron_shadow"
+    },
+    {
+      "name": "Rear hood broad center seam",
+      "from": [
+        7.6,
+        6.35,
+        11.6
+      ],
+      "to": [
+        8.4,
+        14.7,
+        12.15
+      ],
+      "material": "leather_fold",
+      "side": "turned_edge"
+    },
+    {
+      "name": "Rear low stitched leather tab",
+      "from": [
+        6.9,
+        5.6,
+        11.85
+      ],
+      "to": [
+        9.1,
+        7.1,
+        12.45
+      ],
+      "material": "binding",
+      "side": "turned_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      14,
+      154,
+      0
+    ],
+    "scale": 1
+  },
+  "wearable_texture_set": "lumina_magia",
+  "wearable_source": "armor/author_lumina_magia.py"
+}

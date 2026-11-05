@@ -1,0 +1,576 @@
+{
+  "size": [
+    64,
+    32
+  ],
+  "palette": {
+    ".": "00000000",
+    "l": "B9AFD8FF",
+    "p": "CFC4E5FF",
+    "d": "8D82A5FF",
+    "s": "625A7AFF",
+    "e": "DFD4EBFF",
+    "w": "F1E8F3FF",
+    "b": "6D607FFF",
+    "t": "A296B9FF",
+    "i": "D2DFD8FF",
+    "h": "EDF2E3FF",
+    "q": "738B90FF",
+    "o": "474355FF",
+    "r": "655D73FF"
+  },
+  "used_regions": [
+    {
+      "part": "head",
+      "face": "front",
+      "rect": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "iqeeeeqi",
+        "ed....de",
+        "e......e",
+        "d......d",
+        "d......d",
+        "d......d",
+        "d......d",
+        "eiqhhqie"
+      ],
+      "nontransparent": 30,
+      "meaning": "Wide open face: both eye pixels and mouth unobstructed; low square iron throat clasp."
+    },
+    {
+      "part": "head",
+      "face": "back",
+      "rect": [
+        24,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "ddlllldd",
+        "dplllddd",
+        "dllllddd",
+        "dllldlld",
+        "dllldlld",
+        "dplldlld",
+        "bbttttbb",
+        "ddbbbbdd"
+      ],
+      "nontransparent": 64,
+      "meaning": "Lilac dyed leather hood back; broad off-center seam and rear low leather tab."
+    },
+    {
+      "part": "head",
+      "face": "left",
+      "rect": [
+        0,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "eddlllde",
+        "edpllldd",
+        "edlllldd",
+        "edlllldd",
+        "edlllldd",
+        "edlllldd",
+        "edddllld",
+        "eeeeeeee"
+      ],
+      "nontransparent": 64,
+      "meaning": "Deep leather hood side, folded pale face rim and continuous low collar."
+    },
+    {
+      "part": "head",
+      "face": "right",
+      "rect": [
+        16,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "eddlllde",
+        "edpllldd",
+        "edlllldd",
+        "edlllldd",
+        "edlllldd",
+        "edlllldd",
+        "edddllld",
+        "eeeeeeee"
+      ],
+      "nontransparent": 64,
+      "meaning": "Deep leather hood side, folded pale face rim and continuous low collar."
+    },
+    {
+      "part": "head",
+      "face": "top",
+      "rect": [
+        8,
+        0,
+        8,
+        8
+      ],
+      "rows": [
+        "dddddddd",
+        "dlllllld",
+        "dpllplld",
+        "dllldlld",
+        "dllldlld",
+        "dlllplld",
+        "dlllllld",
+        "dddddddd"
+      ],
+      "nontransparent": 64,
+      "meaning": "Complete coarse leather hood crown, large lilac panels and joined center seam."
+    },
+    {
+      "part": "head",
+      "face": "bottom",
+      "rect": [
+        16,
+        0,
+        8,
+        8
+      ],
+      "rows": [
+        "eeeeeeee",
+        "e......e",
+        "e......e",
+        "e......e",
+        "e......e",
+        "e......e",
+        "e......e",
+        "eeeeeeee"
+      ],
+      "nontransparent": 28,
+      "meaning": "Annular hood/collar underside leaves neck cavity clear."
+    },
+    {
+      "part": "body",
+      "face": "front",
+      "rect": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "de....ed",
+        "lde..edl",
+        "lldeedll",
+        "lldeedll",
+        "pld..dlp",
+        "lld..dll",
+        "bbqihqbb",
+        "bbqhhqbb",
+        "lpd..dpl",
+        "lpd..dpl",
+        "lpd..dpl",
+        "eed..dee"
+      ],
+      "nontransparent": 78,
+      "meaning": "Open robe collar, pale turned lapels, polished iron clasp, long central split."
+    },
+    {
+      "part": "body",
+      "face": "back",
+      "rect": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "ddeeeedd",
+        "ddlppldd",
+        "lldlldll",
+        "lldlldll",
+        "lldlldll",
+        "lldlldll",
+        "bbbbbbbb",
+        "bbttttbb",
+        "lldlldll",
+        "lldlldll",
+        "lldlldll",
+        "eeetteee"
+      ],
+      "nontransparent": 96,
+      "meaning": "Full back robe with two leather joins, dark waist band and broad turned hem."
+    },
+    {
+      "part": "body",
+      "face": "left",
+      "rect": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "edde",
+        "llld",
+        "lpld",
+        "llld",
+        "llld",
+        "llld",
+        "bbbb",
+        "bbbb",
+        "llld",
+        "lpld",
+        "llld",
+        "eeee"
+      ],
+      "nontransparent": 48,
+      "meaning": "Continuous side dyed leather, waist band and turned hem."
+    },
+    {
+      "part": "body",
+      "face": "right",
+      "rect": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "edde",
+        "llld",
+        "lpld",
+        "llld",
+        "llld",
+        "llld",
+        "bbbb",
+        "bbbb",
+        "llld",
+        "lpld",
+        "llld",
+        "eeee"
+      ],
+      "nontransparent": 48,
+      "meaning": "Continuous side dyed leather, waist band and turned hem."
+    },
+    {
+      "part": "body",
+      "face": "top",
+      "rect": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "ee....ee",
+        "ld....dl",
+        "ld....dl",
+        "eeeeeeee"
+      ],
+      "nontransparent": 20,
+      "meaning": "Open front neck and rear collar cap."
+    },
+    {
+      "part": "body",
+      "face": "bottom",
+      "rect": [
+        28,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "ee....ee",
+        "e......e",
+        "e......e",
+        "eeeeeeee"
+      ],
+      "nontransparent": 16,
+      "meaning": "Split open robe hem perimeter only."
+    },
+    {
+      "part": "arm",
+      "face": "front",
+      "rect": [
+        44,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "edle",
+        "llld",
+        "lpld",
+        "llld",
+        "llld",
+        "llld",
+        "llld",
+        "llld",
+        "tddd",
+        "eeee",
+        "dqid",
+        "eqhe"
+      ],
+      "nontransparent": 48,
+      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+    },
+    {
+      "part": "arm",
+      "face": "back",
+      "rect": [
+        52,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "edle",
+        "llld",
+        "lpld",
+        "ldll",
+        "ldll",
+        "llld",
+        "llld",
+        "llld",
+        "tddd",
+        "eeee",
+        "dbbd",
+        "eeee"
+      ],
+      "nontransparent": 48,
+      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+    },
+    {
+      "part": "arm",
+      "face": "left",
+      "rect": [
+        40,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "edle",
+        "llld",
+        "lpld",
+        "llld",
+        "llld",
+        "llld",
+        "llld",
+        "llld",
+        "tddd",
+        "eeee",
+        "dddd",
+        "eeee"
+      ],
+      "nontransparent": 48,
+      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+    },
+    {
+      "part": "arm",
+      "face": "right",
+      "rect": [
+        48,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "edle",
+        "llld",
+        "lpld",
+        "llld",
+        "llld",
+        "llld",
+        "llld",
+        "llld",
+        "tddd",
+        "eeee",
+        "dddd",
+        "eeee"
+      ],
+      "nontransparent": 48,
+      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+    },
+    {
+      "part": "arm",
+      "face": "top",
+      "rect": [
+        44,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "dddd",
+        "dllp",
+        "dlll",
+        "eeee"
+      ],
+      "nontransparent": 16,
+      "meaning": "Complete shoulder cap at native armor UV."
+    },
+    {
+      "part": "arm",
+      "face": "bottom",
+      "rect": [
+        48,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "eeee",
+        "e..e",
+        "e..e",
+        "eeee"
+      ],
+      "nontransparent": 12,
+      "meaning": "Annular cuff keeps hand center open."
+    },
+    {
+      "part": "leg",
+      "face": "front",
+      "rect": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "eeee",
+        "lqhl",
+        "l..l",
+        "oooo"
+      ],
+      "nontransparent": 14,
+      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+    },
+    {
+      "part": "leg",
+      "face": "back",
+      "rect": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "eeee",
+        "dddd",
+        "dbbd",
+        "oooo"
+      ],
+      "nontransparent": 16,
+      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+    },
+    {
+      "part": "leg",
+      "face": "left",
+      "rect": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "eeee",
+        "lddl",
+        "l..l",
+        "oooo"
+      ],
+      "nontransparent": 14,
+      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+    },
+    {
+      "part": "leg",
+      "face": "right",
+      "rect": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "eeee",
+        "lddl",
+        "l..l",
+        "oooo"
+      ],
+      "nontransparent": 14,
+      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+    },
+    {
+      "part": "leg",
+      "face": "top",
+      "rect": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "...."
+      ],
+      "nontransparent": 0,
+      "meaning": "Upper leg plane unused by sandals."
+    },
+    {
+      "part": "leg",
+      "face": "bottom",
+      "rect": [
+        8,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "oooo",
+        "orro",
+        "orro",
+        "oooo"
+      ],
+      "nontransparent": 16,
+      "meaning": "Complete leather sandal sole under feet."
+    }
+  ]
+}

@@ -1,0 +1,304 @@
+{
+  "size": [
+    64,
+    32
+  ],
+  "palette": {
+    ".": "00000000",
+    "l": "B9AFD8FF",
+    "p": "CFC4E5FF",
+    "d": "8D82A5FF",
+    "s": "625A7AFF",
+    "e": "DFD4EBFF",
+    "w": "F1E8F3FF",
+    "b": "6D607FFF",
+    "t": "A296B9FF",
+    "i": "D2DFD8FF",
+    "h": "EDF2E3FF",
+    "q": "738B90FF",
+    "o": "474355FF",
+    "r": "655D73FF"
+  },
+  "used_regions": [
+    {
+      "part": "body",
+      "face": "front",
+      "rect": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "eeeeeeee",
+        "bbqhhqbb",
+        "lld..dll"
+      ],
+      "nontransparent": 22,
+      "meaning": "Waist sash only: upper torso remains clear when leggings worn separately."
+    },
+    {
+      "part": "body",
+      "face": "back",
+      "rect": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "eeeeeeee",
+        "bbttttbb",
+        "llllllll"
+      ],
+      "nontransparent": 24,
+      "meaning": "Waist sash only: upper torso remains clear when leggings worn separately."
+    },
+    {
+      "part": "body",
+      "face": "left",
+      "rect": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "eeee",
+        "bbbb",
+        "llll"
+      ],
+      "nontransparent": 12,
+      "meaning": "Waist sash only: upper torso remains clear when leggings worn separately."
+    },
+    {
+      "part": "body",
+      "face": "right",
+      "rect": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "eeee",
+        "bbbb",
+        "llll"
+      ],
+      "nontransparent": 12,
+      "meaning": "Waist sash only: upper torso remains clear when leggings worn separately."
+    },
+    {
+      "part": "body",
+      "face": "top",
+      "rect": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "........",
+        "........",
+        "........",
+        "........"
+      ],
+      "nontransparent": 0,
+      "meaning": "Upper torso cap unused by leggings."
+    },
+    {
+      "part": "body",
+      "face": "bottom",
+      "rect": [
+        28,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "eeeeeeee",
+        "e......e",
+        "e......e",
+        "eeeeeeee"
+      ],
+      "nontransparent": 20,
+      "meaning": "Annular waist edge leaves interior open."
+    },
+    {
+      "part": "leg",
+      "face": "front",
+      "rect": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "dpld",
+        "dpld",
+        "dpld",
+        "dpld",
+        "dpld",
+        "dpld",
+        "dpld",
+        "dpld",
+        "dpld",
+        "eeee",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long pale leather leggings with broad stitched seam and low turned cuff above sandals."
+    },
+    {
+      "part": "leg",
+      "face": "back",
+      "rect": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "lldl",
+        "lldl",
+        "lldl",
+        "lldl",
+        "lldl",
+        "lldl",
+        "lldl",
+        "lbbl",
+        "lbbl",
+        "eeee",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long pale leather leggings with broad stitched seam and low turned cuff above sandals."
+    },
+    {
+      "part": "leg",
+      "face": "left",
+      "rect": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "eeee",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long pale leather leggings with broad stitched seam and low turned cuff above sandals."
+    },
+    {
+      "part": "leg",
+      "face": "right",
+      "rect": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "eeee",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long pale leather leggings with broad stitched seam and low turned cuff above sandals."
+    },
+    {
+      "part": "leg",
+      "face": "top",
+      "rect": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "eeee",
+        "e..e",
+        "e..e",
+        "eeee"
+      ],
+      "nontransparent": 12,
+      "meaning": "Annular upper leg seam, hollow center."
+    },
+    {
+      "part": "leg",
+      "face": "bottom",
+      "rect": [
+        8,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "...."
+      ],
+      "nontransparent": 0,
+      "meaning": "Legging bottom cap unused; sandal soles supplied by layer1."
+    }
+  ]
+}
