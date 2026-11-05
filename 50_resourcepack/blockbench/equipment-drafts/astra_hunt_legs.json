@@ -1,0 +1,608 @@
+{
+  "id": "astra_hunt_legs",
+  "master_id": "20a00451",
+  "kind": "armor",
+  "intent": "星光色の革の腰と膝を夜紺の細身パンツに重ねる。二脚の隙間、段差を付けた膝当て、片側の星図タブ、背の座面と縫い目を分離した狩用シルエット。四光星の腰留めと淡い足首縁は32pxでも判読できる大きさ。Noxから素材・縫製・星意匠を増し、guardの板金脚やmageの裾とは違う。carryは連続した腰帯の内部。",
+  "grip": [
+    8,
+    14.4,
+    8
+  ],
+  "materials": {
+    "star_hide": {
+      "palette": [
+        "#36565C",
+        "#507A7F",
+        "#6D9C9A",
+        "#9BC5B9"
+      ],
+      "pattern": [
+        "11222211",
+        "12221222",
+        "22212221",
+        "22122212",
+        "12222221",
+        "22212222",
+        "22122212",
+        "11222211"
+      ]
+    },
+    "folded_hide": {
+      "palette": [
+        "#2A444E",
+        "#45646D",
+        "#62898D",
+        "#85ABA8"
+      ],
+      "pattern": [
+        "00111100",
+        "01122110",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "pale_facing": {
+      "palette": [
+        "#536F73",
+        "#86A6A2",
+        "#B6D5C5",
+        "#E1EAD5"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "night_weave": {
+      "palette": [
+        "#1B2B42",
+        "#2A4056",
+        "#3F596A",
+        "#607D84"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12111211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "dark_lining": {
+      "palette": [
+        "#172538",
+        "#24394B",
+        "#365363",
+        "#51727A"
+      ],
+      "pattern": [
+        "00111000",
+        "01121110",
+        "11211211",
+        "12111211",
+        "11211211",
+        "01121110",
+        "00111000",
+        "00000000"
+      ]
+    },
+    "warm_binding": {
+      "palette": [
+        "#3E393B",
+        "#625449",
+        "#8A7759",
+        "#B5A378"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12211211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "binding_edge": {
+      "palette": [
+        "#3B3537",
+        "#655545",
+        "#A18B63",
+        "#CFBE8B"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "star_silver": {
+      "palette": [
+        "#4E6975",
+        "#7D9BA3",
+        "#BDD8D1",
+        "#F2F4DA"
+      ],
+      "pattern": [
+        "01122210",
+        "11233221",
+        "12333221",
+        "12322221",
+        "12222111",
+        "12221111",
+        "11221110",
+        "01111100"
+      ]
+    },
+    "silver_edge": {
+      "palette": [
+        "#354C5E",
+        "#66858E",
+        "#A4C3BF",
+        "#DEE8CE"
+      ],
+      "pattern": [
+        "33333333",
+        "32222223",
+        "32111123",
+        "32122123",
+        "32122123",
+        "32111123",
+        "32222223",
+        "33333333"
+      ]
+    },
+    "pale_star": {
+      "palette": [
+        "#4D6B73",
+        "#8BB0AC",
+        "#BDD8C7",
+        "#F1F0D2"
+      ],
+      "pattern": [
+        "11121111",
+        "11232111",
+        "12333211",
+        "23333321",
+        "12333211",
+        "11232111",
+        "11121111",
+        "11111111"
+      ]
+    },
+    "chart_stitch": {
+      "palette": [
+        "#314D5B",
+        "#5B7B83",
+        "#96B7AF",
+        "#D7DDAD"
+      ],
+      "pattern": [
+        "11121111",
+        "11222111",
+        "11121111",
+        "11111121",
+        "12111222",
+        "22211121",
+        "12111111",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "solid_waist_carry",
+      "from": [
+        3.45,
+        13.7,
+        5.8
+      ],
+      "to": [
+        12.55,
+        15.1,
+        10.7
+      ],
+      "material": "star_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "full_waist_binding",
+      "from": [
+        3.35,
+        14.0,
+        5.55
+      ],
+      "to": [
+        12.65,
+        14.85,
+        10.95
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "rear_adjusting_tab",
+      "from": [
+        10.0,
+        12.85,
+        10.7
+      ],
+      "to": [
+        11.0,
+        14.6,
+        11.4
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "left_night_trouser",
+      "from": [
+        3.7,
+        3.0,
+        6.2
+      ],
+      "to": [
+        7.2,
+        13.9,
+        10.4
+      ],
+      "material": "night_weave",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_teal_hip_yoke",
+      "from": [
+        3.5500000000000003,
+        11.2,
+        5.95
+      ],
+      "to": [
+        7.35,
+        13.95,
+        10.65
+      ],
+      "material": "star_hide",
+      "side": "folded_hide"
+    },
+    {
+      "name": "left_knee_upper_patch",
+      "from": [
+        3.9000000000000004,
+        8.1,
+        5.65
+      ],
+      "to": [
+        7.0,
+        10.2,
+        6.6
+      ],
+      "material": "star_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "left_knee_lower_step",
+      "from": [
+        4.3500000000000005,
+        7.0,
+        5.7
+      ],
+      "to": [
+        6.550000000000001,
+        8.4,
+        6.55
+      ],
+      "material": "folded_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "left_knee_star_tab",
+      "from": [
+        4.95,
+        7.8,
+        5.4
+      ],
+      "to": [
+        5.95,
+        9.5,
+        6.1
+      ],
+      "material": "pale_star"
+    },
+    {
+      "name": "left_side_knee_tie",
+      "from": [
+        3.6,
+        7.25,
+        6.1
+      ],
+      "to": [
+        7.300000000000001,
+        8.15,
+        10.6
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "left_ankle_binding",
+      "from": [
+        3.6500000000000004,
+        2.75,
+        6.0
+      ],
+      "to": [
+        7.25,
+        3.7,
+        10.6
+      ],
+      "material": "pale_facing",
+      "side": "folded_hide"
+    },
+    {
+      "name": "left_rear_seat_patch",
+      "from": [
+        3.85,
+        10.2,
+        10.25
+      ],
+      "to": [
+        7.050000000000001,
+        12.95,
+        10.8
+      ],
+      "material": "folded_hide",
+      "side": "chart_stitch"
+    },
+    {
+      "name": "left_rear_long_seam",
+      "from": [
+        5.2,
+        3.5,
+        10.25
+      ],
+      "to": [
+        5.7,
+        10.5,
+        10.85
+      ],
+      "material": "chart_stitch"
+    },
+    {
+      "name": "right_night_trouser",
+      "from": [
+        8.8,
+        3.0,
+        6.2
+      ],
+      "to": [
+        12.3,
+        13.9,
+        10.4
+      ],
+      "material": "night_weave",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_teal_hip_yoke",
+      "from": [
+        8.65,
+        11.2,
+        5.95
+      ],
+      "to": [
+        12.450000000000001,
+        13.95,
+        10.65
+      ],
+      "material": "star_hide",
+      "side": "folded_hide"
+    },
+    {
+      "name": "right_knee_upper_patch",
+      "from": [
+        9.0,
+        8.1,
+        5.65
+      ],
+      "to": [
+        12.100000000000001,
+        10.2,
+        6.6
+      ],
+      "material": "star_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "right_knee_lower_step",
+      "from": [
+        9.450000000000001,
+        7.0,
+        5.7
+      ],
+      "to": [
+        11.65,
+        8.4,
+        6.55
+      ],
+      "material": "folded_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "right_knee_star_tab",
+      "from": [
+        10.05,
+        7.8,
+        5.4
+      ],
+      "to": [
+        11.05,
+        9.5,
+        6.1
+      ],
+      "material": "pale_star"
+    },
+    {
+      "name": "right_side_knee_tie",
+      "from": [
+        8.700000000000001,
+        7.25,
+        6.1
+      ],
+      "to": [
+        12.4,
+        8.15,
+        10.6
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "right_ankle_binding",
+      "from": [
+        8.75,
+        2.75,
+        6.0
+      ],
+      "to": [
+        12.350000000000001,
+        3.7,
+        10.6
+      ],
+      "material": "pale_facing",
+      "side": "folded_hide"
+    },
+    {
+      "name": "right_rear_seat_patch",
+      "from": [
+        8.950000000000001,
+        10.2,
+        10.25
+      ],
+      "to": [
+        12.15,
+        12.95,
+        10.8
+      ],
+      "material": "folded_hide",
+      "side": "chart_stitch"
+    },
+    {
+      "name": "right_rear_long_seam",
+      "from": [
+        10.3,
+        3.5,
+        10.25
+      ],
+      "to": [
+        10.8,
+        10.5,
+        10.85
+      ],
+      "material": "chart_stitch"
+    },
+    {
+      "name": "left_outside_map_tab",
+      "from": [
+        3.05,
+        9.6,
+        6.7
+      ],
+      "to": [
+        3.95,
+        12.75,
+        9.9
+      ],
+      "material": "star_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "map_tab_fold",
+      "from": [
+        2.85,
+        12.2,
+        6.55
+      ],
+      "to": [
+        4.05,
+        13.05,
+        10.05
+      ],
+      "material": "chart_stitch",
+      "side": "pale_facing"
+    },
+    {
+      "name": "belt_four_point_star_vertical",
+      "from": [
+        7.7725,
+        13.425,
+        5.05
+      ],
+      "to": [
+        8.2275,
+        15.375,
+        5.55
+      ],
+      "material": "star_silver",
+      "side": "silver_edge"
+    },
+    {
+      "name": "belt_four_point_star_cross",
+      "from": [
+        7.1875,
+        14.172500000000001,
+        5.05
+      ],
+      "to": [
+        8.8125,
+        14.6275,
+        5.55
+      ],
+      "material": "star_silver",
+      "side": "silver_edge"
+    },
+    {
+      "name": "belt_four_point_star_core",
+      "from": [
+        7.545,
+        13.945,
+        4.93
+      ],
+      "to": [
+        8.455,
+        14.855,
+        5.3999999999999995
+      ],
+      "material": "pale_star"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 1.07
+  },
+  "wearable_texture_set": "astra_hunt",
+  "wearable_source": "armor/astra_hunt.pixels.json"
+}

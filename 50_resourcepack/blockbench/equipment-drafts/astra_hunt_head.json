@@ -1,0 +1,544 @@
+{
+  "id": "astra_hunt_head",
+  "master_id": "20a00449",
+  "kind": "armor",
+  "intent": "実master: 天体 / 星の光、Lv30 RARE、#6D9C9Aに染めた革のアストラキャップ。低く段差のある角形クラウンと短い非対称の庇、四光星の額章、側面の星布章、背面の星図縫い。大きなピクセル面で上位の仕立てを示し、顔は開く。guardの兜やmageのフードとは異なる狩装束。実体の庇の内部をcarryにする。",
+  "grip": [
+    8,
+    7.9,
+    5.3
+  ],
+  "materials": {
+    "star_hide": {
+      "palette": [
+        "#36565C",
+        "#507A7F",
+        "#6D9C9A",
+        "#9BC5B9"
+      ],
+      "pattern": [
+        "11222211",
+        "12221222",
+        "22212221",
+        "22122212",
+        "12222221",
+        "22212222",
+        "22122212",
+        "11222211"
+      ]
+    },
+    "folded_hide": {
+      "palette": [
+        "#2A444E",
+        "#45646D",
+        "#62898D",
+        "#85ABA8"
+      ],
+      "pattern": [
+        "00111100",
+        "01122110",
+        "12233221",
+        "12222221",
+        "12222221",
+        "11222111",
+        "01122110",
+        "00111100"
+      ]
+    },
+    "pale_facing": {
+      "palette": [
+        "#536F73",
+        "#86A6A2",
+        "#B6D5C5",
+        "#E1EAD5"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "dark_lining": {
+      "palette": [
+        "#172538",
+        "#24394B",
+        "#365363",
+        "#51727A"
+      ],
+      "pattern": [
+        "00111000",
+        "01121110",
+        "11211211",
+        "12111211",
+        "11211211",
+        "01121110",
+        "00111000",
+        "00000000"
+      ]
+    },
+    "warm_binding": {
+      "palette": [
+        "#3E393B",
+        "#625449",
+        "#8A7759",
+        "#B5A378"
+      ],
+      "pattern": [
+        "11211121",
+        "21112111",
+        "12211211",
+        "11121121",
+        "21112111",
+        "11211121",
+        "12111211",
+        "21121112"
+      ]
+    },
+    "binding_edge": {
+      "palette": [
+        "#3B3537",
+        "#655545",
+        "#A18B63",
+        "#CFBE8B"
+      ],
+      "pattern": [
+        "22222222",
+        "21111112",
+        "31211312",
+        "21111112",
+        "21111112",
+        "31211312",
+        "21111112",
+        "22222222"
+      ]
+    },
+    "star_silver": {
+      "palette": [
+        "#4E6975",
+        "#7D9BA3",
+        "#BDD8D1",
+        "#F2F4DA"
+      ],
+      "pattern": [
+        "01122210",
+        "11233221",
+        "12333221",
+        "12322221",
+        "12222111",
+        "12221111",
+        "11221110",
+        "01111100"
+      ]
+    },
+    "silver_edge": {
+      "palette": [
+        "#354C5E",
+        "#66858E",
+        "#A4C3BF",
+        "#DEE8CE"
+      ],
+      "pattern": [
+        "33333333",
+        "32222223",
+        "32111123",
+        "32122123",
+        "32122123",
+        "32111123",
+        "32222223",
+        "33333333"
+      ]
+    },
+    "pale_star": {
+      "palette": [
+        "#4D6B73",
+        "#8BB0AC",
+        "#BDD8C7",
+        "#F1F0D2"
+      ],
+      "pattern": [
+        "11121111",
+        "11232111",
+        "12333211",
+        "23333321",
+        "12333211",
+        "11232111",
+        "11121111",
+        "11111111"
+      ]
+    },
+    "chart_stitch": {
+      "palette": [
+        "#314D5B",
+        "#5B7B83",
+        "#96B7AF",
+        "#D7DDAD"
+      ],
+      "pattern": [
+        "11121111",
+        "11222111",
+        "11121111",
+        "11111121",
+        "12111222",
+        "22211121",
+        "12111111",
+        "11111111"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "rear_cap_wall",
+      "from": [
+        3.7,
+        6.5,
+        10.3
+      ],
+      "to": [
+        12.3,
+        10.9,
+        11.4
+      ],
+      "material": "star_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "left_cap_wall",
+      "from": [
+        3.45,
+        7.3,
+        6.1
+      ],
+      "to": [
+        4.55,
+        11.0,
+        10.8
+      ],
+      "material": "star_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "right_cap_wall",
+      "from": [
+        11.45,
+        7.3,
+        6.1
+      ],
+      "to": [
+        12.55,
+        11.0,
+        10.8
+      ],
+      "material": "star_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "brow_panel",
+      "from": [
+        3.7,
+        8.4,
+        5.8
+      ],
+      "to": [
+        12.3,
+        10.9,
+        6.85
+      ],
+      "material": "star_hide",
+      "side": "dark_lining"
+    },
+    {
+      "name": "crown_lower_step",
+      "from": [
+        3.6,
+        10.35,
+        6.1
+      ],
+      "to": [
+        12.4,
+        11.45,
+        11.2
+      ],
+      "material": "star_hide",
+      "side": "folded_hide"
+    },
+    {
+      "name": "crown_upper_step",
+      "from": [
+        4.6,
+        11.35,
+        6.7
+      ],
+      "to": [
+        11.4,
+        12.25,
+        10.65
+      ],
+      "material": "folded_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "front_crown_chart_band",
+      "from": [
+        6.95,
+        10.5,
+        5.6
+      ],
+      "to": [
+        9.05,
+        11.4,
+        6.25
+      ],
+      "material": "chart_stitch"
+    },
+    {
+      "name": "visor_solid_carry",
+      "from": [
+        3.2,
+        7.45,
+        3.9
+      ],
+      "to": [
+        11.9,
+        8.35,
+        6.9
+      ],
+      "material": "star_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "left_visor_step",
+      "from": [
+        2.85,
+        7.6,
+        4.9
+      ],
+      "to": [
+        4.2,
+        8.3,
+        6.85
+      ],
+      "material": "folded_hide",
+      "side": "pale_facing"
+    },
+    {
+      "name": "visor_pale_lip",
+      "from": [
+        3.2,
+        7.4,
+        3.7
+      ],
+      "to": [
+        11.9,
+        7.85,
+        4.3
+      ],
+      "material": "pale_facing",
+      "side": "folded_hide"
+    },
+    {
+      "name": "front_warm_band",
+      "from": [
+        3.5,
+        8.2,
+        5.55
+      ],
+      "to": [
+        12.5,
+        9.0,
+        6.65
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "rear_adjusting_band",
+      "from": [
+        3.5,
+        6.65,
+        10.9
+      ],
+      "to": [
+        12.5,
+        7.55,
+        11.65
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "rear_short_tie",
+      "from": [
+        10.0,
+        5.8,
+        11.25
+      ],
+      "to": [
+        11.0,
+        7.25,
+        11.95
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "rear_vertical_chart_seam",
+      "from": [
+        7.65,
+        7.35,
+        11.15
+      ],
+      "to": [
+        8.35,
+        10.9,
+        11.65
+      ],
+      "material": "chart_stitch"
+    },
+    {
+      "name": "crown_top_chart_seam",
+      "from": [
+        7.65,
+        12.15,
+        6.8
+      ],
+      "to": [
+        8.35,
+        12.55,
+        10.6
+      ],
+      "material": "chart_stitch"
+    },
+    {
+      "name": "left_flat_star_patch",
+      "from": [
+        3.0,
+        8.35,
+        7.25
+      ],
+      "to": [
+        3.7,
+        10.4,
+        9.9
+      ],
+      "material": "pale_facing",
+      "side": "folded_hide"
+    },
+    {
+      "name": "left_star_patch_vertical",
+      "from": [
+        2.8,
+        8.55,
+        8.15
+      ],
+      "to": [
+        3.15,
+        10.2,
+        8.8
+      ],
+      "material": "star_silver"
+    },
+    {
+      "name": "left_star_patch_cross",
+      "from": [
+        2.8,
+        9.05,
+        7.6
+      ],
+      "to": [
+        3.15,
+        9.7,
+        9.35
+      ],
+      "material": "star_silver"
+    },
+    {
+      "name": "left_bound_edge",
+      "from": [
+        3.35,
+        6.8,
+        6.1
+      ],
+      "to": [
+        4.55,
+        7.65,
+        11.1
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "right_bound_edge",
+      "from": [
+        11.45,
+        6.8,
+        6.1
+      ],
+      "to": [
+        12.649999999999999,
+        7.65,
+        11.1
+      ],
+      "material": "warm_binding",
+      "side": "binding_edge"
+    },
+    {
+      "name": "brow_star_vertical",
+      "from": [
+        7.797,
+        8.88,
+        5.25
+      ],
+      "to": [
+        8.203,
+        10.62,
+        5.75
+      ],
+      "material": "star_silver",
+      "side": "silver_edge"
+    },
+    {
+      "name": "brow_star_cross",
+      "from": [
+        7.275,
+        9.547,
+        5.25
+      ],
+      "to": [
+        8.725,
+        9.953,
+        5.75
+      ],
+      "material": "star_silver",
+      "side": "silver_edge"
+    },
+    {
+      "name": "brow_star_core",
+      "from": [
+        7.594,
+        9.344,
+        5.13
+      ],
+      "to": [
+        8.406,
+        10.156,
+        5.6
+      ],
+      "material": "pale_star"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      13,
+      154,
+      0
+    ],
+    "scale": 1.07
+  },
+  "wearable_texture_set": "astra_hunt",
+  "wearable_source": "armor/astra_hunt.pixels.json"
+}
