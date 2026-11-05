@@ -1,6 +1,25 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeDetailLevel, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
+
+test('camera enlargement always enlarges nodes while lowering their relative footprint', () => {
+    let previousSize = 0, previousRatio = Infinity;
+    for (const zoom of [.02, .08, .24, .4, .7, .95, 1, 1.5, 2]) {
+        const relativeSize = nodeVisualScale(zoom), screenSize = 106 * zoom * relativeSize;
+        assert.ok(screenSize > previousSize);
+        assert.ok(relativeSize <= previousRatio);
+        assert.ok(relativeSize >= .7 && relativeSize <= 2);
+        previousSize = screenSize; previousRatio = relativeSize;
+    }
+    assert.ok(106 * .4 * nodeVisualScale(.4) >= 60);
+});
+
+test('progressive labels retain names at useful overview scales', () => {
+    assert.equal(nodeDetailLevel(.1), 'overview');
+    assert.equal(nodeDetailLevel(.24), 'compact');
+    assert.equal(nodeDetailLevel(.69), 'compact');
+    assert.equal(nodeDetailLevel(.7), 'full');
+});
 
 test('all pairwise distances and directions retain the source proportions', () => {
     const source = [{ x: -9, z: 2 }, { x: -7, z: 2 }, { x: 4, z: 10 }, { x: 11, z: -8 }];

@@ -47,6 +47,16 @@ export function wheelZoomFactor(event, viewportHeight) {
 
 export { materialId } from './minecraft-icons.mjs';
 
+// Zooming in always enlarges the art, but spacing grows faster. At a distance,
+// bounded compensation keeps nodes easier to pick without hiding the whole map.
+export function nodeVisualScale(zoom) {
+    return Math.max(.7, Math.min(2, 1 / Math.sqrt(zoom)));
+}
+
+export function nodeDetailLevel(zoom) {
+    return zoom < .24 ? 'overview' : zoom < .7 ? 'compact' : 'full';
+}
+
 export function nodeState(node) {
     if (node.stateText) return node.stateText;
     if (node.isUnlocked) return node.isConditionMet === false ? '解放済み・条件未達のため無効' : '解放済み';

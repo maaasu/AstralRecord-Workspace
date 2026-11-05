@@ -17,7 +17,7 @@ function harness({ reduced = false, savedPause = false, observers = true, storag
     }
     const frames = new Map(), draws = [];
     let nextFrame = 0;
-    const storage = new Map([['astral-motion-paused', String(savedPause)]]);
+    const storage = new Map([['astral-skilltree-motion-paused', String(savedPause)]]);
     const media = events({ matches: reduced });
     const context = {
         arcCalls: 0,
@@ -100,10 +100,10 @@ test('pauses for saved preference, reduced motion, hidden document, offscreen vi
     const saved = harness({ savedPause: true });
     assert.equal(saved.frames.size, 0);
     saved.controller.resume();
-    assert.equal(saved.storage.get('astral-motion-paused'), 'false');
+    assert.equal(saved.storage.get('astral-skilltree-motion-paused'), 'false');
     assert.equal(saved.frames.size, 1);
     saved.controller.pause();
-    assert.equal(saved.storage.get('astral-motion-paused'), 'true');
+    assert.equal(saved.storage.get('astral-skilltree-motion-paused'), 'true');
     assert.equal(saved.frames.size, 0);
     saved.controller.dispose();
 
@@ -136,8 +136,11 @@ test('fallback viewport tracking and resize keep animation bounded', () => {
     assert.equal(h.frames.size, 1);
     h.rect.width = 3000; h.rect.height = 2000;
     h.win.emit('resize');
-    assert.equal(h.canvas.width, 4500);
-    assert.equal(h.canvas.height, 3000);
+    assert.ok(h.canvas.width * h.canvas.height <= 2_250_000);
+    assert.ok(h.canvas.width / h.canvas.height > 1.49 && h.canvas.width / h.canvas.height < 1.51);
+    h.rect.width = 7680; h.rect.height = 4320;
+    h.win.emit('resize');
+    assert.ok(h.canvas.width * h.canvas.height <= 2_250_000);
     assert.doesNotThrow(() => h.controller.pause());
     h.controller.dispose();
     assert.equal(h.frames.size, 0);

@@ -1,7 +1,8 @@
 // A quiet, decorative starfield for skill trees. The host should be positioned
 // and place its interactive content above this absolutely positioned canvas.
-const pauseKey = 'astral-motion-paused';
+const pauseKey = 'astral-skilltree-motion-paused';
 const frameInterval = 1000 / 30;
+const pixelBudget = 2_250_000;
 
 export function initializeStarfield(container) {
     if (!container?.ownerDocument) throw new TypeError('A DOM container is required');
@@ -85,9 +86,10 @@ export function initializeStarfield(container) {
         if (nextWidth === width && nextHeight === height) return;
         width = nextWidth;
         height = nextHeight;
-        const ratio = Math.min(Math.max(win.devicePixelRatio || 1, 1), 1.5);
-        canvas.width = Math.round(width * ratio);
-        canvas.height = Math.round(height * ratio);
+        // Large displays need a bounded backing store as well as bounded stars.
+        const ratio = Math.min(Math.max(win.devicePixelRatio || 1, 1), 1.5, Math.sqrt(pixelBudget / Math.max(1, width * height)));
+        canvas.width = Math.floor(width * ratio);
+        canvas.height = Math.floor(height * ratio);
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
         const count = Math.min(80, Math.max(16, Math.round(width * height / 9000)));
         stars = Array.from({ length: count }, (_, index) => ({

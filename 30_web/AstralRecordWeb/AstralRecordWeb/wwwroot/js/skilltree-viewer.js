@@ -1,6 +1,7 @@
-import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeDetailLevel, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
+import { initializeStarfield } from './skilltree-stars.mjs';
 
 // Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
@@ -27,6 +28,21 @@ export function initializeViewer(viewer, viewState) {
     const viewport = viewer.querySelector('.ar-tree-viewport');
     const sanctum = viewer.closest('.ar-tree-sanctum');
     const lifecycle = new AbortController();
+    const starsContainer = viewport.querySelector('[data-tree-stars]');
+    starsContainer.replaceChildren();
+    const stars = initializeStarfield(starsContainer);
+    const motionButton = viewer.querySelector('[data-tree-motion]');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let motionPaused = false;
+    try { motionPaused = sessionStorage.getItem('astral-skilltree-motion-paused') === 'true'; } catch { /* Storage is optional. */ }
+    const renderMotion = () => {
+        motionButton.disabled = reducedMotion.matches;
+        motionButton.textContent = reducedMotion.matches ? '星の動き：控えめ' : motionPaused ? '星の動きを再生' : '星の動きを停止';
+        motionButton.setAttribute('aria-pressed', String(motionPaused || reducedMotion.matches));
+    };
+    motionButton.addEventListener('click', () => { motionPaused = !motionPaused; stars.pause(motionPaused); renderMotion(); });
+    reducedMotion.addEventListener('change', renderMotion, { signal: lifecycle.signal });
+    renderMotion();
     const detail = viewer.querySelector('.ar-tree-detail');
     const detailToggle = viewer.querySelector('[data-tree-detail-toggle]');
     const setDetailVisible = visible => {
@@ -46,6 +62,7 @@ export function initializeViewer(viewer, viewState) {
     let viewportWidth = viewport.clientWidth, viewportHeight = viewport.clientHeight;
     const zoomLabel = viewer.querySelector('[data-tree-zoom-label]');
     let cullBounds = null, interactionUntil = 0, rightPress = null, primaryPress = null;
+    let paintedNodeScale = 0;
     const visibleNodes = new Map(), visibleEdges = new Map();
     const root = nodes.get(tree.rootNodeId) ?? projected.nodes.find(node => node.isUnlocked) ?? projected.nodes[0];
     const minZoom = () => Math.min(.08, fitCamera(bounds, viewportWidth, viewportHeight).zoom);
@@ -53,7 +70,7 @@ export function initializeViewer(viewer, viewState) {
     const placeEdge = edge => {
         const source = nodes.get(edge.source), target = nodes.get(edge.target);
         const dx = target.px - source.px, dy = target.py - source.py, length = Math.hypot(dx, dy);
-        const inset = Math.min(52, length / 2);
+        const inset = Math.min(52 * nodeVisualScale(camera.zoom), length / 2);
         for (const [key, value] of Object.entries({
             x1: source.px + dx / length * inset, y1: source.py + dy / length * inset,
             x2: target.px - dx / length * inset, y2: target.py - dy / length * inset,
@@ -90,6 +107,15 @@ export function initializeViewer(viewer, viewState) {
     minimap.append(miniViewport);
     const paint = () => {
         if (disposed) return;
+        const artScale = nodeVisualScale(camera.zoom);
+        if (artScale !== paintedNodeScale) {
+            for (const [id, group] of groups) {
+                const node = nodes.get(id);
+                group.setAttribute('transform', `translate(${node.px},${node.py}) scale(${artScale})`);
+            }
+            links.forEach(placeEdge);
+            paintedNodeScale = artScale;
+        }
         const viewLeft = -camera.x / camera.zoom, viewTop = -camera.y / camera.zoom;
         const viewRight = (viewportWidth - camera.x) / camera.zoom, viewBottom = (viewportHeight - camera.y) / camera.zoom;
         // Keep a padded visible set while panning; only rescan when its inner margin is crossed.
@@ -99,7 +125,7 @@ export function initializeViewer(viewer, viewState) {
         cullBounds = { x0, y0, x1, y1, zoom: camera.zoom };
         for (const [id, group] of groups) {
             const node = nodes.get(id);
-            const shown = node.px >= x0 && node.px <= x1 && node.py >= y0 - (node.labelExtent ?? 200) && node.py <= y1;
+            const shown = node.px >= x0 && node.px <= x1 && node.py >= y0 - (90 + (node.labelExtent ?? 200)) * artScale && node.py <= y1;
             if (visibleNodes.get(id) !== shown) { group.style.display = shown ? '' : 'none'; visibleNodes.set(id, shown); }
         }
         for (const edge of links) {
@@ -108,8 +134,10 @@ export function initializeViewer(viewer, viewState) {
         }
         }
         graph.setAttribute('transform', `translate(${camera.x},${camera.y}) scale(${camera.zoom})`);
-        const overview = String(camera.zoom < .4), zoomText = `${Math.round(camera.zoom * 100)}%`;
+        const level = nodeDetailLevel(camera.zoom);
+        const overview = String(level === 'overview'), zoomText = `${Math.round(camera.zoom * 100)}%`;
         if (viewer.dataset.overview !== overview) viewer.dataset.overview = overview;
+        if (viewer.dataset.nodeDetail !== level) viewer.dataset.nodeDetail = level;
         if (zoomLabel.textContent !== zoomText) zoomLabel.textContent = zoomText;
         const left = Math.max(bounds.x, -camera.x / camera.zoom);
         const top = Math.max(bounds.y, -camera.y / camera.zoom);
@@ -199,6 +227,11 @@ export function initializeViewer(viewer, viewState) {
         label.append(make('rect', { x: -128, y: 61, width: 256, height: labelLines.length * 20 + 12, rx: 4 }));
         labelLines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
         g.append(label);
+        const compact = make('g', { class: 'ar-tree-node-compact-label', 'aria-hidden': 'true' });
+        compact.append(make('rect', { x: -100, y: 61, width: 200, height: 51, rx: 4 }));
+        compact.append(make('text', { y: 81, class: 'ar-tree-label-name' }, Array.from(node.name).length > 13 ? Array.from(node.name).slice(0, 12).join('') + '…' : node.name));
+        compact.append(make('text', { y: 101, class: 'ar-tree-label-cost' }, `${node.pointCost} ${node.pointType}`));
+        g.append(compact);
         g.append(make('title', {}, `${node.name}\n${nodeState(node)}\n${node.requirementText ?? ''}`));
         g.addEventListener('click', event => {
             if (dragged && event.detail !== 0) return;
@@ -206,7 +239,7 @@ export function initializeViewer(viewer, viewState) {
             primaryPress = null;
             if (event.detail > 0 && mouseClick && (!event.pointerType || event.pointerType === 'mouse')
                 && !viewer.dispatchEvent(new CustomEvent('skilltree:action', { bubbles: true, cancelable: true, detail: { nodeId: node.nodeId, action: 'UNLOCK' } }))) return;
-            const wasOverview = camera.zoom < .4;
+            const wasOverview = nodeDetailLevel(camera.zoom) === 'overview';
             showDetails(node);
             if (wasOverview) focusNode(node);
         });
@@ -233,7 +266,7 @@ export function initializeViewer(viewer, viewState) {
         for (const node of nodes.values()) {
             node.px = node.x * baseScale * spacingPercent / 100;
             node.py = node.z * baseScale * spacingPercent / 100;
-            groups.get(node.nodeId).setAttribute('transform', `translate(${node.px},${node.py})`);
+            groups.get(node.nodeId).setAttribute('transform', `translate(${node.px},${node.py}) scale(${nodeVisualScale(camera.zoom)})`);
             const point = miniNodes.get(node.nodeId);
             point.setAttribute('cx', node.px); point.setAttribute('cy', node.py);
         }
@@ -337,7 +370,6 @@ export function initializeViewer(viewer, viewState) {
     window.addEventListener('pointerup', endDrag, { signal: lifecycle.signal });
     window.addEventListener('pointercancel', endDrag, { signal: lifecycle.signal });
     viewport.addEventListener('wheel', event => {
-        if (event.ctrlKey || !sanctum.classList.contains('is-expanded') && !viewport.contains(document.activeElement)) return;
         event.preventDefault();
         interactionUntil = performance.now() + 180;
         const rect = viewport.getBoundingClientRect();
@@ -467,7 +499,7 @@ export function initializeViewer(viewer, viewState) {
         draw();
     });
     observer.observe(viewport);
-    viewer.dispose = () => { disposed = true; lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
+    viewer.dispose = () => { disposed = true; stars.dispose(); lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
     viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !viewer.classList.contains('is-detail-hidden'), width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
     viewer.selectNode = (id, openDetails = true) => { const node = nodes.get(id); if (node) showDetails(node, openDetails); };
     viewer.isInteracting = () => pointers.size > 0 || performance.now() < interactionUntil;

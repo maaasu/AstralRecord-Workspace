@@ -211,7 +211,8 @@
     box-shadow: 0 0 0 2rem #899eb508, inset 0 0 0 2rem #899eb508;
     pointer-events: none;
 }
-.ar-tree-canvas { position: relative; display: block; width: 100%; height: 100%; }
+.ar-tree-stars { position: absolute; inset: 0; pointer-events: none; }
+.ar-tree-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
 .ar-tree-edge { stroke: #a7b4cb; stroke-width: 1.1; stroke-dasharray: 3 7; opacity: .32; }
 .ar-tree-edge.is-unlocked { stroke: #c7b38e; stroke-width: 1.5; stroke-dasharray: none; opacity: .55; }
 .ar-tree-edge.is-connected { stroke: #ddc79f; stroke-width: 1.8; stroke-dasharray: none; opacity: .7; }
@@ -226,7 +227,10 @@
 .ar-tree-symbol { font-size: 30px; fill: #bacbe6; }
 .ar-tree-node-status-mark { fill: #c4d4ec; font-size: 14px; }
 .ar-tree-node-icon { image-rendering: pixelated; pointer-events: none; opacity: .8; }
-.ar-tree-node-label rect { fill: #0d1726f2; stroke: #829abd4d; stroke-width: 1; }
+.ar-tree-node-label rect, .ar-tree-node-compact-label rect { fill: #0d1726f2; stroke: #829abd4d; stroke-width: 1; }
+.ar-tree-node-compact-label { display: none; }
+[data-node-detail="compact"] .ar-tree-node-label { display: none; }
+[data-node-detail="compact"] .ar-tree-node-compact-label { display: block; }
 .ar-tree-label-name { fill: #f8e6c0; font: 650 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
 .ar-tree-label-effect { fill: var(--tree-text); font: 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
 .ar-tree-label-cost { fill: var(--tree-teal); font: 600 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
@@ -248,7 +252,7 @@
 .ar-tree-node.is-draft-unlock .ar-tree-node-frame { stroke: var(--tree-teal); stroke-dasharray: 4 3; }
 .ar-tree-node.is-draft-relock .ar-tree-node-frame { stroke: #e6a1ad; stroke-dasharray: 4 3; }
 .ar-tree-node[aria-pressed="true"] .ar-tree-node-aura { fill: #f9d8a314; stroke: #ffe2a8; stroke-width: 2.5; }
-.ar-tree-node[aria-pressed="true"] .ar-tree-node-label rect { fill: #252638; stroke: var(--tree-gold); }
+.ar-tree-node[aria-pressed="true"] :is(.ar-tree-node-label, .ar-tree-node-compact-label) rect { fill: #252638; stroke: var(--tree-gold); }
 .ar-tree-node:is(:hover, :focus-visible) .ar-tree-node-frame { stroke: white; stroke-width: 3; }
 .ar-tree-node:is(:hover, :focus-visible) .ar-tree-node-icon { opacity: 1; }
 [data-overview="true"] :is(.ar-tree-node-label, .ar-tree-node-status, .ar-tree-node-status-mark) { display: none; }
