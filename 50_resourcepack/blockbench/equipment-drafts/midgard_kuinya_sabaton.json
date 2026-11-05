@@ -1,0 +1,556 @@
+{
+  "id": "midgard_kuinya_sabaton",
+  "master_id": "20a00021",
+  "kind": "armor",
+  "intent": "重厚な足甲を厚い靴底、幅広い段付き爪先、開いた履き口で表す。赤褐色の板と足首の太い留め帯を揃え、Lv3らしく金飾りを付けない。左の前履き口の実材を運搬基準にする。",
+  "grip": [
+    5.6,
+    8.25,
+    6.55
+  ],
+  "materials": {
+    "red_hide": {
+      "palette": [
+        "542F30",
+        "783A35",
+        "9C4A3D",
+        "B5654C",
+        "CA8660"
+      ],
+      "pattern": [
+        "23333322",
+        "23343322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22333322",
+        "12333221",
+        "11222211"
+      ]
+    },
+    "red_plate": {
+      "palette": [
+        "542E2B",
+        "793E33",
+        "9A503D",
+        "B56B4D",
+        "CE8A61"
+      ],
+      "pattern": [
+        "34444332",
+        "23344332",
+        "23333322",
+        "23333322",
+        "23333322",
+        "22333322",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "red_edge": {
+      "palette": [
+        "392C29",
+        "5F3C30",
+        "87513A",
+        "AC744C",
+        "C69363"
+      ],
+      "pattern": [
+        "33343332",
+        "22223221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "303831",
+        "505A4E",
+        "7F8B74",
+        "A8B195",
+        "C3C7A6"
+      ],
+      "pattern": [
+        "33344332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222111",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "292927",
+        "40382E",
+        "5A4733",
+        "745C3D"
+      ],
+      "pattern": [
+        "22222222",
+        "23333222",
+        "22222222",
+        "11111111",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left broad dark sole",
+      "from": [
+        3.8,
+        1,
+        4.3
+      ],
+      "to": [
+        7.4,
+        1.6,
+        10.5
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left block heel",
+      "from": [
+        4.0,
+        1.6,
+        9
+      ],
+      "to": [
+        7.199999999999999,
+        2.5,
+        10.3
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left thick toe cap",
+      "from": [
+        3.8,
+        1.6,
+        4.4
+      ],
+      "to": [
+        7.4,
+        2.9,
+        7.1
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left stepped toe upper",
+      "from": [
+        4.0,
+        2.9,
+        4.8
+      ],
+      "to": [
+        7.199999999999999,
+        3.3,
+        6.6
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left leather instep",
+      "from": [
+        4.0,
+        2.9,
+        6.6
+      ],
+      "to": [
+        7.199999999999999,
+        4,
+        8.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left ankle front",
+      "from": [
+        4.0,
+        3.3,
+        6.3
+      ],
+      "to": [
+        7.199999999999999,
+        7.8,
+        7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left ankle rear",
+      "from": [
+        4.0,
+        2.5,
+        9.7
+      ],
+      "to": [
+        7.199999999999999,
+        7.8,
+        10.4
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left ankle left side",
+      "from": [
+        3.8,
+        2.5,
+        7
+      ],
+      "to": [
+        4.5,
+        7.8,
+        9.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left ankle right side",
+      "from": [
+        6.699999999999999,
+        2.5,
+        7
+      ],
+      "to": [
+        7.4,
+        7.8,
+        9.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left open cuff front",
+      "from": [
+        3.6999999999999997,
+        7.8,
+        6.1
+      ],
+      "to": [
+        7.5,
+        8.7,
+        7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left open cuff rear",
+      "from": [
+        3.6999999999999997,
+        7.8,
+        9.7
+      ],
+      "to": [
+        7.5,
+        8.7,
+        10.6
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left open cuff left",
+      "from": [
+        3.6999999999999997,
+        7.8,
+        7
+      ],
+      "to": [
+        4.5,
+        8.7,
+        9.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left open cuff right",
+      "from": [
+        6.699999999999999,
+        7.8,
+        7
+      ],
+      "to": [
+        7.5,
+        8.7,
+        9.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left ankle strap",
+      "from": [
+        3.8,
+        3.6,
+        6.05
+      ],
+      "to": [
+        7.4,
+        4.2,
+        6.35
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left simple strap rivet",
+      "from": [
+        4.35,
+        3.65,
+        5.85
+      ],
+      "to": [
+        4.85,
+        4.1,
+        6.1
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Right broad dark sole",
+      "from": [
+        8.6,
+        1,
+        4.3
+      ],
+      "to": [
+        12.2,
+        1.6,
+        10.5
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right block heel",
+      "from": [
+        8.799999999999999,
+        1.6,
+        9
+      ],
+      "to": [
+        12.0,
+        2.5,
+        10.3
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right thick toe cap",
+      "from": [
+        8.6,
+        1.6,
+        4.4
+      ],
+      "to": [
+        12.2,
+        2.9,
+        7.1
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right stepped toe upper",
+      "from": [
+        8.799999999999999,
+        2.9,
+        4.8
+      ],
+      "to": [
+        12.0,
+        3.3,
+        6.6
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right leather instep",
+      "from": [
+        8.799999999999999,
+        2.9,
+        6.6
+      ],
+      "to": [
+        12.0,
+        4,
+        8.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right ankle front",
+      "from": [
+        8.799999999999999,
+        3.3,
+        6.3
+      ],
+      "to": [
+        12.0,
+        7.8,
+        7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right ankle rear",
+      "from": [
+        8.799999999999999,
+        2.5,
+        9.7
+      ],
+      "to": [
+        12.0,
+        7.8,
+        10.4
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right ankle left side",
+      "from": [
+        8.6,
+        2.5,
+        7
+      ],
+      "to": [
+        9.299999999999999,
+        7.8,
+        9.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right ankle right side",
+      "from": [
+        11.5,
+        2.5,
+        7
+      ],
+      "to": [
+        12.2,
+        7.8,
+        9.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right open cuff front",
+      "from": [
+        8.5,
+        7.8,
+        6.1
+      ],
+      "to": [
+        12.3,
+        8.7,
+        7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right open cuff rear",
+      "from": [
+        8.5,
+        7.8,
+        9.7
+      ],
+      "to": [
+        12.3,
+        8.7,
+        10.6
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right open cuff left",
+      "from": [
+        8.5,
+        7.8,
+        7
+      ],
+      "to": [
+        9.299999999999999,
+        8.7,
+        9.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right open cuff right",
+      "from": [
+        11.5,
+        7.8,
+        7
+      ],
+      "to": [
+        12.3,
+        8.7,
+        9.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right ankle strap",
+      "from": [
+        8.6,
+        3.6,
+        6.05
+      ],
+      "to": [
+        12.2,
+        4.2,
+        6.35
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right simple strap rivet",
+      "from": [
+        9.15,
+        3.65,
+        5.85
+      ],
+      "to": [
+        9.65,
+        4.1,
+        6.1
+      ],
+      "material": "iron"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      155,
+      8
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.16
+  }
+}

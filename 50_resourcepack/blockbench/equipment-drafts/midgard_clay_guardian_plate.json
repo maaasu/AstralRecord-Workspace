@@ -1,0 +1,489 @@
+{
+  "id": "midgard_clay_guardian_plate",
+  "master_id": "20a00014",
+  "kind": "armor",
+  "intent": "土塊を固めた胸当て。テラコッタに近い暖かい粘土色の大きな二枚板、角張った肩、単純な守護像の角印と太い革帯で堅牢さを出す。首と胴の内部を開けた構造を守り、前襟の実材を運搬基準にする。",
+  "grip": [
+    8,
+    11.5,
+    5.1
+  ],
+  "materials": {
+    "lining": {
+      "palette": [
+        "25262A",
+        "3D3436",
+        "57433F",
+        "705448"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "303831",
+        "505A4E",
+        "7F8B74",
+        "A8B195",
+        "C3C7A6"
+      ],
+      "pattern": [
+        "33344332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222111",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "clay": {
+      "palette": [
+        "4B3E30",
+        "6A523B",
+        "8C6A4A",
+        "A9875F",
+        "C0A37B"
+      ],
+      "pattern": [
+        "34444332",
+        "23344332",
+        "23333322",
+        "23333322",
+        "23333222",
+        "22333322",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "clay_side": {
+      "palette": [
+        "3C352D",
+        "564736",
+        "756048",
+        "968063",
+        "B09B7B"
+      ],
+      "pattern": [
+        "33333332",
+        "22333222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "clay_edge": {
+      "palette": [
+        "43392E",
+        "65503A",
+        "8C704D",
+        "B4976C",
+        "CDB78D"
+      ],
+      "pattern": [
+        "33344332",
+        "22333322",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "earthen_strap": {
+      "palette": [
+        "342E27",
+        "51402F",
+        "75573A",
+        "997347"
+      ],
+      "pattern": [
+        "23333222",
+        "22222222",
+        "22222222",
+        "22322222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00111100"
+      ]
+    },
+    "seal": {
+      "palette": [
+        "544532",
+        "7A6041",
+        "9F8054",
+        "C0A574"
+      ],
+      "pattern": [
+        "22222222",
+        "23333332",
+        "23033032",
+        "23033032",
+        "23333332",
+        "22333322",
+        "12233221",
+        "01122110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left solid earthen front slab",
+      "from": [
+        3.5,
+        5.1,
+        4.8
+      ],
+      "to": [
+        7.9,
+        11.3,
+        5.85
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Right solid earthen front slab",
+      "from": [
+        8.1,
+        5.1,
+        4.8
+      ],
+      "to": [
+        12.5,
+        11.3,
+        5.85
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Continuous lower clay breast",
+      "from": [
+        3.5,
+        3.5,
+        5.0
+      ],
+      "to": [
+        12.5,
+        5.1,
+        5.85
+      ],
+      "material": "clay",
+      "side": "clay_side"
+    },
+    {
+      "name": "Rear broad clay slab",
+      "from": [
+        3.5,
+        3.8,
+        10.2
+      ],
+      "to": [
+        12.5,
+        11.8,
+        11.2
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Left leather side binding",
+      "from": [
+        3.2,
+        4.2,
+        5.85
+      ],
+      "to": [
+        4.2,
+        10.3,
+        10.2
+      ],
+      "material": "earthen_strap"
+    },
+    {
+      "name": "Right leather side binding",
+      "from": [
+        11.8,
+        4.2,
+        5.85
+      ],
+      "to": [
+        12.8,
+        10.3,
+        10.2
+      ],
+      "material": "earthen_strap"
+    },
+    {
+      "name": "Left neck shoulder bridge",
+      "from": [
+        3.5,
+        11.3,
+        5.0
+      ],
+      "to": [
+        6.6,
+        12.5,
+        11.2
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Right neck shoulder bridge",
+      "from": [
+        9.4,
+        11.3,
+        5.0
+      ],
+      "to": [
+        12.5,
+        12.5,
+        11.2
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Front collar low bridge",
+      "from": [
+        5.2,
+        11.15,
+        4.65
+      ],
+      "to": [
+        10.8,
+        11.9,
+        5.5
+      ],
+      "material": "clay_edge",
+      "side": "clay_side"
+    },
+    {
+      "name": "Rear collar low bridge",
+      "from": [
+        5.2,
+        11.8,
+        10.25
+      ],
+      "to": [
+        10.8,
+        12.45,
+        11.15
+      ],
+      "material": "clay_edge",
+      "side": "clay_side"
+    },
+    {
+      "name": "Left block shoulder cap",
+      "from": [
+        1.8,
+        10.1,
+        5.0
+      ],
+      "to": [
+        4.6,
+        12.1,
+        10.8
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Right block shoulder cap",
+      "from": [
+        11.4,
+        10.1,
+        5.0
+      ],
+      "to": [
+        14.2,
+        12.1,
+        10.8
+      ],
+      "material": "clay",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Left shoulder outer step",
+      "from": [
+        1.5,
+        9.4,
+        5.5
+      ],
+      "to": [
+        2.5,
+        10.4,
+        10.3
+      ],
+      "material": "clay_side",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Right shoulder outer step",
+      "from": [
+        13.5,
+        9.4,
+        5.5
+      ],
+      "to": [
+        14.5,
+        10.4,
+        10.3
+      ],
+      "material": "clay_side",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Guardian stamp raised square",
+      "from": [
+        6.5,
+        7.4,
+        4.4
+      ],
+      "to": [
+        9.5,
+        10.2,
+        4.85
+      ],
+      "material": "seal",
+      "side": "clay_side",
+      "cap": "clay_edge"
+    },
+    {
+      "name": "Lower front binding",
+      "from": [
+        3.3,
+        4.2,
+        4.55
+      ],
+      "to": [
+        12.7,
+        5.0,
+        5.15
+      ],
+      "material": "earthen_strap"
+    },
+    {
+      "name": "Lower rear binding",
+      "from": [
+        3.3,
+        4.2,
+        10.9
+      ],
+      "to": [
+        12.7,
+        5.0,
+        11.45
+      ],
+      "material": "earthen_strap"
+    },
+    {
+      "name": "Left upper strap fastener",
+      "from": [
+        3.8,
+        10.5,
+        4.5
+      ],
+      "to": [
+        4.6,
+        11.3,
+        4.9
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Right upper strap fastener",
+      "from": [
+        11.4,
+        10.5,
+        4.5
+      ],
+      "to": [
+        12.2,
+        11.3,
+        4.9
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Inner rear leather lining",
+      "from": [
+        4.2,
+        4.6,
+        9.95
+      ],
+      "to": [
+        11.8,
+        11.4,
+        10.2
+      ],
+      "material": "lining"
+    },
+    {
+      "name": "Inner left collar lining",
+      "from": [
+        4.2,
+        11.0,
+        5.8
+      ],
+      "to": [
+        6.4,
+        11.3,
+        10.0
+      ],
+      "material": "lining"
+    },
+    {
+      "name": "Inner right collar lining",
+      "from": [
+        9.6,
+        11.0,
+        5.8
+      ],
+      "to": [
+        11.8,
+        11.3,
+        10.0
+      ],
+      "material": "lining"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      155,
+      8
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.03
+  }
+}

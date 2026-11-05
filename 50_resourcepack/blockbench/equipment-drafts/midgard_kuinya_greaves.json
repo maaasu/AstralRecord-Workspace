@@ -1,0 +1,504 @@
+{
+  "id": "midgard_kuinya_greaves",
+  "master_id": "20a00017",
+  "kind": "armor",
+  "intent": "重い脚甲を二本の脚筒と独立した膝板で表す。赤褐色の厚い革板、後ろの革帯、開いた腰帯が序盤の実用品らしい構造。左右脚の空間と膝の継ぎ目を残し、前腰帯の実材を運搬基準にする。",
+  "grip": [
+    8,
+    11.2,
+    5.6
+  ],
+  "materials": {
+    "red_hide": {
+      "palette": [
+        "542F30",
+        "783A35",
+        "9C4A3D",
+        "B5654C",
+        "CA8660"
+      ],
+      "pattern": [
+        "23333322",
+        "23343322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22333322",
+        "12333221",
+        "11222211"
+      ]
+    },
+    "red_plate": {
+      "palette": [
+        "542E2B",
+        "793E33",
+        "9A503D",
+        "B56B4D",
+        "CE8A61"
+      ],
+      "pattern": [
+        "34444332",
+        "23344332",
+        "23333322",
+        "23333322",
+        "23333322",
+        "22333322",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "red_edge": {
+      "palette": [
+        "392C29",
+        "5F3C30",
+        "87513A",
+        "AC744C",
+        "C69363"
+      ],
+      "pattern": [
+        "33343332",
+        "22223221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "25262A",
+        "3D3436",
+        "57433F",
+        "705448"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "303831",
+        "505A4E",
+        "7F8B74",
+        "A8B195",
+        "C3C7A6"
+      ],
+      "pattern": [
+        "33344332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222111",
+        "01111100",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Open waist front band",
+      "from": [
+        4,
+        10.6,
+        5.1
+      ],
+      "to": [
+        12,
+        11.7,
+        6.05
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Open waist rear band",
+      "from": [
+        4,
+        10.6,
+        9.95
+      ],
+      "to": [
+        12,
+        11.7,
+        10.9
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Open waist left band",
+      "from": [
+        4,
+        10.6,
+        6.05
+      ],
+      "to": [
+        4.8,
+        11.7,
+        9.95
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Open waist right band",
+      "from": [
+        11.2,
+        10.6,
+        6.05
+      ],
+      "to": [
+        12,
+        11.7,
+        9.95
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left hip front",
+      "from": [
+        4,
+        8.7,
+        5.3
+      ],
+      "to": [
+        7.6,
+        10.6,
+        6.15
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left hip rear",
+      "from": [
+        4,
+        8.7,
+        9.85
+      ],
+      "to": [
+        7.6,
+        10.6,
+        10.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left thick thigh front plate",
+      "from": [
+        4.15,
+        5.4,
+        5.3
+      ],
+      "to": [
+        7.45,
+        8.7,
+        6.15
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left broad knee cap",
+      "from": [
+        3.95,
+        4.3,
+        5.05
+      ],
+      "to": [
+        7.65,
+        5.4,
+        6.3
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left separate shin plate",
+      "from": [
+        4.15,
+        1.6,
+        5.3
+      ],
+      "to": [
+        7.45,
+        4.3,
+        6.15
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left rear leather panel",
+      "from": [
+        4.15,
+        1.6,
+        9.85
+      ],
+      "to": [
+        7.45,
+        8.7,
+        10.55
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left outer side panel",
+      "from": [
+        4,
+        1.6,
+        6.15
+      ],
+      "to": [
+        4.7,
+        8.7,
+        9.85
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left inner side panel",
+      "from": [
+        6.9,
+        1.6,
+        6.15
+      ],
+      "to": [
+        7.6,
+        8.7,
+        9.85
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Left flexible knee rear strap",
+      "from": [
+        4.05,
+        4.1,
+        9.7
+      ],
+      "to": [
+        7.55,
+        5.3,
+        10.75
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Left lower cuff",
+      "from": [
+        4,
+        1.1,
+        5.2
+      ],
+      "to": [
+        7.6,
+        1.6,
+        10.65
+      ],
+      "material": "red_edge",
+      "side": "lining"
+    },
+    {
+      "name": "Right hip front",
+      "from": [
+        8.4,
+        8.7,
+        5.3
+      ],
+      "to": [
+        12.0,
+        10.6,
+        6.15
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right hip rear",
+      "from": [
+        8.4,
+        8.7,
+        9.85
+      ],
+      "to": [
+        12.0,
+        10.6,
+        10.7
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right thick thigh front plate",
+      "from": [
+        8.55,
+        5.4,
+        5.3
+      ],
+      "to": [
+        11.850000000000001,
+        8.7,
+        6.15
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right broad knee cap",
+      "from": [
+        8.35,
+        4.3,
+        5.05
+      ],
+      "to": [
+        12.05,
+        5.4,
+        6.3
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right separate shin plate",
+      "from": [
+        8.55,
+        1.6,
+        5.3
+      ],
+      "to": [
+        11.850000000000001,
+        4.3,
+        6.15
+      ],
+      "material": "red_plate",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right rear leather panel",
+      "from": [
+        8.55,
+        1.6,
+        9.85
+      ],
+      "to": [
+        11.850000000000001,
+        8.7,
+        10.55
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right outer side panel",
+      "from": [
+        8.4,
+        1.6,
+        6.15
+      ],
+      "to": [
+        9.1,
+        8.7,
+        9.85
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right inner side panel",
+      "from": [
+        11.3,
+        1.6,
+        6.15
+      ],
+      "to": [
+        12.0,
+        8.7,
+        9.85
+      ],
+      "material": "red_hide",
+      "side": "red_edge"
+    },
+    {
+      "name": "Right flexible knee rear strap",
+      "from": [
+        8.450000000000001,
+        4.1,
+        9.7
+      ],
+      "to": [
+        11.95,
+        5.3,
+        10.75
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right lower cuff",
+      "from": [
+        8.4,
+        1.1,
+        5.2
+      ],
+      "to": [
+        12.0,
+        1.6,
+        10.65
+      ],
+      "material": "red_edge",
+      "side": "lining"
+    },
+    {
+      "name": "Plain rectangular belt buckle",
+      "from": [
+        7.2,
+        10.8,
+        4.8
+      ],
+      "to": [
+        8.8,
+        11.5,
+        5.2
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Buckle leather centre",
+      "from": [
+        7.55,
+        10.95,
+        4.65
+      ],
+      "to": [
+        8.45,
+        11.35,
+        4.85
+      ],
+      "material": "red_edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      155,
+      8
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.05
+  }
+}

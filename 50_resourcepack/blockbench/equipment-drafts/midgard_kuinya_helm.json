@@ -1,0 +1,362 @@
+{
+  "id": "midgard_kuinya_helm",
+  "master_id": "20a00018",
+  "kind": "armor",
+  "intent": "Lv3の近接向け兜。赤褐色の成形革、低い段付き天頂、厚い頬当てと太い眉庇で頑丈さを示す。中空の顔開口と内張りを確保し、装飾は二つの鉄留めに限定する。後頭の実材を持ち運び基準にする。",
+  "grip": [
+    8,
+    5,
+    10.7
+  ],
+  "materials": {
+    "red_hide": {
+      "palette": [
+        "542F30",
+        "783A35",
+        "9C4A3D",
+        "B5654C",
+        "CA8660"
+      ],
+      "pattern": [
+        "23333322",
+        "23343322",
+        "22333322",
+        "22333222",
+        "22333222",
+        "22333322",
+        "12333221",
+        "11222211"
+      ]
+    },
+    "red_plate": {
+      "palette": [
+        "542E2B",
+        "793E33",
+        "9A503D",
+        "B56B4D",
+        "CE8A61"
+      ],
+      "pattern": [
+        "34444332",
+        "23344332",
+        "23333322",
+        "23333322",
+        "23333322",
+        "22333322",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "red_edge": {
+      "palette": [
+        "392C29",
+        "5F3C30",
+        "87513A",
+        "AC744C",
+        "C69363"
+      ],
+      "pattern": [
+        "33343332",
+        "22223221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "12222221",
+        "11111111",
+        "00111000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "25262A",
+        "3D3436",
+        "57433F",
+        "705448"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "303831",
+        "505A4E",
+        "7F8B74",
+        "A8B195",
+        "C3C7A6"
+      ],
+      "pattern": [
+        "33344332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222111",
+        "01111100",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid rear shell",
+      "from": [
+        4,
+        3.0,
+        10.3
+      ],
+      "to": [
+        12,
+        9.1,
+        11.1
+      ],
+      "material": "red_hide",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Left shell wall",
+      "from": [
+        4,
+        4.1,
+        5.1
+      ],
+      "to": [
+        5.1,
+        9.1,
+        10.3
+      ],
+      "material": "red_hide",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Right shell wall",
+      "from": [
+        10.9,
+        4.1,
+        5.1
+      ],
+      "to": [
+        12,
+        9.1,
+        10.3
+      ],
+      "material": "red_hide",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Deep brow plate",
+      "from": [
+        4,
+        8,
+        4.8
+      ],
+      "to": [
+        12,
+        9.1,
+        5.7
+      ],
+      "material": "red_plate",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Full crown shell",
+      "from": [
+        4,
+        9.1,
+        5.1
+      ],
+      "to": [
+        12,
+        10.1,
+        11.1
+      ],
+      "material": "red_plate",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Stepped low crown",
+      "from": [
+        5,
+        10.1,
+        5.7
+      ],
+      "to": [
+        11,
+        10.7,
+        10.5
+      ],
+      "material": "red_plate",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Left broad cheek",
+      "from": [
+        4.2,
+        3.1,
+        4.9
+      ],
+      "to": [
+        5.5,
+        8,
+        6.4
+      ],
+      "material": "red_plate",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Right broad cheek",
+      "from": [
+        10.5,
+        3.1,
+        4.9
+      ],
+      "to": [
+        11.8,
+        8,
+        6.4
+      ],
+      "material": "red_plate",
+      "side": "red_edge",
+      "cap": "red_plate"
+    },
+    {
+      "name": "Left neck rim",
+      "from": [
+        4,
+        2.7,
+        8.8
+      ],
+      "to": [
+        5.1,
+        4.1,
+        10.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Right neck rim",
+      "from": [
+        10.9,
+        2.7,
+        8.8
+      ],
+      "to": [
+        12,
+        4.1,
+        10.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Brow rolled edge",
+      "from": [
+        3.8,
+        7.8,
+        4.6
+      ],
+      "to": [
+        12.2,
+        8.2,
+        5.6
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Rear cloth lining",
+      "from": [
+        5.1,
+        4.2,
+        10.05
+      ],
+      "to": [
+        10.9,
+        8.7,
+        10.3
+      ],
+      "material": "lining"
+    },
+    {
+      "name": "Crown cloth lining",
+      "from": [
+        5.1,
+        8.85,
+        5.7
+      ],
+      "to": [
+        10.9,
+        9.1,
+        10.05
+      ],
+      "material": "lining"
+    },
+    {
+      "name": "Crown central reinforcing rib",
+      "from": [
+        7.6,
+        9.9,
+        5.5
+      ],
+      "to": [
+        8.4,
+        10.9,
+        10.7
+      ],
+      "material": "red_edge"
+    },
+    {
+      "name": "Single brow iron rivet",
+      "from": [
+        4.38,
+        8.25,
+        4.55
+      ],
+      "to": [
+        4.819999999999999,
+        8.7,
+        4.82
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Single brow iron rivet",
+      "from": [
+        11.18,
+        8.25,
+        4.55
+      ],
+      "to": [
+        11.620000000000001,
+        8.7,
+        4.82
+      ],
+      "material": "iron"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      16,
+      155,
+      8
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.15
+  }
+}

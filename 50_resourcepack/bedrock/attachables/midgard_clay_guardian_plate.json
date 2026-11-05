@@ -1,0 +1,50 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "astralrecord:midgard_clay_guardian_plate",
+      "materials": {
+        "default": "entity_alphatest",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/entity/items/midgard_clay_guardian_plate",
+        "enchanted": "textures/misc/enchanted_item_glint",
+        "armor": "textures/models/armor/midgard_clay_guardian_plate"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.midgard_clay_guardian_plate",
+        "worn": "geometry.astralrecord.midgard_clay_guardian_plate.worn"
+      },
+      "animations": {
+        "first_person": "animation.astralrecord.midgard_clay_guardian_plate.first_person",
+        "third_person": "animation.astralrecord.midgard_clay_guardian_plate.third_person",
+        "attack": "animation.astralrecord.midgard_clay_guardian_plate.attack"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.nox_swing = math.clamp((context.owning_entity->variable.attack_time) ?? 0.0, 0.0, 1.0);"
+        ],
+        "animate": [
+          {
+            "first_person": "context.is_first_person"
+          },
+          {
+            "third_person": "!context.is_first_person"
+          },
+          {
+            "attack": "context.item_slot == 'main_hand' && variable.nox_swing > 0.0"
+          }
+        ]
+      },
+      "render_controllers": [
+        {
+          "controller.render.item_default": "context.item_slot == 'main_hand' || context.item_slot == 'off_hand'"
+        },
+        {
+          "controller.render.astralrecord.armor_worn": "context.item_slot != 'main_hand' && context.item_slot != 'off_hand'"
+        }
+      ]
+    }
+  }
+}
