@@ -1,0 +1,442 @@
+{
+  "id": "eriva_wand",
+  "master_id": "20a00079",
+  "kind": "wand",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftの木の道具と骨を起点にした短いロッド。上端を二本の太い牙の叉にし、間に小さな骨髄色の塊を保持する。長杖の獣頭や大きな角冠を省き、短く軽い二叉輪郭と緑の結び布で区別。光る宝石や現実の祭具細工は足さない。",
+  "gui": {
+    "rotation": [
+      12,
+      -22,
+      -30
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.95
+  },
+  "materials": {
+    "bone_face": {
+      "palette": [
+        "817660",
+        "a79b7d",
+        "c5b998",
+        "dfd5b5",
+        "ece5ca"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23323321",
+        "23333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "a2997c",
+        "c4ba98",
+        "dbd1b0",
+        "eae2c6",
+        "f4efd9"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "bone_shadow": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "a19776",
+        "bfb28f",
+        "d3c8a6"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "bone_joint": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "aba07e",
+        "d2c6a3",
+        "e8dfc0"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23433321",
+        "23322321",
+        "23322321",
+        "23433321",
+        "23333221",
+        "11222110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292a20",
+        "41422c",
+        "5c5837",
+        "7d7045",
+        "9e8d58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302c20",
+        "4d442c",
+        "6c5e3a",
+        "90804d",
+        "b29d65"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382a20",
+        "573e2b",
+        "775738",
+        "9b7750",
+        "b59968"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "forest_wrap": {
+      "palette": [
+        "253327",
+        "3c4d31",
+        "586840",
+        "7c8653",
+        "a1a66c"
+      ],
+      "pattern": [
+        "23333211",
+        "23333211",
+        "22333211",
+        "23333211",
+        "23323211",
+        "23333211",
+        "22333211",
+        "11222100"
+      ]
+    },
+    "marrow": {
+      "palette": [
+        "584537",
+        "806450",
+        "a88d69",
+        "c7b58a",
+        "e0d1a6"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12344321",
+        "13422331",
+        "13422331",
+        "12344321",
+        "12233221",
+        "01111110"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Short carved wood rod",
+      "from": [
+        7.3,
+        1.9,
+        7.32
+      ],
+      "to": [
+        8.7,
+        11.7,
+        8.68
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Solid forestwood palm grip",
+      "from": [
+        7.32,
+        2.55,
+        7.2
+      ],
+      "to": [
+        8.68,
+        5.45,
+        8.8
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad green hide wrap",
+      "from": [
+        7.21,
+        2.95,
+        7.12
+      ],
+      "to": [
+        8.79,
+        5.05,
+        8.88
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Thick hide grip retaining collar",
+      "from": [
+        7.13,
+        2.6,
+        7.04
+      ],
+      "to": [
+        8.87,
+        2.9,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Thick hide grip retaining collar",
+      "from": [
+        7.13,
+        5.19,
+        7.04
+      ],
+      "to": [
+        8.87,
+        5.49,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Bone butt cap",
+      "from": [
+        7.03,
+        1.43,
+        7.05
+      ],
+      "to": [
+        8.97,
+        2.21,
+        8.95
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper split jaw bridge",
+      "from": [
+        6.28,
+        10.5,
+        6.98
+      ],
+      "to": [
+        9.72,
+        11.45,
+        9.02
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left lower jaw tine",
+      "from": [
+        6.2,
+        11.1,
+        7.05
+      ],
+      "to": [
+        7.1,
+        13.15,
+        8.95
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left inward tusk tip",
+      "from": [
+        6.7,
+        12.8,
+        7.15
+      ],
+      "to": [
+        7.65,
+        14.25,
+        8.85
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Right lower jaw tine",
+      "from": [
+        8.9,
+        11.1,
+        7.05
+      ],
+      "to": [
+        9.8,
+        13.15,
+        8.95
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right inward tusk tip",
+      "from": [
+        8.35,
+        12.8,
+        7.15
+      ],
+      "to": [
+        9.3,
+        14.25,
+        8.85
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Solid marrow focus between jaws",
+      "from": [
+        7.1,
+        11.35,
+        7.36
+      ],
+      "to": [
+        8.9,
+        13.2,
+        8.64
+      ],
+      "material": "marrow",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Carved broad front bone tooth",
+      "from": [
+        7.5,
+        10.48,
+        6.75
+      ],
+      "to": [
+        8.5,
+        11.55,
+        7.07
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Wide forest cloth neck tie",
+      "from": [
+        7.08,
+        9.7,
+        7.06
+      ],
+      "to": [
+        8.92,
+        10.28,
+        8.94
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Low thick rawhide strip",
+      "from": [
+        7.0,
+        6.0,
+        7.01
+      ],
+      "to": [
+        9.0,
+        6.48,
+        8.99
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Lower square marrow pin",
+      "from": [
+        7.55,
+        6.12,
+        6.86
+      ],
+      "to": [
+        8.45,
+        6.61,
+        7.06
+      ],
+      "material": "marrow"
+    }
+  ]
+}

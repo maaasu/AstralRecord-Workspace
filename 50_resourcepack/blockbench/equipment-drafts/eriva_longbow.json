@@ -1,0 +1,854 @@
+{
+  "id": "eriva_longbow",
+  "master_id": "20a00078",
+  "kind": "longbow",
+  "intent": "マスター名のガンボウに合わせた重い角弓。Minecraftの弓と骨ブロックを起点に、獣のあごを思わせる四角い太いリサー、短い矢受け、大きな骨の板を二重に重ねる。現実の銃の細部を模倣せず、短弓と異なる重い段付き輪郭で遠隔の一撃を表す。",
+  "grip": [
+    5.5,
+    10,
+    8
+  ],
+  "bow": {
+    "upper_tip": [
+      10.6,
+      18.65,
+      8
+    ],
+    "lower_tip": [
+      10.6,
+      1.35,
+      8
+    ],
+    "string_center": [
+      10.6,
+      10,
+      8
+    ]
+  },
+  "gui": {
+    "rotation": [
+      12,
+      18,
+      -28
+    ],
+    "translation": [
+      0,
+      -1,
+      0
+    ],
+    "scale": 0.75
+  },
+  "materials": {
+    "bone_face": {
+      "palette": [
+        "817660",
+        "a79b7d",
+        "c5b998",
+        "dfd5b5",
+        "ece5ca"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23323321",
+        "23333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "a2997c",
+        "c4ba98",
+        "dbd1b0",
+        "eae2c6",
+        "f4efd9"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "bone_shadow": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "a19776",
+        "bfb28f",
+        "d3c8a6"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "bone_joint": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "aba07e",
+        "d2c6a3",
+        "e8dfc0"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23433321",
+        "23322321",
+        "23322321",
+        "23433321",
+        "23333221",
+        "11222110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292a20",
+        "41422c",
+        "5c5837",
+        "7d7045",
+        "9e8d58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302c20",
+        "4d442c",
+        "6c5e3a",
+        "90804d",
+        "b29d65"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382a20",
+        "573e2b",
+        "775738",
+        "9b7750",
+        "b59968"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "forest_wrap": {
+      "palette": [
+        "253327",
+        "3c4d31",
+        "586840",
+        "7c8653",
+        "a1a66c"
+      ],
+      "pattern": [
+        "23333211",
+        "23333211",
+        "22333211",
+        "23333211",
+        "23323211",
+        "23333211",
+        "22333211",
+        "11222100"
+      ]
+    },
+    "sinew": {
+      "palette": [
+        "514734",
+        "796b4c",
+        "a39064",
+        "c9b987",
+        "e1d5a8"
+      ],
+      "pattern": [
+        "23333211",
+        "22333211",
+        "22333211",
+        "23343211",
+        "23333211",
+        "22333211",
+        "22333211",
+        "12222100"
+      ]
+    },
+    "cavity": {
+      "palette": [
+        "242a23",
+        "384030",
+        "526043",
+        "6d7955"
+      ],
+      "pattern": [
+        "00011000",
+        "01111110",
+        "01122110",
+        "11233211",
+        "11233211",
+        "01122110",
+        "01111110",
+        "00011000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid forestwood palm grip",
+      "from": [
+        4.82,
+        8.55,
+        7.05
+      ],
+      "to": [
+        6.18,
+        11.45,
+        8.95
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad green hide wrap",
+      "from": [
+        4.71,
+        8.95,
+        7.12
+      ],
+      "to": [
+        6.29,
+        11.05,
+        8.88
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Thick hide grip retaining collar",
+      "from": [
+        4.63,
+        8.6,
+        7.04
+      ],
+      "to": [
+        6.37,
+        8.9,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Thick hide grip retaining collar",
+      "from": [
+        4.63,
+        11.19,
+        7.04
+      ],
+      "to": [
+        6.37,
+        11.49,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Deep squared bone jaw above palm",
+      "from": [
+        4.3,
+        11.45,
+        6.76
+      ],
+      "to": [
+        6.5,
+        13.2,
+        9.24
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Wooden riser core above grip",
+      "from": [
+        4.85,
+        10.7,
+        7.36
+      ],
+      "to": [
+        6.15,
+        13.1,
+        8.64
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Wooden riser core below grip",
+      "from": [
+        4.85,
+        6.9,
+        7.36
+      ],
+      "to": [
+        6.15,
+        9.3,
+        8.64
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Dark flat jaw inset",
+      "from": [
+        4.55,
+        11.7,
+        6.55
+      ],
+      "to": [
+        6.25,
+        12.65,
+        6.79
+      ],
+      "material": "cavity"
+    },
+    {
+      "name": "Bone tooth above jaw inset",
+      "from": [
+        4.55,
+        12.6,
+        6.44
+      ],
+      "to": [
+        6.25,
+        13.05,
+        6.77
+      ],
+      "material": "bone_edge"
+    },
+    {
+      "name": "Bone arrow guide",
+      "from": [
+        6.1,
+        9.45,
+        7.25
+      ],
+      "to": [
+        8.7,
+        10.55,
+        8.75
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Square open guide muzzle",
+      "from": [
+        8.45,
+        9.58,
+        7.4
+      ],
+      "to": [
+        9.0,
+        10.42,
+        8.6
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper heavy forestwood spine 1",
+      "from": [
+        5.0,
+        12.3,
+        7.16
+      ],
+      "to": [
+        6.45,
+        14.45,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad tusk splint 1",
+      "from": [
+        4.77,
+        12.33,
+        6.86
+      ],
+      "to": [
+        6.5,
+        14.42,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper heavy forestwood spine 2",
+      "from": [
+        5.8,
+        14.0,
+        7.16
+      ],
+      "to": [
+        7.4,
+        16.0,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad tusk splint 2",
+      "from": [
+        5.57,
+        14.03,
+        6.86
+      ],
+      "to": [
+        7.45,
+        15.97,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper broad hide limb band 2",
+      "from": [
+        5.5,
+        14.73,
+        6.78
+      ],
+      "to": [
+        7.55,
+        15.27,
+        8.92
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper heavy forestwood spine 3",
+      "from": [
+        7.05,
+        15.6,
+        7.16
+      ],
+      "to": [
+        8.45,
+        17.2,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad tusk splint 3",
+      "from": [
+        6.82,
+        15.63,
+        6.86
+      ],
+      "to": [
+        8.5,
+        17.17,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper heavy forestwood spine 4",
+      "from": [
+        8.1,
+        16.9,
+        7.16
+      ],
+      "to": [
+        9.5,
+        18.3,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad tusk splint 4",
+      "from": [
+        7.87,
+        16.93,
+        6.86
+      ],
+      "to": [
+        9.55,
+        18.27,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper broad hide limb band 4",
+      "from": [
+        7.8,
+        17.33,
+        6.78
+      ],
+      "to": [
+        9.65,
+        17.87,
+        8.92
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Upper heavy forestwood spine 5",
+      "from": [
+        9.15,
+        18.0,
+        7.16
+      ],
+      "to": [
+        10.85,
+        18.9,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad tusk splint 5",
+      "from": [
+        8.92,
+        18.03,
+        6.86
+      ],
+      "to": [
+        10.9,
+        18.87,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Upper thick horn nock",
+      "from": [
+        10.12,
+        18.2,
+        6.84
+      ],
+      "to": [
+        11.1,
+        19.1,
+        9.16
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Lower heavy forestwood spine 1",
+      "from": [
+        5.0,
+        5.55,
+        7.16
+      ],
+      "to": [
+        6.45,
+        7.7,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad tusk splint 1",
+      "from": [
+        4.77,
+        5.58,
+        6.86
+      ],
+      "to": [
+        6.5,
+        7.67,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Lower heavy forestwood spine 2",
+      "from": [
+        5.8,
+        4.0,
+        7.16
+      ],
+      "to": [
+        7.4,
+        6.0,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad tusk splint 2",
+      "from": [
+        5.57,
+        4.03,
+        6.86
+      ],
+      "to": [
+        7.45,
+        5.97,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Lower broad hide limb band 2",
+      "from": [
+        5.5,
+        4.73,
+        6.78
+      ],
+      "to": [
+        7.55,
+        5.27,
+        8.92
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Lower heavy forestwood spine 3",
+      "from": [
+        7.05,
+        2.8,
+        7.16
+      ],
+      "to": [
+        8.45,
+        4.4,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad tusk splint 3",
+      "from": [
+        6.82,
+        2.83,
+        6.86
+      ],
+      "to": [
+        8.5,
+        4.37,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Lower heavy forestwood spine 4",
+      "from": [
+        8.1,
+        1.7,
+        7.16
+      ],
+      "to": [
+        9.5,
+        3.1,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad tusk splint 4",
+      "from": [
+        7.87,
+        1.73,
+        6.86
+      ],
+      "to": [
+        9.55,
+        3.07,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Lower broad hide limb band 4",
+      "from": [
+        7.8,
+        2.13,
+        6.78
+      ],
+      "to": [
+        9.65,
+        2.67,
+        8.92
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Lower heavy forestwood spine 5",
+      "from": [
+        9.15,
+        1.1,
+        7.16
+      ],
+      "to": [
+        10.85,
+        2.0,
+        8.84
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad tusk splint 5",
+      "from": [
+        8.92,
+        1.13,
+        6.86
+      ],
+      "to": [
+        10.9,
+        1.97,
+        7.25
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Lower thick horn nock",
+      "from": [
+        10.12,
+        0.9,
+        6.84
+      ],
+      "to": [
+        11.1,
+        1.8,
+        9.16
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Visible lower hunter wrap",
+      "from": [
+        4.62,
+        8.4,
+        6.7
+      ],
+      "to": [
+        6.38,
+        9.25,
+        7.14
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Lower sinew bowstring",
+      "from": [
+        10.46,
+        1.35,
+        7.86
+      ],
+      "to": [
+        10.74,
+        10,
+        8.14
+      ],
+      "material": "sinew",
+      "bone": "cord_lower"
+    },
+    {
+      "name": "Upper sinew bowstring",
+      "from": [
+        10.46,
+        10,
+        7.86
+      ],
+      "to": [
+        10.74,
+        18.65,
+        8.14
+      ],
+      "material": "sinew",
+      "bone": "cord_upper"
+    }
+  ]
+}

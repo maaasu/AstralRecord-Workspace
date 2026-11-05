@@ -1,0 +1,612 @@
+{
+  "id": "eriva_staff",
+  "master_id": "20a00080",
+  "kind": "staff",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "intent": "Minecraftの骨・動物の頭ブロック・木の棒を起点に、四角い獣頭と左右の大段差の角を上端へ置く長杖。短杖の二叉とは異なる横に広い冠で識別し、白骨の全周の明暗、暗い眼窩、木軸と緑の太い布を組み合わせる。写実的な頭骨の穴や細い歯列、宝飾、発光は使わない。",
+  "gui": {
+    "rotation": [
+      10,
+      -20,
+      -24
+    ],
+    "translation": [
+      0,
+      -2,
+      0
+    ],
+    "scale": 0.66
+  },
+  "materials": {
+    "bone_face": {
+      "palette": [
+        "817660",
+        "a79b7d",
+        "c5b998",
+        "dfd5b5",
+        "ece5ca"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23323321",
+        "23333321",
+        "22333221",
+        "12222210"
+      ]
+    },
+    "bone_edge": {
+      "palette": [
+        "a2997c",
+        "c4ba98",
+        "dbd1b0",
+        "eae2c6",
+        "f4efd9"
+      ],
+      "pattern": [
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "43332210",
+        "43322110",
+        "43332210",
+        "33221100"
+      ]
+    },
+    "bone_shadow": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "a19776",
+        "bfb28f",
+        "d3c8a6"
+      ],
+      "pattern": [
+        "23333221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12323221",
+        "12333221",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "bone_joint": {
+      "palette": [
+        "625c4d",
+        "82785f",
+        "aba07e",
+        "d2c6a3",
+        "e8dfc0"
+      ],
+      "pattern": [
+        "12233211",
+        "23344321",
+        "23433321",
+        "23322321",
+        "23322321",
+        "23433321",
+        "23333221",
+        "11222110"
+      ]
+    },
+    "bark": {
+      "palette": [
+        "292a20",
+        "41422c",
+        "5c5837",
+        "7d7045",
+        "9e8d58"
+      ],
+      "pattern": [
+        "12333211",
+        "12333211",
+        "12343211",
+        "12333221",
+        "12323221",
+        "12343221",
+        "12333211",
+        "12333211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302c20",
+        "4d442c",
+        "6c5e3a",
+        "90804d",
+        "b29d65"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12322321",
+        "13233231",
+        "13233231",
+        "12322321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "rawhide": {
+      "palette": [
+        "382a20",
+        "573e2b",
+        "775738",
+        "9b7750",
+        "b59968"
+      ],
+      "pattern": [
+        "22333211",
+        "12223321",
+        "11222332",
+        "21122233",
+        "32112223",
+        "33211222",
+        "23321122",
+        "12332112"
+      ]
+    },
+    "forest_wrap": {
+      "palette": [
+        "253327",
+        "3c4d31",
+        "586840",
+        "7c8653",
+        "a1a66c"
+      ],
+      "pattern": [
+        "23333211",
+        "23333211",
+        "22333211",
+        "23333211",
+        "23323211",
+        "23333211",
+        "22333211",
+        "11222100"
+      ]
+    },
+    "marrow": {
+      "palette": [
+        "584537",
+        "806450",
+        "a88d69",
+        "c7b58a",
+        "e0d1a6"
+      ],
+      "pattern": [
+        "01111110",
+        "12233221",
+        "12344321",
+        "13422331",
+        "13422331",
+        "12344321",
+        "12233221",
+        "01111110"
+      ]
+    },
+    "cavity": {
+      "palette": [
+        "242a23",
+        "384030",
+        "526043",
+        "6d7955"
+      ],
+      "pattern": [
+        "00011000",
+        "01111110",
+        "01122110",
+        "11233211",
+        "11233211",
+        "01122110",
+        "01111110",
+        "00011000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Long dark branch shaft",
+      "from": [
+        7.35,
+        1.1,
+        7.34
+      ],
+      "to": [
+        8.65,
+        17.7,
+        8.66
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Solid forestwood palm grip",
+      "from": [
+        7.32,
+        2.55,
+        7.2
+      ],
+      "to": [
+        8.68,
+        5.45,
+        8.8
+      ],
+      "material": "bark",
+      "side": "bark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad green hide wrap",
+      "from": [
+        7.21,
+        2.95,
+        7.12
+      ],
+      "to": [
+        8.79,
+        5.05,
+        8.88
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Thick hide grip retaining collar",
+      "from": [
+        7.13,
+        2.6,
+        7.04
+      ],
+      "to": [
+        8.87,
+        2.9,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Thick hide grip retaining collar",
+      "from": [
+        7.13,
+        5.19,
+        7.04
+      ],
+      "to": [
+        8.87,
+        5.49,
+        8.96
+      ],
+      "material": "rawhide"
+    },
+    {
+      "name": "Thick bone shaft foot",
+      "from": [
+        7.02,
+        0.7,
+        7.03
+      ],
+      "to": [
+        8.98,
+        1.7,
+        8.97
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Broad forest cloth shaft binding",
+      "from": [
+        7.08,
+        7.7,
+        7.05
+      ],
+      "to": [
+        8.92,
+        8.35,
+        8.95
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Broad forest cloth shaft binding",
+      "from": [
+        7.08,
+        12.0,
+        7.05
+      ],
+      "to": [
+        8.92,
+        12.65,
+        8.95
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Broad forest cloth shaft binding",
+      "from": [
+        7.08,
+        16.45,
+        7.05
+      ],
+      "to": [
+        8.92,
+        17.1,
+        8.95
+      ],
+      "material": "forest_wrap",
+      "side": "rawhide"
+    },
+    {
+      "name": "Animal head bone neck",
+      "from": [
+        6.72,
+        16.6,
+        6.9
+      ],
+      "to": [
+        9.28,
+        18.25,
+        9.1
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Squared beast bone head",
+      "from": [
+        5.5,
+        18.0,
+        6.55
+      ],
+      "to": [
+        10.5,
+        21.0,
+        9.45
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Flat squared snout",
+      "from": [
+        6.4,
+        17.5,
+        6.12
+      ],
+      "to": [
+        9.6,
+        19.2,
+        7.0
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left dark eye socket",
+      "from": [
+        5.95,
+        19.25,
+        6.34
+      ],
+      "to": [
+        7.35,
+        20.35,
+        6.63
+      ],
+      "material": "cavity"
+    },
+    {
+      "name": "Right dark eye socket",
+      "from": [
+        8.65,
+        19.25,
+        6.34
+      ],
+      "to": [
+        10.05,
+        20.35,
+        6.63
+      ],
+      "material": "cavity"
+    },
+    {
+      "name": "Left broad eyebrow",
+      "from": [
+        5.75,
+        20.22,
+        6.16
+      ],
+      "to": [
+        7.55,
+        20.72,
+        6.58
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Right broad eyebrow",
+      "from": [
+        8.45,
+        20.22,
+        6.16
+      ],
+      "to": [
+        10.25,
+        20.72,
+        6.58
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Square nose mark",
+      "from": [
+        7.5,
+        18.12,
+        5.95
+      ],
+      "to": [
+        8.5,
+        18.9,
+        6.22
+      ],
+      "material": "cavity"
+    },
+    {
+      "name": "Left blunt jaw tooth",
+      "from": [
+        6.42,
+        17.05,
+        6.08
+      ],
+      "to": [
+        7.22,
+        17.8,
+        6.92
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Right blunt jaw tooth",
+      "from": [
+        8.78,
+        17.05,
+        6.08
+      ],
+      "to": [
+        9.58,
+        17.8,
+        6.92
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Left bone horn root",
+      "from": [
+        4.82,
+        20.1,
+        7.08
+      ],
+      "to": [
+        5.88,
+        21.7,
+        8.92
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left stepped outward horn",
+      "from": [
+        4.12,
+        21.25,
+        7.22
+      ],
+      "to": [
+        5.3,
+        22.35,
+        8.78
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Left blunt horn tip",
+      "from": [
+        4.1,
+        22.1,
+        7.38
+      ],
+      "to": [
+        4.88,
+        23.0,
+        8.62
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Right bone horn root",
+      "from": [
+        10.12,
+        20.1,
+        7.08
+      ],
+      "to": [
+        11.18,
+        21.7,
+        8.92
+      ],
+      "material": "bone_joint",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right stepped outward horn",
+      "from": [
+        10.7,
+        21.25,
+        7.22
+      ],
+      "to": [
+        11.88,
+        22.35,
+        8.78
+      ],
+      "material": "bone_face",
+      "side": "bone_shadow",
+      "cap": "bone_edge"
+    },
+    {
+      "name": "Right blunt horn tip",
+      "from": [
+        11.12,
+        22.1,
+        7.38
+      ],
+      "to": [
+        11.9,
+        23.0,
+        8.62
+      ],
+      "material": "bone_edge",
+      "side": "bone_shadow"
+    },
+    {
+      "name": "Large marrow stamp on rear head",
+      "from": [
+        7.22,
+        18.65,
+        9.38
+      ],
+      "to": [
+        8.78,
+        20.2,
+        9.6
+      ],
+      "material": "marrow",
+      "side": "bone_shadow"
+    }
+  ]
+}
