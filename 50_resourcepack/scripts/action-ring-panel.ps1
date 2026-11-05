@@ -1,5 +1,20 @@
 # Assemble positioned quads from the shared skill sprite catalog without tracking one model per slot and sprite.
 
+function Convert-RingJsonNumbers {
+    param([double[]] $Values)
+
+    # PowerShell 5.1 omits .0 for whole doubles, while PowerShell 7 preserves it.
+    return ,@(foreach ($value in $Values) {
+        if ($value -ge [int]::MinValue -and $value -le [int]::MaxValue -and $value -eq [math]::Truncate($value)) {
+            [int] $value
+        } else {
+            # Preserve the double's round-trip value without runtime-specific shortest formatting.
+            [decimal]::Parse($value.ToString('G17', [Globalization.CultureInfo]::InvariantCulture),
+                [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture)
+        }
+    })
+}
+
 function New-RingRectangle {
     param([double] $X, [double] $Y, [double] $Width, [double] $Height)
     return @([math]::Round($X - $Width / 2, 4), [math]::Round($Y - $Height / 2, 4),
@@ -8,11 +23,11 @@ function New-RingRectangle {
 
 function New-RingJavaQuad {
     param([double[]] $Rect, [double[]] $UV, [double] $Depth, [int] $Tint = -1)
-    $face = [ordered]@{ texture = '#panel'; uv = $UV }
+    $face = [ordered]@{ texture = '#panel'; uv = (Convert-RingJsonNumbers $UV) }
     if ($Tint -ge 0) { $face.tintindex = $Tint }
     return [ordered]@{
-        from = @(($Rect[0] / 8), (16 - $Rect[3] / 8), $Depth)
-        to = @(($Rect[2] / 8), (16 - $Rect[1] / 8), $Depth)
+        from = Convert-RingJsonNumbers @(($Rect[0] / 8), (16 - $Rect[3] / 8), $Depth)
+        to = Convert-RingJsonNumbers @(($Rect[2] / 8), (16 - $Rect[1] / 8), $Depth)
         shade = $false
         faces = @{ south = $face }
     }
@@ -90,17 +105,20 @@ function New-RingBedrockBone {
     # Match the damage-number billboard: the south face is visible and positive X points screen-right.
     $left = $Rect[0] / 8 - 8
     $y = 8 - $Rect[3] / 8
-    $face = [ordered]@{ uv = @($UV[0], $UV[1]); uv_size = @($UV[2], $UV[3]) }
+    $face = [ordered]@{
+        uv = (Convert-RingJsonNumbers @($UV[0], $UV[1]))
+        uv_size = (Convert-RingJsonNumbers @($UV[2], $UV[3]))
+    }
     $faces = [ordered]@{ south = $face }
     if ($DoubleSided) { $faces.north = $face }
     $pivot = if ($AnchorLeft) { @($left, $y, 0) } else { @(0, 0, 0) }
     return [ordered]@{
         name = $Name
         parent = 'wheel'
-        pivot = $pivot
+        pivot = Convert-RingJsonNumbers $pivot
         cubes = @([ordered]@{
-            origin = @($left, $y, ($Depth - 0.02))
-            size = @((($Rect[2] - $Rect[0]) / 8), (($Rect[3] - $Rect[1]) / 8), 0.02)
+            origin = Convert-RingJsonNumbers @($left, $y, ($Depth - 0.02))
+            size = Convert-RingJsonNumbers @((($Rect[2] - $Rect[0]) / 8), (($Rect[3] - $Rect[1]) / 8), 0.02)
             uv = $faces
         })
     }
@@ -210,7 +228,7 @@ function Add-RingBedrockPanel {
         format_version = '1.8.0'; render_controllers = $controllers
     })
     Add-PackJson $Entries 'animations/action_ring_panel.animation.json' ([ordered]@{
-        format_version = '1.8.0'; animations = @{ 'animation.astralrecord.action_ring_panel' = @{ loop = $true; bones = $animation } }
+        format_version = '1.8.0'; animations = @{ 'animation.astralrecord.action_ring_panel' = [ordered]@{ loop = $true; bones = $animation } }
     })
     Add-PackJson $Entries 'entity/action_ring_panel.entity.json' ([ordered]@{
         format_version = '1.10.0'
