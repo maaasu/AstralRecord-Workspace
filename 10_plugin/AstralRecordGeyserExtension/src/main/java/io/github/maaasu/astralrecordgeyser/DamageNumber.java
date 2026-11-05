@@ -7,10 +7,15 @@ import java.util.UUID;
 record DamageNumber(long amount, int style, int size, boolean sidecar) {
     static final int MAX_GLYPHS = 17;
     static final int BLANK = 14;
+    private static final int PET_CRITICAL = 8;
+    static final int MAX_STYLE = PET_CRITICAL;
+    private static final int MINUS = 11;
+    private static final int CRITICAL_MARK = 12;
+    private static final int STYLE_MARK = 13;
     private static final long UUID_TAG = 0xa57ad00d00000000L;
     private static final long AMOUNT_MASK = (1L << 40) - 1;
     private static final long SIDECAR = 1L << 52;
-    private static final long VALID_BITS = AMOUNT_MASK | (15L << 48) | SIDECAR;
+    private static final long VALID_BITS = AMOUNT_MASK | (15L << 48) | SIDECAR | (3L << 53);
 
     static DamageNumber decode(UUID uuid, int entityId) {
         if (uuid == null || (uuid.getMostSignificantBits() & 0xffffffff00000000L) != UUID_TAG) {
@@ -18,11 +23,11 @@ record DamageNumber(long amount, int style, int size, boolean sidecar) {
         }
         long bits = uuid.getLeastSignificantBits();
         long amount = bits & AMOUNT_MASK;
-        int style = (int) ((bits >>> 48) & 3);
+        int style = (int) (((bits >>> 48) & 3) | (((bits >>> 53) & 3) << 2));
         int size = (int) ((bits >>> 50) & 3);
         boolean sidecar = (bits & SIDECAR) != 0;
         int originalId = (int) uuid.getMostSignificantBits();
-        if ((bits & ~VALID_BITS) != 0 || amount > 999_999_999_999L || style > 2 || size > 2
+        if ((bits & ~VALID_BITS) != 0 || amount > 999_999_999_999L || style > MAX_STYLE || size > 2
             || sidecar == (originalId == entityId)) {
             return null;
         }
@@ -39,10 +44,14 @@ record DamageNumber(long amount, int style, int size, boolean sidecar) {
 
     int[] glyphs() {
         String digits = String.format(Locale.ROOT, "%,d", amount);
-        int prefixLength = style == 2 ? 2 : 1;
+        int prefixLength = style >= 2 ? 2 : 1;
         int[] glyphs = new int[prefixLength + digits.length()];
-        glyphs[0] = 11 + style;
-        if (prefixLength == 2) glyphs[1] = 11;
+        glyphs[0] = switch (style) {
+            case 0 -> MINUS;
+            case 1 -> CRITICAL_MARK;
+            default -> STYLE_MARK;
+        };
+        if (prefixLength == 2) glyphs[1] = style == PET_CRITICAL ? CRITICAL_MARK : MINUS;
         for (int i = 0; i < digits.length(); i++) {
             char digit = digits.charAt(i);
             glyphs[prefixLength + i] = digit == ',' ? 10 : digit - '0';

@@ -20,7 +20,7 @@ record DamageNumberEntity(GeyserIntEntityProperty length, GeyserIntEntityPropert
     static DamageNumberEntity registerProperties(GeyserDefineEntityPropertiesEvent event) {
         Identifier entity = Identifier.of(IDENTIFIER);
         var length = event.registerIntegerProperty(entity, property("length"), 0, DamageNumber.MAX_GLYPHS, 0);
-        var style = event.registerIntegerProperty(entity, property("style"), 0, 2, 0);
+        var style = event.registerIntegerProperty(entity, property("style"), 0, DamageNumber.MAX_STYLE, 0);
         var size = event.registerFloatProperty(entity, property("size"), 0.5f, 2f, 1f);
         var glyphs = new ArrayList<GeyserIntEntityProperty>(DamageNumber.MAX_GLYPHS);
         for (int i = 0; i < DamageNumber.MAX_GLYPHS; i++) {

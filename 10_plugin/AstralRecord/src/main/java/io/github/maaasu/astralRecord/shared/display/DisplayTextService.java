@@ -139,14 +139,25 @@ public final class DisplayTextService {
     /**
      * ダメージ数値向けの浮遊表示を生成します。
      *
-     * @param origin   表示起点
-     * @param amount   表示ダメージ量
+     * @param origin 表示起点
+     * @param amount 表示ダメージ量
+     * @param type HP ダメージの発生元に応じた表示種別
      * @param critical クリティカル演出扱いとするか
      * @return 管理ハンドル
      */
-    public @NotNull ManagedTextDisplay spawnDamageNumber(@NotNull Location origin, double amount, boolean critical) {
+    public @NotNull ManagedTextDisplay spawnDamageNumber(
+            @NotNull Location origin, double amount, @NotNull DamageNumberType type, boolean critical
+    ) {
         pruneDamageDisplays();
-        return spawnFloatingNumber(origin, amount, critical ? FloatingStyle.CRITICAL : FloatingStyle.DAMAGE);
+        FloatingStyle style = switch (type) {
+            case STANDARD -> critical ? FloatingStyle.CRITICAL : FloatingStyle.DAMAGE;
+            case PET -> critical ? FloatingStyle.PET_CRITICAL : FloatingStyle.PET;
+            case BURNING -> FloatingStyle.BURNING;
+            case SHOCKED -> FloatingStyle.SHOCKED;
+            case POISON -> FloatingStyle.POISON;
+            case CONDITION -> FloatingStyle.CONDITION;
+        };
+        return spawnFloatingNumber(origin, amount, style);
     }
 
     /**
@@ -599,7 +610,7 @@ public final class DisplayTextService {
                     String text = ColorCodeUtil.translateAlternateColorCodes(state.options.text());
                     display.text(LegacyComponentSerializer.legacySection().deserialize(text));
                     damageNumbers.put(display.getEntityId(), new DamageNumberPacketAdapter.NumberDisplay(
-                            animation.roundedAmount(), style.bedrockCode(), display.text()));
+                            animation.roundedAmount(), style.bedrockCode, display.text()));
                 }
             }
         });
@@ -992,15 +1003,27 @@ public final class DisplayTextService {
      */
     private record ResultAnimation(@Nullable UUID viewerId, long durationTicks) { }
 
+    /** HP ダメージの発生元に応じた数値表示の種別です。 */
+    public enum DamageNumberType {
+        STANDARD, PET, BURNING, SHOCKED, POISON, CONDITION
+    }
+
     /** 浮遊表示だけの強弱・速度を管理し、汎用表示のアニメーションには適用しません。 */
     private enum FloatingStyle {
-        DAMAGE(PlayerMsgId.P_6563, 1.0F, 0.18F, 32L, 0.85D, 1.0D),
-        CRITICAL(PlayerMsgId.P_6564, 1.25F, 0.32F, 36L, 1.0D, 1.15D),
-        SHIELD(PlayerMsgId.P_6565, 0.95F, 0.14F, 32L, 0.75D, 0.8D),
-        HEALING(PlayerMsgId.P_6566, 1.0F, 0.08F, 36L, 1.10D, 0.35D),
-        EVADE(PlayerMsgId.P_6567, 0.85F, 0.10F, 24L, 0.65D, 1.1D);
+        DAMAGE(PlayerMsgId.P_6563, 0, 1.0F, 0.18F, 32L, 0.85D, 1.0D),
+        CRITICAL(PlayerMsgId.P_6564, 1, 1.25F, 0.32F, 36L, 1.0D, 1.15D),
+        SHIELD(PlayerMsgId.P_6565, 2, 0.95F, 0.14F, 32L, 0.75D, 0.8D),
+        BURNING(PlayerMsgId.P_6568, 3, 1.0F, 0.10F, 32L, 0.88D, 0.58D),
+        SHOCKED(PlayerMsgId.P_6569, 4, 1.0F, 0.14F, 32L, 0.88D, 0.58D),
+        POISON(PlayerMsgId.P_6570, 5, 1.0F, 0.08F, 32L, 0.88D, 0.58D),
+        CONDITION(PlayerMsgId.P_6571, 6, 1.0F, 0.10F, 32L, 0.88D, 0.58D),
+        PET(PlayerMsgId.P_6572, 7, 1.0F, 0.22F, 32L, 0.92D, 0.85D),
+        PET_CRITICAL(PlayerMsgId.P_6573, 8, 1.25F, 0.32F, 36L, 1.0D, 1.15D),
+        HEALING(PlayerMsgId.P_6566, -1, 1.0F, 0.08F, 36L, 1.10D, 0.35D),
+        EVADE(PlayerMsgId.P_6567, -1, 0.85F, 0.10F, 24L, 0.65D, 1.1D);
 
         private final PlayerMsgId messageId;
+        private final int bedrockCode;
         private final float scale;
         private final float pop;
         private final long durationTicks;
@@ -1009,21 +1032,15 @@ public final class DisplayTextService {
 
         /** @return 閲覧者ごとのサイズ設定が適用されるダメージ数値ならtrue */
         private boolean isDamageNumber() {
-            return this == DAMAGE || this == CRITICAL || this == SHIELD;
+            return bedrockCode >= 0;
         }
 
-        /** @return 統合版の数値パックへ渡す演出コード */
-        private int bedrockCode() {
-            return switch (this) {
-                case DAMAGE -> 0;
-                case CRITICAL -> 1;
-                case SHIELD -> 2;
-                default -> throw new IllegalStateException();
-            };
-        }
-
-        FloatingStyle(PlayerMsgId messageId, float scale, float pop, long durationTicks, double rise, double drift) {
+        FloatingStyle(
+                PlayerMsgId messageId, int bedrockCode, float scale, float pop, long durationTicks, double rise,
+                double drift
+        ) {
             this.messageId = messageId;
+            this.bedrockCode = bedrockCode;
             this.scale = scale;
             this.pop = pop;
             this.durationTicks = durationTicks;

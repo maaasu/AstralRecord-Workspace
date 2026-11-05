@@ -143,9 +143,9 @@ final class DamagePackDistribution {
         });
     }
 
-    boolean ready(GeyserConnection connection) {
+    boolean readyForDamageNumbers(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready();
+        return selection != null && selection.ready() && selection.pack().damageNumbers();
     }
 
     boolean actionRingReady(GeyserConnection connection) {

@@ -34,11 +34,33 @@ PATTERNS = (
     "...../..#../.#.#./#...#/.#.#./..#../.....",
 )
 
-STYLES = {
+ICONS = {
+    "\u25b2": "..#../..##./.#.#./.####/##.##/##.##/.###.",  # Flame
+    "\u26a1": "..##./.##../.##../.###./..##./.##../.#...",  # Lightning
+    "\u25cb": "...#./..#.#/...#./.#.../#.#.#/.#.../.....",  # Bubbles
+    "\u25c8": "..#../.#.#./#.#.#/.###./#.#.#/.#.#./..#..",  # Status rune
+    "\u273f": ".#.#./.#.#./#...#/#...#/..#../.###./.###.",  # Paw
+}
+
+# Texture order matches the style codes in DisplayTextService.
+STYLE_TEXTURES = ("normal", "critical", "shield", "burning", "shocked", "poison", "condition", "pet", "pet")
+PALETTES = {
     # Fill highlight, base, stroke. Keep the dark stroke visible on bright terrain.
     "normal": ((255, 204, 193), (252, 78, 86), (63, 13, 24)),
     "critical": ((255, 251, 213), (255, 178, 44), (68, 34, 11)),
     "shield": ((227, 253, 255), (78, 213, 249), (10, 40, 66)),
+    "burning": ((255, 231, 191), (255, 166, 107), (79, 27, 12)),
+    "shocked": ((240, 228, 255), (196, 167, 255), (44, 20, 75)),
+    "poison": ((234, 255, 171), (175, 227, 101), (37, 54, 14)),
+    "condition": ((255, 225, 245), (223, 160, 218), (68, 25, 64)),
+    "pet": ((216, 255, 235), (112, 226, 188), (13, 62, 53)),
+}
+STYLE_ICONS = {
+    "burning": "\u25b2",
+    "shocked": "\u26a1",
+    "poison": "\u25cb",
+    "condition": "\u25c8",
+    "pet": "\u273f",
 }
 
 
@@ -61,11 +83,12 @@ def png(path, width, height, rows):
           + chunk(b"IEND", b""))
 
 
-def atlas(path, java=False, palette=None):
-    width = 112 if java else 128
+def atlas(path, patterns, palette=None):
+    java = palette is None
+    width = len(patterns) * CELL if java else 128
     height = HEIGHT if java else 16
     rows = [[0] * (width * 4) for _ in range(height)]
-    for idx, pattern in enumerate(PATTERNS):
+    for idx, pattern in enumerate(patterns):
         fill = {(x + 1, y + 1) for y, line in enumerate(pattern.split("/"))
                 for x, pixel in enumerate(line) if pixel == "#"}
         for y in range(HEIGHT):
@@ -98,12 +121,10 @@ def model_and_controller():
         }],
     }
     bones = geometry["minecraft:geometry"][0]["bones"]
-    for name, parent in (("rise", None), ("billboard_yaw", "rise"),
-                         ("billboard_pitch", "billboard_yaw"), ("impact", "billboard_pitch"),
-                         ("line", "impact")):
+    for name, parent in (("rise", None), ("billboard", "rise"), ("impact", "billboard"), ("line", "impact")):
         bones.append({"name": name, **({"parent": parent} if parent else {}), "pivot": [0, 0, 0]})
     controller = {
-        "arrays": {"textures": {"Array.styles": ["Texture.normal", "Texture.critical", "Texture.shield"]}},
+        "arrays": {"textures": {"Array.styles": [f"Texture.{style}" for style in STYLE_TEXTURES]}},
         "geometry": "Geometry.default",
         "materials": [{"*": "Material.default"}],
         "textures": ["Array.styles[variable.style]"],
@@ -113,12 +134,12 @@ def model_and_controller():
     }
     for slot in range(SLOTS):
         # The front face is north in geometry space. Screen-right is negative X.
-        x = round(-slot * 2.0 - 0.9, 3)
+        x = round(-slot * 3.0 - 1.4, 3)
         for glyph in range(len(PATTERNS)):
             name = f"slot_{slot}_glyph_{glyph}"
             bones.append({
                 "name": name, "parent": "line", "pivot": [0, 0, 0],
-                "cubes": [{"origin": [x, -1.3, 0], "size": [1.8, 2.6, 0],
+                "cubes": [{"origin": [x, -1.8, 0], "size": [2.8, 3.6, 0.125],
                            "uv": {"north": {"uv": [glyph * CELL, 0], "uv_size": [CELL, HEIGHT]}}}],
             })
             controller["part_visibility"].append({
@@ -146,11 +167,13 @@ if __name__ == "__main__":
         "providers": [
             {"type": "space", "advances": {" ": 4}},
             {"type": "bitmap", "file": "astralrecord:font/damage_number.png",
-             "height": HEIGHT, "ascent": 8, "chars": ["0123456789,\u2212\u2726\u25c7"]},
+             "height": HEIGHT, "ascent": 8, "chars": ["0123456789,\u2212\u2726\u25c7" + "".join(ICONS)]},
             {"type": "reference", "id": "minecraft:default"},
         ],
     })
-    atlas(JAVA / "textures/font/damage_number.png", java=True)
-    for style, palette in STYLES.items():
-        atlas(BEDROCK / f"textures/entity/damage_number/{style}.png", palette=palette)
+    atlas(JAVA / "textures/font/damage_number.png", PATTERNS + tuple(ICONS.values()))
+    for style, palette in PALETTES.items():
+        # Styles with an icon reuse the shield mark's cell and mesh.
+        patterns = PATTERNS[:-1] + (ICONS[STYLE_ICONS[style]],) if style in STYLE_ICONS else PATTERNS
+        atlas(BEDROCK / f"textures/entity/damage_number/{style}.png", patterns, palette)
     model_and_controller()

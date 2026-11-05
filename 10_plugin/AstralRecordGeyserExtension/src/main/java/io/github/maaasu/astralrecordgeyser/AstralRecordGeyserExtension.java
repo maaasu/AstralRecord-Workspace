@@ -92,7 +92,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (number == null) return;
 
         var properties = damageNumberProperties;
-        boolean usePack = properties != null && damagePacks.ready(event.connection());
+        boolean usePack = properties != null && damagePacks.readyForDamageNumbers(event.connection());
         if (usePack != number.sidecar()) {
             event.setCancelled(true);
         } else if (usePack) {

@@ -163,8 +163,9 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
             int realId = packet.getIntegers().read(0);
             DamageNumberSize size = resolveSize(viewer);
             int markerId = viewerMarkers.computeIfAbsent(realId, ignored -> PacketEntityIdAllocator.nextEntityId());
-            long payload = number.roundedAmount() | ((long) number.style() << 48)
-                    | ((long) sizeCode(size) << 50);
+            // 演出コードの上位2ビットは、サイズとマーカーの後ろの空き領域を使います。
+            long payload = number.roundedAmount() | ((number.style() & 3L) << 48)
+                    | ((long) sizeCode(size) << 50) | ((long) (number.style() >>> 2) << 53);
             long tag = BEDROCK_DISPLAY_TAG | Integer.toUnsignedLong(realId);
             PacketContainer original = packet.shallowClone();
             original.getUUIDs().write(0, new UUID(tag, payload));
@@ -310,7 +311,7 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
     }
 
     /** @param roundedAmount パック用の整数値（有限の範囲外なら負値）
-     * @param style 通常0、会心1、シールド2
+     * @param style Bedrock のエンティティと共有する演出コード
      * @param text Javaで表示する既存書式の本文
      */
     record NumberDisplay(long roundedAmount, int style, Component text) { }

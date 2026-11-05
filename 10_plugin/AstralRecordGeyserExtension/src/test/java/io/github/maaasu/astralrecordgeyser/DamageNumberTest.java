@@ -20,12 +20,23 @@ class DamageNumberTest {
     }
 
     @Test
+    void decodesNewStylesWithoutChangingSizeOrSidecarBits() {
+        for (int style = 3; style <= DamageNumber.MAX_STYLE; style++) {
+            long bits = SIDECAR | (2L << 50) | ((style & 3L) << 48) | ((long) (style >>> 2) << 53);
+            var number = DamageNumber.decode(new UUID(UUID_PREFIX, bits | 1_234L), -1);
+            assertEquals(style, number.style());
+            assertEquals(1.35f, number.scale());
+            assertArrayEquals(new int[] {13, style == 8 ? 12 : 11, 1, 10, 2, 3, 4}, number.glyphs());
+        }
+    }
+
+    @Test
     void decodesFallbackAndRejectsMalformedTagsOrEntityIds() {
         assertArrayEquals(new int[] {12, 0}, DamageNumber.decode(new UUID(UUID_PREFIX, 1L << 48), -16).glyphs());
         assertNull(DamageNumber.decode(new UUID(UUID_PREFIX, 0), -1));
         assertNull(DamageNumber.decode(new UUID(UUID_PREFIX, SIDECAR), -16));
         assertNull(DamageNumber.decode(new UUID(UUID_PREFIX, 1L << 40), -16));
-        assertNull(DamageNumber.decode(new UUID(UUID_PREFIX, 3L << 48), -16));
+        assertNull(DamageNumber.decode(new UUID(UUID_PREFIX, (2L << 53) | (1L << 48)), -16));
         assertNull(DamageNumber.decode(new UUID(UUID_PREFIX, 1_000_000_000_000L), -16));
         assertNull(DamageNumber.decode(UUID.randomUUID(), -16));
     }

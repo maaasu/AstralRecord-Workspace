@@ -4,12 +4,17 @@
     "description": {
       "identifier": "astralrecord:damage_number",
       "materials": {
-        "default": "entity_alphablend"
+        "default": "entity_emissive_alpha"
       },
       "textures": {
         "normal": "textures/entity/damage_number/normal",
         "critical": "textures/entity/damage_number/critical",
-        "shield": "textures/entity/damage_number/shield"
+        "shield": "textures/entity/damage_number/shield",
+        "burning": "textures/entity/damage_number/burning",
+        "shocked": "textures/entity/damage_number/shocked",
+        "poison": "textures/entity/damage_number/poison",
+        "condition": "textures/entity/damage_number/condition",
+        "pet": "textures/entity/damage_number/pet"
       },
       "geometry": {
         "default": "geometry.astralrecord.damage_number"
@@ -20,9 +25,11 @@
       "scripts": {
         "pre_animation": [
           "variable.length = math.clamp(query.property('astralrecord:length'), 0, 17);",
-          "variable.style = math.clamp(query.property('astralrecord:style'), 0, 2);",
-          "variable.critical = variable.style == 1;",
+          "variable.style = math.clamp(query.property('astralrecord:style'), 0, 8);",
+          "variable.critical = variable.style == 1 || variable.style == 8;",
           "variable.shield = variable.style == 2;",
+          "variable.condition = variable.style >= 3 && variable.style <= 6;",
+          "variable.pet = variable.style == 7;",
           "variable.size = math.clamp(query.property('astralrecord:size'), 0.5, 2.0);",
           "variable.age = query.life_time;",
           "variable.duration = variable.critical ? 1.8 : 1.6;",
@@ -30,10 +37,12 @@
           "variable.fade = math.clamp((variable.progress - 0.64) / 0.36, 0.0, 1.0);",
           "variable.kick = math.clamp(variable.age / (variable.critical ? 0.12 : 0.09), 0.0, 1.0);",
           "variable.settle = math.clamp((variable.age - (variable.critical ? 0.12 : 0.09)) / 0.22, 0.0, 1.0);",
-          "variable.pop = math.lerp(0.62, variable.critical ? 1.36 : 1.18, 1.0 - (1.0 - variable.kick) * (1.0 - variable.kick));",
+          "variable.pop_peak = variable.critical ? 1.36 : (1.18 + 0.04 * variable.pet - 0.08 * variable.condition);",
+          "variable.pop = math.lerp(0.62, variable.pop_peak, 1.0 - (1.0 - variable.kick) * (1.0 - variable.kick));",
           "variable.scale = variable.size * math.lerp(variable.pop, 1.0, variable.settle) * (1.0 - 0.40 * variable.fade * variable.fade);",
           "variable.squash = variable.shield ? 0.23 * (1.0 - variable.kick) : 0.0;",
-          "variable.hop = (variable.critical ? 5.5 : 3.2) * (1.0 - (1.0 - variable.progress) * (1.0 - variable.progress));"
+          "variable.hop = (variable.critical ? 5.5 : (3.2 + 0.5 * variable.pet)) * (1.0 - (1.0 - variable.progress) * (1.0 - variable.progress));",
+          "variable.drift = variable.shield ? -2.0 : (2.4 - 1.1 * variable.condition);"
         ],
         "animate": ["motion"]
       },

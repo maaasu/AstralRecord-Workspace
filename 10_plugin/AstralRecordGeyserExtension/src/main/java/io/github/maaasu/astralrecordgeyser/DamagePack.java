@@ -26,10 +26,20 @@ import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
 
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
-record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRing, Set<ItemModel> itemModels) {
+record DamagePack(
+    String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing, Set<ItemModel> itemModels
+) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
     private static final int MAX_PACK_BYTES = 32 * 1024 * 1024;
+    private static final List<String> DAMAGE_NUMBER_ENTRIES = List.of(
+        "entity/damage_number.entity.json", "animations/damage_number.animation.json",
+        "models/entity/damage_number.geo.json", "render_controllers/damage_number.render_controllers.json",
+        "textures/entity/damage_number/normal.png", "textures/entity/damage_number/critical.png",
+        "textures/entity/damage_number/shield.png", "textures/entity/damage_number/burning.png",
+        "textures/entity/damage_number/shocked.png", "textures/entity/damage_number/poison.png",
+        "textures/entity/damage_number/condition.png", "textures/entity/damage_number/pet.png"
+    );
     private static final List<String> ACTION_RING_ENTRIES = List.of(
         "entity/action_ring.entity.json", "animations/action_ring.animation.json",
         "models/entity/action_ring.geo.json", "render_controllers/action_ring.render_controllers.json",
@@ -66,6 +76,7 @@ record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRin
         boolean keep = false;
         try {
             Files.write(file, bytes);
+            boolean damageNumberAssets;
             boolean actionRing;
             Set<ItemModel> itemModels;
             try (ZipFile zip = new ZipFile(file.toFile())) {
@@ -80,14 +91,19 @@ record DamagePack(String sha256, Path file, ResourcePack pack, boolean actionRin
                         throw new IOException("Bedrock pack archive manifest is too large");
                     }
                 }
+                damageNumberAssets = DAMAGE_NUMBER_ENTRIES.stream().map(zip::getEntry)
+                    .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
                 itemModels = ItemModel.read(zip);
             }
             var pack = ResourcePack.create(PackCodec.path(file));
             if (!uuid.equals(pack.uuid())) throw new IOException("Bedrock pack UUID mismatch");
+            var version = pack.manifest().header().version();
+            boolean damageNumbers = damageNumberAssets && version != null
+                && (version.major() > 1 || (version.major() == 1 && version.minor() >= 1));
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack, actionRing, itemModels);
+            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, itemModels);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

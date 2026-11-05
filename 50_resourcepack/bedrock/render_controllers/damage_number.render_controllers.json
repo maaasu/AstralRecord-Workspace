@@ -7,7 +7,13 @@
           "Array.styles": [
             "Texture.normal",
             "Texture.critical",
-            "Texture.shield"
+            "Texture.shield",
+            "Texture.burning",
+            "Texture.shocked",
+            "Texture.poison",
+            "Texture.condition",
+            "Texture.pet",
+            "Texture.pet"
           ]
         }
       },

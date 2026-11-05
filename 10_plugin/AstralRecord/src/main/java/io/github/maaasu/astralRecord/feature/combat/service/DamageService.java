@@ -50,6 +50,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService.DamageNumberType;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -917,7 +918,7 @@ public final class DamageService {
         DamageResult result = new DamageResult(0.0D).withAddedFixedHealthDamage(Math.max(0.0D, victim.currentHealth()));
         Location displayOrigin = captureDamageDisplayOrigin(attacker, victim, result);
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
-        spawnDamageDisplay(displayOrigin, result);
+        spawnDamageDisplay(displayOrigin, result, DamageNumberType.STANDARD);
         return result;
     }
 
@@ -971,7 +972,13 @@ public final class DamageService {
         DamageResult result = capBossBoundaryDamage(victim, new DamageResult(damage, false));
         Location displayOrigin = captureDamageDisplayOrigin(attacker, victim, result);
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
-        spawnDamageDisplay(displayOrigin, result);
+        DamageNumberType displayType = switch (conditionType) {
+            case BURNING -> DamageNumberType.BURNING;
+            case SHOCKED -> DamageNumberType.SHOCKED;
+            case POISON -> DamageNumberType.POISON;
+            default -> DamageNumberType.CONDITION;
+        };
+        spawnDamageDisplay(displayOrigin, result, displayType);
         return result;
     }
 
@@ -1452,7 +1459,9 @@ public final class DamageService {
         if (!projectileDamage) {
             applyDurabilityWear(attacker, victim, result);
         }
-        spawnDamageDisplay(displayOrigin, result);
+        DamageNumberType displayType = attacker != null && attacker.isPet()
+                ? DamageNumberType.PET : DamageNumberType.STANDARD;
+        spawnDamageDisplay(displayOrigin, result, displayType);
         sendDamageLog(attacker, victim, result, context, victimCurrentHealthBefore, victimMaxHealth, victimCurrentHealthAfter);
         if (superStarOrigin != null && attacker != null) {
             spawnSuperStarCriticalProjectiles(
@@ -1490,7 +1499,7 @@ public final class DamageService {
         if (paladinGuardRuntimeService != null) {
             paladinGuardRuntimeService.recordDamage(protector, damage, damage, maximumHealth);
         }
-        spawnDamageDisplay(displayOrigin, redirected);
+        spawnDamageDisplay(displayOrigin, redirected, DamageNumberType.STANDARD);
     }
 
     private boolean usesDefenseConversion(@NotNull AstEntity victim) {
@@ -2120,8 +2129,11 @@ public final class DamageService {
      * 回避・シールド・HP ダメージを、被弾時に確定した位置に表示します。
      * @param origin 表示位置。表示しない場合は null
      * @param result 表示するダメージ結果
+     * @param type HP ダメージの発生元に応じた表示種別
      */
-    private void spawnDamageDisplay(@Nullable Location origin, @NotNull DamageResult result) {
+    private void spawnDamageDisplay(
+            @Nullable Location origin, @NotNull DamageResult result, @NotNull DamageNumberType type
+    ) {
         if (origin == null) {
             return;
         }
@@ -2131,7 +2143,7 @@ public final class DamageService {
             displayTextService.spawnShieldDamageNumber(origin, result.shieldDamage());
         } else {
             displayTextService.spawnDamageNumber(
-                    origin, result.finalDamage(), result.critical() || result.superStarCritical()
+                    origin, result.finalDamage(), type, result.critical() || result.superStarCritical()
             );
         }
     }
