@@ -1,0 +1,600 @@
+{
+  "id": "astra_magia_head",
+  "master_id": "20a00453",
+  "kind": "armor",
+  "intent": "実master: 天体 / 星の光、progression29・Lv30 RARE、#8D79B1の染革アストラフード。四角い段を重ねた尖冠フードに太い星光の眉と大きな開顔部を設け、戦士の兜や狩人帽と異なる魔法装束にする。後ろは縦の天体尾と横の軌道帯、側面は淡い折返し。Noxより階調と大きな色面・縁取りを増やし、微細金属細工や発光を使わない。carryは空洞でなく低い星留めの実体内。",
+  "grip": [
+    8,
+    5.6,
+    4.7
+  ],
+  "materials": {
+    "astral_leather": {
+      "palette": [
+        "493D63",
+        "6C598A",
+        "8D79B1",
+        "B5A2CF",
+        "D4C5E5"
+      ],
+      "pattern": [
+        "12222210",
+        "12233210",
+        "12233210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "01111100"
+      ]
+    },
+    "folded_leather": {
+      "palette": [
+        "332C49",
+        "514367",
+        "6C598A",
+        "8D79B1",
+        "AE98C9"
+      ],
+      "pattern": [
+        "01222100",
+        "01232100",
+        "01232100",
+        "01222100",
+        "01222100",
+        "01232100",
+        "01222100",
+        "00111000"
+      ]
+    },
+    "pale_lining": {
+      "palette": [
+        "716080",
+        "A48DB8",
+        "C1ACD7",
+        "DACDEC",
+        "EFE5F4"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "12222210"
+      ]
+    },
+    "star_border": {
+      "palette": [
+        "705C46",
+        "A28A60",
+        "D6C08C",
+        "F4E5B8",
+        "FFF1D0"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "22233221",
+        "22344321",
+        "22344321",
+        "22233221",
+        "22222221",
+        "11111110"
+      ]
+    },
+    "star_inlay": {
+      "palette": [
+        "35546C",
+        "638EA5",
+        "A6D8E0",
+        "DCEFE5",
+        "FFF0C9"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12344321",
+        "23444432",
+        "23444432",
+        "12344321",
+        "01233210",
+        "00122100"
+      ]
+    },
+    "orbit_sash": {
+      "palette": [
+        "322940",
+        "4B3A60",
+        "6C598A",
+        "9D85B8",
+        "D6C08C"
+      ],
+      "pattern": [
+        "33333332",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "44444443",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left deep hood wall",
+      "from": [
+        2.9,
+        5.2,
+        5.15
+      ],
+      "to": [
+        4.1,
+        13.8,
+        11.7
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right deep hood wall",
+      "from": [
+        11.9,
+        5.2,
+        5.15
+      ],
+      "to": [
+        13.1,
+        13.8,
+        11.7
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Full rear hood panel",
+      "from": [
+        3.7,
+        5.184375,
+        10.6
+      ],
+      "to": [
+        12.3,
+        14.1,
+        12.0
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Broad hood crown foundation",
+      "from": [
+        2.884375,
+        12.9,
+        5.05
+      ],
+      "to": [
+        13.115625,
+        14.25,
+        11.9
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Square pointed crown lower step",
+      "from": [
+        4.4,
+        14.1,
+        5.6
+      ],
+      "to": [
+        11.6,
+        15.5,
+        11.7
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Square pointed crown upper step",
+      "from": [
+        6.0,
+        15.3,
+        6.7
+      ],
+      "to": [
+        10.0,
+        16.65,
+        11.4
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Single squared hood peak",
+      "from": [
+        7.15,
+        16.4,
+        8.0
+      ],
+      "to": [
+        8.85,
+        17.4,
+        11.0
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Wide front star-edged brow",
+      "from": [
+        2.6,
+        12.0,
+        4.45
+      ],
+      "to": [
+        13.4,
+        13.45,
+        5.65
+      ],
+      "material": "star_border",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left pale open face border",
+      "from": [
+        2.584375,
+        6.15,
+        4.434375
+      ],
+      "to": [
+        3.8,
+        12.8,
+        5.7
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right pale open face border",
+      "from": [
+        12.2,
+        6.15,
+        4.434375
+      ],
+      "to": [
+        13.415624999999999,
+        12.8,
+        5.7
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Front low leather collar",
+      "from": [
+        2.8,
+        4.9,
+        4.9
+      ],
+      "to": [
+        13.2,
+        6.35,
+        6.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left collar return",
+      "from": [
+        2.7,
+        4.884375,
+        5.8
+      ],
+      "to": [
+        3.9000000000000004,
+        6.365625,
+        12.015625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right collar return",
+      "from": [
+        12.1,
+        4.884375,
+        5.8
+      ],
+      "to": [
+        13.299999999999999,
+        6.365625,
+        12.015625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Rear collar orbit band",
+      "from": [
+        2.684375,
+        4.9,
+        10.9
+      ],
+      "to": [
+        13.315625,
+        6.35,
+        12.25
+      ],
+      "material": "orbit_sash",
+      "side": "pale_lining",
+      "cap": "star_border"
+    },
+    {
+      "name": "Rear hanging celestial hood tail",
+      "from": [
+        6.4,
+        3.8,
+        11.4
+      ],
+      "to": [
+        9.6,
+        8.0,
+        12.45
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Rear hood tail pale end",
+      "from": [
+        6.25,
+        3.55,
+        11.3
+      ],
+      "to": [
+        9.75,
+        4.6,
+        12.6
+      ],
+      "material": "pale_lining",
+      "side": "star_border"
+    },
+    {
+      "name": "Rear wide central seam",
+      "from": [
+        7.45,
+        7.0,
+        11.8
+      ],
+      "to": [
+        8.55,
+        16.4,
+        12.35
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Rear small orbit crossbar",
+      "from": [
+        5.7,
+        9.1,
+        11.784375
+      ],
+      "to": [
+        10.3,
+        10.1,
+        12.5
+      ],
+      "material": "star_border",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Forehead star vertical light",
+      "from": [
+        7.415,
+        11.545,
+        3.95
+      ],
+      "to": [
+        8.585,
+        14.155,
+        4.55
+      ],
+      "material": "star_border",
+      "side": "pale_lining"
+    },
+    {
+      "name": "Forehead star horizontal light",
+      "from": [
+        6.695,
+        12.309999999999999,
+        3.9000000000000004
+      ],
+      "to": [
+        9.305,
+        13.39,
+        4.5
+      ],
+      "material": "star_border",
+      "side": "pale_lining"
+    },
+    {
+      "name": "Forehead star cool center",
+      "from": [
+        7.505,
+        12.355,
+        3.7
+      ],
+      "to": [
+        8.495,
+        13.344999999999999,
+        4.1000000000000005
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Solid low carrying clasp",
+      "from": [
+        6.65,
+        4.75,
+        4.3
+      ],
+      "to": [
+        9.35,
+        6.5,
+        5.25
+      ],
+      "material": "star_border",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Low clasp square inset",
+      "from": [
+        7.35,
+        5.15,
+        4.05
+      ],
+      "to": [
+        8.65,
+        6.1,
+        4.65
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      0
+    ],
+    "scale": 1
+  },
+  "wearable_texture_set": "astra_magia",
+  "wearable_source": "armor/author_astra_magia.py",
+  "held_join_surface_separation": {
+    "step": 0.015625,
+    "changes": [
+      {
+        "part": "Full rear hood panel",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Broad hood crown foundation",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Broad hood crown foundation",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left pale open face border",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left pale open face border",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right pale open face border",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right pale open face border",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left collar return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left collar return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left collar return",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right collar return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right collar return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right collar return",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Rear collar orbit band",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Rear collar orbit band",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Rear small orbit crossbar",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      }
+    ]
+  }
+}

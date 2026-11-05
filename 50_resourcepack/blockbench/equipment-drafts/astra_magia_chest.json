@@ -1,0 +1,1299 @@
+{
+  "id": "astra_magia_chest",
+  "master_id": "20a00454",
+  "kind": "armor",
+  "intent": "実masterの星の光の染革アストラローブ。Lv30 RAREの完成形を大きいベル袖・短い段付き肩ケープ・高い開襟・長い二股ローブで示し、guardの胸甲/huntの短衣とは輪郭を変える。紫#8D79B1を主面に淡い裏地、暖かい星縁と青白い星章を粗い8px面で重ねる。背は長い天体垂れと太い軌道横線、全周に裾。Noxより素材階調と縫いの大きな面を増やすが、金属の写実表現や擬似発光はない。carryは腰の実体留め。",
+  "grip": [
+    8,
+    7.4,
+    4.75
+  ],
+  "materials": {
+    "astral_leather": {
+      "palette": [
+        "493D63",
+        "6C598A",
+        "8D79B1",
+        "B5A2CF",
+        "D4C5E5"
+      ],
+      "pattern": [
+        "12222210",
+        "12233210",
+        "12233210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "01111100"
+      ]
+    },
+    "folded_leather": {
+      "palette": [
+        "332C49",
+        "514367",
+        "6C598A",
+        "8D79B1",
+        "AE98C9"
+      ],
+      "pattern": [
+        "01222100",
+        "01232100",
+        "01232100",
+        "01222100",
+        "01222100",
+        "01232100",
+        "01222100",
+        "00111000"
+      ]
+    },
+    "pale_lining": {
+      "palette": [
+        "716080",
+        "A48DB8",
+        "C1ACD7",
+        "DACDEC",
+        "EFE5F4"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "12222210"
+      ]
+    },
+    "star_border": {
+      "palette": [
+        "705C46",
+        "A28A60",
+        "D6C08C",
+        "F4E5B8",
+        "FFF1D0"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "22233221",
+        "22344321",
+        "22344321",
+        "22233221",
+        "22222221",
+        "11111110"
+      ]
+    },
+    "star_inlay": {
+      "palette": [
+        "35546C",
+        "638EA5",
+        "A6D8E0",
+        "DCEFE5",
+        "FFF0C9"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12344321",
+        "23444432",
+        "23444432",
+        "12344321",
+        "01233210",
+        "00122100"
+      ]
+    },
+    "orbit_sash": {
+      "palette": [
+        "322940",
+        "4B3A60",
+        "6C598A",
+        "9D85B8",
+        "D6C08C"
+      ],
+      "pattern": [
+        "33333332",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "44444443",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left robe upper front",
+      "from": [
+        3.8,
+        6.6,
+        5.55
+      ],
+      "to": [
+        7.1,
+        14.1,
+        6.8
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right robe upper front",
+      "from": [
+        8.9,
+        6.6,
+        5.55
+      ],
+      "to": [
+        12.2,
+        14.1,
+        6.8
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Long full rear robe",
+      "from": [
+        3.8,
+        1.5,
+        10.3
+      ],
+      "to": [
+        12.2,
+        14.1,
+        11.55
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left body side return",
+      "from": [
+        3.784375,
+        6.5,
+        6.55
+      ],
+      "to": [
+        5.0,
+        14.115625,
+        10.65
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right body side return",
+      "from": [
+        11.0,
+        6.5,
+        6.55
+      ],
+      "to": [
+        12.215625,
+        14.115625,
+        10.65
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left bell sleeve front",
+      "from": [
+        0.55,
+        7.0,
+        5.534375
+      ],
+      "to": [
+        4.35,
+        13.9,
+        6.815625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left bell sleeve rear",
+      "from": [
+        0.55,
+        7.0,
+        10.284375
+      ],
+      "to": [
+        4.35,
+        13.9,
+        11.565625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left sleeve outer return",
+      "from": [
+        0.534375,
+        6.984375,
+        6.6
+      ],
+      "to": [
+        1.75,
+        13.915625,
+        10.5
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left full shoulder cap",
+      "from": [
+        0.51875,
+        12.75,
+        6.5
+      ],
+      "to": [
+        4.365625,
+        14.15,
+        10.515625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left broad cuff front",
+      "from": [
+        0.25000000000000006,
+        6.0,
+        5.25
+      ],
+      "to": [
+        4.6499999999999995,
+        7.4,
+        6.9
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left broad cuff rear",
+      "from": [
+        0.25000000000000006,
+        6.0,
+        10.2
+      ],
+      "to": [
+        4.6499999999999995,
+        7.4,
+        11.85
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left cuff outer fold",
+      "from": [
+        0.23437500000000006,
+        5.984375,
+        6.7
+      ],
+      "to": [
+        1.35,
+        7.415625,
+        10.4
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left cuff square light",
+      "from": [
+        1.75,
+        6.15,
+        4.85
+      ],
+      "to": [
+        3.1500000000000004,
+        7.2,
+        5.6
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Right bell sleeve front",
+      "from": [
+        11.65,
+        7.0,
+        5.534375
+      ],
+      "to": [
+        15.45,
+        13.9,
+        6.815625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right bell sleeve rear",
+      "from": [
+        11.65,
+        7.0,
+        10.284375
+      ],
+      "to": [
+        15.45,
+        13.9,
+        11.565625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right sleeve outer return",
+      "from": [
+        14.25,
+        6.984375,
+        6.6
+      ],
+      "to": [
+        15.465625,
+        13.915625,
+        10.5
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right full shoulder cap",
+      "from": [
+        11.634375,
+        12.75,
+        6.5
+      ],
+      "to": [
+        15.48125,
+        14.15,
+        10.515625
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right broad cuff front",
+      "from": [
+        11.35,
+        6.0,
+        5.25
+      ],
+      "to": [
+        15.75,
+        7.4,
+        6.9
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right broad cuff rear",
+      "from": [
+        11.35,
+        6.0,
+        10.2
+      ],
+      "to": [
+        15.75,
+        7.4,
+        11.85
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right cuff outer fold",
+      "from": [
+        14.65,
+        5.984375,
+        6.7
+      ],
+      "to": [
+        15.765625,
+        7.415625,
+        10.4
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right cuff square light",
+      "from": [
+        12.85,
+        6.15,
+        4.85
+      ],
+      "to": [
+        14.25,
+        7.2,
+        5.6
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Left broad short celestial mantle",
+      "from": [
+        0.0,
+        13.4,
+        5.15
+      ],
+      "to": [
+        5.3,
+        14.65,
+        11.8
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left mantle front pale step",
+      "from": [
+        0.4,
+        12.65,
+        4.95
+      ],
+      "to": [
+        4.9,
+        13.75,
+        5.8
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left mantle rear pale step",
+      "from": [
+        0.4,
+        12.65,
+        11.2
+      ],
+      "to": [
+        4.9,
+        13.75,
+        12.05
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right broad short celestial mantle",
+      "from": [
+        10.7,
+        13.4,
+        5.15
+      ],
+      "to": [
+        16.0,
+        14.65,
+        11.8
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right mantle front pale step",
+      "from": [
+        11.1,
+        12.65,
+        4.95
+      ],
+      "to": [
+        15.6,
+        13.75,
+        5.8
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right mantle rear pale step",
+      "from": [
+        11.1,
+        12.65,
+        11.2
+      ],
+      "to": [
+        15.6,
+        13.75,
+        12.05
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left high open collar",
+      "from": [
+        4.4,
+        13.55,
+        5.134375
+      ],
+      "to": [
+        6.3500000000000005,
+        15.2,
+        6.55
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right high open collar",
+      "from": [
+        9.65,
+        13.55,
+        5.134375
+      ],
+      "to": [
+        11.6,
+        15.2,
+        6.55
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "High rear collar",
+      "from": [
+        4.4,
+        13.55,
+        10.4
+      ],
+      "to": [
+        11.6,
+        15.2,
+        11.75
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left long vertical lapel",
+      "from": [
+        6.25,
+        8.0,
+        5.05
+      ],
+      "to": [
+        7.4,
+        13.5,
+        5.95
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right long vertical lapel",
+      "from": [
+        8.6,
+        8.0,
+        5.05
+      ],
+      "to": [
+        9.75,
+        13.5,
+        5.95
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Upper star supporting leather bridge",
+      "from": [
+        6.5,
+        10.75,
+        4.8
+      ],
+      "to": [
+        9.5,
+        12.5,
+        6.15
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Breast angular star vertical light",
+      "from": [
+        7.48,
+        10.44,
+        4.35
+      ],
+      "to": [
+        8.52,
+        12.76,
+        4.949999999999999
+      ],
+      "material": "star_border",
+      "side": "pale_lining"
+    },
+    {
+      "name": "Breast angular star horizontal light",
+      "from": [
+        6.84,
+        11.12,
+        4.3
+      ],
+      "to": [
+        9.16,
+        12.08,
+        4.8999999999999995
+      ],
+      "material": "star_border",
+      "side": "pale_lining"
+    },
+    {
+      "name": "Breast angular star cool center",
+      "from": [
+        7.56,
+        11.16,
+        4.1
+      ],
+      "to": [
+        8.44,
+        12.04,
+        4.5
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Front broad waist orbit",
+      "from": [
+        3.6,
+        6.584375,
+        5.05
+      ],
+      "to": [
+        12.4,
+        8.0,
+        6.05
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Rear broad waist orbit",
+      "from": [
+        3.6,
+        6.6,
+        10.95
+      ],
+      "to": [
+        12.4,
+        8.0,
+        11.95
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left waist return",
+      "from": [
+        3.584375,
+        6.56875,
+        5.9
+      ],
+      "to": [
+        4.8,
+        8.015625,
+        11.2
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right waist return",
+      "from": [
+        11.2,
+        6.56875,
+        5.9
+      ],
+      "to": [
+        12.415624999999999,
+        8.015625,
+        11.2
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Solid waist carry clasp",
+      "from": [
+        6.65,
+        6.4,
+        4.35
+      ],
+      "to": [
+        9.35,
+        8.4,
+        5.5
+      ],
+      "material": "star_border",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Waist clasp cool square",
+      "from": [
+        7.35,
+        6.85,
+        4.05
+      ],
+      "to": [
+        8.65,
+        7.95,
+        4.65
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Left long split robe skirt",
+      "from": [
+        2.6,
+        1.2,
+        5.534375
+      ],
+      "to": [
+        7.0,
+        6.9,
+        6.85
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left broad stepped skirt hem",
+      "from": [
+        2.5,
+        0.9,
+        5.25
+      ],
+      "to": [
+        7.1,
+        2.1,
+        7.0
+      ],
+      "material": "star_border",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left vertical split hem facing",
+      "from": [
+        5.9,
+        1.9,
+        5.1
+      ],
+      "to": [
+        6.9,
+        6.95,
+        5.95
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right long split robe skirt",
+      "from": [
+        9.0,
+        1.2,
+        5.534375
+      ],
+      "to": [
+        13.4,
+        6.9,
+        6.85
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right broad stepped skirt hem",
+      "from": [
+        8.9,
+        0.9,
+        5.25
+      ],
+      "to": [
+        13.5,
+        2.1,
+        7.0
+      ],
+      "material": "star_border",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right vertical split hem facing",
+      "from": [
+        8.984375,
+        1.9,
+        5.1
+      ],
+      "to": [
+        10.0,
+        6.95,
+        5.95
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left flared robe side",
+      "from": [
+        2.584375,
+        1.184375,
+        6.6
+      ],
+      "to": [
+        4.1,
+        7.0,
+        11.4
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right flared robe side",
+      "from": [
+        11.9,
+        1.184375,
+        6.6
+      ],
+      "to": [
+        13.415625,
+        7.0,
+        11.4
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Wide rear stepped hem",
+      "from": [
+        2.5,
+        0.9,
+        10.2
+      ],
+      "to": [
+        13.5,
+        2.1,
+        11.9
+      ],
+      "material": "star_border",
+      "side": "folded_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Rear celestial banner",
+      "from": [
+        7.0,
+        2.0,
+        11.25
+      ],
+      "to": [
+        9.0,
+        12.85,
+        12.25
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Rear banner broad orbit crossbar",
+      "from": [
+        5.5,
+        9.7,
+        11.7
+      ],
+      "to": [
+        10.5,
+        10.8,
+        12.5
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Rear banner square light",
+      "from": [
+        7.35,
+        10.65,
+        12.0
+      ],
+      "to": [
+        8.65,
+        12.3,
+        12.65
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      0
+    ],
+    "scale": 1
+  },
+  "wearable_texture_set": "astra_magia",
+  "wearable_source": "armor/author_astra_magia.py",
+  "held_join_surface_separation": {
+    "step": 0.015625,
+    "changes": [
+      {
+        "part": "Left body side return",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left body side return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right body side return",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right body side return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left bell sleeve front",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left bell sleeve front",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left bell sleeve rear",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left bell sleeve rear",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left sleeve outer return",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left sleeve outer return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left sleeve outer return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left full shoulder cap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left full shoulder cap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left full shoulder cap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left full shoulder cap",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left cuff outer fold",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left cuff outer fold",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left cuff outer fold",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right bell sleeve front",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right bell sleeve front",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right bell sleeve rear",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right bell sleeve rear",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right sleeve outer return",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right sleeve outer return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right sleeve outer return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right full shoulder cap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right full shoulder cap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right full shoulder cap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right full shoulder cap",
+        "axis": 2,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right cuff outer fold",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right cuff outer fold",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right cuff outer fold",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left high open collar",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right high open collar",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Front broad waist orbit",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left waist return",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left waist return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left waist return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left waist return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right waist return",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right waist return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right waist return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right waist return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left long split robe skirt",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right long split robe skirt",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right vertical split hem facing",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left flared robe side",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left flared robe side",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right flared robe side",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right flared robe side",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      }
+    ]
+  }
+}

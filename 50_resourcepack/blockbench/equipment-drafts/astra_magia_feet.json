@@ -1,0 +1,812 @@
+{
+  "id": "astra_magia_feet",
+  "master_id": "20a00456",
+  "kind": "armor",
+  "intent": "実master名称どおりのアストラサンダル。低い薄底、露出したつま先、二本の太い革帯と開いた足首で、ブーツや脚甲と異なる低い対の輪郭にする。紫#8D79B1の染革と淡い甲帯に星色の大きな角留め。背には踵と実体の持ち紐があり二足が物理的に接続し、carryは中央結び目内部。全周に粗い材質差と軌道縁を描きLv30 RAREの豪華さを上げ、現実的な金属細工や発光を使わない。",
+  "grip": [
+    8,
+    5.7,
+    11.5
+  ],
+  "materials": {
+    "astral_leather": {
+      "palette": [
+        "493D63",
+        "6C598A",
+        "8D79B1",
+        "B5A2CF",
+        "D4C5E5"
+      ],
+      "pattern": [
+        "12222210",
+        "12233210",
+        "12233210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "01111100"
+      ]
+    },
+    "folded_leather": {
+      "palette": [
+        "332C49",
+        "514367",
+        "6C598A",
+        "8D79B1",
+        "AE98C9"
+      ],
+      "pattern": [
+        "01222100",
+        "01232100",
+        "01232100",
+        "01222100",
+        "01222100",
+        "01232100",
+        "01222100",
+        "00111000"
+      ]
+    },
+    "pale_lining": {
+      "palette": [
+        "716080",
+        "A48DB8",
+        "C1ACD7",
+        "DACDEC",
+        "EFE5F4"
+      ],
+      "pattern": [
+        "23333321",
+        "23344321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "23333321",
+        "12222210"
+      ]
+    },
+    "star_border": {
+      "palette": [
+        "705C46",
+        "A28A60",
+        "D6C08C",
+        "F4E5B8",
+        "FFF1D0"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "22233221",
+        "22344321",
+        "22344321",
+        "22233221",
+        "22222221",
+        "11111110"
+      ]
+    },
+    "star_inlay": {
+      "palette": [
+        "35546C",
+        "638EA5",
+        "A6D8E0",
+        "DCEFE5",
+        "FFF0C9"
+      ],
+      "pattern": [
+        "00122100",
+        "01233210",
+        "12344321",
+        "23444432",
+        "23444432",
+        "12344321",
+        "01233210",
+        "00122100"
+      ]
+    },
+    "orbit_sash": {
+      "palette": [
+        "322940",
+        "4B3A60",
+        "6C598A",
+        "9D85B8",
+        "D6C08C"
+      ],
+      "pattern": [
+        "33333332",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "12222210",
+        "44444443",
+        "01111100"
+      ]
+    },
+    "sandal_sole": {
+      "palette": [
+        "211F2E",
+        "373044",
+        "55465F",
+        "7D6788"
+      ],
+      "pattern": [
+        "23333332",
+        "22222221",
+        "11111110",
+        "11111110",
+        "22222221",
+        "11111110",
+        "11111110",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left broad thin sandal sole",
+      "from": [
+        1.8,
+        0.8,
+        3.2
+      ],
+      "to": [
+        6.7,
+        1.8,
+        11.8
+      ],
+      "material": "sandal_sole"
+    },
+    {
+      "name": "Left purple dyed footbed",
+      "from": [
+        1.9000000000000001,
+        1.7,
+        3.3
+      ],
+      "to": [
+        6.6,
+        2.25,
+        11.7
+      ],
+      "material": "astral_leather",
+      "side": "pale_lining"
+    },
+    {
+      "name": "Left broad open toe strap",
+      "from": [
+        1.8843750000000001,
+        2.15,
+        4.65
+      ],
+      "to": [
+        6.615625,
+        3.45,
+        6.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left broad instep strap",
+      "from": [
+        1.8843750000000001,
+        2.15,
+        7.1
+      ],
+      "to": [
+        6.615625,
+        3.65,
+        8.45
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left continuous outer strap anchor",
+      "from": [
+        1.8687500000000001,
+        1.8,
+        5.6
+      ],
+      "to": [
+        2.7,
+        4.7,
+        11.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left continuous inner strap anchor",
+      "from": [
+        5.8,
+        1.8,
+        5.6
+      ],
+      "to": [
+        6.63125,
+        4.7,
+        11.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left open ankle front band",
+      "from": [
+        2.0,
+        4.1,
+        8.5
+      ],
+      "to": [
+        6.5,
+        5.35,
+        9.4
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left open ankle rear band",
+      "from": [
+        2.0,
+        4.1,
+        10.65
+      ],
+      "to": [
+        6.5,
+        5.35,
+        11.65
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left ankle outer return",
+      "from": [
+        1.984375,
+        4.084375,
+        9.15
+      ],
+      "to": [
+        2.9,
+        5.365625,
+        10.95
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left ankle inner return",
+      "from": [
+        5.6,
+        4.084375,
+        9.15
+      ],
+      "to": [
+        6.515625,
+        5.365625,
+        10.95
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Left rear heel leather",
+      "from": [
+        2.1,
+        2.1,
+        10.634375
+      ],
+      "to": [
+        6.3999999999999995,
+        4.5,
+        11.55
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Left instep star square seat",
+      "from": [
+        3.35,
+        3.35,
+        6.9
+      ],
+      "to": [
+        5.15,
+        4.15,
+        8.6
+      ],
+      "material": "star_border",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Left instep cool star",
+      "from": [
+        3.8,
+        3.85,
+        7.3
+      ],
+      "to": [
+        4.7,
+        4.45,
+        8.15
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Left rear carrying anchor",
+      "from": [
+        3.6,
+        5.15,
+        10.95
+      ],
+      "to": [
+        4.9,
+        5.95,
+        11.85
+      ],
+      "material": "orbit_sash",
+      "side": "pale_lining",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right broad thin sandal sole",
+      "from": [
+        9.3,
+        0.8,
+        3.2
+      ],
+      "to": [
+        14.200000000000001,
+        1.8,
+        11.8
+      ],
+      "material": "sandal_sole"
+    },
+    {
+      "name": "Right purple dyed footbed",
+      "from": [
+        9.4,
+        1.7,
+        3.3
+      ],
+      "to": [
+        14.100000000000001,
+        2.25,
+        11.7
+      ],
+      "material": "astral_leather",
+      "side": "pale_lining"
+    },
+    {
+      "name": "Right broad open toe strap",
+      "from": [
+        9.384375,
+        2.15,
+        4.65
+      ],
+      "to": [
+        14.115625000000001,
+        3.45,
+        6.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right broad instep strap",
+      "from": [
+        9.384375,
+        2.15,
+        7.1
+      ],
+      "to": [
+        14.115625000000001,
+        3.65,
+        8.45
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right continuous outer strap anchor",
+      "from": [
+        9.36875,
+        1.8,
+        5.6
+      ],
+      "to": [
+        10.200000000000001,
+        4.7,
+        11.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right continuous inner strap anchor",
+      "from": [
+        13.3,
+        1.8,
+        5.6
+      ],
+      "to": [
+        14.131250000000001,
+        4.7,
+        11.1
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right open ankle front band",
+      "from": [
+        9.5,
+        4.1,
+        8.5
+      ],
+      "to": [
+        14.0,
+        5.35,
+        9.4
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right open ankle rear band",
+      "from": [
+        9.5,
+        4.1,
+        10.65
+      ],
+      "to": [
+        14.0,
+        5.35,
+        11.65
+      ],
+      "material": "orbit_sash",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right ankle outer return",
+      "from": [
+        9.484375,
+        4.084375,
+        9.15
+      ],
+      "to": [
+        10.4,
+        5.365625,
+        10.95
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right ankle inner return",
+      "from": [
+        13.100000000000001,
+        4.084375,
+        9.15
+      ],
+      "to": [
+        14.015625000000002,
+        5.365625,
+        10.95
+      ],
+      "material": "astral_leather",
+      "side": "folded_leather",
+      "cap": "star_border"
+    },
+    {
+      "name": "Right rear heel leather",
+      "from": [
+        9.600000000000001,
+        2.1,
+        10.634375
+      ],
+      "to": [
+        13.9,
+        4.5,
+        11.55
+      ],
+      "material": "folded_leather",
+      "side": "astral_leather",
+      "cap": "pale_lining"
+    },
+    {
+      "name": "Right instep star square seat",
+      "from": [
+        10.850000000000001,
+        3.35,
+        6.9
+      ],
+      "to": [
+        12.65,
+        4.15,
+        8.6
+      ],
+      "material": "star_border",
+      "side": "folded_leather"
+    },
+    {
+      "name": "Right instep cool star",
+      "from": [
+        11.3,
+        3.85,
+        7.3
+      ],
+      "to": [
+        12.200000000000001,
+        4.45,
+        8.15
+      ],
+      "material": "star_inlay",
+      "side": "star_border"
+    },
+    {
+      "name": "Right rear carrying anchor",
+      "from": [
+        11.100000000000001,
+        5.15,
+        10.95
+      ],
+      "to": [
+        12.4,
+        5.95,
+        11.85
+      ],
+      "material": "orbit_sash",
+      "side": "pale_lining",
+      "cap": "star_border"
+    },
+    {
+      "name": "Physical rear carrying tie joins pair",
+      "from": [
+        3.9,
+        5.35,
+        11.15
+      ],
+      "to": [
+        12.1,
+        6.1,
+        11.95
+      ],
+      "material": "orbit_sash",
+      "side": "pale_lining",
+      "cap": "star_border"
+    },
+    {
+      "name": "Central solid carrying knot",
+      "from": [
+        7.35,
+        5.15,
+        10.95
+      ],
+      "to": [
+        8.65,
+        6.3,
+        12.2
+      ],
+      "material": "pale_lining",
+      "side": "folded_leather",
+      "cap": "star_border"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      154,
+      0
+    ],
+    "scale": 1
+  },
+  "wearable_texture_set": "astra_magia",
+  "wearable_source": "armor/author_astra_magia.py",
+  "held_join_surface_separation": {
+    "step": 0.015625,
+    "changes": [
+      {
+        "part": "Left broad open toe strap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left broad open toe strap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left broad instep strap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left broad instep strap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left continuous outer strap anchor",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left continuous outer strap anchor",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left continuous inner strap anchor",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left continuous inner strap anchor",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left ankle outer return",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left ankle outer return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left ankle outer return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left ankle inner return",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left ankle inner return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Left ankle inner return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Left rear heel leather",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right broad open toe strap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right broad open toe strap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right broad instep strap",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right broad instep strap",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right continuous outer strap anchor",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right continuous outer strap anchor",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right continuous inner strap anchor",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right continuous inner strap anchor",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right ankle outer return",
+        "axis": 0,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right ankle outer return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right ankle outer return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right ankle inner return",
+        "axis": 0,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right ankle inner return",
+        "axis": 1,
+        "edge": "from",
+        "delta": -0.015625
+      },
+      {
+        "part": "Right ankle inner return",
+        "axis": 1,
+        "edge": "to",
+        "delta": 0.015625
+      },
+      {
+        "part": "Right rear heel leather",
+        "axis": 2,
+        "edge": "from",
+        "delta": -0.015625
+      }
+    ]
+  }
+}

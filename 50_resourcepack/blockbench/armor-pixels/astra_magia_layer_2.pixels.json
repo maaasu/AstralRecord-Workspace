@@ -1,0 +1,301 @@
+{
+  "size": [
+    64,
+    32
+  ],
+  "palette": {
+    ".": "00000000",
+    "l": "8D79B1FF",
+    "p": "B5A2CFFF",
+    "d": "584975FF",
+    "s": "332C49FF",
+    "e": "DACDECFF",
+    "g": "D6C08CFF",
+    "w": "F4E5B8FF",
+    "c": "A6D8E0FF",
+    "b": "6C598AFF",
+    "o": "29263CFF"
+  },
+  "used_regions": [
+    {
+      "part": "body",
+      "face": "front",
+      "rect": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "gggggggg",
+        "bbgccgbb",
+        "lld..dll"
+      ],
+      "nontransparent": 22,
+      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+    },
+    {
+      "part": "body",
+      "face": "back",
+      "rect": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "gggggggg",
+        "bbgeegbb",
+        "llllllll"
+      ],
+      "nontransparent": 24,
+      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+    },
+    {
+      "part": "body",
+      "face": "left",
+      "rect": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "gggg",
+        "bbbb",
+        "llll"
+      ],
+      "nontransparent": 12,
+      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+    },
+    {
+      "part": "body",
+      "face": "right",
+      "rect": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "gggg",
+        "bbbb",
+        "llll"
+      ],
+      "nontransparent": 12,
+      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+    },
+    {
+      "part": "body",
+      "face": "top",
+      "rect": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "........",
+        "........",
+        "........",
+        "........"
+      ],
+      "nontransparent": 0,
+      "meaning": "Torso top unused by leggings."
+    },
+    {
+      "part": "body",
+      "face": "bottom",
+      "rect": [
+        28,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "gggggggg",
+        "g......g",
+        "g......g",
+        "gggggggg"
+      ],
+      "nontransparent": 20,
+      "meaning": "Annular waist lower edge."
+    },
+    {
+      "part": "leg",
+      "face": "front",
+      "rect": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gllg",
+        "glpg",
+        "glpg",
+        "glpg",
+        "glpg",
+        "glpg",
+        "gppg",
+        "gwwg",
+        "gggg",
+        "pggp",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+    },
+    {
+      "part": "leg",
+      "face": "back",
+      "rect": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dbbd",
+        "dbbd",
+        "gggg",
+        "pggp",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+    },
+    {
+      "part": "leg",
+      "face": "left",
+      "rect": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "dllg",
+        "dplg",
+        "dllg",
+        "dllg",
+        "dllg",
+        "dllg",
+        "dbbg",
+        "dbbg",
+        "gggg",
+        "pggp",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+    },
+    {
+      "part": "leg",
+      "face": "right",
+      "rect": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "dllg",
+        "dplg",
+        "dllg",
+        "dllg",
+        "dllg",
+        "dllg",
+        "dbbg",
+        "dbbg",
+        "gggg",
+        "pggp",
+        "....",
+        "...."
+      ],
+      "nontransparent": 40,
+      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+    },
+    {
+      "part": "leg",
+      "face": "top",
+      "rect": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "gggg",
+        "g..g",
+        "g..g",
+        "gggg"
+      ],
+      "nontransparent": 12,
+      "meaning": "Annular top of leggings, hollow center."
+    },
+    {
+      "part": "leg",
+      "face": "bottom",
+      "rect": [
+        8,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "...."
+      ],
+      "nontransparent": 0,
+      "meaning": "Bottom cap clear; sandal sole comes from layer1."
+    }
+  ]
+}

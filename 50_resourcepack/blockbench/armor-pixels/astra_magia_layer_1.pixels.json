@@ -1,0 +1,573 @@
+{
+  "size": [
+    64,
+    32
+  ],
+  "palette": {
+    ".": "00000000",
+    "l": "8D79B1FF",
+    "p": "B5A2CFFF",
+    "d": "584975FF",
+    "s": "332C49FF",
+    "e": "DACDECFF",
+    "g": "D6C08CFF",
+    "w": "F4E5B8FF",
+    "c": "A6D8E0FF",
+    "b": "6C598AFF",
+    "o": "29263CFF"
+  },
+  "used_regions": [
+    {
+      "part": "head",
+      "face": "front",
+      "rect": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "ddgwwgdd",
+        "dgwwwwgd",
+        "ge....eg",
+        "e......e",
+        "l......l",
+        "l......l",
+        "l......l",
+        "g......g"
+      ],
+      "nontransparent": 30,
+      "meaning": "Broad star brow and pale face rim. Entire central eye/mouth opening clear."
+    },
+    {
+      "part": "head",
+      "face": "back",
+      "rect": [
+        24,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "ddleeldd",
+        "dlleelld",
+        "llleelll",
+        "lggwwggl",
+        "llleelll",
+        "llleelll",
+        "bbgeegbb",
+        "bbgeegbb"
+      ],
+      "nontransparent": 64,
+      "meaning": "Broad celestial rear seam, coarse orbit crossbar and hanging hood tail."
+    },
+    {
+      "part": "head",
+      "face": "left",
+      "rect": [
+        0,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "ggddddgg",
+        "epllllde",
+        "epllllld",
+        "epllllld",
+        "ellldlld",
+        "ellldlld",
+        "bggggggb",
+        "bbddddbb"
+      ],
+      "nontransparent": 64,
+      "meaning": "Purple side panel, pale face edge and low orbit collar; distinct rear seam."
+    },
+    {
+      "part": "head",
+      "face": "right",
+      "rect": [
+        16,
+        8,
+        8,
+        8
+      ],
+      "rows": [
+        "ggddddgg",
+        "epllllde",
+        "epllllld",
+        "epllllld",
+        "ellldlld",
+        "ellldlld",
+        "bggggggb",
+        "bbddddbb"
+      ],
+      "nontransparent": 64,
+      "meaning": "Purple side panel, pale face edge and low orbit collar; distinct rear seam."
+    },
+    {
+      "part": "head",
+      "face": "top",
+      "rect": [
+        8,
+        0,
+        8,
+        8
+      ],
+      "rows": [
+        "dddddddd",
+        "dlggggld",
+        "dlgwwgld",
+        "dlwccwld",
+        "dlwccwld",
+        "dlgwwgld",
+        "dlggggld",
+        "dddddddd"
+      ],
+      "nontransparent": 64,
+      "meaning": "Angular celestial crown star in large pixels, no emissive effect."
+    },
+    {
+      "part": "head",
+      "face": "bottom",
+      "rect": [
+        16,
+        0,
+        8,
+        8
+      ],
+      "rows": [
+        "gggggggg",
+        "g......g",
+        "g......g",
+        "g......g",
+        "g......g",
+        "g......g",
+        "g......g",
+        "gggggggg"
+      ],
+      "nontransparent": 28,
+      "meaning": "Annular neckline; hollow center."
+    },
+    {
+      "part": "body",
+      "face": "front",
+      "rect": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "gp....pg",
+        "lgp..pgl",
+        "lldwwdll",
+        "llwccwll",
+        "lllddlll",
+        "lglddlgl",
+        "gggwwggg",
+        "bbgwwgbb",
+        "lpb..bpl",
+        "lpb..bpl",
+        "lpb..bpl",
+        "ggg..ggg"
+      ],
+      "nontransparent": 82,
+      "meaning": "High open collar, broad chest star, dark orbit belt and long center-split robe."
+    },
+    {
+      "part": "body",
+      "face": "back",
+      "rect": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "rows": [
+        "ppggggpp",
+        "lldwwdll",
+        "llwccwll",
+        "lldwwdll",
+        "lllgglll",
+        "lllgglll",
+        "bbbbbbbb",
+        "gggppggg",
+        "lllgglll",
+        "lllgglll",
+        "lllgglll",
+        "gggggggg"
+      ],
+      "nontransparent": 96,
+      "meaning": "Full purple rear, angular star and continuous descending celestial banner."
+    },
+    {
+      "part": "body",
+      "face": "left",
+      "rect": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gggg",
+        "pllp",
+        "plld",
+        "llld",
+        "llld",
+        "lpld",
+        "bbbb",
+        "gggg",
+        "lpbd",
+        "lpbd",
+        "lpbd",
+        "gggg"
+      ],
+      "nontransparent": 48,
+      "meaning": "Continuous robe side, orbit waist and broad gold-colored dyed hem."
+    },
+    {
+      "part": "body",
+      "face": "right",
+      "rect": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gggg",
+        "pllp",
+        "plld",
+        "llld",
+        "llld",
+        "lpld",
+        "bbbb",
+        "gggg",
+        "lpbd",
+        "lpbd",
+        "lpbd",
+        "gggg"
+      ],
+      "nontransparent": 48,
+      "meaning": "Continuous robe side, orbit waist and broad gold-colored dyed hem."
+    },
+    {
+      "part": "body",
+      "face": "top",
+      "rect": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "gg....gg",
+        "ep....pe",
+        "ep....pe",
+        "gggggggg"
+      ],
+      "nontransparent": 20,
+      "meaning": "Open neck with complete collar back and side caps."
+    },
+    {
+      "part": "body",
+      "face": "bottom",
+      "rect": [
+        28,
+        16,
+        8,
+        4
+      ],
+      "rows": [
+        "gg....gg",
+        "g......g",
+        "g......g",
+        "gggggggg"
+      ],
+      "nontransparent": 16,
+      "meaning": "Split long robe hem ring only."
+    },
+    {
+      "part": "arm",
+      "face": "front",
+      "rect": [
+        44,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gggg",
+        "pwwp",
+        "gccg",
+        "pwwp",
+        "lggl",
+        "lddl",
+        "lddl",
+        "lppl",
+        "bbbb",
+        "gggg",
+        "gwwg",
+        "gggg"
+      ],
+      "nontransparent": 48,
+      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+    },
+    {
+      "part": "arm",
+      "face": "back",
+      "rect": [
+        52,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gggg",
+        "pllp",
+        "pggp",
+        "pllp",
+        "lddl",
+        "lddl",
+        "lddl",
+        "lppl",
+        "bbbb",
+        "gggg",
+        "peep",
+        "gggg"
+      ],
+      "nontransparent": 48,
+      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+    },
+    {
+      "part": "arm",
+      "face": "left",
+      "rect": [
+        40,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gggg",
+        "pllp",
+        "pggp",
+        "pllp",
+        "lldl",
+        "lldl",
+        "lldl",
+        "lppl",
+        "bbbb",
+        "gggg",
+        "peep",
+        "gggg"
+      ],
+      "nontransparent": 48,
+      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+    },
+    {
+      "part": "arm",
+      "face": "right",
+      "rect": [
+        48,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "gggg",
+        "pllp",
+        "pggp",
+        "pllp",
+        "lldl",
+        "lldl",
+        "lldl",
+        "lppl",
+        "bbbb",
+        "gggg",
+        "peep",
+        "gggg"
+      ],
+      "nontransparent": 48,
+      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+    },
+    {
+      "part": "arm",
+      "face": "top",
+      "rect": [
+        44,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "gggg",
+        "gwwg",
+        "gccg",
+        "gggg"
+      ],
+      "nontransparent": 16,
+      "meaning": "Coarse shoulder celestial star cap."
+    },
+    {
+      "part": "arm",
+      "face": "bottom",
+      "rect": [
+        48,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "gggg",
+        "g..g",
+        "g..g",
+        "gggg"
+      ],
+      "nontransparent": 12,
+      "meaning": "Annular cuff leaves center of hand open."
+    },
+    {
+      "part": "leg",
+      "face": "front",
+      "rect": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "gggg",
+        "lccl",
+        "l..l",
+        "oooo"
+      ],
+      "nontransparent": 14,
+      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+    },
+    {
+      "part": "leg",
+      "face": "back",
+      "rect": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "gbbg",
+        "lbbl",
+        "lggl",
+        "oooo"
+      ],
+      "nontransparent": 16,
+      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+    },
+    {
+      "part": "leg",
+      "face": "left",
+      "rect": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "gggg",
+        "lddl",
+        "l..l",
+        "oooo"
+      ],
+      "nontransparent": 14,
+      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+    },
+    {
+      "part": "leg",
+      "face": "right",
+      "rect": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "....",
+        "gggg",
+        "lddl",
+        "l..l",
+        "oooo"
+      ],
+      "nontransparent": 14,
+      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+    },
+    {
+      "part": "leg",
+      "face": "top",
+      "rect": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "....",
+        "....",
+        "....",
+        "...."
+      ],
+      "nontransparent": 0,
+      "meaning": "Upper leg cap unused by sandals."
+    },
+    {
+      "part": "leg",
+      "face": "bottom",
+      "rect": [
+        8,
+        16,
+        4,
+        4
+      ],
+      "rows": [
+        "oooo",
+        "obbo",
+        "obbo",
+        "oooo"
+      ],
+      "nontransparent": 16,
+      "meaning": "Whole thin sandal sole underneath."
+    }
+  ]
+}
