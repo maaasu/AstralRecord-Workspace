@@ -156,15 +156,17 @@
                                     @if (buyer is not null && !isOwn)
                                     {
                                         <form method="post" asp-page-handler="Purchase" class="market-purchase-form" data-market-purchase
+                                              data-confirm-title="購入内容を確認してください" data-confirm-accept="この内容で購入する"
+                                              data-confirm-message="@entry.DisplayName / 受取先：@buyer.AccountName #@buyer.SlotIndex。購入品はゲーム内メールへ届きます。"
                                               data-unit-price="@listing.UnitPrice" data-gold="@(Model.BuyerGold?.ToString(System.Globalization.CultureInfo.InvariantCulture))" data-currency="@currency">
                                             <input type="hidden" name="ListingId" value="@listing.ListingId" />
                                             <input type="hidden" name="OperationId" value="@Guid.NewGuid()" />
                                             <input type="hidden" name="BuyerAccountId" value="@buyer.Uuid" />
                                             <label for="quantity-@listing.ListingId">購入数量</label>
-                                            <input id="quantity-@listing.ListingId" name="PurchaseQuantity" type="number" min="1" step="1"
+                                            <input id="quantity-@listing.ListingId" name="PurchaseQuantity" type="number" min="1" step="1" data-confirm-label="購入数量"
                                                    max="@(listing.InstanceId.HasValue ? 1 : Math.Min(listing.RemainingQuantity, int.MaxValue))"
                                                    value="1" readonly="@listing.InstanceId.HasValue" required />
-                                            <div class="market-total"><span>支払合計</span><strong data-purchase-total>@listing.UnitPrice.ToString("N0") @currency（1個）</strong></div>
+                                            <div class="market-total"><span>支払合計</span><strong data-purchase-total data-confirm-label="支払合計">@listing.UnitPrice.ToString("N0") @currency（1個）</strong></div>
                                             <p class="market-balance-after" data-purchase-balance aria-live="polite">数量を変更すると合計を確認できます。</p>
                                             <button type="submit" class="btn ar-btn-primary market-buy-button">購入する</button>
                                             <p class="market-purchase-account">受取先：@buyer.AccountName #@buyer.SlotIndex</p>

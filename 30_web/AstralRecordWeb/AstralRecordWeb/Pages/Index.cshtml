@@ -35,10 +35,10 @@
         <div class="container ar-home-connect__inner">
             <div class="ar-home-connect__address">
                 <div>
-                    <span class="ar-home-caption">サーバーアドレス</span>
-                    <code class="ar-home-address">@site.JavaServerAddress</code>
+                    <span class="ar-home-caption">Java版の接続先</span>
+                    <code class="ar-home-address">@javaEndpoint</code>
                 </div>
-                <button type="button" class="ar-home-copy" data-copy-server data-copy-value="@site.JavaServerAddress"
+                <button type="button" class="ar-home-copy" data-copy-server data-copy-value="@javaEndpoint"
                         aria-describedby="home-copy-status" hidden><span data-copy-label>コピー</span></button>
                 <span class="visually-hidden" id="home-copy-status" role="status" data-copy-status></span>
             </div>
@@ -127,9 +127,10 @@
                         <div class="ar-home-connection__address">
                             <div>
                                 <span class="ar-home-caption">サーバーアドレス</span>
-                                <code class="ar-home-address">@site.JavaServerAddress</code>
+                                <code class="ar-home-address ar-home-edition__java">@javaEndpoint</code>
+                                <code class="ar-home-address ar-home-edition__bedrock">@site.JavaServerAddress</code>
                             </div>
-                            <button type="button" class="ar-home-copy" data-copy-server data-copy-value="@site.JavaServerAddress"
+                            <button type="button" class="ar-home-copy" data-copy-server data-copy-value="@javaEndpoint" data-copy-bedrock-value="@site.JavaServerAddress"
                                     aria-describedby="join-copy-status" hidden><span data-copy-label>コピー</span></button>
                             <span class="visually-hidden" id="join-copy-status" role="status" data-copy-status></span>
                         </div>

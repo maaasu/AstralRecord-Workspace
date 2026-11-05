@@ -146,6 +146,16 @@
         @RenderBody()
     </main>
 
+    <dialog class="ar-confirm ar-action-confirm" id="action-confirm" aria-labelledby="action-confirm-title" aria-describedby="action-confirm-message">
+        <h2 id="action-confirm-title"></h2>
+        <p id="action-confirm-message"></p>
+        <dl data-confirm-details></dl>
+        <div class="ar-confirm-actions">
+            <button type="button" class="btn ar-btn-outline" data-confirm-cancel autofocus>戻って確認する</button>
+            <button type="button" class="btn ar-btn-primary" data-confirm-accept>確定する</button>
+        </div>
+    </dialog>
+
     <footer class="ar-footer" aria-label="Astral Record">
         <div class="container">
             <div class="ar-footer-bottom">
@@ -174,6 +184,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/portal.js" asp-append-version="true"></script>
+    <script src="~/js/action-confirm.js" asp-append-version="true"></script>
     <script src="~/js/astral-motion.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

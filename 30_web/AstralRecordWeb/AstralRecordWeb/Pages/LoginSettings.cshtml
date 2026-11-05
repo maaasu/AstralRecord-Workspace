@@ -35,7 +35,9 @@
                 <button type="submit" name="action" value="@(settings.Enabled ? "change" : "enable")" class="btn ar-btn-primary">@(settings.Enabled ? "パスワードを変更する" : "設定して有効にする")</button>
                 @if (settings.Enabled)
                 {
-                    <button type="submit" name="action" value="disable" class="btn ar-btn-outline">ID・パスワードでのログインを無効にする</button>
+                    <button type="submit" name="action" value="disable" class="btn ar-btn-outline"
+                            data-confirm-title="ID・パスワードでのログインを無効にしますか？" data-confirm-accept="無効にする"
+                            data-confirm-message="保存済みパスワードを削除し、他の端末のログインを解除します。再有効化にはMinecraftでの本人確認と新しいパスワードが必要です。">ID・パスワードでのログインを無効にする</button>
                     <p class="mt-3">無効化すると保存済みパスワードを削除します。IDは保持され、再有効化にはMinecraftでの本人確認と新しいパスワードが必要です。</p>
                 }
             </form>

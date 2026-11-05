@@ -85,6 +85,29 @@ public sealed class PlayerProfileTests
     }
 
     [Fact]
+    public async Task Bestiary_DetailAndBackLink_PreserveFilteredSecondPage()
+    {
+        var api = new ProfileHandler { ManyBestiaryMobs = true };
+        await using var factory = new ProfileFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+
+        var list = WebUtility.HtmlDecode(await client.GetStringAsync("/bestiary?query=%E6%A3%AE&category=ENEMY&sort=name&pageNumber=2"));
+        var detailPath = Link(list, "ar-mob-card");
+        Assert.Contains("/bestiary/zombie?", detailPath);
+        AssertBestiaryState(detailPath);
+
+        var detail = WebUtility.HtmlDecode(await client.GetStringAsync(detailPath));
+        var backPath = Link(detail, "ar-bestiary-back");
+        Assert.Equal("/bestiary", new Uri(client.BaseAddress!, backPath).AbsolutePath);
+        AssertBestiaryState(backPath);
+        Assert.Contains("森のゾンビ", WebUtility.HtmlDecode(await client.GetStringAsync(backPath)));
+
+        using var foreignAccount = await client.GetAsync($"/bestiary/zombie?accountId={Guid.NewGuid():D}&query=%E6%A3%AE&category=ENEMY&sort=name&pageNumber=2");
+        Assert.Equal(HttpStatusCode.NotFound, foreignAccount.StatusCode);
+    }
+
+    [Fact]
     public async Task MyPage_UsesLiveSelectedAccount_AndOnlyVisibilityCanBeChanged()
     {
         var api = new ProfileHandler();
@@ -216,6 +239,8 @@ public sealed class PlayerProfileTests
         Assert.Contains("スロット 0: 選択中の冒険者", multiSlot);
         Assert.Contains("スロット 1: 別の冒険者", multiSlot);
         Assert.Contains("別の冒険者", multiSlot);
+        Assert.DoesNotContain("onchange=", Regex.Match(multiSlot, "<select id=\"account-select\"[^>]*>").Value);
+        Assert.Contains("表示する</button>", multiSlot);
         Assert.DoesNotContain(HttpMethod.Put, api.Methods);
 
         api.MultiSlot = false;
@@ -283,6 +308,16 @@ public sealed class PlayerProfileTests
         Assert.Equal(pageNumber, query["pageNumber"].ToString());
         Assert.Equal(includePrivate, query["includePrivate"].ToString(), ignoreCase: true);
     }
+    private static void AssertBestiaryState(string path)
+    {
+        Assert.NotEmpty(path);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri("https://localhost" + path).Query);
+        Assert.Equal(ProfileHandler.FirstAccountId.ToString(), query["accountId"].ToString());
+        Assert.Equal("森", query["query"].ToString());
+        Assert.Equal("ENEMY", query["category"].ToString());
+        Assert.Equal("name", query["sort"].ToString());
+        Assert.Equal("2", query["pageNumber"].ToString());
+    }
     private static string Token(string body) => WebUtility.HtmlDecode(Regex.Match(body, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
     private static async Task Login(HttpClient client)
     {
@@ -314,6 +349,7 @@ public sealed class PlayerProfileTests
         public bool FailProfiles { get; set; }
         public bool EmptyBestiary { get; set; }
         public bool MultiSlot { get; set; }
+        public bool ManyBestiaryMobs { get; set; }
         public string? LastVisibilityViewer { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
@@ -341,8 +377,11 @@ public sealed class PlayerProfileTests
                     baseStats = new[] { new { status = "HP", displayName = "体力", value = 120, displayValue = "120" } },
                     drops = new { exp = 40, money = new { min = 100, max = 200 }, items = new[] { new { itemId = "fragment", name = "森のかけら", rate = 25.0, amount = "1-2", luckAffected = true } }, hasAdditionalDrops = true },
                 };
+                var mobs = EmptyBestiary ? Array.Empty<object>() : ManyBestiaryMobs
+                    ? Enumerable.Range(0, 24).Select(i => (object)new { mobId = $"other-{i}", name = "森のゾンビ", category = "ENEMY", level = 5, entityType = "ZOMBIE", defeatCount = 1L, lastDefeatedAt = "2026-09-15T12:34:56Z" }).Append(mob).ToArray()
+                    : new object[] { mob };
                 return uri.AbsolutePath == "/api/web-bestiary"
-                    ? Json(new { currentAccount = account, accounts = new[] { account }, mobs = EmptyBestiary ? Array.Empty<object>() : new object[] { mob }, totalDefeats = EmptyBestiary ? 0L : 1234L })
+                    ? Json(new { currentAccount = account, accounts = new[] { account }, mobs, totalDefeats = EmptyBestiary ? 0L : 1234L })
                     : Json(new { currentAccount = account, accounts = new[] { account }, mob, totalDefeats = 1234L });
             }
             if (request.Method == HttpMethod.Put)

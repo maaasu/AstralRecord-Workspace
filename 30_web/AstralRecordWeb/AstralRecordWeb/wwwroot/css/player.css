@@ -48,6 +48,7 @@
 }
 .ar-player .ar-portal-eyebrow { color: var(--ar-brass-dark); font-size: .75rem; letter-spacing: .08em; }
 .ar-player .ar-portal-heading .ar-portal-eyebrow { color: var(--ar-brass); margin-bottom: .55rem; }
+.ar-player .ar-portal-heading a:where(:not(.btn)) { color: var(--ar-brass); }
 .ar-player .ar-portal-heading .ar-portal-eyebrow a:hover { color: var(--ar-cream); }
 .ar-player .ar-portal-heading p:not(.ar-portal-eyebrow) { max-width: 49rem; color: var(--ar-text-muted); line-height: 1.65; margin: .45rem 0 0; }
 .ar-player :is(.ar-portal, .ar-card) .ar-btn-outline { background: transparent; color: var(--ar-ink); border: 1px solid var(--player-input-border); border-radius: 4px; }

@@ -80,7 +80,9 @@
             </section>
 
             <div class="ar-defense-actions">
-                <form method="post" asp-page-handler="Start" asp-route-serverId="@Model.ServerId">
+                <form method="post" asp-page-handler="Start" asp-route-serverId="@Model.ServerId"
+                      data-confirm-title="防衛戦の開始を要求しますか？" data-confirm-accept="開始を要求する"
+                      data-confirm-message="対象：@Model.ServerId / 受付済みの参加者：@Model.State.RegisteredCount 人。要求受理後は状態表示で実際の開始を確認してください。">
                     <input type="hidden" name="Input.Revision" value="@Model.Input.Revision" />
                     <input type="hidden" name="StartOperationId" value="@Model.StartOperationId" />
                     <input type="hidden" name="RetryStart" value="@Model.RetryStart.ToString().ToLowerInvariant()" />
@@ -89,10 +91,12 @@
                 </form>
                 @if (run is not null)
                 {
-                    <form method="post" asp-page-handler="Stop" asp-route-serverId="@Model.ServerId">
+                    <form method="post" asp-page-handler="Stop" asp-route-serverId="@Model.ServerId"
+                          data-confirm-title="この防衛戦の停止を要求しますか？" data-confirm-accept="停止を要求する"
+                          data-confirm-message="対象：@Model.ServerId / 開催ID：@run.RunId。この開催の参加者全員に影響します。">
                         <input type="hidden" name="StopOperationId" value="@Model.StopOperationId" />
                         <input type="hidden" name="StopRunId" value="@run.RunId" />
-                        <label>停止理由<input name="StopReason" value="@Model.StopReason" maxlength="200" required /></label>
+                        <label>停止理由<input name="StopReason" value="@Model.StopReason" maxlength="200" data-confirm-label="停止理由" required /></label>
                         <button type="submit" class="btn ar-btn-outline">この開催の停止を要求</button>
                     </form>
                 }

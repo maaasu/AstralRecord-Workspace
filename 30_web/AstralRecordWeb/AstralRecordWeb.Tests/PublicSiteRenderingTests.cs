@@ -102,6 +102,18 @@ public sealed class PublicSiteRenderingTests
     }
 
     [Fact]
+    public async Task Home_NonDefaultJavaPort_CopiesTheCompleteConnectionEndpoint()
+    {
+        await using var factory = new PublicSiteWebApplicationFactory("Release", javaPort: 25566);
+        using var client = CreateClient(factory);
+
+        var body = await client.GetStringAsync("/");
+        Assert.Equal(2, Regex.Matches(body, "data-copy-value=\"mc.astralrecord.com:25566\"").Count);
+        Assert.Contains("<code class=\"ar-home-address\">mc.astralrecord.com:25566</code>", body);
+        Assert.Contains("data-copy-bedrock-value=\"mc.astralrecord.com\"", body);
+    }
+
+    [Fact]
     public async Task LegalPages_ReturnSuccessAndUseSharedLegalPresentation()
     {
         await using var factory = new PublicSiteWebApplicationFactory("OpenAlpha");
@@ -249,7 +261,7 @@ public sealed class PublicSiteRenderingTests
         return html[start..(end + "</section>".Length)];
     }
 
-    private sealed class PublicSiteWebApplicationFactory(string phase, string? releaseNotesPath = null) : WebApplicationFactory<Program>
+    private sealed class PublicSiteWebApplicationFactory(string phase, string? releaseNotesPath = null, int javaPort = 25565) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -260,6 +272,7 @@ public sealed class PublicSiteRenderingTests
                 configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["PublicSite:Phase"] = phase,
+                    ["PublicSite:JavaServerPort"] = javaPort.ToString(),
                     ["ReleaseNotes:ContentRootRelativePath"] = releaseNotesPath
                         ?? Path.Combine(AppContext.BaseDirectory, "release-notes"),
                 });

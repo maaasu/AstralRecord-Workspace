@@ -57,7 +57,7 @@
                 <article class="border rounded p-3 mb-3"><h3 class="h5">@request.CreatedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")（日本時間） / @request.StatusLabel</h3>
                     <p>申告額：@request.DeclaredAmount.ToString("N0") 円 @if (request.ApprovedAmount is { } amount) { <span> / 承認額：@amount.ToString("N0") 円</span> }</p>
                     @if (!string.IsNullOrWhiteSpace(request.Reason)) { <p class="text-break">管理者からのメッセージ：@request.Reason</p> }
-                    @if (request.Status == "Pending") { <form method="post" asp-page-handler="Cancel"><input type="hidden" name="id" value="@request.Id" /><button class="btn ar-btn-outline" type="submit">この申請を取り消す</button></form> }
+                    @if (request.Status == "Pending") { <form method="post" asp-page-handler="Cancel" data-confirm-title="寄付申請を取り消しますか？" data-confirm-accept="この申請を取り消す" data-confirm-message="@request.CreatedAtUtc.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy/MM/dd HH:mm")（日本時間） / 申告額 @request.DeclaredAmount.ToString("N0") 円の申請を取り消します。"><input type="hidden" name="id" value="@request.Id" /><button class="btn ar-btn-outline" type="submit">この申請を取り消す</button></form> }
                 </article>
             }
             <nav aria-label="申請履歴のページ">@if (Model.PageNumber > 1) { <a asp-route-pageNumber="@(Model.PageNumber - 1)" class="btn ar-btn-outline">前へ</a> } @if (Model.HasNext) { <a asp-route-pageNumber="@(Model.PageNumber + 1)" class="btn ar-btn-outline">次へ</a> }</nav>

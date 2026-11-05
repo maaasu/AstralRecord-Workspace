@@ -4,7 +4,9 @@
 @{ ViewData["Title"] = Model.Record?.Mob.Name ?? "モブの詳細"; }
 @section Styles { <link rel="stylesheet" href="~/css/bestiary.css" asp-append-version="true" /> }
 <section class="ar-portal ar-bestiary"><div class="container">
-    <a asp-page="Index" asp-route-accountId="@Model.AccountId" class="ar-bestiary-back">討伐モブ図鑑へ</a>
+    <a asp-page="Index" asp-route-accountId="@Model.AccountId" asp-route-query="@Model.Query"
+       asp-route-category="@Model.Category" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber"
+       class="ar-bestiary-back">討伐モブ図鑑へ</a>
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning mt-4" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Record is { } record)
     {

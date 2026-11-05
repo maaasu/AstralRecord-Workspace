@@ -97,7 +97,8 @@
                     <div class="ar-bestiary-grid">
                         @foreach (var mob in Model.Mobs)
                         {
-                            <a class="ar-mob-card" asp-page="Detail" asp-route-mobId="@mob.MobId" asp-route-accountId="@record.AccountId">
+                            <a class="ar-mob-card" asp-page="Detail" asp-route-mobId="@mob.MobId" asp-route-accountId="@record.AccountId"
+                               asp-route-query="@Model.Query" asp-route-category="@Model.Category" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber">
                                 <div class="ar-mob-card-top">
                                     <span class="ar-mob-category @(mob.Category == "BOSS" ? "is-boss" : "")">@BestiaryDisplay.Category(mob.Category)</span>
                                 </div>

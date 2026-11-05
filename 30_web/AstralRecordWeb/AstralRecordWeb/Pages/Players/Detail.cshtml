@@ -13,7 +13,7 @@
                 <form method="get" class="ar-panel ar-account-picker" aria-label="表示アカウントの選択">
                     <input type="hidden" name="mcid" value="@Model.Mcid" /><input type="hidden" name="classId" value="@Model.ClassId" /><input type="hidden" name="sort" value="@Model.Sort" /><input type="hidden" name="pageNumber" value="@Model.PageNumber" /><input type="hidden" name="includePrivate" value="@Model.IncludePrivate.ToString().ToLowerInvariant()" />
                     <label for="account-select">表示するアカウント</label>
-                    <select id="account-select" name="accountId" disabled="@(profile.Accounts.Count <= 1)" onchange="this.form.submit()">
+                    <select id="account-select" name="accountId" disabled="@(profile.Accounts.Count <= 1)">
                         @foreach (var account in profile.Accounts) { <option value="@account.AccountId" selected="@(profile.CurrentAccount?.AccountId == account.AccountId)">スロット @account.SlotIndex: @account.AccountName（Lv. @account.PlayerLevel / @account.ClassName）</option> }
                     </select>
                     <button type="submit" class="btn ar-btn-outline" disabled="@(profile.Accounts.Count <= 1)">表示する</button>

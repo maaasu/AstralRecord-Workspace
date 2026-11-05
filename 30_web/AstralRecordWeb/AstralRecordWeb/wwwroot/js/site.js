@@ -38,7 +38,8 @@
         let resetTimer;
 
         button.addEventListener('click', async () => {
-            const value = button.getAttribute('data-copy-value');
+            const bedrockSelected = button.closest('.ar-home-edition')?.querySelector('input[value="bedrock"]:checked');
+            const value = bedrockSelected ? button.dataset.copyBedrockValue : button.getAttribute('data-copy-value');
             if (!value) {
                 return;
             }

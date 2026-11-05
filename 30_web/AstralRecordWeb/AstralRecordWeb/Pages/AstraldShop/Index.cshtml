@@ -92,7 +92,9 @@
                                     }
                                     else
                                     {
-                                        <form method="post" asp-page-handler="Purchase" data-single-submit>
+                                        <form method="post" asp-page-handler="Purchase" data-single-submit
+                                              data-confirm-title="特典を購入しますか？" data-confirm-accept="購入して直接適用"
+                                              data-confirm-message="@item.Name / @item.PricePaidAstrald.ToString("N0") 有償アストラルドを消費します。適用先：@selectedAccount.AccountName（スロット @selectedAccount.SlotIndex）。購入後すぐに効果が適用されます。">
                                             <input type="hidden" name="AccountId" value="@selectedAccount.AccountId" />
                                             <input type="hidden" name="OperationId" value="@Guid.NewGuid()" />
                                             <input type="hidden" name="ItemId" value="@item.ItemId" />
@@ -100,12 +102,13 @@
                                             @if (singleChannel is not null)
                                             {
                                                 <input type="hidden" name="ChannelId" value="@singleChannel.ChannelId" />
+                                                <p class="ar-shop-account-note" data-confirm-label="発動するチャンネル">@singleChannel.DisplayName</p>
                                                 @if (channelBlocked) { <p class="ar-shop-unavailable">同種ブーストが発動中です。終了後に購入できます。</p> }
                                             }
                                             else if (item.RequiresChannel)
                                             {
                                                 <label class="form-label" for="channel-@item.ItemId">発動するチャンネル</label>
-                                                <select class="form-select" id="channel-@item.ItemId" name="ChannelId" required><option value="">選択してください</option>@foreach (var channel in catalog.Channels) { <option value="@channel.ChannelId" disabled="@Model.IsChannelBlocked(item, channel.ChannelId)">@channel.DisplayName@(Model.IsChannelBlocked(item, channel.ChannelId) ? "（同種ブースト中）" : "")</option> }</select>
+                                                <select class="form-select" id="channel-@item.ItemId" name="ChannelId" data-confirm-label="発動するチャンネル" required><option value="">選択してください</option>@foreach (var channel in catalog.Channels) { <option value="@channel.ChannelId" disabled="@Model.IsChannelBlocked(item, channel.ChannelId)">@channel.DisplayName@(Model.IsChannelBlocked(item, channel.ChannelId) ? "（同種ブースト中）" : "")</option> }</select>
                                                 @if (allChannelsBlocked) { <p class="ar-shop-unavailable">すべての対象チャンネルで同種ブーストが発動中です。</p> }
                                             }
                                             <button class="btn ar-btn-primary" type="submit" disabled="@(Model.Benefits?.PaidAstraldBalance is null || channelBlocked || allChannelsBlocked)">購入して直接適用</button>
