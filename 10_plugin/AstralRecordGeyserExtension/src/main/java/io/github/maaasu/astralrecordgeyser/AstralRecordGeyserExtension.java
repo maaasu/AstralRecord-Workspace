@@ -1,18 +1,21 @@
 package io.github.maaasu.astralrecordgeyser;
 
 import org.geysermc.event.subscribe.Subscribe;
+import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.entity.custom.CustomEntityDefinition;
 import org.geysermc.geyser.api.entity.data.GeyserEntityDataTypes;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
 import org.geysermc.geyser.api.event.java.ServerSpawnEntityEvent;
+import org.geysermc.geyser.api.event.java.ServerTransferEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomSkullsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomSkullsEvent.SkullTextureType;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntitiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntityPropertiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.util.Identifier;
 import java.io.IOException;
@@ -27,6 +30,7 @@ public final class AstralRecordGeyserExtension implements Extension {
     private DamageNumberEntity damageNumberProperties;
     private CustomEntityDefinition actionRingDefinition;
     private ActionRingEntity actionRingProperties;
+    private HeldWeaponModelDisplay heldWeaponModels;
 
     @Subscribe
     public void onDefineCustomItems(GeyserDefineCustomItemsEvent event) {
@@ -54,8 +58,19 @@ public final class AstralRecordGeyserExtension implements Extension {
     }
 
     @Subscribe
+    public void onDefineHeldWeaponProperty(GeyserDefineEntityPropertiesEvent event) {
+        heldWeaponModels = new HeldWeaponModelDisplay(HeldWeaponModel.registerProperty(event));
+    }
+
+    @Subscribe
     public void onPostInitialize(GeyserPostInitializeEvent event) {
         damagePacks.start();
+        if (heldWeaponModels != null) heldWeaponModels.start();
+    }
+
+    @Subscribe
+    public void onShutdown(GeyserShutdownEvent event) {
+        if (heldWeaponModels != null) heldWeaponModels.shutdown();
     }
 
     @Subscribe
@@ -71,6 +86,12 @@ public final class AstralRecordGeyserExtension implements Extension {
     @Subscribe
     public void onDisconnect(SessionDisconnectEvent event) {
         damagePacks.disconnect(event.connection());
+        if (heldWeaponModels != null) heldWeaponModels.disconnect(event.connection());
+    }
+
+    @Subscribe
+    public void onServerTransfer(ServerTransferEvent event) {
+        updateHeldWeaponModel(event.connection(), 0);
     }
 
     @Subscribe(ignoreCancelled = true)
@@ -83,6 +104,12 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
+        HeldWeaponModel heldWeapon = HeldWeaponModel.decode(event.uuid());
+        if (heldWeapon != null) {
+            event.setCancelled(true);
+            updateHeldWeaponModel(event.connection(), heldWeapon.id());
+            return;
+        }
         ActionRingFrame frame = ActionRingFrame.decode(event.uuid(), event.entityId());
         if (frame != null) {
             onActionRingFrame(event, frame);
@@ -98,6 +125,13 @@ public final class AstralRecordGeyserExtension implements Extension {
         } else if (usePack) {
             event.definition(damageNumberDefinition);
             event.preSpawnConsumer(entity -> properties.initialize(entity, number));
+        }
+    }
+
+    private void updateHeldWeaponModel(GeyserConnection connection, int requestedModel) {
+        if (heldWeaponModels != null) {
+            damagePacks.heldWeaponModel(connection, requestedModel)
+                .ifPresent(modelId -> heldWeaponModels.update(connection, modelId));
         }
     }
 

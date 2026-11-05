@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -151,6 +152,14 @@ final class DamagePackDistribution {
     boolean actionRingReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() && selection.pack().actionRing();
+    }
+
+    OptionalInt heldWeaponModel(GeyserConnection connection, int modelId) {
+        SessionPack selection = sessions.get(connection);
+        if (selection == null || !selection.ready() || selection.pack().heldWeaponModels().isEmpty()) {
+            return OptionalInt.empty();
+        }
+        return OptionalInt.of(selection.pack().heldWeaponModels().contains(modelId) ? modelId : 0);
     }
 
     void disconnect(GeyserConnection connection) {

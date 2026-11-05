@@ -27,7 +27,8 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
-    String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing, Set<ItemModel> itemModels
+    String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
+    Set<Integer> heldWeaponModels, Set<ItemModel> itemModels
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -78,6 +79,7 @@ record DamagePack(
             Files.write(file, bytes);
             boolean damageNumberAssets;
             boolean actionRing;
+            Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             try (ZipFile zip = new ZipFile(file.toFile())) {
                 var manifest = zip.getEntry("manifest.json");
@@ -94,7 +96,9 @@ record DamagePack(
                 damageNumberAssets = DAMAGE_NUMBER_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
-                itemModels = ItemModel.read(zip);
+                var catalog = ItemModel.read(zip);
+                itemModels = catalog.models();
+                heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
             }
             var pack = ResourcePack.create(PackCodec.path(file));
             if (!uuid.equals(pack.uuid())) throw new IOException("Bedrock pack UUID mismatch");
@@ -103,7 +107,7 @@ record DamagePack(
                 && (version.major() > 1 || (version.major() == 1 && version.minor() >= 1));
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, itemModels);
+            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, heldWeaponModels, itemModels);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

@@ -1,0 +1,20 @@
+{
+  "minecraft:wooden_sword": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.13, -1.4991, -0.5803], "up": [0, 0.9397, 0.3420] },
+    "firstperson_lefthand": { "position": [-1.13, -1.4991, -0.5803], "up": [0, 0.9397, 0.3420] }
+  },
+  "minecraft:bow": {
+    "thirdperson_righthand": { "position": [-0.9016, -2.0589, -0.3791], "up": [-0.171, 0.9853, -0.0026] },
+    "thirdperson_lefthand": { "position": [0.9016, -2.0589, -0.3791], "up": [0.171, 0.9853, -0.0026] },
+    "firstperson_righthand": { "position": [1.13, 3.7141, -0.9855], "up": [0, 0.9659, 0.2588] },
+    "firstperson_lefthand": { "position": [-1.13, 3.7141, -0.9855], "up": [0, 0.9659, 0.2588] }
+  },
+  "minecraft:wooden_shovel": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.13, -0.5379, -0.1282], "up": [0, 0.9397, 0.3420] },
+    "firstperson_lefthand": { "position": [-1.13, -0.5379, -0.1282], "up": [0, 0.9397, 0.3420] }
+  }
+}

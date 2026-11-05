@@ -37,12 +37,59 @@ class ItemModelTest {
         assertEquals(Set.of(
             new ItemModel("nox_sword", "minecraft:wooden_sword", 21001),
             new ItemModel("nox_staff", "minecraft:wooden_shovel", 21003)
-        ), ItemModel.parse(catalog));
+        ), ItemModel.parse(catalog).models());
         assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("nox_staff", "nox_sword")));
         assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("21003", "21001")));
         assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("21003", "21003.5")));
         assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("21003", "16777216")));
         assertThrows(IOException.class, () -> ItemModel.parse(catalog.replace("21003", "0")));
+    }
+
+    @Test
+    void keepsHeldWeaponEligibilitySeparateFromItemMappings() throws IOException {
+        var legacy = ItemModel.parse(CATALOG);
+        var enabled = ItemModel.parse(CATALOG.replace("21001", "21001,\"held_weapon\":true"));
+        var disabled = ItemModel.parse(CATALOG.replace("21001", "21001,\"held_weapon\":false"));
+
+        assertEquals(legacy.models(), enabled.models());
+        assertEquals(legacy, disabled);
+        assertEquals(Set.of(), legacy.heldWeaponModels());
+        assertEquals(Set.of(21001), enabled.heldWeaponModels());
+        assertThrows(IOException.class,
+            () -> ItemModel.parse(CATALOG.replace("21001", "21001,\"held_weapon\":\"true\"")));
+    }
+
+    @Test
+    void heldWeaponRequiresBothMatchingRenderAssets(@TempDir Path directory) throws IOException {
+        String attachable = """
+            {"minecraft:attachable":{"description":{
+              "identifier":"minecraft:trident",
+              "geometry":{"weapon_nox_sword":"geometry.astralrecord.nox_sword"},
+              "textures":{"weapon_nox_sword":"textures/entity/items/nox_sword"},
+              "render_controllers":[{"controller.render.astralrecord.held_nox_sword":"v.model == 21001"}]
+            }}}
+            """;
+        String controllers = """
+            {"render_controllers":{"controller.render.astralrecord.held_nox_sword":{"geometry":"geometry.weapon_nox_sword"}}}
+            """;
+        String attachablePath = "attachables/trident.entity.json";
+        String controllersPath = "render_controllers/held_weapon.render_controllers.json";
+        var catalog = ItemModel.parse(CATALOG.replace("21001", "21001,\"held_weapon\":true"));
+        Path pack = directory.resolve("held-weapon.mcpack");
+
+        writePack(pack, Map.of(attachablePath, attachable, controllersPath, controllers));
+        try (var zip = new ZipFile(pack.toFile())) {
+            assertEquals(Set.of(21001), ItemModel.verifiedHeldWeaponModels(zip, catalog));
+            assertEquals(Set.of(), ItemModel.verifiedHeldWeaponModels(zip, ItemModel.parse(CATALOG)));
+        }
+        writePack(pack, Map.of(attachablePath, attachable));
+        try (var zip = new ZipFile(pack.toFile())) {
+            assertEquals(Set.of(), ItemModel.verifiedHeldWeaponModels(zip, catalog));
+        }
+        writePack(pack, Map.of(attachablePath, attachable, controllersPath, controllers.replace("nox_sword", "nox_staff")));
+        try (var zip = new ZipFile(pack.toFile())) {
+            assertEquals(Set.of(), ItemModel.verifiedHeldWeaponModels(zip, catalog));
+        }
     }
 
     @Test
@@ -73,7 +120,7 @@ class ItemModelTest {
         Path pack = directory.resolve("test.mcpack");
         writePack(pack, entries);
         try (var zip = new ZipFile(pack.toFile())) {
-            assertEquals(Set.of(new ItemModel("nox_sword", "minecraft:wooden_sword", 21001)), ItemModel.read(zip));
+            assertEquals(Set.of(new ItemModel("nox_sword", "minecraft:wooden_sword", 21001)), ItemModel.read(zip).models());
         }
         for (String path : entries.keySet()) {
             if (path.equals("manifest.json") || path.equals("astralrecord_item_models.json")) continue;
@@ -97,7 +144,7 @@ class ItemModelTest {
         Path pack = directory.resolve("old.mcpack");
         writePack(pack, Map.of("manifest.json", "{}"));
         try (var zip = new ZipFile(pack.toFile())) {
-            assertEquals(Set.of(), ItemModel.read(zip));
+            assertEquals(new ItemModel.Catalog(Set.of(), Set.of()), ItemModel.read(zip));
         }
     }
 

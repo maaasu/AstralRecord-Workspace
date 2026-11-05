@@ -25,19 +25,58 @@ import org.geysermc.geyser.api.util.Identifier;
 record ItemModel(String id, String baseItem, int customModelData) {
     private static final String CATALOG = "astralrecord_item_models.json";
     private static final String ATLAS = "textures/item_texture.json";
+    private static final String HELD_ATTACHABLE = "attachables/trident.entity.json";
+    private static final String HELD_CONTROLLERS = "render_controllers/held_weapon.render_controllers.json";
     private static final int MAX_JSON_BYTES = 64 * 1024;
+    private static final int MAX_HELD_ASSET_BYTES = 4 * 1024 * 1024;
 
-    static Set<ItemModel> read(ZipFile zip) throws IOException {
-        if (zip.getEntry(CATALOG) == null) return Set.of();
+    record Catalog(Set<ItemModel> models, Set<Integer> heldWeaponModels) {}
+
+    static Catalog read(ZipFile zip) throws IOException {
+        if (zip.getEntry(CATALOG) == null) return new Catalog(Set.of(), Set.of());
 
         Set<String> paths = new HashSet<>();
         for (var entries = zip.entries(); entries.hasMoreElements();) {
             String path = entries.nextElement().getName();
             if (!paths.add(path)) throw new IOException("Duplicate Bedrock pack entry");
         }
-        Set<ItemModel> models = parse(readJson(zip, CATALOG));
-        if (!models.isEmpty()) validateAssets(zip, models);
-        return models;
+        Catalog catalog = parse(readJson(zip, CATALOG));
+        if (!catalog.models().isEmpty()) validateAssets(zip, catalog.models());
+        return catalog;
+    }
+
+    static Set<Integer> verifiedHeldWeaponModels(ZipFile zip, Catalog catalog) throws IOException {
+        if (catalog.heldWeaponModels().isEmpty() || !hasFile(zip, HELD_ATTACHABLE) || !hasFile(zip, HELD_CONTROLLERS)) {
+            return Set.of();
+        }
+        var attachable = parseObject(readJson(zip, HELD_ATTACHABLE, MAX_HELD_ASSET_BYTES));
+        var controllers = parseObject(readJson(zip, HELD_CONTROLLERS, MAX_HELD_ASSET_BYTES));
+        if (!(attachable.get("minecraft:attachable") instanceof JsonObject definition)
+            || !(definition.get("description") instanceof JsonObject description)
+            || !new JsonPrimitive("minecraft:trident").equals(description.get("identifier"))
+            || !(description.get("geometry") instanceof JsonObject geometry)
+            || !(description.get("textures") instanceof JsonObject textures)
+            || !(description.get("render_controllers") instanceof JsonArray attachedControllers)
+            || !(controllers.get("render_controllers") instanceof JsonObject availableControllers)) {
+            return Set.of();
+        }
+        Set<String> referenced = new HashSet<>();
+        for (var controller : attachedControllers) {
+            if (controller instanceof JsonObject conditional) referenced.addAll(conditional.keySet());
+        }
+        Set<Integer> verified = new HashSet<>();
+        for (ItemModel model : catalog.models()) {
+            String controller = "controller.render.astralrecord.held_" + model.id();
+            String alias = "weapon_" + model.id();
+            if (catalog.heldWeaponModels().contains(model.customModelData()) && referenced.contains(controller)
+                && availableControllers.get(controller) instanceof JsonObject config
+                && new JsonPrimitive("geometry." + alias).equals(config.get("geometry"))
+                && geometry.get(alias) instanceof JsonPrimitive geometryId && geometryId.isString()
+                && new JsonPrimitive("textures/entity/items/" + model.id()).equals(textures.get(alias))) {
+                verified.add(model.customModelData());
+            }
+        }
+        return Set.copyOf(verified);
     }
 
     private static void validateAssets(ZipFile zip, Set<ItemModel> models) throws IOException {
@@ -68,20 +107,30 @@ record ItemModel(String id, String baseItem, int customModelData) {
         return entry;
     }
 
+    private static boolean hasFile(ZipFile zip, String path) {
+        var entry = zip.getEntry(path);
+        return entry != null && !entry.isDirectory() && entry.getSize() > 0;
+    }
+
     private static String readJson(ZipFile zip, String path) throws IOException {
+        return readJson(zip, path, MAX_JSON_BYTES);
+    }
+
+    private static String readJson(ZipFile zip, String path, int maxBytes) throws IOException {
         var entry = requireFile(zip, path);
-        if (entry.getSize() > MAX_JSON_BYTES) throw new IOException("Bedrock pack JSON is too large: " + path);
+        if (entry.getSize() > maxBytes) throw new IOException("Bedrock pack JSON is too large: " + path);
         try (var input = zip.getInputStream(entry)) {
-            byte[] content = input.readNBytes(MAX_JSON_BYTES + 1);
-            if (content.length > MAX_JSON_BYTES) throw new IOException("Bedrock pack JSON is too large: " + path);
+            byte[] content = input.readNBytes(maxBytes + 1);
+            if (content.length > maxBytes) throw new IOException("Bedrock pack JSON is too large: " + path);
             return StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(content)).toString();
         }
     }
 
-    static Set<ItemModel> parse(String json) throws IOException {
+    static Catalog parse(String json) throws IOException {
         Set<ItemModel> models = new HashSet<>();
         Set<String> ids = new HashSet<>();
         Set<Integer> modelData = new HashSet<>();
+        Set<Integer> heldWeaponModels = new HashSet<>();
         try {
             var root = parseObject(json);
             if (integer(root, "format_version") != 1) throw new IOException("Unsupported Bedrock item model catalog format");
@@ -98,11 +147,16 @@ record ItemModel(String id, String baseItem, int customModelData) {
                     throw new IOException("Invalid or duplicate Bedrock item model");
                 }
                 models.add(new ItemModel(id, base, data));
+                if (item.has("held_weapon")) {
+                    var heldWeapon = item.getAsJsonPrimitive("held_weapon");
+                    if (!heldWeapon.isBoolean()) throw new IOException("Invalid held_weapon flag for " + id);
+                    if (heldWeapon.getAsBoolean()) heldWeaponModels.add(data);
+                }
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid Bedrock item model catalog", exception);
         }
-        return Set.copyOf(models);
+        return new Catalog(Set.copyOf(models), Set.copyOf(heldWeaponModels));
     }
 
     private static JsonObject parseObject(String json) throws IOException {

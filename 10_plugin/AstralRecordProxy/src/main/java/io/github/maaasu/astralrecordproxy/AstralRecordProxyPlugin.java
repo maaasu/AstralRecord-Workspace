@@ -17,6 +17,7 @@ import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
+import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.Player;
@@ -57,7 +58,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0")
+@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0",
+    dependencies = @Dependency(id = "geyser", optional = true))
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
     private static final TextColor ASTRALDER_GOLD = TextColor.color(0xB88A43);
@@ -294,6 +296,9 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
+        if (event.getPreviousServer().isPresent() && proxy.getPluginManager().isLoaded("geyser")) {
+            GeyserHeldWeaponReset.reset(event.getPlayer().getUniqueId());
+        }
         pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
         if (settings == null) return;

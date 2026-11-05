@@ -1,3 +1,5 @@
+. (Join-Path $PSScriptRoot 'item-model-grips.ps1')
+
 function Get-PackJson {
     param([string] $Path)
 
@@ -8,6 +10,11 @@ function Add-PackJson {
     param($Entries, [string] $Name, $Value)
 
     $json = ConvertTo-Json -InputObject $Value -Depth 32 -Compress
+    # Windows PowerShell escapes HTML characters in JSON strings, including Molang operators.
+    $json = [regex]::Replace($json, '(?<!\\)((?:\\\\)*)\\u00(26|27|3c|3e)', {
+        param($match)
+        $match.Groups[1].Value + [char] [Convert]::ToInt32($match.Groups[2].Value, 16)
+    })
     $Entries.Add($Name, $utf8.GetBytes($json + "`n"))
 }
 
@@ -31,7 +38,7 @@ function Get-ItemModelRegistry {
     $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $models = [System.Collections.Generic.SortedDictionary[int, object]]::new()
     foreach ($item in $registry.items) {
-        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident')
+        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip')
         $unknown = @($item.PSObject.Properties.Name | Where-Object { $_ -cnotin $properties })
         if ($unknown.Count -gt 0) {
             throw "Unrecognized item model fields: $($unknown -join ', ')"
@@ -53,8 +60,12 @@ function Get-ItemModelRegistry {
         if ($models.ContainsKey($modelData)) {
             throw "Duplicate custom_model_data: $modelData"
         }
-        if ($item.PSObject.Properties.Name -ccontains 'java_virtual_trident' -and $item.java_virtual_trident -isnot [bool]) {
-            throw "java_virtual_trident for $($item.id) must be a boolean."
+        if ($item.java_virtual_trident -isnot [bool]) {
+            throw "java_virtual_trident for $($item.id) is required and must be a boolean."
+        }
+        if (($item.java_virtual_trident -or $item.PSObject.Properties.Name -ccontains 'grip') -and
+            !(Test-ItemGripVector $item.grip)) {
+            throw "grip for $($item.id) must contain three model coordinates."
         }
         $models.Add($modelData, $item)
     }
@@ -62,7 +73,7 @@ function Get-ItemModelRegistry {
 }
 
 function Add-JavaItemAssets {
-    param($Entries, [string] $Id, [bool] $Bow)
+    param($Entries, [string] $Id, [bool] $Bow, $Grip, $GripTargets)
 
     $texture = "assets/astralrecord/textures/item/custom/$Id.png"
     Add-PackEntries $Entries $root @($texture)
@@ -80,6 +91,7 @@ function Add-JavaItemAssets {
         if (!$model.elements -or $textures.Value -cnotcontains $expected) {
             throw "$path must contain 3D elements and use $expected."
         }
+        if ($Grip) { Confirm-JavaItemGrip $model $Grip $GripTargets $path }
         foreach ($reference in $textures.Value) {
             if ($reference -ceq $expected -or $reference -cmatch '^minecraft:[a-z0-9_/]+\z') {
                 continue
@@ -100,7 +112,7 @@ function Add-JavaItemAssets {
 }
 
 function Add-BedrockItemAssets {
-    param($Entries, [string] $Id)
+    param($Entries, [string] $Id, [bool] $CheckGrip)
 
     $attachablePath = "attachables/$Id.json"
     $geometryPath = "models/entity/items/$Id.geo.json"
@@ -130,6 +142,91 @@ function Add-BedrockItemAssets {
     if (!$animationReferences -or ($animationReferences | Where-Object { $_ -cnotin $animationIds })) {
         throw "$attachablePath must reference animations from $animationPath."
     }
+    if ($CheckGrip) { Confirm-BedrockItemGrip $geometry.'minecraft:geometry' $description $animation.animations $Id }
+    return $description
+}
+
+function Add-BedrockHeldWeaponEntries {
+    param($Entries, $Weapons)
+
+    if (!$Weapons.Count) { return }
+    $attachable = Get-PackJson (Join-Path $root 'bedrock-attachable-fallbacks/trident.entity.json')
+    $description = $attachable.'minecraft:attachable'.description
+    $controllers = [ordered] @{}
+    $model = 'variable.astralrecord_held_weapon_model'
+    $selected = 'variable.astralrecord_rendered_weapon'
+    $property = 'astralrecord:held_weapon_model'
+    $preAnimation = @($description.scripts.pre_animation) + @(
+        "$model = context.item_slot == 'main_hand' && ((context.owning_entity->query.has_property('$property')) ?? 0.0) ? ((context.owning_entity->query.property('$property')) ?? 0.0) : 0.0;"
+        "$selected = 0.0;"
+    )
+    # Leave the vanilla trident active for zero, unrecognized numbers and other hands.
+    $animate = @([ordered] @{ wield = "$selected == 0.0" })
+    $render = @([ordered] @{ 'controller.render.item_default' = "$selected == 0.0" })
+
+    foreach ($weapon in $Weapons.GetEnumerator()) {
+        $number = $weapon.Key
+        $source = $weapon.Value
+        $id = $source.identifier.Substring('astralrecord:'.Length)
+        $alias = "weapon_$id"
+        $enchanted = "enchanted_weapon_$id"
+        $controller = "controller.render.astralrecord.held_$id"
+        $condition = "$selected == $number"
+        $preAnimation += "$selected = $model == $number ? $number : $selected;"
+
+        if (!$source.materials.default -or !$source.materials.enchanted -or !$source.textures.enchanted) {
+            throw "Held weapon attachable $id must define its default and enchanted render materials and textures."
+        }
+        Add-Member -InputObject $description.geometry -NotePropertyName $alias -NotePropertyValue $source.geometry.default
+        Add-Member -InputObject $description.textures -NotePropertyName $alias -NotePropertyValue $source.textures.default
+        Add-Member -InputObject $description.materials -NotePropertyName $alias -NotePropertyValue $source.materials.default
+        Add-Member -InputObject $description.materials -NotePropertyName $enchanted -NotePropertyValue $source.materials.enchanted
+        Add-Member -InputObject $description.textures -NotePropertyName $enchanted -NotePropertyValue $source.textures.enchanted
+        $controllers.Add($controller, [ordered] @{
+            geometry = "geometry.$alias"
+            materials = @([ordered] @{ '*' = "variable.is_enchanted ? material.$enchanted : material.$alias" })
+            textures = @("texture.$alias", "texture.$enchanted")
+        })
+        $render += [ordered] @{ $controller = $condition }
+
+        foreach ($line in $source.scripts.pre_animation) {
+            # Run only the selected model's assignments, including when several models use the same variable.
+            if ($line -cnotmatch '^((?:variable|v)\.[a-z_][a-z0-9_]*)\s*=\s*([^;]+);\s*\z') {
+                throw "Invalid pre_animation for $id. Each line must assign one Molang variable."
+            }
+            $variable = $Matches[1]
+            $value = $Matches[2]
+            $preAnimation += "$variable = $condition ? ($value) : ($variable ?? 0.0);"
+        }
+
+        foreach ($aliasName in @('first_person', 'third_person', 'attack')) {
+            $animation = $source.animations.PSObject.Properties[$aliasName]
+            if (!$animation) { continue }
+            $name = "${alias}_$aliasName"
+            Add-Member -InputObject $description.animations -NotePropertyName $name -NotePropertyValue $animation.Value
+            foreach ($trigger in $source.scripts.animate) {
+                if ($trigger -is [string]) {
+                    if ($trigger -ceq $aliasName) {
+                        $animate += [ordered] @{ $name = $condition }
+                    }
+                } else {
+                    $predicate = $trigger.PSObject.Properties[$aliasName]
+                    if ($predicate) {
+                        $animate += [ordered] @{ $name = "$condition && ($($predicate.Value))" }
+                    }
+                }
+            }
+        }
+    }
+
+    $description.scripts.pre_animation = $preAnimation
+    $description.scripts.animate = $animate
+    $description.render_controllers = $render
+    Add-PackJson $Entries 'attachables/trident.entity.json' $attachable
+    Add-PackJson $Entries 'render_controllers/held_weapon.render_controllers.json' ([ordered] @{
+        format_version = '1.10'
+        render_controllers = $controllers
+    })
 }
 
 function Add-JavaItemDispatch {
@@ -170,20 +267,27 @@ function Add-ItemModelEntries {
     param($JavaEntries, $BedrockEntries)
 
     $models = Get-ItemModelRegistry
+    $gripTargets = Get-PackJson (Join-Path $root 'item-model-grip-targets.json')
     $bedrockItems = @()
+    $heldWeapons = [System.Collections.Generic.SortedDictionary[int, object]]::new()
     $iconTextures = [ordered] @{}
     $byBase = @{}
     foreach ($item in $models.Values) {
         $id = $item.id
         $base = $item.base_item.Substring('minecraft:'.Length)
         $isBow = $base -ceq 'bow'
-        Add-JavaItemAssets $JavaEntries $id $isBow
-        Add-BedrockItemAssets $BedrockEntries $id
+        $grip = if ($item.java_virtual_trident) { $item.grip }
+        Add-JavaItemAssets $JavaEntries $id $isBow $grip $gripTargets.($item.base_item)
+        $description = Add-BedrockItemAssets $BedrockEntries $id $item.java_virtual_trident
+        if ($item.java_virtual_trident) {
+            $heldWeapons.Add($item.custom_model_data, $description)
+        }
         $iconTextures.Add("astralrecord.$id", [ordered] @{ textures = "textures/items/$id" })
         $bedrockItems += [ordered] @{
             id = $id
             base_item = $item.base_item
             custom_model_data = $item.custom_model_data
+            held_weapon = $item.java_virtual_trident
         }
 
         $rest = New-JavaModelReference "astralrecord:item/custom/$id"
@@ -227,6 +331,7 @@ function Add-ItemModelEntries {
         Add-JavaItemDispatch $JavaEntries 'trident' $byBase.trident 'transformed_item_models'
     }
 
+    Add-BedrockHeldWeaponEntries $BedrockEntries $heldWeapons
     Add-PackJson $BedrockEntries 'textures/item_texture.json' ([ordered] @{
         resource_pack_name = 'astralrecord'
         texture_name = 'atlas.items'
