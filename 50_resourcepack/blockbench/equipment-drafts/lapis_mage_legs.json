@@ -1,0 +1,612 @@
+{
+  "id": "lapis_mage_legs",
+  "master_id": "20a00417",
+  "kind": "armor",
+  "intent": "Lv20ラピスメイジ脚衣。二本のゆったりした角筒と長い縦ひだ、独立した縫い裾、布の腰帯と短い二本の垂れで防具種を明確にする。青染め革 #637DBD と布の面を主とし、ラピスは小さな実用留め具。既存の金属脚甲や色替えにせず、初期より布端・留め・前後差を仕立て、高位の豪華な宝飾は使わない。carryは前腰布の実体内。",
+  "grip": [
+    8,
+    12.5,
+    5.4
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "273A68",
+        "3F558D",
+        "637DBD",
+        "7891CD",
+        "91A7D6"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12223211",
+        "12222211",
+        "12322211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "223352",
+        "334977",
+        "49659C",
+        "637DBD"
+      ],
+      "pattern": [
+        "12221100",
+        "12221100",
+        "12221100",
+        "12321100",
+        "12321100",
+        "12221100",
+        "12221100",
+        "01110000"
+      ]
+    },
+    "hem": {
+      "palette": [
+        "314767",
+        "4C6688",
+        "7694B2",
+        "A5BED0"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6",
+        "B5A16B"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12533221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Waist front broad cloth",
+      "from": [
+        2.6,
+        11.5,
+        5.0
+      ],
+      "to": [
+        13.4,
+        13.3,
+        6.0
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Waist back broad cloth",
+      "from": [
+        2.6,
+        11.5,
+        10.0
+      ],
+      "to": [
+        13.4,
+        13.3,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Waist left return",
+      "from": [
+        2.6,
+        11.5,
+        5.9
+      ],
+      "to": [
+        3.6,
+        13.3,
+        10.1
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Waist right return",
+      "from": [
+        12.4,
+        11.5,
+        5.9
+      ],
+      "to": [
+        13.4,
+        13.3,
+        10.1
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left full cloth front leg",
+      "from": [
+        2.7,
+        2.0,
+        5.0
+      ],
+      "to": [
+        7.4,
+        11.8,
+        6.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Left full cloth back leg",
+      "from": [
+        2.7,
+        2.0,
+        10.0
+      ],
+      "to": [
+        7.4,
+        11.8,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Left outer leg folded wall",
+      "from": [
+        2.7,
+        2.0,
+        5.9
+      ],
+      "to": [
+        3.6,
+        11.8,
+        10.1
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left inner leg cloth wall",
+      "from": [
+        6.5,
+        2.0,
+        5.9
+      ],
+      "to": [
+        7.4,
+        11.8,
+        10.1
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Left long broad front pleat",
+      "from": [
+        3.8000000000000003,
+        3.2,
+        4.65
+      ],
+      "to": [
+        4.75,
+        11.8,
+        5.25
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left back shifted pleat",
+      "from": [
+        5.4,
+        3.2,
+        10.75
+      ],
+      "to": [
+        6.15,
+        11.6,
+        11.2
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left front sewn cuff",
+      "from": [
+        2.8000000000000003,
+        1.7,
+        4.85
+      ],
+      "to": [
+        7.3,
+        3.0,
+        6.1
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Left back sewn cuff",
+      "from": [
+        2.8000000000000003,
+        1.7,
+        9.9
+      ],
+      "to": [
+        7.3,
+        3.0,
+        11.15
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Left cuff outer return",
+      "from": [
+        2.6,
+        1.7,
+        6.0
+      ],
+      "to": [
+        3.6,
+        3.0,
+        10.0
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Left cuff inner return",
+      "from": [
+        6.5,
+        1.7,
+        6.0
+      ],
+      "to": [
+        7.5,
+        3.0,
+        10.0
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Right full cloth front leg",
+      "from": [
+        8.6,
+        2.0,
+        5.0
+      ],
+      "to": [
+        13.3,
+        11.8,
+        6.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right full cloth back leg",
+      "from": [
+        8.6,
+        2.0,
+        10.0
+      ],
+      "to": [
+        13.3,
+        11.8,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right outer leg folded wall",
+      "from": [
+        8.6,
+        2.0,
+        5.9
+      ],
+      "to": [
+        9.5,
+        11.8,
+        10.1
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Right inner leg cloth wall",
+      "from": [
+        12.399999999999999,
+        2.0,
+        5.9
+      ],
+      "to": [
+        13.3,
+        11.8,
+        10.1
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Right long broad front pleat",
+      "from": [
+        9.7,
+        3.2,
+        4.65
+      ],
+      "to": [
+        10.649999999999999,
+        11.8,
+        5.25
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Right back shifted pleat",
+      "from": [
+        11.3,
+        3.2,
+        10.75
+      ],
+      "to": [
+        12.05,
+        11.6,
+        11.2
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Right front sewn cuff",
+      "from": [
+        8.7,
+        1.7,
+        4.85
+      ],
+      "to": [
+        13.2,
+        3.0,
+        6.1
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Right back sewn cuff",
+      "from": [
+        8.7,
+        1.7,
+        9.9
+      ],
+      "to": [
+        13.2,
+        3.0,
+        11.15
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Right cuff outer return",
+      "from": [
+        8.5,
+        1.7,
+        6.0
+      ],
+      "to": [
+        9.5,
+        3.0,
+        10.0
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Right cuff inner return",
+      "from": [
+        12.399999999999999,
+        1.7,
+        6.0
+      ],
+      "to": [
+        13.399999999999999,
+        3.0,
+        10.0
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Blue cloth waist sash front",
+      "from": [
+        2.5,
+        12.0,
+        4.6
+      ],
+      "to": [
+        13.5,
+        12.9,
+        5.25
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Square iron waist fastener",
+      "from": [
+        7.0,
+        11.8,
+        4.1
+      ],
+      "to": [
+        9.0,
+        13.1,
+        4.75
+      ],
+      "material": "iron_dark",
+      "side": "iron"
+    },
+    {
+      "name": "Lapis sash fastener inset",
+      "from": [
+        7.4,
+        12.05,
+        3.8
+      ],
+      "to": [
+        8.6,
+        12.85,
+        4.3
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left cloth sash hanging end",
+      "from": [
+        6.1,
+        9.1,
+        4.6
+      ],
+      "to": [
+        6.95,
+        12.2,
+        5.2
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Right shorter cloth sash end",
+      "from": [
+        9.0,
+        10.1,
+        4.6
+      ],
+      "to": [
+        9.85,
+        12.2,
+        5.2
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Rear square cloth seam",
+      "from": [
+        7.55,
+        11.65,
+        10.85
+      ],
+      "to": [
+        8.45,
+        13.2,
+        11.3
+      ],
+      "material": "hem",
+      "side": "fold"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      15,
+      154,
+      0
+    ],
+    "scale": 1.0
+  },
+  "wearable_texture_set": "lapis_mage",
+  "wearable_source": "armor/author_lapis_mage.py"
+}

@@ -1,0 +1,652 @@
+{
+  "id": "lapis_mage_feet",
+  "master_id": "20a00418",
+  "kind": "armor",
+  "intent": "Lv20ラピスメイジの柔らかい青ブーツ。足先が一段前へ出る低い靴、筒の折り返し、暗い平底、甲の四角いラピス留め。二足は後ろの革の運搬紐で物理的に結び、carryは厚い結びの実体内。板金の脛当てとは違う輪郭。染め革 #637DBD と布の大きな面を中心に、ラピス武器と同系の群青・鉄で仕立てを一段上げ、写実的な宝飾を足さない。",
+  "grip": [
+    8,
+    9.15,
+    11.5
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "273A68",
+        "3F558D",
+        "637DBD",
+        "7891CD",
+        "91A7D6"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12223211",
+        "12222211",
+        "12322211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "223352",
+        "334977",
+        "49659C",
+        "637DBD"
+      ],
+      "pattern": [
+        "12221100",
+        "12221100",
+        "12221100",
+        "12321100",
+        "12321100",
+        "12221100",
+        "12221100",
+        "01110000"
+      ]
+    },
+    "hem": {
+      "palette": [
+        "314767",
+        "4C6688",
+        "7694B2",
+        "A5BED0"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6",
+        "B5A16B"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12533221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "283044",
+        "3A455C",
+        "535F77",
+        "738099"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12223211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "11222211",
+        "01111100"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "1B2634",
+        "2C3D4B",
+        "465A65",
+        "657C82"
+      ],
+      "pattern": [
+        "23333332",
+        "22222222",
+        "11111111",
+        "11111111",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left flat dark sole",
+      "from": [
+        2.4,
+        1.0,
+        3.8
+      ],
+      "to": [
+        6.9,
+        1.8,
+        11.6
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left soft blue foot",
+      "from": [
+        2.5,
+        1.7,
+        4.0
+      ],
+      "to": [
+        6.800000000000001,
+        4.0,
+        11.3
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Left square forward toe step",
+      "from": [
+        2.85,
+        1.8,
+        3.5
+      ],
+      "to": [
+        6.449999999999999,
+        3.1,
+        5.15
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Left ankle shaft front",
+      "from": [
+        2.75,
+        3.7,
+        7.1
+      ],
+      "to": [
+        6.550000000000001,
+        8.0,
+        8.1
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Left ankle shaft back",
+      "from": [
+        2.75,
+        3.7,
+        10.4
+      ],
+      "to": [
+        6.550000000000001,
+        8.0,
+        11.4
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Left ankle shaft outer",
+      "from": [
+        2.75,
+        3.7,
+        8.0
+      ],
+      "to": [
+        3.65,
+        8.0,
+        10.5
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Left ankle shaft inner",
+      "from": [
+        5.65,
+        3.7,
+        8.0
+      ],
+      "to": [
+        6.550000000000001,
+        8.0,
+        10.5
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Left turned cuff front",
+      "from": [
+        2.5,
+        7.1,
+        6.85
+      ],
+      "to": [
+        6.800000000000001,
+        8.5,
+        8.25
+      ],
+      "material": "hem",
+      "side": "cloth"
+    },
+    {
+      "name": "Left turned cuff back",
+      "from": [
+        2.5,
+        7.1,
+        10.3
+      ],
+      "to": [
+        6.800000000000001,
+        8.5,
+        11.65
+      ],
+      "material": "hem",
+      "side": "cloth"
+    },
+    {
+      "name": "Left cuff outer fold",
+      "from": [
+        2.5,
+        7.1,
+        8.2
+      ],
+      "to": [
+        3.5,
+        8.5,
+        10.35
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Left cuff inner fold",
+      "from": [
+        5.8,
+        7.1,
+        8.2
+      ],
+      "to": [
+        6.800000000000001,
+        8.5,
+        10.35
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Left iron instep clasp seat",
+      "from": [
+        3.5,
+        3.6,
+        6.5
+      ],
+      "to": [
+        5.8,
+        4.35,
+        7.6
+      ],
+      "material": "iron_dark",
+      "side": "iron"
+    },
+    {
+      "name": "Left square lapis instep clasp",
+      "from": [
+        3.9,
+        4.1,
+        6.55
+      ],
+      "to": [
+        5.4,
+        4.7,
+        7.4
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Left rear leather carrying tab",
+      "from": [
+        4.1,
+        8.3,
+        11.0
+      ],
+      "to": [
+        5.1,
+        9.2,
+        11.65
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Right flat dark sole",
+      "from": [
+        9.1,
+        1.0,
+        3.8
+      ],
+      "to": [
+        13.6,
+        1.8,
+        11.6
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right soft blue foot",
+      "from": [
+        9.2,
+        1.7,
+        4.0
+      ],
+      "to": [
+        13.5,
+        4.0,
+        11.3
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right square forward toe step",
+      "from": [
+        9.549999999999999,
+        1.8,
+        3.5
+      ],
+      "to": [
+        13.149999999999999,
+        3.1,
+        5.15
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right ankle shaft front",
+      "from": [
+        9.45,
+        3.7,
+        7.1
+      ],
+      "to": [
+        13.25,
+        8.0,
+        8.1
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right ankle shaft back",
+      "from": [
+        9.45,
+        3.7,
+        10.4
+      ],
+      "to": [
+        13.25,
+        8.0,
+        11.4
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right ankle shaft outer",
+      "from": [
+        9.45,
+        3.7,
+        8.0
+      ],
+      "to": [
+        10.35,
+        8.0,
+        10.5
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Right ankle shaft inner",
+      "from": [
+        12.35,
+        3.7,
+        8.0
+      ],
+      "to": [
+        13.25,
+        8.0,
+        10.5
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Right turned cuff front",
+      "from": [
+        9.2,
+        7.1,
+        6.85
+      ],
+      "to": [
+        13.5,
+        8.5,
+        8.25
+      ],
+      "material": "hem",
+      "side": "cloth"
+    },
+    {
+      "name": "Right turned cuff back",
+      "from": [
+        9.2,
+        7.1,
+        10.3
+      ],
+      "to": [
+        13.5,
+        8.5,
+        11.65
+      ],
+      "material": "hem",
+      "side": "cloth"
+    },
+    {
+      "name": "Right cuff outer fold",
+      "from": [
+        9.2,
+        7.1,
+        8.2
+      ],
+      "to": [
+        10.2,
+        8.5,
+        10.35
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Right cuff inner fold",
+      "from": [
+        12.5,
+        7.1,
+        8.2
+      ],
+      "to": [
+        13.5,
+        8.5,
+        10.35
+      ],
+      "material": "hem",
+      "side": "fold"
+    },
+    {
+      "name": "Right iron instep clasp seat",
+      "from": [
+        10.2,
+        3.6,
+        6.5
+      ],
+      "to": [
+        12.5,
+        4.35,
+        7.6
+      ],
+      "material": "iron_dark",
+      "side": "iron"
+    },
+    {
+      "name": "Right square lapis instep clasp",
+      "from": [
+        10.6,
+        4.1,
+        6.55
+      ],
+      "to": [
+        12.1,
+        4.7,
+        7.4
+      ],
+      "material": "lapis",
+      "side": "lapis_edge"
+    },
+    {
+      "name": "Right rear leather carrying tab",
+      "from": [
+        10.799999999999999,
+        8.3,
+        11.0
+      ],
+      "to": [
+        11.8,
+        9.2,
+        11.65
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Leather cord ties paired boots at back",
+      "from": [
+        4.1,
+        8.85,
+        11.1
+      ],
+      "to": [
+        11.8,
+        9.5,
+        11.75
+      ],
+      "material": "leather",
+      "side": "hem"
+    },
+    {
+      "name": "Thick rear carrying knot",
+      "from": [
+        7.4,
+        8.65,
+        10.95
+      ],
+      "to": [
+        8.6,
+        9.65,
+        11.95
+      ],
+      "material": "leather",
+      "side": "hem"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      15,
+      154,
+      0
+    ],
+    "scale": 1.0
+  },
+  "wearable_texture_set": "lapis_mage",
+  "wearable_source": "armor/author_lapis_mage.py"
+}

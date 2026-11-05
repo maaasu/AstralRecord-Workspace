@@ -1,0 +1,484 @@
+{
+  "id": "lapis_mage_head",
+  "master_id": "20a00415",
+  "kind": "armor",
+  "intent": "Lv20 RARE。実マスター「鉱物 / ラピスの青い石」、青く染めた革 #637DBD に従う魔法帽。広いつばの中空リング、段階的に細くなり横へ折れる帽頂、群青の四角いラピス留め。後ろは帯の結びと短い二本の布端。Minecraftの染め布・鉱石・鉄の大きなピクセル面を基準にし、初期装備より縁と素材境界を整え、上位の豪華な宝飾は加えない。carry点は空洞でなく前つばの実体内。",
+  "grip": [
+    8,
+    5.95,
+    4.0
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "273A68",
+        "3F558D",
+        "637DBD",
+        "7891CD",
+        "91A7D6"
+      ],
+      "pattern": [
+        "12222211",
+        "12223211",
+        "12223211",
+        "12222211",
+        "12322211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "223352",
+        "334977",
+        "49659C",
+        "637DBD"
+      ],
+      "pattern": [
+        "12221100",
+        "12221100",
+        "12221100",
+        "12321100",
+        "12321100",
+        "12221100",
+        "12221100",
+        "01110000"
+      ]
+    },
+    "hem": {
+      "palette": [
+        "314767",
+        "4C6688",
+        "7694B2",
+        "A5BED0"
+      ],
+      "pattern": [
+        "33333332",
+        "22222221",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6",
+        "B5A16B"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12533221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_edge": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Wide front cloth brim",
+      "from": [
+        1.0,
+        5.5,
+        3.0
+      ],
+      "to": [
+        15.0,
+        6.4,
+        5.2
+      ],
+      "material": "cloth",
+      "side": "hem",
+      "cap": "hem"
+    },
+    {
+      "name": "Wide rear cloth brim",
+      "from": [
+        1.0,
+        5.5,
+        10.8
+      ],
+      "to": [
+        15.0,
+        6.4,
+        13.0
+      ],
+      "material": "cloth",
+      "side": "hem",
+      "cap": "hem"
+    },
+    {
+      "name": "Left square brim wing",
+      "from": [
+        1.0,
+        5.5,
+        5.2
+      ],
+      "to": [
+        3.4,
+        6.4,
+        10.8
+      ],
+      "material": "cloth",
+      "side": "hem",
+      "cap": "hem"
+    },
+    {
+      "name": "Right square brim wing",
+      "from": [
+        12.6,
+        5.5,
+        5.2
+      ],
+      "to": [
+        15.0,
+        6.4,
+        10.8
+      ],
+      "material": "cloth",
+      "side": "hem",
+      "cap": "hem"
+    },
+    {
+      "name": "Left crown lower cloth wall",
+      "from": [
+        3.1,
+        6.1,
+        5.0
+      ],
+      "to": [
+        4.3,
+        10.0,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Right crown lower cloth wall",
+      "from": [
+        11.7,
+        6.1,
+        5.0
+      ],
+      "to": [
+        12.899999999999999,
+        10.0,
+        11.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Crown lower back wall",
+      "from": [
+        3.1,
+        6.1,
+        10.0
+      ],
+      "to": [
+        12.9,
+        10.0,
+        11.2
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Crown lower front wall",
+      "from": [
+        3.1,
+        6.1,
+        4.8
+      ],
+      "to": [
+        12.9,
+        10.0,
+        6.0
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "First stepped cloth crown",
+      "from": [
+        4.0,
+        9.8,
+        5.5
+      ],
+      "to": [
+        12.0,
+        12.3,
+        10.8
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Second tapered cloth crown",
+      "from": [
+        4.8,
+        12.1,
+        6.0
+      ],
+      "to": [
+        11.5,
+        14.5,
+        10.3
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Offset crown folded tip",
+      "from": [
+        6.0,
+        14.3,
+        6.4
+      ],
+      "to": [
+        10.6,
+        16.2,
+        9.9
+      ],
+      "material": "cloth",
+      "side": "fold",
+      "cap": "hem"
+    },
+    {
+      "name": "Soft bent tip final step",
+      "from": [
+        8.4,
+        16.0,
+        6.7
+      ],
+      "to": [
+        11.1,
+        17.15,
+        9.6
+      ],
+      "material": "fold",
+      "side": "cloth",
+      "cap": "hem"
+    },
+    {
+      "name": "Dark blue lower hat band",
+      "from": [
+        3.0,
+        6.7,
+        4.5
+      ],
+      "to": [
+        13.0,
+        8.1,
+        5.0
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Rear hat band",
+      "from": [
+        3.0,
+        6.7,
+        11.0
+      ],
+      "to": [
+        13.0,
+        8.1,
+        11.5
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Left band continuation",
+      "from": [
+        2.8,
+        6.7,
+        5.0
+      ],
+      "to": [
+        3.3,
+        8.1,
+        11.0
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Right band continuation",
+      "from": [
+        12.7,
+        6.7,
+        5.0
+      ],
+      "to": [
+        13.2,
+        8.1,
+        11.0
+      ],
+      "material": "fold",
+      "side": "hem"
+    },
+    {
+      "name": "Square iron mineral seat",
+      "from": [
+        6.5,
+        6.35,
+        4.05
+      ],
+      "to": [
+        9.5,
+        8.65,
+        4.65
+      ],
+      "material": "iron_dark",
+      "side": "iron"
+    },
+    {
+      "name": "Broad square lapis hat clasp",
+      "from": [
+        6.9,
+        6.65,
+        3.65
+      ],
+      "to": [
+        9.1,
+        8.35,
+        4.25
+      ],
+      "material": "lapis",
+      "side": "lapis_edge",
+      "cap": "lapis_edge"
+    },
+    {
+      "name": "Rear hat cloth knot",
+      "from": [
+        7.0,
+        6.55,
+        11.25
+      ],
+      "to": [
+        9.0,
+        8.25,
+        11.9
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Rear left short hat tail",
+      "from": [
+        6.65,
+        4.45,
+        11.3
+      ],
+      "to": [
+        7.65,
+        6.9,
+        11.95
+      ],
+      "material": "cloth",
+      "side": "hem"
+    },
+    {
+      "name": "Rear right short hat tail",
+      "from": [
+        8.2,
+        4.95,
+        11.3
+      ],
+      "to": [
+        9.2,
+        6.9,
+        11.95
+      ],
+      "material": "fold",
+      "side": "hem"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      15,
+      154,
+      0
+    ],
+    "scale": 1.0
+  },
+  "wearable_texture_set": "lapis_mage",
+  "wearable_source": "armor/author_lapis_mage.py"
+}
