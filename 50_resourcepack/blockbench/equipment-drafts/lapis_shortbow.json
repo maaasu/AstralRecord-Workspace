@@ -1,0 +1,608 @@
+{
+  "id": "lapis_shortbow",
+  "master_id": "20a00403",
+  "kind": "shortbow",
+  "intent": "Lv20 RARE。Minecraftの弓の三段の曲がりを、暗木の芯・広いラピス板・鈍い鉄の留め帯で組む軽い短弓。青は鉱石の大きな面で見せ、握りは青布で区切る。ノクスより輪郭と接合を整えるが、巨大な結晶や冠や発光は付けない。台尻のあるロングボウと違い、中央の細い握りと短い三段リムで小回りを表す。",
+  "grip": [
+    5.65,
+    8,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -28
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.87
+  },
+  "materials": {
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12333221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "lapis_shadow": {
+      "palette": [
+        "101D3B",
+        "162A53",
+        "224078",
+        "2D5691",
+        "3E6BA1"
+      ],
+      "pattern": [
+        "12222211",
+        "12333211",
+        "12323211",
+        "12222211",
+        "12223211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "536A74",
+        "80969D",
+        "ADBFBE",
+        "D6E0D6",
+        "EBEEE2"
+      ],
+      "pattern": [
+        "44332210",
+        "44332210",
+        "43332210",
+        "43332210",
+        "43332210",
+        "43322210",
+        "43322210",
+        "33221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    },
+    "darkwood": {
+      "palette": [
+        "292522",
+        "43392D",
+        "5A4D38",
+        "78654A",
+        "948160"
+      ],
+      "pattern": [
+        "12323211",
+        "12323211",
+        "12223211",
+        "12323221",
+        "12323221",
+        "12322221",
+        "12323211",
+        "12323211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302A22",
+        "4D402D",
+        "705A3A",
+        "92764C",
+        "AA9063"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222331",
+        "13222331",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "blue_cloth": {
+      "palette": [
+        "17273C",
+        "233C56",
+        "325B77",
+        "4A7891",
+        "7DA2B0"
+      ],
+      "pattern": [
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "11222100"
+      ]
+    },
+    "cord": {
+      "palette": [
+        "4B514E",
+        "747D73",
+        "A2AB94",
+        "CCD0B0",
+        "E0DFC6"
+      ],
+      "pattern": [
+        "22333211",
+        "22333211",
+        "22333211",
+        "22343211",
+        "22333211",
+        "22333211",
+        "22333211",
+        "12222100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid shortbow palm grip",
+      "from": [
+        4.95,
+        6.7,
+        7.15
+      ],
+      "to": [
+        6.35,
+        9.3,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad blue cloth grip",
+      "from": [
+        4.85,
+        6.85,
+        7.04
+      ],
+      "to": [
+        6.45,
+        9.15,
+        8.96
+      ],
+      "material": "blue_cloth"
+    },
+    {
+      "name": "Lower grip iron ferrule",
+      "from": [
+        4.75,
+        6.35,
+        6.95
+      ],
+      "to": [
+        6.55,
+        6.85,
+        9.05
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper grip iron ferrule",
+      "from": [
+        4.75,
+        9.15,
+        6.95
+      ],
+      "to": [
+        6.55,
+        9.65,
+        9.05
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper darkwood limb step 1",
+      "from": [
+        5.1,
+        9.3,
+        7.15
+      ],
+      "to": [
+        6.7,
+        11.65,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad lapis limb slab 1",
+      "from": [
+        5.13,
+        9.65,
+        6.75
+      ],
+      "to": [
+        6.65,
+        11.48,
+        7.24
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper darkwood limb step 2",
+      "from": [
+        6.25,
+        11.65,
+        7.15
+      ],
+      "to": [
+        8.05,
+        13.25,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad lapis limb slab 2",
+      "from": [
+        6.28,
+        11.48,
+        6.75
+      ],
+      "to": [
+        7.98,
+        13.12,
+        7.24
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper darkwood limb step 3",
+      "from": [
+        7.7,
+        13.25,
+        7.15
+      ],
+      "to": [
+        9.8,
+        14.7,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad lapis limb slab 3",
+      "from": [
+        7.76,
+        13.15,
+        6.75
+      ],
+      "to": [
+        9.7,
+        14.58,
+        7.24
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper broad iron limb binding 1",
+      "from": [
+        6.05,
+        11.45,
+        6.64
+      ],
+      "to": [
+        8.15,
+        11.95,
+        9.02
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper broad iron limb binding 2",
+      "from": [
+        7.5,
+        13.75,
+        6.64
+      ],
+      "to": [
+        9.95,
+        14.15,
+        9.02
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper square iron nock",
+      "from": [
+        9.15,
+        14.2,
+        6.85
+      ],
+      "to": [
+        10.05,
+        15.1,
+        9.15
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower darkwood limb step 1",
+      "from": [
+        5.1,
+        4.35,
+        7.15
+      ],
+      "to": [
+        6.7,
+        6.699999999999999,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad lapis limb slab 1",
+      "from": [
+        5.13,
+        4.52,
+        6.75
+      ],
+      "to": [
+        6.65,
+        6.35,
+        7.24
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Lower darkwood limb step 2",
+      "from": [
+        6.25,
+        2.75,
+        7.15
+      ],
+      "to": [
+        8.05,
+        4.35,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad lapis limb slab 2",
+      "from": [
+        6.28,
+        2.880000000000001,
+        6.75
+      ],
+      "to": [
+        7.98,
+        4.52,
+        7.24
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Lower darkwood limb step 3",
+      "from": [
+        7.7,
+        1.3000000000000007,
+        7.15
+      ],
+      "to": [
+        9.8,
+        2.75,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad lapis limb slab 3",
+      "from": [
+        7.76,
+        1.42,
+        6.75
+      ],
+      "to": [
+        9.7,
+        2.8499999999999996,
+        7.24
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Lower broad iron limb binding 1",
+      "from": [
+        6.05,
+        4.050000000000001,
+        6.64
+      ],
+      "to": [
+        8.15,
+        4.550000000000001,
+        9.02
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower broad iron limb binding 2",
+      "from": [
+        7.5,
+        1.8499999999999996,
+        6.64
+      ],
+      "to": [
+        9.95,
+        2.25,
+        9.02
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower square iron nock",
+      "from": [
+        9.15,
+        0.9,
+        6.85
+      ],
+      "to": [
+        10.05,
+        1.8,
+        9.15
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper flax bowstring",
+      "from": [
+        9.49,
+        8,
+        7.89
+      ],
+      "to": [
+        9.71,
+        14.65,
+        8.11
+      ],
+      "material": "cord",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "Lower flax bowstring",
+      "from": [
+        9.49,
+        1.35,
+        7.89
+      ],
+      "to": [
+        9.71,
+        8,
+        8.11
+      ],
+      "material": "cord",
+      "bone": "cord_lower"
+    }
+  ],
+  "base_material": "BOW",
+  "bow": {
+    "upper_tip": [
+      9.6,
+      14.65,
+      8
+    ],
+    "lower_tip": [
+      9.6,
+      1.35,
+      8
+    ],
+    "string_center": [
+      9.6,
+      8,
+      8
+    ]
+  }
+}

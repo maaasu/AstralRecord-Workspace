@@ -1,0 +1,732 @@
+{
+  "id": "lapis_longbow",
+  "master_id": "20a00404",
+  "kind": "longbow",
+  "intent": "Lv20 RARE。マスターの「クロスボウの姿を持つロングボウ」を優先し、Minecraftのクロスボウの四角い台尻・下握り・太い矢受けを明確に作る。太い暗木リムに大きな青鉱石板を固定し、短弓より重い段付き輪郭にする。ラピスの板と鈍い鉄の幅広い面で品質差を出し、金の彫金や写実的な銃機構や発光は使わない。",
+  "grip": [
+    11.65,
+    7.65,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -12
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.79
+  },
+  "materials": {
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12333221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "lapis_shadow": {
+      "palette": [
+        "101D3B",
+        "162A53",
+        "224078",
+        "2D5691",
+        "3E6BA1"
+      ],
+      "pattern": [
+        "12222211",
+        "12333211",
+        "12323211",
+        "12222211",
+        "12223211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "536A74",
+        "80969D",
+        "ADBFBE",
+        "D6E0D6",
+        "EBEEE2"
+      ],
+      "pattern": [
+        "44332210",
+        "44332210",
+        "43332210",
+        "43332210",
+        "43332210",
+        "43322210",
+        "43322210",
+        "33221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    },
+    "darkwood": {
+      "palette": [
+        "292522",
+        "43392D",
+        "5A4D38",
+        "78654A",
+        "948160"
+      ],
+      "pattern": [
+        "12323211",
+        "12323211",
+        "12223211",
+        "12323221",
+        "12323221",
+        "12322221",
+        "12323211",
+        "12323211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302A22",
+        "4D402D",
+        "705A3A",
+        "92764C",
+        "AA9063"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222331",
+        "13222331",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "blue_cloth": {
+      "palette": [
+        "17273C",
+        "233C56",
+        "325B77",
+        "4A7891",
+        "7DA2B0"
+      ],
+      "pattern": [
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "11222100"
+      ]
+    },
+    "cord": {
+      "palette": [
+        "4B514E",
+        "747D73",
+        "A2AB94",
+        "CCD0B0",
+        "E0DFC6"
+      ],
+      "pattern": [
+        "22333211",
+        "22333211",
+        "22333211",
+        "22343211",
+        "22333211",
+        "22333211",
+        "22333211",
+        "12222100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Crossbow solid darkwood stock",
+      "from": [
+        4.25,
+        9.3,
+        7.15
+      ],
+      "to": [
+        12.7,
+        10.7,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Crossbow stepped stock shoulder",
+      "from": [
+        11.15,
+        8.7,
+        7.0
+      ],
+      "to": [
+        13.45,
+        10.95,
+        9.0
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Crossbow squared stock butt",
+      "from": [
+        13.05,
+        8.35,
+        6.9
+      ],
+      "to": [
+        13.85,
+        11.0,
+        9.1
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Solid lower crossbow palm grip",
+      "from": [
+        10.95,
+        6.3,
+        7.15
+      ],
+      "to": [
+        12.35,
+        9.3,
+        8.85
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Crossbow blue cloth grip",
+      "from": [
+        10.84,
+        6.65,
+        7.04
+      ],
+      "to": [
+        12.46,
+        8.85,
+        8.96
+      ],
+      "material": "blue_cloth"
+    },
+    {
+      "name": "Crossbow grip foot collar",
+      "from": [
+        10.82,
+        6.2,
+        7.0
+      ],
+      "to": [
+        12.48,
+        6.7,
+        9.0
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Crossbow fore stock step",
+      "from": [
+        6.9,
+        8.75,
+        7.32
+      ],
+      "to": [
+        10.95,
+        9.7,
+        8.68
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Broad dark iron receiver",
+      "from": [
+        3.55,
+        9.0,
+        6.75
+      ],
+      "to": [
+        6.0,
+        11.05,
+        9.25
+      ],
+      "material": "iron_dark",
+      "cap": "iron"
+    },
+    {
+      "name": "Wide iron arrow rail",
+      "from": [
+        4.15,
+        10.6,
+        6.98
+      ],
+      "to": [
+        11.8,
+        11.16,
+        9.02
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Blue mineral rail inset",
+      "from": [
+        4.4,
+        10.65,
+        6.64
+      ],
+      "to": [
+        10.65,
+        11.08,
+        7.05
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Square lower iron latch housing",
+      "from": [
+        9.95,
+        8.35,
+        7.05
+      ],
+      "to": [
+        11.1,
+        9.55,
+        8.95
+      ],
+      "material": "iron_dark",
+      "cap": "iron"
+    },
+    {
+      "name": "Broad blue receiver face",
+      "from": [
+        3.85,
+        9.3,
+        6.35
+      ],
+      "to": [
+        5.7,
+        10.75,
+        6.84
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper broad darkwood crossbow limb 1",
+      "from": [
+        3.85,
+        10.8,
+        7.05
+      ],
+      "to": [
+        5.8,
+        13.6,
+        8.95
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad lapis crossbow plate 1",
+      "from": [
+        3.93,
+        11.1,
+        6.5
+      ],
+      "to": [
+        5.74,
+        13.42,
+        7.14
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper broad darkwood crossbow limb 2",
+      "from": [
+        4.75,
+        13.6,
+        7.05
+      ],
+      "to": [
+        6.65,
+        15.8,
+        8.95
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad lapis crossbow plate 2",
+      "from": [
+        4.83,
+        13.43,
+        6.5
+      ],
+      "to": [
+        6.59,
+        15.63,
+        7.14
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper broad darkwood crossbow limb 3",
+      "from": [
+        6.25,
+        15.8,
+        7.05
+      ],
+      "to": [
+        8.4,
+        17.48,
+        8.95
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper broad lapis crossbow plate 3",
+      "from": [
+        6.33,
+        15.65,
+        6.5
+      ],
+      "to": [
+        8.32,
+        17.28,
+        7.14
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper reinforced iron crossbow binding 1",
+      "from": [
+        4.5,
+        13.4,
+        6.38
+      ],
+      "to": [
+        6.85,
+        13.98,
+        9.08
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper reinforced iron crossbow binding 2",
+      "from": [
+        6.0,
+        16.35,
+        6.38
+      ],
+      "to": [
+        8.6,
+        16.93,
+        9.08
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper heavy square iron nock",
+      "from": [
+        7.72,
+        16.96,
+        6.7
+      ],
+      "to": [
+        8.72,
+        17.96,
+        9.3
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower broad darkwood crossbow limb 1",
+      "from": [
+        3.85,
+        6.4,
+        7.05
+      ],
+      "to": [
+        5.8,
+        9.2,
+        8.95
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad lapis crossbow plate 1",
+      "from": [
+        3.93,
+        6.58,
+        6.5
+      ],
+      "to": [
+        5.74,
+        8.9,
+        7.14
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Lower broad darkwood crossbow limb 2",
+      "from": [
+        4.75,
+        4.199999999999999,
+        7.05
+      ],
+      "to": [
+        6.65,
+        6.4,
+        8.95
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad lapis crossbow plate 2",
+      "from": [
+        4.83,
+        4.369999999999999,
+        6.5
+      ],
+      "to": [
+        6.59,
+        6.57,
+        7.14
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Lower broad darkwood crossbow limb 3",
+      "from": [
+        6.25,
+        2.5199999999999996,
+        7.05
+      ],
+      "to": [
+        8.4,
+        4.2,
+        8.95
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower broad lapis crossbow plate 3",
+      "from": [
+        6.33,
+        2.719999999999999,
+        6.5
+      ],
+      "to": [
+        8.32,
+        4.35,
+        7.14
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Lower reinforced iron crossbow binding 1",
+      "from": [
+        4.5,
+        6.02,
+        6.38
+      ],
+      "to": [
+        6.85,
+        6.6,
+        9.08
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower reinforced iron crossbow binding 2",
+      "from": [
+        6.0,
+        3.0700000000000003,
+        6.38
+      ],
+      "to": [
+        8.6,
+        3.6499999999999986,
+        9.08
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower heavy square iron nock",
+      "from": [
+        7.72,
+        2.04,
+        6.7
+      ],
+      "to": [
+        8.72,
+        3.04,
+        9.3
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper taut crossbow cord",
+      "from": [
+        8.08,
+        10,
+        7.88
+      ],
+      "to": [
+        8.32,
+        17.45,
+        8.12
+      ],
+      "material": "cord",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "Lower taut crossbow cord",
+      "from": [
+        8.08,
+        2.55,
+        7.88
+      ],
+      "to": [
+        8.32,
+        10,
+        8.12
+      ],
+      "material": "cord",
+      "bone": "cord_lower"
+    }
+  ],
+  "base_material": "CROSSBOW",
+  "bow": {
+    "upper_tip": [
+      8.2,
+      17.45,
+      8
+    ],
+    "lower_tip": [
+      8.2,
+      2.55,
+      8
+    ],
+    "string_center": [
+      8.2,
+      10,
+      8
+    ]
+  },
+  "usage_contract": "基材はマスターどおりCROSSBOW。Minecraft標準の使用による装填・装填済み・発射と、RPGの通常攻撃による発射／攻撃演出は別の契約として実機で確認する。bowの弦メタデータは共通の描画・引き絞り設計であり、標準クロスボウの使用挙動が既に実装済みであるとの主張ではない。BOWへの基材変更は行わない。"
+}

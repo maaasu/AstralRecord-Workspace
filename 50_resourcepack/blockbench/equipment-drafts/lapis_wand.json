@@ -1,0 +1,449 @@
+{
+  "id": "lapis_wand",
+  "master_id": "20a00405",
+  "kind": "wand",
+  "intent": "Lv20 RARE。Minecraftの鉄のクワの横長で片側へ張り出す頭を、厚い青鉱石板と鉄の背で作った短杖。大きな石の面と一段下がる四角い先端が輪郭の中心で、長杖の縦長の鉱石板と区別する。青布の実用的な握り、暗木の柄、鈍い鉄の接合に留め、ノクスからの加工精度の成長を見せる。写実的な宝飾や発光や浮遊部品は使わない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -28
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.88
+  },
+  "materials": {
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12333221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "lapis_shadow": {
+      "palette": [
+        "101D3B",
+        "162A53",
+        "224078",
+        "2D5691",
+        "3E6BA1"
+      ],
+      "pattern": [
+        "12222211",
+        "12333211",
+        "12323211",
+        "12222211",
+        "12223211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "536A74",
+        "80969D",
+        "ADBFBE",
+        "D6E0D6",
+        "EBEEE2"
+      ],
+      "pattern": [
+        "44332210",
+        "44332210",
+        "43332210",
+        "43332210",
+        "43332210",
+        "43322210",
+        "43322210",
+        "33221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    },
+    "darkwood": {
+      "palette": [
+        "292522",
+        "43392D",
+        "5A4D38",
+        "78654A",
+        "948160"
+      ],
+      "pattern": [
+        "12323211",
+        "12323211",
+        "12223211",
+        "12323221",
+        "12323221",
+        "12322221",
+        "12323211",
+        "12323211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302A22",
+        "4D402D",
+        "705A3A",
+        "92764C",
+        "AA9063"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222331",
+        "13222331",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "blue_cloth": {
+      "palette": [
+        "17273C",
+        "233C56",
+        "325B77",
+        "4A7891",
+        "7DA2B0"
+      ],
+      "pattern": [
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "11222100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid short darkwood wand handle",
+      "from": [
+        7.3,
+        1.4,
+        7.3
+      ],
+      "to": [
+        8.7,
+        11.85,
+        8.7
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Large blue cloth wand grip",
+      "from": [
+        7.17,
+        2.5,
+        7.17
+      ],
+      "to": [
+        8.83,
+        6.05,
+        8.83
+      ],
+      "material": "blue_cloth"
+    },
+    {
+      "name": "Iron wand heel",
+      "from": [
+        7.12,
+        1.0,
+        7.12
+      ],
+      "to": [
+        8.88,
+        1.75,
+        8.88
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower grip iron stop",
+      "from": [
+        7.08,
+        2.3,
+        7.08
+      ],
+      "to": [
+        8.92,
+        2.75,
+        8.92
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper grip iron stop",
+      "from": [
+        7.08,
+        5.8,
+        7.08
+      ],
+      "to": [
+        8.92,
+        6.3,
+        8.92
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Tall iron head socket",
+      "from": [
+        7.0,
+        9.65,
+        7.0
+      ],
+      "to": [
+        9.0,
+        12.3,
+        9.0
+      ],
+      "material": "iron_dark",
+      "cap": "iron"
+    },
+    {
+      "name": "Broad lapis socket facing",
+      "from": [
+        7.18,
+        9.95,
+        6.6
+      ],
+      "to": [
+        8.82,
+        11.4,
+        7.1
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Horizontal hoe iron head backing",
+      "from": [
+        3.3,
+        11.55,
+        7.05
+      ],
+      "to": [
+        8.8,
+        13.45,
+        8.95
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Broad flat blue hoe head",
+      "from": [
+        3.65,
+        11.72,
+        6.45
+      ],
+      "to": [
+        8.6,
+        13.3,
+        7.17
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "High stepped blue head facet",
+      "from": [
+        4.3,
+        13.2,
+        6.55
+      ],
+      "to": [
+        8.3,
+        13.95,
+        8.7
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Low outside hoe nose iron",
+      "from": [
+        2.8,
+        10.75,
+        6.98
+      ],
+      "to": [
+        4.3,
+        12.5,
+        9.02
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Squared blue mineral hoe nose",
+      "from": [
+        3.02,
+        11.05,
+        6.4
+      ],
+      "to": [
+        4.18,
+        12.42,
+        7.1
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Short upper iron nose bevel",
+      "from": [
+        3.18,
+        12.4,
+        6.66
+      ],
+      "to": [
+        4.35,
+        12.88,
+        9.04
+      ],
+      "material": "iron_edge",
+      "side": "iron"
+    },
+    {
+      "name": "Thick socket side shoulder",
+      "from": [
+        8.35,
+        11.5,
+        6.86
+      ],
+      "to": [
+        9.25,
+        12.65,
+        9.14
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Square blue back head plate",
+      "from": [
+        4.1,
+        11.9,
+        8.88
+      ],
+      "to": [
+        7.8,
+        13.3,
+        9.28
+      ],
+      "material": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Wand exposed wood neck band",
+      "from": [
+        7.05,
+        8.65,
+        7.05
+      ],
+      "to": [
+        8.95,
+        9.25,
+        8.95
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    }
+  ],
+  "base_material": "IRON_HOE"
+}

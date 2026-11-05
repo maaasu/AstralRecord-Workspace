@@ -1,0 +1,494 @@
+{
+  "id": "lapis_staff",
+  "master_id": "20a00406",
+  "kind": "staff",
+  "intent": "Lv20 RARE。Minecraftの鉄のシャベルの縦長の柄と段付き刃を起点に、平たい大きな青鉱石の板を鉄で受けた長杖。頭は四角い肩と一段高い中央を持ち、横へ伸びるクワ型ワンドとは輪郭で区別する。暗木の長軸に青布と幅広い鉄輪を少数だけ配し、ノクスより整った鉱石面を見せる。上位の冠や翼や巨大な光輪や写実的な彫金は使わない。",
+  "grip": [
+    8,
+    4,
+    8
+  ],
+  "gui": {
+    "rotation": [
+      12,
+      -20,
+      -28
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 0.7
+  },
+  "materials": {
+    "lapis": {
+      "palette": [
+        "102654",
+        "173879",
+        "214C9A",
+        "3267B1",
+        "4A83C6"
+      ],
+      "pattern": [
+        "12222321",
+        "23323321",
+        "23344322",
+        "22333221",
+        "12223211",
+        "12333221",
+        "23322321",
+        "12222110"
+      ]
+    },
+    "lapis_facet": {
+      "palette": [
+        "193972",
+        "2858A0",
+        "3C76B9",
+        "5B95D0",
+        "8AB5DC"
+      ],
+      "pattern": [
+        "43333221",
+        "43333221",
+        "33332221",
+        "23333211",
+        "23332211",
+        "23322110",
+        "22322110",
+        "12221100"
+      ]
+    },
+    "lapis_shadow": {
+      "palette": [
+        "101D3B",
+        "162A53",
+        "224078",
+        "2D5691",
+        "3E6BA1"
+      ],
+      "pattern": [
+        "12222211",
+        "12333211",
+        "12323211",
+        "12222211",
+        "12223211",
+        "12322211",
+        "12222211",
+        "01111100"
+      ]
+    },
+    "iron": {
+      "palette": [
+        "374951",
+        "607781",
+        "94A6AB",
+        "C5D0CC",
+        "E6ECE1"
+      ],
+      "pattern": [
+        "33333321",
+        "34433321",
+        "33333321",
+        "23333221",
+        "23323221",
+        "23333211",
+        "22322211",
+        "12221100"
+      ]
+    },
+    "iron_edge": {
+      "palette": [
+        "536A74",
+        "80969D",
+        "ADBFBE",
+        "D6E0D6",
+        "EBEEE2"
+      ],
+      "pattern": [
+        "44332210",
+        "44332210",
+        "43332210",
+        "43332210",
+        "43332210",
+        "43322210",
+        "43322210",
+        "33221100"
+      ]
+    },
+    "iron_dark": {
+      "palette": [
+        "24323A",
+        "394C56",
+        "536C76",
+        "789095"
+      ],
+      "pattern": [
+        "12222211",
+        "12332211",
+        "12222211",
+        "12212211",
+        "12222211",
+        "12322211",
+        "12222111",
+        "01111100"
+      ]
+    },
+    "darkwood": {
+      "palette": [
+        "292522",
+        "43392D",
+        "5A4D38",
+        "78654A",
+        "948160"
+      ],
+      "pattern": [
+        "12323211",
+        "12323211",
+        "12223211",
+        "12323221",
+        "12323221",
+        "12322221",
+        "12323211",
+        "12323211"
+      ]
+    },
+    "wood_end": {
+      "palette": [
+        "302A22",
+        "4D402D",
+        "705A3A",
+        "92764C",
+        "AA9063"
+      ],
+      "pattern": [
+        "01111110",
+        "12222221",
+        "12333321",
+        "13222331",
+        "13222331",
+        "12333321",
+        "12222221",
+        "01111110"
+      ]
+    },
+    "blue_cloth": {
+      "palette": [
+        "17273C",
+        "233C56",
+        "325B77",
+        "4A7891",
+        "7DA2B0"
+      ],
+      "pattern": [
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "23333221",
+        "12222211",
+        "11222100"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Solid long darkwood staff shaft",
+      "from": [
+        7.3,
+        1.35,
+        7.3
+      ],
+      "to": [
+        8.7,
+        17.5,
+        8.7
+      ],
+      "material": "darkwood",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Large blue cloth staff grip",
+      "from": [
+        7.17,
+        2.9,
+        7.17
+      ],
+      "to": [
+        8.83,
+        6.15,
+        8.83
+      ],
+      "material": "blue_cloth"
+    },
+    {
+      "name": "Iron staff ground shoe",
+      "from": [
+        7.1,
+        0.85,
+        7.1
+      ],
+      "to": [
+        8.9,
+        1.8,
+        8.9
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Lower staff grip iron ferrule",
+      "from": [
+        7.05,
+        2.6,
+        7.05
+      ],
+      "to": [
+        8.95,
+        3.1,
+        8.95
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Upper staff grip iron ferrule",
+      "from": [
+        7.05,
+        5.95,
+        7.05
+      ],
+      "to": [
+        8.95,
+        6.45,
+        8.95
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Middle staff broad iron join",
+      "from": [
+        7.05,
+        11.7,
+        7.05
+      ],
+      "to": [
+        8.95,
+        12.4,
+        8.95
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Tall dark iron mineral socket",
+      "from": [
+        6.85,
+        15.7,
+        6.85
+      ],
+      "to": [
+        9.15,
+        17.95,
+        9.15
+      ],
+      "material": "iron_dark",
+      "cap": "iron"
+    },
+    {
+      "name": "Mineral shovel lower iron back",
+      "from": [
+        6.7,
+        16.9,
+        6.8
+      ],
+      "to": [
+        9.3,
+        19.15,
+        9.2
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Mineral shovel broad shoulder iron back",
+      "from": [
+        5.6,
+        19.15,
+        6.8
+      ],
+      "to": [
+        10.4,
+        22.1,
+        9.2
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Mineral shovel high iron crown",
+      "from": [
+        6.7,
+        22.1,
+        6.8
+      ],
+      "to": [
+        9.3,
+        23.15,
+        9.2
+      ],
+      "material": "iron",
+      "side": "iron_dark",
+      "cap": "iron_edge"
+    },
+    {
+      "name": "Long blue mineral blade foot",
+      "from": [
+        6.88,
+        17.2,
+        6.3
+      ],
+      "to": [
+        9.12,
+        19.7,
+        6.88
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Large blue mineral shovel face",
+      "from": [
+        5.84,
+        19.4,
+        6.28
+      ],
+      "to": [
+        10.16,
+        21.9,
+        6.9
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper blue mineral shovel face",
+      "from": [
+        6.94,
+        21.8,
+        6.3
+      ],
+      "to": [
+        9.06,
+        22.92,
+        6.87
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Left broad bright mineral shoulder facet",
+      "from": [
+        5.76,
+        19.55,
+        6.13
+      ],
+      "to": [
+        6.35,
+        21.78,
+        6.45
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_shadow"
+    },
+    {
+      "name": "Upper broad bright mineral facet",
+      "from": [
+        7.06,
+        22.5,
+        6.15
+      ],
+      "to": [
+        8.95,
+        22.96,
+        6.45
+      ],
+      "material": "lapis_facet",
+      "side": "lapis_shadow"
+    },
+    {
+      "name": "Lower blue mineral back face",
+      "from": [
+        7.05,
+        17.55,
+        9.1
+      ],
+      "to": [
+        8.95,
+        19.5,
+        9.52
+      ],
+      "material": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Broad blue mineral back face",
+      "from": [
+        6.0,
+        19.55,
+        9.1
+      ],
+      "to": [
+        10.0,
+        21.75,
+        9.52
+      ],
+      "material": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Upper blue mineral back face",
+      "from": [
+        7.05,
+        21.75,
+        9.1
+      ],
+      "to": [
+        8.95,
+        22.7,
+        9.52
+      ],
+      "material": "lapis_shadow",
+      "cap": "lapis_facet"
+    },
+    {
+      "name": "Staff socket broad mineral badge",
+      "from": [
+        7.12,
+        15.95,
+        6.42
+      ],
+      "to": [
+        8.88,
+        17.2,
+        6.95
+      ],
+      "material": "lapis",
+      "side": "lapis_shadow",
+      "cap": "lapis_facet"
+    }
+  ],
+  "base_material": "IRON_SHOVEL"
+}
