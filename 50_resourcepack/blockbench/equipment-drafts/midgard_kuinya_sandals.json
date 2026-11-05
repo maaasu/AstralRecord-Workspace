@@ -1,0 +1,526 @@
+{
+  "id": "midgard_kuinya_sandals",
+  "master_id": "20a00022",
+  "kind": "armor",
+  "intent": "移動とMP回復を助ける軽いサンダル対。厚い角形革底、開いた爪先、紫布の足首帯と少ない革紐に小石を留める。左右を後ろの革紐で結び、紐の実体を手持ち点とする。ノクスより丁寧な淡紫の端処理を持たせ、高位の金属飾りは使わない。",
+  "grip": [
+    8,
+    6.3,
+    10.7
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "352846",
+        "4A3867",
+        "60468C",
+        "7557A5",
+        "8B6DB8"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12233221",
+        "11222211",
+        "01122110"
+      ]
+    },
+    "edge": {
+      "palette": [
+        "403048",
+        "604567",
+        "84618B",
+        "A17CAA",
+        "BDA0C4"
+      ],
+      "pattern": [
+        "33333332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "302A30",
+        "493940",
+        "624A4C",
+        "7D605C",
+        "987B6D"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "sole": {
+      "palette": [
+        "29232D",
+        "3B303B",
+        "51404B",
+        "6C555C"
+      ],
+      "pattern": [
+        "22222222",
+        "23333222",
+        "22222222",
+        "11111111",
+        "22222222",
+        "22222222",
+        "11111111",
+        "00000000"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "49305F",
+        "6A448B",
+        "8F60B3",
+        "B88BD6",
+        "DBC0EC"
+      ],
+      "pattern": [
+        "01233210",
+        "12344321",
+        "12343321",
+        "12233221",
+        "12232221",
+        "11222211",
+        "01122110",
+        "00111000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Left block sole",
+      "from": [
+        3.0,
+        1.0,
+        4.4
+      ],
+      "to": [
+        7.2,
+        1.7,
+        11.0
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Left leather footbed",
+      "from": [
+        3.15,
+        1.7,
+        4.55
+      ],
+      "to": [
+        7.05,
+        2.0,
+        10.85
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left purple toe strap",
+      "from": [
+        3.0,
+        2.55,
+        5.4
+      ],
+      "to": [
+        7.2,
+        3.15,
+        6.35
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Left toe strap left anchor",
+      "from": [
+        3.0,
+        1.7,
+        5.4
+      ],
+      "to": [
+        3.55,
+        2.6,
+        6.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left toe strap right anchor",
+      "from": [
+        6.65,
+        1.7,
+        5.4
+      ],
+      "to": [
+        7.2,
+        2.6,
+        6.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left instep thong",
+      "from": [
+        4.75,
+        2.0,
+        6.15
+      ],
+      "to": [
+        5.45,
+        2.7,
+        8.6
+      ],
+      "material": "leather",
+      "side": "edge"
+    },
+    {
+      "name": "Left left ankle thong",
+      "from": [
+        3.0,
+        1.7,
+        9.65
+      ],
+      "to": [
+        3.6,
+        6.45,
+        10.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left right ankle thong",
+      "from": [
+        6.6,
+        1.7,
+        9.65
+      ],
+      "to": [
+        7.2,
+        6.45,
+        10.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left heel thong",
+      "from": [
+        3.5,
+        3.0,
+        10.2
+      ],
+      "to": [
+        6.7,
+        6.45,
+        10.85
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left open ankle band front",
+      "from": [
+        3.0,
+        5.7,
+        8.2
+      ],
+      "to": [
+        7.2,
+        6.45,
+        8.9
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Left ankle band left",
+      "from": [
+        3.0,
+        5.7,
+        8.9
+      ],
+      "to": [
+        3.6,
+        6.45,
+        10.45
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Left ankle band right",
+      "from": [
+        6.6,
+        5.7,
+        8.9
+      ],
+      "to": [
+        7.2,
+        6.45,
+        10.45
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Left tiny outer amethyst clasp",
+      "from": [
+        3.2,
+        5.65,
+        7.9
+      ],
+      "to": [
+        4.0,
+        6.4,
+        8.25
+      ],
+      "material": "amethyst"
+    },
+    {
+      "name": "Right block sole",
+      "from": [
+        8.8,
+        1.0,
+        4.4
+      ],
+      "to": [
+        13.0,
+        1.7,
+        11.0
+      ],
+      "material": "sole"
+    },
+    {
+      "name": "Right leather footbed",
+      "from": [
+        8.950000000000001,
+        1.7,
+        4.55
+      ],
+      "to": [
+        12.850000000000001,
+        2.0,
+        10.85
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right purple toe strap",
+      "from": [
+        8.8,
+        2.55,
+        5.4
+      ],
+      "to": [
+        13.0,
+        3.15,
+        6.35
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Right toe strap left anchor",
+      "from": [
+        8.8,
+        1.7,
+        5.4
+      ],
+      "to": [
+        9.350000000000001,
+        2.6,
+        6.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right toe strap right anchor",
+      "from": [
+        12.450000000000001,
+        1.7,
+        5.4
+      ],
+      "to": [
+        13.0,
+        2.6,
+        6.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right instep thong",
+      "from": [
+        10.55,
+        2.0,
+        6.15
+      ],
+      "to": [
+        11.25,
+        2.7,
+        8.6
+      ],
+      "material": "leather",
+      "side": "edge"
+    },
+    {
+      "name": "Right left ankle thong",
+      "from": [
+        8.8,
+        1.7,
+        9.65
+      ],
+      "to": [
+        9.4,
+        6.45,
+        10.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right right ankle thong",
+      "from": [
+        12.4,
+        1.7,
+        9.65
+      ],
+      "to": [
+        13.0,
+        6.45,
+        10.35
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right heel thong",
+      "from": [
+        9.3,
+        3.0,
+        10.2
+      ],
+      "to": [
+        12.5,
+        6.45,
+        10.85
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Right open ankle band front",
+      "from": [
+        8.8,
+        5.7,
+        8.2
+      ],
+      "to": [
+        13.0,
+        6.45,
+        8.9
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Right ankle band left",
+      "from": [
+        8.8,
+        5.7,
+        8.9
+      ],
+      "to": [
+        9.4,
+        6.45,
+        10.45
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Right ankle band right",
+      "from": [
+        12.4,
+        5.7,
+        8.9
+      ],
+      "to": [
+        13.0,
+        6.45,
+        10.45
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Right tiny outer amethyst clasp",
+      "from": [
+        9.0,
+        5.65,
+        7.9
+      ],
+      "to": [
+        9.8,
+        6.4,
+        8.25
+      ],
+      "material": "amethyst"
+    },
+    {
+      "name": "Leather tie carrying the paired sandals",
+      "from": [
+        6.5,
+        6.05,
+        10.45
+      ],
+      "to": [
+        9.5,
+        6.6,
+        10.95
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Small carrying tie knot",
+      "from": [
+        7.65,
+        5.8,
+        10.35
+      ],
+      "to": [
+        8.35,
+        6.9,
+        11.15
+      ],
+      "material": "leather"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      20,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "kuinya_mage",
+  "wearable_source": "armor/author-kuinya-mage.py"
+}

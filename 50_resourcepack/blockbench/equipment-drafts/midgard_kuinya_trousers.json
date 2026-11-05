@@ -1,0 +1,574 @@
+{
+  "id": "midgard_kuinya_trousers",
+  "master_id": "20a00023",
+  "kind": "armor",
+  "intent": "魔力を帯びたゆったりした紫布の脚衣。二本の太い筒、空いた腰、長い布ひだと折り返し裾で脚鎧とは異なる柔らかさを出す。細い革腰紐に小石を一つ留める。ノクスより紫の濃淡と縫いが整うが、高位の刺繍や宝石列は使わない。前腰帯の布実体を運搬点とする。",
+  "grip": [
+    8,
+    11.8,
+    5.4
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "352846",
+        "4A3867",
+        "60468C",
+        "7557A5",
+        "8B6DB8"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12233221",
+        "11222211",
+        "01122110"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "2C253E",
+        "423251",
+        "55416F",
+        "6D518D",
+        "8265A5"
+      ],
+      "pattern": [
+        "23332211",
+        "23332211",
+        "23332211",
+        "23332211",
+        "23332211",
+        "23332211",
+        "12221100",
+        "01110000"
+      ]
+    },
+    "edge": {
+      "palette": [
+        "403048",
+        "604567",
+        "84618B",
+        "A17CAA",
+        "BDA0C4"
+      ],
+      "pattern": [
+        "33333332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "302A30",
+        "493940",
+        "624A4C",
+        "7D605C",
+        "987B6D"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "thread": {
+      "palette": [
+        "4B385B",
+        "72577F",
+        "B79AC0",
+        "D4BBD8"
+      ],
+      "pattern": [
+        "00000000",
+        "00000000",
+        "11221122",
+        "11331133",
+        "00000000",
+        "00000000",
+        "11221122",
+        "11331133"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "49305F",
+        "6A448B",
+        "8F60B3",
+        "B88BD6",
+        "DBC0EC"
+      ],
+      "pattern": [
+        "01233210",
+        "12344321",
+        "12343321",
+        "12233221",
+        "12232221",
+        "11222211",
+        "01122110",
+        "00111000"
+      ]
+    },
+    "lining": {
+      "palette": [
+        "30283D",
+        "44364F",
+        "5A4668",
+        "735B7E"
+      ],
+      "pattern": [
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "22222222",
+        "11111111",
+        "11111111",
+        "00000000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Open woven waistband front",
+      "from": [
+        3.1,
+        11.0,
+        5.0
+      ],
+      "to": [
+        12.9,
+        12.4,
+        5.9
+      ],
+      "material": "edge",
+      "side": "cloth"
+    },
+    {
+      "name": "Open woven waistband rear",
+      "from": [
+        3.1,
+        11.0,
+        10.1
+      ],
+      "to": [
+        12.9,
+        12.4,
+        11.0
+      ],
+      "material": "edge",
+      "side": "cloth"
+    },
+    {
+      "name": "Waistband left",
+      "from": [
+        3.1,
+        11.0,
+        5.9
+      ],
+      "to": [
+        4,
+        12.4,
+        10.1
+      ],
+      "material": "edge"
+    },
+    {
+      "name": "Waistband right",
+      "from": [
+        12,
+        11.0,
+        5.9
+      ],
+      "to": [
+        12.9,
+        12.4,
+        10.1
+      ],
+      "material": "edge"
+    },
+    {
+      "name": "Left loose front fabric",
+      "from": [
+        3.1,
+        2.2,
+        5.1
+      ],
+      "to": [
+        7.6,
+        11.1,
+        6.0
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left loose rear fabric",
+      "from": [
+        3.1,
+        2.2,
+        10.0
+      ],
+      "to": [
+        7.6,
+        11.1,
+        10.9
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Left outside cloth",
+      "from": [
+        3.1,
+        2.2,
+        6
+      ],
+      "to": [
+        3.85,
+        11.1,
+        10
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left inside cloth",
+      "from": [
+        6.85,
+        2.2,
+        6
+      ],
+      "to": [
+        7.6,
+        11.1,
+        10
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left front long soft pleat",
+      "from": [
+        3.95,
+        3.3,
+        4.85
+      ],
+      "to": [
+        4.6,
+        10.7,
+        5.2
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Left rear short fold",
+      "from": [
+        5.7,
+        5.2,
+        10.8
+      ],
+      "to": [
+        6.300000000000001,
+        10.8,
+        11.1
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Left front turned cuff",
+      "from": [
+        3.1,
+        1.55,
+        5.0
+      ],
+      "to": [
+        7.6,
+        2.4,
+        6.05
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Left rear turned cuff",
+      "from": [
+        3.1,
+        1.55,
+        9.95
+      ],
+      "to": [
+        7.6,
+        2.4,
+        11
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Left left cuff side",
+      "from": [
+        3.1,
+        1.55,
+        6.05
+      ],
+      "to": [
+        3.85,
+        2.4,
+        9.95
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Left right cuff side",
+      "from": [
+        6.85,
+        1.55,
+        6.05
+      ],
+      "to": [
+        7.6,
+        2.4,
+        9.95
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Right loose front fabric",
+      "from": [
+        8.4,
+        2.2,
+        5.1
+      ],
+      "to": [
+        12.9,
+        11.1,
+        6.0
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right loose rear fabric",
+      "from": [
+        8.4,
+        2.2,
+        10.0
+      ],
+      "to": [
+        12.9,
+        11.1,
+        10.9
+      ],
+      "material": "cloth",
+      "side": "fold"
+    },
+    {
+      "name": "Right outside cloth",
+      "from": [
+        8.4,
+        2.2,
+        6
+      ],
+      "to": [
+        9.15,
+        11.1,
+        10
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right inside cloth",
+      "from": [
+        12.15,
+        2.2,
+        6
+      ],
+      "to": [
+        12.9,
+        11.1,
+        10
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right front long soft pleat",
+      "from": [
+        9.25,
+        3.3,
+        4.85
+      ],
+      "to": [
+        9.9,
+        10.7,
+        5.2
+      ],
+      "material": "fold",
+      "side": "cloth"
+    },
+    {
+      "name": "Right rear short fold",
+      "from": [
+        11.0,
+        5.2,
+        10.8
+      ],
+      "to": [
+        11.600000000000001,
+        10.8,
+        11.1
+      ],
+      "material": "fold"
+    },
+    {
+      "name": "Right front turned cuff",
+      "from": [
+        8.4,
+        1.55,
+        5.0
+      ],
+      "to": [
+        12.9,
+        2.4,
+        6.05
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Right rear turned cuff",
+      "from": [
+        8.4,
+        1.55,
+        9.95
+      ],
+      "to": [
+        12.9,
+        2.4,
+        11
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Right left cuff side",
+      "from": [
+        8.4,
+        1.55,
+        6.05
+      ],
+      "to": [
+        9.15,
+        2.4,
+        9.95
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Right right cuff side",
+      "from": [
+        12.15,
+        1.55,
+        6.05
+      ],
+      "to": [
+        12.9,
+        2.4,
+        9.95
+      ],
+      "material": "edge",
+      "side": "lining"
+    },
+    {
+      "name": "Plain leather belt front",
+      "from": [
+        3.1,
+        11.45,
+        4.75
+      ],
+      "to": [
+        12.9,
+        12.05,
+        5.15
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Small stone belt knot",
+      "from": [
+        7.45,
+        11.2,
+        4.35
+      ],
+      "to": [
+        8.55,
+        12.2,
+        4.8
+      ],
+      "material": "amethyst",
+      "side": "edge"
+    },
+    {
+      "name": "Single hanging belt tie",
+      "from": [
+        8.45,
+        9.5,
+        4.55
+      ],
+      "to": [
+        8.95,
+        11.6,
+        5.15
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Waist rear stitched join",
+      "from": [
+        7.7,
+        11.2,
+        10.9
+      ],
+      "to": [
+        8.3,
+        12.3,
+        11.15
+      ],
+      "material": "thread"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      20,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "kuinya_mage",
+  "wearable_source": "armor/author-kuinya-mage.py"
+}

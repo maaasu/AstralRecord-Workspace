@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "astralrecord:kuinya_mage"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "astralrecord:kuinya_mage"
+      }
+    ]
+  }
+}

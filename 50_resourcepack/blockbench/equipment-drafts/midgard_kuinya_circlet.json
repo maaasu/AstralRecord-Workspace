@@ -1,0 +1,335 @@
+{
+  "id": "midgard_kuinya_circlet",
+  "master_id": "20a00016",
+  "kind": "armor",
+  "intent": "魔力を巡らせるLv3の額輪。紫の織布と革紐の細い輪、小さな角形アメジスト、後頭の短い結び布だけで構成し、顔と頭頂を開ける。ノクスより縫いと色分けを丁寧にし、高位の宝冠より簡素にする。後頭の実体ある帯を運搬点とする。",
+  "grip": [
+    8,
+    9,
+    11
+  ],
+  "materials": {
+    "cloth": {
+      "palette": [
+        "352846",
+        "4A3867",
+        "60468C",
+        "7557A5",
+        "8B6DB8"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12233221",
+        "11222211",
+        "01122110"
+      ]
+    },
+    "fold": {
+      "palette": [
+        "2C253E",
+        "423251",
+        "55416F",
+        "6D518D",
+        "8265A5"
+      ],
+      "pattern": [
+        "23332211",
+        "23332211",
+        "23332211",
+        "23332211",
+        "23332211",
+        "23332211",
+        "12221100",
+        "01110000"
+      ]
+    },
+    "edge": {
+      "palette": [
+        "403048",
+        "604567",
+        "84618B",
+        "A17CAA",
+        "BDA0C4"
+      ],
+      "pattern": [
+        "33333332",
+        "23333321",
+        "12222211",
+        "12222211",
+        "12222211",
+        "12222211",
+        "01111100",
+        "00000000"
+      ]
+    },
+    "leather": {
+      "palette": [
+        "302A30",
+        "493940",
+        "624A4C",
+        "7D605C",
+        "987B6D"
+      ],
+      "pattern": [
+        "12233221",
+        "12233221",
+        "12333221",
+        "12333221",
+        "12233221",
+        "12222221",
+        "11222211",
+        "01111110"
+      ]
+    },
+    "thread": {
+      "palette": [
+        "4B385B",
+        "72577F",
+        "B79AC0",
+        "D4BBD8"
+      ],
+      "pattern": [
+        "00000000",
+        "00000000",
+        "11221122",
+        "11331133",
+        "00000000",
+        "00000000",
+        "11221122",
+        "11331133"
+      ]
+    },
+    "amethyst": {
+      "palette": [
+        "49305F",
+        "6A448B",
+        "8F60B3",
+        "B88BD6",
+        "DBC0EC"
+      ],
+      "pattern": [
+        "01233210",
+        "12344321",
+        "12343321",
+        "12233221",
+        "12232221",
+        "11222211",
+        "01122110",
+        "00111000"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Woven purple brow band",
+      "from": [
+        3.6,
+        8.4,
+        4.8
+      ],
+      "to": [
+        12.4,
+        9.6,
+        5.65
+      ],
+      "material": "cloth",
+      "side": "edge",
+      "cap": "edge"
+    },
+    {
+      "name": "Left temple band",
+      "from": [
+        3.6,
+        8.4,
+        5.65
+      ],
+      "to": [
+        4.4,
+        9.6,
+        10.7
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Right temple band",
+      "from": [
+        11.6,
+        8.4,
+        5.65
+      ],
+      "to": [
+        12.4,
+        9.6,
+        10.7
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Rear leather carrying band",
+      "from": [
+        3.6,
+        8.4,
+        10.55
+      ],
+      "to": [
+        12.4,
+        9.6,
+        11.4
+      ],
+      "material": "leather",
+      "side": "edge"
+    },
+    {
+      "name": "Upper stitched brow seam",
+      "from": [
+        3.6,
+        9.35,
+        4.65
+      ],
+      "to": [
+        12.4,
+        9.7,
+        4.96
+      ],
+      "material": "thread"
+    },
+    {
+      "name": "Central cloth stone seat",
+      "from": [
+        6.9,
+        8.0,
+        4.45
+      ],
+      "to": [
+        9.1,
+        10.0,
+        4.95
+      ],
+      "material": "edge",
+      "side": "leather"
+    },
+    {
+      "name": "Small square amethyst",
+      "from": [
+        7.2,
+        8.3,
+        4.1
+      ],
+      "to": [
+        8.8,
+        9.7,
+        4.5
+      ],
+      "material": "amethyst"
+    },
+    {
+      "name": "Amethyst square highlight step",
+      "from": [
+        7.5,
+        9.0,
+        3.95
+      ],
+      "to": [
+        8.3,
+        9.5,
+        4.15
+      ],
+      "material": "amethyst"
+    },
+    {
+      "name": "Left temple cloth fold",
+      "from": [
+        3.5,
+        7.5,
+        7.2
+      ],
+      "to": [
+        4.3,
+        8.6,
+        8.8
+      ],
+      "material": "fold",
+      "side": "edge"
+    },
+    {
+      "name": "Right temple cloth fold",
+      "from": [
+        11.7,
+        7.5,
+        7.2
+      ],
+      "to": [
+        12.5,
+        8.6,
+        8.8
+      ],
+      "material": "fold",
+      "side": "edge"
+    },
+    {
+      "name": "Rear square leather knot",
+      "from": [
+        7.2,
+        8.3,
+        11.2
+      ],
+      "to": [
+        8.8,
+        9.4,
+        11.9
+      ],
+      "material": "leather"
+    },
+    {
+      "name": "Left short woven tail",
+      "from": [
+        6.75,
+        6.15,
+        11.15
+      ],
+      "to": [
+        7.55,
+        8.6,
+        11.7
+      ],
+      "material": "cloth",
+      "side": "edge"
+    },
+    {
+      "name": "Right short woven tail",
+      "from": [
+        8.45,
+        6.7,
+        11.15
+      ],
+      "to": [
+        9.25,
+        8.6,
+        11.7
+      ],
+      "material": "cloth",
+      "side": "edge"
+    }
+  ],
+  "gui": {
+    "rotation": [
+      20,
+      154,
+      0
+    ],
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "scale": 1.12
+  },
+  "wearable_texture_set": "kuinya_mage",
+  "wearable_source": "armor/author-kuinya-mage.py"
+}
