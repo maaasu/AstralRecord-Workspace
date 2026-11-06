@@ -37,14 +37,24 @@ COLORS = {
     "s": (96, 121, 133, 255),
     "W": (229, 235, 215, 255),
 }
-BASE_COLORS = {
+BUTTON_COLORS = {
     "0": COLORS["."],
-    "1": (38, 52, 61, 255),
-    "2": (52, 70, 79, 255),
-    "3": (140, 164, 170, 255),
-    "4": (82, 103, 115, 255),
-    "5": (59, 78, 88, 255),
+    "1": (29, 42, 47, 255),
+    "2": (41, 75, 76, 255),
+    "3": (255, 211, 118, 255),
+    "4": (118, 96, 61, 255),
+    "5": (48, 86, 87, 255),
 }
+BUTTON_EDGE_SHADE = (184, 127, 59, 255)
+RECESSED_COLORS = {
+    "0": COLORS["."],
+    "1": (54, 67, 72, 255),
+    "2": (44, 55, 61, 255),
+    "3": (49, 61, 67, 255),
+    "4": (62, 76, 81, 255),
+    "5": (46, 57, 63, 255),
+}
+RECESSED_ROLES = {"disabled", "frame", "panel", "processing", "unset"}
 
 # Patterns are centered in the inner 10x10 design area. Shapes communicate the
 # action independently of color; no text glyphs depend on client language.
@@ -78,8 +88,8 @@ PATTERNS: dict[str, tuple[str, ...]] = {
         ".SssWsss..", ".SssWsss..", ".Sssssss..", ".sssssss..",
     ),
     "processing": (
-        ".HHHHHHHH.", "..H....H..", "..HG..GH..", "...HGGH...", "....GG....",
-        "...GTTG...", "..G.TT.G..", "..GGGGGG..", ".GGGGGGGG.",
+        ".SSSSSSSS.", "..S....S..", "..Ss..sS..", "...SssS...", "....ss....",
+        "...ssss...", "..s.ss.s..", "..ssssss..", ".ssssssss.",
     ),
     "unset": (
         "....S.....", "...S.S....", "..S...S...", ".S.....S..", "S.......S.",
@@ -191,19 +201,15 @@ def scale(pixels: list[list[tuple[int, int, int, int]]], factor: int) -> list[li
 
 
 def design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
-    pixels = [[BASE_COLORS[c] for c in row] for row in source["rows"]]
-    # The inherited corner geometry stays intact; a small warm rivet marks it.
-    for x, y in ((2, 2), (13, 2), (2, 13), (13, 13)):
-        pixels[y][x] = COLORS["G"] if role != "frame" else COLORS["s"]
+    recessed = role in RECESSED_ROLES
+    palette = RECESSED_COLORS if recessed else BUTTON_COLORS
+    pixels = [[palette[c] for c in row] for row in source["rows"]]
     if role == "frame":
         return pixels
     if role == "panel":
-        for y in range(4, 12):
-            for x in range(4, 12):
-                pixels[y][x] = (57, 66, 67, 255)
-        for x in range(5, 11):
-            pixels[5][x] = (100, 77, 48, 255)
-            pixels[10][x] = (73, 59, 41, 255)
+        for x in range(4, 12):
+            pixels[7][x] = (34, 43, 48, 255)
+            pixels[8][x] = RECESSED_COLORS["4"]
         return pixels
     pattern = PATTERNS[role]
     if len(pattern) > 10 or any(len(row) > 10 for row in pattern):
@@ -219,6 +225,11 @@ def design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
         for x, c in enumerate(row):
             if c != ".":
                 pixels[top + y][left + x] = COLORS[c]
+    if not recessed:
+        # Highlight the upper and left rim. The amber lower and right rim gives it depth.
+        for i in range(3, 13):
+            pixels[13][i] = BUTTON_EDGE_SHADE
+            pixels[i][13] = BUTTON_EDGE_SHADE
     return pixels
 
 

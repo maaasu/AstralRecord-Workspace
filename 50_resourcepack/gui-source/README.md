@@ -1,8 +1,8 @@
 # GUI コントロール原画
 
-Minecraft の16pxアイコンと並べても判別できるよう、16×16の設計画素を最近傍で2倍にした32×32 RGBA PNGを使います。Java版と統合版へ同じバイト列を出力します。灰青色の石の浮き彫り、摩耗した金属の縁、金・クリーム色の案内記号、青緑の肯定記号を共通にしています。
+Minecraft の16pxアイコンと並べても判別できるよう、16×16の設計画素を最近傍で2倍にした32×32 RGBA PNGを使います。Java版と統合版へ同じバイト列を出力します。操作アイコンには明るい金縁と濃い青緑の面を使います。ダミー・仕切り・操作できない状態は金縁のない暗い凹面で区別します。
 
-ボタンの石板は [Kenney UI Pack - Pixel Adventure](https://kenney.nl/assets/ui-pack-pixel-adventure) 2.0 の CC0 素材をベースにしています。選択したのは `Tiles/Small tiles/Thin outline/tile_0058.png` の1枚です。色を暗い石板へ調整し、隅の留め具に金属色を加えました。上に載せる全31種類の機能・操作記号はAstralRecord用の独自原画です。著者ロゴやMinecraftのテクスチャ画素は取り込んでいません。
+ボタンの石板は [Kenney UI Pack - Pixel Adventure](https://kenney.nl/assets/ui-pack-pixel-adventure) 2.0 の CC0 素材をベースにしています。選択したのは `Tiles/Small tiles/Thin outline/tile_0058.png` の1枚です。石板の形を使い、操作アイコンの縁と状態表示の色を分けました。上に載せる全31種類の機能・操作記号はAstralRecord用の独自原画です。著者ロゴやMinecraftのテクスチャ画素は取り込んでいません。
 
 元PNGと同梱の `License.txt` は `kenney-pixel-adventure/` に保存しています。`stone-tile-pixels.json` は元PNGを非補間で読み取った設計用画素表です。原アーカイブと選択ファイルのSHA-256、取得日、使用範囲、改変内容は `provenance.json` に記録しています。CC0では改変・再配布・商用利用が認められ、クレジットは必須ではありません。両配布パックの `NOTICE-GUI.txt` に任意の出典表示を収録します。
 
