@@ -275,7 +275,6 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/action_ring_panel.png'
     'ui/_ui_defs.json'
     'ui/hud_screen.json'
-    'ui/scoreboards.json'
     'ui/astralrecord_hud.json'
     'ui/inventory_screen.json'
     'ui/inventory_screen_pocket.json'

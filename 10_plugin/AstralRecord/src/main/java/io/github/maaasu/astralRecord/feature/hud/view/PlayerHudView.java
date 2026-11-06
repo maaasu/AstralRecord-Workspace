@@ -26,7 +26,6 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
@@ -66,7 +65,7 @@ public class PlayerHudView {
     private static final int PERFORMANCE_LINE_COUNT = 2;
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
-    private static final String SIDEBAR_BAR_CHAR = "|";
+    private static final String SIDEBAR_BAR_CHAR = "▰";
     private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
     private final Map<UUID, ProfileHudText> javaProfiles = new HashMap<>();
     private final ResourcePackService resourcePackService;
@@ -560,35 +559,39 @@ public class PlayerHudView {
         );
 
         List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
-        lines.add(sidebarField("オンライン", Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()));
-        lines.add(sidebarField("ワールド", ColorCodeUtil.toLegacyText(worldName, "不明")));
-        lines.add(sidebarField("エリア", ColorCodeUtil.toLegacyText(regionName, "不明")));
-        lines.add(sidebarField("エリアレベル", "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel)));
+        lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
+        lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(worldName, "不明"));
+        lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(regionName, "不明"));
+        lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
+                + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
         if (showPlayerDetails) {
-            lines.add(ColorCodeUtil.AQUA + ColorCodeUtil.BOLD + "PLAYER");
-            String playerLevelText = "Lv." + (rebirthOriginalLevel == null ? ColorCodeUtil.YELLOW : ColorCodeUtil.AQUA)
-                    + playerLevel;
-            if (rebirthOriginalLevel != null) {
-                playerLevelText += ColorCodeUtil.GRAY + "  (" + rebirthOriginalLevel + ")";
-            }
-            lines.add(sidebarField("レベル", playerLevelText));
-            Component classTitle = ColorCodeUtil.toComponent(className, "", NamedTextColor.WHITE)
-                    .decorate(TextDecoration.BOLD);
-            String classTitleText = LegacyComponentSerializer.legacySection().serialize(classTitle);
-            lines.add(sidebarField("クラス", classTitleText + ColorCodeUtil.RESET + "  "
-                    + ClassLevelDisplay.legacy(classLevel, classLevelMax)));
+            lines.add(buildSeparator("player"));
+            String playerLevelLine = ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv."
+                + (rebirthOriginalLevel == null
+                    ? ColorCodeUtil.YELLOW + Integer.toString(playerLevel)
+                    : ColorCodeUtil.AQUA + Integer.toString(playerLevel)
+                        + ColorCodeUtil.GRAY + " (" + rebirthOriginalLevel + ")");
+            lines.add(playerLevelLine);
+            String classLevelText = ClassLevelDisplay.legacy(classLevel, classLevelMax);
+            lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
+                    + ColorCodeUtil.GRAY + " " + classLevelText);
             if (!hideClassExperience) {
-                lines.add(buildExperienceBar(classExperienceProgress));
+                lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
             }
             if (!hideGold) {
-                lines.add(sidebarField("Gold", ColorCodeUtil.YELLOW
-                        + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount)) + " G"));
+                lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                        + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount))
+                        + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
             }
             if (showSkillTreePoints) {
-                String passivePoints = sidebarField(SkillTreePointType.PASSIVE_POINT.displayName(),
-                        Integer.toString(Math.max(0, availablePassivePoints)));
-                lines.add(sidebarField(skillTreeClassPointLabel, Math.max(0, availableClassPoints)
-                        + ColorCodeUtil.GRAY + "  /  " + passivePoints));
+                lines.add(ColorCodeUtil.AQUA + skillTreeClassPointLabel + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + Math.max(0, availableClassPoints)
+                        + ColorCodeUtil.GRAY + " / " + ColorCodeUtil.LIGHT_PURPLE
+                        + SkillTreePointType.PASSIVE_POINT.displayName() + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + Math.max(0, availablePassivePoints));
             }
         }
 
@@ -616,8 +619,10 @@ public class PlayerHudView {
      * @param ping 現在の通信遅延
      */
     private void addPerformanceLines(List<String> lines, double mspt, int ping) {
-        lines.add(1, sidebarField("MSPT", msptLegacyColor(mspt) + String.format(Locale.ROOT, "%.1f", mspt)));
-        lines.add(2, sidebarField("PING", pingLegacyColor(ping) + ping + "ms"));
+        lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + String.format(Locale.ROOT, "%.1f", mspt));
+        lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + ping + "ms");
     }
 
     /**
@@ -930,25 +935,26 @@ public class PlayerHudView {
         }
     }
 
-    private static String sidebarField(String label, String value) {
-        return ColorCodeUtil.GRAY + label + ":  " + ColorCodeUtil.WHITE + value;
-    }
-
     /**
-     * 現在のクラスレベル内での経験値進捗をサイドバーの割合とバーへ変換します。
+     * 現在のクラスレベル内での経験値進捗をサイドバーのバーと割合へ変換します。
+     * @param label バーの表示名
      * @param ratio 現在レベル内の進捗率
+     * @param fillColor 進捗部分に使うlegacy色コード
      * @return 色と進捗率を含むサイドバー用テキスト
      */
-    private String buildExperienceBar(double ratio) {
+    private String buildExperienceBar(String label, double ratio, String fillColor) {
         int progressPercent = (int) Math.round(Math.clamp(ratio, 0.0D, 1.0D) * 100.0D);
         int filledLength = (progressPercent * SIDEBAR_BAR_LENGTH) / 100;
 
         StringBuilder bar = new StringBuilder();
-        bar.append(progressPercent).append("%  ").append(ColorCodeUtil.AQUA);
+        bar.append(ColorCodeUtil.DARK_GRAY).append(label).append(" ");
+        bar.append(fillColor);
         bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, filledLength));
         bar.append(ColorCodeUtil.DARK_GRAY);
         bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, SIDEBAR_BAR_LENGTH - filledLength));
-        return sidebarField("EXP", bar.toString());
+        bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
+
+        return bar.toString();
     }
 
     private String buildSeparator(String label) {
