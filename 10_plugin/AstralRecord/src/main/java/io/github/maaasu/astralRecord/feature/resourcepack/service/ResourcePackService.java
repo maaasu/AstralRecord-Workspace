@@ -46,7 +46,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Boolean> requestedJavaProfileHud = new ConcurrentHashMap<>();
+    private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
@@ -150,8 +150,8 @@ public class ResourcePackService {
                     if (pack.weaponAttackProjectiles()) {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
                     }
-                    if (pack.profileHud()) {
-                        requestedJavaProfileHud.put(viewer, pack.wideCombatMeter());
+                    if (pack.profileHud() != null) {
+                        requestedJavaProfileHud.put(viewer, pack.profileHud());
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -431,7 +431,18 @@ public class ResourcePackService {
      * @return 対応パックの適用が成功済みならtrue
      */
     public boolean hasWideJavaCombatMeter(UUID playerId) {
-        return hasManagedJavaPack(playerId) && Boolean.TRUE.equals(requestedJavaProfileHud.get(playerId));
+        ResourcePackRepository.ProfileHud profileHud = requestedJavaProfileHud.get(playerId);
+        return profileHud != null && profileHud.wideCombatMeter() && hasManagedJavaPack(playerId);
+    }
+
+    /**
+     * 読みやすさを調整した字形を含む管理Javaパックを適用済みか判定します。
+     * @param playerId 表示対象のUUID
+     * @return 互換版3の適用が成功済みならtrue
+     */
+    public boolean hasReadableJavaHudTypeface(UUID playerId) {
+        ResourcePackRepository.ProfileHud profileHud = requestedJavaProfileHud.get(playerId);
+        return profileHud != null && profileHud.readableTypeface() && hasManagedJavaPack(playerId);
     }
 
     /**

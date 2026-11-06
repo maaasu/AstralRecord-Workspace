@@ -138,6 +138,8 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/heart/withered_hardcore_half_blinking.png'
     'assets/astralrecord/font/profile_hud_class.json'
     'assets/astralrecord/font/gameplay_hud.json'
+    'assets/astralrecord/font/gameplay_hud_details.json'
+    'assets/astralrecord/font/profile_hud_points.json'
     'assets/astralrecord/textures/font/gameplay_hud.png'
     'assets/astralrecord/font/tooltip_icons.json'
     'assets/astralrecord/textures/font/tooltip_icons.png'
@@ -338,7 +340,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
 )
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
-if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '2') {
+if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '3') {
     throw 'Invalid profile HUD version marker in resource pack.'
 }
 

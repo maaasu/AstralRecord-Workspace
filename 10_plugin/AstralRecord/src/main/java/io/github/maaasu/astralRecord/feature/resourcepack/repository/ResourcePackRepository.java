@@ -18,7 +18,11 @@ public final class ResourcePackRepository {
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean itemTooltips,
-                           boolean weaponAttackProjectiles, boolean profileHud, boolean wideCombatMeter) {
+                           boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud) {
+    }
+
+    /** 個人情報HUDの字形とゲージの互換情報です。 */
+    public record ProfileHud(boolean wideCombatMeter, boolean readableTypeface) {
     }
 
     /**
@@ -62,13 +66,18 @@ public final class ResourcePackRepository {
                 boolean weaponAttackProjectiles = projectiles != null && projectiles.isJsonPrimitive()
                     && projectiles.getAsJsonPrimitive().isString() && "1".equals(projectiles.getAsString());
                 JsonElement profile = java.get("profileHud");
-                boolean profileHud = profile != null && profile.isJsonPrimitive()
-                    && profile.getAsJsonPrimitive().isString() && "2".equals(profile.getAsString());
+                String profileVersion = profile != null && profile.isJsonPrimitive()
+                    && profile.getAsJsonPrimitive().isString() ? profile.getAsString() : "";
                 JsonElement meter = java.get("wideCombatMeter");
-                boolean wideCombatMeter = profileHud && meter != null && meter.isJsonPrimitive()
+                boolean wideCombatMeter = meter != null && meter.isJsonPrimitive()
                     && meter.getAsJsonPrimitive().isString() && "1".equals(meter.getAsString());
+                ProfileHud profileHud = switch (profileVersion) {
+                    case "2" -> new ProfileHud(wideCombatMeter, false);
+                    case "3" -> new ProfileHud(wideCombatMeter, true);
+                    default -> null;
+                };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    itemTooltips, weaponAttackProjectiles, profileHud, wideCombatMeter);
+                    itemTooltips, weaponAttackProjectiles, profileHud);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

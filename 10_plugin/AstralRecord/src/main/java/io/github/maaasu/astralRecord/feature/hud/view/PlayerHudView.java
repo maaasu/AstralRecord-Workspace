@@ -119,9 +119,11 @@ public class PlayerHudView {
      * @param combat 戦闘・受付・詠唱など現在優先されるアクションバー本文
      */
     public void sendActionBar(Player player, Component combat) {
-        ProfileHudText profile = javaProfiles.get(player.getUniqueId());
-        player.sendActionBar(profile != null && resourcePackService.hasJavaProfileHud(player.getUniqueId())
-                ? JavaProfileHud.compose(combat, profile.playerLine(), profile.classLine())
+        UUID playerId = player.getUniqueId();
+        ProfileHudText profile = javaProfiles.get(playerId);
+        player.sendActionBar(profile != null && resourcePackService.hasJavaProfileHud(playerId)
+                ? JavaProfileHud.compose(combat, profile,
+                        resourcePackService.hasReadableJavaHudTypeface(playerId))
                 : combat);
     }
 
@@ -346,28 +348,40 @@ public class PlayerHudView {
                 && (astPlayer == null || !astPlayer.isBedrock());
         boolean styledJavaHud = pack && resourcePackService.hasJavaProfileHud(playerId);
         boolean wideJavaMeter = styledJavaHud && resourcePackService.hasWideJavaCombatMeter(playerId);
+        boolean readableTypeface = styledJavaHud && resourcePackService.hasReadableJavaHudTypeface(playerId);
+        Component resourceGap = readableTypeface ? JavaProfileHud.READABLE_RESOURCE_GAP : ACTION_BAR_GAP;
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
         Component additionalStats = Component.empty()
-            .append(JavaProfileHud.styleStat(guardActionText(showGuard, currentGuard, maximumGuard), styledJavaHud))
+            .append(JavaProfileHud.styleStat(
+                    guardActionText(showGuard, currentGuard, maximumGuard), styledJavaHud, readableTypeface))
             .append(showPhoenix && currentPhoenix > 0.0D ? JavaProfileHud.styleStat(
-                    separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)), styledJavaHud)
+                    separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)),
+                    styledJavaHud, readableTypeface)
                     : Component.empty())
             .append(additionalResource)
             .append(JavaProfileHud.styleStat(
-                    shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity), styledJavaHud))
+                    shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity), styledJavaHud, readableTypeface))
             .append(conditionActionText(activeConditions))
-            .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud) : Component.empty());
-        sendActionBar(player, Component.empty()
-            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter, styledJavaHud, wideJavaMeter)
+            .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud, readableTypeface)
+                    : Component.empty());
+        Component resources = Component.empty()
+            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter,
+                    styledJavaHud, wideJavaMeter, readableTypeface)
                     : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
-            .append(ACTION_BAR_GAP)
-            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER, styledJavaHud, wideJavaMeter)
+            .append(resourceGap)
+            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER,
+                    styledJavaHud, wideJavaMeter, readableTypeface)
                     : statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
-            .append(ACTION_BAR_GAP)
-            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER, styledJavaHud, wideJavaMeter)
-                    : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
-            .append(additionalStats));
+            .append(resourceGap)
+            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER,
+                    styledJavaHud, wideJavaMeter, readableTypeface)
+                    : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW));
+        if (readableTypeface) {
+            player.sendActionBar(JavaProfileHud.arrangeCombat(resources, additionalStats, javaProfiles.get(playerId)));
+        } else {
+            sendActionBar(player, resources.append(additionalStats));
+        }
     }
 
     /**
@@ -1015,13 +1029,14 @@ public class PlayerHudView {
      * @param color ゲージ色
      * @param styledJavaHud 新しいJava版専用書体を使う場合true
      * @param wideJavaMeter 横長ゲージの字形を利用できる場合true
+     * @param readableTypeface 互換版3の字形を使う場合true
      * @return パック適用済みの接続向けの表示
      */
     private Component resourceGauge(TextComponent icon, double current, double max, TextColor color,
-            boolean styledJavaHud, boolean wideJavaMeter) {
+            boolean styledJavaHud, boolean wideJavaMeter, boolean readableTypeface) {
         int fill = CombatHudGlyphs.fill(current, max);
         if (styledJavaHud) {
-            return JavaProfileHud.resource(icon, current, max, fill, color, wideJavaMeter);
+            return JavaProfileHud.resource(icon, current, max, fill, color, wideJavaMeter, readableTypeface);
         }
         Component meter = CombatHudGlyphs.meter(fill).color(color);
         return icon.append(Component.space())

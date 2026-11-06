@@ -7,14 +7,17 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
-/** Java 版のアクションバーに成長情報の二行を重ねます。 */
+/** Java 版のアクションバーに成長情報を重ねます。 */
 public final class JavaProfileHud {
     private static final Key PLAYER_FONT = Key.key("astralrecord", "profile_hud_player");
     private static final Key CLASS_FONT = Key.key("astralrecord", "profile_hud_class");
     private static final Key GAMEPLAY_FONT = Key.key("astralrecord", "gameplay_hud");
+    private static final Key DETAIL_FONT = Key.key("astralrecord", "gameplay_hud_details");
+    private static final Key POINTS_FONT = Key.key("astralrecord", "profile_hud_points");
     private static final String TEXT_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789vmaxs?+-/()%[]";
     private static final TextColor PRIMARY = TextColor.color(0xFFFDF5);
     private static final TextColor SECONDARY = TextColor.color(0xDCE5F0);
@@ -22,6 +25,8 @@ public final class JavaProfileHud {
     private static final String NARROW_GLYPHS = ".,:|!";
     private static final int LEFT_OFFSET = 8;
     private static final int PROFILE_LEFT_OF_CENTER = 118;
+    private static final int PROFILE_VIEW_HALF_WIDTH = 154;
+    private static final int READABLE_ICON_GAP = 5;
     private static final int FIRST_ICON = 0xE940;
     private static final int LAST_ICON = 0xE944;
     private static final int POSITIVE_SPACE = 0xE950;
@@ -30,6 +35,7 @@ public final class JavaProfileHud {
     private static final int METER_ADVANCE = 13;
     private static final int WIDE_METER_ADVANCE = 25;
     private static final int FIRST_WIDE_METER = 0xE960;
+    static final Component READABLE_RESOURCE_GAP = spacing(10, GAMEPLAY_FONT);
 
     private JavaProfileHud() {
     }
@@ -37,17 +43,57 @@ public final class JavaProfileHud {
     /**
      * 戦闘行の左端を基準に、専用フォントで成長情報を上へ配置します。
      * @param combat 戦闘情報や一時表示の行
-     * @param playerLine プレイヤーの成長情報
-     * @param classLine クラスの成長情報
+     * @param profile プレイヤーとクラスの成長情報
+     * @param readableTypeface 互換版3の字形を使う場合true
      * @return 成長情報の描画幅を相殺したアクションバー
      */
-    public static Component compose(Component combat, Component playerLine, Component classLine) {
-        int width = combatWidthUpperBound(combat, null, false);
-        int shift = Math.max(-LEFT_OFFSET, width / 2 - PROFILE_LEFT_OF_CENTER);
+    public static Component compose(Component combat, ProfileHudText profile, boolean readableTypeface) {
+        int halfWidth = combatWidthUpperBound(combat, null, false, readableTypeface) / 2;
+        int shift = Math.max(-LEFT_OFFSET, halfWidth - PROFILE_LEFT_OF_CENTER);
+        return profileLayers(profile, halfWidth, shift, readableTypeface).append(combat);
+    }
+
+    /**
+     * 補足情報の行を基準に、戦闘リソースと個人情報を別の高さに描画します。
+     * @param resources 専用フォントで整形したHP・MP・ENG
+     * @param details 補足情報の行。状態異常などの通常書体も含められる
+     * @param profile 個人情報を表示する場合の内容
+     * @return リソースと補足情報の横幅を互いに加算しないアクションバー
+     */
+    static Component arrangeCombat(Component resources, Component details, @Nullable ProfileHudText profile) {
+        int detailsWidth = combatWidthUpperBound(details, null, false, true);
+        if (detailsWidth == 0) {
+            return profile == null ? resources : compose(resources, profile, true);
+        }
+        int resourcesWidth = combatWidthUpperBound(resources, null, false, true);
+        int detailsHalf = detailsWidth / 2;
+        int resourceShift = detailsHalf - resourcesWidth / 2;
+        int profileShift = Math.max(resourceShift - LEFT_OFFSET, detailsHalf - PROFILE_LEFT_OF_CENTER);
+        Component layers = profile == null ? Component.empty() : profileLayers(profile, detailsHalf, profileShift, true);
+        return layers.append(overlay(new OverlayLine(resources, resourcesWidth), GAMEPLAY_FONT, resourceShift))
+                .append(details);
+    }
+
+    private static Component profileLayers(ProfileHudText profile, int halfWidth, int preferredShift,
+            boolean readableTypeface) {
+        OverlayLine player = withHudFont(profile.playerLine(), PLAYER_FONT, readableTypeface);
+        OverlayLine playerClass = withHudFont(profile.classLineWithPoints(), CLASS_FONT, readableTypeface);
+        OverlayLine points = new OverlayLine(Component.empty(), 0);
+        int shift = preferredShift;
+        if (readableTypeface) {
+            if (playerClass.width() > PROFILE_VIEW_HALF_WIDTH * 2 && !profile.points().equals(Component.empty())) {
+                playerClass = withHudFont(profile.classLine(), CLASS_FONT, true);
+                points = withHudFont(profile.points(), POINTS_FONT, true);
+            }
+            int maxLineWidth = Math.max(points.width(), Math.max(player.width(), playerClass.width()));
+            int rightLimit = halfWidth + PROFILE_VIEW_HALF_WIDTH - maxLineWidth;
+            int leftLimit = halfWidth - PROFILE_VIEW_HALF_WIDTH;
+            shift = Math.max(leftLimit, Math.min(shift, rightLimit));
+        }
         return Component.empty()
-                .append(overlay(playerLine, PLAYER_FONT, shift))
-                .append(overlay(classLine, CLASS_FONT, shift))
-                .append(combat);
+                .append(overlay(points, POINTS_FONT, shift))
+                .append(overlay(player, PLAYER_FONT, shift))
+                .append(overlay(playerClass, CLASS_FONT, shift));
     }
 
     /**
@@ -55,9 +101,11 @@ public final class JavaProfileHud {
      * @param component 戦闘行の要素
      * @param parentFont 親要素から継承したフォント
      * @param parentBold 親要素から継承した太字
+     * @param readableTypeface 互換版3の字形を使う場合true
      * @return 現行の戦闘表示に使うフォントでの字送りの見積もり
      */
-    private static int combatWidthUpperBound(Component component, Key parentFont, boolean parentBold) {
+    private static int combatWidthUpperBound(Component component, Key parentFont, boolean parentBold,
+            boolean readableTypeface) {
         Key font = component.font() == null ? parentFont : component.font();
         boolean bold = switch (component.decoration(TextDecoration.BOLD)) {
             case TRUE -> true;
@@ -69,8 +117,8 @@ public final class JavaProfileHud {
             for (int offset = 0; offset < text.content().length();) {
                 int glyph = text.content().codePointAt(offset);
                 offset += Character.charCount(glyph);
-                if (GAMEPLAY_FONT.equals(font)) {
-                    width += gameplayAdvance(glyph);
+                if (GAMEPLAY_FONT.equals(font) || DETAIL_FONT.equals(font)) {
+                    width += gameplayAdvance(glyph, readableTypeface);
                 } else if (glyph >= 0xE900 && glyph <= 0xE91A) {
                     width += 19;
                 } else if (glyph == ' ') {
@@ -84,20 +132,19 @@ public final class JavaProfileHud {
             }
         }
         for (Component child : component.children()) {
-            width += combatWidthUpperBound(child, font, bold);
+            width += combatWidthUpperBound(child, font, bold, readableTypeface);
         }
         return width;
     }
 
     /**
      * 個人情報を指定の位置へ重ね、合成前後の字送りを同じに保ちます。
-     * @param source 表示内容
+     * @param line 書体を適用した表示と字送り
      * @param font 高さを指定するフォント
      * @param shift 戦闘行の左端からの横方向の差
      * @return 戦闘行の位置に影響しない描画要素
      */
-    private static Component overlay(Component source, Key font, int shift) {
-        OverlayLine line = withHudFont(source, font);
+    private static Component overlay(OverlayLine line, Key font, int shift) {
         if (line.width() == 0) {
             return Component.empty();
         }
@@ -112,9 +159,10 @@ public final class JavaProfileHud {
      * 個人情報の項目間に余白付きの区切り線を描き、専用フォントの字送りを合計します。
      * @param source 表示内容
      * @param font 表示に使う専用フォント
+     * @param readableTypeface 互換版3の字形を使う場合true
      * @return 変換後の表示と字送り
      */
-    private static OverlayLine withHudFont(Component source, Key font) {
+    private static OverlayLine withHudFont(Component source, Key font, boolean readableTypeface) {
         TextComponent.Builder line = Component.text().font(font);
         if (source.color() != null) {
             line.color(profileColor(source.color()));
@@ -124,7 +172,7 @@ public final class JavaProfileHud {
             String content = text.content();
             if ("   ".equals(content) && source.children().isEmpty()) {
                 String separator = "   |   ";
-                int advance = separator.chars().map(JavaProfileHud::gameplayAdvance).sum();
+                int advance = textAdvance(separator, readableTypeface);
                 return new OverlayLine(Component.text(separator, DIVIDER).font(font), advance);
             }
             StringBuilder glyphs = new StringBuilder();
@@ -140,12 +188,12 @@ public final class JavaProfileHud {
                     glyph = '?';
                 }
                 glyphs.appendCodePoint(glyph);
-                width += gameplayAdvance(glyph);
+                width += gameplayAdvance(glyph, readableTypeface);
             }
             line.content(glyphs.toString());
         }
         for (Component child : source.children()) {
-            OverlayLine formatted = withHudFont(child, font);
+            OverlayLine formatted = withHudFont(child, font, readableTypeface);
             line.append(formatted.text());
             width += formatted.width();
         }
@@ -160,34 +208,46 @@ public final class JavaProfileHud {
      * @param fill 0〜10の充填段階
      * @param color ゲージ色
      * @param wide 横長ゲージに対応するパックを適用済みならtrue
+     * @param readableTypeface 互換版3の字形を使う場合true
      * @return 通常戦闘行のリソース1項目
      */
-    static Component resource(TextComponent icon, double current, double max, int fill, TextColor color, boolean wide) {
-        int meterStart = gameplayAdvance(icon.content().codePointAt(0)) + gameplayAdvance(' ');
+    static Component resource(TextComponent icon, double current, double max, int fill, TextColor color, boolean wide,
+            boolean readableTypeface) {
+        int iconGap = readableTypeface ? READABLE_ICON_GAP : gameplayAdvance(' ', false);
+        int valueGap = readableTypeface ? 1 : 0;
+        int meterStart = gameplayAdvance(icon.content().codePointAt(0), readableTypeface) + iconGap;
         int meterAdvance = wide ? WIDE_METER_ADVANCE : METER_ADVANCE;
         Component meter = wide ? Component.text(Character.toString(FIRST_WIDE_METER + fill))
                 : CombatHudGlyphs.meter(fill);
         String currentText = String.format(Locale.ROOT, "%.0f", current);
         String maxText = String.format(Locale.ROOT, "%.0f", max);
-        int valueWidth = currentText.chars().map(JavaProfileHud::gameplayAdvance).sum()
-                + gameplayAdvance('/') + maxText.chars().map(JavaProfileHud::gameplayAdvance).sum();
+        int valueWidth = textAdvance(currentText, readableTypeface) + textAdvance(maxText, readableTypeface)
+                + gameplayAdvance('/', readableTypeface) + valueGap * 2;
+        Component valuePadding = readableTypeface ? spacing(valueGap, GAMEPLAY_FONT) : Component.empty();
         return Component.empty().font(GAMEPLAY_FONT)
                 .append(spacing(meterStart, GAMEPLAY_FONT))
                 .append(meter.color(color).font(GAMEPLAY_FONT))
                 .append(spacing(-meterStart - meterAdvance, GAMEPLAY_FONT))
                 .append(icon.font(GAMEPLAY_FONT))
-                .append(Component.space())
+                .append(spacing(iconGap, GAMEPLAY_FONT))
                 .append(Component.text(currentText, PRIMARY))
+                .append(valuePadding)
                 .append(Component.text("/", DIVIDER))
+                .append(valuePadding)
                 .append(Component.text(maxText, SECONDARY))
                 .append(spacing(Math.max(0, meterAdvance - valueWidth), GAMEPLAY_FONT));
     }
 
-    static Component styleStat(Component stat, boolean enabled) {
-        return enabled ? withHudFont(stat, GAMEPLAY_FONT).text() : stat;
+    static Component styleStat(Component stat, boolean enabled, boolean readableTypeface) {
+        Key font = readableTypeface ? DETAIL_FONT : GAMEPLAY_FONT;
+        return enabled ? withHudFont(stat, font, readableTypeface).text() : stat;
     }
 
-    private static int gameplayAdvance(int glyph) {
+    private static int textAdvance(String text, boolean readableTypeface) {
+        return text.codePoints().map(glyph -> gameplayAdvance(glyph, readableTypeface)).sum();
+    }
+
+    private static int gameplayAdvance(int glyph, boolean readableTypeface) {
         if (glyph >= POSITIVE_SPACE && glyph < NEGATIVE_SPACE) {
             return 1 << (glyph - POSITIVE_SPACE);
         }
@@ -212,7 +272,10 @@ public final class JavaProfileHud {
         if (glyph == ' ' || glyph == '(' || glyph == ')' || glyph == '[' || glyph == ']') {
             return 3;
         }
-        return NARROW_GLYPHS.indexOf(glyph) >= 0 ? 2 : 5;
+        if (NARROW_GLYPHS.indexOf(glyph) >= 0) {
+            return 2;
+        }
+        return readableTypeface ? 6 : 5;
     }
 
     private static TextColor profileColor(TextColor color) {
@@ -233,6 +296,9 @@ public final class JavaProfileHud {
         }
         if (color.equals(NamedTextColor.RED)) {
             return TextColor.color(0xF4A5A0);
+        }
+        if (color.equals(NamedTextColor.GREEN)) {
+            return TextColor.color(0xADE6AD);
         }
         return color;
     }

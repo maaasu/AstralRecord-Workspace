@@ -9,8 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
-/** Java版の個人情報HUDの2行です。 */
-public record ProfileHudText(Component playerLine, Component classLine) {
+/** Java版の個人情報HUDです。 */
+public record ProfileHudText(Component playerLine, Component classLine, Component points) {
     private static final Component GAP = Component.text("   ");
     private static final Component LEVEL = Component.text("\ue940 ", NamedTextColor.AQUA);
     private static final Component GOLD = Component.text("\ue941 ", NamedTextColor.GOLD);
@@ -30,7 +30,7 @@ public record ProfileHudText(Component playerLine, Component classLine) {
      * @param showPoints スキルツリーワールドの未使用ポイントを表示する場合true
      * @param classPoints 現在クラスの未使用CP
      * @param passivePoints 未使用PP
-     * @return 本人へ表示する個人情報の2行
+     * @return 本人へ表示する個人情報
      */
     public static ProfileHudText create(
             int playerLevel,
@@ -58,18 +58,21 @@ public record ProfileHudText(Component playerLine, Component classLine) {
         Component classLine = Component.empty()
                 .append(CLASS)
                 .append(ColorCodeUtil.toComponent(className, "", NamedTextColor.WHITE))
-                .append(Component.text("  "))
+                .append(Component.text("    "))
                 .append(ClassLevelDisplay.component(classLevel, classLevelMax, NamedTextColor.WHITE))
                 .append(GAP).append(EXPERIENCE)
                 .append(Component.text(percent + "%", NamedTextColor.AQUA));
-        if (showPoints) {
-            classLine = classLine.append(GAP).append(POINTS)
-                    .append(Component.text(SkillTreePointType.CLASS_POINT.displayName() + " "
+        Component points = showPoints
+                ? POINTS.append(Component.text(SkillTreePointType.CLASS_POINT.displayName() + " "
                             + Math.max(0, classPoints), NamedTextColor.AQUA))
                     .append(Component.text(" / ", NamedTextColor.GRAY))
                     .append(Component.text(SkillTreePointType.PASSIVE_POINT.displayName() + " "
-                            + Math.max(0, passivePoints), NamedTextColor.LIGHT_PURPLE));
-        }
-        return new ProfileHudText(playerLine, classLine);
+                            + Math.max(0, passivePoints), NamedTextColor.LIGHT_PURPLE))
+                : Component.empty();
+        return new ProfileHudText(playerLine, classLine, points);
+    }
+
+    Component classLineWithPoints() {
+        return points.equals(Component.empty()) ? classLine : classLine.append(GAP).append(points);
     }
 }
