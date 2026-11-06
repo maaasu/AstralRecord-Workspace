@@ -346,6 +346,16 @@ public final class NormalAttackDegradationService {
         return stageForAttackCount(state.attackCount(), degradationDelayAttackCount(player));
     }
 
+    /**
+     * 通常攻撃劣化のBossBarを表示中か返します。メインスレッド専用です。
+     * @param playerId 対象プレイヤーUUID
+     * @return 表示中の場合はtrue
+     */
+    public boolean hasVisibleBossBar(@NotNull UUID playerId) {
+        BossBar bossBar = bossBars.get(playerId);
+        return bossBar != null && bossBar.isVisible();
+    }
+
     private static boolean isDegradationExcluded(@NotNull AstPlayer player) {
         return MasterTagIds.Theme.ADVENTURER.equalsIgnoreCase(player.getClassId());
     }

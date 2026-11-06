@@ -39,21 +39,24 @@ public final class SidebarBuffPagingEventHandler extends AbstractEventHandler {
         }
     }
 
-    /** @param event 退出したプレイヤーのページ状態を破棄するイベント */
+    /** @param event 退出したプレイヤーのページ状態と個人情報HUDを破棄するイベント */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(@NotNull PlayerQuitEvent event) {
         hudService.clearSidebarBuffPage(event.getPlayer().getUniqueId());
+        hudService.clearProgressHud(event.getPlayer());
     }
 
-    /** @param event ワールド移動後に先頭ページへ戻すイベント */
+    /** @param event ワールド移動後に先頭ページへ戻し、個人情報HUDを更新まで解除するイベント */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
         hudService.clearSidebarBuffPage(event.getPlayer().getUniqueId());
+        hudService.clearProgressHud(event.getPlayer());
     }
 
-    /** @param event 復旧時に保存を伴わずページ状態を破棄するイベント */
+    /** @param event 復旧時に保存を伴わずページ状態と個人情報HUDを破棄するイベント */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
         hudService.clearSidebarBuffPage(event.getPlayer().getUniqueId());
+        hudService.clearProgressHud(event.getPlayer());
     }
 }

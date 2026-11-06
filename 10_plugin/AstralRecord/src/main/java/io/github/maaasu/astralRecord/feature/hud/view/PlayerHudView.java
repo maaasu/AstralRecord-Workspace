@@ -9,8 +9,6 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
-import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
-import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -53,14 +51,11 @@ public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int COMPACT_TRANSIENT_BAR_LENGTH = 10;
-    private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
-    private static final int SIDEBAR_BASE_LINE_COUNT = 9;
-    private static final int SKILL_TREE_POINT_LINE_COUNT = 1;
+    private static final int SIDEBAR_BASE_LINE_COUNT = 4;
     private static final int PERFORMANCE_LINE_COUNT = 2;
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
-    private static final String SIDEBAR_BAR_CHAR = "▰";
     private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
     private final ResourcePackService resourcePackService;
 
@@ -426,237 +421,30 @@ public class PlayerHudView {
     }
 
     /**
-     * サイドバーを描画します。
+     * 現在地・接続情報と、適用中の効果・挑戦情報をサイドバーに表示します。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT
-     * @param playerLevel アカウント単位のプレイヤーレベル
-     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
-     * @param classLevel 現在のクラスレベル
-     * @param classLevelMax 現在クラスが最大レベルへ到達済みか
-     * @param className 現在のクラス表示名
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
      * @param showPerformanceInfo MSPT・Ping を表示するか
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
+     * @param dungeonInfo 挑戦中ダンジョン情報。挑戦していない場合は null
+     * @param showBuffInfo 通常バフを表示するか
+     * @param activeBuffs 獲得順の有効バフ・デバフ一覧
      */
     public void renderSidebar(
         Player player,
         double mspt,
-        int playerLevel,
-        double classExperienceProgress,
-        int classLevel,
-        boolean classLevelMax,
-        String className,
         String worldName,
         String regionName,
         int regionLevel,
         boolean showPerformanceInfo,
-        BossChallengeSidebarInfo bossInfo,
+        @Nullable BossChallengeSidebarInfo bossInfo,
+        @Nullable DungeonSidebarInfo dungeonInfo,
         boolean showBuffInfo,
         List<ActiveBuff> activeBuffs
-    ) {
-        renderSidebar(player, mspt, playerLevel, classExperienceProgress, classLevel, classLevelMax, className,
-                0L, null, 0, 0, worldName, regionName, regionLevel, showPerformanceInfo,
-                bossInfo, null, showBuffInfo, activeBuffs);
-    }
-
-    /** Gold 所持量とスキルツリーの CP / PP を指定しない互換用サイドバー描画です。 */
-    public void renderSidebar(
-        Player player,
-        double mspt,
-        int playerLevel,
-        double classExperienceProgress,
-        int classLevel,
-        boolean classLevelMax,
-        String className,
-        String worldName,
-        String regionName,
-        int regionLevel,
-        boolean showPerformanceInfo,
-        BossChallengeSidebarInfo bossInfo,
-        DungeonSidebarInfo dungeonInfo,
-        boolean showBuffInfo,
-        List<ActiveBuff> activeBuffs
-    ) {
-        renderSidebar(
-            player,
-            mspt,
-            playerLevel,
-            classExperienceProgress,
-            classLevel,
-            classLevelMax,
-            className,
-            0L,
-            null,
-            0,
-            0,
-            worldName,
-            regionName,
-            regionLevel,
-            showPerformanceInfo,
-            bossInfo,
-            dungeonInfo,
-            showBuffInfo,
-            activeBuffs
-        );
-    }
-
-    /** Gold 所持量を指定し、スキルツリーの CP / PP を指定しない互換用サイドバー描画です。 */
-    public void renderSidebar(
-        Player player,
-        double mspt,
-        int playerLevel,
-        double classExperienceProgress,
-        int classLevel,
-        boolean classLevelMax,
-        String className,
-        long goldAmount,
-        String worldName,
-        String regionName,
-        int regionLevel,
-        boolean showPerformanceInfo,
-        BossChallengeSidebarInfo bossInfo,
-        DungeonSidebarInfo dungeonInfo,
-        boolean showBuffInfo,
-        List<ActiveBuff> activeBuffs
-    ) {
-        renderSidebar(
-            player,
-            mspt,
-            playerLevel,
-            classExperienceProgress,
-            classLevel,
-            classLevelMax,
-            className,
-            goldAmount,
-            null,
-            0,
-            0,
-            worldName,
-            regionName,
-            regionLevel,
-            showPerformanceInfo,
-            bossInfo,
-            dungeonInfo,
-            showBuffInfo,
-            activeBuffs
-        );
-    }
-
-    /** Dungeon 情報を含めてサイドバーを描画します。 */
-    public void renderSidebar(
-        Player player,
-        double mspt,
-        int playerLevel,
-        double classExperienceProgress,
-        int classLevel,
-        boolean classLevelMax,
-        String className,
-        String worldName,
-        String regionName,
-        int regionLevel,
-        boolean showPerformanceInfo,
-        BossChallengeSidebarInfo bossInfo
-    ) {
-        renderSidebar(
-            player,
-            mspt,
-            playerLevel,
-            classExperienceProgress,
-            classLevel,
-            classLevelMax,
-            className,
-            0L,
-            null,
-            0,
-            0,
-            worldName,
-            regionName,
-            regionLevel,
-            showPerformanceInfo,
-            bossInfo,
-            null,
-            false,
-            List.of()
-        );
-    }
-
-    /** 転生表示を指定しない互換用サイドバー描画です。 */
-    public void renderSidebar(
-        Player player,
-        double mspt,
-        int playerLevel,
-        double classExperienceProgress,
-        int classLevel,
-        boolean classLevelMax,
-        String className,
-        long goldAmount,
-        @Nullable String skillTreeClassPointLabel,
-        int availableClassPoints,
-        int availablePassivePoints,
-        String worldName,
-        String regionName,
-        int regionLevel,
-        boolean showPerformanceInfo,
-        BossChallengeSidebarInfo bossInfo,
-        DungeonSidebarInfo dungeonInfo,
-        boolean showBuffInfo,
-        List<ActiveBuff> activeBuffs
-    ) {
-        renderSidebar(
-            player, mspt, playerLevel, classExperienceProgress, classLevel, classLevelMax, className, goldAmount,
-            skillTreeClassPointLabel, availableClassPoints, availablePassivePoints, worldName, regionName,
-            regionLevel, showPerformanceInfo, bossInfo, dungeonInfo, showBuffInfo, activeBuffs, null
-        );
-    }
-
-    /**
-     * サイドバーを描画します。デバフを優先し、通常バフは表示設定が有効な場合に表示します。
-     * 表示行数が15行を超えないよう、挑戦名と参加者を優先して任意情報・バフ・性能情報を調整します。
-     *
-     * @param player 対象プレイヤー
-     * @param mspt 現在のMSPT
-     * @param playerLevel アカウント単位のプレイヤーレベル
-     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
-     * @param classLevel 現在のクラスレベル
-     * @param classLevelMax 現在クラスが最大レベルへ到達済みか
-     * @param className 現在のクラス表示名
-     * @param goldAmount 現在のゴールド所持量
-     * @param skillTreeClassPointLabel スキルツリーワールドで表示する現在クラスの CP 表示名。通常は null
-     * @param availableClassPoints スキルツリーワールドで表示する現在クラスの未使用 CP
-     * @param availablePassivePoints スキルツリーワールドで表示する未使用 PP
-     * @param worldName 現在のワールド表示名
-     * @param regionName 現在の地域表示名
-     * @param regionLevel 現在の地域レベル
-     * @param showPerformanceInfo MSPT・Ping を表示するか
-     * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
-     * @param showBuffInfo バフ情報を表示するか
-     * @param activeBuffs 獲得順の有効バフ一覧
-     * @param rebirthOriginalLevel 転生前レベル。転生中でなければnull
-     */
-    public void renderSidebar(
-        Player player,
-        double mspt,
-        int playerLevel,
-        double classExperienceProgress,
-        int classLevel,
-        boolean classLevelMax,
-        String className,
-        long goldAmount,
-        @Nullable String skillTreeClassPointLabel,
-        int availableClassPoints,
-        int availablePassivePoints,
-        String worldName,
-        String regionName,
-        int regionLevel,
-        boolean showPerformanceInfo,
-        BossChallengeSidebarInfo bossInfo,
-        DungeonSidebarInfo dungeonInfo,
-        boolean showBuffInfo,
-        List<ActiveBuff> activeBuffs,
-        @Nullable Integer rebirthOriginalLevel
     ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
@@ -678,16 +466,7 @@ public class PlayerHudView {
         int requiredChallengeLineCount = bossInfo != null
                 ? bossInfo.requiredSidebarLineCount()
                 : dungeonInfo != null ? dungeonInfo.requiredSidebarLineCount() : 0;
-        boolean showSkillTreePoints = skillTreeClassPointLabel != null;
-        int baseLineCount = SIDEBAR_BASE_LINE_COUNT
-                + (showSkillTreePoints ? SKILL_TREE_POINT_LINE_COUNT : 0);
-        boolean hasDebuff = activeBuffs.stream().anyMatch(buff -> buff.getType().isDebuff());
-        int linesToReserve = hasDebuff
-                ? Math.max(0, baseLineCount + requiredChallengeLineCount + 1 - SIDEBAR_LINE_LIMIT)
-                : 0;
-        boolean hideGold = linesToReserve >= 1;
-        boolean hideClassExperience = linesToReserve >= 2;
-        baseLineCount -= (hideGold ? 1 : 0) + (hideClassExperience ? 1 : 0);
+        int baseLineCount = SIDEBAR_BASE_LINE_COUNT + (showPerformanceInfo ? PERFORMANCE_LINE_COUNT : 0);
         List<String> buffLines = buildBuffLines(
                 player.getUniqueId(),
                 activeBuffs,
@@ -705,43 +484,18 @@ public class PlayerHudView {
                 + ColorCodeUtil.toLegacyText(regionName, "不明"));
         lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
                 + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
-        lines.add(buildSeparator("player"));
-        String playerLevelLine = ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv."
-            + (rebirthOriginalLevel == null
-                ? ColorCodeUtil.YELLOW + Integer.toString(playerLevel)
-                : ColorCodeUtil.AQUA + Integer.toString(playerLevel)
-                    + ColorCodeUtil.GRAY + " (" + rebirthOriginalLevel + ")");
-        lines.add(playerLevelLine);
-        String classLevelText = ClassLevelDisplay.legacy(classLevel, classLevelMax);
-        lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
-                + ColorCodeUtil.GRAY + " " + classLevelText);
-        if (!hideClassExperience) {
-            lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
+        if (showPerformanceInfo) {
+            lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + String.format(Locale.ROOT, "%.1f", mspt));
+            lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + ping + "ms");
         }
-        if (!hideGold) {
-            lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                    + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount))
-                    + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
-        }
-        if (showSkillTreePoints) {
-            lines.add(ColorCodeUtil.AQUA + skillTreeClassPointLabel + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + Math.max(0, availableClassPoints)
-                    + ColorCodeUtil.GRAY + " / " + ColorCodeUtil.LIGHT_PURPLE
-                    + SkillTreePointType.PASSIVE_POINT.displayName() + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + Math.max(0, availablePassivePoints));
-        }
+
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);
         } else if (dungeonInfo != null) {
             appendDungeonInfo(lines, dungeonInfo);
-        }
-
-        if (showPerformanceInfo && SIDEBAR_LINE_LIMIT - lines.size() >= PERFORMANCE_LINE_COUNT) {
-            lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
-            lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + ping + "ms");
         }
 
         updateSidebarLines(objective, lines);
@@ -1057,21 +811,6 @@ public class PlayerHudView {
         }
     }
 
-    private String buildExperienceBar(String label, double ratio, String fillColor) {
-        int progressPercent = (int) Math.round(Math.clamp(ratio, 0.0D, 1.0D) * 100.0D);
-        int filledLength = (progressPercent * SIDEBAR_BAR_LENGTH) / 100;
-
-        StringBuilder bar = new StringBuilder();
-        bar.append(ColorCodeUtil.DARK_GRAY).append(label).append(" ");
-        bar.append(fillColor);
-        bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, filledLength));
-        bar.append(ColorCodeUtil.DARK_GRAY);
-        bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, SIDEBAR_BAR_LENGTH - filledLength));
-        bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
-
-        return bar.toString();
-    }
-
     private String buildSeparator(String label) {
         return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
     }
@@ -1124,7 +863,8 @@ public class PlayerHudView {
      */
     private Component resourceGauge(Component icon, double current, double max, TextColor color) {
         int fill = max > 0.0D ? (int) Math.round(Math.clamp(current / max, 0.0D, 1.0D) * 10.0D) : 0;
-        return icon.append(Component.text(String.format(Locale.ROOT, "%.0f", current), NamedTextColor.WHITE))
+        return icon.append(Component.space())
+                .append(Component.text(String.format(Locale.ROOT, "%.0f", current), NamedTextColor.WHITE))
                 .append(Component.text("/", NamedTextColor.DARK_GRAY))
                 .append(Component.text(String.format(Locale.ROOT, "%.0f", max), NamedTextColor.GRAY))
                 .append(Component.space())

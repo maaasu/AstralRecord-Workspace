@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
+import io.github.maaasu.astralRecord.feature.hud.view.PlayerProgressHudView;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -48,7 +49,9 @@ public class PlayerHudService {
     private final BossChallengeService bossChallengeService;
     private final WorldService worldService;
     private final SkillTreeService skillTreeService;
+    private final AdminMessageBossBarService adminMessageBossBarService;
     private final PlayerHudView playerHudView;
+    private final PlayerProgressHudView progressHudView = new PlayerProgressHudView();
     private CombatDpsTrackerService combatDpsTrackerService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
@@ -61,6 +64,7 @@ public class PlayerHudService {
     private boolean proxyOwnsTabHeader;
     private final Map<UUID, UUID> sidebarAccounts = new HashMap<>();
     private Predicate<Player> sidebarInputBlocked = ignored -> false;
+    private Predicate<UUID> combatBossBarActive = ignored -> false;
 
     /**
      * ロード・セッション遷移・スキル選択など、効果ページ入力を停止する判定を設定します。
@@ -71,17 +75,27 @@ public class PlayerHudService {
     }
 
     /**
+     * 個人情報より優先する戦闘BossBarの表示判定を設定します。
+     * @param active メインスレッド上でプレイヤーUUIDから戦闘BossBarの表示有無を返す判定
+     */
+    public void setCombatBossBarActive(@NotNull Predicate<UUID> active) {
+        combatBossBarActive = active;
+    }
+
+    /**
      * HUD サービスを構築します。
      *
      * @param statusService       ステータスサービス
-     * @param playerClassService  職業サービス（サイドバーの職業名・レベル・経験値進捗表示に使用）
+     * @param playerClassService  職業サービス（職業名・レベル・経験値進捗の表示に使用）
      * @param accountService      アカウント経験値サービス
+     * @param currencyService     所持Goldの参照サービス
      * @param playerSettingService プレイヤー設定サービス
      * @param conditionService 状態異常サービス
      * @param bossChallengeService ボス挑戦サービス
      * @param worldService ワールド表示名・種別の解決サービス
      * @param skillTreeService スキルツリーワールド判定と CP / PP 残高の解決サービス
      * @param resourcePackService Java版のパック適用状態の参照先
+     * @param adminMessageBossBarService 管理者通知の表示状態の参照先
      */
     public PlayerHudService(
         StatusService statusService,
@@ -93,7 +107,8 @@ public class PlayerHudService {
         BossChallengeService bossChallengeService,
         WorldService worldService,
         SkillTreeService skillTreeService,
-        ResourcePackService resourcePackService
+        ResourcePackService resourcePackService,
+        AdminMessageBossBarService adminMessageBossBarService
     ) {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
@@ -104,6 +119,7 @@ public class PlayerHudService {
         this.bossChallengeService = bossChallengeService;
         this.worldService = worldService;
         this.skillTreeService = skillTreeService;
+        this.adminMessageBossBarService = adminMessageBossBarService;
         this.playerHudView = new PlayerHudView(resourcePackService);
     }
 
@@ -145,6 +161,7 @@ public class PlayerHudService {
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::updateAll, 10L, 10L);
     }
 
+    /** 周期更新と一時ActionBarを停止し、個人情報HUDと効果ページを破棄します。 */
     public void stop() {
         if (task != null) {
             task.cancel();
@@ -156,6 +173,7 @@ public class PlayerHudService {
         actionBarOverrideTasks.clear();
         sidebarAccounts.clear();
         playerHudView.clearBuffPages();
+        progressHudView.clear();
         proxyOwnsTabHeader = false;
         plugin = null;
     }
@@ -262,9 +280,10 @@ public class PlayerHudService {
 
     private void updateAll() {
         double mspt = Bukkit.getServer().getAverageTickTime();
-        for (var astPlayer : AstPlayerCache.getAll()) {
-            Player player = astPlayer.getBukkit();
-            if (!player.isOnline()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                clearProgressHud(player);
                 continue;
             }
 
@@ -279,10 +298,13 @@ public class PlayerHudService {
                 } else {
                 renderPrimaryActionBar(astPlayer, snapshot);
                 }
-                renderSidebar(astPlayer, mspt);
+                WorldType worldType = worldService.resolveWorldType(player.getWorld());
+                renderSidebar(astPlayer, mspt, worldType);
+                renderProgressHud(astPlayer, playerLevel, experienceProgress, worldType);
             } else {
                 cancelActionBarOverrideTask(player.getUniqueId());
                 playerHudView.removeSidebar(player);
+                clearProgressHud(player);
                 clearSidebarBuffPage(player.getUniqueId());
             }
             playerHudView.renderBars(
@@ -303,13 +325,15 @@ public class PlayerHudService {
         }
     }
 
-    /** 現在の状態・表示設定・挑戦情報を使い、選択中の効果ページを再描画します。 */
-    private void renderSidebar(@NotNull AstPlayer astPlayer, double mspt) {
+    /**
+     * 現在の状態・表示設定・挑戦情報を使い、選択中の効果ページを再描画します。
+     * @param astPlayer 表示対象
+     * @param mspt 現在のMSPT
+     * @param worldType 現在のワールド種別。管理対象外の場合は null
+     */
+    private void renderSidebar(@NotNull AstPlayer astPlayer, double mspt, @Nullable WorldType worldType) {
         Player player = astPlayer.getBukkit();
         prepareSidebarBuffPage(astPlayer);
-        int playerLevel = astPlayer.getAccount().getLevel();
-        String className = playerClassService.getDisplayName(astPlayer.getClassId());
-        double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
         boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
             astPlayer.getUser().getUuid()
         );
@@ -319,17 +343,6 @@ public class PlayerHudService {
         BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
         DungeonSidebarInfo dungeonInfo = dungeonService == null
                 ? null : dungeonService.findSidebarInfo(player.getUniqueId());
-        WorldType worldType = worldService.resolveWorldType(player.getWorld());
-        boolean isSkillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
-        String skillTreeClassPointLabel = isSkillTreeWorld
-                ? skillTreeService.currentClassPointLabel(astPlayer)
-                : null;
-        int availableClassPoints = isSkillTreeWorld
-                ? skillTreeService.availableClassPoints(astPlayer)
-                : 0;
-        int availablePassivePoints = isSkillTreeWorld
-                ? skillTreeService.availablePassivePoints(astPlayer)
-                : 0;
         String regionName = astPlayer.getCurrentRegion();
         if (regionName == null || regionName.isBlank()) {
             regionName = worldType == null
@@ -339,15 +352,6 @@ public class PlayerHudService {
         playerHudView.renderSidebar(
             player,
             mspt,
-            playerLevel,
-            classExperienceProgress,
-            astPlayer.getClassLevel(),
-            playerClassService.isMaxClassLevel(astPlayer),
-            className,
-            currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
-            skillTreeClassPointLabel,
-            availableClassPoints,
-            availablePassivePoints,
             worldService.resolveDisplayName(player.getWorld()),
             regionName,
             resolveRegionLevel(astPlayer, worldType, bossInfo),
@@ -355,9 +359,56 @@ public class PlayerHudService {
             bossInfo,
             dungeonInfo,
             showBuffInfo,
-            statusService.getActiveBuffs(astPlayer),
-            astPlayer.getAccount().getRebirthOriginalLevel()
+            statusService.getActiveBuffs(astPlayer)
         );
+    }
+
+    /**
+     * 戦闘・通知のBossBarを優先し、それ以外では個人情報を戦闘アクションバーと別に表示します。
+     * @param astPlayer 対象プレイヤー
+     * @param playerLevel プレイヤーレベル
+     * @param experienceProgress プレイヤーのレベル内経験値進捗
+     * @param worldType 現在のワールド種別。管理対象外の場合は null
+     */
+    private void renderProgressHud(
+            @NotNull AstPlayer astPlayer,
+            int playerLevel,
+            double experienceProgress,
+            @Nullable WorldType worldType
+    ) {
+        Player player = astPlayer.getBukkit();
+        var defenseService = plugin.getDefenseService();
+        if (adminMessageBossBarService.isActive() || worldType == WorldType.BOSS_FIELD
+                || worldType == WorldType.DUNGEON
+                || combatBossBarActive.test(player.getUniqueId())
+                || (defenseService != null && defenseService.isParticipant(player.getUniqueId()))) {
+            clearProgressHud(player);
+            return;
+        }
+
+        boolean skillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
+        progressHudView.render(
+                player,
+                playerLevel,
+                astPlayer.getAccount().getRebirthOriginalLevel(),
+                experienceProgress,
+                currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
+                playerClassService.getDisplayName(astPlayer.getClassId()),
+                astPlayer.getClassLevel(),
+                playerClassService.isMaxClassLevel(astPlayer),
+                playerClassService.classExperienceProgress(astPlayer),
+                skillTreeWorld,
+                skillTreeWorld ? skillTreeService.availableClassPoints(astPlayer) : 0,
+                skillTreeWorld ? skillTreeService.availablePassivePoints(astPlayer) : 0
+        );
+    }
+
+    /**
+     * 退出・ワールド変更・runtime破棄・優先表示への遷移時に個人情報HUDを解除します。
+     * @param player 対象プレイヤー
+     */
+    public void clearProgressHud(@NotNull Player player) {
+        progressHudView.hide(player);
     }
 
     /**
@@ -374,7 +425,8 @@ public class PlayerHudService {
         }
         prepareSidebarBuffPage(astPlayer);
         playerHudView.moveBuffPage(player.getUniqueId(), direction);
-        renderSidebar(astPlayer, Bukkit.getServer().getAverageTickTime());
+        WorldType worldType = worldService.resolveWorldType(player.getWorld());
+        renderSidebar(astPlayer, Bukkit.getServer().getAverageTickTime(), worldType);
         return true;
     }
 
