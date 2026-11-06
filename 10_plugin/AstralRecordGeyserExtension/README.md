@@ -74,7 +74,7 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ## Bedrockの月蝕の綴り魔女 セレネア
 
-拡張 `1.17.0` 以降は、互換版 `1` の `selenea-presentation-version.txt` と、本体・スキルの描画ファイルが揃ったパックを登録してログインした接続を確認します。Velocity の AstralRecordProxy `1.4.0` 以降が RPG に対応を通知します。対応した接続では、RPG が印を付けたウィッチを `astralrecord:selenea` に変換し、移動・詠唱・攻撃・復帰の動きと無敵中の外観を更新します。警告・発動・飛翔演出は `astralrecord:selenea_skill` で描画します。対応を確認できない接続ではウィッチと RPG のパーティクルを表示します。パック更新後は再接続してください。
+拡張 `1.18.0` 以降は、互換版 `1` の `selenea-presentation-version.txt` と、本体・スキルの描画ファイルが揃ったパックを登録してログインした接続を確認します。Velocity の AstralRecordProxy `1.6.0` 以降が RPG に対応を通知します。対応した接続では、RPG が印を付けたウィッチを `astralrecord:selenea` に変換し、移動・詠唱・攻撃・復帰の動きと無敵中の外観を更新します。警告・発動・飛翔演出は `astralrecord:selenea_skill` で描画します。対応を確認できない接続ではウィッチと RPG のパーティクルを表示します。パック更新後は再接続してください。
 
 ## Bedrockのウェイストーンと施設NPC
 
