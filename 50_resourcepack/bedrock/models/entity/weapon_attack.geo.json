@@ -4,25 +4,84 @@
     {
       "description": {
         "identifier": "geometry.astralrecord.weapon_attack",
-        "texture_width": 16,
-        "texture_height": 16,
+        "texture_width": 32,
+        "texture_height": 256,
         "visible_bounds_width": 2,
         "visible_bounds_height": 2,
         "visible_bounds_offset": [0, 0.5, 0]
       },
       "bones": [
         {"name": "billboard", "pivot": [0, 0, 0]},
+        {"name": "sprite", "parent": "billboard", "pivot": [0, 0, 0]},
         {
-          "name": "sprite",
-          "parent": "billboard",
+          "name": "frame_0",
+          "parent": "sprite",
           "pivot": [0, 0, 0],
           "cubes": [
             {
               "origin": [-8, -8, -0.05],
               "size": [16, 16, 0.05],
-              "uv": {
-                "south": {"uv": [0, 0], "uv_size": [16, 16]}
-              }
+              "uv": {"south": {"uv": [0, 0], "uv_size": [32, 32]}}
+            }
+          ]
+        },
+        {
+          "name": "frame_1",
+          "parent": "sprite",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-8, -8, -0.05],
+              "size": [16, 16, 0.05],
+              "uv": {"south": {"uv": [0, 32], "uv_size": [32, 32]}}
+            }
+          ]
+        },
+        {
+          "name": "frame_2",
+          "parent": "sprite",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-8, -8, -0.05],
+              "size": [16, 16, 0.05],
+              "uv": {"south": {"uv": [0, 64], "uv_size": [32, 32]}}
+            }
+          ]
+        },
+        {
+          "name": "frame_3",
+          "parent": "sprite",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-8, -8, -0.05],
+              "size": [16, 16, 0.05],
+              "uv": {"south": {"uv": [0, 96], "uv_size": [32, 32]}}
+            }
+          ]
+        },
+        {
+          "name": "frame_4",
+          "parent": "sprite",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-8, -8, -0.05],
+              "size": [16, 16, 0.05],
+              "uv": {"south": {"uv": [0, 128], "uv_size": [32, 32]}}
+            }
+          ]
+        },
+        {
+          "name": "frame_5",
+          "parent": "sprite",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-8, -8, -0.05],
+              "size": [16, 16, 0.05],
+              "uv": {"south": {"uv": [0, 160], "uv_size": [32, 32]}}
             }
           ]
         }

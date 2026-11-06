@@ -26,6 +26,7 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -44,9 +45,12 @@ public final class WeaponAttackPackDisplay {
     private static final long BEDROCK_MARKER = 0x4153545241544b31L;
     private static final Key FONT = Key.key("astralrecord", "weapon_attack");
     private static final String GLYPH_TRANSLATION = "astralrecord.weapon_attack.glyph";
+    private static final String FRAME_TRANSLATION = "astralrecord.weapon_attack.frame";
     private static final int FIRST_GLYPH = 0xe100;
+    private static final int STYLE_COUNT = 6;
+    private static final int FRAME_COUNT = 6;
     private static final double VIEW_DISTANCE = 24.0D;
-    private static final int LIFETIME_TICKS = 5;
+    private static final int DISPLAY_TRANSLATION_INDEX = 11;
     private static final int DISPLAY_SCALE_INDEX = 12;
     private static final int DISPLAY_BILLBOARD_INDEX = 15;
     private static final int DISPLAY_BRIGHTNESS_INDEX = 16;
@@ -60,7 +64,7 @@ public final class WeaponAttackPackDisplay {
     private final PlayerSettingService playerSettings;
     private final ParticleDisplayService particles;
     private final Map<Integer, AttackDisplay> activeDisplays = new HashMap<>();
-    private final Map<Integer, List<WrappedDataValue>> glyphMetadata = new HashMap<>();
+    private final Map<Integer, List<WrappedDataValue>> glyphFrames = new HashMap<>();
 
     /**
      * 通常攻撃演出の送信を準備します。
@@ -135,24 +139,55 @@ public final class WeaponAttackPackDisplay {
         destroy.getIntegerArrays().writeSafely(0, new int[]{entityId});
 
         PacketContainer javaSpawn = null;
-        if (!javaViewers.isEmpty()) {
-            PacketContainer metadata = protocol.createPacket(PacketType.Play.Server.ENTITY_METADATA);
-            metadata.getIntegers().writeSafely(0, entityId);
-            metadata.getDataValueCollectionModifier().write(0, glyphMetadata.computeIfAbsent(style, this::glyphMetadata));
+        BukkitTask task;
+        if (javaViewers.isEmpty()) {
+            task = plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> remove(activeDisplays.remove(entityId)), FRAME_COUNT);
+        } else {
+            List<WrappedDataValue> frames = glyphFrames.computeIfAbsent(style, this::glyphFrames);
+            PacketContainer metadata = metadataPacket(entityId, List.of(
+                    // 16 px の字形の中心をビルボードの原点へ合わせる。
+                    vector(DISPLAY_TRANSLATION_INDEX, new Vector3f(0f, -0.35f, 0f)),
+                    vector(DISPLAY_SCALE_INDEX, new Vector3f(1.75f)),
+                    value(DISPLAY_BILLBOARD_INDEX, Byte.class, (byte) Display.Billboard.CENTER.ordinal()),
+                    value(DISPLAY_BRIGHTNESS_INDEX, Integer.class, FULL_BRIGHT),
+                    frames.getFirst(), value(BACKGROUND_INDEX, Integer.class, 0)
+            ));
             javaSpawn = protocol.createPacket(PacketType.Play.Server.BUNDLE);
             javaSpawn.getPacketBundles().write(0, List.of(spawn, metadata));
+            task = animateJavaViewers(entityId, world, javaViewers, frames);
         }
         List<Player> viewers = new ArrayList<>(javaViewers);
         viewers.addAll(bedrockViewers);
-        BukkitTask removeTask = plugin.getServer().getScheduler().runTaskLater(plugin,
-                () -> remove(activeDisplays.remove(entityId)), LIFETIME_TICKS);
-        activeDisplays.put(entityId, new AttackDisplay(viewers, destroy, removeTask));
+        activeDisplays.put(entityId, new AttackDisplay(viewers, destroy, task));
         for (Player viewer : javaViewers) {
             send(viewer, javaSpawn);
         }
         for (Player viewer : bedrockViewers) {
             send(viewer, spawn);
         }
+    }
+
+    private BukkitTask animateJavaViewers(int entityId, World world, List<Player> viewers,
+                                          List<WrappedDataValue> frames) {
+        return new BukkitRunnable() {
+            private int frame = 1;
+
+            @Override
+            public void run() {
+                if (frame == FRAME_COUNT) {
+                    cancel();
+                    remove(activeDisplays.remove(entityId));
+                    return;
+                }
+                PacketContainer packet = metadataPacket(entityId, List.of(frames.get(frame++)));
+                for (Player viewer : viewers) {
+                    if (viewer.isOnline() && viewer.getWorld().equals(world)) {
+                        send(viewer, packet);
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private static boolean shouldShowBurst(double density) {
@@ -171,25 +206,35 @@ public final class WeaponAttackPackDisplay {
         return packet;
     }
 
-    private List<WrappedDataValue> glyphMetadata(int style) {
-        Component glyph = Component.text(Character.toString(FIRST_GLYPH + style)).font(FONT);
-        // 旧管理パックでは翻訳キーが未定義のため、バニラフォントの星を描画する。
-        Component display = Component.translatable(GLYPH_TRANSLATION, "★", glyph);
-        WrappedChatComponent text = WrappedChatComponent.fromJson(GsonComponentSerializer.gson().serialize(display));
-        return List.of(
-                scale(1.25f), value(DISPLAY_BILLBOARD_INDEX, Byte.class, (byte) Display.Billboard.CENTER.ordinal()),
-                value(DISPLAY_BRIGHTNESS_INDEX, Integer.class, FULL_BRIGHT),
-                WrappedDataValue.fromWrappedValue(TEXT_INDEX, WrappedDataWatcher.Registry.getChatComponentSerializer(false), text),
-                value(BACKGROUND_INDEX, Integer.class, 0)
-        );
+    private PacketContainer metadataPacket(int entityId, List<WrappedDataValue> values) {
+        PacketContainer packet = protocol.createPacket(PacketType.Play.Server.ENTITY_METADATA);
+        packet.getIntegers().writeSafely(0, entityId);
+        packet.getDataValueCollectionModifier().write(0, values);
+        return packet;
     }
 
-    private static WrappedDataValue scale(float size) {
-        Vector3f scale = new Vector3f(size);
+    private List<WrappedDataValue> glyphFrames(int style) {
+        String stillGlyph = Character.toString(FIRST_GLYPH + style);
+        var serializer = WrappedDataWatcher.Registry.getChatComponentSerializer(false);
+        List<WrappedDataValue> frames = new ArrayList<>(FRAME_COUNT);
+        for (int frame = 0; frame < FRAME_COUNT; frame++) {
+            // アトラスの先頭行は旧パックとの互換用。各フレームは2行目以降に置く。
+            int glyph = FIRST_GLYPH + (frame + 1) * STYLE_COUNT + style;
+            Component animated = Component.translatable(FRAME_TRANSLATION, stillGlyph,
+                    Component.text(Character.toString(glyph))).font(FONT);
+            // 静止画のある旧パックは元の字形、演出導入前のパックは星にフォールバックする。
+            Component display = Component.translatable(GLYPH_TRANSLATION, "★", animated);
+            WrappedChatComponent text = WrappedChatComponent.fromJson(GsonComponentSerializer.gson().serialize(display));
+            frames.add(WrappedDataValue.fromWrappedValue(TEXT_INDEX, serializer, text));
+        }
+        return frames;
+    }
+
+    private static WrappedDataValue vector(int index, Vector3f vector) {
         try {
-            return value(DISPLAY_SCALE_INDEX, Vector3f.class, scale);
+            return value(index, Vector3f.class, vector);
         } catch (IllegalArgumentException ignored) {
-            return value(DISPLAY_SCALE_INDEX, Vector3fc.class, scale);
+            return value(index, Vector3fc.class, vector);
         }
     }
 
@@ -199,7 +244,7 @@ public final class WeaponAttackPackDisplay {
 
     void stop() {
         for (AttackDisplay display : activeDisplays.values()) {
-            display.removeTask().cancel();
+            display.task().cancel();
             remove(display);
         }
         activeDisplays.clear();
@@ -219,5 +264,5 @@ public final class WeaponAttackPackDisplay {
         }
     }
 
-    private record AttackDisplay(List<Player> viewers, PacketContainer destroy, BukkitTask removeTask) {}
+    private record AttackDisplay(List<Player> viewers, PacketContainer destroy, BukkitTask task) {}
 }

@@ -19,12 +19,15 @@
       "textures": [
         "Array.weapons[math.clamp(query.property('astralrecord:style'), 0, 5)]"
       ],
-      "color": {
-        "r": 1.0,
-        "g": 1.0,
-        "b": 1.0,
-        "a": "math.clamp(1.0 - math.max(0.0, query.life_time - 0.15) / 0.10, 0.0, 1.0)"
-      }
+      "ignore_lighting": true,
+      "part_visibility": [
+        {"frame_0": "variable.frame == 0"},
+        {"frame_1": "variable.frame == 1"},
+        {"frame_2": "variable.frame == 2"},
+        {"frame_3": "variable.frame == 3"},
+        {"frame_4": "variable.frame == 4"},
+        {"frame_5": "variable.frame == 5"}
+      ]
     }
   }
 }
