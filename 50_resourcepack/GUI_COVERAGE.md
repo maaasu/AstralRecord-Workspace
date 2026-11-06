@@ -61,7 +61,7 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 | GUI の下段専用表示 | `shared/gui/playerinventory/PlayerInventoryOverlaySupport.java`、`shared/gui/hotbar/HotbarShortcutClickSupport.java` | 既存の holder 契約、表示復元、BAG スクロール・ホットバー操作を維持。専用背景のために実所持品をダミーへ置換しない |
 | 統合版プレイヤー設定フォーム | `feature/playersetting/gui/PlayerSettingGui.java#createBedrockForm`、`shared/gui/GuiOpenSupport.java#showDialog` | Paper Dialog の真偽値と選択欄、保存・取消を使用。Geyser が解釈するネイティブフォームで、今回のチェスト背景字形は使わない。フォーム基盤そのものを変える Bedrock `ui/*.json` 上書きは追加しない |
 | ワールド上のスキルツリー | `feature/skilltree/service/SkillTreeVisualizer.java`、`SkillTreePacketDisplay.java`、`SkillTreeService.java` | 単一スキルを付与するノードの ItemDisplay に共通スキルアイコンを適用。その他のノードにはノードのアイコンを使う。統合版の線には粒子代替がある |
-| アクションリング | `feature/skill/service/SkillActionRingDisplay.java`、`SkillActionRingService.java`、`ActionRingFrame.java` | 専用輪郭、共通スキルスプライト、クールダウン、選択マーカーを配布。両版ともパネル非対応時は従来のアイテム表示を使う |
+| アクションリング | `feature/skill/service/SkillActionRingHud.java`、`SkillActionRingService.java`、`SkillActionRingDisplay.java` | 対応パックは両版で中央固定 HUD を表示。共通アイコン、開閉と確定の演出、枠の強調、クールダウンと発動不可理由を配布。非対応の接続では従来のワールド表示を使う |
 | 戦闘 HUD のアクションバーとリザルト | `feature/hud/view/PlayerHudView.java`、`feature/hud/service/PlayerHudService.java`、`shared/display/CombatHudGlyphs.java` | 既存の Java 専用 HP/MP/ENG 字形・ゲージとリザルト紋章を維持。対応パックの判定と、未適用時のテキストを維持。今回の UI アイコンによりバーを組み替えない |
 | サイドバー | `feature/hud/view/PlayerHudView.java#renderSidebar` | 標準 Scoreboard。情報量・最大行数・バフページ・ボス/ダンジョン情報を維持。標準クライアントが配置する背景や全体レイアウトは今回変更しない |
 | BossBar | `feature/hud/service/AdminMessageBossBarService.java`、`feature/skill/service/SkillCooldownBossBarService.java`、`feature/dungeon/service/DungeonRoomBossBarService.java` ほか各機能の BossBar | 告知、クールダウン、詠唱、釣り、帰還、アイテム使用、ボス・防衛・スキルツリー読込などの標準バーを維持。色・進捗・セグメントの意味を専用アイコンと混同しない。全バニラ BossBar テクスチャの一括上書きは行わない |

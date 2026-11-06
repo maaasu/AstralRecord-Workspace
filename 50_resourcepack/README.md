@@ -72,9 +72,9 @@ Java 版は本体のアイテム定義から翼を上げる、下げる、引く
 
 ### アクションリング
 
-輪郭、8方向のスキル専用アイコン、金色の選択マーカー、クールダウンゲージと操作時間ゲージを `astralrecord:action_ring_panel` の1体で表示します。1番は真上で、時計回りに8番まで並びます。発動できない枠のアイコンは明度を落とし、クールダウンの残り割合はアイコンから離したゲージで表示します。Java 版は視線を合わせた枠のスキル名と状態を中央に表示し、統合版は枠の情報をアイコン、マーカー、ゲージで表します。
+対応接続では8枠のリングを画面中央に固定します。視点を動かすと対象枠が光り、確定すると選んだアイコンが中央に移ります。クールダウンはゲージと注視時の残り秒数で示し、MP不足、ENG不足、発動制限は異なる記号で示します。統合版ではスキル名を省きます。
 
-Java 版は管理パックの適用成功後、配布マニフェストの `java.actionRingPanel` が RPG プラグインのスプライト台帳と一致する接続で一体型モデルを使います。旧管理パックは専用輪郭と個別アイコン、固定 URL やパック適用前は8方向の目印と個別アイコンで表示します。統合版は Geyser 拡張が接続時のパックにあるスプライトだけを一体化します。一体型モデルを利用できない場合は、8方向の色付きの目印と個別アイコン、文字の操作時間バーを表示します。
+Java 版は配布マニフェストの `java.actionRingPanel` が固定 HUD とスプライト台帳の互換性を示す場合に、専用フォントを Title に描画します。統合版は Geyser 拡張と Velocity が対応パックを使う接続だと通知した場合に、専用の ActionBar データを JSON UI で描画します。いずれの版も対応を確認できない接続では従来のワールド表示を使います。
 
 ### 武器通常攻撃
 
@@ -171,9 +171,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-resourcepack.p
 
 字形の修正時は `scripts/generate-damage-number-assets.py` を Python で実行し、両版の PNG と関連 JSON を再生成します。通常のパックビルドに Python は不要です。
 
-輪郭を変更するときは `scripts/generate-action-ring-assets.py` で両版の PNG とモデルを再生成します。128 px の面に対するアイコン中心の半径は42 px、輪郭の最大半径は61 pxです。寸法や枠の色を変えるときは `SkillActionRingService`、`SkillActionRingDisplay` と Geyser 拡張の `ActionRingFrame` も確認します。
+固定 HUD の原画と Java 版の字形は `scripts/generate-action-ring-hud.py` で再生成します。編集と描画確認には Pillow を使います。 `python scripts/generate-action-ring-hud.py --check --preview <PNGパス>` で生成済みアセットとプレビューを確認できます。従来のワールド表示の輪郭は `scripts/generate-action-ring-assets.py` で再生成します。
 
-スキルアイコンは `scripts/generate-action-ring-icons.py` で生成します。生成元の既存番号を保持し、新しいスキルは未使用の番号に追加します。ビルドは RPG プラグイン内の `action-ring-icons.json` と両版のテクスチャをもとにリングの一体型モデルを生成します。同じスプライトから Java・統合版のスキル表示用アイテムモデルも生成します。表示用の素材は `PAPER`、モデル番号は `920000 + スプライト番号` です。台帳にないスキルは従来のアイテムアイコンを表示します。
+スキルアイコンは `scripts/generate-action-ring-icons.py` で生成します。生成元の既存番号を保持し、新しいスキルは未使用の番号に追加します。アイコンを更新したら、同じスプライトを使う固定 HUD 字形も再生成します。パックのビルド時に字形とスプライトの一致を検査します。Java・統合版のスキル表示用アイテムモデルの素材は `PAPER`、モデル番号は `920000 + スプライト番号` です。
 
 通常攻撃の絵柄を変更するときは `scripts/generate-weapon-attack-assets.py` で両版の32 pxスプライトを再生成します。
 

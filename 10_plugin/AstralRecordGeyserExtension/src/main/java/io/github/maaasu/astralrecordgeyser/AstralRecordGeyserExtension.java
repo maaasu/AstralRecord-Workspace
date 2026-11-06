@@ -207,6 +207,15 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
     }
 
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return ログインを完了した接続のアクションリング HUD 互換性識別子。非対応なら null
+     */
+    public String actionRingHudRevision(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection == null ? null : damagePacks.actionRingHudRevision(connection);
+    }
+
     @Subscribe
     public void onServerTransfer(ServerTransferEvent event) {
         updateHeldWeaponModel(event.connection(), 0);

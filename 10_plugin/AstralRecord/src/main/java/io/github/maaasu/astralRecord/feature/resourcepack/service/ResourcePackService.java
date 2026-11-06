@@ -48,6 +48,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaProfileHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockProfileHud = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -385,6 +386,27 @@ public class ResourcePackService {
     }
 
     /**
+     * @param playerId 閲覧者 UUID
+     * @param revision RPG が要求するアクションリング HUD 互換性識別子
+     * @return 現在の統合版接続で互換性識別子が一致する場合は true
+     */
+    public boolean hasBedrockActionRingHud(UUID playerId, String revision) {
+        return revision.equals(bedrockActionRingHudRevisions.get(playerId));
+    }
+
+    /**
+     * Proxy から確認を受けた接続にアクションリング HUD の利用を許可します。
+     *
+     * @param player 対象プレイヤー
+     * @param revision 接続中に選んだパックの互換性識別子
+     */
+    public void markBedrockActionRingHudReady(Player player, String revision) {
+        if (player.isOnline()) {
+            bedrockActionRingHudRevisions.put(player.getUniqueId(), revision);
+        }
+    }
+
+    /**
      * Proxy が通知した統合版接続をメインスレッドで記録し、初回だけ表示を再送します。
      *
      * @param player 通知が届いた現在のオンラインプレイヤー
@@ -453,6 +475,7 @@ public class ResourcePackService {
         readyBedrockWeaponAttackProjectiles.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
         readyBedrockProfileHud.remove(playerId);
+        bedrockActionRingHudRevisions.remove(playerId);
     }
 
     /**

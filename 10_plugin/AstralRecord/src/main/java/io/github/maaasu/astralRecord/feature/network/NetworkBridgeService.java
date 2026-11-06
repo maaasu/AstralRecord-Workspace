@@ -348,6 +348,13 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        String actionRingHudRevision = BackendProtocol.decodeActionRingHudRevision(message);
+        if (actionRingHudRevision != null) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockActionRingHudReady(player, actionRingHudRevision);
+            }
+            return;
+        }
         String targetServer;
         try {
             BackendProtocol.ChannelConnection notification = BackendProtocol.decodeChannelConnection(message);

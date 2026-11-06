@@ -25,10 +25,12 @@ public final class SkillIconCatalog {
 
     private final Map<String, Integer> icons;
     private final String revision;
+    private final String hudRevision;
 
-    private SkillIconCatalog(Map<String, Integer> icons, String revision) {
+    private SkillIconCatalog(Map<String, Integer> icons, String revision, String hudRevision) {
         this.icons = icons;
         this.revision = revision;
+        this.hudRevision = hudRevision;
     }
 
     static int sprite(@Nullable String skillId) {
@@ -71,6 +73,11 @@ public final class SkillIconCatalog {
         return INSTANCE.revision;
     }
 
+    /** 固定 HUD 字形の契約とスプライト台帳を合わせた互換性識別子を返します。 */
+    static String hudRevision() {
+        return INSTANCE.hudRevision;
+    }
+
     private static SkillIconCatalog load() {
         try (var stream = SkillIconCatalog.class.getResourceAsStream(RESOURCE)) {
             if (stream == null) {
@@ -81,9 +88,11 @@ public final class SkillIconCatalog {
             JsonParser.parseString(json).getAsJsonObject().entrySet().forEach(entry ->
                 icons.put(entry.getKey(), entry.getValue().getAsInt())
             );
-            String revision = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(json.getBytes(StandardCharsets.UTF_8)));
-            return new SkillIconCatalog(Map.copyOf(icons), revision);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String revision = HexFormat.of().formatHex(digest.digest(json.getBytes(StandardCharsets.UTF_8)));
+            String hudRevision = HexFormat.of().formatHex(digest.digest(("action-ring-hud-v1\n" + json)
+                .getBytes(StandardCharsets.UTF_8)));
+            return new SkillIconCatalog(Map.copyOf(icons), revision, hudRevision);
         } catch (IOException | NoSuchAlgorithmException exception) {
             throw new IllegalStateException("Cannot read action ring sprite catalog", exception);
         }

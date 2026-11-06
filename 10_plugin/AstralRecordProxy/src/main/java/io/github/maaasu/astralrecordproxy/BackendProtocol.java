@@ -25,6 +25,7 @@ final class BackendProtocol {
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
     private static final String BEDROCK_PROFILE_HUD = "bedrock_profile_hud";
     private static final String BEDROCK_PROFILE_HUD_READY = "bedrock_profile_hud_ready";
+    static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
 
     private BackendProtocol() {
     }
@@ -122,6 +123,11 @@ final class BackendProtocol {
     /** @return 統合版の個人情報HUDに対応した接続を伝える通知 */
     static byte[] bedrockProfileHudReady() {
         return outgoing(BEDROCK_PROFILE_HUD_READY, null);
+    }
+
+    /** @return 対象プレイヤーの Bedrock パックのアクションリング HUD 互換性識別子を伝える通知 */
+    static byte[] actionRingHudReady(String revision) {
+        return outgoing(ACTION_RING_HUD_READY, revision);
     }
 
     private static Set<UUID> readParticipantIds(DataInputStream input) throws IOException {

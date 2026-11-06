@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.service.ChatMessageConversio
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,6 +25,8 @@ final class BackendProtocol {
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
     private static final byte[] BEDROCK_PROFILE_HUD_READY = emptyNotification("bedrock_profile_hud_ready");
+    private static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
+    private static final int ACTION_RING_HUD_NOTIFICATION_SIZE = 2 + ACTION_RING_HUD_READY.length() + 2 + 64;
 
     /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
     static boolean isGameplaySoundsReady(byte[] payload) {
@@ -43,6 +46,22 @@ final class BackendProtocol {
     /** 個人情報HUD対応パックの通知か判定します。 */
     static boolean isBedrockProfileHudReady(byte[] payload) {
         return Arrays.equals(BEDROCK_PROFILE_HUD_READY, payload);
+    }
+
+    /** アクションリング HUD 通知の互換性識別子を返します。他種別や不正な通知は null を返します。 */
+    static @Nullable String decodeActionRingHudRevision(byte[] payload) {
+        if (payload.length != ACTION_RING_HUD_NOTIFICATION_SIZE) {
+            return null;
+        }
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
+            if (!ACTION_RING_HUD_READY.equals(input.readUTF())) {
+                return null;
+            }
+            String revision = input.readUTF();
+            return input.available() == 0 && revision.matches("[0-9a-f]{64}") ? revision : null;
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
     /** UTF 長ヘッダーを含む、引数のない通知の正規形を作成します。 */

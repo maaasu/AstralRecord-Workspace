@@ -466,6 +466,10 @@ public final class AstralRecordProxyPlugin {
                     if (GeyserPackCapabilities.hasProfileHud(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.bedrockProfileHudReady());
                     }
+                    String actionRingHudRevision = GeyserPackCapabilities.actionRingHudRevision(update.playerId());
+                    if (actionRingHudRevision != null) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.actionRingHudReady(actionRingHudRevision));
+                    }
                 }
                 if (pendingChannelNotifications.remove(update.playerId(), sourceServer)) {
                     broadcastChannelConnection(connection.getPlayer(), sourceServer, settings);

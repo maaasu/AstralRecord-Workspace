@@ -32,7 +32,8 @@ record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean gameplaySounds, boolean sunbird,
     boolean sunbirdMotion, Set<Integer> heldWeaponModels,
-    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips, boolean profileHud
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips, boolean profileHud,
+    String actionRingHudRevision
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -49,6 +50,9 @@ record DamagePack(
         "entity/action_ring.entity.json", "animations/action_ring.animation.json",
         "models/entity/action_ring.geo.json", "render_controllers/action_ring.render_controllers.json",
         "textures/entity/action_ring.png"
+    );
+    private static final List<String> ACTION_RING_HUD_ENTRIES = List.of(
+        "ui/_ui_defs.json", "ui/hud_screen.json", "ui/astralrecord_hud.json", "ui/astralrecord_action_ring.json"
     );
     private static final List<String> ACTION_RING_PANEL_ENTRIES = List.of(
         "entity/action_ring_panel.entity.json", "animations/action_ring_panel.animation.json",
@@ -129,6 +133,7 @@ record DamagePack(
             boolean worldDisplay;
             boolean itemTooltips;
             boolean profileHud;
+            String actionRingHudRevision;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -164,6 +169,7 @@ record DamagePack(
                 profileHud = present(zip.getEntry("ui/hud_screen.json"))
                     && present(zip.getEntry("font/glyph_E9.png"))
                     && hasVersionOne(zip, "player-progress-hud-version.txt");
+                actionRingHudRevision = readActionRingHudRevision(zip);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -178,9 +184,21 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
                 weaponAttackProjectiles, gameplaySounds, sunbird, sunbirdMotion, heldWeaponModels, itemModels, actionRingSprites,
-                worldDisplay, itemTooltips, profileHud);
+                worldDisplay, itemTooltips, profileHud, actionRingHudRevision);
         } finally {
             if (!keep) Files.deleteIfExists(file);
+        }
+    }
+
+    private static String readActionRingHudRevision(ZipFile zip) throws IOException {
+        var marker = zip.getEntry("action-ring-hud.sha256");
+        if (!present(marker) || marker.getSize() != 64
+            || !ACTION_RING_HUD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present)) {
+            return null;
+        }
+        try (var input = zip.getInputStream(marker)) {
+            String revision = new String(input.readNBytes(65), StandardCharsets.US_ASCII);
+            return revision.matches("[0-9a-f]{64}") ? revision : null;
         }
     }
 

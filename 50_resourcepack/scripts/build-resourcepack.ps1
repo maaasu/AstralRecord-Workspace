@@ -66,6 +66,8 @@ function Write-Pack {
 # Package damage numbers plus the custom items selected by the registry.
 . (Join-Path $PSScriptRoot 'item-models.ps1')
 . (Join-Path $PSScriptRoot 'action-ring-panel.ps1')
+. (Join-Path $PSScriptRoot 'action-ring-hud-java.ps1')
+. (Join-Path $PSScriptRoot 'action-ring-hud-bedrock.ps1')
 . (Join-Path $PSScriptRoot 'armor-assets.ps1')
 . (Join-Path $PSScriptRoot 'gui-assets.ps1')
 $java = Read-PackEntries $root @(
@@ -343,6 +345,8 @@ foreach ($entries in @($java, $bedrock)) {
 }
 
 Add-ActionRingPanelEntries $java $bedrock $skillIcons
+Add-ActionRingHudJavaEntries $java $skillIcons
+Add-ActionRingHudBedrockEntries $bedrock $skillIcons
 Add-ArmorAssetEntries $java $bedrock
 Add-GuiThemeEntries $java $bedrock
 

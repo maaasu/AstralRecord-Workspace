@@ -272,11 +272,11 @@ function Get-ActionRingIcons {
     }
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
-        $revision = [BitConverter]::ToString($hasher.ComputeHash($utf8.GetBytes($catalogText))).Replace('-', '').ToLowerInvariant()
+        $hudRevision = [BitConverter]::ToString($hasher.ComputeHash($utf8.GetBytes("action-ring-hud-v1`n" + $catalogText))).Replace('-', '').ToLowerInvariant()
     } finally {
         $hasher.Dispose()
     }
-    return [PSCustomObject]@{ Ids = $ids; Tiles = $tiles; Revision = $revision }
+    return [PSCustomObject]@{ Ids = $ids; Tiles = $tiles; HudRevision = $hudRevision }
 }
 
 function Add-SkillIconModelEntries {
@@ -313,7 +313,7 @@ function Add-SkillIconModelEntries {
 function Add-ActionRingPanelEntries {
     param($Java, $Bedrock, $SkillIcons)
 
-    $Java.Add('action-ring-panel.sha256', $utf8.GetBytes($SkillIcons.Revision))
+    $Java.Add('action-ring-panel.sha256', $utf8.GetBytes($SkillIcons.HudRevision))
 
     $slots = for ($index = 0; $index -le 8; $index++) {
         $angle = [Math]::PI * $index / 4

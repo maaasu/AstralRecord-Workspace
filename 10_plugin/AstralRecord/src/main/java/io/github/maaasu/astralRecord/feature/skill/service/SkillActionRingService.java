@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -94,6 +95,7 @@ public final class SkillActionRingService {
     private final SkillPermissionService permissionService;
     private final ResourcePackService resourcePackService;
     private final SkillActionRingDisplay actionRingDisplay;
+    private final SkillActionRingHud actionRingHud;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> progressionPresetSelections = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
@@ -111,7 +113,8 @@ public final class SkillActionRingService {
      * @param skillService 発動可否とクールダウンの参照先
      * @param ownershipService 習得スキルの参照先
      * @param permissionService スキル使用許可の参照先
-     * @param resourcePackService Java 版のパック適用状態の参照先
+     * @param resourcePackService 両版のパック適用状態の参照先
+     * @param playerHudService リングを閉じた統合版の通常 HUD の再描画先
      */
     public SkillActionRingService(
         @NotNull AstralRecord plugin,
@@ -119,7 +122,8 @@ public final class SkillActionRingService {
         @NotNull SkillService skillService,
         @NotNull SkillOwnershipService ownershipService,
         @NotNull SkillPermissionService permissionService,
-        @NotNull ResourcePackService resourcePackService
+        @NotNull ResourcePackService resourcePackService,
+        @NotNull PlayerHudService playerHudService
     ) {
         this.plugin = plugin;
         this.presetService = presetService;
@@ -128,6 +132,7 @@ public final class SkillActionRingService {
         this.permissionService = permissionService;
         this.resourcePackService = resourcePackService;
         this.actionRingDisplay = new SkillActionRingDisplay();
+        this.actionRingHud = new SkillActionRingHud(plugin, playerHudService);
     }
 
     /**
@@ -174,7 +179,7 @@ public final class SkillActionRingService {
     public void toggle(@NotNull AstPlayer astPlayer) {
         var player = astPlayer.getBukkit();
         if (isOpen(player)) {
-            close(player);
+            close(player, true);
             GuiSound.CLOSE.play(player);
             return;
         }
@@ -253,17 +258,33 @@ public final class SkillActionRingService {
         if (sessions.containsKey(playerId)) {
             return false;
         }
-        RingSession session = RingSession.create(
-            player,
-            slots,
-            actionRingDisplay,
-            skillService,
-            caster,
-            astPlayer.isBedrock() || resourcePackService.hasManagedJavaPack(playerId),
-            astPlayer.isBedrock(),
-            !astPlayer.isBedrock() && resourcePackService.hasActionRingPanel(playerId, SkillIconCatalog.revision()),
-            selectionInstruction
-        );
+        boolean bedrock = astPlayer.isBedrock();
+        actionRingHud.closeImmediately(player);
+        SkillActionRingHud.View hud = hasScreenHud(playerId, bedrock) ? actionRingHud.open(astPlayer, bedrock) : null;
+        RingSession session;
+        try {
+            session = RingSession.create(
+                player,
+                slots,
+                actionRingDisplay,
+                skillService,
+                caster,
+                bedrock || resourcePackService.hasManagedJavaPack(playerId),
+                bedrock,
+                !bedrock && resourcePackService.hasActionRingPanel(playerId, SkillIconCatalog.revision()),
+                hud,
+                selectionInstruction
+            );
+        } catch (RuntimeException | Error failure) {
+            if (hud != null) {
+                hud.close(false);
+            }
+            throw failure;
+        }
+        if (hud != null && hud.interrupted()) {
+            session.destroy(false);
+            return false;
+        }
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
         openListener.accept(astPlayer);
@@ -272,6 +293,12 @@ public final class SkillActionRingService {
         }
         ensureTask();
         return true;
+    }
+
+    /** この接続で固定 HUD に対応するパックを使えるかを返します。 */
+    private boolean hasScreenHud(UUID playerId, boolean bedrock) {
+        return bedrock ? resourcePackService.hasBedrockActionRingHud(playerId, SkillIconCatalog.hudRevision())
+            : resourcePackService.hasActionRingPanel(playerId, SkillIconCatalog.hudRevision());
     }
 
     /**
@@ -398,7 +425,7 @@ public final class SkillActionRingService {
         SlotView selectedSlot = session.selectedSlot();
         int selectedPosition = session.selectedIndex + 1;
         int slotCount = session.slots.size();
-        destroySession(player, session);
+        destroySession(player, session, false);
         castSlot(astPlayer, selectedSlot, selectedPosition, slotCount);
     }
 
@@ -457,10 +484,16 @@ public final class SkillActionRingService {
      * @param player 対象プレイヤー
      */
     public void close(@NotNull Player player) {
+        close(player, false);
+    }
+
+    private void close(Player player, boolean animate) {
         progressionPresetSelections.remove(player.getUniqueId());
         RingSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
-            destroySession(player, session);
+            destroySession(player, session, animate);
+        } else {
+            actionRingHud.closeImmediately(player);
         }
     }
 
@@ -493,10 +526,11 @@ public final class SkillActionRingService {
         }
         for (RingSession session : List.copyOf(sessions.values())) {
             if (sessions.remove(session.viewer.getUniqueId(), session)) {
-                destroySession(session.viewer, session);
+                destroySession(session.viewer, session, false);
             }
         }
         suppressedAttackPlayers.clear();
+        actionRingHud.stop();
     }
 
     private void ensureTask() {
@@ -509,15 +543,17 @@ public final class SkillActionRingService {
     private void tick() {
         for (Map.Entry<UUID, RingSession> entry : sessions.entrySet()) {
             Player player = plugin.getServer().getPlayer(entry.getKey());
+            RingSession session = entry.getValue();
             if (player == null || !player.isOnline()) {
-                if (sessions.remove(entry.getKey(), entry.getValue())) {
-                    destroySession(entry.getValue().viewer, entry.getValue());
+                if (sessions.remove(entry.getKey(), session)) {
+                    destroySession(session.viewer, session, false);
                 }
                 continue;
             }
-            if (!entry.getValue().tick(player)) {
-                if (sessions.remove(entry.getKey(), entry.getValue())) {
-                    destroySession(player, entry.getValue());
+            boolean packReady = session.hud == null || hasScreenHud(entry.getKey(), session.bedrock);
+            if (!packReady || !session.tick(player)) {
+                if (sessions.remove(entry.getKey(), session)) {
+                    destroySession(player, session, packReady && session.selectionExpired());
                 }
             }
         }
@@ -527,8 +563,8 @@ public final class SkillActionRingService {
         }
     }
 
-    private void destroySession(@NotNull Player player, @NotNull RingSession session) {
-        session.destroy();
+    private void destroySession(@NotNull Player player, @NotNull RingSession session, boolean animate) {
+        session.destroy(animate);
         closeListener.accept(player);
         if (player.isOnline()) {
             player.updateInventory();
@@ -979,19 +1015,21 @@ public final class SkillActionRingService {
     }
 
     private enum SlotAvailability {
-        AVAILABLE("", false),
-        COOLDOWN("", true),
-        MANA("MP", true),
-        ENERGY("ENG", true),
-        BLOCKED("NG", true),
-        UNAVAILABLE("", false);
+        AVAILABLE("", false, 'r'),
+        COOLDOWN("", true, 'c'),
+        MANA("MP", true, 'm'),
+        ENERGY("ENG", true, 'e'),
+        BLOCKED("NG", true, 'b'),
+        UNAVAILABLE("", false, 'u');
 
         private final String label;
         private final boolean temporarilyUnavailable;
+        private final char hudCode;
 
-        SlotAvailability(@NotNull String label, boolean temporarilyUnavailable) {
+        SlotAvailability(@NotNull String label, boolean temporarilyUnavailable, char hudCode) {
             this.label = label;
             this.temporarilyUnavailable = temporarilyUnavailable;
+            this.hudCode = hudCode;
         }
 
         private @NotNull String label() {
@@ -1031,6 +1069,7 @@ public final class SkillActionRingService {
         private final List<SkillActionRingDisplay.DisplayEntity> icons;
         private final List<SkillActionRingDisplay.DisplayEntity> fallbackRim = new ArrayList<>();
         private final @Nullable SkillActionRingDisplay.Outline outline;
+        private final @Nullable SkillActionRingHud.View hud;
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
         private final int hotbarSlot;
@@ -1059,6 +1098,8 @@ public final class SkillActionRingService {
         private Integer lastBedrockClickTick;
         private RingPhase phase = RingPhase.SELECTING;
         private long phaseElapsedTicks;
+        private int introFrame;
+        private int focusPulse = 3;
         private PlayerMsgId selectionInstruction = PlayerMsgId.P_5854;
 
         private RingSession(
@@ -1073,6 +1114,7 @@ public final class SkillActionRingService {
             boolean useOutline,
             boolean bedrock,
             boolean javaPanel,
+            @Nullable SkillActionRingHud.View hud,
             int hotbarSlot,
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed
@@ -1089,7 +1131,8 @@ public final class SkillActionRingService {
             this.actionRingDisplay = actionRingDisplay;
             this.skillService = skillService;
             this.caster = caster;
-            this.outline = useOutline ? actionRingDisplay.outline(bedrock, javaPanel) : null;
+            this.hud = hud;
+            this.outline = hud == null && useOutline ? actionRingDisplay.outline(bedrock, javaPanel) : null;
             this.icons = new ArrayList<>(slots.size());
             this.hotbarSlot = hotbarSlot;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
@@ -1105,6 +1148,7 @@ public final class SkillActionRingService {
             boolean useOutline,
             boolean bedrock,
             boolean javaPanel,
+            @Nullable SkillActionRingHud.View hud,
             @NotNull PlayerMsgId selectionInstruction
         ) {
             Location eye = player.getEyeLocation();
@@ -1117,11 +1161,7 @@ public final class SkillActionRingService {
             }
             Vector up = right.clone().crossProduct(normal).normalize();
             AttributeInstance blockBreakSpeed = player.getAttribute(Attribute.BLOCK_BREAK_SPEED);
-            Double originalBlockBreakSpeed = null;
-            if (blockBreakSpeed != null) {
-                originalBlockBreakSpeed = blockBreakSpeed.getBaseValue();
-                blockBreakSpeed.setBaseValue(SELECTING_BLOCK_BREAK_SPEED);
-            }
+            Double originalBlockBreakSpeed = blockBreakSpeed == null ? null : blockBreakSpeed.getBaseValue();
             RingSession session = new RingSession(
                 normal,
                 right,
@@ -1134,14 +1174,32 @@ public final class SkillActionRingService {
                 useOutline,
                 bedrock,
                 javaPanel,
+                hud,
                 player.getInventory().getHeldItemSlot(),
                 blockBreakSpeed,
                 originalBlockBreakSpeed
             );
-            session.selectionInstruction = selectionInstruction;
-            session.updateLayout(player);
-            session.spawnEntities(player);
-            return session;
+            try {
+                if (blockBreakSpeed != null) {
+                    blockBreakSpeed.setBaseValue(SELECTING_BLOCK_BREAK_SPEED);
+                }
+                session.selectionInstruction = selectionInstruction;
+                if (hud == null) {
+                    session.updateLayout(player);
+                    session.spawnEntities(player);
+                } else {
+                    session.refreshSlotAvailability();
+                    session.renderHud();
+                }
+                return session;
+            } catch (RuntimeException | Error failure) {
+                try {
+                    session.destroy(false);
+                } catch (RuntimeException | Error cleanupFailure) {
+                    failure.addSuppressed(cleanupFailure);
+                }
+                throw failure;
+            }
         }
 
         private int hotbarSlot() {
@@ -1240,18 +1298,28 @@ public final class SkillActionRingService {
          * @return リング表示を継続する場合は {@code true}
          */
         private boolean tick(@NotNull Player player) {
-            Location center = updateLayout(player);
-            if (center.getWorld() == null) {
+            Location center = null;
+            if (hud == null) {
+                center = updateLayout(player);
+                if (center.getWorld() == null) {
+                    return false;
+                }
+            } else if (hud.interrupted()) {
                 return false;
+            } else {
+                // 視線を比較する基準だけを更新します。HUD にはワールド位置や衝突補正を適用しません。
+                updateOrientation(player.getEyeLocation().getDirection());
             }
             phaseElapsedTicks++;
-            if (phase == RingPhase.SELECTING && phaseElapsedTicks > RING_DISPLAY_LIMIT_TICKS) {
+            if (selectionExpired()) {
                 GuiSound.CLOSE.play(player);
                 return false;
             }
             if (phase == RingPhase.SELECTING) {
                 refreshSlotAvailability();
-                focusedIndex = resolveFocusedIndex(player);
+                int nextFocus = resolveFocusedIndex(player);
+                focusPulse = nextFocus == focusedIndex ? Math.min(3, focusPulse + 1) : 0;
+                focusedIndex = nextFocus;
                 int nextSelectedIndex = focusedIndex >= 0 && slots.get(focusedIndex).selectable() ? focusedIndex : -1;
                 if (nextSelectedIndex != selectedIndex) {
                     selectedIndex = nextSelectedIndex;
@@ -1259,6 +1327,12 @@ public final class SkillActionRingService {
                         GuiSound.RING_SWITCH.play(player);
                     }
                 }
+            }
+
+            if (hud != null) {
+                introFrame = Math.min(introFrame + 1, SkillActionRingHud.INTRO_FRAMES - 1);
+                renderHud();
+                return !hud.interrupted();
             }
 
             if (!bedrock) {
@@ -1333,8 +1407,72 @@ public final class SkillActionRingService {
             return phase == RingPhase.WAITING_CAST;
         }
 
+        private boolean selectionExpired() {
+            return phase == RingPhase.SELECTING && phaseElapsedTicks > RING_DISPLAY_LIMIT_TICKS;
+        }
+
+        /** 両版の固定 HUD に、サーバーで確定した選択と表示状態を渡します。 */
+        private void renderHud() {
+            if (hud == null) {
+                return;
+            }
+            List<SkillActionRingHud.Slot> frameSlots = new ArrayList<>(slots.size());
+            for (int index = 0; index < slots.size(); index++) {
+                SlotView slot = slots.get(index);
+                int sprite = spriteAt(index);
+                if (sprite == 0 && slot.configured()) {
+                    sprite = SkillIconCatalog.sprite("__unavailable__");
+                }
+                CooldownView cooldown = cooldownViews[index];
+                frameSlots.add(new SkillActionRingHud.Slot(sprite, slot.configured() ? slot.availability().hudCode : 'x',
+                    cooldown == null ? 0 : cooldown.filled()));
+            }
+            CooldownView cooldown = focusedIndex < 0 ? null : cooldownViews[focusedIndex];
+            int cooldownTenths = cooldown == null ? -1
+                : (int) Math.min(10_000L, cooldown.remaining() / 2L + cooldown.remaining() % 2L);
+            hud.render(new SkillActionRingHud.Frame(List.copyOf(frameSlots), focusedIndex, confirmedIndex, timerFilled(),
+                introFrame, (int) Math.min(phaseElapsedTicks, SkillActionRingHud.CONFIRM_FRAMES - 1),
+                focusPulse, selectionInstruction == PlayerMsgId.P_5871, cooldownTenths,
+                bedrock ? Component.empty() : hudDetail(cooldown)));
+        }
+
+        private Component hudDetail(@Nullable CooldownView cooldown) {
+            if (confirmedIndex >= 0) {
+                return PlayerMsgResource.getComponent(PlayerMsgId.P_5886.getId());
+            }
+            if (focusedIndex < 0) {
+                PlayerMsgId hint = selectionInstruction == PlayerMsgId.P_5871 ? PlayerMsgId.P_5890 : PlayerMsgId.P_5885;
+                return PlayerMsgResource.getComponent(hint.getId());
+            }
+            if (cooldown != null) {
+                return legacyComponent(cooldown.text(true, false));
+            }
+            SlotView slot = slots.get(focusedIndex);
+            return switch (slot.availability()) {
+                case MANA -> PlayerMsgResource.getComponent(PlayerMsgId.P_5887.getId());
+                case ENERGY -> PlayerMsgResource.getComponent(PlayerMsgId.P_5888.getId());
+                case BLOCKED, UNAVAILABLE, COOLDOWN -> PlayerMsgResource.getComponent(PlayerMsgId.P_5889.getId());
+                case AVAILABLE -> Component.text(compactName(slot.name()), NamedTextColor.GOLD);
+            };
+        }
+
+        /** 画面中央の短い字幕に収まるよう、幅の広い文字を優先して数えます。 */
+        private static String compactName(String name) {
+            int width = 0;
+            for (int end = 0; end < name.length();) {
+                int character = name.codePointAt(end);
+                width += character < 128 ? 1 : 2;
+                if (width > 12) {
+                    return name.substring(0, end) + "…";
+                }
+                end += Character.charCount(character);
+            }
+            return name;
+        }
+
         private boolean canActivateSelected() {
-            return selectedIndex >= 0
+            return (hud == null || !hud.interrupted())
+                && selectedIndex >= 0
                 && selectedIndex < slots.size()
                 && slots.get(selectedIndex).selectable();
         }
@@ -1354,6 +1492,10 @@ public final class SkillActionRingService {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
+            if (hud != null) {
+                renderHud();
+                return;
+            }
             ticksSinceCollisionCheck = COLLISION_REFRESH_INTERVAL_TICKS;
             for (int index = 0; index < slots.size(); index++) {
                 if (index != confirmedIndex) {
@@ -1840,9 +1982,20 @@ public final class SkillActionRingService {
             return bar.toString();
         }
 
-        private void destroy() {
-            if (!viewer.isOnline()) {
+        private void destroy(boolean animate) {
+            try {
+                destroyPresentation(animate);
+            } finally {
                 restoreBlockBreakSpeed();
+            }
+        }
+
+        private void destroyPresentation(boolean animate) {
+            if (hud != null) {
+                hud.close(animate);
+                return;
+            }
+            if (!viewer.isOnline()) {
                 return;
             }
             for (SkillActionRingDisplay.DisplayEntity icon : icons) {
@@ -1870,7 +2023,6 @@ public final class SkillActionRingService {
                 instructionLabel.destroy(viewer);
                 instructionLabel = null;
             }
-            restoreBlockBreakSpeed();
         }
 
         private void restoreBlockBreakSpeed() {

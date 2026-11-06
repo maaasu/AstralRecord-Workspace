@@ -35,6 +35,15 @@ final class GeyserPackCapabilities {
         return supports(playerId, "hasWeaponAttackProjectiles");
     }
 
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 接続のアクションリング HUD 互換性識別子。非対応なら null
+     */
+    static String actionRingHudRevision(UUID playerId) {
+        Object value = invoke(playerId, "actionRingHudRevision", new Class<?>[] {UUID.class}, playerId);
+        return value instanceof String revision && revision.matches("[0-9a-f]{64}") ? revision : null;
+    }
+
     static boolean hasProfileHud(UUID playerId) {
         return supports(playerId, "hasProfileHud");
     }

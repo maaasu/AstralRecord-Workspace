@@ -182,6 +182,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().profileHud();
     }
 
+    String actionRingHudRevision(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() ? selection.pack().actionRingHudRevision() : null;
+    }
+
     boolean sunbirdReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() && selection.pack().sunbird();
