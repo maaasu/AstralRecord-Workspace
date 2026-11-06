@@ -31,6 +31,10 @@ final class GeyserPackCapabilities {
      * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 拡張が通常攻撃の飛翔演出に対応する接続と確認した場合は true
      */
+    static boolean hasSkillEffects(UUID playerId) {
+        return supports(playerId, "hasSkillEffects");
+    }
+
     static boolean hasWeaponAttackProjectiles(UUID playerId) {
         return supports(playerId, "hasWeaponAttackProjectiles");
     }

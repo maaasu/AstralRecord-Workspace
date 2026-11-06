@@ -166,6 +166,11 @@ final class DamagePackDistribution {
             && (style <= WeaponAttackEntity.MAX_LEGACY_STYLE || selection.pack().weaponAttackProjectiles());
     }
 
+    boolean skillEffectsReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().skillEffects();
+    }
+
     /** @return ログイン時に登録済みのパックが専用効果音に対応していればtrue */
     boolean gameplaySoundsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);

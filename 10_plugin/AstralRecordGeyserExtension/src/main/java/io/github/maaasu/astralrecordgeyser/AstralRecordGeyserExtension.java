@@ -43,6 +43,8 @@ public final class AstralRecordGeyserExtension implements Extension {
     private ActionRingPanelEntity actionRingPanelProperties;
     private CustomEntityDefinition weaponAttackDefinition;
     private WeaponAttackEntity weaponAttackProperties;
+    private CustomEntityDefinition skillEffectDefinition;
+    private SkillEffectEntity skillEffectProperties;
     private CustomEntityDefinition sunbirdSkillDefinition;
     private SunbirdSkillEntity sunbirdSkillProperties;
     private SunbirdMotion sunbirdMotionProperties;
@@ -68,6 +70,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         var attackDefinition = WeaponAttackEntity.definition();
         event.register(attackDefinition);
         weaponAttackDefinition = attackDefinition;
+        var effectDefinition = SkillEffectEntity.definition();
+        event.register(effectDefinition);
+        skillEffectDefinition = effectDefinition;
         event.register(COMBAT_RESULT);
         event.register(SUNBIRD);
         var skillDefinition = SunbirdSkillEntity.definition();
@@ -93,6 +98,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
         if (sunbirdSkillDefinition != null) {
             sunbirdSkillProperties = SunbirdSkillEntity.registerProperties(event, sunbirdSkillDefinition.identifier());
+        }
+        if (skillEffectDefinition != null) {
+            skillEffectProperties = SkillEffectEntity.registerProperties(event, skillEffectDefinition.identifier());
         }
         worldDisplays = WorldDisplayEntity.registerProperties(event);
     }
@@ -149,6 +157,16 @@ public final class AstralRecordGeyserExtension implements Extension {
         var connection = geyserApi().connectionByUuid(playerId);
         return weaponAttackProperties != null && connection != null
             && damagePacks.weaponAttackReady(connection, WeaponAttackEntity.MAX_STYLE);
+    }
+
+    /**
+     * Velocity 上の AstralRecordProxy にプレイヤースキル演出の対応状況を返します。
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return ログインを完了した接続に対応パックを配布していれば true
+     */
+    public boolean hasSkillEffects(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return skillEffectProperties != null && connection != null && damagePacks.skillEffectsReady(connection);
     }
 
     /**
@@ -219,6 +237,17 @@ public final class AstralRecordGeyserExtension implements Extension {
                 event.setCancelled(true);
             } else {
                 event.definition(sunbirdSkillDefinition);
+                event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
+            }
+            return;
+        }
+        if (SkillEffectEntity.isMarker(event.uuid())) {
+            var properties = skillEffectProperties;
+            var frame = SkillEffectEntity.decode(event.uuid());
+            if (frame == null || properties == null || !damagePacks.skillEffectsReady(event.connection())) {
+                event.setCancelled(true);
+            } else {
+                event.definition(skillEffectDefinition);
                 event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
             }
             return;
