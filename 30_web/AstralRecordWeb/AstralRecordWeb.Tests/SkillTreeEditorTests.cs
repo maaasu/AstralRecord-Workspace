@@ -168,8 +168,7 @@ public sealed class SkillTreeEditorTests
         var html = WebUtility.HtmlDecode(await client.GetStringAsync("/MyPage"));
         Assert.Contains("冒険チャンネル 1", html);
         Assert.Contains("はじまりの街", html);
-        Assert.Contains($"https://crafatar.com/avatars/{Actor:N}", html);
-        Assert.Contains("referrerpolicy=\"no-referrer\"", html);
+        Assert.Contains("src=\"/MyPage?handler=Avatar\"", html);
         Assert.Contains("data-player-avatar", html);
         Assert.Contains("編集モード", html);
         Assert.DoesNotContain("閲覧専用", html);

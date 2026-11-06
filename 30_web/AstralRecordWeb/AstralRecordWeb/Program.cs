@@ -10,6 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<MinecraftAvatarService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(4);
+    client.MaxResponseContentBufferSize = 256 * 1024;
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect = false,
+    UseCookies = false
+});
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<DonationOptions>(builder.Configuration.GetSection(DonationOptions.SectionName));
 builder.Services.AddHttpClient<DonationApiClient>((services, client) =>

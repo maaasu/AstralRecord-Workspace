@@ -13,7 +13,7 @@
             <span>@(string.IsNullOrEmpty(Model.Mcid) ? "◇" : Model.Mcid[..1].ToUpperInvariant())</span>
             @if (ownProfile && Model.UserUuid != Guid.Empty)
             {
-                <img data-player-avatar src="https://crafatar.com/avatars/@(Model.UserUuid.ToString("N"))?size=96&amp;overlay" width="84" height="84" alt="" decoding="async" referrerpolicy="no-referrer" />
+                <img data-player-avatar src="@Url.Page("/MyPage", "Avatar")" width="84" height="84" alt="" decoding="async" />
             }
         </div>
         <div><span class="ar-profile-badge @(ownProfile ? "" : "ar-profile-badge--other")">@(ownProfile ? "あなたのプロフィール" : "プレイヤーのプロフィール")</span><h2>@Model.Mcid</h2><p class="ar-portal-sub">@(account?.AccountName ?? "現在選択中のアカウントはありません")</p></div>

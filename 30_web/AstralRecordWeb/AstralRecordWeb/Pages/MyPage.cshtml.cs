@@ -10,7 +10,11 @@ namespace AstralRecordWeb.Pages;
 
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class MyPageModel(PlayerProfileApiClient profiles, PaidServicesApiClient paid, SkillTreeEditorApiClient editor) : PageModel
+public class MyPageModel(
+    PlayerProfileApiClient profiles,
+    PaidServicesApiClient paid,
+    SkillTreeEditorApiClient editor,
+    MinecraftAvatarService avatars) : PageModel
 {
     public WebPlayerProfileResponse? Profile { get; private set; }
     public JsonElement? SkillTreeEditorState { get; private set; }
@@ -54,6 +58,15 @@ public class MyPageModel(PlayerProfileApiClient profiles, PaidServicesApiClient 
             }
         }
         return Page();
+    }
+
+    public async Task<IActionResult> OnGetAvatarAsync(CancellationToken ct)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uuid) || uuid == Guid.Empty)
+            return NotFound();
+
+        var avatar = await avatars.GetAsync(uuid, ct);
+        return avatar is null ? NotFound() : Content(avatar, "image/svg+xml");
     }
 
     public async Task<IActionResult> OnPostVisibilityAsync(CancellationToken ct)
