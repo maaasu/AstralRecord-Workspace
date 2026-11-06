@@ -189,7 +189,7 @@
     cursor: grab;
     touch-action: none;
     user-select: none;
-    background: radial-gradient(ellipse at 50% 45%, #19283f, var(--tree-map) 77%);
+    background: radial-gradient(ellipse at 50% 45%, #131f31, var(--tree-map) 77%);
 }
 .is-panning .ar-tree-viewport, .is-panning .ar-tree-node { cursor: grabbing; }
 .ar-tree-viewport:focus-visible { outline-offset: -3px; }
@@ -198,7 +198,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(#a8b7db39 .7px, transparent 1.2px) 7px 10px / 43px 59px, radial-gradient(#ceb47c36 .9px, transparent 1.4px) 33px 25px / 107px 97px;
+    background: radial-gradient(#a8b7db20 .7px, transparent 1.2px) 7px 10px / 43px 59px, radial-gradient(#ceb47c20 .9px, transparent 1.4px) 33px 25px / 107px 97px;
 }
 .ar-tree-celestial {
     position: absolute;
@@ -212,11 +212,39 @@
     pointer-events: none;
 }
 .ar-tree-viewport .ar-atmosphere--galaxy .ar-scene-video { mix-blend-mode: normal; mask-image: none; }
-.ar-tree-viewport .ar-scene-video[data-video-ready="true"] { opacity: .67; }
+.ar-tree-viewport .ar-tree-stars .ar-atmosphere--galaxy .ar-scene-video[data-video-ready="true"] { opacity: .28; }
 .ar-tree-sanctum .ar-tree-options-content a.ar-tree-video-source { color: var(--tree-text); font-size: .75rem; }
 .ar-tree-sanctum .ar-tree-options-content a.ar-tree-video-source:hover { color: var(--tree-gold); }
 .ar-tree-stars { position: absolute; inset: 0; pointer-events: none; }
+.ar-tree-stars > canvas { opacity: .55; }
 .ar-tree-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
+.ar-tree-node-summary {
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 2;
+    box-sizing: border-box;
+    width: max-content;
+    max-width: min(15rem, calc(100% - 16px));
+    max-height: calc(100% - 16px);
+    padding: .4rem .6rem;
+    border: 1px solid var(--tree-gold);
+    border-radius: 4px;
+    background: var(--tree-panel);
+    color: var(--tree-text);
+    font-size: .8rem;
+    line-height: 1.35;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+}
+.ar-tree-node-summary > :is(strong, span) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+.ar-tree-node-summary strong { color: var(--tree-light); }
+.ar-tree-node-summary [data-tree-summary-cost] { color: var(--tree-teal); }
 .ar-tree-edge { stroke: #a7b4cb; stroke-width: 1.1; stroke-dasharray: 3 7; opacity: .32; }
 .ar-tree-edge.is-unlocked { stroke: #c7b38e; stroke-width: 1.5; stroke-dasharray: none; opacity: .55; }
 .ar-tree-edge.is-connected { stroke: #ddc79f; stroke-width: 1.8; stroke-dasharray: none; opacity: .7; }

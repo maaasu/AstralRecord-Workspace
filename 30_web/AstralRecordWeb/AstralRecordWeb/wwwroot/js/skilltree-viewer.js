@@ -7,6 +7,7 @@ import { initializeStarfield } from './skilltree-stars.mjs';
 const ns = 'http://www.w3.org/2000/svg';
 const expandedViews = new WeakMap();
 const maxZoom = 2.5;
+const compactLabelWidth = 176;
 const make = (tag, attrs = {}, text) => {
     const element = document.createElementNS(ns, tag);
     Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, String(value)));
@@ -57,7 +58,22 @@ export function initializeViewer(viewer, viewState) {
         detailToggle.setAttribute('aria-expanded', String(visible));
     };
     const svg = viewer.querySelector('.ar-tree-canvas');
+    const summary = viewer.querySelector('.ar-tree-node-summary');
+    const summaryName = summary.querySelector('[data-tree-summary-name]');
+    const summaryEffect = summary.querySelector('[data-tree-summary-effect]');
+    const summaryCost = summary.querySelector('[data-tree-summary-cost]');
+    const summaryState = summary.querySelector('[data-tree-summary-state]');
+    let summarySize;
+    summary.hidden = true;
+    const updateSummary = node => {
+        summaryName.textContent = node.name;
+        summaryEffect.textContent = node.displayEffects?.[0] ?? '';
+        summaryCost.textContent = nodeCost(node);
+        summaryState.textContent = nodeState(node);
+        summarySize = null;
+    };
     const minimap = viewer.querySelector('[data-tree-minimap]');
+    const minimapBox = minimap.parentElement;
     svg.replaceChildren(); minimap.replaceChildren();
     const graph = make('g');
     svg.append(graph);
@@ -112,6 +128,35 @@ export function initializeViewer(viewer, viewState) {
     }
     const miniViewport = make('rect', { class: 'ar-tree-mini-viewport' });
     minimap.append(miniViewport);
+    const placeSummary = (level, visualScale) => {
+        const node = nodes.get(selectedId);
+        const x = node.px * camera.zoom + camera.x, y = node.py * camera.zoom + camera.y;
+        const scale = artScaleFor(node, visualScale) * camera.zoom;
+        const group = groups.get(selectedId);
+        const fullLabelVisible = level === 'full' && !group.classList.contains('is-label-compact')
+            && x - 128 * scale >= 0 && x + 128 * scale <= viewportWidth
+            && y + (73 + node.labelExtent) * scale <= viewportHeight;
+        summary.hidden = fullLabelVisible || x < 0 || x > viewportWidth || y < 0 || y > viewportHeight;
+        if (summary.hidden) return;
+
+        summarySize ??= {
+            width: summary.offsetWidth, height: summary.offsetHeight,
+            minimapLeft: minimapBox.offsetLeft, minimapTop: minimapBox.offsetTop,
+        };
+        const { width, height, minimapLeft, minimapTop } = summarySize;
+        const margin = 8;
+        let left = Math.max(margin, Math.min(x - width / 2, viewportWidth - width - margin));
+        const distance = 55 * scale + margin;
+        const above = y - distance - height;
+        let top = above >= margin ? above : Math.max(margin, Math.min(y + distance, viewportHeight - height - margin));
+        if (left + width > minimapLeft - margin && top + height > minimapTop - margin) {
+            const aboveMinimap = minimapTop - height - margin;
+            const beforeMinimap = minimapLeft - width - margin;
+            if (aboveMinimap >= margin) top = aboveMinimap;
+            else if (beforeMinimap >= margin) left = beforeMinimap;
+        }
+        summary.style.transform = `translate(${left}px, ${top}px)`;
+    };
     const paint = () => {
         if (disposed) return;
         const artScale = nodeVisualScale(camera.zoom);
@@ -123,7 +168,7 @@ export function initializeViewer(viewer, viewState) {
                 group.setAttribute('transform', `translate(${node.px},${node.py}) scale(${scale})`);
                 const clearance = node.nearest * layoutScale / scale;
                 group.classList.toggle('is-label-compact', clearance < Math.max(256, node.labelExtent + 126));
-                group.classList.toggle('is-crowded', clearance < 200);
+                group.classList.toggle('is-crowded', clearance < compactLabelWidth);
             }
             links.forEach(placeEdge);
             paintedVisualScale = artScale;
@@ -149,6 +194,7 @@ export function initializeViewer(viewer, viewState) {
         const overview = String(level === 'overview'), zoomText = `${Math.round(camera.zoom * 100)}%`;
         if (viewer.dataset.overview !== overview) viewer.dataset.overview = overview;
         if (viewer.dataset.nodeDetail !== level) viewer.dataset.nodeDetail = level;
+        placeSummary(level, artScale);
         if (zoomLabel.textContent !== zoomText) zoomLabel.textContent = zoomText;
         const left = Math.max(bounds.x, -camera.x / camera.zoom);
         const top = Math.max(bounds.y, -camera.y / camera.zoom);
@@ -172,6 +218,8 @@ export function initializeViewer(viewer, viewState) {
     const showDetails = (node, announce = true) => {
         const selectionChanged = selectedId !== node.nodeId;
         selectedId = node.nodeId;
+        updateSummary(node);
+        draw();
         if (announce) setDetailVisible(true);
         groups.forEach((g, id) => {
             g.setAttribute('aria-pressed', String(id === selectedId));
@@ -239,8 +287,9 @@ export function initializeViewer(viewer, viewState) {
         labelLines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
         g.append(label);
         const compact = make('g', { class: 'ar-tree-node-compact-label', 'aria-hidden': 'true' });
-        compact.append(make('rect', { x: -100, y: 61, width: 200, height: 51, rx: 4 }));
-        compact.append(make('text', { y: 81, class: 'ar-tree-label-name' }, Array.from(node.name).length > 13 ? Array.from(node.name).slice(0, 12).join('') + '…' : node.name));
+        compact.append(make('rect', { x: -compactLabelWidth / 2, y: 61, width: compactLabelWidth, height: 51, rx: 4 }));
+        const nameChars = Array.from(node.name);
+        compact.append(make('text', { y: 81, class: 'ar-tree-label-name' }, nameChars.length > 12 ? nameChars.slice(0, 11).join('') + '…' : node.name));
         compact.append(make('text', { y: 101, class: 'ar-tree-label-cost' }, `${node.pointCost} ${node.pointType}`));
         g.append(compact);
         g.append(make('title', {}, `${node.name}\n${nodeState(node)}\n${node.requirementText ?? ''}`));
@@ -494,6 +543,7 @@ export function initializeViewer(viewer, viewState) {
         links.forEach(edge => edge.line.classList.toggle('is-unlocked', nodes.get(edge.source).isUnlocked && nodes.get(edge.target).isUnlocked));
         const current = nodes.get(selectedId);
         if (current) {
+            updateSummary(current);
             viewer.querySelector('[data-node-state]').textContent = nodeState(current);
             viewer.querySelector('[data-node-cost]').textContent = nodeCost(current);
         }
@@ -504,6 +554,7 @@ export function initializeViewer(viewer, viewState) {
     const observer = new ResizeObserver(() => {
         const width = viewport.clientWidth, height = viewport.clientHeight;
         if (width <= 0 || height <= 0) return;
+        summarySize = null;
         viewportWidth = width; viewportHeight = height;
         camera.x += (width - previousWidth) / 2; camera.y += (height - previousHeight) / 2;
         previousWidth = width; previousHeight = height;
