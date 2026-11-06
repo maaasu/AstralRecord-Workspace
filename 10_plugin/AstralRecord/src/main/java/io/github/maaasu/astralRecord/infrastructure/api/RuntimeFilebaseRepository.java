@@ -18,6 +18,7 @@ public final class RuntimeFilebaseRepository {
     private static final String PATH = "/api/master-data/runtime-filebase";
     private static final List<String> DIRECTORIES = List.of(
             "35.features.skilltree/nodes", "35.features.skilltree/structures",
+            "36.features.progression_preset",
             "41.features.mob.spawner", "42.features.gathering", "43.features.gathering.spawner",
             "45.features.shop", "51.features.quest", "52.features.quest_board",
             "65.features.dungeon", "85.shared.recipe");

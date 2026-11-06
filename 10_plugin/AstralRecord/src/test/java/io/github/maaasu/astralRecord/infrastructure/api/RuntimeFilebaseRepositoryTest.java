@@ -32,6 +32,25 @@ class RuntimeFilebaseRepositoryTest {
     /**
      * 設計入力: PLUGIN_GUIDE.md
      * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
+     * 検証契約: APIが配信する進行プリセットのYAML原稿をスナップショットから取得できる。
+     */
+    @Test
+    void acceptsProgressionPresetYamlFromApi() {
+        var snapshot = RuntimeFilebaseRepository.parseSnapshot("""
+                {"schemaVersion":1,"files":[
+                  {"path":"36.features.progression_preset/v1.adventurer_magic.yml","content":"id: adventurer_magic"}
+                ]}
+                """);
+
+        var entries = snapshot.files("36.features.progression_preset");
+        assertEquals(1, entries.size());
+        assertEquals("v1.adventurer_magic.yml", entries.getFirst().name());
+        assertEquals("id: adventurer_magic", entries.getFirst().content());
+    }
+
+    /**
+     * 設計入力: PLUGIN_GUIDE.md
+     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
      * 検証契約: 未取得および不正API応答を空マスタとして公開せず共有snapshotを維持する。
      */
     @Test
