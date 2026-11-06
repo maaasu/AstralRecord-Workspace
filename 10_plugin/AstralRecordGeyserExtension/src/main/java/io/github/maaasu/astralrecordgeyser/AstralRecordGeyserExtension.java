@@ -27,6 +27,10 @@ import java.util.UUID;
 public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
+    private static final Identifier PARROT = Identifier.of("minecraft", "parrot");
+    private static final long SUNBIRD_MARKER = 0x41535453554e4231L; // ASTSUNB1
+    private static final CustomEntityDefinition SUNBIRD =
+        CustomEntityDefinition.of(Identifier.of("astralrecord", "sunbird"));
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
@@ -39,6 +43,8 @@ public final class AstralRecordGeyserExtension implements Extension {
     private ActionRingPanelEntity actionRingPanelProperties;
     private CustomEntityDefinition weaponAttackDefinition;
     private WeaponAttackEntity weaponAttackProperties;
+    private CustomEntityDefinition sunbirdSkillDefinition;
+    private SunbirdSkillEntity sunbirdSkillProperties;
     private HeldWeaponModelDisplay heldWeaponModels;
 
     @Subscribe
@@ -61,6 +67,10 @@ public final class AstralRecordGeyserExtension implements Extension {
         event.register(attackDefinition);
         weaponAttackDefinition = attackDefinition;
         event.register(COMBAT_RESULT);
+        event.register(SUNBIRD);
+        var skillDefinition = SunbirdSkillEntity.definition();
+        event.register(skillDefinition);
+        sunbirdSkillDefinition = skillDefinition;
     }
 
     @Subscribe
@@ -76,6 +86,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
         if (weaponAttackDefinition != null) {
             weaponAttackProperties = WeaponAttackEntity.registerProperties(event);
+        }
+        if (sunbirdSkillDefinition != null) {
+            sunbirdSkillProperties = SunbirdSkillEntity.registerProperties(event, sunbirdSkillDefinition.identifier());
         }
     }
 
@@ -129,6 +142,11 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe(ignoreCancelled = true)
     public void onServerSpawn(ServerSpawnEntityEvent event) {
+        if (event.entityType().is(PARROT) && event.uuid().getMostSignificantBits() == SUNBIRD_MARKER
+            && damagePacks.sunbirdReady(event.connection())) {
+            event.definition(SUNBIRD);
+            return;
+        }
         if (event.entityType().is(DROPPED_ITEM) && ActionRingFrame.isIcon(event.uuid())) {
             GeyserEntity panel = panelFor(event, ActionRingPanelEntity.targetId(event.uuid()));
             if (panel != null && ActionRingPanelEntity.replacesFallback(panel, (int) event.uuid().getLeastSignificantBits())) {
@@ -142,6 +160,17 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
+        if (SunbirdSkillEntity.isMarker(event.uuid())) {
+            var properties = sunbirdSkillProperties;
+            var frame = SunbirdSkillEntity.decode(event.uuid());
+            if (frame == null || properties == null || !damagePacks.sunbirdReady(event.connection())) {
+                event.setCancelled(true);
+            } else {
+                event.definition(sunbirdSkillDefinition);
+                event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
+            }
+            return;
+        }
         if (WeaponAttackEntity.isMarker(event.uuid())) {
             var properties = weaponAttackProperties;
             int style = WeaponAttackEntity.styleOf(event.uuid());

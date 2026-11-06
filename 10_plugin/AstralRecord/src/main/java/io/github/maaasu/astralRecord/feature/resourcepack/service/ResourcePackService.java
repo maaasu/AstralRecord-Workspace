@@ -39,6 +39,8 @@ public class ResourcePackService {
     private final Map<UUID, String> requestedGuiThemes = new ConcurrentHashMap<>();
     private final Set<UUID> requestedGameplaySounds = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockGameplaySounds = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedSunbirdPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> loadedSunbirdPresentation = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -68,6 +70,8 @@ public class ResourcePackService {
      * @param player 送信対象プレイヤー
      */
     public void applyTo(Player player) {
+        loadedSunbirdPresentation.remove(player.getUniqueId());
+        requestedSunbirdPresentation.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -127,6 +131,9 @@ public class ResourcePackService {
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
+                    if (pack.sunbirdPresentation()) {
+                        requestedSunbirdPresentation.add(viewer);
+                    }
                     Logger.log(LogId.I_5550, player.getName(), url, configProperties.isResourcePackForce());
                 } else {
                     applyFixedPack(player);
@@ -217,10 +224,18 @@ public class ResourcePackService {
      */
     public void handleStatus(Player player, UUID packId, PlayerResourcePackStatusEvent.Status status) {
         if (MANAGED_JAVA_PACK_ID.equals(packId)) {
+            UUID viewer = player.getUniqueId();
             switch (status) {
-                case SUCCESSFULLY_LOADED -> loadedManagedJavaPacks.add(player.getUniqueId());
-                case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED ->
-                        loadedManagedJavaPacks.remove(player.getUniqueId());
+                case SUCCESSFULLY_LOADED -> {
+                    loadedManagedJavaPacks.add(viewer);
+                    if (requestedSunbirdPresentation.contains(viewer)) {
+                        loadedSunbirdPresentation.add(viewer);
+                    }
+                }
+                case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
+                    loadedManagedJavaPacks.remove(viewer);
+                    loadedSunbirdPresentation.remove(viewer);
+                }
                 default -> { }
             }
         }
@@ -294,6 +309,16 @@ public class ResourcePackService {
     }
 
     /**
+     * Sunbird演出の互換版1を含む管理Javaパックを適用済みか確認します。
+     *
+     * @param playerId 閲覧者のUUID
+     * @return 対応版の適用が成功済みならtrue
+     */
+    public boolean hasSunbirdPresentation(UUID playerId) {
+        return loadedSunbirdPresentation.contains(playerId);
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -305,6 +330,8 @@ public class ResourcePackService {
         requestedGuiThemes.remove(playerId);
         requestedGameplaySounds.remove(playerId);
         readyBedrockGameplaySounds.remove(playerId);
+        loadedSunbirdPresentation.remove(playerId);
+        requestedSunbirdPresentation.remove(playerId);
     }
 
     /**

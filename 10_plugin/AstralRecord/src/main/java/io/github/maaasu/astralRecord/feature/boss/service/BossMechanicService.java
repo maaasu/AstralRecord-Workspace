@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.boss.service;
 
+import io.github.maaasu.astralRecord.feature.boss.service.SunbirdPackDisplay.Effect;
+import io.github.maaasu.astralRecord.feature.boss.service.SunbirdPackDisplay.Shape;
+import io.github.maaasu.astralRecord.feature.boss.service.SunbirdPackDisplay.Style;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -18,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.BindCircleRuntimeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -183,6 +187,9 @@ public final class BossMechanicService {
     private final Map<UUID, BossBar> charonLanternBars = new HashMap<>();
     private @Nullable TemporarySkillEffectService temporarySkillEffectService;
 
+    private final SunbirdPackDisplay sunbirdDisplay;
+    private final Map<PendingMechanic, List<Effect>> sunbirdWarnings = new HashMap<>();
+
     private BukkitTask tickTask;
     private long clockTicks;
     private long motionClockTicks;
@@ -198,6 +205,7 @@ public final class BossMechanicService {
      * @param partyService 直接召喚されたボスの対象パーティーを解決するサービス
      * @param conditionService ボスのAI実行可否を判定する状態異常サービス
      * @param particleDisplayService ギミック演出を表示するサービス
+     * @param resourcePackService サンバードの対応パックを確認するサービス
      */
     public BossMechanicService(
         @NotNull JavaPlugin plugin,
@@ -207,7 +215,8 @@ public final class BossMechanicService {
         @NotNull BossChallengeService bossChallengeService,
         @NotNull PartyService partyService,
         @NotNull ConditionService conditionService,
-        @NotNull ParticleDisplayService particleDisplayService
+        @NotNull ParticleDisplayService particleDisplayService,
+        @NotNull ResourcePackService resourcePackService
     ) {
         this.plugin = plugin;
         this.mobService = mobService;
@@ -217,6 +226,7 @@ public final class BossMechanicService {
         this.partyService = partyService;
         this.conditionService = conditionService;
         this.particleDisplayService = particleDisplayService;
+        this.sunbirdDisplay = new SunbirdPackDisplay(plugin, resourcePackService);
         this.charonRitualController = new CharonRitualController(
             mobService,
             particleDisplayService,
@@ -346,6 +356,7 @@ public final class BossMechanicService {
         if (tickTask != null) {
             return;
         }
+        sunbirdDisplay.start();
         clockTicks = 0L;
         motionClockTicks = TICK_PERIOD - 1L;
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::pulse, 20L, 1L);
@@ -375,6 +386,7 @@ public final class BossMechanicService {
             cleanupAldaExposure(bossInstanceId, runtime);
             clearCharonRecovery(runtime);
         }
+        sunbirdDisplay.clear(bossInstanceId);
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
@@ -434,6 +446,7 @@ public final class BossMechanicService {
         horologiumEncounterController.clearAll();
         horologiumDirectParticipants.clear();
         seleneaRangeNoticeUntil.clear();
+        sunbirdDisplay.stop();
     }
 
     /**
@@ -447,6 +460,7 @@ public final class BossMechanicService {
         processPendingMechanics();
 
         Set<UUID> activeBosses = new HashSet<>();
+        Set<UUID> activeSunbirds = new HashSet<>();
         Set<UUID> activeEmpusas = new HashSet<>();
         Set<UUID> activeVesperalas = new HashSet<>();
         Set<UUID> activeVentoses = new HashSet<>();
@@ -615,6 +629,17 @@ public final class BossMechanicService {
             }
 
             activeBosses.add(boss.instanceId());
+            if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())) {
+                activeSunbirds.add(boss.instanceId());
+                boolean casting = boss.scriptedAction() || isBirdMeteorCharging(boss.instanceId())
+                    || sunbirdWarnings.keySet().stream().anyMatch(pending -> pending.bossInstanceId().equals(boss.instanceId()));
+                try {
+                    sunbirdDisplay.body(boss.instanceId(), entity, clockTicks, casting);
+                } catch (RuntimeException exception) {
+                    sunbirdDisplay.clear(boss.instanceId());
+                    Logger.log(LogId.E_6513, exception);
+                }
+            }
             BossRuntime runtime = runtimes.computeIfAbsent(
                 boss.instanceId(),
                 ignored -> new BossRuntime(
@@ -691,6 +716,7 @@ public final class BossMechanicService {
                 runtime.nextActionTick = clockTicks + 20L;
             }
         }
+        sunbirdDisplay.retain(activeSunbirds, clockTicks);
         empusaSpellController.retain(activeEmpusas);
         vesperalaEncounterController.retain(activeVesperalas);
         ventosEncounterController.retain(activeVentoses);
@@ -844,9 +870,9 @@ public final class BossMechanicService {
         Location origin = entity.getLocation();
         Location destination = sunbirdTeleportDestination(boss.spawnLocation(), runtime.teleportIndex);
         runtime.teleportIndex++;
-        renderSunbirdTeleport(origin);
+        renderSunbirdTeleport(boss.instanceId(), origin);
         mobService.resetPosition(boss, destination);
-        renderSunbirdTeleport(destination);
+        renderSunbirdTeleport(boss.instanceId(), destination);
         runtime.nextTeleportTick = clockTicks + SUNBIRD_TELEPORT_INTERVAL_TICKS;
         runtime.nextActionTick = Math.max(runtime.nextActionTick, clockTicks + 20L);
     }
@@ -874,9 +900,11 @@ public final class BossMechanicService {
     /**
      * 転移前後の地点へ太陽色の円と閃光を表示します。
      *
+     * @param bossId 転移するボスのインスタンスID
      * @param center 演出中心
      */
-    private void renderSunbirdTeleport(@NotNull Location center) {
+    private void renderSunbirdTeleport(UUID bossId, @NotNull Location center) {
+        showSunbirdBurst(bossId, Shape.circle(Style.IMPACT, center, 1.8D, 1.6D));
         renderCircle(center, 1.8D, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 20);
         renderRange(
             center,
@@ -1268,6 +1296,8 @@ public final class BossMechanicService {
             new BirdMeteorChargeState(arenaCenter, chargeLocation, clockTicks + SUNBIRD_BIRD_METEOR_CHARGE_TICKS)
         );
         renderSunbirdBirdMeteorCharge(chargeLocation);
+        showSunbirdBurst(boss.instanceId(), Shape.circle(Style.IMPACT, chargeLocation.clone().subtract(0, 1.8D, 0),
+            SUNBIRD_BIRD_METEOR_CHARGE_RADIUS, SUNBIRD_BIRD_METEOR_CHARGE_HEIGHT));
     }
 
     /**
@@ -1303,6 +1333,10 @@ public final class BossMechanicService {
 
         mobService.resetPosition(boss, state.chargeLocation());
         renderSunbirdBirdMeteorCharge(state.chargeLocation());
+        if ((state.finishTick() - clockTicks) % 20L == 0L) {
+            showSunbirdBurst(boss.instanceId(), Shape.circle(Style.IMPACT, state.chargeLocation().clone().subtract(0, 1.8D, 0),
+                SUNBIRD_BIRD_METEOR_CHARGE_RADIUS, SUNBIRD_BIRD_METEOR_CHARGE_HEIGHT));
+        }
     }
 
     /**
@@ -1990,6 +2024,7 @@ public final class BossMechanicService {
      * @param pending 表示対象のギミック情報
      */
     private void renderTelegraph(@NotNull PendingMechanic pending) {
+        syncSunbirdWarning(pending);
         switch (pending.mechanic()) {
             case COLOSSUS_QUAKE -> renderCircle(pending.anchor(), 4.5D, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 28);
             case COLOSSUS_RUNE_LANES -> renderCross(
@@ -2037,42 +2072,103 @@ public final class BossMechanicService {
                 BossParticleEffect.safeArea(particleDisplayService, pending.anchor(),
                     circleLocations(pending.anchor(), CHARON_LANTERN_SAFE_RADIUS, 28));
             }
-            case SUNBIRD_SOLAR_FLARE -> renderCircle(
-                pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 32
-            );
-            case SUNBIRD_SUNSTRIKE -> renderCircle(
-                pending.anchor(), SUNBIRD_SUNSTRIKE_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING, 24
-            );
-            case SUNBIRD_SOLAR_BEAM -> renderLane(
-                pending.anchor(), pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH,
-                SharedParticleDefinitions.BOSS_ATTACK_WARNING
-            );
+            case SUNBIRD_SOLAR_FLARE -> renderSunbirdFallback(pending, circleLocations(pending.anchor(), SUNBIRD_FLARE_RADIUS, 32));
+            case SUNBIRD_SUNSTRIKE -> renderSunbirdFallback(pending, circleLocations(pending.anchor(), SUNBIRD_SUNSTRIKE_RADIUS, 24));
+            case SUNBIRD_SOLAR_BEAM -> renderSunbirdFallback(pending,
+                laneParticleLocations(pending.anchor(), pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH));
             case SUNBIRD_SOLAR_NOVA -> {
-                renderCircle(
-                    pending.anchor(), 4.0D, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
-                    SUNBIRD_NOVA_INNER_RING_POINT_COUNT
-                );
-                renderCircle(
-                    pending.anchor(), 8.0D, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
-                    SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT
-                );
-                renderCircle(
-                    pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
-                    SUNBIRD_NOVA_OUTER_RING_POINT_COUNT
-                );
+                renderSunbirdFallback(pending, circleLocations(pending.anchor(), 4.0D, SUNBIRD_NOVA_INNER_RING_POINT_COUNT));
+                renderSunbirdFallback(pending, circleLocations(pending.anchor(), 8.0D, SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT));
+                renderSunbirdFallback(pending,
+                    circleLocations(pending.anchor(), SUNBIRD_NOVA_RADIUS, SUNBIRD_NOVA_OUTER_RING_POINT_COUNT));
                 animateSunbirdRitualDisplays(pending);
             }
             case SUNBIRD_BIRD_METEOR -> renderBirdMeteorTelegraph(pending);
-            case SUNBIRD_RETURN_TACKLE -> renderLane(
-                pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH,
-                SharedParticleDefinitions.BOSS_ATTACK_WARNING
-            );
+            case SUNBIRD_RETURN_TACKLE -> renderSunbirdFallback(pending,
+                laneParticleLocations(pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH));
         }
         if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_RIVER
             || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL
             || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_TOLL_ECHO
             || pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_LANTERN) {
             renderCharonCountdown(pending);
+        }
+    }
+
+    /** 攻撃の命中寸法からパックの警告モデルを一度だけ作り、閲覧者を同期します。 */
+    private void syncSunbirdWarning(PendingMechanic pending) {
+        List<Effect> effects = sunbirdWarnings.get(pending);
+        if (effects == null) {
+            Location anchor = pending.anchor();
+            List<Shape> shapes = switch (pending.mechanic()) {
+                case SUNBIRD_SOLAR_FLARE -> List.of(Shape.circle(Style.CIRCLE, anchor, SUNBIRD_FLARE_RADIUS, 1));
+                case SUNBIRD_SUNSTRIKE -> List.of(Shape.circle(Style.CIRCLE, anchor, SUNBIRD_SUNSTRIKE_RADIUS, 1));
+                case SUNBIRD_SOLAR_BEAM -> List.of(Shape.lane(Style.LINE, anchor, pending.direction(),
+                    SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH, 1));
+                case SUNBIRD_SOLAR_NOVA -> List.of(Shape.circle(Style.CIRCLE, anchor, SUNBIRD_NOVA_RADIUS, 1));
+                case SUNBIRD_BIRD_METEOR -> {
+                    Location safe = birdMeteorSafeZoneCenter(pending);
+                    yield List.of(
+                        Shape.circle(Style.BOUNDARY, anchor, SUNBIRD_ARENA_RADIUS, 1),
+                        Shape.circle(Style.SAFE, safe, SUNBIRD_BIRD_METEOR_SAFE_RADIUS, 1),
+                        Shape.circle(Style.SAFE, safe.clone().add(0, SUNBIRD_BIRD_METEOR_SAFE_HEIGHT - 0.07D, 0),
+                            SUNBIRD_BIRD_METEOR_SAFE_RADIUS, 1));
+                }
+                case SUNBIRD_RETURN_TACKLE -> pending.travelDistance() > 0.0D
+                    ? List.of(Shape.lane(Style.LINE, anchor, pending.direction(),
+                        pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH, 1))
+                    : List.of();
+                default -> List.of();
+            };
+            if (shapes.isEmpty()) return;
+            effects = sunbirdDisplay.warnings(shapes);
+            sunbirdWarnings.put(pending, effects);
+        }
+        try {
+            effects.forEach(Effect::sync);
+        } catch (RuntimeException exception) {
+            effects.forEach(Effect::remove);
+            sunbirdWarnings.remove(pending);
+            Logger.log(LogId.E_6513, exception);
+        }
+    }
+
+    /** 未適用の Java 接続と統合版へ、境界の粒子を引き続き送ります。 */
+    private void renderSunbirdFallback(PendingMechanic pending, List<Location> points) {
+        List<Effect> effects = sunbirdWarnings.get(pending);
+        if (effects == null) {
+            renderRange(pending.anchor(), points, SharedParticleDefinitions.BOSS_ATTACK_WARNING);
+            return;
+        }
+        particleDisplayService.spawnForNearbyViewers(pending.anchor(), points, SharedParticleDefinitions.BOSS_ATTACK_WARNING,
+            viewer -> effects.stream().noneMatch(effect -> effect.visibleTo(viewer)));
+    }
+
+    /** 発動と同じ位置で、衝撃波、光柱、ビーム、突進の残光を再生します。 */
+    private void renderSunbirdPackImpact(PendingMechanic pending) {
+        Location anchor = pending.anchor();
+        Shape shape = switch (pending.mechanic()) {
+            case SUNBIRD_SOLAR_FLARE -> Shape.circle(Style.IMPACT, anchor, SUNBIRD_FLARE_RADIUS, 0.85D);
+            case SUNBIRD_SUNSTRIKE -> Shape.circle(Style.IMPACT, anchor, SUNBIRD_SUNSTRIKE_RADIUS, 5.0D);
+            case SUNBIRD_SOLAR_BEAM -> Shape.lane(Style.IMPACT_LINE, anchor, pending.direction(),
+                SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH, 1.65D);
+            case SUNBIRD_SOLAR_NOVA -> Shape.circle(Style.IMPACT, anchor, SUNBIRD_NOVA_RADIUS, 2.0D);
+            case SUNBIRD_BIRD_METEOR -> Shape.circle(Style.IMPACT, anchor.clone().add(0, 5.0D, 0),
+                SUNBIRD_ARENA_RADIUS * 0.45D, 3.0D);
+            case SUNBIRD_RETURN_TACKLE -> pending.travelDistance() > 0.0D
+                ? Shape.lane(Style.IMPACT_LINE, anchor, pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH, 0.85D)
+                : null;
+            default -> null;
+        };
+        if (shape != null) showSunbirdBurst(pending.bossInstanceId(), shape);
+    }
+
+    /** 描画に失敗しても攻撃処理を継続し、従来の発動エフェクトを表示します。 */
+    private void showSunbirdBurst(UUID bossId, Shape shape) {
+        try {
+            sunbirdDisplay.burst(bossId, shape, clockTicks + 10L);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_6513, exception);
         }
     }
 
@@ -3289,12 +3385,17 @@ public final class BossMechanicService {
         double halfWidth,
         @NotNull SharedParticleDefinition particle
     ) {
+        renderRange(origin, laneParticleLocations(origin, direction, length, halfWidth), particle);
+    }
+
+    /** レーンの中央と両端から、従来の代替パーティクル地点を求めます。 */
+    private static List<Location> laneParticleLocations(Location origin, Vector direction, double length, double halfWidth) {
         Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX()).normalize().multiply(halfWidth);
         List<Location> locations = new ArrayList<>();
         appendLine(locations, origin, direction, length);
         appendLine(locations, origin.clone().add(side), direction, length);
         appendLine(locations, origin.clone().subtract(side), direction, length);
-        renderRange(origin, locations, particle);
+        return locations;
     }
 
     /**
@@ -3514,6 +3615,7 @@ public final class BossMechanicService {
      */
     private void renderImpact(@NotNull PendingMechanic pending) {
         renderTelegraph(pending);
+        renderSunbirdPackImpact(pending);
         switch (pending.mechanic()) {
             case COLOSSUS_QUAKE -> renderCircle(
                 pending.anchor(), 4.5D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 28
@@ -3771,6 +3873,8 @@ public final class BossMechanicService {
 
     /** 予兆が所有する表示Entityと通常魂灯のBossBarを完了・中断時に回収します。 */
     private void removePendingVisuals(@NotNull PendingMechanic pending) {
+        List<Effect> warning = sunbirdWarnings.remove(pending);
+        if (warning != null) warning.forEach(Effect::remove);
         if (pending.mechanic() == BossMechanicProfile.Mechanic.CHARON_LANTERN) {
             BossBar bar = charonLanternBars.remove(pending.bossInstanceId());
             if (bar != null) {

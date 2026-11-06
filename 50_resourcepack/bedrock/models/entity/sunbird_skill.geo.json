@@ -1,0 +1,563 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.sunbird_warning_circle",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 32,
+        "visible_bounds_height": 32,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                0,
+                -8
+              ],
+              "size": [
+                16,
+                0,
+                16
+              ],
+              "uv": {
+                "up": {
+                  "uv": [
+                    128,
+                    128
+                  ],
+                  "uv_size": [
+                    -128,
+                    -128
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.sunbird_warning_line",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 32,
+        "visible_bounds_height": 32,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                0,
+                -8
+              ],
+              "size": [
+                16,
+                0,
+                16
+              ],
+              "uv": {
+                "up": {
+                  "uv": [
+                    256,
+                    128
+                  ],
+                  "uv_size": [
+                    -128,
+                    -128
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.sunbird_warning_boundary",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 40,
+        "visible_bounds_height": 32,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                0,
+                -8
+              ],
+              "size": [
+                16,
+                0,
+                16
+              ],
+              "uv": {
+                "up": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    -128,
+                    -128
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.sunbird_impact",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 32,
+        "visible_bounds_height": 32,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                0,
+                -8
+              ],
+              "size": [
+                16,
+                0,
+                16
+              ],
+              "uv": {
+                "up": {
+                  "uv": [
+                    256,
+                    256
+                  ],
+                  "uv_size": [
+                    -128,
+                    -128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                -5.5,
+                0,
+                0
+              ],
+              "size": [
+                11,
+                16,
+                0.04
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "south": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                -5.5,
+                0,
+                0
+              ],
+              "size": [
+                11,
+                16,
+                0.04
+              ],
+              "pivot": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                45,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "south": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                -5.5,
+                0,
+                0
+              ],
+              "size": [
+                11,
+                16,
+                0.04
+              ],
+              "pivot": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                -45,
+                0
+              ],
+              "uv": {
+                "north": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "south": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                0,
+                0,
+                -5.5
+              ],
+              "size": [
+                0.04,
+                16,
+                11
+              ],
+              "uv": {
+                "east": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "west": {
+                  "uv": [
+                    384,
+                    0
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.sunbird_warning_safe",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 32,
+        "visible_bounds_height": 32,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                0,
+                -8
+              ],
+              "size": [
+                16,
+                0,
+                16
+              ],
+              "uv": {
+                "up": {
+                  "uv": [
+                    128,
+                    256
+                  ],
+                  "uv_size": [
+                    -128,
+                    -128
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": {
+        "identifier": "geometry.astralrecord.sunbird_impact_line",
+        "texture_width": 512,
+        "texture_height": 256,
+        "visible_bounds_width": 32,
+        "visible_bounds_height": 32,
+        "visible_bounds_offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                0,
+                -8
+              ],
+              "size": [
+                16,
+                0,
+                16
+              ],
+              "uv": {
+                "up": {
+                  "uv": [
+                    384,
+                    256
+                  ],
+                  "uv_size": [
+                    -128,
+                    -128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                -5,
+                0,
+                -8
+              ],
+              "size": [
+                0.040000000000000036,
+                5,
+                16
+              ],
+              "uv": {
+                "east": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "west": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                0,
+                0,
+                -8
+              ],
+              "size": [
+                0.04,
+                5,
+                16
+              ],
+              "uv": {
+                "east": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "west": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            },
+            {
+              "origin": [
+                5,
+                0,
+                -8
+              ],
+              "size": [
+                0.040000000000000036,
+                5,
+                16
+              ],
+              "uv": {
+                "east": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                },
+                "west": {
+                  "uv": [
+                    384,
+                    128
+                  ],
+                  "uv_size": [
+                    128,
+                    128
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

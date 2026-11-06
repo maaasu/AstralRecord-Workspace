@@ -1,0 +1,65 @@
+{
+	"credit": "Made with Blockbench",
+	"textures": {
+		"0": "astralrecord:item/sunbird_skill"
+	},
+	"elements": [
+		{
+			"name": "ground",
+			"from": [0, 8, 0],
+			"to": [16, 8, 16],
+			"light_emission": 15,
+			"faces": {
+				"up": {"uv": [4, 8, 8, 16], "texture": "#0"}
+			},
+			"shade": false
+		},
+		{
+			"name": "flame_0",
+			"from": [2.5, 8, 8],
+			"to": [13.5, 24, 8.04],
+			"light_emission": 15,
+			"faces": {
+				"north": {"uv": [12, 0, 16, 8], "texture": "#0"},
+				"south": {"uv": [12, 0, 16, 8], "texture": "#0"}
+			},
+			"shade": false
+		},
+		{
+			"name": "flame_45",
+			"from": [2.5, 8, 8],
+			"to": [13.5, 24, 8.04],
+			"light_emission": 15,
+			"rotation": {"angle": 45, "axis": "y", "origin": [8, 8, 8]},
+			"faces": {
+				"north": {"uv": [12, 0, 16, 8], "texture": "#0"},
+				"south": {"uv": [12, 0, 16, 8], "texture": "#0"}
+			},
+			"shade": false
+		},
+		{
+			"name": "flame_-45",
+			"from": [2.5, 8, 8],
+			"to": [13.5, 24, 8.04],
+			"light_emission": 15,
+			"rotation": {"angle": -45, "axis": "y", "origin": [8, 8, 8]},
+			"faces": {
+				"north": {"uv": [12, 0, 16, 8], "texture": "#0"},
+				"south": {"uv": [12, 0, 16, 8], "texture": "#0"}
+			},
+			"shade": false
+		},
+		{
+			"name": "flame_cross",
+			"from": [8, 8, 2.5],
+			"to": [8.04, 24, 13.5],
+			"light_emission": 15,
+			"faces": {
+				"east": {"uv": [12, 0, 16, 8], "texture": "#0"},
+				"west": {"uv": [12, 0, 16, 8], "texture": "#0"}
+			},
+			"shade": false
+		}
+	],
+	"ambientocclusion": false
+}

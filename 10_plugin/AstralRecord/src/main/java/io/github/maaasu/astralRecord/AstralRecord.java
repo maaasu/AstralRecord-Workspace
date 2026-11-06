@@ -1857,7 +1857,8 @@ public final class AstralRecord extends JavaPlugin {
             bossChallengeService,
             partyService,
             conditionService,
-            particleDisplayService
+            particleDisplayService,
+            resourcePackService
         );
         bossMechanicService.setSeleneaFieldResolver(boss -> {
             var world = boss.spawnLocation().getWorld();

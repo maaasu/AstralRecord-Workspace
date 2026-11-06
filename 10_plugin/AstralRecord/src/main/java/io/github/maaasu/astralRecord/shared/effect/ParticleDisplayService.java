@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -665,8 +666,25 @@ public class ParticleDisplayService {
         @NotNull Collection<Location> locations,
         @NotNull SharedParticleDefinition definition
     ) {
+        spawnForNearbyViewers(center, locations, definition, viewer -> true);
+    }
+
+    /**
+     * 指定された閲覧者だけに、地点ごとの描画距離と粒子密度を適用して点群を送ります。
+     *
+     * @param center 描画対象worldを指定する中心
+     * @param locations 表示対象地点
+     * @param definition 表示するパーティクル定義
+     * @param audience 粒子を受け取る閲覧者の判定
+     */
+    public void spawnForNearbyViewers(
+        @NotNull Location center,
+        @NotNull Collection<Location> locations,
+        @NotNull SharedParticleDefinition definition,
+        @NotNull Predicate<Player> audience
+    ) {
         World world = center.getWorld();
-        if (world != null) spawnNearbyBatch(world, locations, definition, false, true);
+        if (world != null) spawnNearbyBatch(world, locations, definition, false, true, audience);
     }
 
     /**
@@ -763,12 +781,19 @@ public class ParticleDisplayService {
      */
     private void spawnNearbyBatch(World world, Collection<Location> locations,
                                   SharedParticleDefinition definition, boolean longDistance, boolean geometry) {
+        spawnNearbyBatch(world, locations, definition, longDistance, geometry, viewer -> true);
+    }
+
+    /** 点群を選択された閲覧者へ送信します。 */
+    private void spawnNearbyBatch(World world, Collection<Location> locations, SharedParticleDefinition definition,
+                                  boolean longDistance, boolean geometry, Predicate<Player> audience) {
         if (locations.isEmpty() || definition.count() <= 0) return;
         List<Player> viewers = world.getPlayers();
         if (viewers.isEmpty()) return;
         List<Location> points = uniqueLocations(locations, world);
         if (points.isEmpty()) return;
         for (Player viewer : viewers) {
+            if (!audience.test(viewer)) continue;
             double density = resolvePlayerDensityScale(viewer);
             if (density > 0.0D && !shouldSkipForBedrock(viewer, definition.hideForBedrock())) {
                 if (geometry) spawnBatch(viewer, points, definition, density, longDistance, true);

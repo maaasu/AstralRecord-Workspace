@@ -1,0 +1,30 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:sunbird",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/sunbird"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.sunbird"
+      },
+      "animations": {
+        "body_scale": "animation.astralrecord.sunbird.body_scale",
+        "idle": "animation.astralrecord.sunbird.idle",
+        "fly": "animation.astralrecord.sunbird.fly"
+      },
+      "scripts": {
+        "animate": [
+          "body_scale",
+          { "idle": "query.is_on_ground" },
+          { "fly": "!query.is_on_ground" }
+        ]
+      },
+      "render_controllers": ["controller.render.default"]
+    }
+  }
+}

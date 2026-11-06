@@ -1,0 +1,17 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.sunbird_skill.shape": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "scale": [
+            "query.property('astralrecord:width') * math.lerp(0.4, 1.0, variable.impact_progress)",
+            "query.property('astralrecord:height') * math.lerp(0.25, 1.0, variable.impact_progress)",
+            "query.property('astralrecord:length') * math.lerp(0.4, 1.0, variable.impact_progress)"
+          ]
+        }
+      }
+    }
+  }
+}

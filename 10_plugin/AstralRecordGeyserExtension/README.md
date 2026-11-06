@@ -52,6 +52,10 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.7.0` 以降は、通常攻撃の描画ファイルを含むパックを登録してログインまで進んだ接続で、RPG が送る演出用 TextDisplay を `astralrecord:weapon_attack` に置き換えます。武器に応じて剣・ハンマー・槍・弓・ワンド・杖の外観を切り替えます。対応パックを使えない接続では演出用 TextDisplay のみを取り消し、従来の腕振り・攻撃音・弾体を使います。
 
+## Bedrockの陽冠のサンバード
+
+拡張 `1.11.0` 以降は、サンバード本体と技の描画ファイルを揃えたパックを登録してログインまで進んだ接続で、RPG が印を付けたオウムを `astralrecord:sunbird` として表示します。名前や当たり判定には元のエンティティの情報を使います。技は RPG が送る演出用 TextDisplay を `astralrecord:sunbird_skill` に変換し、種類・幅・奥行き・高さに応じて表示します。パックが揃わない接続には元のオウムと RPG のパーティクルを表示します。
+
 ## Bedrockのアイテムモデル
 
 拡張 `1.3.0` 以降は、起動時に検証済みBedrockパックのルートにある `astralrecord_item_models.json` を読み、`GeyserDefineCustomItemsEvent` でモデルを登録する。カタログを含むパックでは、同名のアーカイブ項目がないこと、各モデルのアイコンとアトラスの対応、アタッチャブル・ジオメトリ・アニメーション・テクスチャのファイルが揃うことを検証する。Java側の基本素材と `minecraft:custom_model_data` の先頭floatが一致したアイテムを、Bedrock側の `astralrecord:<id>` に変換する。モデル定義を含むパックをAPIで公開してからProxyを起動し、Bedrockクライアントを再接続する。

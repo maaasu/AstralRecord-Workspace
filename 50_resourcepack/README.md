@@ -21,6 +21,30 @@ Java版では、互換版1の管理パックの適用成功後に、Plugin管理
 - 統合版は `ui/hud_screen.json` のアクションバーに金縁のプレートと装飾を重ねます。Geyser 拡張 1.6.0 以降は、必要な紋章アセットを登録した接続で、受取人専用のリザルト TextDisplay に `astralrecord:combat_result` モデルを割り当てます。既存の本文表示を使い、紋章はクライアントで弾んで光り、フェードします。
 - パックを使えない接続は各版の通常テキストで読めます。更新は両パックを公開した後に RPG Plugin と Geyser 拡張へ反映し、クライアントを再接続します。
 
+### 陽冠のサンバード
+
+金の冠羽、胸の太陽紋、段状の風切羽を持つ立体モデルです。編集元は [blockbench/entities](blockbench/entities) にあり、両版の
+プロジェクトに 128×128 px のテクスチャを埋め込んでいます。Java 版は `astralrecord:sunbird` を ItemDisplay の固定
+モデルとして使います。統合版は同識別子のクライアントエンティティに待機と羽ばたきのアニメーションを持ち、ルートボーン
+でパロットの表示倍率を補正します。
+
+スキル演出の統合版エンティティは `astralrecord:sunbird_skill` です。`astralrecord:style` が形状を、`width`・`height`・
+`length` が各軸の倍率を指定します。警告は地面の中央を原点とする幅・奥行き各1ブロックのモデルで、線の長手方向は Z 軸
+です。赤橙は危険範囲、青緑は安全範囲を示します。着弾時は金色の火柱または直線の火光が約7 tick で広がります。
+
+| スタイル値 | Java 版の `astralrecord:` に続くモデル名 | 形状 |
+| --- | --- | --- |
+| 0 | `sunbird_warning_circle` | 円の警告 |
+| 1 | `sunbird_warning_line` | 直線の警告 |
+| 2 | `sunbird_warning_boundary` | 隕石の影響範囲の外周 |
+| 3 | `sunbird_impact` | 火柱 |
+| 4 | `sunbird_warning_safe` | 安全圏 |
+| 5 | `sunbird_impact_line` | 直線の火光 |
+
+Blockbench Web 5.2.2 の編集元から、ヘッドレス Chromium のオフスクリーンプレビューで両版の前後の斜め視点、統合版の飛行
+アニメーションの 0.30 秒・0.60 秒、および両版の6形状を確認しました。実クライアントでの地形との重なり、描画距離、統合版への変換は
+未確認です。
+
 ### ダメージ数値
 
 | 統合版のスタイル値 | ダメージ | 色と印 |

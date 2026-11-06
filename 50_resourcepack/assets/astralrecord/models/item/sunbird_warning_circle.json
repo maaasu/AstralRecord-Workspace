@@ -1,0 +1,19 @@
+{
+	"credit": "Made with Blockbench",
+	"textures": {
+		"0": "astralrecord:item/sunbird_skill"
+	},
+	"elements": [
+		{
+			"name": "ground",
+			"from": [0, 8, 0],
+			"to": [16, 8, 16],
+			"light_emission": 15,
+			"faces": {
+				"up": {"uv": [0, 0, 4, 8], "texture": "#0"}
+			},
+			"shade": false
+		}
+	],
+	"ambientocclusion": false
+}

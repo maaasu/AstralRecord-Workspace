@@ -30,7 +30,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean weaponAttack, boolean gameplaySounds, Set<Integer> heldWeaponModels,
+    boolean combatResult, boolean weaponAttack, boolean gameplaySounds, boolean sunbird, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites
 ) {
     private static final String ROOT = "../resource-packs/";
@@ -68,6 +68,13 @@ record DamagePack(
         "textures/entity/weapon_attack/spear.png", "textures/entity/weapon_attack/bow.png",
         "textures/entity/weapon_attack/wand.png", "textures/entity/weapon_attack/staff.png"
     );
+    private static final List<String> SUNBIRD_ENTRIES = List.of(
+        "entity/sunbird.entity.json", "animations/sunbird.animation.json",
+        "models/entity/sunbird.geo.json", "textures/entity/sunbird.png",
+        "entity/sunbird_skill.entity.json", "animations/sunbird_skill.animation.json",
+        "models/entity/sunbird_skill.geo.json", "render_controllers/sunbird_skill.render_controllers.json",
+        "textures/entity/sunbird_skill.png"
+    );
 
     static DamagePack refresh(HeadApiConfig config, Path directory, DamagePack current)
         throws IOException, InterruptedException {
@@ -104,6 +111,7 @@ record DamagePack(
             boolean combatResult;
             boolean weaponAttack;
             boolean gameplaySounds;
+            boolean sunbird;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -127,6 +135,7 @@ record DamagePack(
                 weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
                 gameplaySounds = hasGameplaySounds(zip);
+                sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -140,7 +149,7 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                gameplaySounds, heldWeaponModels, itemModels, actionRingSprites);
+                gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

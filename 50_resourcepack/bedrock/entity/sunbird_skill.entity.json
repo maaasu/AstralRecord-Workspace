@@ -1,0 +1,33 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:sunbird_skill",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/sunbird_skill"
+      },
+      "geometry": {
+        "warning_circle": "geometry.astralrecord.sunbird_warning_circle",
+        "warning_line": "geometry.astralrecord.sunbird_warning_line",
+        "warning_boundary": "geometry.astralrecord.sunbird_warning_boundary",
+        "impact": "geometry.astralrecord.sunbird_impact",
+        "warning_safe": "geometry.astralrecord.sunbird_warning_safe",
+        "impact_line": "geometry.astralrecord.sunbird_impact_line"
+      },
+      "animations": {
+        "shape": "animation.astralrecord.sunbird_skill.shape"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.impact = query.property('astralrecord:style') == 3 || query.property('astralrecord:style') == 5;",
+          "variable.impact_progress = variable.impact ? math.clamp(query.life_time / 0.35, 0.0, 1.0) : 1.0;"
+        ],
+        "animate": ["shape"]
+      },
+      "render_controllers": ["controller.render.astralrecord.sunbird_skill"]
+    }
+  }
+}

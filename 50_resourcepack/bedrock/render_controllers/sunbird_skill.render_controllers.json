@@ -1,0 +1,23 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.sunbird_skill": {
+      "arrays": {
+        "geometries": {
+          "Array.shapes": [
+            "Geometry.warning_circle",
+            "Geometry.warning_line",
+            "Geometry.warning_boundary",
+            "Geometry.impact",
+            "Geometry.warning_safe",
+            "Geometry.impact_line"
+          ]
+        }
+      },
+      "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 5)]",
+      "materials": [{ "*": "Material.default" }],
+      "textures": ["Texture.default"],
+      "ignore_lighting": true
+    }
+  }
+}

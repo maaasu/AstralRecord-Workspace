@@ -70,6 +70,7 @@ function Write-Pack {
 . (Join-Path $PSScriptRoot 'gui-assets.ps1')
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
+    'sunbird-presentation-version.txt'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
@@ -82,6 +83,22 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/item/action_ring.png'
     'assets/astralrecord/textures/item/action_ring_icons.png'
     'assets/astralrecord/textures/item/action_ring_panel.png'
+    'assets/astralrecord/items/sunbird.json'
+    'assets/astralrecord/items/sunbird_warning_circle.json'
+    'assets/astralrecord/items/sunbird_warning_line.json'
+    'assets/astralrecord/items/sunbird_warning_boundary.json'
+    'assets/astralrecord/items/sunbird_impact.json'
+    'assets/astralrecord/items/sunbird_warning_safe.json'
+    'assets/astralrecord/items/sunbird_impact_line.json'
+    'assets/astralrecord/models/item/sunbird.json'
+    'assets/astralrecord/models/item/sunbird_warning_circle.json'
+    'assets/astralrecord/models/item/sunbird_warning_line.json'
+    'assets/astralrecord/models/item/sunbird_warning_boundary.json'
+    'assets/astralrecord/models/item/sunbird_impact.json'
+    'assets/astralrecord/models/item/sunbird_warning_safe.json'
+    'assets/astralrecord/models/item/sunbird_impact_line.json'
+    'assets/astralrecord/textures/item/sunbird.png'
+    'assets/astralrecord/textures/item/sunbird_skill.png'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -125,6 +142,15 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/weapon_attack/bow.png'
     'textures/entity/weapon_attack/wand.png'
     'textures/entity/weapon_attack/staff.png'
+    'entity/sunbird.entity.json'
+    'animations/sunbird.animation.json'
+    'models/entity/sunbird.geo.json'
+    'textures/entity/sunbird.png'
+    'entity/sunbird_skill.entity.json'
+    'animations/sunbird_skill.animation.json'
+    'models/entity/sunbird_skill.geo.json'
+    'render_controllers/sunbird_skill.render_controllers.json'
+    'textures/entity/sunbird_skill.png'
 )
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons

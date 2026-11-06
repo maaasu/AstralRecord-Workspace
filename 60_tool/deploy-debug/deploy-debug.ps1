@@ -415,6 +415,7 @@ function Publish-ResourcePacks {
     $sha1 = (Get-FileHash -LiteralPath $java -Algorithm SHA1).Hash.ToLowerInvariant()
     $sha256 = (Get-FileHash -LiteralPath $bedrock -Algorithm SHA256).Hash.ToLowerInvariant()
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
+    $sunbirdPresentation = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -435,6 +436,14 @@ function Publish-ResourcePacks {
         try { $gameplaySounds = $reader.ReadToEnd() }
         finally { $reader.Dispose() }
         if ($gameplaySounds -cne '1') { throw 'Unsupported gameplay sounds version.' }
+        $sunbirdEntry = $archive.GetEntry('sunbird-presentation-version.txt')
+        if ($null -ne $sunbirdEntry) {
+            if ($sunbirdEntry.Length -ne 1) { throw 'Invalid Sunbird presentation version marker.' }
+            $reader = [IO.StreamReader]::new($sunbirdEntry.Open())
+            try { $sunbirdPresentation = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($sunbirdPresentation -cne '1') { throw 'Unsupported Sunbird presentation version.' }
+        }
     }
     finally {
         $archive.Dispose()
@@ -444,8 +453,17 @@ function Publish-ResourcePacks {
     Move-Item -LiteralPath $java -Destination (Join-Path $output $javaName) -Force
     Move-Item -LiteralPath $bedrock -Destination (Join-Path $output $bedrockName) -Force
 
+    $javaManifest = [ordered]@{
+        sha1 = $sha1
+        actionRingPanel = $panelRevision
+        guiTheme = $guiTheme
+        gameplaySounds = $gameplaySounds
+    }
+    if ($null -ne $sunbirdPresentation) {
+        $javaManifest.sunbirdPresentation = $sunbirdPresentation
+    }
     [ordered]@{
-        java = [ordered]@{ sha1 = $sha1; actionRingPanel = $panelRevision; guiTheme = $guiTheme; gameplaySounds = $gameplaySounds }
+        java = $javaManifest
         bedrock = [ordered]@{
             sha256 = $sha256
             uuid = $uuid
