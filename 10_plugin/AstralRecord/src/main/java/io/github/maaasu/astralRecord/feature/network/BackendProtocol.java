@@ -14,11 +14,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 final class BackendProtocol {
     static final String CHANNEL = "astralrecord:network";
+    private static final int MAX_PAYLOAD_SIZE = 32_767;
     private static final String PREPARE_CONNECT = "prepare_connect";
     private static final byte[] GAMEPLAY_SOUNDS_READY = emptyNotification("gameplay_sounds_ready");
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
@@ -26,6 +28,10 @@ final class BackendProtocol {
             emptyNotification("weapon_attack_projectiles_ready");
     private static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     private static final int ACTION_RING_HUD_NOTIFICATION_SIZE = 2 + ACTION_RING_HUD_READY.length() + 2 + 64;
+    private static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
+    private static final String BEDROCK_SKILL_MENU_RESULT = "bedrock_skill_menu_result";
+    private static final int BEDROCK_SKILL_MENU_RESULT_SIZE = 2 + BEDROCK_SKILL_MENU_RESULT.length() + 2 * Long.BYTES + 1;
+    private static final int BEDROCK_SKILL_MENU_MAX_BUTTONS = 8;
 
     /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
     static boolean isGameplaySoundsReady(byte[] payload) {
@@ -58,6 +64,71 @@ final class BackendProtocol {
         }
     }
 
+    /**
+     * 統合版スキルメニューの選択結果を復元します。
+     *
+     * @param payload 受信データ
+     * @return 要求トークンと選択位置。他種別や不正なデータの場合は null
+     */
+    static @Nullable BedrockSkillMenuResult decodeBedrockSkillMenuResult(byte[] payload) {
+        if (payload.length != BEDROCK_SKILL_MENU_RESULT_SIZE) {
+            return null;
+        }
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
+            if (!BEDROCK_SKILL_MENU_RESULT.equals(input.readUTF())) {
+                return null;
+            }
+            UUID token = new UUID(input.readLong(), input.readLong());
+            int index = input.readByte();
+            return index >= -1 && index < BEDROCK_SKILL_MENU_MAX_BUTTONS
+                ? new BedrockSkillMenuResult(token, index) : null;
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    record BedrockSkillMenuResult(UUID token, int index) {
+    }
+
+    /**
+     * 順序付きのボタン一覧を、統合版スキルメニューの表示要求として Proxy へ送信します。
+     *
+     * @param plugin 送信元プラグイン
+     * @param player プラグインメッセージを送信するオンラインプレイヤー
+     * @param token 要求を識別するトークン
+     * @param labels 表示順のボタンラベル
+     * @return 送信した場合は true、ボタン数またはデータサイズが範囲外の場合は false
+     */
+    static boolean sendBedrockSkillMenu(
+        @NotNull Plugin plugin,
+        @NotNull Player player,
+        @NotNull UUID token,
+        @NotNull List<String> labels
+    ) {
+        if (labels.isEmpty() || labels.size() > BEDROCK_SKILL_MENU_MAX_BUTTONS) {
+            return false;
+        }
+        byte[] payload;
+        try {
+            payload = encode(output -> {
+                output.writeUTF(BEDROCK_SKILL_MENU);
+                output.writeLong(token.getMostSignificantBits());
+                output.writeLong(token.getLeastSignificantBits());
+                output.writeByte(labels.size());
+                for (String label : labels) {
+                    output.writeUTF(label);
+                }
+            });
+        } catch (IOException ignored) {
+            return false;
+        }
+        if (payload.length > MAX_PAYLOAD_SIZE) {
+            return false;
+        }
+        player.sendPluginMessage(plugin, CHANNEL, payload);
+        return true;
+    }
+
     /** UTF 長ヘッダーを含む、引数のない通知の正規形を作成します。 */
     private static byte[] emptyNotification(String name) {
         try (var bytes = new ByteArrayOutputStream(); var output = new DataOutputStream(bytes)) {
@@ -75,7 +146,7 @@ final class BackendProtocol {
      * @throws IOException payloadが不正な場合
      */
     static ChannelConnection decodeChannelConnection(byte[] payload) throws IOException {
-        if (payload.length > 32_767) throw new IOException("Plugin message is too large");
+        if (payload.length > MAX_PAYLOAD_SIZE) throw new IOException("Plugin message is too large");
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
             if (!"channel_connection".equals(input.readUTF())) return null;
             String playerName = input.readUTF();
@@ -108,7 +179,7 @@ final class BackendProtocol {
      * @throws IOException payloadが不正な場合
      */
     static @NotNull String decodePrepareConnect(byte[] payload) throws IOException {
-        if (payload.length > 32_767) throw new IOException("Plugin message is too large");
+        if (payload.length > MAX_PAYLOAD_SIZE) throw new IOException("Plugin message is too large");
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
             String type = input.readUTF();
             if (!PREPARE_CONNECT.equals(type)) {
@@ -291,14 +362,25 @@ final class BackendProtocol {
 
     private static void send(@NotNull Plugin plugin, @NotNull Player player, @NotNull Writer writer) {
         try {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            try (DataOutputStream output = new DataOutputStream(bytes)) {
-                writer.write(output);
-            }
-            player.sendPluginMessage(plugin, CHANNEL, bytes.toByteArray());
+            player.sendPluginMessage(plugin, CHANNEL, encode(writer));
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to encode proxy message", exception);
         }
+    }
+
+    /**
+     * 指定されたフィールドをプラグインメッセージのバイト列に変換します。
+     *
+     * @param writer メッセージの書き込み処理
+     * @return エンコードしたデータ
+     * @throws IOException フィールドをデータに変換できない場合
+     */
+    private static byte[] encode(@NotNull Writer writer) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream output = new DataOutputStream(bytes)) {
+            writer.write(output);
+        }
+        return bytes.toByteArray();
     }
 
     @FunctionalInterface

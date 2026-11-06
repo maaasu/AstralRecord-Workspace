@@ -39,13 +39,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** RPGサーバーとVelocity Proxy間の転送・チャット・Tabメタデータを管理します。 */
+/** RPGサーバーとVelocity Proxy間の転送・チャット・Tabメタデータ・統合版フォーム通信を管理します。 */
 public final class NetworkBridgeService implements NetworkChatBridge, Listener, PluginMessageListener {
     private final AstralRecord plugin;
     private final PlayerClassService playerClassService;
@@ -62,6 +63,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     private final AtomicBoolean authorityWarningLogged = new AtomicBoolean();
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private @Nullable ResourcePackService resourcePackService;
+    private @Nullable BedrockSkillMenuResultHandler bedrockSkillMenuResultHandler;
     private BukkitTask metadataTask;
     private BukkitTask authorityTask;
 
@@ -98,6 +100,46 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
      */
     public void setResourcePackService(@NotNull ResourcePackService service) {
         resourcePackService = service;
+    }
+
+    /**
+     * Proxy から届く統合版スキルメニューの応答の受け取り先を設定します。
+     *
+     * @param handler 応答を処理するハンドラ
+     */
+    public void setBedrockSkillMenuResultHandler(@NotNull BedrockSkillMenuResultHandler handler) {
+        bedrockSkillMenuResultHandler = handler;
+    }
+
+    /**
+     * Proxy に統合版スキルメニューの表示を要求します。メインスレッドから呼び出します。
+     *
+     * @param player 対象の統合版プレイヤー
+     * @param token 応答と照合する要求トークン
+     * @param labels 表示順のボタンラベル（1〜8件）
+     * @return Proxy に要求を送信した場合は true
+     */
+    public boolean openBedrockSkillMenu(
+        @NotNull Player player,
+        @NotNull UUID token,
+        @NotNull List<String> labels
+    ) {
+        return enabled && player.isOnline()
+            && plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, BackendProtocol.CHANNEL)
+            && BackendProtocol.sendBedrockSkillMenu(plugin, player, token, labels);
+    }
+
+    /** 統合版スキルメニューの応答を受け取る処理です。 */
+    @FunctionalInterface
+    public interface BedrockSkillMenuResultHandler {
+        /**
+         * 選択結果またはフォームの閉鎖を受け取ります。
+         *
+         * @param player 応答元のプレイヤー
+         * @param token 応答に含まれる要求トークン
+         * @param index 選択されたボタンの位置（0始まり）。フォームが閉じられた場合は -1
+         */
+        void handle(@NotNull Player player, @NotNull UUID token, int index);
     }
 
     public void start() {
@@ -296,7 +338,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     }
 
     /**
-     * Proxyから接続準備要求、チャンネル接続通知、統合版パックの対応通知を受け取ります。
+     * Proxyから接続準備要求、チャンネル接続通知、統合版パックの対応通知とフォーム応答を受け取ります。
      * 接続通知は受信対象プレイヤーへ表示し、接続準備要求だけで転送権限を確認します。
      *
      * @param channel 受信チャンネル
@@ -332,6 +374,13 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         if (actionRingHudRevision != null) {
             if (resourcePackService != null) {
                 resourcePackService.markBedrockActionRingHudReady(player, actionRingHudRevision);
+            }
+            return;
+        }
+        BackendProtocol.BedrockSkillMenuResult menuResult = BackendProtocol.decodeBedrockSkillMenuResult(message);
+        if (menuResult != null) {
+            if (bedrockSkillMenuResultHandler != null) {
+                bedrockSkillMenuResultHandler.handle(player, menuResult.token(), menuResult.index());
             }
             return;
         }
