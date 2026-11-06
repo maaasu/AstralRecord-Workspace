@@ -2,6 +2,8 @@ param(
     [string] $OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist')
 )
 
+# Pack validators read optional JSON properties as $null, including when invoked by deploy-debug.
+Set-StrictMode -Off
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $bedrockRoot = Join-Path $root 'bedrock'
