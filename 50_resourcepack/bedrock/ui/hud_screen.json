@@ -69,6 +69,7 @@
         "profile_level_icon": {
           "type": "image",
           "texture": "textures/ui/astralrecord/profile_level",
+          "color": [ 0.55, 0.88, 0.88 ],
           "size": [ 9, 9 ],
           "offset": [ -104, -110 ],
           "anchor_from": "bottom_middle",
@@ -123,6 +124,7 @@
         "profile_gold_icon": {
           "type": "image",
           "texture": "textures/ui/astralrecord/profile_gold",
+          "color": [ 0.96, 0.80, 0.51 ],
           "size": [ 9, 9 ],
           "offset": [ 8, -110 ],
           "anchor_from": "bottom_middle",
@@ -177,6 +179,7 @@
         "profile_class_icon": {
           "type": "image",
           "texture": "textures/ui/astralrecord/profile_class",
+          "color": [ 0.83, 0.67, 0.93 ],
           "size": [ 9, 9 ],
           "offset": [ -104, -96 ],
           "anchor_from": "bottom_middle",
@@ -231,6 +234,7 @@
         "profile_exp_icon": {
           "type": "image",
           "texture": "textures/ui/astralrecord/profile_exp",
+          "color": [ 0.55, 0.88, 0.88 ],
           "size": [ 9, 9 ],
           "offset": [ -2, -96 ],
           "anchor_from": "bottom_middle",
@@ -285,6 +289,7 @@
         "profile_points_icon": {
           "type": "image",
           "texture": "textures/ui/astralrecord/profile_points",
+          "color": [ 0.96, 0.80, 0.51 ],
           "size": [ 9, 9 ],
           "offset": [ -104, -82 ],
           "anchor_from": "bottom_middle",
@@ -403,7 +408,7 @@
   "astralrecord_combat_actionbar": {
     "type": "image",
     "texture": "textures/ui/astralrecord/actionbar_plate",
-    "size": [ 232, 26 ],
+    "size": [ 232, 28 ],
     "anchor_from": "bottom_middle",
     "anchor_to": "bottom_middle",
     "offset": [ 0, -43 ],
