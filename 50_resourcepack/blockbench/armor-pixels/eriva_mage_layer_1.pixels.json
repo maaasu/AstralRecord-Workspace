@@ -21,13 +21,25 @@
     "c": "4EAD9BFF",
     "C": "8CD2BBFF",
     "o": "344342FF",
-    "e": "9EB7A2FF"
+    "e": "9EB7A2FF",
+    "a": "616A55FF",
+    "g": "1C2945FF",
+    "j": "4B566EFF",
+    "m": "939A7FFF",
+    "p": "293636FF",
+    "q": "D9D7C7FF",
+    "u": "BFBFADFF",
+    "v": "858E74FF",
+    "w": "567969FF",
+    "x": "374462FF",
+    "y": "A3A597FF",
+    "z": "BCBCB1FF"
   },
   "face_grids": {
     "head/front": [
-      ".il..li.",
-      "biicCiib",
-      "rrbiibrr",
+      ".ql..li.",
+      "bqicCiib",
+      "vrbiibrr",
       "........",
       "........",
       "........",
@@ -36,18 +48,18 @@
     ],
     "head/back": [
       "..il....",
-      "bibiiibi",
-      "rrbiibrr",
+      "biuiiibi",
+      "vrbiibrr",
       "...rr...",
-      "...lL...",
+      "...wL...",
       "........",
       "........",
       "........"
     ],
     "head/left": [
-      ".i..i...",
-      "biiibiii",
-      "rrbiibrr",
+      ".q..i...",
+      "bqiibiii",
+      "vrbiibrr",
       "..lL....",
       "........",
       "........",
@@ -55,9 +67,9 @@
       "........"
     ],
     "head/right": [
-      ".i..i...",
-      "biiibiii",
-      "rrbiibrr",
+      ".q..i...",
+      "bqiibiii",
+      "vrbiibrr",
       "..lL....",
       "........",
       "........",
@@ -85,7 +97,7 @@
       "........"
     ],
     "body/front": [
-      "bi....ib",
+      "ui....ib",
       "blnCCnlb",
       "nfneefnn",
       "nfneefnn",
@@ -94,9 +106,9 @@
       "nrreeern",
       "nferrefn",
       "nefnfenn",
-      "efnnnnfe",
+      "efgjngfe",
       "ieeiieei",
-      "bbiibbii"
+      "bbiibbiz"
     ],
     "body/back": [
       "bii..iib",
@@ -110,7 +122,7 @@
       "nrrnenfn",
       "nrnnenrn",
       "ieeiieei",
-      "bbiibbii"
+      "bbiibbiz"
     ],
     "body/left": [
       "bllb",
@@ -119,12 +131,12 @@
       "nfnd",
       "nfnd",
       "nfnd",
-      "rrrr",
+      "arra",
       "nfnn",
       "nfnd",
       "nfnd",
       "beeb",
-      "biib"
+      "biiy"
     ],
     "body/right": [
       "bllb",
@@ -133,12 +145,12 @@
       "nfnd",
       "nfnd",
       "nfnd",
-      "rrrr",
+      "arra",
       "nfnn",
       "nfnd",
       "nfnd",
       "beeb",
-      "biib"
+      "biiy"
     ],
     "body/top": [
       "bi....ib",
@@ -162,12 +174,12 @@
       "nfen",
       "nfen",
       "nfen",
-      "rrrr",
+      "amra",
       "lLLl",
       "biib"
     ],
     "arm/back": [
-      "nffn",
+      "xffn",
       "nfnn",
       "nfnd",
       "nfnd",
@@ -176,12 +188,12 @@
       "nrrn",
       "nfnr",
       "nfnd",
-      "rrrr",
+      "amra",
       "lLLl",
       "biib"
     ],
     "arm/left": [
-      "nffn",
+      "xffn",
       "nfnd",
       "nfnd",
       "nfnd",
@@ -190,12 +202,12 @@
       "nrnd",
       "nfnd",
       "nfnd",
-      "rrrr",
+      "amra",
       "lLLl",
       "biib"
     ],
     "arm/right": [
-      "nffn",
+      "xffn",
       "nfnd",
       "nfnd",
       "nfnd",
@@ -204,7 +216,7 @@
       "nrnd",
       "nfnd",
       "nfnd",
-      "rrrr",
+      "amra",
       "lLLl",
       "biib"
     ],
@@ -232,7 +244,7 @@
       "ttTt",
       "tiit",
       "titt",
-      "oooo"
+      "poop"
     ],
     "leg/back": [
       "....",
@@ -242,11 +254,11 @@
       "....",
       "....",
       "....",
-      "rrrr",
+      "arra",
       "tTTt",
       "tTTt",
       "biib",
-      "oooo"
+      "poop"
     ],
     "leg/left": [
       "....",
@@ -256,11 +268,11 @@
       "....",
       "....",
       "....",
-      "rrrr",
+      "arra",
       "tTTt",
       "tlLt",
       "titt",
-      "oooo"
+      "poop"
     ],
     "leg/right": [
       "....",
@@ -270,11 +282,11 @@
       "....",
       "....",
       "....",
-      "rrrr",
+      "arra",
       "tTTt",
       "tlLt",
       "titt",
-      "oooo"
+      "poop"
     ],
     "leg/top": [
       "....",
@@ -554,5 +566,40 @@
       ],
       "nontransparent": 16
     }
-  ]
+  ],
+  "pixels": [
+    "................................................................",
+    "..........l..l..................................................",
+    "..........i..i..................................................",
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    ".q..i....ql..li..q..i.....il....................................",
+    "bqiibiiibqicCiibbqiibiiibiuiiibi................................",
+    "vrbiibrrvrbiibrrvrbiibrrvrbiibrr................................",
+    "..lL..............lL.......rr...................................",
+    "...........................wL...................................",
+    "................................................................",
+    "................................................................",
+    "................................................................",
+    "........oooo........bi....ibbiibbiib........nffnbiib............",
+    "........orko........bn....nbbnnnnnnb........fssfb..b............",
+    "........orko........bn....nbbnnnnnnb........fssfb..b............",
+    "........oooo........bi....ibbiibbiib........nffnbiib............",
+    "................bllbui....ibbllbbii..iibxffnnffnxffnxffn........",
+    "................nffnblnCCnlbnffnnffnnffnnfndnefnnfndnfnn........",
+    "................nfnnnfneefnnnfnnnfnrenfnnfndnefnnfndnfnd........",
+    "................nfndnfneefnnnfndnfrrenfnnfndneeinfndnfnd........",
+    "................nfndnefnefennfndnfrnenfnnrndnfnenrndnfnd........",
+    "................nfndnefnfennnfndnfnnerfnnrndnfnenrndnrnn........",
+    "................arranrreeernarranrreeernnrndnfennrndnrrn........",
+    "arrarCcrarraarranfnnnferrefnnfnnnfnnerfnnfndnfennfndnfnr........",
+    "tTTtttTttTTttTTtnfndnefnfennnfndnrrnenfnnfndnfennfndnfnd........",
+    "tlLttiittlLttTTtnfndefgjngfenfndnrnnenrnamraamraamraamra........",
+    "titttitttittbiibbeebieeiieeibeebieeiieeilLLllLLllLLllLLl........",
+    "pooppooppooppoopbiiybbiibbizbiiybbiibbizbiibbiibbiibbiib........"
+  ],
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

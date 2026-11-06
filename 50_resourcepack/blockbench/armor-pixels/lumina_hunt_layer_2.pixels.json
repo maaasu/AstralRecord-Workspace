@@ -25,7 +25,15 @@
     "q": "3F5144FF",
     "n": "5A6A51FF",
     "f": "203B39FF",
-    "c": "DFE9CAFF"
+    "c": "DFE9CAFF",
+    "l": "ACD0C1FF",
+    "p": "7A9E95FF",
+    "x": "554434FF",
+    "y": "86725DFF",
+    "z": "83AC9FFF",
+    "A": "A1C8BAFF",
+    "B": "2E5653FF",
+    "C": "86AEA4FF"
   },
   "pixels": [
     "................................................................",
@@ -46,10 +54,10 @@
     "................................................................",
     "....gmmgceec................brrrrrrb............................",
     "....mmmmgmmg................brrrrrrb............................",
-    "....mmmmgmmg................brrrrrrb............................",
+    "....mmlmgmmg................brrrrrrb............................",
     "....gmmgceec................brrrrrrb............................",
-    "gmmggmmggmmggmmg................................................",
-    "gmmgmmmmbrrggmmg................................................",
+    "zmmggAmggmmgzmmg................................................",
+    "gmmgplmpbrrggmmg................................................",
     "gmmggmmsbrrggmmg................................................",
     "tuudtuutduutgmmg................................................",
     "tuudtuutduuttuut................................................",
@@ -58,7 +66,8 @@
     "arbaarbaarbaarba................................................",
     "tuudtuutduuttuut................................................",
     "tuudtuutduuttuut................................................",
-    "tuudtuutduuttuutabbaarbjjbraabbaabbbbbba........................",
-    "ceecceecceecceecgmmggmmmmmmggmmggmmmmmmg........................"
-  ]
+    "tuudtuutduuBtuutabbaarbjjbraabbaaxbbybxa........................",
+    "ceecceecceecceecgmmggpmmmCpggmmggpmmmCpg........................"
+  ],
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

@@ -17,7 +17,10 @@
     "L": "765135FF",
     "k": "281D17FF",
     "c": "6A6B57FF",
-    "t": "333026FF"
+    "t": "333026FF",
+    "f": "785C45FF",
+    "i": "472F1EFF",
+    "m": "5D412BFF"
   },
   "pixels": [
     "................................................................",
@@ -36,22 +39,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....llllllll........llllllll....................................",
+    "....llflllll........llllflll....................................",
     "....lLLlllll........llllllll....................................",
-    "....lLLlllll........llllllll....................................",
+    "....lLLlllll........llllflll....................................",
     "....llllllll........llllllll....................................",
-    "lhhlheehlhhlllllLLLLLLLLLLLLLLLLLLLLLLLL........................",
-    "lddlhsshlddllLLllllllllgglllllllllbggbll........................",
-    "lddlhsshlddllLLllddlheehheehlddlllllllll........................",
-    "llllhsshllllbggblddlhsshhsshlddllLLllLLl........................",
-    "bggbbggbbggblLLlllllhsshhsshlllllLLllLLl........................",
-    "lddlhsshlddllLLlllllllllllllllllllllllll........................",
+    "lhhlheehlhhlillimLLmmLLLLLLmmLLmmLLLLLLm........................",
+    "lddlhsshlddllLLliflilllggllliflillbggbll........................",
+    "lddlhsshlddllLLllddlheehheehlddlilllllli........................",
+    "illihsshillibggblddlhsshhsshlddllLLllLLl........................",
+    "bggbbggbbggblLLlillihsshhsshillilLLllLLl........................",
+    "lddlhsshlddllLLlifliilllllliifliilllllli........................",
     "lddlhjjhlddllLLl................................................",
-    "llllhsshllllbggb................................................",
+    "illihsshillibggb................................................",
     "bggbbggbbggblLLl................................................",
     "lddlhsshlddllLLl................................................",
     "lddlhsshlddlbggb................................................",
-    "llllllllllllllll................................................"
+    "illiilliilliilli................................................"
   ],
   "nets": {
     "head": {
@@ -206,5 +209,6 @@
         4
       ]
     }
-  }
+  },
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

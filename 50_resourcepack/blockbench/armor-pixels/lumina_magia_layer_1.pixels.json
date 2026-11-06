@@ -17,7 +17,16 @@
     "h": "EDF2E3FF",
     "q": "738B90FF",
     "o": "474355FF",
-    "r": "655D73FF"
+    "r": "655D73FF",
+    "a": "A297B2FF",
+    "c": "C6BDDEFF",
+    "f": "B0AAC1FF",
+    "g": "928CB1FF",
+    "j": "807898FF",
+    "k": "E5DBEEFF",
+    "m": "564D68FF",
+    "n": "6F6887FF",
+    "u": "383646FF"
   },
   "used_regions": [
     {
@@ -30,7 +39,7 @@
         8
       ],
       "rows": [
-        "iqeeeeqi",
+        "iqfeefqi",
         "ed....de",
         "e......e",
         "d......d",
@@ -52,14 +61,14 @@
         8
       ],
       "rows": [
-        "ddlllldd",
+        "ddgllgdd",
         "dplllddd",
-        "dllllddd",
+        "dgllgddd",
         "dllldlld",
         "dllldlld",
         "dplldlld",
-        "bbttttbb",
-        "ddbbbbdd"
+        "bbjttjbb",
+        "ddmbbmdd"
       ],
       "nontransparent": 64,
       "meaning": "Lilac dyed leather hood back; broad off-center seam and rear low leather tab."
@@ -76,12 +85,12 @@
       "rows": [
         "eddlllde",
         "edpllldd",
-        "edlllldd",
-        "edlllldd",
-        "edlllldd",
-        "edlllldd",
+        "edgllgdd",
+        "edgllgdd",
+        "edgllgdd",
+        "edgclgdd",
         "edddllld",
-        "eeeeeeee"
+        "feeekeef"
       ],
       "nontransparent": 64,
       "meaning": "Deep leather hood side, folded pale face rim and continuous low collar."
@@ -98,12 +107,12 @@
       "rows": [
         "eddlllde",
         "edpllldd",
-        "edlllldd",
-        "edlllldd",
-        "edlllldd",
-        "edlllldd",
+        "edgllgdd",
+        "edgllgdd",
+        "edgllgdd",
+        "edgclgdd",
         "edddllld",
-        "eeeeeeee"
+        "feeekeef"
       ],
       "nontransparent": 64,
       "meaning": "Deep leather hood side, folded pale face rim and continuous low collar."
@@ -118,13 +127,13 @@
         8
       ],
       "rows": [
-        "dddddddd",
+        "ddddaddd",
         "dlllllld",
         "dpllplld",
         "dllldlld",
         "dllldlld",
         "dlllplld",
-        "dlllllld",
+        "dlllclld",
         "dddddddd"
       ],
       "nontransparent": 64,
@@ -188,14 +197,14 @@
         12
       ],
       "rows": [
-        "ddeeeedd",
+        "ddfeefdd",
         "ddlppldd",
         "lldlldll",
         "lldlldll",
         "lldlldll",
         "lldlldll",
-        "bbbbbbbb",
-        "bbttttbb",
+        "mbbbbbbm",
+        "bbjttjbb",
         "lldlldll",
         "lldlldll",
         "lldlldll",
@@ -220,12 +229,12 @@
         "llld",
         "llld",
         "llld",
-        "bbbb",
-        "bbbb",
+        "mbbm",
+        "mbbm",
         "llld",
         "lpld",
         "llld",
-        "eeee"
+        "feef"
       ],
       "nontransparent": 48,
       "meaning": "Continuous side dyed leather, waist band and turned hem."
@@ -246,12 +255,12 @@
         "llld",
         "llld",
         "llld",
-        "bbbb",
-        "bbbb",
+        "mbbm",
+        "mbbm",
         "llld",
         "lpld",
         "llld",
-        "eeee"
+        "feef"
       ],
       "nontransparent": 48,
       "meaning": "Continuous side dyed leather, waist band and turned hem."
@@ -311,7 +320,7 @@
         "llld",
         "llld",
         "tddd",
-        "eeee",
+        "fkef",
         "dqid",
         "eqhe"
       ],
@@ -337,9 +346,9 @@
         "llld",
         "llld",
         "tddd",
-        "eeee",
+        "fkef",
         "dbbd",
-        "eeee"
+        "feef"
       ],
       "nontransparent": 48,
       "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
@@ -363,9 +372,9 @@
         "llld",
         "llld",
         "tddd",
-        "eeee",
-        "dddd",
-        "eeee"
+        "fkef",
+        "nddn",
+        "feef"
       ],
       "nontransparent": 48,
       "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
@@ -389,9 +398,9 @@
         "llld",
         "llld",
         "tddd",
-        "eeee",
-        "dddd",
-        "eeee"
+        "fkef",
+        "nddn",
+        "feef"
       ],
       "nontransparent": 48,
       "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
@@ -406,7 +415,7 @@
         4
       ],
       "rows": [
-        "dddd",
+        "ddad",
         "dllp",
         "dlll",
         "eeee"
@@ -450,10 +459,10 @@
         "....",
         "....",
         "....",
-        "eeee",
+        "feef",
         "lqhl",
         "l..l",
-        "oooo"
+        "uoou"
       ],
       "nontransparent": 14,
       "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
@@ -476,10 +485,10 @@
         "....",
         "....",
         "....",
-        "eeee",
-        "dddd",
+        "feef",
+        "nadn",
         "dbbd",
-        "oooo"
+        "uoou"
       ],
       "nontransparent": 16,
       "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
@@ -502,10 +511,10 @@
         "....",
         "....",
         "....",
-        "eeee",
+        "feef",
         "lddl",
         "l..l",
-        "oooo"
+        "uoou"
       ],
       "nontransparent": 14,
       "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
@@ -528,10 +537,10 @@
         "....",
         "....",
         "....",
-        "eeee",
+        "feef",
         "lddl",
         "l..l",
-        "oooo"
+        "uoou"
       ],
       "nontransparent": 14,
       "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
@@ -572,5 +581,40 @@
       "nontransparent": 16,
       "meaning": "Complete leather sandal sole under feet."
     }
-  ]
+  ],
+  "pixels": [
+    "........ddddadddeeeeeeee........................................",
+    "........dllllllde......e........................................",
+    "........dpllpllde......e........................................",
+    "........dllldllde......e........................................",
+    "........dllldllde......e........................................",
+    "........dlllpllde......e........................................",
+    "........dlllcllde......e........................................",
+    "........ddddddddeeeeeeee........................................",
+    "eddllldeiqfeefqieddllldeddgllgdd................................",
+    "edpllldded....deedpllldddplllddd................................",
+    "edgllgdde......eedgllgdddgllgddd................................",
+    "edgllgddd......dedgllgdddllldlld................................",
+    "edgllgddd......dedgllgdddllldlld................................",
+    "edgclgddd......dedgclgdddplldlld................................",
+    "edddllldd......dedddllldbbjttjbb................................",
+    "feeekeefeiqhhqiefeeekeefddmbbmdd................................",
+    "........oooo........ee....eeee....ee........ddadeeee............",
+    "........orro........ld....dle......e........dllpe..e............",
+    "........orro........ld....dle......e........dllle..e............",
+    "........oooo........eeeeeeeeeeeeeeee........eeeeeeee............",
+    "................eddede....ededdeddfeefddedleedleedleedle........",
+    "................llldlde..edlllldddlpplddllldllldllldllld........",
+    "................lpldlldeedlllpldlldlldlllpldlpldlpldlpld........",
+    "................llldlldeedllllldlldlldllllldllldllldldll........",
+    "................llldpld..dlpllldlldlldllllldllldllldldll........",
+    "................llldlld..dllllldlldlldllllldllldllldllld........",
+    "................mbbmbbqihqbbmbbmmbbbbbbmllldllldllldllld........",
+    "................mbbmbbqhhqbbmbbmbbjttjbbllldllldllldllld........",
+    "feeffeeffeeffeefllldlpd..dplllldlldlldlltdddtdddtdddtddd........",
+    "lddllqhllddlnadnlpldlpd..dpllpldlldlldllfkeffkeffkeffkef........",
+    "l..ll..ll..ldbbdllldlpd..dplllldlldlldllnddndqidnddndbbd........",
+    "uoouuoouuoouuooufeefeed..deefeefeeetteeefeefeqhefeeffeef........"
+  ],
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

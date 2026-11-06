@@ -22,7 +22,17 @@
     "u": "555637FF",
     "w": "A3A369FF",
     "x": "242A22FF",
-    "z": "505239FF"
+    "z": "505239FF",
+    "c": "5DA274FF",
+    "i": "79AD80FF",
+    "j": "487D56FF",
+    "k": "2E724BFF",
+    "m": "224A36FF",
+    "n": "5E492EFF",
+    "q": "5F764EFF",
+    "r": "1C221CFF",
+    "y": "51795EFF",
+    "A": "193228FF"
   },
   "standard_uv": {
     "head": {
@@ -182,20 +192,20 @@
     "1": [
       "........dsgllgsdobttttbo........................................",
       "........sgllllgsbt....tb........................................",
-      "........glgggglgb......b........................................",
+      "........glggcglgb......b........................................",
       "........llgssgllb......b........................................",
       "........llgssgllb......b........................................",
       "........glgggglgb......b........................................",
-      "........sgllllgsbt....tb........................................",
+      "........sgllilgsbt....tb........................................",
       "........dsgllgsdob....bo........................................",
-      "sgllllgssgllllgssgllllgssgllllgs................................",
-      "gllllllgeppppppegllllllggllssllg................................",
-      "ggggggggsg....gsggggggggglgssglg................................",
-      "gffgggggsg....gsgggggffgggsssfgg................................",
-      "gffsggggsf....fsggggsffgggssffgg................................",
-      "gffsggggsf....fsggggsffgggssfsgg................................",
-      "gbfsggggsb....bsggggsfbgggssssgg................................",
-      ".obttbbo.b....b.obbttbo.obttttbo................................",
+      "sgjlljgssgjlljgssgjlljgssgjlljgs................................",
+      "gjlliljgeppppppegjlliljggllssllg................................",
+      "kggggggksg....gskggggggkglgssglg................................",
+      "gffkgggksg....gskgggkffgggsssfgg................................",
+      "gffskggksf....fskggksffgggssffgg................................",
+      "gffskcgksf....fskcgksffgggssfsgg................................",
+      "gbfskggksb....bskggksfbgggmssmgg................................",
+      ".obttbbo.b....b.obbttbo.obnttnbo................................",
       "........xxxx....................................................",
       "........xzzx....................................................",
       "........xzzx....................................................",
@@ -206,12 +216,12 @@
       "................................................................",
       "................................................................",
       "................................................................",
-      "seeseeeeseeseeee................................................",
+      "seesqeeqseesqeeq................................................",
       "sggssggssggssggs................................................",
       "bttbbttbbttbgssg................................................",
       "taattuuttaatbssb................................................",
       "bttbtaatbttbbttb................................................",
-      "xxxxxxxxxxxxxxxx................................................"
+      "rxxrrxxrrxxrrxxr................................................"
     ],
     "2": [
       "................................................................",
@@ -238,14 +248,14 @@
       "gffggllggffggssg................................................",
       "gffggllggffggssg................................................",
       "gssgsggsgssggssg................................................",
-      "gssgbppbgssggggg................................................",
-      "gffgtaatgffggggg................................................",
+      "gssgbppbgssgkggk................................................",
+      "gffgtaatgffgkcgk................................................",
       "gffgbttbgffggssg................................................",
       "gssgsggsgssggssg................................................",
       "gssggllggssggssg................................................",
-      "gllggllggllggllgssssssssssssssssssssssss........................",
+      "gllggllggllggllgmysmmssssssmmysmmssssssm........................",
       "sggssggssggssggsbttbbtawwatbbttbbttbbttb........................",
-      "ddddddddddddddddobboobttttboobboobttttbo........................"
+      "AddAAddAAddAAddAobboobnttnboobboobnttnbo........................"
     ]
   },
   "source": "Original authored pixel faces; regenerate using author_kuinya_ranger.py",
@@ -259,6 +269,7 @@
     "leg:all faces and caps"
   ],
   "unused": "Layer1 body/arm; Layer2 head/arm; all unlisted areas transparent.",
-  "layer_1_sha256": "c471e8c3e993e200953c9fe834e6e17958c9a4b8ac427c9febd1db9d887f831d",
-  "layer_2_sha256": "4a48b95f40486a9ff887cbe3cf82e357139c63ee54a952e9528ac9e33404741f"
+  "layer_1_sha256": "8b28638ea265bd0dd5f74eca979d0f0d50845cb96b797e358576a955fd3d465a",
+  "layer_2_sha256": "d35e47f86445450e67b10543e419105cfb75e5a75cb2ef8523d7f3b73770dab2",
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

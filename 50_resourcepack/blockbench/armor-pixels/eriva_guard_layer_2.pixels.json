@@ -24,7 +24,11 @@
     "f": "586840FF",
     "g": "7C8653FF",
     "q": "3D9285FF",
-    "Q": "70B8A1FF"
+    "Q": "70B8A1FF",
+    "i": "4D262DFF",
+    "j": "5E462EFF",
+    "l": "8F7456FF",
+    "m": "7D5255FF"
   },
   "pixels": [
     "................................................................",
@@ -50,15 +54,15 @@
     "hsshhsshhsshhssh................................................",
     "bssbbccbbssbhssh................................................",
     "bssbcddcbssbstts................................................",
-    "bssbcddcbssbssss................................................",
+    "bssbcddcbssbissi................................................",
     "hkkhbssbhkkhhkkh................................................",
     "bccbcddcbccbhbbh................................................",
-    "bxxbdeedbxxbssss................................................",
-    "bccbbccbbccbssss................................................",
+    "bxxbdeedbxxbissi................................................",
+    "bccbbccbbccbissi................................................",
     "hkkhhsshhkkhhkkh................................................",
-    "bssbbccbbssbhsshhhhhhhhhhhhhhhhhhhhhhhhh........................",
-    "bssbcddcbssbsttshsshhbcqQcbhhsshhssssssh........................",
-    "h22hh22hh22hh22hhhhhhhsssshhhhhhhhsssshh........................"
+    "bssbbccbbssbhsshjlhjjhhhhhhjjlhjjhhhhhhj........................",
+    "bssbcddcbssbsttshsshhbcqQcbhhsshhissmsih........................",
+    "h22hh22hh22hh22hjhhjhhissihhjhhjhhissihh........................"
   ],
   "uv": {
     "head": {
@@ -213,5 +217,6 @@
         4
       ]
     }
-  }
+  },
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

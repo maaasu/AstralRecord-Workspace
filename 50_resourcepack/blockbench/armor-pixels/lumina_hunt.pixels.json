@@ -26,7 +26,18 @@
     "q": "3F5144FF",
     "n": "5A6A51FF",
     "f": "203B39FF",
-    "c": "DFE9CAFF"
+    "c": "DFE9CAFF",
+    "l": "ACD0C1FF",
+    "p": "7A9E95FF",
+    "x": "554434FF",
+    "y": "86725DFF",
+    "z": "5D4B3AFF",
+    "A": "86AEA4FF",
+    "B": "37473DFF",
+    "C": "689389FF",
+    "D": "83AC9FFF",
+    "E": "A1C8BAFF",
+    "F": "2E5653FF"
   },
   "standard_uv": {
     "head": {
@@ -186,16 +197,16 @@
     "layer_1": [
       "........sggmmggs................................................",
       "........gmmhmmmg................................................",
+      "........mmmhmmlm................................................",
       "........mmmhmmmm................................................",
-      "........mmmhmmmm................................................",
-      "........mmmhmmmm................................................",
+      "........mmmhmmlm................................................",
       "........mmmhmmmm................................................",
       "........gmmhmmmg................................................",
       "........sggmmggs................................................",
       "gmmhmmmggmmhhmmggmmhmmmggmmhmmmg................................",
-      "gmmhmmmgmmmmmmmmgjwmmmgggmmhmmmg................................",
-      "arbbbbraarbbbbragijmmmbgarbbbbra................................",
-      "gbbbbbbg........arbbbbragbbbbbbg................................",
+      "gmmhmmmgpmmmlmmpgjwmmmgggmmhmmmg................................",
+      "arxbbxraarxbbxragijmmmbgarxbbxra................................",
+      "gxbbbbxg........arxbbxragxbbbbxg................................",
       "..............................b.................................",
       "..............................b.................................",
       "................................................................",
@@ -206,16 +217,16 @@
       "........oqqo........ehmmmmhegm....mg........eggeabia............",
       "................ehmgeh....hegmheehhmmhheegmgejjegmgeehhe........",
       "................gmmsemg..gmesmmggmmhhmmggmmggmmggmmggmmg........",
-      "................gmmsgbrmmrmgsrrggmmccmmgmmmmmmmmmmmmmmmm........",
+      "................gmmsgbrmmrmgsrrggmmccmmgpmmppmmppmmppmmp........",
       "................gmmsgmbjmmmgsbbggmmcmmmggmmmmmmgmmmggmmm........",
-      "................gmmsmmbrmmmmsbbgmmmcmmmmmmmmmmmmmmmmmmmm........",
+      "................gmmsmmbrpmmpsbbgmmmcpmmppmmppmmppmmppmmp........",
       "................gmmsgmmbrmmgsmmggmmcmmmgmmmggmmmgmmmmmmg........",
-      "ceecceecceecceecgmmsmmmbrmmmsmmgmmmcmmmmceecceecceecceec........",
+      "ceecceecceecceecgmmsmmmbrmmmsmmgmmmcpmmpceecceecceecceec........",
       "gmmsgmmgsmmggmcggmmsgmmmbrmgsmmggmmcmmmg........................",
-      "brrbarbabrrbbrcbarbaarajjaraabraarbbbbra........................",
-      "brrbbijbbrrbbrcbgmmsgmmccmmgsmmggmmccmmg........................",
-      "gmmsgmmgsmmggmmggmm.gmm..mmg.mmggmm..mmgbrrbbrrbbrrbbrrb........",
-      "oqqooqqooqqooqqogm..gm....mg..mggm....mgabiaabiaabiaabia........"
+      "brrbarbabrrbbrcbarbaarajjaraabraarxbbxra........................",
+      "brrzbijbbrrzbrczgmmsgmmccmmgsmmggmmccmmg........................",
+      "gmAsgmAgsmAggmAggmm.gmm..mmg.mmggmm..mmgbrrbbrrbbrrbbrrb........",
+      "oqBooBBooqBooqBogm..gm....mC..mggm....mCabiaabiaabiaabia........"
     ],
     "layer_2": [
       "................................................................",
@@ -236,10 +247,10 @@
       "................................................................",
       "....gmmgceec................brrrrrrb............................",
       "....mmmmgmmg................brrrrrrb............................",
-      "....mmmmgmmg................brrrrrrb............................",
+      "....mmlmgmmg................brrrrrrb............................",
       "....gmmgceec................brrrrrrb............................",
-      "gmmggmmggmmggmmg................................................",
-      "gmmgmmmmbrrggmmg................................................",
+      "DmmggEmggmmgDmmg................................................",
+      "gmmgplmpbrrggmmg................................................",
       "gmmggmmsbrrggmmg................................................",
       "tuudtuutduutgmmg................................................",
       "tuudtuutduuttuut................................................",
@@ -248,8 +259,8 @@
       "arbaarbaarbaarba................................................",
       "tuudtuutduuttuut................................................",
       "tuudtuutduuttuut................................................",
-      "tuudtuutduuttuutabbaarbjjbraabbaabbbbbba........................",
-      "ceecceecceecceecgmmggmmmmmmggmmggmmmmmmg........................"
+      "tuudtuutduuFtuutabbaarbjjbraabbaaxbbybxa........................",
+      "ceecceecceecceecgmmggpmmmApggmmggpmmmApg........................"
     ]
   },
   "authorship": "Original pixel placement and swatches; no vanilla or other-series pixels copied.",
@@ -264,5 +275,6 @@
       "lower two body waist rows and bottom cap",
       "all six faces of trousers"
     ]
-  }
+  },
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

@@ -14,7 +14,17 @@
     "w": "F4E5B8FF",
     "c": "A6D8E0FF",
     "b": "6C598AFF",
-    "o": "29263CFF"
+    "o": "29263CFF",
+    "a": "76688AFF",
+    "f": "DDCB9DFF",
+    "h": "463A60FF",
+    "i": "6F6191FF",
+    "j": "A290BDFF",
+    "k": "C1B797FF",
+    "m": "F6E9C3FF",
+    "n": "A99A73FF",
+    "q": "554771FF",
+    "r": "201E31FF"
   },
   "used_regions": [
     {
@@ -28,7 +38,7 @@
       ],
       "rows": [
         "ddgwwgdd",
-        "dgwwwwgd",
+        "dgkmwkgd",
         "ge....eg",
         "e......e",
         "l......l",
@@ -71,14 +81,14 @@
         8
       ],
       "rows": [
-        "ggddddgg",
-        "epllllde",
-        "epllllld",
-        "epllllld",
+        "gghddhgg",
+        "epijlide",
+        "epilllid",
+        "epilllid",
         "ellldlld",
         "ellldlld",
-        "bggggggb",
-        "bbddddbb"
+        "bnggggnb",
+        "bbhddhbb"
       ],
       "nontransparent": 64,
       "meaning": "Purple side panel, pale face edge and low orbit collar; distinct rear seam."
@@ -93,14 +103,14 @@
         8
       ],
       "rows": [
-        "ggddddgg",
-        "epllllde",
-        "epllllld",
-        "epllllld",
+        "gghddhgg",
+        "epijlide",
+        "epilllid",
+        "epilllid",
         "ellldlld",
         "ellldlld",
-        "bggggggb",
-        "bbddddbb"
+        "bnggggnb",
+        "bbhddhbb"
       ],
       "nontransparent": 64,
       "meaning": "Purple side panel, pale face edge and low orbit collar; distinct rear seam."
@@ -115,13 +125,13 @@
         8
       ],
       "rows": [
-        "dddddddd",
+        "ddddaddd",
         "dlggggld",
         "dlgwwgld",
         "dlwccwld",
         "dlwccwld",
         "dlgwwgld",
-        "dlggggld",
+        "dlggfgld",
         "dddddddd"
       ],
       "nontransparent": 64,
@@ -185,18 +195,18 @@
         12
       ],
       "rows": [
-        "ppggggpp",
+        "ppnggnpp",
         "lldwwdll",
         "llwccwll",
         "lldwwdll",
         "lllgglll",
         "lllgglll",
-        "bbbbbbbb",
+        "qbbbbbbq",
         "gggppggg",
         "lllgglll",
         "lllgglll",
         "lllgglll",
-        "gggggggg"
+        "nggggggn"
       ],
       "nontransparent": 96,
       "meaning": "Full purple rear, angular star and continuous descending celestial banner."
@@ -211,18 +221,18 @@
         12
       ],
       "rows": [
-        "gggg",
+        "nggn",
         "pllp",
         "plld",
         "llld",
         "llld",
         "lpld",
-        "bbbb",
-        "gggg",
+        "qbbq",
+        "nggn",
         "lpbd",
         "lpbd",
         "lpbd",
-        "gggg"
+        "nggn"
       ],
       "nontransparent": 48,
       "meaning": "Continuous robe side, orbit waist and broad gold-colored dyed hem."
@@ -237,18 +247,18 @@
         12
       ],
       "rows": [
-        "gggg",
+        "nggn",
         "pllp",
         "plld",
         "llld",
         "llld",
         "lpld",
-        "bbbb",
-        "gggg",
+        "qbbq",
+        "nggn",
         "lpbd",
         "lpbd",
         "lpbd",
-        "gggg"
+        "nggn"
       ],
       "nontransparent": 48,
       "meaning": "Continuous robe side, orbit waist and broad gold-colored dyed hem."
@@ -299,7 +309,7 @@
         12
       ],
       "rows": [
-        "gggg",
+        "nggn",
         "pwwp",
         "gccg",
         "pwwp",
@@ -307,10 +317,10 @@
         "lddl",
         "lddl",
         "lppl",
-        "bbbb",
-        "gggg",
+        "qbbq",
+        "nfgn",
         "gwwg",
-        "gggg"
+        "nggn"
       ],
       "nontransparent": 48,
       "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
@@ -325,7 +335,7 @@
         12
       ],
       "rows": [
-        "gggg",
+        "nggn",
         "pllp",
         "pggp",
         "pllp",
@@ -333,10 +343,10 @@
         "lddl",
         "lddl",
         "lppl",
-        "bbbb",
-        "gggg",
+        "qbbq",
+        "nfgn",
         "peep",
-        "gggg"
+        "nggn"
       ],
       "nontransparent": 48,
       "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
@@ -351,7 +361,7 @@
         12
       ],
       "rows": [
-        "gggg",
+        "nggn",
         "pllp",
         "pggp",
         "pllp",
@@ -359,10 +369,10 @@
         "lldl",
         "lldl",
         "lppl",
-        "bbbb",
-        "gggg",
+        "qbbq",
+        "nfgn",
         "peep",
-        "gggg"
+        "nggn"
       ],
       "nontransparent": 48,
       "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
@@ -377,7 +387,7 @@
         12
       ],
       "rows": [
-        "gggg",
+        "nggn",
         "pllp",
         "pggp",
         "pllp",
@@ -385,10 +395,10 @@
         "lldl",
         "lldl",
         "lppl",
-        "bbbb",
-        "gggg",
+        "qbbq",
+        "nfgn",
         "peep",
-        "gggg"
+        "nggn"
       ],
       "nontransparent": 48,
       "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
@@ -403,7 +413,7 @@
         4
       ],
       "rows": [
-        "gggg",
+        "ggfg",
         "gwwg",
         "gccg",
         "gggg"
@@ -447,10 +457,10 @@
         "....",
         "....",
         "....",
-        "gggg",
+        "nggn",
         "lccl",
         "l..l",
-        "oooo"
+        "roor"
       ],
       "nontransparent": 14,
       "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
@@ -476,7 +486,7 @@
         "gbbg",
         "lbbl",
         "lggl",
-        "oooo"
+        "roor"
       ],
       "nontransparent": 16,
       "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
@@ -499,10 +509,10 @@
         "....",
         "....",
         "....",
-        "gggg",
+        "nggn",
         "lddl",
         "l..l",
-        "oooo"
+        "roor"
       ],
       "nontransparent": 14,
       "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
@@ -525,10 +535,10 @@
         "....",
         "....",
         "....",
-        "gggg",
+        "nggn",
         "lddl",
         "l..l",
-        "oooo"
+        "roor"
       ],
       "nontransparent": 14,
       "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
@@ -569,5 +579,40 @@
       "nontransparent": 16,
       "meaning": "Whole thin sandal sole underneath."
     }
-  ]
+  ],
+  "pixels": [
+    "........ddddadddgggggggg........................................",
+    "........dlggggldg......g........................................",
+    "........dlgwwgldg......g........................................",
+    "........dlwccwldg......g........................................",
+    "........dlwccwldg......g........................................",
+    "........dlgwwgldg......g........................................",
+    "........dlggfgldg......g........................................",
+    "........ddddddddgggggggg........................................",
+    "gghddhggddgwwgddgghddhggddleeldd................................",
+    "epijlidedgkmwkgdepijlidedlleelld................................",
+    "epilllidge....egepilllidllleelll................................",
+    "epilllide......eepilllidlggwwggl................................",
+    "ellldlldl......lellldlldllleelll................................",
+    "ellldlldl......lellldlldllleelll................................",
+    "bnggggnbl......lbnggggnbbbgeegbb................................",
+    "bbhddhbbg......gbbhddhbbbbgeegbb................................",
+    "........oooo........gg....gggg....gg........ggfggggg............",
+    "........obbo........ep....peg......g........gwwgg..g............",
+    "........obbo........ep....peg......g........gccgg..g............",
+    "........oooo........gggggggggggggggg........gggggggg............",
+    "................nggngp....pgnggnppnggnppnggnnggnnggnnggn........",
+    "................pllplgp..pglpllplldwwdllpllppwwppllppllp........",
+    "................plldlldwwdllplldllwccwllpggpgccgpggppggp........",
+    "................llldllwccwllllldlldwwdllpllppwwppllppllp........",
+    "................llldlllddlllllldlllggllllldllggllldllddl........",
+    "................lpldlglddlgllpldlllggllllldllddllldllddl........",
+    "................qbbqgggwwgggqbbqqbbbbbbqlldllddllldllddl........",
+    "................nggnbbgwwgbbnggngggppggglppllppllppllppl........",
+    "nggnnggnnggngbbglpbdlpb..bpllpbdlllgglllqbbqqbbqqbbqqbbq........",
+    "lddllccllddllbbllpbdlpb..bpllpbdlllgglllnfgnnfgnnfgnnfgn........",
+    "l..ll..ll..llggllpbdlpb..bpllpbdlllgglllpeepgwwgpeeppeep........",
+    "roorroorroorroornggnggg..gggnggnnggggggnnggnnggnnggnnggn........"
+  ],
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

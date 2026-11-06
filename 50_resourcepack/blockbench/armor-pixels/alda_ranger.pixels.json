@@ -22,7 +22,17 @@
     "w": "D4D6BEFF",
     "i": "10232CFF",
     "o": "263437FF",
-    "u": "39474AFF"
+    "u": "39474AFF",
+    "c": "244E5CFF",
+    "f": "71827EFF",
+    "g": "537C85FF",
+    "j": "474B3DFF",
+    "n": "787966FF",
+    "p": "4F6869FF",
+    "x": "4E5344FF",
+    "y": "323E43FF",
+    "z": "345C67FF",
+    "A": "577273FF"
   },
   "standard_uv": {
     "head": {
@@ -150,14 +160,14 @@
       "........tmmqqmmtqt....tq........................................",
       "........ttmqqmttqtiiiitq........................................",
       "........dttqqttdqqqqqqqq........................................",
-      "qttmmmmtqeeeeeeqtmmmmttqttmmmmtt................................",
-      "qthmmmmtqmhhhhmqtmmmmhtqtqhmmhqt................................",
-      "qtmttmmtqm....mqtmmtmmtqtqeeeeqt................................",
+      "qttcmmctqfeeeefqtcmmcttqttcmmctt................................",
+      "qthcgmctqmhhhhmqtcgmchtqtqhmmhqt................................",
+      "qtmttmmtqm....mqtmmtmmtqtqfeefqt................................",
       "qtmtmmmtqt....tqtmmmtmtqtqtmmtqt................................",
       "qtmmmtttqt....tqtttmmmtqtqtmmtqt................................",
       "qtmttmmtbt....tbtmmtmmtqtqtmmtqt................................",
       "qtmttmmtvt....tbtmmtmmtqtqtmmtqt................................",
-      "qrrrrrrqqt....tqqrrrrrrqqrrrrrrq................................",
+      "qjrrnrjqqt....tqqjrrnrjqqjrrnrjq................................",
       "........ouuo....................................................",
       "........uoou....................................................",
       "........uoou....................................................",
@@ -171,9 +181,9 @@
       "qeeqqeeqqeeqqeeq................................................",
       "tmmttmmttmmttqqt................................................",
       "brbbbrvbbbrbbrqb................................................",
-      "rrsrrbsrrsrrrrqr................................................",
-      "rrrrrsrrrrrrrrqr................................................",
-      "ouuoouuoouuoouuo................................................"
+      "rrsxrbsrrsrxrrqr................................................",
+      "jrrjrsrxjrrjrrqx................................................",
+      "ouyoouyoouyoouyo................................................"
     ],
     "layer_2": [
       "................................................................",
@@ -196,9 +206,9 @@
       "....tmmtrrrr................brrrrrrb............................",
       "....tmmtrrrr................brrrrrrb............................",
       "....dttdbrrb................brrrrrrb............................",
-      "tmmqtmmtqmmttmmt................................................",
+      "tmmqtmmtqmmtzmmt................................................",
       "tmmqqmmtqrrttmmt................................................",
-      "tmmqqeetqrrtqqqq................................................",
+      "tmmqqeetqrrtpqqp................................................",
       "tmmqqmmtqrrttqmt................................................",
       "tmmqtmmtqmmttqmt................................................",
       "tmmqtmmtqmmttqmt................................................",
@@ -206,9 +216,10 @@
       "tmmqbrrbqmmttqmt................................................",
       "tmmqbrrbqmmttqmt................................................",
       "tmmqtmmtqmmttqmt................................................",
-      "qeeqqeeqqeeqqeeqrrrrrravaarrrrrrrrrrrrrr........................",
-      "brrbbrrbbrrbbrrbqqqqqqavaqqqqqqqqqqqqqqq........................"
+      "qeeqqeeqqeeqqeeqjrrjrravaarrjrrjjrrrnrrj........................",
+      "brrbbrrbbrrbbrrbpqqpqqavaqqApqqppqqqqqqp........................"
     ]
   },
-  "native_art": "Original pixel placement; no imported artwork. Head front opening x10..13,y10..15. Layer1 head + lower boot leg; layer2 waist + flexible legs. No arms/chest layer1."
+  "native_art": "Original pixel placement; no imported artwork. Head front opening x10..13,y10..15. Layer1 head + lower boot leg; layer2 waist + flexible legs. No arms/chest layer1.",
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }

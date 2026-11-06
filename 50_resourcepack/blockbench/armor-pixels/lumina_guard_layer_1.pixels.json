@@ -18,7 +18,14 @@
     "s": "5B9C8BFF",
     "t": "87BC9DFF",
     "u": "3B342BFF",
-    "v": "594C38FF"
+    "v": "594C38FF",
+    "f": "B7AC83FF",
+    "g": "ECDEAEFF",
+    "h": "BBC2BAFF",
+    "o": "849598FF",
+    "p": "F0F4E7FF",
+    "q": "E8D8A6FF",
+    "w": "4D4332FF"
   },
   "pixels": [
     "........klmnnmlkj......j........................................",
@@ -30,29 +37,29 @@
     "........kdkkddkkjddddddj........................................",
     "........klmnnmlkklmmmmlk........................................",
     "klmnnmlkklmnnmlkklmnnmlkklmnnmlk................................",
-    "kddddddkkcdrsdckkddddddkkddkkddk................................",
+    "kfddgdfkkcdrsdckkfddgdfkkddkkddk................................",
     "kdekkedkk......kkdekkedkkdekkedk................................",
     "kddkkddkk......kkddkkddkkddkkddk................................",
-    "bcddddcbj......jbcddddcbbcddddcb................................",
+    "bcfddfcbj......jbcfddfcbbcfddfcb................................",
     "bcrssrcbj......jbcrssrcbbcdccdcb................................",
-    "bcddddcbk......kbcddddcbbckllkcb................................",
-    "klmmmmlkj......jklmmmmlkklmmmmlk................................",
+    "bcfddfcbk......kbcfddfcbbckllkcb................................",
+    "klhmmhlkj......jklhmmhlkklhmmhlk................................",
     "........uvvu........kk....kkjkkkkkkj........kllkjkkj............",
     "........vccv........kl....lkkcddddck........lddlkddk............",
     "........vccv........kl....lkkcddddck........lddlkddk............",
     "........uvvu........kk....kkjkkkkkkj........kllkjkkj............",
-    "................kkkkkk....kkkkkkkk....kkkllkkllkkllkkllk........",
-    "................klmkklmmmmlkklmkklmmmmlklmmllmmllmmllmml........",
-    "................bcdblkddddklbcdbbckllkcbkddkkddkkddkkddk........",
-    "................cddclkeddeklcddcbcddddcbbcdbbcdbbcdbbcdb........",
-    "klmkklmkklmkklmkcddclkddddklcddcbcdeedcbcddccddccddccddc........",
-    "bcdbbcdbbcdbbcdbjkkjkkdkkdkkjkkjbcddddcbcddccddccddccddc........",
-    "cddccddccddccddccddcbcddddcbcddcrsskkssrjkkjrssrjkkjrssr........",
-    "rssrrssrrssrbcdbcddcbcddddcbcddcrsskkssrcddccddccddccddc........",
-    "jkkjcddcjkkjcddcrssrbcdkkdcbrssrbcddddcbrssrcddcrssrcddc........",
+    "................okkokk....kkokkokk....kkkllkkllkkllkkllk........",
+    "................klmkklhpmhlkklmkklhpmhlklmmllmmllmmllmml........",
+    "................bcdblkfddfklbcdbbckllkcbkddkkddkkddkkddk........",
+    "................cddclkeddeklcddcbcfddfcbbcdbbcdbbcdbbcdb........",
+    "klmkklmkklmkklmkcddclkfddfklcddcbcdeedcbcddccddccddccddc........",
+    "bcqbbcqbbcqbbcqbjkkjkkdkkdkkjkkjbcfgdfcbcddccddccddccddc........",
+    "cddccddccddccddccddcbcfddfcbcddcrsskkssrjkkjrssrjkkjrssr........",
+    "rssrrssrrssrbcdbcddcbcfddfcbcddcrsskkssrcddccddccddccddc........",
+    "jkkjcddcjkkjcddcrssrbcdkkdcbrssrbcfddfcbrssrcddcrssrcddc........",
     "bcdbbcdbbcdbjkkjcddcbcrssrcbcddcbcdeedcbcddcjkkjcddcjkkj........",
-    "kllklmmlkllkkllkklmkklmmmmlkklmkbcddddcbbcdbbcdbbcdbbcdb........",
-    "uvvuuvvuuvvuuvvujkkjjkkkkkkjjkkjjkkkkkkjjkkjjkkjjkkjjkkj........"
+    "kllklmmlkllkkllkklmkklhmmhlkklmkbcfddfcbbcdbbcdbbcdbbcdb........",
+    "uwwuuwwuuwwuuwwujkkjjokkkkojjkkjjokkkkojjkkjjkkjjkkjjkkj........"
   ],
   "uv": {
     "head": {
@@ -207,5 +214,6 @@
         4
       ]
     }
-  }
+  },
+  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
 }
