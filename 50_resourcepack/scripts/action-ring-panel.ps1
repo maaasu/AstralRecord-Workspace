@@ -272,10 +272,11 @@ function Get-ActionRingIcons {
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
         $hudRevision = [BitConverter]::ToString($hasher.ComputeHash($utf8.GetBytes("action-ring-hud-v1`n" + $catalogText))).Replace('-', '').ToLowerInvariant()
+        $bedrockHudRevision = [BitConverter]::ToString($hasher.ComputeHash($utf8.GetBytes("action-ring-hud-bedrock-v2`n" + $catalogText))).Replace('-', '').ToLowerInvariant()
     } finally {
         $hasher.Dispose()
     }
-    return [PSCustomObject]@{ Ids = $ids; Tiles = $tiles; HudRevision = $hudRevision }
+    return [PSCustomObject]@{ Ids = $ids; Tiles = $tiles; HudRevision = $hudRevision; BedrockHudRevision = $bedrockHudRevision }
 }
 
 function Add-SkillIconModelEntries {

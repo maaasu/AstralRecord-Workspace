@@ -46,7 +46,7 @@
     "$astralrecord_actionbar_anims": [],
     "variables": [
       {
-        "requires": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw1|')))",
+        "requires": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw2|')))",
         "$astralrecord_actionbar_anims": [
           "@hud.astralrecord_action_ring_expiry"
         ]
@@ -56,12 +56,12 @@
     "controls": [
       {
         "normal_actionbar@hud.hud_actionbar_text": {
-          "ignored": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw1|')))"
+          "ignored": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw2|')))"
         }
       },
       {
         "action_ring@astralrecord_action_ring.popup": {
-          "ignored": "($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw1|'))"
+          "ignored": "($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw2|'))"
         }
       }
     ]

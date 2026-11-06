@@ -56,14 +56,20 @@ function New-RingHudLabelControl {
 function Add-ActionRingHudBedrockEntries {
     param($Bedrock, $SkillIcons)
 
-    if ($SkillIcons.HudRevision -cnotmatch '^[a-f0-9]{64}$') {
+    if ($SkillIcons.BedrockHudRevision -cnotmatch '^[a-f0-9]{64}$') {
         throw 'Invalid action ring HUD revision.'
     }
-    $Bedrock.Add('action-ring-hud.sha256', $utf8.GetBytes($SkillIcons.HudRevision))
+    $Bedrock.Add('action-ring-hud.sha256', $utf8.GetBytes($SkillIcons.BedrockHudRevision))
 
-    # This reserved catalog entry is also used by the RPG renderer for unavailable skills.
-    $unavailable = if ($SkillIcons.Ids -contains 2) { 'textures/entity/action_ring_icons/2' }
     $textureRoot = 'textures/ui/astralrecord/action_ring'
+    $iconRoot = "$textureRoot/icons"
+    # The fixed-width header uses 000 for a slot without an icon.
+    $Bedrock.Add("$iconRoot/000.png", [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABpfZFQAAAAABJRU5ErkJggg=='))
+    foreach ($sprite in $SkillIcons.Ids) {
+        $name = '{0:000}' -f $sprite
+        $tile = $SkillIcons.Tiles.PSObject.Properties[[string]$sprite].Value
+        $Bedrock.Add("$iconRoot/$name.png", [Convert]::FromBase64String($tile))
+    }
     $sourceRoot = Join-Path $PSScriptRoot '../action-ring-hud'
     $textureNames = @(
         foreach ($frame in 0..7) {
@@ -83,7 +89,7 @@ function Add-ActionRingHudBedrockEntries {
         $Bedrock.Add("$textureRoot/$name.png", [IO.File]::ReadAllBytes((Join-Path $sourceRoot "$name.png")))
     }
 
-    $isRing = Get-RingHudTokenCondition 'arw1|'
+    $isRing = Get-RingHudTokenCondition 'arw2|'
     $hidden = Get-RingHudTokenCondition '|p0|'
     $armed = Get-RingHudTokenCondition '|a|'
     $aiming = "(not $armed)"
@@ -94,6 +100,13 @@ function Add-ActionRingHudBedrockEntries {
     $focusSettled = '(not ({0}))' -f ($focusPulses -join ' or ')
     $artSize = @(96, 96)
     $controls = [Collections.Generic.List[object]]::new()
+    $controls.Add(@{
+        ring_payload = [ordered]@{
+            type = 'panel'
+            size = @(0, 0)
+            property_bag = @{ '#ring_payload' = '$astralrecord_actionbar_payload' }
+        }
+    })
     $controls.Add((New-RingHudTextureControl 'rim' 1 $artSize @(0, 0) $aiming @(
         foreach ($step in 0..5) {
             @{ Condition = Get-RingHudTokenCondition "|p$step|"; Texture = "$textureRoot/opening_$($openingFrames[$step])" }
@@ -110,16 +123,15 @@ function Add-ActionRingHudBedrockEntries {
         }
     )))
     $statusArt = [ordered]@{ c = 'cooldown'; m = 'mana'; e = 'energy'; b = 'blocked'; u = 'blocked' }
+    # Geyser may prepend a reset code when converting the ActionBar text.
+    $ringPayload = "(#ring_payload - '$([char]0x00A7)r')"
     for ($slot = 0; $slot -le 8; $slot++) {
         $position = @(0, -8)
         $iconSize = @(22, 22)
-        $iconVisible = $armed
         if ($slot -lt 8) {
             $angle = [Math]::PI * $slot / 4
             $position = @([int][Math]::Round(30 * [Math]::Sin($angle)), [int][Math]::Round(-30 * [Math]::Cos($angle)))
             $iconSize = @(18, 18)
-            $empty = Get-RingHudTokenCondition "|s${slot}x|"
-            $iconVisible = "($aiming and (not $empty))"
             $focus = Get-RingHudTokenCondition "|f$slot|"
             $controls.Add((New-RingHudTextureControl "selected_$slot" 4 $artSize @(0, 0) $aiming @(
                 @{ Condition = "($focus and $focusSettled)"; Texture = "$textureRoot/selected_$slot" }
@@ -138,25 +150,39 @@ function Add-ActionRingHudBedrockEntries {
                 }
             )))
         }
-        $icon = New-RingHudTextureControl "icon_$slot" 5 $iconSize $position $iconVisible @(
-            foreach ($sprite in $SkillIcons.Ids) {
-                @{
-                    Condition = Get-RingHudTokenCondition ('|i{0}{1:000}|' -f $slot, $sprite)
-                    Texture = "textures/entity/action_ring_icons/$sprite"
+        # arw2| is followed by nine three-digit IDs. Drop the prefix up to this
+        # slot and take the first three characters from the remaining string.
+        $idOffset = 5 + 3 * $slot
+        $icon = [ordered]@{
+            type = 'image'
+            anchor_from = 'center'
+            anchor_to = 'center'
+            size = $iconSize
+            offset = $position
+            layer = 5
+            texture = '#texture'
+            bindings = @(
+                [ordered]@{
+                    binding_type = 'view'
+                    source_control_name = 'ring_payload'
+                    resolve_sibling_scope = $true
+                    source_property_name = "('$iconRoot/' + ('%.3s' * ($ringPayload - ('%.${idOffset}s' * $ringPayload))))"
+                    target_property_name = '#texture'
                 }
-            }
-        ) $unavailable
+            )
+        }
         if ($slot -lt 8) {
             $dimmed = @(foreach ($code in $statusArt.Keys) { Get-RingHudTokenCondition "|s$slot$code|" })
-            $iconControl = $icon["icon_$slot"]
-            $iconControl.alpha = '$ring_icon_alpha'
-            $iconControl['$ring_icon_alpha'] = 1
-            $iconControl.variables += [ordered]@{
-                requires = '({0})' -f ($dimmed -join ' or ')
-                '$ring_icon_alpha' = 0.64
-            }
+            $icon.alpha = '$ring_icon_alpha'
+            $icon['$ring_icon_alpha'] = 1
+            $icon.variables = @(
+                [ordered]@{
+                    requires = '({0})' -f ($dimmed -join ' or ')
+                    '$ring_icon_alpha' = 0.64
+                }
+            )
         }
-        $controls.Add($icon)
+        $controls.Add([ordered]@{ "icon_$slot" = $icon })
     }
 
     $hintColor = @(0.84, 0.92, 0.98)
