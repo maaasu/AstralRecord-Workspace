@@ -20,6 +20,7 @@ final class BackendProtocol {
     static final String OPEN_MENU = "open_menu";
     static final String PREPARE_CONNECT = "prepare_connect";
     static final String CHANNEL_CONNECTION = "channel_connection";
+    static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
 
     private BackendProtocol() {
     }
@@ -90,6 +91,11 @@ final class BackendProtocol {
 
     static byte[] openMenu() {
         return outgoing(OPEN_MENU, null);
+    }
+
+    /** @return 対象プレイヤーのBedrockパックが効果音に対応していることを伝える通知 */
+    static byte[] gameplaySoundsReady() {
+        return outgoing(GAMEPLAY_SOUNDS_READY, null);
     }
 
     private static Set<UUID> readParticipantIds(DataInputStream input) throws IOException {

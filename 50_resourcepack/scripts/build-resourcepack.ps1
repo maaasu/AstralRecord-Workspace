@@ -166,7 +166,9 @@ $bedrockSoundJson = ConvertTo-Json -Depth 5 -Compress -InputObject ([ordered]@{
     sound_definitions = $bedrockSounds
 })
 $bedrock.Add('sounds/sound_definitions.json', $utf8.GetBytes($bedrockSoundJson + "`n"))
-$java.Add('gameplay-sounds-version.txt', $utf8.GetBytes('1'))
+$soundVersion = $utf8.GetBytes('1')
+$java.Add('gameplay-sounds-version.txt', $soundVersion)
+$bedrock.Add('gameplay-sounds-version.txt', $soundVersion)
 
 # Include the template and file names in the fingerprint. Any distributed
 # Bedrock asset change results in a new pack ID, bypassing client pack caching.

@@ -30,8 +30,8 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean weaponAttack, Set<Integer> heldWeaponModels, Set<ItemModel> itemModels,
-    Set<Integer> actionRingSprites
+    boolean combatResult, boolean weaponAttack, boolean gameplaySounds, Set<Integer> heldWeaponModels,
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -103,6 +103,7 @@ record DamagePack(
             boolean actionRing;
             boolean combatResult;
             boolean weaponAttack;
+            boolean gameplaySounds;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -125,6 +126,7 @@ record DamagePack(
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
                 weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
+                gameplaySounds = hasGameplaySounds(zip);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -138,9 +140,20 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                heldWeaponModels, itemModels, actionRingSprites);
+                gameplaySounds, heldWeaponModels, itemModels, actionRingSprites);
         } finally {
             if (!keep) Files.deleteIfExists(file);
+        }
+    }
+
+    /** 効果音の定義と、ビルド時に記録した対応バージョンを確認します。 */
+    private static boolean hasGameplaySounds(ZipFile zip) throws IOException {
+        var version = zip.getEntry("gameplay-sounds-version.txt");
+        if (!present(version) || version.getSize() != 1 || !present(zip.getEntry("sounds/sound_definitions.json"))) {
+            return false;
+        }
+        try (var input = zip.getInputStream(version)) {
+            return input.read() == '1' && input.read() == -1;
         }
     }
 

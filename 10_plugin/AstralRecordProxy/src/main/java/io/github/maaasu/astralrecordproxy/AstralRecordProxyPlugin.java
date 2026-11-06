@@ -447,6 +447,9 @@ public final class AstralRecordProxyPlugin {
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
                     update.level(), update.className(), update.afk(), update.permission(),
                     update.classLevelMax(), update.accountNameOnly(), update.vipTier(), update.playerLevel()));
+                if (proxy.getPluginManager().isLoaded("geyser") && GeyserGameplaySounds.isReady(update.playerId())) {
+                    connection.sendPluginMessage(CHANNEL, BackendProtocol.gameplaySoundsReady());
+                }
                 if (pendingChannelNotifications.remove(update.playerId(), sourceServer)) {
                     broadcastChannelConnection(connection.getPlayer(), sourceServer, settings);
                 }

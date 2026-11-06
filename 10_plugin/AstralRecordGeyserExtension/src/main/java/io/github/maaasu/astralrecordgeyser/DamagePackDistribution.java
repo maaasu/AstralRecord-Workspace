@@ -160,6 +160,12 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().weaponAttack();
     }
 
+    /** @return ログイン時に登録済みのパックが専用効果音に対応していればtrue */
+    boolean gameplaySoundsReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().gameplaySounds();
+    }
+
     OptionalInt heldWeaponModel(GeyserConnection connection, int modelId) {
         SessionPack selection = sessions.get(connection);
         if (selection == null || !selection.ready() || selection.pack().heldWeaponModels().isEmpty()) {

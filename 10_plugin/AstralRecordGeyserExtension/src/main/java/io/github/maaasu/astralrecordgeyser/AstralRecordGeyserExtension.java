@@ -21,6 +21,7 @@ import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.util.Identifier;
 import java.io.IOException;
 import java.util.LinkedHashSet;
+import java.util.UUID;
 
 /** AstralRecord のヘッド、アイテム、Bedrock 向け専用エンティティを Geyser へ登録します。 */
 public final class AstralRecordGeyserExtension implements Extension {
@@ -108,6 +109,17 @@ public final class AstralRecordGeyserExtension implements Extension {
     public void onDisconnect(SessionDisconnectEvent event) {
         damagePacks.disconnect(event.connection());
         if (heldWeaponModels != null) heldWeaponModels.disconnect(event.connection());
+    }
+
+    /**
+     * Velocity上のAstralRecordProxyから、接続時に配布した効果音の対応状況を照会します。
+     *
+     * @param playerId 接続中プレイヤーのJava側UUID
+     * @return ログインまで完了した接続のパックに専用効果音がある場合はtrue
+     */
+    public boolean hasGameplaySounds(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && damagePacks.gameplaySoundsReady(connection);
     }
 
     @Subscribe
