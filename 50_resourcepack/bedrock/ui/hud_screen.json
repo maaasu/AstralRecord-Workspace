@@ -1,5 +1,19 @@
 {
   "namespace": "hud",
+  "astral_hotbar_selection_animation": {
+    "anim_type": "flip_book",
+    "initial_uv": [ 0, 0 ],
+    "frame_count": 12,
+    "frame_step": 24,
+    "fps": 10,
+    "looping": true,
+    "easing": "linear"
+  },
+  "hotbar_slot_selected_image": {
+    "texture": "textures/ui/astralrecord/hotbar_selection",
+    "uv_size": [ 24, 24 ],
+    "uv": "@hud.astral_hotbar_selection_animation"
+  },
   "hud_actionbar_text": {
     "size": [ "100%c + 18px", "100%c + 5px" ],
     "texture": "textures/ui/astralrecord/actionbar_plate",

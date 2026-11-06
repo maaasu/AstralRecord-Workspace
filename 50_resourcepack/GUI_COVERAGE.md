@@ -57,6 +57,7 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 | UI | 実装 | 対応と境界 |
 |:--|:--|:--|
 | 通常のプレイヤー所持品、ホットバー、クラフト枠のショートカット | `feature/inventory/service/InventoryService.java`、`NormalInventoryLayout.java`、`HotbarRenderer.java`、`feature/menu/view/CraftShortcutView.java` | 共通アイコン生成を使うショートカット・スクロール操作へ専用アイコンを適用。所持品のスロットやモデルを維持。Java の通常画面は `textures/gui/container/inventory.png`、統合版は Classic・Pocket の通常画面で専用の背景を使用。装備・クラフト・所持品のスロットと既存の操作を維持 |
+| プレイ中の HUD ホットバー | Java の HUD スプライト、統合版の `hud.hotbar_slot_selected_image` | 青灰色の通常枠と、金縁に光が巡る12フレームの選択枠。アイテムと個数の表示領域を透過し、スロット位置・選択判定と操作を維持 |
 | GUI の下段専用表示 | `shared/gui/playerinventory/PlayerInventoryOverlaySupport.java`、`shared/gui/hotbar/HotbarShortcutClickSupport.java` | 既存の holder 契約、表示復元、BAG スクロール・ホットバー操作を維持。専用背景のために実所持品をダミーへ置換しない |
 | 統合版プレイヤー設定フォーム | `feature/playersetting/gui/PlayerSettingGui.java#createBedrockForm`、`shared/gui/GuiOpenSupport.java#showDialog` | Paper Dialog の真偽値と選択欄、保存・取消を使用。Geyser が解釈するネイティブフォームで、今回のチェスト背景字形は使わない。フォーム基盤そのものを変える Bedrock `ui/*.json` 上書きは追加しない |
 | ワールド上のスキルツリー | `feature/skilltree/service/SkillTreeVisualizer.java`、`SkillTreePacketDisplay.java`、`SkillTreeService.java` | 単一スキルを付与するノードの ItemDisplay に共通スキルアイコンを適用。その他のノードにはノードのアイコンを使う。統合版の線には粒子代替がある |
