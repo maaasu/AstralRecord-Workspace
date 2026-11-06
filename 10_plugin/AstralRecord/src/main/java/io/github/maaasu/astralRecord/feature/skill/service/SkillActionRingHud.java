@@ -30,7 +30,9 @@ import java.util.concurrent.ConcurrentHashMap;
 final class SkillActionRingHud {
     static final int INTRO_FRAMES = 8;
     static final int CONFIRM_FRAMES = 8;
-    static final int CLOSE_FRAMES = 4;
+    static final int BEDROCK_ANIMATION_STEP = 2;
+
+    private static final int CLOSE_FRAMES = 4;
 
     private static final int HEARTBEAT_TICKS = 16;
     private static final int TITLE_STAY_TICKS = 22;
@@ -147,7 +149,8 @@ final class SkillActionRingHud {
             }
             if (closing == null) {
                 closing = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-                    if (interrupted() || !player.isOnline() || ++closeAge > CLOSE_FRAMES) {
+                    closeAge += bedrock ? BEDROCK_ANIMATION_STEP : 1;
+                    if (interrupted() || !player.isOnline() || closeAge > CLOSE_FRAMES) {
                         finish();
                         return;
                     }

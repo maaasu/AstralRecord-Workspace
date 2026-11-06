@@ -24,7 +24,9 @@ import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.FluidCollisionMode;
@@ -64,6 +66,7 @@ public final class SkillActionRingService {
     private static final double VIEW_FOLLOW_DEAD_ZONE_RADIANS = Math.toRadians(30.0D);
     private static final double VIEW_FOLLOW_MAX_LAG_RADIANS = Math.toRadians(40.0D);
     private static final double VIEW_FOLLOW_BLEND = 0.50D;
+    private static final double BEDROCK_WORLD_FOLLOW_BLEND = 0.85D;
     private static final double VIEW_FOLLOW_EPSILON_RADIANS = Math.toRadians(0.05D);
     private static final double COLLISION_SAFETY_MARGIN = 0.06D;
     private static final int COLLISION_REFRESH_INTERVAL_TICKS = 4;
@@ -78,6 +81,7 @@ public final class SkillActionRingService {
     private static final double DETAIL_LABEL_OFFSET = 0.02D;
     private static final double CONFIRMED_LABEL_OFFSET = -0.43D;
     private static final double SCALE_RECOVERY_BLEND = 0.35D;
+    private static final double BEDROCK_SCALE_RECOVERY_BLEND = 0.60D;
     private static final double SCALE_RECOVERY_EPSILON = 0.005D;
     private static final double ORIENTATION_EPSILON_SQUARED = 1.0E-6D;
     private static final int TIMER_BAR_LENGTH = ActionRingPanel.TIMER_STEPS;
@@ -1318,7 +1322,7 @@ public final class SkillActionRingService {
             if (phase == RingPhase.SELECTING) {
                 refreshSlotAvailability();
                 int nextFocus = resolveFocusedIndex(player);
-                focusPulse = nextFocus == focusedIndex ? Math.min(3, focusPulse + 1) : 0;
+                focusPulse = nextFocus == focusedIndex ? Math.min(3, focusPulse + animationStep()) : 0;
                 focusedIndex = nextFocus;
                 int nextSelectedIndex = focusedIndex >= 0 && slots.get(focusedIndex).selectable() ? focusedIndex : -1;
                 if (nextSelectedIndex != selectedIndex) {
@@ -1330,7 +1334,7 @@ public final class SkillActionRingService {
             }
 
             if (hud != null) {
-                introFrame = Math.min(introFrame + 1, SkillActionRingHud.INTRO_FRAMES - 1);
+                introFrame = Math.min(introFrame + animationStep(), SkillActionRingHud.INTRO_FRAMES - 1);
                 renderHud();
                 return !hud.interrupted();
             }
@@ -1431,43 +1435,44 @@ public final class SkillActionRingService {
             int cooldownTenths = cooldown == null ? -1
                 : (int) Math.min(10_000L, cooldown.remaining() / 2L + cooldown.remaining() % 2L);
             hud.render(new SkillActionRingHud.Frame(List.copyOf(frameSlots), focusedIndex, confirmedIndex, timerFilled(),
-                introFrame, (int) Math.min(phaseElapsedTicks, SkillActionRingHud.CONFIRM_FRAMES - 1),
+                introFrame, (int) Math.min(phaseElapsedTicks * animationStep(), SkillActionRingHud.CONFIRM_FRAMES - 1),
                 focusPulse, selectionInstruction == PlayerMsgId.P_5871, cooldownTenths,
                 bedrock ? Component.empty() : hudDetail(cooldown)));
         }
 
-        private Component hudDetail(@Nullable CooldownView cooldown) {
-            if (confirmedIndex >= 0) {
-                return PlayerMsgResource.getComponent(PlayerMsgId.P_5886.getId());
-            }
-            if (focusedIndex < 0) {
-                PlayerMsgId hint = selectionInstruction == PlayerMsgId.P_5871 ? PlayerMsgId.P_5890 : PlayerMsgId.P_5885;
-                return PlayerMsgResource.getComponent(hint.getId());
-            }
-            if (cooldown != null) {
-                return legacyComponent(cooldown.text(true, false));
-            }
-            SlotView slot = slots.get(focusedIndex);
-            return switch (slot.availability()) {
-                case MANA -> PlayerMsgResource.getComponent(PlayerMsgId.P_5887.getId());
-                case ENERGY -> PlayerMsgResource.getComponent(PlayerMsgId.P_5888.getId());
-                case BLOCKED, UNAVAILABLE, COOLDOWN -> PlayerMsgResource.getComponent(PlayerMsgId.P_5889.getId());
-                case AVAILABLE -> Component.text(compactName(slot.name()), NamedTextColor.GOLD);
-            };
+        private int animationStep() {
+            return bedrock ? SkillActionRingHud.BEDROCK_ANIMATION_STEP : 1;
         }
 
-        /** 画面中央の短い字幕に収まるよう、幅の広い文字を優先して数えます。 */
-        private static String compactName(String name) {
-            int width = 0;
-            for (int end = 0; end < name.length();) {
-                int character = name.codePointAt(end);
-                width += character < 128 ? 1 : 2;
-                if (width > 12) {
-                    return name.substring(0, end) + "…";
-                }
-                end += Character.charCount(character);
+        private Component hudDetail(@Nullable CooldownView cooldown) {
+            if (confirmedIndex >= 0) {
+                return hudSkillDetail(slots.get(confirmedIndex), PlayerMsgResource.getComponent(PlayerMsgId.P_5886.getId()));
             }
-            return name;
+            PlayerMsgId hint = selectionInstruction == PlayerMsgId.P_5871 ? PlayerMsgId.P_5890 : PlayerMsgId.P_5885;
+            if (focusedIndex < 0) {
+                return PlayerMsgResource.getComponent(hint.getId());
+            }
+            SlotView slot = slots.get(focusedIndex);
+            Component status = cooldown != null
+                ? Component.text(CooldownView.seconds(cooldown.remaining()) + "s", NamedTextColor.GOLD)
+                : switch (slot.availability()) {
+                    case MANA -> PlayerMsgResource.getComponent(PlayerMsgId.P_5887.getId());
+                    case ENERGY -> PlayerMsgResource.getComponent(PlayerMsgId.P_5888.getId());
+                    case BLOCKED, UNAVAILABLE, COOLDOWN -> PlayerMsgResource.getComponent(PlayerMsgId.P_5889.getId());
+                    case AVAILABLE -> Component.empty();
+                };
+            return hudSkillDetail(slot, status);
+        }
+
+        /** 発動可否にかかわらず、装飾コードを取り除いた名前と現在の案内を並べます。 */
+        private static Component hudSkillDetail(SlotView slot, Component status) {
+            String name = PlainTextComponentSerializer.plainText().serialize(legacyComponent(slot.name()));
+            if (name.isBlank()) {
+                return status;
+            }
+            Component label = Component.text(name, NamedTextColor.WHITE, TextDecoration.BOLD);
+            return status.equals(Component.empty()) ? label
+                : Component.empty().append(label).append(Component.space()).append(status);
         }
 
         private boolean canActivateSelected() {
@@ -1547,8 +1552,8 @@ public final class SkillActionRingService {
             }
             // 手前への退避はすぐ反映し、障害物が外れたときだけ段階的に戻します。
             double recovery = collisionScale - layoutScale;
-            layoutScale = recovery <= SCALE_RECOVERY_EPSILON
-                ? collisionScale : layoutScale + recovery * SCALE_RECOVERY_BLEND;
+            double blend = bedrock ? BEDROCK_SCALE_RECOVERY_BLEND : SCALE_RECOVERY_BLEND;
+            layoutScale = recovery <= SCALE_RECOVERY_EPSILON ? collisionScale : layoutScale + recovery * blend;
             return currentCenter(eye);
         }
 
@@ -1597,7 +1602,9 @@ public final class SkillActionRingService {
             } else {
                 axis.normalize();
             }
-            double rotation = Math.max(excess * VIEW_FOLLOW_BLEND, angle - VIEW_FOLLOW_MAX_LAG_RADIANS);
+            // 統合版のワールド表示ではモデルの追従に遅れを重ねないよう、基準の追従を速めます。
+            double blend = bedrock && hud == null ? BEDROCK_WORLD_FOLLOW_BLEND : VIEW_FOLLOW_BLEND;
+            double rotation = Math.max(excess * blend, angle - VIEW_FOLLOW_MAX_LAG_RADIANS);
             normal = rotateAroundAxis(normal, axis, rotation).normalize();
             right = rotateAroundAxis(right, axis, rotation);
             right.subtract(normal.clone().multiply(right.dot(normal)));
