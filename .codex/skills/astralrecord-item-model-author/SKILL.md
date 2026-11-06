@@ -1,6 +1,6 @@
 ---
 name: astralrecord-item-model-author
-description: AstralRecord の新規プレイヤー用アイテムと既存アイテムの外観変更に適用する。武器と防具の素材表現、参考パックを使ったテクスチャ改修、着用原画の同期と描画確認も扱う。Blockbench でバニラ調の立体モデル・ピクセルテクスチャ・使用動作を制作し、Filebase の customModelData、Java と Bedrock のパック、Geyser の表示を一貫して検証する。
+description: AstralRecord の新規プレイヤー用アイテムと既存アイテムの外観変更に適用する。武器・盾などの握り方や向き、副手装備の手持ちサイズ、武器と防具の質感、参考パックを使う改修や着用原画も扱う。Blockbench で立体モデル・ピクセルテクスチャ・使用動作を制作し、Filebase の customModelData、Java と Bedrock のパック、Geyser の表示を一貫して検証する。
 ---
 
 # AstralRecord アイテムモデル制作
@@ -8,6 +8,8 @@ description: AstralRecord の新規プレイヤー用アイテムと既存アイ
 新しいプレイヤー用アイテムには原則として立体モデルを用意する。既存外観を再利用する派生品、システム専用アイコン、ユーザーが表示方式を指定した場合は、その用途に合う表現を選ぶ。既存マスターの性能値や説明だけの調整では、モデルの制作は必要ない。
 
 武器・防具の質感改善、参考パックを使う改修、一括テクスチャ更新では [武器と防具の質感設計](references/equipment-surface-quality.md) を読む。
+
+手持ちモデルの制作・修正や握りの不具合調査では [手持ち装備の握り方と視界](references/held-equipment.md) を読む。副手装備は視界を確保できる小さめの手持ち表示を基本とし、手持ちだけの修正では既存のインベントリアイコンの大きさを維持する。
 
 ## 制作
 
