@@ -24,7 +24,7 @@ final class BackendProtocol {
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
-    private static final byte[] BEDROCK_PROFILE_HUD_READY = emptyNotification("bedrock_profile_hud_ready");
+    private static final byte[] BEDROCK_PROFILE_HUD_READY = emptyNotification("bedrock_profile_hud_images_ready");
     private static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     private static final int ACTION_RING_HUD_NOTIFICATION_SIZE = 2 + ACTION_RING_HUD_READY.length() + 2 + 64;
 
@@ -298,7 +298,7 @@ final class BackendProtocol {
     /** 対象プレイヤーを運ぶ接続に個人情報HUDの表示値を送ります。 */
     static void sendBedrockProfileHud(@NotNull Plugin plugin, @NotNull Player player, @NotNull String text) {
         send(plugin, player, output -> {
-            output.writeUTF("bedrock_profile_hud");
+            output.writeUTF("bedrock_profile_hud_images");
             output.writeUTF(text);
         });
     }

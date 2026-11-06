@@ -45,11 +45,11 @@ final class GeyserPackCapabilities {
     }
 
     static boolean hasProfileHud(UUID playerId) {
-        return supports(playerId, "hasProfileHud");
+        return supports(playerId, "hasProfileHudImages");
     }
 
     static void sendProfileHud(UUID playerId, String text) {
-        invoke(playerId, "sendProfileHud", new Class<?>[] {UUID.class, String.class}, playerId, text);
+        invoke(playerId, "sendProfileHudImages", new Class<?>[] {UUID.class, String.class}, playerId, text);
     }
 
     private static boolean supports(UUID playerId, String method) {

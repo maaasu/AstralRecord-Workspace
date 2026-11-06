@@ -337,10 +337,25 @@ public class PlayerHudView {
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         UUID playerId = player.getUniqueId();
-        boolean pack = resourcePackService.hasManagedJavaPack(playerId)
-                || resourcePackService.hasBedrockProfileHud(playerId);
+        boolean pack = resourcePackService.hasManagedJavaPack(playerId);
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
+        Component additionalStats = guardActionText(showGuard, currentGuard, maximumGuard)
+            .append(showPhoenix && currentPhoenix > 0.0D
+                    ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
+            .append(additionalResource)
+            .append(shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity))
+            .append(conditionActionText(activeConditions))
+            .append(showDps ? dpsActionText(currentDps) : Component.empty());
+        if (resourcePackService.hasBedrockProfileHud(playerId)) {
+            Component bedrock = BedrockCombatHud.encode(
+                    snapshot.getCurrentHp(), maxHp, snapshot.getCurrentMp(), maxMp,
+                    snapshot.getCurrentEnergy(), maxEnergy, additionalStats);
+            if (bedrock != null) {
+                sendActionBar(player, bedrock);
+                return;
+            }
+        }
         sendActionBar(player, Component.empty()
             .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter)
                     : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
@@ -350,13 +365,7 @@ public class PlayerHudView {
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER)
                     : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
-            .append(guardActionText(showGuard, currentGuard, maximumGuard))
-            .append(showPhoenix && currentPhoenix > 0.0D
-                    ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
-            .append(additionalResource)
-            .append(shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity))
-            .append(conditionActionText(activeConditions))
-            .append(showDps ? dpsActionText(currentDps) : Component.empty()));
+            .append(additionalStats));
     }
 
     /**

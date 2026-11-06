@@ -33,7 +33,7 @@
       },
       {
         "binding_type": "view",
-        "source_property_name": "(#tip_text = (#tip_text - 'geyseropt:astralrecord_profile_hud:'))",
+        "source_property_name": "(#tip_text = (#tip_text - 'geyseropt:astralrecord_profile_hud_images:'))",
         "target_property_name": "#visible"
       }
     ]
@@ -41,7 +41,7 @@
   "astralrecord_profile_hud": {
     "type": "panel",
     "size": [ "100%", "100%" ],
-    "$profile_prefix": "geyseropt:astralrecord_profile_hud:",
+    "$profile_prefix": "geyseropt:astralrecord_profile_hud_images:",
     "controls": [
       {
         "profile_data": {
@@ -59,36 +59,277 @@
             },
             {
               "binding_type": "view",
-              "source_property_name": "(not (#tip_text = #preserved_text) and (('%.35s' * #tip_text) = $profile_prefix))",
+              "source_property_name": "(not (#tip_text = #preserved_text) and (('%.42s' * #tip_text) = $profile_prefix))",
               "target_property_name": "#visible"
             }
           ]
         }
       },
       {
-        "profile_text": {
-          "type": "label",
+        "profile_level_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/profile_level",
+          "size": [ 9, 9 ],
+          "offset": [ -104, -110 ],
           "anchor_from": "bottom_middle",
-          "anchor_to": "bottom_left",
-          "offset": [ -104, -88 ],
-          "size": [ "72%", "default" ],
+          "anchor_to": "top_left",
           "layer": 31,
-          "text": "#text",
-          "text_alignment": "left",
-          "shadow": true,
-          "localize": false,
           "visible": false,
           "bindings": [
             {
               "binding_type": "view",
               "source_control_name": "profile_data",
               "resolve_sibling_scope": true,
-              "source_property_name": "(#preserved_text - $profile_prefix)",
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_level_value": {
+          "type": "label",
+          "size": [ 93, 10 ],
+          "offset": [ -93, -110 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "text": "#text",
+          "text_alignment": "left",
+          "font_scale_factor": 0.9,
+          "color": [ 1, 1, 1 ],
+          "shadow": true,
+          "localize": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(((((('%.28s' * ((#preserved_text - $profile_prefix) - ('%.4s' * (#preserved_text - $profile_prefix)))) - '~~~~~~~~~~~~~~~~') - '~~~~~~~~') - '~~~~') - '~~') - '~')",
               "target_property_name": "#text"
             },
             {
               "binding_type": "view",
-              "source_property_name": "(not (#text = '') and not (#text = ' '))",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_gold_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/profile_gold",
+          "size": [ 9, 9 ],
+          "offset": [ 8, -110 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_gold_value": {
+          "type": "label",
+          "size": [ 128, 10 ],
+          "offset": [ 19, -110 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "text": "#text",
+          "text_alignment": "left",
+          "font_scale_factor": 0.9,
+          "color": [ 1, 0.78, 0.26 ],
+          "shadow": true,
+          "localize": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(((((('%.28s' * ((#preserved_text - $profile_prefix) - ('%.32s' * (#preserved_text - $profile_prefix)))) - '~~~~~~~~~~~~~~~~') - '~~~~~~~~') - '~~~~') - '~~') - '~')",
+              "target_property_name": "#text"
+            },
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_class_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/profile_class",
+          "size": [ 9, 9 ],
+          "offset": [ -104, -96 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_class_value": {
+          "type": "label",
+          "size": [ 93, 10 ],
+          "offset": [ -93, -96 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "text": "#text",
+          "text_alignment": "left",
+          "font_scale_factor": 0.9,
+          "color": [ 1, 1, 1 ],
+          "shadow": true,
+          "localize": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((#preserved_text - $profile_prefix) - ('%.94s' * (#preserved_text - $profile_prefix)))",
+              "target_property_name": "#text"
+            },
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_exp_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/profile_exp",
+          "size": [ 9, 9 ],
+          "offset": [ -2, -96 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_exp_value": {
+          "type": "label",
+          "size": [ 35, 10 ],
+          "offset": [ 9, -96 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "text": "#text",
+          "text_alignment": "left",
+          "font_scale_factor": 0.9,
+          "color": [ 0.45, 0.94, 1 ],
+          "shadow": true,
+          "localize": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * ((#preserved_text - $profile_prefix) - ('%.60s' * (#preserved_text - $profile_prefix)))) - '~~') - '~')",
+              "target_property_name": "#text"
+            },
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "((('%.4s' * (#preserved_text - $profile_prefix)) = '|p0|') or (('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_points_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/profile_points",
+          "size": [ 9, 9 ],
+          "offset": [ 42, -96 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|')",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_points_value": {
+          "type": "label",
+          "size": [ 90, 10 ],
+          "offset": [ 53, -96 ],
+          "anchor_from": "bottom_middle",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "visible": false,
+          "text": "#text",
+          "text_alignment": "left",
+          "font_scale_factor": 0.9,
+          "color": [ 1, 0.83, 0.45 ],
+          "shadow": true,
+          "localize": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(((((('%.30s' * ((#preserved_text - $profile_prefix) - ('%.64s' * (#preserved_text - $profile_prefix)))) - '~~~~~~~~~~~~~~~~') - '~~~~~~~~') - '~~~~') - '~~') - '~')",
+              "target_property_name": "#text"
+            },
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(('%.4s' * (#preserved_text - $profile_prefix)) = '|p1|')",
               "target_property_name": "#visible"
             }
           ]
@@ -132,21 +373,145 @@
         "$astralrecord_actionbar_anims": [
           "@hud.astralrecord_action_ring_expiry"
         ]
+      },
+      {
+        "requires": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arhud2|')))",
+        "$astralrecord_actionbar_anims": [
+          "@hud.astralrecord_combat_expiry"
+        ]
       }
     ],
     "anims": "$astralrecord_actionbar_anims",
     "controls": [
       {
         "normal_actionbar@hud.hud_actionbar_text": {
-          "ignored": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw1|')))"
+          "ignored": "(not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arhud2|')) or not ($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw1|')))"
         }
       },
       {
         "action_ring@astralrecord_action_ring.popup": {
           "ignored": "($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arw1|'))"
         }
+      },
+      {
+        "combat_actionbar@hud.astralrecord_combat_actionbar": {
+          "ignored": "($astralrecord_actionbar_payload = ($astralrecord_actionbar_payload - 'arhud2|'))"
+        }
       }
     ]
+  },
+  "astralrecord_combat_actionbar": {
+    "type": "image",
+    "texture": "textures/ui/astralrecord/actionbar_plate",
+    "size": [ 232, 26 ],
+    "anchor_from": "bottom_middle",
+    "anchor_to": "bottom_middle",
+    "offset": [ 0, -43 ],
+    "layer": 30,
+    "controls": [
+      {
+        "combat_hp_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/combat_hp",
+          "size": [ 11, 11 ],
+          "offset": [ 5, 3 ],
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "layer": 31
+        }
+      },
+      {
+        "combat_hp_value": {
+          "type": "label",
+          "size": [ 61, 10 ],
+          "offset": [ 18, 4 ],
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.3s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
+          "text_alignment": "left",
+          "font_scale_factor": 0.86,
+          "color": [ 1, 0.53, 0.59 ],
+          "shadow": true,
+          "localize": false
+        }
+      },
+      {
+        "combat_mp_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/combat_mp",
+          "size": [ 11, 11 ],
+          "offset": [ 82, 3 ],
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "layer": 31
+        }
+      },
+      {
+        "combat_mp_value": {
+          "type": "label",
+          "size": [ 61, 10 ],
+          "offset": [ 95, 4 ],
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.15s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
+          "text_alignment": "left",
+          "font_scale_factor": 0.86,
+          "color": [ 0.49, 0.85, 1 ],
+          "shadow": true,
+          "localize": false
+        }
+      },
+      {
+        "combat_eng_icon": {
+          "type": "image",
+          "texture": "textures/ui/astralrecord/combat_eng",
+          "size": [ 11, 11 ],
+          "offset": [ 159, 3 ],
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "layer": 31
+        }
+      },
+      {
+        "combat_eng_value": {
+          "type": "label",
+          "size": [ 61, 10 ],
+          "offset": [ 172, 4 ],
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "layer": 31,
+          "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.27s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
+          "text_alignment": "left",
+          "font_scale_factor": 0.86,
+          "color": [ 1, 0.81, 0.39 ],
+          "shadow": true,
+          "localize": false
+        }
+      },
+      {
+        "combat_details": {
+          "type": "label",
+          "anchor_from": "top_middle",
+          "anchor_to": "top_middle",
+          "size": [ 222, 10 ],
+          "offset": [ 0, 15 ],
+          "text": "((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.39s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))",
+          "text_alignment": "center",
+          "font_scale_factor": 0.85,
+          "shadow": true,
+          "localize": false,
+          "layer": 31
+        }
+      }
+    ]
+  },
+  "astralrecord_combat_expiry": {
+    "anim_type": "wait",
+    "duration": 2.5,
+    "destroy_at_end": "hud_actionbar_text",
+    "end_event": "hud_actionbar_text_complete"
   },
   "astralrecord_action_ring_expiry": {
     "anim_type": "wait",

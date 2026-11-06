@@ -23,8 +23,8 @@ final class BackendProtocol {
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
-    private static final String BEDROCK_PROFILE_HUD = "bedrock_profile_hud";
-    private static final String BEDROCK_PROFILE_HUD_READY = "bedrock_profile_hud_ready";
+    private static final String BEDROCK_PROFILE_HUD = "bedrock_profile_hud_images";
+    private static final String BEDROCK_PROFILE_HUD_READY = "bedrock_profile_hud_images_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
 
     private BackendProtocol() {

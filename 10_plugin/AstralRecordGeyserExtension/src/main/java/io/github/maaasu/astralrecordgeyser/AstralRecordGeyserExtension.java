@@ -36,7 +36,7 @@ public final class AstralRecordGeyserExtension implements Extension {
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
-    private static final String PROFILE_HUD_KEY = "astralrecord_profile_hud";
+    private static final String PROFILE_HUD_KEY = "astralrecord_profile_hud_images";
     private static final ClassValue<Optional<Method>> JSON_UI_SENDERS = new ClassValue<>() {
         @Override
         protected Optional<Method> computeValue(Class<?> connectionType) {
@@ -180,7 +180,7 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @param playerId 接続中プレイヤーのJava側UUID
      * @return 対応パックを登録済みで、TIPを送信できる接続の場合はtrue
      */
-    public boolean hasProfileHud(UUID playerId) {
+    public boolean hasProfileHudImages(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && damagePacks.profileHudReady(connection)
             && JSON_UI_SENDERS.get(connection.getClass()).isPresent();
@@ -191,7 +191,7 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @param playerId 接続中プレイヤーのJava側UUID
      * @param text 表示文字列。空白一文字で消去
      */
-    public void sendProfileHud(UUID playerId, String text) {
+    public void sendProfileHudImages(UUID playerId, String text) {
         var connection = geyserApi().connectionByUuid(playerId);
         if (connection == null || !damagePacks.profileHudReady(connection)) {
             return;
