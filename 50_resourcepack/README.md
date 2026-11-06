@@ -59,6 +59,8 @@ Java版は管理パック未適用時に標準粒子を1つ表示し、旧管理
 
 音源は新規に合成したモノラル Ogg Vorbis で、`assets/astralrecord/sounds/` に保存します。`assets/astralrecord/sounds.json` に登録した音だけをパックに収録します。ビルド時に同じ音源から統合版の `sounds/sound_definitions.json` を生成し、両版で `astralrecord:` から始まる同じイベント ID を使います。[Bedrock のカスタムサウンド](https://learn.microsoft.com/ja-jp/minecraft/creator/documents/addcustomsounds?view=minecraft-bedrock-stable)
 
+Java版は効果音対応の管理パックを適用した接続で専用音を再生します。統合版は更新した AstralRecordProxy と Geyser 拡張で接続時の対応パックを確認します。RPG の `network.enabled: true` と Geyser の `gameplay.force-resource-packs: true` を設定し、更新したパックを配布した後にクライアントを再接続します。対応を確認できない接続では標準音を再生します。
+
 ## アイテムモデル
 
 Filebase の `icon` が基本素材、`customModelData` がモデル番号です。Paper はクライアントへの送信アイテムに番号を適用します。ビルドは `item-models.json` をもとに、JE 用の振り分けと、Geyser が BE 用パックから読み込む登録情報を生成します。パックとマスターの番号が一致すると、JE は該当の立体モデル、BE は対応する手持ちモデルとインベントリアイコンを使います。未登録の番号は各版の基本素材で表示します。
