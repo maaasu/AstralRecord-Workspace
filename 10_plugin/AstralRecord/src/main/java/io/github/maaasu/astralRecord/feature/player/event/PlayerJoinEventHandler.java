@@ -738,7 +738,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
             if (user == null) {
-                finishJoinLoading(attempt, false);
+                finishAccountLoad(attempt, false, null);
                 return;
             }
 
@@ -762,7 +762,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
             if (account == null) {
-                finishJoinLoading(attempt, false);
+                finishAccountLoad(attempt, false, null);
                 return;
             }
 
@@ -1436,18 +1436,37 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             action.run();
         } catch (Exception e) {
             Logger.log(LogId.E_5070, e, playerName);
-            plugin.getServer().getScheduler().runTask(plugin, () -> finishJoinLoading(attempt, false));
-            notifyAccountLoadCompletion(completionListener, false);
+            finishAccountLoad(attempt, false, completionListener);
         }
     }
 
+    /**
+     * メインスレッドでロード制御を解除し、通常参加の失敗時は再接続を案内して切断します。
+     *
+     * @param attempt 終了するロード試行
+     * @param succeeded データ反映に成功したか
+     * @param completionListener 再ロード結果の通知先。通常参加では null
+     */
     private void finishAccountLoad(
         JoinAttempt attempt,
         boolean succeeded,
         @Nullable Consumer<Boolean> completionListener
     ) {
-        finishJoinLoading(attempt, succeeded, completionListener == null);
-        notifyAccountLoadCompletion(completionListener, succeeded);
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> finishAccountLoad(attempt, succeeded, completionListener)
+            );
+            return;
+        }
+        boolean rejectJoin = !succeeded && completionListener == null && isJoinLoading(attempt);
+        finishJoinLoading(attempt, succeeded, succeeded && completionListener == null);
+        if (rejectJoin && attempt.player().isOnline()) {
+            attempt.player().kick(PlayerMsgResource.getComponent(PlayerMsgId.P_5313.getId()));
+        }
+        if (completionListener != null) {
+            completionListener.accept(succeeded);
+        }
     }
 
     /** 復旧用に保持した保存受付停止と session 遷移所有権を解放して結果を通知します。 */
@@ -1462,23 +1481,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             playerId,
             PlayerSessionTransitionGuard.Transition.PLAYER_STATE_RECOVERY
         );
-        completionListener.accept(succeeded);
-    }
-
-    private void notifyAccountLoadCompletion(
-        @Nullable Consumer<Boolean> completionListener,
-        boolean succeeded
-    ) {
-        if (completionListener == null) {
-            return;
-        }
-        if (!Bukkit.isPrimaryThread()) {
-            plugin.getServer().getScheduler().runTask(
-                plugin,
-                () -> notifyAccountLoadCompletion(completionListener, succeeded)
-            );
-            return;
-        }
         completionListener.accept(succeeded);
     }
 

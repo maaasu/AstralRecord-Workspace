@@ -31,12 +31,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * プレイヤー機能のビジネスロジックを担うサービスクラス。
  * ログイン時の AstPlayer 構築・キャッシュ登録・OP権限付与を管理します。
  */
 public class PlayerService {
+
+    private static final long JOIN_SAVE_WAIT_SECONDS = 30L;
 
     private io.github.maaasu.astralRecord.feature.pet.service.PetService petService;
     private io.github.maaasu.astralRecord.feature.pet.service.PetRuntimeService petRuntime;
@@ -116,7 +122,7 @@ public class PlayerService {
      *
      * @param playerUuid ログインしたプレイヤー UUID
      * @param playerName ログ出力用のプレイヤー名
-     * @return ログイン反映に必要なデータ。取得できない場合は null
+     * @return ログイン反映に必要なデータ。先行保存の待機に失敗した場合など、取得できない場合は null
      */
     public @Nullable PlayerJoinData loadPlayerJoinData(@NotNull UUID playerUuid, @NotNull String playerName) {
         var user = loadPlayerJoinUser(playerUuid, playerName);
@@ -131,9 +137,12 @@ public class PlayerService {
 
         // インベントリ・装備ロードアウトを API から取得し、in-memory state として構築する。
         // 以降のゲームロジックは PlayerInventoryState のみを参照し、API 通信は autosave/logout のみで発生する。
-        PlayerJoinInventoryState inventoryState = loadPlayerJoinInventoryState(account);
-
-        return new PlayerJoinData(user, account, inventoryState);
+        try {
+            return new PlayerJoinData(user, account, loadPlayerJoinInventoryState(account));
+        } catch (CompletionException failure) {
+            Logger.error(LogId.E_5070, failure, playerName);
+            return null;
+        }
     }
 
     /**
@@ -189,10 +198,14 @@ public class PlayerService {
      *
      * @param account 選択中アカウント
      * @return 読み込んだインベントリ state と保持 state 引き継ぎ情報
+     * @throws CompletionException 先行保存の待機が失敗、中断、または期限切れになった場合
      */
     public @NotNull PlayerJoinInventoryState loadPlayerJoinInventoryState(@NotNull AccountModel account) {
-        inventorySaveCoordinator.awaitQueuedSaves(account.getUuid()).join();
-        if(petService!=null){petService.flush(account.getUuid()).join();petService.loadAccount(account.getUuid());}
+        awaitRecoveryBeforePlayerJoin(account.getUuid());
+        if (petService != null) {
+            awaitJoinSave(petService.flush(account.getUuid()), "pet save");
+            petService.loadAccount(account.getUuid());
+        }
         var controls = controlsService == null ? null : controlsService.load(account.getUuid());
         InventorySaveCoordinator.RetainedStateLease retainedLease =
             inventorySaveCoordinator.claimRetainedState(account.getUuid());
@@ -486,12 +499,36 @@ public class PlayerService {
     }
 
     /**
-     * ログイン開始前に、同一 account の保存不能復旧と先行保存が完了するまで待機します。
+     * Bukkit メインスレッド外で、同一 account の保存不能復旧と先行保存を最大30秒待機します。
      *
      * @param accountId 読み込む account ID
+     * @throws CompletionException 待機が失敗、中断、または期限切れになった場合
      */
     public void awaitRecoveryBeforePlayerJoin(@NotNull UUID accountId) {
-        inventorySaveCoordinator.awaitQueuedSaves(accountId).join();
+        awaitJoinSave(inventorySaveCoordinator.awaitQueuedSaves(accountId), "inventory save or recovery");
+    }
+
+    /**
+     * 先行処理の future を変更せず、参加ロード側の待機だけに期限を設定します。
+     *
+     * @param save 先行処理の完了を表す future
+     * @param stage 例外ログで識別する待機段階
+     * @throws CompletionException 待機が失敗、中断、または期限切れになった場合
+     */
+    private static void awaitJoinSave(CompletableFuture<Void> save, String stage) {
+        try {
+            save.get(JOIN_SAVE_WAIT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException timeout) {
+            throw new CompletionException(
+                "Player join timed out waiting for " + stage + " after " + JOIN_SAVE_WAIT_SECONDS + " seconds",
+                timeout
+            );
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new CompletionException(interrupted);
+        } catch (ExecutionException failure) {
+            throw new CompletionException(failure.getCause());
+        }
     }
 
     /**
