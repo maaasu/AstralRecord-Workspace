@@ -1174,7 +1174,7 @@
         "assets/astralrecord/textures/item/custom/nox_armor_helmet.png": "7840ed86778273b7413963d2bfe1a0d3ef4b9766f0d14434f9d60d59146adb52",
         "bedrock/animations/nox_armor_helmet.animation.json": "5f1fb645c92fce6ad04a1af29513f6517a00c18848dbacab2837977d4a1af4c3",
         "bedrock/attachables/nox_armor_helmet.json": "187ba9098e2e52c58e39a8920d176a09883c3fde76cec3fa6915147f4bb1cb0f",
-        "bedrock/models/entity/armor/nox_armor_helmet.geo.json": "d742c005eacb58e96dd71460a1a902494e17b4106aedc69e6643ddaf98df743b",
+        "bedrock/models/entity/armor/nox_armor_helmet.geo.json": "62cdb1b835a007af569c91d7cb0325961cbdbad7abee3abb3c4ecef731446839",
         "bedrock/models/entity/items/nox_armor_helmet.geo.json": "aa8412fd0a48167052219501a2fb5ec1ebae42c4f8ece904037cae8cf7ac635c",
         "bedrock/textures/entity/items/nox_armor_helmet.png": "7840ed86778273b7413963d2bfe1a0d3ef4b9766f0d14434f9d60d59146adb52",
         "bedrock/textures/items/nox_armor_helmet.png": "b5e0eac3769b5e521839551050fbbfe346ff079a9aafb84887093f78fc9d0c34",
@@ -1182,7 +1182,7 @@
         "blockbench/equipment-drafts/nox_armor_helmet.json": "b3e5e0a57be91a164f7acf988f20f07e40dccb3c620cbf290985f31b4bc5a596",
         "blockbench/items/nox_armor_helmet.bedrock.bbmodel": "ce4aca8aa8b9e38f66124eede5c38c71e537265c2147fc678a1f2f28eee4aaeb",
         "blockbench/items/nox_armor_helmet.java.bbmodel": "f13ac70d5ca3ad0dd943d1ad7b98b83abb603f87ad525219133847ed805c945f",
-        "blockbench/items/nox_armor_helmet_worn.bedrock.bbmodel": "d444a819aff3b7c5b418a39f00d8cc8fcaa0b6be5a87018c0cbe676cac92903b"
+        "blockbench/items/nox_armor_helmet_worn.bedrock.bbmodel": "a29137ec803f2182450003e566c3c4661046d72d977be1ab0385d065759a6b84"
       }
     },
     {
@@ -1197,7 +1197,7 @@
         "assets/astralrecord/textures/item/custom/nox_armor_chest.png": "6ddf7b93f26063e58c8e0a47fcda807951f835151f19373fa25fa98c20f355ed",
         "bedrock/animations/nox_armor_chest.animation.json": "0d86e3931fca51f2c40b91dd4fc242a13ceec426b0dbc3570798c16335e49d78",
         "bedrock/attachables/nox_armor_chest.json": "d6abb2503690ff64c45c9073f37e87a74503e339e51c8830dd5e7d39572ef794",
-        "bedrock/models/entity/armor/nox_armor_chest.geo.json": "b5b7f6dd54c722b4bd484e8ee66c51002a715b496f7c7f04f898bb3c546c82d7",
+        "bedrock/models/entity/armor/nox_armor_chest.geo.json": "ad82d02369a4ba8846f042978d6301a53871b2aa48c9ac41c0ae702c5008c75a",
         "bedrock/models/entity/items/nox_armor_chest.geo.json": "c2515966eab7f205dbbe8624a5606829084bc92c06682fcfeb9a599e3556c159",
         "bedrock/textures/entity/items/nox_armor_chest.png": "6ddf7b93f26063e58c8e0a47fcda807951f835151f19373fa25fa98c20f355ed",
         "bedrock/textures/items/nox_armor_chest.png": "1a39a74ca03494d3ce80f1847d874dc100bd30fc1c5085be69bbf235557d0305",
@@ -1205,7 +1205,7 @@
         "blockbench/equipment-drafts/nox_armor_chest.json": "f41058e47c72e7b43a3cca6cdaa3debd56efe811249f7a437e96aa5f92bbeb67",
         "blockbench/items/nox_armor_chest.bedrock.bbmodel": "3eda234455c60f364653c6b49e74637a7f5b62673de5fa8fc533c78dc995365b",
         "blockbench/items/nox_armor_chest.java.bbmodel": "9fe236f7cf194f89c1b0fffeca0f0f75b1803322fcaf77e64a4b5c4780ec9aba",
-        "blockbench/items/nox_armor_chest_worn.bedrock.bbmodel": "557d9206186e78252d95d015a274d867cdb10319c5a64c693c566b5ecc99594c"
+        "blockbench/items/nox_armor_chest_worn.bedrock.bbmodel": "e2f7536963dfcaf5bcd5d76790f73720637f6ea12eba818015926d2291caff18"
       }
     },
     {
@@ -1220,7 +1220,7 @@
         "assets/astralrecord/textures/item/custom/nox_armor_legs.png": "0352d4ab05f6dc3bcd8b019f44d6148a5add898ae251daff45680ba0853f9e0b",
         "bedrock/animations/nox_armor_legs.animation.json": "382ce44ac19cb3eb7678a791e7c3847d728cdd59b53a675357502097803ec662",
         "bedrock/attachables/nox_armor_legs.json": "66a078f1e446cad8b21296e2d748b0afbc99a59fcaeabe2cb068cfdccbf5aa81",
-        "bedrock/models/entity/armor/nox_armor_legs.geo.json": "fc792b47744e453fa41ebccb98a36c38078098b5d2f6fe7ab3c5500083788312",
+        "bedrock/models/entity/armor/nox_armor_legs.geo.json": "1c4208f95fa0eae91aa755d19c5c180ad52e003e318a62176e3dc0a21e9bda33",
         "bedrock/models/entity/items/nox_armor_legs.geo.json": "d65d390455175e14066f3e52a1008eab73cea9ec842f7e71306ee63d88f2d13c",
         "bedrock/textures/entity/items/nox_armor_legs.png": "0352d4ab05f6dc3bcd8b019f44d6148a5add898ae251daff45680ba0853f9e0b",
         "bedrock/textures/items/nox_armor_legs.png": "a39c03e9d27158aa5f2525376f8926d87b941029da35bfec5600d15f061c49d0",
@@ -1228,7 +1228,7 @@
         "blockbench/equipment-drafts/nox_armor_legs.json": "de8a93d182c2e13a33faad0cb8904388e252ad12e64cde748fd78e3afcea77d0",
         "blockbench/items/nox_armor_legs.bedrock.bbmodel": "0bca0276262fe8574400dcc8afbeaaebc3e97f90a8d237577e4b8261617b34cc",
         "blockbench/items/nox_armor_legs.java.bbmodel": "382fe320f74a076d775743e3f941da0d33254b17fc580e4dfc93c941bcae6215",
-        "blockbench/items/nox_armor_legs_worn.bedrock.bbmodel": "d3976e5e2d3ef3157850e7ac0ef0ed9aff8d8509fa9161989b6a4eb40ff9024e"
+        "blockbench/items/nox_armor_legs_worn.bedrock.bbmodel": "2ea23b62f1ab252418324263b5bb1da747b54c3221d35e7f6e8c2a7ede2c80c5"
       }
     },
     {
@@ -1243,7 +1243,7 @@
         "assets/astralrecord/textures/item/custom/nox_armor_boots.png": "50cca4bf529344ccb6f47e0e978d34e9fcf534230532e3f4ef24ccc9b429d0dc",
         "bedrock/animations/nox_armor_boots.animation.json": "d2b34c75fa3cba4adc2a6678e4935da7cf30097ad0c5f87b8792d5edea12317d",
         "bedrock/attachables/nox_armor_boots.json": "8139248635528aec0eb249da77e309b4454b45cc4ac27aa53b868b088bf6532e",
-        "bedrock/models/entity/armor/nox_armor_boots.geo.json": "8fe4528952808255b8fb321dd6b32762fd1a42afc8dd3450fb6dccb7be716156",
+        "bedrock/models/entity/armor/nox_armor_boots.geo.json": "26d4b7466ff624a6a9fbb20f26faa9f1d99841a9fddb9b26a897da95a5b3871b",
         "bedrock/models/entity/items/nox_armor_boots.geo.json": "9a7ea92d4825bc77b431f901ad30a135ca37511ce9b7d12c7115c686d8f88994",
         "bedrock/textures/entity/items/nox_armor_boots.png": "50cca4bf529344ccb6f47e0e978d34e9fcf534230532e3f4ef24ccc9b429d0dc",
         "bedrock/textures/items/nox_armor_boots.png": "bf571bfe0b7fd3a30cea1daf4610d02e264685b5c803a6929e4552c3f70d7f57",
@@ -1251,7 +1251,7 @@
         "blockbench/equipment-drafts/nox_armor_boots.json": "95da05a3894922e5fa321d161971bfae9dba30f1e4c65fba7a52ba515bad0ad3",
         "blockbench/items/nox_armor_boots.bedrock.bbmodel": "fd4c2c12aad46113d3401c1fe0662fde0dfb5030935087c75859738e3458b58f",
         "blockbench/items/nox_armor_boots.java.bbmodel": "cd0e555a7b6e8277fe51f0500a7f4621c2be41a96cb1c6a868059dff26bb995d",
-        "blockbench/items/nox_armor_boots_worn.bedrock.bbmodel": "4fdfc849263440fe3436a72a867ae28196e54137ebcfcd74f82511fd63e2ded8"
+        "blockbench/items/nox_armor_boots_worn.bedrock.bbmodel": "24f4feecc4d65ee6f30684abd000e55a682ec75d7f77bd84c29b6e2d4221dd61"
       }
     },
     {
@@ -1266,7 +1266,7 @@
         "assets/astralrecord/textures/item/custom/midgard_clay_guardian_plate.png": "76518b0ae40153c718050c66c3ef0a0bfd3b307c2869dc58574ee69ab123492d",
         "bedrock/animations/midgard_clay_guardian_plate.animation.json": "53fbd37669cdeba87fc29a1e6cdffbcacb1feb08a3054df6be0e8bfee7da9d05",
         "bedrock/attachables/midgard_clay_guardian_plate.json": "5cd53e9f259142129261dd64ee9ff40cc2143b592855cf69b4af03356ba5911a",
-        "bedrock/models/entity/armor/midgard_clay_guardian_plate.geo.json": "e33d546a722cb63c76eb436065603bb079d2672bc5b1fb962ba2acb9bf593acb",
+        "bedrock/models/entity/armor/midgard_clay_guardian_plate.geo.json": "873739201cd77ee1ffe7f58fdc9b91db25ae14ade39bdb27a5bf59bb4e722a6e",
         "bedrock/models/entity/items/midgard_clay_guardian_plate.geo.json": "ff746553dbc68095d4779603e8fd9ae9aa8fdaccb07debe69ed0554a2da22c4a",
         "bedrock/textures/entity/items/midgard_clay_guardian_plate.png": "76518b0ae40153c718050c66c3ef0a0bfd3b307c2869dc58574ee69ab123492d",
         "bedrock/textures/items/midgard_clay_guardian_plate.png": "00cd5dfdf8ce4abfa71eca5d6df6d8e5c96d5338e17de1887cc59d3009a2fd92",
@@ -1274,7 +1274,7 @@
         "blockbench/equipment-drafts/midgard_clay_guardian_plate.json": "be785debc601028d144a13426617942f6d502cd3e9dcc97cc717a1370f094019",
         "blockbench/items/midgard_clay_guardian_plate.bedrock.bbmodel": "ab984213ba929650dde79ccfda6dd0b6a3df885691bb0f454f783a8c867d6e32",
         "blockbench/items/midgard_clay_guardian_plate.java.bbmodel": "5cacc7208f7e32f7c88678de8bb0e7e5aa278377068c19906a9a0fa9fab9369e",
-        "blockbench/items/midgard_clay_guardian_plate_worn.bedrock.bbmodel": "d9f52a39d71b3feaa373c52e33a6d5ba624c66934640fb22af95df9f7563b06b"
+        "blockbench/items/midgard_clay_guardian_plate_worn.bedrock.bbmodel": "95a9b224e99454ebb07be1b6bb75eb4251085c40cae62bc0cfb2a4003617dd02"
       }
     },
     {
@@ -1289,7 +1289,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_helm.png": "a067622c57584ffd69e412ed076cf9f1cb2d34765af27c7bbaef5b8a95240926",
         "bedrock/animations/midgard_kuinya_helm.animation.json": "dfea8b8756f6fd601591f7020b7ce728c95629b58ad7f020fd16516fe5957f7f",
         "bedrock/attachables/midgard_kuinya_helm.json": "d841fdac435b52014e851c8bc49d28f1112f1c1cd5959a840ff41f2b17dfb6f8",
-        "bedrock/models/entity/armor/midgard_kuinya_helm.geo.json": "96adc51f91557819c2764b6eaf98ae988422c97b11010e5603b26fa2731b72c8",
+        "bedrock/models/entity/armor/midgard_kuinya_helm.geo.json": "f423d76443ffe3e2550ab9b5d1dca3e4464ba71994a3ac2640e250f7aee74fbd",
         "bedrock/models/entity/items/midgard_kuinya_helm.geo.json": "65be8b708164728d7c865f608ac8903d05db36f3a35aab302841b02fccf02d5c",
         "bedrock/textures/entity/items/midgard_kuinya_helm.png": "a067622c57584ffd69e412ed076cf9f1cb2d34765af27c7bbaef5b8a95240926",
         "bedrock/textures/items/midgard_kuinya_helm.png": "b9d855e00c9311206f8ad006cb59858cc51fe0607cbd39da71b0e1b03761f0ba",
@@ -1297,7 +1297,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_helm.json": "d3c1ebb9dce8db9eb50dfc27f88ee3c1bffe0d24202ad5d0fad67dea2332223e",
         "blockbench/items/midgard_kuinya_helm.bedrock.bbmodel": "6186b4336fd5b7d78fc8270caf872770e3eb3ab19fcc83d6c356bcbc92bb6179",
         "blockbench/items/midgard_kuinya_helm.java.bbmodel": "e6f1934554a7b17639ebe630ee5b3c91c8922941c7dab50b979b595febca6c5c",
-        "blockbench/items/midgard_kuinya_helm_worn.bedrock.bbmodel": "8f8e8a9d27d029cd945aa542e33b0df225368c394e9c3a7b1529a3c24fa3027c"
+        "blockbench/items/midgard_kuinya_helm_worn.bedrock.bbmodel": "1aa90b7cd43e7bd5d2c5d4fa99efeeb7627663584c9888ebd9a76fd2f5d11e1d"
       }
     },
     {
@@ -1312,7 +1312,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_greaves.png": "0c36aa9389c620aa55da7f60d64356ddc79611690ad19f75e36faa11ed8407ee",
         "bedrock/animations/midgard_kuinya_greaves.animation.json": "7822202c2973778760716e9b32c234c0b2dee369ff9f239c38da9be52a91cb7b",
         "bedrock/attachables/midgard_kuinya_greaves.json": "b42fe8e46756aeeacac8b79ac20a1b0203978840feccc9fd9cefaa3b938d6382",
-        "bedrock/models/entity/armor/midgard_kuinya_greaves.geo.json": "a91ffe4e0900fafcbece50dde34e4999e660c8c67648db2c6083aabcfdaadff6",
+        "bedrock/models/entity/armor/midgard_kuinya_greaves.geo.json": "ccb3dc98814b1dee79d0312da6973665798ac4c3ce73b0274a9fe511ec48a799",
         "bedrock/models/entity/items/midgard_kuinya_greaves.geo.json": "6ae72f2bf840711b29456b17d81deb2ac2c40a9d9c5974b05d22ed9a895b779e",
         "bedrock/textures/entity/items/midgard_kuinya_greaves.png": "0c36aa9389c620aa55da7f60d64356ddc79611690ad19f75e36faa11ed8407ee",
         "bedrock/textures/items/midgard_kuinya_greaves.png": "e8723c4b767ae77992a1154ab9188c41ef19200dde573eb1141af81040a664d3",
@@ -1320,7 +1320,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_greaves.json": "287d5a64d4a251b23cef3f4e11fde567cba899ab6547fd7e14b9a17bafa87524",
         "blockbench/items/midgard_kuinya_greaves.bedrock.bbmodel": "78462feda89533bdeb22b6ad41b445ad20b470defdc29d55944090676ae40ed0",
         "blockbench/items/midgard_kuinya_greaves.java.bbmodel": "6b43b8aca16988e4fc79c951f610c8a23adeaad3b0fb32ece25b9f39112c15a6",
-        "blockbench/items/midgard_kuinya_greaves_worn.bedrock.bbmodel": "8b66516e2da21483e56c110a483155e5c0ef4970be527ac0816b0603654636b3"
+        "blockbench/items/midgard_kuinya_greaves_worn.bedrock.bbmodel": "cb8ac356ae694467116bf4db3a4f5c915fff54d1dc54b09faff37b8fa98eb432"
       }
     },
     {
@@ -1335,7 +1335,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_sabaton.png": "e036f8099c9ffd57f6d546637a258a573ab960d7a096e6928863b7a81eea41d3",
         "bedrock/animations/midgard_kuinya_sabaton.animation.json": "599c6480a70cec371461ef89a61d84aad2f6631371a8a4c6c9355baea04a821e",
         "bedrock/attachables/midgard_kuinya_sabaton.json": "d6ffe8917d21dd27eea5a197be058139b1b240ea54aff04d8ed9d0ce5851687a",
-        "bedrock/models/entity/armor/midgard_kuinya_sabaton.geo.json": "bf13ab5057eb3e4e50994ac3eea9d7da45004a436783f1e699de2599d435b641",
+        "bedrock/models/entity/armor/midgard_kuinya_sabaton.geo.json": "0356396e579ba3aeafa84a968d7fdd4aba00eedeca909f90940d539c3aadd421",
         "bedrock/models/entity/items/midgard_kuinya_sabaton.geo.json": "0f7f52728af5fb67c17417ce39d6a391eab79ed549016121bfbc4f2d04d4d0bd",
         "bedrock/textures/entity/items/midgard_kuinya_sabaton.png": "e036f8099c9ffd57f6d546637a258a573ab960d7a096e6928863b7a81eea41d3",
         "bedrock/textures/items/midgard_kuinya_sabaton.png": "784187137826f1246a2c042014e819110dac06d8702cf0f2a4c12ea64d1fc0ab",
@@ -1343,7 +1343,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_sabaton.json": "a3b7dad2ccd4a111d6988c9afbc90fc91c283167260af076631b426b77de36cc",
         "blockbench/items/midgard_kuinya_sabaton.bedrock.bbmodel": "d1de60170bfcaa1c43d44920d2275f5079ae2be14e77635a4145b797ec3dd595",
         "blockbench/items/midgard_kuinya_sabaton.java.bbmodel": "2dff2a6a01ec5fba550982062d6284d46697e6e10f237e6b0868316d558e6c5e",
-        "blockbench/items/midgard_kuinya_sabaton_worn.bedrock.bbmodel": "59ad0969f56b77735ce35a3b089f8aba937150f987989e2c3a4845139cd3aa71"
+        "blockbench/items/midgard_kuinya_sabaton_worn.bedrock.bbmodel": "9c2cefeacdefdd6d1f76282397791b63d7b6057a10179aaa5ff59d0f9f8141c7"
       }
     },
     {
@@ -1358,7 +1358,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_circlet.png": "c5950ce649224900f87c0f38b6931973a4d0efd8c8e02eb413837253e8ee4abf",
         "bedrock/animations/midgard_kuinya_circlet.animation.json": "a773e838618b670cd6a6db08cca35faf2f5d9c282ea6cffd994db6276200f0ae",
         "bedrock/attachables/midgard_kuinya_circlet.json": "7e66dce0be061ab2c646b6bf85bc82df5b96d61f008b82c20744183955302b42",
-        "bedrock/models/entity/armor/midgard_kuinya_circlet.geo.json": "888051df4e52fd61b3fc6b089f30a613321821ee3c2d516e7967bde09c981324",
+        "bedrock/models/entity/armor/midgard_kuinya_circlet.geo.json": "0d3ff5e8a79ae4690f287a92cef57b8029b07c4688d99239fba63e2d1452a8be",
         "bedrock/models/entity/items/midgard_kuinya_circlet.geo.json": "08fd3b31713aaab2668c19a6d4d0ca06a415e35c273c832742cd12ef92c9349c",
         "bedrock/textures/entity/items/midgard_kuinya_circlet.png": "c5950ce649224900f87c0f38b6931973a4d0efd8c8e02eb413837253e8ee4abf",
         "bedrock/textures/items/midgard_kuinya_circlet.png": "13c917538f8df8c02aaeac4201cd346d4cf91c8cf5832ded6587ae52bbf28a79",
@@ -1366,7 +1366,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_circlet.json": "fb3857a1b049dc635e7b225ad780d2395ad186e9fb8ea5d2e500bcf53ad1c54f",
         "blockbench/items/midgard_kuinya_circlet.bedrock.bbmodel": "4baedb24435af1b8b624080304179e0b6fdb55ab11703b6ea7ceb6807abd44aa",
         "blockbench/items/midgard_kuinya_circlet.java.bbmodel": "e88acc91f0d6e92b7755ff7485892d9fc51d0691064423644cb33a99a76a0b51",
-        "blockbench/items/midgard_kuinya_circlet_worn.bedrock.bbmodel": "54c73697f2707e0545ecd5e00fd436642ae8b8fef5d0e5d64dba43b603141418"
+        "blockbench/items/midgard_kuinya_circlet_worn.bedrock.bbmodel": "1b286b0ada27ae16e03a2b200ba8bdd1b8da6bb14cdf8c31dce3b0ef75985787"
       }
     },
     {
@@ -1381,7 +1381,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_trousers.png": "66eac6ef819fce8b9f8c386a8d7bd271b3cd8ab01365862abc38eeac6a105ac0",
         "bedrock/animations/midgard_kuinya_trousers.animation.json": "f8065ad29a4636cd352b0a12b02edabd37f5630bd36c268c36904f21b787a8d3",
         "bedrock/attachables/midgard_kuinya_trousers.json": "e4b86ab6010094b1dcc351d99f0b985a16fca6e3320fb2a09104bbed225d16d0",
-        "bedrock/models/entity/armor/midgard_kuinya_trousers.geo.json": "68eb4c4e599ff9d05ca695a8dd891a93df0d578dcfb1999c46096dc2e26f30e2",
+        "bedrock/models/entity/armor/midgard_kuinya_trousers.geo.json": "3639c4b68499f26b9eab97e7fcfeab7bebba9f7640c7cff65a902d6148d9fa40",
         "bedrock/models/entity/items/midgard_kuinya_trousers.geo.json": "d751516969bf7a3086ad6abad653ac988648a082409bc7b7d9fea9b75fd89760",
         "bedrock/textures/entity/items/midgard_kuinya_trousers.png": "66eac6ef819fce8b9f8c386a8d7bd271b3cd8ab01365862abc38eeac6a105ac0",
         "bedrock/textures/items/midgard_kuinya_trousers.png": "1823c78ce2ed5188f6502b3711e3a71ea0038a608abf3c2c272f9544dcdba57b",
@@ -1389,7 +1389,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_trousers.json": "2f5b1dbb81b164743b88571c0f788ea0418a53df0e75767a2ea862371bd26544",
         "blockbench/items/midgard_kuinya_trousers.bedrock.bbmodel": "2e1f1bc060cffa15dc47ae517648ea3684e263949be5b39eb29156f94703229c",
         "blockbench/items/midgard_kuinya_trousers.java.bbmodel": "c0c665a715ee326f3a8906aa69250cfb76a2b2654152afd4f8b916cf57990c3a",
-        "blockbench/items/midgard_kuinya_trousers_worn.bedrock.bbmodel": "817b3ac7d3622edcf0c9ac69eb9a6c643719e83a1e373f8508019388bfe3b489"
+        "blockbench/items/midgard_kuinya_trousers_worn.bedrock.bbmodel": "945568e2f132830c14d3cb52a8ae2a485a03e156389d08d95a7d17de4d33ff1d"
       }
     },
     {
@@ -1404,7 +1404,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_sandals.png": "229f7fbf34b55d44324625f9f0cb7ce38c93f9e270b1cf411a5c7bf6b74c856b",
         "bedrock/animations/midgard_kuinya_sandals.animation.json": "c5c83a164d32aa829301e45522833329a2547f477cf87b84be8e399fb7ce18bf",
         "bedrock/attachables/midgard_kuinya_sandals.json": "420eeac8cceeb39310da3a24cec1c7434493070aef67483f1b4a4416202acd98",
-        "bedrock/models/entity/armor/midgard_kuinya_sandals.geo.json": "e33e5ed87233ca1ed26bb6c5f0493b24ce0e22e9e1b7e3d3797d17a2bdd6f788",
+        "bedrock/models/entity/armor/midgard_kuinya_sandals.geo.json": "0209e261ed82b1f37f29473cd5766ebfdf4270dcc5b5fa18551f120284b3a849",
         "bedrock/models/entity/items/midgard_kuinya_sandals.geo.json": "66f9283c97dc4c4d9883cabde8edd31237334af0e79d46915d9bdf316ef8ea76",
         "bedrock/textures/entity/items/midgard_kuinya_sandals.png": "229f7fbf34b55d44324625f9f0cb7ce38c93f9e270b1cf411a5c7bf6b74c856b",
         "bedrock/textures/items/midgard_kuinya_sandals.png": "75e02739988538df2d51400f19f1688644c6c5db195243cee6ce8729b641838c",
@@ -1412,7 +1412,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_sandals.json": "5f9059cabd3ee53802d13225ef2f8c3f5ad9d45b8a1ffa238969fd8e0c50afad",
         "blockbench/items/midgard_kuinya_sandals.bedrock.bbmodel": "632c91f633f9c5226d7ebc62b4f211237f54c96b381053ae08232be26623490b",
         "blockbench/items/midgard_kuinya_sandals.java.bbmodel": "e449080c54a7fe0b1dea110059f04f158e01cb88fac450d1cd601071aca63f39",
-        "blockbench/items/midgard_kuinya_sandals_worn.bedrock.bbmodel": "3ef55f4d33c94f7ed438fbb22d88a4cecd1b3c41bb72d5f621f8725278e91c7d"
+        "blockbench/items/midgard_kuinya_sandals_worn.bedrock.bbmodel": "4845a62b20d7a20b4b35b8603253772e671bb024817a99463fc2cf4c42144d1f"
       }
     },
     {
@@ -1427,7 +1427,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_hood.png": "8d93b1d49d145c8e0612a28964709ac806a6d64699d6579b36c0bffcd3a13736",
         "bedrock/animations/midgard_kuinya_hood.animation.json": "337bc0a412a81148407d00e43975c785deec491911c187b29ec4b6c925f605a8",
         "bedrock/attachables/midgard_kuinya_hood.json": "bb3af4c7c3e41aa9902b7db4747b576bb0d2cc8f7b265af23b9f171c9d6ca4cf",
-        "bedrock/models/entity/armor/midgard_kuinya_hood.geo.json": "7a86f7b5b605849a6bab9bb4e08e13f56a2c9fecb20fbdb5697213639600155d",
+        "bedrock/models/entity/armor/midgard_kuinya_hood.geo.json": "01d86734ac778994006baae80a527cab3164ba02140de1ed64e93a7c7e2dd1c4",
         "bedrock/models/entity/items/midgard_kuinya_hood.geo.json": "fe670ab8e64ca242215563340293133fca32a5c59f96c5e73e37525cdf888bda",
         "bedrock/textures/entity/items/midgard_kuinya_hood.png": "8d93b1d49d145c8e0612a28964709ac806a6d64699d6579b36c0bffcd3a13736",
         "bedrock/textures/items/midgard_kuinya_hood.png": "8cc173d8d79472d799bf4e83acfd9179a1a0f1ada0b9982e566b582afe5ad74f",
@@ -1435,7 +1435,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_hood.json": "083e7660f7de2fcdc7b0f58f39a47c55e9b50c445b93ac86afb996b3a56ec1f8",
         "blockbench/items/midgard_kuinya_hood.bedrock.bbmodel": "c251f6fc742822fef26b1d2a75da58d314865829d77bb163b925d19ee2afb4af",
         "blockbench/items/midgard_kuinya_hood.java.bbmodel": "2395683648e200d21fe1deab17a2abb07f14b66aa99d5ee7bc10e9d3ddf75100",
-        "blockbench/items/midgard_kuinya_hood_worn.bedrock.bbmodel": "5cb1941264c464373874a387b682b13ab3fdc4d025f22853862367a19fe27997"
+        "blockbench/items/midgard_kuinya_hood_worn.bedrock.bbmodel": "5037f81c8a4ce3fc0498bb133c79067a85b15cab40e496bb1089927e301d3390"
       }
     },
     {
@@ -1450,7 +1450,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_leggings.png": "d4df661ddb7662547e001712e4c71d39118382c2899848c1a9c9c20ba2ab5dc7",
         "bedrock/animations/midgard_kuinya_leggings.animation.json": "72390c1166a180d6fb5018e11cad017790d4322a3e5c0573c1efff8200bfec4d",
         "bedrock/attachables/midgard_kuinya_leggings.json": "57bb3e103258d8e02d39cbc5803454e22789e985efa992452b8d6041a87b429d",
-        "bedrock/models/entity/armor/midgard_kuinya_leggings.geo.json": "9c52238bdd1bf3171a1453e2ba0a0b926db42c3fd7da85f8b79a9594b42771eb",
+        "bedrock/models/entity/armor/midgard_kuinya_leggings.geo.json": "0478eecf3d1aa6b123a96ac1cbea2508bdbfb10272be57a24276f9053301b3e5",
         "bedrock/models/entity/items/midgard_kuinya_leggings.geo.json": "e3c12a5b18852df6293526aa58853b75cd37460fd7ea60a69fc0a65bb19f17a5",
         "bedrock/textures/entity/items/midgard_kuinya_leggings.png": "d4df661ddb7662547e001712e4c71d39118382c2899848c1a9c9c20ba2ab5dc7",
         "bedrock/textures/items/midgard_kuinya_leggings.png": "6147b7f6b016c72c39f920d462e02024009aa011fb0f9878a1504a7ea5d417cb",
@@ -1458,7 +1458,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_leggings.json": "8f314305a938da52a4959b4bcd585a792a0bf8b22ddaadfdedb853088a236fec",
         "blockbench/items/midgard_kuinya_leggings.bedrock.bbmodel": "e4e9ef450b2783572df42f647f504c28c7596d365293d36f91a49a8dd15e911f",
         "blockbench/items/midgard_kuinya_leggings.java.bbmodel": "cc8cedea61b2f713233c52633901e7bd78719875120d2867c352c910cdb18612",
-        "blockbench/items/midgard_kuinya_leggings_worn.bedrock.bbmodel": "5c57840461f6d495b40268b5b64712c8bdb4847ee4f3471bc1ca3e315230b2e1"
+        "blockbench/items/midgard_kuinya_leggings_worn.bedrock.bbmodel": "a419bcb77c7ebc6051d7c400e9686ba11f144a9fa5dc0c671695b18fe0abd8b7"
       }
     },
     {
@@ -1473,7 +1473,7 @@
         "assets/astralrecord/textures/item/custom/midgard_kuinya_boots.png": "aa6dc7e862d7227f98dc359450aace92ae8414e4ccdb2791124aa465e0a9354d",
         "bedrock/animations/midgard_kuinya_boots.animation.json": "92ca0c5d35cb6401bc8fa922bdb72504b4dd2c964fe67f450ac6f1d7d9c86edc",
         "bedrock/attachables/midgard_kuinya_boots.json": "6d5d0efec1d13e713a0efe7bb05cf9a25d7bd04957e416a24a23ec9e2fce3c56",
-        "bedrock/models/entity/armor/midgard_kuinya_boots.geo.json": "65fdbc49e617a240e20692996f4e30cf3fc76c1cf594a6f2c5dc1f2ad2a720c8",
+        "bedrock/models/entity/armor/midgard_kuinya_boots.geo.json": "273ffda92cd9d21dde28cf5d08aa5d0fa2ed8f7fe75ff2d07e809c030b054261",
         "bedrock/models/entity/items/midgard_kuinya_boots.geo.json": "520d8175f26faf2259b4cf47a7ff57672fff310f12800fa2837471f8ab8bee61",
         "bedrock/textures/entity/items/midgard_kuinya_boots.png": "aa6dc7e862d7227f98dc359450aace92ae8414e4ccdb2791124aa465e0a9354d",
         "bedrock/textures/items/midgard_kuinya_boots.png": "525071d3f32fd8c4f137cd2e9bb84f5bf76cfaff5b182bc31f1b7ed2ffa9c506",
@@ -1481,7 +1481,7 @@
         "blockbench/equipment-drafts/midgard_kuinya_boots.json": "13e80928a5a272561e4c3d94f96770240f042b33219cca096321c02a1af06d8c",
         "blockbench/items/midgard_kuinya_boots.bedrock.bbmodel": "c9f9d8511072ddb10052973b82a1ee8f6d4c3b9ff8c6d89b9fb6878815e18c7b",
         "blockbench/items/midgard_kuinya_boots.java.bbmodel": "f2d319cca83d5a1e05d128a8a4d98819d8e77da797a0b96de39eba842729d5cc",
-        "blockbench/items/midgard_kuinya_boots_worn.bedrock.bbmodel": "48703bf33d808272ec1a0f858586e260213ee68c6fabc1a8a0ced836c16f32d6"
+        "blockbench/items/midgard_kuinya_boots_worn.bedrock.bbmodel": "d41f5003597aaf75e34f564cabfdadc2dfd0123832ea4132ae6a60374e9f6083"
       }
     },
     {
@@ -1496,7 +1496,7 @@
         "assets/astralrecord/textures/item/custom/melkor_plate.png": "22dd1845b850ab421e26bd76e068cc12f42478628399f45d4d2b71d3021e9930",
         "bedrock/animations/melkor_plate.animation.json": "344a437aba553dee6672ec85bacc5bd7aa6802ed2b97a94111ca92e5e8ec0c46",
         "bedrock/attachables/melkor_plate.json": "06b3cc66515c7c8fc79620530ec5b021b1342039a87e366cbbfaa99e7fb16cf6",
-        "bedrock/models/entity/armor/melkor_plate.geo.json": "0d943f7c96c17e59fb55c903cbd27ba7d1771e0c4ee1c793d87de424de9a3499",
+        "bedrock/models/entity/armor/melkor_plate.geo.json": "64f34fa334e3eb9efa9ecc1346053235bd0d6f1819f7099dc2152c311d437a8d",
         "bedrock/models/entity/items/melkor_plate.geo.json": "29b0235b5cb8154d15efda8add1ec0a6291890cca9545c1c3af7a831c3834f52",
         "bedrock/textures/entity/items/melkor_plate.png": "22dd1845b850ab421e26bd76e068cc12f42478628399f45d4d2b71d3021e9930",
         "bedrock/textures/items/melkor_plate.png": "ce6f0360fb43b1835dab7526907e0e42453223971ebe59f0462cca6145bfa93e",
@@ -1504,7 +1504,7 @@
         "blockbench/equipment-drafts/melkor_plate.json": "e254ad9218ca536e15385afc4b0eac682a37408bfd5d8b91175c29b3bd168f7b",
         "blockbench/items/melkor_plate.bedrock.bbmodel": "6eb8b6277abd92c594483b007f91888d6943d83f3ac3beee1d9228451ff913f7",
         "blockbench/items/melkor_plate.java.bbmodel": "dd423cd0acde99fae37e1a58c1cf6ee9316f0caf43bc224817a04b29746f4c34",
-        "blockbench/items/melkor_plate_worn.bedrock.bbmodel": "b731172fee07f496a294dcf42f256315c250567659161b68b35295ee2a453ea1"
+        "blockbench/items/melkor_plate_worn.bedrock.bbmodel": "d5d83287dd6d34a0ab29b91139808bc5e3d3253c9f9c55740769894ac94a9a91"
       }
     },
     {
@@ -1519,7 +1519,7 @@
         "assets/astralrecord/textures/item/custom/melkor_helm.png": "7a153d76d53f4c8d3cfee4abddfaf5c3090d0a25cede996f90e85c5a8767b2f4",
         "bedrock/animations/melkor_helm.animation.json": "59bc0ce6ec300a656479110bf0a6e88962b1447b92a62dab93f607f2b60e4d1c",
         "bedrock/attachables/melkor_helm.json": "7d520abef70fe5151721740da3b927d2565e7273fa6b6dc065ba8c3257aeb365",
-        "bedrock/models/entity/armor/melkor_helm.geo.json": "d2e22554368b753aa034af16e3bfc9765f30282c60104e4158bad7022bf0fef6",
+        "bedrock/models/entity/armor/melkor_helm.geo.json": "c8c1499073327ccbb95a5764a1df611b54e39b6e691c726bfc45fb850da6b587",
         "bedrock/models/entity/items/melkor_helm.geo.json": "3fc62031bce2111a71bde73fe2f90a094507ce481f1ca0f3bf06a6f7fcc5d956",
         "bedrock/textures/entity/items/melkor_helm.png": "7a153d76d53f4c8d3cfee4abddfaf5c3090d0a25cede996f90e85c5a8767b2f4",
         "bedrock/textures/items/melkor_helm.png": "7096231ba46a6e9460c141994d32a3d7ec27bd1723443b4a1c6557257ac768f5",
@@ -1527,7 +1527,7 @@
         "blockbench/equipment-drafts/melkor_helm.json": "41171edb14ed65dbc2fc3797e6cc9608b7b13a020c20c8ca793fa2bd14add64e",
         "blockbench/items/melkor_helm.bedrock.bbmodel": "60cdfffec0b845a232b1d9e1c64bacdb5b7b0759d78e89cf937ca5f2365d7be2",
         "blockbench/items/melkor_helm.java.bbmodel": "92c5c571a52761e8a844f8bed910a9d96c68255b1e4dfd329736f7c4d517ca6d",
-        "blockbench/items/melkor_helm_worn.bedrock.bbmodel": "004fc9805b2a56b7a7bda15c7bd22341585a034f35c4df189c195d3746cb656a"
+        "blockbench/items/melkor_helm_worn.bedrock.bbmodel": "6cd13db907daeb6e5774ff1ba34f35f6f28fa696075c86c96bca0de30ba89429"
       }
     },
     {
@@ -1542,7 +1542,7 @@
         "assets/astralrecord/textures/item/custom/melkor_greaves.png": "91271476f121c4f5b1232531dd5d18c7b4145019c5d76679490d372991ee6e44",
         "bedrock/animations/melkor_greaves.animation.json": "d8263a466a8cc6d1b472af63bef544c58bdad9a567aff6551d66b595e35f8761",
         "bedrock/attachables/melkor_greaves.json": "aff8848511ff1b8d88d59b5f9f1c202d87513260bb412ee5878462f39d893876",
-        "bedrock/models/entity/armor/melkor_greaves.geo.json": "5a6aec6d12909a6564532413b8ab62152a26c4c3fabf2302cc07708523d191d5",
+        "bedrock/models/entity/armor/melkor_greaves.geo.json": "14c3b62dba4b2f005e14aadd58f782fa1c79183116503d2305cf49dd7cce7c34",
         "bedrock/models/entity/items/melkor_greaves.geo.json": "81110272b879d09824e9677acfbe100e94227f454fa453a8bc96e3a68d825520",
         "bedrock/textures/entity/items/melkor_greaves.png": "91271476f121c4f5b1232531dd5d18c7b4145019c5d76679490d372991ee6e44",
         "bedrock/textures/items/melkor_greaves.png": "2776f1283c0a3769f9ea705f86b028670dc7f884d6de9e8cd2e56a020d8c91bb",
@@ -1550,7 +1550,7 @@
         "blockbench/equipment-drafts/melkor_greaves.json": "3053d58201f1853d10d00984438e0797a5636c489d3855a2a20a7b788eea675f",
         "blockbench/items/melkor_greaves.bedrock.bbmodel": "baffe667d7ea66ae6a8a49c5ce1ca36c721fe1c6f3c96ddb401418e104efeed1",
         "blockbench/items/melkor_greaves.java.bbmodel": "4802e58553dfd0876e3c77534023aea5d976b9ae0bbabc4a0c59846474c909bb",
-        "blockbench/items/melkor_greaves_worn.bedrock.bbmodel": "c9984dd7139cabb5b1a427ac822de641258134353cd61a869ab25896567a4662"
+        "blockbench/items/melkor_greaves_worn.bedrock.bbmodel": "b093686850bf4f1e99d8db4a85b7e6c23df349e8fbadba07505cc035ef8ab63e"
       }
     },
     {
@@ -1565,7 +1565,7 @@
         "assets/astralrecord/textures/item/custom/melkor_sabaton.png": "2046649d5e0d09fa38120dbb4af92f09d0a1c2b11f350abd10099d3b9bed6d4e",
         "bedrock/animations/melkor_sabaton.animation.json": "a2c5d750931aeb16961481af99bac212327fc0ab73064983048fa6d92f77fa6a",
         "bedrock/attachables/melkor_sabaton.json": "5662f95b57283050f5e4e3da4b092fa0340ba3265bad24bb605ea9ac9bef51dc",
-        "bedrock/models/entity/armor/melkor_sabaton.geo.json": "0f05771d3e9b4889d3ef3a3d92634c3720c763d2d8d3eafba450e24573c1e207",
+        "bedrock/models/entity/armor/melkor_sabaton.geo.json": "6ed06c39a5f573080f903962189f6591c25d4afc9d7c1a921557de58c7053e71",
         "bedrock/models/entity/items/melkor_sabaton.geo.json": "a07039e03fd6e41b94578ddb94cdb09c68cddbcacfd3c44478deabb1c54b06f5",
         "bedrock/textures/entity/items/melkor_sabaton.png": "2046649d5e0d09fa38120dbb4af92f09d0a1c2b11f350abd10099d3b9bed6d4e",
         "bedrock/textures/items/melkor_sabaton.png": "5d0313c42e0663f284a890008096e3f8383e860fe5ff42967f002a70a7ebf72e",
@@ -1573,7 +1573,7 @@
         "blockbench/equipment-drafts/melkor_sabaton.json": "855034106c98c3b4bebbb6714f4d8c6ee713209777d43877277d84342efe2e8a",
         "blockbench/items/melkor_sabaton.bedrock.bbmodel": "7f38c8197b654a6509c3eec1c8de7478c74f18e6560a415a96ba2a8ffd7031fc",
         "blockbench/items/melkor_sabaton.java.bbmodel": "21e692535dd986de9c787f2521e23c18e06060ae2b7507b4902e78f4165ad26d",
-        "blockbench/items/melkor_sabaton_worn.bedrock.bbmodel": "1d5dcffca1595999baa4489107e1e1975f1d5db70015ad1ac63224332db099a7"
+        "blockbench/items/melkor_sabaton_worn.bedrock.bbmodel": "a32f2aa0a8fe87d191aee09e9160bbd527d8113d07d3204383c4c4e910f19cc1"
       }
     },
     {
@@ -1588,7 +1588,7 @@
         "assets/astralrecord/textures/item/custom/melkor_hood.png": "8614d04db608f357d866e40bcad4501586f3a954b846a935aefbb943c071410c",
         "bedrock/animations/melkor_hood.animation.json": "a71b96dfd0623f898343121dae4836677ca1f89bd783d5cd6ece6a2abbbcda90",
         "bedrock/attachables/melkor_hood.json": "44c7d9bbdb46ba1535eafe7173627fdfb55d60370a246d04784dd9706e2f5707",
-        "bedrock/models/entity/armor/melkor_hood.geo.json": "64f88747133fc2da932fb9f604360e57f5aad3e68b7fdfea722e1f19e84f3a86",
+        "bedrock/models/entity/armor/melkor_hood.geo.json": "836d5748ed584a043b7b85e456bf1cecda1c549375ca7e9700536c64877689be",
         "bedrock/models/entity/items/melkor_hood.geo.json": "d46e73c99d1519ae9bdb603d5f4a750c6777a1580353b2bf2809d9f638ecdb00",
         "bedrock/textures/entity/items/melkor_hood.png": "8614d04db608f357d866e40bcad4501586f3a954b846a935aefbb943c071410c",
         "bedrock/textures/items/melkor_hood.png": "1416d2e0bb253fce3da34a72127395b89f4af91be978e0503c2ddd11a29171b8",
@@ -1596,7 +1596,7 @@
         "blockbench/equipment-drafts/melkor_hood.json": "3abdf74fd448104a6f82aa763188d8bab82e2e2921d287996bdb68f20a5d6e5b",
         "blockbench/items/melkor_hood.bedrock.bbmodel": "c9656b2a3132b196035baa2dd9f611a22bf5d594b5f59eb76725f0645fd49bf7",
         "blockbench/items/melkor_hood.java.bbmodel": "8d219259b68bf0319d77e09c7ef838f3c64ad684f03a68a3ff333ce85aca0757",
-        "blockbench/items/melkor_hood_worn.bedrock.bbmodel": "b33171fd9a3629ea071ad950dcb76d664bbd52a147972e1f79d5448a1e88305c"
+        "blockbench/items/melkor_hood_worn.bedrock.bbmodel": "2f5b338bb36cc54e53cf3770e8d68d6b564bb748dd1c35db24da88dde9baec85"
       }
     },
     {
@@ -1611,7 +1611,7 @@
         "assets/astralrecord/textures/item/custom/melkor_leggings.png": "48e16e14ec96671f714747f69b3e47db1b25eed917b4a4264f89cf1122462dd8",
         "bedrock/animations/melkor_leggings.animation.json": "a9fdc446d8b39b16d99ff4f18e6a4eec94b4e4c758cae2628c423d9e9feba059",
         "bedrock/attachables/melkor_leggings.json": "d2a78b79b129a9c72fe6ed86057f9421d75383ae6961d178f14ba2813bda2f1c",
-        "bedrock/models/entity/armor/melkor_leggings.geo.json": "4b297ba158e44546433c63c8c3c079e5cf4b6dddef842d11373b091e238342c7",
+        "bedrock/models/entity/armor/melkor_leggings.geo.json": "dd5d3251c3b7c5a32c5df27a6e728dbb909c97d9540419178df5a4bc144d6d8d",
         "bedrock/models/entity/items/melkor_leggings.geo.json": "513a3e6ad1f39ee1a6b1b76e244ab459ed0d7424b27cf2bc557ac5ae8f388c3d",
         "bedrock/textures/entity/items/melkor_leggings.png": "48e16e14ec96671f714747f69b3e47db1b25eed917b4a4264f89cf1122462dd8",
         "bedrock/textures/items/melkor_leggings.png": "21663375956f5a300aa1fa1d32a3541cb9237f43b1d1cbcff7c3063157d82bd5",
@@ -1619,7 +1619,7 @@
         "blockbench/equipment-drafts/melkor_leggings.json": "58acf3e96a1cdf043686fa0309c06732302fee7e80d3aabb16073452bda637c2",
         "blockbench/items/melkor_leggings.bedrock.bbmodel": "2ed28b67404d9b3313167cdb415da6b98c51385edd64b744d6cc12386fc6c68a",
         "blockbench/items/melkor_leggings.java.bbmodel": "44fbe0725ede1d33fd0d2e12de952d2de26189b84db2ca1eddfc6519548f33b3",
-        "blockbench/items/melkor_leggings_worn.bedrock.bbmodel": "5ffdd7a7d37f06a72e8a8f26bb52434018c6f9de4ec963f4367f771d871870d2"
+        "blockbench/items/melkor_leggings_worn.bedrock.bbmodel": "b65c0bcabe5c6471ce8e13a2b9f0a4fb9b14f4a3d858bcc6bcc965bd6ea1ae72"
       }
     },
     {
@@ -1634,7 +1634,7 @@
         "assets/astralrecord/textures/item/custom/melkor_boots.png": "e6c5f26b36a551030b4c2ccd700b6c7e9fb03aa45400b55edfaf07c1fab90635",
         "bedrock/animations/melkor_boots.animation.json": "a27766ab92c9e55f4add5ef6068c07c5fa3c08ac0489cc3d2c2a1ae05ad36c37",
         "bedrock/attachables/melkor_boots.json": "3e09fc4867af36e17c106b1880ef0c5ac85ff024d38d1cf9f3ecbbe1c9d24d2d",
-        "bedrock/models/entity/armor/melkor_boots.geo.json": "0effb0cf15d967f4b77629ddcb21980169a7a84f3e9f7751856c673292401122",
+        "bedrock/models/entity/armor/melkor_boots.geo.json": "cb1e4c035062855a8376c793623976de35832d71bfd485428e8f5edcd9b639e3",
         "bedrock/models/entity/items/melkor_boots.geo.json": "44f893a6b7d84839eaa575a667f885b76c33bc82f83489369e1c0014a8247f4e",
         "bedrock/textures/entity/items/melkor_boots.png": "e6c5f26b36a551030b4c2ccd700b6c7e9fb03aa45400b55edfaf07c1fab90635",
         "bedrock/textures/items/melkor_boots.png": "7ba241d97c53b82caf51e3b8a3774f782437e0afbcf806de2fe2a43090dddd2b",
@@ -1642,7 +1642,7 @@
         "blockbench/equipment-drafts/melkor_boots.json": "6587e8049e680665a1e181a6c06b9806da41505377468a0ecb028915f9b32be1",
         "blockbench/items/melkor_boots.bedrock.bbmodel": "d76f29f105740616e219bf8cdd9928bcc1563316516333c87adf58d1c128dde2",
         "blockbench/items/melkor_boots.java.bbmodel": "5e268817632a6ce7c74b6e77899bfb377de3ddb163c00777ec6a7bc4de7da916",
-        "blockbench/items/melkor_boots_worn.bedrock.bbmodel": "f9f3a8675cf00024ced06b25849631e791841bd3ce5825eb95e606f05eebefea"
+        "blockbench/items/melkor_boots_worn.bedrock.bbmodel": "45a95b194bdda2bee82ca97874815469528220dcbb15521eb658946183f13afc"
       }
     },
     {
@@ -1657,7 +1657,7 @@
         "assets/astralrecord/textures/item/custom/melkor_circlet.png": "49ae26f699f5140bf5f400da8832de4ec68503c42542d5b2c5873c7b89bd6130",
         "bedrock/animations/melkor_circlet.animation.json": "a77fc74b44f22359c0a896d7f1e362dc4e4e2ebee616f0942514873213075e1a",
         "bedrock/attachables/melkor_circlet.json": "7ac54658e2036dbea778b1ee0b8db4d3b7802ccab7d84cd5968e10506101ebf7",
-        "bedrock/models/entity/armor/melkor_circlet.geo.json": "71d56e341c7bb3d39d0556bf446abd40dab842e7a5c5db4a939b26e5756aaef6",
+        "bedrock/models/entity/armor/melkor_circlet.geo.json": "b2b763daf1f34d538dfcc8c091eb0f2f17b60938e2e72f0581ca3c2443b3123e",
         "bedrock/models/entity/items/melkor_circlet.geo.json": "60d8f6cb5899189c86982e4cfe9a00d92302d00880cc1f54da97dd794ef96db6",
         "bedrock/textures/entity/items/melkor_circlet.png": "49ae26f699f5140bf5f400da8832de4ec68503c42542d5b2c5873c7b89bd6130",
         "bedrock/textures/items/melkor_circlet.png": "b2e4d29429c50d0b384f15c2ab2f3338d49beda6acf842ecbed08b44055cc913",
@@ -1665,7 +1665,7 @@
         "blockbench/equipment-drafts/melkor_circlet.json": "ec96189539c2a0fdf8eaf5c79b5181bdd444876f20a0f6f30e9a3f6696207f78",
         "blockbench/items/melkor_circlet.bedrock.bbmodel": "a0764990a5c161be29064748358d1a0e475feafb972ae3056511b053697a83fa",
         "blockbench/items/melkor_circlet.java.bbmodel": "f7030a2853d4b785562be9aba473a55ad6496cfbd3e02a13859822f20d50e4e0",
-        "blockbench/items/melkor_circlet_worn.bedrock.bbmodel": "064b01d618f282e0d1dbb7acb214d6e7a6353d9a612ffa7a1e6d2bef07956c54"
+        "blockbench/items/melkor_circlet_worn.bedrock.bbmodel": "ef9803a68d99b9b3258d1ce340527b31c18a00266c4401e5ed58ad45ba178d6e"
       }
     },
     {
@@ -1680,7 +1680,7 @@
         "assets/astralrecord/textures/item/custom/melkor_trousers.png": "7011455f88ef8c7f3cf2f033d7ce0a625877562263c58b97c30dc40acf30e55e",
         "bedrock/animations/melkor_trousers.animation.json": "0d7a08bd41ce915a8c1ab45a244938d732ff73e52edb123d00bf6194ab1f2d98",
         "bedrock/attachables/melkor_trousers.json": "c4882270b25f0f3dcdcaa4229d610b518bc26a546e0970665b0d2e983e770ddd",
-        "bedrock/models/entity/armor/melkor_trousers.geo.json": "83c8eac7918f3b5e26d6c2c2443e0a9f62cbd6045ed927bf043d47edc050b5b9",
+        "bedrock/models/entity/armor/melkor_trousers.geo.json": "c6a7b313b23796ac91b2d97ebedd9f8e0333245293edffcaf3870029a93b3539",
         "bedrock/models/entity/items/melkor_trousers.geo.json": "93987034155377f2a663a7693a78649b8cddc61b46eeac7ca4924faf0e86dd49",
         "bedrock/textures/entity/items/melkor_trousers.png": "7011455f88ef8c7f3cf2f033d7ce0a625877562263c58b97c30dc40acf30e55e",
         "bedrock/textures/items/melkor_trousers.png": "443ffc499bb3a8b612bc61b436af94a996b95e873245cb5b4529f7e11a86dd20",
@@ -1688,7 +1688,7 @@
         "blockbench/equipment-drafts/melkor_trousers.json": "fb2d82bcb2d8f03355faffedfde5ca67845d5c5d0c2ac5df3feb958e695f4a5c",
         "blockbench/items/melkor_trousers.bedrock.bbmodel": "98dffb565def9f9d0bc0379dd2b722d57b984019cb378fbac9de8731a42dda59",
         "blockbench/items/melkor_trousers.java.bbmodel": "fecb67acbae6971893ff4c4c62917cedb87e56411e1bdff05d18134b251dd1f1",
-        "blockbench/items/melkor_trousers_worn.bedrock.bbmodel": "b6bdbc77dfd32967074801fa8e973b13cd1c21a6a9b943c912afc4dac421e6b2"
+        "blockbench/items/melkor_trousers_worn.bedrock.bbmodel": "c4fb84e373ef338b48afaeca0f5967ca7839d7146768361b68ac14aae25c12e6"
       }
     },
     {
@@ -1703,7 +1703,7 @@
         "assets/astralrecord/textures/item/custom/melkor_sandals.png": "491d9a2411a446c511b52ca267206381e5d00ac07757419b2655de6d0afbf1e4",
         "bedrock/animations/melkor_sandals.animation.json": "dff89bfb9f24ca5249caf4d80d144d63cde4afb55ae3fdc067e13babd1410d48",
         "bedrock/attachables/melkor_sandals.json": "7f4eae160693fb41ebffb1ac1d9490744e287b1f569150158fe704076d0668a9",
-        "bedrock/models/entity/armor/melkor_sandals.geo.json": "263c91966ff83d3dfcbb17759b25943662b5453415301b12a23ddf11f74ca040",
+        "bedrock/models/entity/armor/melkor_sandals.geo.json": "898f2618c1dc4f76db2f7acc197e8c6b023de485b527b29ce130969ac502c548",
         "bedrock/models/entity/items/melkor_sandals.geo.json": "f721d73d889f5b214f54bd019a42170b8d9a9ad783a53ae2e3f87e32caee0b95",
         "bedrock/textures/entity/items/melkor_sandals.png": "491d9a2411a446c511b52ca267206381e5d00ac07757419b2655de6d0afbf1e4",
         "bedrock/textures/items/melkor_sandals.png": "d36cc8d5b6a038b5d1a448fbf94f0489df3e13ff2d3270495d355cc159c3108e",
@@ -1711,7 +1711,7 @@
         "blockbench/equipment-drafts/melkor_sandals.json": "e9b1021a43f5de5f09aebb676ceabf316ee926036aacaaae44de4111726c39cc",
         "blockbench/items/melkor_sandals.bedrock.bbmodel": "18501cf2eb1a3e0dda1b26dce77138e71a90f0ab8240a8cb5ce50317ccd46ac8",
         "blockbench/items/melkor_sandals.java.bbmodel": "9ad5f47e31bd8ae1a5426993b0b1de19290833918079c230e0bb61ebe194502b",
-        "blockbench/items/melkor_sandals_worn.bedrock.bbmodel": "28e58965182e98144329adf5cc9ce0e8b550c45afb8172d807b29cf080a84972"
+        "blockbench/items/melkor_sandals_worn.bedrock.bbmodel": "342cf38a97ad0de76d3d68580d317b487cde27d204e25a78bb7d09d44714c537"
       }
     },
     {
@@ -1726,7 +1726,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_plate.png": "ba0cd963f16e3c72d833960dff1701b47fb442110cd55df1e770e25043f5e251",
         "bedrock/animations/alda_origin_plate.animation.json": "1a6c12c40cd2abbd3ffd8b1dffe713ce5c06aadf1fd0e4cf94d00d123ff7461f",
         "bedrock/attachables/alda_origin_plate.json": "e515618f45c60a73529c3c86669c172e8dabc4400a11f316f81dfe764c2dc98b",
-        "bedrock/models/entity/armor/alda_origin_plate.geo.json": "b625713ee86712d29f8fdc759af306ca3d2e84ddb97e927f4d4642d7f28737f7",
+        "bedrock/models/entity/armor/alda_origin_plate.geo.json": "445933bb32cdaffd851e477b78a832aebedc4715f00b3b2ad00266b3c7164ca2",
         "bedrock/models/entity/items/alda_origin_plate.geo.json": "f71c070bbb10ad8a8e26c21f490a950cdaa43a025c3bfe8f0a2634ba19a0468a",
         "bedrock/textures/entity/items/alda_origin_plate.png": "ba0cd963f16e3c72d833960dff1701b47fb442110cd55df1e770e25043f5e251",
         "bedrock/textures/items/alda_origin_plate.png": "14fce2970684b41065735c91f6d40d9e9674d936ea5a282f3e8945b15503876b",
@@ -1734,7 +1734,7 @@
         "blockbench/equipment-drafts/alda_origin_plate.json": "68c41f7690357c2a536b9a4ea337a1eb52e44a0d7825c6e8a3218532ea6a4dd4",
         "blockbench/items/alda_origin_plate.bedrock.bbmodel": "7b3c1dff6b820ed8b90978d5bbefab6bb1574f1ebbeca32685ebbbcd402b3a3e",
         "blockbench/items/alda_origin_plate.java.bbmodel": "a6d55359972c7da1d8c1a34799d2f91ff22f12e4d7ad550173f67073d7acb5de",
-        "blockbench/items/alda_origin_plate_worn.bedrock.bbmodel": "c1df32d6908a5180121e460d1d760ed9501cc02de56e84a5ed148e93ac58daad"
+        "blockbench/items/alda_origin_plate_worn.bedrock.bbmodel": "25cfbd5d00690e78317f0cc563d9ff4231ffd665249c061544906605d1f8f785"
       }
     },
     {
@@ -1749,7 +1749,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_helm.png": "a3cdc166179c18fb750684eef2d2bf1398c25f7a6b7a0f20d1ea1e3601bbb6b0",
         "bedrock/animations/alda_origin_helm.animation.json": "7a539a67c3f9f9004799bad96a89830a6f248538e414ea9e9ab0805deb25ec56",
         "bedrock/attachables/alda_origin_helm.json": "c1dc9cd2eef9f11a3ddd84b2a2871057134685156c2575e4e64f789693f53bbb",
-        "bedrock/models/entity/armor/alda_origin_helm.geo.json": "a38f00c6bfadff00d934fb2eb357ac1746a98ed210756bddeaf548ea256fff97",
+        "bedrock/models/entity/armor/alda_origin_helm.geo.json": "dba217feba865bebdaf1b7b24d99d85e22fd959e1d240e828f383c44b272fcae",
         "bedrock/models/entity/items/alda_origin_helm.geo.json": "c6fbf84de468b87a47df087158dc32df334905b2bda6694e8e138ea619f0622c",
         "bedrock/textures/entity/items/alda_origin_helm.png": "a3cdc166179c18fb750684eef2d2bf1398c25f7a6b7a0f20d1ea1e3601bbb6b0",
         "bedrock/textures/items/alda_origin_helm.png": "5f7c3820d46018fc8c89e7f2f25c777b430e3cada8f5bd66bba0d25f3fbe5628",
@@ -1757,7 +1757,7 @@
         "blockbench/equipment-drafts/alda_origin_helm.json": "29b9bae837872273b103399f2e379559e78d4be706cabde6881a828a38bc6942",
         "blockbench/items/alda_origin_helm.bedrock.bbmodel": "199fcc4bdcc4248add7f701d89875e7692c09615d4960a462b2b165c3b8cee36",
         "blockbench/items/alda_origin_helm.java.bbmodel": "23c3852ae8fa129cccfb3c87594666f473b917d7c3b86f773f3813a1300fd284",
-        "blockbench/items/alda_origin_helm_worn.bedrock.bbmodel": "52b40d1bf574bb2605a532025ab49e5fae4395490e89d68f66593ffcb6a2ed2c"
+        "blockbench/items/alda_origin_helm_worn.bedrock.bbmodel": "53bd46a358012a592bdb3eb5bad37adec4cf732c9c6bff362c0db33c9132f828"
       }
     },
     {
@@ -1772,7 +1772,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_greaves.png": "838b3414be2cc30763c64995286899a2d7c726ab27ed7d25dda198901524b769",
         "bedrock/animations/alda_origin_greaves.animation.json": "363670898f2f9f98831b8a8c801f7bccb9317b9d7c9494b972bf31b6f955cdec",
         "bedrock/attachables/alda_origin_greaves.json": "40e14885782786da991a46043a610d4b46c4f8a207d7829f8b67f22c2382d497",
-        "bedrock/models/entity/armor/alda_origin_greaves.geo.json": "e9a9d0b03d757069430f355f8582ed58db8f485925198cfd27f2fe02d34b5534",
+        "bedrock/models/entity/armor/alda_origin_greaves.geo.json": "1aee9474c0e4f6522bcdd9dba949f8a3c0fe3da1bc73d29e9156dc497fdad856",
         "bedrock/models/entity/items/alda_origin_greaves.geo.json": "b6872e4926cc8b665964034eff8464be1ad4403ce6fc80f9d49d64a513d2a35a",
         "bedrock/textures/entity/items/alda_origin_greaves.png": "838b3414be2cc30763c64995286899a2d7c726ab27ed7d25dda198901524b769",
         "bedrock/textures/items/alda_origin_greaves.png": "920f64915ce629dc396311c2a35ff401d483cce9e18c0850391e52d0ec265411",
@@ -1780,7 +1780,7 @@
         "blockbench/equipment-drafts/alda_origin_greaves.json": "fa41c13bbcac88dd6ac5a1daf972b6e8e04772dce33cbcdbe1a55f771a02c420",
         "blockbench/items/alda_origin_greaves.bedrock.bbmodel": "9b7a84189d59fa32fbc906b823fc225ec0a9b394170f6046d55169d034b4fc1b",
         "blockbench/items/alda_origin_greaves.java.bbmodel": "e789b3bc543fc94ffa7f840f1958aa1976578dc46762659d83910186f5213267",
-        "blockbench/items/alda_origin_greaves_worn.bedrock.bbmodel": "98983049882786a86ee3025c839ecfebbe229020f71e8f5e32c4fcdea0a004f4"
+        "blockbench/items/alda_origin_greaves_worn.bedrock.bbmodel": "30ceab8492d631cbd5961e67ae069e9974f3e7108e864b67d2bad810a8ab1d42"
       }
     },
     {
@@ -1795,7 +1795,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_sabaton.png": "6b7b9db589d77bcd1d0d233f89860ce299cd7cb45f8047c6b823da933486ef6e",
         "bedrock/animations/alda_origin_sabaton.animation.json": "694351e75c048adc1dee8e8966c2d9a44d84c7c3d134143a64e76a085e7f1f3a",
         "bedrock/attachables/alda_origin_sabaton.json": "39d006ad1c8329c551dda1cb5533e3a95dea0e50fa9710926263a986cddb5623",
-        "bedrock/models/entity/armor/alda_origin_sabaton.geo.json": "bbd8b02a3aff92746469a0543008ff1ac867408c695a9f6c3e804417bba0828f",
+        "bedrock/models/entity/armor/alda_origin_sabaton.geo.json": "8d77d5fe14e918d9ff7e73caa307e1a64b9793595ec36fff102ad399cf4bda80",
         "bedrock/models/entity/items/alda_origin_sabaton.geo.json": "d5180633b3df2ef9197a319d33e074d3b15e477120809bc23db72de410638b20",
         "bedrock/textures/entity/items/alda_origin_sabaton.png": "6b7b9db589d77bcd1d0d233f89860ce299cd7cb45f8047c6b823da933486ef6e",
         "bedrock/textures/items/alda_origin_sabaton.png": "3d0b7db2efe0a3cd41481b1598f6e3868c02c51e1b4b82aa74f06350dba7474e",
@@ -1803,7 +1803,7 @@
         "blockbench/equipment-drafts/alda_origin_sabaton.json": "acfacae8857e9a1144132413c354c6d176ae18cd94aa2f9fe9c4c193fb437d24",
         "blockbench/items/alda_origin_sabaton.bedrock.bbmodel": "86ae4f7cfd51adc5384f4133639062e48e045c409fb22195766ebf66438bede9",
         "blockbench/items/alda_origin_sabaton.java.bbmodel": "ae0fc345eec6d0e38a4d2ab837c71f51ec5e5794f5ee2f4704903620885e6122",
-        "blockbench/items/alda_origin_sabaton_worn.bedrock.bbmodel": "52aeb52b1eee39b10dc4eae8dce52e12201711a829adfdf6f118784d487b6b56"
+        "blockbench/items/alda_origin_sabaton_worn.bedrock.bbmodel": "3e898684610d6093a8d76bca538e58c5af6d52b27084e24de5ee82858e222315"
       }
     },
     {
@@ -1818,7 +1818,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_hood.png": "74cdd1ddfd1e1e9f21c82d7abbb85018376eff5857a39d6e12296ad2f2211754",
         "bedrock/animations/alda_origin_hood.animation.json": "1388b76fe54e7bb24d3b80ac8f3c3f61c17bea79069a789cb91f845a1ee123f1",
         "bedrock/attachables/alda_origin_hood.json": "0473b4f81a0a7ffffb52203c34547ef5dfaf36edbc358f1904633a8e90d22292",
-        "bedrock/models/entity/armor/alda_origin_hood.geo.json": "cae2f3ddded19318a206928deccabf3a1088184c55a83ae170b8baa2cf504fff",
+        "bedrock/models/entity/armor/alda_origin_hood.geo.json": "82481c722501392255b48233380af5c131ddb2a9e45ee566463e40dcaf7cf4c0",
         "bedrock/models/entity/items/alda_origin_hood.geo.json": "282a06c1c1361adf24d812d2d35aff4e6f7c53895ed82830ab2ffef5b293d601",
         "bedrock/textures/entity/items/alda_origin_hood.png": "74cdd1ddfd1e1e9f21c82d7abbb85018376eff5857a39d6e12296ad2f2211754",
         "bedrock/textures/items/alda_origin_hood.png": "0a6af723fa3fe785ce167b9ebfa27865be97b60954eee74fa7de3f22ec6015c7",
@@ -1826,7 +1826,7 @@
         "blockbench/equipment-drafts/alda_origin_hood.json": "96edf5dfd77b05a2cd49ccb97628d1fafe1eff6be5e4cb007909c75b00fb3cd3",
         "blockbench/items/alda_origin_hood.bedrock.bbmodel": "bfce41a1384bb5fc6d35ce0fce908a124c7ab8ac7dc945414aa00e953eb72965",
         "blockbench/items/alda_origin_hood.java.bbmodel": "044df18260e0a814c37520f3e4b0899a8239575a1d4fe3ed21db05bb1d511f68",
-        "blockbench/items/alda_origin_hood_worn.bedrock.bbmodel": "badc21218510cd56c08969831db3a2509a5c5faa51432f87f6b845afe8cf10e9"
+        "blockbench/items/alda_origin_hood_worn.bedrock.bbmodel": "eeb0279f0c4213fd532abaefc5771a1b1654cf95ab842bd1f8621955e527b64b"
       }
     },
     {
@@ -1841,7 +1841,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_leggings.png": "21431f58d391a70c4257a558968db66ba7961b1a38fa9645891b4adb4d2733f8",
         "bedrock/animations/alda_origin_leggings.animation.json": "974f0c7eb649201121d4ba37027fbae52c10f2cac48ee64223a9090c15e7fae5",
         "bedrock/attachables/alda_origin_leggings.json": "ba40cefa0e9275c7a622e7d1cd65844cf02e77425ded82c2698c2515fd98546d",
-        "bedrock/models/entity/armor/alda_origin_leggings.geo.json": "9f59151bffa8b5a33fdb8a2aa96a6fa2820817ead7d7e1f61f86f6f620ff77ac",
+        "bedrock/models/entity/armor/alda_origin_leggings.geo.json": "bfe7c1815eb32d0be8f70de8fbd236b439e9d8523df276f3fe8ae53495d5305f",
         "bedrock/models/entity/items/alda_origin_leggings.geo.json": "9a3fcff4f49f1475f5f9a20a9d0932f7518abe859ce3ba75994b4ce5346291c4",
         "bedrock/textures/entity/items/alda_origin_leggings.png": "21431f58d391a70c4257a558968db66ba7961b1a38fa9645891b4adb4d2733f8",
         "bedrock/textures/items/alda_origin_leggings.png": "ae941ec8824de75b18eeb56fb7d41db8b2ed711ea2389edd6dad608eb4992552",
@@ -1849,7 +1849,7 @@
         "blockbench/equipment-drafts/alda_origin_leggings.json": "bedf6d9bc05ae0b534057da362cd1e6ae7fd4a08c28b541c2a7f3cda99bec351",
         "blockbench/items/alda_origin_leggings.bedrock.bbmodel": "714ca90386bcc47b0774d545ca083ded92c281a43bb4568f6cd892521da87621",
         "blockbench/items/alda_origin_leggings.java.bbmodel": "30e103c0ff9b4a5b7b2d2c5be7c5abfb0688f9f988970daf13909e4f6352fac0",
-        "blockbench/items/alda_origin_leggings_worn.bedrock.bbmodel": "153c6842ef9557fcff1a373c28c8482bb96d0ca7a40172bd57da48cb48f2110f"
+        "blockbench/items/alda_origin_leggings_worn.bedrock.bbmodel": "3a33679096bfdc935e25d9f19f7f6e7865e5e6ae9e1c7e5d35c6b4a8629ef056"
       }
     },
     {
@@ -1864,7 +1864,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_boots.png": "3cedc462915d27002cd1959571430cd28481e4f83b76820892dcbd0256d672db",
         "bedrock/animations/alda_origin_boots.animation.json": "4bcbcb3ea2777f7bc4a28ca7c84928542a7e157581a2f6b9611540ea6fcc9c83",
         "bedrock/attachables/alda_origin_boots.json": "4505283bec886c2cffe5db223de1562bca6b65f0f87f32636ae90625b6c6daa6",
-        "bedrock/models/entity/armor/alda_origin_boots.geo.json": "09da2bd4842c7f8987eecfdec11aba8ea445e431cf48e0ed7223ecdfdc88d7af",
+        "bedrock/models/entity/armor/alda_origin_boots.geo.json": "ee60d1714f038ceb3a3506ae1b9831868af4f07d0af469de4865ded9887f84e4",
         "bedrock/models/entity/items/alda_origin_boots.geo.json": "9e44eb523f8e3159e114f932d910589b53a3731d887f157756d2e85a312ebe04",
         "bedrock/textures/entity/items/alda_origin_boots.png": "3cedc462915d27002cd1959571430cd28481e4f83b76820892dcbd0256d672db",
         "bedrock/textures/items/alda_origin_boots.png": "5d8ac06d1240c26f34448f106efbc2c6c2bd28feead22d449769d9a2d150760f",
@@ -1872,7 +1872,7 @@
         "blockbench/equipment-drafts/alda_origin_boots.json": "a82227d71cbae0f25e5f18b4e75f9df2a0a8a0baaf886b9ad11d9cdf8ce07949",
         "blockbench/items/alda_origin_boots.bedrock.bbmodel": "93ee313f131d1fcc3a622f758968aa1bc6f8eb101445cc10aaaf7369f3af1119",
         "blockbench/items/alda_origin_boots.java.bbmodel": "e6bbfd44bc74a2d3b3b0f2303b4e396efdfb75a6353cc83ecd75a845f0c01ade",
-        "blockbench/items/alda_origin_boots_worn.bedrock.bbmodel": "904d5b0c0b6524d3f9b4a7099f6fb4982f04b60917f5b06ffc010b343f6d6044"
+        "blockbench/items/alda_origin_boots_worn.bedrock.bbmodel": "f39c801b57f891738e45c60b320bf95c936b554b261b3ecaa9c3ac8542c3e15e"
       }
     },
     {
@@ -1887,7 +1887,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_circlet.png": "4881ce1834542a9ef8a9c11a50f1ad542d8312321b7736eec045ff69421c9fb1",
         "bedrock/animations/alda_origin_circlet.animation.json": "62a4b720896049455562abf043900297a7c5204d6b1e59e43e8bf80677ca93af",
         "bedrock/attachables/alda_origin_circlet.json": "cb9a681ab983ece3d2f8d70249d21eb19cb9beb3a77fd541ad3249c0dd7cddbd",
-        "bedrock/models/entity/armor/alda_origin_circlet.geo.json": "1fcdbe28ff343233db76ea78ef774489bcb2fcc36a67311bdf358c342ce4c987",
+        "bedrock/models/entity/armor/alda_origin_circlet.geo.json": "4242589e235d3103320daa9ae9220318d571fbf728da9d9d02c6ab84ec2a7243",
         "bedrock/models/entity/items/alda_origin_circlet.geo.json": "486a0208ccab1b96d02c1252f0430fc9e10d13e0a628a7ceb413875272d6c159",
         "bedrock/textures/entity/items/alda_origin_circlet.png": "4881ce1834542a9ef8a9c11a50f1ad542d8312321b7736eec045ff69421c9fb1",
         "bedrock/textures/items/alda_origin_circlet.png": "a784fac0fff8fe0a3b1bd709d353e3e19e3a9b7a0be23da8d78e1bc8b73c874e",
@@ -1895,7 +1895,7 @@
         "blockbench/equipment-drafts/alda_origin_circlet.json": "55fbbed74336b3f717bdfae6e4b1e42d394d53aef01d28b3a61c843a08775eaa",
         "blockbench/items/alda_origin_circlet.bedrock.bbmodel": "2bf8ee8ad7b3118f39eea1a29ca6acd6f8b9106f68c0937635c6f20310038ca4",
         "blockbench/items/alda_origin_circlet.java.bbmodel": "49c4913865140370153fe92db1dda1a9539ac1bffa07236c0d154b230e46947a",
-        "blockbench/items/alda_origin_circlet_worn.bedrock.bbmodel": "e4b9b6bae8fc2395da7b4c0fb530c139db9c07b30adaaf6780f44064030b3ee6"
+        "blockbench/items/alda_origin_circlet_worn.bedrock.bbmodel": "9ce7e36668448f274077567f0d790b0e8c1571ba03ac67cb4b9ecfff2ef5587c"
       }
     },
     {
@@ -1910,7 +1910,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_trousers.png": "ab1ee889947f268ad9e9bd72c4c9068395a9c2cc035ab9e78313374f901fb079",
         "bedrock/animations/alda_origin_trousers.animation.json": "f13f5905dfeb8c1bced1061a471663412ba793ceee180fc7e6a88e186d9fdfee",
         "bedrock/attachables/alda_origin_trousers.json": "094d70d324924d01ef4f8ab52c2c8b4ac82ee30dc0a7a9a11c4fccf3497585e2",
-        "bedrock/models/entity/armor/alda_origin_trousers.geo.json": "9aa20c016c3cd5c941544486dd24c084f988bbc59785df431649097ff45c92e1",
+        "bedrock/models/entity/armor/alda_origin_trousers.geo.json": "73cc92a49d576e50d9d147a9453b9086d6fe7f19725620b31ba3814054f61ddd",
         "bedrock/models/entity/items/alda_origin_trousers.geo.json": "2addf81437cab33c827069629673f7acacf352dc570a7dc449f5b5df8fa47217",
         "bedrock/textures/entity/items/alda_origin_trousers.png": "ab1ee889947f268ad9e9bd72c4c9068395a9c2cc035ab9e78313374f901fb079",
         "bedrock/textures/items/alda_origin_trousers.png": "5c86c1b6355162db509accaa8f463371f586a0553a4132e135f84c8dfa7d8742",
@@ -1918,7 +1918,7 @@
         "blockbench/equipment-drafts/alda_origin_trousers.json": "be035ea84240adbfb843f53592f1bd2a0acff4da15ba5cc83411f864daa805e4",
         "blockbench/items/alda_origin_trousers.bedrock.bbmodel": "6b20cd36f7f2b56d34025819c8a078f44fb00957f5cdc2402465426575368ea7",
         "blockbench/items/alda_origin_trousers.java.bbmodel": "edfe3bc9a25180ce0be0a18a2dc0ef73f50a0f31806632df5d6fe3770e6a2134",
-        "blockbench/items/alda_origin_trousers_worn.bedrock.bbmodel": "8d0c66a7206526a0c2101db1ce15097aa315f87146861cb610dd3281b9996ea2"
+        "blockbench/items/alda_origin_trousers_worn.bedrock.bbmodel": "f582848c0176892b1818895740427b8d4bddea0041984ea43de28d4c04824b51"
       }
     },
     {
@@ -1933,7 +1933,7 @@
         "assets/astralrecord/textures/item/custom/alda_origin_sandals.png": "2559bcf8ecd7fbf94cbc834b200196288ad027ac6f0a7c181b9c89147339e90e",
         "bedrock/animations/alda_origin_sandals.animation.json": "316a331d5f34f5d2ad4b1a1c3a6ed35671ed05c3914f7be9d78e52249248ba8d",
         "bedrock/attachables/alda_origin_sandals.json": "750779bcabccd7dbdf7fa8b94b3db4d31e2121e57f71c1a775264594c213c129",
-        "bedrock/models/entity/armor/alda_origin_sandals.geo.json": "003e3d0df3ab375e4a80a7e290a64b06529028d58402856b7b509c5bdd979c58",
+        "bedrock/models/entity/armor/alda_origin_sandals.geo.json": "566eb2346a6a4a56eb41ee926162db58b75f5d83b9baee955bbd47efd19e9600",
         "bedrock/models/entity/items/alda_origin_sandals.geo.json": "2f2a4808341fbe2caa8c475498a314acbe0512008c3d5a6c6e06f9d6be621ca3",
         "bedrock/textures/entity/items/alda_origin_sandals.png": "2559bcf8ecd7fbf94cbc834b200196288ad027ac6f0a7c181b9c89147339e90e",
         "bedrock/textures/items/alda_origin_sandals.png": "4704c02c6c874a8df86ac60b1880d837eb74e609eee31bec3d5b521da0dea425",
@@ -1941,7 +1941,7 @@
         "blockbench/equipment-drafts/alda_origin_sandals.json": "ae889d6f0c377407c808283a558d71dcbb36780cb13dd77d7ce4f2ebca31fad0",
         "blockbench/items/alda_origin_sandals.bedrock.bbmodel": "009d30412311d7c70f9adf8094f559d606be3a56620a76b89047c3d9357c3f3e",
         "blockbench/items/alda_origin_sandals.java.bbmodel": "4c8c9107dc64aadfb14f456a2bb874f4d4d2cf2ed817cfb7c9b6e8d67550f7a8",
-        "blockbench/items/alda_origin_sandals_worn.bedrock.bbmodel": "a8b079d3f4a59f09a336e222e3c319d57fa0dfcc8e3cd98ea0aca4faa96cd2f4"
+        "blockbench/items/alda_origin_sandals_worn.bedrock.bbmodel": "4f6356aa13159b5fb8d8ce55759e6ce4c7382590d00b6abd6438c97f4a968663"
       }
     },
     {
@@ -1956,7 +1956,7 @@
         "assets/astralrecord/textures/item/custom/eriva_beast_horn_helm.png": "a0e2997f412669068e5ffb34446574cbda4e0c8aee3fd28f552950195026e01e",
         "bedrock/animations/eriva_beast_horn_helm.animation.json": "94ebc4415c495124dae7a7805d769669a738e81d50f490653e116b45c27af77d",
         "bedrock/attachables/eriva_beast_horn_helm.json": "3ee385d2d470aec072050abd6abbd2110cdc7d3384a56405ade49fd261010646",
-        "bedrock/models/entity/armor/eriva_beast_horn_helm.geo.json": "4337ce392f8babe8964919912108d7deb2209eff0fcc8677bf3280baa04e8c11",
+        "bedrock/models/entity/armor/eriva_beast_horn_helm.geo.json": "d762fccc43cf060ef50add6430d43ff408c14616f11467e9448483ba430778d6",
         "bedrock/models/entity/items/eriva_beast_horn_helm.geo.json": "05a6e24f1ad597f4237e353f15e7d1fa0c75bae3d41f1b1521653612c4f50190",
         "bedrock/textures/entity/items/eriva_beast_horn_helm.png": "a0e2997f412669068e5ffb34446574cbda4e0c8aee3fd28f552950195026e01e",
         "bedrock/textures/items/eriva_beast_horn_helm.png": "9ab78b300f5384e180f1811d1fab40963c11562d9679e961d81fe2711c7622c8",
@@ -1964,7 +1964,7 @@
         "blockbench/equipment-drafts/eriva_beast_horn_helm.json": "37b5d0e2d72c2c926af8a7a27520ed653447803728dbbf032e243e6800f988c5",
         "blockbench/items/eriva_beast_horn_helm.bedrock.bbmodel": "ba0ad955493d1f59834c0903474a0be4a599245d04810b40b82c5741233bdb75",
         "blockbench/items/eriva_beast_horn_helm.java.bbmodel": "d4bbe3327a9f0d8b14d4b5fc1e5a5aa5b151efa696f00efae518c647d4092b0d",
-        "blockbench/items/eriva_beast_horn_helm_worn.bedrock.bbmodel": "64245173459e19a2d85592379add0fdcc142ad907690ba7f9d36b7c452c536dd"
+        "blockbench/items/eriva_beast_horn_helm_worn.bedrock.bbmodel": "d5118c4882202bccbd70c3978885f44bea7ef746ce552ba846feefe23b16110a"
       }
     },
     {
@@ -1979,7 +1979,7 @@
         "assets/astralrecord/textures/item/custom/eriva_beast_bone_armor.png": "1cedc8aaa0c9624fc3ff9f87340abea570c73ed57337e333202804fdada340af",
         "bedrock/animations/eriva_beast_bone_armor.animation.json": "16fc35e3da5ce022d2c8f45ffdde64d17a77d357614dcf6a0dbcd7f2781d03f6",
         "bedrock/attachables/eriva_beast_bone_armor.json": "ca730a02ee5811a58c7f2d6f4d920be4e61ad51029854fe537facc2c7d1adc06",
-        "bedrock/models/entity/armor/eriva_beast_bone_armor.geo.json": "bf3496c6b348e50c219a6b5c0855463ea7675118fc2f44329935af4d425bb955",
+        "bedrock/models/entity/armor/eriva_beast_bone_armor.geo.json": "8c30ecfce455dde631027975ca2429fca3adcf43d0f191e71539caf44957719e",
         "bedrock/models/entity/items/eriva_beast_bone_armor.geo.json": "89cc29342114ab2067e51ba6039c42aa70d3ffe375201de0e722204cf6048181",
         "bedrock/textures/entity/items/eriva_beast_bone_armor.png": "1cedc8aaa0c9624fc3ff9f87340abea570c73ed57337e333202804fdada340af",
         "bedrock/textures/items/eriva_beast_bone_armor.png": "7ba25ca3d6b2753c2d617b2b40a219265e81d8d04593dadb029ec8a88716411f",
@@ -1987,7 +1987,7 @@
         "blockbench/equipment-drafts/eriva_beast_bone_armor.json": "e9d5de9b42cfcac67b50aab33ec5a6c9375e6d05906abfa6579b193d0d427879",
         "blockbench/items/eriva_beast_bone_armor.bedrock.bbmodel": "369ca55ef789ae875660eade8fa2d04e69587791faae5f03ef8cea10fe53f9cd",
         "blockbench/items/eriva_beast_bone_armor.java.bbmodel": "4ddf34f760718b3a24023046871f3501d9907048673a5c5ce6cc0b5aa4236174",
-        "blockbench/items/eriva_beast_bone_armor_worn.bedrock.bbmodel": "cc844e9df2b7bffc6c1360d9df1691369d41c73276c7f60940b89ce0aafecb6b"
+        "blockbench/items/eriva_beast_bone_armor_worn.bedrock.bbmodel": "7ec589d9c662c33300ab0689eae7d71274b874fcd7f53b60c87dc2c2939111aa"
       }
     },
     {
@@ -2002,7 +2002,7 @@
         "assets/astralrecord/textures/item/custom/eriva_beast_bone_greaves.png": "1464dc6a76d54d2798045c2b5c786f7ee9cc702d1a9f176fa72974a900927c79",
         "bedrock/animations/eriva_beast_bone_greaves.animation.json": "bf62590392968bf5729485a9ca46087d0f8a60d051c0ce3cbe227e945024a966",
         "bedrock/attachables/eriva_beast_bone_greaves.json": "4d47a9cb585bfa35b9cffc8607cb9da6d315289a27f7114c4b727b2df810686a",
-        "bedrock/models/entity/armor/eriva_beast_bone_greaves.geo.json": "d877631167fa7be1a0a09d77d0ee82c2225c3d6693ae5e19eecf3c29af5a1e09",
+        "bedrock/models/entity/armor/eriva_beast_bone_greaves.geo.json": "ea685441029bda3904df0b7123324361e9dafa74da29196789280006834b0e85",
         "bedrock/models/entity/items/eriva_beast_bone_greaves.geo.json": "4c1d860bd4a04f2ca0bd6af2621a3eb26f3dc265f068efc8b15a1a79a012b601",
         "bedrock/textures/entity/items/eriva_beast_bone_greaves.png": "1464dc6a76d54d2798045c2b5c786f7ee9cc702d1a9f176fa72974a900927c79",
         "bedrock/textures/items/eriva_beast_bone_greaves.png": "8e17d63931ddace607ef5d7523db4d83d3bc20f8e6f1a6cbffe7179beae8948c",
@@ -2010,7 +2010,7 @@
         "blockbench/equipment-drafts/eriva_beast_bone_greaves.json": "6c2821ab0ca8a91939e5377c299990c91b31978d992cdb19c373c891f93e9a61",
         "blockbench/items/eriva_beast_bone_greaves.bedrock.bbmodel": "a11511a051e532da8d366fb8a4891b1dcfa8e567baff3de5825b2b3024dca362",
         "blockbench/items/eriva_beast_bone_greaves.java.bbmodel": "67717ec742b0b175598eb30fd61de64ea0d70e29bc84b9899bc8ff1cd49029a8",
-        "blockbench/items/eriva_beast_bone_greaves_worn.bedrock.bbmodel": "2434677b69c1f063d7740b456022c580fed487df2e7c77a7a6f9d1a4a5c34359"
+        "blockbench/items/eriva_beast_bone_greaves_worn.bedrock.bbmodel": "8aae0a54d4487224d4e3fb3b43ec2f0b32b889afacf39a200b2c7279cb2aed41"
       }
     },
     {
@@ -2025,7 +2025,7 @@
         "assets/astralrecord/textures/item/custom/eriva_beast_bone_boots.png": "7ecfdf149a77c4f7ffbe398356410b4cd2ff9adb5b1748948864195a4691f504",
         "bedrock/animations/eriva_beast_bone_boots.animation.json": "46ac65c15f64c9483bb0aac2fbe32a627c3e1c6c523bea231fb89c408f8268b1",
         "bedrock/attachables/eriva_beast_bone_boots.json": "71fa1cbb1a0d5115a9ff62490d0e67ec24e2a6f4080bb1054c43363ad1df6bd6",
-        "bedrock/models/entity/armor/eriva_beast_bone_boots.geo.json": "eb5b04bf47b4ce8d54c8e3bba8b76e80b4fc587b235810760cbb11879c58565b",
+        "bedrock/models/entity/armor/eriva_beast_bone_boots.geo.json": "23434e1e1f45f1eb386958b039ab3b4f71755b4af190ec60aee78338eba0e63b",
         "bedrock/models/entity/items/eriva_beast_bone_boots.geo.json": "f589936fa0d1d7e68102788d18cbba7e1ef0f5b01a3d48a0686e5cc308542fb5",
         "bedrock/textures/entity/items/eriva_beast_bone_boots.png": "7ecfdf149a77c4f7ffbe398356410b4cd2ff9adb5b1748948864195a4691f504",
         "bedrock/textures/items/eriva_beast_bone_boots.png": "8e189f655abbb9aadbe326028c551888690b6ce63d45145d25d65f4e763ed596",
@@ -2033,7 +2033,7 @@
         "blockbench/equipment-drafts/eriva_beast_bone_boots.json": "81a83b7620b7b1f2241d4a9ebe7f0367f1f69f613cb6844e9774b486935f850f",
         "blockbench/items/eriva_beast_bone_boots.bedrock.bbmodel": "7f72c6285e57d8a2ba83b2bfb6e1f15b7b8e60fb799f80886648180958289f93",
         "blockbench/items/eriva_beast_bone_boots.java.bbmodel": "5861199cc6e81ef500f415dbb1404ec6be12dae271e2829be9a56dc4eb048588",
-        "blockbench/items/eriva_beast_bone_boots_worn.bedrock.bbmodel": "85757036ddb5278a6e4cfc5ff08c19eee1059dde9e34a9154590ea7c34148d02"
+        "blockbench/items/eriva_beast_bone_boots_worn.bedrock.bbmodel": "7a64113070381116f3e3487b634ae2ffe7505dc3ca5f2ba5134162a4c78b4911"
       }
     },
     {
@@ -2048,7 +2048,7 @@
         "assets/astralrecord/textures/item/custom/eriva_wind_hunter_cap.png": "db39785ef2a57ed4a77c5c937d26341b0f69ec7d312dc71d3da81ae2bbc8c504",
         "bedrock/animations/eriva_wind_hunter_cap.animation.json": "33772394f64f15b4bc707eb7a6907a3c5a562acb2b6a39eb32659fd030170118",
         "bedrock/attachables/eriva_wind_hunter_cap.json": "60932d7003662501ab172e814039dfc803b734596533ecec67067cf2db65967f",
-        "bedrock/models/entity/armor/eriva_wind_hunter_cap.geo.json": "b2ed8075557064cd8d3394a727e6185108e80b2314b1c22058ef196e488f38aa",
+        "bedrock/models/entity/armor/eriva_wind_hunter_cap.geo.json": "6ba6029a617efe02e44b66a4ea76304f9952dbc76d6400ea1fedf439630a745f",
         "bedrock/models/entity/items/eriva_wind_hunter_cap.geo.json": "4b1ff80ce7f3fe81918faea6f94342583d023110e7d425ece6d56ee57ad40fa0",
         "bedrock/textures/entity/items/eriva_wind_hunter_cap.png": "db39785ef2a57ed4a77c5c937d26341b0f69ec7d312dc71d3da81ae2bbc8c504",
         "bedrock/textures/items/eriva_wind_hunter_cap.png": "c968093a97696049a94753f1251b981a36e99330347cc09cad8abfe7a5f4fd0c",
@@ -2056,7 +2056,7 @@
         "blockbench/equipment-drafts/eriva_wind_hunter_cap.json": "14b0c51960029e4981745ed4e8e2fbe9812f29744c0e47fff6b1ced82564f334",
         "blockbench/items/eriva_wind_hunter_cap.bedrock.bbmodel": "209de289405d7f1d6498331487088c2b5fe26ae4960c08257845f854ba96339b",
         "blockbench/items/eriva_wind_hunter_cap.java.bbmodel": "7f4cffce0a95c7ef394b710970ca0499968555b1f44e6652b194d160c135e2a0",
-        "blockbench/items/eriva_wind_hunter_cap_worn.bedrock.bbmodel": "22559ba1fd36fd39a37e2205c6eac4c9bc0f0abbeb5baccf2676ae3877568742"
+        "blockbench/items/eriva_wind_hunter_cap_worn.bedrock.bbmodel": "5d09b7d00ae27432a5ecb7c5f2fddf97f1a826919a73b224412f4a225f469711"
       }
     },
     {
@@ -2071,7 +2071,7 @@
         "assets/astralrecord/textures/item/custom/eriva_wind_hunter_coat.png": "5b6107455edd9ea1c3c02f4f1e7066d000277f565b531528fba53f46bca46c12",
         "bedrock/animations/eriva_wind_hunter_coat.animation.json": "6124cb25d0c4e107fc88a0e0130245c5c462def374c94201d9d0f2eb31f420c2",
         "bedrock/attachables/eriva_wind_hunter_coat.json": "8cfaee24b752bcf6afb1580c0d91857e54af551639eefb91871c7fff2782b6d1",
-        "bedrock/models/entity/armor/eriva_wind_hunter_coat.geo.json": "ad7c03a898827d02b65d87aedd518c5bad534072dacc10169be94812b324bfc5",
+        "bedrock/models/entity/armor/eriva_wind_hunter_coat.geo.json": "0b78901a15a49d1feaa5b9bbf6f599d05053f07ea9ac1a926cf932f8f66de523",
         "bedrock/models/entity/items/eriva_wind_hunter_coat.geo.json": "d4d87df6743036a52db233f9f74130bf497fb5ef564196398b8feea66d9ab48b",
         "bedrock/textures/entity/items/eriva_wind_hunter_coat.png": "5b6107455edd9ea1c3c02f4f1e7066d000277f565b531528fba53f46bca46c12",
         "bedrock/textures/items/eriva_wind_hunter_coat.png": "aaaf3345d59e58448c8c265f15bd7cd774bd61b4ef8a3b5fd969b31ca91d449e",
@@ -2079,7 +2079,7 @@
         "blockbench/equipment-drafts/eriva_wind_hunter_coat.json": "76c49c872add261aefef73089bdd302eb22c34809fd8da410db35deaaae85366",
         "blockbench/items/eriva_wind_hunter_coat.bedrock.bbmodel": "b85ab88a9183324da86d52f2a43dd4cc6417a4ea4bb400f0dd6951bc8e3c19af",
         "blockbench/items/eriva_wind_hunter_coat.java.bbmodel": "e4650650fb64dfef01a49aecc797a092a495500906989851708a3422177b8c51",
-        "blockbench/items/eriva_wind_hunter_coat_worn.bedrock.bbmodel": "871f1b1e2aa4108cda7695deec9f620a18dd0c8bb47abcc7b05e245caba7b2c8"
+        "blockbench/items/eriva_wind_hunter_coat_worn.bedrock.bbmodel": "bde8ccddbf79c0d788c2bcab8412e9f56acef5e906f9063e92b470d780a27272"
       }
     },
     {
@@ -2094,7 +2094,7 @@
         "assets/astralrecord/textures/item/custom/eriva_wind_hunter_leggings.png": "180a937f5fd49b1c4df4a7c0e532d2d458fe2a589c4682f4a5643d0c9f4448db",
         "bedrock/animations/eriva_wind_hunter_leggings.animation.json": "38ccf1b86eaa72e3f2d635d89923da1d2d3c7c7fd29f5564f9b9fb9bea2fb783",
         "bedrock/attachables/eriva_wind_hunter_leggings.json": "0cc204eeddca399cb711c7f08a6772453356feca7fe3027da0705606b1236dfc",
-        "bedrock/models/entity/armor/eriva_wind_hunter_leggings.geo.json": "fad6429dc74f84fc1f4d1915c7c9d975104a5e5d0914b3b300428986f1b921ed",
+        "bedrock/models/entity/armor/eriva_wind_hunter_leggings.geo.json": "4e564ca1872779435ee7f374bf0d6d781ca6bac284eea171f6a68973ee919a92",
         "bedrock/models/entity/items/eriva_wind_hunter_leggings.geo.json": "3ecf972d05d506cf1c2b384b3b05f3288ebf5c9ca28042e51d78294bae37297d",
         "bedrock/textures/entity/items/eriva_wind_hunter_leggings.png": "180a937f5fd49b1c4df4a7c0e532d2d458fe2a589c4682f4a5643d0c9f4448db",
         "bedrock/textures/items/eriva_wind_hunter_leggings.png": "54ca30f659df64fe204ae984a8bf9ba9f544cd70ad3ccb678fdd70b2c1d4aab1",
@@ -2102,7 +2102,7 @@
         "blockbench/equipment-drafts/eriva_wind_hunter_leggings.json": "e72c551dfb50829933b331c744ff2c68d4e9cef4c25372cea3ac8f6cada07502",
         "blockbench/items/eriva_wind_hunter_leggings.bedrock.bbmodel": "239209991583f2844b862e190f1cb70b13cc0284326d19d0cc8f99aaecad460c",
         "blockbench/items/eriva_wind_hunter_leggings.java.bbmodel": "431c2ceb73680c9c68b4b152ba3d015e97c70355b0e489dbb5166676f8cec28a",
-        "blockbench/items/eriva_wind_hunter_leggings_worn.bedrock.bbmodel": "891aaf826a70b2b7936043f58bee9b4d4c99270cd122205f54f945b27c298c8a"
+        "blockbench/items/eriva_wind_hunter_leggings_worn.bedrock.bbmodel": "3a44272dba2b9597bd8e53791aa51b810e0683d2d137de81b40a87c7ffa51dcf"
       }
     },
     {
@@ -2117,7 +2117,7 @@
         "assets/astralrecord/textures/item/custom/eriva_wind_hunter_boots.png": "7ed647b363292aa3327642ae866ffef6361bff3f5c0788a153b2d3d0a6b58dd4",
         "bedrock/animations/eriva_wind_hunter_boots.animation.json": "566d50c3f1873650960e5873c283d8739c25898da90bf388a38ddb7da5f18116",
         "bedrock/attachables/eriva_wind_hunter_boots.json": "aeeaa200d388a9be673321c51c0db9a6e65774f4690d631e4532cc950d1cdc37",
-        "bedrock/models/entity/armor/eriva_wind_hunter_boots.geo.json": "aead3a86f3d9db1e6795f154a7f3827fc9c2bbc62890c41f68e42fe57fa4cbd0",
+        "bedrock/models/entity/armor/eriva_wind_hunter_boots.geo.json": "cb02059c858a70ffb6d5f58f1b207236ea727c5a12c3ce50e713a5e7dc346c0e",
         "bedrock/models/entity/items/eriva_wind_hunter_boots.geo.json": "303a92a3a3ab395f58d3512d5ee9bb8d098b14bcce77116e869c17c14711abdc",
         "bedrock/textures/entity/items/eriva_wind_hunter_boots.png": "7ed647b363292aa3327642ae866ffef6361bff3f5c0788a153b2d3d0a6b58dd4",
         "bedrock/textures/items/eriva_wind_hunter_boots.png": "998a8a35be7b4118d31172db60329957e35ec6c685ba54763dd19ecc9fa88290",
@@ -2125,7 +2125,7 @@
         "blockbench/equipment-drafts/eriva_wind_hunter_boots.json": "87d2c5b614675e41625a526fdb43a4bb41a978925cc2f4ad1284bf64c7664d47",
         "blockbench/items/eriva_wind_hunter_boots.bedrock.bbmodel": "defcc55869305d2cb09680effa90dace0ba67180625038b9b9f5c5d7f5cbcc9d",
         "blockbench/items/eriva_wind_hunter_boots.java.bbmodel": "c777bbb3f9f3080f4a6a02783ea60b75b5abb1c8173c34708af4355afbde899b",
-        "blockbench/items/eriva_wind_hunter_boots_worn.bedrock.bbmodel": "0f47745b652be15ce2d8bcda0f91a5de726f412d7a1314291cccd2cb749ecc5a"
+        "blockbench/items/eriva_wind_hunter_boots_worn.bedrock.bbmodel": "e4e517332c86d7a5ba8c7abbe57bc843d701f58a961e51b6075efab0793f0540"
       }
     },
     {
@@ -2140,7 +2140,7 @@
         "assets/astralrecord/textures/item/custom/eriva_spirit_tree_crown.png": "e6f3abe94dd15d12ce1457d4e3ad9d67988ce13a87fbe18a4a3eabcd95be31fe",
         "bedrock/animations/eriva_spirit_tree_crown.animation.json": "9d78a218897ba47840c16394511a7636bb7487a87e9130430ca652d89708bda6",
         "bedrock/attachables/eriva_spirit_tree_crown.json": "8c6ed62a4b93e6de4dcfa7b13e44a864651b924f0c584021d8833e14f7ddcfae",
-        "bedrock/models/entity/armor/eriva_spirit_tree_crown.geo.json": "71f96dac5c7d1763217ba504e6f62a5a5016e6ce66f5aa28c5d1cf10d414b861",
+        "bedrock/models/entity/armor/eriva_spirit_tree_crown.geo.json": "224025cade147523477799b66dca90fde3b5e581855eb31793ce536881e880dc",
         "bedrock/models/entity/items/eriva_spirit_tree_crown.geo.json": "fe64dafda9b32e1f92e8d031939ca16209162c02678986328cd3cc3b40a2953b",
         "bedrock/textures/entity/items/eriva_spirit_tree_crown.png": "e6f3abe94dd15d12ce1457d4e3ad9d67988ce13a87fbe18a4a3eabcd95be31fe",
         "bedrock/textures/items/eriva_spirit_tree_crown.png": "2c19c804010ca0140b371e0c871360ca84c74b843c87d580822c18e447d37eda",
@@ -2148,7 +2148,7 @@
         "blockbench/equipment-drafts/eriva_spirit_tree_crown.json": "b716d6403e5d7f8f05dea7aadb50294eb059b8d2198e93af81143ea0b0c47d9a",
         "blockbench/items/eriva_spirit_tree_crown.bedrock.bbmodel": "be35eec2acd522583ead2f626ac8ec5c93729423387246a21336e37dcae04d08",
         "blockbench/items/eriva_spirit_tree_crown.java.bbmodel": "4f65ba7095f9aed0702c436884883633a8c8ed5f019757a12b7ae82f1b6b7a57",
-        "blockbench/items/eriva_spirit_tree_crown_worn.bedrock.bbmodel": "e07abf80313b25115f594980a6d8ddc6d8b3b2049e372453a3c00ada967a6b55"
+        "blockbench/items/eriva_spirit_tree_crown_worn.bedrock.bbmodel": "889dc7eecc07a5be5475a1d50694b0bcd1f52448612d5d929334d2bfca1e45fa"
       }
     },
     {
@@ -2163,7 +2163,7 @@
         "assets/astralrecord/textures/item/custom/eriva_spirit_tree_robe.png": "17808e316ad86275384ffd37fffaaae6cc1b77b64a86c1fb19e938cf2b74477a",
         "bedrock/animations/eriva_spirit_tree_robe.animation.json": "2ce944cb3d043b4a639a80fa490a504f4d8dfb46ae0f50544c32c6efebbf6c93",
         "bedrock/attachables/eriva_spirit_tree_robe.json": "31b7687880d34f2318d101e2fe33f0c66ed8cde8d52551a3a957af5eb57564e2",
-        "bedrock/models/entity/armor/eriva_spirit_tree_robe.geo.json": "ea774b2712ea87b1aa82c2dc789f686904f32d734db82be45096d69ce21c050a",
+        "bedrock/models/entity/armor/eriva_spirit_tree_robe.geo.json": "9eb27255a9cacc5de81b5fe91360794f29473f9ce430906d43953a64ea28c93f",
         "bedrock/models/entity/items/eriva_spirit_tree_robe.geo.json": "0307c623fe3631c2d3e53e499b8cf0e87ca8032543ca27b2d7bdae60ba7b3f07",
         "bedrock/textures/entity/items/eriva_spirit_tree_robe.png": "17808e316ad86275384ffd37fffaaae6cc1b77b64a86c1fb19e938cf2b74477a",
         "bedrock/textures/items/eriva_spirit_tree_robe.png": "3eba5e245c7a42766acae736e82384e037d026b60a5bf1d640d5c42e095a85cb",
@@ -2171,7 +2171,7 @@
         "blockbench/equipment-drafts/eriva_spirit_tree_robe.json": "db9f29064fc77e95260a9c24dae2b39e81d9979e7817078f1b1b1aebd89aac50",
         "blockbench/items/eriva_spirit_tree_robe.bedrock.bbmodel": "04f1f740e39eb069c82777117b6e4aaecf94fe3b98d0fa5e9586f9a92146725d",
         "blockbench/items/eriva_spirit_tree_robe.java.bbmodel": "0e8c08754c6ded3a71738204ba5112adabd365749f83d4e162cf89b45e924438",
-        "blockbench/items/eriva_spirit_tree_robe_worn.bedrock.bbmodel": "1ca8d32b0f7e643656c2f400a7c40a9e2ed580091bc406a5704c469092e770d5"
+        "blockbench/items/eriva_spirit_tree_robe_worn.bedrock.bbmodel": "876255cf1e1c7dbd35f561e81b2f7ed934cb04dbb8dadc020270ddc7ea693cef"
       }
     },
     {
@@ -2186,7 +2186,7 @@
         "assets/astralrecord/textures/item/custom/eriva_spirit_tree_leggings.png": "d7d381eff270d877c94a0be5337dfd0a781aa82bd2c49ca16dabf523f1fdf50f",
         "bedrock/animations/eriva_spirit_tree_leggings.animation.json": "ff1c89d8174045380555e9f2fbe08d4baa4107deaa47855993c7e63d8bb514f3",
         "bedrock/attachables/eriva_spirit_tree_leggings.json": "e0252024df57bbbd6237414ac5d853bccffa7e6a1f1f43e796a9b8da9eef5513",
-        "bedrock/models/entity/armor/eriva_spirit_tree_leggings.geo.json": "ed83456a69ca436d08cbf37f90eee38437af4aa695863ffe152f9946100a5561",
+        "bedrock/models/entity/armor/eriva_spirit_tree_leggings.geo.json": "d43038e21c010bb352fe0f51fccffca52ecb6aa3a16211ad5eb9d6ef33321429",
         "bedrock/models/entity/items/eriva_spirit_tree_leggings.geo.json": "87b11b8ee274c27ef4d2c25d63655eb57295e7d4db8fe8832f366b73b846906c",
         "bedrock/textures/entity/items/eriva_spirit_tree_leggings.png": "d7d381eff270d877c94a0be5337dfd0a781aa82bd2c49ca16dabf523f1fdf50f",
         "bedrock/textures/items/eriva_spirit_tree_leggings.png": "0ca56c90cd1dd140a943de1a6b0acb69336dbe4ce3b6ac9f23dfe6d079b239e1",
@@ -2194,7 +2194,7 @@
         "blockbench/equipment-drafts/eriva_spirit_tree_leggings.json": "0f2128e6ae12b96fe6a6e5a51134168be5889a871b7fea18e44e15d18743b747",
         "blockbench/items/eriva_spirit_tree_leggings.bedrock.bbmodel": "a5d020382107536a1825f6946657572f743e04116face5ecd811dfede041b806",
         "blockbench/items/eriva_spirit_tree_leggings.java.bbmodel": "05241d7a4de9956ed8c5e8d7dd5da0c5de2d9bb5887408148ee0810e13548b4e",
-        "blockbench/items/eriva_spirit_tree_leggings_worn.bedrock.bbmodel": "c44dda7455e387a4a049a5c1d9f69faeafa5e6519857dce67cd1b21b093faa44"
+        "blockbench/items/eriva_spirit_tree_leggings_worn.bedrock.bbmodel": "6fd70cc3e0e6ba7112e3244c33313e43ea7141e0f12eaed78d9ce886e4b16286"
       }
     },
     {
@@ -2209,7 +2209,7 @@
         "assets/astralrecord/textures/item/custom/eriva_spirit_tree_boots.png": "500a2ff7216a80c9fa967597156a77bb7d1e62674702e829d8ffb0159e771895",
         "bedrock/animations/eriva_spirit_tree_boots.animation.json": "1569f07a41b7dbd64931a46a0a4ea5ecc11cece0c14993646a8fa697d5b2b7a0",
         "bedrock/attachables/eriva_spirit_tree_boots.json": "136a8d6dbbfb98cd02b0e69e45a1d703e4b5091df59811f110026418c3b66bf9",
-        "bedrock/models/entity/armor/eriva_spirit_tree_boots.geo.json": "42554dcfeb7294e4d21f4bd74cd0e254cb17d8dc619ecbd345a293d94f275f7a",
+        "bedrock/models/entity/armor/eriva_spirit_tree_boots.geo.json": "dad068e861f27ca033244d0ab15e96e036ccae752cb4175416eff1efdf1b69d2",
         "bedrock/models/entity/items/eriva_spirit_tree_boots.geo.json": "2d291431bb9feb125fb0e3cc16c644ddb57acda3e14eb20d6fe3082c006837f8",
         "bedrock/textures/entity/items/eriva_spirit_tree_boots.png": "500a2ff7216a80c9fa967597156a77bb7d1e62674702e829d8ffb0159e771895",
         "bedrock/textures/items/eriva_spirit_tree_boots.png": "73832757e8410df2f907155b963e378ffa7ab4feaa2e5ec28ceddc919d0e9b7a",
@@ -2217,7 +2217,7 @@
         "blockbench/equipment-drafts/eriva_spirit_tree_boots.json": "693a11ab940d514660608b0836bb06f574ade0cf17eb5e6b59d917e223b55a89",
         "blockbench/items/eriva_spirit_tree_boots.bedrock.bbmodel": "b162f1ad830fc02e97837846f2cf75057bcf2b6198bd55fe75dd7c27073e2a12",
         "blockbench/items/eriva_spirit_tree_boots.java.bbmodel": "0171e454a9c83d96e09ac762194b716765bd70e7f5086b6b17a2f3f094440e74",
-        "blockbench/items/eriva_spirit_tree_boots_worn.bedrock.bbmodel": "8cb99565ebea2db9745879a1b7867391ce40f98767a9ddb37e36614778a1d8fd"
+        "blockbench/items/eriva_spirit_tree_boots_worn.bedrock.bbmodel": "e8b49e8f309c0e09789d2b87061e7ba764bfbfecc47d5c02fb0c5c84cf8933d7"
       }
     },
     {
@@ -2232,7 +2232,7 @@
         "assets/astralrecord/textures/item/custom/lapis_guard_head.png": "7763d358c07a73da1826499b9bdb96a503d50d133a6e1457342dc76e83bbeffc",
         "bedrock/animations/lapis_guard_head.animation.json": "9dbf2b5dbf9274efadc91b9e1fbd091c8405f99e48119f92d32761d9881c37bd",
         "bedrock/attachables/lapis_guard_head.json": "ee4fd8252959823a0a717c47414f28dfdca0069893aac0da7b35efbc6f961606",
-        "bedrock/models/entity/armor/lapis_guard_head.geo.json": "80d690a510bf844d3c7e33a5bbff40b2c13cf4d70db2770bc1a9b79a3cbdbd33",
+        "bedrock/models/entity/armor/lapis_guard_head.geo.json": "5716376d4233f63821abc8e9c5d1b731151f9664854683fdde01b3aaa68fb773",
         "bedrock/models/entity/items/lapis_guard_head.geo.json": "f0a8143d80ac167b251ca68beebfab5bf10e84da36dc77554d00d85ee70dba7e",
         "bedrock/textures/entity/items/lapis_guard_head.png": "7763d358c07a73da1826499b9bdb96a503d50d133a6e1457342dc76e83bbeffc",
         "bedrock/textures/items/lapis_guard_head.png": "b527926b6cdc749e122a879bd2729996f56d9eb15997d3b92af86adae492d8bf",
@@ -2240,7 +2240,7 @@
         "blockbench/equipment-drafts/lapis_guard_head.json": "c30608fffd5f6c14f28d447c11921012722e381fcdf62d0fb79a478b9842f4fe",
         "blockbench/items/lapis_guard_head.bedrock.bbmodel": "61eabd090e5808e8dea6baebacdc735ecf318c55272bb3b1f1513416a21f2e71",
         "blockbench/items/lapis_guard_head.java.bbmodel": "fbbcc29efe1ee07b260728a06be7a6f5c2ba52e651aaac015eb71d9ebd172201",
-        "blockbench/items/lapis_guard_head_worn.bedrock.bbmodel": "108382342acf2d1ac0880ccbc9fc778335207bf83aafc31cf5202686983b50b1"
+        "blockbench/items/lapis_guard_head_worn.bedrock.bbmodel": "406d8e925fcc0851f8616f5ec42dfe39b81bbbb3eecd88fc8c6f4c100d62743e"
       }
     },
     {
@@ -2255,7 +2255,7 @@
         "assets/astralrecord/textures/item/custom/lapis_guard_chest.png": "204a7eb26bf9c469c8325d6b448e0056ffdbd03b4ed5f52a50cdc39940ea51fa",
         "bedrock/animations/lapis_guard_chest.animation.json": "106f8e1f8e558e0218c0b26ccb2c737bdc486509f8c1142ebc53f23800a3c60d",
         "bedrock/attachables/lapis_guard_chest.json": "6292afaee25a5b4078ba002f07f731c9bdaa9d52d391b6e2214968711510d539",
-        "bedrock/models/entity/armor/lapis_guard_chest.geo.json": "99367411d9b158cbccee175f423b00f99a0d8538fb15de602efd9bcf4d9d7f96",
+        "bedrock/models/entity/armor/lapis_guard_chest.geo.json": "c3c01f2aca48212b5a5a0d19217a62c313c027579cb8732af99147dc86b7d84a",
         "bedrock/models/entity/items/lapis_guard_chest.geo.json": "ef0a154c4bcdc56f17032d6762600d44909a05b272ed221c8e0dd266316012c4",
         "bedrock/textures/entity/items/lapis_guard_chest.png": "204a7eb26bf9c469c8325d6b448e0056ffdbd03b4ed5f52a50cdc39940ea51fa",
         "bedrock/textures/items/lapis_guard_chest.png": "0a23fe4512ccc80bc158e4d70ce9ac5f59aebbf31918b9ab2823bbf08fda4551",
@@ -2263,7 +2263,7 @@
         "blockbench/equipment-drafts/lapis_guard_chest.json": "4ae86ad8a7329913bc9136a1ddb2139ba3b5e477db83d58c5766871a5e7adbf9",
         "blockbench/items/lapis_guard_chest.bedrock.bbmodel": "635ce26a9e6b4e3f8000d4be36ea4d4748b22316a679b83769eb90857de54e83",
         "blockbench/items/lapis_guard_chest.java.bbmodel": "9e3577ae4bc6edaaed6da019c8558047ebc33da68ad37fe962b4d6ce2851bf91",
-        "blockbench/items/lapis_guard_chest_worn.bedrock.bbmodel": "44291ae8cdbce372dd501bcb419cf2c48e668880dbacb60bc0d2168bfdfd6528"
+        "blockbench/items/lapis_guard_chest_worn.bedrock.bbmodel": "2dba0d825cae57d405667bdabe611df86d431976ae69927ebe486a0e5f40c4b4"
       }
     },
     {
@@ -2278,7 +2278,7 @@
         "assets/astralrecord/textures/item/custom/lapis_guard_legs.png": "0cc730a24ae951f57d8939f7445b68dbfe50cb7cb6a49e371f99893b7aae73c3",
         "bedrock/animations/lapis_guard_legs.animation.json": "f7b7aff6729576e28440c17dc709b05d8b86c6c562fc5eeff0c7ce56ee754f64",
         "bedrock/attachables/lapis_guard_legs.json": "dc3e8d269baa8a0e869e0583cee18d56eaa56cf16ae5de8510a9ae779f3747a1",
-        "bedrock/models/entity/armor/lapis_guard_legs.geo.json": "6a0490f48a3bfcc1e9bd01db12fbe160489de889a78dee5401640a7deff92070",
+        "bedrock/models/entity/armor/lapis_guard_legs.geo.json": "54ec020c91764fd8ec3527393c40ba20a76e5f029235ff6ec67ef400f243c635",
         "bedrock/models/entity/items/lapis_guard_legs.geo.json": "2ae3cd643f2bf593aaa75c30d838b2a3c6266244d13dab8214fc414621b2d521",
         "bedrock/textures/entity/items/lapis_guard_legs.png": "0cc730a24ae951f57d8939f7445b68dbfe50cb7cb6a49e371f99893b7aae73c3",
         "bedrock/textures/items/lapis_guard_legs.png": "50fa5fb647a43458af3593dd625a7fdee7464ca4e1c4c7caa78b936723a0055c",
@@ -2286,7 +2286,7 @@
         "blockbench/equipment-drafts/lapis_guard_legs.json": "166b991de8073dacb67c07e055085d92348c01a609722bb832bcbabdc1570f27",
         "blockbench/items/lapis_guard_legs.bedrock.bbmodel": "716417c85f20238e04b898bf7c61143aa11e4b08940c3b09410d4be99f72e097",
         "blockbench/items/lapis_guard_legs.java.bbmodel": "e4bdd5095c29bb333ec6df9e8447887c19a837898826e0b6423e95beac6f03df",
-        "blockbench/items/lapis_guard_legs_worn.bedrock.bbmodel": "024757f7e0b722670c0e7f115fe3b8878c5ce656e36989bbbbf08ff7b0d08d9f"
+        "blockbench/items/lapis_guard_legs_worn.bedrock.bbmodel": "766fdf1e6b1d3ca67ec3b3cfff3b6654492e20e3ac0a6ceeca87aed0811b55e3"
       }
     },
     {
@@ -2301,7 +2301,7 @@
         "assets/astralrecord/textures/item/custom/lapis_guard_feet.png": "d553a93b8e2f20bae033bc4a6f98d21dc981a18cfb03ddbf832653716ef39991",
         "bedrock/animations/lapis_guard_feet.animation.json": "d16713326e241d67d5069a92051fd3114e6a832c1b68d2e1ef641bc4031d6262",
         "bedrock/attachables/lapis_guard_feet.json": "8b443afb62074b2c394ab7b58e59161cf2d95fa9e0017e4195b934bbe5492c57",
-        "bedrock/models/entity/armor/lapis_guard_feet.geo.json": "efb9e09ee5a4e8a7b3bb4b8ce93eaa9770c3255a50d802b0450b25e4d9575523",
+        "bedrock/models/entity/armor/lapis_guard_feet.geo.json": "fd70238dc01365ed0c1761f055585aa2ef574706625c310d92dcb1237aee80fe",
         "bedrock/models/entity/items/lapis_guard_feet.geo.json": "67896c2aa676fe4a4995da98ab61ff963b2efc7efb10af56172be4ce0e021dff",
         "bedrock/textures/entity/items/lapis_guard_feet.png": "d553a93b8e2f20bae033bc4a6f98d21dc981a18cfb03ddbf832653716ef39991",
         "bedrock/textures/items/lapis_guard_feet.png": "997ac5e81790073bf28aaa2a794e3882c51e379122d4ed7afddda3cdf3d3465f",
@@ -2309,7 +2309,7 @@
         "blockbench/equipment-drafts/lapis_guard_feet.json": "037a535d1c87151eec818684a1855adb57ee22f02b6860fcf37bd41bf791aad6",
         "blockbench/items/lapis_guard_feet.bedrock.bbmodel": "8558a56de212984873f0f8f8964e057216b86ad9f191bde44c4797d701468538",
         "blockbench/items/lapis_guard_feet.java.bbmodel": "9c2001c3b56c7c4a75173eb5e58558fd37c1e445053f854cfa81a5e6a16600f5",
-        "blockbench/items/lapis_guard_feet_worn.bedrock.bbmodel": "5719989ffef14460f01882f5ef0e9a07815943fe00d3568b9f606dcb540d4614"
+        "blockbench/items/lapis_guard_feet_worn.bedrock.bbmodel": "18062dd2aebb6e8be30f24fb37e02fd8c0f031fd5a13b77e65c50e4066f3ccfb"
       }
     },
     {
@@ -2324,7 +2324,7 @@
         "assets/astralrecord/textures/item/custom/lapis_hunter_head.png": "de6d402c24dbfd5fb4cedf480e676a3b5da5f45db1f97c67776bd81492380a83",
         "bedrock/animations/lapis_hunter_head.animation.json": "6a58e1af1c5e194b207dfb7d7772190370c28a7cde6f724079c9a5eca7810525",
         "bedrock/attachables/lapis_hunter_head.json": "e1bd537cd5a2ea0e7980409556322558eedb7ab149c54a34c920c4335c11ca2f",
-        "bedrock/models/entity/armor/lapis_hunter_head.geo.json": "9f68f607d8bb55326b002b097ccb01d1f78118d095b6310ae784a990d32dd0ab",
+        "bedrock/models/entity/armor/lapis_hunter_head.geo.json": "cb76ec2493405d14a4138b4475377341ffc1cb37a01fe7409b70f3a42ec0e4c8",
         "bedrock/models/entity/items/lapis_hunter_head.geo.json": "24b91e5260a937d3faa9a84a2b46692efcb58319a365b60f5bb053cb1c9f33c2",
         "bedrock/textures/entity/items/lapis_hunter_head.png": "de6d402c24dbfd5fb4cedf480e676a3b5da5f45db1f97c67776bd81492380a83",
         "bedrock/textures/items/lapis_hunter_head.png": "f8e7b0e8ec42ddd84fd3dffc21cd8a37dd42dbf4fc4c027a8c719e7809a79db0",
@@ -2332,7 +2332,7 @@
         "blockbench/equipment-drafts/lapis_hunter_head.json": "480d8887538d4a1ea7fcfa94c3cf5aa842d2a6c6d376276bdc013d0db632c8e6",
         "blockbench/items/lapis_hunter_head.bedrock.bbmodel": "39b054cddb4520c1212576af91f735fb0de99d57c84be1dcdc4cc50405d71ec1",
         "blockbench/items/lapis_hunter_head.java.bbmodel": "4124071a762f7670a17cde690e298dabd40429305be5ed341e972b156ac90fb6",
-        "blockbench/items/lapis_hunter_head_worn.bedrock.bbmodel": "8d872e411746531f0d352748b39fe9066dd6314abcabdf12743f7b05b9f59463"
+        "blockbench/items/lapis_hunter_head_worn.bedrock.bbmodel": "a986fc422740f6abdc60b0aa9e857eb7b523e4119829f9c8c3c593b5f72d20a4"
       }
     },
     {
@@ -2347,7 +2347,7 @@
         "assets/astralrecord/textures/item/custom/lapis_hunter_chest.png": "4daabcbbc828e40e926d28bf41f0c1f52e6f78d3a832e7d05c545cfa5f8b7da5",
         "bedrock/animations/lapis_hunter_chest.animation.json": "cd8cbf1fd572b8d3876417d323e12ecf2f19aa310a9131de867e1ec3ed68586f",
         "bedrock/attachables/lapis_hunter_chest.json": "e528d2292091e42846dd7fc36175134e3846553b5e9e859ca6b908645a006684",
-        "bedrock/models/entity/armor/lapis_hunter_chest.geo.json": "0e99bf5254dd4a303ce312558210b83da47287a6efef600a511d7425c5323edb",
+        "bedrock/models/entity/armor/lapis_hunter_chest.geo.json": "f198512bb13ce34c62b339b845bfeeae9f1574d50acb0e9c057e9c6f7d9e28af",
         "bedrock/models/entity/items/lapis_hunter_chest.geo.json": "5c5502a5b9d7bc640781b379601b1a3b61499cdb096aae15d1b977cf1abcd6a3",
         "bedrock/textures/entity/items/lapis_hunter_chest.png": "4daabcbbc828e40e926d28bf41f0c1f52e6f78d3a832e7d05c545cfa5f8b7da5",
         "bedrock/textures/items/lapis_hunter_chest.png": "b49ae6811100cbd274a9ca519dbdab1ac4e581c728978d3ed20de6bb9c3291ab",
@@ -2355,7 +2355,7 @@
         "blockbench/equipment-drafts/lapis_hunter_chest.json": "e3cb3e5a162cd6c4452c0c9f4069e000c7659435f579cdb236ff0e8aace1a67e",
         "blockbench/items/lapis_hunter_chest.bedrock.bbmodel": "389ceeca1fb99104666fb7f21ed304108c42f13a933b21a0845e276c379ce960",
         "blockbench/items/lapis_hunter_chest.java.bbmodel": "e2ac7078552669591ba5d5d841801074711ce2aa6233fa258a93737a6470d4e2",
-        "blockbench/items/lapis_hunter_chest_worn.bedrock.bbmodel": "c7ef54e94137300b11177b1b8bb70fc225bcceece6b5adbef848df9772fd4f09"
+        "blockbench/items/lapis_hunter_chest_worn.bedrock.bbmodel": "dc5ef3a1752f1bcbed28a512b9661261d1ea16acf430ffea8081626746b14df2"
       }
     },
     {
@@ -2370,7 +2370,7 @@
         "assets/astralrecord/textures/item/custom/lapis_hunter_legs.png": "16c395944129430855e99a72cc558802feecc19ee26bd3227f7329db72493292",
         "bedrock/animations/lapis_hunter_legs.animation.json": "b4fcaf551eabbaafa1f557e76c618b4a40a5259aba6325dfa8e7ecd9cdd04f4a",
         "bedrock/attachables/lapis_hunter_legs.json": "7fbde5acbe229268f27c0d3df3430716921c2d295076f5334b59ce8a9cef5f0a",
-        "bedrock/models/entity/armor/lapis_hunter_legs.geo.json": "fe63943fb6f81a9d70926b3091cbb94b433727e85966acfc695e2e19c0ede4eb",
+        "bedrock/models/entity/armor/lapis_hunter_legs.geo.json": "8b529d843002807e3a558398b50908b3b012a43611a9602bb8a6f9d4f426f177",
         "bedrock/models/entity/items/lapis_hunter_legs.geo.json": "0a7280420d3ea3bd89a5e515c068be6ac633a2be1330a550eda2f773f2472ffc",
         "bedrock/textures/entity/items/lapis_hunter_legs.png": "16c395944129430855e99a72cc558802feecc19ee26bd3227f7329db72493292",
         "bedrock/textures/items/lapis_hunter_legs.png": "5ea7da638bbb9e4e29af146868140034cd5fcdf79f891ef2dc5243344648431f",
@@ -2378,7 +2378,7 @@
         "blockbench/equipment-drafts/lapis_hunter_legs.json": "aa43ddb161f0311e5eb8929605dabf4fc144e3e14ce4cddcf05bd3cd4376b231",
         "blockbench/items/lapis_hunter_legs.bedrock.bbmodel": "c95404e8029e71c5181bce3af01188a0b65189e92ad409e4305b7470cb718f0f",
         "blockbench/items/lapis_hunter_legs.java.bbmodel": "5fff7255b2fbcb00172a8ecb31e664f58df64a553c02612560c3c6ef90b1a9af",
-        "blockbench/items/lapis_hunter_legs_worn.bedrock.bbmodel": "5b182b5bced1d5c5d1f562580e58d087fc2d292a96a952f7996879efae7846a5"
+        "blockbench/items/lapis_hunter_legs_worn.bedrock.bbmodel": "a2cf58585d537c395fa3c374fe8307e94511e1c9c4a99453adaf094ce783487c"
       }
     },
     {
@@ -2393,7 +2393,7 @@
         "assets/astralrecord/textures/item/custom/lapis_hunter_feet.png": "eb7cbb494b203c46e4460221c5d1e3fa2a0f8ddf5dba40b299ffc329772d5206",
         "bedrock/animations/lapis_hunter_feet.animation.json": "fae17f78970a10096e884faff6cedc53a113441be2f6bc31c7057443de4ca443",
         "bedrock/attachables/lapis_hunter_feet.json": "d3a52ad8270f5cc6b0598a045b77df3145d0dba5fac10174992d68e958688987",
-        "bedrock/models/entity/armor/lapis_hunter_feet.geo.json": "face29de92535d279702833c472bb3f3378e236664b3a542e454d4b7477aa528",
+        "bedrock/models/entity/armor/lapis_hunter_feet.geo.json": "1dfcf620be144b598fd79c84ffbd14004564ff3837ca40d17f959ea533fee624",
         "bedrock/models/entity/items/lapis_hunter_feet.geo.json": "771b348852f91a984281c75acbbce5b28fd74109fc6c348e9c292cd8ff465c99",
         "bedrock/textures/entity/items/lapis_hunter_feet.png": "eb7cbb494b203c46e4460221c5d1e3fa2a0f8ddf5dba40b299ffc329772d5206",
         "bedrock/textures/items/lapis_hunter_feet.png": "2e6d19946de05ea03375151d92febd0bbae18f132b23c52b3668ff472e257092",
@@ -2401,7 +2401,7 @@
         "blockbench/equipment-drafts/lapis_hunter_feet.json": "df47484a9fbd871feb68cd3420544d96ec402194fdce074d8ffa3cedb02acc1b",
         "blockbench/items/lapis_hunter_feet.bedrock.bbmodel": "5f19ef188776d31ec5c4584b331b07820f1e6836b144303d961da87f09263b91",
         "blockbench/items/lapis_hunter_feet.java.bbmodel": "d88b12d1205562cf4652a21e527575744bfad19b85d31bd06a31ffa89f973326",
-        "blockbench/items/lapis_hunter_feet_worn.bedrock.bbmodel": "4e34685f5bd7ee93520564960572b6b1fe00b3b5e28d7b655b37f8f711602072"
+        "blockbench/items/lapis_hunter_feet_worn.bedrock.bbmodel": "c10f0ec547b4eef1b26e4dd5a6e412ca5c793c7cdbd1df1b25af8b490e81b2cc"
       }
     },
     {
@@ -2416,7 +2416,7 @@
         "assets/astralrecord/textures/item/custom/lapis_mage_head.png": "6d96cc21f20aca0cdb65c6c2cb6381ce1c016bba134be86d3ce42e98d09d82b8",
         "bedrock/animations/lapis_mage_head.animation.json": "c5a50d21a1cd508e0194ae7cfa0d6f17a93a020cd37204ef800f94cc4aabcf62",
         "bedrock/attachables/lapis_mage_head.json": "40496a65f6d116d4b0cee42c9f6fa40340454fb70fee1617ce25102013ece5a8",
-        "bedrock/models/entity/armor/lapis_mage_head.geo.json": "a1f8689bc49a0f4484fafe89a498e6e40cb1e379978eb93e6b1efe7354807431",
+        "bedrock/models/entity/armor/lapis_mage_head.geo.json": "f737ac6aa92dd939e7284e189a790761a1281f5cc2093ac4346416cec9742216",
         "bedrock/models/entity/items/lapis_mage_head.geo.json": "4523140621d619d2e12d7323fec910228edc82d1493895154c87e0a44901d2ee",
         "bedrock/textures/entity/items/lapis_mage_head.png": "6d96cc21f20aca0cdb65c6c2cb6381ce1c016bba134be86d3ce42e98d09d82b8",
         "bedrock/textures/items/lapis_mage_head.png": "a3bca58ebe02c1d571f885c2f404de23bc5941fd25ca9ad9eafd8a755326086c",
@@ -2424,7 +2424,7 @@
         "blockbench/equipment-drafts/lapis_mage_head.json": "13163984506ca026435f8fdf6e90c11bb1fd7cf8739e8bb827522c18da89c0d8",
         "blockbench/items/lapis_mage_head.bedrock.bbmodel": "938095ed34b8383e58dcffce3a41a0a2dbb919e0b427303c179f8d975c419956",
         "blockbench/items/lapis_mage_head.java.bbmodel": "bb0c2909437719514ff8375e2f5bb44d1334100c2e1b809ffe7716ae8afb0388",
-        "blockbench/items/lapis_mage_head_worn.bedrock.bbmodel": "a10c35c4ef76b6c23fb8429c8956ca23a1d0d87ce91ec6a265e3de8b309d6750"
+        "blockbench/items/lapis_mage_head_worn.bedrock.bbmodel": "4e2bf147040589814e71f4bb5686d9ae2dfa5325c3e0992f8422cb472c0b7aae"
       }
     },
     {
@@ -2439,7 +2439,7 @@
         "assets/astralrecord/textures/item/custom/lapis_mage_chest.png": "83e5f99b686a82576458b32413a8bd8ef642fc01fa0f580cfa8ceadfef702e9d",
         "bedrock/animations/lapis_mage_chest.animation.json": "e2c51192afafaaeddc495c20d110ce941ebc83f5df0234667debca53c4a20093",
         "bedrock/attachables/lapis_mage_chest.json": "160f0491b88f0313c42cf45a2799a5ac84070dd140ca34492ee2457e54a49c03",
-        "bedrock/models/entity/armor/lapis_mage_chest.geo.json": "bf0d62b5f7f12b3a5a71924693aea7462aeb4297c5a5919e76584ac30e88a69c",
+        "bedrock/models/entity/armor/lapis_mage_chest.geo.json": "624916c504ddb7f929e3325cf01eb1092f6828e0cf3fa6afc6cc8f07abd782e3",
         "bedrock/models/entity/items/lapis_mage_chest.geo.json": "7629717250e1b8cdddaf649b8ba4338339e21e93632601754200710b54dffedf",
         "bedrock/textures/entity/items/lapis_mage_chest.png": "83e5f99b686a82576458b32413a8bd8ef642fc01fa0f580cfa8ceadfef702e9d",
         "bedrock/textures/items/lapis_mage_chest.png": "ec3e2e57fce441abc49b820221946d2f86d2924ed6c2f91a6d81e6d4f5fc0dcc",
@@ -2447,7 +2447,7 @@
         "blockbench/equipment-drafts/lapis_mage_chest.json": "dc31d2f5e9fa9d615b54b17313f0f4f9771d0e8dc93a92f5d2a11076058e4800",
         "blockbench/items/lapis_mage_chest.bedrock.bbmodel": "ae7e60d5bef16ca55e6c6a3f46cf40e0c88e27c2c77e7a2e903bf75bee9ae987",
         "blockbench/items/lapis_mage_chest.java.bbmodel": "7e844e49a686616e5f1a9ef09e1a4a38231a3fedb516bdadc3537cc9f4b74df6",
-        "blockbench/items/lapis_mage_chest_worn.bedrock.bbmodel": "586b95762320f64bd0681f63d856fe8496ddddc7c492c9381651149263938501"
+        "blockbench/items/lapis_mage_chest_worn.bedrock.bbmodel": "b0793ccf3220ba1a03b10d718e12e09a2a9f9079acd9e99de6e161cb2b2939cd"
       }
     },
     {
@@ -2462,7 +2462,7 @@
         "assets/astralrecord/textures/item/custom/lapis_mage_legs.png": "dc8a1981b1300a73f9b59a2ab2751425effdd7545fc09da9806b6ea3309794a2",
         "bedrock/animations/lapis_mage_legs.animation.json": "00da7cbb75b436f94a5350d39c1be0df7dfa54c0ab15941da9ba9e0c5417ead1",
         "bedrock/attachables/lapis_mage_legs.json": "cd1093d126f4a2c41f96cf445a7b356f90a30d92fba95823f0ac053ef69ff856",
-        "bedrock/models/entity/armor/lapis_mage_legs.geo.json": "ef12dae2e24af5f95e10ee83aab6e304c2aea2f5a2d637d50aa40f096d01dd85",
+        "bedrock/models/entity/armor/lapis_mage_legs.geo.json": "37a51430f9e8c9369885f935a9148d84a27adf32800ab30fe8da2e37603b54e7",
         "bedrock/models/entity/items/lapis_mage_legs.geo.json": "68776fe3d420a29946910c50188be83815962ed620547d96e76bae2f6647e733",
         "bedrock/textures/entity/items/lapis_mage_legs.png": "dc8a1981b1300a73f9b59a2ab2751425effdd7545fc09da9806b6ea3309794a2",
         "bedrock/textures/items/lapis_mage_legs.png": "ece9b1da61c897111e899beee4dfb9e0f65cbd4acb1f7e855101782bd62e8833",
@@ -2470,7 +2470,7 @@
         "blockbench/equipment-drafts/lapis_mage_legs.json": "00514e1cf9b24c800625af69d81de577ad411bd2b551d4e6520c9051e0d77910",
         "blockbench/items/lapis_mage_legs.bedrock.bbmodel": "490de63f6f537b69f59ff2b20adf81d619e23b992ae8e7d159da0d1ab4d2e736",
         "blockbench/items/lapis_mage_legs.java.bbmodel": "1cd353428f4b71c8ffca8f9f2f40131c336f20844ae1dc0b6fb1ae5fba050e10",
-        "blockbench/items/lapis_mage_legs_worn.bedrock.bbmodel": "a89c25fd0e17cc9745ad732df08397a5f96a54885c487c71252f611c1a4b4c04"
+        "blockbench/items/lapis_mage_legs_worn.bedrock.bbmodel": "83bdc516f89be1b491729896a326da14b449212de1d497939704ee6b72a659fe"
       }
     },
     {
@@ -2485,7 +2485,7 @@
         "assets/astralrecord/textures/item/custom/lapis_mage_feet.png": "557e39b8c47e7b76a28633569e2698da8d809e3fd17a8e76631f37c9bb1eeb62",
         "bedrock/animations/lapis_mage_feet.animation.json": "86ba1771a3f17e22c69ef549feee575399233e87b629d6dcf4bedb5506d639bb",
         "bedrock/attachables/lapis_mage_feet.json": "71dc7fda3e74c339cdd18459c40ebfbed0d3fe6b62279f0f98af930f7f310dd7",
-        "bedrock/models/entity/armor/lapis_mage_feet.geo.json": "8164e60f6ec0f129af3fb4ee0c450a4010e8857913704538d7e87ec89a3de0ec",
+        "bedrock/models/entity/armor/lapis_mage_feet.geo.json": "3116d1d5ed28e2f54730f0e02b95cc57031acbcd094697068bc3cc8902b8da48",
         "bedrock/models/entity/items/lapis_mage_feet.geo.json": "8f941700c1e199f961357afcab306e117307db040f381dd7524997895295e6d5",
         "bedrock/textures/entity/items/lapis_mage_feet.png": "557e39b8c47e7b76a28633569e2698da8d809e3fd17a8e76631f37c9bb1eeb62",
         "bedrock/textures/items/lapis_mage_feet.png": "e46332fdde781402a24254a3747f8d00b08401743aca5dbaa3b66716e8386861",
@@ -2493,7 +2493,7 @@
         "blockbench/equipment-drafts/lapis_mage_feet.json": "21bedd8be17c6cecc1417f584b45167be9504e19bbd5d62ef836fb30dd7281ee",
         "blockbench/items/lapis_mage_feet.bedrock.bbmodel": "6a2f8bb5b4edc8b658751d29e8318994ed112b2d2d61aaa7b3a49256fe068839",
         "blockbench/items/lapis_mage_feet.java.bbmodel": "5b3845ed561e37a6274678be25b68d96bcc4c6de2dbabb58144b2eaa580191ae",
-        "blockbench/items/lapis_mage_feet_worn.bedrock.bbmodel": "bbbdb0d9e4372661efc5be478abe6b4cf037c7fb30c12141daab18241167c09c"
+        "blockbench/items/lapis_mage_feet_worn.bedrock.bbmodel": "8d36ac6ede2d31af11041bf28c635326dfce198cc19e202b2438449169f59a6a"
       }
     },
     {
@@ -2508,7 +2508,7 @@
         "assets/astralrecord/textures/item/custom/lumina_guard_helmet.png": "bbeea9a7174848e0b8ef5f8e9b5b2851343000958e44d70d77e623ae6385b082",
         "bedrock/animations/lumina_guard_helmet.animation.json": "553a8e4684b6a98fbdcf05a38d33237519f36c7496125bc1eaa275c2bd23e5c9",
         "bedrock/attachables/lumina_guard_helmet.json": "a06ebf20e3c9e3af7d447976c73562b71e90aa86d2ddc23f6cb170389b14e5d7",
-        "bedrock/models/entity/armor/lumina_guard_helmet.geo.json": "107a85afb6f454e4f9e44133ce9b52b89375acdc144a3e3f41c7b502947115b4",
+        "bedrock/models/entity/armor/lumina_guard_helmet.geo.json": "08f81991b8f26cc300d0463f3cc45cd9573ff2717b72520611df5a8cc7d63391",
         "bedrock/models/entity/items/lumina_guard_helmet.geo.json": "2318b7f9de1add0892ab3e0fee2546218c95a114c4e0ed0d9191b4bb36341933",
         "bedrock/textures/entity/items/lumina_guard_helmet.png": "bbeea9a7174848e0b8ef5f8e9b5b2851343000958e44d70d77e623ae6385b082",
         "bedrock/textures/items/lumina_guard_helmet.png": "a217833726163b72da2457210600668519ef7b494c206410da681fe228f2ef79",
@@ -2516,7 +2516,7 @@
         "blockbench/equipment-drafts/lumina_guard_helmet.json": "e55a4c1440302a37618ffa6dab2477f1b4185068ad4760b3ef2e9375db04c9bb",
         "blockbench/items/lumina_guard_helmet.bedrock.bbmodel": "2c1f959a9beaae8816e9bf4fd610595e98880d82472ee6df4b2f18919382bdc3",
         "blockbench/items/lumina_guard_helmet.java.bbmodel": "566e604b0a57289de8704d7bdd3421795b1377cf4706b0b20debe43c9c20ff31",
-        "blockbench/items/lumina_guard_helmet_worn.bedrock.bbmodel": "62e4c5a251d3733a3f6984a10818fa204b7d2bf6c535861cd1e58889b0ab353e"
+        "blockbench/items/lumina_guard_helmet_worn.bedrock.bbmodel": "68e53a58402b303aad7b108a06d6d1d75b5d90aafca06b01273792e63f8139bf"
       }
     },
     {
@@ -2531,7 +2531,7 @@
         "assets/astralrecord/textures/item/custom/lumina_guard_chest.png": "ad0af9873ace07befa0717a2fd9c21a53c7acf87480b1ba1ec0d7da3229a275a",
         "bedrock/animations/lumina_guard_chest.animation.json": "62ac44d1d74b6e74bbe25f98d700403115f9a60c0ebcc4f76e07ca71718d056f",
         "bedrock/attachables/lumina_guard_chest.json": "e1419975402dcefddd3e3cdab437e2f2baf96624a85b0dea5f8114d2bd3e73c8",
-        "bedrock/models/entity/armor/lumina_guard_chest.geo.json": "ac870942b660e8bc024c4569bd359731e6adb80f9026a1e6246092ec84b2d96b",
+        "bedrock/models/entity/armor/lumina_guard_chest.geo.json": "ed152d4960b5a9e916b64c23196a5f211f19a71b106b6a7c82828363303d3a8b",
         "bedrock/models/entity/items/lumina_guard_chest.geo.json": "261559e404c7146361389b1087ad5c3fbfd22bf1b8af871a2644fa8eb4ec0e5b",
         "bedrock/textures/entity/items/lumina_guard_chest.png": "ad0af9873ace07befa0717a2fd9c21a53c7acf87480b1ba1ec0d7da3229a275a",
         "bedrock/textures/items/lumina_guard_chest.png": "33e6fc1b1d001cb4827dc02ed4b0ed4d8b6743b08f85c19a9c4a5f56a10a74ea",
@@ -2539,7 +2539,7 @@
         "blockbench/equipment-drafts/lumina_guard_chest.json": "b82bae50fe7cd7622ae2e897de57ef84f4a39e0cd9323ea914f7ce92f85a195c",
         "blockbench/items/lumina_guard_chest.bedrock.bbmodel": "9bf89fb22469e2f3533abd4a2f342bac10d152989f4c098e0c6259bf99907fae",
         "blockbench/items/lumina_guard_chest.java.bbmodel": "18c37f97921b0f31e4214bdea9935e425af989106169e17d5ebc4a198b910830",
-        "blockbench/items/lumina_guard_chest_worn.bedrock.bbmodel": "504625d9240c3cafac771ca7767f176f8874faac379e17e000d0ef8c780eaab9"
+        "blockbench/items/lumina_guard_chest_worn.bedrock.bbmodel": "bf759b1f2bf2c9adc5f5ec5585afa2d5fc8d8fc647de1d01e09452b4b2d0b88e"
       }
     },
     {
@@ -2554,7 +2554,7 @@
         "assets/astralrecord/textures/item/custom/lumina_guard_legs.png": "f3a9733e0fd7a0ba43882304ac339b066760c766cede48c54b1bf8eaf03f2b2f",
         "bedrock/animations/lumina_guard_legs.animation.json": "fe8dc45c9fe037c21f8692fd31fed6704f2ea547e40f1d895d0cd1aafad9a249",
         "bedrock/attachables/lumina_guard_legs.json": "13c15433f62ce25183b2a406e3e814c5d7b35a98f677e5f16de7ea603657b78e",
-        "bedrock/models/entity/armor/lumina_guard_legs.geo.json": "c76cef643bf1873a3f96eac7a4354f64a0f78c5f4cdaacc187a7f18778bac5a0",
+        "bedrock/models/entity/armor/lumina_guard_legs.geo.json": "5167dce5a0b842706ed13a9d693c9ee1194d7802df72fdf806cf12f2b4cdd197",
         "bedrock/models/entity/items/lumina_guard_legs.geo.json": "eae0a7a68db6a07cf212b4cc9efc9b398eb08088bc4384b288cc011eed3608ca",
         "bedrock/textures/entity/items/lumina_guard_legs.png": "f3a9733e0fd7a0ba43882304ac339b066760c766cede48c54b1bf8eaf03f2b2f",
         "bedrock/textures/items/lumina_guard_legs.png": "f488aba9531b8d2bc5720bbe6505212bdc01e987a75408d863e000894c266962",
@@ -2562,7 +2562,7 @@
         "blockbench/equipment-drafts/lumina_guard_legs.json": "0d8be4cac997440a150a6e3e511e831269426e346b05f7fae86ea728c25ef5be",
         "blockbench/items/lumina_guard_legs.bedrock.bbmodel": "9a2ff4c5efddb48eda1b1b2811b542f396d59a72d70ef3a0388835261ee59c58",
         "blockbench/items/lumina_guard_legs.java.bbmodel": "5ec9f4e767bd52a3de82c7bcd26aea2c2e34d88158e16ae21998e499aca83ced",
-        "blockbench/items/lumina_guard_legs_worn.bedrock.bbmodel": "91ecc5609cf8997bbd71d08492e460b19ad253d6a351d1365532979bf3eda030"
+        "blockbench/items/lumina_guard_legs_worn.bedrock.bbmodel": "1322abf18416cb8a962bcd01b8d88948e34d65087c9d9026deda9995f6ad06d6"
       }
     },
     {
@@ -2577,7 +2577,7 @@
         "assets/astralrecord/textures/item/custom/lumina_guard_boots.png": "3cafa24f13fe69d0e3e48c58902f30c82f618c6e8912428b15c20990b4eb1820",
         "bedrock/animations/lumina_guard_boots.animation.json": "0638595d22ab604bfe2f300a036f22ebf0d57f27b062c2bf66253c626b07ea57",
         "bedrock/attachables/lumina_guard_boots.json": "8b4a3af443d209220de89e39b91d3b96eadc51b5dcd80c7674e661f73b82f63a",
-        "bedrock/models/entity/armor/lumina_guard_boots.geo.json": "4b293e2a5524083778a8ab6302b2e509e1a5d617c4013cda1cec0cd8dd9eceda",
+        "bedrock/models/entity/armor/lumina_guard_boots.geo.json": "f43ddb049bddff984ab7fb147cd52bbcbc0382505b5fb39cfe0eb291b02c7e7d",
         "bedrock/models/entity/items/lumina_guard_boots.geo.json": "b7ea841405ef44057e473139c7c38b931cec2c7f2303eb9cc990d66789f2d4ed",
         "bedrock/textures/entity/items/lumina_guard_boots.png": "3cafa24f13fe69d0e3e48c58902f30c82f618c6e8912428b15c20990b4eb1820",
         "bedrock/textures/items/lumina_guard_boots.png": "b8751eb6445feec071b8cf048c5e432c3d51c253aa7b60b865f9ad0de71bde19",
@@ -2585,7 +2585,7 @@
         "blockbench/equipment-drafts/lumina_guard_boots.json": "bdb178e2c5d41aa6c21b377ddf6372e8a753004c4dae8eb51951ea90461a0421",
         "blockbench/items/lumina_guard_boots.bedrock.bbmodel": "79211cfff58c4b75a105822aea098c9acf8c5630280626f71543a5c89d4649e2",
         "blockbench/items/lumina_guard_boots.java.bbmodel": "776dcc1c897bba61ebfa8fc55f9fe998d5eac6298590a1f712c484803f81d6ab",
-        "blockbench/items/lumina_guard_boots_worn.bedrock.bbmodel": "c8be7bd7a6b69423c574cec4e110867eb7c97bc7642a9ae701cd70a9d13c7c66"
+        "blockbench/items/lumina_guard_boots_worn.bedrock.bbmodel": "c81e8738a60f15193b68d61fd0ca7747c1c9ee24b54dd9a0ecd6db1f4049861e"
       }
     },
     {
@@ -2600,7 +2600,7 @@
         "assets/astralrecord/textures/item/custom/lumina_hunt_helmet.png": "079dba96b8eb8f3604de75c58e3e45f58d84884c0791c43b2cfb98a3ffc79aaa",
         "bedrock/animations/lumina_hunt_helmet.animation.json": "ccd802108de50ee0b09f22b29034cba96fbb87edb0f831d4b80d67b2fe5007e0",
         "bedrock/attachables/lumina_hunt_helmet.json": "7107322e8a23f13c12327e08073828f7cc4d986e0fb675a8b0e28d12e2a096a5",
-        "bedrock/models/entity/armor/lumina_hunt_helmet.geo.json": "4af5062b4836be5d1eaadf3b33d72c73b3728cbaae3e16adcfd5bcb6c7d993ee",
+        "bedrock/models/entity/armor/lumina_hunt_helmet.geo.json": "464ce09c5b1fe8f60331bd9d57f245ce592fd6d8b2eb9898cc80c9ea5a5fdab2",
         "bedrock/models/entity/items/lumina_hunt_helmet.geo.json": "320bf09fc0467129a2d73f0f5e4208b388b45b48b7eb57f42f8d3a65d58d85d3",
         "bedrock/textures/entity/items/lumina_hunt_helmet.png": "079dba96b8eb8f3604de75c58e3e45f58d84884c0791c43b2cfb98a3ffc79aaa",
         "bedrock/textures/items/lumina_hunt_helmet.png": "a5690db6f4618e80d8c38456a252c72c69cd41995ab1df66b02484b2d8dbb025",
@@ -2608,7 +2608,7 @@
         "blockbench/equipment-drafts/lumina_hunt_helmet.json": "eea69d5fc8328a4f11cfb7ffaec980035c06cd4f08640e2b4604662ef8dde166",
         "blockbench/items/lumina_hunt_helmet.bedrock.bbmodel": "c8b2dbcee58d5ed0b18b59f11921de3a4743f7bc68763e9453f8c53dbcb6db69",
         "blockbench/items/lumina_hunt_helmet.java.bbmodel": "59b728652501de1ba4de197f2fff79094d03b23fb08709127d7a0fe1ae8b8055",
-        "blockbench/items/lumina_hunt_helmet_worn.bedrock.bbmodel": "2a027974a73b68c72e61860ce8d25214cf4b2a6bbfea1fe690dc0a4a1a2d8c35"
+        "blockbench/items/lumina_hunt_helmet_worn.bedrock.bbmodel": "f457f9aa3e20d7fd01aa436deb62d1a9e4cda834cb69e76d4ee27272689420c2"
       }
     },
     {
@@ -2623,7 +2623,7 @@
         "assets/astralrecord/textures/item/custom/lumina_hunt_chest.png": "9111aa992d247c807776026228f601914b6efd6c6a0aa905d3c973ed869c988b",
         "bedrock/animations/lumina_hunt_chest.animation.json": "dd56369fc7926bdd1e0b511b8d5511c6c564251beda7078c2d86445ee9d8c8d5",
         "bedrock/attachables/lumina_hunt_chest.json": "b931e3dbc4aec5276ad9c00c3b22ca08e75cc1046f5a219198e42a91ff605d3f",
-        "bedrock/models/entity/armor/lumina_hunt_chest.geo.json": "14c0224fd99d7e076cce52e0853fc6a486c37b40aa2989fc8b4a891a90c75cb9",
+        "bedrock/models/entity/armor/lumina_hunt_chest.geo.json": "d116d1eefd67954e2d06f68cb177574b359b6f6564c8e84ff2b8e7931699c49a",
         "bedrock/models/entity/items/lumina_hunt_chest.geo.json": "301d617ec7df75afbf7eaaaef4ee750d0514163185a30d7ae4fb292988273739",
         "bedrock/textures/entity/items/lumina_hunt_chest.png": "9111aa992d247c807776026228f601914b6efd6c6a0aa905d3c973ed869c988b",
         "bedrock/textures/items/lumina_hunt_chest.png": "ad93ff9ac3520bc90f98c618cad3f8b81d94da8d91cfca21d71a81b970de623b",
@@ -2631,7 +2631,7 @@
         "blockbench/equipment-drafts/lumina_hunt_chest.json": "023b8f6f9badd93889829c896ea1488794b25fea1a95eb59ece94f2f04420312",
         "blockbench/items/lumina_hunt_chest.bedrock.bbmodel": "268989bd348f7c606807c60b008d0334df3c3c379317d575da2cd0dd4be86e0c",
         "blockbench/items/lumina_hunt_chest.java.bbmodel": "7a0d7da89b559b916a7a0d478f72ee04d20946490b4ba4d7a3fa96ed96d2efa0",
-        "blockbench/items/lumina_hunt_chest_worn.bedrock.bbmodel": "714a00f510855c7bac8017097cc51f2169122c0a5b89190b57ce14597773d33f"
+        "blockbench/items/lumina_hunt_chest_worn.bedrock.bbmodel": "9dd7824ec63e85f22668de8e4d0de4b5535e0050436c80a09d2ad0621851f8da"
       }
     },
     {
@@ -2646,7 +2646,7 @@
         "assets/astralrecord/textures/item/custom/lumina_hunt_legs.png": "d218ce9df2e666aded5a01498ae23058056bc8fdeb3ac760d30111806a2e639a",
         "bedrock/animations/lumina_hunt_legs.animation.json": "f8cf300bd2d9f1034b49a8d9923b4cbb6ca3f31f3e0f34a96ae7326f1ccd1686",
         "bedrock/attachables/lumina_hunt_legs.json": "7754a9d808363efd5197f17938df36fa1277fb51886b1725581a1f5fa8144b0a",
-        "bedrock/models/entity/armor/lumina_hunt_legs.geo.json": "8e930acc5a5d2342ce6a0ba830ac9d99238d0bf84608c5f6512e360a8664b4a9",
+        "bedrock/models/entity/armor/lumina_hunt_legs.geo.json": "88dd1bf772e61077fb0bfc3cbec475050a58fc86edb958685c447b0985c541fe",
         "bedrock/models/entity/items/lumina_hunt_legs.geo.json": "06e0c9f8784ab7f8b42f4724d7fb7bc76af98a2512db05fea9e8b22a6b22cd09",
         "bedrock/textures/entity/items/lumina_hunt_legs.png": "d218ce9df2e666aded5a01498ae23058056bc8fdeb3ac760d30111806a2e639a",
         "bedrock/textures/items/lumina_hunt_legs.png": "528a38b8c67440708c41f47af95a515e041d05c42bcffefe21186e8712599d81",
@@ -2654,7 +2654,7 @@
         "blockbench/equipment-drafts/lumina_hunt_legs.json": "3a6a1544857e843cb8a213eb5b5268bfd16bee4d5c9e57d3ccb90b3d777bdf8d",
         "blockbench/items/lumina_hunt_legs.bedrock.bbmodel": "00525d2da7af771b5d1f00acf3bfee269f8617cc0cfc04c4b7ff5ffa54be73c0",
         "blockbench/items/lumina_hunt_legs.java.bbmodel": "0fc11052bcd11c869018b3db01252ace4575a940f4a3204bff1828b4c8f8c079",
-        "blockbench/items/lumina_hunt_legs_worn.bedrock.bbmodel": "ebb7ee987fdef0a407278510e83252729178a0dcf2c0c2e0c20815b93f30a0b5"
+        "blockbench/items/lumina_hunt_legs_worn.bedrock.bbmodel": "c3be06808676f6a3bf778e4aeca626f70d67e378faa5077524a3400223387e90"
       }
     },
     {
@@ -2669,7 +2669,7 @@
         "assets/astralrecord/textures/item/custom/lumina_hunt_boots.png": "696b8a1881ff54386d291c2811662e48125f8d0e5236c3f8c31baf8c5f469818",
         "bedrock/animations/lumina_hunt_boots.animation.json": "22fac427911e08f69986bc73071799c43007c0fe7185b0c3b7a272b74831cce3",
         "bedrock/attachables/lumina_hunt_boots.json": "dc6a4aac9cf1e3d6fcdbd5d0e32ce0fa212c218ebf31c8563c1963458dd68bde",
-        "bedrock/models/entity/armor/lumina_hunt_boots.geo.json": "3bf651d6ba25760d948d1d573affae12c63b5b9ea07fae553d14ce7a0fcf2c58",
+        "bedrock/models/entity/armor/lumina_hunt_boots.geo.json": "73bb3069c51b603a306a664d70fd85278fb0a829a4cc3bf77cf833d459c6da76",
         "bedrock/models/entity/items/lumina_hunt_boots.geo.json": "c9aada990d47f3f712b4a83a829765a0d58f48569032e448a29a900b47af1ac8",
         "bedrock/textures/entity/items/lumina_hunt_boots.png": "696b8a1881ff54386d291c2811662e48125f8d0e5236c3f8c31baf8c5f469818",
         "bedrock/textures/items/lumina_hunt_boots.png": "576aa9710531d1e835b03380258a6a82e39b31547cdbf18cc564aea0f35a576f",
@@ -2677,7 +2677,7 @@
         "blockbench/equipment-drafts/lumina_hunt_boots.json": "8fb38a88ebbf24673499aabf9816fee2fdc5d73a3e0c3078f683c43d07c5b795",
         "blockbench/items/lumina_hunt_boots.bedrock.bbmodel": "168105d67363a1e7339ad84364bcfb9c7c12cf799686d73cacc4607a38f1c137",
         "blockbench/items/lumina_hunt_boots.java.bbmodel": "4a947086e349775ddffeb48cfcbf53dddef728e9561bd0a0b4b1132eb421898a",
-        "blockbench/items/lumina_hunt_boots_worn.bedrock.bbmodel": "d4a9a56ec225a255c764b58f03e7e60edc65973b8fce46aedd0646341da8836b"
+        "blockbench/items/lumina_hunt_boots_worn.bedrock.bbmodel": "d229aa36e80216dbb5f74f0b994b2b7398f816eacc563f27d3b8c457d7527ab8"
       }
     },
     {
@@ -2692,7 +2692,7 @@
         "assets/astralrecord/textures/item/custom/lumina_magia_helmet.png": "99e97473b4ce6fab83a140ee031a22af99952626ce27c65481f183cdcee51d08",
         "bedrock/animations/lumina_magia_helmet.animation.json": "888c586cc115c5a7e0ec60378bf623276adda3ea938237c28a8aacc4fb809e00",
         "bedrock/attachables/lumina_magia_helmet.json": "24eb5d8e282cb1b3d075d61094ed03f7084f16aef13b02b9963895e7d251412e",
-        "bedrock/models/entity/armor/lumina_magia_helmet.geo.json": "1cd3ad88a048f456775f4f059bc5dc4a3d733ed8a28b2eaeb6f29772cc009590",
+        "bedrock/models/entity/armor/lumina_magia_helmet.geo.json": "141fdf6ca23dcb5215f8d5b096dd9b62a60ec75f2d693bdf5d5dbc14508ab0d0",
         "bedrock/models/entity/items/lumina_magia_helmet.geo.json": "8bc8f989d9aad6d276fc1e335966fbee0e6a6416a72b26bf6585616df437de10",
         "bedrock/textures/entity/items/lumina_magia_helmet.png": "99e97473b4ce6fab83a140ee031a22af99952626ce27c65481f183cdcee51d08",
         "bedrock/textures/items/lumina_magia_helmet.png": "02d013405def7f993fce9f9475fbf22834d0f1627c0a4f2463170736419f244b",
@@ -2700,7 +2700,7 @@
         "blockbench/equipment-drafts/lumina_magia_helmet.json": "4a9d5d028a72557d05c58ae188bec4daa077847dec1e900a370c1d2ae86ba22c",
         "blockbench/items/lumina_magia_helmet.bedrock.bbmodel": "a9eae10b10f89c7feda106e0dd52b0382374388c8ad0f4b116f74c1efc039ecf",
         "blockbench/items/lumina_magia_helmet.java.bbmodel": "795ca4559014addb2a7e7df7fffcc4bf1aa2e699e8c216e097771767fbe32b89",
-        "blockbench/items/lumina_magia_helmet_worn.bedrock.bbmodel": "832da1cf49c74b374b8eaf22062be810494645ff2472405e254c88a3b6eb4ac8"
+        "blockbench/items/lumina_magia_helmet_worn.bedrock.bbmodel": "d8fd01e75196f0e4b2b368746223f518409c3fafe66ea9e390b05742e0c7c518"
       }
     },
     {
@@ -2715,7 +2715,7 @@
         "assets/astralrecord/textures/item/custom/lumina_magia_chest.png": "8eb6e580855fc6df495be8eb09a8928e37e37bc39f29845555f7bea6413324d9",
         "bedrock/animations/lumina_magia_chest.animation.json": "be82ec522d42ab01e9132e53f28db687d414a83489427d7311bd30fee8936596",
         "bedrock/attachables/lumina_magia_chest.json": "08772cc1ceaa543d0dd03e29b6b504aed2ecec155035d672c74f48cb0e4024b3",
-        "bedrock/models/entity/armor/lumina_magia_chest.geo.json": "4c3a5c918c1909f7a1b8357ba1de72aefce08e746c12550c1f2e10b3812cc3c1",
+        "bedrock/models/entity/armor/lumina_magia_chest.geo.json": "9b5313d86a3e1ab49d2b72719c86cb42ebc476209c16dfb85380425d99f73602",
         "bedrock/models/entity/items/lumina_magia_chest.geo.json": "a2e96437e11f5873b5407760f2183761ba175b59f6d24a01f9cb9ede1888e737",
         "bedrock/textures/entity/items/lumina_magia_chest.png": "8eb6e580855fc6df495be8eb09a8928e37e37bc39f29845555f7bea6413324d9",
         "bedrock/textures/items/lumina_magia_chest.png": "fa55e2a8f8c357193ec47f06eb16244d79953da8530a4a6fcf7c445b01e2ac85",
@@ -2723,7 +2723,7 @@
         "blockbench/equipment-drafts/lumina_magia_chest.json": "6396434600fe31b54592d4d435df9bee872fbfedc8cd0b33cdb78c8f4256bbb1",
         "blockbench/items/lumina_magia_chest.bedrock.bbmodel": "799815437945aa55479c3fb15c6b0935b5ab2f4f48f82d64cd76f43895d2ed6b",
         "blockbench/items/lumina_magia_chest.java.bbmodel": "705ae83ebe38e2e8592e8aa8cf4f0c84270f059cae6d1b916ede8320da41690b",
-        "blockbench/items/lumina_magia_chest_worn.bedrock.bbmodel": "86c9bc4e758bd8305e21d500c233c7729e2279d5adcc7fb807b20f603e945df6"
+        "blockbench/items/lumina_magia_chest_worn.bedrock.bbmodel": "3345cda199920f9dc16efa59a381b143b0c2696bc64f0dd89dc3131f03e9203b"
       }
     },
     {
@@ -2738,7 +2738,7 @@
         "assets/astralrecord/textures/item/custom/lumina_magia_legs.png": "67d17289ec7a2d64bda9850542b08fd2f49124b41fd2053adb94ae5e128a5df8",
         "bedrock/animations/lumina_magia_legs.animation.json": "5a0a701fc1479291022e4a2e7a1e8adb5c64244d5756673b30e33ca1fd5cfd1d",
         "bedrock/attachables/lumina_magia_legs.json": "77640191360597daa49a808c1144f14cfc86683b83fe1e6dbb90da07797b30b5",
-        "bedrock/models/entity/armor/lumina_magia_legs.geo.json": "8b66de668c85cf313b12bc12e24051478b5fc666f103c0385005cbd0a0585415",
+        "bedrock/models/entity/armor/lumina_magia_legs.geo.json": "285651104e433c6dd5bdeb339acfe91368ccb5df5601e200f76dfb57dca62cd5",
         "bedrock/models/entity/items/lumina_magia_legs.geo.json": "e0bab6955777ccbb968fb6c97df1e41544058e942fc3e8318510037a1d759db6",
         "bedrock/textures/entity/items/lumina_magia_legs.png": "67d17289ec7a2d64bda9850542b08fd2f49124b41fd2053adb94ae5e128a5df8",
         "bedrock/textures/items/lumina_magia_legs.png": "a8c5984fc6b0b480ae8ec319232e170e6a64b0a2f4d98dff192ee77450bd9eca",
@@ -2746,7 +2746,7 @@
         "blockbench/equipment-drafts/lumina_magia_legs.json": "80a159a5a57dbe97b460300dd74b36101cc8cf35361743b196dd472368359666",
         "blockbench/items/lumina_magia_legs.bedrock.bbmodel": "eb3c5507022191fea694fce1e6185b2d870baba8ac2f9d42fe4dc91452a53d2c",
         "blockbench/items/lumina_magia_legs.java.bbmodel": "94fee0a1d25290d15de27280ad4e5cfe7d8075d4ce71b26129a55e7ab32ecaf4",
-        "blockbench/items/lumina_magia_legs_worn.bedrock.bbmodel": "63475d0b661a3d6e1d2543b89ee167a600531668055640781bdc3ef1b6899959"
+        "blockbench/items/lumina_magia_legs_worn.bedrock.bbmodel": "365572f73b13dca62e499dbfdd5fb87ab798145dda42b75c8dff5bb864d0f6fc"
       }
     },
     {
@@ -2761,7 +2761,7 @@
         "assets/astralrecord/textures/item/custom/lumina_magia_boots.png": "5bf10d2ddf7660a310c2f1a37216a921829a7a748fc1a0a34249d7be4ded58d7",
         "bedrock/animations/lumina_magia_boots.animation.json": "71221eee8fa245df661c54175f6e227458c1d7c24bf07e84681541b22362a982",
         "bedrock/attachables/lumina_magia_boots.json": "a5b2223e202c5921e6f341f151310cf55384883a8189788ef59a30962aa27439",
-        "bedrock/models/entity/armor/lumina_magia_boots.geo.json": "0c3086eb5d1f3f6849edbcb6c4fefe8c0ff9f982170c6524a919c7a1bd1416f8",
+        "bedrock/models/entity/armor/lumina_magia_boots.geo.json": "94c4ee54a2353557a25008798e411044b6f59cd96926468b697f68fbe6e563e5",
         "bedrock/models/entity/items/lumina_magia_boots.geo.json": "9eb114c07edb331554912fef4453cc0d335a6019f10b2473a024aeb8c9002e31",
         "bedrock/textures/entity/items/lumina_magia_boots.png": "5bf10d2ddf7660a310c2f1a37216a921829a7a748fc1a0a34249d7be4ded58d7",
         "bedrock/textures/items/lumina_magia_boots.png": "89795873f988df7f958fbc9ec709a2f7a27fd8ac36bcee0aa5c5d248790d12f8",
@@ -2769,7 +2769,7 @@
         "blockbench/equipment-drafts/lumina_magia_boots.json": "2fcd3c3fd053927c8ffc30ed33d6f98ccbddce5acf3208b04ed34d0f98d5c9ea",
         "blockbench/items/lumina_magia_boots.bedrock.bbmodel": "e82384a2c3b2f111f58f2c8e26dc150c90f613d0da72c2ffe58680a38fc54568",
         "blockbench/items/lumina_magia_boots.java.bbmodel": "c431c8dd17f4dec8519a8a5eb6aabb298652085d761c5c1e4ef06e6621b08e2c",
-        "blockbench/items/lumina_magia_boots_worn.bedrock.bbmodel": "de8e8c48ffe636eaa9785fb5d915c69da97a025d03c6a75f449f77ab9094331d"
+        "blockbench/items/lumina_magia_boots_worn.bedrock.bbmodel": "b5cc2c5180f0ff81483bf17265612013cdc7ac73007ef7d49d9267be141d37fe"
       }
     },
     {
@@ -2784,7 +2784,7 @@
         "assets/astralrecord/textures/item/custom/astra_hunt_head.png": "01f04267868b0189c25dc4f6d7f7d0b6b69a0cb097e86cd3abb193e15cf3c0eb",
         "bedrock/animations/astra_hunt_head.animation.json": "90437e61a9728a959381335f419cb15aba20262823e3d05e7152e06413dc574a",
         "bedrock/attachables/astra_hunt_head.json": "32c68bcf47133490b3ce5faecbcde1161d53fa10eccd32105fbfcdfbc22c82de",
-        "bedrock/models/entity/armor/astra_hunt_head.geo.json": "d34b57d5b7f978f0624af67d159f99f6545af0e6ff3a7b6f18d2131ba7dcd59f",
+        "bedrock/models/entity/armor/astra_hunt_head.geo.json": "9f56498b963d386adccdf3d8892b3f285e4c0510ef22e97a9bad3693ca07c0ea",
         "bedrock/models/entity/items/astra_hunt_head.geo.json": "1458e583b275ce574b9a4fcc2dbbfaadbff52179521ed1fc353942ba36bb2fec",
         "bedrock/textures/entity/items/astra_hunt_head.png": "01f04267868b0189c25dc4f6d7f7d0b6b69a0cb097e86cd3abb193e15cf3c0eb",
         "bedrock/textures/items/astra_hunt_head.png": "836a50c4a3e4df2e31d6618b2cbec56902e2ad73b6f2e88f8005d8095fc51c1b",
@@ -2792,7 +2792,7 @@
         "blockbench/equipment-drafts/astra_hunt_head.json": "522a3209d628d3b17e201d49da41d1f943f087b1ac41b6996c72e99cf412ddb0",
         "blockbench/items/astra_hunt_head.bedrock.bbmodel": "d2adebe088534512e72e32ac94a56a0bccb90f39bb7d550fba3110a0d4a33501",
         "blockbench/items/astra_hunt_head.java.bbmodel": "e2dfbe2ba25600bc7311aba8ce114d5d2e978cb947ec9fe600b330fe61fd5c55",
-        "blockbench/items/astra_hunt_head_worn.bedrock.bbmodel": "d603622327757127ff76e7cd4b2844079279d994dd516522dd3a67b6c4cab317"
+        "blockbench/items/astra_hunt_head_worn.bedrock.bbmodel": "ba658dbf110f541a913f32be9f68bfd228144d9f0f64df4fbe01f2637c96492d"
       }
     },
     {
@@ -2807,7 +2807,7 @@
         "assets/astralrecord/textures/item/custom/astra_hunt_chest.png": "594a85dc5af6842426dab7bce401e1bd680e845f941ee714c2a763c6234d8184",
         "bedrock/animations/astra_hunt_chest.animation.json": "c7b0cb5c1bc5f2452f8ffdc97cde11cc6f2959825eecb5856ceaa63eea0eea86",
         "bedrock/attachables/astra_hunt_chest.json": "47900cac071f0cb367a6d09805946e68c57205556466d5ee657974b0fa1028a7",
-        "bedrock/models/entity/armor/astra_hunt_chest.geo.json": "bbcf9735b2e9067cf170e4f048ad85b351debca378a99e0d7f7f633085e27884",
+        "bedrock/models/entity/armor/astra_hunt_chest.geo.json": "635b769663c2413bf0c9fedce17a506f1faa4876e81847ae74ae6038821adecf",
         "bedrock/models/entity/items/astra_hunt_chest.geo.json": "1de7cb8de305470ffc792d43b8b22fe0e162ed7c63d6188e2026d495e6a6949f",
         "bedrock/textures/entity/items/astra_hunt_chest.png": "594a85dc5af6842426dab7bce401e1bd680e845f941ee714c2a763c6234d8184",
         "bedrock/textures/items/astra_hunt_chest.png": "6d101082dc25b1417d6037af00b583edc918bad878a5ba12d0b6e853001149e6",
@@ -2815,7 +2815,7 @@
         "blockbench/equipment-drafts/astra_hunt_chest.json": "8cc5b536ee7d376ac2da538f84c75850e4c9d2f596361cfb6943f2273b47f368",
         "blockbench/items/astra_hunt_chest.bedrock.bbmodel": "b39f6afcac8daa86553f585c866f7ddb6d4f86843e9ae0022b1cfd4e48b2baba",
         "blockbench/items/astra_hunt_chest.java.bbmodel": "bc5c66924826757124d5e9d8b98256d2166a91d1c23065919ea654f6ec6bb3f0",
-        "blockbench/items/astra_hunt_chest_worn.bedrock.bbmodel": "77badca5bf33cfc549cb5214cb747e4f8a9b9ffaab9d3162b45bbd5599aea979"
+        "blockbench/items/astra_hunt_chest_worn.bedrock.bbmodel": "e4b5b018cebe9f7c579ee96a1555ddc8ea71b616afeb37f97e3cd24d9044d25f"
       }
     },
     {
@@ -2830,7 +2830,7 @@
         "assets/astralrecord/textures/item/custom/astra_hunt_legs.png": "c9f579f0f89c6f58f2a17831ae43f5b65eda3c0af6aae6c58bc6c1f83ff17a02",
         "bedrock/animations/astra_hunt_legs.animation.json": "1801c6159667372689678978cffa7d28b7555ff8c4b6950ac8885765cb6f0597",
         "bedrock/attachables/astra_hunt_legs.json": "df9ea1e25b6a42f85bfe0e15ca494547c0fb12017e453633b9db1c1a98a5f42b",
-        "bedrock/models/entity/armor/astra_hunt_legs.geo.json": "0e4fc325c5cf13b73a818e482fd71eb14eaa97aa08eda172b6b9ec5e0a7f0d34",
+        "bedrock/models/entity/armor/astra_hunt_legs.geo.json": "c9807f175ec2adff588d5eeea83a4217b8bc0d66acdc4665b4f1d9f38306a8b8",
         "bedrock/models/entity/items/astra_hunt_legs.geo.json": "728947bed5943af2f85fb22891239a6acf3b9e8e14e6a5f8c07293a955d331c4",
         "bedrock/textures/entity/items/astra_hunt_legs.png": "c9f579f0f89c6f58f2a17831ae43f5b65eda3c0af6aae6c58bc6c1f83ff17a02",
         "bedrock/textures/items/astra_hunt_legs.png": "70b08b5c8ebc1c2266ab87803e8ebedd9d552aec047920c207abcee6a9882b44",
@@ -2838,7 +2838,7 @@
         "blockbench/equipment-drafts/astra_hunt_legs.json": "d94d437e3853db2ab7620cfcc6711cc73cc400f30daf89407e1495a618ad1b19",
         "blockbench/items/astra_hunt_legs.bedrock.bbmodel": "2e98f905f3ce5df7d345d84343c2db9a7c3a51305502e53e8f95d15d742386b5",
         "blockbench/items/astra_hunt_legs.java.bbmodel": "56d83dcd080f7ca17ece2646843f692771886d6139087fade0bc4b4fc78846c6",
-        "blockbench/items/astra_hunt_legs_worn.bedrock.bbmodel": "e2d11e4b17bf5f2249dfef092763d1ab6f94d5766d63b0301bc50752e43821b4"
+        "blockbench/items/astra_hunt_legs_worn.bedrock.bbmodel": "3b46809d53c6363fd985b3d2eb91716185113697e8c38e5adc541e55563e3720"
       }
     },
     {
@@ -2853,7 +2853,7 @@
         "assets/astralrecord/textures/item/custom/astra_hunt_feet.png": "ea1fa4058e97ac37c86fdb8094d9b281f59acc9eaa582b87180554c93b901fb7",
         "bedrock/animations/astra_hunt_feet.animation.json": "ac2f98adb2b3d03fc3b68d106ffdb97904624abf81465275dacedc7c76a6b0f1",
         "bedrock/attachables/astra_hunt_feet.json": "576394ac30d6f6e8cae345d812c80cfb2cc67e5c6a8cff69966aa0c06a613298",
-        "bedrock/models/entity/armor/astra_hunt_feet.geo.json": "3fc5307127398ec6ca9f5f9bbdd3d4d338fa2f61cb867b314a1a29bd00d42e3e",
+        "bedrock/models/entity/armor/astra_hunt_feet.geo.json": "4b8669d0d30bc2f290f3a433ba1e904986a108b80b7774bcfdf50e57b3ec0cb9",
         "bedrock/models/entity/items/astra_hunt_feet.geo.json": "2571fc7544a1780d571d285664790f042792c85194aa5963358b05a7e2e4bf1f",
         "bedrock/textures/entity/items/astra_hunt_feet.png": "ea1fa4058e97ac37c86fdb8094d9b281f59acc9eaa582b87180554c93b901fb7",
         "bedrock/textures/items/astra_hunt_feet.png": "dc0415ead5dfac5eef10cd5febc611a0968143623f84d23cae7ef8362d841401",
@@ -2861,7 +2861,7 @@
         "blockbench/equipment-drafts/astra_hunt_feet.json": "c46be6594beb67592206f1eb2f9a99e4336d722b88c8af69f7a83bfefd01d157",
         "blockbench/items/astra_hunt_feet.bedrock.bbmodel": "e4536310a4fd720bf7eb8bbdfb4b41e2fb62afe28076e5512f4ab5223cce8cfd",
         "blockbench/items/astra_hunt_feet.java.bbmodel": "44735c8b14bab72e9661fc1c78c9a8d20198f72230c2166750dba489abb309fe",
-        "blockbench/items/astra_hunt_feet_worn.bedrock.bbmodel": "675866533e52dfb4cf1cde7088a34b8ea9ebbeb9c4482a2368daeeb854bfe90c"
+        "blockbench/items/astra_hunt_feet_worn.bedrock.bbmodel": "46edf15f51609cf172ff022ef6cce76cbcd81e419b0186a5e753b2cfbcccfe0d"
       }
     },
     {
@@ -2876,7 +2876,7 @@
         "assets/astralrecord/textures/item/custom/astra_guard_head.png": "5b9f9513f894e88f5f11422bf860042df614cba9fe3c1e54e970fc77adc3efb5",
         "bedrock/animations/astra_guard_head.animation.json": "fdf043e782b1566d9b0b2b128b87b52e9e5fc57939168a65d427e8de42a6016c",
         "bedrock/attachables/astra_guard_head.json": "63fcdf2efa9d0c619be3ccf2d5f2e45b3605940d7e0192584f1e88ff6d187e76",
-        "bedrock/models/entity/armor/astra_guard_head.geo.json": "4c91bc6c1acc6d954e7f8999e13fcdb6d13db4e609622db6fb4b5474d692486b",
+        "bedrock/models/entity/armor/astra_guard_head.geo.json": "3101f3f879aa8b35e41a395a18d3a379ea0e27e30343bf15cf0e63df44025b2d",
         "bedrock/models/entity/items/astra_guard_head.geo.json": "6676b6a857bd650019161e074dfad77873577c0a71a9462fd0d57e774c91eec6",
         "bedrock/textures/entity/items/astra_guard_head.png": "5b9f9513f894e88f5f11422bf860042df614cba9fe3c1e54e970fc77adc3efb5",
         "bedrock/textures/items/astra_guard_head.png": "3d000382ee14c07f3b76f8ca08c0c54358f2b01e8e2ff6a8931be389924b3e51",
@@ -2884,7 +2884,7 @@
         "blockbench/equipment-drafts/astra_guard_head.json": "b8920a5ccc7bcddf68b370e8aa438a6722bdd0a08c573b1cbe81accf9807c217",
         "blockbench/items/astra_guard_head.bedrock.bbmodel": "c94da683eca67d021eadf006a91186b544ec6225ec484fed44189ffe5f07aa3f",
         "blockbench/items/astra_guard_head.java.bbmodel": "4c52324e7ea5e7db654d2c84f56c04036d3a1638ffb72bfe2fe25954576ffc7c",
-        "blockbench/items/astra_guard_head_worn.bedrock.bbmodel": "a70fa2129c4b1e7b5e0a40f285a9821c6e50e822af868390c36b049bbee88e3f"
+        "blockbench/items/astra_guard_head_worn.bedrock.bbmodel": "05148d26b7c5ed384c2c0121d190b22c04cc46e04d8747add8ba7db6a7476ee7"
       }
     },
     {
@@ -2899,7 +2899,7 @@
         "assets/astralrecord/textures/item/custom/astra_guard_chest.png": "1aa26ddc5a24e859e9b9653f5c1fa53f2fed5a74b5c9874fd2630c855f4fb0d3",
         "bedrock/animations/astra_guard_chest.animation.json": "8ea0e2d9ad09832c160aace8cb4562ed8886739f7d197a16e9710337afda535c",
         "bedrock/attachables/astra_guard_chest.json": "9bc405f1b8aaecc97168e299ad776b273e0e47334ca94022ce83baf401a5c16e",
-        "bedrock/models/entity/armor/astra_guard_chest.geo.json": "c1407728a707cbc1e2a173e81d502b7200eca96541fe68dbfe5f5f868ba9c089",
+        "bedrock/models/entity/armor/astra_guard_chest.geo.json": "19632ee57d88e6840e864c124937fe2bd0a8d5edbb0276b47d1769a7b6311e75",
         "bedrock/models/entity/items/astra_guard_chest.geo.json": "f10b49d7c40035fa1aaf6e20f7f76654259c449fe46cbe06bc91909f567a2436",
         "bedrock/textures/entity/items/astra_guard_chest.png": "1aa26ddc5a24e859e9b9653f5c1fa53f2fed5a74b5c9874fd2630c855f4fb0d3",
         "bedrock/textures/items/astra_guard_chest.png": "7eb645b20a5f9fd592fb8449f56145213a8e22c4fb567fc46129ab19afee66e0",
@@ -2907,7 +2907,7 @@
         "blockbench/equipment-drafts/astra_guard_chest.json": "9b07ad04924c83ffcfa9b802edbaa3950bc012ec6249db9e1131e0047bdd3d90",
         "blockbench/items/astra_guard_chest.bedrock.bbmodel": "178af905576462216a5f0276b485a372effa12d025a2c3e12b312337f32a2586",
         "blockbench/items/astra_guard_chest.java.bbmodel": "af78e3ff58fa03f5cd2a1964447084bd027336202267f7e84e703ec2596667f5",
-        "blockbench/items/astra_guard_chest_worn.bedrock.bbmodel": "3786fd939956a9dcae8397d41828678e8ba802e3b88dbbd858c9d42b0d893a1d"
+        "blockbench/items/astra_guard_chest_worn.bedrock.bbmodel": "d86719df62c0872de203a4707369744d4ba1ae38a45438d182cef65c9704c139"
       }
     },
     {
@@ -2922,7 +2922,7 @@
         "assets/astralrecord/textures/item/custom/astra_guard_legs.png": "dcdef0553aa33b014f70ebf2661f557cce8da4a20b960b689a49e41075fd8826",
         "bedrock/animations/astra_guard_legs.animation.json": "3def68a544afb153650e5c73343d214e71f89902f7477f8193bec33348d4d783",
         "bedrock/attachables/astra_guard_legs.json": "2463b03ffecbdef6de255d87e9067d3b8beb584be3bc4e0cea6f2b159ff42e98",
-        "bedrock/models/entity/armor/astra_guard_legs.geo.json": "53606695fe615eb8d420d07431c3f8b3275ac886f4c83e29f48170643fa24b24",
+        "bedrock/models/entity/armor/astra_guard_legs.geo.json": "79b32d9e8e7fb93b04b563765799a29a0bf712671c20d332a7518c620590dc00",
         "bedrock/models/entity/items/astra_guard_legs.geo.json": "091743fd04cbba08acbc4d1c36e50026a22136d8b269047625499c3ef74d618c",
         "bedrock/textures/entity/items/astra_guard_legs.png": "dcdef0553aa33b014f70ebf2661f557cce8da4a20b960b689a49e41075fd8826",
         "bedrock/textures/items/astra_guard_legs.png": "cbb0fd24dd6cefe27d0a3d87d4c7883bba3549b7b566c622b5240ba67dfad065",
@@ -2930,7 +2930,7 @@
         "blockbench/equipment-drafts/astra_guard_legs.json": "8d1a66ae709e4f474b61474da417dcc10cd42a1ccaa587ae5b9133b88538a661",
         "blockbench/items/astra_guard_legs.bedrock.bbmodel": "cdffa154c2dc23c5ba7d6063855532c37522317d7504f53912c0380f5d052391",
         "blockbench/items/astra_guard_legs.java.bbmodel": "ffc26a8d4ca175b4006d3a39c83ce36c64cdffbecf0aa02d45765c1730347c89",
-        "blockbench/items/astra_guard_legs_worn.bedrock.bbmodel": "44312ff065a7ca7376b405d63c4a10d0af95124b461609999d56a128826d3a99"
+        "blockbench/items/astra_guard_legs_worn.bedrock.bbmodel": "dc7002e499ee6781f6557b8cc3026af993cfb1795350a4c9afad3b1319476bb5"
       }
     },
     {
@@ -2945,7 +2945,7 @@
         "assets/astralrecord/textures/item/custom/astra_guard_feet.png": "5b9f9513f894e88f5f11422bf860042df614cba9fe3c1e54e970fc77adc3efb5",
         "bedrock/animations/astra_guard_feet.animation.json": "de9bf93d9ac5fe51450ee778df4d5ea2e479e060f067ca9c143608bbf8c8b8bb",
         "bedrock/attachables/astra_guard_feet.json": "f150fe564f474015e92f05ab97300f99de0375bea4b1014896b9728d6b916bcc",
-        "bedrock/models/entity/armor/astra_guard_feet.geo.json": "367ebbd86e47c91e9ecc6e246da42ea52208f846fa9d283b5711ee7c726285b6",
+        "bedrock/models/entity/armor/astra_guard_feet.geo.json": "b1333c4c0f7f5a969da310ca267a189bbf5eee4675bfbe2eba47295cafcaa1cf",
         "bedrock/models/entity/items/astra_guard_feet.geo.json": "e59341f5b2f1a6acaee24b0df6a80009e9e36ab068eaa52c1733cd3ee3d8d47f",
         "bedrock/textures/entity/items/astra_guard_feet.png": "5b9f9513f894e88f5f11422bf860042df614cba9fe3c1e54e970fc77adc3efb5",
         "bedrock/textures/items/astra_guard_feet.png": "78b9ed833d8f063e400ec0290674d1ade0675b737e1edfb0a6b1aaf42e6bddc8",
@@ -2953,7 +2953,7 @@
         "blockbench/equipment-drafts/astra_guard_feet.json": "775ab5cd82e9dffd4c7d82d7508f04ed686505bc82795c69ea272903da523084",
         "blockbench/items/astra_guard_feet.bedrock.bbmodel": "0971dbaad46393ea63015956dd979334bdf6907a435e685e72331c4120ed0f48",
         "blockbench/items/astra_guard_feet.java.bbmodel": "fc57cf2cdc009a38ce3f636d9b471ff8002d4900d9b853c49613ce89586257a3",
-        "blockbench/items/astra_guard_feet_worn.bedrock.bbmodel": "7ef03b78f8490d857eae26dd8c81b6e638e99dd47991dfe941f242a7bb06888f"
+        "blockbench/items/astra_guard_feet_worn.bedrock.bbmodel": "1f80840752d9e6091b5ad3dd8c87d6a42c3d48511b8791a65d74852a0ba6f6b8"
       }
     },
     {
@@ -2968,7 +2968,7 @@
         "assets/astralrecord/textures/item/custom/astra_magia_head.png": "785d9449093d0845e624b9aae6e73c09ad06eebb944a5f77e02abfbe1ef51c10",
         "bedrock/animations/astra_magia_head.animation.json": "de10ae5530bb111c82cc3f8587dc857c7a41d8ffdecf2ff6ac9a3e310fa15e64",
         "bedrock/attachables/astra_magia_head.json": "d74726ddb424d3d96a06d0e72db65dd64220f3a8d74e621f3c8c199e16abbe91",
-        "bedrock/models/entity/armor/astra_magia_head.geo.json": "e82ef5c6f6ea7f2f56a1052e15b886293623dc9cafc97024447f94671b77ef79",
+        "bedrock/models/entity/armor/astra_magia_head.geo.json": "ea7c1eed146a3a30291e3015a43b7a4cced5a79aed136603dd507e9f4b5ead8c",
         "bedrock/models/entity/items/astra_magia_head.geo.json": "ac1374f14cc5f8af8ad8b876d8630d30cd2c216118d0b43659ed5c019efffd2e",
         "bedrock/textures/entity/items/astra_magia_head.png": "785d9449093d0845e624b9aae6e73c09ad06eebb944a5f77e02abfbe1ef51c10",
         "bedrock/textures/items/astra_magia_head.png": "bcbf22199e4de48667549b822fbec21a2bd97784e78ac9d01964e3e14b8b18f7",
@@ -2976,7 +2976,7 @@
         "blockbench/equipment-drafts/astra_magia_head.json": "edea767d9b581caa3694e0dabcac823e31fdb80a11b65e16db90e2327451438a",
         "blockbench/items/astra_magia_head.bedrock.bbmodel": "5449bf8edee92b2a212f94cbf02796ff57ae6b9adbfed39f4f137ab21f35f007",
         "blockbench/items/astra_magia_head.java.bbmodel": "b398421c41063ef505cb0d31837525f9e5f1081095f0a8ba4cff324562f6de34",
-        "blockbench/items/astra_magia_head_worn.bedrock.bbmodel": "0134879ae65c150cb1ad818741bd2d76bb7b1e13a9ff0725055f06f6bce6711d"
+        "blockbench/items/astra_magia_head_worn.bedrock.bbmodel": "b91fef209d3786dd58c61cfd74a541bad2ea415664204c3471cf6964b91d382f"
       }
     },
     {
@@ -2991,7 +2991,7 @@
         "assets/astralrecord/textures/item/custom/astra_magia_chest.png": "684715cfb8ea97d78fbc842ace8b7df398bbb00beb4d23f03bb975a2b78bbfd0",
         "bedrock/animations/astra_magia_chest.animation.json": "e1de1bbcc235dc6e70e1051e29f36ba0676584a8a760eef18f66d1cf14382d81",
         "bedrock/attachables/astra_magia_chest.json": "203332c24f5f7fd2db254f07e6da1a7cdb6f0e92dbd816f263b63269bf231d61",
-        "bedrock/models/entity/armor/astra_magia_chest.geo.json": "7e9c69241c8e8e1e88c3f4a7931e7138a76b0688f9cce69d8349bb732838b984",
+        "bedrock/models/entity/armor/astra_magia_chest.geo.json": "5833f001885b07380868cb20ec792c3597e7438e00350c265996d2d631c330c4",
         "bedrock/models/entity/items/astra_magia_chest.geo.json": "f6cfdd2e8f0a0d1b45f6d0485581f25039e4382ef7728cda78d2b94f87276ca1",
         "bedrock/textures/entity/items/astra_magia_chest.png": "684715cfb8ea97d78fbc842ace8b7df398bbb00beb4d23f03bb975a2b78bbfd0",
         "bedrock/textures/items/astra_magia_chest.png": "6ccf1eb40b27076d2adee738ffd6fc45b549cbe84e4bde7d2940b191df3bd234",
@@ -2999,7 +2999,7 @@
         "blockbench/equipment-drafts/astra_magia_chest.json": "8186e95e7f69d6c9d11e76cf8c66a5c302da75299a49ba98799846578329e6f8",
         "blockbench/items/astra_magia_chest.bedrock.bbmodel": "9629e205e6d5c7a05a2766f2f4f1f06f345de3efcbc154ef6efaab520cb00854",
         "blockbench/items/astra_magia_chest.java.bbmodel": "ed9b9b897360b68e2f3e5cef5819dbcb8392259e8ad5b03e941efffc46ae3ad6",
-        "blockbench/items/astra_magia_chest_worn.bedrock.bbmodel": "fd80cb414a7887233bb0823ea8f7386455147c4c130d672c5591eaa3a3f6893a"
+        "blockbench/items/astra_magia_chest_worn.bedrock.bbmodel": "2de5cdd0c97c9a5ced8bb0001e4d3b6629b4fbfc787db6de5aa79124a56a8577"
       }
     },
     {
@@ -3014,7 +3014,7 @@
         "assets/astralrecord/textures/item/custom/astra_magia_legs.png": "684715cfb8ea97d78fbc842ace8b7df398bbb00beb4d23f03bb975a2b78bbfd0",
         "bedrock/animations/astra_magia_legs.animation.json": "cb5f9894ce7fa5bb1aac37ebccdfa71a7e1cf3e3a6f2f60176ab2d8f507f237b",
         "bedrock/attachables/astra_magia_legs.json": "d8a2a56a94cc9dddbc921c011a8eb7d788917a16821365727c4fa5672cc9df44",
-        "bedrock/models/entity/armor/astra_magia_legs.geo.json": "aab1b4af2b8dfccd03290c9081a06bcbccb2146f3222683946b117dd25ef6735",
+        "bedrock/models/entity/armor/astra_magia_legs.geo.json": "4b3e1ced6e068cf4bfa71b468457356fafff9b67af54ea51a082f418f82da255",
         "bedrock/models/entity/items/astra_magia_legs.geo.json": "2addf4a17674da02987a377e83e5eb1a0da4531700545d1cb749f50797da3aa1",
         "bedrock/textures/entity/items/astra_magia_legs.png": "684715cfb8ea97d78fbc842ace8b7df398bbb00beb4d23f03bb975a2b78bbfd0",
         "bedrock/textures/items/astra_magia_legs.png": "bb7fb3645703c09a94d14ca83355fb63d763cbe0be3387e1b13ea154c085cbc1",
@@ -3022,7 +3022,7 @@
         "blockbench/equipment-drafts/astra_magia_legs.json": "50942f8c781379c214a73332afde7442657d1548ce59d1d0102e5860a8e15852",
         "blockbench/items/astra_magia_legs.bedrock.bbmodel": "7179177d35b306fd0456fa04b50ef81362cc00ab89bf10f359b01c5ac5a48112",
         "blockbench/items/astra_magia_legs.java.bbmodel": "eb7724dd01f1ca8703e11635310993e6a7baaa8a58d054c798f67de1bd028f37",
-        "blockbench/items/astra_magia_legs_worn.bedrock.bbmodel": "8c785d5df9731e2f40f6feb3cefc4904cde6b8075011bf61d5f1c3967dc8f6bb"
+        "blockbench/items/astra_magia_legs_worn.bedrock.bbmodel": "ad84d86de2e81ef65bd626bb2a6966eb1307d7765ece680cd7e2fd0091bfe0af"
       }
     },
     {
@@ -3037,7 +3037,7 @@
         "assets/astralrecord/textures/item/custom/astra_magia_feet.png": "dbffc079534d1e3976a5a1fa52489883fc64d5d6c48aae78e827920e47d7562e",
         "bedrock/animations/astra_magia_feet.animation.json": "ff8583761ab77c09dfffd4b3e42a390c0b5bf00da77063bee95064b537b1a358",
         "bedrock/attachables/astra_magia_feet.json": "77226f050aea61aa288558fe2cdee245ca42d61fa77025caa611f60c1df22ef5",
-        "bedrock/models/entity/armor/astra_magia_feet.geo.json": "bab0cafb2b827c9eeae0b8751c5836adcc7371b2091a5e569a7de2aa88b58349",
+        "bedrock/models/entity/armor/astra_magia_feet.geo.json": "4b64fbe06607141c271c45a41a094ca13b053e055aacb37d6d9c62e4945cc7f3",
         "bedrock/models/entity/items/astra_magia_feet.geo.json": "bc8b3629e99ee32a9ff13ae13894ad6c7cb62db7414c093568d0af221dd346a4",
         "bedrock/textures/entity/items/astra_magia_feet.png": "dbffc079534d1e3976a5a1fa52489883fc64d5d6c48aae78e827920e47d7562e",
         "bedrock/textures/items/astra_magia_feet.png": "3a468920268cfb8964699e24c5348437418b182ea96c3d09a3042bb1171f5017",
@@ -3045,7 +3045,7 @@
         "blockbench/equipment-drafts/astra_magia_feet.json": "010e57eb91a4d344a4feb8e92148c1b2a58f81bd24a246509f6153f9368d3aa4",
         "blockbench/items/astra_magia_feet.bedrock.bbmodel": "b1f20859e529795a59a138947ee2c0e428dd3d4d0254fcbc26e451ec81333db6",
         "blockbench/items/astra_magia_feet.java.bbmodel": "7996a37eb743d126dcf72bf3c32ce0751a3548b9e6871237d708b30e86932036",
-        "blockbench/items/astra_magia_feet_worn.bedrock.bbmodel": "dc95da3d6dfdca1edc3d57170b96b3c69a92a7ac60c7b8997dd56e349b09ece7"
+        "blockbench/items/astra_magia_feet_worn.bedrock.bbmodel": "14f9392e059c459b7c9bb09a0096d226dc1fc0cfdcd39d6817d25d675e1a318b"
       }
     }
   ],

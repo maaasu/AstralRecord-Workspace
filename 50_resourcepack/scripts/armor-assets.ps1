@@ -1,3 +1,5 @@
+$bedrockArmorWornCondition = "context.item_slot != 'main_hand' && context.item_slot != 'off_hand'"
+
 function Test-ArmorAssetId {
     param($Value)
 
@@ -85,9 +87,8 @@ function Confirm-BedrockArmorRenderers {
     $renderer = @($Description.render_controllers | Where-Object {
         $_ -isnot [string] -and $_.PSObject.Properties.Name -ccontains 'controller.render.astralrecord.armor_worn'
     })
-    $condition = "context.item_slot != 'main_hand' && context.item_slot != 'off_hand'"
     if ($renderer.Count -ne 1 -or $renderer[0].'controller.render.astralrecord.armor_worn' -isnot [string] -or
-        $renderer[0].'controller.render.astralrecord.armor_worn' -cne $condition) {
+        $renderer[0].'controller.render.astralrecord.armor_worn' -cne $bedrockArmorWornCondition) {
         throw "Armor attachable $id must render its worn geometry only outside the hand slots."
     }
     $held = @($Description.render_controllers | Where-Object {
@@ -121,16 +122,20 @@ function Confirm-BedrockArmorAsset {
         $worn[0].description.texture_width -ne $size[0] -or $worn[0].description.texture_height -ne $size[1]) {
         throw "Armor attachable $id must reference its worn geometry and humanoid armor texture."
     }
-    $bindings = @($worn[0].bones | Where-Object { $_.cubes } | ForEach-Object { $_.binding })
+    # Match the vanilla armor rig, which shares the player's bones without explicit bindings.
+    $bones = $worn[0].bones
     $required = switch ($Item.slot) {
-        'HEAD' { @("'head'") }
-        'CHEST' { @("'body'", "'rightarm'", "'leftarm'") }
-        'LEGS' { @("'body'", "'rightleg'", "'leftleg'") }
-        'FEET' { @("'rightleg'", "'leftleg'") }
+        'HEAD' { 'head' }
+        'CHEST' { 'body', 'rightArm', 'leftArm' }
+        'LEGS' { 'body', 'rightLeg', 'leftLeg' }
+        'FEET' { 'rightLeg', 'leftLeg' }
     }
-    foreach ($binding in $required) {
-        if ($bindings -cnotcontains $binding) {
-            throw "Armor geometry $id must bind visible cuboids to $binding for $($Item.slot)."
+    $parents = @{ waist = $null; body = 'waist'; head = 'body'; rightArm = 'body'; leftArm = 'body'; rightLeg = 'body'; leftLeg = 'body' }
+    foreach ($name in (@('waist', 'body') + $required | Select-Object -Unique)) {
+        $bone = @($bones | Where-Object { $_.name -ieq $name })
+        if ($bone.Count -ne 1 -or $bone[0].name -cne $name -or $bone[0].parent -cne $parents[$name] -or
+            $bone[0].PSObject.Properties['binding'] -or ($name -cin $required -and !$bone[0].cubes)) {
+            throw "Armor geometry $id must use the vanilla player armor hierarchy for $name in $($Item.slot)."
         }
     }
     Confirm-BedrockArmorRenderers $description $id
@@ -146,6 +151,19 @@ function Confirm-BedrockArmorAsset {
         'controller.render.item_default' = $heldCondition
     })
     Add-PackJson $Entries "attachables/hidden_armor_$id.json" $hidden
+
+    $offset = switch ($Item.slot) {
+        'HEAD' { 'helmet' }
+        'CHEST' { 'chestplate' }
+        'LEGS' { 'leggings' }
+        'FEET' { 'boots' }
+    }
+    Add-Member -InputObject $description.animations -NotePropertyName 'worn_offset' -NotePropertyValue "animation.armor.$offset.offset"
+    $description.scripts.animate += [ordered] @{
+        worn_offset = $bedrockArmorWornCondition
+    }
+    $null = $Entries.Remove("attachables/$id.json")
+    Add-PackJson $Entries "attachables/$id.json" $attachable
 }
 
 function Add-ArmorAssetEntries {

@@ -16,13 +16,22 @@
       },
       "bones": [
         {
-          "name": "rightleg",
+          "name": "waist",
+          "pivot": [0, 12, 0]
+        },
+        {
+          "name": "body",
+          "parent": "waist",
+          "pivot": [0, 24, 0]
+        },
+        {
+          "name": "rightLeg",
+          "parent": "body",
           "pivot": [
             -1.9,
             12,
             0
           ],
-          "binding": "'rightleg'",
           "cubes": [
             {
               "origin": [
@@ -102,13 +111,13 @@
           ]
         },
         {
-          "name": "leftleg",
+          "name": "leftLeg",
+          "parent": "body",
           "pivot": [
             1.9,
             12,
             0
           ],
-          "binding": "'leftleg'",
           "cubes": [
             {
               "origin": [
