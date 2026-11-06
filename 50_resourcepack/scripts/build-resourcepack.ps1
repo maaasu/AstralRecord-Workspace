@@ -26,8 +26,8 @@ function Add-PackEntries {
 
     foreach ($name in $Names) {
         $bytes = [System.IO.File]::ReadAllBytes((Join-Path $BasePath $name))
-        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta')) {
-            # Keep tracked JSON byte-identical across LF and CRLF checkouts.
+        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta') -or $name.EndsWith('.txt')) {
+            # Keep tracked metadata and notices identical across LF and CRLF checkouts.
             $bytes = $utf8.GetBytes($utf8.GetString($bytes).Replace("`r`n", "`n"))
         }
         $entries.Add($name, $bytes)

@@ -175,7 +175,10 @@ def main() -> int:
     mismatches = []
     for path, expected in assets().items():
         if args.check:
-            if not path.exists() or path.read_bytes() != expected:
+            actual = path.read_bytes() if path.exists() else None
+            if actual is not None and path.suffix == ".json":
+                actual = actual.replace(b"\r\n", b"\n")
+            if actual != expected:
                 mismatches.append(str(path.relative_to(ROOT)))
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
