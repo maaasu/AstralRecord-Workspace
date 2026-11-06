@@ -7,13 +7,13 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerRuntimeDiscardEv
 import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiClickSoundFeedback;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
     private static final long GUI_CLICK_COOLDOWN_MS = 250L;
-    private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
 
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
     private final InventoryService inventoryService;
@@ -48,10 +47,11 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
             if (!(event.getWhoClicked() instanceof Player player)) {
                 return;
             }
-            if (!isPluginGui(event.getView().getTopInventory())) {
+            if (!GuiSessionTransitionService.isPluginManagedGui(event.getView().getTopInventory())) {
                 return;
             }
             if (event.getView().getTopInventory().getHolder() instanceof OrbGuiHolder) {
+                GuiClickSoundFeedback.begin(event, player);
                 return;
             }
             if (isAnvilResultClick(event)) {
@@ -65,10 +65,24 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
                 InventoryClickGuard.ClickAction.GUI_CLICK,
                 GUI_CLICK_COOLDOWN_MS
             )) {
+                GuiClickSoundFeedback.begin(event, player);
                 return;
             }
             event.setCancelled(true);
         }, LogId.E_5600, event.getWhoClicked().getName());
+    }
+
+    /**
+     * GUIのクリック処理が終了した時点で、装飾枠の再生状態を閉じます。
+     *
+     * @param event 処理済みのインベントリクリック
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+    public void onInventoryClickComplete(@NotNull InventoryClickEvent event) {
+        if (event.getWhoClicked() instanceof Player player) {
+            runSafely(() -> GuiClickSoundFeedback.finish(event, player),
+                    LogId.E_5600, player.getName());
+        }
     }
 
     /**
@@ -89,11 +103,6 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
 
     private void clearPlayerRuntime(@NotNull Player player) {
         clickGuard.clear(player.getUniqueId());
-    }
-
-    private boolean isPluginGui(@NotNull Inventory inventory) {
-        InventoryHolder holder = inventory.getHolder();
-        return holder != null && holder.getClass().getName().startsWith(PLUGIN_PACKAGE_PREFIX);
     }
 
     /**

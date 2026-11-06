@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.UUID;
@@ -18,6 +19,22 @@ import java.util.UUID;
 final class BackendProtocol {
     static final String CHANNEL = "astralrecord:network";
     private static final String PREPARE_CONNECT = "prepare_connect";
+    private static final byte[] GAMEPLAY_SOUNDS_READY = gameplaySoundsReadyPayload();
+
+    /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
+    static boolean isGameplaySoundsReady(byte[] payload) {
+        return Arrays.equals(GAMEPLAY_SOUNDS_READY, payload);
+    }
+
+    /** UTF 長ヘッダーを含む、引数のない通知の正規形を作成します。 */
+    private static byte[] gameplaySoundsReadyPayload() {
+        try (var bytes = new ByteArrayOutputStream(); var output = new DataOutputStream(bytes)) {
+            output.writeUTF("gameplay_sounds_ready");
+            return bytes.toByteArray();
+        } catch (IOException exception) {
+            throw new ExceptionInInitializerError(exception);
+        }
+    }
 
     /**
      * Proxyのチャンネル接続通知を復元します。他種別はnullを返します。

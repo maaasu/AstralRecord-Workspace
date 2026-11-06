@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.RangedStarweaveRuntim
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinHolyFieldRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherRuntime;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.GameplaySound;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
@@ -37,6 +38,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
+import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
@@ -239,12 +241,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     spreadX, spreadY, spreadZ, extra, readAttackType(context.skill()));
         }
 
-        String soundKey = readStringParam(context.skill(), "sound");
-        if (!soundKey.isBlank() && effectLocation.getWorld() != null) {
-            float volume = (float) readDoubleParam(context.skill(), "soundVolume", 1.0D);
-            float pitch = (float) readDoubleParam(context.skill(), "soundPitch", 1.0D);
-            effectLocation.getWorld().playSound(effectLocation, soundKey, SoundCategory.PLAYERS, volume, pitch);
-        }
+        playAttackSound(context.skill(), effectLocation);
 
         applyAttackDamage(
                 context,
@@ -255,6 +252,47 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 packPresentation
         );
         return SkillCastResult.succeeded();
+    }
+
+    /**
+     * 発動位置から武器種別の専用音を送ります。対応パックがない閲覧者には従来の発動音を送ります。
+     *
+     * @param skill 発動した通常攻撃の定義
+     * @param origin 音源座標
+     */
+    private void playAttackSound(@NotNull SkillDefinition skill, @NotNull Location origin) {
+        String fallbackSound = readStringParam(skill, "sound");
+        World world = origin.getWorld();
+        if (fallbackSound.isBlank() || world == null) {
+            return;
+        }
+        float volume = (float) readDoubleParam(skill, "soundVolume", 1.0D);
+        float pitch = (float) readDoubleParam(skill, "soundPitch", 1.0D);
+        String weapon = switch (skill.getId()) {
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE -> "sword";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_HAMMER -> "hammer";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SPEAR -> "spear";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW -> "bow";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW -> "shortbow";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW -> "longbow";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_WAND -> "wand";
+            case BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC -> "staff";
+            default -> null;
+        };
+        if (weapon == null) {
+            world.playSound(origin, fallbackSound, SoundCategory.PLAYERS, volume, pitch);
+            return;
+        }
+
+        String eventPath = "combat.attack." + weapon;
+        // バニラの音量に応じた到達範囲を維持し、各クライアントへ片方の音だけを送ります。
+        double radius = Math.max(1.0F, volume) * 16.0D;
+        for (Player listener : world.getNearbyPlayers(origin, radius)) {
+            if (listener.getLocation().distanceSquared(origin) <= radius * radius
+                    && !GameplaySound.tryPlay(listener, origin, eventPath, 0.85F, 1.0F)) {
+                listener.playSound(origin, fallbackSound, SoundCategory.PLAYERS, volume, pitch);
+            }
+        }
     }
 
     /**

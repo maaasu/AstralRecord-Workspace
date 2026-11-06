@@ -157,7 +157,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         }
         String entryId = shopGui.getEntryId(event.getCurrentItem());
         if (entryId == null) {
-            GuiSound.DENY.play(player);
+            var item = event.getCurrentItem();
+            boolean emptyProductSlot = event.getClickedInventory() == event.getView().getTopInventory()
+                    && (item == null || item.getType().isAir());
+            (emptyProductSlot ? GuiSound.DUMMY : GuiSound.DENY).play(player);
             return;
         }
         ShopEntry entry = shop.findEntry(entryId);
@@ -172,7 +175,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
 
     /**
      * 購入確認画面の操作を処理し、非同期購入の完了までは同一プレイヤーの再操作を拒否します。
-     * 保存成功後にだけ村人の取引音と購入チャイムを購入者へ再生します。
+     * 保存成功後にだけ購入確定音を購入者へ再生します。
      * 最新の対価不足と容量不足は個別に通知し、購入完了後にも不足理由を再計算します。
      *
      * @param event 対象のクリックイベント
@@ -269,7 +272,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
                             player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
                     }
                     GuiSound.PURCHASE.play(player);
-                    GuiSound.PURCHASE_CHIME.play(player);
                 })
             );
         } catch (RuntimeException | Error failure) {

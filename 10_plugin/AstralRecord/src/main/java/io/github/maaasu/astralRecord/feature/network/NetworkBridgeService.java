@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.ChatMessageConversion;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
@@ -60,6 +61,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     private final AtomicBoolean authorityRefreshRunning = new AtomicBoolean();
     private final AtomicBoolean authorityWarningLogged = new AtomicBoolean();
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
+    private @Nullable ResourcePackService resourcePackService;
     private BukkitTask metadataTask;
     private BukkitTask authorityTask;
 
@@ -87,6 +89,15 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
      */
     public void setInvulnerabilityVisualService(@NotNull InvulnerabilityVisualService service) {
         this.invulnerabilityVisualService = service;
+    }
+
+    /**
+     * Proxy から届く統合版パック適用通知の受け取り先を設定します。
+     *
+     * @param service パック適用状態を管理するサービス
+     */
+    public void setResourcePackService(@NotNull ResourcePackService service) {
+        resourcePackService = service;
     }
 
     public void start() {
@@ -299,6 +310,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         byte @NotNull [] message
     ) {
         if (!enabled || !BackendProtocol.CHANNEL.equals(channel)) return;
+        if (BackendProtocol.isGameplaySoundsReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockGameplaySoundsReady(player);
+            }
+            return;
+        }
         String targetServer;
         try {
             BackendProtocol.ChannelConnection notification = BackendProtocol.decodeChannelConnection(message);

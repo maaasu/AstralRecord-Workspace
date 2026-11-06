@@ -92,7 +92,6 @@ public final class SkillBindGui {
     private static final int PERMITTED_SKILL_LORE_LIMIT = 6;
     private final NamespacedKey learnedSkillIdKey;
     private final NamespacedKey unlearnedSkillIdKey;
-    private final NamespacedKey dummyKey;
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
     private final SkillService skillService;
@@ -115,7 +114,6 @@ public final class SkillBindGui {
     ) {
         learnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_learned_skill_id");
         unlearnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_unlearned_skill_id");
-        dummyKey = new NamespacedKey(plugin, "skill_manager_dummy");
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
         this.skillService = skillService;
@@ -1384,11 +1382,9 @@ public final class SkillBindGui {
         };
     }
 
+    /** 装飾専用の空白パネルで未使用スロットを埋めます。 */
     private void fill(Inventory inventory) {
         ItemStack dummy = createItem(Material.BLACK_STAINED_GLASS_PANE, " ", NamedTextColor.BLACK, List.of());
-        ItemMeta meta = dummy.getItemMeta();
-        meta.getPersistentDataContainer().set(dummyKey, PersistentDataType.BYTE, (byte) 1);
-        dummy.setItemMeta(meta);
         for (int slot = 0; slot < inventory.getSize(); slot++) inventory.setItem(slot, dummy.clone());
     }
 

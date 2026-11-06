@@ -429,6 +429,12 @@ function Publish-ResourcePacks {
         try { $guiTheme = $reader.ReadToEnd() }
         finally { $reader.Dispose() }
         if ($guiTheme -cne '1') { throw 'Unsupported GUI theme version.' }
+        $soundsEntry = $archive.GetEntry('gameplay-sounds-version.txt')
+        if ($null -eq $soundsEntry -or $soundsEntry.Length -ne 1) { throw 'Missing gameplay sounds version in Java pack.' }
+        $reader = [IO.StreamReader]::new($soundsEntry.Open())
+        try { $gameplaySounds = $reader.ReadToEnd() }
+        finally { $reader.Dispose() }
+        if ($gameplaySounds -cne '1') { throw 'Unsupported gameplay sounds version.' }
     }
     finally {
         $archive.Dispose()
@@ -439,7 +445,7 @@ function Publish-ResourcePacks {
     Move-Item -LiteralPath $bedrock -Destination (Join-Path $output $bedrockName) -Force
 
     [ordered]@{
-        java = [ordered]@{ sha1 = $sha1; actionRingPanel = $panelRevision; guiTheme = $guiTheme }
+        java = [ordered]@{ sha1 = $sha1; actionRingPanel = $panelRevision; guiTheme = $guiTheme; gameplaySounds = $gameplaySounds }
         bedrock = [ordered]@{
             sha256 = $sha256
             uuid = $uuid

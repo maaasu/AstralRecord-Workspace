@@ -37,6 +37,8 @@ public class ResourcePackService {
     private final Set<UUID> loadedManagedJavaPacks = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> requestedActionRingPanels = new ConcurrentHashMap<>();
     private final Map<UUID, String> requestedGuiThemes = new ConcurrentHashMap<>();
+    private final Set<UUID> requestedGameplaySounds = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockGameplaySounds = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -113,11 +115,15 @@ public class ResourcePackService {
                     loadedManagedJavaPacks.remove(viewer);
                     requestedActionRingPanels.remove(viewer);
                     requestedGuiThemes.remove(viewer);
+                    requestedGameplaySounds.remove(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
                     }
                     if (pack.guiTheme() != null) {
                         requestedGuiThemes.put(viewer, pack.guiTheme());
+                    }
+                    if (pack.hasGameplaySounds()) {
+                        requestedGameplaySounds.add(viewer);
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -264,6 +270,30 @@ public class ResourcePackService {
     }
 
     /**
+     * 接続が通常攻撃・GUI用の専用音を再生できるか判定します。
+     * Java 版はパックの適用成功、統合版は Proxy からの対応パック通知を確認します。
+     *
+     * @param player 再生対象のオンラインプレイヤー
+     * @return 専用音を送信できる場合は true
+     */
+    public boolean hasGameplaySounds(Player player) {
+        UUID viewer = player.getUniqueId();
+        return readyBedrockGameplaySounds.contains(viewer)
+                || (hasManagedJavaPack(viewer) && requestedGameplaySounds.contains(viewer));
+    }
+
+    /**
+     * Proxy が対応パックを確認した統合版の接続を、メインスレッドで記録します。
+     *
+     * @param player 通知が届いた現在のオンラインプレイヤー
+     */
+    public void markBedrockGameplaySoundsReady(Player player) {
+        if (player.isOnline()) {
+            readyBedrockGameplaySounds.add(player.getUniqueId());
+        }
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -273,6 +303,8 @@ public class ResourcePackService {
         loadedManagedJavaPacks.remove(playerId);
         requestedActionRingPanels.remove(playerId);
         requestedGuiThemes.remove(playerId);
+        requestedGameplaySounds.remove(playerId);
+        readyBedrockGameplaySounds.remove(playerId);
     }
 
     /**

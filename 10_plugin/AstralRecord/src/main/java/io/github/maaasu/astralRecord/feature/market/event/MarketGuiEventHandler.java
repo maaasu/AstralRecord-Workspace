@@ -1397,7 +1397,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                     GuiSound.DENY.play(player);
                 } else {
                     messageService.send(player, PlayerMsgId.P_6302, result.transaction().totalPrice());
-                    GuiSound.SUCCESS.play(player);
+                    GuiSound.PURCHASE.play(player);
                 }
                 openListings(player, false, session.page);
             });

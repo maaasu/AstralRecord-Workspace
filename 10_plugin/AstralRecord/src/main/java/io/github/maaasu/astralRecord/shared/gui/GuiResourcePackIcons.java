@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,9 +36,7 @@ public final class GuiResourcePackIcons {
      */
     public static @NotNull ItemStack applyControl(@NotNull ItemStack itemStack) {
         ItemMeta meta = itemStack.getItemMeta();
-        if (meta == null || (meta.hasLore() && meta.lore() != null && !meta.lore().isEmpty())
-            || (meta.displayName() != null
-                && !PlainTextComponentSerializer.plainText().serialize(meta.displayName()).isBlank())) {
+        if (meta == null || !hasBlankNameAndLore(meta)) {
             return itemStack;
         }
         return switch (itemStack.getType()) {
@@ -45,6 +44,31 @@ public final class GuiResourcePackIcons {
             case GRAY_STAINED_GLASS_PANE -> apply(itemStack, "panel");
             default -> itemStack;
         };
+    }
+
+    /**
+     * 無地の灰色・黒色パネルがGUI装飾用か判定します。
+     * アイテムを置けるプレースホルダーなど、PDCを持つパネルは除外します。
+     *
+     * @param itemStack 上段GUIのクリック前のアイテム。空きスロットなら null
+     * @return 装飾パネルなら true
+     */
+    public static boolean isDecorativePane(@Nullable ItemStack itemStack) {
+        if (itemStack == null || (itemStack.getType() != Material.GRAY_STAINED_GLASS_PANE
+                && itemStack.getType() != Material.BLACK_STAINED_GLASS_PANE)) {
+            return false;
+        }
+        ItemMeta meta = itemStack.getItemMeta();
+        return meta != null && meta.hasDisplayName() && hasBlankNameAndLore(meta)
+                && meta.getPersistentDataContainer().isEmpty();
+    }
+
+    /** パネル名・説明に表示テキストがない場合だけ共通の空白パネルとして扱います。 */
+    private static boolean hasBlankNameAndLore(@NotNull ItemMeta meta) {
+        var lore = meta.lore();
+        var name = meta.displayName();
+        return (lore == null || lore.isEmpty())
+                && (name == null || PlainTextComponentSerializer.plainText().serialize(name).isBlank());
     }
 
     /**

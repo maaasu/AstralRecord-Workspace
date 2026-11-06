@@ -15,8 +15,9 @@ public final class ResourcePackRepository {
     private static final Pattern SHA1 = Pattern.compile("[0-9a-f]{40}");
     private static final Pattern PANEL_REVISION = Pattern.compile("[0-9a-f]{64}");
 
-    /** 配布物のハッシュ、アクションリング台帳、GUIテーマの互換版を識別します。 */
-    public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme) {
+    /** 配布物のハッシュと、アクションリング・GUIテーマ・効果音の互換性を識別します。 */
+    public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
+                           boolean hasGameplaySounds) {
     }
 
     /**
@@ -47,7 +48,10 @@ public final class ResourcePackRepository {
                 JsonElement gui = java.get("guiTheme");
                 String guiTheme = gui != null && gui.isJsonPrimitive()
                     && gui.getAsJsonPrimitive().isString() && "1".equals(gui.getAsString()) ? "1" : null;
-                return new JavaPack(sha1.getAsString(), panel, guiTheme);
+                JsonElement sounds = java.get("gameplaySounds");
+                boolean hasGameplaySounds = sounds != null && sounds.isJsonPrimitive()
+                    && sounds.getAsJsonPrimitive().isString() && "1".equals(sounds.getAsString());
+                return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

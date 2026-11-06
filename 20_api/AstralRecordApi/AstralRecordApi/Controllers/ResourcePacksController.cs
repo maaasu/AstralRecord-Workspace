@@ -13,7 +13,7 @@ public sealed class ResourcePacksController(IWebHostEnvironment environment) : C
     private static readonly JsonSerializerOptions ManifestJson = new(JsonSerializerDefaults.Web);
     private readonly string directory = Path.Combine(environment.ContentRootPath, "resource-packs");
 
-    /// <summary>配布中の両版パックのハッシュ、Bedrock UUID、Java表示機能の互換情報を取得します。</summary>
+    /// <summary>配布中の両版パックのハッシュ、Bedrock UUID、Java版の表示機能と効果音の互換情報を取得します。</summary>
     [HttpGet("manifest")]
     public async Task<ActionResult<ResourcePackManifest>> GetManifest(CancellationToken cancellationToken)
     {

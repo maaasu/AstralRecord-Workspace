@@ -270,6 +270,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.GameplaySound;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.skill.active.event.ActiveSkillLifecycleEventHandler;
@@ -894,6 +895,7 @@ public final class AstralRecord extends JavaPlugin {
     @Override
     public void onDisable() {
         io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.clear();
+        GameplaySound.configure(null);
         if (overworldTeleportService != null) overworldTeleportService.stop();
         if (defenseService != null) defenseService.stop();
         RuntimeException shadeHedgehogStopFailure = null;
@@ -1569,6 +1571,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
         resourcePackService = new ResourcePackService(this, ConfigProperties.getInstance());
+        GameplaySound.configure(resourcePackService);
         io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.configure(this, resourcePackService);
         displayTextService = new DisplayTextService(playerSettingService, resourcePackService);
         textDisplayPlacementService.setDisplayTextService(displayTextService);
@@ -2732,6 +2735,7 @@ public final class AstralRecord extends JavaPlugin {
             playerSessionTransitionGuard
         );
         networkBridgeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
+        networkBridgeService.setResourcePackService(resourcePackService);
         accountModeApplicationService.setModeAppliedListener(player -> {
             playerClassService.updatePlayerListName(player);
             networkBridgeService.refreshPlayerMetadata(player);
