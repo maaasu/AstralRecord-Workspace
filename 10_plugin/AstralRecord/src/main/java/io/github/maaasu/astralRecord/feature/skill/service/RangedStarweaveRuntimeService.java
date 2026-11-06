@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.executor.RangedStarweaveFollowupExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher.PhantomArcherRuntime;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
@@ -31,6 +32,7 @@ import java.util.UUID;
 /** 装備とバインドが有効な弓通常命中に、所有者ごと一回の星糸追矢を接続します。メインスレッド専用です。 */
 public final class RangedStarweaveRuntimeService {
     private static final String SCOPE = "archer_starweave_followup";
+    private final SkillPackDisplay packDisplay;
     private final ActiveSkillServices services;
     private final InheritanceBuffService inheritance;
     private final PassiveSkillService passives;
@@ -49,6 +51,7 @@ public final class RangedStarweaveRuntimeService {
      * @param permissions 現職と使用許可の判定
      * @param damage 副次攻撃をスキルブック発動通知から除外するサービス
      * @param particles 閲覧者設定を尊重する表示サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public RangedStarweaveRuntimeService(@NotNull ActiveSkillServices services,
                                         @NotNull InheritanceBuffService inheritance,
@@ -56,7 +59,9 @@ public final class RangedStarweaveRuntimeService {
                                         @NotNull InventoryService inventory,
                                         @NotNull SkillPermissionService permissions,
                                         @NotNull DamageService damage,
-                                        @NotNull ParticleDisplayService particles) {
+                                        @NotNull ParticleDisplayService particles,
+            @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.services = services;
         this.inheritance = inheritance;
         this.passives = passives;
@@ -128,6 +133,7 @@ public final class RangedStarweaveRuntimeService {
         Vector initialDirection = services.targeting().center(target).toVector().subtract(origin.toVector());
         if (initialDirection.lengthSquared() > 1.0E-8D) origin.add(initialDirection.clone().normalize().multiply(0.35D));
         visuals.launch(origin, initialDirection);
+        packDisplay.show(RangedStarweaveFollowupExecutor.ID, SkillPackDisplay.Phase.CAST, origin, 1.4F, player.getBukkit());
         launch(state, target, origin, ratio, range, params.getInt("flightTicks", 6), launchEpoch, attackWear);
     }
 
@@ -164,13 +170,17 @@ public final class RangedStarweaveRuntimeService {
             }
             Vector direction = next.toVector().subtract(previous[0].toVector());
             visuals.flight(previous[0], next, step);
+            packDisplay.show(RangedStarweaveFollowupExecutor.ID, SkillPackDisplay.Phase.TRAIL, next, 0.85F, owner.getBukkit());
             previous[0] = next;
             if (step + 1 == flightTicks / 2) {
                 // 元弾の耐久状態を共有し、book同士の連鎖、継承と霊印の再発動は呼ばない。
                 DamageResult hit = damage.withSkillbookHitSuppressed(() ->
                         services.combat().forAttackWear(wear).hit(AstEntity.player(owner), target,
                                 AttackType.RANGED, DamageElement.NONE, ratio));
-                if (PhantomArcherRuntime.effective(hit)) visuals.impact(destination, direction);
+                if (PhantomArcherRuntime.effective(hit)) {
+                    visuals.impact(destination, direction);
+                    packDisplay.show(RangedStarweaveFollowupExecutor.ID, SkillPackDisplay.Phase.IMPACT, destination, 1.5F, owner.getBukkit());
+                }
             }
         });
     }

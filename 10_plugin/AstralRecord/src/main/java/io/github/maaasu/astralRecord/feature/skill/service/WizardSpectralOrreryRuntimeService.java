@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardSpectralOrreryExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -35,6 +36,7 @@ import java.util.UUID;
 /** 魔法有効命中の三属性を発動者別に蓄積し、天球儀の追撃を一度だけ発生させます。 */
 public final class WizardSpectralOrreryRuntimeService {
     private static final String PROC_SCOPE = "wizard-spectral-orrery:proc";
+    private final SkillPackDisplay packDisplay;
     private final ActiveSkillServices services;
     private final StatusService statuses;
     private final DamageService damage;
@@ -48,9 +50,12 @@ public final class WizardSpectralOrreryRuntimeService {
      * @param services 共通のスキルサービス群
      * @param statuses MPを確認・消費するサービス
      * @param damage 副次攻撃のスキルブック通知を抑止するダメージサービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public WizardSpectralOrreryRuntimeService(@NotNull ActiveSkillServices services,
-            @NotNull StatusService statuses, @NotNull DamageService damage) {
+            @NotNull StatusService statuses, @NotNull DamageService damage,
+            @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.services = services;
         this.statuses = statuses;
         this.damage = damage;
@@ -125,6 +130,7 @@ public final class WizardSpectralOrreryRuntimeService {
                 }
                 if (state.elements.add(component.element())) {
                     visuals.charge(player, component.element(), state.elements.size());
+                    packDisplay.show(WizardSpectralOrreryExecutor.ID, SkillPackDisplay.Phase.CAST, player.getBukkit().getEyeLocation(), 1.3F, player.getBukkit());
                     newElement = true;
                 }
             }
@@ -188,6 +194,7 @@ public final class WizardSpectralOrreryRuntimeService {
         try {
             damage.withSkillbookHitSuppressed(() -> {
                 visuals.release(state.owner, center, params.radius());
+                packDisplay.show(WizardSpectralOrreryExecutor.ID, SkillPackDisplay.Phase.AREA, center, (float) (2.0D * params.radius()), state.owner.getBukkit());
                 for (AstEntity target : targets) {
                     var result = combat.hit(AstEntity.player(state.owner), target, AttackType.MAGIC,
                             List.of(new DamageComponent(DamageElement.FIRE, params.damageRatio()),
@@ -195,6 +202,7 @@ public final class WizardSpectralOrreryRuntimeService {
                                     new DamageComponent(DamageElement.LIGHTNING, params.damageRatio())));
                     if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
                         visuals.impact(target.location().add(0.0D, 0.9D, 0.0D));
+                        packDisplay.show(WizardSpectralOrreryExecutor.ID, SkillPackDisplay.Phase.IMPACT, target.location().add(0.0D, 0.9D, 0.0D), 1.2F, state.owner.getBukkit());
                     }
                 }
                 return null;

@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDodgeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -28,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class JustDodgeSkillRuntimeService {
     private static final int PARTICLE_COUNT = 6;
 
+    private final SkillPackDisplay packDisplay;
     private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
@@ -38,11 +41,14 @@ public final class JustDodgeSkillRuntimeService {
      *
      * @param statusService エネルギー回復サービス
      * @param particleDisplayService パーティクル表示サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public JustDodgeSkillRuntimeService(
             @NotNull StatusService statusService,
-            @NotNull ParticleDisplayService particleDisplayService
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
     }
@@ -185,6 +191,7 @@ public final class JustDodgeSkillRuntimeService {
         Location location = player.getLocation();
         World world = location.getWorld();
         if (world == null) return;
+        packDisplay.show(AdministratorJustDodgeSkillExecutor.ID, SkillPackDisplay.Phase.IMPACT, location.clone().add(0.0D, 0.2D, 0.0D), 1.7F, player);
         world.playSound(
                 location,
                 Sound.ITEM_SHIELD_BLOCK,

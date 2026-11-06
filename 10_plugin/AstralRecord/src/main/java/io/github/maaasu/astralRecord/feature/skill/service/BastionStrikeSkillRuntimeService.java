@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
@@ -35,6 +36,7 @@ public final class BastionStrikeSkillRuntimeService {
     private static final long BASTION_PULSE_PERIOD_TICKS = 2L;
     private static final String BASTION_TASK_SCOPE = SKILL_ID + ":soul-bastion";
 
+    private final SkillPackDisplay packDisplay;
     private final SkillTargetingService targetingService;
     private final SkillCombatService combatService;
     private final SkillEffectService effectService;
@@ -43,13 +45,25 @@ public final class BastionStrikeSkillRuntimeService {
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
 
     /** バスティオンストライクが使用する戦闘・対象選択・演出サービスで初期化します。 */
+    /**
+     * パッシブの発動処理を構成します。
+     *
+     * @param skillService 発動処理で使用する依存サービス
+     * @param targetingService 発動処理で使用する依存サービス
+     * @param combatService 発動処理で使用する依存サービス
+     * @param effectService 発動処理で使用する依存サービス
+     * @param taskService 発動処理で使用する依存サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
+     */
     public BastionStrikeSkillRuntimeService(
             @NotNull SkillService skillService,
             @NotNull SkillTargetingService targetingService,
             @NotNull SkillCombatService combatService,
             @NotNull SkillEffectService effectService,
-            @NotNull SkillTaskService taskService
+            @NotNull SkillTaskService taskService,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.skillService = skillService;
         this.targetingService = targetingService;
         this.combatService = combatService;
@@ -143,6 +157,7 @@ public final class BastionStrikeSkillRuntimeService {
         skillService.startSkillCooldown(caster, SKILL_ID, configuration.cooldownTicks());
         recoverMissingShield(victim);
         renderActivation(player, target.location());
+        packDisplay.show(SKILL_ID, SkillPackDisplay.Phase.IMPACT, target.location().add(0.0D, 0.75D, 0.0D), 1.8F, player);
         return true;
     }
 
@@ -176,6 +191,7 @@ public final class BastionStrikeSkillRuntimeService {
         PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5880);
 
         Location center = player.getLocation().clone().add(0.0D, 0.95D, 0.0D);
+        packDisplay.show(SKILL_ID, SkillPackDisplay.Phase.CAST, center, 1.9F, player);
         effectService.line(
                 center.clone().subtract(0.0D, 0.85D, 0.0D),
                 center.clone().add(0.0D, 1.35D, 0.0D),

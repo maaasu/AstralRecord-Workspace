@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.WizardPrismConditionSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -35,6 +37,7 @@ public final class WizardPrismConditionRuntimeService {
     private static final int PARTICLE_INTERVAL_TICKS = 4;
     private static final double VERTICAL_REACH = 2.0D;
 
+    private final SkillPackDisplay packDisplay;
     private final Plugin plugin;
     private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
@@ -50,13 +53,16 @@ public final class WizardPrismConditionRuntimeService {
      * @param statusService MP回復サービス
      * @param particleDisplayService 近傍プレイヤーへの粒子表示サービス
      * @param circleRegistry 発動者ごとの現存魔法陣
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public WizardPrismConditionRuntimeService(
             @NotNull Plugin plugin,
             @NotNull StatusService statusService,
             @NotNull ParticleDisplayService particleDisplayService,
-            @NotNull SkillMagicCircleRegistry circleRegistry
+            @NotNull SkillMagicCircleRegistry circleRegistry,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.plugin = plugin;
         this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
@@ -137,6 +143,8 @@ public final class WizardPrismConditionRuntimeService {
                 }));
         fields.add(field);
         try {
+            packDisplay.show(WizardPrismConditionSkillExecutor.ID, SkillPackDisplay.Phase.AREA, center,
+                    (float) (2.0D * configuration.radius), source.player().getBukkit());
             render(field);
             if (task == null) {
                 task = Bukkit.getScheduler().runTaskTimer(plugin, this::advance, 1L, 1L);
@@ -277,6 +285,8 @@ public final class WizardPrismConditionRuntimeService {
         int tick = Bukkit.getCurrentTick();
         Integer previous = recoverySoundTicks.get(recipient.getUniqueId());
         if (previous == null || tick - previous >= 6) {
+            packDisplay.show(WizardPrismConditionSkillExecutor.ID, SkillPackDisplay.Phase.IMPACT,
+                    destination, 0.9F, Bukkit.getPlayer(field.casterId));
             effects.sound(destination, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.50F, 1.60F);
             effects.sound(destination, Sound.BLOCK_BEACON_POWER_SELECT, 0.25F, 1.40F);
             recoverySoundTicks.put(recipient.getUniqueId(), tick);

@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.executor.WizardLightningStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -32,6 +33,7 @@ public final class WizardLightningStrikeRuntimeService {
     private static final int BOLT_SEGMENTS = 8;
     private static final double BOLT_HEIGHT = 6.0D;
 
+    private final SkillPackDisplay packDisplay;
     private final SkillService skillService;
     private final SkillCombatService combatService;
     private final SkillEffectService effects;
@@ -46,13 +48,16 @@ public final class WizardLightningStrikeRuntimeService {
      * @param combatService 共通スキルダメージを適用するサービス
      * @param effects 雷の粒子演出を表示するサービス
      * @param statusService 消費軽減を含む現在ステータスを返すサービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public WizardLightningStrikeRuntimeService(
             @NotNull SkillService skillService,
             @NotNull SkillCombatService combatService,
             @NotNull SkillEffectService effects,
-            @NotNull StatusService statusService
+            @NotNull StatusService statusService,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.skillService = skillService;
         this.combatService = combatService;
         this.effects = effects;
@@ -116,6 +121,7 @@ public final class WizardLightningStrikeRuntimeService {
         }
 
         displayLightning(targetLocation);
+        packDisplay.show(WizardLightningStrikeSkillExecutor.ID, SkillPackDisplay.Phase.IMPACT, targetLocation.clone().add(0.0D, 0.12D, 0.0D), 1.3F, attacker.player().getBukkit());
         combatService.hit(attacker, target, AttackType.MAGIC, DamageElement.LIGHTNING,
                 params.getDouble("damageRatio", 1.5D));
     }

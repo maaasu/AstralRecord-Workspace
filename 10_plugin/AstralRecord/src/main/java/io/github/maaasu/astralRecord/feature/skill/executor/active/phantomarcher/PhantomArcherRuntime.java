@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.phantomarcher;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
@@ -38,6 +39,7 @@ public final class PhantomArcherRuntime {
     private static SkillEffectService effects;
     private static SkillTaskService tasks;
     private static ParticleDisplayService particles;
+    private static SkillPackDisplay packDisplay;
 
     private PhantomArcherRuntime() { }
 
@@ -49,13 +51,15 @@ public final class PhantomArcherRuntime {
      * @param effectService 霊印表示に使う共有演出サービス
      * @param taskService 所有者別の有限表示タスクを管理するサービス
      * @param particleService 所有者の表示設定を尊重する粒子サービス
+     * @param skillPackDisplay パック対応の閲覧者に表示する演出サービス
      */
     public static void configure(@NotNull PassiveSkillService passiveService,
                                  @NotNull SkillService skillService,
                                  @NotNull ItemWeaponAttackService weaponService,
                                  @NotNull SkillEffectService effectService,
                                  @NotNull SkillTaskService taskService,
-                                 @NotNull ParticleDisplayService particleService) {
+                                 @NotNull ParticleDisplayService particleService,
+                                 @NotNull SkillPackDisplay skillPackDisplay) {
         clearAll();
         passives = passiveService;
         skills = skillService;
@@ -63,6 +67,7 @@ public final class PhantomArcherRuntime {
         effects = effectService;
         tasks = taskService;
         particles = particleService;
+        packDisplay = skillPackDisplay;
     }
 
     /**
@@ -141,6 +146,10 @@ public final class PhantomArcherRuntime {
             addMark(player, target);
             if (effects != null) PhantomArcherEffects.resonance(effects, target.location(),
                     marks(player.getBukkit().getUniqueId(), target.id()));
+            if (packDisplay != null) {
+                packDisplay.show(PhantomArcherPassiveExecutor.ATTUNEMENT_ID, SkillPackDisplay.Phase.IMPACT,
+                        target.location().add(0.0D, 0.9D, 0.0D), 1.3F, player.getBukkit());
+            }
         }
     }
 
@@ -274,8 +283,13 @@ public final class PhantomArcherRuntime {
     public static boolean takeArrow(@NotNull AstPlayer player) {
         UUID owner = player.getBukkit().getUniqueId();
         ReadyArrow ready = READY_ARROWS.remove(owner);
-        return ready != null && ready.expiresAtTick > Bukkit.getCurrentTick() && hasBow(player)
+        boolean triggered = ready != null && ready.expiresAtTick > Bukkit.getCurrentTick() && hasBow(player)
                 && activePassive(player, PhantomArcherPassiveExecutor.WRAITH_ID);
+        if (triggered && packDisplay != null) {
+            packDisplay.show(PhantomArcherPassiveExecutor.WRAITH_ID, SkillPackDisplay.Phase.CAST,
+                    player.getBukkit().getEyeLocation(), 1.5F, player.getBukkit());
+        }
+        return triggered;
     }
 
     /**

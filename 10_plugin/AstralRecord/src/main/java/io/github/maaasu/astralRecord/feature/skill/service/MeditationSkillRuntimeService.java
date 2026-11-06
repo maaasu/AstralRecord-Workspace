@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -35,6 +37,7 @@ public final class MeditationSkillRuntimeService {
     private static final int DEFAULT_ACTIVE_PARTICLE_INTERVAL_TICKS = 5;
     private static final int DEFAULT_ACTIVE_SOUND_INTERVAL_TICKS = 40;
 
+    private final SkillPackDisplay packDisplay;
     private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, State> states = new ConcurrentHashMap<>();
@@ -44,11 +47,14 @@ public final class MeditationSkillRuntimeService {
      *
      * @param statusService ステータスサービス
      * @param particleDisplayService 共通パーティクル表示サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public MeditationSkillRuntimeService(
         @NotNull StatusService statusService,
-        @NotNull ParticleDisplayService particleDisplayService
+        @NotNull ParticleDisplayService particleDisplayService,
+        @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
     }
@@ -214,6 +220,7 @@ public final class MeditationSkillRuntimeService {
         Location base = player.getLocation();
         if (base == null || base.getWorld() == null) return;
         Location center = base.clone().add(0.0D, 1.0D, 0.0D);
+        packDisplay.show(MeditationSkillExecutor.ID, SkillPackDisplay.Phase.IMPACT, center, 2.0F, player);
         particleDisplayService.spawnForNearbyViewers(
             center,
             SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM
@@ -245,6 +252,7 @@ public final class MeditationSkillRuntimeService {
         Location base = player.getLocation();
         if (base == null || base.getWorld() == null) return;
         Location center = base.clone().add(0.0D, 0.08D, 0.0D);
+        packDisplay.show(MeditationSkillExecutor.ID, SkillPackDisplay.Phase.CAST, center, 2.0F, player);
         particleDisplayService.spawnForNearbyViewers(
             center,
             ringLocations(center, 1.0D, 16),

@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
@@ -24,8 +26,18 @@ public final class SpellStepSkillRuntimeService {
     /** 発動音程の既定値です。 */
     public static final double DEFAULT_TRIGGER_SOUND_PITCH = 1.3D;
 
+    private final SkillPackDisplay packDisplay;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
     private final Map<UUID, Long> armedUntilTick = new ConcurrentHashMap<>();
+
+    /**
+     * 発動時のパック演出を接続します。
+     *
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
+     */
+    public SpellStepSkillRuntimeService(@NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
+    }
 
     /**
      * 有効化されたスキル個体の設定を登録します。
@@ -102,6 +114,7 @@ public final class SpellStepSkillRuntimeService {
             return false;
         }
 
+        packDisplay.show(HunterSpellStepSkillExecutor.ID, SkillPackDisplay.Phase.CAST, player.getBukkit().getLocation(), 1.5F, player.getBukkit());
         player.getBukkit().playSound(
                 player.getBukkit().getLocation(),
                 configuration.triggerSound(),

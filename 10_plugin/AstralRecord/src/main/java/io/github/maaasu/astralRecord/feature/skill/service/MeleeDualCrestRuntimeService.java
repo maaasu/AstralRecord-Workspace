@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeleeDualCrestExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 /** 二つの近接印を蓄積し、三撃目に有限頻度の追撃を行います。全操作は同期スレッド限定です。 */
 public final class MeleeDualCrestRuntimeService {
+    private final SkillPackDisplay packDisplay;
     private final ActiveSkillServices services;
     private final StatusService statuses;
     private final DamageService damageService;
@@ -36,9 +38,12 @@ public final class MeleeDualCrestRuntimeService {
      * @param services スキル共通サービス群
      * @param statuses 現在ENGと消費軽減を解決するサービス
      * @param damageService 追撃から別のスキルブックへ派生しないよう通知を抑止するサービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public MeleeDualCrestRuntimeService(@NotNull ActiveSkillServices services, @NotNull StatusService statuses,
-                                      @NotNull DamageService damageService) {
+                                      @NotNull DamageService damageService,
+            @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.services = services;
         this.statuses = statuses;
         this.damageService = damageService;
@@ -116,6 +121,7 @@ public final class MeleeDualCrestRuntimeService {
         if (state.crests < threshold - 1) {
             state.crests++;
             visuals.accumulate(owner.getBukkit().getLocation(), state.crests);
+            packDisplay.show(MeleeDualCrestExecutor.ID, SkillPackDisplay.Phase.CAST, owner.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D), 1.5F, owner.getBukkit());
             return;
         }
         state.pending = true;
@@ -148,6 +154,7 @@ public final class MeleeDualCrestRuntimeService {
         state.nextProc = now + definition.getCooldownTicks();
         statuses.consumeEnergy(owner, cost);
         visuals.release(owner.getBukkit().getLocation(), services.targeting().center(eligible));
+        packDisplay.show(MeleeDualCrestExecutor.ID, SkillPackDisplay.Phase.CAST, owner.getBukkit().getEyeLocation(), 2.0F, owner.getBukkit());
         applyingFollowUp = true;
         try {
             // 定義付き命中通知を使わず、本人の印・タグ追撃の再帰を防ぐ。
@@ -157,6 +164,7 @@ public final class MeleeDualCrestRuntimeService {
                                     params.getDouble("damageRatio", 0.35D)));
             if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
                 visuals.impact(services.targeting().center(eligible), owner.getBukkit().getLocation());
+                packDisplay.show(MeleeDualCrestExecutor.ID, SkillPackDisplay.Phase.IMPACT, services.targeting().center(eligible), 2.0F, owner.getBukkit());
             }
         } finally {
             applyingFollowUp = false;

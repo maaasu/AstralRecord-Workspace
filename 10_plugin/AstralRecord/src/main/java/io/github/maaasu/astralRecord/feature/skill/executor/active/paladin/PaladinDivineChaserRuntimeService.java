@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.paladin;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
@@ -39,6 +40,7 @@ public final class PaladinDivineChaserRuntimeService {
     private static final double DEFAULT_MANA_COST = 2.0D;
     private static final double COST_EPSILON = 1.0E-6D;
 
+    private final SkillPackDisplay packDisplay;
     private final SkillService skillService;
     private final SkillCombatService combatService;
     private final SkillEffectService effectService;
@@ -55,14 +57,17 @@ public final class PaladinDivineChaserRuntimeService {
      * @param effectService 共通演出サービス
      * @param projectileService 共通仮想 projectile サービス
      * @param statusService リソースとステータスを管理するサービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public PaladinDivineChaserRuntimeService(
             @NotNull SkillService skillService,
             @NotNull SkillCombatService combatService,
             @NotNull SkillEffectService effectService,
             @NotNull SkillProjectileService projectileService,
-            @NotNull StatusService statusService
+            @NotNull StatusService statusService,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.skillService = skillService;
         this.combatService = combatService;
         this.effectService = effectService;
@@ -139,6 +144,8 @@ public final class PaladinDivineChaserRuntimeService {
         AstEntity followUpAttacker = AstEntity.player(attacker.player());
         double resolvedAttackPower = resolveAttackPower(followUpAttacker);
         Location origin = player.getEyeLocation().clone().add(0.0D, 2.0D, 0.0D);
+        packDisplay.show(PaladinDivineChaserSkillExecutor.ID, SkillPackDisplay.Phase.CAST,
+                origin, (float) (sphereRadius * 2.0D), player);
         effectService.points(origin, sphere(origin, sphereRadius, spherePoints),
                 SharedParticleDefinitions.SKILL_PALADIN_DIVINE_CHASER_DUST);
 
@@ -175,7 +182,8 @@ public final class PaladinDivineChaserRuntimeService {
                         DamageElement.NONE,
                         damageRatio
                 ),
-                ignored -> { }
+                end -> packDisplay.show(PaladinDivineChaserSkillExecutor.ID,
+                        SkillPackDisplay.Phase.IMPACT, end, 1.3F, player)
         );
     }
 

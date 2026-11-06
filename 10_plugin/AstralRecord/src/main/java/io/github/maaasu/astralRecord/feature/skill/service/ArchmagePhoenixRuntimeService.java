@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.ArchmagePhoenixResonanceExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardMeteorExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
@@ -54,6 +56,7 @@ public final class ArchmagePhoenixRuntimeService {
     private static final long ATTACK_ANIMATION_TICKS = 30L;
     private static final long EGG_HATCH_TICKS = 600L;
     private static final double ATTACK_COST = 20.0D;
+    private final SkillPackDisplay packDisplay;
     private final ArchmagePhoenixVisuals visuals;
     private final Map<UUID, State> states = new HashMap<>();
     private final Set<UUID> summonedEntityIds = new HashSet<>();
@@ -66,8 +69,11 @@ public final class ArchmagePhoenixRuntimeService {
     /**
      * 不死鳥の実行時状態を構築します。
      * @param particles 共通の近傍閲覧者向けパーティクル表示サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
-    public ArchmagePhoenixRuntimeService(@NotNull ParticleDisplayService particles) {
+    public ArchmagePhoenixRuntimeService(@NotNull ParticleDisplayService particles,
+            @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.visuals = new ArchmagePhoenixVisuals(particles);
     }
 
@@ -367,6 +373,7 @@ public final class ArchmagePhoenixRuntimeService {
         state.attackTarget = target;
         state.attackEndTick = now + ATTACK_ANIMATION_TICKS;
         statusService.consumeMp(state.owner, ATTACK_COST);
+        packDisplay.show(ArchmagePhoenixResonanceExecutor.ID, SkillPackDisplay.Phase.CAST, attackLocation, 1.7F, owner);
         sound(attackLocation, Sound.ITEM_FIRECHARGE_USE, 0.5F, 1.15F);
         return true;
     }
@@ -394,6 +401,7 @@ public final class ArchmagePhoenixRuntimeService {
                     }
                     if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
                         visuals.renderAttackImpact(impact);
+                        packDisplay.show(ArchmagePhoenixResonanceExecutor.ID, SkillPackDisplay.Phase.IMPACT, impact.clone().add(0.0D, 0.75D, 0.0D), 2.0F, owner);
                         sound(impact, Sound.BLOCK_FIRE_EXTINGUISH, 0.45F, 1.6F);
                         sound(impact, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.35F, 1.3F);
                     }
@@ -434,6 +442,7 @@ public final class ArchmagePhoenixRuntimeService {
         removeParrot(state);
         state.eggLocation = base;
         state.egg = visuals.spawnEgg(base);
+        packDisplay.show(ArchmagePhoenixResonanceExecutor.ID, SkillPackDisplay.Phase.AREA, base, 2.0F, state.owner.getBukkit());
         state.hatchTick = now + EGG_HATCH_TICKS;
         sound(base, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 0.6F, 1.25F);
     }
@@ -450,6 +459,7 @@ public final class ArchmagePhoenixRuntimeService {
             state.lastInRangeTick = now;
             state.nextAttackTick = now + ATTACK_WAIT_TICKS;
             sound(impact, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 0.65F, 0.9F);
+            packDisplay.show(ArchmagePhoenixResonanceExecutor.ID, SkillPackDisplay.Phase.IMPACT, impact, 2.4F, owner);
         }
         if (activeSkills != null) {
             SkillDefinition meteor = meteorDefinition == null ? null : meteorDefinition.get();

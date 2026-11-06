@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerGroundSupport;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.ArcherAirShiftSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
@@ -38,6 +40,7 @@ public final class AirShiftSkillRuntimeService {
     private static final double MIN_HORIZONTAL_LENGTH_SQ = 1.0E-6D;
     private static final int PARTICLE_COUNT = 8;
 
+    private final SkillPackDisplay packDisplay;
     private final StatusService statusService;
     private final JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private final ParticleDisplayService particleDisplayService;
@@ -50,12 +53,15 @@ public final class AirShiftSkillRuntimeService {
      * @param statusService ENG の検証と消費を行うサービス
      * @param justDodgeSkillRuntimeService ジャスト回避判定を開始するサービス
      * @param particleDisplayService 発動演出を表示するサービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public AirShiftSkillRuntimeService(
             @NotNull StatusService statusService,
             @NotNull JustDodgeSkillRuntimeService justDodgeSkillRuntimeService,
-            @NotNull ParticleDisplayService particleDisplayService
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.statusService = statusService;
         this.justDodgeSkillRuntimeService = justDodgeSkillRuntimeService;
         this.particleDisplayService = particleDisplayService;
@@ -210,6 +216,8 @@ public final class AirShiftSkillRuntimeService {
     }
 
     private void playEffects(@NotNull Player player, @NotNull Configuration configuration) {
+        Location center = player.getLocation().add(0.0D, 0.2D, 0.0D);
+        packDisplay.show(ArcherAirShiftSkillExecutor.ID, SkillPackDisplay.Phase.CAST, center, 1.6F, player);
         player.playSound(
                 player.getLocation(),
                 configuration.triggerSound(),
@@ -218,7 +226,7 @@ public final class AirShiftSkillRuntimeService {
                 configuration.triggerSoundPitch()
         );
         particleDisplayService.spawnForNearbyViewers(
-                player.getLocation().add(0.0D, 0.2D, 0.0D),
+                center,
                 SharedParticleDefinitions.AIR_ACTION_CLOUD.withCount(PARTICLE_COUNT)
         );
     }

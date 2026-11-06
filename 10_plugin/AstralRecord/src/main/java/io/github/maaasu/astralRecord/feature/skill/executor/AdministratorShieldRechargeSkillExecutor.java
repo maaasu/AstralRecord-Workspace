@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillStatusModifier;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
@@ -23,6 +24,7 @@ import java.util.List;
 /** implementationId {@code administrator_shield_recharge} のシールド再充填パッシブです。 */
 public final class AdministratorShieldRechargeSkillExecutor implements SkillExecutor {
     public static final String ID = "administrator_shield_recharge";
+    private final SkillPackDisplay packDisplay;
     private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
 
@@ -31,8 +33,11 @@ public final class AdministratorShieldRechargeSkillExecutor implements SkillExec
      *
      * @param statusService シールド状態サービス
      * @param particleDisplayService 共通パーティクル表示サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
-    public AdministratorShieldRechargeSkillExecutor(@NotNull StatusService statusService, @NotNull ParticleDisplayService particleDisplayService) {
+    public AdministratorShieldRechargeSkillExecutor(@NotNull StatusService statusService,
+            @NotNull ParticleDisplayService particleDisplayService, @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
     }
@@ -89,6 +94,7 @@ public final class AdministratorShieldRechargeSkillExecutor implements SkillExec
             locations.add(center.clone().add(Math.cos(angle) * 0.75D, Math.sin(angle) * 0.22D, Math.sin(angle) * 0.75D));
         }
         particleDisplayService.spawnForNearbyViewers(center, locations, SharedParticleDefinitions.SHIELD_RECHARGE_DUST);
+        packDisplay.show(ID, SkillPackDisplay.Phase.AREA, center, 1.5F, context.player().getBukkit());
     }
 
     private void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {

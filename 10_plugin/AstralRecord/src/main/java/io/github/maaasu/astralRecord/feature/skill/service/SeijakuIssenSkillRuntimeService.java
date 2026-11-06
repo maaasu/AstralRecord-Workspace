@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
@@ -51,6 +52,7 @@ public final class SeijakuIssenSkillRuntimeService {
     private static final int SWEEP_FRAMES = 6;
     private static final double[] SWEEP_RADIUS_BASES = {2.4D, 3.9D, 5.4D};
 
+    private final SkillPackDisplay packDisplay;
     private final SkillService skillService;
     private final SkillCombatService combatService;
     private final SkillTargetingService targetingService;
@@ -72,6 +74,7 @@ public final class SeijakuIssenSkillRuntimeService {
      * @param effectService 音と粒子の表示サービス
      * @param taskService 構えと横薙ぎの追跡タスク
      * @param hudService カウンター残り時間の表示先
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
     public SeijakuIssenSkillRuntimeService(
             @NotNull Plugin plugin,
@@ -80,8 +83,10 @@ public final class SeijakuIssenSkillRuntimeService {
             @NotNull SkillTargetingService targetingService,
             @NotNull SkillEffectService effectService,
             @NotNull SkillTaskService taskService,
-            @NotNull PlayerHudService hudService
+            @NotNull PlayerHudService hudService,
+            @NotNull SkillPackDisplay packDisplay
     ) {
+        this.packDisplay = packDisplay;
         this.skillService = skillService;
         this.combatService = combatService;
         this.targetingService = targetingService;
@@ -178,6 +183,7 @@ public final class SeijakuIssenSkillRuntimeService {
         effectService.sound(center, Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.0F, 0.5F);
         effectService.sound(center, Sound.ITEM_ARMOR_EQUIP_IRON, 1.0F, 0.75F);
         effectService.ring(center, 0.8D, 24, SharedParticleDefinitions.SEIJAKU_ISSEN_GUARD);
+        packDisplay.show(SKILL_ID, SkillPackDisplay.Phase.CAST, center, 1.6F, player);
         taskService.repeat(playerId, HUD_SCOPE, 1L, 1L, configuration.counterTicks(),
                 ignored -> {
                     if (counters.get(playerId) == state && player.isOnline()
@@ -479,6 +485,7 @@ public final class SeijakuIssenSkillRuntimeService {
 
     private void renderCounterHit(@NotNull Player player, @NotNull Location target) {
         Location center = target.clone().add(0.0D, 1.0D, 0.0D);
+        packDisplay.show(SKILL_ID, SkillPackDisplay.Phase.IMPACT, center, 2.6F, player);
         effectService.ring(center, 1.3D, 32, SharedParticleDefinitions.SEIJAKU_ISSEN_ENCHANTED_HIT);
         effectService.ring(center, 0.8D, 24, SharedParticleDefinitions.SEIJAKU_ISSEN_DASH_CRIT);
         effectService.line(player.getEyeLocation(), center, 0.2D,

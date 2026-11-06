@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
+import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
@@ -31,6 +33,7 @@ public final class ArcaneFlowSkillRuntimeService {
     private static final double ACTIVATION_PARTICLE_RADIUS = 0.72D;
     private static final double ACTIVATION_PARTICLE_HEIGHT = 1.0D;
 
+    private final SkillPackDisplay packDisplay;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
     private final Map<UUID, String> lastSuccessfulSkillIds = new ConcurrentHashMap<>();
@@ -39,8 +42,11 @@ public final class ArcaneFlowSkillRuntimeService {
      * パーティクル表示サービスを受け取って runtime を構築します。
      *
      * @param particleDisplayService プレイヤーの表示設定を考慮するパーティクルサービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
      */
-    public ArcaneFlowSkillRuntimeService(@NotNull ParticleDisplayService particleDisplayService) {
+    public ArcaneFlowSkillRuntimeService(@NotNull ParticleDisplayService particleDisplayService,
+            @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.particleDisplayService = particleDisplayService;
     }
 
@@ -154,6 +160,7 @@ public final class ArcaneFlowSkillRuntimeService {
             return;
         }
         Location center = base.clone().add(0.0D, ACTIVATION_PARTICLE_HEIGHT, 0.0D);
+        packDisplay.show(MageArcaneFlowSkillExecutor.ID, SkillPackDisplay.Phase.CAST, center, (float) (2.0D * ACTIVATION_PARTICLE_RADIUS), player.getBukkit());
         List<Location> locations = new ArrayList<>(ACTIVATION_PARTICLE_POINTS);
         for (int index = 0; index < ACTIVATION_PARTICLE_POINTS; index++) {
             double angle = Math.PI * 2.0D * index / ACTIVATION_PARTICLE_POINTS;

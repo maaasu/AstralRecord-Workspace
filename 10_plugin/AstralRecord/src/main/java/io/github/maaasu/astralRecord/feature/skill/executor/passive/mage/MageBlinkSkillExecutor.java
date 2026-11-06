@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.passive.mage;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMovementService;
@@ -20,9 +21,17 @@ public final class MageBlinkSkillExecutor implements SkillExecutor {
     private static final double MAX_DISTANCE = 10.0D;
 
     private final SkillMovementService movementService;
+    private final SkillPackDisplay packDisplay;
 
-    /** 地上への安全な瞬間移動サービスで初期化します。 */
-    public MageBlinkSkillExecutor(@NotNull SkillMovementService movementService) {
+    /**
+     * 地上への安全な瞬間移動とパック演出を接続します。
+     *
+     * @param movementService 地上への安全な瞬間移動サービス
+     * @param packDisplay パック対応の閲覧者に表示する演出サービス
+     */
+    public MageBlinkSkillExecutor(@NotNull SkillMovementService movementService,
+            @NotNull SkillPackDisplay packDisplay) {
+        this.packDisplay = packDisplay;
         this.movementService = movementService;
     }
 
@@ -51,7 +60,13 @@ public final class MageBlinkSkillExecutor implements SkillExecutor {
                 AstEntity.player(caster.player(), context.statusSnapshot()),
                 maxDistance
         );
-        return result.moved() ? SkillCastResult.succeeded() : SkillCastResult.failure(null);
+        if (!result.moved()) {
+            return SkillCastResult.failure(null);
+        }
+        var player = caster.player().getBukkit();
+        packDisplay.show(ID, SkillPackDisplay.Phase.CAST, result.start().clone().add(0.0D, 0.8D, 0.0D), 1.5F, player);
+        packDisplay.show(ID, SkillPackDisplay.Phase.IMPACT, result.end().clone().add(0.0D, 0.8D, 0.0D), 1.5F, player);
+        return SkillCastResult.succeeded();
     }
 
     /** {@inheritDoc} */
