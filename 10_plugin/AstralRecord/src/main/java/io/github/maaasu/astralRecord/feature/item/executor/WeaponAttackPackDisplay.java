@@ -97,7 +97,7 @@ public final class WeaponAttackPackDisplay {
      * @param direction 発動時の単位方向ベクトル
      * @param hitRange 攻撃の射程
      * @param hitRadius 攻撃判定の半径
-     * @param fallback Java管理パック未適用時に送る標準粒子
+     * @param fallback Java管理パック未適用時と統合版の発動時に送る標準粒子
      * @return 組み込み武器の演出を受け持った場合はtrue
      */
     boolean show(Player attacker, String skillId, Location location, Vector direction,
@@ -202,6 +202,7 @@ public final class WeaponAttackPackDisplay {
                            @Nullable ProjectileFallback fallback) {
         List<Player> javaViewers = new ArrayList<>();
         List<Player> bedrockViewers = new ArrayList<>();
+        boolean release = style.ordinal() < GLYPH_COLUMNS;
         for (Player viewer : world.getNearbyPlayers(location, viewDistance)) {
             double distanceSquared = viewer.getLocation().distanceSquared(location);
             if (!viewer.canSee(attacker) || distanceSquared > viewDistance * viewDistance) {
@@ -213,11 +214,20 @@ public final class WeaponAttackPackDisplay {
             if (density <= 0.0D) {
                 continue;
             }
-            if (style.ordinal() >= GLYPH_COLUMNS && !resourcePacks.hasWeaponAttackProjectiles(viewer)) {
+            boolean bedrock = player == null ? resourcePacks.isBedrock(viewer.getName()) : player.isBedrock();
+            if (bedrock && release) {
+                if (shouldShowBurst(density)) {
+                    // パックの登録通知では実際に描画されたかを確認できないため、標準粒子を1つ併送する。
+                    if (fallback != null) fallback.show(viewer, 1.0D);
+                    if (resourcePacks.hasWeaponAttackProjectiles(viewer)) bedrockViewers.add(viewer);
+                }
+                continue;
+            }
+            if (!release && !resourcePacks.hasWeaponAttackProjectiles(viewer)) {
                 if (fallback != null) fallback.show(viewer, density);
                 continue;
             }
-            if (player == null ? resourcePacks.isBedrock(viewer.getName()) : player.isBedrock()) {
+            if (bedrock) {
                 if (shouldShowBurst(density)) bedrockViewers.add(viewer);
             } else if (resourcePacks.hasManagedJavaPack(viewer.getUniqueId())) {
                 if (shouldShowBurst(density)) javaViewers.add(viewer);

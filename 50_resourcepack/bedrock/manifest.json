@@ -4,14 +4,14 @@
     "name": "AstralRecord Resource Pack",
     "description": "AstralRecord action ring, combat HUD, damage numbers, and item models",
     "uuid": "a1bf0ccc-1ac6-5c7e-8dbf-34d4f1afad13",
-    "version": [1, 4, 0],
+    "version": [1, 4, 1],
     "min_engine_version": [1, 21, 0]
   },
   "modules": [
     {
       "type": "resources",
       "uuid": "ccbb58c3-ae63-521f-a746-69bbbd1cf581",
-      "version": [1, 4, 0]
+      "version": [1, 4, 1]
     }
   ]
 }

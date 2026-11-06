@@ -23,14 +23,6 @@
       "geometry": {
         "default": "geometry.astralrecord.weapon_attack"
       },
-      "properties": {
-        "astralrecord:style": {
-          "type": "int",
-          "range": [0, 11],
-          "default": 0,
-          "client_sync": true
-        }
-      },
       "animations": {
         "motion": "animation.astralrecord.weapon_attack.motion"
       },
