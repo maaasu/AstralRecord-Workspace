@@ -357,8 +357,7 @@ public class PlayerHudService {
         boolean classLevelMax = playerClassService.isMaxClassLevel(astPlayer);
         long goldAmount = currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
         Integer originalLevel = astPlayer.getAccount().getRebirthOriginalLevel();
-        String shortClassName = ColorCodeUtil.toPlainText(
-                playerClassService.getShortDisplayName(astPlayer.getClassId()), "");
+        String shortClassName = playerClassService.getShortDisplayName(astPlayer.getClassId());
         boolean overlay = renderJavaProfileHud(
                 astPlayer, playerLevel, originalLevel, goldAmount, shortClassName, classLevel, classLevelMax,
                 classExperienceProgress, isSkillTreeWorld, availableClassPoints, availablePassivePoints
@@ -394,7 +393,7 @@ public class PlayerHudService {
      * @param playerLevel プレイヤーレベル
      * @param originalLevel 転生前レベル。転生中でなければnull
      * @param goldAmount 所持Gold
-     * @param className クラスの短縮表示名
+     * @param className 色コードを含むクラスの短縮表示名
      * @param classLevel クラスレベル
      * @param classLevelMax クラスが最大レベルならtrue
      * @param classProgress クラス経験値の進捗
@@ -419,7 +418,7 @@ public class PlayerHudService {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
         if (astPlayer.isBedrock() || !resourcePackService.hasJavaProfileHud(playerId)
-                || !PROFILE_CLASS_NAME.matcher(className).matches()) {
+                || !PROFILE_CLASS_NAME.matcher(ColorCodeUtil.toPlainText(className, "")).matches()) {
             clearProfileHud(player);
             return false;
         }

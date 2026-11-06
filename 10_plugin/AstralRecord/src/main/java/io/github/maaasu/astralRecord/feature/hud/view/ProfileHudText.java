@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +23,7 @@ public record ProfileHudText(Component playerLine, Component classLine) {
      * @param playerLevel 現在のプレイヤーレベル
      * @param originalLevel 転生前レベル。転生中でなければnull
      * @param goldAmount 所持Gold
-     * @param className クラスの短縮表示名
+     * @param className 色コードを含むクラスの短縮表示名
      * @param classLevel 現在のクラスレベル
      * @param classLevelMax クラスが最大レベルに達した場合true
      * @param classProgress 現在のクラスレベル内の経験値進捗
@@ -54,11 +55,11 @@ public record ProfileHudText(Component playerLine, Component classLine) {
                 .append(Component.text(goldText, NamedTextColor.GOLD))
                 .append(Component.text(" G", NamedTextColor.YELLOW));
         int percent = (int) Math.round(Math.clamp(classProgress, 0.0D, 1.0D) * 100.0D);
-        Component classDisplay = Component.text(className + " ", NamedTextColor.WHITE)
-                .append(ClassLevelDisplay.component(classLevel, classLevelMax, NamedTextColor.WHITE));
         Component classLine = Component.empty()
                 .append(CLASS)
-                .append(classDisplay)
+                .append(ColorCodeUtil.toComponent(className, "", NamedTextColor.WHITE))
+                .append(Component.text("  "))
+                .append(ClassLevelDisplay.component(classLevel, classLevelMax, NamedTextColor.WHITE))
                 .append(GAP).append(EXPERIENCE)
                 .append(Component.text(percent + "%", NamedTextColor.AQUA));
         if (showPoints) {
