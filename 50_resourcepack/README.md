@@ -53,6 +53,12 @@ Java 版は管理パックの適用成功後、配布マニフェストの `java
 
 Java版は管理パック未適用時に標準粒子を1つ表示し、旧管理パックでは静止画、通常攻撃演出の導入前の管理パックでは星を表示します。統合版で対応パックを利用できない場合も腕振りと効果音で発動を確認できます。両版の新しいパックをAPIに配置し、RPG Pluginを更新した後に再接続してください。表示確認は通常攻撃が使用できる武器で、空振りと命中、粒子OFF、別のプレイヤーからの見え方を各版で確認します。
 
+### 効果音
+
+ソード、ハンマー、スピア、ボウ、ショートボウ、ロングボウ、ワンド、スタッフの通常攻撃音は、武器ごとに3種類のテイクから再生します。GUIは選択、ダミー枠、アクションリングの枠移動、開閉、ページ切り替え、トグル、確認、拒否、成功、購入成立の音を使い分けます。
+
+音源は新規に合成したモノラル Ogg Vorbis で、`assets/astralrecord/sounds/` に保存します。`assets/astralrecord/sounds.json` に登録した音だけをパックに収録します。ビルド時に同じ音源から統合版の `sounds/sound_definitions.json` を生成し、両版で `astralrecord:` から始まる同じイベント ID を使います。[Bedrock のカスタムサウンド](https://learn.microsoft.com/ja-jp/minecraft/creator/documents/addcustomsounds?view=minecraft-bedrock-stable)
+
 ## アイテムモデル
 
 Filebase の `icon` が基本素材、`customModelData` がモデル番号です。Paper はクライアントへの送信アイテムに番号を適用します。ビルドは `item-models.json` をもとに、JE 用の振り分けと、Geyser が BE 用パックから読み込む登録情報を生成します。パックとマスターの番号が一致すると、JE は該当の立体モデル、BE は対応する手持ちモデルとインベントリアイコンを使います。未登録の番号は各版の基本素材で表示します。

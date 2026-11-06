@@ -132,6 +132,42 @@ Add-ActionRingPanelEntries $java $bedrock $skillIcons
 Add-ArmorAssetEntries $java $bedrock
 Add-GuiThemeEntries $java $bedrock
 
+# Derive the Bedrock event list and package only the Ogg files referenced by Java.
+$javaSoundPath = 'assets/astralrecord/sounds.json'
+Add-PackEntries $java $root @($javaSoundPath)
+$javaSounds = ConvertFrom-Json -InputObject ($utf8.GetString($java[$javaSoundPath]))
+$bedrockSounds = [ordered]@{}
+foreach ($event in $javaSounds.PSObject.Properties) {
+    if ($event.Name -cnotmatch '^gui\.[a-z_]+$|^combat\.attack\.[a-z_]+$' -or !$event.Value.sounds) {
+        throw "Invalid gameplay sound event: $($event.Name)"
+    }
+    $category = if ($event.Name.StartsWith('gui.')) { 'ui' } else { 'player' }
+    $paths = foreach ($sound in $event.Value.sounds) {
+        if ($sound -isnot [string] -or $sound -cnotmatch '^astralrecord:(gui|combat/attack)/[a-z0-9_]+$') {
+            throw "Invalid gameplay sound asset in event: $($event.Name)"
+        }
+        $path = $sound.Substring('astralrecord:'.Length)
+        $source = "assets/astralrecord/sounds/$path.ogg"
+        $destination = "sounds/astralrecord/$path"
+        if (!$java.ContainsKey($source)) {
+            Add-PackEntries $java $root @($source)
+            $bedrock.Add("$destination.ogg", $java[$source])
+        }
+        $destination
+    }
+    # Geyser forwards custom sound IDs with their namespace intact.
+    $bedrockSounds.Add("astralrecord:$($event.Name)", [ordered]@{
+        category = $category
+        sounds = @($paths)
+    })
+}
+$bedrockSoundJson = ConvertTo-Json -Depth 5 -Compress -InputObject ([ordered]@{
+    format_version = '1.20.20'
+    sound_definitions = $bedrockSounds
+})
+$bedrock.Add('sounds/sound_definitions.json', $utf8.GetBytes($bedrockSoundJson + "`n"))
+$java.Add('gameplay-sounds-version.txt', $utf8.GetBytes('1'))
+
 # Include the template and file names in the fingerprint. Any distributed
 # Bedrock asset change results in a new pack ID, bypassing client pack caching.
 $sha256 = [System.Security.Cryptography.SHA256]::Create()

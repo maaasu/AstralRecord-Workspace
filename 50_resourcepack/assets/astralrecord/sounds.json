@@ -1,1 +1,113 @@
-{}
+{
+  "combat.attack.bow": {
+    "sounds": [
+      "astralrecord:combat/attack/bow_1",
+      "astralrecord:combat/attack/bow_2",
+      "astralrecord:combat/attack/bow_3"
+    ]
+  },
+  "combat.attack.hammer": {
+    "sounds": [
+      "astralrecord:combat/attack/hammer_1",
+      "astralrecord:combat/attack/hammer_2",
+      "astralrecord:combat/attack/hammer_3"
+    ]
+  },
+  "combat.attack.longbow": {
+    "sounds": [
+      "astralrecord:combat/attack/longbow_1",
+      "astralrecord:combat/attack/longbow_2",
+      "astralrecord:combat/attack/longbow_3"
+    ]
+  },
+  "combat.attack.shortbow": {
+    "sounds": [
+      "astralrecord:combat/attack/shortbow_1",
+      "astralrecord:combat/attack/shortbow_2",
+      "astralrecord:combat/attack/shortbow_3"
+    ]
+  },
+  "combat.attack.spear": {
+    "sounds": [
+      "astralrecord:combat/attack/spear_1",
+      "astralrecord:combat/attack/spear_2",
+      "astralrecord:combat/attack/spear_3"
+    ]
+  },
+  "combat.attack.staff": {
+    "sounds": [
+      "astralrecord:combat/attack/staff_1",
+      "astralrecord:combat/attack/staff_2",
+      "astralrecord:combat/attack/staff_3"
+    ]
+  },
+  "combat.attack.sword": {
+    "sounds": [
+      "astralrecord:combat/attack/sword_1",
+      "astralrecord:combat/attack/sword_2",
+      "astralrecord:combat/attack/sword_3"
+    ]
+  },
+  "combat.attack.wand": {
+    "sounds": [
+      "astralrecord:combat/attack/wand_1",
+      "astralrecord:combat/attack/wand_2",
+      "astralrecord:combat/attack/wand_3"
+    ]
+  },
+  "gui.close": {
+    "sounds": [
+      "astralrecord:gui/close"
+    ]
+  },
+  "gui.confirm": {
+    "sounds": [
+      "astralrecord:gui/confirm"
+    ]
+  },
+  "gui.deny": {
+    "sounds": [
+      "astralrecord:gui/deny"
+    ]
+  },
+  "gui.dummy": {
+    "sounds": [
+      "astralrecord:gui/dummy"
+    ]
+  },
+  "gui.open": {
+    "sounds": [
+      "astralrecord:gui/open"
+    ]
+  },
+  "gui.page": {
+    "sounds": [
+      "astralrecord:gui/page"
+    ]
+  },
+  "gui.purchase": {
+    "sounds": [
+      "astralrecord:gui/purchase"
+    ]
+  },
+  "gui.ring_switch": {
+    "sounds": [
+      "astralrecord:gui/ring_switch"
+    ]
+  },
+  "gui.select": {
+    "sounds": [
+      "astralrecord:gui/select"
+    ]
+  },
+  "gui.success": {
+    "sounds": [
+      "astralrecord:gui/success"
+    ]
+  },
+  "gui.toggle": {
+    "sounds": [
+      "astralrecord:gui/toggle"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # AstralRecord リソースパック指示
 
-このディレクトリは Java Edition と Bedrock Edition のダメージ数値、アクションリング、アイテムモデル、専用GUIを管理します。配布対象の装備は `item-models.json`、GUI専用モデルは `gui-icons.json` に登録します。GUIの対応範囲は `GUI_COVERAGE.md`、原画と利用条件は `gui-source/README.md` を確認します。旧アイテム・バニラ GUI・音声アセットは保管用です。ユーザーの明示指示がある場合に編集・配布します。
+このディレクトリは Java Edition と Bedrock Edition のダメージ数値、アクションリング、アイテムモデル、専用GUIを管理します。配布対象の装備は `item-models.json`、GUI専用モデルは `gui-icons.json` に登録します。GUIの対応範囲は `GUI_COVERAGE.md`、原画と利用条件は `gui-source/README.md` を確認します。旧アイテム・旧バニラ GUI・旧音声アセットは保管用です。保管用のアセットはユーザーの明示指示がある場合に編集・配布します。新規の効果音は `assets/astralrecord/sounds.json` に登録します。
 
 ## 必ず確認する情報
 
