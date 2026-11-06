@@ -296,7 +296,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     }
 
     /**
-     * Proxyから保存付き接続準備要求またはチャンネル接続通知を受け取ります。
+     * Proxyから接続準備要求、チャンネル接続通知、統合版パックの対応通知を受け取ります。
      * 接続通知は受信対象プレイヤーへ表示し、接続準備要求だけで転送権限を確認します。
      *
      * @param channel 受信チャンネル
@@ -319,6 +319,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         if (BackendProtocol.isItemTooltipsReady(message)) {
             if (resourcePackService != null) {
                 resourcePackService.markBedrockItemTooltipsReady(player);
+            }
+            return;
+        }
+        if (BackendProtocol.isWeaponAttackProjectilesReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockWeaponAttackProjectilesReady(player);
             }
             return;
         }

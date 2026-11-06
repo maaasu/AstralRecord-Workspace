@@ -21,6 +21,8 @@ final class BackendProtocol {
     private static final String PREPARE_CONNECT = "prepare_connect";
     private static final byte[] GAMEPLAY_SOUNDS_READY = emptyNotification("gameplay_sounds_ready");
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
+    private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
+            emptyNotification("weapon_attack_projectiles_ready");
 
     /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
     static boolean isGameplaySoundsReady(byte[] payload) {
@@ -30,6 +32,11 @@ final class BackendProtocol {
     /** 対応パックのツールチップを使える統合版接続の完全な通知か判定します。 */
     static boolean isItemTooltipsReady(byte[] payload) {
         return Arrays.equals(ITEM_TOOLTIPS_READY, payload);
+    }
+
+    /** 通常攻撃の飛翔演出を使える統合版接続の完全な通知か判定します。 */
+    static boolean isWeaponAttackProjectilesReady(byte[] payload) {
+        return Arrays.equals(WEAPON_ATTACK_PROJECTILES_READY, payload);
     }
 
     /** UTF 長ヘッダーを含む、引数のない通知の正規形を作成します。 */

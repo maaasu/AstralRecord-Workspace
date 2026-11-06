@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.2.0",
+@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.2.1",
     dependencies = @Dependency(id = "geyser", optional = true))
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
@@ -453,6 +453,9 @@ public final class AstralRecordProxyPlugin {
                     }
                     if (GeyserPackCapabilities.hasItemTooltips(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.itemTooltipsReady());
+                    }
+                    if (GeyserPackCapabilities.hasWeaponAttackProjectiles(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.weaponAttackProjectilesReady());
                     }
                 }
                 if (pendingChannelNotifications.remove(update.playerId(), sourceServer)) {

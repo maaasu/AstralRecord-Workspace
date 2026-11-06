@@ -30,7 +30,8 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean weaponAttack, boolean gameplaySounds, boolean sunbird, Set<Integer> heldWeaponModels,
+    boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean gameplaySounds, boolean sunbird,
+    Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips
 ) {
     private static final String ROOT = "../resource-packs/";
@@ -67,6 +68,11 @@ record DamagePack(
         "textures/entity/weapon_attack/sword.png", "textures/entity/weapon_attack/hammer.png",
         "textures/entity/weapon_attack/spear.png", "textures/entity/weapon_attack/bow.png",
         "textures/entity/weapon_attack/wand.png", "textures/entity/weapon_attack/staff.png"
+    );
+    private static final List<String> WEAPON_ATTACK_PROJECTILE_ENTRIES = List.of(
+        "textures/entity/weapon_attack/bow_trail.png", "textures/entity/weapon_attack/wand_trail.png",
+        "textures/entity/weapon_attack/staff_trail.png", "textures/entity/weapon_attack/bow_impact.png",
+        "textures/entity/weapon_attack/wand_impact.png", "textures/entity/weapon_attack/staff_impact.png"
     );
     private static final List<String> SUNBIRD_ENTRIES = List.of(
         "entity/sunbird.entity.json", "animations/sunbird.animation.json",
@@ -116,6 +122,7 @@ record DamagePack(
             boolean actionRing;
             boolean combatResult;
             boolean weaponAttack;
+            boolean weaponAttackProjectiles;
             boolean gameplaySounds;
             boolean sunbird;
             boolean worldDisplay;
@@ -140,8 +147,9 @@ record DamagePack(
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
                 combatResult = COMBAT_RESULT_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
-                weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry)
-                    .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
+                weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                weaponAttackProjectiles = weaponAttack && hasVersionOne(zip, "weapon-attack-projectiles-version.txt")
+                    && WEAPON_ATTACK_PROJECTILE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 gameplaySounds = hasGameplaySounds(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
@@ -161,7 +169,8 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips);
+                weaponAttackProjectiles, gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites,
+                worldDisplay, itemTooltips);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

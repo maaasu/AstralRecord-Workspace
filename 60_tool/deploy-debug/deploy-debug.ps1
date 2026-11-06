@@ -417,6 +417,7 @@ function Publish-ResourcePacks {
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
     $sunbirdPresentation = $null
     $itemTooltips = $null
+    $weaponAttackProjectiles = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -464,6 +465,47 @@ function Publish-ResourcePacks {
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing item tooltip asset in Java pack: $asset" }
             }
         }
+        $projectilesEntry = $archive.GetEntry('weapon-attack-projectiles-version.txt')
+        if ($null -ne $projectilesEntry) {
+            if ($projectilesEntry.Length -ne 1) { throw 'Invalid weapon attack projectiles version marker.' }
+            $reader = [IO.StreamReader]::new($projectilesEntry.Open())
+            try { $weaponAttackProjectiles = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($weaponAttackProjectiles -cne '1') { throw 'Unsupported weapon attack projectiles version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/lang/en_us.json'
+                'assets/astralrecord/font/weapon_attack.json'
+                'assets/astralrecord/textures/font/weapon_attack.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing weapon attack projectile asset in Java pack: $asset" }
+            }
+            $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/lang/en_us.json').Open())
+            try { $language = $reader.ReadToEnd() | ConvertFrom-Json }
+            finally { $reader.Dispose() }
+            if ($language.'astralrecord.weapon_attack.projectile' -cne '%s') {
+                throw 'Missing weapon attack projectile translation in Java pack.'
+            }
+            $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/font/weapon_attack.json').Open())
+            try { $font = $reader.ReadToEnd() | ConvertFrom-Json }
+            finally { $reader.Dispose() }
+            $atlas = @($font.providers | Where-Object {
+                $_.type -ceq 'bitmap' -and $_.file -ceq 'astralrecord:font/weapon_attack.png'
+            })
+            $expectedGlyphs = (0xe100..0xe14d | ForEach-Object { [char] $_ }) -join ''
+            if ($atlas.Count -ne 1 -or @($atlas[0].chars).Count -ne 13 -or
+                @($atlas[0].chars | Where-Object { $_.Length -ne 6 }).Count -ne 0 -or
+                ($atlas[0].chars -join '') -cne $expectedGlyphs) {
+                throw 'Invalid weapon attack projectile glyphs in Java pack.'
+            }
+            $reader = [IO.BinaryReader]::new($archive.GetEntry('assets/astralrecord/textures/font/weapon_attack.png').Open())
+            try { $header = $reader.ReadBytes(24) }
+            finally { $reader.Dispose() }
+            # PNG signature, IHDR chunk, and 6 by 13 cells of 32 px.
+            if ([BitConverter]::ToString($header) -cne '89-50-4E-47-0D-0A-1A-0A-00-00-00-0D-49-48-44-52-00-00-00-C0-00-00-01-A0') {
+                throw 'Invalid weapon attack projectile atlas dimensions in Java pack.'
+            }
+        }
     }
     finally {
         $archive.Dispose()
@@ -484,6 +526,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $itemTooltips) {
         $javaManifest.itemTooltips = $itemTooltips
+    }
+    if ($null -ne $weaponAttackProjectiles) {
+        $javaManifest.weaponAttackProjectiles = $weaponAttackProjectiles
     }
     [ordered]@{
         java = $javaManifest

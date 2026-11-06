@@ -1,4 +1,4 @@
-from math import cos, hypot, pi, radians, sin
+from math import cos, pi, radians, sin
 from pathlib import Path
 import struct
 import zlib
@@ -9,18 +9,17 @@ BEDROCK_TEXTURES = ROOT / "bedrock/textures/entity/weapon_attack"
 SIZE = 32
 FRAME_COUNT = 6
 
-WHITE = (248, 251, 255)
-ICE = (132, 229, 255)
-BLUE = (50, 125, 220)
-GOLD = (255, 195, 81)
-AMBER = (230, 104, 39)
-MINT = (135, 255, 195)
-JADE = (48, 193, 164)
-LEMON = (255, 242, 165)
-PINK = (255, 149, 244)
-MAGENTA = (214, 65, 213)
-LILAC = (194, 174, 255)
-VIOLET = (128, 101, 247)
+WHITE = (255, 255, 249)
+SILVER = (205, 205, 201)
+STEEL = (141, 140, 135)
+GOLD = (255, 188, 69)
+LEMON = (255, 240, 159)
+BRONZE = (173, 100, 54)
+STONE = (130, 118, 105)
+PINK = (255, 154, 232)
+MAGENTA = (205, 72, 191)
+LILAC = (202, 153, 255)
+VIOLET = (138, 77, 228)
 
 
 class Sprite:
@@ -70,109 +69,199 @@ def ellipse(cx, cy, rx, ry, first=0, last=360):
     ]
 
 
+# Offsets and velocities in sprite pixels. Sparse square chips echo vanilla crit
+# particles and drift apart as the main shape dissolves.
+BURST = (
+    (-5, -4, -1, -1), (4, -3, 2, -1), (3, 4, 1, 1),
+    (-4, 3, -2, 1), (0, -6, 0, -1), (6, 1, 1, 0),
+    (-7, 1, -1, 0), (1, 6, 1, 1), (5, -6, 1, -1),
+    (-2, 6, -1, 1), (-5, -6, -1, -1), (6, 4, 1, 1),
+)
+
+
+def chips(sprite, frame, center, palette, paths=BURST):
+    cx, cy = center
+    for i, (ox, oy, dx, dy) in enumerate(paths):
+        if frame >= 4 and (i + frame) % 3 == 0:
+            continue
+        x, y = cx + ox + dx * frame, cy + oy + dy * frame
+        color = palette[i % len(palette)]
+        sprite.dot(x, y, color)
+        if frame <= 2 and i % 3 == 0:
+            sprite.star(x, y, 1, color)
+        elif frame <= 3 and i % 3 == 1:
+            sprite.dot(x + 1, y, color)
+
+
+def flare(sprite, x, y, horizontal, vertical, rim, core=WHITE):
+    sprite.polygon([
+        (x - horizontal, y), (x - 2, y - 1), (x, y - vertical),
+        (x + 1, y - 2), (x + horizontal, y), (x + 2, y + 1),
+        (x, y + vertical), (x - 1, y + 2),
+    ], rim)
+    sprite.line((x - horizontal + 2, y), (x + horizontal - 2, y), core)
+    sprite.line((x, y - vertical + 2), (x, y + vertical - 2), core)
+
+
 def sword(sprite, frame):
-    # Sample a tapered crescent along a rotating sweep. Each ray shades its cut edge.
-    start, extent, thickness = [
-        (-150, 55, 2), (-135, 110, 4), (-115, 170, 5),
-        (-65, 160, 3), (-5, 125, 2), (45, 85, 1),
+    # Shallow, slanted sweep with a broad cutting edge and needle-thin ends.
+    start, extent, width = [
+        (-158, 80, 2), (-162, 133, 4), (-162, 156, 5),
+        (-146, 147, 3), (-112, 106, 2), (-69, 76, 1),
     ][frame]
     for step in range(extent + 1):
         angle = radians(start + step)
-        outer_x, outer_y = round(15 + 13 * cos(angle)), round(15 + 12 * sin(angle))
-        width = thickness * sin(pi * step / extent)
-        inner_x = round(15 + (13 - width) * cos(angle))
-        inner_y = round(15 + (12 - width) * sin(angle))
-        sprite.line((inner_x, inner_y), (outer_x, outer_y), BLUE)
-    sprite.path(ellipse(15, 15, 13, 12, start, start + extent), ICE)
-    if frame in (1, 2, 3):
-        sprite.path(ellipse(15, 15, 13, 12, start + 20, start + extent - 20), WHITE)
-        x, y = ellipse(15, 15, 15, 14, start + 40, start + 40)[0]
-        sprite.dot(x, y, ICE)
+        x = 16 + 14 * cos(angle)
+        y = 19 + 10 * sin(angle) - (x - 16) / 4
+        taper = width * sin(pi * step / extent)
+        inner = (round(x - taper * cos(angle)), round(y - taper * sin(angle)))
+        edge = (round(x), round(y))
+        sprite.line(inner, edge, STEEL if frame >= 4 else SILVER)
+        if 8 < step < extent - 6 and frame <= 3:
+            sprite.dot(*edge, WHITE)
+    chips(sprite, frame, (15, 16), (WHITE, GOLD, SILVER, LEMON))
+    if frame in (1, 2):
+        sprite.star(23, 7, 2, WHITE)
+
+
+HAMMER_DEBRIS = (
+    (-5, -3, -2, -2), (4, -4, 2, -2), (-2, -5, -1, -3),
+    (2, -4, 1, -3), (-7, 0, -1, -1), (6, -1, 1, -1),
+    (-4, 3, -2, 1), (4, 3, 2, 1),
+)
 
 
 def hammer(sprite, frame):
-    # Falling streaks give way to a widening ground shock and airborne debris.
-    if frame < 3:
-        bottom = (13, 21, 24)[frame]
-        sprite.polygon([(10, 3), (18, bottom - 8), (23, bottom), (14, bottom - 4)], AMBER)
-        sprite.polygon([(12, 5), (17, bottom - 6), (21, bottom - 1), (16, bottom - 4)], GOLD)
-        sprite.line((15, bottom - 7), (20, bottom - 1), LEMON)
-        sprite.line((11, bottom - 8), (14, bottom - 2), GOLD)
-    if frame >= 2:
-        rx, ry = [(5, 2), (9, 3), (12, 4), (14, 4)][frame - 2]
-        sprite.path(ellipse(16, 23, rx, ry), AMBER)
-        sprite.path(ellipse(16, 23, rx, ry, 15, 165), GOLD)
-        if frame < 5:
-            sprite.path(ellipse(16, 22, rx - 2, 1, 180, 360), GOLD)
-            sprite.star(16, 21, 3 if frame == 2 else 1, LEMON)
-        for dx, dy in [(-2, 1), (1, 5), (3, 2), (-3, 4)]:
-            x = 16 + dx * (frame - 1)
-            y = 21 - dy - 2 * (frame - 2)
-            sprite.dot(x, y, GOLD)
-            if frame in (2, 3):
-                sprite.dot(x + 1, y + 1, AMBER)
+    rx, ry = [(5, 2), (8, 3), (10, 4), (12, 4), (13, 4), (14, 4)][frame]
+    sprite.path(ellipse(16, 21, rx, ry, 195, 345), BRONZE)
+    sprite.path(ellipse(16, 21, rx, ry, 5, 175), GOLD)
+    if frame < 4:
+        sprite.path(ellipse(16, 21, rx - 2, max(1, ry - 2), 25, 155), LEMON)
+    if frame <= 2:
+        flare(sprite, 16, 20, (7, 11, 7)[frame], (7, 10, 7)[frame], GOLD)
+        sprite.line((13, 18), (8, 10), LEMON)
+        sprite.line((18, 18), (24, 12), GOLD)
+    chips(sprite, frame, (16, 21), (GOLD, STONE, LEMON, BRONZE), HAMMER_DEBRIS)
+    for ox, oy, dx, dy in HAMMER_DEBRIS[:4]:
+        x, y = 16 + ox + dx * frame, 21 + oy + dy * frame
+        if frame < 4:
+            sprite.polygon([(x, y - 1), (x + 2, y), (x + 1, y + 2), (x - 1, y + 1)], STONE)
+            sprite.line((x - 1, y + 1), (x + 2, y), LEMON)
 
 
 def spear(sprite, frame):
-    # The leading point extends along a single axis, leaving two slim wakes.
-    tail, tip, width = [(4, 15, 2), (4, 22, 3), (3, 28, 4),
-                        (8, 29, 3), (15, 29, 2), (20, 29, 1)][frame]
-    sprite.polygon([(tail, 17), (tip - 7, 15 - width), (tip, 15),
-                    (tip - 8, 17 + width)], JADE)
-    sprite.polygon([(tail + 2, 17), (tip - 5, 14), (tip, 15), (tip - 6, 17)], MINT)
+    # A narrow puncture flashes on its axis, surrounded by short crit wakes.
+    tail, tip = [(6, 20), (4, 25), (2, 30), (6, 29), (11, 28), (15, 27)][frame]
+    sprite.polygon([(tail, 17), (tip - 9, 14), (tip, 15), (tip - 9, 17)], SILVER)
+    sprite.line((tail + 3, 16), (tip, 15), WHITE)
+    sprite.line((tail + 2, 12), (tip - 8, 11), STEEL)
+    sprite.line((tail + 1, 20), (tip - 6, 19), LEMON)
     if frame < 4:
-        sprite.line((tail + 4, 16), (tip, 15), WHITE)
-        sprite.line((tail + 3, 12), (tip - 5, 11), MINT)
-        sprite.line((tail, 21), (tip - 8, 20), JADE)
+        flare(sprite, 17 + frame, 15, 5, (3, 5, 7, 4)[frame], LEMON)
+    chips(sprite, frame, (15, 15), (WHITE, LEMON, SILVER), BURST[:8])
 
 
 def bow(sprite, frame):
-    # A rising arrow travels away from its release flash and leaves dashed streaks.
-    tip_x, tip_y = [(14, 17), (19, 15), (24, 13), (28, 11), (29, 10), (29, 10)][frame]
-    tail_x, tail_y = tip_x - 11, tip_y + 4
     if frame < 4:
-        sprite.path([(tail_x, tail_y), (tip_x - 5, tip_y + 2), (tip_x, tip_y)], GOLD)
-        sprite.path([(tip_x - 4, tip_y - 1), (tip_x, tip_y), (tip_x - 3, tip_y + 3)], LEMON)
-        sprite.line((tail_x - 1, tail_y - 2), (tail_x + 2, tail_y - 1), AMBER)
-        sprite.line((tail_x + 2, tail_y - 1), (tail_x, tail_y + 2), AMBER)
-    if frame < 2:
-        sprite.star(5, 18, 2 + frame, LEMON)
-    if frame > 0:
-        sprite.line((tail_x - min(tail_x - 2, 6), tail_y + 2), (tail_x - 2, tail_y + 1), AMBER)
-        sprite.line((tip_x - 9, tip_y - 2), (tip_x - 5, tip_y - 3), GOLD)
-        if frame >= 3:
-            sprite.line((tip_x - 5, tip_y + 3), (tip_x, tip_y + 1), LEMON)
+        flare(sprite, 15, 16, (7, 10, 8, 4)[frame], (4, 6, 5, 3)[frame], GOLD)
+        sprite.line((4, 20), (11, 18), LEMON)
+        sprite.line((21, 13), (27, 11), SILVER)
+    chips(sprite, frame, (15, 15), (WHITE, GOLD, LEMON, SILVER))
 
 
 def wand(sprite, frame):
-    radius = (2, 4, 7, 5, 3, 1)[frame]
-    x, y = 15, 15
-    sprite.polygon([(x, y - radius), (x + 2, y - 2), (x + radius, y),
-                    (x + 2, y + 2), (x, y + radius), (x - 2, y + 2),
-                    (x - radius, y), (x - 2, y - 2)], MAGENTA)
-    sprite.star(x, y, radius, PINK)
-    sprite.star(x, y, max(0, radius - 2), WHITE)
-    for dx, dy in [(-3, -2), (4, -2), (3, 3), (-4, 3), (1, -4)]:
-        x = 15 + dx * (frame + 2) // 2
-        y = 15 + dy * (frame + 2) // 2
-        sprite.star(x, y, 1 if 1 <= frame <= 3 else 0, PINK)
+    if frame < 5:
+        radius = (4, 7, 10, 7, 4)[frame]
+        flare(sprite, 15, 15, radius - 1, radius, MAGENTA)
+        sprite.star(15, 15, radius - 2, PINK)
+        sprite.star(15, 15, 2, WHITE)
+    chips(sprite, frame, (15, 15), (PINK, WHITE, MAGENTA, LILAC))
 
 
 def staff(sprite, frame):
-    # The inner rune stays centered while two concentric rings open around it.
-    rx, ry = [(4, 3), (7, 5), (10, 8), (12, 10), (13, 11), (14, 12)][frame]
-    sprite.path(ellipse(15, 15, rx, ry), VIOLET)
-    sprite.path(ellipse(15, 15, rx - 2, ry - 2), LILAC)
-    if frame < 5:
-        sprite.path([(15, 15 - ry), (15 + rx - 2, 15), (15, 15 + ry),
-                     (17 - rx, 15), (15, 15 - ry)], LILAC)
-        sprite.star(15, 15, 1 + frame % 3, WHITE)
-    for angle in (45, 135, 225, 315):
-        x, y = ellipse(15, 15, rx, ry, angle, angle)[0]
-        sprite.star(x, y, 1 if frame in (2, 3) else 0, GOLD)
+    rx, ry = [(5, 4), (8, 6), (11, 8), (12, 10), (13, 11), (14, 12)][frame]
+    sprite.path(ellipse(15, 15, rx, ry, 15, 165), GOLD)
+    sprite.path(ellipse(15, 15, rx, ry, 195, 345), VIOLET)
+    if frame < 4:
+        sprite.path([(15, 15 - ry), (15 + rx, 15), (15, 15 + ry),
+                     (15 - rx, 15), (15, 15 - ry)], LILAC)
+        flare(sprite, 15, 15, 3 + frame, 3 + frame, GOLD)
+    chips(sprite, frame, (15, 15), (GOLD, LILAC, WHITE, VIOLET))
 
 
-STYLES = (sword, hammer, spear, bow, wand, staff)
+def bow_trail(sprite, frame):
+    if frame < 3:
+        sprite.line((5, 18), (15, 15), GOLD)
+        sprite.line((9, 17), (18, 14), WHITE)
+        sprite.star(18, 14, 2, LEMON)
+    chips(sprite, frame, (15, 15), (LEMON, WHITE, BRONZE, GOLD), BURST[:8])
+
+
+def wand_trail(sprite, frame):
+    if frame < 4:
+        flare(sprite, 15, 15, 5 - frame, 5 - frame, PINK)
+        sprite.line((6, 20), (11, 17), MAGENTA)
+        sprite.line((19, 12), (23, 9), LILAC)
+    chips(sprite, frame, (15, 15), (PINK, WHITE, MAGENTA, LILAC), BURST[:9])
+
+
+def staff_trail(sprite, frame):
+    if frame < 4:
+        radius = (4, 6, 7, 8)[frame]
+        sprite.path([(15 - radius, 14), (16, 15 - radius), (16 + radius, 15)], VIOLET)
+        sprite.path([(15 - radius, 16), (16, 15 + radius), (16 + radius, 15)], GOLD)
+        sprite.star(16, 15, 2, LILAC)
+    chips(sprite, frame, (15, 15), (GOLD, VIOLET, WHITE, LILAC), BURST[2:])
+
+
+def bow_impact(sprite, frame):
+    if frame < 4:
+        flare(sprite, 15, 15, (8, 11, 8, 5)[frame], (8, 10, 8, 5)[frame], LEMON)
+        sprite.line((6, 22), (13, 17), GOLD)
+        sprite.line((17, 13), (23, 7), WHITE)
+    chips(sprite, frame, (15, 15), (WHITE, GOLD, LEMON, SILVER))
+
+
+WAND_SCATTER = (
+    (-2, -4, 0, -2), (2, -4, 1, -1), (4, 2, 2, 0),
+    (5, 5, 1, 1), (-2, 5, 0, 2), (-4, 2, -2, 1),
+    (-5, -2, -1, -1), (0, -7, 1, -1), (6, -1, 1, -1),
+    (-4, 5, -1, 1), (-2, 8, 0, 1),
+)
+
+
+def wand_impact(sprite, frame):
+    if frame < 4:
+        radius = (6, 9, 11, 7)[frame]
+        flare(sprite, 15, 15, radius, radius, MAGENTA)
+        sprite.line((15 - radius, 15 - radius), (15 + radius, 15 + radius), PINK)
+        sprite.line((15 - radius, 15 + radius), (15 + radius, 15 - radius), PINK)
+        sprite.star(15, 15, 2, WHITE)
+    chips(sprite, frame, (15, 15), (LILAC, PINK, WHITE, MAGENTA), WAND_SCATTER)
+
+
+def staff_impact(sprite, frame):
+    radius = (6, 9, 11, 12, 13, 14)[frame]
+    for quadrant in range(0, 360, 90):
+        turn = quadrant + frame * 5
+        end = turn + (65 if frame < 4 else 45)
+        sprite.path(ellipse(15, 15, radius, radius - 1, turn + 5, end), VIOLET)
+        sprite.path(ellipse(15, 15, radius - 2, radius - 3, turn + 35, turn + 55), GOLD)
+        if 2 <= frame <= 4:
+            x, y = ellipse(15, 15, radius, radius - 1, end, end)[0]
+            sprite.star(x, y, 1, LILAC)
+    if frame < 4:
+        flare(sprite, 15, 15, (5, 9, 7, 4)[frame], (7, 10, 8, 5)[frame], GOLD)
+        sprite.path([(8, 15), (15, 8), (22, 15), (15, 22), (8, 15)], LILAC)
+    chips(sprite, frame, (15, 15), (GOLD, LILAC, WHITE, VIOLET))
+
+
+STYLES = (
+    sword, hammer, spear, bow, wand, staff,
+    bow_trail, wand_trail, staff_trail, bow_impact, wand_impact, staff_impact,
+)
+ATLAS_COLUMNS = 6
+FRAME_OPACITIES = (235, 255, 255, 230, 190, 145)
 
 
 def write_png(path: Path, width: int, height: int, pixels: bytes) -> None:
@@ -196,12 +285,12 @@ def write_png(path: Path, width: int, height: int, pixels: bytes) -> None:
 def main() -> None:
     JAVA_TEXTURE.parent.mkdir(parents=True, exist_ok=True)
     BEDROCK_TEXTURES.mkdir(parents=True, exist_ok=True)
-    atlas_width = SIZE * len(STYLES)
-    atlas_height = SIZE * (FRAME_COUNT + 1)
+    atlas_width = SIZE * ATLAS_COLUMNS
+    atlas_height = SIZE * (1 + FRAME_COUNT * (len(STYLES) // ATLAS_COLUMNS))
     atlas = bytearray(atlas_width * atlas_height * 4)
-    for column, draw in enumerate(STYLES):
+    for style, draw in enumerate(STYLES):
         frames = []
-        for frame, opacity in enumerate((205, 255, 255, 230, 164, 92)):
+        for frame, opacity in enumerate(FRAME_OPACITIES):
             sprite = Sprite(opacity)
             draw(sprite, frame)
             frames.append(sprite.pixels)
@@ -211,8 +300,13 @@ def main() -> None:
         write_png(BEDROCK_TEXTURES / f"{draw.__name__}.png", SIZE, bedrock_height,
                   b"".join(frames) + bytes(SIZE * (bedrock_height - SIZE * FRAME_COUNT) * 4))
 
+        column = style % ATLAS_COLUMNS
+        first_row = 1 + FRAME_COUNT * (style // ATLAS_COLUMNS)
+        cells = list(enumerate(frames, start=first_row))
         # Row zero retains the existing glyphs for clients using the original IDs.
-        for row, pixels in enumerate([frames[2], *frames]):
+        if style < ATLAS_COLUMNS:
+            cells.insert(0, (0, frames[2]))
+        for row, pixels in cells:
             for y in range(SIZE):
                 start = y * SIZE * 4
                 dest = ((row * SIZE + y) * atlas_width + column * SIZE) * 4

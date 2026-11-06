@@ -139,6 +139,17 @@ public final class AstralRecordGeyserExtension implements Extension {
     }
 
     /**
+     * Velocity 上の AstralRecordProxy に通常攻撃の軌跡・着弾の対応状況を返します。
+     * @param playerId 接続中プレイヤーのJava側UUID
+     * @return 接続時のパックに追加演出が揃い、ログインまで完了していればtrue
+     */
+    public boolean hasWeaponAttackProjectiles(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return weaponAttackProperties != null && connection != null
+            && damagePacks.weaponAttackReady(connection, WeaponAttackEntity.MAX_STYLE);
+    }
+
+    /**
      * Velocity 上の AstralRecordProxy から、接続時に配布したツールチップの対応状況を照会します。
      *
      * @param playerId 接続中プレイヤーの Java 側 UUID
@@ -192,7 +203,8 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (WeaponAttackEntity.isMarker(event.uuid())) {
             var properties = weaponAttackProperties;
             int style = WeaponAttackEntity.styleOf(event.uuid());
-            if (style > WeaponAttackEntity.MAX_STYLE || properties == null || !damagePacks.weaponAttackReady(event.connection())) {
+            if (style > WeaponAttackEntity.MAX_STYLE || properties == null
+                    || !damagePacks.weaponAttackReady(event.connection(), style)) {
                 event.setCancelled(true);
             } else {
                 event.definition(weaponAttackDefinition);

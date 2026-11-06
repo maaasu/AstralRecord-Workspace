@@ -10,14 +10,20 @@
             "Texture.spear",
             "Texture.bow",
             "Texture.wand",
-            "Texture.staff"
+            "Texture.staff",
+            "Texture.bow_trail",
+            "Texture.wand_trail",
+            "Texture.staff_trail",
+            "Texture.bow_impact",
+            "Texture.wand_impact",
+            "Texture.staff_impact"
           ]
         }
       },
       "geometry": "Geometry.default",
       "materials": [{"*": "Material.default"}],
       "textures": [
-        "Array.weapons[math.clamp(query.property('astralrecord:style'), 0, 5)]"
+        "Array.weapons[math.clamp(query.property('astralrecord:style'), 0, 11)]"
       ],
       "ignore_lighting": true,
       "part_visibility": [

@@ -155,9 +155,15 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().actionRing();
     }
 
-    boolean weaponAttackReady(GeyserConnection connection) {
+    /**
+     * @param connection 表示先の接続
+     * @param style 通常攻撃演出の種類
+     * @return 接続時に適用したパックがその演出に対応する場合はtrue
+     */
+    boolean weaponAttackReady(GeyserConnection connection, int style) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().weaponAttack();
+        return selection != null && selection.ready() && selection.pack().weaponAttack()
+            && (style <= WeaponAttackEntity.MAX_LEGACY_STYLE || selection.pack().weaponAttackProjectiles());
     }
 
     /** @return ログイン時に登録済みのパックが専用効果音に対応していればtrue */

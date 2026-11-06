@@ -189,6 +189,12 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/weapon_attack/bow.png'
     'textures/entity/weapon_attack/wand.png'
     'textures/entity/weapon_attack/staff.png'
+    'textures/entity/weapon_attack/bow_trail.png'
+    'textures/entity/weapon_attack/wand_trail.png'
+    'textures/entity/weapon_attack/staff_trail.png'
+    'textures/entity/weapon_attack/bow_impact.png'
+    'textures/entity/weapon_attack/wand_impact.png'
+    'textures/entity/weapon_attack/staff_impact.png'
     'entity/sunbird.entity.json'
     'animations/sunbird.animation.json'
     'models/entity/sunbird.geo.json'
@@ -208,6 +214,10 @@ Add-GuiThemeEntries $java $bedrock
 $tooltipVersion = $utf8.GetBytes('1')
 $java.Add('item-tooltips-version.txt', $tooltipVersion)
 $bedrock.Add('item-tooltips-version.txt', $tooltipVersion)
+
+$weaponAttackVersion = $utf8.GetBytes('1')
+$java.Add('weapon-attack-projectiles-version.txt', $weaponAttackVersion)
+$bedrock.Add('weapon-attack-projectiles-version.txt', $weaponAttackVersion)
 
 # Derive the Bedrock event list and package only the Ogg files referenced by Java.
 $javaSoundPath = 'assets/astralrecord/sounds.json'

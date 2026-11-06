@@ -10,7 +10,8 @@ import org.geysermc.geyser.api.util.Identifier;
 
 /** Paper が通常攻撃の閲覧者へ送る TextDisplay を Bedrock の演出に変換します。 */
 record WeaponAttackEntity(GeyserIntEntityProperty style) {
-    static final int MAX_STYLE = 5;
+    static final int MAX_LEGACY_STYLE = 5;
+    static final int MAX_STYLE = 11;
     private static final long MARKER = 0x4153545241544b31L; // ASTRATK1
     private static final Identifier IDENTIFIER = Identifier.of("astralrecord", "weapon_attack");
 

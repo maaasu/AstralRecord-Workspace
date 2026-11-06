@@ -12,7 +12,13 @@
         "spear": "textures/entity/weapon_attack/spear",
         "bow": "textures/entity/weapon_attack/bow",
         "wand": "textures/entity/weapon_attack/wand",
-        "staff": "textures/entity/weapon_attack/staff"
+        "staff": "textures/entity/weapon_attack/staff",
+        "bow_trail": "textures/entity/weapon_attack/bow_trail",
+        "wand_trail": "textures/entity/weapon_attack/wand_trail",
+        "staff_trail": "textures/entity/weapon_attack/staff_trail",
+        "bow_impact": "textures/entity/weapon_attack/bow_impact",
+        "wand_impact": "textures/entity/weapon_attack/wand_impact",
+        "staff_impact": "textures/entity/weapon_attack/staff_impact"
       },
       "geometry": {
         "default": "geometry.astralrecord.weapon_attack"
@@ -20,7 +26,7 @@
       "properties": {
         "astralrecord:style": {
           "type": "int",
-          "range": [0, 5],
+          "range": [0, 11],
           "default": 0,
           "client_sync": true
         }
@@ -31,6 +37,8 @@
       "scripts": {
         "initialize": ["variable.age = 0.0;"],
         "pre_animation": [
+          "variable.style = query.property('astralrecord:style');",
+          "variable.sprite_scale = (variable.style == 0) * 1.55 + (variable.style == 1) * 1.9 + (variable.style == 2) * 1 + (variable.style == 3) * 1.1 + (variable.style == 4) * 1.15 + (variable.style == 5) * 1.45 + (variable.style == 6) * 1 + (variable.style == 7) * 1 + (variable.style == 8) * 1.25 + (variable.style == 9) * 1.35 + (variable.style == 10) * 1.45 + (variable.style == 11) * 1.8;",
           "variable.frame = math.clamp(math.floor(variable.age * 20.0), 0, 5);",
           "variable.age = variable.age + query.delta_time;"
         ],

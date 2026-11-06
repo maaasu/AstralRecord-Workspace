@@ -56,6 +56,8 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.7.0` 以降は、通常攻撃の描画ファイルを含むパックを登録してログインまで進んだ接続で、RPG が送る演出用 TextDisplay を `astralrecord:weapon_attack` に置き換えます。武器に応じて剣・ハンマー・槍・弓・ワンド・杖の外観を切り替えます。対応パックを使えない接続では演出用 TextDisplay のみを取り消し、従来の腕振り・攻撃音・弾体を使います。
 
+拡張 `1.14.0` 以降は、`weapon-attack-projectiles-version.txt` が互換版 `1` を示し、弓・ワンド・スタッフの軌跡・着弾テクスチャ6点が揃ったパックを接続単位で確認します。VelocityのAstralRecordProxyが対応状況をRPGへ通知します。通知が届くまでRPGは従来の飛翔粒子と魔法命中粒子を送ります。拡張を入れ替えた後はProxyを再起動し、統合版クライアントを再接続してください。
+
 ## Bedrockの陽冠のサンバード
 
 拡張 `1.11.0` 以降は、サンバード本体と技の描画ファイルを揃えたパックを登録してログインまで進んだ接続で、RPG が印を付けたオウムを `astralrecord:sunbird` として表示します。名前や当たり判定には元のエンティティの情報を使います。技は RPG が送る演出用 TextDisplay を `astralrecord:sunbird_skill` に変換し、種類・幅・奥行き・高さに応じて表示します。パックが揃わない接続には元のオウムと RPG のパーティクルを表示します。

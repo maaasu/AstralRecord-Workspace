@@ -34,6 +34,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -46,6 +47,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
@@ -228,7 +230,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 && context.trigger() == SkillCastTrigger.AUTO_ATTACK
                 && context.caster() instanceof PlayerSkillCaster caster
                 && weaponAttackPackDisplay.show(caster.player().getBukkit(), context.skill().getId(),
-                        effectLocation, particle);
+                        effectLocation, direction, readDoubleParam(context.skill(), "hitRange", 2.5D),
+                        readDoubleParam(context.skill(), "hitRadius", 0.75D), particle);
         if (!packPresentation) {
             int particleCount = readIntParam(context.skill(), "particleCount", 10);
             double spreadX = readDoubleParam(context.skill(), "spreadX", 0.15D);
@@ -492,7 +495,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
     }
 
-    /** 飛翔体の敵または地形への最初の着弾を継承callbackへ通知します。 */
+    /** 飛翔体を進め、通常攻撃の軌跡と終端を表示し、敵または地形への着弾を継承callbackへ通知します。 */
     private void launchProjectileAttack(
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
@@ -540,7 +543,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         Location currentLocation = startLocation.clone();
         Vector velocity = direction.clone().normalize().multiply(projectileSpeed);
         Entity sourceEntity = resolveBukkitEntity(attacker);
-        SharedParticleDefinition secondaryTrailParticle = readParticleDefinition(skill, "secondaryTrailParticle");
+        Player packAttacker = packPresentation && sourceEntity instanceof Player player ? player : null;
+        SharedParticleDefinition configuredTrailParticle = readParticleDefinition(skill, "secondaryTrailParticle");
+        SharedParticleDefinition secondaryTrailParticle = configuredTrailParticle == null && attackType == AttackType.MAGIC
+                ? SharedParticleDefinitions.MAGIC_PROJECTILE_CORE_DUST : configuredTrailParticle;
         float displayScale = (float) readDoubleParam(skill, "displayScale", 1.0D);
         double displayForwardOffset = readDoubleParam(skill, "displayForwardOffset", 0.0D);
         double displaySpinDegrees = readDoubleParam(skill, "displaySpinDegrees", 0.0D);
@@ -571,6 +577,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     return;
                 }
                 if (tick++ >= maxTicks || traveledDistance >= hitRange) {
+                    if (packAttacker != null) {
+                        weaponAttackPackDisplay.showProjectile(packAttacker, skill.getId(), currentLocation,
+                                new Vector(), true, null);
+                    }
                     cancel();
                     return;
                 }
@@ -580,6 +590,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 }
 
                 Vector impactDirection = velocity.clone().normalize();
+                Location previousLocation = packAttacker == null ? null : currentLocation.clone();
                 currentLocation.add(velocity);
                 traveledDistance += velocity.length();
                 if (attackType == AttackType.RANGED) {
@@ -589,13 +600,30 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 if (!currentLocation.getBlock().isPassable()) {
                     spawnInheritedElementEffects(currentLocation, inheritedElements, true);
                     inheritanceHit.accept(new InheritanceImpact(currentLocation, null, null, impactDirection));
+                    if (packAttacker != null && previousLocation != null) {
+                        weaponAttackPackDisplay.showProjectile(packAttacker, skill.getId(),
+                                resolveWallEffectLocation(previousLocation, currentLocation),
+                                new Vector(), true, null);
+                    }
                     cancel();
                     return;
                 }
 
-                if (!packPresentation || (tick & 1) == 1) {
+                if (packAttacker == null) {
                     spawnProjectileTrail(currentLocation, particle, trailParticleCount,
-                            trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType, secondaryTrailParticle);
+                            trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, secondaryTrailParticle);
+                } else if ((tick & 1) == 1 && previousLocation != null) {
+                    Vector halfStep = currentLocation.toVector().subtract(previousLocation.toVector()).multiply(0.5D);
+                    Location midpoint = previousLocation.add(halfStep);
+                    weaponAttackPackDisplay.showProjectile(packAttacker, skill.getId(), midpoint, halfStep, false,
+                            (viewer, density) -> {
+                                particleDisplayService.spawnForViewer(viewer, currentLocation, particle,
+                                        trailParticleCount, trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, density);
+                                if (secondaryTrailParticle != null) {
+                                    particleDisplayService.spawnForViewer(viewer, currentLocation,
+                                            secondaryTrailParticle, density);
+                                }
+                            });
                 }
                 if ((tick & 1) == 1) {
                     spawnInheritedElementEffects(currentLocation, inheritedElements, false);
@@ -647,7 +675,17 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     }
                     spawnInheritedElementEffects(currentLocation, inheritedElements, true);
                     inheritanceHit.accept(new InheritanceImpact(currentLocation, victim, directResult, impactDirection));
-                    spawnImpactEffect(currentLocation, attackType);
+                    if (packAttacker == null) {
+                        spawnImpactEffect(currentLocation, attackType);
+                    } else {
+                        weaponAttackPackDisplay.showProjectile(packAttacker, skill.getId(), currentLocation,
+                                new Vector(), true, attackType == AttackType.MAGIC ? (viewer, density) -> {
+                                    particleDisplayService.spawnForViewer(viewer, currentLocation,
+                                            SharedParticleDefinitions.MAGIC_IMPACT_ENCHANT, density);
+                                    particleDisplayService.spawnForViewer(viewer, currentLocation,
+                                            SharedParticleDefinitions.MAGIC_IMPACT_DUST, density);
+                                } : null);
+                    }
                     cancel();
                 }
             }
@@ -662,6 +700,32 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             }
         }, 0L, 1L);
         activeProjectileTasks.add(taskHolder[0]);
+    }
+
+    /**
+     * 地形衝突の表示座標を求めます。飛翔体の判定座標は変更しません。
+     * @param previousLocation 最後の通過座標
+     * @param collisionLocation 既存の地形判定が衝突を検出した座標
+     * @return 衝突面の手前。面を特定できない場合は最後の通過座標
+     */
+    private @NotNull Location resolveWallEffectLocation(
+            @NotNull Location previousLocation,
+            @NotNull Location collisionLocation
+    ) {
+        Vector step = collisionLocation.toVector().subtract(previousLocation.toVector());
+        double length = step.length();
+        if (length <= 1.0E-6D) {
+            return previousLocation;
+        }
+        Vector direction = step.multiply(1.0D / length);
+        World world = previousLocation.getWorld();
+        RayTraceResult hit = world.rayTraceBlocks(previousLocation, direction, length, FluidCollisionMode.NEVER, true);
+        if (hit == null) {
+            return previousLocation;
+        }
+        Vector hitPosition = hit.getHitPosition();
+        double retreat = Math.min(0.05D, hitPosition.distance(previousLocation.toVector()));
+        return hitPosition.subtract(direction.multiply(retreat)).toLocation(world);
     }
 
     private @NotNull Particle readParticle(
@@ -885,6 +949,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
     }
 
+    /** 従来の飛翔粒子と定義済みの副効果を近傍へ表示します。 */
     private void spawnProjectileTrail(
             @NotNull Location location,
             @NotNull Particle particle,
@@ -893,7 +958,6 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double spreadY,
             double spreadZ,
             double extra,
-            @NotNull AttackType attackType,
             @Nullable SharedParticleDefinition secondaryTrailParticle
     ) {
         particleDisplayService.spawnForNearbyViewers(
@@ -908,10 +972,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         if (secondaryTrailParticle != null) {
             particleDisplayService.spawnForNearbyViewers(
                     location,
-                    secondaryTrailParticle
+                secondaryTrailParticle
             );
-        } else if (attackType == AttackType.MAGIC) {
-            particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.MAGIC_PROJECTILE_CORE_DUST);
         }
     }
 

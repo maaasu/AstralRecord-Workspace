@@ -8,7 +8,7 @@
           "rotation": ["query.camera_rotation(0)", "query.camera_rotation(1) - query.body_y_rotation", 0]
         },
         "sprite": {
-          "scale": [0.8, 0.8, 0.8]
+          "scale": ["variable.sprite_scale", "variable.sprite_scale", 1]
         }
       }
     }

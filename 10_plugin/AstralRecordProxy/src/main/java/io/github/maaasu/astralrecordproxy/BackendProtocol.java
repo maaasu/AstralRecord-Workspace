@@ -22,6 +22,7 @@ final class BackendProtocol {
     static final String CHANNEL_CONNECTION = "channel_connection";
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
+    static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
 
     private BackendProtocol() {
     }
@@ -102,6 +103,11 @@ final class BackendProtocol {
     /** @return 対象プレイヤーの Bedrock パックがツールチップに対応していることを伝える通知 */
     static byte[] itemTooltipsReady() {
         return outgoing(ITEM_TOOLTIPS_READY, null);
+    }
+
+    /** @return 対象プレイヤーの統合版パックが通常攻撃の飛翔演出に対応していることを伝える通知 */
+    static byte[] weaponAttackProjectilesReady() {
+        return outgoing(WEAPON_ATTACK_PROJECTILES_READY, null);
     }
 
     private static Set<UUID> readParticipantIds(DataInputStream input) throws IOException {

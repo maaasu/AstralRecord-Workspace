@@ -1,5 +1,6 @@
 {
   "resourcepack.astralrecord.name": "AstralRecord Server Resource Pack",
   "astralrecord.weapon_attack.glyph": "%s",
-  "astralrecord.weapon_attack.frame": "%s"
+  "astralrecord.weapon_attack.frame": "%s",
+  "astralrecord.weapon_attack.projectile": "%s"
 }

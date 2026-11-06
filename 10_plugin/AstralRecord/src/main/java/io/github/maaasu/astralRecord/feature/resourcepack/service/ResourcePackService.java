@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.resourcepack.service;
 
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.resourcepack.repository.ResourcePackRepository;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -43,6 +44,8 @@ public class ResourcePackService {
     private final Set<UUID> loadedSunbirdPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -74,6 +77,7 @@ public class ResourcePackService {
     public void applyTo(Player player) {
         loadedSunbirdPresentation.remove(player.getUniqueId());
         requestedSunbirdPresentation.remove(player.getUniqueId());
+        requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -127,6 +131,7 @@ public class ResourcePackService {
                     requestedActionRingPanels.remove(viewer);
                     requestedGuiThemes.remove(viewer);
                     requestedGameplaySounds.remove(viewer);
+                    requestedJavaWeaponAttackProjectiles.remove(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
                     }
@@ -138,6 +143,9 @@ public class ResourcePackService {
                     }
                     if (pack.itemTooltips()) {
                         requestedJavaItemTooltips.add(viewer);
+                    }
+                    if (pack.weaponAttackProjectiles()) {
+                        requestedJavaWeaponAttackProjectiles.add(viewer);
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -246,6 +254,7 @@ public class ResourcePackService {
                 case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
                     loadedManagedJavaPacks.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
+                    requestedJavaWeaponAttackProjectiles.remove(viewer);
                 }
                 default -> { }
             }
@@ -309,6 +318,33 @@ public class ResourcePackService {
         UUID viewer = player.getUniqueId();
         return readyBedrockGameplaySounds.contains(viewer)
                 || (hasManagedJavaPack(viewer) && requestedGameplaySounds.contains(viewer));
+    }
+
+    /**
+     * 接続中の閲覧者が通常攻撃の軌跡・着弾テクスチャに対応するか判定します。
+     *
+     * @param player 閲覧者
+     * @return 適用済みの管理 Java パックまたは準備済みの統合版パックが対応する場合は true
+     */
+    public boolean hasWeaponAttackProjectiles(Player player) {
+        UUID viewer = player.getUniqueId();
+        var astPlayer = AstPlayerCache.get(player);
+        boolean bedrock = astPlayer == null ? isBedrock(player.getName()) : astPlayer.isBedrock();
+        if (bedrock) {
+            return readyBedrockWeaponAttackProjectiles.contains(viewer);
+        }
+        return hasManagedJavaPack(viewer) && requestedJavaWeaponAttackProjectiles.contains(viewer);
+    }
+
+    /**
+     * Proxy が通知した統合版パックの通常攻撃飛翔演出の対応状態を現在の接続へ登録します。
+     *
+     * @param player 通知の対象プレイヤー
+     */
+    public void markBedrockWeaponAttackProjectilesReady(Player player) {
+        if (player.isOnline()) {
+            readyBedrockWeaponAttackProjectiles.add(player.getUniqueId());
+        }
     }
 
     /**
@@ -379,6 +415,8 @@ public class ResourcePackService {
         requestedSunbirdPresentation.remove(playerId);
         requestedJavaItemTooltips.remove(playerId);
         readyBedrockItemTooltips.remove(playerId);
+        requestedJavaWeaponAttackProjectiles.remove(playerId);
+        readyBedrockWeaponAttackProjectiles.remove(playerId);
     }
 
     /**
