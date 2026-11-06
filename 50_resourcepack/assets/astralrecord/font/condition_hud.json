@@ -1,0 +1,29 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        " ": 3,
+        "\ue950": 1,
+        "\ue955": -1,
+        "\ue951": 2,
+        "\ue956": -2,
+        "\ue952": 4,
+        "\ue957": -4,
+        "\ue953": 8,
+        "\ue958": -8,
+        "\ue954": 16,
+        "\ue959": -16
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/condition_hud.png",
+      "height": 79,
+      "ascent": 79,
+      "chars": [
+        "\ue970\ue971\ue972\ue973\ue974\ue975\ue976\ue9770123456789s+"
+      ]
+    }
+  ]
+}

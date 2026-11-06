@@ -139,6 +139,11 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/font/profile_hud_class.json'
     'assets/astralrecord/font/gameplay_hud.json'
     'assets/astralrecord/font/gameplay_hud_details.json'
+    'assets/astralrecord/font/profile_hud_class_name.json'
+    'assets/astralrecord/textures/font/profile_hud_class_name.png'
+    'assets/astralrecord/font/condition_hud.json'
+    'assets/astralrecord/textures/font/condition_hud.png'
+    'licenses/OFL-DotGothic16.txt'
     'assets/astralrecord/font/profile_hud_points.json'
     'assets/astralrecord/textures/font/gameplay_hud.png'
     'assets/astralrecord/font/tooltip_icons.json'
@@ -340,7 +345,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
 )
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
-if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '3') {
+if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '4') {
     throw 'Invalid profile HUD version marker in resource pack.'
 }
 

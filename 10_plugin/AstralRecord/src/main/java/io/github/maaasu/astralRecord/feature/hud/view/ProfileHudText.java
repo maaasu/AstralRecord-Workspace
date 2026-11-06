@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
@@ -23,16 +24,16 @@ public record ProfileHudText(Component playerLine, Component classLine, Componen
      * @param playerLevel 現在のプレイヤーレベル
      * @param originalLevel 転生前レベル。転生中でなければnull
      * @param goldAmount 所持Gold
-     * @param className 色コードを含むクラスの短縮表示名
+     * @param className 色コードを含むクラスの正式名
      * @param classLevel 現在のクラスレベル
      * @param classLevelMax クラスが最大レベルに達した場合true
      * @param classProgress 現在のクラスレベル内の経験値進捗
      * @param showPoints スキルツリーワールドの未使用ポイントを表示する場合true
      * @param classPoints 現在クラスの未使用CP
      * @param passivePoints 未使用PP
-     * @return 本人へ表示する個人情報
+     * @return 本人へ表示する個人情報。正式名を描画できない場合はnull
      */
-    public static ProfileHudText create(
+    public static @Nullable ProfileHudText create(
             int playerLevel,
             @Nullable Integer originalLevel,
             long goldAmount,
@@ -44,6 +45,11 @@ public record ProfileHudText(Component playerLine, Component classLine, Componen
             int classPoints,
             int passivePoints
     ) {
+        Component classTitle = ColorCodeUtil.toComponent(className, "", NamedTextColor.WHITE);
+        String plainClassName = PlainTextComponentSerializer.plainText().serialize(classTitle);
+        if (!ClassNameGlyphs.supports(plainClassName)) {
+            return null;
+        }
         String goldText = String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount));
         Component level = Component.text("Lv." + playerLevel, NamedTextColor.WHITE);
         if (originalLevel != null) {
@@ -57,7 +63,7 @@ public record ProfileHudText(Component playerLine, Component classLine, Componen
         int percent = (int) Math.round(Math.clamp(classProgress, 0.0D, 1.0D) * 100.0D);
         Component classLine = Component.empty()
                 .append(CLASS)
-                .append(ColorCodeUtil.toComponent(className, "", NamedTextColor.WHITE))
+                .append(classTitle.font(ClassNameGlyphs.FONT))
                 .append(Component.text("    "))
                 .append(ClassLevelDisplay.component(classLevel, classLevelMax, NamedTextColor.WHITE))
                 .append(GAP).append(EXPERIENCE)

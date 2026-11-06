@@ -22,7 +22,7 @@ public final class ResourcePackRepository {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
-    public record ProfileHud(boolean wideCombatMeter, boolean readableTypeface) {
+    public record ProfileHud(boolean wideCombatMeter, int version) {
     }
 
     /**
@@ -72,8 +72,9 @@ public final class ResourcePackRepository {
                 boolean wideCombatMeter = meter != null && meter.isJsonPrimitive()
                     && meter.getAsJsonPrimitive().isString() && "1".equals(meter.getAsString());
                 ProfileHud profileHud = switch (profileVersion) {
-                    case "2" -> new ProfileHud(wideCombatMeter, false);
-                    case "3" -> new ProfileHud(wideCombatMeter, true);
+                    case "2" -> new ProfileHud(wideCombatMeter, 2);
+                    case "3" -> new ProfileHud(wideCombatMeter, 3);
+                    case "4" -> new ProfileHud(wideCombatMeter, 4);
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,

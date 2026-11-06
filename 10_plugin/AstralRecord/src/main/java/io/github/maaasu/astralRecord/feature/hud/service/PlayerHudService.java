@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -33,16 +34,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 public class PlayerHudService {
     private static final long DPS_SAMPLE_WINDOW_MS = 10_000L;
-    private static final Pattern PROFILE_CLASS_NAME = Pattern.compile("[A-Za-z0-9-]{1,8}");
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
@@ -357,9 +357,8 @@ public class PlayerHudService {
         boolean classLevelMax = playerClassService.isMaxClassLevel(astPlayer);
         long goldAmount = currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
         Integer originalLevel = astPlayer.getAccount().getRebirthOriginalLevel();
-        String shortClassName = playerClassService.getShortDisplayName(astPlayer.getClassId());
         boolean overlay = renderJavaProfileHud(
-                astPlayer, playerLevel, originalLevel, goldAmount, shortClassName, classLevel, classLevelMax,
+                astPlayer, playerLevel, originalLevel, goldAmount, className, classLevel, classLevelMax,
                 classExperienceProgress, isSkillTreeWorld, availableClassPoints, availablePassivePoints
         );
         playerHudView.renderSidebar(
@@ -393,7 +392,7 @@ public class PlayerHudService {
      * @param playerLevel プレイヤーレベル
      * @param originalLevel 転生前レベル。転生中でなければnull
      * @param goldAmount 所持Gold
-     * @param className 色コードを含むクラスの短縮表示名
+     * @param className 色コードを含むクラスの正式名
      * @param classLevel クラスレベル
      * @param classLevelMax クラスが最大レベルならtrue
      * @param classProgress クラス経験値の進捗
@@ -417,14 +416,17 @@ public class PlayerHudService {
     ) {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
-        if (astPlayer.isBedrock() || !resourcePackService.hasJavaProfileHud(playerId)
-                || !PROFILE_CLASS_NAME.matcher(ColorCodeUtil.toPlainText(className, "")).matches()) {
+        if (astPlayer.isBedrock() || !resourcePackService.hasJavaHudV4(playerId)) {
             clearProfileHud(player);
             return false;
         }
 
         ProfileHudText profile = ProfileHudText.create(playerLevel, originalLevel, goldAmount, className,
                 classLevel, classLevelMax, classProgress, showPoints, classPoints, passivePoints);
+        if (profile == null) {
+            clearProfileHud(player);
+            return false;
+        }
         playerHudView.setJavaProfile(playerId, profile);
         return true;
     }
@@ -569,7 +571,9 @@ public class PlayerHudService {
                 : combatDpsTrackerService.getAverageDps(player.getUniqueId(), DPS_SAMPLE_WINDOW_MS);
         Component override = resolvePrimaryActionBar(astPlayer);
         if (override != null) {
-            playerHudView.sendActionBar(player, override);
+            var activeConditions = resourcePackService.hasJavaHudV4(player.getUniqueId())
+                    ? conditionService.getActiveConditions(AstEntity.player(astPlayer)) : List.<ActiveCondition>of();
+            playerHudView.sendActionBar(player, override, activeConditions);
             return;
         }
         boolean showDps = playerSettingService.isCombatDpsDisplayEnabled(astPlayer.getUser().getUuid());

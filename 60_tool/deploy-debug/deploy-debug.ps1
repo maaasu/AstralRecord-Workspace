@@ -454,12 +454,12 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($profileEntry.Open())
             try { $profileHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($profileHud -cnotin @('1', '2', '3')) { throw 'Unsupported profile HUD version.' }
+            if ($profileHud -cnotin @('1', '2', '3', '4')) { throw 'Unsupported profile HUD version.' }
             $profileAssets = @(
                 'assets/astralrecord/font/profile_hud_player.json'
                 'assets/astralrecord/font/profile_hud_class.json'
             )
-            if ($profileHud -cin @('2', '3')) {
+            if ($profileHud -cin @('2', '3', '4')) {
                 $profileAssets += @(
                     'assets/astralrecord/font/gameplay_hud.json'
                     'assets/astralrecord/textures/font/gameplay_hud.png'
@@ -467,10 +467,19 @@ function Publish-ResourcePacks {
             } else {
                 $profileAssets += 'assets/astralrecord/textures/font/profile_hud.png'
             }
-            if ($profileHud -ceq '3') {
+            if ($profileHud -cin @('3', '4')) {
                 $profileAssets += @(
                     'assets/astralrecord/font/gameplay_hud_details.json'
                     'assets/astralrecord/font/profile_hud_points.json'
+                )
+            }
+            if ($profileHud -ceq '4') {
+                $profileAssets += @(
+                    'assets/astralrecord/font/profile_hud_class_name.json'
+                    'assets/astralrecord/textures/font/profile_hud_class_name.png'
+                    'assets/astralrecord/font/condition_hud.json'
+                    'assets/astralrecord/textures/font/condition_hud.png'
+                    'licenses/OFL-DotGothic16.txt'
                 )
             }
             foreach ($asset in $profileAssets) {
@@ -480,7 +489,7 @@ function Publish-ResourcePacks {
         }
         $meterEntry = $archive.GetEntry('wide-combat-meter-version.txt')
         if ($null -ne $meterEntry) {
-            if ($profileHud -cnotin @('2', '3') -or $meterEntry.Length -ne 1) {
+            if ($profileHud -cnotin @('2', '3', '4') -or $meterEntry.Length -ne 1) {
                 throw 'Invalid wide combat meter version marker.'
             }
             $reader = [IO.StreamReader]::new($meterEntry.Open())

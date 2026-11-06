@@ -114,17 +114,19 @@ public class PlayerHudView {
     }
 
     /**
-     * 戦闘表示に個人情報の別行を合成して同じアクションバー更新で送ります。
+     * 一時表示に個人情報と状態異常を合成して同じアクションバー更新で送ります。
      * @param player 表示対象
-     * @param combat 戦闘・受付・詠唱など現在優先されるアクションバー本文
+     * @param combat 受付・詠唱など現在優先されるアクションバー本文
+     * @param activeConditions 有効な状態異常
      */
-    public void sendActionBar(Player player, Component combat) {
+    public void sendActionBar(Player player, Component combat, Collection<ActiveCondition> activeConditions) {
         UUID playerId = player.getUniqueId();
-        ProfileHudText profile = javaProfiles.get(playerId);
-        player.sendActionBar(profile != null && resourcePackService.hasJavaProfileHud(playerId)
-                ? JavaProfileHud.compose(combat, profile,
-                        resourcePackService.hasReadableJavaHudTypeface(playerId))
-                : combat);
+        if (resourcePackService.hasJavaHudV4(playerId)) {
+            player.sendActionBar(JavaProfileHud.compose(combat, javaProfiles.get(playerId),
+                    conditionHudText(activeConditions)));
+        } else {
+            player.sendActionBar(combat);
+        }
     }
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
@@ -349,6 +351,7 @@ public class PlayerHudView {
         boolean styledJavaHud = pack && resourcePackService.hasJavaProfileHud(playerId);
         boolean wideJavaMeter = styledJavaHud && resourcePackService.hasWideJavaCombatMeter(playerId);
         boolean readableTypeface = styledJavaHud && resourcePackService.hasReadableJavaHudTypeface(playerId);
+        boolean expandedHud = readableTypeface && resourcePackService.hasJavaHudV4(playerId);
         Component resourceGap = readableTypeface ? JavaProfileHud.READABLE_RESOURCE_GAP : ACTION_BAR_GAP;
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
@@ -362,7 +365,7 @@ public class PlayerHudView {
             .append(additionalResource)
             .append(JavaProfileHud.styleStat(
                     shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity), styledJavaHud, readableTypeface))
-            .append(conditionActionText(activeConditions))
+            .append(expandedHud ? Component.empty() : conditionActionText(activeConditions))
             .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud, readableTypeface)
                     : Component.empty());
         Component resources = Component.empty()
@@ -378,9 +381,11 @@ public class PlayerHudView {
                     styledJavaHud, wideJavaMeter, readableTypeface)
                     : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW));
         if (readableTypeface) {
-            player.sendActionBar(JavaProfileHud.arrangeCombat(resources, additionalStats, javaProfiles.get(playerId)));
+            ProfileHudText profile = expandedHud ? javaProfiles.get(playerId) : null;
+            Component conditions = expandedHud ? conditionHudText(activeConditions) : Component.empty();
+            player.sendActionBar(JavaProfileHud.arrangeCombat(resources, additionalStats, profile, conditions));
         } else {
-            sendActionBar(player, resources.append(additionalStats));
+            player.sendActionBar(resources.append(additionalStats));
         }
     }
 
@@ -1110,6 +1115,42 @@ public class PlayerHudView {
         return separated(framed(summary));
     }
 
+    private Component conditionHudText(Collection<ActiveCondition> activeConditions) {
+        long now = System.currentTimeMillis();
+        List<ActiveCondition> conditions = activeConditions.stream()
+                .filter(condition -> condition.expiresAtMs() > now)
+                .sorted(Comparator.comparingInt(condition -> conditionPriority(condition.type())))
+                .toList();
+        int shown = Math.min(3, conditions.size());
+        Component summary = Component.empty();
+        for (int index = 0; index < shown; index++) {
+            if (index > 0) {
+                summary = summary.append(Component.text("  "));
+            }
+            ActiveCondition condition = conditions.get(index);
+            long remaining = condition.expiresAtMs() - now;
+            long seconds = (remaining - 1) / 1000 + 1;
+            int icon = JavaProfileHud.FIRST_CONDITION_ICON + conditionIconIndex(condition.type());
+            summary = summary.append(Component.text(Character.toString(icon), NamedTextColor.WHITE))
+                    .append(Component.text(" " + seconds + "s", NamedTextColor.WHITE));
+        }
+        int hidden = conditions.size() - shown;
+        return hidden == 0 ? summary : summary.append(Component.text("  +" + hidden, NamedTextColor.GRAY));
+    }
+
+    private int conditionIconIndex(ConditionType type) {
+        return switch (type) {
+            case BURNING -> 0;
+            case FROZEN -> 1;
+            case CHILLED -> 2;
+            case SHOCKED -> 3;
+            case POISON -> 4;
+            case BLINDNESS -> 5;
+            case WEAKNESS -> 6;
+            case HEALING_INHIBITION -> 7;
+        };
+    }
+
     private Component conditionText(ActiveCondition condition) {
         long remainingSeconds = Math.max(0L,
                 (condition.expiresAtMs() - System.currentTimeMillis() + 999L) / 1000L);
@@ -1221,10 +1262,13 @@ public class PlayerHudView {
         Component resources = snapshot == null ? Component.empty()
                 : statText("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED)
                         .append(Component.text(" ", NamedTextColor.DARK_GRAY));
-        sendActionBar(player, resources
-            .append(Component.text(label, labelColor, TextDecoration.BOLD))
-            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(bar)
-            .append(conditionActionText(activeConditions)));
+        boolean expandedHud = resourcePackService.hasJavaHudV4(player.getUniqueId());
+        Component combat = resources.append(Component.text(label, labelColor, TextDecoration.BOLD))
+                .append(Component.text(" ", NamedTextColor.DARK_GRAY))
+                .append(bar);
+        if (!expandedHud) {
+            combat = combat.append(conditionActionText(activeConditions));
+        }
+        sendActionBar(player, combat, activeConditions);
     }
 }

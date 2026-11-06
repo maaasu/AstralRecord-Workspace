@@ -438,11 +438,21 @@ public class ResourcePackService {
     /**
      * 読みやすさを調整した字形を含む管理Javaパックを適用済みか判定します。
      * @param playerId 表示対象のUUID
-     * @return 互換版3の適用が成功済みならtrue
+     * @return 読みやすさ調整版の適用が成功済みならtrue
      */
     public boolean hasReadableJavaHudTypeface(UUID playerId) {
         ResourcePackRepository.ProfileHud profileHud = requestedJavaProfileHud.get(playerId);
-        return profileHud != null && profileHud.readableTypeface() && hasManagedJavaPack(playerId);
+        return profileHud != null && profileHud.version() >= 3 && hasManagedJavaPack(playerId);
+    }
+
+    /**
+     * 正式クラス名と状態異常アイコンを収録したJavaパックが適用済みか判定します。
+     * @param playerId 表示対象のUUID
+     * @return 互換版4の適用が成功済みならtrue
+     */
+    public boolean hasJavaHudV4(UUID playerId) {
+        ResourcePackRepository.ProfileHud profileHud = requestedJavaProfileHud.get(playerId);
+        return profileHud != null && profileHud.version() >= 4 && hasManagedJavaPack(playerId);
     }
 
     /**
