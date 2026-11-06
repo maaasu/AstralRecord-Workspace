@@ -246,7 +246,7 @@ public final class SkillActionRingService {
             caster,
             astPlayer.isBedrock() || resourcePackService.hasManagedJavaPack(playerId),
             astPlayer.isBedrock(),
-            !astPlayer.isBedrock() && resourcePackService.hasActionRingPanel(playerId, ActionRingIconCatalog.revision()),
+            !astPlayer.isBedrock() && resourcePackService.hasActionRingPanel(playerId, SkillIconCatalog.revision()),
             selectionInstruction
         );
         sessions.put(playerId, session);
@@ -871,11 +871,11 @@ public final class SkillActionRingService {
                 return 0;
             }
             if (definition == null || material == Material.BARRIER) {
-                return ActionRingIconCatalog.sprite("__unavailable__");
+                return SkillIconCatalog.sprite("__unavailable__");
             }
             String spriteKey = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)
                 ? skillId : definition.getId();
-            return ActionRingIconCatalog.sprite(spriteKey);
+            return SkillIconCatalog.sprite(spriteKey);
         }
 
         private @NotNull String label(@Nullable CooldownView cooldown, boolean javaPanel, boolean bedrock) {

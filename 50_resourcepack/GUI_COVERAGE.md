@@ -16,7 +16,7 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 
 下表のソースはすべて `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/` からの相対パス。holder の `getInventory()` が返す API 用の空インベントリではなく、実際の表示入口を調べた。ページ数、所持品、習得スキル、部屋数などで生じる動的なページは同じ画面系列として扱う。
 
-共通対応とは、上記の Java チェスト背景と、その画面が利用する共通フレーム・ナビゲーションアイコンを指す。各内容カードまで独自の絵柄へ置き換えたことを意味しない。装備、スキル、通貨、モブ、報酬などのカードは既存のマスター素材・モデル・プロファイルを使う。
+共通対応とは、上記の Java チェスト背景と、その画面が利用する共通フレーム・ナビゲーションアイコンを指す。個別スキルのカードはリングと共通の絵柄を使用する。装備、通貨、モブ、報酬などのカードは既存のマスター素材・モデル・プロファイルを使う。
 
 | 画面系列 | 実装済み画面 | 実際の表示入口 | パックの適用箇所・留意点 |
 |:--|:--|:--|:--|
@@ -25,10 +25,10 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 | プレイヤー一覧・情報 | パーティー招待対象、プレイヤー一覧、プロフィール、習得スキル・現在のバインド、ステータス詳細 | `feature/menu/player/PlayerListGui.java`、`feature/menu/player/PlayerDetailGui.java` | 共通対応。各プレイヤーの顔と装備のモデルを維持 |
 | 通貨両替 | ゴールド両替所 | `feature/currency/view/CurrencyExchangeGuiView.java` | 共通対応。金額・通貨カードを維持 |
 | アイテム管理 | 管理者アイテム一覧、フィルター候補 | `feature/item/gui/ItemAdminGuiView.java` | 管理者画面も共通対応。アイテム自体のモデルを維持 |
-| キャストディスク | スキルキャストディスク設定 | `feature/item/castdisk/CastDiskGui.java` | 共通対応。設定スロットを維持 |
+| キャストディスク | スキルキャストディスク設定 | `feature/item/castdisk/CastDiskGui.java` | 共通対応。設定済みスキルとホットバー上のディスクに共通スキルアイコンを適用 |
 | 装備オーブ・ルーン | 対象装備一覧、所持オーブ一覧、状態変化確認、必要素材一覧、ルーン装着・脱着・脱着ルーン選択 | `feature/item/service/OrbService.java`、`feature/item/gui/OrbGuiHolder.java` | 共通対応。実行中のロック、消費、候補再解決、下段操作を維持 |
-| スキルマネージャー | 一覧、詳細、合成、確認 | `feature/skill/gui/SkillBindGui.java` | 共通対応。下段の専用バインド表示と各スキルモデルを維持 |
-| スキル忘却 | 一覧、忘却確認 | `feature/skill/gui/SkillForgetGui.java` | 共通対応。共通確認ボタンは明示した役割の絵柄 |
+| スキルマネージャー | 一覧、詳細、合成、確認 | `feature/skill/gui/SkillBindGui.java` | 共通対応。各スキルカードと下段の設定済みバインドに共通スキルアイコンを適用 |
+| スキル忘却 | 一覧、忘却確認 | `feature/skill/gui/SkillForgetGui.java` | 共通対応。一覧と忘却確認の対象に共通スキルアイコンを適用 |
 | シジル | 対象スキル一覧、装着、脱着、脱着シジル選択 | `feature/skill/service/SkillSigilOrbService.java`、`feature/skill/gui/SkillSigilOrbGuiHolder.java` | 共通対応。シジル・スキルの表示内容を維持 |
 | スキルツリーの補助画面 | CP 消費元クラス選択、ノード解除確認 | `feature/skilltree/event/SkillTreeEventHandler.java` | チェスト部分を共通対応。フィールド上のツリー本体とは別 |
 | ショップ | 商品一覧、購入確認、両替確認 | `feature/shop/gui/ShopGui.java` | 共通対応。商品と通貨のカードを維持 |
@@ -59,8 +59,8 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 | 通常のプレイヤー所持品、ホットバー、クラフト枠のショートカット | `feature/inventory/service/InventoryService.java`、`NormalInventoryLayout.java`、`HotbarRenderer.java`、`feature/menu/view/CraftShortcutView.java` | 共通アイコン生成を使うショートカット・スクロール操作へ専用アイコンを適用。所持品のスロットやモデルを維持。プレイヤーインベントリ全体のバニラテクスチャは上書きしない。統合版で既存仕様上無効なクラフトショートカットを新規に有効化しない |
 | GUI の下段専用表示 | `shared/gui/playerinventory/PlayerInventoryOverlaySupport.java`、`shared/gui/hotbar/HotbarShortcutClickSupport.java` | 既存の holder 契約、表示復元、BAG スクロール・ホットバー操作を維持。専用背景のために実所持品をダミーへ置換しない |
 | 統合版プレイヤー設定フォーム | `feature/playersetting/gui/PlayerSettingGui.java#createBedrockForm`、`shared/gui/GuiOpenSupport.java#showDialog` | Paper Dialog の真偽値と選択欄、保存・取消を使用。Geyser が解釈するネイティブフォームで、今回のチェスト背景字形は使わない。フォーム基盤そのものを変える Bedrock `ui/*.json` 上書きは追加しない |
-| ワールド上のスキルツリー | `feature/skilltree/service/SkillTreeVisualizer.java`、`SkillTreePacketDisplay.java`、`SkillTreeService.java` | ノード ItemDisplay、文字、線と入力の既存方式を維持。統合版の線には既存の粒子代替がある。チェスト背景パックでツリー本体を置換したとは扱わない |
-| アクションリング | `feature/skill/service/SkillActionRingDisplay.java`、`SkillActionRingService.java`、`ActionRingFrame.java` | 既存の専用輪郭、スプライト、クールダウンと選択マーカーを引き続き配布。新たなチェスト背景で覆わない。旧パック・未適用時の既存フォールバックを維持 |
+| ワールド上のスキルツリー | `feature/skilltree/service/SkillTreeVisualizer.java`、`SkillTreePacketDisplay.java`、`SkillTreeService.java` | 単一スキルを付与するノードの ItemDisplay に共通スキルアイコンを適用。その他のノードにはノードのアイコンを使う。統合版の線には粒子代替がある |
+| アクションリング | `feature/skill/service/SkillActionRingDisplay.java`、`SkillActionRingService.java`、`ActionRingFrame.java` | 専用輪郭、共通スキルスプライト、クールダウン、選択マーカーを配布。両版ともパネル非対応時は従来のアイテム表示を使う |
 | 戦闘 HUD のアクションバーとリザルト | `feature/hud/view/PlayerHudView.java`、`feature/hud/service/PlayerHudService.java`、`shared/display/CombatHudGlyphs.java` | 既存の Java 専用 HP/MP/ENG 字形・ゲージとリザルト紋章を維持。対応パックの判定と、未適用時のテキストを維持。今回の UI アイコンによりバーを組み替えない |
 | サイドバー | `feature/hud/view/PlayerHudView.java#renderSidebar` | 標準 Scoreboard。情報量・最大行数・バフページ・ボス/ダンジョン情報を維持。標準クライアントが配置する背景や全体レイアウトは今回変更しない |
 | BossBar | `feature/hud/service/AdminMessageBossBarService.java`、`feature/skill/service/SkillCooldownBossBarService.java`、`feature/dungeon/service/DungeonRoomBossBarService.java` ほか各機能の BossBar | 告知、クールダウン、詠唱、釣り、帰還、アイテム使用、ボス・防衛・スキルツリー読込などの標準バーを維持。色・進捗・セグメントの意味を専用アイコンと混同しない。全バニラ BossBar テクスチャの一括上書きは行わない |

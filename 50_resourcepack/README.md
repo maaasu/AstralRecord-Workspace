@@ -118,7 +118,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-resourcepack.p
 
 輪郭を変更するときは `scripts/generate-action-ring-assets.py` で両版の PNG とモデルを再生成します。128 px の面に対するアイコン中心の半径は42 px、輪郭の最大半径は61 pxです。寸法や枠の色を変えるときは `SkillActionRingService`、`SkillActionRingDisplay` と Geyser 拡張の `ActionRingFrame` も確認します。
 
-スキルアイコンは `scripts/generate-action-ring-icons.py` で生成します。生成元の既存番号を保持し、新しいスキルは未使用の番号に追加します。ビルドは RPG プラグイン内の `action-ring-icons.json` と両版のテクスチャをもとに一体型モデルを生成します。台帳にないスキルは従来のアイテムアイコンを表示します。
+スキルアイコンは `scripts/generate-action-ring-icons.py` で生成します。生成元の既存番号を保持し、新しいスキルは未使用の番号に追加します。ビルドは RPG プラグイン内の `action-ring-icons.json` と両版のテクスチャをもとにリングの一体型モデルを生成します。同じスプライトから Java・統合版のスキル表示用アイテムモデルも生成します。表示用の素材は `PAPER`、モデル番号は `920000 + スプライト番号` です。台帳にないスキルは従来のアイテムアイコンを表示します。
 
 通常攻撃の絵柄を変更するときは `scripts/generate-weapon-attack-assets.py` で両版の32 pxスプライトを再生成します。
 
@@ -144,6 +144,6 @@ Minecraftの角形と粗い画素の材質分けを基準に、ノクスは簡�
 2. API・Web・Plugin を有効にした設定で [01-deploy-debug.bat](../60_tool/deploy-debug/README.md) を実行します。API の配置物に両パックと最新ハッシュを含めます。
 3. Java 版はゲームサーバーから公開WebのダウンロードURLを受け取ります。配布先を変える場合は RPG Plugin の `resourcePack.managed.publicBaseUrl` を設定します。統合版は Geyser の接続時にパックを受け取ります。更新したパックの適用は再接続時です。
 
-アクションリングの導入時は、新しい両版パックを API へ公開してから、対応する RPG Plugin と Geyser Extension を更新します。
+アクションリングやスキル表示の更新時は、対応する両版パックを API へ公開してから RPG Plugin を更新します。統合版のアイテム登録に更新を反映するには Geyser プロキシを再起動し、クライアントを再接続します。旧パックでは新規のスキル表示用モデルが紙の見た目になります。
 
 RPG Plugin の `resourcePack.bedrockNamePrefixes` は、Velocity の Floodgate の接続名接頭辞と一致させます。現行環境は `.` です。

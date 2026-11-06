@@ -9,12 +9,14 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
+import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
@@ -628,7 +630,8 @@ public class ItemStackPacketAdapter {
         var iconTexture = ItemStackFactory.getIconTexture(original);
         var itemId = ItemStackFactory.getAstralItemId(original);
         var embeddedModelData = ItemStackFactory.getCustomModelData(original);
-        var customModelData = resolveCustomModelData(itemId, embeddedModelData);
+        var diskModelData = CastDiskHotbarIconService.displayModelData(original);
+        var customModelData = diskModelData == null ? resolveCustomModelData(itemId, embeddedModelData) : diskModelData;
         boolean clearCustomModelData = embeddedModelData != null && customModelData == null;
         var itemMaster = itemId == null ? null : itemService.findLoadedById(itemId);
         var embeddedEquipmentAsset = ItemStackFactory.getEquipmentAsset(original);
@@ -662,6 +665,9 @@ public class ItemStackPacketAdapter {
 
         if (virtualWeapon) {
             replaced = original.withType(Material.TRIDENT);
+            modified = true;
+        } else if (diskModelData != null) {
+            replaced = original.withType(SkillIconCatalog.ITEM_MATERIAL);
             modified = true;
         } else if (iconName != null) {
             var iconMaterial = resolveMaterial(iconName);

@@ -9,11 +9,14 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +27,8 @@ import java.util.UUID;
  * ホットバー上のスキルキャストディスクへ、現在の発動対象スキルのアイコンを反映します。
  */
 public final class CastDiskHotbarIconService {
+    private static final NamespacedKey DISPLAY_SKILL_KEY = new NamespacedKey("astralrecord", "cast_disk_display_skill");
+
     private final SkillBindPresetService presetService;
     private final LearnedSkillService learnedSkillService;
     private final SkillService skillService;
@@ -66,7 +71,7 @@ public final class CastDiskHotbarIconService {
         CastDiskSettings settings = CastDiskSettings.read(metadataJson);
         String bindingId = activeBindingId(accountId, settings.actionSlotIndex());
         if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(bindingId)) {
-            ItemStackFactory.overrideDisplayIcon(itemStack, Material.IRON_SWORD, null);
+            setDisplaySkill(itemStack, bindingId);
             return;
         }
         LearnedSkillInstance learned = learnedSkillService.findInstance(accountId, bindingId);
@@ -76,11 +81,35 @@ public final class CastDiskHotbarIconService {
         if (definition == null) {
             return;
         }
-        Material icon = MaterialNameResolver.match(definition.getIcon());
-        if (icon == null) {
-            return;
+        if (SkillIconCatalog.modelData(definition.getId()) != null) {
+            setDisplaySkill(itemStack, definition.getId());
+        } else {
+            Material icon = MaterialNameResolver.match(definition.getIcon());
+            if (icon != null) {
+                ItemStackFactory.overrideDisplayIcon(itemStack, icon, definition.getIconTexture());
+            }
         }
-        ItemStackFactory.overrideDisplayIcon(itemStack, icon, definition.getIconTexture());
+    }
+
+    private static void setDisplaySkill(@NotNull ItemStack itemStack, @NotNull String skillId) {
+        var meta = itemStack.getItemMeta();
+        meta.getPersistentDataContainer().set(DISPLAY_SKILL_KEY, PersistentDataType.STRING, skillId);
+        itemStack.setItemMeta(meta);
+    }
+
+    /**
+     * ホットバーの表示スタックに指定されたスキル用モデル番号を返します。
+     *
+     * @param itemStack 送信元アイテム
+     * @return 表示用モデル番号。キャストディスクの表示指定がなければ null
+     */
+    public static @Nullable Integer displayModelData(@NotNull ItemStack itemStack) {
+        if (!itemStack.hasItemMeta()) {
+            return null;
+        }
+        String skillId = itemStack.getItemMeta().getPersistentDataContainer()
+            .get(DISPLAY_SKILL_KEY, PersistentDataType.STRING);
+        return SkillIconCatalog.modelData(skillId);
     }
 
     private @Nullable String activeBindingId(@NotNull UUID accountId, int actionSlotIndex) {

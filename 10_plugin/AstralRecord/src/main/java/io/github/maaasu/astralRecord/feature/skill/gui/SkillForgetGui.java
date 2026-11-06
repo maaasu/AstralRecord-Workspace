@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
@@ -107,6 +108,11 @@ public final class SkillForgetGui {
             Component.text("はい、忘却する", NamedTextColor.RED),
             Component.text("一覧へ戻る", NamedTextColor.GREEN)
         );
+        ItemStack message = inventory.getItem(ConfirmDialogView.MESSAGE_SLOT);
+        if (message != null) {
+            inventory.setItem(ConfirmDialogView.MESSAGE_SLOT,
+                SkillIconCatalog.apply(message, entry.definition().getId()));
+        }
         inventory.setItem(
             PAID_CONFIRM_SLOT,
             GuiItems.create(
@@ -158,14 +164,14 @@ public final class SkillForgetGui {
         lore.add(Component.text("習得レベル: " + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
         lore.add(Component.text("装着シジル: " + entry.learnedSkill().getSigils().size() + "個", NamedTextColor.GRAY));
         lore.add(Component.text("クリック: 忘却確認を開く", NamedTextColor.YELLOW));
-        ItemStack item = GuiItems.create(
+        ItemStack item = SkillIconCatalog.apply(GuiItems.create(
             parseMaterial(entry.definition().getIcon()),
             SkillPresentationUtil.skillNameComponent(
                 entry.definition(), entry.definition().getId(), NamedTextColor.WHITE
             ).append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD)),
             lore,
             entry.definition().getIconTexture()
-        );
+        ), entry.definition().getId());
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(learnedSkillIdKey, PersistentDataType.STRING, entry.bindingId());
         item.setItemMeta(meta);

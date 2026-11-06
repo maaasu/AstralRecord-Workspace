@@ -5,7 +5,9 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
+import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import net.kyori.adventure.text.Component;
@@ -94,6 +96,7 @@ public final class CastDiskGui {
         Material material = Material.BARRIER;
         String name = "未設定";
         String iconTexture = null;
+        String iconKey = null;
         if (skillId != null && !skillId.isBlank()) {
             var astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(player);
             LearnedSkillInstance learned = astPlayer == null ? null : ownershipService.findInstance(astPlayer, skillId);
@@ -101,11 +104,13 @@ public final class CastDiskGui {
             if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
                 material = Material.IRON_SWORD;
                 name = "武器通常攻撃";
+                iconKey = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID;
             } else if (definition != null) {
                 Material resolvedMaterial = MaterialNameResolver.match(definition.getIcon());
                 material = resolvedMaterial == null ? Material.AMETHYST_SHARD : resolvedMaterial;
                 name = SkillPresentationUtil.plainName(definition, "未定義スキル");
                 iconTexture = definition.getIconTexture();
+                iconKey = definition.getId();
             } else {
                 name = "未習得スキル";
             }
@@ -113,8 +118,8 @@ public final class CastDiskGui {
         ItemStack itemStack = item(material, "アクション枠 " + (index + 1) + ": " + name, List.of(
             Component.text(selected ? "選択中" : "クリックして設定", selected ? NamedTextColor.GREEN : NamedTextColor.YELLOW)
         ));
-        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, iconTexture);
-        return itemStack;
+        HeadTextureItemStackSupport.apply(itemStack, iconTexture);
+        return SkillIconCatalog.apply(itemStack, iconKey);
     }
 
     private @NotNull ItemStack weaponItem(@NotNull Player player, int index, boolean selected) {

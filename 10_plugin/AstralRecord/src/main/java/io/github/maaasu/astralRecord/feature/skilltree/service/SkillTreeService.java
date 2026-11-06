@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.config.SkillTreePluginConfig;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
@@ -3756,7 +3757,12 @@ public class SkillTreeService {
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
-        return itemStack;
+        List<String> skillIds = node.skillEffects().stream()
+            .map(SkillTreeSkillEffect::skillId)
+            .distinct()
+            .limit(2)
+            .toList();
+        return skillIds.size() == 1 ? SkillIconCatalog.apply(itemStack, skillIds.getFirst()) : itemStack;
     }
 
     /**

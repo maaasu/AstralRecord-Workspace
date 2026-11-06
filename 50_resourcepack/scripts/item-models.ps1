@@ -273,7 +273,7 @@ function Add-JavaItemDispatch {
 }
 
 function Add-ItemModelEntries {
-    param($JavaEntries, $BedrockEntries)
+    param($JavaEntries, $BedrockEntries, $SkillIcons)
 
     $models = Get-ItemModelRegistry
     $armorItems = @{}
@@ -341,6 +341,7 @@ function Add-ItemModelEntries {
     }
 
     $bedrockItems += Add-GuiIconModelEntries $JavaEntries $BedrockEntries $iconTextures $byBase $models
+    $bedrockItems += Add-SkillIconModelEntries $JavaEntries $BedrockEntries $iconTextures $byBase $models $SkillIcons
     foreach ($base in $byBase.Keys) {
         Add-JavaItemDispatch $JavaEntries $base $byBase[$base]
         Add-GeneratedItemOverlayDispatch $JavaEntries $base $byBase[$base]

@@ -126,8 +126,9 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/weapon_attack/wand.png'
     'textures/entity/weapon_attack/staff.png'
 )
-Add-ItemModelEntries $java $bedrock
-Add-ActionRingPanelEntries $java $bedrock
+$skillIcons = Get-ActionRingIcons
+Add-ItemModelEntries $java $bedrock $skillIcons
+Add-ActionRingPanelEntries $java $bedrock $skillIcons
 Add-ArmorAssetEntries $java $bedrock
 Add-GuiThemeEntries $java $bedrock
 

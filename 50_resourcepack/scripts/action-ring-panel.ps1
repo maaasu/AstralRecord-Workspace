@@ -247,9 +247,7 @@ function Add-RingBedrockPanel {
     })
 }
 
-function Add-ActionRingPanelEntries {
-    param($Java, $Bedrock)
-
+function Get-ActionRingIcons {
     $config = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'resourcepack.config.json') | ConvertFrom-Json
     $pluginResources = if ($config.absolutePathOverrides.astralRecordPluginResources) {
         $config.absolutePathOverrides.astralRecordPluginResources
@@ -276,7 +274,44 @@ function Add-ActionRingPanelEntries {
     } finally {
         $hasher.Dispose()
     }
-    $Java.Add('action-ring-panel.sha256', $utf8.GetBytes($revision))
+    return [PSCustomObject]@{ Ids = $ids; Tiles = $tiles; Revision = $revision }
+}
+
+function Add-SkillIconModelEntries {
+    param($Java, $Bedrock, $IconTextures, $ByBase, $ItemModels, $SkillIcons)
+
+    if (!$ByBase.ContainsKey('paper')) { $ByBase.paper = [ordered] @{} }
+    foreach ($sprite in $SkillIcons.Ids) {
+        # Keep this range synchronized with SkillIconCatalog.MODEL_DATA_BASE.
+        $number = 920000 + $sprite
+        $id = "skill_icon_$sprite"
+        if ($ItemModels.ContainsKey($number) -or $IconTextures.Contains("astralrecord.$id")) {
+            throw "Reserved skill icon mapping collides with an item: $id ($number)."
+        }
+        $png = [Convert]::FromBase64String($SkillIcons.Tiles.PSObject.Properties[[string]$sprite].Value)
+        $javaPath = "assets/astralrecord/textures/item/skill/$id.png"
+        Confirm-GuiPng $png $javaPath -Icon
+        $Java.Add($javaPath, $png)
+        $Bedrock.Add("textures/items/$id.png", $png)
+        $IconTextures.Add("astralrecord.$id", [ordered] @{ textures = "textures/items/$id" })
+        Add-PackJson $Java "assets/astralrecord/models/item/skill/$id.json" ([ordered] @{
+            parent = 'minecraft:item/generated'
+            textures = [ordered] @{ layer0 = "astralrecord:item/skill/$id" }
+        })
+        $ByBase.paper.Add([string] $number, (New-JavaModelReference "astralrecord:item/skill/$id"))
+        [ordered] @{
+            id = $id
+            base_item = 'minecraft:paper'
+            custom_model_data = $number
+            render_mode = 'generated'
+        }
+    }
+}
+
+function Add-ActionRingPanelEntries {
+    param($Java, $Bedrock, $SkillIcons)
+
+    $Java.Add('action-ring-panel.sha256', $utf8.GetBytes($SkillIcons.Revision))
 
     $slots = for ($index = 0; $index -le 8; $index++) {
         $angle = [Math]::PI * $index / 4
@@ -291,6 +326,6 @@ function Add-ActionRingPanelEntries {
             Marker = (New-RingRectangle (64 + [Math]::Sin($angle) * 57) (64 - [Math]::Cos($angle) * 57) 8 8)
         }
     }
-    Add-RingJavaPanel $Java $ids $slots
-    Add-RingBedrockPanel $Bedrock $ids $tiles $slots
+    Add-RingJavaPanel $Java $SkillIcons.Ids $slots
+    Add-RingBedrockPanel $Bedrock $SkillIcons.Ids $SkillIcons.Tiles $slots
 }

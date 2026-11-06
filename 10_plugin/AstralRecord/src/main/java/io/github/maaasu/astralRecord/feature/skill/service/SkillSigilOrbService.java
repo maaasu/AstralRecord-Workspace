@@ -849,12 +849,12 @@ public final class SkillSigilOrbService {
         if (listDisplay) {
             lore.add(Component.text("クリックしてシジルを操作", NamedTextColor.YELLOW));
         }
-        return GuiItems.create(
+        return SkillIconCatalog.apply(GuiItems.create(
             icon == null ? DEFAULT_SKILL_ICON : icon,
             SkillPresentationUtil.skillNameComponent(target.definition, "未登録のスキル", NamedTextColor.WHITE),
             lore,
             target.definition.getIconTexture()
-        );
+        ), target.definition.getId());
     }
 
     /** 操作プレイヤーの現在の使用許可を、条件付き説明の表示へ渡します。 */

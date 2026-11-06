@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -556,7 +557,8 @@ public final class SkillBindGui {
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
                 .append(skillLevelDisplay(entry.learnedSkill().getLevel(), skill.getMaxLevel(), NamedTextColor.GOLD)),
             lore,
-            skill.getIconTexture()
+            skill.getIconTexture(),
+            skill.getId()
         );
         return withBindingId(item, entry.bindingId());
     }
@@ -634,7 +636,8 @@ public final class SkillBindGui {
             permitted ? parseMaterial(definition.getIcon(), DEFAULT_SKILL_ICON) : Material.LIGHT_GRAY_WOOL,
             name,
             lore,
-            permitted ? definition.getIconTexture() : null
+            permitted ? definition.getIconTexture() : null,
+            definition.getId()
         );
     }
 
@@ -657,7 +660,7 @@ public final class SkillBindGui {
         lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
         ItemStack item = createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore,
-            skill.getIconTexture());
+            skill.getIconTexture(), skill.getId());
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(unlearnedSkillIdKey, PersistentDataType.STRING, skill.getId());
         item.setItemMeta(meta);
@@ -998,8 +1001,10 @@ public final class SkillBindGui {
                             entry.definition(), "未登録のスキル", NamedTextColor.WHITE
                         ))
                         .append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
+        String skillId = normalAttack ? SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID
+            : entry == null ? null : entry.definition().getId();
         ItemStack item = createItem(material, name, lore,
-            entry == null ? null : entry.definition().getIconTexture());
+            entry == null ? null : entry.definition().getIconTexture(), enabled ? skillId : null);
         if (bindingId == null && (type == SkillBindType.PASSIVE || type == SkillBindType.ACTIVE)) {
             item.setAmount(index + 1);
         }
@@ -1112,7 +1117,7 @@ public final class SkillBindGui {
 
     /** 下段右端へ表示する武器通常攻撃の設定アイテムを生成します。 */
     public ItemStack createNormalAttackItem() {
-        return withBindingId(createItem(
+        ItemStack item = createItem(
             Material.STICK,
             "武器通常攻撃",
             NamedTextColor.WHITE,
@@ -1120,7 +1125,9 @@ public final class SkillBindGui {
                 Component.text("武器タグ SWORD / BOW / STAFF から自動決定", NamedTextColor.GRAY),
                 Component.text("左クリックまたはアクション枠を選択してからクリック", NamedTextColor.YELLOW)
             )
-        ), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID);
+        );
+        String bindingId = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID;
+        return withBindingId(SkillIconCatalog.apply(item, bindingId), bindingId);
     }
 
     private ItemStack createPreviousPageItem(int page, int pages, boolean enabled) {
@@ -1325,7 +1332,8 @@ public final class SkillBindGui {
                 SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
                     .append(skillLevelDisplay(resultingLevel, skill.getMaxLevel(), NamedTextColor.GREEN)),
             lore,
-            preview.definition().getIconTexture()
+            preview.definition().getIconTexture(),
+            preview.definition().getId()
         );
     }
 
@@ -1392,8 +1400,11 @@ public final class SkillBindGui {
         return GuiItems.create(material, name, lore);
     }
 
-    private ItemStack createItem(Material material, Component name, List<Component> lore, @Nullable String iconTexture) {
-        return GuiItems.create(material, name, lore, iconTexture);
+    private ItemStack createItem(
+        Material material, Component name, List<Component> lore,
+        @Nullable String iconTexture, @Nullable String skillId
+    ) {
+        return SkillIconCatalog.apply(GuiItems.create(material, name, lore, iconTexture), skillId);
     }
 
     private ItemStack withBindingId(ItemStack item, String bindingId) {

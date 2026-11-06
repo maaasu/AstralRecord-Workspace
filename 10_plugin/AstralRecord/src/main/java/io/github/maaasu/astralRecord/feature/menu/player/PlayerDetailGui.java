@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
@@ -718,11 +719,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             noItalic(Component.text(entry.resolved() == null ? "習得状態: 未習得" : "習得状態: 習得済み",
                 entry.resolved() == null ? NamedTextColor.RED : NamedTextColor.LIGHT_PURPLE))
         );
-        return createItem(
+        return SkillIconCatalog.apply(createItem(
             Material.BOOK,
             SkillPresentationUtil.skillNameComponent(entry.definition(), "未登録のスキル", NamedTextColor.WHITE),
             lore
-        );
+        ), entry.definition().getId());
     }
 
     /**
