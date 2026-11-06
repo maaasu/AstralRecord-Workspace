@@ -1,0 +1,27 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.skill_effect": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true,
+      "uv_anim": {
+        "offset": [
+          "math.mod(variable.cell, 64.0) / 64.0",
+          "math.floor(variable.cell / 64.0) / 64.0"
+        ],
+        "scale": [
+          0.015625,
+          0.015625
+        ]
+      }
+    }
+  }
+}

@@ -26,7 +26,7 @@ function Add-PackEntries {
 
     foreach ($name in $Names) {
         $bytes = [System.IO.File]::ReadAllBytes((Join-Path $BasePath $name))
-        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta') -or $name.EndsWith('.txt')) {
+        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta') -or $name.EndsWith('.txt') -or $name.EndsWith('.material')) {
             # Keep tracked metadata and notices identical across LF and CRLF checkouts.
             $bytes = $utf8.GetBytes($utf8.GetString($bytes).Replace("`r`n", "`n"))
         }
@@ -162,8 +162,10 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/item/world/storage.png'
     'assets/astralrecord/textures/item/world/blast_furnace.png'
     'assets/astralrecord/font/weapon_attack.json'
+    'assets/astralrecord/font/skill_effect.json'
     'assets/astralrecord/lang/en_us.json'
     'assets/astralrecord/textures/font/weapon_attack.png'
+    'assets/astralrecord/textures/font/skill_effect.png'
     'assets/astralrecord/items/action_ring.json'
     'assets/astralrecord/models/item/action_ring.json'
     'assets/astralrecord/textures/item/action_ring.png'
@@ -315,6 +317,12 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/world/storage.png'
     'textures/entity/world/blast_furnace.png'
     'textures/entity/combat_result.png'
+    'entity/skill_effect.entity.json'
+    'animations/skill_effect.animation.json'
+    'models/entity/skill_effect.geo.json'
+    'render_controllers/skill_effect.render_controllers.json'
+    'materials/skill_effect.material'
+    'textures/entity/skill_effect.png'
     'entity/weapon_attack.entity.json'
     'animations/weapon_attack.animation.json'
     'models/entity/weapon_attack.geo.json'
@@ -366,6 +374,68 @@ $bedrock.Add('item-tooltips-version.txt', $tooltipVersion)
 $weaponAttackVersion = $utf8.GetBytes('1')
 $java.Add('weapon-attack-projectiles-version.txt', $weaponAttackVersion)
 $bedrock.Add('weapon-attack-projectiles-version.txt', $weaponAttackVersion)
+
+$skillEffectSlots = @(Get-Content -LiteralPath (Join-Path $root 'skill-effect-slots.txt') -Encoding UTF8)
+$skillEffectProfiles = @(ConvertFrom-Json -InputObject (
+    Get-Content -LiteralPath (Join-Path $root 'skill-effects.json') -Encoding UTF8 -Raw))
+if ($skillEffectSlots.Count -eq 0 -or $skillEffectSlots.Count -gt 170 -or
+    ($skillEffectSlots | Sort-Object -CaseSensitive -Unique).Count -ne $skillEffectSlots.Count -or
+    ($skillEffectSlots -join "`n") -cne ($skillEffectProfiles.id -join "`n")) {
+    throw 'Skill effect slot list and art catalog must have matching, unique IDs in slot order.'
+}
+$pluginSlotFile = Join-Path $root '../10_plugin/AstralRecord/src/main/resources/skill-effect-slots.txt'
+if (Test-Path -LiteralPath $pluginSlotFile) {
+    $pluginSlots = Get-Content -LiteralPath $pluginSlotFile -Encoding UTF8
+    if (($skillEffectSlots -join "`n") -cne ($pluginSlots -join "`n")) {
+        throw 'Skill effect slot list differs from the plugin slot list.'
+    }
+}
+
+$skillFont = ConvertFrom-Json -InputObject ($utf8.GetString($java['assets/astralrecord/font/skill_effect.json']))
+$skillFontProvider = $skillFont.providers[0]
+if ($skillFontProvider.type -cne 'bitmap' -or $skillFontProvider.file -cne 'astralrecord:font/skill_effect.png' -or
+    $skillFontProvider.height -ne 16 -or $skillFontProvider.ascent -ne 14 -or $skillFontProvider.chars.Count -ne 64) {
+    throw 'Invalid skill effect font provider.'
+}
+for ($row = 0; $row -lt 64; $row++) {
+    $glyphs = $skillFontProvider.chars[$row]
+    if ($glyphs.Length -ne 64) { throw 'Skill effect glyph row has an invalid length.' }
+    for ($column = 0; $column -lt 64; $column++) {
+        if ([int][char]$glyphs[$column] -ne (0xe400 + $row * 64 + $column)) {
+            throw 'Skill effect glyphs are out of slot order.'
+        }
+    }
+}
+foreach ($atlas in @($java['assets/astralrecord/textures/font/skill_effect.png'], $bedrock['textures/entity/skill_effect.png'])) {
+    # PNG IHDR stores both 2048px dimensions in network byte order.
+    if ($atlas.Length -lt 24 -or [BitConverter]::ToString($atlas, 0, 8) -cne '89-50-4E-47-0D-0A-1A-0A' -or
+        [BitConverter]::ToString($atlas, 16, 8) -cne '00-00-08-00-00-00-08-00') {
+        throw 'Skill effect atlas must be a 2048x2048 PNG.'
+    }
+}
+$skillEntity = (ConvertFrom-Json -InputObject ($utf8.GetString(
+    $bedrock['entity/skill_effect.entity.json']))).'minecraft:client_entity'.description
+$skillAnimation = (ConvertFrom-Json -InputObject ($utf8.GetString(
+    $bedrock['animations/skill_effect.animation.json']))).animations
+$skillGeometry = (ConvertFrom-Json -InputObject ($utf8.GetString(
+    $bedrock['models/entity/skill_effect.geo.json']))).'minecraft:geometry'[0].description
+$skillController = (ConvertFrom-Json -InputObject ($utf8.GetString(
+    $bedrock['render_controllers/skill_effect.render_controllers.json']))).render_controllers
+$skillMaterial = (ConvertFrom-Json -InputObject ($utf8.GetString(
+    $bedrock['materials/skill_effect.material']))).materials
+$skillMaterialName = $skillEntity.materials.default + ':entity_emissive_alpha'
+if ($skillEntity.identifier -cne 'astralrecord:skill_effect' -or
+    $skillEntity.textures.default -cne 'textures/entity/skill_effect' -or
+    $skillEntity.geometry.default -cne $skillGeometry.identifier -or
+    $skillGeometry.texture_width -ne 32 -or $skillGeometry.texture_height -ne 32 -or
+    $null -eq $skillAnimation.($skillEntity.animations.motion) -or
+    $null -eq $skillController.($skillEntity.render_controllers[0]).uv_anim -or
+    $skillMaterial.($skillMaterialName).'+defines' -cnotcontains 'USE_UV_ANIM') {
+    throw 'Skill effect Bedrock entity is missing its atlas, geometry, animation, UV controller or material.'
+}
+$skillEffectVersion = $utf8.GetBytes('1')
+$java.Add('skill-effects-version.txt', $skillEffectVersion)
+$bedrock.Add('skill-effects-version.txt', $skillEffectVersion)
 
 # Derive the Bedrock event list and package only the Ogg files referenced by Java.
 $javaSoundPath = 'assets/astralrecord/sounds.json'

@@ -1,0 +1,38 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:skill_effect",
+      "materials": {
+        "default": "astralrecord_skill_effect_uv"
+      },
+      "textures": {
+        "default": "textures/entity/skill_effect"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.skill_effect"
+      },
+      "animations": {
+        "motion": "animation.astralrecord.skill_effect.motion"
+      },
+      "scripts": {
+        "initialize": [
+          "variable.age = 0.0;"
+        ],
+        "pre_animation": [
+          "variable.style = math.clamp(query.property('astralrecord:style'), 0, 679);",
+          "variable.sprite_scale = query.property('astralrecord:size') / 16.0;",
+          "variable.frame = math.clamp(math.floor(variable.age * 20.0), 0, 5);",
+          "variable.cell = variable.style * 6 + variable.frame;",
+          "variable.age = variable.age + query.delta_time;"
+        ],
+        "animate": [
+          "motion"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.astralrecord.skill_effect"
+      ]
+    }
+  }
+}

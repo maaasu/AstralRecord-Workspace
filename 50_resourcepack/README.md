@@ -82,6 +82,18 @@ Java 版は配布マニフェストの `java.actionRingPanel` が固定 HUD と�
 
 Java版は `astralrecord:weapon_attack` の字形を更新し、軌跡・着弾の対応は配布マニフェストで確認します。統合版は発動時に標準粒子を1つ表示し、Proxyから対応パックの通知を受けた接続にはGeyser拡張 `1.14.0` 以降を介して専用の発動・軌跡・着弾演出も送ります。軌跡・着弾の対応が確認できない閲覧者には従来の飛翔粒子と魔法命中粒子を送ります。更新後はAPIに新パックとマニフェストを配置し、RPGプラグイン・Proxy・Geyser拡張を更新して再接続してください。空振り・命中・壁・射程切れを一人称と他の閲覧者から確認し、粒子OFFでも弾体で飛翔を確認できます。
 
+### プレイヤースキル演出
+
+発動・軌跡・着弾・範囲の4段階に6コマずつ用意しています。弓技の矢じり、剣技の軌跡、聖騎士の盾、魔法陣、星や稲妻など、各スキルのモチーフと配色を [skill-effects.json](skill-effects.json) に定義します。位置・再生時刻・判定範囲はプラグイン側の実行結果を使います。画面に向くスプライトと、ワールド上の範囲や経路を示す粒子を組み合わせます。
+
+台帳の行番号を0始まりの固定スロットとします。新規スキルは末尾に追加します。段階番号は発動0、軌跡1、着弾2、範囲3です。両版のアトラスは行優先で、セル番号は `(スロット × 4 + 段階番号) × 6 + コマ番号` です。
+
+- Java版は `astralrecord:skill_effect` のビットマップフォントを使います。字形は `U+E400` からセル番号順に並べます。
+- 統合版は `astralrecord:skill_effect` を使います。`astralrecord:style` はスロット×4＋段階番号、`astralrecord:size` は表示直径を1/16ブロック単位で示します。1枚のアトラスから[レンダーコントローラーとUV対応マテリアル](https://learn.microsoft.com/en-us/minecraft/creator/documents/practices/improvingperformanceandresourceusage#consider-texture-atlasing)でコマを選びます。
+- 配布物には `skill-effects-version.txt` を含めます。互換版は `1` です。
+
+`python scripts/generate-skill-effect-assets.py --check --preview <PNGパス>` で、配布素材の再現性と全スキルの代表コマを確認できます。`--preview-skill <ID>` を追加すると、指定スキルの4段階を各6コマで確認できます。
+
 ### 効果音
 
 ソード、ハンマー、スピア、ボウ、ショートボウ、ロングボウ、ワンド、スタッフの通常攻撃音は、武器ごとに3種類のテイクから再生します。GUIは選択、ダミー枠、アクションリングの枠移動、開閉、ページ切り替え、トグル、確認、拒否、成功、購入成立の音を使い分けます。
