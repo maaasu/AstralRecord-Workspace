@@ -96,7 +96,6 @@ public class ItemStackPacketAdapter {
     private final @Nullable SkillPermissionService skillPermissionService;
     private final ItemService itemService;
     private final ResourcePackService resourcePacks;
-    private final BedrockHeldWeaponDisplay bedrockHeldWeaponDisplay = new BedrockHeldWeaponDisplay();
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> actionRingHoldEligibleSnapshots = new ConcurrentHashMap<>();
@@ -174,10 +173,10 @@ public class ItemStackPacketAdapter {
                 boolean randomStatusRangeDisplayEnabled = playerSettingService.isRandomStatusRangeDisplayEnabled(
                     viewer.getUniqueId()
                 );
-                boolean actionRingHoldSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(
-                    viewer.getUniqueId()
-                ) && actionRingHoldEligibleSnapshots.getOrDefault(viewer.getUniqueId(), false);
-                boolean actionRingOpen = actionRingService.isOpen(viewer);
+                boolean actionRingHoldSelectEnabled = !bedrockViewer
+                    && playerSettingService.isActionRingHoldSelectEnabled(viewer.getUniqueId())
+                    && actionRingHoldEligibleSnapshots.getOrDefault(viewer.getUniqueId(), false);
+                boolean actionRingOpen = !bedrockViewer && actionRingService.isOpen(viewer);
                 int selectedHotbarSlot = actionRingOpen
                     ? actionRingService.getSelectedHotbarSlot(viewer)
                     : selectedHotbarSlots.getOrDefault(viewer.getUniqueId(), -1);
@@ -248,13 +247,7 @@ public class ItemStackPacketAdapter {
                 UUID playerId = player.getUniqueId();
                 int slot = event.getNewSlot();
                 selectedHotbarSlots.put(playerId, slot);
-                if (isBedrockViewerOnMainThread(player)) {
-                    int modelId = bedrockHeldWeaponModel(
-                        player, slot, actionRingHoldEligibleSnapshots.getOrDefault(playerId, false)
-                    );
-                    bedrockHeldWeaponDisplay.sync(player, modelId);
-                }
-                if (playerSettingService.isActionRingHoldSelectEnabled(playerId)) {
+                if (!isBedrockViewerOnMainThread(player) && playerSettingService.isActionRingHoldSelectEnabled(playerId)) {
                     player.updateInventory();
                 }
             }
@@ -267,6 +260,7 @@ public class ItemStackPacketAdapter {
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     Player player = event.getPlayer();
                     if (player.isOnline()
+                        && !isBedrockViewerOnMainThread(player)
                         && playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())
                         && isPlayerInventoryOnlyOpen(player)) {
                         player.updateInventory();
@@ -280,7 +274,6 @@ public class ItemStackPacketAdapter {
                 permittedSkillSnapshots.remove(event.getPlayer().getUniqueId());
                 bedrockSnapshots.remove(event.getPlayer().getUniqueId());
                 actionRingHoldEligibleSnapshots.remove(event.getPlayer().getUniqueId());
-                bedrockHeldWeaponDisplay.forget(event.getPlayer().getUniqueId());
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
         }, plugin);
@@ -297,7 +290,7 @@ public class ItemStackPacketAdapter {
     }
 
     /**
-     * パケット表示に必要な使用許可、Bedrock 判定、アクションリング長押し適格性を
+     * パケット表示に必要な使用許可、Bedrock 判定、Java 版のアクションリング長押し適格性を
      * メインスレッドで受信者別にスナップショット化します。パケット送信側ではこの不変値だけを参照し、
      * プレイヤー本体やスキルツリーへアクセスしません。
      */
@@ -306,9 +299,7 @@ public class ItemStackPacketAdapter {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) {
                 permittedSkillSnapshots.remove(player.getUniqueId());
-                if (Boolean.TRUE.equals(bedrockSnapshots.remove(player.getUniqueId()))) {
-                    bedrockHeldWeaponDisplay.sync(player, 0);
-                }
+                bedrockSnapshots.remove(player.getUniqueId());
                 actionRingHoldEligibleSnapshots.remove(player.getUniqueId());
                 continue;
             }
@@ -317,7 +308,7 @@ public class ItemStackPacketAdapter {
             boolean displaySnapshotChanged = (previousBedrock == null && nextBedrock)
                 || (previousBedrock != null && previousBedrock != nextBedrock);
             boolean permittedSkillSnapshotChanged = false;
-            boolean nextActionRingHoldEligible = actionRingService.hasMultipleConfiguredActions(astPlayer);
+            boolean nextActionRingHoldEligible = !nextBedrock && actionRingService.hasMultipleConfiguredActions(astPlayer);
             Boolean previousActionRingHoldEligible = actionRingHoldEligibleSnapshots.put(
                 player.getUniqueId(),
                 nextActionRingHoldEligible
@@ -333,44 +324,12 @@ public class ItemStackPacketAdapter {
                 permittedSkillSnapshotChanged = previousPermittedSkillIds == null
                     || !previousPermittedSkillIds.equals(nextPermittedSkillIds);
             }
-            if (nextBedrock) {
-                int slot = player.getInventory().getHeldItemSlot();
-                bedrockHeldWeaponDisplay.sync(player, bedrockHeldWeaponModel(player, slot, nextActionRingHoldEligible));
-            } else if (Boolean.TRUE.equals(previousBedrock)) {
-                bedrockHeldWeaponDisplay.forget(player.getUniqueId());
-            }
             if (displaySnapshotChanged) {
                 refreshEquipmentView(player, true);
             } else if (permittedSkillSnapshotChanged || actionRingHoldEligibilityChanged) {
                 player.updateInventory();
             }
         }
-    }
-
-    /**
-     * メインスレッドで、選択中の仮想トライデントに対応するモデル番号を解決します。
-     *
-     * @param player 表示を受け取る統合版プレイヤー
-     * @param slot 選択中、または切替先のホットバー番号
-     * @param hasMultipleActions 長押し選択の候補が2つ以上あるか
-     * @return モデル番号。対応する主武器がなければ0
-     */
-    private int bedrockHeldWeaponModel(@NotNull Player player, int slot, boolean hasMultipleActions) {
-        if (!hasMultipleActions || !playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())) {
-            return 0;
-        }
-
-        if (actionRingService.isOpen(player) && actionRingService.getSelectedHotbarSlot(player) != slot) {
-            return 0;
-        }
-        var item = player.getInventory().getItem(slot);
-        if (item == null || !ItemStackFactory.isWeapon(item)) {
-            return 0;
-        }
-
-        var itemId = ItemStackFactory.getAstralItemId(item);
-        var model = resolveCustomModelData(itemId, ItemStackFactory.getCustomModelData(item));
-        return model != null && model > 0 && model <= BedrockHeldWeaponDisplay.MAX_MODEL_ID ? model : 0;
     }
 
     /**
@@ -608,6 +567,7 @@ public class ItemStackPacketAdapter {
 
     /**
      * AstralRecord アイテムを、受信者の状態を反映したクライアント表示用へ変換します。
+     * 長押し入力用の仮想トライデントは Java 版の受信者にだけ表示します。
      * Bedrock 受信者へは POTION icon を PAPER として送信し、クリック移動時のポーション固有入力を避けます。
      *
      * @param original サーバー側 ItemStack
@@ -675,8 +635,7 @@ public class ItemStackPacketAdapter {
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
-        boolean virtualWeapon = virtualTrident && ItemStackFactory.isWeapon(original);
-        boolean nativeBedrockTrident = bedrockViewer && virtualWeapon;
+        boolean virtualWeapon = !bedrockViewer && virtualTrident && ItemStackFactory.isWeapon(original);
 
         boolean decorateTooltip = tooltip != null && itemId != null;
         if (!decorateTooltip && !virtualWeapon
@@ -727,11 +686,9 @@ public class ItemStackPacketAdapter {
             modified |= ItemStackFactory.hideRandomStatusRangeLore(replaced);
         }
 
-        if (customModelData != null || clearCustomModelData || nativeBedrockTrident) {
+        if (customModelData != null || clearCustomModelData) {
             var meta = replaced.getItemMeta();
-            // Geyser が元のモデル番号で仮想トライデントをカスタムアイテムに変換しないようにします。
-            var displayModelData = nativeBedrockTrident ? null : customModelData;
-            if (meta != null && CustomModelDataComponentUtil.updateModelId(meta, displayModelData)) {
+            if (meta != null && CustomModelDataComponentUtil.updateModelId(meta, customModelData)) {
                 replaced.setItemMeta(meta);
                 modified = true;
             }
