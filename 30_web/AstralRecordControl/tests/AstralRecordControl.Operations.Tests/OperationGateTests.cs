@@ -545,6 +545,153 @@ public sealed class OperationGateTests
     }
 
     [Fact]
+    public async Task InspectedAbortReleasesPreparedSingleOperationWithoutChild()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var lease = await fixture.Reservations.AcquireAsync(new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), ResourceKeys = [ReservationService.ServerKey(server.ServerId)], Mode = HoldMode.Exclusive
+        });
+        await fixture.Reservations.MarkRecoveryAsync(lease.WorkflowId, lease.ReservationId);
+        var recovery = new WorkflowRecoveryRequest(WorkflowRecoveryAction.AbortAfterInspection, "inspected");
+        var state = fixture.Agent.States[server.HostId];
+        fixture.Agent.Inspection = new RecoveryInspection(state, null, false, false, true);
+        await Fault("RecoveryRequired", () => fixture.Operations.RecoverAsync(lease.WorkflowId, recovery));
+        Assert.Equal(lease.ReservationId, fixture.Agent.Holds[server.HostId].ReservationId);
+
+        fixture.Agent.Inspection = new RecoveryInspection(state, null, false, false, false);
+        fixture.Agent.FailReleaseHost = server.HostId;
+        await Assert.ThrowsAsync<IOException>(() => fixture.Operations.RecoverAsync(lease.WorkflowId, recovery));
+        Assert.Equal(ReservationStatus.RecoveryRequired, (await fixture.Reservations.GetAsync(lease.WorkflowId)).Status);
+        fixture.Agent.FailReleaseHost = null;
+        Assert.Null(await fixture.Operations.RecoverAsync(lease.WorkflowId, recovery));
+
+        Assert.Equal(ReservationStatus.Released, (await fixture.Reservations.GetAsync(lease.WorkflowId)).Status);
+        Assert.Equal(WorkflowStatus.Failed, (await fixture.Db.Workflows.SingleAsync()).Status);
+        Assert.Empty(fixture.Agent.Holds);
+        Assert.Equal(lease.ReservationId, fixture.Agent.ReleasedHolds[server.HostId].ReservationId);
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+        Assert.Equal(0, fixture.Agent.DispatchCount);
+    }
+
+    [Fact]
+    public async Task InspectedAbortFencesDelayedSingleOperationPrepareWithoutChild()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var request = new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), ResourceKeys = [ReservationService.ServerKey(server.ServerId)], Mode = HoldMode.Exclusive
+        };
+        fixture.Agent.FailHost = server.HostId;
+        await Assert.ThrowsAsync<IOException>(() => fixture.Reservations.AcquireAsync(request));
+        var lease = await fixture.Reservations.GetAsync(request.WorkflowId);
+        Assert.Equal(ReservationStatus.RecoveryRequired, lease.Status);
+        Assert.Empty(lease.Fences);
+        fixture.Agent.FailHost = null;
+        fixture.Agent.Inspection = new RecoveryInspection(fixture.Agent.States[server.HostId], null, false, false, false);
+        await Fault("RecoveryRequired", () => fixture.Operations.RecoverAsync(lease.WorkflowId, new(WorkflowRecoveryAction.Resume, "inspected")));
+        Assert.Null(await fixture.Operations.RecoverAsync(lease.WorkflowId, new(WorkflowRecoveryAction.AbortAfterInspection, "inspected")));
+
+        var released = await fixture.Reservations.GetAsync(lease.WorkflowId);
+        Assert.Equal(ReservationStatus.Released, released.Status);
+        Assert.Single(released.Fences);
+        var runnerKeys = released.ResourceKeys.Where(x => !x.StartsWith("environment:", StringComparison.Ordinal)).ToArray();
+        await Fault("ReservationConflict", () => fixture.Agent.PrepareAsync(server.HostId, new(lease.ReservationId, lease.WorkflowId, runnerKeys, HoldMode.Exclusive), CancellationToken.None));
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+        Assert.Equal(0, fixture.Agent.DispatchCount);
+    }
+
+    [Fact]
+    public async Task SingleOperationIsNotQueuedAfterItsPreparedLeaseEntersRecovery()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var snapshotCount = 0;
+        fixture.Agent.BeforeSnapshotResponse = async () =>
+        {
+            if (++snapshotCount != 4) return;
+            var hold = fixture.Agent.Holds[server.HostId];
+            await fixture.Reservations.MarkRecoveryAsync(hold.OwnerWorkflowId, hold.ReservationId);
+        };
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 1 };
+
+        await Fault("RecoveryRequired", () => fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid()));
+
+        Assert.Equal(ReservationStatus.RecoveryRequired, (await fixture.Db.ReservationLeases.SingleAsync()).Status);
+        Assert.Empty(await fixture.Db.Operations.ToArrayAsync());
+        Assert.Equal(0, fixture.Agent.DispatchCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LatePrepareResponseDoesNotReviveInspectedSingleOperationAbort(bool lostResponse)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var request = new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), ResourceKeys = [ReservationService.ServerKey(server.ServerId)], Mode = HoldMode.Exclusive
+        };
+        var responseReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Agent.BeforePrepareResponse = async () =>
+        {
+            responseReady.SetResult();
+            await resume.Task;
+            if (lostResponse) throw new IOException("Injected lost response.");
+        };
+        var pending = fixture.Reservations.AcquireAsync(request);
+        try
+        {
+            await responseReady.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            fixture.Agent.FailHost = server.HostId;
+            await Assert.ThrowsAsync<IOException>(() => fixture.Reservations.AcquireAsync(request));
+            fixture.Agent.FailHost = null;
+            fixture.Agent.Inspection = new RecoveryInspection(fixture.Agent.States[server.HostId], null, false, false, false);
+            Assert.Null(await fixture.Operations.RecoverAsync(request.WorkflowId, new(WorkflowRecoveryAction.AbortAfterInspection, "inspected")));
+        }
+        finally { resume.SetResult(); }
+
+        if (lostResponse) await Assert.ThrowsAsync<IOException>(() => pending);
+        else await Fault("RecoveryRequired", () => pending);
+        Assert.Equal(ReservationStatus.Released, (await fixture.Reservations.GetAsync(request.WorkflowId)).Status);
+        Assert.Equal(WorkflowStatus.Failed, (await fixture.Db.Workflows.SingleAsync()).Status);
+        Assert.Empty(fixture.Agent.Holds);
+    }
+
+    [Fact]
+    public async Task ReleaseWaitingForWriterDoesNotReopenCompletedReservation()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var lease = await fixture.Reservations.AcquireAsync(new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), ResourceKeys = [ReservationService.ServerKey(server.ServerId)], Mode = HoldMode.Exclusive
+        });
+        var release = new GateReleaseRequest(lease.WorkflowId, lease.Fences, GateOutcome.Failed, "");
+        await fixture.Agent.ReleaseAsync(server.HostId, new(lease.ReservationId, lease.WorkflowId, lease.Fences.Single().Fence), CancellationToken.None);
+        fixture.Agent.FailReleaseHost = server.HostId;
+        Task waiting = Task.CompletedTask;
+        await fixture.Store.WriteAsync(async () =>
+        {
+            waiting = fixture.Reservations.ReleaseAsync(lease.ReservationId, release);
+            var history = await fixture.Db.ReservationLeases.SingleAsync();
+            history.Status = ReservationStatus.Released;
+            history.ReleaseOutcome = GateOutcome.Failed;
+            foreach (var row in await fixture.Db.Reservations.ToArrayAsync()) row.State = ReservationStatus.Released;
+            (await fixture.Db.Workflows.SingleAsync()).Status = WorkflowStatus.Failed;
+            return true;
+        });
+
+        await waiting;
+        Assert.Equal(ReservationStatus.Released, (await fixture.Reservations.GetAsync(lease.WorkflowId)).Status);
+        Assert.All(await fixture.Db.Reservations.ToArrayAsync(), row => Assert.Equal(ReservationStatus.Released, row.State));
+    }
+
+    [Fact]
     public async Task SchemaOneMigrationBacksUpAndPreservesInventory()
     {
         var root = Path.Combine(Path.GetTempPath(), "control-migration-" + Guid.NewGuid().ToString("N"));
@@ -584,6 +731,7 @@ public sealed class OperationGateTests
         private readonly SqliteConnection connection = new("Data Source=:memory:");
         public ControlDbContext Db { get; private set; } = null!;
         public FakeAgent Agent { get; } = new();
+        public InventoryStore Store { get; private set; } = null!;
         public ReservationService Reservations { get; private set; } = null!;
         public ControlOperationsService Operations { get; private set; } = null!;
         public static async Task<Fixture> CreateAsync(bool enableFiles = false)
@@ -592,9 +740,9 @@ public sealed class OperationGateTests
             f.Db = new(new DbContextOptionsBuilder<ControlDbContext>().UseSqlite(f.connection).Options);
             await f.Db.Database.EnsureCreatedAsync();
             var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true", ["Control:EnableFileControl"] = enableFiles.ToString() }).Build();
-            var store = new InventoryStore(f.Db, new InventoryWriteGate(), TimeProvider.System, config);
-            f.Reservations = new(f.Db, store, f.Agent, config, TimeProvider.System);
-            f.Operations = new(f.Db, store, f.Reservations, f.Agent, TimeProvider.System, config);
+            f.Store = new InventoryStore(f.Db, new InventoryWriteGate(), TimeProvider.System, config);
+            f.Reservations = new(f.Db, f.Store, f.Agent, config, TimeProvider.System);
+            f.Operations = new(f.Db, f.Store, f.Reservations, f.Agent, TimeProvider.System, config);
             return f;
         }
         public async Task<InventoryServer> ServerAsync(string key)
@@ -624,12 +772,16 @@ public sealed class OperationGateTests
         public string? DispatchFaultCode { get; set; }
         public ExecutionSnapshot? QueryResult { get; set; }
         public RecoveryInspection? Inspection { get; set; }
+        public Func<Task>? BeforeSnapshotResponse { get; set; }
+        public Func<Task>? BeforePrepareResponse { get; set; }
         public int PrepareCount { get; private set; }
         public int DispatchCount { get; private set; }
-        public Task<RunnerSnapshot> SnapshotAsync(Guid hostId, CancellationToken token)
+        public async Task<RunnerSnapshot> SnapshotAsync(Guid hostId, CancellationToken token)
         {
             if (SnapshotUnavailableAfterFailure && hostId == FailHost && PrepareCount > 0) throw new IOException("Snapshot unavailable.");
-            return Task.FromResult(new RunnerSnapshot { RunnerEpoch = Guid.NewGuid(), Servers = [States[hostId]], Holds = Holds.TryGetValue(hostId, out var hold) ? [hold] : [] });
+            var snapshot = new RunnerSnapshot { RunnerEpoch = Guid.NewGuid(), Servers = [States[hostId]], Holds = Holds.TryGetValue(hostId, out var hold) ? [hold] : [] };
+            if (BeforeSnapshotResponse is not null) await BeforeSnapshotResponse();
+            return snapshot;
         }
         public async Task<PreparedHold> PrepareAsync(Guid hostId, AcquireHoldRequest request, CancellationToken token)
         {
@@ -640,7 +792,9 @@ public sealed class OperationGateTests
             Holds[hostId] = hold;
             States[hostId] = States[hostId] with { StateRevision = States[hostId].StateRevision + 1 };
             if (hostId == ChangeStateHost) States[hostId] = States[hostId] with { ProcessState = ProcessState.Running };
-            return new(hold, await SnapshotAsync(hostId, token));
+            var prepared = new PreparedHold(hold, await SnapshotAsync(hostId, token));
+            if (BeforePrepareResponse is not null) await BeforePrepareResponse();
+            return prepared;
         }
         public Task ReleaseAsync(Guid hostId, ReleaseHoldRequest request, CancellationToken token)
         {

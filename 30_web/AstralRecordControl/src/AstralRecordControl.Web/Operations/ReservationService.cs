@@ -101,6 +101,9 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
             }
             await store.WriteAsync(async () =>
             {
+                var status = await ReadReservationStatusAsync(lease.ReservationId);
+                if (status is not (ReservationStatus.Preparing or ReservationStatus.Prepared))
+                    throw new InventoryFault(409, "RecoveryRequired");
                 var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == request.WorkflowId);
                 workflow.Status = WorkflowStatus.Running; workflow.UpdatedAtUtc = Now;
                 var history = await db.ReservationLeases.SingleAsync(x => x.ReservationId == lease.ReservationId);
@@ -121,6 +124,8 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
 
     private async Task PersistFenceAsync(Guid reservationId, Guid hostId, long fence) => await store.WriteAsync(async () =>
     {
+        if (await ReadReservationStatusAsync(reservationId) == ReservationStatus.Released)
+            throw new InventoryFault(409, "RecoveryRequired");
         var history = await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId);
         var fences = ControlJson.Deserialize<HostReservationFence[]>(history.FencesJson).Where(x => x.HostId != hostId).Append(new HostReservationFence(hostId, fence)).OrderBy(x => x.HostId).ToArray();
         history.FencesJson = ControlJson.Serialize(fences);
@@ -130,7 +135,7 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
 
     private async Task ReconcilePreparationFailureAsync(Guid reservationId, Guid workflowId, Dictionary<Guid, string[]> hostKeys, bool prepareOutcomeUnknown)
     {
-        await MarkRecoveryAsync(workflowId, reservationId);
+        if (!await MarkRecoveryAsync(workflowId, reservationId)) return;
         try
         {
             var held = new List<HostReservationFence>();
@@ -153,10 +158,18 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
         catch { /* Unknown remote state retains RecoveryRequired and all central resources. */ }
     }
 
-    private async Task CompleteInspectedAbortAsync(Guid reservationId, Guid workflowId) => await store.WriteAsync(async () =>
+    private async Task CompleteInspectedAbortAsync(Guid reservationId, Guid workflowId, bool requireEmptySingleOperation = false) => await store.WriteAsync(async () =>
     {
-        foreach (var row in await db.Reservations.Where(x => x.ReservationId == reservationId).ToArrayAsync()) { row.State = ReservationStatus.Released; row.ReleasedAtUtc = Now; }
+        var status = await ReadReservationStatusAsync(reservationId);
+        if (status == ReservationStatus.Released) return true;
         var history = await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId);
+        if (requireEmptySingleOperation)
+        {
+            if (status != ReservationStatus.RecoveryRequired ||
+                await db.Operations.AnyAsync(x => x.WorkflowId == workflowId || x.ReservationId == reservationId))
+                throw new InventoryFault(409, "RecoveryRequired");
+        }
+        foreach (var row in await db.Reservations.Where(x => x.ReservationId == reservationId).ToArrayAsync()) { row.State = ReservationStatus.Released; row.ReleasedAtUtc = Now; }
         history.Status = ReservationStatus.Released; history.ReleasedAtUtc = Now;
         var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == workflowId);
         workflow.Status = WorkflowStatus.Failed; workflow.RecoveryRequired = false; workflow.UpdatedAtUtc = Now;
@@ -263,34 +276,36 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
 
     public async Task ReleaseAsync(Guid reservationId, GateReleaseRequest request, CancellationToken token = default)
     {
-        var lease = await GetByReservationAsync(reservationId);
-        var history = await db.ReservationLeases.AsNoTracking().SingleAsync(x => x.ReservationId == reservationId);
-        var sameLease = lease.WorkflowId == request.WorkflowId && (lease.RunReference ?? "") == request.RunReference && request.ExpectedFences != null && lease.Fences.Length == request.ExpectedFences.Length && lease.Fences.All(request.ExpectedFences.Contains);
-        if (lease.Status == ReservationStatus.Released)
+        var lease = await store.WriteAsync(async () =>
         {
-            if (sameLease && history.ReleaseOutcome == request.Outcome) return;
-            throw new InventoryFault(409, "ReservationConflict");
-        }
-        if (lease.Status is ReservationStatus.Releasing or ReservationStatus.RecoveryRequired)
-        {
-            if (!sameLease || history.ReleaseOutcome != request.Outcome) throw new InventoryFault(409, "ReservationConflict");
-        }
-        else RequireLease(lease, request.WorkflowId, request.ExpectedFences!, request.RunReference);
-        var pending = await db.Operations.AsNoTracking().Where(x => x.ReservationId == reservationId).ToArrayAsync();
-        if (pending.Any(x => !OperationValidation.IsTerminal(x.Status))) throw new InventoryFault(409, "RecoveryRequired");
-        if (lease.Status == ReservationStatus.Prepared)
-            await store.WriteAsync(async () =>
+            var history = await db.ReservationLeases.AsNoTracking().SingleOrDefaultAsync(x => x.ReservationId == reservationId)
+                ?? throw new InventoryFault(404, "NotFound");
+            var current = Lease(history);
+            var sameLease = current.WorkflowId == request.WorkflowId && (current.RunReference ?? "") == request.RunReference &&
+                request.ExpectedFences != null && current.Fences.Length == request.ExpectedFences.Length && current.Fences.All(request.ExpectedFences.Contains);
+            if (current.Status is ReservationStatus.Released or ReservationStatus.Releasing or ReservationStatus.RecoveryRequired)
+            {
+                if (!sameLease || history.ReleaseOutcome != request.Outcome) throw new InventoryFault(409, "ReservationConflict");
+                if (current.Status == ReservationStatus.Released) return current;
+            }
+            else RequireLease(current, request.WorkflowId, request.ExpectedFences!, request.RunReference);
+            var pending = await db.Operations.AsNoTracking().Where(x => x.ReservationId == reservationId).ToArrayAsync();
+            if (pending.Any(x => !OperationValidation.IsTerminal(x.Status))) throw new InventoryFault(409, "RecoveryRequired");
+            if (current.Status == ReservationStatus.Prepared)
             {
                 var row = await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId);
                 row.ReleaseOutcome = request.Outcome; row.Status = ReservationStatus.Releasing;
                 foreach (var reservation in await db.Reservations.Where(x => x.ReservationId == reservationId).ToArrayAsync()) reservation.State = ReservationStatus.Releasing;
-                return true;
-            });
+            }
+            return current;
+        });
+        if (lease.Status == ReservationStatus.Released) return;
         try
         {
             foreach (var fence in lease.Fences.OrderBy(x => x.HostId)) await agents.ReleaseAsync(fence.HostId, new ReleaseHoldRequest(reservationId, request.WorkflowId, fence.Fence), token);
             await store.WriteAsync(async () =>
             {
+                if (await ReadReservationStatusAsync(reservationId) == ReservationStatus.Released) return true;
                 foreach (var row in await db.Reservations.Where(x => x.ReservationId == reservationId).ToArrayAsync()) { row.State = ReservationStatus.Released; row.ReleasedAtUtc = Now; }
                 var history = await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId);
                 history.Status = ReservationStatus.Released; history.ReleasedAtUtc = Now;
@@ -346,19 +361,7 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
         if (action == WorkflowRecoveryAction.AbortAfterInspection)
         {
             foreach (var (hostId, keys) in hostKeys.OrderBy(x => x.Key))
-            {
-                var fence = held.SingleOrDefault(x => x.HostId == hostId) ?? lease.Fences.SingleOrDefault(x => x.HostId == hostId);
-                if (fence == null)
-                {
-                    // Force a hold/release tombstone even when a delayed Prepare has
-                    // not reached the Runner yet. The Agent serializes both calls.
-                    var prepared = await agents.PrepareAsync(hostId, new AcquireHoldRequest(lease.ReservationId, workflowId, keys, original.Mode), token);
-                    if (prepared.Hold.ReservationId != lease.ReservationId || prepared.Hold.OwnerWorkflowId != workflowId || prepared.Hold.Fence < 1 || !prepared.Hold.ResourceKeys.Order(StringComparer.Ordinal).SequenceEqual(keys.Order(StringComparer.Ordinal))) throw new InventoryFault(409, "RecoveryRequired");
-                    fence = new HostReservationFence(hostId, prepared.Hold.Fence);
-                    await PersistFenceAsync(lease.ReservationId, hostId, fence.Fence);
-                }
-                await agents.ReleaseAsync(hostId, new ReleaseHoldRequest(lease.ReservationId, workflowId, fence.Fence), token);
-            }
+                await ReleasePreparationHoldAsync(lease, hostId, keys, original.Mode, held.SingleOrDefault(x => x.HostId == hostId), token);
             await CompleteInspectedAbortAsync(lease.ReservationId, workflowId);
             return;
         }
@@ -389,8 +392,78 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
         });
     }
 
-    public async Task MarkRecoveryAsync(Guid workflowId, Guid reservationId) => await store.WriteAsync(async () =>
+    internal async Task AbortSingleOperationPreparationAsync(Guid workflowId, CancellationToken token)
     {
+        var lease = await GetAsync(workflowId);
+        var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId, token);
+        if (workflow.Kind != "SingleOperation" || workflow.Status != WorkflowStatus.RecoveryRequired ||
+            lease.Status != ReservationStatus.RecoveryRequired || lease.AdapterId is not null ||
+            await db.Operations.AnyAsync(x => x.WorkflowId == workflowId || x.ReservationId == lease.ReservationId, token))
+            throw new InventoryFault(409, "RecoveryRequired");
+
+        var original = ControlJson.Deserialize<ReservationAcquireRequest>(workflow.RequestJson);
+        var serverKeys = lease.ResourceKeys.Where(x => x.StartsWith("server:", StringComparison.Ordinal)).ToArray();
+        var hostKeys = await ResolveHostsAsync(lease.ResourceKeys);
+        if (original.WorkflowId != workflowId || original.Mode != HoldMode.Exclusive || original.RunReference is not null ||
+            serverKeys.Length != 1 || hostKeys.Count != 1 ||
+            !Guid.TryParse(serverKeys[0].AsSpan(7), out var serverId))
+            throw new InventoryFault(409, "RecoveryRequired");
+        var (hostId, keys) = hostKeys.Single();
+        if (lease.Fences.Length > 1 || lease.Fences.Any(x => x.HostId != hostId || x.Fence < 1))
+            throw new InventoryFault(409, "RecoveryRequired");
+
+        var snapshot = await agents.SnapshotAsync(hostId, token);
+        var matchingHolds = snapshot.Holds.Where(x => x.ReservationId == lease.ReservationId).ToArray();
+        if (matchingHolds.Length > 1) throw new InventoryFault(409, "RecoveryRequired");
+        var hold = matchingHolds.SingleOrDefault();
+        HostReservationFence? observed = null;
+        if (hold is not null)
+        {
+            if (hold.OwnerWorkflowId != workflowId || hold.Mode != original.Mode || hold.Fence < 1 ||
+                !hold.ResourceKeys.Order(StringComparer.Ordinal).SequenceEqual(keys.Order(StringComparer.Ordinal)) ||
+                lease.Fences.Any(x => x.Fence != hold.Fence))
+                throw new InventoryFault(409, "RecoveryRequired");
+            observed = new HostReservationFence(hostId, hold.Fence);
+        }
+        RequireSafeRecoveryInspection(serverId, await agents.InspectRecoveryAsync(hostId, serverId, token));
+        if (observed is not null && lease.Fences.Length == 0)
+            await PersistFenceAsync(lease.ReservationId, hostId, observed.Fence);
+        await ReleasePreparationHoldAsync(lease, hostId, keys, original.Mode, observed, token);
+        await CompleteInspectedAbortAsync(lease.ReservationId, workflowId, requireEmptySingleOperation: true);
+    }
+
+    internal static void RequireSafeRecoveryInspection(Guid serverId, RecoveryInspection inspected)
+    {
+        if (inspected.Runtime.ServerId != serverId || inspected.RecoveryRequired ||
+            (inspected.ProcessAlive && (!inspected.IdentityMatches || inspected.Runtime.ProcessState != ProcessState.Running || inspected.Runtime.CurrentSessionId != inspected.Session?.ServerSessionId)) ||
+            (!inspected.ProcessAlive && (inspected.Runtime.ProcessState != ProcessState.Stopped || inspected.Runtime.CurrentSessionId != null)))
+            throw new InventoryFault(409, "RecoveryRequired");
+    }
+
+    private async Task ReleasePreparationHoldAsync(GateLease lease, Guid hostId, string[] keys, HoldMode mode, HostReservationFence? observed, CancellationToken token)
+    {
+        var fence = observed ?? lease.Fences.SingleOrDefault(x => x.HostId == hostId);
+        if (fence == null)
+        {
+            // Force a hold/release tombstone even when a delayed Prepare has
+            // not reached the Runner yet. The Agent serializes both calls.
+            var prepared = await agents.PrepareAsync(hostId, new AcquireHoldRequest(lease.ReservationId, lease.WorkflowId, keys, mode), token);
+            if (prepared.Hold.ReservationId != lease.ReservationId || prepared.Hold.OwnerWorkflowId != lease.WorkflowId ||
+                prepared.Hold.Mode != mode || prepared.Hold.Fence < 1 ||
+                !prepared.Hold.ResourceKeys.Order(StringComparer.Ordinal).SequenceEqual(keys.Order(StringComparer.Ordinal)))
+                throw new InventoryFault(409, "RecoveryRequired");
+            fence = new HostReservationFence(hostId, prepared.Hold.Fence);
+            await PersistFenceAsync(lease.ReservationId, hostId, fence.Fence);
+        }
+        await agents.ReleaseAsync(hostId, new ReleaseHoldRequest(lease.ReservationId, lease.WorkflowId, fence.Fence), token);
+    }
+
+    private Task<ReservationStatus> ReadReservationStatusAsync(Guid reservationId) =>
+        db.ReservationLeases.Where(x => x.ReservationId == reservationId).Select(x => x.Status).SingleAsync();
+
+    public async Task<bool> MarkRecoveryAsync(Guid workflowId, Guid reservationId) => await store.WriteAsync(async () =>
+    {
+        if (await ReadReservationStatusAsync(reservationId) == ReservationStatus.Released) return false;
         var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == workflowId);
         workflow.Status = WorkflowStatus.RecoveryRequired; workflow.RecoveryRequired = true; workflow.UpdatedAtUtc = Now;
         foreach (var row in await db.Reservations.Where(x => x.ReservationId == reservationId).ToArrayAsync()) row.State = ReservationStatus.RecoveryRequired;
