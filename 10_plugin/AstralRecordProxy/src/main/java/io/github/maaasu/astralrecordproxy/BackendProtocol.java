@@ -5,7 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,6 +26,10 @@ final class BackendProtocol {
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
+    static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
+    static final String BEDROCK_SKILL_MENU_RESULT = "bedrock_skill_menu_result";
+    static final int SKILL_MENU_NO_SELECTION = -1;
+    private static final int MAX_SKILL_MENU_BUTTONS = 8;
 
     private BackendProtocol() {
     }
@@ -66,6 +72,7 @@ final class BackendProtocol {
                     yield new Chat(messageId, playerId, authorName, channel, displayName, level, className, original, converted);
                 }
                 case SERVER_METRICS -> new ServerMetrics(input.readDouble());
+                case BEDROCK_SKILL_MENU -> readBedrockSkillMenu(input);
                 // 旧RPGが更新前に受け取った対応通知で送信を続けている場合は破棄する。
                 case "bedrock_profile_hud", "bedrock_profile_hud_images" -> Retired.INSTANCE;
                 case PRIVATE_CHAT -> {
@@ -91,6 +98,37 @@ final class BackendProtocol {
                 }
                 default -> throw new IOException("Unknown plugin message type: " + type);
             };
+        }
+    }
+
+    private static BedrockSkillMenu readBedrockSkillMenu(DataInputStream input) throws IOException {
+        UUID token = new UUID(input.readLong(), input.readLong());
+        int count = input.readUnsignedByte();
+        if (count == 0 || count > MAX_SKILL_MENU_BUTTONS) {
+            throw new IOException("Bedrock skill menu button count is invalid");
+        }
+        List<String> labels = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            labels.add(input.readUTF());
+        }
+        if (input.available() > 0) {
+            throw new IOException("Bedrock skill menu payload has trailing data");
+        }
+        return new BedrockSkillMenu(token, List.copyOf(labels));
+    }
+
+    static byte[] bedrockSkillMenuResult(UUID token, int index) {
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (DataOutputStream output = new DataOutputStream(bytes)) {
+                output.writeUTF(BEDROCK_SKILL_MENU_RESULT);
+                output.writeLong(token.getMostSignificantBits());
+                output.writeLong(token.getLeastSignificantBits());
+                output.writeByte(index);
+            }
+            return bytes.toByteArray();
+        } catch (IOException impossible) {
+            throw new IllegalStateException(impossible);
         }
     }
 
@@ -182,10 +220,13 @@ final class BackendProtocol {
     }
 
     sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat, DirectMessage,
-        Retired {
+        BedrockSkillMenu, Retired {
     }
 
     record Connect(String targetServer, int permission) implements Incoming {
+    }
+
+    record BedrockSkillMenu(UUID token, List<String> labels) implements Incoming {
     }
 
     record Metadata(

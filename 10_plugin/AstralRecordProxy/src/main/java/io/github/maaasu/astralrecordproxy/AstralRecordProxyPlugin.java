@@ -425,10 +425,14 @@ public final class AstralRecordProxyPlugin {
         if (!(event.getSource() instanceof ServerConnection connection)) {
             return;
         }
-        NetworkSettings settings = settings();
-        if (settings == null) return;
         try {
             BackendProtocol.Incoming incoming = BackendProtocol.decode(event.getData());
+            if (incoming instanceof BackendProtocol.BedrockSkillMenu menu) {
+                openBedrockSkillMenu(connection, menu);
+                return;
+            }
+            NetworkSettings settings = settings();
+            if (settings == null) return;
             if (incoming instanceof BackendProtocol.Connect connect) {
                 requestConnectionWithAdmission(connection.getPlayer(), connection.getServerInfo().getName(),
                     connect.targetServer());
@@ -512,6 +516,36 @@ public final class AstralRecordProxyPlugin {
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
         }
+    }
+
+    private void openBedrockSkillMenu(ServerConnection connection, BackendProtocol.BedrockSkillMenu menu) {
+        if (!isCurrentSkillMenuConnection(connection)) {
+            return;
+        }
+        if (proxy.getPluginManager().isLoaded("geyser")) {
+            try {
+                if (GeyserSkillMenu.open(connection.getPlayer().getUniqueId(), menu.labels(),
+                    index -> sendBedrockSkillMenuResult(connection, menu.token(), index))) {
+                    return;
+                }
+            } catch (RuntimeException | LinkageError exception) {
+                logger.warn("Could not open Bedrock skill menu", exception);
+            }
+        }
+        sendBedrockSkillMenuResult(connection, menu.token(), BackendProtocol.SKILL_MENU_NO_SELECTION);
+    }
+
+    private void sendBedrockSkillMenuResult(ServerConnection connection, UUID token, int index) {
+        if (isCurrentSkillMenuConnection(connection)) {
+            connection.sendPluginMessage(CHANNEL, BackendProtocol.bedrockSkillMenuResult(token, index));
+        }
+    }
+
+    private boolean isCurrentSkillMenuConnection(ServerConnection connection) {
+        Player player = connection.getPlayer();
+        return player.isActive()
+            && proxy.getPlayer(player.getUniqueId()).orElse(null) == player
+            && player.getCurrentServer().orElse(null) == connection;
     }
 
     /**

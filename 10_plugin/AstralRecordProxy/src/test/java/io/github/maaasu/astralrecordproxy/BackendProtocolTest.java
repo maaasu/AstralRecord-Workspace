@@ -11,12 +11,68 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 class BackendProtocolTest {
+    @Test
+    void decodesBedrockSkillMenuTokenAndOrderedLabels() throws Exception {
+        UUID token = UUID.fromString("7c72cb6c-8cfd-4d74-8c67-6f39a4b4b9ca");
+        String[] labels = {"§a斬撃", "回復", "防御", "移動", "雷撃", "突進", "吸収", "反撃"};
+
+        BackendProtocol.BedrockSkillMenu menu = assertInstanceOf(BackendProtocol.BedrockSkillMenu.class,
+            BackendProtocol.decode(bedrockSkillMenuPayload(token, labels.length, labels)));
+
+        assertEquals(token, menu.token());
+        assertEquals(List.of(labels), menu.labels());
+    }
+
+    @Test
+    void rejectsMalformedBedrockSkillMenuRequests() throws Exception {
+        UUID token = UUID.randomUUID();
+        byte[] noButtons = bedrockSkillMenuPayload(token, 0);
+        byte[] tooManyButtons = bedrockSkillMenuPayload(token, 9, "a", "b", "c", "d", "e", "f", "g", "h", "i");
+        byte[] valid = bedrockSkillMenuPayload(token, 1, "斬撃");
+
+        assertThrows(IOException.class, () -> BackendProtocol.decode(noButtons));
+        assertThrows(IOException.class, () -> BackendProtocol.decode(tooManyButtons));
+        assertThrows(IOException.class, () -> BackendProtocol.decode(Arrays.copyOf(valid, valid.length - 1)));
+        assertThrows(IOException.class, () -> BackendProtocol.decode(Arrays.copyOf(valid, valid.length + 1)));
+    }
+
+    @Test
+    void encodesBedrockSkillMenuResultAsTokenAndSignedIndex() throws Exception {
+        UUID token = UUID.randomUUID();
+        for (int index : new int[] {-1, 0, 7}) {
+            try (DataInputStream input = new DataInputStream(
+                new ByteArrayInputStream(BackendProtocol.bedrockSkillMenuResult(token, index)))) {
+                assertEquals("bedrock_skill_menu_result", input.readUTF());
+                assertEquals(token, new UUID(input.readLong(), input.readLong()));
+                assertEquals(index, input.readByte());
+                assertEquals(0, input.available());
+            }
+        }
+    }
+
+    private static byte[] bedrockSkillMenuPayload(UUID token, int count, String... labels) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("bedrock_skill_menu");
+            output.writeLong(token.getMostSignificantBits());
+            output.writeLong(token.getLeastSignificantBits());
+            output.writeByte(count);
+            for (String label : labels) {
+                output.writeUTF(label);
+            }
+        }
+        return bytes.toByteArray();
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: Proxyの/server要求は保存準備メッセージとして接続先をRPG backendへ渡す。
