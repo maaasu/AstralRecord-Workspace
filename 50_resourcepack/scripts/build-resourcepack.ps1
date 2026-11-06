@@ -84,6 +84,7 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/font/combat_hud.json'
     'assets/astralrecord/textures/font/combat_hud.png'
     'player-progress-hud-version.txt'
+    'wide-combat-meter-version.txt'
     'assets/astralrecord/font/profile_hud_player.json'
     'assets/minecraft/textures/gui/sprites/hud/food_empty.png'
     'assets/minecraft/textures/gui/sprites/hud/food_empty_hunger.png'
@@ -350,6 +351,10 @@ Add-ItemModelEntries $java $bedrock $skillIcons
 if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '2' -or
     $utf8.GetString($bedrock['player-progress-hud-version.txt']) -cne '2') {
     throw 'Invalid profile HUD version marker in resource pack.'
+}
+
+if ($utf8.GetString($java['wide-combat-meter-version.txt']) -cne '1') {
+    throw 'Invalid wide combat meter version marker in Java resource pack.'
 }
 
 Add-ActionRingPanelEntries $java $bedrock $skillIcons

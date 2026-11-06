@@ -7,7 +7,7 @@ from pathlib import Path
 
 combat = import_module("generate-combat-hud-assets")
 ROOT = Path(__file__).resolve().parents[1] / "assets/astralrecord"
-CELL_WIDTH = 13
+CELL_WIDTH = 24
 CELL_HEIGHT = 36
 
 # The digits all use four columns. Narrow punctuation gives grouped numbers room to breathe.
@@ -100,6 +100,9 @@ def main():
     for fill in range(11):
         meter = ("############", "#" + "+" * fill + "-" * (10 - fill) + "#", "############")
         shapes[chr(0xE910 + fill)] = (meter, meter_colors, 11)
+        wide_fill = (22 * fill + 5) // 10
+        wide_meter = ("#" * 24, "#" + "+" * wide_fill + "-" * (22 - wide_fill) + "#", "#" * 24)
+        shapes[chr(0xE960 + fill)] = (wide_meter, meter_colors, 11)
     width = CELL_WIDTH * len(shapes)
     pixels = bytearray(width * CELL_HEIGHT * 4)
     for index, (rows, palette, top) in enumerate(shapes.values()):

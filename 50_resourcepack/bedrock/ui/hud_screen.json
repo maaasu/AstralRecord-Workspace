@@ -71,7 +71,7 @@
           "texture": "textures/ui/astralrecord/profile_level",
           "color": [ 0.55, 0.88, 0.88 ],
           "size": [ 9, 9 ],
-          "offset": [ -104, -110 ],
+          "offset": [ -104, -120 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -91,7 +91,7 @@
         "profile_level_value": {
           "type": "label",
           "size": [ 93, 10 ],
-          "offset": [ -93, -110 ],
+          "offset": [ -93, -120 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -126,7 +126,7 @@
           "texture": "textures/ui/astralrecord/profile_gold",
           "color": [ 0.96, 0.80, 0.51 ],
           "size": [ 9, 9 ],
-          "offset": [ 8, -110 ],
+          "offset": [ 8, -120 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -146,7 +146,7 @@
         "profile_gold_value": {
           "type": "label",
           "size": [ 128, 10 ],
-          "offset": [ 19, -110 ],
+          "offset": [ 19, -120 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -181,7 +181,7 @@
           "texture": "textures/ui/astralrecord/profile_class",
           "color": [ 0.83, 0.67, 0.93 ],
           "size": [ 9, 9 ],
-          "offset": [ -104, -96 ],
+          "offset": [ -104, -106 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -201,7 +201,7 @@
         "profile_class_value": {
           "type": "label",
           "size": [ 93, 10 ],
-          "offset": [ -93, -96 ],
+          "offset": [ -93, -106 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -236,7 +236,7 @@
           "texture": "textures/ui/astralrecord/profile_exp",
           "color": [ 0.55, 0.88, 0.88 ],
           "size": [ 9, 9 ],
-          "offset": [ -2, -96 ],
+          "offset": [ -2, -106 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -256,7 +256,7 @@
         "profile_exp_value": {
           "type": "label",
           "size": [ 35, 10 ],
-          "offset": [ 9, -96 ],
+          "offset": [ 9, -106 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -291,7 +291,7 @@
           "texture": "textures/ui/astralrecord/profile_points",
           "color": [ 0.96, 0.80, 0.51 ],
           "size": [ 9, 9 ],
-          "offset": [ -104, -82 ],
+          "offset": [ -104, -92 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -311,7 +311,7 @@
         "profile_points_value": {
           "type": "label",
           "size": [ 190, 10 ],
-          "offset": [ -93, -82 ],
+          "offset": [ -93, -92 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -408,7 +408,7 @@
   "astralrecord_combat_actionbar": {
     "type": "image",
     "texture": "textures/ui/astralrecord/actionbar_plate",
-    "size": [ 232, 28 ],
+    "size": [ 254, 38 ],
     "anchor_from": "bottom_middle",
     "anchor_to": "bottom_middle",
     "offset": [ 0, -43 ],
@@ -419,7 +419,7 @@
           "type": "image",
           "texture": "textures/ui/astralrecord/combat_hp",
           "size": [ 11, 11 ],
-          "offset": [ 5, 3 ],
+          "offset": [ 5, 5 ],
           "anchor_from": "top_left",
           "anchor_to": "top_left",
           "layer": 31
@@ -428,15 +428,15 @@
       {
         "combat_hp_value": {
           "type": "label",
-          "size": [ 61, 10 ],
-          "offset": [ 18, 4 ],
+          "size": [ 65, 10 ],
+          "offset": [ 18, 5 ],
           "anchor_from": "top_left",
           "anchor_to": "top_left",
           "layer": 31,
           "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.3s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
           "text_alignment": "left",
-          "font_scale_factor": 0.84,
-          "color": [ 1, 0.53, 0.59 ],
+          "font_scale_factor": 0.9,
+          "color": [ 1, 0.68, 0.72 ],
           "shadow": true,
           "localize": false
         }
@@ -446,7 +446,7 @@
           "type": "image",
           "texture": "textures/ui/astralrecord/combat_mp",
           "size": [ 11, 11 ],
-          "offset": [ 82, 3 ],
+          "offset": [ 88, 5 ],
           "anchor_from": "top_left",
           "anchor_to": "top_left",
           "layer": 31
@@ -455,15 +455,15 @@
       {
         "combat_mp_value": {
           "type": "label",
-          "size": [ 61, 10 ],
-          "offset": [ 95, 4 ],
+          "size": [ 65, 10 ],
+          "offset": [ 101, 5 ],
           "anchor_from": "top_left",
           "anchor_to": "top_left",
           "layer": 31,
           "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.15s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
           "text_alignment": "left",
-          "font_scale_factor": 0.84,
-          "color": [ 0.49, 0.85, 1 ],
+          "font_scale_factor": 0.9,
+          "color": [ 0.68, 0.91, 1 ],
           "shadow": true,
           "localize": false
         }
@@ -473,7 +473,7 @@
           "type": "image",
           "texture": "textures/ui/astralrecord/combat_eng",
           "size": [ 11, 11 ],
-          "offset": [ 159, 3 ],
+          "offset": [ 171, 5 ],
           "anchor_from": "top_left",
           "anchor_to": "top_left",
           "layer": 31
@@ -482,38 +482,38 @@
       {
         "combat_eng_value": {
           "type": "label",
-          "size": [ 61, 10 ],
-          "offset": [ 172, 4 ],
+          "size": [ 65, 10 ],
+          "offset": [ 184, 5 ],
           "anchor_from": "top_left",
           "anchor_to": "top_left",
           "layer": 31,
           "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.27s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
           "text_alignment": "left",
-          "font_scale_factor": 0.84,
-          "color": [ 1, 0.81, 0.39 ],
+          "font_scale_factor": 0.9,
+          "color": [ 1, 0.87, 0.58 ],
           "shadow": true,
           "localize": false
         }
       },
       {
         "combat_hp_meter@hud.astralrecord_combat_meter": {
-          "offset": [ 18, 13 ],
+          "offset": [ 18, 16 ],
           "$combat_meter_id": "h",
-          "$combat_meter_color": [ 1, 0.53, 0.59 ]
+          "$combat_meter_color": [ 1, 0.68, 0.72 ]
         }
       },
       {
         "combat_mp_meter@hud.astralrecord_combat_meter": {
-          "offset": [ 95, 13 ],
+          "offset": [ 101, 16 ],
           "$combat_meter_id": "m",
-          "$combat_meter_color": [ 0.49, 0.85, 1 ]
+          "$combat_meter_color": [ 0.68, 0.91, 1 ]
         }
       },
       {
         "combat_eng_meter@hud.astralrecord_combat_meter": {
-          "offset": [ 172, 13 ],
+          "offset": [ 184, 16 ],
           "$combat_meter_id": "e",
-          "$combat_meter_color": [ 1, 0.81, 0.39 ]
+          "$combat_meter_color": [ 1, 0.87, 0.58 ]
         }
       },
       {
@@ -521,11 +521,11 @@
           "type": "label",
           "anchor_from": "top_middle",
           "anchor_to": "top_middle",
-          "size": [ 222, 10 ],
-          "offset": [ 0, 15 ],
+          "size": [ 244, 10 ],
+          "offset": [ 0, 19 ],
           "text": "((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))",
           "text_alignment": "center",
-          "font_scale_factor": 0.85,
+          "font_scale_factor": 0.9,
           "shadow": true,
           "localize": false,
           "layer": 31
@@ -537,7 +537,7 @@
     "type": "panel",
     "anchor_from": "top_left",
     "anchor_to": "top_left",
-    "size": [ 40, 2 ],
+    "size": [ 50, 2 ],
     "controls": [
       {
         "track": {
@@ -561,43 +561,43 @@
           "variables": [
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '1|'))))",
-              "$combat_meter_width": 4
+              "$combat_meter_width": 5
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '2|'))))",
-              "$combat_meter_width": 8
+              "$combat_meter_width": 10
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '3|'))))",
-              "$combat_meter_width": 12
+              "$combat_meter_width": 15
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '4|'))))",
-              "$combat_meter_width": 16
-            },
-            {
-              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '5|'))))",
               "$combat_meter_width": 20
             },
             {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '5|'))))",
+              "$combat_meter_width": 25
+            },
+            {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '6|'))))",
-              "$combat_meter_width": 24
+              "$combat_meter_width": 30
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '7|'))))",
-              "$combat_meter_width": 28
+              "$combat_meter_width": 35
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '8|'))))",
-              "$combat_meter_width": 32
+              "$combat_meter_width": 40
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '9|'))))",
-              "$combat_meter_width": 36
+              "$combat_meter_width": 45
             },
             {
               "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + 'a|'))))",
-              "$combat_meter_width": 40
+              "$combat_meter_width": 50
             }
           ]
         }

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
+import io.github.maaasu.astralRecord.shared.display.CombatHudGlyphs;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -15,9 +16,9 @@ public final class JavaProfileHud {
     private static final Key CLASS_FONT = Key.key("astralrecord", "profile_hud_class");
     private static final Key GAMEPLAY_FONT = Key.key("astralrecord", "gameplay_hud");
     private static final String TEXT_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789vmaxs?+-/()%[]";
-    private static final TextColor PRIMARY = TextColor.color(0xF4F1E8);
-    private static final TextColor SECONDARY = TextColor.color(0xB4BFCC);
-    private static final TextColor DIVIDER = TextColor.color(0x8796A8);
+    private static final TextColor PRIMARY = TextColor.color(0xFFFDF5);
+    private static final TextColor SECONDARY = TextColor.color(0xDCE5F0);
+    private static final TextColor DIVIDER = TextColor.color(0xBCCADA);
     private static final String NARROW_GLYPHS = ".,:|!";
     private static final int LEFT_OFFSET = 8;
     private static final int PROFILE_LEFT_OF_CENTER = 118;
@@ -27,6 +28,8 @@ public final class JavaProfileHud {
     private static final int NEGATIVE_SPACE = 0xE955;
     private static final int LARGEST_SPACE_BIT = 4;
     private static final int METER_ADVANCE = 13;
+    private static final int WIDE_METER_ADVANCE = 25;
+    private static final int FIRST_WIDE_METER = 0xE960;
 
     private JavaProfileHud() {
     }
@@ -105,6 +108,12 @@ public final class JavaProfileHud {
                 .append(spacing(-shift - line.width(), font));
     }
 
+    /**
+     * 個人情報の項目間に余白付きの区切り線を描き、専用フォントの字送りを合計します。
+     * @param source 表示内容
+     * @param font 表示に使う専用フォント
+     * @return 変換後の表示と字送り
+     */
     private static OverlayLine withHudFont(Component source, Key font) {
         TextComponent.Builder line = Component.text().font(font);
         if (source.color() != null) {
@@ -114,7 +123,7 @@ public final class JavaProfileHud {
         if (source instanceof TextComponent text) {
             String content = text.content();
             if ("   ".equals(content) && source.children().isEmpty()) {
-                String separator = "  |  ";
+                String separator = "   |   ";
                 int advance = separator.chars().map(JavaProfileHud::gameplayAdvance).sum();
                 return new OverlayLine(Component.text(separator, DIVIDER).font(font), advance);
             }
@@ -143,17 +152,35 @@ public final class JavaProfileHud {
         return new OverlayLine(line.build(), width);
     }
 
-    static Component resource(TextComponent icon, double current, double max, Component meter) {
+    /**
+     * リソースの数値の下にゲージを描画し、短い数値の場合もゲージ分の幅を確保します。
+     * @param icon リソース種別の字形
+     * @param current 現在値
+     * @param max 最大値
+     * @param fill 0〜10の充填段階
+     * @param color ゲージ色
+     * @param wide 横長ゲージに対応するパックを適用済みならtrue
+     * @return 通常戦闘行のリソース1項目
+     */
+    static Component resource(TextComponent icon, double current, double max, int fill, TextColor color, boolean wide) {
         int meterStart = gameplayAdvance(icon.content().codePointAt(0)) + gameplayAdvance(' ');
+        int meterAdvance = wide ? WIDE_METER_ADVANCE : METER_ADVANCE;
+        Component meter = wide ? Component.text(Character.toString(FIRST_WIDE_METER + fill))
+                : CombatHudGlyphs.meter(fill);
+        String currentText = String.format(Locale.ROOT, "%.0f", current);
+        String maxText = String.format(Locale.ROOT, "%.0f", max);
+        int valueWidth = currentText.chars().map(JavaProfileHud::gameplayAdvance).sum()
+                + gameplayAdvance('/') + maxText.chars().map(JavaProfileHud::gameplayAdvance).sum();
         return Component.empty().font(GAMEPLAY_FONT)
                 .append(spacing(meterStart, GAMEPLAY_FONT))
-                .append(meter.font(GAMEPLAY_FONT))
-                .append(spacing(-meterStart - METER_ADVANCE, GAMEPLAY_FONT))
+                .append(meter.color(color).font(GAMEPLAY_FONT))
+                .append(spacing(-meterStart - meterAdvance, GAMEPLAY_FONT))
                 .append(icon.font(GAMEPLAY_FONT))
                 .append(Component.space())
-                .append(Component.text(String.format(Locale.ROOT, "%.0f", current), PRIMARY))
+                .append(Component.text(currentText, PRIMARY))
                 .append(Component.text("/", DIVIDER))
-                .append(Component.text(String.format(Locale.ROOT, "%.0f", max), SECONDARY));
+                .append(Component.text(maxText, SECONDARY))
+                .append(spacing(Math.max(0, meterAdvance - valueWidth), GAMEPLAY_FONT));
     }
 
     static Component styleStat(Component stat, boolean enabled) {
@@ -178,6 +205,9 @@ public final class JavaProfileHud {
         }
         if (glyph >= 0xE910 && glyph <= 0xE91A) {
             return METER_ADVANCE;
+        }
+        if (glyph >= FIRST_WIDE_METER && glyph <= FIRST_WIDE_METER + 10) {
+            return WIDE_METER_ADVANCE;
         }
         if (glyph == ' ' || glyph == '(' || glyph == ')' || glyph == '[' || glyph == ']') {
             return 3;

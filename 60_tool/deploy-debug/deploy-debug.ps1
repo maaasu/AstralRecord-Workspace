@@ -419,6 +419,7 @@ function Publish-ResourcePacks {
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
     $profileHud = $null
+    $wideCombatMeter = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -470,6 +471,16 @@ function Publish-ResourcePacks {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing profile HUD asset in Java pack: $asset" }
             }
+        }
+        $meterEntry = $archive.GetEntry('wide-combat-meter-version.txt')
+        if ($null -ne $meterEntry) {
+            if ($profileHud -cne '2' -or $meterEntry.Length -ne 1) {
+                throw 'Invalid wide combat meter version marker.'
+            }
+            $reader = [IO.StreamReader]::new($meterEntry.Open())
+            try { $wideCombatMeter = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($wideCombatMeter -cne '1') { throw 'Unsupported wide combat meter version.' }
         }
         $tooltipsEntry = $archive.GetEntry('item-tooltips-version.txt')
         if ($null -ne $tooltipsEntry) {
@@ -557,6 +568,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $profileHud) {
         $javaManifest.profileHud = $profileHud
+    }
+    if ($null -ne $wideCombatMeter) {
+        $javaManifest.wideCombatMeter = $wideCombatMeter
     }
     [ordered]@{
         java = $javaManifest

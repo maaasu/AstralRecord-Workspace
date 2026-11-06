@@ -51,6 +51,7 @@ public class PlayerHudView {
     private static final TextColor HEALTH_METER_PULSE = TextColor.color(0xFFB092);
     private static final TextColor MANA_METER = TextColor.color(0x68D8F5);
     private static final TextColor ENERGY_METER = TextColor.color(0xEBC165);
+    private static final Component ACTION_BAR_GAP = Component.text("  ");
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int COMPACT_TRANSIENT_BAR_LENGTH = 10;
@@ -311,7 +312,7 @@ public class PlayerHudView {
     }
 
     /**
-     * 通常リソースと状態異常を表示し、補助情報のDPSはプレイヤー設定に従って省略します。
+     * 通常リソースと状態異常を余白で区切って表示し、補助情報のDPSはプレイヤー設定に従って省略します。
      * @param player 表示対象（メインスレッドから呼び出します）
      * @param snapshot 現在ステータス
      * @param activeConditions 有効な状態異常
@@ -340,6 +341,7 @@ public class PlayerHudView {
         UUID playerId = player.getUniqueId();
         boolean pack = resourcePackService.hasManagedJavaPack(playerId);
         boolean styledJavaHud = resourcePackService.hasJavaProfileHud(playerId);
+        boolean wideJavaMeter = resourcePackService.hasWideJavaCombatMeter(playerId);
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
         Component additionalStats = Component.empty()
@@ -362,13 +364,13 @@ public class PlayerHudView {
             }
         }
         sendActionBar(player, Component.empty()
-            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter, styledJavaHud)
+            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter, styledJavaHud, wideJavaMeter)
                     : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
-            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER, styledJavaHud)
+            .append(ACTION_BAR_GAP)
+            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER, styledJavaHud, wideJavaMeter)
                     : statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
-            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER, styledJavaHud)
+            .append(ACTION_BAR_GAP)
+            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER, styledJavaHud, wideJavaMeter)
                     : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
             .append(additionalStats));
     }
@@ -995,35 +997,53 @@ public class PlayerHudView {
         return Math.clamp(current / max, 0.0D, 1.0D);
     }
 
+    /**
+     * 明るい現在値と灰色の区切り・最大値でステータスを表示します。
+     * @param label 項目名
+     * @param current 現在値
+     * @param max 最大値
+     * @param color 項目名の色
+     * @return 囲み付きのステータス表示
+     */
     private Component statText(String label, double current, double max, NamedTextColor color) {
         return framed(Component.text(label + " ", color, TextDecoration.BOLD)
             .append(Component.text(String.format("%.0f", current), NamedTextColor.WHITE))
-            .append(Component.text("/", NamedTextColor.DARK_GRAY))
+            .append(Component.text("/", NamedTextColor.GRAY))
             .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY)));
     }
 
     /**
-     * 専用アイコンと現在値の間に空白を入れ、現在値と最大値の横に10段階のゲージを描画します。
+     * 専用アイコンと現在値の間に空白を入れ、パックに対応する配置で10段階のゲージを描画します。
      * @param icon リソース種別の字形
      * @param current 現在値
      * @param max 最大値
      * @param color ゲージ色
      * @param styledJavaHud 新しいJava版専用書体を使う場合true
+     * @param wideJavaMeter 横長ゲージの字形を利用できる場合true
      * @return パック適用済みの接続向けの表示
      */
-    private Component resourceGauge(TextComponent icon, double current, double max, TextColor color, boolean styledJavaHud) {
-        Component meter = CombatHudGlyphs.meter(CombatHudGlyphs.fill(current, max)).color(color);
+    private Component resourceGauge(TextComponent icon, double current, double max, TextColor color,
+            boolean styledJavaHud, boolean wideJavaMeter) {
+        int fill = CombatHudGlyphs.fill(current, max);
         if (styledJavaHud) {
-            return JavaProfileHud.resource(icon, current, max, meter);
+            return JavaProfileHud.resource(icon, current, max, fill, color, wideJavaMeter);
         }
+        Component meter = CombatHudGlyphs.meter(fill).color(color);
         return icon.append(Component.space())
                 .append(Component.text(String.format(Locale.ROOT, "%.0f", current), NamedTextColor.WHITE))
-                .append(Component.text("/", NamedTextColor.DARK_GRAY))
+                .append(Component.text("/", NamedTextColor.GRAY))
                 .append(Component.text(String.format(Locale.ROOT, "%.0f", max), NamedTextColor.GRAY))
                 .append(Component.space())
                 .append(meter);
     }
 
+    /**
+     * 明るい水色のSHと数値を表示し、リチャージ中は残り時間を併記します。
+     * @param snapshot 現在ステータス
+     * @param rechargeState リチャージ中の状態。リチャージしていない場合はnull
+     * @param shieldDisplayCapacity 表示上限
+     * @return 余白と囲みを含むSH表示。表示上限が正でなければ空
+     */
     private Component shieldActionText(
         StatusSnapshot snapshot,
         ShieldRechargeState rechargeState,
@@ -1033,9 +1053,9 @@ public class PlayerHudView {
         if (maxShield <= 0.0D) {
             return Component.empty();
         }
-        Component shield = Component.text("SH ", NamedTextColor.BLUE, TextDecoration.BOLD)
+        Component shield = Component.text("SH ", NamedTextColor.AQUA, TextDecoration.BOLD)
             .append(Component.text(String.format("%.0f", snapshot.getCurrentShield()), NamedTextColor.WHITE))
-            .append(Component.text("/", NamedTextColor.DARK_GRAY))
+            .append(Component.text("/", NamedTextColor.GRAY))
             .append(Component.text(String.format("%.0f", maxShield), NamedTextColor.GRAY));
         if (rechargeState != null) {
             double remainingSeconds = rechargeState.remainingMs(System.currentTimeMillis()) / 1000.0D;
@@ -1102,21 +1122,34 @@ public class PlayerHudView {
         };
     }
 
+    /**
+     * 白い項目名と単位、金色の値でDPSを表示します。
+     * @param currentDps 表示するDPS
+     * @return 余白と囲みを含むDPS表示
+     */
     private Component dpsActionText(double currentDps) {
         String dps = formatOneDecimal(currentDps);
-        return separated(framed(Component.text("DPS ", NamedTextColor.DARK_GRAY)
+        return separated(framed(Component.text("DPS ", NamedTextColor.WHITE)
             .append(Component.text(dps, NamedTextColor.GOLD))
-            .append(Component.text("/s", NamedTextColor.GRAY))));
+            .append(Component.text("/s", NamedTextColor.WHITE))));
     }
 
+    /**
+     * @param content 表示する項目
+     * @return 灰色の括弧で囲んだ項目
+     */
     private Component framed(Component content) {
-        return Component.text("〚", NamedTextColor.DARK_GRAY)
+        return Component.text("〚", NamedTextColor.GRAY)
                 .append(content)
-                .append(Component.text("〛", NamedTextColor.DARK_GRAY));
+                .append(Component.text("〛", NamedTextColor.GRAY));
     }
 
+    /**
+     * @param content 表示する項目
+     * @return 前に半角空白2つを加えた項目
+     */
     private Component separated(Component content) {
-        return Component.text(" ", NamedTextColor.DARK_GRAY).append(content);
+        return ACTION_BAR_GAP.append(content);
     }
 
     private String formatOneDecimal(double value) {

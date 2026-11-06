@@ -46,7 +46,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> requestedJavaProfileHud = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Boolean> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Set<UUID> readyBedrockProfileHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
@@ -152,7 +152,7 @@ public class ResourcePackService {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
                     }
                     if (pack.profileHud()) {
-                        requestedJavaProfileHud.add(viewer);
+                        requestedJavaProfileHud.put(viewer, pack.wideCombatMeter());
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -423,7 +423,16 @@ public class ResourcePackService {
      * @return 対応パックの適用が成功済みならtrue
      */
     public boolean hasJavaProfileHud(UUID playerId) {
-        return hasManagedJavaPack(playerId) && requestedJavaProfileHud.contains(playerId);
+        return hasManagedJavaPack(playerId) && requestedJavaProfileHud.containsKey(playerId);
+    }
+
+    /**
+     * 横長の戦闘ゲージ字形を含む管理パックが適用済みか判定します。
+     * @param playerId 表示対象のUUID
+     * @return 対応パックの適用が成功済みならtrue
+     */
+    public boolean hasWideJavaCombatMeter(UUID playerId) {
+        return hasManagedJavaPack(playerId) && Boolean.TRUE.equals(requestedJavaProfileHud.get(playerId));
     }
 
     /**
