@@ -24,6 +24,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
@@ -139,7 +142,8 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         if (context.family() == InputFamily.RIGHT_CLICK
             && isPlayerMode(astPlayer)
             && isWeapon(astPlayer)) {
-            boolean holdSelectEnabled = !actionRingService.isProgressionPresetQuickCastPending(player)
+            boolean holdSelectEnabled = !astPlayer.isBedrock()
+                && !actionRingService.isProgressionPresetQuickCastPending(player)
                 && playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())
                 && actionRingService.hasMultipleConfiguredActions(astPlayer);
             // 長押しはクライアント側の仮想トライデント使用を始められる AIR 入力だけで受け付ける。
@@ -198,6 +202,23 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
             LogId.E_3002,
             "skill_action_ring_quit:" + event.getPlayer().getName()
         );
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerDeath(@NotNull PlayerDeathEvent event) {
+        actionRingService.closeBedrockMenu(event.getEntity());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
+        actionRingService.closeBedrockMenu(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
+        if (event.getPlayer() instanceof Player player) {
+            actionRingService.closeBedrockMenu(player);
+        }
     }
 
     private boolean isPlayerMode(AstPlayer astPlayer) {

@@ -2747,6 +2747,8 @@ public final class AstralRecord extends JavaPlugin {
         );
         networkBridgeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         networkBridgeService.setResourcePackService(resourcePackService);
+        skillActionRingService.setBedrockMenuSender(networkBridgeService::openBedrockSkillMenu);
+        networkBridgeService.setBedrockSkillMenuResultHandler(skillActionRingService::acceptBedrockMenuResult);
         accountModeApplicationService.setModeAppliedListener(player -> {
             playerClassService.updatePlayerListName(player);
             networkBridgeService.refreshPlayerMetadata(player);

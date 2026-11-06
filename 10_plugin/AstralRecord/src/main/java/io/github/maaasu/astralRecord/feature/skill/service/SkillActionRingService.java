@@ -1,10 +1,13 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
@@ -92,7 +95,7 @@ public final class SkillActionRingService {
     private static final int COOLDOWN_BAR_LENGTH = ActionRingPanel.GAUGE_STEPS;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
-    private static final int BEDROCK_CLICK_COOLDOWN_TICKS = 2;
+    private static final int BEDROCK_MENU_LIMIT_TICKS = 20 * 60;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final SlotView EMPTY_SLOT = new SlotView(null, null, "", Material.AIR, false, SlotAvailability.UNAVAILABLE);
 
@@ -105,6 +108,8 @@ public final class SkillActionRingService {
     private final SkillActionRingDisplay actionRingDisplay;
     private final SkillActionRingHud actionRingHud;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, BedrockSelection> bedrockSelections = new ConcurrentHashMap<>();
+    private BedrockMenuSender bedrockMenuSender = (player, token, labels) -> false;
     private final Set<UUID> progressionPresetSelections = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private ItemWeaponAttackService itemWeaponAttackService;
@@ -186,7 +191,15 @@ public final class SkillActionRingService {
      */
     public void toggle(@NotNull AstPlayer astPlayer) {
         var player = astPlayer.getBukkit();
-        if (isOpen(player)) {
+        UUID playerId = player.getUniqueId();
+        BedrockSelection selection = bedrockSelections.get(playerId);
+        if (selection != null) {
+            if (!selection.armed() && !selection.expired(plugin.getServer().getCurrentTick())) {
+                return;
+            }
+            bedrockSelections.remove(playerId, selection);
+        }
+        if (sessions.containsKey(playerId)) {
             close(player, true);
             GuiSound.CLOSE.play(player);
             return;
@@ -205,13 +218,18 @@ public final class SkillActionRingService {
 
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
         List<SlotView> slots = resolveSlots(astPlayer, caster, bindings);
-        if (progressionPresetSelections.remove(player.getUniqueId()) && slots.getFirst().configured()) {
-            castSlot(astPlayer, slots.getFirst(), 1, configuredCount);
+        boolean quickCast = progressionPresetSelections.remove(playerId);
+        if (astPlayer.isBedrock()) {
+            openBedrockMenu(astPlayer, caster, slots);
+            return;
+        }
+        if (quickCast && slots.getFirst().configured()) {
+            castSlot(astPlayer, slots.getFirst().skillId(), 1, configuredCount);
             return;
         }
         if (configuredCount == 1) {
             SlotView onlySlot = slots.stream().filter(SlotView::configured).findFirst().orElseThrow();
-            castSlot(astPlayer, onlySlot, 1, 1);
+            castSlot(astPlayer, onlySlot.skillId(), 1, 1);
             return;
         }
         open(astPlayer, PlayerMsgId.P_5854, slots, caster);
@@ -238,8 +256,7 @@ public final class SkillActionRingService {
      */
     public boolean open(@NotNull AstPlayer astPlayer, @NotNull PlayerMsgId selectionInstruction) {
         var player = astPlayer.getBukkit();
-        var playerId = player.getUniqueId();
-        if (sessions.containsKey(playerId)) {
+        if (isOpen(player)) {
             return false;
         }
         if (!hasUsableMainHandWeapon(astPlayer)) {
@@ -248,11 +265,14 @@ public final class SkillActionRingService {
         }
 
         List<String> bindings = ringBindings(astPlayer);
-        if (configuredCount(bindings) < 2) {
+        if (configuredCount(bindings) < (astPlayer.isBedrock() ? 1 : 2)) {
             return false;
         }
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
-        return open(astPlayer, selectionInstruction, resolveSlots(astPlayer, caster, bindings), caster);
+        List<SlotView> slots = resolveSlots(astPlayer, caster, bindings);
+        return astPlayer.isBedrock()
+            ? openBedrockMenu(astPlayer, caster, slots)
+            : open(astPlayer, selectionInstruction, slots, caster);
     }
 
     private boolean open(
@@ -266,7 +286,8 @@ public final class SkillActionRingService {
         if (sessions.containsKey(playerId)) {
             return false;
         }
-        boolean bedrock = astPlayer.isBedrock();
+        // 統合版は呼び出し元でフォームへ振り分けます。
+        boolean bedrock = false;
         actionRingHud.closeImmediately(player);
         SkillActionRingHud.View hud = hasScreenHud(playerId, bedrock) ? actionRingHud.open(astPlayer, bedrock) : null;
         RingSession session;
@@ -316,7 +337,8 @@ public final class SkillActionRingService {
      * @return 表示中なら true
      */
     public boolean isOpen(@NotNull Player player) {
-        return sessions.containsKey(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        return sessions.containsKey(playerId) || bedrockSelections.containsKey(playerId);
     }
 
     /**
@@ -327,7 +349,8 @@ public final class SkillActionRingService {
      */
     public boolean isWaitingForCast(@NotNull Player player) {
         RingSession session = sessions.get(player.getUniqueId());
-        return session != null && session.hasConfirmedSelection();
+        BedrockSelection selection = bedrockSelections.get(player.getUniqueId());
+        return session != null && session.hasConfirmedSelection() || selection != null && selection.armed();
     }
 
     /**
@@ -342,7 +365,11 @@ public final class SkillActionRingService {
      */
     public int getSelectedHotbarSlot(@NotNull Player player) {
         RingSession session = sessions.get(player.getUniqueId());
-        return session == null ? -1 : session.hotbarSlot();
+        if (session != null) {
+            return session.hotbarSlot();
+        }
+        BedrockSelection selection = bedrockSelections.get(player.getUniqueId());
+        return selection == null ? -1 : selection.hotbarSlot();
     }
 
     /**
@@ -393,24 +420,19 @@ public final class SkillActionRingService {
 
     /**
      * 表示中の選択を確定し、確定済みの場合は発動してリングを閉じます。
-     * 統合版では同じリング内の左クリックを2 tick間隔で受け付けます。
+     * 統合版ではフォームで選択したスキルを、ここで初めて発動します。
      *
      * @param astPlayer 対象プレイヤー
      */
     public void activateSelected(@NotNull AstPlayer astPlayer) {
         Player player = astPlayer.getBukkit();
+        if (astPlayer.isBedrock()) {
+            castBedrockSelection(astPlayer);
+            return;
+        }
         RingSession session = sessions.get(player.getUniqueId());
         if (session == null) {
             return;
-        }
-
-        if (astPlayer.isBedrock()) {
-            int currentTick = plugin.getServer().getCurrentTick();
-            if (session.lastBedrockClickTick != null
-                && currentTick - session.lastBedrockClickTick < BEDROCK_CLICK_COOLDOWN_TICKS) {
-                return;
-            }
-            session.lastBedrockClickTick = currentTick;
         }
 
         if (!hasUsableMainHandWeapon(astPlayer)) {
@@ -434,28 +456,180 @@ public final class SkillActionRingService {
         int selectedPosition = session.selectedIndex + 1;
         int slotCount = session.slots.size();
         destroySession(player, session, false);
-        castSlot(astPlayer, selectedSlot, selectedPosition, slotCount);
+        castSlot(astPlayer, selectedSlot == null ? null : selectedSlot.skillId(), selectedPosition, slotCount);
+    }
+
+    /** 統合版の標準フォームへ選択肢を送る入口を接続します。 */
+    public void setBedrockMenuSender(@NotNull BedrockMenuSender sender) {
+        bedrockMenuSender = sender;
+    }
+
+    /** プロキシから返ったフォーム操作を、同じ武器とスキルの発動待ちへ移します。 */
+    public void acceptBedrockMenuResult(@NotNull Player player, @NotNull UUID token, int index) {
+        UUID playerId = player.getUniqueId();
+        BedrockSelection selection = bedrockSelections.get(playerId);
+        if (selection == null || !selection.token().equals(token) || selection.armed()) {
+            return;
+        }
+        if (index < 0 || index >= selection.options().size()
+            || selection.expired(plugin.getServer().getCurrentTick())) {
+            bedrockSelections.remove(playerId, selection);
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        MenuOption option = selection.options().get(index);
+        if (!canUseBedrockSelection(astPlayer, player, selection, option)) {
+            bedrockSelections.remove(playerId, selection);
+            return;
+        }
+        bedrockSelections.put(playerId, selection.arm(index));
+        GuiSound.RING_SELECT.play(player);
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5892, option.name());
+    }
+
+    private boolean openBedrockMenu(AstPlayer astPlayer, PlayerSkillCaster caster, List<SlotView> slots) {
+        Player player = astPlayer.getBukkit();
+        int hotbarSlot = player.getInventory().getHeldItemSlot();
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        String itemId = ItemStackFactory.getAstralItemId(weapon);
+        if (itemId == null) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
+
+        List<MenuOption> options = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        for (int index = 0; index < slots.size(); index++) {
+            SlotView slot = slots.get(index);
+            if (slot.configured()) {
+                String name = ColorCodeUtil.toPlainText(slot.name(), "スキル");
+                options.add(new MenuOption(index, slot.skillId(), name));
+                labels.add(bedrockMenuLabel(caster, slot, name));
+            }
+        }
+        UUID playerId = player.getUniqueId();
+        BedrockSelection selection = new BedrockSelection(
+            UUID.randomUUID(), astPlayer.getAccount().getUuid(), player.getWorld().getUID(),
+            hotbarSlot, itemId, ItemStackFactory.getEquipmentInstanceId(weapon), List.copyOf(options),
+            plugin.getServer().getCurrentTick(), -1
+        );
+        bedrockSelections.put(playerId, selection);
+        if (!bedrockMenuSender.open(player, selection.token(), List.copyOf(labels))) {
+            bedrockSelections.remove(playerId, selection);
+            GuiSound.DENY.play(player);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5893);
+            return false;
+        }
+        openListener.accept(astPlayer);
+        ensureTask();
+        return true;
+    }
+
+    private String bedrockMenuLabel(PlayerSkillCaster caster, SlotView slot, String name) {
+        SkillDefinition definition = slot.definition();
+        long remaining = 0L;
+        if (definition != null) {
+            String cooldownId = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(slot.skillId())
+                ? SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID
+                : skillService.resolveCooldownId(definition.getId());
+            remaining = skillService.getRemainingCooldownTicks(caster, cooldownId);
+        }
+        String label = PlayerMsgResource.format(PlayerMsgId.P_5891.getId(), name,
+            CooldownView.seconds(Math.max(0L, remaining)));
+        PlayerMsgId status = switch (slot.availability()) {
+            case MANA -> PlayerMsgId.P_5895;
+            case ENERGY -> PlayerMsgId.P_5896;
+            case BLOCKED, UNAVAILABLE -> PlayerMsgId.P_5897;
+            case AVAILABLE, COOLDOWN -> null;
+        };
+        return status == null ? label : label + " / " + PlayerMsgResource.getMessage(status.getId());
+    }
+
+    private boolean canUseBedrockSelection(@Nullable AstPlayer astPlayer, Player player,
+                                           BedrockSelection selection, MenuOption option) {
+        return astPlayer != null && astPlayer.isBedrock() && player.isOnline() && !player.isDead()
+            && astPlayer.getAccount().getMode() == AccountMode.PLAYER
+            && selection.accountId().equals(astPlayer.getAccount().getUuid())
+            && selection.worldId().equals(player.getWorld().getUID())
+            && SkillActionRingHoldService.matchesHeldWeapon(player, selection.hotbarSlot(),
+                selection.itemId(), selection.equipmentInstanceId())
+            && hasUsableMainHandWeapon(astPlayer)
+            && hasCurrentMenuBinding(astPlayer, option);
+    }
+
+    private boolean hasCurrentMenuBinding(AstPlayer astPlayer, MenuOption option) {
+        List<String> bindings = ringBindings(astPlayer);
+        return option.slotIndex() < bindings.size() && option.skillId().equals(bindings.get(option.slotIndex()));
+    }
+
+    private void castBedrockSelection(AstPlayer astPlayer) {
+        Player player = astPlayer.getBukkit();
+        UUID playerId = player.getUniqueId();
+        BedrockSelection selection = bedrockSelections.get(playerId);
+        if (selection == null || !selection.armed() || !bedrockSelections.remove(playerId, selection)) {
+            return;
+        }
+        MenuOption option = selection.options().get(selection.selectedIndex());
+        if (!canUseBedrockSelection(astPlayer, player, selection, option)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        castSlot(astPlayer, option.skillId(), option.slotIndex() + 1, SLOT_COUNT);
+    }
+
+    /** 統合版のボタン一覧をプロキシに渡します。 */
+    @FunctionalInterface
+    public interface BedrockMenuSender {
+        boolean open(Player player, UUID token, List<String> labels);
+    }
+
+    private record MenuOption(int slotIndex, String skillId, String name) {}
+
+    private record BedrockSelection(UUID token, UUID accountId, UUID worldId, int hotbarSlot,
+                                    String itemId, @Nullable String equipmentInstanceId,
+                                    List<MenuOption> options, int openedTick, int selectedIndex) {
+        private boolean armed() {
+            return selectedIndex >= 0;
+        }
+
+        private boolean expired(int now) {
+            return !armed() && now - openedTick >= BEDROCK_MENU_LIMIT_TICKS;
+        }
+
+        private BedrockSelection arm(int index) {
+            return new BedrockSelection(token, accountId, worldId, hotbarSlot, itemId,
+                equipmentInstanceId, options, openedTick, index);
+        }
     }
 
     private boolean castSlot(
         @NotNull AstPlayer astPlayer,
-        @Nullable SlotView slot,
+        @Nullable String skillId,
         int selectedPosition,
         int slotCount
     ) {
-        if (slot == null) {
+        if (skillId == null || skillId.isBlank()) {
             return false;
         }
         Player player = astPlayer.getBukkit();
-        String skillId = slot.skillId();
         String skillDisplayName = "未設定";
         if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
             if (itemWeaponAttackService == null) {
                 return false;
             }
-            itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
+            if (astPlayer.isBedrock()) {
+                SkillCastResult result = itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation(), null);
+                if (!result.success()) {
+                    if (itemWeaponAttackService.getRemainingAttackCooldownTicks(astPlayer) > 0L) {
+                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5802);
+                    }
+                    return false;
+                }
+            } else {
+                itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
+            }
             skillDisplayName = "武器通常攻撃";
-        } else if (skillId != null && !skillId.isBlank()) {
+        } else {
             LearnedSkillInstance learned = ownershipService.findInstance(astPlayer, skillId);
             SkillDefinition definition = learned == null ? null : skillService.registry().getDefinition(learned.getSkillId());
             skillDisplayName = SkillPresentationUtil.plainName(definition, "未定義スキル");
@@ -470,17 +644,14 @@ public final class SkillActionRingService {
             if (!castResult.success()) {
                 return false;
             }
-        } else {
-            return false;
         }
         GuiSound.RING_CAST.play(player);
-        PlayerMessageService.getInstance().send(
-            astPlayer,
-            PlayerMsgId.P_5807,
-            slotCount,
-            selectedPosition,
-            skillDisplayName
-        );
+        if (astPlayer.isBedrock()) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5894, skillDisplayName);
+        } else {
+            PlayerMessageService.getInstance().send(
+                astPlayer, PlayerMsgId.P_5807, slotCount, selectedPosition, skillDisplayName);
+        }
         return true;
     }
 
@@ -495,8 +666,14 @@ public final class SkillActionRingService {
         close(player, false);
     }
 
+    /** プレイヤーの移動や他の画面により統合版の選択を破棄します。 */
+    public void closeBedrockMenu(@NotNull Player player) {
+        bedrockSelections.remove(player.getUniqueId());
+    }
+
     private void close(Player player, boolean animate) {
         progressionPresetSelections.remove(player.getUniqueId());
+        bedrockSelections.remove(player.getUniqueId());
         RingSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
             destroySession(player, session, animate);
@@ -528,6 +705,7 @@ public final class SkillActionRingService {
      */
     public void stop() {
         progressionPresetSelections.clear();
+        bedrockSelections.clear();
         if (task != null) {
             task.cancel();
             task = null;
@@ -549,6 +727,8 @@ public final class SkillActionRingService {
     }
 
     private void tick() {
+        int now = plugin.getServer().getCurrentTick();
+        bedrockSelections.values().removeIf(selection -> selection.expired(now));
         for (Map.Entry<UUID, RingSession> entry : sessions.entrySet()) {
             Player player = plugin.getServer().getPlayer(entry.getKey());
             RingSession session = entry.getValue();
@@ -565,7 +745,7 @@ public final class SkillActionRingService {
                 }
             }
         }
-        if (sessions.isEmpty() && task != null) {
+        if (sessions.isEmpty() && bedrockSelections.isEmpty() && task != null) {
             task.cancel();
             task = null;
         }
@@ -1105,7 +1285,6 @@ public final class SkillActionRingService {
         private int renderedDimmedSlots = -1;
         private long renderedGauges = -1;
         private int confirmedIndex = -1;
-        private Integer lastBedrockClickTick;
         private RingPhase phase = RingPhase.SELECTING;
         private long phaseElapsedTicks;
         private int introFrame;

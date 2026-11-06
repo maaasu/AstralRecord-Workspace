@@ -320,6 +320,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             PlayerSettingKey.ACTION_RING_HOLD_SELECT,
             (Boolean) resolveValue(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, draftValues),
             List.of(
+                PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5395.getId()),
                 Component.text("※有効にすると、構えている間は武器の見た目がトライデントに変化します。", NamedTextColor.RED),
                 Component.text("※動作が不安定になる可能性があります。", NamedTextColor.RED)
             )
