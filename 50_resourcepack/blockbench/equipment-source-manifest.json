@@ -63,21 +63,21 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 21002,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_bow.json": "449f8724c03e938c30e7a8cf64e25d6e774585022d5b10a26455c871723a0c76",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_0.json": "b062a14640d8f6dfefd2bbc663bde4c9e480269bcda242e864e953741ec2e0db",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_1.json": "db231f61bfa99b209750aaf60d2ae8a6d971083fc842fb978a14ff1dfd19c26c",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_2.json": "37b0dc0599be6c8b3449e0630b7c75a03ffb83ed61344e6cd16f05bdf98cc176",
-        "assets/astralrecord/textures/item/custom/nox_bow.png": "b5a4d4065f5caaf893996043549abcc06710c5c9d15707b6783e7a66fe011d17",
+        "assets/astralrecord/models/item/custom/nox_bow.json": "e83c4d50732c6edd1366b0226857632b3300685a5e13fc1bc9b85786a598fb29",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_0.json": "244d98e505faba109dbc45c969633de778b86d291afb1419847bda635d61a2d4",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_1.json": "c581f7ad44f6d7486d49e7841d34196f8c8efca74750c7579d8ee366541909d8",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_2.json": "0028d3182138b720ac6df709c43e04b55335e2b79dc2a9ef92a5c045a3067bd6",
+        "assets/astralrecord/textures/item/custom/nox_bow.png": "16b4d0fb93b18649ecc60568d3fd90be533a05b178eb90c97d4059c075be6aba",
         "bedrock/animations/nox_bow.animation.json": "a914061f92332e523320e96f6dd8f21cfd781980291d5a10c1bdd8210e0ce6fc",
         "bedrock/attachables/nox_bow.json": "96f0443baaa67c0686f6c8d7bc9e7cca2aa708193488e2295bbebae5c2a1bcba",
-        "bedrock/models/entity/items/nox_bow.geo.json": "4b9e9d52c3ae5bdb293f4cf3ede8bfa394108fcf46309702676d7fe407637e4a",
-        "bedrock/textures/entity/items/nox_bow.png": "b5a4d4065f5caaf893996043549abcc06710c5c9d15707b6783e7a66fe011d17",
-        "bedrock/textures/items/nox_bow.png": "4dab9e8d7686f73cf937c1fdaefcef5144c834b09bea7daf92a706b759274df9",
-        "blockbench/items/nox_bow.bedrock.bbmodel": "5e174c6dfc054dab534cb7e6303c155f3a8c499cf83a3d7c1726c035f489cda6",
-        "blockbench/items/nox_bow.java.bbmodel": "ac9414aaf37733c70f067656a5cddad769ed449a33df0805809fb0ecf6e82046",
-        "blockbench/items/nox_bow_pull_0.java.bbmodel": "4d450ff6d8201caf102b5743b66163624321192814bbd1168164b9b220b14481",
-        "blockbench/items/nox_bow_pull_1.java.bbmodel": "08714d98245fb69227a0902819930a28e1ca767273e11d88a2673dbc698ce66e",
-        "blockbench/items/nox_bow_pull_2.java.bbmodel": "17e25ed9c2af14213ad9cf26d4987bab7dd29ea7290e9e5419a8cd2233a1667e"
+        "bedrock/models/entity/items/nox_bow.geo.json": "fe07d21646a807f2a0f6da26c51d1374028ea07210bb993c2103a945cb862769",
+        "bedrock/textures/entity/items/nox_bow.png": "16b4d0fb93b18649ecc60568d3fd90be533a05b178eb90c97d4059c075be6aba",
+        "bedrock/textures/items/nox_bow.png": "049b99bd28aae37887644820dea55565eeb0a5263ad19ce1d83e85822681d54b",
+        "blockbench/items/nox_bow.bedrock.bbmodel": "e08742c0adfc3c578f2cc2d7a7a2f58474706510a37ee89efc912a9131f56189",
+        "blockbench/items/nox_bow.java.bbmodel": "ae61303467ed5a4b64053f5639a8d89c6c18ce1ab9762e69b59b94517607d508",
+        "blockbench/items/nox_bow_pull_0.java.bbmodel": "072a094dc76ac57f17aef6dbd4add6985cec82a8c7c52313befacb7867b8c965",
+        "blockbench/items/nox_bow_pull_1.java.bbmodel": "6ff2b3627a5dff0bf8bc966f9c32a51b27b2d28bc39c2d38f2ef67113d02c03c",
+        "blockbench/items/nox_bow_pull_2.java.bbmodel": "a9bbea0d10ba3cea043fa9024e730565bacecf15df924388d734ceb29e3f70a9"
       }
     },
     {
@@ -88,15 +88,15 @@
       "base_item": "minecraft:wooden_shovel",
       "custom_model_data": 21003,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_staff.json": "0abc3d172003a95bb286c308b03e3de3d0cd095dc95db67975f76ad68f45c8d0",
-        "assets/astralrecord/textures/item/custom/nox_staff.png": "b796a657811a20a4bf6cd845ce917576a926ab289a6d26078d39bd2bcd23695a",
+        "assets/astralrecord/models/item/custom/nox_staff.json": "be34036c95a26b1c2ee68f4ccb79ceb02406da77a7cb834d991bd83f4c039559",
+        "assets/astralrecord/textures/item/custom/nox_staff.png": "e0861a630731a8b70aa3d08222ac3a1c449afafaab27173752a62264a318ebaf",
         "bedrock/animations/nox_staff.animation.json": "6b2f4f1824bad32c5bab857de0cac3cebaf3e31b27959f799e5ad8de163ff79a",
         "bedrock/attachables/nox_staff.json": "ffd056855d7a8c470d88540424d4fb426584ceab2118697a9cd553c1a0db8a3c",
-        "bedrock/models/entity/items/nox_staff.geo.json": "bf09f7645ca38c2388094cc1426fa6b641dfe8af148dfab171052f1d9fd81d7c",
-        "bedrock/textures/entity/items/nox_staff.png": "b796a657811a20a4bf6cd845ce917576a926ab289a6d26078d39bd2bcd23695a",
-        "bedrock/textures/items/nox_staff.png": "996751e129f264e34d8f53cc10625324efa193b844c47467811dcaf44071dd2c",
-        "blockbench/items/nox_staff.bedrock.bbmodel": "937ab66ec164ca52377bc5413671b4422452d2c4c0cd83c60e30db707c4ad3c0",
-        "blockbench/items/nox_staff.java.bbmodel": "f08e9b2bc64dca2e241598e692ba10ff085627a2f0441915408d44f4fa9c3d2f"
+        "bedrock/models/entity/items/nox_staff.geo.json": "117977e09c59c75511e9edf247c7619d9c89fdb61ef767ec480ca1dbcb7ced55",
+        "bedrock/textures/entity/items/nox_staff.png": "e0861a630731a8b70aa3d08222ac3a1c449afafaab27173752a62264a318ebaf",
+        "bedrock/textures/items/nox_staff.png": "95be07d9b5a35fdc1e8c9d9550ddf5066ec4303f43148f49fcbdb4cbf2898f32",
+        "blockbench/items/nox_staff.bedrock.bbmodel": "5301c263d93aa000163b146184fbed3a474fe2cf451883fba9413ec550f36c81",
+        "blockbench/items/nox_staff.java.bbmodel": "f5e5e8076c3a69d9b87941134f3215745cef28ed524c1824385719016913406a"
       }
     },
     {

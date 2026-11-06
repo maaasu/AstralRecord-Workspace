@@ -1,141 +1,715 @@
 {
-  "credit": "Made with Blockbench",
-  "texture_size": [
-    64,
-    64
-  ],
-  "textures": {
-    "particle": "astralrecord:item/custom/nox_staff",
-    "surface": "astralrecord:item/custom/nox_staff"
-  },
-  "display": {
-    "thirdperson_righthand": {
-      "rotation": [
-        0,
-        -90,
-        10
-      ],
-      "translation": [
-        0,
-        2.74207,
-        0.84383
-      ],
-      "scale": [
-        1.1,
-        1.1,
-        1.1
-      ]
-    },
-    "thirdperson_lefthand": {
-      "rotation": [
-        0,
-        90,
-        -10
-      ],
-      "translation": [
-        0,
-        2.74207,
-        0.84383
-      ],
-      "scale": [
-        1.1,
-        1.1,
-        1.1
-      ]
-    },
-    "firstperson_righthand": {
-      "rotation": [
-        0,
-        -90,
-        -20
-      ],
-      "translation": [
-        1.13,
-        2.81118,
-        1.09076
-      ],
-      "scale": [
-        1.08,
-        1.08,
-        1.08
-      ]
-    },
-    "firstperson_lefthand": {
-      "rotation": [
-        0,
-        90,
-        20
-      ],
-      "translation": [
-        1.13,
-        2.81118,
-        1.09076
-      ],
-      "scale": [
-        1.08,
-        1.08,
-        1.08
-      ]
-    },
-    "ground": {
-      "translation": [
-        0,
-        2.25,
-        0
-      ],
-      "scale": [
-        0.48,
-        0.48,
-        0.48
-      ]
-    },
-    "gui": {
-      "rotation": [
-        13,
-        -22,
-        -38
-      ],
-      "scale": [
-        1.35,
-        1.35,
-        1.35
-      ],
-      "translation": [
-        0.25393,
-        0.30665,
-        0
-      ]
-    },
-    "fixed": {
-      "rotation": [
-        0,
-        0,
-        -34
-      ],
-      "scale": [
-        0.86,
-        0.86,
-        0.86
-      ]
-    }
-  },
-  "elements": [
-    {"name": "Ash shaft","from": [7.41,1.35,7.46],"to": [8.59,11.48,8.54],"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash grain","from": [7.62,6.08,8.52],"to": [7.94,10.77,8.61],"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"down": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"}}},
-    {"name": "Butt ferrule","from": [7.31,0.9,7.34],"to": [8.69,1.67,8.66],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"down": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"}}},
-    {"name": "Ferrule seam","from": [7.28,1.19,7.31],"to": [8.72,1.42,8.69],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Plum hide grip","from": [7.27,3.32,7.31],"to": [8.73,6.08,8.69],"faces": {"north": {"uv": [12.75,0.25,14.75,2.25],"texture": "#surface"},"east": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"south": {"uv": [12.75,0.25,14.75,2.25],"texture": "#surface"},"west": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"up": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"down": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"}}},
-    {"name": "Binding collar","from": [7.25,3.25,7.29],"to": [8.75,3.45,8.71],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Binding collar","from": [7.25,5.92,7.29],"to": [8.75,6.12,8.71],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Socket stem","from": [7.28,10.86,7.32],"to": [8.72,11.77,8.68],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"down": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"}}},
-    {"name": "Cup rim","from": [6.93,11.61,7.09],"to": [9.07,12.02,8.91],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Moonstone foot","from": [7.37,12.02,7.45],"to": [8.63,12.43,8.55],"faces": {"north": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
-    {"name": "Moonstone","from": [7.09,12.43,7.28],"to": [8.91,14.12,8.72],"faces": {"north": {"uv": [5.25,5.25,7.25,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [5.25,5.25,7.25,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
-    {"name": "Cut crown","from": [7.4,14.12,7.48],"to": [8.6,14.59,8.52],"faces": {"north": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
-    {"name": "Crown table","from": [7.68,14.59,7.68],"to": [8.32,14.76,8.32],"faces": {"north": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"east": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"south": {"uv": [2.75,5.25,4.75,7.25],"texture": "#surface"},"west": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"up": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"},"down": {"uv": [7.75,5.25,9.75,7.25],"texture": "#surface"}}},
-    {"name": "Forged retaining tine","from": [6.92,11.94,7.22],"to": [7.28,13.1,8.78],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Forged retaining tine","from": [8.72,11.94,7.22],"to": [9.08,13.1,8.78],"faces": {"north": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"east": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"south": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"west": {"uv": [7.75,0.25,9.75,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Nox socket medallion","from": [7.65,11.91,7.075],"to": [8.35,12.58,7.285],"faces": {"north": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Nox socket medallion","from": [7.65,11.91,8.715],"to": [8.35,12.58,8.925],"faces": {"north": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}}
-  ]
+	"format_version": "1.21.11",
+	"credit": "Made with Blockbench",
+	"texture_size": [128, 128],
+	"textures": {
+		"particle": "astralrecord:item/custom/nox_staff",
+		"surface": "astralrecord:item/custom/nox_staff"
+	},
+	"elements": [
+		{
+			"name": "Ash shaft broad faces",
+			"from": [7.6584, 1.35, 7.46],
+			"to": [8.3416, 11.48, 8.54],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.41, 1.35, 7.46]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ash shaft narrow faces",
+			"from": [7.41, 1.35, 7.7084],
+			"to": [8.59, 11.48, 8.2916],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.41, 1.35, 7.46]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ash shaft bevel 1",
+			"from": [7.35855, 1.35, 8.4098],
+			"to": [7.70985, 11.48, 8.4158],
+			"rotation": {"angle": -45, "axis": "y", "origin": [7.5342, 6.415, 8.4158]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ash shaft bevel 3",
+			"from": [8.29015, 1.35, 8.4098],
+			"to": [8.64145, 11.48, 8.4158],
+			"rotation": {"angle": 45, "axis": "y", "origin": [8.4658, 6.415, 8.4158]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ash shaft bevel 5",
+			"from": [8.29015, 1.35, 7.5782],
+			"to": [8.64145, 11.48, 7.5842],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [8.4658, 6.415, 7.5842]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ash shaft bevel 7",
+			"from": [7.35855, 1.35, 7.5782],
+			"to": [7.70985, 11.48, 7.5842],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [7.5342, 6.415, 7.5842]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Butt ferrule broad faces",
+			"from": [7.574, 0.9, 7.34],
+			"to": [8.426, 1.67, 8.66],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.31, 0.9, 7.34]},
+			"faces": {
+				"north": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"down": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Butt ferrule narrow faces",
+			"from": [7.31, 0.9, 7.604],
+			"to": [8.69, 1.67, 8.396],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.31, 0.9, 7.34]},
+			"faces": {
+				"east": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"down": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Butt ferrule bevel 1",
+			"from": [7.25532, 0.9, 8.522],
+			"to": [7.62868, 1.67, 8.528],
+			"rotation": {"angle": -45, "axis": "y", "origin": [7.442, 1.285, 8.528]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Butt ferrule bevel 3",
+			"from": [8.37132, 0.9, 8.522],
+			"to": [8.74468, 1.67, 8.528],
+			"rotation": {"angle": 45, "axis": "y", "origin": [8.558, 1.285, 8.528]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Butt ferrule bevel 5",
+			"from": [8.37132, 0.9, 7.466],
+			"to": [8.74468, 1.67, 7.472],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [8.558, 1.285, 7.472]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Butt ferrule bevel 7",
+			"from": [7.25532, 0.9, 7.466],
+			"to": [7.62868, 1.67, 7.472],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [7.442, 1.285, 7.472]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ferrule seam broad faces",
+			"from": [7.556, 1.19, 7.31],
+			"to": [8.444, 1.42, 8.69],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.28, 1.19, 7.31]},
+			"faces": {
+				"north": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ferrule seam narrow faces",
+			"from": [7.28, 1.19, 7.586],
+			"to": [8.72, 1.42, 8.414],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.28, 1.19, 7.31]},
+			"faces": {
+				"east": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ferrule seam bevel 1",
+			"from": [7.22284, 1.19, 8.546],
+			"to": [7.61316, 1.42, 8.552],
+			"rotation": {"angle": -45, "axis": "y", "origin": [7.418, 1.305, 8.552]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ferrule seam bevel 3",
+			"from": [8.38684, 1.19, 8.546],
+			"to": [8.77716, 1.42, 8.552],
+			"rotation": {"angle": 45, "axis": "y", "origin": [8.582, 1.305, 8.552]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ferrule seam bevel 5",
+			"from": [8.38684, 1.19, 7.442],
+			"to": [8.77716, 1.42, 7.448],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [8.582, 1.305, 7.448]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ferrule seam bevel 7",
+			"from": [7.22284, 1.19, 7.442],
+			"to": [7.61316, 1.42, 7.448],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [7.418, 1.305, 7.448]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Plum hide grip",
+			"from": [7.27, 3.32, 7.31],
+			"to": [8.73, 6.08, 8.69],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.27, 3.32, 7.31]},
+			"faces": {
+				"north": {"uv": [6.375, 0.125, 7.375, 1.125], "texture": "#surface"},
+				"east": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"south": {"uv": [6.375, 0.125, 7.375, 1.125], "texture": "#surface"},
+				"west": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"up": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"down": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Binding collar",
+			"from": [7.25, 3.25, 7.29],
+			"to": [8.75, 3.45, 8.71],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.25, 3.25, 7.29]},
+			"faces": {
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Binding collar",
+			"from": [7.25, 5.92, 7.29],
+			"to": [8.75, 6.12, 8.71],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.25, 5.92, 7.29]},
+			"faces": {
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket stem",
+			"from": [7.28, 10.86, 7.32],
+			"to": [8.72, 11.77, 8.68],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.28, 10.86, 7.32]},
+			"faces": {
+				"north": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"east": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"south": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"west": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"up": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"down": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Cup rim broad faces",
+			"from": [7.294, 11.61, 7.09],
+			"to": [8.706, 12.02, 8.91],
+			"rotation": {"angle": 0, "axis": "y", "origin": [6.93, 11.61, 7.09]},
+			"faces": {
+				"north": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Cup rim narrow faces",
+			"from": [6.93, 11.61, 7.454],
+			"to": [9.07, 12.02, 8.546],
+			"rotation": {"angle": 0, "axis": "y", "origin": [6.93, 11.61, 7.09]},
+			"faces": {
+				"east": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Cup rim bevel 1",
+			"from": [6.85461, 11.61, 8.722],
+			"to": [7.36939, 12.02, 8.728],
+			"rotation": {"angle": -45, "axis": "y", "origin": [7.112, 11.815, 8.728]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Cup rim bevel 3",
+			"from": [8.63061, 11.61, 8.722],
+			"to": [9.14539, 12.02, 8.728],
+			"rotation": {"angle": 45, "axis": "y", "origin": [8.888, 11.815, 8.728]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Cup rim bevel 5",
+			"from": [8.63061, 11.61, 7.266],
+			"to": [9.14539, 12.02, 7.272],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [8.888, 11.815, 7.272]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Cup rim bevel 7",
+			"from": [6.85461, 11.61, 7.266],
+			"to": [7.36939, 12.02, 7.272],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [7.112, 11.815, 7.272]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 1",
+			"from": [6.90475, 11.94207, 7.994],
+			"to": [7.68475, 12.55793, 8],
+			"rotation": {"x": 0, "y": -90, "z": 41.67603, "origin": [7.29475, 12.25, 8]},
+			"faces": {
+				"south": {"uv": [0.12625, 8.12625, 1.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 2",
+			"from": [7.16627, 11.94152, 8.40149],
+			"to": [7.64008, 12.55848, 8.40749],
+			"rotation": {"x": 41.78993, "y": -44.1449, "z": 0, "origin": [7.40318, 12.25, 8.40749]},
+			"faces": {
+				"south": {"uv": [2.12625, 8.12625, 3.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 3",
+			"from": [7.43, 11.96867, 8.552],
+			"to": [8.57, 12.53133, 8.558],
+			"rotation": {"angle": 35.15887, "axis": "x", "origin": [8, 12.25, 8.558]},
+			"faces": {
+				"south": {"uv": [4.12625, 8.12625, 5.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 4",
+			"from": [8.35992, 11.94152, 8.40149],
+			"to": [8.83373, 12.55848, 8.40749],
+			"rotation": {"x": 41.78993, "y": 44.1449, "z": 0, "origin": [8.59682, 12.25, 8.40749]},
+			"faces": {
+				"south": {"uv": [6.12625, 8.12625, 7.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 5",
+			"from": [8.31525, 11.94207, 7.994],
+			"to": [9.09525, 12.55793, 8],
+			"rotation": {"x": 0, "y": 90, "z": -41.67603, "origin": [8.70525, 12.25, 8]},
+			"faces": {
+				"south": {"uv": [8.12625, 8.12625, 9.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 6",
+			"from": [8.35992, 11.94152, 7.58651],
+			"to": [8.83373, 12.55848, 7.59251],
+			"rotation": {"x": -138.21007, "y": 44.1449, "z": 180, "origin": [8.59682, 12.25, 7.59251]},
+			"faces": {
+				"south": {"uv": [10.12625, 8.12625, 11.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 7",
+			"from": [7.43, 11.96867, 7.436],
+			"to": [8.57, 12.53133, 7.442],
+			"rotation": {"x": -144.84113, "y": 0, "z": 180, "origin": [8, 12.25, 7.442]},
+			"faces": {
+				"south": {"uv": [12.12625, 8.12625, 13.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Seat facet 8",
+			"from": [7.16627, 11.94152, 7.58651],
+			"to": [7.64008, 12.55848, 7.59251],
+			"rotation": {"x": -138.21007, "y": -44.1449, "z": 180, "origin": [7.40318, 12.25, 7.59251]},
+			"faces": {
+				"south": {"uv": [14.12625, 8.12625, 15.87375, 9.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 1",
+			"from": [6.7, 12.48, 7.994],
+			"to": [7.48, 13.96, 8],
+			"rotation": {"x": 0, "y": -90, "z": 0, "origin": [7.09, 13.22, 8]},
+			"faces": {
+				"south": {"uv": [0.12625, 10.12625, 1.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 2",
+			"from": [7.02309, 12.48, 8.549],
+			"to": [7.49691, 13.96, 8.555],
+			"rotation": {"angle": -44.1449, "axis": "y", "origin": [7.26, 13.22, 8.555]},
+			"faces": {
+				"south": {"uv": [2.12625, 10.12625, 3.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 3",
+			"from": [7.43, 12.48, 8.714],
+			"to": [8.57, 13.96, 8.72],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 13.22, 8.72]},
+			"faces": {
+				"south": {"uv": [4.12625, 10.12625, 5.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 4",
+			"from": [8.50309, 12.48, 8.549],
+			"to": [8.97691, 13.96, 8.555],
+			"rotation": {"angle": 44.1449, "axis": "y", "origin": [8.74, 13.22, 8.555]},
+			"faces": {
+				"south": {"uv": [6.12625, 10.12625, 7.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 5",
+			"from": [8.52, 12.48, 7.994],
+			"to": [9.3, 13.96, 8],
+			"rotation": {"x": 0, "y": 90, "z": 0, "origin": [8.91, 13.22, 8]},
+			"faces": {
+				"south": {"uv": [8.12625, 10.12625, 9.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 6",
+			"from": [8.50309, 12.48, 7.439],
+			"to": [8.97691, 13.96, 7.445],
+			"rotation": {"x": 180, "y": 44.1449, "z": 180, "origin": [8.74, 13.22, 7.445]},
+			"faces": {
+				"south": {"uv": [10.12625, 10.12625, 11.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 7",
+			"from": [7.43, 12.48, 7.274],
+			"to": [8.57, 13.96, 7.28],
+			"rotation": {"x": 180, "y": 0, "z": 180, "origin": [8, 13.22, 7.28]},
+			"faces": {
+				"south": {"uv": [12.12625, 10.12625, 13.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Belt facet 8",
+			"from": [7.02309, 12.48, 7.439],
+			"to": [7.49691, 13.96, 7.445],
+			"rotation": {"x": 180, "y": -44.1449, "z": 180, "origin": [7.26, 13.22, 7.445]},
+			"faces": {
+				"south": {"uv": [14.12625, 10.12625, 15.87375, 11.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 1",
+			"from": [6.9912, 13.86523, 7.994],
+			"to": [7.7712, 14.85477, 8],
+			"rotation": {"x": 0, "y": -90, "z": -36.05462, "origin": [7.3812, 14.36, 8]},
+			"faces": {
+				"south": {"uv": [0.12625, 12.12625, 1.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 2",
+			"from": [7.22672, 13.86454, 8.3392],
+			"to": [7.70053, 14.85546, 8.3452],
+			"rotation": {"x": -36.16379, "y": -44.1449, "z": 0, "origin": [7.46363, 14.36, 8.3452]},
+			"faces": {
+				"south": {"uv": [2.12625, 12.12625, 3.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 3",
+			"from": [7.43, 13.89839, 8.4836],
+			"to": [8.57, 14.82161, 8.4896],
+			"rotation": {"angle": -29.94194, "axis": "x", "origin": [8, 14.36, 8.4896]},
+			"faces": {
+				"south": {"uv": [4.12625, 12.12625, 5.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 4",
+			"from": [8.29947, 13.86454, 8.3392],
+			"to": [8.77328, 14.85546, 8.3452],
+			"rotation": {"x": -36.16379, "y": 44.1449, "z": 0, "origin": [8.53637, 14.36, 8.3452]},
+			"faces": {
+				"south": {"uv": [6.12625, 12.12625, 7.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 5",
+			"from": [8.2288, 13.86523, 7.994],
+			"to": [9.0088, 14.85477, 8],
+			"rotation": {"x": 0, "y": 90, "z": 36.05462, "origin": [8.6188, 14.36, 8]},
+			"faces": {
+				"south": {"uv": [8.12625, 12.12625, 9.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 6",
+			"from": [8.29947, 13.86454, 7.6488],
+			"to": [8.77328, 14.85546, 7.6548],
+			"rotation": {"x": 143.83621, "y": 44.1449, "z": 180, "origin": [8.53637, 14.36, 7.6548]},
+			"faces": {
+				"south": {"uv": [10.12625, 12.12625, 11.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 7",
+			"from": [7.43, 13.89839, 7.5044],
+			"to": [8.57, 14.82161, 7.5104],
+			"rotation": {"x": 150.05806, "y": 0, "z": 180, "origin": [8, 14.36, 7.5104]},
+			"faces": {
+				"south": {"uv": [12.12625, 12.12625, 13.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone Crown facet 8",
+			"from": [7.22672, 13.86454, 7.6488],
+			"to": [7.70053, 14.85546, 7.6548],
+			"rotation": {"x": 143.83621, "y": -44.1449, "z": 180, "origin": [7.46363, 14.36, 7.6548]},
+			"faces": {
+				"south": {"uv": [14.12625, 12.12625, 15.87375, 13.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Moonstone crown table",
+			"from": [7.7408, 14.4324, 7.994],
+			"to": [8.2592, 15.0876, 8],
+			"rotation": {"x": 0, "y": -90, "z": -90, "origin": [8, 14.76, 8]},
+			"faces": {
+				"south": {"uv": [0.12625, 14.12625, 1.87375, 15.87375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine broad faces",
+			"from": [6.992, 11.94, 7.22],
+			"to": [7.208, 13.1, 8.78],
+			"rotation": {"angle": 0, "axis": "y", "origin": [6.92, 11.94, 7.22]},
+			"faces": {
+				"north": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine narrow faces",
+			"from": [6.92, 11.94, 7.292],
+			"to": [7.28, 13.1, 8.708],
+			"rotation": {"angle": 0, "axis": "y", "origin": [6.92, 11.94, 7.22]},
+			"faces": {
+				"east": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 1",
+			"from": [6.90509, 11.94, 8.738],
+			"to": [7.00691, 13.1, 8.744],
+			"rotation": {"angle": -45, "axis": "y", "origin": [6.956, 12.52, 8.744]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 3",
+			"from": [7.19309, 11.94, 8.738],
+			"to": [7.29491, 13.1, 8.744],
+			"rotation": {"angle": 45, "axis": "y", "origin": [7.244, 12.52, 8.744]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 5",
+			"from": [7.19309, 11.94, 7.25],
+			"to": [7.29491, 13.1, 7.256],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [7.244, 12.52, 7.256]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 7",
+			"from": [6.90509, 11.94, 7.25],
+			"to": [7.00691, 13.1, 7.256],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [6.956, 12.52, 7.256]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine broad faces",
+			"from": [8.792, 11.94, 7.22],
+			"to": [9.008, 13.1, 8.78],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8.72, 11.94, 7.22]},
+			"faces": {
+				"north": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine narrow faces",
+			"from": [8.72, 11.94, 7.292],
+			"to": [9.08, 13.1, 8.708],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8.72, 11.94, 7.22]},
+			"faces": {
+				"east": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [11.53125, 4.03125, 12.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 1",
+			"from": [8.70509, 11.94, 8.738],
+			"to": [8.80691, 13.1, 8.744],
+			"rotation": {"angle": -45, "axis": "y", "origin": [8.756, 12.52, 8.744]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 3",
+			"from": [8.99309, 11.94, 8.738],
+			"to": [9.09491, 13.1, 8.744],
+			"rotation": {"angle": 45, "axis": "y", "origin": [9.044, 12.52, 8.744]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 5",
+			"from": [8.99309, 11.94, 7.25],
+			"to": [9.09491, 13.1, 7.256],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [9.044, 12.52, 7.256]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged retaining tine bevel 7",
+			"from": [8.70509, 11.94, 7.25],
+			"to": [8.80691, 13.1, 7.256],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [8.756, 12.52, 7.256]},
+			"faces": {
+				"south": {"uv": [10.03125, 4.03125, 11.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Nox socket medallion",
+			"from": [7.65, 11.91, 7.075],
+			"to": [8.35, 12.58, 7.285],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.65, 11.91, 7.075]},
+			"faces": {
+				"north": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Nox socket medallion",
+			"from": [7.65, 11.91, 8.715],
+			"to": [8.35, 12.58, 8.925],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.65, 11.91, 8.715]},
+			"faces": {
+				"north": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [0, -90, 10],
+			"translation": [0, 2.74207, 0.84383],
+			"scale": [1.1, 1.1, 1.1]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [0, 90, -10],
+			"translation": [0, 2.74207, 0.84383],
+			"scale": [1.1, 1.1, 1.1]
+		},
+		"firstperson_righthand": {
+			"rotation": [0, -90, -20],
+			"translation": [1.13, 2.81118, 1.09076],
+			"scale": [1.08, 1.08, 1.08]
+		},
+		"firstperson_lefthand": {
+			"rotation": [0, 90, 20],
+			"translation": [1.13, 2.81118, 1.09076],
+			"scale": [1.08, 1.08, 1.08]
+		},
+		"ground": {
+			"translation": [0, 2.25, 0],
+			"scale": [0.48, 0.48, 0.48]
+		},
+		"gui": {
+			"rotation": [13, -22, -38],
+			"translation": [0.25393, 0.30665, 0],
+			"scale": [1.35, 1.35, 1.35]
+		},
+		"fixed": {
+			"rotation": [0, 0, -34],
+			"scale": [0.86, 0.86, 0.86]
+		}
+	}
 }

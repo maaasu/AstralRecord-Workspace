@@ -1,161 +1,1507 @@
 {
-  "credit": "Made with Blockbench",
-  "texture_size": [
-    64,
-    64
-  ],
-  "textures": {
-    "particle": "astralrecord:item/custom/nox_bow",
-    "surface": "astralrecord:item/custom/nox_bow"
-  },
-  "display": {
-    "thirdperson_righthand": {
-      "rotation": [
-        -80,
-        -100,
-        -80
-      ],
-      "translation": [
-        -0.97923,
-        -2.06564,
-        2.19466
-      ],
-      "scale": [
-        1.25,
-        1.25,
-        1.25
-      ]
-    },
-    "thirdperson_lefthand": {
-      "rotation": [
-        -80,
-        80,
-        80
-      ],
-      "translation": [
-        -0.97923,
-        -2.06564,
-        2.19466
-      ],
-      "scale": [
-        1.25,
-        1.25,
-        1.25
-      ]
-    },
-    "firstperson_righthand": {
-      "rotation": [
-        0,
-        -90,
-        -15
-      ],
-      "translation": [
-        1.13,
-        3.1063,
-        1.28286
-      ],
-      "scale": [
-        1.14,
-        1.14,
-        1.14
-      ]
-    },
-    "firstperson_lefthand": {
-      "rotation": [
-        0,
-        90,
-        15
-      ],
-      "translation": [
-        1.13,
-        3.1063,
-        1.28286
-      ],
-      "scale": [
-        1.14,
-        1.14,
-        1.14
-      ]
-    },
-    "ground": {
-      "translation": [
-        0,
-        2.25,
-        0
-      ],
-      "scale": [
-        0.48,
-        0.48,
-        0.48
-      ]
-    },
-    "gui": {
-      "rotation": [
-        12,
-        18,
-        -35
-      ],
-      "translation": [
-        -0.28138,
-        1.10042,
-        0
-      ],
-      "scale": [
-        1.21597,
-        1.21597,
-        1.21597
-      ]
-    },
-    "fixed": {
-      "rotation": [
-        0,
-        0,
-        -34
-      ],
-      "translation": [
-        0.55,
-        0,
-        0
-      ],
-      "scale": [
-        0.86,
-        0.86,
-        0.86
-      ]
-    }
-  },
-  "elements": [
-    {"name": "Upper ash limb 1","from": [5.335,7.905,7.485],"to": [6.545,9.335,8.515],"rotation": {"angle": -0.4621,"axis": "z","origin": [5.94,8,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Upper ash limb 2","from": [5.395,9.145,7.535],"to": [6.505,10.7842,8.465],"rotation": {"angle": -16.4342,"axis": "z","origin": [5.95,9.24,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [5.728,9.22,8.405],"to": [6.172,10.7092,8.525],"rotation": {"angle": -16.4342,"axis": "z","origin": [5.95,9.24,8.465]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Upper ash limb 3","from": [5.87,10.535,7.605],"to": [6.85,12.3292,8.395],"rotation": {"angle": -35.8698,"axis": "z","origin": [6.36,10.63,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [6.164,10.61,8.335],"to": [6.556,12.2542,8.455],"rotation": {"angle": -35.8698,"axis": "z","origin": [6.36,10.63,8.395]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Upper ash limb 4","from": [6.875,11.835,7.67],"to": [7.725,13.9484,8.33],"rotation": {"x": 0,"y": 0,"z": -45.4213,"origin": [7.3,11.93,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [7.13,11.91,8.27],"to": [7.47,13.8734,8.39],"rotation": {"x": 0,"y": 0,"z": -45.4213,"origin": [7.3,11.93,8.33]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Upper ash limb 5","from": [8.325,13.185,7.735],"to": [9.015,14.7197,8.265],"rotation": {"x": 0,"y": 0,"z": -51.3402,"origin": [8.67,13.28,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [8.532,13.26,8.205],"to": [8.808,14.6447,8.325],"rotation": {"x": 0,"y": 0,"z": -51.3402,"origin": [8.67,13.28,8.265]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Upper ash limb 6","from": [9.445,14.025,7.755],"to": [9.995,14.8877,8.245],"rotation": {"angle": -5.1173,"axis": "z","origin": [9.72,14.12,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Brass string nock","from": [9.44,14.5,7.69],"to": [10.12,15.08,8.31],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Lower ash limb 1","from": [5.345,6.665,7.485],"to": [6.555,8.095,8.515],"rotation": {"angle": 0.4621,"axis": "z","origin": [5.95,6.76,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Lower ash limb 2","from": [5.805,5.275,7.535],"to": [6.915,6.9142,8.465],"rotation": {"angle": 16.4342,"axis": "z","origin": [6.36,5.37,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [6.138,5.35,8.405],"to": [6.582,6.8392,8.525],"rotation": {"angle": 16.4342,"axis": "z","origin": [6.36,5.37,8.465]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Lower ash limb 3","from": [6.81,3.975,7.605],"to": [7.79,5.7692,8.395],"rotation": {"angle": 35.8698,"axis": "z","origin": [7.3,4.07,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [7.104,4.05,8.335],"to": [7.496,5.6942,8.455],"rotation": {"angle": 35.8698,"axis": "z","origin": [7.3,4.07,8.395]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Lower ash limb 4","from": [8.245,2.625,7.67],"to": [9.095,4.7384,8.33],"rotation": {"x": 0,"y": 0,"z": 45.4213,"origin": [8.67,2.72,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [8.5,2.7,8.27],"to": [8.84,4.6634,8.39],"rotation": {"x": 0,"y": 0,"z": 45.4213,"origin": [8.67,2.72,8.33]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Lower ash limb 5","from": [9.375,1.785,7.735],"to": [10.065,3.3197,8.265],"rotation": {"x": 0,"y": 0,"z": 51.3402,"origin": [9.72,1.88,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Pale ash laminate","from": [9.582,1.86,8.205],"to": [9.858,3.2447,8.325],"rotation": {"x": 0,"y": 0,"z": 51.3402,"origin": [9.72,1.88,8.265]},"faces": {"north": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"east": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"south": {"uv": [7.75,2.75,9.75,4.75],"texture": "#surface"},"west": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Lower ash limb 6","from": [9.505,1.115,7.755],"to": [10.055,1.9777,8.245],"rotation": {"angle": 5.1173,"axis": "z","origin": [9.78,1.21,8]},"faces": {"north": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"east": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"south": {"uv": [2.75,2.75,4.75,4.75],"texture": "#surface"},"west": {"uv": [10.25,2.75,12.25,4.75],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Brass string nock","from": [9.44,0.92,7.69],"to": [10.12,1.5,8.31],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Leather grip","from": [5.24,6.75,7.39],"to": [6.64,9.25,8.61],"faces": {"north": {"uv": [12.75,0.25,14.75,2.25],"texture": "#surface"},"east": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"south": {"uv": [12.75,0.25,14.75,2.25],"texture": "#surface"},"west": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"up": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"down": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"}}},
-    {"name": "Limb collar","from": [5.23,6.72,7.35],"to": [6.65,6.96,8.65],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Limb collar","from": [5.23,9.04,7.35],"to": [6.65,9.28,8.65],"faces": {"north": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"east": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"south": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"west": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"up": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"},"down": {"uv": [10.25,0.25,12.25,2.25],"texture": "#surface"}}},
-    {"name": "Nox leather tab","from": [5.4,7.59,7.29],"to": [6.29,8.48,7.45],"faces": {"north": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"east": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"south": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"west": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"up": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"down": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"}}},
-    {"name": "Nox leather tab","from": [5.4,7.59,8.55],"to": [6.29,8.48,8.71],"faces": {"north": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"east": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"south": {"uv": [0.25,5.25,2.25,7.25],"texture": "#surface"},"west": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"up": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"},"down": {"uv": [0.25,2.75,2.25,4.75],"texture": "#surface"}}},
-    {"name": "Lower linen cord","from": [9.6775,1.21,7.8975],"to": [9.8825,8.0282,8.1025],"rotation": {"angle": -5.2173,"axis": "z","origin": [9.78,1.21,8]},"faces": {"north": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"east": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"south": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"west": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"up": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"down": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"}}},
-    {"name": "Upper linen cord","from": [10.2975,8,7.8975],"to": [10.5025,14.8182,8.1025],"rotation": {"angle": 5.2173,"axis": "z","origin": [10.4,8,8]},"faces": {"north": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"east": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"south": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"west": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"up": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"},"down": {"uv": [12.75,2.75,14.75,4.75],"texture": "#surface"}}},
-    {"name": "Nocked arrow shaft","from": [1.77,8,7.89],"to": [1.95,17.19,8.11],"rotation": {"x": 0,"y": 0,"z": -90,"origin": [1.86,8,8]},"faces": {"north": {"uv": [10.25,5.25,12.25,7.25],"texture": "#surface"},"east": {"uv": [10.25,5.25,12.25,7.25],"texture": "#surface"},"south": {"uv": [10.25,5.25,12.25,7.25],"texture": "#surface"},"west": {"uv": [10.25,5.25,12.25,7.25],"texture": "#surface"},"up": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"},"down": {"uv": [5.25,2.75,7.25,4.75],"texture": "#surface"}}},
-    {"name": "Arrowhead","from": [1.62,7.79,7.8],"to": [2.48,8.21,8.2],"faces": {"north": {"uv": [2.75,0.25,4.75,2.25],"texture": "#surface"},"east": {"uv": [0.25,0.25,2.25,2.25],"texture": "#surface"},"south": {"uv": [2.75,0.25,4.75,2.25],"texture": "#surface"},"west": {"uv": [0.25,0.25,2.25,2.25],"texture": "#surface"},"up": {"uv": [0.25,0.25,2.25,2.25],"texture": "#surface"},"down": {"uv": [0.25,0.25,2.25,2.25],"texture": "#surface"}}},
-    {"name": "Arrow fletching","from": [9.46,7.72,7.83],"to": [10.23,8.28,8.17],"faces": {"north": {"uv": [12.75,5.25,14.75,7.25],"texture": "#surface"},"east": {"uv": [12.75,5.25,14.75,7.25],"texture": "#surface"},"south": {"uv": [12.75,5.25,14.75,7.25],"texture": "#surface"},"west": {"uv": [12.75,5.25,14.75,7.25],"texture": "#surface"},"up": {"uv": [12.75,5.25,14.75,7.25],"texture": "#surface"},"down": {"uv": [12.75,5.25,14.75,7.25],"texture": "#surface"}}}
-  ]
+	"format_version": "1.21.11",
+	"credit": "Made with Blockbench",
+	"texture_size": [128, 128],
+	"textures": {
+		"particle": "astralrecord:item/custom/nox_bow",
+		"surface": "astralrecord:item/custom/nox_bow"
+	},
+	"elements": [
+		{
+			"name": "Upper ash limb 1 broad faces",
+			"from": [5.5616, 7.905, 7.485],
+			"to": [6.3184, 9.335, 8.515],
+			"rotation": {"angle": -0.4621, "axis": "z", "origin": [5.94, 8, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 1 narrow faces",
+			"from": [5.335, 7.905, 7.7116],
+			"to": [6.545, 9.335, 8.2884],
+			"rotation": {"angle": -0.4621, "axis": "z", "origin": [5.94, 8, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 1 bevel 1",
+			"from": [5.29309, 7.90895, 8.3957],
+			"to": [5.61355, 9.33895, 8.4017],
+			"rotation": {"x": 0, "y": -45, "z": -0.4621, "origin": [5.45332, 8.62395, 8.4017]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 1 bevel 3",
+			"from": [6.27645, 7.90101, 8.3957],
+			"to": [6.59691, 9.33101, 8.4017],
+			"rotation": {"x": 0, "y": 45, "z": -0.4621, "origin": [6.43668, 8.61601, 8.4017]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 1 bevel 5",
+			"from": [6.27645, 7.90101, 7.5923],
+			"to": [6.59691, 9.33101, 7.5983],
+			"rotation": {"x": -180, "y": 45, "z": 179.5379, "origin": [6.43668, 8.61601, 7.5983]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 1 bevel 7",
+			"from": [5.29309, 7.90895, 7.5923],
+			"to": [5.61355, 9.33895, 7.5983],
+			"rotation": {"x": 180, "y": -45, "z": 179.5379, "origin": [5.45332, 8.62395, 7.5983]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 2 broad faces",
+			"from": [5.5996, 9.145, 7.535],
+			"to": [6.3004, 10.7842, 8.465],
+			"rotation": {"angle": -16.4342, "axis": "z", "origin": [5.95, 9.24, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 2 narrow faces",
+			"from": [5.395, 9.145, 7.7396],
+			"to": [6.505, 10.7842, 8.2604],
+			"rotation": {"angle": -16.4342, "axis": "z", "origin": [5.95, 9.24, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 2 bevel 1",
+			"from": [5.57612, 9.24347, 8.3567],
+			"to": [5.86547, 10.88267, 8.3627],
+			"rotation": {"x": 0, "y": -45, "z": -16.4342, "origin": [5.72079, 10.06307, 8.3627]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 2 bevel 3",
+			"from": [6.44453, 8.98732, 8.3567],
+			"to": [6.73388, 10.62652, 8.3627],
+			"rotation": {"x": 0, "y": 45, "z": -16.4342, "origin": [6.5892, 9.80692, 8.3627]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 2 bevel 5",
+			"from": [6.44453, 8.98732, 7.6313],
+			"to": [6.73388, 10.62652, 7.6373],
+			"rotation": {"x": 180, "y": 45, "z": 163.5658, "origin": [6.5892, 9.80692, 7.6373]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 2 bevel 7",
+			"from": [5.57612, 9.24347, 7.6313],
+			"to": [5.86547, 10.88267, 7.6373],
+			"rotation": {"x": -180, "y": -45, "z": 163.5658, "origin": [5.72079, 10.06307, 7.6373]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [5.7628, 9.22, 8.405],
+			"to": [6.1372, 10.7092, 8.525],
+			"rotation": {"angle": -16.4342, "axis": "z", "origin": [5.95, 9.24, 8.465]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [5.728, 9.22, 8.4398],
+			"to": [6.172, 10.7092, 8.4902],
+			"rotation": {"angle": -16.4342, "axis": "z", "origin": [5.95, 9.24, 8.465]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [5.93415, 9.24828, 8.5016],
+			"to": [5.98337, 10.73748, 8.5076],
+			"rotation": {"x": 0, "y": -45, "z": -16.4342, "origin": [5.95876, 9.99288, 8.5076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [6.32663, 9.13251, 8.5016],
+			"to": [6.37585, 10.62171, 8.5076],
+			"rotation": {"x": 0, "y": 45, "z": -16.4342, "origin": [6.35124, 9.87711, 8.5076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [6.32663, 9.13251, 8.4164],
+			"to": [6.37585, 10.62171, 8.4224],
+			"rotation": {"x": 180, "y": 45, "z": 163.5658, "origin": [6.35124, 9.87711, 8.4224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [5.93415, 9.24828, 8.4164],
+			"to": [5.98337, 10.73748, 8.4224],
+			"rotation": {"x": 180, "y": -45, "z": 163.5658, "origin": [5.95876, 9.99288, 8.4224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 3 broad faces",
+			"from": [6.0438, 10.535, 7.605],
+			"to": [6.6762, 12.3292, 8.395],
+			"rotation": {"angle": -35.8698, "axis": "z", "origin": [6.36, 10.63, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 3 narrow faces",
+			"from": [5.87, 10.535, 7.7788],
+			"to": [6.85, 12.3292, 8.2212],
+			"rotation": {"angle": -35.8698, "axis": "z", "origin": [6.36, 10.63, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 3 bevel 1",
+			"from": [6.38044, 10.61908, 8.3021],
+			"to": [6.62623, 12.41328, 8.3081],
+			"rotation": {"x": 0, "y": -45, "z": -35.8698, "origin": [6.50333, 11.51618, 8.3081]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 3 bevel 3",
+			"from": [7.03374, 10.14669, 8.3021],
+			"to": [7.27953, 11.94089, 8.3081],
+			"rotation": {"x": 0, "y": 45, "z": -35.8698, "origin": [7.15664, 11.04379, 8.3081]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 3 bevel 5",
+			"from": [7.03374, 10.14669, 7.6859],
+			"to": [7.27953, 11.94089, 7.6919],
+			"rotation": {"x": 180, "y": 45, "z": 144.1302, "origin": [7.15664, 11.04379, 7.6919]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 3 bevel 7",
+			"from": [6.38044, 10.61908, 7.6859],
+			"to": [6.62623, 12.41328, 7.6919],
+			"rotation": {"x": 180, "y": -45, "z": 144.1302, "origin": [6.50333, 11.51618, 7.6919]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [6.1988, 10.61, 8.335],
+			"to": [6.5212, 12.2542, 8.455],
+			"rotation": {"angle": -35.8698, "axis": "z", "origin": [6.36, 10.63, 8.395]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [6.164, 10.61, 8.3698],
+			"to": [6.556, 12.2542, 8.4202],
+			"rotation": {"angle": -35.8698, "axis": "z", "origin": [6.36, 10.63, 8.395]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [6.66065, 10.56253, 8.4316],
+			"to": [6.70987, 12.20673, 8.4376],
+			"rotation": {"x": 0, "y": -45, "z": -35.8698, "origin": [6.68526, 11.38463, 8.4376]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [6.95011, 10.35323, 8.4316],
+			"to": [6.99932, 11.99743, 8.4376],
+			"rotation": {"x": 0, "y": 45, "z": -35.8698, "origin": [6.97472, 11.17533, 8.4376]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [6.95011, 10.35323, 8.3464],
+			"to": [6.99932, 11.99743, 8.3524],
+			"rotation": {"x": -180, "y": 45, "z": 144.1302, "origin": [6.97472, 11.17533, 8.3524]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [6.66065, 10.56253, 8.3464],
+			"to": [6.70987, 12.20673, 8.3524],
+			"rotation": {"x": 180, "y": -45, "z": 144.1302, "origin": [6.68526, 11.38463, 8.3524]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 4 broad faces",
+			"from": [7.0202, 11.835, 7.67],
+			"to": [7.5798, 13.9484, 8.33],
+			"rotation": {"x": 0, "y": 0, "z": -45.4213, "origin": [7.3, 11.93, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 4 narrow faces",
+			"from": [6.875, 11.835, 7.8152],
+			"to": [7.725, 13.9484, 8.1848],
+			"rotation": {"x": 0, "y": 0, "z": -45.4213, "origin": [7.3, 11.93, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 4 bevel 1",
+			"from": [7.63499, 11.79932, 8.2514],
+			"to": [7.84033, 13.91272, 8.2574],
+			"rotation": {"x": 0, "y": -45, "z": -45.4213, "origin": [7.73766, 12.85602, 8.2574]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 4 bevel 3",
+			"from": [8.12968, 11.2973, 8.2514],
+			"to": [8.33502, 13.4107, 8.2574],
+			"rotation": {"x": 0, "y": 45, "z": -45.4213, "origin": [8.23235, 12.354, 8.2574]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 4 bevel 5",
+			"from": [8.12968, 11.2973, 7.7366],
+			"to": [8.33502, 13.4107, 7.7426],
+			"rotation": {"x": -180, "y": 45, "z": 134.5787, "origin": [8.23235, 12.354, 7.7426]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 4 bevel 7",
+			"from": [7.63499, 11.79932, 7.7366],
+			"to": [7.84033, 13.91272, 7.7426],
+			"rotation": {"x": -180, "y": -45, "z": 134.5787, "origin": [7.73766, 12.85602, 7.7426]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [7.1648, 11.91, 8.27],
+			"to": [7.4352, 13.8734, 8.39],
+			"rotation": {"x": 0, "y": 0, "z": -45.4213, "origin": [7.3, 11.93, 8.33]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [7.13, 11.91, 8.3048],
+			"to": [7.47, 13.8734, 8.3552],
+			"rotation": {"x": 0, "y": 0, "z": -45.4213, "origin": [7.3, 11.93, 8.33]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [7.85329, 11.732, 8.3666],
+			"to": [7.90251, 13.6954, 8.3726],
+			"rotation": {"x": 0, "y": -45, "z": -45.4213, "origin": [7.8779, 12.7137, 8.3726]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [8.06751, 11.51461, 8.3666],
+			"to": [8.11672, 13.47801, 8.3726],
+			"rotation": {"x": 0, "y": 45, "z": -45.4213, "origin": [8.09211, 12.49631, 8.3726]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [8.06751, 11.51461, 8.2814],
+			"to": [8.11672, 13.47801, 8.2874],
+			"rotation": {"x": 180, "y": 45, "z": 134.5787, "origin": [8.09211, 12.49631, 8.2874]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [7.85329, 11.732, 8.2814],
+			"to": [7.90251, 13.6954, 8.2874],
+			"rotation": {"x": 180, "y": -45, "z": 134.5787, "origin": [7.8779, 12.7137, 8.2874]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 5 broad faces",
+			"from": [8.4416, 13.185, 7.735],
+			"to": [8.8984, 14.7197, 8.265],
+			"rotation": {"x": 0, "y": 0, "z": -51.3402, "origin": [8.67, 13.28, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 5 narrow faces",
+			"from": [8.325, 13.185, 7.8516],
+			"to": [9.015, 14.7197, 8.1484],
+			"rotation": {"x": 0, "y": 0, "z": -51.3402, "origin": [8.67, 13.28, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 5 bevel 1",
+			"from": [8.93347, 13.15654, 8.2007],
+			"to": [9.09837, 14.69124, 8.2067],
+			"rotation": {"x": 0, "y": -45, "z": -51.3402, "origin": [9.01592, 13.92389, 8.2067]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 5 bevel 3",
+			"from": [9.29167, 12.70879, 8.2007],
+			"to": [9.45657, 14.24349, 8.2067],
+			"rotation": {"x": 0, "y": 45, "z": -51.3402, "origin": [9.37412, 13.47614, 8.2067]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 5 bevel 5",
+			"from": [9.29167, 12.70879, 7.7873],
+			"to": [9.45657, 14.24349, 7.7933],
+			"rotation": {"x": 180, "y": 45, "z": 128.6598, "origin": [9.37412, 13.47614, 7.7933]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 5 bevel 7",
+			"from": [8.93347, 13.15654, 7.7873],
+			"to": [9.09837, 14.69124, 7.7933],
+			"rotation": {"x": -180, "y": -45, "z": 128.6598, "origin": [9.01592, 13.92389, 7.7933]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [8.5668, 13.26, 8.205],
+			"to": [8.7732, 14.6447, 8.325],
+			"rotation": {"x": 0, "y": 0, "z": -51.3402, "origin": [8.67, 13.28, 8.265]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [8.532, 13.26, 8.2398],
+			"to": [8.808, 14.6447, 8.2902],
+			"rotation": {"x": 0, "y": 0, "z": -51.3402, "origin": [8.67, 13.28, 8.265]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [9.09507, 13.10184, 8.3016],
+			"to": [9.14429, 14.48654, 8.3076],
+			"rotation": {"x": 0, "y": -45, "z": -51.3402, "origin": [9.11968, 13.79419, 8.3076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [9.24575, 12.91349, 8.3016],
+			"to": [9.29496, 14.29819, 8.3076],
+			"rotation": {"x": 0, "y": 45, "z": -51.3402, "origin": [9.27036, 13.60584, 8.3076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [9.24575, 12.91349, 8.2164],
+			"to": [9.29496, 14.29819, 8.2224],
+			"rotation": {"x": 180, "y": 45, "z": 128.6598, "origin": [9.27036, 13.60584, 8.2224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [9.09507, 13.10184, 8.2164],
+			"to": [9.14429, 14.48654, 8.2224],
+			"rotation": {"x": -180, "y": -45, "z": 128.6598, "origin": [9.11968, 13.79419, 8.2224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 6 broad faces",
+			"from": [9.5528, 14.025, 7.755],
+			"to": [9.8872, 14.8877, 8.245],
+			"rotation": {"angle": -5.1173, "axis": "z", "origin": [9.72, 14.12, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 6 narrow faces",
+			"from": [9.445, 14.025, 7.8628],
+			"to": [9.995, 14.8877, 8.1372],
+			"rotation": {"angle": -5.1173, "axis": "z", "origin": [9.72, 14.12, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 6 bevel 1",
+			"from": [9.45356, 14.04338, 8.1851],
+			"to": [9.60601, 14.90608, 8.1911],
+			"rotation": {"x": 0, "y": -45, "z": -5.1173, "origin": [9.52978, 14.47473, 8.1911]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 6 bevel 3",
+			"from": [9.89399, 14.00394, 8.1851],
+			"to": [10.04645, 14.86664, 8.1911],
+			"rotation": {"x": 0, "y": 45, "z": -5.1173, "origin": [9.97022, 14.43529, 8.1911]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 6 bevel 5",
+			"from": [9.89399, 14.00394, 7.8029],
+			"to": [10.04645, 14.86664, 7.8089],
+			"rotation": {"x": -180, "y": 45, "z": 174.8827, "origin": [9.97022, 14.43529, 7.8089]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper ash limb 6 bevel 7",
+			"from": [9.45356, 14.04338, 7.8029],
+			"to": [9.60601, 14.90608, 7.8089],
+			"rotation": {"x": 180, "y": -45, "z": 174.8827, "origin": [9.52978, 14.47473, 7.8089]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock broad faces",
+			"from": [9.595, 14.5, 7.69],
+			"to": [9.965, 15.08, 8.31],
+			"rotation": {"angle": 0, "axis": "y", "origin": [9.44, 14.5, 7.69]},
+			"faces": {
+				"north": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock narrow faces",
+			"from": [9.44, 14.5, 7.845],
+			"to": [10.12, 15.08, 8.155],
+			"rotation": {"angle": 0, "axis": "y", "origin": [9.44, 14.5, 7.69]},
+			"faces": {
+				"east": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 1",
+			"from": [9.4079, 14.5, 8.2265],
+			"to": [9.6271, 15.08, 8.2325],
+			"rotation": {"angle": -45, "axis": "y", "origin": [9.5175, 14.79, 8.2325]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 3",
+			"from": [9.9329, 14.5, 8.2265],
+			"to": [10.1521, 15.08, 8.2325],
+			"rotation": {"angle": 45, "axis": "y", "origin": [10.0425, 14.79, 8.2325]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 5",
+			"from": [9.9329, 14.5, 7.7615],
+			"to": [10.1521, 15.08, 7.7675],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [10.0425, 14.79, 7.7675]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 7",
+			"from": [9.4079, 14.5, 7.7615],
+			"to": [9.6271, 15.08, 7.7675],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [9.5175, 14.79, 7.7675]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 1 broad faces",
+			"from": [5.5716, 6.665, 7.485],
+			"to": [6.3284, 8.095, 8.515],
+			"rotation": {"angle": 0.4621, "axis": "z", "origin": [5.95, 6.76, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 1 narrow faces",
+			"from": [5.345, 6.665, 7.7116],
+			"to": [6.555, 8.095, 8.2884],
+			"rotation": {"angle": 0.4621, "axis": "z", "origin": [5.95, 6.76, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 1 bevel 1",
+			"from": [5.29309, 6.66101, 8.3957],
+			"to": [5.61355, 8.09101, 8.4017],
+			"rotation": {"x": 0, "y": -45, "z": 0.4621, "origin": [5.45332, 7.37601, 8.4017]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 1 bevel 3",
+			"from": [6.27645, 6.66895, 8.3957],
+			"to": [6.59691, 8.09895, 8.4017],
+			"rotation": {"x": 0, "y": 45, "z": 0.4621, "origin": [6.43668, 7.38395, 8.4017]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 1 bevel 5",
+			"from": [6.27645, 6.66895, 7.5923],
+			"to": [6.59691, 8.09895, 7.5983],
+			"rotation": {"x": 180, "y": 45, "z": -179.5379, "origin": [6.43668, 7.38395, 7.5983]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 1 bevel 7",
+			"from": [5.29309, 6.66101, 7.5923],
+			"to": [5.61355, 8.09101, 7.5983],
+			"rotation": {"x": -180, "y": -45, "z": -179.5379, "origin": [5.45332, 7.37601, 7.5983]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 2 broad faces",
+			"from": [6.0096, 5.275, 7.535],
+			"to": [6.7104, 6.9142, 8.465],
+			"rotation": {"angle": 16.4342, "axis": "z", "origin": [6.36, 5.37, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 2 narrow faces",
+			"from": [5.805, 5.275, 7.7396],
+			"to": [6.915, 6.9142, 8.2604],
+			"rotation": {"angle": 16.4342, "axis": "z", "origin": [6.36, 5.37, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 2 bevel 1",
+			"from": [5.57612, 5.11732, 8.3567],
+			"to": [5.86547, 6.75652, 8.3627],
+			"rotation": {"x": 0, "y": -45, "z": 16.4342, "origin": [5.7208, 5.93692, 8.3627]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 2 bevel 3",
+			"from": [6.44453, 5.37347, 8.3567],
+			"to": [6.73388, 7.01267, 8.3627],
+			"rotation": {"x": 0, "y": 45, "z": 16.4342, "origin": [6.58921, 6.19307, 8.3627]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 2 bevel 5",
+			"from": [6.44453, 5.37347, 7.6313],
+			"to": [6.73388, 7.01267, 7.6373],
+			"rotation": {"x": -180, "y": 45, "z": -163.5658, "origin": [6.58921, 6.19307, 7.6373]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 2 bevel 7",
+			"from": [5.57612, 5.11732, 7.6313],
+			"to": [5.86547, 6.75652, 7.6373],
+			"rotation": {"x": 180, "y": -45, "z": -163.5658, "origin": [5.7208, 5.93692, 7.6373]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [6.1728, 5.35, 8.405],
+			"to": [6.5472, 6.8392, 8.525],
+			"rotation": {"angle": 16.4342, "axis": "z", "origin": [6.36, 5.37, 8.465]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [6.138, 5.35, 8.4398],
+			"to": [6.582, 6.8392, 8.4902],
+			"rotation": {"angle": 16.4342, "axis": "z", "origin": [6.36, 5.37, 8.465]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [5.93415, 5.26251, 8.5016],
+			"to": [5.98337, 6.75171, 8.5076],
+			"rotation": {"x": 0, "y": -45, "z": 16.4342, "origin": [5.95876, 6.00711, 8.5076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [6.32663, 5.37828, 8.5016],
+			"to": [6.37585, 6.86748, 8.5076],
+			"rotation": {"x": 0, "y": 45, "z": 16.4342, "origin": [6.35124, 6.12288, 8.5076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [6.32663, 5.37828, 8.4164],
+			"to": [6.37585, 6.86748, 8.4224],
+			"rotation": {"x": 180, "y": 45, "z": -163.5658, "origin": [6.35124, 6.12288, 8.4224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [5.93415, 5.26251, 8.4164],
+			"to": [5.98337, 6.75171, 8.4224],
+			"rotation": {"x": -180, "y": -45, "z": -163.5658, "origin": [5.95876, 6.00711, 8.4224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 3 broad faces",
+			"from": [6.9838, 3.975, 7.605],
+			"to": [7.6162, 5.7692, 8.395],
+			"rotation": {"angle": 35.8698, "axis": "z", "origin": [7.3, 4.07, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 3 narrow faces",
+			"from": [6.81, 3.975, 7.7788],
+			"to": [7.79, 5.7692, 8.2212],
+			"rotation": {"angle": 35.8698, "axis": "z", "origin": [7.3, 4.07, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 3 bevel 1",
+			"from": [6.38047, 3.58669, 8.3021],
+			"to": [6.62626, 5.38089, 8.3081],
+			"rotation": {"x": 0, "y": -45, "z": 35.8698, "origin": [6.50336, 4.48379, 8.3081]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 3 bevel 3",
+			"from": [7.03377, 4.05908, 8.3021],
+			"to": [7.27956, 5.85328, 8.3081],
+			"rotation": {"x": 0, "y": 45, "z": 35.8698, "origin": [7.15667, 4.95618, 8.3081]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 3 bevel 5",
+			"from": [7.03377, 4.05908, 7.6859],
+			"to": [7.27956, 5.85328, 7.6919],
+			"rotation": {"x": -180, "y": 45, "z": -144.1302, "origin": [7.15667, 4.95618, 7.6919]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 3 bevel 7",
+			"from": [6.38047, 3.58669, 7.6859],
+			"to": [6.62626, 5.38089, 7.6919],
+			"rotation": {"x": 180, "y": -45, "z": -144.1302, "origin": [6.50336, 4.48379, 7.6919]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [7.1388, 4.05, 8.335],
+			"to": [7.4612, 5.6942, 8.455],
+			"rotation": {"angle": 35.8698, "axis": "z", "origin": [7.3, 4.07, 8.395]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [7.104, 4.05, 8.3698],
+			"to": [7.496, 5.6942, 8.4202],
+			"rotation": {"angle": 35.8698, "axis": "z", "origin": [7.3, 4.07, 8.395]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [6.66068, 3.79323, 8.4316],
+			"to": [6.70989, 5.43743, 8.4376],
+			"rotation": {"x": 0, "y": -45, "z": 35.8698, "origin": [6.68528, 4.61533, 8.4376]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [6.95013, 4.00253, 8.4316],
+			"to": [6.99935, 5.64673, 8.4376],
+			"rotation": {"x": 0, "y": 45, "z": 35.8698, "origin": [6.97474, 4.82463, 8.4376]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [6.95013, 4.00253, 8.3464],
+			"to": [6.99935, 5.64673, 8.3524],
+			"rotation": {"x": -180, "y": 45, "z": -144.1302, "origin": [6.97474, 4.82463, 8.3524]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [6.66068, 3.79323, 8.3464],
+			"to": [6.70989, 5.43743, 8.3524],
+			"rotation": {"x": -180, "y": -45, "z": -144.1302, "origin": [6.68528, 4.61533, 8.3524]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 4 broad faces",
+			"from": [8.3902, 2.625, 7.67],
+			"to": [8.9498, 4.7384, 8.33],
+			"rotation": {"x": 0, "y": 0, "z": 45.4213, "origin": [8.67, 2.72, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 4 narrow faces",
+			"from": [8.245, 2.625, 7.8152],
+			"to": [9.095, 4.7384, 8.1848],
+			"rotation": {"x": 0, "y": 0, "z": 45.4213, "origin": [8.67, 2.72, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 4 bevel 1",
+			"from": [7.63498, 2.0873, 8.2514],
+			"to": [7.84032, 4.2007, 8.2574],
+			"rotation": {"x": 0, "y": -45, "z": 45.4213, "origin": [7.73765, 3.144, 8.2574]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 4 bevel 3",
+			"from": [8.12967, 2.58932, 8.2514],
+			"to": [8.33501, 4.70272, 8.2574],
+			"rotation": {"x": 0, "y": 45, "z": 45.4213, "origin": [8.23234, 3.64602, 8.2574]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 4 bevel 5",
+			"from": [8.12967, 2.58932, 7.7366],
+			"to": [8.33501, 4.70272, 7.7426],
+			"rotation": {"x": 180, "y": 45, "z": -134.5787, "origin": [8.23234, 3.64602, 7.7426]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 4 bevel 7",
+			"from": [7.63498, 2.0873, 7.7366],
+			"to": [7.84032, 4.2007, 7.7426],
+			"rotation": {"x": 180, "y": -45, "z": -134.5787, "origin": [7.73765, 3.144, 7.7426]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [8.5348, 2.7, 8.27],
+			"to": [8.8052, 4.6634, 8.39],
+			"rotation": {"x": 0, "y": 0, "z": 45.4213, "origin": [8.67, 2.72, 8.33]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [8.5, 2.7, 8.3048],
+			"to": [8.84, 4.6634, 8.3552],
+			"rotation": {"x": 0, "y": 0, "z": 45.4213, "origin": [8.67, 2.72, 8.33]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [7.85328, 2.30461, 8.3666],
+			"to": [7.90249, 4.26801, 8.3726],
+			"rotation": {"x": 0, "y": -45, "z": 45.4213, "origin": [7.87789, 3.28631, 8.3726]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [8.06749, 2.522, 8.3666],
+			"to": [8.11671, 4.4854, 8.3726],
+			"rotation": {"x": 0, "y": 45, "z": 45.4213, "origin": [8.0921, 3.5037, 8.3726]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [8.06749, 2.522, 8.2814],
+			"to": [8.11671, 4.4854, 8.2874],
+			"rotation": {"x": -180, "y": 45, "z": -134.5787, "origin": [8.0921, 3.5037, 8.2874]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [7.85328, 2.30461, 8.2814],
+			"to": [7.90249, 4.26801, 8.2874],
+			"rotation": {"x": 180, "y": -45, "z": -134.5787, "origin": [7.87789, 3.28631, 8.2874]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 5 broad faces",
+			"from": [9.4916, 1.785, 7.735],
+			"to": [9.9484, 3.3197, 8.265],
+			"rotation": {"x": 0, "y": 0, "z": 51.3402, "origin": [9.72, 1.88, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 5 narrow faces",
+			"from": [9.375, 1.785, 7.8516],
+			"to": [10.065, 3.3197, 8.1484],
+			"rotation": {"x": 0, "y": 0, "z": 51.3402, "origin": [9.72, 1.88, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 5 bevel 1",
+			"from": [8.93343, 1.30879, 8.2007],
+			"to": [9.09833, 2.84349, 8.2067],
+			"rotation": {"x": 0, "y": -45, "z": 51.3402, "origin": [9.01588, 2.07614, 8.2067]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 5 bevel 3",
+			"from": [9.29163, 1.75654, 8.2007],
+			"to": [9.45653, 3.29124, 8.2067],
+			"rotation": {"x": 0, "y": 45, "z": 51.3402, "origin": [9.37408, 2.52389, 8.2067]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 5 bevel 5",
+			"from": [9.29163, 1.75654, 7.7873],
+			"to": [9.45653, 3.29124, 7.7933],
+			"rotation": {"x": 180, "y": 45, "z": -128.6598, "origin": [9.37408, 2.52389, 7.7933]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 5 bevel 7",
+			"from": [8.93343, 1.30879, 7.7873],
+			"to": [9.09833, 2.84349, 7.7933],
+			"rotation": {"x": -180, "y": -45, "z": -128.6598, "origin": [9.01588, 2.07614, 7.7933]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate broad faces",
+			"from": [9.6168, 1.86, 8.205],
+			"to": [9.8232, 3.2447, 8.325],
+			"rotation": {"x": 0, "y": 0, "z": 51.3402, "origin": [9.72, 1.88, 8.265]},
+			"faces": {
+				"north": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [5.28125, 4.03125, 6.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate narrow faces",
+			"from": [9.582, 1.86, 8.2398],
+			"to": [9.858, 3.2447, 8.2902],
+			"rotation": {"x": 0, "y": 0, "z": 51.3402, "origin": [9.72, 1.88, 8.265]},
+			"faces": {
+				"east": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 1",
+			"from": [9.09504, 1.51349, 8.3016],
+			"to": [9.14425, 2.89819, 8.3076],
+			"rotation": {"x": 0, "y": -45, "z": 51.3402, "origin": [9.11964, 2.20584, 8.3076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 3",
+			"from": [9.24571, 1.70184, 8.3016],
+			"to": [9.29493, 3.08654, 8.3076],
+			"rotation": {"x": 0, "y": 45, "z": 51.3402, "origin": [9.27032, 2.39419, 8.3076]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 5",
+			"from": [9.24571, 1.70184, 8.2164],
+			"to": [9.29493, 3.08654, 8.2224],
+			"rotation": {"x": 180, "y": 45, "z": -128.6598, "origin": [9.27032, 2.39419, 8.2224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Pale ash laminate bevel 7",
+			"from": [9.09504, 1.51349, 8.2164],
+			"to": [9.14425, 2.89819, 8.2224],
+			"rotation": {"x": -180, "y": -45, "z": -128.6598, "origin": [9.11964, 2.20584, 8.2224]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 6 broad faces",
+			"from": [9.6128, 1.115, 7.755],
+			"to": [9.9472, 1.9777, 8.245],
+			"rotation": {"angle": 5.1173, "axis": "z", "origin": [9.78, 1.21, 8]},
+			"faces": {
+				"north": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 4.03125, 1.46875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 6 narrow faces",
+			"from": [9.505, 1.115, 7.8628],
+			"to": [10.055, 1.9777, 8.1372],
+			"rotation": {"angle": 5.1173, "axis": "z", "origin": [9.78, 1.21, 8]},
+			"faces": {
+				"east": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [1.78125, 4.03125, 3.21875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 6 bevel 1",
+			"from": [9.45355, 1.09394, 8.1851],
+			"to": [9.60601, 1.95664, 8.1911],
+			"rotation": {"x": 0, "y": -45, "z": 5.1173, "origin": [9.52978, 1.52529, 8.1911]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 6 bevel 3",
+			"from": [9.89399, 1.13338, 8.1851],
+			"to": [10.04644, 1.99608, 8.1911],
+			"rotation": {"x": 0, "y": 45, "z": 5.1173, "origin": [9.97022, 1.56473, 8.1911]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 6 bevel 5",
+			"from": [9.89399, 1.13338, 7.8029],
+			"to": [10.04644, 1.99608, 7.8089],
+			"rotation": {"x": 180, "y": 45, "z": -174.8827, "origin": [9.97022, 1.56473, 7.8089]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower ash limb 6 bevel 7",
+			"from": [9.45355, 1.09394, 7.8029],
+			"to": [9.60601, 1.95664, 7.8089],
+			"rotation": {"x": 180, "y": -45, "z": -174.8827, "origin": [9.52978, 1.52529, 7.8089]},
+			"faces": {
+				"south": {"uv": [3.53125, 4.03125, 4.96875, 7.96875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock broad faces",
+			"from": [9.595, 0.92, 7.69],
+			"to": [9.965, 1.5, 8.31],
+			"rotation": {"angle": 0, "axis": "y", "origin": [9.44, 0.92, 7.69]},
+			"faces": {
+				"north": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"south": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock narrow faces",
+			"from": [9.44, 0.92, 7.845],
+			"to": [10.12, 1.5, 8.155],
+			"rotation": {"angle": 0, "axis": "y", "origin": [9.44, 0.92, 7.69]},
+			"faces": {
+				"east": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"west": {"uv": [8.53125, 4.03125, 9.71875, 5.71875], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 1",
+			"from": [9.4079, 0.92, 8.2265],
+			"to": [9.6271, 1.5, 8.2325],
+			"rotation": {"angle": -45, "axis": "y", "origin": [9.5175, 1.21, 8.2325]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 3",
+			"from": [9.9329, 0.92, 8.2265],
+			"to": [10.1521, 1.5, 8.2325],
+			"rotation": {"angle": 45, "axis": "y", "origin": [10.0425, 1.21, 8.2325]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 5",
+			"from": [9.9329, 0.92, 7.7615],
+			"to": [10.1521, 1.5, 7.7675],
+			"rotation": {"x": 180, "y": 45, "z": 180, "origin": [10.0425, 1.21, 7.7675]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Brass string nock bevel 7",
+			"from": [9.4079, 0.92, 7.7615],
+			"to": [9.6271, 1.5, 7.7675],
+			"rotation": {"x": 180, "y": -45, "z": 180, "origin": [9.5175, 1.21, 7.7675]},
+			"faces": {
+				"south": {"uv": [7.03125, 4.03125, 8.21875, 5.71875], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Leather grip",
+			"from": [5.24, 6.75, 7.39],
+			"to": [6.64, 9.25, 8.61],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.24, 6.75, 7.39]},
+			"faces": {
+				"north": {"uv": [6.375, 0.125, 7.375, 1.125], "texture": "#surface"},
+				"east": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"south": {"uv": [6.375, 0.125, 7.375, 1.125], "texture": "#surface"},
+				"west": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"up": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"down": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Limb collar",
+			"from": [5.23, 6.72, 7.35],
+			"to": [6.65, 6.96, 8.65],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.23, 6.72, 7.35]},
+			"faces": {
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Limb collar",
+			"from": [5.23, 9.04, 7.35],
+			"to": [6.65, 9.28, 8.65],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.23, 9.04, 7.35]},
+			"faces": {
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Nox leather tab",
+			"from": [5.4, 7.59, 7.29],
+			"to": [6.29, 8.48, 7.45],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.4, 7.59, 7.29]},
+			"faces": {
+				"north": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"south": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"up": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"down": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Nox leather tab",
+			"from": [5.4, 7.59, 8.55],
+			"to": [6.29, 8.48, 8.71],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.4, 7.59, 8.55]},
+			"faces": {
+				"north": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"south": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"up": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"down": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Lower linen cord",
+			"from": [9.6775, 1.21, 7.8975],
+			"to": [9.8825, 8.0282, 8.1025],
+			"rotation": {"angle": -5.2173, "axis": "z", "origin": [9.78, 1.21, 8]},
+			"faces": {
+				"north": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"east": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"south": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"west": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"up": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"down": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Upper linen cord",
+			"from": [10.2975, 8, 7.8975],
+			"to": [10.5025, 14.8182, 8.1025],
+			"rotation": {"angle": 5.2173, "axis": "z", "origin": [10.4, 8, 8]},
+			"faces": {
+				"north": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"east": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"south": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"west": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"up": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"},
+				"down": {"uv": [6.375, 1.375, 7.375, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Nocked arrow shaft",
+			"from": [1.77, 8, 7.89],
+			"to": [1.95, 17.19, 8.11],
+			"rotation": {"x": 0, "y": 0, "z": -90, "origin": [1.86, 8, 8]},
+			"faces": {
+				"north": {"uv": [5.125, 2.625, 6.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [5.125, 2.625, 6.125, 3.625], "texture": "#surface"},
+				"south": {"uv": [5.125, 2.625, 6.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [5.125, 2.625, 6.125, 3.625], "texture": "#surface"},
+				"up": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"},
+				"down": {"uv": [2.625, 1.375, 3.625, 2.375], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Arrowhead",
+			"from": [1.62, 7.79, 7.8],
+			"to": [2.48, 8.21, 8.2],
+			"rotation": {"angle": 0, "axis": "y", "origin": [1.62, 7.79, 7.8]},
+			"faces": {
+				"north": {"uv": [1.375, 0.125, 2.375, 1.125], "texture": "#surface"},
+				"east": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [1.375, 0.125, 2.375, 1.125], "texture": "#surface"},
+				"west": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Arrow fletching",
+			"from": [9.46, 7.72, 7.83],
+			"to": [10.23, 8.28, 8.17],
+			"rotation": {"angle": 0, "axis": "y", "origin": [9.46, 7.72, 7.83]},
+			"faces": {
+				"north": {"uv": [6.375, 2.625, 7.375, 3.625], "texture": "#surface"},
+				"east": {"uv": [6.375, 2.625, 7.375, 3.625], "texture": "#surface"},
+				"south": {"uv": [6.375, 2.625, 7.375, 3.625], "texture": "#surface"},
+				"west": {"uv": [6.375, 2.625, 7.375, 3.625], "texture": "#surface"},
+				"up": {"uv": [6.375, 2.625, 7.375, 3.625], "texture": "#surface"},
+				"down": {"uv": [6.375, 2.625, 7.375, 3.625], "texture": "#surface"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [-80, -100, -80],
+			"translation": [-0.97923, -2.06564, 2.19466],
+			"scale": [1.25, 1.25, 1.25]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [-80, 80, 80],
+			"translation": [-0.97923, -2.06564, 2.19466],
+			"scale": [1.25, 1.25, 1.25]
+		},
+		"firstperson_righthand": {
+			"rotation": [0, -90, -15],
+			"translation": [1.13, 3.1063, 1.28286],
+			"scale": [1.14, 1.14, 1.14]
+		},
+		"firstperson_lefthand": {
+			"rotation": [0, 90, 15],
+			"translation": [1.13, 3.1063, 1.28286],
+			"scale": [1.14, 1.14, 1.14]
+		},
+		"ground": {
+			"translation": [0, 2.25, 0],
+			"scale": [0.48, 0.48, 0.48]
+		},
+		"gui": {
+			"rotation": [12, 18, -35],
+			"translation": [-0.28138, 1.10042, 0],
+			"scale": [1.21597, 1.21597, 1.21597]
+		},
+		"fixed": {
+			"rotation": [0, 0, -34],
+			"translation": [0.55, 0, 0],
+			"scale": [0.86, 0.86, 0.86]
+		}
+	}
 }
