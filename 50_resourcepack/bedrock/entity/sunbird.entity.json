@@ -4,7 +4,8 @@
     "description": {
       "identifier": "astralrecord:sunbird",
       "materials": {
-        "default": "entity_alphatest"
+        "default": "entity_alphatest",
+        "guard": "entity_emissive_alpha"
       },
       "textures": {
         "default": "textures/entity/sunbird"
@@ -15,16 +16,28 @@
       "animations": {
         "body_scale": "animation.astralrecord.sunbird.body_scale",
         "idle": "animation.astralrecord.sunbird.idle",
-        "fly": "animation.astralrecord.sunbird.fly"
+        "move": "animation.astralrecord.sunbird.move",
+        "cast": "animation.astralrecord.sunbird.cast",
+        "strike": "animation.astralrecord.sunbird.strike",
+        "guard": "animation.astralrecord.sunbird.guard",
+        "motion": "controller.animation.astralrecord.sunbird"
       },
       "scripts": {
+        "pre_animation": [
+          "variable.motion = query.has_property('astralrecord:motion') ? query.property('astralrecord:motion') : (query.is_on_ground ? 0 : 1);",
+          "variable.invulnerable = query.has_property('astralrecord:invulnerable') ? query.property('astralrecord:invulnerable') : 0;"
+        ],
         "animate": [
           "body_scale",
-          { "idle": "query.is_on_ground" },
-          { "fly": "!query.is_on_ground" }
+          "motion",
+          {
+            "guard": "variable.invulnerable"
+          }
         ]
       },
-      "render_controllers": ["controller.render.default"]
+      "render_controllers": [
+        "controller.render.astralrecord.sunbird"
+      ]
     }
   }
 }

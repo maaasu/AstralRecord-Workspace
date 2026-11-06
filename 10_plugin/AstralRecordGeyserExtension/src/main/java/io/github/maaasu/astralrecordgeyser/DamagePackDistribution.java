@@ -182,6 +182,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().sunbird();
     }
 
+    boolean sunbirdMotionReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().sunbirdMotion();
+    }
+
     OptionalInt heldWeaponModel(GeyserConnection connection, int modelId) {
         SessionPack selection = sessions.get(connection);
         if (selection == null || !selection.ready() || selection.pack().heldWeaponModels().isEmpty()) {

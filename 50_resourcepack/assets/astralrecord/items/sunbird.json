@@ -1,13 +1,76 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "astralrecord:item/sunbird",
-    "tints": [
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
       {
-        "type": "minecraft:custom_model_data",
-        "index": 0,
-        "default": 16777215
+        "when": "wing_up",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/sunbird_wing_up",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
+      },
+      {
+        "when": "wing_down",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/sunbird_wing_down",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
+      },
+      {
+        "when": "wing_tuck",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/sunbird_wing_tuck",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
+      },
+      {
+        "when": "strike",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/sunbird_strike",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
       }
-    ]
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "astralrecord:item/sunbird",
+      "tints": [
+        {
+          "type": "minecraft:custom_model_data",
+          "index": 0,
+          "default": 16777215
+        }
+      ]
+    }
   }
 }

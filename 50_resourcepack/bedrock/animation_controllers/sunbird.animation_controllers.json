@@ -1,0 +1,78 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.astralrecord.sunbird": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "transitions": [
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "cast": "variable.motion == 2"
+            },
+            {
+              "strike": "variable.motion == 3"
+            }
+          ],
+          "blend_transition": 0.08
+        },
+        "move": {
+          "animations": [
+            "move"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "cast": "variable.motion == 2"
+            },
+            {
+              "strike": "variable.motion == 3"
+            }
+          ],
+          "blend_transition": 0.08
+        },
+        "cast": {
+          "animations": [
+            "cast"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "strike": "variable.motion == 3"
+            }
+          ],
+          "blend_transition": 0.05
+        },
+        "strike": {
+          "animations": [
+            "strike"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "cast": "variable.motion == 2"
+            }
+          ],
+          "blend_transition": 0.05
+        }
+      }
+    }
+  }
+}

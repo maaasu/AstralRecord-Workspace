@@ -45,6 +45,7 @@ public final class AstralRecordGeyserExtension implements Extension {
     private WeaponAttackEntity weaponAttackProperties;
     private CustomEntityDefinition sunbirdSkillDefinition;
     private SunbirdSkillEntity sunbirdSkillProperties;
+    private SunbirdMotion sunbirdMotionProperties;
     private WorldDisplayEntity worldDisplays;
     private HeldWeaponModelDisplay heldWeaponModels;
 
@@ -77,6 +78,7 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe
     public void onDefineEntityProperties(GeyserDefineEntityPropertiesEvent event) {
+        sunbirdMotionProperties = SunbirdMotion.registerProperties(event, SUNBIRD.identifier());
         if (damageNumberDefinition != null) {
             damageNumberProperties = DamageNumberEntity.registerProperties(event);
         }
@@ -189,6 +191,18 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
+        if (SunbirdMotion.isMarker(event.uuid())) {
+            event.setCancelled(true);
+            var properties = sunbirdMotionProperties;
+            var frame = SunbirdMotion.decode(event.uuid());
+            if (frame != null && properties != null && damagePacks.sunbirdMotionReady(event.connection())) {
+                GeyserEntity target = event.connection().entities().byJavaId(frame.targetId());
+                if (target != null && SUNBIRD.equals(target.definition())) {
+                    properties.apply(target, frame);
+                }
+            }
+            return;
+        }
         if (SunbirdSkillEntity.isMarker(event.uuid())) {
             var properties = sunbirdSkillProperties;
             var frame = SunbirdSkillEntity.decode(event.uuid());

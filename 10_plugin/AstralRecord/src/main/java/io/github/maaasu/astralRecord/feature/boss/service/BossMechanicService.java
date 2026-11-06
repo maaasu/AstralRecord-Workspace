@@ -365,6 +365,7 @@ public final class BossMechanicService {
     /** 同じtick軸を使い、全Mob走査・主呪文は従来の5tick間隔、通常弾と波だけを中間tickでも更新します。 */
     private void pulse() {
         motionClockTicks++;
+        sunbirdDisplay.animate(motionClockTicks);
         if (motionClockTicks % TICK_PERIOD == 0L) {
             tick();
         } else {
@@ -2171,7 +2172,10 @@ public final class BossMechanicService {
                 : null;
             default -> null;
         };
-        if (shape != null) showSunbirdBurst(pending.bossInstanceId(), shape);
+        if (shape != null) {
+            sunbirdDisplay.strike(pending.bossInstanceId(), clockTicks);
+            showSunbirdBurst(pending.bossInstanceId(), shape);
+        }
     }
 
     /** 描画に失敗しても攻撃処理を継続し、従来の発動エフェクトを表示します。 */

@@ -22,12 +22,19 @@
       },
       "scripts": {
         "pre_animation": [
-          "variable.impact = query.property('astralrecord:style') == 3 || query.property('astralrecord:style') == 5;",
-          "variable.impact_progress = variable.impact ? math.clamp(query.life_time / 0.35, 0.0, 1.0) : 1.0;"
+          "variable.style = query.property('astralrecord:style');",
+          "variable.pulse = math.mod(query.life_time, 0.6) / 0.6;",
+          "variable.travel = math.clamp(query.life_time / 0.32, 0.0, 1.0);",
+          "variable.spark_radius = variable.style == 3 ? math.lerp(0.18, 1.16, variable.travel) : (variable.style == 2 ? 1.0 : (variable.style == 4 ? math.lerp(1.0, 0.46, variable.pulse) : math.lerp(0.36, 1.03, variable.pulse)));",
+          "variable.spark_height = variable.style == 3 ? 0.45 + 0.95 * math.sin(variable.travel * 180.0) : 0.55 + 0.85 * math.sin(variable.pulse * 180.0);"
         ],
-        "animate": ["shape"]
+        "animate": [
+          "shape"
+        ]
       },
-      "render_controllers": ["controller.render.astralrecord.sunbird_skill"]
+      "render_controllers": [
+        "controller.render.astralrecord.sunbird_skill"
+      ]
     }
   }
 }

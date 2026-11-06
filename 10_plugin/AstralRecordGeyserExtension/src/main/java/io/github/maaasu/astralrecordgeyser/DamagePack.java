@@ -31,7 +31,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean gameplaySounds, boolean sunbird,
-    Set<Integer> heldWeaponModels,
+    boolean sunbirdMotion, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips
 ) {
     private static final String ROOT = "../resource-packs/";
@@ -125,6 +125,7 @@ record DamagePack(
             boolean weaponAttackProjectiles;
             boolean gameplaySounds;
             boolean sunbird;
+            boolean sunbirdMotion;
             boolean worldDisplay;
             boolean itemTooltips;
             Set<Integer> heldWeaponModels;
@@ -152,6 +153,9 @@ record DamagePack(
                     && WEAPON_ATTACK_PROJECTILE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 gameplaySounds = hasGameplaySounds(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                sunbirdMotion = sunbird
+                    && present(zip.getEntry("animation_controllers/sunbird.animation_controllers.json"))
+                    && present(zip.getEntry("render_controllers/sunbird.render_controllers.json"));
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
@@ -169,7 +173,7 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                weaponAttackProjectiles, gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites,
+                weaponAttackProjectiles, gameplaySounds, sunbird, sunbirdMotion, heldWeaponModels, itemModels, actionRingSprites,
                 worldDisplay, itemTooltips);
         } finally {
             if (!keep) Files.deleteIfExists(file);
