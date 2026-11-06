@@ -25,6 +25,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番 �
 - Minecraft内の職業・戦闘スキル → `$astralrecord-skill-author`
 - 本番向け `40_filebase` マスタ作成 → `$astralrecord-master-data-author`
 - 新しいプレイヤー用アイテムの外観、既存アイテムのモデル作成・変更 → `$astralrecord-item-model-author`。新規アイテムは原則マスターと両版のパックを同じ変更で作る。
+- モブ・ボスの外観モデルの制作や立体意匠の改修 → `$astralrecord-mob-model-author`。
 - `.codex/skills` の定義・参照・スクリプト・`agents/openai.yaml` → `$skill-creator`
 - その他のプラグイン/API/Web/設計書に関連する実装 → `$astralrecord-code`
 

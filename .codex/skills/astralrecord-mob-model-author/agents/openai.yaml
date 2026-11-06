@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord モブモデル制作"
+  short_description: "モブとボスの立体モデルを制作し、Java版と統合版で品質を検証"
+  default_prompt: "$astralrecord-mob-model-author を使い、既存ボスのモチーフを保って立体モデルを両版で作り直してください。"
