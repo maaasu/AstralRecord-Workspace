@@ -376,6 +376,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        if (BackendProtocol.isSeleneaReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockSeleneaPresentationReady(player);
+            }
+            return;
+        }
         String actionRingHudRevision = BackendProtocol.decodeActionRingHudRevision(message);
         if (actionRingHudRevision != null) {
             if (resourcePackService != null) {

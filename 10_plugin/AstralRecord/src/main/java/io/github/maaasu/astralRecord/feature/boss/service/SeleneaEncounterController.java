@@ -71,6 +71,7 @@ final class SeleneaEncounterController {
     private final Function<MobInstance, List<Player>> participants;
     private final HitHandler hitHandler;
     private final SeleneaPressureController pressure;
+    private final SeleneaPackDisplay pack;
     private final ToIntFunction<MobInstance> partySize;
     private final Map<UUID, Encounter> encounters = new HashMap<>();
     private @Nullable TemporarySkillEffectService effects;
@@ -84,11 +85,14 @@ final class SeleneaEncounterController {
      * @param particles 設定と閲覧者を考慮する共通演出サービス
      * @param participants 生存する確定参加者を返す関数
      * @param hitHandler 共通魔法ダメージへの委譲先 @param partySize 確定名簿の参加人数
+     * @param pack 対応パック向けの追加演出
      */
     SeleneaEncounterController(MobService mobs, ParticleDisplayService particles,
-        Function<MobInstance, List<Player>> participants, HitHandler hitHandler, ToIntFunction<MobInstance> partySize) {
+        Function<MobInstance, List<Player>> participants, HitHandler hitHandler, ToIntFunction<MobInstance> partySize,
+        SeleneaPackDisplay pack) {
         this.mobs = mobs; this.particles = particles; this.participants = participants; this.hitHandler = hitHandler;
-        this.pressure = new SeleneaPressureController(particles, hitHandler);
+        this.pack = pack;
+        this.pressure = new SeleneaPressureController(particles, hitHandler, pack);
         this.partySize = partySize;
     }
 
@@ -259,9 +263,27 @@ final class SeleneaEncounterController {
     boolean ultimateProtected(MobInstance boss) {
         if (!BOSS_ID.equals(boss.template().id()) || boss.currentHealth() <= 0) return false;
         observeHealthThreshold(boss);
-        Encounter state = encounters.get(boss.instanceId());
-        return state != null && state.requestedPhase > state.completedPhase
-            || state != null && (state.pendingPhase > state.completedPhase || state.cast != null && state.cast.stage == Stage.ULTIMATE);
+        return presentationImmune(boss.instanceId());
+    }
+
+    /** @param bossId ボス個体 @return 既に記録された大技の開始待ちまたは詠唱中ならtrue */
+    boolean presentationImmune(UUID bossId) {
+        Encounter state = encounters.get(bossId);
+        return state != null && (state.requestedPhase > state.completedPhase
+            || state.pendingPhase > state.completedPhase || state.cast != null && state.cast.stage == Stage.ULTIMATE);
+    }
+
+    /**
+     * 主呪文の状態を本体の外観だけに反映します。
+     * @param bossId ボス個体 @return 現在の詠唱または反撃窓の姿勢
+     */
+    SeleneaPackDisplay.Pose presentationPose(UUID bossId) {
+        Encounter state = encounters.get(bossId);
+        if (state == null || state.cast == null) return SeleneaPackDisplay.Pose.IDLE;
+        return switch (state.cast.stage) {
+            case EXPOSURE, RECOVERY -> SeleneaPackDisplay.Pose.RECOVERY;
+            default -> SeleneaPackDisplay.Pose.CAST;
+        };
     }
 
     /** @return 生存人数に応じた必要封頁数。ソロでも1枚で成立 */
@@ -328,6 +350,7 @@ final class SeleneaEncounterController {
                 : castTitle(cast),
             stage == Stage.SEALS || stage == Stage.EXPOSURE ? BarColor.BLUE : BarColor.PURPLE, BarStyle.SEGMENTED_10);
         buildVisuals(cast, tick);
+        buildPackWarnings(state.boss.instanceId(), cast);
         if (stage == Stage.SEALS) announce(state, PlayerMsgId.P_7660, cast.required);
         if (stage == Stage.INTRO || stage == Stage.EXPOSURE || stage == Stage.BLINK
             || stage == Stage.ULTIMATE && ultimateWave == 0) announce(state, stage.message);
@@ -392,6 +415,10 @@ final class SeleneaEncounterController {
         animate(cast, tick);
         particles.spawnForNearbyViewers(List.of(origin.clone().add(0, 1, 0), destination.clone().add(0, 1, 0)),
             SharedParticleDefinitions.SELENEA_TELEPORT_BURST, true);
+        pack.strike(state.boss.instanceId(), tick);
+        pack.effects(state.boss.instanceId(), List.of(
+            SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.GRIMOIRE_IMPACT, origin, 1.5D, 1.2D),
+            SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.GRIMOIRE_IMPACT, destination, 1.5D, 1.2D)), tick, 10L);
         sound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1.3F);
         sound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1.6F);
     }
@@ -436,6 +463,8 @@ final class SeleneaEncounterController {
         cast.resolved = true;
         if (cast.shape != SeleneaArena.Shape.NONE) {
             impact(cast);
+            pack.strike(state.boss.instanceId(), tick);
+            packImpact(state.boss.instanceId(), cast, tick);
             for (Player player : List.copyOf(active)) {
                 if (!contains(cast, player.getLocation())) continue;
                 Location origin = cast.stage == Stage.MARKS ? cast.marks.stream()
@@ -548,6 +577,9 @@ final class SeleneaEncounterController {
                 if (tick - start >= RUNE_HOLD) {
                     rune.done = true;
                     rune.holders.clear();
+                    if (rune.packWarning != null) rune.packWarning.run();
+                    pack.effects(state.boss.instanceId(), List.of(SeleneaPackDisplay.Shape.circle(
+                        SeleneaPackDisplay.Style.GRIMOIRE_IMPACT, rune.point, 1.25D, 0.8D)), tick, 10L);
                     if (rune.display != null) rune.display.setBlock(Material.SEA_LANTERN.createBlockData());
                     sound(rune.point, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.6F);
                     break;
@@ -636,7 +668,11 @@ final class SeleneaEncounterController {
         if (cast.bar != null) cast.bar.removeAll();
         for (Entity display : cast.displays) display.remove();
         cast.displays.clear();
-        for (Rune rune : cast.runes) rune.holders.clear();
+        if (cast.packWarning != null) cast.packWarning.run();
+        for (Rune rune : cast.runes) {
+            rune.holders.clear();
+            if (rune.packWarning != null) rune.packWarning.run();
+        }
     }
 
     /** 中断・個体終了では、通常の波切替で再利用した本も所有個体ごとに回収します。 */
@@ -690,6 +726,119 @@ final class SeleneaEncounterController {
         return cast.stage == Stage.ULTIMATE
             ? PlayerMsgResource.format(PlayerMsgId.P_7731.getId(), cast.ultimateWave + 1, cast.ultimateWaves, ultimateInstruction(cast))
             : PlayerMsgResource.format(cast.stage.message.getId());
+    }
+
+    /**
+     * 確定済みの攻撃形状に装飾を重ねます。細部の危険域は既存の床粒子で伝えます。
+     * @param bossId 所有個体 @param cast 固定済みの詠唱
+     */
+    private void buildPackWarnings(UUID bossId, Cast cast) {
+        List<SeleneaPackDisplay.Shape> shapes = new ArrayList<>();
+        switch (cast.shape) {
+            case MARKS -> {
+                for (Location mark : cast.marks) {
+                    double margin = cast.radius - SeleneaArena.MARK_RADIUS;
+                    if (SeleneaArena.squared(mark, cast.center) <= margin * margin) {
+                        addPackRing(shapes, SeleneaPackDisplay.Style.CIRCLE, mark, SeleneaArena.MARK_RADIUS, 1.5D);
+                    } else {
+                        addPackRing(shapes, SeleneaPackDisplay.Style.GRIMOIRE, mark, 1.2D, 3.0D);
+                    }
+                }
+            }
+            case INNER -> addPackRing(shapes, SeleneaPackDisplay.Style.CIRCLE, cast.center, SeleneaArena.MOON_RADIUS, 1.5D);
+            case OUTER -> addPackRing(shapes, SeleneaPackDisplay.Style.BOUNDARY, cast.center, SeleneaArena.MOON_RADIUS, 1.6D);
+            case RETURN -> addPackRing(shapes, SeleneaPackDisplay.Style.BOUNDARY, cast.center, cast.radius, 1.6D);
+            case FORK -> addPackFork(shapes, cast, SeleneaPackDisplay.Style.LINE, 1.4F);
+            case PASSAGE, ULTIMATE_PASSAGE -> {
+                Vector side = new Vector(-cast.direction.getZ(), 0, cast.direction.getX());
+                double across = passageWidth(cast) + 0.20D;
+                double extent = Math.sqrt(cast.radius * cast.radius - across * across) - 0.2D;
+                for (int sign : new int[]{-1, 1}) {
+                    Location middle = cast.center.clone().add(side.clone().multiply(sign * across));
+                    addPackLane(shapes, SeleneaPackDisplay.Style.EDGE, middle, cast.direction, -extent, extent, 0.3F, 1.4F);
+                }
+            }
+            case NONE -> {
+                if (cast.teleportDestination != null) {
+                    addPackRing(shapes, SeleneaPackDisplay.Style.SAFE, cast.teleportDestination, 1.5D, 1.6D);
+                }
+                if (cast.stage == Stage.INTRO || cast.stage == Stage.SEALS || cast.stage == Stage.EXPOSURE) {
+                    addPackRing(shapes, SeleneaPackDisplay.Style.GRIMOIRE, cast.bodyCenter, 1.8D, 3.5D);
+                }
+            }
+        }
+        cast.packWarning = pack.effects(bossId, shapes, cast.started, cast.duration);
+        for (Rune rune : cast.runes) {
+            List<SeleneaPackDisplay.Shape> markers = new ArrayList<>(1);
+            addPackRing(markers, SeleneaPackDisplay.Style.SAFE, rune.point, RUNE_RADIUS, 1.6D);
+            rune.packWarning = pack.effects(bossId, markers, cast.started, cast.duration);
+        }
+    }
+
+    /** @param bossId 所有個体 @param cast 着弾した固定形状 @param tick 着弾tick */
+    private void packImpact(UUID bossId, Cast cast, long tick) {
+        List<SeleneaPackDisplay.Shape> shapes = new ArrayList<>();
+        if (cast.shape == SeleneaArena.Shape.FORK) {
+            addPackFork(shapes, cast, SeleneaPackDisplay.Style.IMPACT_LINE, 3.5F);
+        } else if (cast.shape == SeleneaArena.Shape.MARKS || cast.shape == SeleneaArena.Shape.INNER) {
+            List<Location> centers = cast.shape == SeleneaArena.Shape.MARKS ? cast.marks : List.of(cast.center);
+            for (Location point : centers) {
+                double radius = cast.shape == SeleneaArena.Shape.MARKS
+                    ? Math.min(SeleneaArena.MARK_RADIUS, cast.radius - Math.sqrt(SeleneaArena.squared(cast.center, point)))
+                    : SeleneaArena.MOON_RADIUS;
+                if (radius >= 0.75D) addPackRing(shapes, SeleneaPackDisplay.Style.IMPACT, point, radius, 4.5D);
+            }
+        } else {
+            int count = Math.min(6, cast.fill.size());
+            for (int i = 0; i < count; i++) {
+                Location point = cast.fill.get(i * cast.fill.size() / count);
+                shapes.add(SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.GRIMOIRE_IMPACT, point, 0.9D, 0.8D));
+            }
+        }
+        pack.effects(bossId, shapes, tick, 10L);
+    }
+
+    /** @param out 出力先 @param cast 確定した三叉 @param style 表示形状 @param height 高さ */
+    private static void addPackFork(List<SeleneaPackDisplay.Shape> out, Cast cast, SeleneaPackDisplay.Style style, float height) {
+        for (int ray = -1; ray <= 1; ray++) {
+            Vector aim = cast.direction.clone().rotateAroundY(ray * Math.PI / 6.0D);
+            addPackLane(out, style, cast.center, aim, 0.0D, cast.radius - 0.4D, 2.35F, height);
+        }
+    }
+
+    /** @param out 出力先 @param style 円の種類 @param center 固定中心 @param radius 半径 @param height 高さ */
+    private static void addPackRing(List<SeleneaPackDisplay.Shape> out, SeleneaPackDisplay.Style style,
+                                    Location center, double radius, double height) {
+        Location floor = SeleneaArena.ground(center);
+        if (floor == null) return;
+        for (int index = 0; index < 12; index++) {
+            double angle = Math.PI * index / 6;
+            Location edge = SeleneaArena.ground(center.clone().add(radius * Math.cos(angle), 0, radius * Math.sin(angle)));
+            if (edge == null || Math.abs(edge.getY() - floor.getY()) > 0.25D) return;
+        }
+        out.add(SeleneaPackDisplay.Shape.circle(style, floor, radius, height));
+    }
+
+    /**
+     * 平坦な短い区間だけに帯を置き、坂・段差を床粒子に委ねます。
+     * @param out 出力先 @param style 線の種類 @param origin 水平原点 @param aim 水平単位ベクトル
+     * @param start 開始距離 @param end 終了距離 @param width 幅 @param height 高さ
+     */
+    private static void addPackLane(List<SeleneaPackDisplay.Shape> out, SeleneaPackDisplay.Style style, Location origin,
+                                    Vector aim, double start, double end, float width, float height) {
+        int segments = Math.clamp((int) Math.ceil((end - start) / 12.0D), 1, 8);
+        for (int i = 0; i < segments; i++) {
+            Location from = SeleneaArena.ground(origin.clone().add(aim.clone().multiply(start + (end - start) * i / segments)));
+            Location to = SeleneaArena.ground(origin.clone().add(aim.clone().multiply(start + (end - start) * (i + 1) / segments)));
+            if (from == null || to == null || Math.abs(to.getY() - from.getY()) > 0.25D) continue;
+            Vector span = to.toVector().subtract(from.toVector()).setY(0);
+            boolean flat = true;
+            for (double fraction : new double[]{0.25D, 0.5D, 0.75D}) {
+                Location floor = SeleneaArena.ground(from.clone().add(span.clone().multiply(fraction)));
+                if (floor == null || Math.abs(floor.getY() - from.getY()) > 0.25D) { flat = false; break; }
+            }
+            if (flat) out.add(SeleneaPackDisplay.Shape.segment(style, from, to, width, height));
+        }
     }
 
     /**
@@ -1105,6 +1254,7 @@ final class SeleneaEncounterController {
         final List<ItemDisplay> books;
         final List<Rune> runes = new ArrayList<>();
         @Nullable BossBar bar;
+        @Nullable Runnable packWarning;
         int required;
         double shardRelease;
         boolean originalImmune;
@@ -1131,6 +1281,7 @@ final class SeleneaEncounterController {
         final Location point;
         final Map<UUID, Long> holders = new HashMap<>();
         @Nullable BlockDisplay display;
+        @Nullable Runnable packWarning;
         boolean done;
         /** @param point 到達可能な床 */
         Rune(Location point) { this.point = point; }

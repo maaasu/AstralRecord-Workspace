@@ -1,0 +1,49 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:selenea_skill",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/selenea_skill"
+      },
+      "geometry": {
+        "warning_circle": "geometry.astralrecord.selenea_warning_circle",
+        "warning_line": "geometry.astralrecord.selenea_warning_line",
+        "warning_boundary": "geometry.astralrecord.selenea_warning_boundary",
+        "warning_safe": "geometry.astralrecord.selenea_warning_safe",
+        "impact": "geometry.astralrecord.selenea_impact",
+        "impact_line": "geometry.astralrecord.selenea_impact_line",
+        "wave": "geometry.astralrecord.selenea_wave",
+        "bolt": "geometry.astralrecord.selenea_bolt",
+        "warning_edge": "geometry.astralrecord.selenea_warning_edge",
+        "warning_grimoire": "geometry.astralrecord.selenea_warning_grimoire",
+        "impact_grimoire": "geometry.astralrecord.selenea_impact_grimoire"
+      },
+      "animations": {
+        "shape": "animation.astralrecord.selenea_skill.shape"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.style = query.property('astralrecord:style');",
+          "variable.pulse = math.mod(query.life_time, 0.6) / 0.6;",
+          "variable.travel = math.clamp(query.life_time / 0.35, 0.0, 1.0);",
+          "variable.arc = math.sin(180.0 * variable.travel);",
+          "variable.breath = math.sin(180.0 * variable.pulse);",
+          "variable.rune_scale = 0.76 + 0.29 * variable.breath;",
+          "variable.burst_scale = math.lerp(0.38, 1.0, variable.travel);",
+          "variable.page_scale = variable.style == 10 ? math.lerp(0.38, 1.18, variable.travel) : 0.95 - 0.16 * variable.breath;",
+          "variable.leaf_angle = variable.style == 10 ? 22.5 - 45.0 * variable.arc : 22.5 * (1.0 - variable.breath);"
+        ],
+        "animate": [
+          "shape"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.astralrecord.selenea_skill"
+      ]
+    }
+  }
+}

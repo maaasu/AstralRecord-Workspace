@@ -72,6 +72,10 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.11.0` 以降は、サンバード本体と技の描画ファイルを揃えたパックを登録してログインまで進んだ接続で、RPG が印を付けたオウムを `astralrecord:sunbird` として表示します。名前や当たり判定には元のエンティティの情報を使います。技は RPG が送る演出用 TextDisplay を `astralrecord:sunbird_skill` に変換し、種類・幅・奥行き・高さに応じて表示します。パックが揃わない接続には元のオウムと RPG のパーティクルを表示します。
 
+## Bedrockの月蝕の綴り魔女 セレネア
+
+拡張 `1.17.0` 以降は、互換版 `1` の `selenea-presentation-version.txt` と、本体・スキルの描画ファイルが揃ったパックを登録してログインした接続を確認します。Velocity の AstralRecordProxy `1.4.0` 以降が RPG に対応を通知します。対応した接続では、RPG が印を付けたウィッチを `astralrecord:selenea` に変換し、移動・詠唱・攻撃・復帰の動きと無敵中の外観を更新します。警告・発動・飛翔演出は `astralrecord:selenea_skill` で描画します。対応を確認できない接続ではウィッチと RPG のパーティクルを表示します。パック更新後は再接続してください。
+
 ## Bedrockのウェイストーンと施設NPC
 
 拡張 1.12.0 以降は、ワールド表示用のエンティティ定義、形状、レンダーコントローラー、テクスチャが揃ったパックを登録した接続で、RPG が送る印付きの空 TextDisplay を `astralrecord:world_display` に変換します。ウェイストーンの解除状態と施設NPCの素材は、生成時の `astralrecord:style` でモデルへ渡します。

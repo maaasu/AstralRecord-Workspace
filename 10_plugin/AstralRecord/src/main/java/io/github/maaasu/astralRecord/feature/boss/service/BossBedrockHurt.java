@@ -11,16 +11,16 @@ import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
 
 /** Geyser が統合版の被弾表示に変換するパケットを組み立てます。 */
-final class SunbirdBedrockHurt {
+final class BossBedrockHurt {
     private static PacketAccess packetAccess;
 
-    private SunbirdBedrockHurt() {
+    private BossBedrockHurt() {
     }
 
     /**
      * 実体の状態を変更せず、被弾表示用のパケットをメインスレッドで生成します。
      *
-     * @param source 被弾を表示するサンバードの実体
+     * @param source 被弾を表示するボスの実体
      * @return Geyser へ送る被弾通知
      */
     static PacketContainer create(Entity source) {

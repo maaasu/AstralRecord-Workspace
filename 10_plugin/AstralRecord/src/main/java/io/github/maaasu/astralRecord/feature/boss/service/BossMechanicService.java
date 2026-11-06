@@ -43,6 +43,7 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Witch;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
@@ -188,6 +189,7 @@ public final class BossMechanicService {
     private @Nullable TemporarySkillEffectService temporarySkillEffectService;
 
     private final SunbirdPackDisplay sunbirdDisplay;
+    private final SeleneaPackDisplay seleneaDisplay;
     private final Map<PendingMechanic, List<Effect>> sunbirdWarnings = new HashMap<>();
 
     private BukkitTask tickTask;
@@ -227,6 +229,7 @@ public final class BossMechanicService {
         this.conditionService = conditionService;
         this.particleDisplayService = particleDisplayService;
         this.sunbirdDisplay = new SunbirdPackDisplay(plugin, resourcePackService);
+        this.seleneaDisplay = new SeleneaPackDisplay(plugin, resourcePackService);
         this.charonRitualController = new CharonRitualController(
             mobService,
             particleDisplayService,
@@ -275,12 +278,12 @@ public final class BossMechanicService {
         this.seleneaEncounterController = new SeleneaEncounterController(
             mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio),
-            this::seleneaPartySize
+            this::seleneaPartySize, seleneaDisplay
         );
         this.seleneaSupportController = new SeleneaSupportController(
             plugin, mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player) -> damageService.applyLethalMechanicDamage(
-                AstEntity.mob(boss), damageService.resolveEntity(player))
+                AstEntity.mob(boss), damageService.resolveEntity(player)), seleneaDisplay
         );
     }
 
@@ -357,6 +360,7 @@ public final class BossMechanicService {
             return;
         }
         sunbirdDisplay.start();
+        seleneaDisplay.start();
         clockTicks = 0L;
         motionClockTicks = TICK_PERIOD - 1L;
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::pulse, 20L, 1L);
@@ -366,6 +370,7 @@ public final class BossMechanicService {
     private void pulse() {
         motionClockTicks++;
         sunbirdDisplay.animate(motionClockTicks);
+        seleneaDisplay.animate(motionClockTicks);
         if (motionClockTicks % TICK_PERIOD == 0L) {
             tick();
         } else {
@@ -388,6 +393,7 @@ public final class BossMechanicService {
             clearCharonRecovery(runtime);
         }
         sunbirdDisplay.clear(bossInstanceId);
+        seleneaDisplay.clear(bossInstanceId);
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
@@ -406,13 +412,16 @@ public final class BossMechanicService {
     }
 
     /**
-     * HP が減少して生存したサンバードの被弾表示を更新します。
+     * HP が減少して生存したサンバードとセレネアの被弾表示を更新します。
      * @param boss ダメージ適用後の Mob
      * @param entity 対応する Bukkit 実体
      */
     public void showHurt(@NotNull MobInstance boss, @NotNull Entity entity) {
-        if (tickTask != null && BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())) {
+        if (tickTask == null) return;
+        if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())) {
             sunbirdDisplay.hurt(boss.instanceId(), entity, motionClockTicks);
+        } else if (SeleneaEncounterController.BOSS_ID.equals(boss.template().id())) {
+            seleneaDisplay.hurt(boss.instanceId(), motionClockTicks);
         }
     }
 
@@ -459,6 +468,7 @@ public final class BossMechanicService {
         horologiumDirectParticipants.clear();
         seleneaRangeNoticeUntil.clear();
         sunbirdDisplay.stop();
+        seleneaDisplay.stop();
     }
 
     /**
@@ -576,6 +586,17 @@ public final class BossMechanicService {
                     // 外周足場への転送を通常AIの敵対解除・帰還として扱わない。
                     boss.scriptedAction(true);
                     mobService.stopPathfinding(boss);
+                }
+                if (entity instanceof Witch witch && witch.isValid() && !witch.isDead()
+                    && mobService.getInstance(boss.instanceId()) == boss && boss.currentHealth() > 0) {
+                    try {
+                        seleneaDisplay.body(boss.instanceId(), witch, clockTicks,
+                            seleneaEncounterController.presentationPose(boss.instanceId()),
+                            boss.damageImmune() || seleneaEncounterController.presentationImmune(boss.instanceId()));
+                    } catch (RuntimeException exception) {
+                        seleneaDisplay.clearBody(boss.instanceId());
+                        Logger.log(LogId.E_6514, exception);
+                    }
                 }
                 continue;
             }
@@ -736,6 +757,7 @@ public final class BossMechanicService {
         knockerEncounterController.retain(activeKnockers);
         seleneaEncounterController.retain(activeSeleneas);
         seleneaSupportController.retain(activeSeleneas);
+        seleneaDisplay.retain(activeSeleneas);
         seleneaDirectParticipants.keySet().retainAll(activeSeleneas);
         astraiosEncounterController.retain(activeAstraioses);
         astraiosDirectParticipants.keySet().retainAll(activeAstraioses);

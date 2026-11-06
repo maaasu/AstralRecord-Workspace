@@ -31,8 +31,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean skillEffects,
-    boolean gameplaySounds, boolean sunbird,
-    boolean sunbirdMotion, Set<Integer> heldWeaponModels,
+    boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
     String actionRingHudRevision
 ) {
@@ -91,6 +90,14 @@ record DamagePack(
         "models/entity/sunbird_skill.geo.json", "render_controllers/sunbird_skill.render_controllers.json",
         "textures/entity/sunbird_skill.png"
     );
+    private static final List<String> SELENEA_ENTRIES = List.of(
+        "entity/selenea.entity.json", "animations/selenea.animation.json",
+        "animation_controllers/selenea.animation_controllers.json", "render_controllers/selenea.render_controllers.json",
+        "models/entity/selenea.geo.json", "textures/entity/selenea.png",
+        "entity/selenea_skill.entity.json", "animations/selenea_skill.animation.json",
+        "models/entity/selenea_skill.geo.json", "render_controllers/selenea_skill.render_controllers.json",
+        "textures/entity/selenea_skill.png"
+    );
     private static final List<String> WORLD_DISPLAY_ENTRIES = List.of(
         "entity/world_display.entity.json", "models/entity/world_display.geo.json",
         "render_controllers/world_display.render_controllers.json",
@@ -137,6 +144,7 @@ record DamagePack(
             boolean gameplaySounds;
             boolean sunbird;
             boolean sunbirdMotion;
+            boolean selenea;
             boolean worldDisplay;
             boolean itemTooltips;
             String actionRingHudRevision;
@@ -170,6 +178,8 @@ record DamagePack(
                 sunbirdMotion = sunbird
                     && present(zip.getEntry("animation_controllers/sunbird.animation_controllers.json"))
                     && present(zip.getEntry("render_controllers/sunbird.render_controllers.json"));
+                selenea = hasVersionOne(zip, "selenea-presentation-version.txt")
+                    && SELENEA_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
@@ -188,8 +198,8 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                weaponAttackProjectiles, skillEffects, gameplaySounds, sunbird, sunbirdMotion, heldWeaponModels, itemModels, actionRingSprites,
-                worldDisplay, itemTooltips, actionRingHudRevision);
+                weaponAttackProjectiles, skillEffects, gameplaySounds, sunbird, sunbirdMotion, selenea,
+                heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

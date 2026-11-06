@@ -64,6 +64,7 @@ final class SeleneaSupportController {
 
     private final MobService mobs;
     private final ParticleDisplayService particles;
+    private final SeleneaPackDisplay pack;
     private final Function<MobInstance, List<Player>> participants;
     private final BiConsumer<MobInstance, Player> lethalHit;
     private final SeleneaChunkLeaseRegistry chunkLeases;
@@ -81,12 +82,14 @@ final class SeleneaSupportController {
      * @param particles 密度設定と近傍閲覧者を考慮する演出サービス
      * @param participants 専用フィールドの生存する確定参加者を返す関数
      * @param lethalHit 所有ボスと命中参加者を共通RPG致死処理へ委譲する関数
+     * @param pack 対応クライアントに配信する追加表示
      */
     SeleneaSupportController(@NotNull JavaPlugin plugin, @NotNull MobService mobs, @NotNull ParticleDisplayService particles,
             @NotNull Function<MobInstance, List<Player>> participants,
-            @NotNull BiConsumer<MobInstance, Player> lethalHit) {
+            @NotNull BiConsumer<MobInstance, Player> lethalHit, @NotNull SeleneaPackDisplay pack) {
         this.mobs = mobs;
         this.particles = particles;
+        this.pack = pack;
         this.participants = participants;
         this.lethalHit = lethalHit;
         this.chunkLeases = new SeleneaChunkLeaseRegistry(plugin);
@@ -421,6 +424,8 @@ final class SeleneaSupportController {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!isAlive(entry.getValue())) continue;
             Location center = entry.getValue().anchor;
+            pack.effects(state.boss.instanceId(), List.of(SeleneaPackDisplay.Shape.circle(
+                SeleneaPackDisplay.Style.GRIMOIRE, center, 2.25D, 3.0D)), currentTick, 20L);
             particles.spawnForNearbyViewers(detonationSurface(center, 36.0D), entry.getKey().particle(), true);
             particles.spawnForNearbyViewers(detonationFloor(center, 5.0D),
                     SharedParticleDefinitions.SELENEA_SUPPORT_WARNING, true);
@@ -636,7 +641,11 @@ final class SeleneaSupportController {
                 state.orbs.remove(orb);
                 double recovered = mobs.recoverHealth(target, target.maxHealth() * HEAL_RATIO);
                 if (encounters.get(state.boss.instanceId()) != state) return;
-                if (recovered > 0.0D) particles.spawnForNearbyViewers(destination, SharedParticleDefinitions.SELENEA_SUPPORT_HEAL, true);
+                if (recovered > 0.0D) {
+                    particles.spawnForNearbyViewers(destination, SharedParticleDefinitions.SELENEA_SUPPORT_HEAL, true);
+                    pack.effects(state.boss.instanceId(), List.of(SeleneaPackDisplay.Shape.circle(
+                        SeleneaPackDisplay.Style.SAFE, destination, 1.4D, 1.6D)), tick, 10L);
+                }
             }
         }
         particles.spawnForNearbyViewers(points, SharedParticleDefinitions.SELENEA_SUPPORT_ORB, true);
@@ -662,6 +671,8 @@ final class SeleneaSupportController {
         for (Add add : survivors) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             particles.spawnForNearbyViewers(add.anchor, SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION, true);
+            pack.effects(state.boss.instanceId(), List.of(SeleneaPackDisplay.Shape.circle(
+                SeleneaPackDisplay.Style.GRIMOIRE_IMPACT, add.anchor, 3.5D, 4.0D)), currentTick, 10L);
             particles.spawnForNearbyViewers(detonationSurface(add.anchor, 24.0D),
                     SharedParticleDefinitions.SELENEA_SUPPORT_DETONATION_SURFACE, true);
             List<Location> floor = detonationFloor(add.anchor, 4.0D);
@@ -803,19 +814,27 @@ final class SeleneaSupportController {
         if (state.summoning || state.detonating || state.center.getWorld() == null
                 || state.center.getWorld().getPlayers().isEmpty()) return;
         List<Location> accents = new ArrayList<>(64);
+        List<SeleneaPackDisplay.Shape> gateModels = new ArrayList<>(8);
         double rotation = currentTick * Math.PI / 120.0D;
         for (Role role : Role.values()) {
             if (encounters.get(state.boss.instanceId()) != state) return;
             if (!state.openedGates.contains(role)) continue;
             List<Location> points = new ArrayList<>(216);
             if (isAlive(state.adds.get(role))) {
-                portalRing(offset(state.center, role, INNER_GATE_RADIUS, 0.0D), role, rotation, points, accents);
+                Location inner = offset(state.center, role, INNER_GATE_RADIUS, 0.0D);
+                portalRing(inner, role, rotation, points, accents);
+                gateModels.add(SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.SAFE, inner,
+                    GATE_INTERACTION_RADIUS, 1.6D));
             }
-            portalRing(offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT), role, rotation, points, accents);
+            Location outer = offset(state.center, role, OUTER_GATE_RADIUS, OUTER_HEIGHT);
+            portalRing(outer, role, rotation, points, accents);
+            gateModels.add(SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.SAFE, outer,
+                GATE_INTERACTION_RADIUS, 1.6D));
             particles.spawnForNearbyViewers(points, role.particle(), true);
         }
         if (encounters.get(state.boss.instanceId()) != state) return;
         particles.spawnForNearbyViewers(accents, SharedParticleDefinitions.SELENEA_SUPPORT_ORB, true);
+        pack.effects(state.boss.instanceId(), gateModels, currentTick, 10L);
     }
 
     /** 主輪56点・回転する副輪28点・四本の放射線24点を最大密度候補として役割色の輪郭と動きを残します。 */

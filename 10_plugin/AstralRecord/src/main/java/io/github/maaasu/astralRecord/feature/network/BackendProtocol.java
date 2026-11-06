@@ -27,6 +27,7 @@ final class BackendProtocol {
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
     private static final byte[] SKILL_EFFECTS_READY = emptyNotification("skill_effects_ready");
+    private static final byte[] SELENEA_READY = emptyNotification("selenea_ready");
     private static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     private static final int ACTION_RING_HUD_NOTIFICATION_SIZE = 2 + ACTION_RING_HUD_READY.length() + 2 + 64;
     private static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
@@ -52,6 +53,15 @@ final class BackendProtocol {
     /** スキル演出を使える統合版接続の完全な通知か判定します。 */
     static boolean isSkillEffectsReady(byte[] payload) {
         return Arrays.equals(SKILL_EFFECTS_READY, payload);
+    }
+
+    /**
+     * セレネアの対応パックを読み込んだ統合版接続について、完全な通知か判定します。
+     * @param payload Proxyから届いたデータ
+     * @return 通知の正規形と一致する場合はtrue
+     */
+    static boolean isSeleneaReady(byte[] payload) {
+        return Arrays.equals(SELENEA_READY, payload);
     }
 
     /** アクションリング HUD 通知の互換性識別子を返します。他種別や不正な通知は null を返します。 */

@@ -1,0 +1,34 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.selenea_skill": {
+      "arrays": {
+        "geometries": {
+          "Array.shapes": [
+            "Geometry.warning_circle",
+            "Geometry.warning_line",
+            "Geometry.warning_boundary",
+            "Geometry.warning_safe",
+            "Geometry.impact",
+            "Geometry.impact_line",
+            "Geometry.wave",
+            "Geometry.bolt",
+            "Geometry.warning_edge",
+            "Geometry.warning_grimoire",
+            "Geometry.impact_grimoire"
+          ]
+        }
+      },
+      "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 10)]",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true
+    }
+  }
+}

@@ -27,10 +27,6 @@ import java.util.UUID;
 public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
-    private static final Identifier PARROT = Identifier.of("minecraft", "parrot");
-    private static final long SUNBIRD_MARKER = 0x41535453554e4231L; // ASTSUNB1
-    private static final CustomEntityDefinition SUNBIRD =
-        CustomEntityDefinition.of(Identifier.of("astralrecord", "sunbird"));
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
@@ -45,9 +41,13 @@ public final class AstralRecordGeyserExtension implements Extension {
     private WeaponAttackEntity weaponAttackProperties;
     private CustomEntityDefinition skillEffectDefinition;
     private SkillEffectEntity skillEffectProperties;
-    private CustomEntityDefinition sunbirdSkillDefinition;
-    private SunbirdSkillEntity sunbirdSkillProperties;
-    private SunbirdMotion sunbirdMotionProperties;
+    // Paper のボス用 UUID マーカー。並びは本体・技・モーション。
+    private final BossDisplay sunbird = new BossDisplay("sunbird", "parrot",
+        0x41535453554e4231L, 0x41535453554e4631L, 0x41535453554e4d31L, 5, 3,
+        DamagePack::sunbird, DamagePack::sunbirdMotion);
+    private final BossDisplay selenea = new BossDisplay("selenea", "witch",
+        0x41535453454c4231L, 0x41535453454c4631L, 0x41535453454c4d31L, 10, 4,
+        DamagePack::selenea, DamagePack::selenea);
     private WorldDisplayEntity worldDisplays;
     private HeldWeaponModelDisplay heldWeaponModels;
 
@@ -74,16 +74,13 @@ public final class AstralRecordGeyserExtension implements Extension {
         event.register(effectDefinition);
         skillEffectDefinition = effectDefinition;
         event.register(COMBAT_RESULT);
-        event.register(SUNBIRD);
-        var skillDefinition = SunbirdSkillEntity.definition();
-        event.register(skillDefinition);
-        sunbirdSkillDefinition = skillDefinition;
+        sunbird.register(event);
         event.register(WorldDisplayEntity.DEFINITION);
+        selenea.register(event);
     }
 
     @Subscribe
     public void onDefineEntityProperties(GeyserDefineEntityPropertiesEvent event) {
-        sunbirdMotionProperties = SunbirdMotion.registerProperties(event, SUNBIRD.identifier());
         if (damageNumberDefinition != null) {
             damageNumberProperties = DamageNumberEntity.registerProperties(event);
         }
@@ -96,9 +93,8 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (weaponAttackDefinition != null) {
             weaponAttackProperties = WeaponAttackEntity.registerProperties(event);
         }
-        if (sunbirdSkillDefinition != null) {
-            sunbirdSkillProperties = SunbirdSkillEntity.registerProperties(event, sunbirdSkillDefinition.identifier());
-        }
+        sunbird.registerProperties(event);
+        selenea.registerProperties(event);
         if (skillEffectDefinition != null) {
             skillEffectProperties = SkillEffectEntity.registerProperties(event, skillEffectDefinition.identifier());
         }
@@ -170,6 +166,15 @@ public final class AstralRecordGeyserExtension implements Extension {
     }
 
     /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return セレネアの描画に対応するパックを登録し、ログインまで完了した場合は true
+     */
+    public boolean hasSelenea(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && selenea.ready(damagePacks, connection);
+    }
+
+    /**
      * Velocity 上の AstralRecordProxy から、接続時に配布したツールチップの対応状況を照会します。
      *
      * @param playerId 接続中プレイヤーの Java 側 UUID
@@ -200,11 +205,7 @@ public final class AstralRecordGeyserExtension implements Extension {
             worldDisplays.onSpawn(event, damagePacks);
             if (event.isCancelled()) return;
         }
-        if (event.entityType().is(PARROT) && event.uuid().getMostSignificantBits() == SUNBIRD_MARKER
-            && damagePacks.sunbirdReady(event.connection())) {
-            event.definition(SUNBIRD);
-            return;
-        }
+        if (sunbird.onSpawn(event, damagePacks) || selenea.onSpawn(event, damagePacks)) return;
         if (event.entityType().is(DROPPED_ITEM) && ActionRingFrame.isIcon(event.uuid())) {
             GeyserEntity panel = panelFor(event, ActionRingPanelEntity.targetId(event.uuid()));
             if (panel != null && ActionRingPanelEntity.replacesFallback(panel, (int) event.uuid().getLeastSignificantBits())) {
@@ -218,29 +219,6 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
-        if (SunbirdMotion.isMarker(event.uuid())) {
-            event.setCancelled(true);
-            var properties = sunbirdMotionProperties;
-            var frame = SunbirdMotion.decode(event.uuid());
-            if (frame != null && properties != null && damagePacks.sunbirdMotionReady(event.connection())) {
-                GeyserEntity target = event.connection().entities().byJavaId(frame.targetId());
-                if (target != null && SUNBIRD.equals(target.definition())) {
-                    properties.apply(target, frame);
-                }
-            }
-            return;
-        }
-        if (SunbirdSkillEntity.isMarker(event.uuid())) {
-            var properties = sunbirdSkillProperties;
-            var frame = SunbirdSkillEntity.decode(event.uuid());
-            if (frame == null || properties == null || !damagePacks.sunbirdReady(event.connection())) {
-                event.setCancelled(true);
-            } else {
-                event.definition(sunbirdSkillDefinition);
-                event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
-            }
-            return;
-        }
         if (SkillEffectEntity.isMarker(event.uuid())) {
             var properties = skillEffectProperties;
             var frame = SkillEffectEntity.decode(event.uuid());

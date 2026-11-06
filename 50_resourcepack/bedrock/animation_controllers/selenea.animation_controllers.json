@@ -1,0 +1,110 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.astralrecord.selenea": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "transitions": [
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "cast": "variable.motion == 2"
+            },
+            {
+              "attack": "variable.motion == 3"
+            },
+            {
+              "recover": "variable.motion == 4"
+            }
+          ],
+          "blend_transition": 0.12
+        },
+        "move": {
+          "animations": [
+            "move"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "cast": "variable.motion == 2"
+            },
+            {
+              "attack": "variable.motion == 3"
+            },
+            {
+              "recover": "variable.motion == 4"
+            }
+          ],
+          "blend_transition": 0.12
+        },
+        "cast": {
+          "animations": [
+            "cast"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "attack": "variable.motion == 3"
+            },
+            {
+              "recover": "variable.motion == 4"
+            }
+          ],
+          "blend_transition": 0.07
+        },
+        "attack": {
+          "animations": [
+            "attack"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "cast": "variable.motion == 2"
+            },
+            {
+              "recover": "variable.motion == 4"
+            }
+          ],
+          "blend_transition": 0.07
+        },
+        "recover": {
+          "animations": [
+            "recover"
+          ],
+          "transitions": [
+            {
+              "idle": "variable.motion == 0"
+            },
+            {
+              "move": "variable.motion == 1"
+            },
+            {
+              "cast": "variable.motion == 2"
+            },
+            {
+              "attack": "variable.motion == 3"
+            }
+          ],
+          "blend_transition": 0.12
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.selenea_skill.shape": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "scale": [
+            "query.property('astralrecord:width')",
+            "query.property('astralrecord:height')",
+            "query.property('astralrecord:length')"
+          ]
+        },
+        "runes": {
+          "scale": [
+            "variable.rune_scale",
+            1,
+            "variable.rune_scale"
+          ]
+        },
+        "ink_sweep": {
+          "position": [
+            0,
+            0,
+            "math.lerp(5.8, -5.8, variable.pulse)"
+          ]
+        },
+        "burst": {
+          "scale": [
+            "variable.burst_scale",
+            "0.26 + 0.74 * variable.arc",
+            "variable.burst_scale"
+          ]
+        },
+        "eclipse": {
+          "scale": [
+            1,
+            "0.25 + 0.95 * variable.arc",
+            1
+          ]
+        },
+        "line_break": {
+          "scale": [
+            1,
+            "0.30 + 0.64 * variable.arc",
+            1
+          ],
+          "position": [
+            0,
+            0,
+            "math.lerp(5.05, -5.05, variable.travel)"
+          ]
+        },
+        "crest": {
+          "scale": [
+            1,
+            "0.48 + 0.52 * variable.breath",
+            1
+          ]
+        },
+        "quill": {
+          "scale": [
+            "0.65 + 0.35 * variable.breath",
+            "0.65 + 0.35 * variable.breath",
+            1
+          ]
+        },
+        "tome": {
+          "position": [
+            0,
+            "variable.style == 10 ? 0.65 + 3.75 * variable.arc : 0.65 * variable.breath",
+            0
+          ]
+        },
+        "left_leaf": {
+          "rotation": [
+            0,
+            0,
+            "variable.leaf_angle"
+          ]
+        },
+        "right_leaf": {
+          "rotation": [
+            0,
+            0,
+            "-variable.leaf_angle"
+          ]
+        },
+        "pages": {
+          "scale": [
+            "variable.page_scale",
+            1,
+            "variable.page_scale"
+          ],
+          "position": [
+            0,
+            "variable.style == 10 ? 0.1 + 2.5 * variable.arc : 0.4 * variable.breath",
+            0
+          ]
+        }
+      }
+    }
+  }
+}

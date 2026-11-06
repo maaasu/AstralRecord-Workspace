@@ -464,6 +464,9 @@ public final class AstralRecordProxyPlugin {
                     if (GeyserPackCapabilities.hasWeaponAttackProjectiles(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.weaponAttackProjectilesReady());
                     }
+                    if (GeyserPackCapabilities.hasSelenea(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.seleneaReady());
+                    }
                     String actionRingHudRevision = GeyserPackCapabilities.actionRingHudRevision(update.playerId());
                     if (actionRingHudRevision != null) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.actionRingHudReady(actionRingHudRevision));

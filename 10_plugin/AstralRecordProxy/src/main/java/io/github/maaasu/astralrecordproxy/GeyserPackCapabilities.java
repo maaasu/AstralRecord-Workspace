@@ -41,6 +41,14 @@ final class GeyserPackCapabilities {
 
     /**
      * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 拡張がセレネアの描画に対応する接続と確認した場合は true
+     */
+    static boolean hasSelenea(UUID playerId) {
+        return supports(playerId, "hasSelenea");
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 接続のアクションリング HUD 互換性識別子。非対応なら null
      */
     static String actionRingHudRevision(UUID playerId) {

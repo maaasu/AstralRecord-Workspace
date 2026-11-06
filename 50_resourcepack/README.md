@@ -50,6 +50,16 @@ Java 版は本体のアイテム定義から翼を上げる、下げる、引く
 
 本体の姿勢は Blockbench Web 5.2.2 で確認しました。攻撃演出は両版の配布モデルと表示倍率を使い、水平・浅い俯角・真上からオフスクリーンで描画しました。予兆の境界と発動中の連続フレームを確認しています。Minecraft のゲーム画面での描画は未確認です。
 
+### 月蝕の綴り魔女 セレネア
+
+`selenea_eclipse_witch` は三日月の帽子、紫のローブ、開いた魔導書を持つモデルを使います。Java 版は ItemDisplay で待機・移動・詠唱・発動・復帰の姿勢を切り替え、被弾・無敵中は装飾の色を変えます。統合版は `astralrecord:selenea` で姿勢を補間し、無敵中は帽子の周りに光を回します。両版の編集元は [blockbench/entities](blockbench/entities) にあります。
+
+墨の三叉、呪頁の落款、月輪、月蝕の通路と大術、封頁、通常波、三連弾に専用演出を重ねます。危険範囲は紫の立体枠、退避・解除の目印は青緑で表示し、通常波は床面を低く広がります。統合版の `astralrecord:selenea_skill` は `style` で形状を選び、`width`・`height`・`length` で各軸の寸法を受け取ります。技の配布アセットは `python scripts/generate-selenea-skill.py --check` で検証できます。
+
+両版のパックに互換マーカー `selenea-presentation-version.txt` を収録します。Java 版は配布マニフェストの `java.seleneaPresentation` が文字列 `"1"` の管理パックの適用成功後に表示します。統合版は対応パックを配布した接続で Geyser 拡張 1.17.0 と AstralRecordProxy 1.5.0 を経由して表示します。非対応の接続ではウィッチと従来の予兆を使います。
+
+本体は Blockbench Web、技は両版の配布データをオフスクリーンで描画し、姿勢、境界、発動時の動きを確認しました。Minecraft 実クライアントでの描画は未確認です。
+
 ### ダメージ数値
 
 | 統合版のスタイル値 | ダメージ | 色と印 |

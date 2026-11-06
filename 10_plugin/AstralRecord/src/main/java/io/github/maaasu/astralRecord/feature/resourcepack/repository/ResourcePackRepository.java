@@ -17,7 +17,8 @@ public final class ResourcePackRepository {
 
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
-                           boolean hasGameplaySounds, boolean sunbirdPresentation, boolean itemTooltips,
+                           boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
+                           boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects) {
     }
 
@@ -59,6 +60,9 @@ public final class ResourcePackRepository {
                 JsonElement sunbird = java.get("sunbirdPresentation");
                 boolean sunbirdPresentation = sunbird != null && sunbird.isJsonPrimitive()
                     && sunbird.getAsJsonPrimitive().isString() && "1".equals(sunbird.getAsString());
+                JsonElement selenea = java.get("seleneaPresentation");
+                boolean seleneaPresentation = selenea != null && selenea.isJsonPrimitive()
+                    && selenea.getAsJsonPrimitive().isString() && "1".equals(selenea.getAsString());
                 JsonElement tooltips = java.get("itemTooltips");
                 boolean itemTooltips = tooltips != null && tooltips.isJsonPrimitive()
                     && tooltips.getAsJsonPrimitive().isString() && "1".equals(tooltips.getAsString());
@@ -81,7 +85,7 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    itemTooltips, weaponAttackProjectiles, profileHud, skillEffects);
+                    seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

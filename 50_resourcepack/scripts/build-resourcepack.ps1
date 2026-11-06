@@ -79,6 +79,7 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_left.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_right.png'
     'sunbird-presentation-version.txt'
+    'selenea-presentation-version.txt'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
@@ -209,6 +210,16 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/models/item/sunbird_impact_line_frame_3.json'
     'assets/astralrecord/textures/item/sunbird.png'
     'assets/astralrecord/textures/item/sunbird_skill.png'
+    'assets/astralrecord/items/selenea.json'
+    'assets/astralrecord/models/item/selenea.json'
+    'assets/astralrecord/models/item/selenea_stride_left.json'
+    'assets/astralrecord/models/item/selenea_stride_right.json'
+    'assets/astralrecord/models/item/selenea_cast_low.json'
+    'assets/astralrecord/models/item/selenea_cast_high.json'
+    'assets/astralrecord/models/item/selenea_release.json'
+    'assets/astralrecord/models/item/selenea_recover.json'
+    'assets/astralrecord/textures/item/selenea.png'
+    'assets/astralrecord/textures/item/selenea_skill.png'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -350,7 +361,36 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'models/entity/sunbird_skill.geo.json'
     'render_controllers/sunbird_skill.render_controllers.json'
     'textures/entity/sunbird_skill.png'
+    'entity/selenea.entity.json'
+    'animations/selenea.animation.json'
+    'animation_controllers/selenea.animation_controllers.json'
+    'render_controllers/selenea.render_controllers.json'
+    'models/entity/selenea.geo.json'
+    'textures/entity/selenea.png'
+    'entity/selenea_skill.entity.json'
+    'animations/selenea_skill.animation.json'
+    'render_controllers/selenea_skill.render_controllers.json'
+    'models/entity/selenea_skill.geo.json'
+    'textures/entity/selenea_skill.png'
 )
+$seleneaSkillStyles = @(
+    'warning_circle', 'warning_line', 'warning_boundary', 'warning_safe', 'impact', 'impact_line',
+    'wave', 'bolt', 'warning_edge', 'warning_grimoire', 'impact_grimoire'
+)
+foreach ($style in $seleneaSkillStyles) {
+    $name = "selenea_$style"
+    $paths = @("assets/astralrecord/items/$name.json", "assets/astralrecord/models/item/$name.json")
+    if ($style -notin @('warning_boundary', 'warning_edge')) {
+        $paths += 1..3 | ForEach-Object { "assets/astralrecord/models/item/${name}_frame_$_.json" }
+    }
+    Add-PackEntries $java $root $paths
+}
+$seleneaVersionMarker = 'selenea-presentation-version.txt'
+if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
+    throw 'Invalid Selenea presentation version marker in resource pack.'
+}
+$bedrock.Add($seleneaVersionMarker, $java[$seleneaVersionMarker])
+
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
 if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '4') {

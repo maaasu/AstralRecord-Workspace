@@ -11,5 +11,6 @@ public sealed record JavaResourcePack(
     string? WeaponAttackProjectiles = null,
     string? ProfileHud = null,
     string? WideCombatMeter = null,
-    string? SkillEffects = null);
+    string? SkillEffects = null,
+    string? SeleneaPresentation = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
@@ -187,14 +188,9 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() ? selection.pack().actionRingHudRevision() : null;
     }
 
-    boolean sunbirdReady(GeyserConnection connection) {
+    boolean bossReady(GeyserConnection connection, Predicate<DamagePack> assets) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().sunbird();
-    }
-
-    boolean sunbirdMotionReady(GeyserConnection connection) {
-        SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().sunbirdMotion();
+        return selection != null && selection.ready() && assets.test(selection.pack());
     }
 
     OptionalInt heldWeaponModel(GeyserConnection connection, int modelId) {

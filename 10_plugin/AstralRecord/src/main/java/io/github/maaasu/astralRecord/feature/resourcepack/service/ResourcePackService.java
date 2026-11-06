@@ -42,6 +42,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockGameplaySounds = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedSunbirdPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> loadedSunbirdPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedSeleneaPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockSeleneaPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
@@ -81,6 +83,7 @@ public class ResourcePackService {
     public void applyTo(Player player) {
         loadedSunbirdPresentation.remove(player.getUniqueId());
         requestedSunbirdPresentation.remove(player.getUniqueId());
+        requestedSeleneaPresentation.remove(player.getUniqueId());
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
         requestedJavaSkillEffects.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
@@ -150,6 +153,9 @@ public class ResourcePackService {
                     }
                     if (pack.itemTooltips()) {
                         requestedJavaItemTooltips.add(viewer);
+                    }
+                    if (pack.seleneaPresentation()) {
+                        requestedSeleneaPresentation.add(viewer);
                     }
                     if (pack.weaponAttackProjectiles()) {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
@@ -267,6 +273,7 @@ public class ResourcePackService {
                 case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
                     loadedManagedJavaPacks.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
+                    requestedSeleneaPresentation.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
                 }
@@ -503,6 +510,32 @@ public class ResourcePackService {
     }
 
     /**
+     * セレネアの互換版1を含む管理Javaパックの適用成功を確認します。
+     * @param playerId 閲覧者のUUID
+     * @return 対応版が適用済みならtrue
+     */
+    public boolean hasJavaSeleneaPresentation(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedSeleneaPresentation.contains(playerId);
+    }
+
+    /**
+     * Proxyが確認した統合版パックの対応状態を調べます。
+     * @param playerId 閲覧者のUUID
+     * @return 現在の接続が対応パックを読み込んだ場合はtrue
+     */
+    public boolean hasBedrockSeleneaPresentation(UUID playerId) {
+        return readyBedrockSeleneaPresentation.contains(playerId);
+    }
+
+    /**
+     * Proxyから届いた互換版1の通知を現在のオンライン接続に登録します。
+     * @param player 通知の対象プレイヤー
+     */
+    public void markBedrockSeleneaPresentationReady(Player player) {
+        if (player.isOnline()) readyBedrockSeleneaPresentation.add(player.getUniqueId());
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -516,6 +549,8 @@ public class ResourcePackService {
         readyBedrockGameplaySounds.remove(playerId);
         loadedSunbirdPresentation.remove(playerId);
         requestedSunbirdPresentation.remove(playerId);
+        requestedSeleneaPresentation.remove(playerId);
+        readyBedrockSeleneaPresentation.remove(playerId);
         requestedJavaItemTooltips.remove(playerId);
         readyBedrockItemTooltips.remove(playerId);
         requestedJavaWeaponAttackProjectiles.remove(playerId);

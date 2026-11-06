@@ -1,0 +1,45 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:selenea",
+      "materials": {
+        "default": "entity_alphatest",
+        "guard": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/selenea"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.selenea"
+      },
+      "animations": {
+        "idle": "animation.astralrecord.selenea.idle",
+        "move": "animation.astralrecord.selenea.move",
+        "cast": "animation.astralrecord.selenea.cast",
+        "attack": "animation.astralrecord.selenea.attack",
+        "guard": "animation.astralrecord.selenea.guard",
+        "motion": "controller.animation.astralrecord.selenea",
+        "recover": "animation.astralrecord.selenea.recover",
+        "body_scale": "animation.astralrecord.selenea.body_scale"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.motion = query.has_property('astralrecord:motion') ? query.property('astralrecord:motion') : 0;",
+          "variable.invulnerable = query.has_property('astralrecord:invulnerable') ? query.property('astralrecord:invulnerable') : 0;"
+        ],
+        "animate": [
+          "body_scale",
+          "motion",
+          {
+            "guard": "variable.invulnerable"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.astralrecord.selenea"
+      ],
+      "enable_attachables": false
+    }
+  }
+}

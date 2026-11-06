@@ -271,7 +271,7 @@ final class SunbirdPackDisplay implements Listener {
         for (Player viewer : source.getTrackedBy()) {
             if (!isBedrock(viewer)) continue;
             if (packet == null) {
-                packet = SunbirdBedrockHurt.create(source);
+                packet = BossBedrockHurt.create(source);
             }
             send(viewer, packet);
         }

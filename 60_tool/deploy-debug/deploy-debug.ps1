@@ -416,6 +416,7 @@ function Publish-ResourcePacks {
     $sha256 = (Get-FileHash -LiteralPath $bedrock -Algorithm SHA256).Hash.ToLowerInvariant()
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
     $sunbirdPresentation = $null
+    $seleneaPresentation = $null
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
     $skillEffects = $null
@@ -441,6 +442,15 @@ function Publish-ResourcePacks {
         try { $gameplaySounds = $reader.ReadToEnd() }
         finally { $reader.Dispose() }
         if ($gameplaySounds -cne '1') { throw 'Unsupported gameplay sounds version.' }
+        $seleneaEntry = $archive.GetEntry('selenea-presentation-version.txt')
+        if ($null -ne $seleneaEntry) {
+            if ($seleneaEntry.Length -ne 1) { throw 'Invalid Selenea presentation version marker.' }
+            $reader = [IO.StreamReader]::new($seleneaEntry.Open())
+            try { $seleneaPresentation = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($seleneaPresentation -cne '1') { throw 'Unsupported Selenea presentation version.' }
+        }
+
         $sunbirdEntry = $archive.GetEntry('sunbird-presentation-version.txt')
         if ($null -ne $sunbirdEntry) {
             if ($sunbirdEntry.Length -ne 1) { throw 'Invalid Sunbird presentation version marker.' }
@@ -588,6 +598,9 @@ function Publish-ResourcePacks {
         actionRingPanel = $panelRevision
         guiTheme = $guiTheme
         gameplaySounds = $gameplaySounds
+    }
+    if ($null -ne $seleneaPresentation) {
+        $javaManifest.seleneaPresentation = $seleneaPresentation
     }
     if ($null -ne $sunbirdPresentation) {
         $javaManifest.sunbirdPresentation = $sunbirdPresentation

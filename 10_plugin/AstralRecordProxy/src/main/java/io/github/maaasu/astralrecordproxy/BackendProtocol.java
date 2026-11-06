@@ -26,6 +26,7 @@ final class BackendProtocol {
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
     static final String SKILL_EFFECTS_READY = "skill_effects_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
+    static final String SELENEA_READY = "selenea_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
     static final String BEDROCK_SKILL_MENU_RESULT = "bedrock_skill_menu_result";
@@ -154,6 +155,11 @@ final class BackendProtocol {
 
     static byte[] weaponAttackProjectilesReady() {
         return outgoing(WEAPON_ATTACK_PROJECTILES_READY, null);
+    }
+
+    /** @return 対象プレイヤーの統合版パックがセレネアの描画に対応していることを伝える通知 */
+    static byte[] seleneaReady() {
+        return outgoing(SELENEA_READY, null);
     }
 
     /** @return 対象プレイヤーの Bedrock パックのアクションリング HUD 互換性識別子を伝える通知 */

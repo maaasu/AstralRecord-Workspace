@@ -30,6 +30,8 @@ final class SeleneaPressureController {
     private static final long WAVE_INTERVAL = 100L;
     private static final long VOLLEY_CHARGE = 30L;
     private static final long RENDER_INTERVAL = 2L;
+    private static final long PACK_INTERVAL = 5L;
+    private static final int MAX_PACK_BOLTS = 9;
     private static final double LAUNCH_HEIGHT = 3.0D;
     private static final double BOLT_SPEED = 0.35D;
     private static final long BOLT_LIFETIME = 300L;
@@ -41,12 +43,18 @@ final class SeleneaPressureController {
     private static final double WAVE_HALF_WIDTH = 0.55D;
     private static final double JUMP_CLEARANCE = 0.65D;
     private final ParticleDisplayService particles;
+    private final SeleneaPackDisplay pack;
     private final SeleneaEncounterController.HitHandler hitHandler;
     private final Map<UUID, Pressure> encounters = new HashMap<>();
 
-    /** @param particles 閲覧者と密度を共通管理する描画サービス @param hitHandler 共通魔法ダメージへの委譲先 */
-    SeleneaPressureController(ParticleDisplayService particles, SeleneaEncounterController.HitHandler hitHandler) {
+    /**
+     * @param particles 閲覧者と密度を共通管理する描画サービス @param hitHandler 共通魔法ダメージへの委譲先
+     * @param pack 対応クライアントの追加表示
+     */
+    SeleneaPressureController(ParticleDisplayService particles, SeleneaEncounterController.HitHandler hitHandler,
+                              SeleneaPackDisplay pack) {
         this.particles = particles;
+        this.pack = pack;
         this.hitHandler = hitHandler;
     }
 
@@ -80,9 +88,10 @@ final class SeleneaPressureController {
         Pressure state = encounters.get(boss.instanceId());
         if (state == null) return;
         if (suspended) {
+            clearPackSnapshots(state);
             state.bolts.clear();
             state.waves.clear();
-            state.volley = null;
+            clearVolley(state);
             state.nextVolleyAt = tick + 30L;
             state.nextWaveAt = tick + 40L;
             return;
@@ -92,19 +101,26 @@ final class SeleneaPressureController {
         advanceWaves(boss, state, active, tick, radius, field);
         if (encounters.get(boss.instanceId()) != state) return;
         Player target = active.stream().filter(player -> player.getUniqueId().equals(boss.targetId())).findFirst().orElse(null);
-        if (state.volley != null && (target == null || !state.volley.targetId.equals(target.getUniqueId()))) state.volley = null;
+        if (state.volley != null && (target == null || !state.volley.targetId.equals(target.getUniqueId()))) clearVolley(state);
         if (target != null && state.volley == null && tick >= state.nextVolleyAt) {
             state.nextVolleyAt = tick + VOLLEY_INTERVAL;
             List<Entity> casters = new ArrayList<>(6);
             casters.add(entity);
             casters.addAll(state.clones);
             state.volley = new Volley(target.getUniqueId(), target.getLocation().add(0, 0.9D, 0), casters, tick);
+            List<SeleneaPackDisplay.Shape> charge = new ArrayList<>(casters.size());
+            for (Entity caster : casters) {
+                Location origin = caster.getLocation().add(0, LAUNCH_HEIGHT, 0);
+                charge.add(SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.GRIMOIRE, origin, 0.7D, 2.0D));
+            }
+            state.volley.packWarning = pack.effects(boss.instanceId(), charge, tick, VOLLEY_CHARGE);
             entity.getWorld().playSound(entity.getLocation().add(0, LAUNCH_HEIGHT, 0), Sound.BLOCK_BEACON_POWER_SELECT, 0.7F, 1.1F);
         }
         if (state.volley != null) {
             Volley volley = state.volley;
             if (tick >= volley.startedAt + VOLLEY_CHARGE) {
-                state.volley = null;
+                clearVolley(state);
+                pack.strike(boss.instanceId(), tick);
                 List<Location> flashes = new ArrayList<>(6);
                 for (Entity caster : volley.casters) {
                     if (!caster.isValid() || caster.isDead() || caster.getWorld() != entity.getWorld()) continue;
@@ -240,6 +256,8 @@ final class SeleneaPressureController {
             if (touches && (wall == null || hitDistance <= wall.getHitPosition().distance(from.toVector()))) {
                 iterator.remove();
                 particles.spawnForNearbyViewers(target.getLocation().add(0, 0.9D, 0), SharedParticleDefinitions.SELENEA_BOLT_IMPACT, true);
+                pack.effects(boss.instanceId(), List.of(SeleneaPackDisplay.Shape.circle(
+                    SeleneaPackDisplay.Style.GRIMOIRE_IMPACT, target.getLocation().add(0, 0.65D, 0), 0.65D, 1.5D)), tick, 8L);
                 hitHandler.hit(boss, target, 0.22D);
                 if (encounters.get(boss.instanceId()) != state || boss.currentHealth() <= 0) return;
                 continue;
@@ -254,6 +272,26 @@ final class SeleneaPressureController {
             bolt.point = to;
         }
         particles.spawnForNearbyViewers(trail, SharedParticleDefinitions.SELENEA_BOLT, true);
+        if (tick % PACK_INTERVAL == 0) renderPackBolts(boss.instanceId(), state, tick);
+    }
+
+    /**
+     * 表示上限を守りながら、古い弾だけを表示し続けないよう飛翔中の弾を順番に選びます。
+     * @param bossId 所有ボス @param state 飛翔中の弾と前回の表示位置 @param tick 現在tick
+     */
+    private void renderPackBolts(UUID bossId, Pressure state, long tick) {
+        if (state.packBolts != null) state.packBolts.run();
+        int size = state.bolts.size();
+        int count = Math.min(size, MAX_PACK_BOLTS);
+        List<SeleneaPackDisplay.Shape> shards = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            Bolt bolt = state.bolts.get(Math.floorMod(state.packBoltCursor + index, size));
+            Location model = bolt.point.clone().setDirection(bolt.direction);
+            model.setPitch(0); // 統合版マーカーと同じ水平姿勢にそろえる。
+            shards.add(new SeleneaPackDisplay.Shape(SeleneaPackDisplay.Style.BOLT, model, 1.0F, 1.0F, 1.3F));
+        }
+        state.packBoltCursor = size == 0 ? 0 : Math.floorMod(state.packBoltCursor + count, size);
+        state.packBolts = pack.effects(bossId, shards, tick, PACK_INTERVAL);
     }
 
     /** 対象の前回位置と広がる波の相対距離から交差を検査し、交差時の跳躍高さで回避を判定します。 */
@@ -295,10 +333,51 @@ final class SeleneaPressureController {
                     if (floor != null) points.add(floor.add(0, 0.3D, 0));
                 }
             }
+            if (tick % PACK_INTERVAL == 0 && radius >= 1.0D && radius < maximum + WAVE_HALF_WIDTH) {
+                renderPackWave(boss.instanceId(), wave, radius, tick);
+            }
             wave.previousRadius = radius;
-            if (radius >= maximum + WAVE_HALF_WIDTH) iterator.remove();
+            if (radius >= maximum + WAVE_HALF_WIDTH) {
+                if (wave.packModel != null) wave.packModel.run();
+                iterator.remove();
+            }
         }
         particles.spawnForNearbyViewers(points, SharedParticleDefinitions.SELENEA_GROUND_WAVE, true);
+    }
+
+    /**
+     * 同じ高さで支持された円にだけ波紋モデルを追加します。凹凸では既存の粒子が床に追従します。
+     * @param bossId 所有ボス @param wave 波の中心と前回の表示 @param radius このtickの半径 @param tick 現在tick
+     */
+    private void renderPackWave(UUID bossId, Wave wave, double radius, long tick) {
+        if (wave.packModel != null) wave.packModel.run();
+        Location center = wave.center;
+        Location floor = SeleneaArena.ground(center);
+        if (floor == null) return;
+        for (int i = 0; i < 12; i++) {
+            double angle = i * Math.PI / 6;
+            Location edge = SeleneaArena.ground(center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+            if (edge == null || Math.abs(edge.getY() - floor.getY()) > 0.25D) return;
+        }
+        wave.packModel = pack.effects(bossId, List.of(SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.WAVE,
+            floor, radius, 1.5D)), tick, PACK_INTERVAL);
+    }
+
+    /** @param state 飛翔弾と波の表示を即座に解除する遭遇 */
+    private static void clearPackSnapshots(Pressure state) {
+        if (state.packBolts != null) state.packBolts.run();
+        state.packBolts = null;
+        state.packBoltCursor = 0;
+        for (Wave wave : state.waves) {
+            if (wave.packModel != null) wave.packModel.run();
+        }
+    }
+
+    /** @param state 遭遇。破棄済みの予告位置を表示し続けないよう専用モデルも解除します */
+    private static void clearVolley(Pressure state) {
+        if (state.volley == null) return;
+        if (state.volley.packWarning != null) state.volley.packWarning.run();
+        state.volley = null;
     }
 
     /**
@@ -308,7 +387,7 @@ final class SeleneaPressureController {
     void onBossTeleport(UUID bossId, Entity entity, long tick) {
         Pressure state = encounters.get(bossId);
         if (state == null) return;
-        state.volley = null;
+        clearVolley(state);
         state.nextVolleyAt = Math.max(state.nextVolleyAt, tick + 30L);
         syncClones(state, entity, state.clones.size());
     }
@@ -319,9 +398,10 @@ final class SeleneaPressureController {
         if (state == null) return;
         for (Witch clone : state.clones) clone.remove();
         state.clones.clear();
+        clearPackSnapshots(state);
         state.bolts.clear();
         state.waves.clear();
-        state.volley = null;
+        clearVolley(state);
     }
 
     /** @param playerId 瞬間転送した参加者。通過済み判定を保ち、歩行用の前回座標だけを解除します */
@@ -337,6 +417,8 @@ final class SeleneaPressureController {
         final List<Bolt> bolts = new ArrayList<>(MAX_BOLTS);
         final List<Wave> waves = new ArrayList<>(MAX_WAVES);
         Volley volley;
+        Runnable packBolts;
+        int packBoltCursor;
         long nextVolleyAt, nextWaveAt;
         /** @param tick 初回の予備時間を設定する共通時計 */
         Pressure(long tick) { nextVolleyAt = tick + 40L; nextWaveAt = tick + 60L; }
@@ -365,6 +447,7 @@ final class SeleneaPressureController {
         final List<Entity> casters;
         final long startedAt;
         long nextRenderAt, nextSoundAt;
+        Runnable packWarning;
         /** @param targetId 対象 @param aim 予告開始時の固定狙い @param casters 発射元最大六体 @param tick 開始時刻 */
         Volley(UUID targetId, Location aim, List<Entity> casters, long tick) {
             this.targetId = targetId; this.aim = aim.clone(); this.casters = List.copyOf(casters); startedAt = tick;
@@ -380,6 +463,7 @@ final class SeleneaPressureController {
         final Map<UUID, Location> previousFeet = new HashMap<>();
         double previousRadius;
         long nextRenderAt;
+        Runnable packModel;
         /** @param center 発生中心 @param tick 発生時刻 */
         Wave(Location center, long tick) { this.center = center.clone(); startedAt = tick; nextRenderAt = tick; }
     }
