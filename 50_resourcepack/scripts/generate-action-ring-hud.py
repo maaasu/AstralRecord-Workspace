@@ -79,7 +79,7 @@ def opening(frame):
     radius = 22 + 21 * ease
     fade = round(255 * ease)
     # Interior rings remain faint so the scenery and crosshair read through the center.
-    art.ellipse(CENTER, CENTER, 22 * ease, (7, 17, 29, round(97*ease)),
+    art.ellipse(CENTER, CENTER, 22 * ease, (7, 17, 29, round(48*ease)),
                 (57, 112, 132, round(125*ease)))
     art.ellipse(CENTER, CENTER, radius-2, None, (13, 35, 57, round(195*ease)))
     for slot in range(SLOTS):
@@ -90,8 +90,8 @@ def opening(frame):
         art.arc(CENTER, CENTER, radius-0.4, angle-9*ease, angle+9*ease, (153, 219, 239, fade))
         x, y = point(slot, 14 + 16 * ease)
         border = (60, 113, 141, round(219 * ease))
-        art.polygon(cut_square(x,y,10.4*ease,3.2*ease), (8,17,30,round(223*ease)), border)
-        art.polygon(cut_square(x,y,8.7*ease,2.6*ease), (13,26,42,round(228*ease)))
+        art.polygon(cut_square(x,y,10.4*ease,3.2*ease), (8,17,30,round(124*ease)), border)
+        art.polygon(cut_square(x,y,8.7*ease,2.6*ease), (13,26,42,round(132*ease)))
         dx, dy = point(slot, radius)
         art.polygon(diamond(dx,dy,2.1*ease), (151,225,242,fade))
     return art.image96()
@@ -103,7 +103,7 @@ def confirmed(frame):
     x, y = CENTER, 40
     pulse = 17 + math.sin(math.pi * progress) * 4
     art.ellipse(x, y, pulse+3, None, (255, 186, 77, round(95*(1-progress))), 1.2)
-    art.ellipse(x, y, 16, (19, 24, 40, 230), (167, 108, 53, 255), 1.8)
+    art.ellipse(x, y, 16, (19, 24, 40, 144), (167, 108, 53, 255), 1.8)
     art.ellipse(x, y, 13.3, None, (255, 217, 151, 166))
     for quarter in range(4):
         angle = quarter * 90 - 90
@@ -120,8 +120,8 @@ def selected(slot, flash=None):
     angle = slot * 45 - 90
     art.arc(CENTER,CENTER,43,angle-19,angle+19,(98,55,31,255),3.3)
     art.arc(CENTER,CENTER,43,angle-16,angle+16,GOLD,1.6)
-    art.polygon(cut_square(x,y,11.2,3.4), (50,34,27,247), GOLD)
-    art.polygon(cut_square(x,y,9.3,2.6), (26,28,42,251))
+    art.polygon(cut_square(x,y,11.2,3.4), (50,34,27,104), GOLD)
+    art.polygon(cut_square(x,y,9.3,2.6), (26,28,42,112))
     dx, dy = point(slot,43)
     art.polygon(diamond(dx,dy,3.5), (96,53,31,255), GOLD)
     art.polygon(diamond(dx,dy,1.7), (255,239,190,255))

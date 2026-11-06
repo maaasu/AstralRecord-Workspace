@@ -37,7 +37,7 @@ def sector_pixel(x, y, angle):
         return (235, 255)
     if distance < 30.5:
         return (129, 255)
-    return (26, 105)
+    return (26, 52)
 
 
 def make_atlas():
