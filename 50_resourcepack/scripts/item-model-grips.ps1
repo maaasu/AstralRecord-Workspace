@@ -181,10 +181,12 @@ function Confirm-BedrockItemGrip {
         $animation = $Animations.$name
         $pose = $animation.bones.grip
         $position = $pose.position
+        # The third-person item bone sits at Z=1 inside the vanilla arm, whose front is Z=-2.
+        $minDepth = if ($view -ceq 'third_person') { -3.0 } else { -0.5 }
         if ($animation.loop -isnot [bool] -or !$animation.loop -or
             !(Test-ItemGripVector $position) -or [Math]::Abs($position[0]) -gt 0.5 -or
-            [Math]::Abs($position[1] - 24.0) -gt 2.0 -or [Math]::Abs($position[2]) -gt 0.5) {
-            throw "Bedrock animation for $Id $view must keep a looping grip pose near [0, 24, 0]."
+            [Math]::Abs($position[1] - 24.0) -gt 2.0 -or $position[2] -lt $minDepth -or $position[2] -gt 0.5) {
+            throw "Bedrock animation for $Id $view must loop and keep the grip within the hand."
         }
         if ($pose.PSObject.Properties.Name -ccontains 'scale') {
             $scale = @($pose.scale)
