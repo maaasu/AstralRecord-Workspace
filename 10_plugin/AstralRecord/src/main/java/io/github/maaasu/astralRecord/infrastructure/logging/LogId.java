@@ -904,6 +904,8 @@ public enum LogId {
      * NPC highlight packet の処理に失敗しました: packetType=%s, worldName=%s
      */
     W_5707(5707),
+    /** NPC の統合版専用表示を生成できませんでした。 */
+    W_5708(5708),
     /**
      * Mob AI tick タスクを開始しました
      */

@@ -1,0 +1,4 @@
+{
+  "parent": "astralrecord:world/waystone",
+  "textures": {"surface": "astralrecord:item/world/waystone_unlocked", "particle": "#surface"}
+}

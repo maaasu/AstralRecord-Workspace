@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import com.comphenix.protocol.ProtocolLibrary;
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
@@ -8,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
+import io.github.maaasu.astralRecord.shared.display.WorldDisplayModel;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.papermc.paper.entity.LookAnchor;
 import io.papermc.paper.registry.RegistryAccess;
@@ -15,6 +17,7 @@ import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -30,6 +33,7 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.PiglinAbstract;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
@@ -52,8 +56,10 @@ import org.joml.Vector3f;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -96,6 +102,9 @@ public class MobEntityController {
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
+    private final Plugin plugin;
+    private final NpcWorldModelPackets worldModelPackets;
+    private final Map<UUID, BedrockModel> bedrockModelDisplays = new HashMap<>();
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
 
     /**
@@ -104,8 +113,11 @@ public class MobEntityController {
      * @param plugin PDC キー生成とワールド操作に使用するプラグイン
      */
     public MobEntityController(@NotNull Plugin plugin) {
+        this.plugin = plugin;
         this.instanceIdKey = new NamespacedKey(plugin, "mob_instance_id");
         this.templateIdKey = new NamespacedKey(plugin, "mob_template_id");
+        this.worldModelPackets = new NpcWorldModelPackets(plugin);
+        ProtocolLibrary.getProtocolManager().addPacketListener(worldModelPackets);
     }
 
     /**
@@ -305,7 +317,7 @@ public class MobEntityController {
         }
 
         if (display.isDead() || !display.isValid()) {
-            display.remove();
+            removeBlockDisplay(display.getUniqueId(), display.getEntityId(), display);
             interaction.remove();
             return null;
         }
@@ -317,22 +329,99 @@ public class MobEntityController {
             instance.headPitch(0.0F);
             return interaction;
         } catch (RuntimeException ex) {
-            display.remove();
+            removeBlockDisplay(display.getUniqueId(), display.getEntityId(), display);
             interaction.remove();
             return null;
         }
     }
 
+    /**
+     * @param world 表示を生成するワールド
+     * @param instance 表示を紐付けるNPC
+     * @param location 表示の座標と向き
+     * @return Java の表示と従来表示の基準となる実体
+     */
     private @NotNull Entity spawnBlockDisplayEntity(
             @NotNull World world,
             @NotNull MobInstance instance,
             @NotNull Location location
     ) {
         Material material = instance.template().blockMaterial();
+        if (instance.template().category() == MobCategory.NPC) {
+            if (material == Material.CHEST) {
+                return spawnWorldModel(world, instance, location, WorldDisplayModel.STORAGE);
+            }
+            if (material == Material.BLAST_FURNACE) {
+                return spawnWorldModel(world, instance, location, WorldDisplayModel.BLAST_FURNACE);
+            }
+        }
         if (material != null && usesItemDisplayBlockMaterial(material)) {
-            return world.spawn(location, ItemDisplay.class, spawned -> configureItemDisplay(instance, spawned));
+            return world.spawn(location, ItemDisplay.class,
+                    spawned -> configureItemDisplay(instance, spawned, new ItemStack(material)));
         }
         return world.spawn(location, BlockDisplay.class, spawned -> configureBlockDisplay(instance, spawned));
+    }
+
+    /**
+     * @param world 表示先ワールド
+     * @param instance 配置するNPC
+     * @param location 足元の配置座標と向き
+     * @param model 両版のモデル種別
+     * @return Java の表示と統合版の従来表示を兼ねる実体
+     * @throws RuntimeException 元の表示を生成できなかった場合
+     */
+    private ItemDisplay spawnWorldModel(World world, MobInstance instance, Location location, WorldDisplayModel model) {
+        ItemDisplay display = world.createEntity(location, ItemDisplay.class);
+        TextDisplay marker = null;
+        try {
+            configureItemDisplay(instance, display, model.createItem());
+            marker = spawnBedrockModel(location, model);
+            worldModelPackets.trackFallback(display, model, marker != null);
+            if (!display.spawnAt(location)) {
+                throw new IllegalStateException("NPC model display spawn failed");
+            }
+            if (marker != null) {
+                bedrockModelDisplays.put(display.getUniqueId(), new BedrockModel(model, marker));
+            }
+            return display;
+        } catch (RuntimeException failure) {
+            worldModelPackets.untrack(display.getEntityId());
+            display.remove();
+            if (marker != null) {
+                removeBedrockModel(marker);
+            }
+            throw failure;
+        }
+    }
+
+    /**
+     * @param location 足元の配置座標と向き
+     * @param model 統合版のモデル種別
+     * @return 追跡可能な空の表示。生成できなかった場合は null
+     */
+    private @Nullable TextDisplay spawnBedrockModel(Location location, WorldDisplayModel model) {
+        World world = location.getWorld();
+        TextDisplay marker = null;
+        try {
+            marker = world.createEntity(location, TextDisplay.class);
+            marker.setPersistent(false);
+            marker.setGravity(false);
+            marker.setSilent(true);
+            marker.setTeleportDuration(1);
+            marker.setBackgroundColor(Color.fromARGB(0));
+            // 既定の空本文を使い、Geyser の行数による高さ補正を避ける。
+            worldModelPackets.trackMarker(marker, model);
+            if (marker.spawnAt(location) && marker.isValid()) {
+                return marker;
+            }
+            Logger.log(LogId.W_5708, model.name(), world.getName());
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.W_5708, failure, model.name(), world.getName());
+        }
+        if (marker != null) {
+            removeBedrockModel(marker);
+        }
+        return null;
     }
 
     private void configureBlockInteraction(@NotNull MobInstance instance, @NotNull Interaction interaction) {
@@ -410,9 +499,13 @@ public class MobEntityController {
         display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
 
-    private void configureItemDisplay(@NotNull MobInstance instance, @NotNull ItemDisplay display) {
+    /**
+     * @param instance 表示を紐付けるNPC
+     * @param display 初期化する実体
+     * @param item 表示する元素材とモデル情報
+     */
+    private void configureItemDisplay(@NotNull MobInstance instance, @NotNull ItemDisplay display, @NotNull ItemStack item) {
         MobTemplate template = instance.template();
-        Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
         display.setPersistent(false);
         display.setGravity(false);
         configureInvulnerability(instance, display, template.damageImmune());
@@ -425,7 +518,7 @@ public class MobEntityController {
         display.setDisplayHeight(1.0F);
         display.setTeleportDuration(1);
         display.setBrightness(new Display.Brightness(15, 15));
-        display.setItemStack(new ItemStack(material));
+        display.setItemStack(item);
         display.setItemDisplayTransform(itemDisplayTransform());
         display.setTransformation(itemDisplayTransformation());
         display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
@@ -680,6 +773,7 @@ public class MobEntityController {
         if (!syncNpcInteraction(instance, entity)) {
             return false;
         }
+        restoreBedrockModel(instance, current);
         instance.currentLocation(current);
         instance.headYaw(current.getYaw());
         instance.headPitch(current.getPitch());
@@ -999,15 +1093,69 @@ public class MobEntityController {
         if (entity != null) {
             entity.remove();
         }
-        Entity displayEntity = getDisplayEntity(instance);
-        if (displayEntity != null) {
-            displayEntity.remove();
+        if (instance.displayEntityId() != null) {
+            removeBlockDisplay(instance.displayEntityId(), instance.displayEntityNumericId(), getDisplayEntity(instance));
         }
         Entity interaction = getNpcInteraction(instance);
         if (interaction != null) {
             interaction.remove();
         }
     }
+
+    /**
+     * @param displayId 元の表示のUUID
+     * @param entityId 元の表示の実体ID
+     * @param display 現在有効な元の表示。無効の場合は null
+     */
+    private void removeBlockDisplay(UUID displayId, int entityId, @Nullable Entity display) {
+        BedrockModel model = bedrockModelDisplays.remove(displayId);
+        if (model != null) {
+            removeBedrockModel(model.marker());
+        }
+        worldModelPackets.untrack(entityId);
+        if (display != null) {
+            display.remove();
+        }
+    }
+
+    /** @param marker 破棄する統合版の表示 */
+    private void removeBedrockModel(TextDisplay marker) {
+        marker.remove();
+        worldModelPackets.untrack(marker.getEntityId());
+    }
+
+    /**
+     * 専用表示が単独で消えた場合は一度再生成し、失敗時は追跡済み接続へ従来表示を送り直します。
+     *
+     * @param instance 表示を確認するNPC
+     * @param location 現在の操作用実体の位置
+     */
+    private void restoreBedrockModel(MobInstance instance, Location location) {
+        UUID displayId = instance.displayEntityId();
+        BedrockModel previous = bedrockModelDisplays.get(displayId);
+        if (previous == null || previous.marker().isValid()) {
+            return;
+        }
+        removeBedrockModel(previous.marker());
+        bedrockModelDisplays.remove(displayId);
+        if (!(getDisplayEntity(instance) instanceof ItemDisplay display)) {
+            return;
+        }
+        TextDisplay marker = spawnBedrockModel(blockDisplayLocation(location), previous.model());
+        if (marker != null) {
+            bedrockModelDisplays.put(displayId, new BedrockModel(previous.model(), marker));
+            return;
+        }
+        worldModelPackets.trackFallback(display, previous.model(), false);
+        for (var viewer : display.getTrackedBy()) {
+            if (worldModelPackets.isBedrock(viewer)) {
+                viewer.hideEntity(plugin, display);
+                viewer.showEntity(plugin, display);
+            }
+        }
+    }
+
+    private record BedrockModel(WorldDisplayModel model, TextDisplay marker) { }
 
     /**
      * 非 block NPC のクリック用 Interaction を実体の移動時だけ同期します。
@@ -1073,8 +1221,9 @@ public class MobEntityController {
         return ItemDisplay.ItemDisplayTransform.NONE;
     }
 
+    /** @return 元のブロック表示を水平中央に寄せる変換 */
     @NotNull
-    Transformation blockDisplayTransformation() {
+    static Transformation blockDisplayTransformation() {
         return new Transformation(
                 new Vector3f(BLOCK_DISPLAY_RENDER_XZ_OFFSET, BLOCK_DISPLAY_RENDER_Y_OFFSET, BLOCK_DISPLAY_RENDER_XZ_OFFSET),
                 new Quaternionf(),
@@ -1119,6 +1268,10 @@ public class MobEntityController {
         teleportBlockNpc(instance, anchored);
     }
 
+    /**
+     * @param instance 移動するNPC
+     * @param interactionLocation 操作実体と両版向け表示の移動先
+     */
     private void teleportBlockNpc(@NotNull MobInstance instance, @NotNull Location interactionLocation) {
         Location pose = blockInteractionLocation(interactionLocation);
         Entity interaction = getEntity(instance);
@@ -1128,6 +1281,10 @@ public class MobEntityController {
         Entity displayEntity = getDisplayEntity(instance);
         if (displayEntity != null) {
             displayEntity.teleport(blockDisplayLocation(pose));
+        }
+        BedrockModel model = bedrockModelDisplays.get(instance.displayEntityId());
+        if (model != null && model.marker().isValid()) {
+            model.marker().teleport(blockDisplayLocation(pose));
         }
         instance.currentLocation(pose);
         instance.headYaw(pose.getYaw());

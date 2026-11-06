@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.display.WorldDisplayModel;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -18,7 +19,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -199,7 +199,7 @@ public final class WaystonePacketView {
      * @param definition 表示対象ウェイストーン
      * @param base ウェイストーン基準座標
      * @param unlocked 表示対象プレイヤーから見て解除済みの場合 true
-     * @param bedrock Bedrock Edition プレイヤー向けの簡易表示にする場合 true
+     * @param bedrock Bedrock Edition プレイヤー向けの場合 true
      * @return spawn する Display entity 一覧
      */
     @NotNull
@@ -209,29 +209,15 @@ public final class WaystonePacketView {
             boolean unlocked,
             boolean bedrock
     ) {
-        List<WaystonePacketDisplay.PacketEntity> entities = new ArrayList<>(packetDisplayEntityCount(bedrock));
+        List<WaystonePacketDisplay.PacketEntity> entities = new ArrayList<>(3);
         Location origin = base.clone().add(0.5D, 0.0D, 0.5D);
-        if (!bedrock) {
-            entities.add(packetDisplay.block(origin, Material.DEEPSLATE_BRICKS, new Vector3f(-0.45F, 0.0F, -0.45F), new Vector3f(0.9F, 0.28F, 0.9F)));
-            entities.add(packetDisplay.block(origin.clone().add(0.0D, 0.28D, 0.0D), Material.STONE_BRICKS, new Vector3f(-0.35F, 0.0F, -0.35F), new Vector3f(0.7F, 0.9F, 0.7F)));
-            entities.add(packetDisplay.block(origin.clone().add(0.0D, 1.05D, 0.0D), Material.POLISHED_ANDESITE, new Vector3f(-0.28F, 0.0F, -0.28F), new Vector3f(0.56F, 0.42F, 0.56F)));
-            entities.add(packetDisplay.block(origin.clone().add(0.0D, 1.45D, 0.0D), unlocked ? Material.SEA_LANTERN : Material.REDSTONE_LAMP, new Vector3f(-0.18F, 0.0F, -0.18F), new Vector3f(0.36F, 0.36F, 0.36F)));
-        }
+        WorldDisplayModel model = unlocked ? WorldDisplayModel.WAYSTONE_UNLOCKED : WorldDisplayModel.WAYSTONE_LOCKED;
+        entities.add(packetDisplay.model(origin, model, bedrock));
         entities.add(packetDisplay.text(origin.clone().add(0.0D, 2.15D, 0.0D), label(definition, unlocked), 0.85F));
         if (!bedrock) {
             entities.add(packetDisplay.item(origin.clone().add(0.0D, 2.85D, 0.0D), new ItemStack(definition.displayIcon()), 0.65F));
         }
         return entities;
-    }
-
-    /**
-     * Waystone の版別 packet 表示数を返します。BE では文字表示だけを残します。
-     *
-     * @param bedrock BE プレイヤーの場合 true
-     * @return 生成する Display entity 数
-     */
-    static int packetDisplayEntityCount(boolean bedrock) {
-        return bedrock ? 1 : 6;
     }
 
     @NotNull

@@ -4,17 +4,16 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
+import io.github.maaasu.astralRecord.shared.display.WorldDisplayModel;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
@@ -36,6 +35,7 @@ import java.util.UUID;
  */
 final class WaystonePacketDisplay {
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
+    private static final int NO_GRAVITY_INDEX = 5;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
     private static final int DISPLAY_INTERPOLATION_DURATION_INDEX = 9;
     private static final int DISPLAY_POSITION_ROTATION_DURATION_INDEX = 10;
@@ -47,7 +47,6 @@ final class WaystonePacketDisplay {
     private static final int DISPLAY_VIEW_RANGE_INDEX = 17;
     private static final int DISPLAY_WIDTH_INDEX = 20;
     private static final int DISPLAY_HEIGHT_INDEX = 21;
-    private static final int BLOCK_DISPLAY_BLOCK_INDEX = 23;
     private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
     private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
     private static final int TEXT_DISPLAY_TEXT_INDEX = 23;
@@ -59,10 +58,20 @@ final class WaystonePacketDisplay {
 
     private final ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
 
-    PacketEntity block(@NotNull Location location, @NotNull Material material, @NotNull Vector3f translation, @NotNull Vector3f scale) {
-        List<WrappedDataValue> metadata = baseDisplayMetadata(translation, scale, Display.Billboard.FIXED);
-        metadata.add(blockValue(material));
-        return new PacketEntity(EntityType.BLOCK_DISPLAY, location, metadata);
+    /**
+     * @param origin 石碑の足元の座標
+     * @param model 閲覧者から見た解除状態に対応するモデル
+     * @param bedrock 統合版向けのモデル生成マーカーを使う場合は true
+     * @return 対象エディション用の本体表示
+     */
+    PacketEntity model(@NotNull Location origin, @NotNull WorldDisplayModel model, boolean bedrock) {
+        if (bedrock) {
+            // 本文を送ると Geyser が行数に応じて座標を補正するため、空の実体で送信する。
+            return new PacketEntity(EntityType.TEXT_DISPLAY, origin,
+                    List.of(value(NO_GRAVITY_INDEX, serializer(Boolean.class), true)), model);
+        }
+        return item(origin.clone().add(0.0D, 0.5D, 0.0D), model.createItem(), 1.0F,
+                Display.Billboard.FIXED, ItemDisplay.ItemDisplayTransform.NONE);
     }
 
     PacketEntity text(@NotNull Location location, @NotNull Component text, float scale) {
@@ -84,10 +93,28 @@ final class WaystonePacketDisplay {
      * @return 送信前の packet entity
      */
     PacketEntity item(@NotNull Location location, @NotNull ItemStack itemStack, float scale) {
+        return item(location, itemStack, scale, Display.Billboard.CENTER, ItemDisplay.ItemDisplayTransform.GROUND);
+    }
+
+    /**
+     * @param location 描画の原点
+     * @param itemStack 表示するアイテム
+     * @param scale 描画倍率
+     * @param billboard カメラに対する回転方式
+     * @param transform 選択するアイテム表示姿勢
+     * @return 送信前のアイテム表示
+     */
+    private PacketEntity item(
+            @NotNull Location location,
+            @NotNull ItemStack itemStack,
+            float scale,
+            @NotNull Display.Billboard billboard,
+            @NotNull ItemDisplay.ItemDisplayTransform transform
+    ) {
         List<WrappedDataValue> metadata = baseDisplayMetadata(
                 new Vector3f(),
                 new Vector3f(scale, scale, scale),
-                Display.Billboard.CENTER
+                billboard
         );
         metadata.add(value(
                 ITEM_DISPLAY_ITEM_INDEX,
@@ -97,7 +124,7 @@ final class WaystonePacketDisplay {
         metadata.add(value(
                 ITEM_DISPLAY_TRANSFORM_INDEX,
                 serializer(Byte.class),
-                (byte) ItemDisplay.ItemDisplayTransform.GROUND.ordinal()
+                (byte) transform.ordinal()
         ));
         return new PacketEntity(EntityType.ITEM_DISPLAY, location, metadata);
     }
@@ -120,10 +147,6 @@ final class WaystonePacketDisplay {
         values.add(value(DISPLAY_WIDTH_INDEX, serializer(Float.class), 0.0F));
         values.add(value(DISPLAY_HEIGHT_INDEX, serializer(Float.class), 0.0F));
         return values;
-    }
-
-    private WrappedDataValue blockValue(@NotNull Material material) {
-        return value(BLOCK_DISPLAY_BLOCK_INDEX, WrappedDataWatcher.Registry.getBlockDataSerializer(false), WrappedBlockData.createData(material));
     }
 
     private WrappedDataValue textValue(@NotNull Component text) {
@@ -168,15 +191,31 @@ final class WaystonePacketDisplay {
 
     final class PacketEntity {
         private final int entityId = PacketEntityIdAllocator.nextEntityId();
-        private final UUID uuid = UUID.randomUUID();
+        private final UUID uuid;
         private final EntityType entityType;
         private final Location location;
         private final List<WrappedDataValue> metadata;
 
+        /**
+         * @param entityType 生成する表示の種別
+         * @param location 表示座標
+         * @param metadata 生成直後のメタデータ
+         */
         private PacketEntity(@NotNull EntityType entityType, @NotNull Location location, @NotNull List<WrappedDataValue> metadata) {
+            this(entityType, location, metadata, null);
+        }
+
+        /**
+         * @param entityType 生成する表示の種別
+         * @param location 表示座標
+         * @param metadata 生成直後のメタデータ
+         * @param model UUID に載せる統合版モデルの種別。通常の表示では null
+         */
+        private PacketEntity(EntityType entityType, Location location, List<WrappedDataValue> metadata, WorldDisplayModel model) {
             this.entityType = entityType;
             this.location = location.clone();
             this.metadata = List.copyOf(metadata);
+            this.uuid = model == null ? UUID.randomUUID() : model.bedrockMarker(entityId, false);
         }
 
         void spawn(@NotNull Player player) {

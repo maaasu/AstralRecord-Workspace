@@ -1,0 +1,23 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.world_display": {
+      "arrays": {
+        "geometries": {
+          "Array.models": ["Geometry.waystone", "Geometry.waystone", "Geometry.storage", "Geometry.blast_furnace"]
+        },
+        "textures": {
+          "Array.styles": [
+            "Texture.waystone_locked",
+            "Texture.waystone_unlocked",
+            "Texture.storage",
+            "Texture.blast_furnace"
+          ]
+        }
+      },
+      "geometry": "Array.models[math.clamp(query.property('astralrecord:style'), 0, 3)]",
+      "materials": [{"*": "Material.default"}],
+      "textures": ["Array.styles[math.clamp(query.property('astralrecord:style'), 0, 3)]"]
+    }
+  }
+}

@@ -122,6 +122,14 @@ BE では仮想トライデントで長押し入力を受け取りながら、�
 
 未登録の同素材を維持するため、基本素材ごとのバニラ定義を `java-item-fallbacks/` に用意します。プレイヤーヘッドは形式83以降の座標変換が異なるため、`transformed_item_models/player_head.json` も使います。時計の時刻表示、プレイヤーヘッドのスキン、壁などのブロック形状を含め、fallback全体を保持します。
 
+## ウェイストーンと施設NPC
+
+ウェイストーンは石碑の結晶と紋章を解除済みの青緑色と未解除の赤橙色で切り替えます。ストレージは金具を付けた木箱、溶鉱炉は鋳鉄の外枠と火格子のあるモデルです。既存の配置に適用します。
+
+Java 版は表示用 ItemDisplay の `custom_model_data.strings[0]` で `assets/astralrecord/models/world` のモデルを選びます。ビルドで `LODESTONE`、`CHEST`、`BLAST_FURNACE` のアイテム定義へ選択条件を追加し、通常のアイテムと既存の GUI モデルをフォールバックに使います。
+
+統合版は `astralrecord:world_display` の状態値に応じて、対応する形状とテクスチャを選びます。新しいパックの公開後に対応する AstralRecordGeyserExtension を配置して Proxy を再起動し、統合版の接続をやり直します。変換の仕様は [Geyser 拡張の導入手順](../10_plugin/AstralRecordGeyserExtension/README.md) を参照してください。
+
 ## ビルド
 
 ### 着用防具

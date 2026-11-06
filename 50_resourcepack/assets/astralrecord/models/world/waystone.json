@@ -1,0 +1,112 @@
+{
+  "ambientocclusion": false,
+  "elements": [
+    {
+      "name": "plinth",
+      "from": [1, 0, 1],
+      "to": [15, 3, 15],
+      "faces": {
+        "north": {"uv": [0.25, 0.25, 3.75, 1.25], "texture": "#surface"},
+        "south": {"uv": [0.25, 0.25, 3.75, 1.25], "texture": "#surface"},
+        "east": {"uv": [0.25, 0.25, 3.75, 1.25], "texture": "#surface"},
+        "west": {"uv": [0.25, 0.25, 3.75, 1.25], "texture": "#surface"},
+        "up": {"uv": [8.25, 0.25, 11.75, 3.75], "texture": "#surface"},
+        "down": {"uv": [8.25, 0.25, 11.75, 3.75], "texture": "#surface"}
+      }
+    },
+    {
+      "name": "molding",
+      "from": [2, 3, 2],
+      "to": [14, 5, 14],
+      "faces": {
+        "north": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "south": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "east": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "west": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "up": {"uv": [8.25, 0.25, 11.75, 3.75], "texture": "#surface"},
+        "down": {"uv": [8.25, 0.25, 11.75, 3.75], "texture": "#surface"}
+      }
+    },
+    {
+      "name": "engraved_shaft",
+      "from": [3, 5, 3],
+      "to": [13, 18, 13],
+      "faces": {
+        "north": {"uv": [0.25, 2.0, 2.75, 5.5], "texture": "#surface"},
+        "south": {"uv": [0.25, 2.0, 2.75, 5.5], "texture": "#surface"},
+        "east": {"uv": [0.25, 2.0, 2.75, 5.5], "texture": "#surface"},
+        "west": {"uv": [0.25, 2.0, 2.75, 5.5], "texture": "#surface"},
+        "up": {"uv": [4.0, 4.0, 7.0, 7.0], "texture": "#surface"},
+        "down": {"uv": [4.0, 4.0, 7.0, 7.0], "texture": "#surface"}
+      }
+    },
+    {
+      "name": "metal_collar",
+      "from": [2.5, 17, 2.5],
+      "to": [13.5, 19, 13.5],
+      "faces": {
+        "north": {"uv": [3.5, 2.0, 6.5, 3.0], "texture": "#surface"},
+        "south": {"uv": [3.5, 2.0, 6.5, 3.0], "texture": "#surface"},
+        "east": {"uv": [3.5, 2.0, 6.5, 3.0], "texture": "#surface"},
+        "west": {"uv": [3.5, 2.0, 6.5, 3.0], "texture": "#surface"},
+        "up": {"uv": [4.0, 4.0, 7.0, 7.0], "texture": "#surface"},
+        "down": {"uv": [4.0, 4.0, 7.0, 7.0], "texture": "#surface"}
+      }
+    },
+    {
+      "name": "crown",
+      "from": [3.5, 19, 3.5],
+      "to": [12.5, 21, 12.5],
+      "faces": {
+        "north": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "south": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "east": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "west": {"uv": [4.25, 0.25, 7.25, 1.25], "texture": "#surface"},
+        "up": {"uv": [4.0, 4.0, 7.0, 7.0], "texture": "#surface"},
+        "down": {"uv": [4.0, 4.0, 7.0, 7.0], "texture": "#surface"}
+      }
+    },
+    {
+      "name": "crystal_foot",
+      "from": [6, 21, 6],
+      "to": [10, 22.5, 10],
+      "faces": {
+        "north": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "south": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "east": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "west": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "up": {"uv": [11.25, 4.5, 13.25, 6.5], "texture": "#surface"},
+        "down": {"uv": [11.25, 4.5, 13.25, 6.5], "texture": "#surface"}
+      },
+      "light_emission": 8
+    },
+    {
+      "name": "crystal_body",
+      "from": [5, 22.5, 5],
+      "to": [11, 27, 11],
+      "faces": {
+        "north": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "south": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "east": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "west": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "up": {"uv": [11.25, 4.5, 13.25, 6.5], "texture": "#surface"},
+        "down": {"uv": [11.25, 4.5, 13.25, 6.5], "texture": "#surface"}
+      },
+      "light_emission": 10
+    },
+    {
+      "name": "crystal_tip",
+      "from": [6, 27, 6],
+      "to": [10, 29, 10],
+      "faces": {
+        "north": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "south": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "east": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "west": {"uv": [8.5, 4.5, 10.5, 6.5], "texture": "#surface"},
+        "up": {"uv": [11.25, 4.5, 13.25, 6.5], "texture": "#surface"},
+        "down": {"uv": [11.25, 4.5, 13.25, 6.5], "texture": "#surface"}
+      },
+      "light_emission": 12
+    }
+  ]
+}

@@ -7,7 +7,7 @@
 
 責務:
 
-プレイヤーの現在ワールドと解除状態に応じて、ウェイストーンの BlockDisplay / TextDisplay / ItemDisplay 相当の packet 表示を同期する。`AstPlayer.isBedrock=true` のプレイヤーには BlockDisplay と ItemDisplay を送信せず、TextDisplay と粒子フォールバックで視認性を確保する。
+プレイヤーの現在ワールドと解除状態に応じて、ウェイストーン本体と名称の packet 表示を同期する。Java 版には `LODESTONE` を使う固定 ItemDisplay を送り、リソースパックが `custom_model_data.strings[0]` に応じて石碑モデルを選ぶ。統合版には本体用の空 TextDisplay を送り、対応アセットを登録した接続で Geyser 拡張が `astralrecord:world_display` に変換する。
 
 処理内容:
 
@@ -21,18 +21,15 @@
 
 ワールド移動時とリスポーン翌tickは、クライアントが表示を消去するため送信済み表示を明示的に破棄し、現在位置の近距離表示を復元する。通常移動・同一ワールドのテレポートは次の定期同期で反映する。
 
-BE フォールバックは同じ10 tick周期で差分同期後に実行し、同期済みの近距離ウェイストーンだけを使って、基準座標上方の状態色付き粒子をプレイヤー単位で1個表示する。粒子用に全定義を再走査しない。
+統合版の状態色付き粒子は同じ10 tick周期で差分同期後に送る。同期済みの近距離ウェイストーンを使い、基準座標上方にプレイヤー単位で1個表示する。対応パックが使えない接続では名称と粒子が表示される。
 
 表示構成:
 
 | 部品 | 表示 |
 |:--|:--|
-| 台座 | `DEEPSLATE_BRICKS` 相当の BlockDisplay |
-| 本体 | `STONE_BRICKS` 相当の BlockDisplay |
-| 装飾 | `POLISHED_ANDESITE` 相当の BlockDisplay |
-| 頂部 | 解除済みは `SEA_LANTERN`、未解除は `REDSTONE_LAMP` 相当の BlockDisplay |
+| 本体 | 石碑モデル。解除済みは青緑、未解除は赤橙の結晶と紋章 |
 | 名称 | TextDisplay |
-| アイコン | 名称の上に `icon`、未設定時は `BEACON` のドロップアイテム風 ItemDisplay |
+| アイコン | Java 版のみ。名称の上に `icon`、未設定時は `BEACON` のドロップアイテム風 ItemDisplay |
 
 TextDisplay:
 

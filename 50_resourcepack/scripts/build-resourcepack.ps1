@@ -75,6 +75,15 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
     'assets/astralrecord/textures/font/combat_hud.png'
+    'assets/astralrecord/models/world/waystone.json'
+    'assets/astralrecord/models/world/waystone_locked.json'
+    'assets/astralrecord/models/world/waystone_unlocked.json'
+    'assets/astralrecord/models/world/storage.json'
+    'assets/astralrecord/models/world/blast_furnace.json'
+    'assets/astralrecord/textures/item/world/waystone_locked.png'
+    'assets/astralrecord/textures/item/world/waystone_unlocked.png'
+    'assets/astralrecord/textures/item/world/storage.png'
+    'assets/astralrecord/textures/item/world/blast_furnace.png'
     'assets/astralrecord/font/weapon_attack.json'
     'assets/astralrecord/lang/en_us.json'
     'assets/astralrecord/textures/font/weapon_attack.png'
@@ -131,6 +140,13 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'animations/combat_result.animation.json'
     'models/entity/combat_result.geo.json'
     'render_controllers/combat_result.render_controllers.json'
+    'entity/world_display.entity.json'
+    'models/entity/world_display.geo.json'
+    'render_controllers/world_display.render_controllers.json'
+    'textures/entity/world/waystone_locked.png'
+    'textures/entity/world/waystone_unlocked.png'
+    'textures/entity/world/storage.png'
+    'textures/entity/world/blast_furnace.png'
     'textures/entity/combat_result.png'
     'entity/weapon_attack.entity.json'
     'animations/weapon_attack.animation.json'
@@ -216,6 +232,36 @@ $bedrock['manifest.json'] = $utf8.GetBytes($template.Replace(
 ).Replace(
     $moduleUuid, (Get-ContentUuid $moduleUuid $fingerprint)
 ))
+
+# World displays use a string selector. Preserve the generated item and GUI
+# mappings (including format-specific overlays) as the unmarked fallback.
+$worldModelsByItem = [ordered] @{
+    lodestone = @('waystone_locked', 'waystone_unlocked')
+    chest = @('storage')
+    blast_furnace = @('blast_furnace')
+}
+foreach ($base in $worldModelsByItem.Keys) {
+    $itemPath = "assets/minecraft/items/$base.json"
+    $overlays = @($java.Keys | Where-Object { $_.EndsWith("/$itemPath", [StringComparison]::Ordinal) })
+    foreach ($path in (@($itemPath) + $overlays)) {
+        $definition = if ($java.ContainsKey($path)) {
+            ConvertFrom-Json -InputObject ($utf8.GetString($java[$path]))
+        } else {
+            Get-PackJson (Join-Path $root "java-item-fallbacks/$base.json")
+        }
+        $definition.model = [ordered] @{
+            type = 'minecraft:select'
+            property = 'minecraft:custom_model_data'
+            index = 0
+            cases = @($worldModelsByItem[$base] | ForEach-Object {
+                [ordered] @{ when = "astralrecord:world/$_"; model = New-JavaModelReference "astralrecord:world/$_" }
+            })
+            fallback = $definition.model
+        }
+        [void] $java.Remove($path)
+        Add-PackJson $java $path $definition
+    }
+}
 
 $destination = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
 [System.IO.Directory]::CreateDirectory($destination) | Out-Null

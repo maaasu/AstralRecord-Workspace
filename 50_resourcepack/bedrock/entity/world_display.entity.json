@@ -1,0 +1,22 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:world_display",
+      "materials": {"default": "entity"},
+      "textures": {
+        "waystone_locked": "textures/entity/world/waystone_locked",
+        "waystone_unlocked": "textures/entity/world/waystone_unlocked",
+        "storage": "textures/entity/world/storage",
+        "blast_furnace": "textures/entity/world/blast_furnace"
+      },
+      "geometry": {
+        "waystone": "geometry.astralrecord.world.waystone",
+        "storage": "geometry.astralrecord.world.storage",
+        "blast_furnace": "geometry.astralrecord.world.blast_furnace"
+      },
+      "properties": {"astralrecord:style": {"type": "int", "range": [0, 3], "default": 0, "client_sync": true}},
+      "render_controllers": ["controller.render.astralrecord.world_display"]
+    }
+  }
+}
