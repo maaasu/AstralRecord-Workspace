@@ -418,16 +418,23 @@ public final class SkillActionRingService {
         return true;
     }
 
+    /** 攻撃入力を受け取った時点で発動待ちの統合版トークンを返します。 */
+    public @Nullable UUID armedBedrockMenuToken(@NotNull Player player) {
+        BedrockSelection selection = bedrockSelections.get(player.getUniqueId());
+        return selection != null && selection.armed() ? selection.token() : null;
+    }
+
     /**
      * 表示中の選択を確定し、確定済みの場合は発動してリングを閉じます。
      * 統合版ではフォームで選択したスキルを、ここで初めて発動します。
      *
      * @param astPlayer 対象プレイヤー
+     * @param armedMenuToken 入力時点で選択済みだった統合版のトークン
      */
-    public void activateSelected(@NotNull AstPlayer astPlayer) {
+    public void activateSelected(@NotNull AstPlayer astPlayer, @Nullable UUID armedMenuToken) {
         Player player = astPlayer.getBukkit();
         if (astPlayer.isBedrock()) {
-            castBedrockSelection(astPlayer);
+            castBedrockSelection(player, armedMenuToken);
             return;
         }
         RingSession session = sessions.get(player.getUniqueId());
@@ -562,15 +569,19 @@ public final class SkillActionRingService {
         return option.slotIndex() < bindings.size() && option.skillId().equals(bindings.get(option.slotIndex()));
     }
 
-    private void castBedrockSelection(AstPlayer astPlayer) {
-        Player player = astPlayer.getBukkit();
-        UUID playerId = player.getUniqueId();
-        BedrockSelection selection = bedrockSelections.get(playerId);
-        if (selection == null || !selection.armed() || !bedrockSelections.remove(playerId, selection)) {
+    private void castBedrockSelection(Player player, @Nullable UUID armedMenuToken) {
+        if (armedMenuToken == null) {
             return;
         }
+        UUID playerId = player.getUniqueId();
+        BedrockSelection selection = bedrockSelections.get(playerId);
+        if (selection == null || !selection.armed() || !selection.token().equals(armedMenuToken)
+            || !bedrockSelections.remove(playerId, selection)) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
         MenuOption option = selection.options().get(selection.selectedIndex());
-        if (!canUseBedrockSelection(astPlayer, player, selection, option)) {
+        if (astPlayer == null || !canUseBedrockSelection(astPlayer, player, selection, option)) {
             GuiSound.DENY.play(player);
             return;
         }

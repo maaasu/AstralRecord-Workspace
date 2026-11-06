@@ -33,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 右クリック入力をアクションリング表示へ差し替えるイベントハンドラです。
@@ -115,6 +116,8 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (actionRingService.isOpen(player)) {
+            UUID armedMenuToken = context.family() == InputFamily.LEFT_CLICK
+                ? actionRingService.armedBedrockMenuToken(player) : null;
             Runnable executor = context.family() == InputFamily.RIGHT_CLICK
                 ? () -> {
                     if (isPlayerMode(astPlayer)) {
@@ -126,7 +129,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
                 : () -> {
                     actionRingService.suppressAttack(player);
                     if (isPlayerMode(astPlayer)) {
-                        actionRingService.activateSelected(astPlayer);
+                        actionRingService.activateSelected(astPlayer, armedMenuToken);
                     } else {
                         actionRingService.close(player);
                     }
