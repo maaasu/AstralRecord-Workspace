@@ -27,7 +27,7 @@ body.ar-journal {
     color: var(--ar-ink);
     line-height: 1.65;
 }
-.ar-journal .container { max-width: 1240px; padding-inline: clamp(16px, 4.8vw, 56px); }
+.ar-journal .container { max-width: none; padding-inline: clamp(16px, 2.4vw, 48px); }
 .ar-journal ::selection { background: #e3c785; color: #2c2115; }
 .ar-journal :focus-visible { outline: 2px solid #795322; outline-offset: 3px; }
 .ar-journal :is(.ar-navbar, .ar-menu, .ar-footer, .ar-home-hero, .ar-home-connect, .ar-legal-hero) :focus-visible {
@@ -205,7 +205,7 @@ body.ar-journal {
 
 .ar-journal .ar-footer {
     color: var(--ar-cream);
-    background: linear-gradient(90deg, #181713fa 0%, #181713ee 55%, #181713df 100%), var(--ar-town-photo) 76% 59% / cover no-repeat, var(--ar-night);
+    background: var(--ar-night);
     border-top: 3px solid #8c7546;
     padding-block: 1rem;
 }
@@ -229,9 +229,6 @@ body.ar-journal {
 }
 .ar-journal .ar-footer a:hover { color: #ffdda1; text-decoration: underline; }
 .ar-footer-meta { margin-top: .35rem; padding-top: .55rem; border-top: 1px solid #ac8d595e; }
-.ar-journal .ar-footer .ar-video-credit { margin: 0; color: #e1d4b8; text-align: left; }
-.ar-journal .ar-footer .ar-video-credit a { color: #ffe1a2; }
-.ar-video-credit span { display: inline-block; }
 
 /* Public reading pages use photographs in the masthead and opaque paper beneath. */
 .ar-public .ar-reading-page { padding-block: 12px clamp(2.6rem, 5vw, 4.5rem); }

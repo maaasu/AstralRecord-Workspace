@@ -1,4 +1,4 @@
-import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeDetailLevel, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeArtScale, nodeDetailLevel, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
 import { initializeStarfield } from './skilltree-stars.mjs';
@@ -6,6 +6,7 @@ import { initializeStarfield } from './skilltree-stars.mjs';
 // Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
 const expandedViews = new WeakMap();
+const maxZoom = 2.5;
 const make = (tag, attrs = {}, text) => {
     const element = document.createElementNS(ns, tag);
     Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, String(value)));
@@ -17,11 +18,12 @@ export function initializeViewer(viewer, viewState) {
     try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { return; }
     if (!Array.isArray(tree.nodes) || !tree.nodes.length) return;
     const spacingInput = viewer.querySelector('[data-tree-spacing]');
-    let spacingPercent = Math.max(50, Math.min(200, Number(viewState?.spacingPercent) || 100));
+    let spacingPercent = Math.max(50, Math.min(200, Number(viewState?.spacingPercent) || Number(spacingInput.defaultValue)));
     spacingInput.value = String(spacingPercent);
     viewer.querySelector('[data-tree-spacing-label]').textContent = `${spacingPercent}%`;
     const projected = projectNodes(tree.nodes, spacingPercent / 100);
-    const baseScale = projected.scale / (spacingPercent / 100);
+    let layoutScale = projected.scale;
+    const artScaleFor = (node, visualScale) => nodeArtScale(visualScale, node.nearest * layoutScale);
     const nodes = new Map(projected.nodes.map(node => [node.nodeId, node]));
     if (!nodes.size) return;
     let bounds = graphBounds(projected.nodes);
@@ -30,14 +32,17 @@ export function initializeViewer(viewer, viewState) {
     const lifecycle = new AbortController();
     const starsContainer = viewport.querySelector('[data-tree-stars]');
     starsContainer.replaceChildren();
-    const stars = initializeStarfield(starsContainer);
+    const atmosphere = viewport.querySelector('[data-tree-atmosphere]').content.cloneNode(true);
+    const video = atmosphere.querySelector('video');
+    starsContainer.append(atmosphere);
+    const stars = initializeStarfield(starsContainer, video);
     const motionButton = viewer.querySelector('[data-tree-motion]');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let motionPaused = false;
     try { motionPaused = sessionStorage.getItem('astral-skilltree-motion-paused') === 'true'; } catch { /* Storage is optional. */ }
     const renderMotion = () => {
         motionButton.disabled = reducedMotion.matches;
-        motionButton.textContent = reducedMotion.matches ? '星の動き：控えめ' : motionPaused ? '星の動きを再生' : '星の動きを停止';
+        motionButton.textContent = reducedMotion.matches ? '背景の動き：控えめ' : motionPaused ? '背景の動きを再生' : '背景の動きを停止';
         motionButton.setAttribute('aria-pressed', String(motionPaused || reducedMotion.matches));
     };
     motionButton.addEventListener('click', () => { motionPaused = !motionPaused; stars.pause(motionPaused); renderMotion(); });
@@ -57,12 +62,12 @@ export function initializeViewer(viewer, viewState) {
     const graph = make('g');
     svg.append(graph);
     const groups = new Map(), links = [], neighbors = new Map([...nodes.keys()].map(id => [id, []]));
-    let camera = { zoom: .9, x: 0, y: 0 }, selectedId, drag = null, dragged = false, frame = 0;
+    let camera = { zoom: 1, x: 0, y: 0 }, selectedId, drag = null, dragged = false, frame = 0;
     let previousWidth = viewState?.width ?? viewport.clientWidth, previousHeight = viewState?.height ?? viewport.clientHeight, disposed = false;
     let viewportWidth = viewport.clientWidth, viewportHeight = viewport.clientHeight;
     const zoomLabel = viewer.querySelector('[data-tree-zoom-label]');
     let cullBounds = null, interactionUntil = 0, rightPress = null, primaryPress = null;
-    let paintedNodeScale = 0;
+    let paintedVisualScale = 0;
     const visibleNodes = new Map(), visibleEdges = new Map();
     const root = nodes.get(tree.rootNodeId) ?? projected.nodes.find(node => node.isUnlocked) ?? projected.nodes[0];
     const minZoom = () => Math.min(.08, fitCamera(bounds, viewportWidth, viewportHeight).zoom);
@@ -70,10 +75,12 @@ export function initializeViewer(viewer, viewState) {
     const placeEdge = edge => {
         const source = nodes.get(edge.source), target = nodes.get(edge.target);
         const dx = target.px - source.px, dy = target.py - source.py, length = Math.hypot(dx, dy);
-        const inset = Math.min(52 * nodeVisualScale(camera.zoom), length / 2);
+        const visualScale = nodeVisualScale(camera.zoom);
+        const startInset = 52 * artScaleFor(source, visualScale);
+        const endInset = 52 * artScaleFor(target, visualScale);
         for (const [key, value] of Object.entries({
-            x1: source.px + dx / length * inset, y1: source.py + dy / length * inset,
-            x2: target.px - dx / length * inset, y2: target.py - dy / length * inset,
+            x1: source.px + dx / length * startInset, y1: source.py + dy / length * startInset,
+            x2: target.px - dx / length * endInset, y2: target.py - dy / length * endInset,
         })) edge.line.setAttribute(key, value);
         for (const [key, value] of Object.entries({ x1: source.px, y1: source.py, x2: target.px, y2: target.py })) edge.miniLine.setAttribute(key, value);
         edge.minX = Math.min(source.px, target.px); edge.maxX = Math.max(source.px, target.px);
@@ -108,13 +115,18 @@ export function initializeViewer(viewer, viewState) {
     const paint = () => {
         if (disposed) return;
         const artScale = nodeVisualScale(camera.zoom);
-        if (artScale !== paintedNodeScale) {
+        const level = nodeDetailLevel(camera.zoom);
+        if (artScale !== paintedVisualScale) {
             for (const [id, group] of groups) {
                 const node = nodes.get(id);
-                group.setAttribute('transform', `translate(${node.px},${node.py}) scale(${artScale})`);
+                const scale = artScaleFor(node, artScale);
+                group.setAttribute('transform', `translate(${node.px},${node.py}) scale(${scale})`);
+                const clearance = node.nearest * layoutScale / scale;
+                group.classList.toggle('is-label-compact', clearance < Math.max(256, node.labelExtent + 126));
+                group.classList.toggle('is-crowded', clearance < 200);
             }
             links.forEach(placeEdge);
-            paintedNodeScale = artScale;
+            paintedVisualScale = artScale;
         }
         const viewLeft = -camera.x / camera.zoom, viewTop = -camera.y / camera.zoom;
         const viewRight = (viewportWidth - camera.x) / camera.zoom, viewBottom = (viewportHeight - camera.y) / camera.zoom;
@@ -134,7 +146,6 @@ export function initializeViewer(viewer, viewState) {
         }
         }
         graph.setAttribute('transform', `translate(${camera.x},${camera.y}) scale(${camera.zoom})`);
-        const level = nodeDetailLevel(camera.zoom);
         const overview = String(level === 'overview'), zoomText = `${Math.round(camera.zoom * 100)}%`;
         if (viewer.dataset.overview !== overview) viewer.dataset.overview = overview;
         if (viewer.dataset.nodeDetail !== level) viewer.dataset.nodeDetail = level;
@@ -152,10 +163,10 @@ export function initializeViewer(viewer, viewState) {
         viewportWidth = previousWidth = viewport.clientWidth;
         viewportHeight = previousHeight = viewport.clientHeight;
         cullBounds = null;
-        if (readable) camera.zoom = .95;
+        if (readable) camera.zoom = Math.max(1, camera.zoom);
         camera.x = viewportWidth / 2 - node.px * camera.zoom;
         const labelCenter = node.nodeId ? 9 + (node.labelExtent ?? nodeLabelLines(node).length * 20) / 2 : 0;
-        camera.y = viewportHeight / 2 - (node.py + labelCenter) * camera.zoom;
+        camera.y = viewportHeight / 2 - (node.py + labelCenter * artScaleFor(node, nodeVisualScale(camera.zoom))) * camera.zoom;
         draw();
     };
     const showDetails = (node, announce = true) => {
@@ -262,15 +273,15 @@ export function initializeViewer(viewer, viewState) {
         camera.x = centerX - (centerX - camera.x) * ratio;
         camera.y = centerY - (centerY - camera.y) * ratio;
         spacingPercent = nextPercent;
+        layoutScale *= ratio;
+        paintedVisualScale = 0;
         viewer.querySelector('[data-tree-spacing-label]').textContent = `${spacingPercent}%`;
         for (const node of nodes.values()) {
-            node.px = node.x * baseScale * spacingPercent / 100;
-            node.py = node.z * baseScale * spacingPercent / 100;
-            groups.get(node.nodeId).setAttribute('transform', `translate(${node.px},${node.py}) scale(${nodeVisualScale(camera.zoom)})`);
+            node.px = node.x * layoutScale;
+            node.py = node.z * layoutScale;
             const point = miniNodes.get(node.nodeId);
             point.setAttribute('cx', node.px); point.setAttribute('cy', node.py);
         }
-        links.forEach(placeEdge);
         bounds = graphBounds([...nodes.values()]);
         minimap.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
         miniRadius = Math.max(bounds.width, bounds.height) / 110;
@@ -279,7 +290,7 @@ export function initializeViewer(viewer, viewState) {
         draw();
     });
     const zoomBy = (factor, x = viewportWidth / 2, y = viewportHeight / 2) => {
-        camera = zoomCamera(camera, Math.max(minZoom(), Math.min(2, camera.zoom * factor)), x, y); draw();
+        camera = zoomCamera(camera, Math.max(minZoom(), Math.min(maxZoom, camera.zoom * factor)), x, y); draw();
     };
     viewer.querySelector('[data-tree-zoom="in"]').addEventListener('click', () => zoomBy(1.25));
     viewer.querySelector('[data-tree-zoom="out"]').addEventListener('click', () => zoomBy(1 / 1.25));
@@ -348,7 +359,7 @@ export function initializeViewer(viewer, viewState) {
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (pinch && pointers.size === 2) {
             const [a, b] = [...pointers.values()], rect = viewport.getBoundingClientRect();
-            camera = pinchCamera(pinch.camera, Math.max(minZoom(), Math.min(2, pinch.camera.zoom * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.distance))), pinch.center, { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top });
+            camera = pinchCamera(pinch.camera, Math.max(minZoom(), Math.min(maxZoom, pinch.camera.zoom * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.distance))), pinch.center, { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top });
             dragged = true; viewer.classList.add('is-panning'); draw(); return;
         }
         if (!drag || drag.id !== event.pointerId) return;
@@ -486,7 +497,7 @@ export function initializeViewer(viewer, viewState) {
             viewer.querySelector('[data-node-state]').textContent = nodeState(current);
             viewer.querySelector('[data-node-cost]').textContent = nodeCost(current);
         }
-        cullBounds = null; draw();
+        cullBounds = null; paintedVisualScale = 0; draw();
         return true;
     };
     search(false);

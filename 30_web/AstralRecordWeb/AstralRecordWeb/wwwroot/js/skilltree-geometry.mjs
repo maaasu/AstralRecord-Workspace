@@ -1,17 +1,20 @@
 // A single scale for both axes preserves every original distance ratio and direction.
 export function projectNodes(nodes, spacing = 1) {
     const valid = nodes.filter(node => Number.isFinite(node.x) && Number.isFinite(node.z));
-    let nearestAxisDistance = Infinity;
+    const nearest = valid.map(() => Infinity);
     for (let i = 0; i < valid.length; i++) {
         for (let j = i + 1; j < valid.length; j++) {
             const distance = Math.max(Math.abs(valid[i].x - valid[j].x), Math.abs(valid[i].z - valid[j].z));
-            if (distance > 0) nearestAxisDistance = Math.min(nearestAxisDistance, distance);
+            if (distance > 0) {
+                nearest[i] = Math.min(nearest[i], distance);
+                nearest[j] = Math.min(nearest[j], distance);
+            }
         }
     }
-    // Keep the master's geometry and circular node art; reserve room for the expanded labels below it.
+    // Very close pairs adapt locally instead of spreading the entire map apart.
     const extent = Math.max(300, ...valid.map(node => nodeLabelLines(node).length * 20 + 170));
-    const scale = Math.max(108, extent / nearestAxisDistance) * spacing;
-    return { scale, nodes: valid.map(node => ({ ...node, px: node.x * scale, py: node.z * scale })) };
+    const scale = Math.max(108, extent / Math.max(.5, Math.min(...nearest))) * spacing;
+    return { scale, nodes: valid.map((node, index) => ({ ...node, nearest: nearest[index], px: node.x * scale, py: node.z * scale })) };
 }
 
 export function graphBounds(nodes) {
@@ -42,15 +45,18 @@ export function pinchCamera(camera, zoom, start, current) {
 export function wheelZoomFactor(event, viewportHeight) {
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewportHeight : 1;
     const delta = Math.max(-100, Math.min(100, event.deltaY * unit));
-    return Math.exp(-delta * (event.ctrlKey ? .01 : .0015));
+    return Math.exp(-delta * (event.ctrlKey ? .01 : .0025));
 }
 
 export { materialId } from './minecraft-icons.mjs';
 
-// Zooming in always enlarges the art, but spacing grows faster. At a distance,
-// bounded compensation keeps nodes easier to pick without hiding the whole map.
+// Compensate for zooming out. At readable zooms the art follows the camera directly.
 export function nodeVisualScale(zoom) {
-    return Math.max(.7, Math.min(2, 1 / Math.sqrt(zoom)));
+    return Math.max(1.08, Math.min(2.25, 1.08 / Math.sqrt(zoom)));
+}
+
+export function nodeArtScale(visualScale, gap) {
+    return Math.min(visualScale, gap / 116);
 }
 
 export function nodeDetailLevel(zoom) {

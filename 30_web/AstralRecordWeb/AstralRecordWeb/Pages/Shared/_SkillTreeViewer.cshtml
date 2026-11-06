@@ -65,8 +65,9 @@
                         <div class="ar-tree-options-content">
                             <button type="button" data-tree-home>選択ノードへ</button>
                             <button type="button" data-tree-reset>起点へ</button>
-                            <button type="button" data-tree-motion aria-pressed="false">星の動きを停止</button>
-                            <label class="ar-tree-spacing">ノード間隔 <input type="range" min="50" max="200" step="10" value="100" data-tree-spacing /><output data-tree-spacing-label aria-live="off">100%</output></label>
+                            <button type="button" data-tree-motion aria-pressed="false">背景の動きを停止</button>
+                            <a class="ar-tree-video-source" href="https://svs.gsfc.nasa.gov/30680/" target="_blank" rel="noopener noreferrer" title="NASA, ESA, Z. Levay, F. Summers, G. Bacon, T. Davis, L. Frattare (Viz 3D Team/STScI)">映像出典：NASA / ESA / STScI</a>
+                            <label class="ar-tree-spacing">ノード間隔 <input type="range" min="50" max="200" step="10" value="70" data-tree-spacing /><output data-tree-spacing-label aria-live="off">70%</output></label>
                         </div>
                     </details>
                     @if (editable)
@@ -123,6 +124,7 @@
         <div class="ar-tree-layout">
             <div class="ar-tree-map-shell">
                 <div class="ar-tree-viewport" tabindex="0" role="region" aria-label="スキルツリーマップ" aria-describedby="tree-map-instructions">
+                    <template data-tree-atmosphere><partial name="_AstralAtmosphere" model='"galaxy"' /></template>
                     <div class="ar-tree-stars" data-tree-stars aria-hidden="true"></div>
                     <div class="ar-tree-celestial" aria-hidden="true"></div>
                     <svg class="ar-tree-canvas" role="group" aria-label="スキルツリーのノードと接続"></svg>

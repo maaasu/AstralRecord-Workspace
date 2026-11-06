@@ -87,6 +87,7 @@ function startEditor(editor) {
         if (viewer.updateTree?.(draft.tree)) return;
         const viewState = viewer.getViewState?.();
         const replacement = viewer.cloneNode(true);
+        replacement.querySelector('[data-tree-stars]')?.replaceChildren();
         replacement.querySelector('[data-tree-json]').textContent = JSON.stringify(draft.tree);
         viewer.dispose?.(); viewer.replaceWith(replacement); viewer = replacement;
         initializeViewer(viewer, viewState);

@@ -1,17 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeDetailLevel, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeArtScale, nodeDetailLevel, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
 
 test('camera enlargement always enlarges nodes while lowering their relative footprint', () => {
     let previousSize = 0, previousRatio = Infinity;
-    for (const zoom of [.02, .08, .24, .4, .7, .95, 1, 1.5, 2]) {
+    for (const zoom of [.02, .08, .24, .4, .7, .95, 1, 1.5, 2, 2.5]) {
         const relativeSize = nodeVisualScale(zoom), screenSize = 106 * zoom * relativeSize;
         assert.ok(screenSize > previousSize);
         assert.ok(relativeSize <= previousRatio);
-        assert.ok(relativeSize >= .7 && relativeSize <= 2);
+        assert.ok(relativeSize >= 1.08 && relativeSize <= 2.25);
         previousSize = screenSize; previousRatio = relativeSize;
     }
-    assert.ok(106 * .4 * nodeVisualScale(.4) >= 60);
+    assert.ok(106 * .4 * nodeVisualScale(.4) >= 70);
 });
 
 test('progressive labels retain names at useful overview scales', () => {
@@ -48,6 +48,19 @@ test('nearby horizontal, vertical and diagonal nodes leave room for icons and la
     const { nodes } = projectNodes([{ x: 0, z: 0 }, { x: .5, z: 0 }, { x: .5, z: .5 }, { x: 1, z: 1 }]);
     for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
         assert.ok(Math.max(Math.abs(nodes[i].px - nodes[j].px), Math.abs(nodes[i].py - nodes[j].py)) >= 200);
+    }
+});
+
+test('a very close pair stays selectable without stretching the rest of the map', () => {
+    const { nodes, scale } = projectNodes([{ x: 0, z: 0 }, { x: .1, z: 0 }, { x: 2, z: 0 }], .7);
+    assert.equal(scale, 420);
+    const [a, b, c] = nodes;
+    for (const zoom of [.1, 1, 2.5]) {
+        const visual = nodeVisualScale(zoom);
+        const sizeA = nodeArtScale(visual, a.nearest * scale);
+        const sizeB = nodeArtScale(visual, b.nearest * scale);
+        assert.ok(55 * (sizeA + sizeB) < b.px - a.px);
+        assert.equal(nodeArtScale(visual, c.nearest * scale), visual);
     }
 });
 
@@ -92,7 +105,7 @@ test('pinch keeps the starting graph point under the moving two-finger midpoint'
 test('wheel zoom respects small trackpad deltas, browser units and input limits', () => {
     const factor = (deltaY, deltaMode = 0) => wheelZoomFactor({ deltaY, deltaMode }, 600);
     assert.equal(factor(0), 1);
-    assert.ok(factor(1) > .998 && factor(1) < 1);
+    assert.ok(factor(1) > .997 && factor(1) < 1);
     assert.equal(factor(3, 1), factor(48));
     assert.equal(factor(1, 2), factor(100));
     assert.equal(factor(10000), factor(100));

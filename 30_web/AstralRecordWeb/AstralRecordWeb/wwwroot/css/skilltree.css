@@ -211,6 +211,10 @@
     box-shadow: 0 0 0 2rem #899eb508, inset 0 0 0 2rem #899eb508;
     pointer-events: none;
 }
+.ar-tree-viewport .ar-atmosphere--galaxy .ar-scene-video { mix-blend-mode: normal; mask-image: none; }
+.ar-tree-viewport .ar-scene-video[data-video-ready="true"] { opacity: .67; }
+.ar-tree-sanctum .ar-tree-options-content a.ar-tree-video-source { color: var(--tree-text); font-size: .75rem; }
+.ar-tree-sanctum .ar-tree-options-content a.ar-tree-video-source:hover { color: var(--tree-gold); }
 .ar-tree-stars { position: absolute; inset: 0; pointer-events: none; }
 .ar-tree-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
 .ar-tree-edge { stroke: #a7b4cb; stroke-width: 1.1; stroke-dasharray: 3 7; opacity: .32; }
@@ -229,8 +233,11 @@
 .ar-tree-node-icon { image-rendering: pixelated; pointer-events: none; opacity: .8; }
 .ar-tree-node-label rect, .ar-tree-node-compact-label rect { fill: #0d1726f2; stroke: #829abd4d; stroke-width: 1; }
 .ar-tree-node-compact-label { display: none; }
-[data-node-detail="compact"] .ar-tree-node-label { display: none; }
-[data-node-detail="compact"] .ar-tree-node-compact-label { display: block; }
+[data-node-detail="compact"] .ar-tree-node-label,
+[data-node-detail="full"] .is-label-compact .ar-tree-node-label { display: none; }
+[data-node-detail="compact"] .ar-tree-node-compact-label,
+[data-node-detail="full"] .is-label-compact .ar-tree-node-compact-label { display: block; }
+.ar-tree-node.is-crowded :is(.ar-tree-node-label, .ar-tree-node-compact-label) { display: none; }
 .ar-tree-label-name { fill: #f8e6c0; font: 650 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
 .ar-tree-label-effect { fill: var(--tree-text); font: 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
 .ar-tree-label-cost { fill: var(--tree-teal); font: 600 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
@@ -399,9 +406,6 @@
     background: radial-gradient(ellipse at 80% 0, #1d2a44, #0c1421 44rem);
 }
 .ar-player .ar-skilltree-editor .ar-skilltree-page-heading {
-    position: relative;
-    isolation: isolate;
-    padding-inline-end: clamp(3.5rem, 7vw, 5rem);
     border-color: #665634;
     background: linear-gradient(90deg, #0d1628ed, #101b2e75), var(--ar-airship-photo) center 43% / cover no-repeat, #111a2b;
 }
@@ -414,8 +418,6 @@
     .ar-tree-sanctum :is(button, select) { min-height: 2.5rem; }
 }
 @media (max-width: 760px) {
-    .ar-player .ar-skilltree-editor .ar-skilltree-page-heading { padding-inline-end: clamp(1rem, 3.5vw, 2.35rem); }
-    .ar-player .ar-skilltree-page-heading .btn { margin-right: 3.2rem; }
     .ar-tree-heading { gap: .4rem; }
     .ar-tree-search { max-width: none; }
     .ar-tree-draft-actions :is([data-editor-undo], [data-editor-clear]):disabled { display: none; }

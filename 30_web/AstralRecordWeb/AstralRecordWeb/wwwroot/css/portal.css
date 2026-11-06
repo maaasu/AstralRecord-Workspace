@@ -99,7 +99,7 @@ main, .ar-footer { position: relative; }
 .ar-profile-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3rem; padding-top: 2rem; margin: 0; position: relative; z-index: 1; }
 .ar-profile-facts dt { color: #acc3d6; font-size: .72rem; font-weight: 400; margin-bottom: .45rem; }
 .ar-profile-facts dd { font-size: .83rem; overflow-wrap: anywhere; margin: 0; }
-.ar-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.3rem 0; }
+.ar-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.3rem 0; }
 .ar-stat { position: relative; padding: 1.5rem; border: 1px solid #91c9e233; border-radius: 12px; background: linear-gradient(140deg, #172d40dc, #0e1626); overflow: hidden; animation: portal-arrive .9s .1s both; }
 .ar-stat:nth-child(2) { animation-delay: .2s; }
 .ar-stat:nth-child(3) { animation-delay: .3s; }
@@ -210,7 +210,7 @@ main, .ar-footer { position: relative; }
     .ar-home-hero { min-height: 720px; } .ar-home-title { font-size: clamp(2.4rem, 8vw, 3.5rem); }
     .ar-portal { padding-top: 2rem; } .ar-portal-heading, .ar-visibility { align-items: start; flex-direction: column; }
     .ar-profile-facts, .ar-player-grid { grid-template-columns: 1fr; } .ar-player-emblem { flex-basis: 60px; height: 60px; font-size: 2rem; }
-    .ar-stats { grid-template-columns: repeat(2, 1fr); gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
+    .ar-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; } .ar-stat { padding: 1rem .65rem; } .ar-stat p { font-size: .66rem; } .ar-stat strong { font-size: 1.4rem; } .ar-stat small { display: block; font-size: .65rem; margin: .4rem 0 0; }
     .ar-filter-grid { grid-template-columns: 1fr; } .ar-panel { padding: 1.1rem; } .ar-network-grid, .ar-network-access-lists, .ar-network-search, .ar-ban-state, .ar-ban-confirm, .ar-defense-summary { grid-template-columns: 1fr; } .ar-network-channels > header, .ar-network-channel > header { align-items: flex-start; flex-direction: column; } .ar-defense-missing { columns: 1; }
     .ar-cosmos span { filter: blur(40px); } .ar-meteor { width: 100px; }
 }

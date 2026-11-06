@@ -4,7 +4,7 @@ const pauseKey = 'astral-skilltree-motion-paused';
 const frameInterval = 1000 / 30;
 const pixelBudget = 2_250_000;
 
-export function initializeStarfield(container) {
+export function initializeStarfield(container, video) {
     if (!container?.ownerDocument) throw new TypeError('A DOM container is required');
     const doc = container.ownerDocument;
     const win = doc.defaultView;
@@ -20,10 +20,7 @@ export function initializeStarfield(container) {
 
     let context;
     try { context = canvas.getContext('2d'); } catch { /* Canvas is optional. */ }
-    if (!context) {
-        canvas.remove();
-        return { pause() {}, resume() {}, dispose() {} };
-    }
+    if (!context) canvas.remove();
 
     const motion = win.matchMedia?.('(prefers-reduced-motion: reduce)');
     let paused = false;
@@ -37,6 +34,9 @@ export function initializeStarfield(container) {
     let frame = 0;
     let lastDraw = 0;
     let elapsed = 0;
+    let videoRequested = false;
+    let videoFailed = false;
+    let videoRequest = 0;
 
     const canAnimate = () => !disposed && !suspended && !paused && !motion?.matches && !doc.hidden && visible && width > 0 && height > 0;
     const cancelFrame = () => {
@@ -45,7 +45,7 @@ export function initializeStarfield(container) {
         lastDraw = 0;
     };
     const requestFrame = () => {
-        if (canAnimate() && !frame) frame = win.requestAnimationFrame(tick);
+        if (context && canAnimate() && !frame) frame = win.requestAnimationFrame(tick);
     };
 
     function draw() {
@@ -90,7 +90,7 @@ export function initializeStarfield(container) {
         const ratio = Math.min(Math.max(win.devicePixelRatio || 1, 1), 1.5, Math.sqrt(pixelBudget / Math.max(1, width * height)));
         canvas.width = Math.floor(width * ratio);
         canvas.height = Math.floor(height * ratio);
-        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context?.setTransform(ratio, 0, 0, ratio, 0, 0);
         const count = Math.min(80, Math.max(16, Math.round(width * height / 9000)));
         stars = Array.from({ length: count }, (_, index) => ({
             x: ((index * 73 + 17) % 101) / 101,
@@ -100,13 +100,38 @@ export function initializeStarfield(container) {
             color: index % 3 === 0 ? '255, 231, 166' : '137, 246, 225',
             phase: index * 1.7,
         }));
-        if (visible && !doc.hidden) draw();
+        if (context && visible && !doc.hidden) draw();
         sync();
+    }
+
+    function syncVideo() {
+        if (!video) return;
+        if (!canAnimate()) {
+            videoRequest++;
+            videoRequested = false;
+            video.pause();
+            return;
+        }
+        if (videoRequested || videoFailed) return;
+        if (!video.getAttribute('src') || video.error) {
+            video.muted = true;
+            video.src = win.innerWidth < 768 ? video.dataset.videoMobile : video.dataset.videoDesktop;
+        }
+        videoRequested = true;
+        const request = ++videoRequest;
+        video.play().then(() => {
+            if (request === videoRequest) video.dataset.videoReady = 'true';
+        }).catch(() => {
+            if (request !== videoRequest) return;
+            videoFailed = true;
+            video.dataset.videoReady = 'false';
+        });
     }
 
     function sync() {
         if (canAnimate()) requestFrame();
         else cancelFrame();
+        syncVideo();
     }
 
     const onVisibility = () => sync();
@@ -147,6 +172,7 @@ export function initializeStarfield(container) {
         pause(value = true) {
             if (disposed) return;
             paused = Boolean(value);
+            if (!paused) videoFailed = false;
             try { win.sessionStorage?.setItem(pauseKey, String(paused)); } catch { /* Storage is optional. */ }
             sync();
         },
@@ -154,7 +180,9 @@ export function initializeStarfield(container) {
         dispose() {
             if (disposed) return;
             disposed = true;
-            cancelFrame();
+            sync();
+            video?.removeAttribute('src');
+            video?.load();
             intersectionObserver?.disconnect();
             resizeObserver?.disconnect();
             win.removeEventListener('scroll', onScroll);

@@ -7,11 +7,9 @@
 }
 <div class="ar-portal ar-skilltree-editor" data-skilltree-editor data-account-id="@Model.AccountId">
     <div class="container">
-    <header class="ar-portal-heading ar-skilltree-page-heading" data-astral-scene>
+    <header class="ar-portal-heading ar-skilltree-page-heading">
         <div><p class="ar-portal-eyebrow">成長の記録</p><h1>スキルツリー編集</h1></div>
         <a asp-page="/MyPage" class="btn ar-btn-outline">マイページへ</a>
-        <partial name="_AstralAtmosphere" model='"galaxy"' />
-        <partial name="_MotionControl" />
     </header>
     @Html.AntiForgeryToken()
     @if (Model.ErrorMessage is not null)

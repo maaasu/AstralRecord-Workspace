@@ -3,6 +3,7 @@
 @{
     var ownProfile = ViewData["OwnProfile"] as bool? == true;
     var account = Model.CurrentAccount;
+    var gold = account?.Gold.ToString("N0");
     var inlineTree = ViewData["InlineSkillTree"] as AstralRecordWeb.Models.WebSkillTreeProfileResponse;
     var inlineState = ViewData["InlineSkillTreeEditorState"] as JsonElement?;
 }
@@ -36,10 +37,11 @@
             <strong class="@(online ? "is-online" : "")">@(online ? "ログイン中" : connection?.Status == "offline" ? "オフライン" : "接続状態を確認できません")</strong>
             @if (online)
             {
-                <span>@connection!.ChannelName</span><span>@connection.WorldName</span>
+                <span><span class="ar-presence-label">接続先</span>@connection!.ChannelName</span>
+                <span><span class="ar-presence-label">ワールド</span>@connection.WorldName</span>
                 @if (connection.X.HasValue && connection.Y.HasValue && connection.Z.HasValue)
                 {
-                    <span class="ar-profile-coordinates">X @Math.Floor(connection.X.Value) · Y @Math.Floor(connection.Y.Value) · Z @Math.Floor(connection.Z.Value)</span>
+                    <span class="ar-profile-coordinates"><span class="ar-presence-label">座標</span>X @Math.Floor(connection.X.Value) · Y @Math.Floor(connection.Y.Value) · Z @Math.Floor(connection.Z.Value)</span>
                 }
             }
             @if (connection?.ObservedAtUtc is { } observed)
@@ -50,7 +52,7 @@
     }
     <div class="ar-stats">
         <article class="ar-stat"><p>プレイヤーレベル</p><strong>@account.PlayerLevel.ToString("N0")</strong><small>Lv.</small></article>
-        <article class="ar-stat"><p>所持金</p><strong>@account.Gold.ToString("N0")</strong><small>Gold</small></article>
+        <article class="ar-stat ar-stat--gold"><p>所持金</p><strong style="--ar-gold-length: @(gold?.Length ?? 1)">@gold</strong><small>Gold</small></article>
         <article class="ar-stat"><p>クラスレベル</p><strong>@account.ClassLevel.ToString("N0")</strong><small>@account.ClassName</small></article>
         <article class="ar-stat"><p>総討伐数</p><strong>@account.TotalMobDefeats.ToString("N0")</strong><small>体</small></article>
     </div>

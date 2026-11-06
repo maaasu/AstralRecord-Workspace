@@ -80,7 +80,32 @@
 .ar-player :is(.ar-player-card-footer strong, .ar-stat strong) { font-family: var(--ar-ui); font-variant-numeric: tabular-nums; }
 .ar-player .ar-stat { animation: none; }
 .ar-player .ar-stat::after { content: none; }
+.ar-player .ar-stat--gold { container-type: inline-size; }
+.ar-player .ar-stat--gold strong {
+    display: block;
+    font-size: min(2.5rem, calc(135cqi / var(--ar-gold-length)));
+    white-space: nowrap;
+}
+.ar-player .ar-stat--gold small { display: block; margin: .35rem 0 0; }
+.ar-player .ar-presence-label { margin-inline-end: .35rem; color: var(--ar-muted); font-size: .75rem; }
+.ar-player .ar-profile-coordinates { font-variant-numeric: tabular-nums; }
 .ar-player :is(.ar-stat p, .ar-stat small, .ar-profile-presence small, .ar-profile-coordinates, .ar-player-card p, .ar-player-card-footer) { color: var(--ar-muted); }
+.ar-player .ar-ban-management :is(.ar-ban-state div, .ar-ban-confirm div) {
+    background: var(--ar-bg-panel-2);
+    border: 1px solid var(--ar-rule);
+}
+.ar-player .ar-ban-editor :is(textarea, input[type="date"], input[type="time"]) {
+    background: #fffcf5;
+    border-color: var(--player-input-border);
+    color: var(--ar-ink);
+    color-scheme: light;
+    min-height: 44px;
+}
+.ar-player .ar-ban-editor input:is([type="radio"], [type="checkbox"]) {
+    accent-color: var(--ar-teal);
+    margin-inline-end: .45rem;
+}
+.ar-player .ar-ban-expiry { border-color: var(--ar-rule); }
 .ar-player .ar-profile-presence strong.is-online { color: #28583c; background: #dce8d6; }
 .ar-player .ar-player-card:is(:hover, :focus-visible) { color: var(--ar-ink); background: #fdfaf0; border-color: var(--ar-brass-dark); transform: none; }
 .ar-player .ar-profile-banner {

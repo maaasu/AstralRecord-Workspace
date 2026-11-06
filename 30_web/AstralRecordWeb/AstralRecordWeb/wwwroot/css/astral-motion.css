@@ -20,8 +20,6 @@
 .ar-magic-ripples i { position: absolute; top: 50%; left: 72%; width: min(55vw, 740px); aspect-ratio: 1; border: 2px solid #c7ffe3; border-radius: 50%; opacity: 0; box-shadow: 0 0 20px #76f1c780, inset 0 0 18px #76f1c74d; }
 .ar-legal-hero .ar-aurora-ribbons { opacity: .35; }
 .ar-legal-hero .ar-magic-ripples { opacity: .4; }
-.ar-video-credit { margin: 18px auto 0; text-align: center; color: var(--ar-text-muted); font-size: .7rem; line-height: 1.8; }
-.ar-video-credit a { color: var(--ar-gold-light); text-underline-offset: 3px; }
 .ar-astral-particles, .ar-light-veils, .ar-star-trails { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .ar-light-veils { opacity: .65; mix-blend-mode: screen; }
 .ar-light-veils i { position: absolute; width: 36%; height: 150%; top: -38%; right: 5%; background: linear-gradient(90deg, transparent, #d8e8ab3b, #fcf1b118, transparent); transform: rotate(28deg); transform-origin: 50% 0; }
