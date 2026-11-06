@@ -50,13 +50,15 @@ final class SkillActionRingDisplay {
     private static final Color COOLDOWN_OUTLINE = Color.fromRGB(0x737c90);
     private static final Color COOLDOWN_ICON = Color.fromRGB(0x9e9e9e);
     private static final double BEDROCK_ITEM_OFFSET = 0.125D;
-    private static final int TEXT_LINE_WIDTH = 180;
-    private static final int TELEPORT_DURATION_TICKS = 1;
+    private static final int TEXT_LINE_WIDTH = 132;
+    private static final int INTERPOLATION_TICKS = 2;
     private static final float DEFAULT_VIEW_RANGE = 16.0F;
     private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
     private static final byte ENTITY_FLAG_GLOWING = 0x40;
     private static final int ENTITY_NO_GRAVITY_INDEX = 5;
     private static final int DROPPED_ITEM_STACK_INDEX = 8;
+    private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
+    private static final int DISPLAY_INTERPOLATION_DURATION_INDEX = 9;
     private static final int DISPLAY_POSITION_ROTATION_DURATION_INDEX = 10;
     private static final int DISPLAY_SCALE_INDEX = 12;
     private static final int DISPLAY_LEFT_ROTATION_INDEX = 13;
@@ -127,7 +129,8 @@ final class SkillActionRingDisplay {
 
     private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale, Display.Billboard billboard) {
         List<WrappedDataValue> values = new ArrayList<>();
-        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), TELEPORT_DURATION_TICKS));
+        values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), INTERPOLATION_TICKS));
+        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), INTERPOLATION_TICKS));
         values.add(scaleValue(scale));
         values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
         values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
@@ -136,6 +139,10 @@ final class SkillActionRingDisplay {
 
     private WrappedDataValue scaleValue(float scale) {
         return value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale));
+    }
+
+    private WrappedDataValue interpolationStart() {
+        return value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0);
     }
 
     private WrappedDataValue rotationValue(Quaternionf rotation) {
@@ -222,6 +229,12 @@ final class SkillActionRingDisplay {
             entity.spawn(player, initialMetadata());
         }
 
+        void setMotionSnapping(Player player, boolean snap) {
+            if (entity != null) {
+                entity.setMotionSnapping(player, snap);
+            }
+        }
+
         void teleport(@NotNull Player player, @NotNull Location center) {
             Location nextLocation = renderLocation(center);
             if (location.equals(nextLocation)) {
@@ -286,7 +299,8 @@ final class SkillActionRingDisplay {
                 values.add(glowingValue(glowing));
             }
             if (scaleChanged) {
-                values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
+                values.add(interpolationStart());
+                values.add(scaleValue(scale));
             }
             entity.updateMetadata(player, values);
         }
@@ -307,7 +321,8 @@ final class SkillActionRingDisplay {
                 values.add(textValue(text));
             }
             if (scaleChanged) {
-                values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
+                values.add(interpolationStart());
+                values.add(scaleValue(scale));
             }
             entity.updateMetadata(player, values);
         }
@@ -429,6 +444,9 @@ final class SkillActionRingDisplay {
                 scale = nextScale;
                 values.add(scaleValue(scale));
             }
+            if (!values.isEmpty()) {
+                values.add(interpolationStart());
+            }
             if (selected != nextSelected || cooldowns != nextCooldowns || javaPanel && !nextPanel.equals(panel)) {
                 selected = nextSelected;
                 cooldowns = nextCooldowns;
@@ -470,6 +488,12 @@ final class SkillActionRingDisplay {
             // Geyser はマーカーを描画せず、すでに存在するモデルへ状態を反映します。
             marker.spawn(player, List.of());
             marker.destroy(player);
+        }
+
+        void setMotionSnapping(Player player, boolean snap) {
+            if (entity != null) {
+                entity.setMotionSnapping(player, snap);
+            }
         }
 
         void destroy(Player player) {
@@ -561,6 +585,14 @@ final class SkillActionRingDisplay {
             writeTeleportTarget(packet, nextLocation);
             packet.getBooleans().writeSafely(0, true);
             send(player, packet);
+        }
+
+        private void setMotionSnapping(Player player, boolean snap) {
+            int duration = snap ? 0 : INTERPOLATION_TICKS;
+            updateMetadata(player, List.of(
+                value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), duration),
+                value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), duration)
+            ));
         }
 
         private void updateMetadata(@NotNull Player player, @NotNull List<WrappedDataValue> metadata) {

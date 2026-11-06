@@ -23,7 +23,6 @@ import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -59,15 +58,26 @@ public final class SkillActionRingService {
     private static final double OUTLINE_RADIUS = OUTLINE_SIZE * 61.0D / 128.0D;
     private static final double OUTLINE_DEPTH = 0.14D;
     private static final double SELECTION_DEAD_ZONE_SQUARED = Math.pow(Math.sin(Math.toRadians(4.0D)), 2);
+    private static final double SELECTION_RELEASE_ZONE_SQUARED = Math.pow(Math.sin(Math.toRadians(3.0D)), 2);
+    private static final double SELECTION_BOUNDARY_MARGIN = Math.toRadians(3.0D);
     private static final double VIEW_FOLLOW_DEAD_ZONE_RADIANS = Math.toRadians(30.0D);
+    private static final double VIEW_FOLLOW_MAX_LAG_RADIANS = Math.toRadians(40.0D);
+    private static final double VIEW_FOLLOW_BLEND = 0.50D;
+    private static final double VIEW_FOLLOW_EPSILON_RADIANS = Math.toRadians(0.05D);
     private static final double COLLISION_SAFETY_MARGIN = 0.06D;
     private static final int COLLISION_REFRESH_INTERVAL_TICKS = 4;
     private static final double ITEM_COLLISION_HALF_SIZE = 0.34D;
     private static final double TEXT_COLLISION_HALF_WIDTH = 1.40D;
+    private static final double BEDROCK_STATUS_COLLISION_HALF_WIDTH = 0.60D;
     private static final double TEXT_COLLISION_HALF_HEIGHT = 0.24D;
     private static final int COLLISION_PERIMETER_SAMPLES = 12;
     private static final float LABEL_TEXT_SCALE = 0.60F;
-    private static final float SLOT_TEXT_SCALE = 0.48F;
+    private static final float DETAIL_TEXT_SCALE = 0.44F;
+    private static final float RIM_TEXT_SCALE = 0.48F;
+    private static final double DETAIL_LABEL_OFFSET = 0.02D;
+    private static final double CONFIRMED_LABEL_OFFSET = -0.43D;
+    private static final double SCALE_RECOVERY_BLEND = 0.35D;
+    private static final double SCALE_RECOVERY_EPSILON = 0.005D;
     private static final double ORIENTATION_EPSILON_SQUARED = 1.0E-6D;
     private static final int TIMER_BAR_LENGTH = ActionRingPanel.TIMER_STEPS;
     private static final int COOLDOWN_BAR_LENGTH = ActionRingPanel.GAUGE_STEPS;
@@ -878,14 +888,8 @@ public final class SkillActionRingService {
             return SkillIconCatalog.sprite(spriteKey);
         }
 
-        private @NotNull String label(@Nullable CooldownView cooldown, boolean javaPanel, boolean bedrock) {
-            if (cooldown != null) {
-                return name + "\n" + cooldown.text(javaPanel, bedrock);
-            }
-            if (availability.label().isBlank()) {
-                return name;
-            }
-            return name + "\n" + availability.label();
+        private @NotNull String statusText(@Nullable CooldownView cooldown, boolean javaPanel, boolean bedrock) {
+            return cooldown == null ? availability.label() : cooldown.text(javaPanel, bedrock);
         }
 
         private @Nullable CooldownView cooldown(
@@ -932,7 +936,6 @@ public final class SkillActionRingService {
         private String text(boolean javaPanel, boolean bedrock) {
             String value = seconds(remaining);
             if (bedrock) {
-                // 同じ残量情報を、専用パックの有無にかかわらず文字で読めます。
                 value += " / " + seconds(total);
             }
             String label = PlayerMsgResource.format(PlayerMsgId.P_5857.getId(), value);
@@ -1001,7 +1004,6 @@ public final class SkillActionRingService {
         private final SkillService skillService;
         private final PlayerSkillCaster caster;
         private final List<SkillActionRingDisplay.DisplayEntity> icons;
-        private final List<SkillActionRingDisplay.DisplayEntity> labels;
         private final List<SkillActionRingDisplay.DisplayEntity> fallbackRim = new ArrayList<>();
         private final @Nullable SkillActionRingDisplay.Outline outline;
         private final AttributeInstance blockBreakSpeedAttribute;
@@ -1009,20 +1011,24 @@ public final class SkillActionRingService {
         private final int hotbarSlot;
         private SkillActionRingDisplay.DisplayEntity timerLabel;
         private SkillActionRingDisplay.DisplayEntity instructionLabel;
+        private SkillActionRingDisplay.DisplayEntity detailLabel;
         private Location renderedCenter;
         private Vector renderedNormal;
         private Vector renderedRight;
         private Vector renderedUp;
         private double renderedScale = Double.NaN;
+        private boolean snappingMotion;
         private double layoutScale = 1.0D;
+        private double collisionScale = 1.0D;
         private Location collisionEye;
         private Vector collisionNormal;
         private Vector collisionRight;
         private Vector collisionUp;
         private int ticksSinceCollisionCheck;
+        private int focusedIndex = -1;
         private int selectedIndex = -1;
         private int renderedSelection = -1;
-        private int renderedCooldowns = -1;
+        private int renderedDimmedSlots = -1;
         private long renderedGauges = -1;
         private int confirmedIndex = -1;
         private Integer lastBedrockClickTick;
@@ -1060,7 +1066,6 @@ public final class SkillActionRingService {
             this.caster = caster;
             this.outline = useOutline ? actionRingDisplay.outline(bedrock, javaPanel) : null;
             this.icons = new ArrayList<>(slots.size());
-            this.labels = new ArrayList<>(slots.size());
             this.hotbarSlot = hotbarSlot;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
@@ -1152,28 +1157,26 @@ public final class SkillActionRingService {
                     location, item, scaledItemScale(slot, false),
                     outline != null ? outline.iconUuid(index) : null
                 ) : null;
-                SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(
-                    labelLocation(location, slot),
-                    labelComponent(index, slot, false),
-                    scaledTextScale(SLOT_TEXT_SCALE)
-                );
                 if (icon != null) {
                     icon.spawn(player);
                 }
-                label.spawn(player);
                 icons.add(icon);
-                labels.add(label);
             }
             if (bedrock && outline != null) {
                 outline.syncBedrockIcons(player);
+            }
+            if (bedrock || outline == null) {
                 for (int index = 0; index < SLOT_COUNT; index++) {
                     var dot = actionRingDisplay.text(fallbackRimLocation(center, index),
-                        Component.text("◆", NamedTextColor.AQUA), scaledTextScale(SLOT_TEXT_SCALE),
-                        outline.fallbackUuid(index));
+                        fallbackSlotMarker(index), scaledTextScale(RIM_TEXT_SCALE),
+                        outline == null ? null : outline.fallbackUuid(index));
                     dot.spawn(player);
                     fallbackRim.add(dot);
                 }
             }
+            detailLabel = actionRingDisplay.text(detailLabelLocation(center), Component.empty(),
+                scaledTextScale(DETAIL_TEXT_SCALE));
+            detailLabel.spawn(player);
             if (!javaPanel) {
                 timerLabel = actionRingDisplay.text(
                     timerLocation(center), legacyComponent(timerText()), scaledTextScale(LABEL_TEXT_SCALE),
@@ -1223,7 +1226,8 @@ public final class SkillActionRingService {
             }
             if (phase == RingPhase.SELECTING) {
                 refreshSlotAvailability();
-                int nextSelectedIndex = resolveSelectedIndex(player);
+                focusedIndex = resolveFocusedIndex(player);
+                int nextSelectedIndex = focusedIndex >= 0 && slots.get(focusedIndex).selectable() ? focusedIndex : -1;
                 if (nextSelectedIndex != selectedIndex) {
                     selectedIndex = nextSelectedIndex;
                     if (selectedIndex >= 0) {
@@ -1232,6 +1236,9 @@ public final class SkillActionRingService {
                 }
             }
 
+            if (!bedrock) {
+                updateMotionSnapping(layoutScale < renderedScale);
+            }
             boolean layoutChanged = renderedCenter == null
                 || !renderedCenter.equals(center)
                 || !renderedNormal.equals(normal)
@@ -1247,10 +1254,12 @@ public final class SkillActionRingService {
                 renderedScale = layoutScale;
             }
             updateOutline(center, layoutChanged);
-            if (layoutChanged) {
-                for (int index = 0; index < fallbackRim.size(); index++) {
-                    fallbackRim.get(index).teleport(player, fallbackRimLocation(center, index));
+            for (int index = 0; index < fallbackRim.size(); index++) {
+                var dot = fallbackRim.get(index);
+                if (layoutChanged) {
+                    dot.teleport(player, fallbackRimLocation(center, index));
                 }
+                actionRingDisplay.updateText(player, dot, fallbackSlotMarker(index), scaledTextScale(RIM_TEXT_SCALE));
             }
             for (int index = 0; index < slots.size(); index++) {
                 if (phase == RingPhase.WAITING_CAST && index != confirmedIndex) {
@@ -1258,29 +1267,41 @@ public final class SkillActionRingService {
                 }
                 SlotView slot = slots.get(index);
                 boolean selected = index == selectedIndex && slot.selectable();
-                Location iconLocation = iconLocation(center, index);
-                Location labelLocation = labelLocation(iconLocation, slot);
                 SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
-                SkillActionRingDisplay.DisplayEntity label = labels.get(index);
                 if (icon != null) {
                     if (layoutChanged) {
-                        icon.teleport(player, iconLocation);
+                        icon.teleport(player, iconLocation(center, index));
                     }
                     actionRingDisplay.updateItem(player, icon, iconItemStacks.get(index), selected, scaledItemScale(slot, selected));
                 }
-                if (layoutChanged) {
-                    label.teleport(player, labelLocation);
-                }
-                actionRingDisplay.updateText(
-                    player,
-                    label,
-                    labelComponent(index, slot, selected),
-                    scaledTextScale(SLOT_TEXT_SCALE)
-                );
             }
+            updateDetailLabel(center, layoutChanged);
             updateTimer(center, layoutChanged);
             updateInstruction(center, layoutChanged);
             return true;
+        }
+
+        private void updateMotionSnapping(boolean snap) {
+            if (snappingMotion == snap) {
+                return;
+            }
+            snappingMotion = snap;
+            if (outline != null) {
+                outline.setMotionSnapping(viewer, snap);
+            }
+            for (var icon : icons) {
+                if (icon != null) {
+                    icon.setMotionSnapping(viewer, snap);
+                }
+            }
+            for (var dot : fallbackRim) {
+                dot.setMotionSnapping(viewer, snap);
+            }
+            if (timerLabel != null) {
+                timerLabel.setMotionSnapping(viewer, snap);
+            }
+            detailLabel.setMotionSnapping(viewer, snap);
+            instructionLabel.setMotionSnapping(viewer, snap);
         }
 
         private boolean hasConfirmedSelection() {
@@ -1308,13 +1329,13 @@ public final class SkillActionRingService {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
+            ticksSinceCollisionCheck = COLLISION_REFRESH_INTERVAL_TICKS;
             for (int index = 0; index < slots.size(); index++) {
                 if (index != confirmedIndex) {
                     SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
                     if (icon != null) {
                         icon.destroy(viewer);
                     }
-                    labels.get(index).destroy(viewer);
                 }
             }
             if (timerLabel != null) {
@@ -1347,13 +1368,20 @@ public final class SkillActionRingService {
                 || !collisionNormal.equals(normal)
                 || !collisionRight.equals(right)
                 || !collisionUp.equals(up)) {
-                layoutScale = resolveLayoutScale(eye);
+                collisionScale = resolveLayoutScale(eye);
+                if (collisionEye == null) {
+                    layoutScale = collisionScale;
+                }
                 collisionEye = eye.clone();
                 collisionNormal = normal.clone();
                 collisionRight = right.clone();
                 collisionUp = up.clone();
                 ticksSinceCollisionCheck = 0;
             }
+            // 手前への退避はすぐ反映し、障害物が外れたときだけ段階的に戻します。
+            double recovery = collisionScale - layoutScale;
+            layoutScale = recovery <= SCALE_RECOVERY_EPSILON
+                ? collisionScale : layoutScale + recovery * SCALE_RECOVERY_BLEND;
             return currentCenter(eye);
         }
 
@@ -1391,7 +1419,8 @@ public final class SkillActionRingService {
             Vector view = direction.clone().normalize();
             double dot = Math.clamp(normal.dot(view), -1.0D, 1.0D);
             double angle = Math.acos(dot);
-            if (angle <= VIEW_FOLLOW_DEAD_ZONE_RADIANS) {
+            double excess = angle - VIEW_FOLLOW_DEAD_ZONE_RADIANS;
+            if (excess <= VIEW_FOLLOW_EPSILON_RADIANS) {
                 return;
             }
 
@@ -1401,7 +1430,7 @@ public final class SkillActionRingService {
             } else {
                 axis.normalize();
             }
-            double rotation = angle - VIEW_FOLLOW_DEAD_ZONE_RADIANS;
+            double rotation = Math.max(excess * VIEW_FOLLOW_BLEND, angle - VIEW_FOLLOW_MAX_LAG_RADIANS);
             normal = rotateAroundAxis(normal, axis, rotation).normalize();
             right = rotateAroundAxis(right, axis, rotation);
             right.subtract(normal.clone().multiply(right.dot(normal)));
@@ -1467,28 +1496,27 @@ public final class SkillActionRingService {
                     .add(right.clone().multiply(Math.sin(angle) * OUTLINE_RADIUS));
                 scale = collisionFreeScale(eye, offset, scale);
             }
-            for (int index = 0; index < slots.size(); index++) {
-                Vector iconOffset = normal.clone().multiply(RING_DISTANCE).add(slotOffset(index));
-                SlotView slot = slots.get(index);
-                if (!slot.configured()) {
-                    scale = collisionFreeBoxScale(eye, iconOffset, 0.13D, 0.10D, 0.02D, scale);
-                    continue;
+            Vector centerOffset = normal.clone().multiply(RING_DISTANCE);
+            if (phase == RingPhase.WAITING_CAST) {
+                scale = collisionFreeBoxScale(eye, centerOffset, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, scale);
+            } else {
+                for (int index = 0; index < slots.size(); index++) {
+                    if (slots.get(index).configured()) {
+                        Vector iconOffset = centerOffset.clone().add(slotOffset(index));
+                        scale = collisionFreeBoxScale(eye, iconOffset, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, scale);
+                    }
                 }
-                scale = collisionFreeBoxScale(eye, iconOffset, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, ITEM_COLLISION_HALF_SIZE, scale);
-                double labelOffset = labelOffset(slot);
-                Vector labelPosition = iconOffset.clone().subtract(up.clone().multiply(labelOffset));
-                scale = collisionFreeBoxScale(
-                    eye,
-                    labelPosition,
-                    TEXT_COLLISION_HALF_WIDTH,
-                    TEXT_COLLISION_HALF_HEIGHT,
-                    0.02D,
-                    scale
-                );
+                if (!javaPanel) {
+                    Vector timerPosition = centerOffset.clone().subtract(up.clone().multiply(0.30D));
+                    scale = collisionFreeBoxScale(eye, timerPosition, TEXT_COLLISION_HALF_WIDTH, TEXT_COLLISION_HALF_HEIGHT, 0.02D, scale);
+                }
             }
-            Vector timerPosition = normal.clone().multiply(RING_DISTANCE).subtract(up.clone().multiply(0.30D));
-            scale = collisionFreeBoxScale(eye, timerPosition, TEXT_COLLISION_HALF_WIDTH, TEXT_COLLISION_HALF_HEIGHT, 0.02D, scale);
-            Vector instructionPosition = normal.clone().multiply(RING_DISTANCE).add(up.clone().multiply(0.42D));
+            if (!bedrock || phase == RingPhase.SELECTING) {
+                Vector labelPosition = centerOffset.clone().add(up.clone().multiply(detailLabelOffset()));
+                double halfWidth = bedrock ? BEDROCK_STATUS_COLLISION_HALF_WIDTH : TEXT_COLLISION_HALF_WIDTH;
+                scale = collisionFreeBoxScale(eye, labelPosition, halfWidth, TEXT_COLLISION_HALF_HEIGHT, 0.02D, scale);
+            }
+            Vector instructionPosition = centerOffset.clone().add(up.clone().multiply(instructionOffset()));
             return collisionFreeBoxScale(
                 eye,
                 instructionPosition,
@@ -1562,18 +1590,24 @@ public final class SkillActionRingService {
             return Math.min(currentScale, Math.max(0.0D, (hitDistance - COLLISION_SAFETY_MARGIN) / length));
         }
 
-        private int resolveSelectedIndex(@NotNull Player player) {
+        private int resolveFocusedIndex(@NotNull Player player) {
             Vector view = player.getEyeLocation().getDirection().normalize();
             Vector projected = view.subtract(normal.clone().multiply(view.dot(normal)));
-            if (projected.lengthSquared() < SELECTION_DEAD_ZONE_SQUARED) {
+            double deadZone = focusedIndex >= 0 ? SELECTION_RELEASE_ZONE_SQUARED : SELECTION_DEAD_ZONE_SQUARED;
+            if (projected.lengthSquared() < deadZone) {
                 return -1;
             }
-            projected.normalize();
             double angle = Math.atan2(projected.dot(right), projected.dot(up));
             double unit = (Math.PI * 2.0D) / slots.size();
+            if (focusedIndex >= 0) {
+                double offset = Math.IEEEremainder(angle - focusedIndex * unit, 2.0D * Math.PI);
+                if (Math.abs(offset) <= unit / 2.0D + SELECTION_BOUNDARY_MARGIN) {
+                    return focusedIndex;
+                }
+            }
             int index = (int) Math.round(angle / unit);
             int resolved = Math.floorMod(index, slots.size());
-            return slots.get(resolved).selectable() ? resolved : -1;
+            return slots.get(resolved).configured() ? resolved : -1;
         }
 
         private @NotNull Vector slotOffset(int index) {
@@ -1596,19 +1630,12 @@ public final class SkillActionRingService {
             return center.clone().add(slotOffset(index).multiply(layoutScale));
         }
 
-        /**
-         * アイコン位置から対応するラベル表示位置を返します。
-         *
-         * @param iconLocation アイコン表示位置
-         * @param slot ラベルを表示するスロット
-         * @return ラベル表示位置
-         */
-        private @NotNull Location labelLocation(@NotNull Location iconLocation, @NotNull SlotView slot) {
-            return iconLocation.clone().subtract(up.clone().multiply(labelOffset(slot) * layoutScale));
+        private Location detailLabelLocation(Location center) {
+            return center.clone().add(up.clone().multiply(detailLabelOffset() * layoutScale));
         }
 
-        private static double labelOffset(SlotView slot) {
-            return slot.configured() ? 0.41D : 0;
+        private double detailLabelOffset() {
+            return phase == RingPhase.SELECTING ? DETAIL_LABEL_OFFSET : CONFIRMED_LABEL_OFFSET;
         }
 
         /**
@@ -1628,10 +1655,11 @@ public final class SkillActionRingService {
          * @return 案内ラベルの表示位置
          */
         private @NotNull Location instructionLocation(@NotNull Location center) {
-            if (phase == RingPhase.SELECTING) {
-                return center.clone().add(up.clone().multiply(0.30D * layoutScale));
-            }
-            return center.clone().add(up.clone().multiply(0.42D * layoutScale));
+            return center.clone().add(up.clone().multiply(instructionOffset() * layoutScale));
+        }
+
+        private double instructionOffset() {
+            return phase == RingPhase.SELECTING ? 0.35D : 0.46D;
         }
 
         /**
@@ -1654,31 +1682,54 @@ public final class SkillActionRingService {
             return (float) (baseScale * layoutScale);
         }
 
-        private @NotNull Component labelComponent(
-            int index,
-            @NotNull SlotView slot,
-            boolean selected
-        ) {
-            if (!slot.configured()) {
-                return Component.text("◇ " + (index + 1), NamedTextColor.GRAY);
+        private Component fallbackSlotMarker(int index) {
+            if (phase == RingPhase.WAITING_CAST && index != confirmedIndex) {
+                return Component.empty();
             }
-            String prefix = (selected ? "▶ " : "") + "[" + (index + 1) + "] ";
-            Component label = Component.text(prefix, selected ? NamedTextColor.GOLD : NamedTextColor.GRAY)
-                .append(legacyComponent(slot.color(selected) + slot.label(cooldownViews[index], javaPanel, bedrock)));
-            return selected ? label.decorate(TextDecoration.BOLD) : label;
+            SlotView slot = slots.get(index);
+            if (selectedIndex == index) {
+                return Component.text("◆", NamedTextColor.GOLD);
+            }
+            return Component.text(slot.configured() ? "◆" : "◇",
+                slot.availability() == SlotAvailability.AVAILABLE ? NamedTextColor.AQUA : NamedTextColor.GRAY);
+        }
+
+        private void updateDetailLabel(Location center, boolean layoutChanged) {
+            if (detailLabel == null) {
+                return;
+            }
+            if (layoutChanged) {
+                detailLabel.teleport(viewer, detailLabelLocation(center));
+            }
+            Component text = Component.empty();
+            if (focusedIndex >= 0) {
+                SlotView slot = slots.get(focusedIndex);
+                String status = slot.statusText(cooldownViews[focusedIndex], javaPanel, bedrock);
+                String detail = status;
+                if (!bedrock) {
+                    detail = status.isBlank() ? slot.name() : slot.name() + "\n" + status;
+                }
+                if (!detail.isBlank()) {
+                    text = legacyComponent(slot.color(focusedIndex == selectedIndex) + detail);
+                }
+            }
+            actionRingDisplay.updateText(viewer, detailLabel, text, scaledTextScale(DETAIL_TEXT_SCALE));
         }
 
         private void updateOutline(@NotNull Location center, boolean layoutChanged) {
             if (outline == null) {
                 return;
             }
-            int cooldowns = 0;
+            int dimmedSlots = 0;
             long gauges = 0;
             if (phase == RingPhase.SELECTING) {
                 for (int index = 0; index < slots.size(); index++) {
+                    SlotView slot = slots.get(index);
+                    if (slot.configured() && slot.availability() != SlotAvailability.AVAILABLE) {
+                        dimmedSlots |= 1 << index;
+                    }
                     CooldownView view = cooldownViews[index];
                     if (view != null) {
-                        cooldowns |= 1 << index;
                         gauges |= (long) view.filled() << (4 * index);
                     }
                 }
@@ -1688,12 +1739,12 @@ public final class SkillActionRingService {
             }
             int selected = selectedIndex + 1;
             boolean panelChanged = (bedrock || javaPanel) && gauges != renderedGauges;
-            if (layoutChanged || selected != renderedSelection || cooldowns != renderedCooldowns || panelChanged) {
+            if (layoutChanged || selected != renderedSelection || dimmedSlots != renderedDimmedSlots || panelChanged) {
                 Location location = center.clone().add(normal.clone().multiply(OUTLINE_DEPTH * layoutScale));
                 outline.update(viewer, location, normal, right, up, (float) (OUTLINE_SIZE * layoutScale),
-                    selected, cooldowns, new ActionRingPanel(spriteIds, gauges));
+                    selected, dimmedSlots, new ActionRingPanel(spriteIds, gauges));
                 renderedSelection = selected;
-                renderedCooldowns = cooldowns;
+                renderedDimmedSlots = dimmedSlots;
                 renderedGauges = gauges;
             }
         }
@@ -1775,10 +1826,10 @@ public final class SkillActionRingService {
                 }
             }
             icons.clear();
-            for (SkillActionRingDisplay.DisplayEntity label : labels) {
-                label.destroy(viewer);
+            if (detailLabel != null) {
+                detailLabel.destroy(viewer);
+                detailLabel = null;
             }
-            labels.clear();
             for (var dot : fallbackRim) {
                 dot.destroy(viewer);
             }

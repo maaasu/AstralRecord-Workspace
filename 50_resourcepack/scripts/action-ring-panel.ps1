@@ -196,7 +196,9 @@ function Add-RingBedrockPanel {
         $controller = New-RingController $icon "Array.icons[$property]"
         $controller.arrays = @{ textures = @{ 'Array.icons' = @($tileArray) } }
         if ($normalIcon) {
-            $shade = "query.property('astralrecord:panel_cd_$index') > 0 ? 0.62 : 1.0"
+            # The existing pose property carries dimmed slots. The gauge properties still carry cooldown progress.
+            $bit = 1 -shl $index
+            $shade = "math.mod(math.floor(query.property('astralrecord:ring_cooldowns') / $bit), 2) == 1 ? 0.62 : 1.0"
             $controller.color = [ordered]@{ r = $shade; g = $shade; b = $shade; a = 1 }
         }
         $controllers.Add("$rootController.$icon", $controller)
@@ -318,7 +320,8 @@ function Add-ActionRingPanelEntries {
         $radius = if ($index -eq 8) { 0 } else { 42 }
         $x = 64 + [Math]::Sin($angle) * $radius
         $y = 64 - [Math]::Cos($angle) * $radius
-        $gauge = if ($index -eq 8) { New-RingRectangle 64 75 24 3 } else { New-RingRectangle $x ($y + 12) 17 3 }
+        $gaugeY = if ($index -eq 4) { $y - 15 } else { $y + 15 }
+        $gauge = if ($index -eq 8) { New-RingRectangle 64 76 24 3 } else { New-RingRectangle $x $gaugeY 17 3 }
         [PSCustomObject]@{
             Index = $index
             Icon = (New-RingRectangle $x $y 24 24)

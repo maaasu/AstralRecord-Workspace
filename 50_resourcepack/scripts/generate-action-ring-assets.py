@@ -25,24 +25,19 @@ def sector_pixel(x, y, angle):
     distance = math.hypot(x, y)
     edge = along * math.sin(math.pi / 8) - abs(across) * math.cos(math.pi / 8)
 
-    # A pixel-cut star on the outer edge and a smaller inset stud.
+    # A pixel-cut star caps each sector without adding detail near the icon.
     diamond = abs(across) + abs(along - 56)
     if diamond <= 4.5:
-        return (249, 255) if diamond <= 1.5 else (132, 235)
-    if abs(across) + abs(along - 31) <= 1.6:
-        return (181, 236)
-
-    if edge < 0.9 or distance < 27 or distance > 55.3:
+        return (255, 255) if diamond <= 1.5 else (163, 255)
+    if edge < 1.5 or distance < 29 or distance > 55:
         return (0, 0)
-    if distance > 54.2 or distance < 28.3 or edge < 1.9:
-        return (75, 220)
-    if distance > 52.5 or distance < 29.4 or edge < 2.8:
-        return (225, 245)
-    if distance > 51.2 or distance < 30.6 or edge < 3.8:
-        return (122, 205)
-    if distance > 48.5:
-        return (46 + (x + y) % 2 * 6, 169)
-    return (24 + int((55 - distance) / 5) * 3, 150)
+    if distance > 54 or edge < 2.5:
+        return (72, 255)
+    if distance > 52:
+        return (235, 255)
+    if distance < 30.5:
+        return (129, 255)
+    return (26, 105)
 
 
 def make_atlas():
@@ -78,7 +73,7 @@ def png(width, height, rows):
 
 
 def panel_textures():
-    # Bake the neutral ring as one face for Bedrock's standard alpha-test material.
+    # Keep opaque strokes and let the scene show through the slots on Bedrock.
     rows = [bytearray(SIZE * 4) for _ in range(SIZE)]
     tint = [((COLORS["normal"] >> shift) & 255) for shift in (16, 8, 0)]
     for slot in range(SLOT_COUNT):
@@ -86,7 +81,7 @@ def panel_textures():
         for y in range(SIZE):
             for x in range(SIZE):
                 shade, alpha = sector_pixel(x, y, angle)
-                if alpha >= 200 or alpha and (x + y) % 2 == 0:
+                if alpha == 255:
                     rows[y][x * 4:x * 4 + 4] = bytes([int(shade * color / 255) for color in tint] + [255])
     write(BEDROCK / "textures/entity/action_ring_rim.png", png(SIZE, SIZE, rows))
 
