@@ -809,7 +809,7 @@ public class ItemStackFactory {
         return lore;
     }
 
-    /** レア度と分類を表示し、内部IDは濃い灰色に抑えます。 */
+    /** レア度、分類、説明文をロアの先頭に追加します。内部 ID は濃い灰色で表示します。 */
     private void appendTooltipHeader(List<String> lore, ItemModel model) {
         String rarity = model.getRarity();
         String rarityLabelColor = ItemRarity.find(rarity) == ItemRarity.COMMON
@@ -817,9 +817,16 @@ public class ItemStackFactory {
         lore.add(rarityStars(rarity) + rarityLabelColor + "  " + rarityDisplayName(rarity)
                 + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
         lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
+        if (!model.getLore().isEmpty()) {
+            for (String line : model.getLore()) {
+                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
+                        + ColorCodeUtil.translateAlternateColorCodes(line));
+            }
+            lore.add("");
+        }
     }
 
-    /** 取引制限と由来の説明文をロアの末尾に追加します。 */
+    /** 取引・売却制限をロアの末尾に追加し、不要な末尾の空行を除きます。 */
     private void appendTooltipFooter(List<String> lore, ItemModel model) {
         if (model.getUnTradeable()) {
             lore.add(ColorCodeUtil.RED + "✖ 取引不可");
@@ -827,12 +834,8 @@ public class ItemStackFactory {
         if (shouldShowUnSellable(model)) {
             lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         }
-        if (!model.getLore().isEmpty()) {
-            lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
-            for (String line : model.getLore()) {
-                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
-                        + ColorCodeUtil.translateAlternateColorCodes(line));
-            }
+        if (!lore.isEmpty() && lore.getLast().isEmpty()) {
+            lore.removeLast();
         }
     }
 
@@ -899,7 +902,7 @@ public class ItemStackFactory {
 
     /** 装備部位、持ち手と装備条件を追加します。 */
     private void appendEquipmentRequirements(List<String> lore, ItemEquipment equipment) {
-        lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
+        lore.add(ColorCodeUtil.AQUA + "❖ 装備情報");
 
         if (equipment.getSlot() != null) {
             lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
@@ -932,7 +935,7 @@ public class ItemStackFactory {
      * @param rune ルーン定義
      */
     private void appendRuneLore(@NotNull List<String> lore, @NotNull ItemRune rune) {
-        lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
+        lore.add(ColorCodeUtil.GREEN + "❖ ルーン効果");
         lore.add(ColorCodeUtil.GRAY + " ▸ 対象スロット: " + ColorCodeUtil.WHITE
                 + formatRuneTargetSlots(rune));
         if (!rune.getTargetTags().isEmpty()) {
@@ -1435,7 +1438,7 @@ public class ItemStackFactory {
                 lore.add(formatSocketSummary("✦ エンチャント", ColorCodeUtil.AQUA,
                         instance.getEnchants().size(), effectiveMaxSlots));
                 if (instance.getEnchants().isEmpty()) {
-                    lore.add(ColorCodeUtil.GRAY + "   ─ 未付与");
+                    lore.add(ColorCodeUtil.DARK_GRAY + "   ─ " + ColorCodeUtil.GRAY + "未付与");
                 } else {
                     var contribution = EquipmentStatContributionCalculator.calculate(eq, instance, itemService::findLoadedById);
                     // 1回の描画中は同じmaster参照を使い、次の描画では公開済みの最新世代を参照します。
@@ -1503,7 +1506,7 @@ public class ItemStackFactory {
                             }
                         }
                     } else {
-                        lore.add(ColorCodeUtil.GRAY + " ○ 空きスロット");
+                        lore.add(ColorCodeUtil.DARK_GRAY + " ○ " + ColorCodeUtil.GRAY + "空きスロット");
                     }
                 }
             }
@@ -1532,14 +1535,14 @@ public class ItemStackFactory {
         return lore;
     }
 
-    /** 使用数と上限を表示し、短い枠一覧には使用済みと空きの印を加えます。 */
-    private static String formatSocketSummary(String label, String activeColor, int used, int capacity) {
-        String color = used > 0 ? activeColor : ColorCodeUtil.GRAY;
-        String summary = color + label + "  " + used + ColorCodeUtil.GRAY + "/" + capacity;
+    /** 見出しの色を維持し、使用数・上限・枠の状態を色で区別します。 */
+    private static String formatSocketSummary(String label, String sectionColor, int used, int capacity) {
+        String usedColor = used > 0 ? ColorCodeUtil.WHITE : ColorCodeUtil.GRAY;
+        String summary = sectionColor + label + "  " + usedColor + used + ColorCodeUtil.GRAY + "/" + capacity;
         if (capacity > 12 || used > capacity) {
             return summary;
         }
-        return summary + "  " + color + "◆".repeat(used)
+        return summary + "  " + sectionColor + "◆".repeat(used)
                 + ColorCodeUtil.DARK_GRAY + "◇".repeat(capacity - used);
     }
 
