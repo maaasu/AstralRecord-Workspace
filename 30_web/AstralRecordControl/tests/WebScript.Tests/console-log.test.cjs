@@ -41,23 +41,38 @@ test('console removes cursor, title and hyperlink controls without creating brow
     assert.deepEqual(tokenize('\x1b[38;2;999;0;0m本文')[0].style, {});
 });
 
-test('console marks severity prefixes and renders all log contents as literal text spans', () => {
+function renderLog(raw) {
     const created = [];
     const document = {
-        createDocumentFragment: () => ({ children: [], append(node) { this.children.push(node); } }),
+        createDocumentFragment: () => ({ children: [], append(node) { this.children.push(typeof node === 'string' ? { textContent: node } : node); } }),
         createElement(name) {
             created.push(name);
             return { textContent: '', style: {}, className: '', set innerHTML(_) { throw new Error('HTML must not be interpreted'); } };
         }
     };
     const element = { ownerDocument: document, replaceChildren(fragment) { this.children = fragment.children; } };
-    render(element, '[20:50:49 WARN]: 日本語 <img src=x onerror=alert(1)>\n\x1b[91m[ERROR] 故障\x1b[0m');
+    render(element, raw);
+    return { created, children: element.children };
+}
+
+test('console marks severity prefixes and renders log contents as literal text', () => {
+    const { created, children } = renderLog('[20:50:49 WARN]: 日本語 <img src=x onerror=alert(1)>\n\x1b[91m[ERROR] 故障\x1b[0m');
     assert.ok(created.every(name => name === 'span'));
-    assert.equal(element.children.map(child => child.textContent).join(''), '[20:50:49 WARN]: 日本語 <img src=x onerror=alert(1)>\n[ERROR] 故障');
-    assert.equal(element.children[0].className, 'console-level-warn');
-    const error = element.children.find(child => child.textContent === '[ERROR]');
+    assert.equal(children.map(child => child.textContent).join(''), '[20:50:49 WARN]: 日本語 <img src=x onerror=alert(1)>\n[ERROR] 故障');
+    assert.equal(children[0].className, 'console-level-warn');
+    const error = children.find(child => child.textContent === '[ERROR]');
     assert.equal(error.className, 'console-level-error');
     assert.equal(error.style.color, '#ff9098');
+});
+
+test('console bounds DOM elements for dense logs while keeping all text and the newest styles', () => {
+    const repeats = 20000;
+    const { created, children } = renderLog('\x1b]0;hidden\x07' + '\x1b[31m赤\x1b[32m緑'.repeat(repeats) + '\x1b[0m[WARN] 最新');
+    assert.equal(created.length, 2048);
+    assert.equal(children.map(child => child.textContent).join(''), '赤緑'.repeat(repeats) + '[WARN] 最新');
+    assert.equal(children[0].style, undefined);
+    assert.equal(children.at(-3).style.color, '#9ac76f');
+    assert.equal(children.at(-2).className, 'console-level-warn');
 });
 
 test('console browser script can load repeatedly across enhanced navigation', () => {

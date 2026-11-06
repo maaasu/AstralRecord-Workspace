@@ -4,6 +4,8 @@
     const levels = { INFO: "info", WARN: "warn", WARNING: "warn", ERROR: "error", SEVERE: "error", DEBUG: "debug", TRACE: "debug" };
     const control = /\x1b(?:\[([0-9;]*)m|\[[0-?]*[ -/]*(?:[@-~]|$)|\][^\x07\x1b\r\n]*(?:\x07|\x1b\\|(?=[\r\n]|$))|.)|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
     const level = /\[(?:\d{2}:\d{2}:\d{2} )?(INFO|WARN|WARNING|ERROR|SEVERE|DEBUG|TRACE)\]/g;
+    const maxStyledSpans = 2048;
+    const isStyled = token => token.level || Object.keys(token.style).length > 0;
     const rgb = (r, g, b) => `rgb(${r}, ${g}, ${b})`;
     const byte = n => Number.isInteger(n) && n >= 0 && n <= 255;
     const indexedColor = n => {
@@ -75,7 +77,20 @@
     function render(element, text) {
         const document = element.ownerDocument;
         const fragment = document.createDocumentFragment();
-        for (const token of tokenize(text)) {
+        const tokens = tokenize(text);
+        // Keep older text visible without letting dense ANSI or severity changes flood the DOM.
+        let styled = 0, start = tokens.length;
+        while (start > 0) {
+            if (isStyled(tokens[start - 1]) && ++styled > maxStyledSpans) break;
+            start--;
+        }
+        if (start > 0) fragment.append(tokens.slice(0, start).map(token => token.text).join(""));
+        for (let i = start; i < tokens.length; i++) {
+            const token = tokens[i];
+            if (!isStyled(token)) {
+                fragment.append(token.text);
+                continue;
+            }
             const span = document.createElement("span");
             span.textContent = token.text;
             Object.assign(span.style, token.style);
