@@ -34,19 +34,31 @@
           "position": [
             0,
             0,
-            "math.lerp(5.0, -5.0, variable.style == 5 ? variable.travel : variable.pulse)"
+            "math.lerp(4.9, -4.9, variable.style == 5 ? variable.travel : variable.pulse)"
           ]
         },
         "wake": {
           "scale": [
             1,
             1,
-            "math.lerp(0.30, 1.60, variable.travel)"
+            "math.lerp(0.36528497, 1.63471503, variable.travel)"
           ],
           "position": [
             0,
             0,
-            "math.lerp(5.6, -4.8, variable.travel)"
+            "math.lerp(4.9, -4.9, variable.travel)"
+          ]
+        },
+        "rib_wave": {
+          "scale": [
+            "math.lerp(0.31, 1.07, variable.travel)",
+            "0.52 + 0.53 * math.sin(variable.travel * 180.0)",
+            "math.lerp(0.31, 1.07, variable.travel)"
+          ],
+          "rotation": [
+            0,
+            "variable.travel * 14.0",
+            0
           ]
         }
       }
