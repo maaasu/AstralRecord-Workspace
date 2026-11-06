@@ -56,6 +56,12 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.11.0` 以降は、サンバード本体と技の描画ファイルを揃えたパックを登録してログインまで進んだ接続で、RPG が印を付けたオウムを `astralrecord:sunbird` として表示します。名前や当たり判定には元のエンティティの情報を使います。技は RPG が送る演出用 TextDisplay を `astralrecord:sunbird_skill` に変換し、種類・幅・奥行き・高さに応じて表示します。パックが揃わない接続には元のオウムと RPG のパーティクルを表示します。
 
+## Bedrockのウェイストーンと施設NPC
+
+拡張 1.12.0 以降は、ワールド表示用のエンティティ定義、形状、レンダーコントローラー、テクスチャが揃ったパックを登録した接続で、RPG が送る印付きの空 TextDisplay を `astralrecord:world_display` に変換します。ウェイストーンの解除状態と施設NPCの素材は、生成時の `astralrecord:style` でモデルへ渡します。
+
+対応パックを登録できない接続では、ウェイストーンに名称と状態色の粒子を表示し、施設NPCは従来の表示を Geyser に渡します。従来の施設モデルの描画は GeyserDisplayEntity の設定に従います。対応パックの接続では施設NPCの従来表示を抑止し、専用モデルを使います。NPC の操作判定は RPG の `Interaction` が担当します。
+
 ## Bedrockのアイテムモデル
 
 拡張 `1.3.0` 以降は、起動時に検証済みBedrockパックのルートにある `astralrecord_item_models.json` を読み、`GeyserDefineCustomItemsEvent` でモデルを登録する。カタログを含むパックでは、同名のアーカイブ項目がないこと、各モデルのアイコンとアトラスの対応、アタッチャブル・ジオメトリ・アニメーション・テクスチャのファイルが揃うことを検証する。Java側の基本素材と `minecraft:custom_model_data` の先頭floatが一致したアイテムを、Bedrock側の `astralrecord:<id>` に変換する。モデル定義を含むパックをAPIで公開してからProxyを起動し、Bedrockクライアントを再接続する。

@@ -190,6 +190,12 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() ? selection.pack().actionRingSprites() : Set.of();
     }
 
+    /** @return 接続時に登録したパックにワールド表示モデルが揃っていれば true */
+    boolean worldDisplayReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().worldDisplay();
+    }
+
     void disconnect(GeyserConnection connection) {
         sessions.remove(connection);
     }

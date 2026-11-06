@@ -31,7 +31,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean gameplaySounds, boolean sunbird, Set<Integer> heldWeaponModels,
-    Set<ItemModel> itemModels, Set<Integer> actionRingSprites
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -75,6 +75,12 @@ record DamagePack(
         "models/entity/sunbird_skill.geo.json", "render_controllers/sunbird_skill.render_controllers.json",
         "textures/entity/sunbird_skill.png"
     );
+    private static final List<String> WORLD_DISPLAY_ENTRIES = List.of(
+        "entity/world_display.entity.json", "models/entity/world_display.geo.json",
+        "render_controllers/world_display.render_controllers.json",
+        "textures/entity/world/waystone_locked.png", "textures/entity/world/waystone_unlocked.png",
+        "textures/entity/world/storage.png", "textures/entity/world/blast_furnace.png"
+    );
 
     static DamagePack refresh(HeadApiConfig config, Path directory, DamagePack current)
         throws IOException, InterruptedException {
@@ -112,6 +118,7 @@ record DamagePack(
             boolean weaponAttack;
             boolean gameplaySounds;
             boolean sunbird;
+            boolean worldDisplay;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -136,6 +143,7 @@ record DamagePack(
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
                 gameplaySounds = hasGameplaySounds(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -149,7 +157,7 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites);
+                gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites, worldDisplay);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
