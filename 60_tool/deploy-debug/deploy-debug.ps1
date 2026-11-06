@@ -418,6 +418,7 @@ function Publish-ResourcePacks {
     $sunbirdPresentation = $null
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
+    $skillEffects = $null
     $profileHud = $null
     $wideCombatMeter = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
@@ -516,6 +517,22 @@ function Publish-ResourcePacks {
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing item tooltip asset in Java pack: $asset" }
             }
         }
+        $skillEffectsEntry = $archive.GetEntry('skill-effects-version.txt')
+        if ($null -ne $skillEffectsEntry) {
+            if ($skillEffectsEntry.Length -ne 1) { throw 'Invalid skill effects version marker.' }
+            $reader = [IO.StreamReader]::new($skillEffectsEntry.Open())
+            try { $skillEffects = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($skillEffects -cne '1') { throw 'Unsupported skill effects version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/lang/en_us.json'
+                'assets/astralrecord/font/skill_effect.json'
+                'assets/astralrecord/textures/font/skill_effect.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -le 0) { throw "Missing Java skill effect asset: $asset" }
+            }
+        }
         $projectilesEntry = $archive.GetEntry('weapon-attack-projectiles-version.txt')
         if ($null -ne $projectilesEntry) {
             if ($projectilesEntry.Length -ne 1) { throw 'Invalid weapon attack projectiles version marker.' }
@@ -580,6 +597,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $weaponAttackProjectiles) {
         $javaManifest.weaponAttackProjectiles = $weaponAttackProjectiles
+    }
+    if ($null -ne $skillEffects) {
+        $javaManifest.skillEffects = $skillEffects
     }
     if ($null -ne $profileHud) {
         $javaManifest.profileHud = $profileHud

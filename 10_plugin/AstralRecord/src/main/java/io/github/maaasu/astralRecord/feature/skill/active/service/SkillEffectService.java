@@ -3,9 +3,11 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay.Phase;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -17,7 +19,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 発動スキルの粒子と効果音を、負荷を抑えた図形単位で描画します。
@@ -29,6 +34,13 @@ public final class SkillEffectService {
     private static final double VIEWER_DISTANCE = 64.0D;
 
     private final ParticleDisplayService particleDisplayService;
+    private final @Nullable SkillPackDisplay packDisplay;
+    private final @Nullable String skillId;
+    private final @Nullable Player source;
+    private final int[] budgetTicks = new int[Phase.values().length];
+    private final int[] budgetUsed = new int[Phase.values().length];
+    private final Map<PointCue, Set<Player>> pointCues = new HashMap<>();
+    private int pointCueTick;
 
     /**
      * 共通 particle 表示サービスで初期化します。
@@ -36,12 +48,108 @@ public final class SkillEffectService {
      * @param particleDisplayService プレイヤー設定を考慮する表示サービス
      */
     public SkillEffectService(@NotNull ParticleDisplayService particleDisplayService) {
-        this.particleDisplayService = particleDisplayService;
+        this(particleDisplayService, null, null, null);
     }
 
-    /** 1点へ particle を表示します。 */
+    /**
+     * 発動単位の演出サービスを作るための基点を初期化します。
+     * @param particleDisplayService パック非対応時や形状境界の表示サービス
+     * @param packDisplay 対応パックのスプライト表示
+     */
+    public SkillEffectService(@NotNull ParticleDisplayService particleDisplayService, @NotNull SkillPackDisplay packDisplay) {
+        this(particleDisplayService, packDisplay, null, null);
+    }
+
+    /** 発動IDと発動者を保持し、遅延・反復処理へ安全に引き継ぎます。 */
+    private SkillEffectService(ParticleDisplayService particleDisplayService, @Nullable SkillPackDisplay packDisplay,
+                               @Nullable String skillId, @Nullable Player source) {
+        this.particleDisplayService = particleDisplayService;
+        this.packDisplay = packDisplay;
+        this.skillId = skillId;
+        this.source = source;
+    }
+
+    /**
+     * 発動者とスキルIDに対応するスプライトを使う描画サービスを返します。
+     * @param id 現在のスキル ID
+     * @param player 発動者
+     * @return 1回の発動に対する描画と送信制限を持つサービス
+     */
+    public SkillEffectService forSkill(String id, Player player) {
+        return packDisplay == null ? this : new SkillEffectService(particleDisplayService, packDisplay, id, player);
+    }
+
+    /**
+     * スキル固有の段階を指定し、補助スプライトを描画します。
+     * @param phase 発動、軌跡、着弾、範囲の段階
+     * @param location 実際の演出座標
+     * @param diameter 見た目の直径（ブロック）
+     * @return パック側で処理済みの閲覧者
+     */
+    public Set<Player> pack(Phase phase, Location location, float diameter) {
+        return pack(phase, location, diameter, null);
+    }
+
+    /** 形状の閲覧者を既に解決した場合は、同じ範囲でパック演出を送ります。 */
+    private Set<Player> pack(Phase phase, Location location, float diameter, @Nullable List<Player> audience) {
+        if (packDisplay == null || skillId == null) return Set.of();
+        int tick = Bukkit.getCurrentTick();
+        int index = phase.ordinal();
+        int interval = switch (phase) {
+            case CAST, IMPACT -> 3;
+            case TRAIL -> 2;
+            case AREA -> 6;
+        };
+        if (tick - budgetTicks[index] >= interval) {
+            budgetTicks[index] = tick;
+            budgetUsed[index] = 0;
+        }
+        if (budgetUsed[index] >= (phase == Phase.CAST ? 1 : 4)) return Set.of();
+        budgetUsed[index]++;
+        return packDisplay.show(skillId, phase, location, diameter, source, audience);
+    }
+
+    /** 単発の粒子を互換パックの着弾演出で描画し、未対応の閲覧者には既存粒子を送ります。 */
     public void point(@NotNull Location location, @NotNull SharedParticleDefinition definition) {
-        particleDisplayService.spawnForNearbyViewers(location, definition);
+        point(location, definition, Phase.IMPACT, 1.15F);
+    }
+
+    /**
+     * 固有の段階と大きさを持つ単発演出を送り、未対応の接続に既存粒子を送ります。
+     * @param location 描画する座標
+     * @param definition 代替粒子
+     * @param phase 表示する段階
+     * @param diameter スプライトの直径（ブロック）
+     */
+    public void point(Location location, SharedParticleDefinition definition, Phase phase, float diameter) {
+        Set<Player> handled = pointPack(phase, location, diameter);
+        particleDisplayService.spawnForNearbyViewers(location, definition, false, viewer -> !handled.contains(viewer));
+    }
+
+    /** 同一点の複数の粒子層を、同じtick内では一つのパックスプライトで表現します。 */
+    private Set<Player> pointPack(Phase phase, Location location, float diameter) {
+        if (skillId == null || location.getWorld() == null) return Set.of();
+        int tick = Bukkit.getCurrentTick();
+        if (pointCueTick != tick) {
+            pointCues.clear();
+            pointCueTick = tick;
+        }
+        PointCue cue = new PointCue(location.getWorld(), location.getX(), location.getY(), location.getZ(), phase);
+        return pointCues.computeIfAbsent(cue, ignored -> pack(phase, location, diameter));
+    }
+
+    private record PointCue(World world, double x, double y, double z, Phase phase) {}
+
+    /** 飛翔体とスキル固有の着弾が同じ地点なら、同じ着弾スプライトを共有します。 */
+    void projectileImpact(Location location, float diameter) {
+        pointPack(Phase.IMPACT, location, diameter);
+    }
+
+    /** 連続飛翔中のスプライトは、実際に進んだ区間の終点に置きます。 */
+    void projectileTrail(Location start, Location end) {
+        if (start.getWorld() == end.getWorld() && start.distanceSquared(end) > 1.0E-8D) {
+            pack(Phase.TRAIL, end, 0.65F);
+        }
     }
 
     /** 複数地点のparticleを一度のviewer探索でまとめて表示します。 */
@@ -51,6 +159,7 @@ public final class SkillEffectService {
             @NotNull SharedParticleDefinition definition
     ) {
         if (!locations.isEmpty()) {
+            accent(locations, Phase.AREA, 0.65F, 2);
             particleDisplayService.spawnForNearbyViewers(viewerCenter, locations, definition);
         }
     }
@@ -92,8 +201,9 @@ public final class SkillEffectService {
      */
     public void pointsForViewers(@NotNull List<Player> viewers, @NotNull List<Location> locations,
                                  @NotNull SharedParticleDefinition definition) {
-        if (locations.isEmpty()) { return; }
+        if (locations.isEmpty() || viewers.isEmpty()) { return; }
         int limit = Math.min(MAX_FRAME_VIEWERS, viewers.size());
+        accent(locations, Phase.AREA, 0.65F, 2, viewers.subList(0, limit));
         for (int index = 0; index < limit; index++) {
             Player viewer = viewers.get(index);
             if (viewer.isOnline()) { particleDisplayService.spawnForViewer(viewer, locations, definition); }
@@ -108,8 +218,9 @@ public final class SkillEffectService {
      */
     public void burstsForViewers(@NotNull List<Player> viewers, @NotNull List<Location> locations,
                                  @NotNull SharedParticleDefinition definition) {
-        if (locations.isEmpty()) return;
+        if (locations.isEmpty() || viewers.isEmpty()) return;
         int limit = Math.min(MAX_FRAME_VIEWERS, viewers.size());
+        accent(locations, Phase.IMPACT, 0.8F, 3, viewers.subList(0, limit));
         for (int index = 0; index < limit; index++) {
             Player viewer = viewers.get(index);
             if (viewer.isOnline()) particleDisplayService.spawnBurstsForViewer(viewer, locations, definition);
@@ -127,6 +238,7 @@ public final class SkillEffectService {
             @NotNull SharedParticleDefinition definition
     ) {
         if (!locations.isEmpty()) {
+            accent(locations, Phase.AREA, 0.65F, 2);
             particleDisplayService.spawnForNearbyViewers(locations, definition);
         }
     }
@@ -144,6 +256,7 @@ public final class SkillEffectService {
             @NotNull SharedParticleDefinition definition
     ) {
         if (!locations.isEmpty()) {
+            accent(locations, Phase.IMPACT, 0.95F, 3);
             particleDisplayService.spawnBurstsForNearbyViewers(viewerCenter, locations, definition);
         }
     }
@@ -173,13 +286,24 @@ public final class SkillEffectService {
             double interval,
             @NotNull SharedParticleDefinition definition
     ) {
+        drawLine(start, end, interval, definition, true);
+    }
+
+    /** 飛翔体の元の粒子軌跡を描画します。パックの表示は衝突位置の解決後に行います。 */
+    void projectileParticles(Location start, Location end, double interval, SharedParticleDefinition definition) {
+        drawLine(start, end, interval, definition, false);
+    }
+
+    /** 線分上の点群と、必要なら長さに応じたパック演出を描画します。 */
+    private void drawLine(Location start, Location end, double interval, SharedParticleDefinition definition,
+                          boolean showPack) {
         if (start.getWorld() == null || start.getWorld() != end.getWorld()) {
             return;
         }
         Vector offset = end.toVector().subtract(start.toVector());
         double distance = offset.length();
         if (distance <= 1.0E-8D) {
-            point(start, definition);
+            particleDisplayService.spawnForNearbyViewers(start, definition);
             return;
         }
         int points = Math.max(1, Math.min(4095,
@@ -187,6 +311,9 @@ public final class SkillEffectService {
         List<Location> locations = new ArrayList<>(points + 1);
         for (int index = 0; index <= points; index++) {
             locations.add(start.clone().add(offset.clone().multiply((double) index / points)));
+        }
+        if (showPack) {
+            accent(locations, Phase.TRAIL, 0.75F, Math.clamp((int) Math.ceil(distance / 4.0D), 1, 4));
         }
         particleDisplayService.spawnForNearbyViewers(start, locations, definition);
     }
@@ -223,6 +350,7 @@ public final class SkillEffectService {
             if (locations.size() >= 4096) break;
         }
         if (!locations.isEmpty()) {
+            accent(locations, Phase.TRAIL, 0.65F, 4);
             particleDisplayService.spawnForNearbyViewers(viewerCenter, locations, definition);
         }
     }
@@ -240,6 +368,7 @@ public final class SkillEffectService {
             double angle = Math.PI * 2.0D * index / safePoints;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
         }
+        accent(locations, Phase.AREA, 0.7F, 4);
         particleDisplayService.spawnForNearbyViewers(center, locations, definition);
     }
 
@@ -319,6 +448,7 @@ public final class SkillEffectService {
             Vector offset = horizontal.clone().rotateAroundY(angle).multiply(radius);
             locations.add(origin.clone().add(offset));
         }
+        accent(locations, Phase.TRAIL, 0.9F, 3);
         particleDisplayService.spawnForNearbyViewers(origin, locations, definition);
     }
 
@@ -363,7 +493,24 @@ public final class SkillEffectService {
                     .add(right.clone().multiply(Math.sin(angle) * radius));
             locations.add(origin.clone().add(offset));
         }
+        accent(locations, Phase.TRAIL, 0.9F, 3);
         particleDisplayService.spawnForNearbyViewers(origin, locations, definition);
+    }
+
+    /** 判定形状に沿った地点を均等に選び、形状全体の粒子は維持します。 */
+    private void accent(List<Location> locations, Phase phase, float diameter, int limit) {
+        accent(locations, phase, diameter, limit, null);
+    }
+
+    /** 元の粒子と同じ閲覧者だけに補助スプライトを表示します。 */
+    private void accent(List<Location> locations, Phase phase, float diameter, int limit,
+                        @Nullable List<Player> audience) {
+        if (skillId == null || locations.isEmpty()) return;
+        int count = Math.min(limit, locations.size());
+        for (int index = 0; index < count; index++) {
+            int sample = (2 * index + 1) * locations.size() / (2 * count);
+            pack(phase, locations.get(sample), diameter, audience);
+        }
     }
 
     /** 効果音を周辺プレイヤーへ再生します。 */

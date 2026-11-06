@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
@@ -27,6 +28,34 @@ public record ActiveSkillServices(
         @NotNull ElementalPrismRuntimeService prisms,
         @NotNull SkillMagicCircleRegistry circles
 ) {
+    /**
+     * 1回の発動に専用の攻撃側耐久判定とスキル演出を持たせます。
+     * @param skillId 発動したスキル ID
+     * @param player 発動者
+     * @return 発動単位の共有サービス
+     */
+    public @NotNull ActiveSkillServices forCast(@NotNull String skillId, @NotNull Player player) {
+        SkillEffectService castEffects = effects.forSkill(skillId, player);
+        return new ActiveSkillServices(
+                targeting, combat.forCast(player.getUniqueId()), castEffects, projectiles.forEffects(castEffects),
+                movement, temporaryEffects, tasks, prisms, circles
+        );
+    }
+
+    /**
+     * 攻撃側の耐久判定を維持したまま、自動発動の演出をスキルIDへ結び付けます。
+     * @param skillId 自動発動したスキル ID
+     * @param player 発動者
+     * @return 演出だけを自動発動用に変更したサービス群
+     */
+    public @NotNull ActiveSkillServices forVisuals(@NotNull String skillId, @NotNull Player player) {
+        SkillEffectService castEffects = effects.forSkill(skillId, player);
+        return new ActiveSkillServices(
+                targeting, combat, castEffects, projectiles.forEffects(castEffects),
+                movement, temporaryEffects, tasks, prisms, circles
+        );
+    }
+
     /**
      * 1回の発動に専用の攻撃側耐久判定を持つサービス群を返します。
      *

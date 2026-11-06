@@ -45,7 +45,7 @@ public abstract class PlayerActiveSkillExecutor implements SkillExecutor {
             return SkillCastResult.failure(PlayerMsgId.P_5805);
         }
         return castPlayer(new PlayerActiveSkillContext(
-                context, caster, services.forCast(caster.player().getBukkit().getUniqueId())
+                context, caster, services.forCast(implementationId, caster.player().getBukkit())
         ));
     }
 

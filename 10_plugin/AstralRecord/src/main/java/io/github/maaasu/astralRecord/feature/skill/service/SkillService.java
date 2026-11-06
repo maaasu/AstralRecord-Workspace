@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary;
@@ -99,6 +100,7 @@ public class SkillService {
     private BiConsumer<AstPlayer, String> playerSkillUseListener = (player, skillId) -> { };
     private BiFunction<AstPlayer, SkillDefinition, Double> playerCastTimeReductionResolver =
             (player, skill) -> 0.0D;
+    private @Nullable SkillPackDisplay skillPackDisplay;
     private final SkillCastFeedback castFeedback = new SkillCastFeedback();
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
@@ -114,6 +116,14 @@ public class SkillService {
     public void setPlayerCastSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
         playerCastSuccessListeners.clear();
         playerCastSuccessListeners.add(listener);
+    }
+
+    /**
+     * 発動成功時のリソースパック演出を有効にします。
+     * @param display 対応パック用の表示サービス
+     */
+    public void setSkillPackDisplay(@NotNull SkillPackDisplay display) {
+        skillPackDisplay = display;
     }
 
     /**
@@ -878,6 +888,12 @@ public class SkillService {
                 runtime == null ? Set.of() : runtime.sigilIds()
         );
 
+        Location release = null;
+        if (skillPackDisplay != null && definition.getKind() != SkillKind.PASSIVE
+                && caster instanceof PlayerSkillCaster playerCaster) {
+            var eye = playerCaster.player().getBukkit().getEyeLocation();
+            release = eye.clone().add(eye.getDirection().multiply(1.35D)).subtract(0.0D, 0.25D, 0.0D);
+        }
         SkillCastResult result;
         try {
             result = executor.cast(context);
@@ -906,6 +922,10 @@ public class SkillService {
                 );
             }
             if (result.success() && caster instanceof PlayerSkillCaster playerCaster) {
+                if (release != null) {
+                    skillPackDisplay.show(definition.getId(), SkillPackDisplay.Phase.CAST,
+                            release, 0.95F, playerCaster.player().getBukkit());
+                }
                 for (BiConsumer<AstPlayer, String> listener : playerCastSuccessListeners) {
                     listener.accept(playerCaster.player(), definition.getId());
                 }

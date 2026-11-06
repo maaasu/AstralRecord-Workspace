@@ -758,10 +758,22 @@ public class ParticleDisplayService {
     public void spawnForNearbyViewers(
         @NotNull Location location, @NotNull SharedParticleDefinition definition, boolean longDistance
     ) {
+        spawnForNearbyViewers(location, definition, longDistance, viewer -> true);
+    }
+
+    /**
+     * 一地点の単発演出を指定した閲覧者へ送ります。
+     * @param location 表示地点
+     * @param definition 粒子定義
+     * @param longDistance クライアントの拡張描画距離を使う場合はtrue
+     * @param audience 粒子を受け取る閲覧者の判定
+     */
+    public void spawnForNearbyViewers(@NotNull Location location, @NotNull SharedParticleDefinition definition,
+                                      boolean longDistance, @NotNull Predicate<Player> audience) {
         World world = location.getWorld();
         if (world == null) return;
         for (Player viewer : world.getNearbyPlayers(location, Math.sqrt(DEFAULT_VIEWER_DISTANCE_SQUARED))) {
-            if (viewer.getLocation().distanceSquared(location) > DEFAULT_VIEWER_DISTANCE_SQUARED
+            if (!audience.test(viewer) || viewer.getLocation().distanceSquared(location) > DEFAULT_VIEWER_DISTANCE_SQUARED
                     || shouldSkipForBedrock(viewer, definition.hideForBedrock())) continue;
             int count = resolveEmissionCount(definition.count(), resolvePlayerDensityScale(viewer),
                     definition.offsetX(), definition.offsetY(), definition.offsetZ(), definition.extra());

@@ -1187,6 +1187,7 @@ public enum LogId {
     /** Mob・採集スポナーの表示 packet 送信に失敗しました: packetType=%s, worldName=%s */
     W_9011(9011),
     W_9012(9012),
+    W_9013(9013),
     /** 採集スポナーを時間帯条件でスキップしました: spawner=%s, worldTime=%d */
     D_9012(9012),
     /** 採集スポナーをゲームプレイ対象プレイヤー不在でスキップしました: spawner=%s, nearbyPlayers=%d */

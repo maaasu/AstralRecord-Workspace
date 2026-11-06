@@ -7,6 +7,9 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay.Phase;
+import io.github.maaasu.astralRecord.feature.skill.executor.ArchmagePhoenixResonanceExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.WizardBurnMeteorStrikeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
@@ -117,7 +120,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
             @NotNull AstEntity attacker,
             @NotNull Location impact
     ) {
-        summon(services, caster.getBukkit(), attacker,
+        summon(services.forVisuals(WizardBurnMeteorStrikeSkillExecutor.ID, caster.getBukkit()),
+                caster.getBukkit(), attacker,
                 new MeteorTarget(impact.clone()),
                 2.5D, 1.5D, 20, 0.75D, false);
     }
@@ -148,7 +152,8 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
                 (int) Math.round(maxLevelParam(meteorDefinition, params, "burningDurationTicks", 100.0D)),
                 1.0D
         );
-        summon(services, caster.getBukkit(), AstEntity.player(caster),
+        summon(services.forVisuals(ArchmagePhoenixResonanceExecutor.ID, caster.getBukkit()),
+                caster.getBukkit(), AstEntity.player(caster),
                 new MeteorTarget(impact.clone()),
                 maxLevelParam(meteorDefinition, params, "radius", 8.0D),
                 maxLevelParam(meteorDefinition, params, "damageRatio", 6.30D),
@@ -498,10 +503,12 @@ public final class WizardMeteorExecutor extends PlayerActiveSkillExecutor {
         private void drawTrail(@NotNull ActiveSkillServices services) {
             Vector trailingDirection = sourceOffset.clone().normalize().multiply(0.8D * visualScale);
             services.effects().point(meteorCenter,
-                    scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_TRAIL_FLAME, visualScale));
+                    scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_TRAIL_FLAME, visualScale),
+                    Phase.TRAIL, (float) (2.0D * visualScale));
             services.effects().point(
                     meteorCenter.clone().add(trailingDirection),
-                    scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_TRAIL_SMOKE, visualScale)
+                    scaledParticle(SharedParticleDefinitions.WIZARD_METEOR_TRAIL_SMOKE, visualScale),
+                    Phase.TRAIL, (float) visualScale
             );
         }
 

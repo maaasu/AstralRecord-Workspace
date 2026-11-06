@@ -282,6 +282,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillSer
 import io.github.maaasu.astralRecord.feature.skill.active.service.ElementalPrismRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMovementService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillProjectileService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
@@ -639,6 +640,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillTaskService activeSkillTaskService;
     private SkillMagicCircleRegistry skillMagicCircleRegistry;
     private TemporarySkillEffectService temporarySkillEffectService;
+    private SkillPackDisplay skillPackDisplay;
     private DamageService damageService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private ConditionService conditionService;
@@ -1220,6 +1222,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (fishingRodUseService != null) {
             fishingRodUseService.shutdown();
+        }
+        if (skillPackDisplay != null) {
+            skillPackDisplay.stop();
         }
         if (activeSkillTaskService != null) {
             activeSkillTaskService.stop();
@@ -2106,16 +2111,19 @@ public final class AstralRecord extends JavaPlugin {
         skillCooldownBossBarService = new SkillCooldownBossBarService(skillService);
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
-        meditationSkillRuntimeService = new MeditationSkillRuntimeService(statusService, particleDisplayService);
-        justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService);
+        skillPackDisplay = new SkillPackDisplay(this, resourcePackService, playerSettingService);
+        skillService.setSkillPackDisplay(skillPackDisplay);
+        meditationSkillRuntimeService = new MeditationSkillRuntimeService(statusService, particleDisplayService, skillPackDisplay);
+        justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService, skillPackDisplay);
         airShiftSkillRuntimeService = new AirShiftSkillRuntimeService(
             statusService,
             justDodgeSkillRuntimeService,
-            particleDisplayService
+            particleDisplayService,
+            skillPackDisplay
         );
-        spellStepSkillRuntimeService = new SpellStepSkillRuntimeService();
-        arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService);
-        archmagePhoenixRuntimeService = new ArchmagePhoenixRuntimeService(particleDisplayService);
+        spellStepSkillRuntimeService = new SpellStepSkillRuntimeService(skillPackDisplay);
+        arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService, skillPackDisplay);
+        archmagePhoenixRuntimeService = new ArchmagePhoenixRuntimeService(particleDisplayService, skillPackDisplay);
         skillService.registerExecutor(new ArchmagePhoenixResonanceExecutor(archmagePhoenixRuntimeService));
         statusService.setPhoenixPresentPredicate(archmagePhoenixRuntimeService::hasLivingPhoenix);
         playerHudService.setArchmagePhoenixRuntimeService(archmagePhoenixRuntimeService);
@@ -2130,7 +2138,8 @@ public final class AstralRecord extends JavaPlugin {
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
         skillMagicCircleRegistry = new SkillMagicCircleRegistry();
         wizardPrismConditionRuntimeService = new WizardPrismConditionRuntimeService(
-            this, statusService, particleDisplayService, skillMagicCircleRegistry
+            this, statusService, particleDisplayService, skillMagicCircleRegistry,
+            skillPackDisplay
         );
         conditionService.setAppliedListener(wizardPrismConditionRuntimeService::onConditionApplied);
         skillService.registerExecutor(new WizardPrismConditionSkillExecutor(wizardPrismConditionRuntimeService));
@@ -2153,7 +2162,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
         skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
         skillService.registerExecutor(new ArcherAirShiftSkillExecutor(airShiftSkillRuntimeService));
-        skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
+        skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService, skillPackDisplay));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         skillService.registerExecutor(new PhantomArcherPassiveExecutor(PhantomArcherPassiveExecutor.ATTUNEMENT_ID));
@@ -2333,7 +2342,7 @@ public final class AstralRecord extends JavaPlugin {
             if (shadeHedgehogDestroyFailure != null) throw shadeHedgehogDestroyFailure;
         });
         var activeSkillTargetingService = new SkillTargetingService(mobService);
-        var activeSkillEffectService = new SkillEffectService(particleDisplayService);
+        var activeSkillEffectService = new SkillEffectService(particleDisplayService, skillPackDisplay);
         activeSkillTaskService = new SkillTaskService(this);
         statusService.setChallengeBuffResetListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
@@ -2382,17 +2391,19 @@ public final class AstralRecord extends JavaPlugin {
         archmagePhoenixRuntimeService.configureCombat(statusService, activeSkillServices,
             skillMagicCircleRegistry,
             () -> skillService.registry().getDefinition(WizardMeteorExecutor.ID));
-        skillService.registerExecutor(new MageBlinkSkillExecutor(activeSkillServices.movement()));
+        skillService.registerExecutor(new MageBlinkSkillExecutor(activeSkillServices.movement(), skillPackDisplay));
         paladinDivineChaserRuntimeService = new PaladinDivineChaserRuntimeService(
             skillService,
             activeSkillServices.combat(),
             activeSkillServices.effects(),
             activeSkillServices.projectiles(),
-            statusService
+            statusService,
+            skillPackDisplay
         );
         activeSkillCombatService.setSkillHitListener(paladinDivineChaserRuntimeService::onSkillHit);
         wizardLightningStrikeRuntimeService = new WizardLightningStrikeRuntimeService(
-            skillService, activeSkillCombatService, activeSkillServices.effects(), statusService
+            skillService, activeSkillCombatService, activeSkillServices.effects(), statusService,
+            skillPackDisplay
         );
         conditionService.addAppliedListener(wizardLightningStrikeRuntimeService::onConditionApplied);
         bastionStrikeSkillRuntimeService = new BastionStrikeSkillRuntimeService(
@@ -2400,7 +2411,8 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillServices.targeting(),
             activeSkillServices.combat(),
             activeSkillServices.effects(),
-            activeSkillServices.tasks()
+            activeSkillServices.tasks(),
+            skillPackDisplay
         );
         damageService.setBastionStrikeSkillRuntimeService(bastionStrikeSkillRuntimeService);
         skillService.registerExecutor(new SwordsmanBastionStrikeExecutor(bastionStrikeSkillRuntimeService));
@@ -2411,7 +2423,8 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillServices.targeting(),
             activeSkillServices.effects(),
             activeSkillServices.tasks(),
-            playerHudService
+            playerHudService,
+            skillPackDisplay
         );
         activeSkillLifecycleService.setAdditionalCleanup(playerId -> {
             seijakuIssenSkillRuntimeService.interrupt(playerId);
@@ -2486,18 +2499,19 @@ public final class AstralRecord extends JavaPlugin {
             skillService, passiveSkillService, statusService, activeSkillTaskService);
         weaponAttackSkillExecutor.setInheritanceBuffService(inheritanceBuffService);
         meleeDualCrestRuntimeService = new MeleeDualCrestRuntimeService(
-            activeSkillServices, statusService, damageService);
+            activeSkillServices, statusService, damageService, skillPackDisplay);
         meleeDualCrestRuntimeService.setPassiveSkillService(passiveSkillService);
         skillService.registerExecutor(new MeleeDualCrestExecutor(meleeDualCrestRuntimeService));
         damageService.setMeleeDualCrestRuntimeService(meleeDualCrestRuntimeService);
         rangedStarweaveRuntimeService = new RangedStarweaveRuntimeService(
             activeSkillServices, inheritanceBuffService, passiveSkillService,
-            inventoryService, skillPermissionService, damageService, particleDisplayService
+            inventoryService, skillPermissionService, damageService, particleDisplayService,
+            skillPackDisplay
         );
         skillService.registerExecutor(new RangedStarweaveFollowupExecutor(rangedStarweaveRuntimeService));
         weaponAttackSkillExecutor.setRangedStarweaveRuntimeService(rangedStarweaveRuntimeService);
         wizardSpectralOrreryRuntimeService = new WizardSpectralOrreryRuntimeService(
-            activeSkillServices, statusService, damageService);
+            activeSkillServices, statusService, damageService, skillPackDisplay);
         wizardSpectralOrreryRuntimeService.setPassiveSkillService(passiveSkillService);
         skillService.registerExecutor(new WizardSpectralOrreryExecutor(wizardSpectralOrreryRuntimeService));
         damageService.setWizardSpectralOrreryRuntimeService(wizardSpectralOrreryRuntimeService);
@@ -2596,7 +2610,7 @@ public final class AstralRecord extends JavaPlugin {
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         itemWeaponAttackService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
         PhantomArcherRuntime.configure(passiveSkillService, skillService, itemWeaponAttackService,
-            activeSkillServices.effects(), activeSkillTaskService, particleDisplayService);
+            activeSkillServices.effects(), activeSkillTaskService, particleDisplayService, skillPackDisplay);
         getServer().getPluginManager().registerEvents(new PhantomArcherWeaponLifecycleListener(), this);
         getServer().getPluginManager().registerEvents(new RangedStarweaveLifecycleListener(rangedStarweaveRuntimeService), this);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);

@@ -90,7 +90,7 @@ Java版は `astralrecord:weapon_attack` の字形を更新し、軌跡・着弾�
 
 - Java版は `astralrecord:skill_effect` のビットマップフォントを使います。字形は `U+E400` からセル番号順に並べます。
 - 統合版は `astralrecord:skill_effect` を使います。`astralrecord:style` はスロット×4＋段階番号、`astralrecord:size` は表示直径を1/16ブロック単位で示します。1枚のアトラスから[レンダーコントローラーとUV対応マテリアル](https://learn.microsoft.com/en-us/minecraft/creator/documents/practices/improvingperformanceandresourceusage#consider-texture-atlasing)でコマを選びます。
-- 配布物には `skill-effects-version.txt` を含めます。互換版は `1` です。
+- 配布物には `skill-effects-version.txt` を含めます。互換版は `1` です。Java版では配布マニフェストの `java.skillEffects` とパックの適用結果を確認します。統合版では Geyser 拡張 1.17.0 と Velocity の AstralRecordProxy 1.4.0 以降が接続単位で対応を通知します。API の配布パックとマニフェストを更新し、プラグインを更新してから再接続してください。
 
 `python scripts/generate-skill-effect-assets.py --check --preview <PNGパス>` で、配布素材の再現性と全スキルの代表コマを確認できます。`--preview-skill <ID>` を追加すると、指定スキルの4段階を各6コマで確認できます。
 

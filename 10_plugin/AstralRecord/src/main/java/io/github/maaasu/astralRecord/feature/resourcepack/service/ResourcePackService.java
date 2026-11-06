@@ -46,6 +46,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaSkillEffects = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockSkillEffects = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
@@ -80,6 +82,7 @@ public class ResourcePackService {
         loadedSunbirdPresentation.remove(player.getUniqueId());
         requestedSunbirdPresentation.remove(player.getUniqueId());
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
+        requestedJavaSkillEffects.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -135,6 +138,7 @@ public class ResourcePackService {
                     requestedGuiThemes.remove(viewer);
                     requestedGameplaySounds.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
+                    requestedJavaSkillEffects.remove(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
                     }
@@ -149,6 +153,9 @@ public class ResourcePackService {
                     }
                     if (pack.weaponAttackProjectiles()) {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
+                    }
+                    if (pack.skillEffects()) {
+                        requestedJavaSkillEffects.add(viewer);
                     }
                     if (pack.profileHud() != null) {
                         requestedJavaProfileHud.put(viewer, pack.profileHud());
@@ -261,6 +268,7 @@ public class ResourcePackService {
                     loadedManagedJavaPacks.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
+                    requestedJavaSkillEffects.remove(viewer);
                 }
                 default -> { }
             }
@@ -350,6 +358,35 @@ public class ResourcePackService {
     public void markBedrockWeaponAttackProjectilesReady(Player player) {
         if (player.isOnline()) {
             readyBedrockWeaponAttackProjectiles.add(player.getUniqueId());
+        }
+    }
+
+    /**
+     * 接続のスキル演出の描画方式を返します。統合版判定はプレイヤーの初期化前にも行います。
+     * @param player 閲覧者
+     * @return 対応版。互換パックが未適用なら NONE
+     */
+    public SkillEffectsClient skillEffectsClient(Player player) {
+        UUID viewer = player.getUniqueId();
+        var astPlayer = AstPlayerCache.get(player);
+        boolean bedrock = astPlayer == null ? isBedrock(player.getName()) : astPlayer.isBedrock();
+        if (bedrock) {
+            return readyBedrockSkillEffects.contains(viewer) ? SkillEffectsClient.BEDROCK : SkillEffectsClient.NONE;
+        }
+        return hasManagedJavaPack(viewer) && requestedJavaSkillEffects.contains(viewer)
+                ? SkillEffectsClient.JAVA : SkillEffectsClient.NONE;
+    }
+
+    /** スキル演出の閲覧者別描画方式です。 */
+    public enum SkillEffectsClient { NONE, JAVA, BEDROCK }
+
+    /**
+     * Proxy から対応パックの通知を受けた統合版接続を記録します。
+     * @param player 通知の対象プレイヤー
+     */
+    public void markBedrockSkillEffectsReady(Player player) {
+        if (player.isOnline()) {
+            readyBedrockSkillEffects.add(player.getUniqueId());
         }
     }
 
@@ -483,6 +520,8 @@ public class ResourcePackService {
         readyBedrockItemTooltips.remove(playerId);
         requestedJavaWeaponAttackProjectiles.remove(playerId);
         readyBedrockWeaponAttackProjectiles.remove(playerId);
+        requestedJavaSkillEffects.remove(playerId);
+        readyBedrockSkillEffects.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
         bedrockActionRingHudRevisions.remove(playerId);
     }

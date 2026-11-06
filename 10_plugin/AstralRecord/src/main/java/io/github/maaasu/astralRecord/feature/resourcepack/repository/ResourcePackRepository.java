@@ -18,7 +18,7 @@ public final class ResourcePackRepository {
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean itemTooltips,
-                           boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud) {
+                           boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -65,6 +65,9 @@ public final class ResourcePackRepository {
                 JsonElement projectiles = java.get("weaponAttackProjectiles");
                 boolean weaponAttackProjectiles = projectiles != null && projectiles.isJsonPrimitive()
                     && projectiles.getAsJsonPrimitive().isString() && "1".equals(projectiles.getAsString());
+                JsonElement effects = java.get("skillEffects");
+                boolean skillEffects = effects != null && effects.isJsonPrimitive()
+                    && effects.getAsJsonPrimitive().isString() && "1".equals(effects.getAsString());
                 JsonElement profile = java.get("profileHud");
                 String profileVersion = profile != null && profile.isJsonPrimitive()
                     && profile.getAsJsonPrimitive().isString() ? profile.getAsString() : "";
@@ -78,7 +81,7 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    itemTooltips, weaponAttackProjectiles, profileHud);
+                    itemTooltips, weaponAttackProjectiles, profileHud, skillEffects);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

@@ -166,7 +166,7 @@ public final class PaladinDivineChaserRuntimeService {
                 null
         );
         UUID targetId = target.id();
-        projectileService.launchAtTarget(
+        projectileService.forSkill(PaladinDivineChaserSkillExecutor.ID, player).launchAtTarget(
                 player,
                 origin,
                 targetId,
@@ -182,8 +182,7 @@ public final class PaladinDivineChaserRuntimeService {
                         DamageElement.NONE,
                         damageRatio
                 ),
-                end -> packDisplay.show(PaladinDivineChaserSkillExecutor.ID,
-                        SkillPackDisplay.Phase.IMPACT, end, 1.3F, player)
+                ignored -> { }
         );
     }
 
