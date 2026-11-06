@@ -26,11 +26,13 @@ public final class SkillIconCatalog {
     private final Map<String, Integer> icons;
     private final String revision;
     private final String hudRevision;
+    private final String bedrockHudRevision;
 
-    private SkillIconCatalog(Map<String, Integer> icons, String revision, String hudRevision) {
+    private SkillIconCatalog(Map<String, Integer> icons, String revision, String hudRevision, String bedrockHudRevision) {
         this.icons = icons;
         this.revision = revision;
         this.hudRevision = hudRevision;
+        this.bedrockHudRevision = bedrockHudRevision;
     }
 
     static int sprite(@Nullable String skillId) {
@@ -78,6 +80,11 @@ public final class SkillIconCatalog {
         return INSTANCE.hudRevision;
     }
 
+    /** 統合版の HUD データ形式とスプライト台帳を合わせた互換性識別子を返します。 */
+    static String bedrockHudRevision() {
+        return INSTANCE.bedrockHudRevision;
+    }
+
     private static SkillIconCatalog load() {
         try (var stream = SkillIconCatalog.class.getResourceAsStream(RESOURCE)) {
             if (stream == null) {
@@ -92,7 +99,9 @@ public final class SkillIconCatalog {
             String revision = HexFormat.of().formatHex(digest.digest(json.getBytes(StandardCharsets.UTF_8)));
             String hudRevision = HexFormat.of().formatHex(digest.digest(("action-ring-hud-v1\n" + json)
                 .getBytes(StandardCharsets.UTF_8)));
-            return new SkillIconCatalog(Map.copyOf(icons), revision, hudRevision);
+            String bedrockHudRevision = HexFormat.of().formatHex(digest.digest(("action-ring-hud-bedrock-v2\n" + json)
+                .getBytes(StandardCharsets.UTF_8)));
+            return new SkillIconCatalog(Map.copyOf(icons), revision, hudRevision, bedrockHudRevision);
         } catch (IOException | NoSuchAlgorithmException exception) {
             throw new IllegalStateException("Cannot read action ring sprite catalog", exception);
         }

@@ -63,8 +63,12 @@ public final class SkillActionRingService {
     private static final double SELECTION_DEAD_ZONE_SQUARED = Math.pow(Math.sin(Math.toRadians(4.0D)), 2);
     private static final double SELECTION_RELEASE_ZONE_SQUARED = Math.pow(Math.sin(Math.toRadians(3.0D)), 2);
     private static final double SELECTION_BOUNDARY_MARGIN = Math.toRadians(3.0D);
-    private static final double VIEW_FOLLOW_DEAD_ZONE_RADIANS = Math.toRadians(30.0D);
-    private static final double VIEW_FOLLOW_MAX_LAG_RADIANS = Math.toRadians(40.0D);
+    private static final double BEDROCK_HUD_FOCUS_DEGREES = 3.0D;
+    private static final double BEDROCK_HUD_RELEASE_DEGREES = 2.0D;
+    private static final double VIEW_FOLLOW_DEAD_ZONE_DEGREES = 30.0D;
+    private static final double VIEW_FOLLOW_MAX_LAG_DEGREES = 40.0D;
+    private static final double VIEW_FOLLOW_DEAD_ZONE_RADIANS = Math.toRadians(VIEW_FOLLOW_DEAD_ZONE_DEGREES);
+    private static final double VIEW_FOLLOW_MAX_LAG_RADIANS = Math.toRadians(VIEW_FOLLOW_MAX_LAG_DEGREES);
     private static final double VIEW_FOLLOW_BLEND = 0.50D;
     private static final double BEDROCK_WORLD_FOLLOW_BLEND = 0.85D;
     private static final double VIEW_FOLLOW_EPSILON_RADIANS = Math.toRadians(0.05D);
@@ -301,7 +305,7 @@ public final class SkillActionRingService {
 
     /** この接続で固定 HUD に対応するパックを使えるかを返します。 */
     private boolean hasScreenHud(UUID playerId, boolean bedrock) {
-        return bedrock ? resourcePackService.hasBedrockActionRingHud(playerId, SkillIconCatalog.hudRevision())
+        return bedrock ? resourcePackService.hasBedrockActionRingHud(playerId, SkillIconCatalog.bedrockHudRevision())
             : resourcePackService.hasActionRingPanel(playerId, SkillIconCatalog.hudRevision());
     }
 
@@ -1094,6 +1098,8 @@ public final class SkillActionRingService {
         private Vector collisionUp;
         private int ticksSinceCollisionCheck;
         private int focusedIndex = -1;
+        private double bedrockHudYaw;
+        private double bedrockHudPitch;
         private int selectedIndex = -1;
         private int renderedSelection = -1;
         private int renderedDimmedSlots = -1;
@@ -1188,6 +1194,8 @@ public final class SkillActionRingService {
                     blockBreakSpeed.setBaseValue(SELECTING_BLOCK_BREAK_SPEED);
                 }
                 session.selectionInstruction = selectionInstruction;
+                session.bedrockHudYaw = eye.getYaw();
+                session.bedrockHudPitch = eye.getPitch();
                 if (hud == null) {
                     session.updateLayout(player);
                     session.spawnEntities(player);
@@ -1310,8 +1318,8 @@ public final class SkillActionRingService {
                 }
             } else if (hud.interrupted()) {
                 return false;
-            } else {
-                // 視線を比較する基準だけを更新します。HUD にはワールド位置や衝突補正を適用しません。
+            } else if (!bedrock) {
+                // Java 版は視線の基準だけを更新し、HUD にワールド位置や衝突補正を適用しません。
                 updateOrientation(player.getEyeLocation().getDirection());
             }
             phaseElapsedTicks++;
@@ -1765,13 +1773,35 @@ public final class SkillActionRingService {
         }
 
         private int resolveFocusedIndex(@NotNull Player player) {
-            Vector view = player.getEyeLocation().getDirection().normalize();
+            Location eye = player.getEyeLocation();
+            if (bedrock && hud != null) {
+                return resolveBedrockHudFocus(eye);
+            }
+            Vector view = eye.getDirection().normalize();
             Vector projected = view.subtract(normal.clone().multiply(view.dot(normal)));
             double deadZone = focusedIndex >= 0 ? SELECTION_RELEASE_ZONE_SQUARED : SELECTION_DEAD_ZONE_SQUARED;
             if (projected.lengthSquared() < deadZone) {
                 return -1;
             }
-            double angle = Math.atan2(projected.dot(right), projected.dot(up));
+            return resolveFocusSector(Math.atan2(projected.dot(right), projected.dot(up)));
+        }
+
+        /** 固定 HUD では上下を大きく向いても、水平入力を枠の選択に使います。 */
+        private int resolveBedrockHudFocus(Location eye) {
+            double horizontal = Math.IEEEremainder(eye.getYaw() - bedrockHudYaw, 360.0D);
+            double vertical = bedrockHudPitch - eye.getPitch();
+            double distance = Math.hypot(horizontal, vertical);
+            double excess = distance - VIEW_FOLLOW_DEAD_ZONE_DEGREES;
+            if (excess > 0.0D) {
+                double shift = Math.max(excess * VIEW_FOLLOW_BLEND, distance - VIEW_FOLLOW_MAX_LAG_DEGREES);
+                bedrockHudYaw = Math.IEEEremainder(bedrockHudYaw + horizontal * shift / distance, 360.0D);
+                bedrockHudPitch -= vertical * shift / distance;
+            }
+            double deadZone = focusedIndex >= 0 ? BEDROCK_HUD_RELEASE_DEGREES : BEDROCK_HUD_FOCUS_DEGREES;
+            return distance < deadZone ? -1 : resolveFocusSector(Math.atan2(horizontal, vertical));
+        }
+
+        private int resolveFocusSector(double angle) {
             double unit = (Math.PI * 2.0D) / slots.size();
             if (focusedIndex >= 0) {
                 double offset = Math.IEEEremainder(angle - focusedIndex * unit, 2.0D * Math.PI);

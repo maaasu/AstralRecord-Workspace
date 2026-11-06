@@ -11,6 +11,7 @@ import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.key.Key;
@@ -38,7 +39,10 @@ final class SkillActionRingHud {
     private static final int TITLE_STAY_TICKS = 22;
     private static final Key FONT = Key.key("astralrecord", "action_ring_hud");
     private static final String REWIND = "\uE400";
-    private static final String BEDROCK_MARKER = "arw1";
+    private static final String BEDROCK_MARKER = "arw2|";
+    private static final String EMPTY_BEDROCK_SLOT = "000";
+    private static final String BEDROCK_CLOSED = BEDROCK_MARKER
+        + EMPTY_BEDROCK_SLOT.repeat(SkillBindPreset.ACTION_RING_SLOT_COUNT + 1) + "|p0|";
     private static final TextColor DIMMED_ICON = TextColor.color(0x9a9eae);
 
     private final AstralRecord plugin;
@@ -213,7 +217,7 @@ final class SkillActionRingHud {
             }
             try {
                 if (bedrock) {
-                    sendText(PacketType.Play.Server.SET_ACTION_BAR_TEXT, Component.text(BEDROCK_MARKER + "|p0|"));
+                    sendText(PacketType.Play.Server.SET_ACTION_BAR_TEXT, Component.text(BEDROCK_CLOSED));
                     sendText(PacketType.Play.Server.SET_ACTION_BAR_TEXT, Component.empty());
                     playerHud.refreshActionBar(owner);
                 } else if (!titleSuperseded) {
@@ -280,13 +284,21 @@ final class SkillActionRingHud {
         output.append(Component.text(overlay ? REWIND + glyph : glyph).font(FONT).color(color));
     }
 
-    /** 統合版の UI が読む文字列を、固定幅の ASCII トークンで組み立てます。 */
+    /** 統合版 UI に固定幅の9個の画像番号と、表示状態のトークンを送ります。 */
     private static String bedrockFrame(Frame frame, int opacity) {
-        StringBuilder output = new StringBuilder(BEDROCK_MARKER).append("|p").append(opacity).append('|');
+        StringBuilder output = new StringBuilder(BEDROCK_MARKER);
         if (frame.confirmed() >= 0) {
-            output.append("|a||q").append(frame.confirmation()).append('|');
-            appendSprite(output, 8, frame.slots().get(frame.confirmed()).sprite());
-            return output.toString();
+            output.append(EMPTY_BEDROCK_SLOT.repeat(SkillBindPreset.ACTION_RING_SLOT_COUNT));
+            appendSprite(output, frame.slots().get(frame.confirmed()).sprite());
+        } else {
+            for (Slot slot : frame.slots()) {
+                appendSprite(output, slot.sprite());
+            }
+            output.append(EMPTY_BEDROCK_SLOT);
+        }
+        output.append("|p").append(opacity).append('|');
+        if (frame.confirmed() >= 0) {
+            return output.append("|a||q").append(frame.confirmation()).append('|').toString();
         }
 
         if (frame.hold()) {
@@ -303,7 +315,6 @@ final class SkillActionRingHud {
         output.append('|');
         for (int index = 0; index < frame.slots().size(); index++) {
             Slot slot = frame.slots().get(index);
-            appendSprite(output, index, slot.sprite());
             output.append("|s").append(index).append(slot.state()).append('|');
             if (slot.cooldownSteps() > 0) {
                 output.append("|g").append(index);
@@ -322,12 +333,9 @@ final class SkillActionRingHud {
         return output.toString();
     }
 
-    private static void appendSprite(StringBuilder output, int slot, int sprite) {
-        if (sprite > 0) {
-            output.append("|i").append(slot).append(sprite / 100);
-            appendTwoDigits(output, sprite % 100);
-            output.append('|');
-        }
+    private static void appendSprite(StringBuilder output, int sprite) {
+        output.append(sprite / 100);
+        appendTwoDigits(output, sprite % 100);
     }
 
     private static void appendTwoDigits(StringBuilder output, int value) {
