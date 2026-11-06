@@ -8,7 +8,9 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -339,9 +341,11 @@ public class PlayerHudView {
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         UUID playerId = player.getUniqueId();
-        boolean pack = resourcePackService.hasManagedJavaPack(playerId);
-        boolean styledJavaHud = resourcePackService.hasJavaProfileHud(playerId);
-        boolean wideJavaMeter = resourcePackService.hasWideJavaCombatMeter(playerId);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        boolean pack = resourcePackService.hasManagedJavaPack(playerId)
+                && (astPlayer == null || !astPlayer.isBedrock());
+        boolean styledJavaHud = pack && resourcePackService.hasJavaProfileHud(playerId);
+        boolean wideJavaMeter = styledJavaHud && resourcePackService.hasWideJavaCombatMeter(playerId);
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
         Component additionalStats = Component.empty()
@@ -354,15 +358,6 @@ public class PlayerHudView {
                     shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity), styledJavaHud))
             .append(conditionActionText(activeConditions))
             .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud) : Component.empty());
-        if (resourcePackService.hasBedrockProfileHud(playerId)) {
-            Component bedrock = BedrockCombatHud.encode(
-                    snapshot.getCurrentHp(), maxHp, snapshot.getCurrentMp(), maxMp,
-                    snapshot.getCurrentEnergy(), maxEnergy, additionalStats);
-            if (bedrock != null) {
-                sendActionBar(player, bedrock);
-                return;
-            }
-        }
         sendActionBar(player, Component.empty()
             .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter, styledJavaHud, wideJavaMeter)
                     : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))

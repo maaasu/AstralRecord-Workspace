@@ -204,15 +204,6 @@ $java = Read-PackEntries $root @(
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
     'font/glyph_E6.png'
-    'textures/ui/astralrecord/combat_hp.png'
-    'textures/ui/astralrecord/combat_mp.png'
-    'textures/ui/astralrecord/combat_eng.png'
-    'textures/ui/astralrecord/combat_meter.png'
-    'textures/ui/astralrecord/profile_level.png'
-    'textures/ui/astralrecord/profile_gold.png'
-    'textures/ui/astralrecord/profile_class.png'
-    'textures/ui/astralrecord/profile_exp.png'
-    'textures/ui/astralrecord/profile_points.png'
     'textures/ui/absorption_heart.png'
     'textures/ui/absorption_heart_half.png'
     'textures/ui/freeze_heart.png'
@@ -262,7 +253,6 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/ui/wither_heart_flash.png'
     'textures/ui/wither_heart_flash_half.png'
     'textures/ui/wither_heart_half.png'
-    'player-progress-hud-version.txt'
     'textures/ui/purpleBorder.png'
     'entity/damage_number.entity.json'
     'animations/damage_number.animation.json'
@@ -348,8 +338,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
 )
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
-if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '2' -or
-    $utf8.GetString($bedrock['player-progress-hud-version.txt']) -cne '2') {
+if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '2') {
     throw 'Invalid profile HUD version marker in resource pack.'
 }
 

@@ -33,9 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -56,7 +54,6 @@ public class PlayerHudService {
     private final SkillTreeService skillTreeService;
     private final PlayerHudView playerHudView;
     private final ResourcePackService resourcePackService;
-    private final Set<UUID> visibleBedrockProfiles = new HashSet<>();
     private CombatDpsTrackerService combatDpsTrackerService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
@@ -170,7 +167,6 @@ public class PlayerHudService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             clearProfileHud(player);
         }
-        visibleBedrockProfiles.clear();
         proxyOwnsTabHeader = false;
         plugin = null;
     }
@@ -363,8 +359,8 @@ public class PlayerHudService {
         Integer originalLevel = astPlayer.getAccount().getRebirthOriginalLevel();
         String shortClassName = ColorCodeUtil.toPlainText(
                 playerClassService.getShortDisplayName(astPlayer.getClassId()), "");
-        boolean overlay = renderProfileHud(
-                player, playerLevel, originalLevel, goldAmount, shortClassName, classLevel, classLevelMax,
+        boolean overlay = renderJavaProfileHud(
+                astPlayer, playerLevel, originalLevel, goldAmount, shortClassName, classLevel, classLevelMax,
                 classExperienceProgress, isSkillTreeWorld, availableClassPoints, availablePassivePoints
         );
         playerHudView.renderSidebar(
@@ -393,8 +389,8 @@ public class PlayerHudService {
     }
 
     /**
-     * 対応パックがある接続へ2行を描画し、使えない場合はサイドバーに委ねます。
-     * @param player 表示対象
+     * 対応パックがあるJava版の接続へ2行を描画します。統合版とパック非対応時はサイドバーに委ねます。
+     * @param astPlayer 表示対象
      * @param playerLevel プレイヤーレベル
      * @param originalLevel 転生前レベル。転生中でなければnull
      * @param goldAmount 所持Gold
@@ -407,8 +403,8 @@ public class PlayerHudService {
      * @param passivePoints 未使用PP
      * @return 個人情報を画面へ表示する場合true
      */
-    private boolean renderProfileHud(
-            Player player,
+    private boolean renderJavaProfileHud(
+            AstPlayer astPlayer,
             int playerLevel,
             @Nullable Integer originalLevel,
             long goldAmount,
@@ -420,31 +416,18 @@ public class PlayerHudService {
             int classPoints,
             int passivePoints
     ) {
+        Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
-        if (!PROFILE_CLASS_NAME.matcher(className).matches()) {
-            clearProfileHud(player);
-            return false;
-        }
-        boolean javaOverlay = resourcePackService.hasJavaProfileHud(playerId);
-        if (!javaOverlay && !resourcePackService.hasBedrockProfileHud(playerId)) {
+        if (astPlayer.isBedrock() || !resourcePackService.hasJavaProfileHud(playerId)
+                || !PROFILE_CLASS_NAME.matcher(className).matches()) {
             clearProfileHud(player);
             return false;
         }
 
         ProfileHudText profile = ProfileHudText.create(playerLevel, originalLevel, goldAmount, className,
                 classLevel, classLevelMax, classProgress, showPoints, classPoints, passivePoints);
-        if (javaOverlay) {
-            playerHudView.setJavaProfile(playerId, profile);
-            return true;
-        }
-
-        var bridge = plugin.getNetworkBridgeService();
-        if (bridge != null && bridge.sendBedrockProfileHud(player, profile.bedrockMessage())) {
-            visibleBedrockProfiles.add(playerId);
-            return true;
-        }
-        clearProfileHud(player);
-        return false;
+        playerHudView.setJavaProfile(playerId, profile);
+        return true;
     }
 
     /**
@@ -455,12 +438,6 @@ public class PlayerHudService {
         UUID playerId = player.getUniqueId();
         if (playerHudView.setJavaProfile(playerId, null) && player.isOnline()) {
             player.sendActionBar(Component.empty());
-        }
-        if (visibleBedrockProfiles.remove(playerId) && player.isOnline() && plugin != null) {
-            var bridge = plugin.getNetworkBridgeService();
-            if (bridge != null) {
-                bridge.sendBedrockProfileHud(player, " ");
-            }
         }
     }
 

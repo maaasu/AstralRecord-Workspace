@@ -40,23 +40,15 @@ final class GeyserPackCapabilities {
      * @return 接続のアクションリング HUD 互換性識別子。非対応なら null
      */
     static String actionRingHudRevision(UUID playerId) {
-        Object value = invoke(playerId, "actionRingHudRevision", new Class<?>[] {UUID.class}, playerId);
+        Object value = invoke(playerId, "actionRingHudRevision");
         return value instanceof String revision && revision.matches("[0-9a-f]{64}") ? revision : null;
     }
 
-    static boolean hasProfileHud(UUID playerId) {
-        return supports(playerId, "hasProfileHudImages");
-    }
-
-    static void sendProfileHud(UUID playerId, String text) {
-        invoke(playerId, "sendProfileHudImages", new Class<?>[] {UUID.class, String.class}, playerId, text);
-    }
-
     private static boolean supports(UUID playerId, String method) {
-        return Boolean.TRUE.equals(invoke(playerId, method, new Class<?>[] {UUID.class}, playerId));
+        return Boolean.TRUE.equals(invoke(playerId, method));
     }
 
-    private static Object invoke(UUID playerId, String method, Class<?>[] types, Object... args) {
+    private static Object invoke(UUID playerId, String method) {
         if (!Geyser.isRegistered()) return null;
         var geyser = GeyserApi.api();
         if (geyser.connectionByUuid(playerId) == null) return null;
@@ -64,7 +56,7 @@ final class GeyserPackCapabilities {
         if (extension == null || !extension.isEnabled()) return null;
         try {
             // 拡張のクラスローダーやバージョンにProxyを直接依存させない。
-            return extension.getClass().getMethod(method, types).invoke(extension, args);
+            return extension.getClass().getMethod(method, UUID.class).invoke(extension, playerId);
         } catch (ReflectiveOperationException | LinkageError ignored) {
             return null;
         }

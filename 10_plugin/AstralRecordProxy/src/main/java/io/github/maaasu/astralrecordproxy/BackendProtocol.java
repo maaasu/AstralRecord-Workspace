@@ -23,8 +23,6 @@ final class BackendProtocol {
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
-    private static final String BEDROCK_PROFILE_HUD = "bedrock_profile_hud_images";
-    private static final String BEDROCK_PROFILE_HUD_READY = "bedrock_profile_hud_images_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
 
     private BackendProtocol() {
@@ -68,13 +66,8 @@ final class BackendProtocol {
                     yield new Chat(messageId, playerId, authorName, channel, displayName, level, className, original, converted);
                 }
                 case SERVER_METRICS -> new ServerMetrics(input.readDouble());
-                case BEDROCK_PROFILE_HUD -> {
-                    String text = input.readUTF();
-                    if (text.isEmpty() || text.length() > 512 || input.available() > 0) {
-                        throw new IOException("Invalid Bedrock profile HUD payload");
-                    }
-                    yield new BedrockProfileHud(text);
-                }
+                // 旧RPGが更新前に受け取った対応通知で送信を続けている場合は破棄する。
+                case "bedrock_profile_hud", "bedrock_profile_hud_images" -> Retired.INSTANCE;
                 case PRIVATE_CHAT -> {
                     UUID playerId = UUID.fromString(input.readUTF());
                     String chatType = input.readUTF();
@@ -118,11 +111,6 @@ final class BackendProtocol {
     /** @return 対象プレイヤーの統合版パックが通常攻撃の飛翔演出に対応していることを伝える通知 */
     static byte[] weaponAttackProjectilesReady() {
         return outgoing(WEAPON_ATTACK_PROJECTILES_READY, null);
-    }
-
-    /** @return 統合版の個人情報HUDに対応した接続を伝える通知 */
-    static byte[] bedrockProfileHudReady() {
-        return outgoing(BEDROCK_PROFILE_HUD_READY, null);
     }
 
     /** @return 対象プレイヤーの Bedrock パックのアクションリング HUD 互換性識別子を伝える通知 */
@@ -194,7 +182,7 @@ final class BackendProtocol {
     }
 
     sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat, DirectMessage,
-        BedrockProfileHud {
+        Retired {
     }
 
     record Connect(String targetServer, int permission) implements Incoming {
@@ -229,7 +217,8 @@ final class BackendProtocol {
     ) implements Incoming {
     }
 
-    record BedrockProfileHud(String text) implements Incoming {
+    enum Retired implements Incoming {
+        INSTANCE
     }
 
     record ServerMetrics(double mspt) implements Incoming {

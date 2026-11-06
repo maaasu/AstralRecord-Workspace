@@ -78,9 +78,7 @@ public final class AstralRecordProxyPlugin {
     private final ProxyServer proxy;
     private final Logger logger;
     private final Path dataDirectory;
-    private static final long PROFILE_HUD_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(5);
     private final Map<UUID, PlayerMetadata> metadata = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> profileHudUpdates = new ConcurrentHashMap<>();
     private final Map<UUID, String> pendingChannelNotifications = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
     private final Map<UUID, AuthorityTransferPreparation> authorityTransferPreparations = new ConcurrentHashMap<>();
@@ -143,8 +141,6 @@ public final class AstralRecordProxyPlugin {
         proxy.getScheduler().buildTask(this, this::refreshManagedSettings)
             .repeat(Duration.ofSeconds(config.settingsRefreshSeconds())).schedule();
         proxy.getScheduler().buildTask(this, this::pollEditDrains)
-            .repeat(Duration.ofSeconds(1)).schedule();
-        proxy.getScheduler().buildTask(this, this::expireProfileHud)
             .repeat(Duration.ofSeconds(1)).schedule();
         proxy.getScheduler().buildTask(this, this::advanceTabAnimation)
             .repeat(Duration.ofMillis(100L)).schedule();
@@ -302,7 +298,6 @@ public final class AstralRecordProxyPlugin {
     public void onServerConnected(ServerConnectedEvent event) {
         if (event.getPreviousServer().isPresent() && proxy.getPluginManager().isLoaded("geyser")) {
             GeyserHeldWeaponReset.reset(event.getPlayer().getUniqueId());
-            clearProfileHud(event.getPlayer().getUniqueId());
         }
         pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
@@ -357,7 +352,6 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
-        profileHudUpdates.remove(event.getPlayer().getUniqueId());
         pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
         if (settings == null) return;
@@ -463,9 +457,6 @@ public final class AstralRecordProxyPlugin {
                     if (GeyserPackCapabilities.hasWeaponAttackProjectiles(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.weaponAttackProjectilesReady());
                     }
-                    if (GeyserPackCapabilities.hasProfileHud(update.playerId())) {
-                        connection.sendPluginMessage(CHANNEL, BackendProtocol.bedrockProfileHudReady());
-                    }
                     String actionRingHudRevision = GeyserPackCapabilities.actionRingHudRevision(update.playerId());
                     if (actionRingHudRevision != null) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.actionRingHudReady(actionRingHudRevision));
@@ -475,10 +466,6 @@ public final class AstralRecordProxyPlugin {
                     broadcastChannelConnection(connection.getPlayer(), sourceServer, settings);
                 }
                 refreshTabEntries();
-            } else if (incoming instanceof BackendProtocol.BedrockProfileHud profileHud) {
-                if (proxy.getPluginManager().isLoaded("geyser")) {
-                    forwardProfileHud(connection, profileHud.text());
-                }
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
                     return;
@@ -1072,49 +1059,6 @@ public final class AstralRecordProxyPlugin {
             .append(Component.text("[", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
             .append(Component.text(converted, NamedTextColor.GOLD, TextDecoration.ITALIC))
             .append(Component.text("]", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-    }
-
-    /**
-     * 現在接続中のバックエンドの個人情報だけを送り、消去と更新をUUID単位で直列化する。
-     * @param connection 通知元のバックエンド接続
-     * @param message 本人へ表示する文字列。空白一文字で解除
-     */
-    private void forwardProfileHud(ServerConnection connection, String message) {
-        Player player = connection.getPlayer();
-        profileHudUpdates.compute(player.getUniqueId(), (playerId, lastUpdate) -> {
-            if (player.getCurrentServer().filter(current -> current == connection).isEmpty()) {
-                return lastUpdate;
-            }
-            GeyserPackCapabilities.sendProfileHud(playerId, message);
-            return " ".equals(message) ? null : System.nanoTime();
-        });
-    }
-
-    /**
-     * サーバー移動で前のバックエンドの個人情報を解除する。
-     * @param playerId 対象プレイヤーUUID
-     */
-    private void clearProfileHud(UUID playerId) {
-        profileHudUpdates.computeIfPresent(playerId, (id, lastUpdate) -> {
-            GeyserPackCapabilities.sendProfileHud(id, " ");
-            return null;
-        });
-    }
-
-    /** バックエンド停止などで更新が途絶えた個人情報を消去する。 */
-    private void expireProfileHud() {
-        long now = System.nanoTime();
-        profileHudUpdates.forEach((playerId, lastUpdate) -> {
-            if (now - lastUpdate >= PROFILE_HUD_TIMEOUT_NANOS) {
-                profileHudUpdates.computeIfPresent(playerId, (id, current) -> {
-                    if (now - current < PROFILE_HUD_TIMEOUT_NANOS) {
-                        return current;
-                    }
-                    GeyserPackCapabilities.sendProfileHud(id, " ");
-                    return null;
-                });
-            }
-        });
     }
 
     private void pollDiscordChat() {

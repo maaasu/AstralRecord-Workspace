@@ -32,6 +32,19 @@ class BackendProtocolTest {
     }
 
     @Test
+    void ignoresRetiredBedrockProfileHudPacketsFromOlderBackends() throws Exception {
+        for (String messageType : new String[] {"bedrock_profile_hud", "bedrock_profile_hud_images"}) {
+            try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                 DataOutputStream output = new DataOutputStream(bytes)) {
+                output.writeUTF(messageType);
+                output.writeUTF("old HUD data");
+
+                assertEquals(BackendProtocol.Retired.INSTANCE, BackendProtocol.decode(bytes.toByteArray()));
+            }
+        }
+    }
+
+    @Test
     void connectCarriesLobbyPermission() throws Exception {
         byte[] payload;
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();

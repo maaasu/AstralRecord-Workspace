@@ -4,13 +4,12 @@ import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
-/** Java版と統合版で共用する個人情報HUDの2行です。 */
-public record ProfileHudText(Component playerLine, Component classLine, String bedrockMessage) {
+/** Java版の個人情報HUDの2行です。 */
+public record ProfileHudText(Component playerLine, Component classLine) {
     private static final Component GAP = Component.text("   ");
     private static final Component LEVEL = Component.text("\ue940 ", NamedTextColor.AQUA);
     private static final Component GOLD = Component.text("\ue941 ", NamedTextColor.GOLD);
@@ -44,13 +43,10 @@ public record ProfileHudText(Component playerLine, Component classLine, String b
             int classPoints,
             int passivePoints
     ) {
-        String levelText = "Lv." + playerLevel;
         String goldText = String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount));
-        Component level = Component.text(levelText, NamedTextColor.WHITE);
+        Component level = Component.text("Lv." + playerLevel, NamedTextColor.WHITE);
         if (originalLevel != null) {
-            String originalLevelText = " (" + originalLevel + ")";
-            levelText += originalLevelText;
-            level = level.append(Component.text(originalLevelText, NamedTextColor.GRAY));
+            level = level.append(Component.text(" (" + originalLevel + ")", NamedTextColor.GRAY));
         }
         Component playerLine = Component.empty()
                 .append(LEVEL).append(level).append(GAP)
@@ -73,22 +69,6 @@ public record ProfileHudText(Component playerLine, Component classLine, String b
                     .append(Component.text(SkillTreePointType.PASSIVE_POINT.displayName() + " "
                             + Math.max(0, passivePoints), NamedTextColor.LIGHT_PURPLE));
         }
-        String points = showPoints
-                ? "CP " + Math.max(0, classPoints) + " / PP " + Math.max(0, passivePoints)
-                : "";
-        // 文字数が固定のASCII欄を先に並べ、クラス名は日本語を含められる末尾の欄へ渡します。
-        // 幅と埋め文字はBedrockパックの astralrecord_profile_hud 定義に対応します。
-        String bedrockMessage = (showPoints ? "|p1|" : "|p0|")
-                + padBedrockField(levelText, 28)
-                + padBedrockField(goldText + " G", 28)
-                + padBedrockField(percent + "%", 4)
-                + padBedrockField(points, 30)
-                + LegacyComponentSerializer.legacySection().serialize(classDisplay);
-        return new ProfileHudText(playerLine, classLine, bedrockMessage);
-    }
-
-    /** ASCII欄の末尾を描画時に除去する埋め文字で固定幅にします。 */
-    private static String padBedrockField(String text, int width) {
-        return text + "~".repeat(width - text.length());
+        return new ProfileHudText(playerLine, classLine);
     }
 }

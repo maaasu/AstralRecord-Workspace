@@ -32,7 +32,7 @@ record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean gameplaySounds, boolean sunbird,
     boolean sunbirdMotion, Set<Integer> heldWeaponModels,
-    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips, boolean profileHud,
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
     String actionRingHudRevision
 ) {
     private static final String ROOT = "../resource-packs/";
@@ -77,14 +77,6 @@ record DamagePack(
         "textures/entity/weapon_attack/bow_trail.png", "textures/entity/weapon_attack/wand_trail.png",
         "textures/entity/weapon_attack/staff_trail.png", "textures/entity/weapon_attack/bow_impact.png",
         "textures/entity/weapon_attack/wand_impact.png", "textures/entity/weapon_attack/staff_impact.png"
-    );
-    private static final List<String> PROFILE_HUD_ENTRIES = List.of(
-        "ui/hud_screen.json", "ui/astralrecord_hud.json",
-        "textures/ui/astralrecord/profile_level.png", "textures/ui/astralrecord/profile_gold.png",
-        "textures/ui/astralrecord/profile_class.png", "textures/ui/astralrecord/profile_exp.png",
-        "textures/ui/astralrecord/profile_points.png",
-        "textures/ui/astralrecord/combat_hp.png", "textures/ui/astralrecord/combat_mp.png",
-        "textures/ui/astralrecord/combat_eng.png", "textures/ui/astralrecord/combat_meter.png"
     );
     private static final List<String> SUNBIRD_ENTRIES = List.of(
         "entity/sunbird.entity.json", "animations/sunbird.animation.json",
@@ -140,7 +132,6 @@ record DamagePack(
             boolean sunbirdMotion;
             boolean worldDisplay;
             boolean itemTooltips;
-            boolean profileHud;
             String actionRingHudRevision;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
@@ -174,8 +165,6 @@ record DamagePack(
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
                     && hasVersionOne(zip, "item-tooltips-version.txt");
-                profileHud = hasVersion(zip, "player-progress-hud-version.txt", '2')
-                    && PROFILE_HUD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 actionRingHudRevision = readActionRingHudRevision(zip);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
@@ -191,7 +180,7 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
                 weaponAttackProjectiles, gameplaySounds, sunbird, sunbirdMotion, heldWeaponModels, itemModels, actionRingSprites,
-                worldDisplay, itemTooltips, profileHud, actionRingHudRevision);
+                worldDisplay, itemTooltips, actionRingHudRevision);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
@@ -216,16 +205,12 @@ record DamagePack(
     }
 
     private static boolean hasVersionOne(ZipFile zip, String path) throws IOException {
-        return hasVersion(zip, path, '1');
-    }
-
-    private static boolean hasVersion(ZipFile zip, String path, char expected) throws IOException {
         var version = zip.getEntry(path);
         if (!present(version) || version.getSize() != 1) {
             return false;
         }
         try (var input = zip.getInputStream(version)) {
-            return input.read() == expected && input.read() == -1;
+            return input.read() == '1' && input.read() == -1;
         }
     }
 
