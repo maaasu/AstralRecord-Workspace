@@ -2,7 +2,7 @@
 
 ## 実装方針
 
-共通操作アイコンは明るい金縁と濃い青緑の面で浮き上がるように描く。ダミーと仕切りは金縁のない暗い凹面に揃え、無効・処理中・未設定はその面に状態記号を表示する。矢印・戻る・閉じる・確定・取消・数量増減の形、名前、説明は既存表示を維持する。
+矢印・戻る・閉じる・確定・取消・数量増減は明るい金縁で共通操作と分かるようにする。メニューと設定項目は機能ごとに輪郭と色を変える。ダミーと仕切りのモデルを透過させ、背景の枠をそのまま見せる。無効・処理中・未設定と保存案内は暗い凹面と記号で区別する。
 
 専用アイコンの正本は `gui-icons.json`。同じ内容を RPG Plugin の `src/main/resources/gui-icons.json` へ同梱し、`shared/gui/GuiResourcePackIcons.java` が一度だけ読み込む。ビルドは Java の素材別振り分け、Bedrock のカタログ・アイコンを生成する。素材は変更せず、GUI 用として新規生成したコントロールの `custom_model_data.floats[0]` だけを設定する。数量・名前・説明・PDC・プロファイル・他の component は保持する。
 
@@ -10,7 +10,7 @@
 
 赤・黄緑のコンクリートは「取消・確定」と「減らす・増やす」の双方で使われる。素材だけでは役割を推測せず、`ConfirmDialogView`、`GoldAmountSettingGui`、`MarketGui` の該当位置で明示する。ビルダーの赤い羊毛は選択位置、ダンジョン地図の黄緑ガラス板はクリア済みの部屋なので、これらを確認ボタンへ変更しない。
 
-Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトルのフォント字形で重ねる。対象は Plugin 管理の1～6行チェストで、対応する管理パックの適用成功を確認できた接続に限定する。元の Inventory・holder・内容・スロット番号・クリックやドラッグの処理は維持する。パック未適用、旧パック、統合版、ANVIL、通常のプレイヤーインベントリでは元のタイトルを使う。
+Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトルのフォント字形で重ねる。対象は Plugin 管理の1～6行チェストで、対応する管理パックの適用成功を確認できた接続に限定する。元の Inventory・holder・内容・スロット番号・クリックやドラッグの処理は維持する。パック未適用、旧パック、統合版、ANVIL、通常のプレイヤーインベントリでは元のタイトルを使う。通常のサバイバルインベントリの背景は、Java 版では専用テクスチャ、統合版では Classic・Pocket の通常画面に専用パネルを指定して描画する。
 
 ## インベントリ GUI の棚卸し
 
@@ -42,7 +42,7 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 | パーティー | 状況・招待、掲示板、メンバー操作、募集設定 | `feature/party/gui/PartyGui.java`、`PartyBoardGui.java`、`PartyMemberActionGui.java`、`PartyRecruitmentSettingsGui.java` | 共通対応。プレイヤーの顔を維持 |
 | 募集文入力 | 金床を使った募集内容の文字入力 | `feature/party/gui/PartyRecruitmentMessageAnvilGui.java` | 専用チェスト背景の対象外。金床のテキスト欄・入力・確定の標準操作を維持 |
 | ペット | 飼育員、ペット復活 | `feature/pet/gui/PetGui.java` | 共通対応。ペットとオーブの内容表示を維持 |
-| プレイヤー設定 | Java の設定一覧 | `feature/playersetting/gui/PlayerSettingGui.java` | Java のチェストを共通対応。統合版は後述のネイティブフォーム |
+| プレイヤー設定 | Java の設定一覧 | `feature/playersetting/gui/PlayerSettingGui.java` | Java の設定15項目と保存案内に専用アイコンを表示。統合版は後述のネイティブフォーム |
 | 転生 | 転生、転生開始確認、転生終了確認 | `feature/rebirth/gui/RebirthGui.java` | 共通対応、共通確認ボタン |
 | 転送装置 | 転送先一覧 | `feature/teleporter/gui/TeleporterGui.java` | 共通対応。マスター指定の転送先名・アイコンを維持 |
 | ワールド転送 | 管理者ワールド転送、インスタンス受付転送、種別選択、オーバーワールド転送 | `feature/world/gui/AdminWorldTeleportGui.java`、`InstanceTeleportGui.java`、`OverworldTeleportGui.java` | 管理者画面を含めて共通対応。選択条件・権限は変更しない |
@@ -56,7 +56,7 @@ Java のチェスト背景は `GuiResourcePackTitle` が送信するタイトル
 
 | UI | 実装 | 対応と境界 |
 |:--|:--|:--|
-| 通常のプレイヤー所持品、ホットバー、クラフト枠のショートカット | `feature/inventory/service/InventoryService.java`、`NormalInventoryLayout.java`、`HotbarRenderer.java`、`feature/menu/view/CraftShortcutView.java` | 共通アイコン生成を使うショートカット・スクロール操作へ専用アイコンを適用。所持品のスロットやモデルを維持。プレイヤーインベントリ全体のバニラテクスチャは上書きしない。統合版で既存仕様上無効なクラフトショートカットを新規に有効化しない |
+| 通常のプレイヤー所持品、ホットバー、クラフト枠のショートカット | `feature/inventory/service/InventoryService.java`、`NormalInventoryLayout.java`、`HotbarRenderer.java`、`feature/menu/view/CraftShortcutView.java` | 共通アイコン生成を使うショートカット・スクロール操作へ専用アイコンを適用。所持品のスロットやモデルを維持。Java の通常画面は `textures/gui/container/inventory.png`、統合版は Classic・Pocket の通常画面で専用の背景を使用。装備・クラフト・所持品のスロットと既存の操作を維持 |
 | GUI の下段専用表示 | `shared/gui/playerinventory/PlayerInventoryOverlaySupport.java`、`shared/gui/hotbar/HotbarShortcutClickSupport.java` | 既存の holder 契約、表示復元、BAG スクロール・ホットバー操作を維持。専用背景のために実所持品をダミーへ置換しない |
 | 統合版プレイヤー設定フォーム | `feature/playersetting/gui/PlayerSettingGui.java#createBedrockForm`、`shared/gui/GuiOpenSupport.java#showDialog` | Paper Dialog の真偽値と選択欄、保存・取消を使用。Geyser が解釈するネイティブフォームで、今回のチェスト背景字形は使わない。フォーム基盤そのものを変える Bedrock `ui/*.json` 上書きは追加しない |
 | ワールド上のスキルツリー | `feature/skilltree/service/SkillTreeVisualizer.java`、`SkillTreePacketDisplay.java`、`SkillTreeService.java` | 単一スキルを付与するノードの ItemDisplay に共通スキルアイコンを適用。その他のノードにはノードのアイコンを使う。統合版の線には粒子代替がある |
@@ -74,7 +74,7 @@ Java の独自タイトルフォントは統合版のチェストへ同じ座標
 
 検証結果は、パックの JSON・参照・決定的ビルド、Plugin のコンパイルと既存検証、実サーバー上のパケット・アイテム確認、Java/統合版の実クライアント目視を区別して記録する。PNG のプレビューやパケット受信だけで、実画面の視認性と操作感まで検証済みとは扱わない。個別の実施結果は作業完了時の検証記録に従う。
 
-2026-11-06の確認結果:
+チェスト背景と共通アイコンの初回導入時の確認結果
 
 | 検証 | 結果 |
 |:--|:--|

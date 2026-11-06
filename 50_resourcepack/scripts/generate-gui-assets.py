@@ -36,6 +36,14 @@ COLORS = {
     "S": (140, 164, 170, 255),
     "s": (96, 121, 133, 255),
     "W": (229, 235, 215, 255),
+    "B": (127, 196, 245, 255),
+    "b": (60, 115, 172, 255),
+    "P": (205, 164, 251, 255),
+    "p": (119, 82, 168, 255),
+    "O": (230, 151, 76, 255),
+    "o": (148, 85, 44, 255),
+    "M": (159, 214, 111, 255),
+    "m": (75, 125, 69, 255),
 }
 BUTTON_COLORS = {
     "0": COLORS["."],
@@ -54,7 +62,8 @@ RECESSED_COLORS = {
     "4": (62, 76, 81, 255),
     "5": (46, 57, 63, 255),
 }
-RECESSED_ROLES = {"disabled", "frame", "panel", "processing", "unset"}
+RECESSED_ROLES = {"disabled", "processing", "unset", "setting_save_guide"}
+FILLER_ROLES = ("frame", "panel")
 
 # Patterns are centered in the inner 10x10 design area. Shapes communicate the
 # action independently of color; no text glyphs depend on client language.
@@ -95,70 +104,6 @@ PATTERNS: dict[str, tuple[str, ...]] = {
         "....S.....", "...S.S....", "..S...S...", ".S.....S..", "S.......S.",
         ".S.....S..", "..S...S...", "...S.S....", "....S.....",
     ),
-    "menu": (
-        ".HHHHHHHH.", ".HWWWWWWG.", ".GTTTWWWG.", ".GWWWWWWG.", ".GTTTTTWG.",
-        ".GWWWWWWG.", ".GTTTTTWG.", ".GGGGGGGG.",
-    ),
-    "profile": (
-        "...HHHH...", "..HWWWWG..", "..HWWWWG..", "...GGGG...", "....TT....",
-        "..LTTTTT..", ".LTTTTTTT.", ".TTTTTTTT.", ".TTTTTTTT.",
-    ),
-    "quest": (
-        ".HHHHHHH..", ".HWWWWWHG.", ".HWWGWWGG.", ".HWWGWWWG.", ".HWWGWWWG.",
-        ".HWWWWWWG.", ".HWWGWWWG.", ".HWWWWWWG.", ".GGGGGGGG.",
-    ),
-    "settings": (
-        "...HHHH...", ".HHHssHHH.", ".HssSSssH.", "HHsTTTTsHH", "HssT..TssH",
-        "GssT..TssG", "GGsTTTTsGG", ".GssSSssG.", ".GGGssGGG.", "...GGGG...",
-    ),
-    "equipment": (
-        "...HHHH...", "..HWWWWG..", ".HWWWWWWG.", ".HWTTTTWG.", ".HWTTTTWG.",
-        ".HG....GG.", ".HG....GG.", ".GG....GG.",
-    ),
-    "trash": (
-        "...HHHH...", ".HHHHHHHH.", "..GTTTTG..", "..GTGTGG..", "..GTGTGG..",
-        "..GTGTGG..", "..GTGTGG..", "..GGGGGG..",
-    ),
-    "guide": (
-        ".HHHH.HHH.", "HWWWHHWWWH", "HWTTGHWTTG", "HWWWGHWWWG", "HWTTGHWTTG",
-        "HWWWGHWWWG", "HWWWGHWWWG", ".GGGG.GGG.", "....GG....",
-    ),
-    "warp": (
-        "...HHHH...", "..HTTTTG..", ".HT....TG.", ".HT.TT.TG.", ".HT.TL.TG.",
-        ".HT.TT.TG.", ".HT....TG.", ".GTTTTTTG.", ".GGGGGGGG.",
-    ),
-    "adventure": (
-        "....H.....", "...HTH....", "..HTTTH...", ".HTTTTTH..", "HTTTWGGGH.",
-        ".HTTGGGH..", "..HTGGH...", "...HGH....", "....G.....",
-    ),
-    "mail": (
-        ".HHHHHHHH.", ".HWWWWWWG.", ".HHWWWWGG.", ".HWHWWGWG.", ".HWWGGWWG.",
-        ".HWWWWWWG.", ".HWWWWWWG.", ".GGGGGGGG.",
-    ),
-    "skill": (
-        "....L.....", "....LT....", ".L..LT..L.", "..LLLLLT..", "LLLLWTTTTT",
-        "..LTTTTT..", ".L..TT..T.", "....TT....", "....T.....",
-    ),
-    "currency": (
-        "...HHHH...", "..HWWWWG..", ".HWGGWWWG.", ".HWG.GWWG.", ".HWG.GWWG.",
-        ".HWG.GWWG.", ".HWWGGWWG.", "..GWWWGG..", "...GGGG...",
-    ),
-    "party": (
-        "..HH..LL..", ".HWWGLTTT.", ".HWWGLTTT.", "..GG..TT..", "..........",
-        ".HHHHLLLL.", "HWWWWTTTTT", "HWWWWTTTTT", ".GGGGTTTT.",
-    ),
-    "players": (
-        "....HH....", ".LLHWWGRR.", ".TTLWWGRR.", "....GG....", ".LL.HH.RR.",
-        "LTTLWWGRRR", "TTTHWWGRRR", "TTTHWWGRRR", "...GGGG...",
-    ),
-    "inventory": (
-        "...HHHH...", "...H..G...", "..HHHHHH..", ".HTTTTTTG.", ".HTTTTTTG.",
-        ".HTHHHHTG.", ".HTHTGHTG.", ".HTHHHHTG.", "..GGGGGG..",
-    ),
-    "storage": (
-        "..HHHHHH..", ".HWWWWWWG.", ".HWGGGGWG.", ".HGGGGGGG.", ".HWWWGWWG.",
-        ".HWWGHWWG.", ".HWWWGWWG.", ".GGGGGGGG.",
-    ),
     "increase": (
         "...LLL....", "...LLL....", "...LTT....", "LLLLTTTTT.", "LLTTTTTTT.",
         "LLTTTTTTT.", "...TTT....", "...TTT....", "...TTT....",
@@ -170,19 +115,162 @@ PATTERNS: dict[str, tuple[str, ...]] = {
 }
 
 
+# Larger silhouettes and a role-specific palette distinguish menu and setting items.
+PICTOGRAMS: dict[str, tuple[str, ...]] = {
+    "menu": (
+        "Bbbb.TTTT", "Bbbb.TLLT", "Bbbb.TTTT", ".........",
+        "GGGG.Pppp", "GHHG.Pppp", "GGGG.Pppp",
+    ),
+    "profile": (
+        "....BBBB....", "...BBWWBb...", "...BWWBBb...", "...bBBBbb...",
+        "....bbb.....", "..BBBBBBBB..", ".BBLLLLBBBB.", "BBLLLLTBBBBb",
+        "BLLLLTTBBBbb", "bbbbbbbbbbbb",
+    ),
+    "quest": (
+        "..rrrrrrr..", "..rRRRRrR..", "..rRWWRrR..", "..rRWWRrR..",
+        "..rRWWRrR..", "..rRRRRrR..", "..rRWWRrR..", "..rRRRRrR..",
+        "..rRRRRrR..", "..rRR.RrR..", "..rr...RR..",
+    ),
+    "settings": (
+        "...SS.SS...", "...WW.SS...", ".SSWWWSSSS.", "SWWWWSSSSSS",
+        "SWWW...SSSS", ".WW..B..SS.", "SWW.BBB.SSS", "SWSS...SSSS",
+        ".SSSSSSSSS.", "...SS.SS...",
+    ),
+    "equipment": (
+        "..SS....SS..", ".WWSS..SSSS.", "WWSWWWWSSSSS", "WW.WWSSSS.SS",
+        "...WWSSSS...", "...WWSSSS...", "...WWSSSS...", "...WWSSSS...",
+        "...WWSSSS...", "...SSSSSS...",
+    ),
+    "trash": (
+        "....SSS....", "..SSSSSSS..", ".SWWWWWWSS.", "..mMMMMMm..",
+        "..mMsMsMm..", "..mMsMsMm..", "..mMsMsMm..", "..mMMMMMm..",
+        "...mmmmM...",
+    ),
+    "guide": (
+        ".HWWWHWWWH.", "oHHHHGHHHHp", "oHWWHGHWWHp", "oHWGHGHGGHp",
+        "oHWWGGHWWGp", "oHWWGHWWWHp", "oHHHGGHHHGp", ".ooGGGpppp.",
+        ".....Pp....",
+    ),
+    "warp": (
+        ".....TT.....", "...TLLLLT...", "..TLT..TLT..", ".TLT....TLT.",
+        ".LT......TL.", ".LT...H..TL.", ".LT...HH.TL.", ".LT.HHHHHTL.",
+        ".TLT..HHTL.", "..TLT.HLT..", "...TLLLLT...", ".....TT.....",
+    ),
+    "adventure": (
+        "....HHH....", "..HHBBbHH..", ".HBBWWBBbH.", ".HBBBWrBbH.",
+        "HBBBWrRBbbG", "HBBWrRRbbbG", "HBBWWRbbbbG", ".HBWbbbbbG.",
+        ".HbbbbbbbG.", "..GGbbbGG..", "....GGG....",
+    ),
+    "mail": (
+        ".HWWWWWWWWH.", "HGGWWWWWWGGH", "HWHGWWWWGHWH", "HWWHGGGGHWWH",
+        "HWWWHooHWWWH", "HWWWRrrRWWWH", "HWWWRrrRWWWH", "GGGGGRRGGGGG",
+        ".oooooooooo.",
+    ),
+    "skill": (
+        "......LL...", ".....LLT...", "....LLT....", "...LLTT....",
+        "..LLTTTTT..", ".LLLLLTT...", ".....TT....", "....TT.....",
+        "...TT......", "..T........",
+    ),
+    "currency": (
+        "......HHHH..", ".....HGGGOH.", ".....HGHHOG.", "..HHHHHGOGG.",
+        ".HGGGOHOGG..", ".HGHGOGGGoo.", ".HGHGOG.ooo.", ".HGGOOG.....",
+        "..GGGG......", "..OOOO......",
+    ),
+    "party": (
+        "..PP....BB..", ".PHHP..BWWB.", ".PHHP..BWWB.", "..pp....bb..",
+        ".PPPP..BBBB.", "PPPPp.BBBBbb", "PPPpp.BBBbbb", "ppppp.bbbbbb",
+    ),
+    "players": (
+        ".BBBBBBBBBB.", ".BWWWWWWWWb.", ".BPPWbbbbWb.", ".BppWWWWWWb.",
+        ".BWWWWWWWWb.", ".BLTWbbbbWb.", ".BTTWWWWWWb.", ".BWWWWWWWWb.",
+        ".BOGWbbbbWb.", ".BooWWWWWWb.", ".bbbbbbbbbb.",
+    ),
+    "inventory": (
+        "....OOO....", "...Oo.oO...", "...OOOOO...", "..OoOOOoO..",
+        ".OOoOOOoOO.", ".OoOOOOOoO.", ".OoGGGGGoO.", ".OoGHHHGoO.",
+        ".OoGGGGGoO.", ".ooooooooo.",
+    ),
+    "storage": (
+        "..OOOOOOOO..", ".OGGGGGGGGO.", "OGOOOOOOOOGO", "GGGGGGGGGGGG",
+        "ooOOOHHOOOoo", "oOOOOHGOOOOo", "oOOOOOOOOOOo", "oOoOOOOOOoOo",
+        "oooooooooooo",
+    ),
+    "setting_damage_log": (
+        "...HHHHHHH..", "..HWWWWWWGH.", "..HWbbWWWGH.", ".rHWbWWWWGH.",
+        "rRHWbWWWWGH.", "rRHWbWbWWGH.", ".RHWbWbWbGH.", "..HWWWWWWGH.",
+        "..GGGGGGGGG.",
+    ),
+    "setting_damage_size": (
+        "..BB......B.", ".BBBB....BB.", "BB..BB...BB.", "BB..BB...BB.",
+        "BBBBBB...BB.", "BB..BB...BB.", "BB..BB...BB.", "............",
+        "....HHHH....", ".....HH.....",
+    ),
+    "setting_damage_message": (
+        ".BBBBBBBBBB.", "BWWWWWWWWWWb", "BWbbbbbbbbWb", "BWWWWWWWWWWb",
+        "BWbbbbbWWWWb", "BWWWWWWWWWWb", ".bbbbbbbbbb.", "...bb.......",
+        "..b.........",
+    ),
+    "setting_particles": (
+        "..H.....P...", ".HHH....P...", "..H....PPP..", "....H...P...",
+        "...HHH..P...", "..HHHHH.....", "...HHH...T..", "....H...TTT.",
+        ".P.......T..",
+    ),
+    "setting_drop_log": (
+        "..HHHHHHHH..", ".HWWWWWWWWG.", ".HWOOOOWWWG.", ".HWOOoWWWWG.",
+        ".HWooOWbWWG.", ".HWWWWWWWWG.", ".HWbbbbbbWG.", ".HWWWWWWWWG.",
+        ".GGGGGGGGGG.",
+    ),
+    "setting_performance": (
+        "....SSSS....", "..SSWWWWSS..", ".SWWWWMWWWS.", ".SWrWWmMMWS.",
+        "SWWWWMmWWWWS", "SWWWMmWWWWWS", "SWWWmWWWWWWS", ".SSSSSSSSSS.",
+    ),
+    "setting_auto_save": (
+        ".BBBBBBBBB..", ".BWSSSSSWBb.", ".BWSSSSSWBBb", ".BBBBBBBBBBb",
+        ".BWWWWWWWWBb", ".BWLLLLLLWBb", ".BWLWWWWLWBb", ".BWLWWWWLWBb",
+        ".BBBBBBBBBBb",
+    ),
+    "setting_buff_sidebar": (
+        ".SSSSSSSSSS.", ".SWWWWLTTTS.", ".SWSSWLTTTS.", ".SWWWWLTTTS.",
+        ".SWSSWMMMMS.", ".SWWWWMMMMS.", ".SWSSWPPppS.", ".SWWWWPPppS.",
+        ".SSSSSSSSSS.",
+    ),
+    "setting_action_ring": (
+        "....TTTT....", "..TTLLLTTT..", ".TTL....LTT.", "TT......LTT.",
+        "TL...HH...LT", "TL...HH...LT", "TL........LT", "TT........TT",
+        ".TT......TT.", "..TTLLLLTT..", "....TTTT....",
+    ),
+    "setting_skill_tree": (
+        "....PPPP....", "....PPPP....", ".....pp.....", "..pppppppp..",
+        "..p......p..", "BBBB....TTTT", "BBBB....TTTT", "..b......T..",
+        "..b......T..", ".bbb....TTT.",
+    ),
+    "setting_night_vision": (
+        "....HHHH....", "...HHH......", "..HHH....B..", ".HHH....BBB.",
+        ".HHH.....B..", ".HHHH.......", "..HHHHH..P..", "...HHHHHH...",
+        "....HHHH....",
+    ),
+    "setting_status_range": (
+        "B..........r", "B.B......r.r", "B.BB....rr.r", "B.BBBBBrrr.r",
+        "B.BB....rr.r", "B.B......r.r", "B..........r",
+    ),
+    "setting_dps": (
+        "..........M.", ".....M...MM.", ".....MM..MM.", ".M..MMM.MMM.",
+        ".MMMMMMMMMM.", ".mmMMmmMMMM.", ".....m...mm.", "SSSSSSSSSSSS",
+    ),
+    "setting_save_guide": (
+        ".SSSSS.SSSSS", ".SWWWWsWWWWS", ".SWWsWsWsWWS", ".SWWWWsWWWWS",
+        ".SWssWsWssWS", ".SWWWWsWWWWS", ".SSSSSsSSSSS",
+    ),
+}
+
+
 def mirror(pattern: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(row[::-1] for row in pattern)
 
 
 PATTERNS["previous"] = mirror(PATTERNS["next"])
 PATTERNS["down"] = PATTERNS["up"][::-1]
-ROLES = (
-    "previous", "next", "up", "down", "close", "back", "confirm", "cancel",
-    "disabled", "frame", "panel", "processing", "unset", "menu", "profile",
-    "quest", "settings", "equipment", "trash", "guide", "warp", "adventure",
-    "mail", "skill", "currency", "party", "players", "inventory", "storage",
-    "increase", "decrease",
-)
+ROLES = (*PATTERNS, *FILLER_ROLES, *PICTOGRAMS)
 
 
 def chunk(kind: bytes, data: bytes) -> bytes:
@@ -201,32 +289,40 @@ def scale(pixels: list[list[tuple[int, int, int, int]]], factor: int) -> list[li
 
 
 def design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
+    if role in FILLER_ROLES:
+        # The item still occupies the slot; only the underlying GUI should show.
+        return [[COLORS["."]] * 16 for _ in range(16)]
+
     recessed = role in RECESSED_ROLES
-    palette = RECESSED_COLORS if recessed else BUTTON_COLORS
-    pixels = [[palette[c] for c in row] for row in source["rows"]]
-    if role == "frame":
-        return pixels
-    if role == "panel":
-        for x in range(4, 12):
-            pixels[7][x] = (34, 43, 48, 255)
-            pixels[8][x] = RECESSED_COLORS["4"]
-        return pixels
-    pattern = PATTERNS[role]
-    if len(pattern) > 10 or any(len(row) > 10 for row in pattern):
-        raise ValueError(f"Glyph outside inner 10x10 design area: {role}")
-    left = (16 - max(map(len, pattern))) // 2
+    pictogram = role in PICTOGRAMS
+    if pictogram and not recessed:
+        pixels = [[COLORS["."]] * 16 for _ in range(16)]
+    else:
+        palette = RECESSED_COLORS if recessed else BUTTON_COLORS
+        pixels = [[palette[c] for c in row] for row in source["rows"]]
+
+    pattern = PICTOGRAMS[role] if pictogram else PATTERNS[role]
+    max_size = 12 if pictogram else 10
+    width = max(map(len, pattern))
+    if len(pattern) > max_size or width > max_size:
+        raise ValueError(f"Glyph outside inner {max_size}x{max_size} design area: {role}")
+    left = (16 - width) // 2
     top = (16 - len(pattern)) // 2
-    # A one-design-pixel shadow, not a blurred or antialiased halo.
+
+    # A contour keeps free-standing symbols legible over both editions' slot colors.
+    # Framed controls keep their smaller, offset shadow.
+    outline = ((0, -1), (-1, 0), (1, 0), (0, 1), (1, 1)) if pictogram else ((1, 1),)
     for y, row in enumerate(pattern):
         for x, c in enumerate(row):
             if c != ".":
-                pixels[top + y + 1][left + x + 1] = COLORS["K"]
+                for dx, dy in outline:
+                    pixels[top + y + dy][left + x + dx] = COLORS["K"]
     for y, row in enumerate(pattern):
         for x, c in enumerate(row):
             if c != ".":
                 pixels[top + y][left + x] = COLORS[c]
-    if not recessed:
-        # Highlight the upper and left rim. The amber lower and right rim gives it depth.
+    if not pictogram and not recessed:
+        # Highlight the upper and left rim of navigation and confirmation buttons.
         for i in range(3, 13):
             pixels[13][i] = BUTTON_EDGE_SHADE
             pixels[i][13] = BUTTON_EDGE_SHADE

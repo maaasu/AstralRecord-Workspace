@@ -1,0 +1,7 @@
+{
+  "namespace": "common",
+  "dialog_background_opaque@dialog_background_common": {
+    "$astralrecord_inventory_panel_texture|default": "textures/ui/dialog_background_opaque",
+    "texture": "$astralrecord_inventory_panel_texture"
+  }
+}

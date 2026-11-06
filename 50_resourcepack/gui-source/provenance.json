@@ -19,7 +19,7 @@
     }
   },
   "adaptation": {
-    "base": "The original 16px stone plate supplies the bevel geometry. Actions have a bright gold rim and deep teal face. Fillers and passive states use a low-contrast slate recess.",
+    "base": "The original 16px stone plate supplies the bevel for navigation and status controls. Menu and setting pictograms are drawn independently. Filler models are fully transparent.",
     "glyphs": "AstralRecord original pixel drawings, defined in scripts/generate-gui-assets.py. No third-party logos, fonts, character art or Minecraft texture pixels are included.",
     "output": "32x32 RGBA PNGs. Each 16px design pixel is expanded to 2x2 with nearest-neighbor sampling; Java and Bedrock outputs are byte-identical.",
     "roles": "Navigation uses gold, confirm uses teal, close and cancel use coral with different silhouettes, disabled uses a lock, unset uses an empty outlined diamond. Color is accompanied by shape.",

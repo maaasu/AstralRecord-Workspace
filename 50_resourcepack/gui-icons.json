@@ -408,6 +408,96 @@
       "role": "decrease",
       "base_item": "minecraft:red_concrete",
       "custom_model_data": 910068
+    },
+    {
+      "id": "gui_setting_damage_log_redstone",
+      "role": "setting_damage_log",
+      "base_item": "minecraft:redstone",
+      "custom_model_data": 910069
+    },
+    {
+      "id": "gui_setting_damage_size_name_tag",
+      "role": "setting_damage_size",
+      "base_item": "minecraft:name_tag",
+      "custom_model_data": 910070
+    },
+    {
+      "id": "gui_setting_damage_message_paper",
+      "role": "setting_damage_message",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910071
+    },
+    {
+      "id": "gui_setting_particles_blaze_powder",
+      "role": "setting_particles",
+      "base_item": "minecraft:blaze_powder",
+      "custom_model_data": 910072
+    },
+    {
+      "id": "gui_setting_drop_log_chest",
+      "role": "setting_drop_log",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 910073
+    },
+    {
+      "id": "gui_setting_performance_clock",
+      "role": "setting_performance",
+      "base_item": "minecraft:clock",
+      "custom_model_data": 910074
+    },
+    {
+      "id": "gui_setting_auto_save_writable_book",
+      "role": "setting_auto_save",
+      "base_item": "minecraft:writable_book",
+      "custom_model_data": 910075
+    },
+    {
+      "id": "gui_setting_buff_sidebar_potion",
+      "role": "setting_buff_sidebar",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 910076
+    },
+    {
+      "id": "gui_equipment_iron_chestplate",
+      "role": "equipment",
+      "base_item": "minecraft:iron_chestplate",
+      "custom_model_data": 910077
+    },
+    {
+      "id": "gui_setting_action_ring_trident",
+      "role": "setting_action_ring",
+      "base_item": "minecraft:trident",
+      "custom_model_data": 910078
+    },
+    {
+      "id": "gui_setting_skill_tree_book",
+      "role": "setting_skill_tree",
+      "base_item": "minecraft:book",
+      "custom_model_data": 910079
+    },
+    {
+      "id": "gui_setting_night_vision_spyglass",
+      "role": "setting_night_vision",
+      "base_item": "minecraft:spyglass",
+      "custom_model_data": 910080
+    },
+    {
+      "id": "gui_setting_status_range_comparator",
+      "role": "setting_status_range",
+      "base_item": "minecraft:comparator",
+      "custom_model_data": 910081
+    },
+    {
+      "id": "gui_setting_dps_clock",
+      "role": "setting_dps",
+      "base_item": "minecraft:clock",
+      "custom_model_data": 910082
+    },
+    {
+      "id": "gui_setting_save_guide_writable_book",
+      "role": "setting_save_guide",
+      "base_item": "minecraft:writable_book",
+      "custom_model_data": 910083
     }
   ]
 }

@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.papermc.paper.dialog.Dialog;
@@ -248,21 +249,24 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     ) {
         inventory.clear();
         fill(inventory);
-        inventory.setItem(SAVE_GUIDE_SLOT, createItem(
+        inventory.setItem(SAVE_GUIDE_SLOT, createSettingItem(
             Material.WRITABLE_BOOK,
+            "setting_save_guide",
             PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5328.getId()),
             List.of()
         ));
         inventory.setItem(DAMAGE_LOG_SLOT, createBooleanItem(
             Material.REDSTONE,
+            "setting_damage_log",
             PlayerSettingKey.DAMAGE_LOG_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, draftValues)
         ));
         DamageNumberSize damageNumberSize = (DamageNumberSize) resolveValue(
             userId, PlayerSettingKey.DAMAGE_NUMBER_SIZE, draftValues
         );
-        inventory.setItem(DAMAGE_NUMBER_SIZE_SLOT, createItem(
+        inventory.setItem(DAMAGE_NUMBER_SIZE_SLOT, createSettingItem(
             Material.NAME_TAG,
+            "setting_damage_size",
             Component.text(PlayerSettingKey.DAMAGE_NUMBER_SIZE.getDisplayNameJa(), NamedTextColor.GOLD),
             List.of(
                 ColorCodeUtil.toComponent(PlayerMsgResource.format(
@@ -273,6 +277,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         ));
         inventory.setItem(DAMAGE_LOG_MESSAGE_SLOT, createBooleanItem(
             Material.PAPER,
+            "setting_damage_message",
             PlayerSettingKey.DAMAGE_LOG_MESSAGE,
             (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE, draftValues)
         ));
@@ -281,31 +286,37 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         ));
         inventory.setItem(DROP_LOG_SLOT, createBooleanItem(
             Material.CHEST,
+            "setting_drop_log",
             PlayerSettingKey.DROP_LOG_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.DROP_LOG_DISPLAY, draftValues)
         ));
         inventory.setItem(PERFORMANCE_INFO_SLOT, createBooleanItem(
             Material.CLOCK,
+            "setting_performance",
             PlayerSettingKey.PERFORMANCE_INFO_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY, draftValues)
         ));
         inventory.setItem(AUTO_SAVE_MESSAGE_SLOT, createBooleanItem(
             Material.WRITABLE_BOOK,
+            "setting_auto_save",
             PlayerSettingKey.AUTO_SAVE_MESSAGE,
             (Boolean) resolveValue(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, draftValues)
         ));
         inventory.setItem(BUFF_SIDEBAR_DISPLAY_SLOT, createBooleanItem(
             Material.POTION,
+            "setting_buff_sidebar",
             PlayerSettingKey.BUFF_SIDEBAR_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, draftValues)
         ));
         inventory.setItem(ARMOR_DISPLAY_SLOT, createBooleanItem(
             Material.IRON_CHESTPLATE,
+            "equipment",
             PlayerSettingKey.ARMOR_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.ARMOR_DISPLAY, draftValues)
         ));
         inventory.setItem(ACTION_RING_HOLD_SELECT_SLOT, createBooleanItem(
             Material.TRIDENT,
+            "setting_action_ring",
             PlayerSettingKey.ACTION_RING_HOLD_SELECT,
             (Boolean) resolveValue(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, draftValues),
             List.of(
@@ -315,28 +326,33 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         ));
         inventory.setItem(SKILL_TREE_COMPACT_DISPLAY_SLOT, createBooleanItem(
             Material.BOOK,
+            "setting_skill_tree",
             PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, draftValues),
             List.of(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5327.getId()))
         ));
         inventory.setItem(NIGHT_VISION_SLOT, createBooleanItem(
             Material.SPYGLASS,
+            "setting_night_vision",
             PlayerSettingKey.NIGHT_VISION,
             (Boolean) resolveValue(userId, PlayerSettingKey.NIGHT_VISION, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
         inventory.setItem(RANDOM_STATUS_RANGE_DISPLAY_SLOT, createBooleanItem(
             Material.COMPARATOR,
+            "setting_status_range",
             PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY, draftValues)
         ));
         inventory.setItem(COMBAT_DPS_DISPLAY_SLOT, createBooleanItem(
             Material.CLOCK,
+            "setting_dps",
             PlayerSettingKey.COMBAT_DPS_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.COMBAT_DPS_DISPLAY, draftValues)
         ));
         inventory.setItem(GUIDE_REMINDER_SLOT, createBooleanItem(
             Material.KNOWLEDGE_BOOK,
+            "guide",
             PlayerSettingKey.GUIDE_REMINDER,
             (Boolean) resolveValue(userId, PlayerSettingKey.GUIDE_REMINDER, draftValues)
         ));
@@ -400,6 +416,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
 
     private @NotNull ItemStack createBooleanItem(
         @NotNull Material material,
+        @NotNull String role,
         @NotNull PlayerSettingKey key,
         boolean enabled,
         @NotNull List<Component> additionalLore
@@ -409,8 +426,9 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Component.text("クリックで切り替え", NamedTextColor.GRAY)
         ));
         lore.addAll(additionalLore);
-        return createItem(
+        return createSettingItem(
             material,
+            role,
             Component.text(key.getDisplayNameJa(), NamedTextColor.GOLD),
             lore
         );
@@ -418,21 +436,32 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
 
     private @NotNull ItemStack createBooleanItem(
         @NotNull Material material,
+        @NotNull String role,
         @NotNull PlayerSettingKey key,
         boolean enabled
     ) {
-        return createBooleanItem(material, key, enabled, List.of());
+        return createBooleanItem(material, role, key, enabled, List.of());
     }
 
     private @NotNull ItemStack createParticleItem(@NotNull ParticleDensity density) {
-        return createItem(
+        return createSettingItem(
             Material.BLAZE_POWDER,
+            "setting_particles",
             Component.text(PlayerSettingKey.PARTICLE_DENSITY.getDisplayNameJa(), NamedTextColor.GOLD),
             List.of(
                 Component.text("現在: " + density.getDisplayNameJa(), NamedTextColor.AQUA),
                 Component.text("クリックで次の密度へ", NamedTextColor.GRAY)
             )
         );
+    }
+
+    private @NotNull ItemStack createSettingItem(
+        @NotNull Material material,
+        @NotNull String role,
+        @NotNull Component name,
+        @NotNull List<Component> lore
+    ) {
+        return GuiResourcePackIcons.apply(createItem(material, name, lore), role);
     }
 
     private record Holder(@NotNull UUID userId) implements HotbarShortcutGuiHolder {

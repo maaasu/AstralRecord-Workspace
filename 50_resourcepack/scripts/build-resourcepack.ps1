@@ -70,6 +70,7 @@ function Write-Pack {
 . (Join-Path $PSScriptRoot 'gui-assets.ps1')
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
+    'assets/minecraft/textures/gui/container/inventory.png'
     'sunbird-presentation-version.txt'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
@@ -141,6 +142,11 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'ui/_ui_defs.json'
     'ui/hud_screen.json'
     'ui/astralrecord_hud.json'
+    'ui/inventory_screen.json'
+    'ui/inventory_screen_pocket.json'
+    'ui/ui_common.json'
+    'textures/ui/astralrecord/inventory_panel.png'
+    'textures/ui/astralrecord/inventory_panel.json'
     'textures/ui/astralrecord/actionbar_plate.png'
     'textures/ui/astralrecord/actionbar_plate.json'
     'textures/ui/astralrecord/actionbar_ornament.png'

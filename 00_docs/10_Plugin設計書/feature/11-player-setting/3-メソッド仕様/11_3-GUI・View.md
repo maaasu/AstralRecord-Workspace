@@ -2,31 +2,31 @@
 
 ## 1. 設定 GUI 表示
 
-統合版では、メインメニューの設定ボタンと `/setting gui` から Geyser が表示するフォームを開く。Java版のスロット順で同じ一般設定を表示し、ダメージ数値の大きさは小・標準・大の選択欄にする。フォームを送信すると、変更した項目だけを本人の現在の設定セッションへ反映する。送信せずに閉じた場合は下書きを破棄する。Java版の保存契約は下記の通り。
+統合版では、メインメニューの設定ボタンと `/setting gui` から Geyser が表示するフォームを開く。Java版のスロット順で同じ一般設定を表示し、ダメージ数値の大きさは小・標準・大の選択欄にする。フォームを送信すると、変更した項目だけを本人の現在の設定セッションへ反映する。送信せずに閉じた場合は下書きを破棄する。設定項目はフォームの入力欄として表示される。Java版の保存契約は下記の通り。
 
 クラス名: `PlayerSettingGui`
 物理名: `open`, `refresh`
 
-54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定項目は左右の枠を避け、戦闘表示を3行目の `20〜24`、外観・画面表示を4行目の `29〜33`、通知・操作などを5行目の `38〜42` に配置する。slot `13` の共通案内で、戻る／閉じる時に保存・反映することを示す。保存済み値と異なるdraftを持つ項目の状態行は、保存済み値と変更予定値を区別する。同じ値へ戻したdraftは変更予定扱いにしない。クリックでは保存・反映せず、従来どおりInventoryCloseで保存する。
+54 slot の「プレイヤー設定」を開き、snapshot または draft 値から icon を描画する。設定15項目と保存案内は専用リソースパックのアイコンを使い、パック未適用時は素材本来の外観で表示する。設定項目は左右の枠を避け、戦闘表示を3行目の `20〜24`、外観・画面表示を4行目の `29〜33`、通知・操作などを5行目の `38〜42` に配置する。slot `13` の共通案内で、戻る／閉じる時に保存・反映することを示す。保存済み値と異なるdraftを持つ項目の状態行は、保存済み値と変更予定値を区別する。同じ値へ戻したdraftは変更予定扱いにしない。クリックでは保存・反映せず、従来どおりInventoryCloseで保存する。
 
 | slot | key / 操作 |
 |---:|---|
 | 13 | 保存・反映タイミングの共通案内 |
 | 20 | `DAMAGE_LOG_DISPLAY` |
-| 21 | `DAMAGE_NUMBER_SIZE`（`NAME_TAG` icon） |
+| 21 | `DAMAGE_NUMBER_SIZE` |
 | 22 | `DAMAGE_LOG_MESSAGE` |
-| 23 | `COMBAT_DPS_DISPLAY`（`CLOCK` icon） |
+| 23 | `COMBAT_DPS_DISPLAY` |
 | 24 | `BUFF_SIDEBAR_DISPLAY` |
 | 29 | `PARTICLE_DENSITY` |
 | 30 | `ARMOR_DISPLAY` |
-| 31 | `NIGHT_VISION`（`SPYGLASS` icon） |
-| 32 | `SKILL_TREE_COMPACT_DISPLAY`（`BOOK` icon） |
-| 33 | `RANDOM_STATUS_RANGE_DISPLAY`（`COMPARATOR` icon） |
+| 31 | `NIGHT_VISION` |
+| 32 | `SKILL_TREE_COMPACT_DISPLAY` |
+| 33 | `RANDOM_STATUS_RANGE_DISPLAY` |
 | 38 | `DROP_LOG_DISPLAY` |
 | 39 | `AUTO_SAVE_MESSAGE` |
-| 40 | `GUIDE_REMINDER`（定期ガイド通知、`KNOWLEDGE_BOOK` icon） |
+| 40 | `GUIDE_REMINDER`（定期ガイド通知） |
 | 41 | `PERFORMANCE_INFO_DISPLAY` |
-| 42 | `ACTION_RING_HOLD_SELECT`（`TRIDENT` icon） |
+| 42 | `ACTION_RING_HOLD_SELECT` |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 

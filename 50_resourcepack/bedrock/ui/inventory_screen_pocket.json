@@ -1,0 +1,6 @@
+{
+  "namespace": "crafting_pocket",
+  "inventory_screen_pocket@crafting_pocket.inventory_screen_pocket_base": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  }
+}

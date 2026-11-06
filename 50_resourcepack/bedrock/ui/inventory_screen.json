@@ -1,0 +1,6 @@
+{
+  "namespace": "crafting",
+  "inventory_screen@crafting.inventory_screen_base": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  }
+}
