@@ -40,7 +40,7 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ## Bedrock の個人情報HUD
 
-接続時に `player-progress-hud-version.txt` の互換版 `1` とHUD・字形ページを含むパックを登録すると、ProxyがRPGへ対応を通知します。RPGから本人の個人情報を受け取るとGeyserのJSON UIデータとして送り、パックが戦闘アクションバーの左上に配置します。接続先が切り替わった場合や更新が途絶えた場合はProxyが表示を解除します。更新後は対応パックを受け取るために再接続してください。
+接続時に `player-progress-hud-version.txt` の互換版 `2` とHUD用の画像を含むパックを登録すると、ProxyがRPGへ対応を通知します。個人情報はGeyser経由で送信し、パックが戦闘アクションバーの左上へ配置します。個人情報とHP・MP・ENGのアイコンはJSON UIで画像として描画します。接続先が切り替わった場合や更新が途絶えた場合はProxyが表示を解除します。更新後は対応パックを受け取るために再接続してください。
 
 ## Bedrock のアイテムツールチップ
 

@@ -286,7 +286,7 @@
           "type": "image",
           "texture": "textures/ui/astralrecord/profile_points",
           "size": [ 9, 9 ],
-          "offset": [ 42, -96 ],
+          "offset": [ -104, -82 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -305,8 +305,8 @@
       {
         "profile_points_value": {
           "type": "label",
-          "size": [ 90, 10 ],
-          "offset": [ 53, -96 ],
+          "size": [ 190, 10 ],
+          "offset": [ -93, -82 ],
           "anchor_from": "bottom_middle",
           "anchor_to": "top_left",
           "layer": 31,
@@ -430,7 +430,7 @@
           "layer": 31,
           "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.3s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
           "text_alignment": "left",
-          "font_scale_factor": 0.86,
+          "font_scale_factor": 0.84,
           "color": [ 1, 0.53, 0.59 ],
           "shadow": true,
           "localize": false
@@ -457,7 +457,7 @@
           "layer": 31,
           "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.15s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
           "text_alignment": "left",
-          "font_scale_factor": 0.86,
+          "font_scale_factor": 0.84,
           "color": [ 0.49, 0.85, 1 ],
           "shadow": true,
           "localize": false
@@ -484,10 +484,31 @@
           "layer": 31,
           "text": "((((('%.12s' * ((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.27s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))) - '~~~~~~~~') - '~~~~') - '~~') - '~')",
           "text_alignment": "left",
-          "font_scale_factor": 0.86,
+          "font_scale_factor": 0.84,
           "color": [ 1, 0.81, 0.39 ],
           "shadow": true,
           "localize": false
+        }
+      },
+      {
+        "combat_hp_meter@hud.astralrecord_combat_meter": {
+          "offset": [ 18, 13 ],
+          "$combat_meter_id": "h",
+          "$combat_meter_color": [ 1, 0.53, 0.59 ]
+        }
+      },
+      {
+        "combat_mp_meter@hud.astralrecord_combat_meter": {
+          "offset": [ 95, 13 ],
+          "$combat_meter_id": "m",
+          "$combat_meter_color": [ 0.49, 0.85, 1 ]
+        }
+      },
+      {
+        "combat_eng_meter@hud.astralrecord_combat_meter": {
+          "offset": [ 172, 13 ],
+          "$combat_meter_id": "e",
+          "$combat_meter_color": [ 1, 0.81, 0.39 ]
         }
       },
       {
@@ -497,12 +518,83 @@
           "anchor_to": "top_middle",
           "size": [ 222, 10 ],
           "offset": [ 0, 15 ],
-          "text": "((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.39s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))",
+          "text": "((($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|') - ('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')))",
           "text_alignment": "center",
           "font_scale_factor": 0.85,
           "shadow": true,
           "localize": false,
           "layer": 31
+        }
+      }
+    ]
+  },
+  "astralrecord_combat_meter": {
+    "type": "panel",
+    "anchor_from": "top_left",
+    "anchor_to": "top_left",
+    "size": [ 40, 2 ],
+    "controls": [
+      {
+        "track": {
+          "type": "image",
+          "size": [ "100%", "100%" ],
+          "texture": "textures/ui/astralrecord/combat_meter",
+          "color": [ 0.18, 0.23, 0.31 ],
+          "layer": 31
+        }
+      },
+      {
+        "fill": {
+          "type": "image",
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "size": [ "$combat_meter_width", 2 ],
+          "texture": "textures/ui/astralrecord/combat_meter",
+          "color": "$combat_meter_color",
+          "$combat_meter_width": 0,
+          "layer": 32,
+          "variables": [
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '1|'))))",
+              "$combat_meter_width": 4
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '2|'))))",
+              "$combat_meter_width": 8
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '3|'))))",
+              "$combat_meter_width": 12
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '4|'))))",
+              "$combat_meter_width": 16
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '5|'))))",
+              "$combat_meter_width": 20
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '6|'))))",
+              "$combat_meter_width": 24
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '7|'))))",
+              "$combat_meter_width": 28
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '8|'))))",
+              "$combat_meter_width": 32
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + '9|'))))",
+              "$combat_meter_width": 36
+            },
+            {
+              "requires": "(not (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) = (('%.49s' * (($astralrecord_actionbar_payload - '§rarhud2|') - 'arhud2|')) - ('|' + $combat_meter_id + 'a|'))))",
+              "$combat_meter_width": 40
+            }
+          ]
         }
       }
     ]

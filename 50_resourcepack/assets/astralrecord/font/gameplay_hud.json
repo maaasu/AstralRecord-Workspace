@@ -1,0 +1,29 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        " ": 3,
+        "\ue950": 1,
+        "\ue955": -1,
+        "\ue951": 2,
+        "\ue956": -2,
+        "\ue952": 4,
+        "\ue957": -4,
+        "\ue953": 8,
+        "\ue958": -8,
+        "\ue954": 16,
+        "\ue959": -16
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/gameplay_hud.png",
+      "height": 36,
+      "ascent": 14,
+      "chars": [
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789vmaxs[]!?+-/()%.,:|\ue940\ue941\ue942\ue943\ue944\ue900\ue901\ue902\ue910\ue911\ue912\ue913\ue914\ue915\ue916\ue917\ue918\ue919\ue91a"
+      ]
+    }
+  ]
+}

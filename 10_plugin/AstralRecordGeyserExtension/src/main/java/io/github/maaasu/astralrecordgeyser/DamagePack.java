@@ -84,7 +84,7 @@ record DamagePack(
         "textures/ui/astralrecord/profile_class.png", "textures/ui/astralrecord/profile_exp.png",
         "textures/ui/astralrecord/profile_points.png",
         "textures/ui/astralrecord/combat_hp.png", "textures/ui/astralrecord/combat_mp.png",
-        "textures/ui/astralrecord/combat_eng.png"
+        "textures/ui/astralrecord/combat_eng.png", "textures/ui/astralrecord/combat_meter.png"
     );
     private static final List<String> SUNBIRD_ENTRIES = List.of(
         "entity/sunbird.entity.json", "animations/sunbird.animation.json",

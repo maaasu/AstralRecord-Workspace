@@ -453,12 +453,20 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($profileEntry.Open())
             try { $profileHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($profileHud -cne '1') { throw 'Unsupported profile HUD version.' }
-            foreach ($asset in @(
+            if ($profileHud -cnotin @('1', '2')) { throw 'Unsupported profile HUD version.' }
+            $profileAssets = @(
                 'assets/astralrecord/font/profile_hud_player.json'
                 'assets/astralrecord/font/profile_hud_class.json'
-                'assets/astralrecord/textures/font/profile_hud.png'
-            )) {
+            )
+            if ($profileHud -ceq '2') {
+                $profileAssets += @(
+                    'assets/astralrecord/font/gameplay_hud.json'
+                    'assets/astralrecord/textures/font/gameplay_hud.png'
+                )
+            } else {
+                $profileAssets += 'assets/astralrecord/textures/font/profile_hud.png'
+            }
+            foreach ($asset in $profileAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing profile HUD asset in Java pack: $asset" }
             }

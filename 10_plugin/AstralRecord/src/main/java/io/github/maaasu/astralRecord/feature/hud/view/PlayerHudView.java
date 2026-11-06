@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ParticipantNameLineFormatt
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.shared.display.CombatHudGlyphs;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -338,15 +339,19 @@ public class PlayerHudView {
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         UUID playerId = player.getUniqueId();
         boolean pack = resourcePackService.hasManagedJavaPack(playerId);
+        boolean styledJavaHud = resourcePackService.hasJavaProfileHud(playerId);
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
-        Component additionalStats = guardActionText(showGuard, currentGuard, maximumGuard)
-            .append(showPhoenix && currentPhoenix > 0.0D
-                    ? separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)) : Component.empty())
+        Component additionalStats = Component.empty()
+            .append(JavaProfileHud.styleStat(guardActionText(showGuard, currentGuard, maximumGuard), styledJavaHud))
+            .append(showPhoenix && currentPhoenix > 0.0D ? JavaProfileHud.styleStat(
+                    separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)), styledJavaHud)
+                    : Component.empty())
             .append(additionalResource)
-            .append(shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity))
+            .append(JavaProfileHud.styleStat(
+                    shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity), styledJavaHud))
             .append(conditionActionText(activeConditions))
-            .append(showDps ? dpsActionText(currentDps) : Component.empty());
+            .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud) : Component.empty());
         if (resourcePackService.hasBedrockProfileHud(playerId)) {
             Component bedrock = BedrockCombatHud.encode(
                     snapshot.getCurrentHp(), maxHp, snapshot.getCurrentMp(), maxMp,
@@ -357,13 +362,13 @@ public class PlayerHudView {
             }
         }
         sendActionBar(player, Component.empty()
-            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter)
+            .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter, styledJavaHud)
                     : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER)
+            .append(pack ? resourceGauge(CombatHudGlyphs.MANA, snapshot.getCurrentMp(), maxMp, MANA_METER, styledJavaHud)
                     : statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER)
+            .append(pack ? resourceGauge(CombatHudGlyphs.ENERGY, snapshot.getCurrentEnergy(), maxEnergy, ENERGY_METER, styledJavaHud)
                     : statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
             .append(additionalStats));
     }
@@ -1003,16 +1008,20 @@ public class PlayerHudView {
      * @param current 現在値
      * @param max 最大値
      * @param color ゲージ色
+     * @param styledJavaHud 新しいJava版専用書体を使う場合true
      * @return パック適用済みの接続向けの表示
      */
-    private Component resourceGauge(Component icon, double current, double max, TextColor color) {
-        int fill = max > 0.0D ? (int) Math.round(Math.clamp(current / max, 0.0D, 1.0D) * 10.0D) : 0;
+    private Component resourceGauge(TextComponent icon, double current, double max, TextColor color, boolean styledJavaHud) {
+        Component meter = CombatHudGlyphs.meter(CombatHudGlyphs.fill(current, max)).color(color);
+        if (styledJavaHud) {
+            return JavaProfileHud.resource(icon, current, max, meter);
+        }
         return icon.append(Component.space())
                 .append(Component.text(String.format(Locale.ROOT, "%.0f", current), NamedTextColor.WHITE))
                 .append(Component.text("/", NamedTextColor.DARK_GRAY))
                 .append(Component.text(String.format(Locale.ROOT, "%.0f", max), NamedTextColor.GRAY))
                 .append(Component.space())
-                .append(CombatHudGlyphs.meter(fill).color(color));
+                .append(meter);
     }
 
     private Component shieldActionText(

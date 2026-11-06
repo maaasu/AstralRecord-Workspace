@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
+import io.github.maaasu.astralRecord.shared.display.CombatHudGlyphs;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -34,7 +35,12 @@ final class BedrockCombatHud {
             return null;
         }
         String additionalText = LegacyComponentSerializer.legacySection().serialize(extra);
-        return Component.text(PREFIX + "|x|" + pad(hpPair) + pad(mpPair) + pad(energyPair) + additionalText);
+        String meters = "|h" + meter(hp, maxHp) + "|m" + meter(mp, maxMp) + "|e" + meter(energy, maxEnergy) + "|";
+        return Component.text(PREFIX + "|x|" + pad(hpPair) + pad(mpPair) + pad(energyPair) + meters + additionalText);
+    }
+
+    private static char meter(double current, double max) {
+        return Character.forDigit(CombatHudGlyphs.fill(current, max), 16);
     }
 
     private static String pair(double current, double max) {

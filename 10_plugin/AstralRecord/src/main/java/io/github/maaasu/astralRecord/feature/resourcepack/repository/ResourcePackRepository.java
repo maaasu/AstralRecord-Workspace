@@ -63,7 +63,7 @@ public final class ResourcePackRepository {
                     && projectiles.getAsJsonPrimitive().isString() && "1".equals(projectiles.getAsString());
                 JsonElement profile = java.get("profileHud");
                 boolean profileHud = profile != null && profile.isJsonPrimitive()
-                    && profile.getAsJsonPrimitive().isString() && "1".equals(profile.getAsString());
+                    && profile.getAsJsonPrimitive().isString() && "2".equals(profile.getAsString());
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
                     itemTooltips, weaponAttackProjectiles, profileHud);
             }

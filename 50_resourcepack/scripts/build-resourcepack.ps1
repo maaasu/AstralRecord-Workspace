@@ -136,7 +136,8 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/heart/withered_hardcore_half.png'
     'assets/minecraft/textures/gui/sprites/hud/heart/withered_hardcore_half_blinking.png'
     'assets/astralrecord/font/profile_hud_class.json'
-    'assets/astralrecord/textures/font/profile_hud.png'
+    'assets/astralrecord/font/gameplay_hud.json'
+    'assets/astralrecord/textures/font/gameplay_hud.png'
     'assets/astralrecord/font/tooltip_icons.json'
     'assets/astralrecord/textures/font/tooltip_icons.png'
     'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png'
@@ -202,7 +203,15 @@ $java = Read-PackEntries $root @(
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
     'font/glyph_E6.png'
-    'font/glyph_E9.png'
+    'textures/ui/astralrecord/combat_hp.png'
+    'textures/ui/astralrecord/combat_mp.png'
+    'textures/ui/astralrecord/combat_eng.png'
+    'textures/ui/astralrecord/combat_meter.png'
+    'textures/ui/astralrecord/profile_level.png'
+    'textures/ui/astralrecord/profile_gold.png'
+    'textures/ui/astralrecord/profile_class.png'
+    'textures/ui/astralrecord/profile_exp.png'
+    'textures/ui/astralrecord/profile_points.png'
     'textures/ui/absorption_heart.png'
     'textures/ui/absorption_heart_half.png'
     'textures/ui/freeze_heart.png'
@@ -338,10 +347,9 @@ $bedrock = Read-PackEntries $bedrockRoot @(
 )
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
-foreach ($entries in @($java, $bedrock)) {
-    if ($utf8.GetString($entries['player-progress-hud-version.txt']) -cne '1') {
-        throw 'Invalid profile HUD version marker in resource pack.'
-    }
+if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '2' -or
+    $utf8.GetString($bedrock['player-progress-hud-version.txt']) -cne '2') {
+    throw 'Invalid profile HUD version marker in resource pack.'
 }
 
 Add-ActionRingPanelEntries $java $bedrock $skillIcons
