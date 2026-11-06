@@ -112,6 +112,8 @@ BE の対応するモデルは `grip` ルートを `[0, 0, 0]` に置き、`q.it
 
 ビルドはモデルの +Y 軸を基準に姿勢を検証します。一人称の主手では通常の腕の回転を合成し、上向き成分を 0.8 以上、奥行き成分の絶対値を 0.5 以下にします。三人称では手のローカル座標で前向きの成分を 0.8 以上にします。形状の先端と刃や弓の面は Blockbench でも確認します。[Mojang の一人称アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/player_firstperson.animation.json)
 
+副手用の補助装備4点は、一人称の手持ち縮尺を 0.62、三人称を 0.86 にしています。Java 版は左右の握りと装飾面の向きを確認し、盾を使用すると手持ち姿勢だけを変える子モデルに切り替えます。統合版は一人称で主手・副手を分け、盾の一人称防御姿勢も切り替えます。盾の姿勢はバニラの握り位置を専用モデルの原点に換算したものです。統合版の三人称ではプレイヤーの手にバインドします。防御時に腕を上げる動作は Geyser 経由の実クライアントで未確認です。 [Mojang の盾アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/shield.animation.json) · [Mojang のプレイヤー制御](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animation_controllers/player.animation_controllers.json)
+
 アクションリングの長押し設定が有効で候補が2つ以上の場合、本人の選択中の武器を仮想トライデントとして送ります。JE は `java_virtual_trident` を指定した武器の待機モデルを表示できます。パック形式 83 以降もオーバーレイで通常のトライデント表示を維持します。
 
 BE では仮想トライデントで長押し入力を受け取りながら、主手の表示を `astralrecord:held_weapon_model` のモデル番号で切り替えます。番号が 0、対象武器の登録外、または副手の場合は、バニラのトライデントのモデルと使用アニメーションを使います。ビルドは `java_virtual_trident: true` の武器だけで切り替えを生成し、Geyser 用カタログに各アイテムの `held_weapon` を出力します。各武器の attachable の `first_person`、`third_person`、`attack` とその条件を再利用します。これらが使う変数は `scripts.pre_animation` で、配列の各要素につき1回の変数代入で設定します。弓の引き絵は実際に弓を使用しているときに適用されます。 [Mojang のトライデント定義](https://github.com/Mojang/bedrock-samples/blob/a3b394c507a6b11a3c6f61552e778ff5c4b89fd2/resource_pack/attachables/trident.entity.json)

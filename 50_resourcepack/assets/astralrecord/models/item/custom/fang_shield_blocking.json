@@ -1,0 +1,73 @@
+{
+  "parent": "astralrecord:item/custom/fang_shield",
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        45,
+        -25,
+        0
+      ],
+      "translation": [
+        0.99949,
+        1.48812,
+        2.19817
+      ],
+      "scale": [
+        0.86,
+        0.86,
+        0.86
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        45,
+        -25,
+        0
+      ],
+      "translation": [
+        0.99949,
+        1.48812,
+        2.19817
+      ],
+      "scale": [
+        0.86,
+        0.86,
+        0.86
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        0,
+        5
+      ],
+      "translation": [
+        0.94087,
+        0.66264,
+        -2.2853
+      ],
+      "scale": [
+        0.62,
+        0.62,
+        0.62
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        0,
+        5
+      ],
+      "translation": [
+        0.94087,
+        0.66264,
+        -2.2853
+      ],
+      "scale": [
+        0.62,
+        0.62,
+        0.62
+      ]
+    }
+  }
+}

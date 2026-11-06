@@ -745,16 +745,16 @@
       "base_item": "minecraft:torch",
       "custom_model_data": 220007,
       "sha256": {
-        "assets/astralrecord/models/item/custom/simple_talisman.json": "46e9e9468b1a43b583cbb6e29bba9c5d20bb7ef8bced0b9ff5891e58e367b30e",
+        "assets/astralrecord/models/item/custom/simple_talisman.json": "8b9a4d99c904cec37b036f46813f72d4ed426fb05973866c2ce7d82ded8c6e60",
         "assets/astralrecord/textures/item/custom/simple_talisman.png": "48ae59ea650b3154819fe1ad2a694fad22ea870d24b211d3e1c4d9affa5cd754",
-        "bedrock/animations/simple_talisman.animation.json": "3c72a4134ec3e44c5c20ea3c00f397e22bd38099a084413116e8a8a53481aeba",
-        "bedrock/attachables/simple_talisman.json": "5909232e9d4f4f9c7d8f00ca7fa8dade09c136e2e24234c2519edec275a8beab",
+        "bedrock/animations/simple_talisman.animation.json": "4654a96871de84c00cfc61b8ee3a82d7993a014f0c9c7b1916156c5b30c52318",
+        "bedrock/attachables/simple_talisman.json": "7b34604ffe96d0554c0871e36541e2eaad0af5c92c90119543325f337d2cec6b",
         "bedrock/models/entity/items/simple_talisman.geo.json": "b9d8224b353d15e19867fdbb2f3031586d24c109c46adffb984982efeb902550",
         "bedrock/textures/entity/items/simple_talisman.png": "48ae59ea650b3154819fe1ad2a694fad22ea870d24b211d3e1c4d9affa5cd754",
         "bedrock/textures/items/simple_talisman.png": "8bbf595724c3d0e982c5b1eb57586ad95405a074b6157c137602cbe4eb7ec477",
         "blockbench/equipment-drafts/simple_talisman.json": "235b449ab25d720191173885432f3af5fc94c02ff3793e89e7c91f87d056efca",
-        "blockbench/items/simple_talisman.bedrock.bbmodel": "fd02c62a4bc69e53bfd9b764c27991b2469a35f0cb968e13c0c27061a1a89bf5",
-        "blockbench/items/simple_talisman.java.bbmodel": "b4be4042514f1f26ad0c21e7e88720de4aff00e94342cb9236116266a18d4ebb"
+        "blockbench/items/simple_talisman.bedrock.bbmodel": "6eda7eea6bfd0c47ece9f85160476daf1ca75c471eda878a0a35defdc5189be0",
+        "blockbench/items/simple_talisman.java.bbmodel": "d99f913af838210928a3dc7ee5d8c7b359f169cddf34b924748ace5da4270609"
       }
     },
     {
@@ -1005,16 +1005,16 @@
       "base_item": "minecraft:flower_banner_pattern",
       "custom_model_data": 220034,
       "sha256": {
-        "assets/astralrecord/models/item/custom/cinder_grimoire.json": "190ab5ad956e18f98a21195998afc4d3370c387ed2f83dc578e98850902bdd6c",
+        "assets/astralrecord/models/item/custom/cinder_grimoire.json": "e9efa5eeccabc243b5c2216cfd0086653691c1651d924fda5eb0c49fcb8484a9",
         "assets/astralrecord/textures/item/custom/cinder_grimoire.png": "65ed712ef8669f0f9a49971e1c4b8e1d199d71929535d55864f8788b2417048d",
-        "bedrock/animations/cinder_grimoire.animation.json": "549be75d9384bddd2937ca35aad8bdd6d8a77d7109ebe47fbd4874e8a0b9d720",
-        "bedrock/attachables/cinder_grimoire.json": "7a7ced71fdce5933ccd79d5072c13d9f4fee49a6e3431fe13f1694be3723c20c",
+        "bedrock/animations/cinder_grimoire.animation.json": "179350462bc2f301b29150e1d689e77833c3b68eaf4d81b700004da31650937b",
+        "bedrock/attachables/cinder_grimoire.json": "77d93f2e5b8aebd01762aac10be831548eb1fc0b5ec16ba54ef9356129058b76",
         "bedrock/models/entity/items/cinder_grimoire.geo.json": "c044dd41b3240b6458f4829f03bacbd91e587a88f9c12f95fe95e144d4ded050",
         "bedrock/textures/entity/items/cinder_grimoire.png": "65ed712ef8669f0f9a49971e1c4b8e1d199d71929535d55864f8788b2417048d",
         "bedrock/textures/items/cinder_grimoire.png": "37efface506a517653b9bc5842880cd0d532ee19912da931f36c152f76a9ecb0",
         "blockbench/equipment-drafts/cinder_grimoire.json": "5bd1684bf70cc8d03abcc8e2034b1f3ce1f780abaaec0006d5e9de903554889d",
-        "blockbench/items/cinder_grimoire.bedrock.bbmodel": "7a0bf296ccc378672d6c15017528ec901674733248b2dee39d6cd72ee9a234d8",
-        "blockbench/items/cinder_grimoire.java.bbmodel": "da9f7514b9c7c16b337976cb337ab82fbbff3278e2307f12e062f56d24886c95"
+        "blockbench/items/cinder_grimoire.bedrock.bbmodel": "286d8fbc2e7c715976ef66f61a29851c3954be3621be4ba3d9babcfb5b4558fb",
+        "blockbench/items/cinder_grimoire.java.bbmodel": "5a4c8d1c4a18b5edd337c95b5a43b3fa0a7364829a58bfdaa0c75de5785401e3"
       }
     },
     {
@@ -1025,16 +1025,17 @@
       "base_item": "minecraft:shield",
       "custom_model_data": 220035,
       "sha256": {
-        "assets/astralrecord/models/item/custom/fang_shield.json": "dd231d91d40e62d4a647221149d0f00a12fc64934e5a5625c7980e022e1090b4",
+        "assets/astralrecord/models/item/custom/fang_shield.json": "96d18424df4e036fe03f0d603a2177c21ed262f09137d02dd8282ebbaf637653",
+        "assets/astralrecord/models/item/custom/fang_shield_blocking.json": "71522146e7c003a9d609634cfe8d7bf0d1ac3a8bc5f93cb69a772c29148f4d4f",
         "assets/astralrecord/textures/item/custom/fang_shield.png": "add4a4b7bf5a50d8253772e6f7b2935176bcd7a4425edb47e9d2d151fe69c215",
-        "bedrock/animations/fang_shield.animation.json": "e4ea772c013da57f3efd724a35d4e415afb3b5b4eeaaa038887bfaaf85d763ae",
-        "bedrock/attachables/fang_shield.json": "de6dcd53d58d9214d974fef4c91fafe914d46a76b46fd070947894594fc64d25",
+        "bedrock/animations/fang_shield.animation.json": "7a510c7726f9e73a2c382aaa99e21c98abb87b297be7b18ca94143bb26da50ab",
+        "bedrock/attachables/fang_shield.json": "042141fd2552c235188a8251694f30a68b4f53b80145f72fb4d411459553a74d",
         "bedrock/models/entity/items/fang_shield.geo.json": "2b0ba2728faf6b0036b35fd9b9bca18e6f83b3d3f2ee0958ee5f72308d539ce3",
         "bedrock/textures/entity/items/fang_shield.png": "add4a4b7bf5a50d8253772e6f7b2935176bcd7a4425edb47e9d2d151fe69c215",
         "bedrock/textures/items/fang_shield.png": "bd025a14ae478fe41f22e53b606076e42d2b6ec5a68d5ac1dd9de1e6905a82fd",
         "blockbench/equipment-drafts/fang_shield.json": "f8e6b7819f9e6d6f6a3441ecb25129d7b7b94466b5339e9087d310da8f710b8a",
-        "blockbench/items/fang_shield.bedrock.bbmodel": "ed18e5968aa864039bc6cf7703d0a807e5efacb506a1ab758f0b443fe2881030",
-        "blockbench/items/fang_shield.java.bbmodel": "d7498674bd7a97d4c06ec01ac526aba0e1771df82277f67dcd389c09c95d3acb"
+        "blockbench/items/fang_shield.bedrock.bbmodel": "34895c5fa55223bb6c6db76d21c9f02a900c6f35186e1dc3a035eb66dffc712e",
+        "blockbench/items/fang_shield.java.bbmodel": "aa30ab025dab4fb3c9a6d7b67597b37bc10de7796f9b31445c8ded2042aa248b"
       }
     },
     {
@@ -1045,16 +1046,16 @@
       "base_item": "minecraft:flower_pot",
       "custom_model_data": 220040,
       "sha256": {
-        "assets/astralrecord/models/item/custom/venom_quiver.json": "c0b9a601161eb0e319b0117b5c9b8f7c23ea23bda68691111962e47d4d655af4",
+        "assets/astralrecord/models/item/custom/venom_quiver.json": "58c534d1500301fbde676ea1ec0e003d64866e8a152ee0d243a32492d7a87411",
         "assets/astralrecord/textures/item/custom/venom_quiver.png": "687d1be033872d5cb4ae6a90b22e626d3507417619c06d72bcc634d4fc353ea7",
-        "bedrock/animations/venom_quiver.animation.json": "c04550ed65954ad2be3216b8b600f3f15548ac6d6999827c71946dd656b6b640",
-        "bedrock/attachables/venom_quiver.json": "7281c19cf71055b32421f078c398412f0511eaf7cc91c3bef1e4ed0596c5acbd",
+        "bedrock/animations/venom_quiver.animation.json": "4a209d1b9965f3c3d7bc7f6595d669c4ccc7e4ed956bcf218395a248c90632fb",
+        "bedrock/attachables/venom_quiver.json": "0ff16a900c70a48de7427445c355dde7c72fec985c2d4370f75f1e9e3879e5bd",
         "bedrock/models/entity/items/venom_quiver.geo.json": "4fbef46d8e17af5122505fb5c1158f231373627c2e940a7f7e222a8338ccadb7",
         "bedrock/textures/entity/items/venom_quiver.png": "687d1be033872d5cb4ae6a90b22e626d3507417619c06d72bcc634d4fc353ea7",
         "bedrock/textures/items/venom_quiver.png": "f171931f1c31b3e64a8925f32cfe2beb718f4a4fc2b0218b65c5d4c0866767ae",
         "blockbench/equipment-drafts/venom_quiver.json": "936a7767fd9e64659210aba9dc1e01b904dab97f1809d8ce20e334d124454721",
-        "blockbench/items/venom_quiver.bedrock.bbmodel": "1d95e41917fb4a0c93fea5fe2cba55a319e83bd4ba59e59399221f1a25b10272",
-        "blockbench/items/venom_quiver.java.bbmodel": "0e20d0b8a9430f698533a55c9621c373d4c07e9319557176803320d8f3580202"
+        "blockbench/items/venom_quiver.bedrock.bbmodel": "1f994693487036719bbebd71c57d664e2cddd9026332c11aa0bce67b20e24e6c",
+        "blockbench/items/venom_quiver.java.bbmodel": "6363a09d6b24d7ebf971bd370339ff7749979180bd281f7889e48a53087a4568"
       }
     },
     {

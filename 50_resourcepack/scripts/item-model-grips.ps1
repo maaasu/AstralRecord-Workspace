@@ -126,11 +126,26 @@ function Confirm-JavaItemGrip {
             $dot / [Math]::Sqrt($headingLengthSquared * $targetLengthSquared) -lt 0.95) {
             throw "$Path $view points away from its target grip direction."
         }
+        if ($null -ne $target.front) {
+            if (!(Test-ItemGripVector $target.front)) { throw "Invalid front direction for $Path $view." }
+            $front = Get-JavaItemHandGrip @($Grip[0], $Grip[1], ($Grip[2] - 1.0)) $display $left
+            $dot = $facingLengthSquared = $frontTargetLengthSquared = 0.0
+            for ($axis = 0; $axis -lt 3; $axis++) {
+                $facing = $front[$axis] - $center[$axis]
+                $dot += $facing * $target.front[$axis]
+                $facingLengthSquared += $facing * $facing
+                $frontTargetLengthSquared += $target.front[$axis] * $target.front[$axis]
+            }
+            $length = [Math]::Sqrt($facingLengthSquared * $frontTargetLengthSquared)
+            if ($length -eq 0.0 -or $dot / $length -lt 0.95) {
+                throw "$Path $view turns the front face away from its target."
+            }
+        }
     }
 }
 
 function Confirm-BedrockItemGrip {
-    param($Geometry, $Description, $Animations, [string] $Id)
+    param($Geometry, $Description, $Animations, [string] $Id, [string] $GripStyle)
 
     $bones = ($Geometry | Where-Object { $_.description.identifier -ceq $Description.geometry.default }).bones
     $grip = @($bones | Where-Object { $_.name -ceq 'grip' })
@@ -158,6 +173,10 @@ function Confirm-BedrockItemGrip {
     if (!$containsGrip) {
         throw "Bedrock geometry for $Id must contain the wrist anchor in an unrotated grip cuboid."
     }
+    if ($GripStyle -ceq 'shield') {
+        Confirm-BedrockShieldPose $Description $Animations $Id
+        return
+    }
     $triggers = foreach ($trigger in $Description.scripts.animate) {
         if ($trigger -is [string]) {
             @{ name = $trigger; condition = '1.0' }
@@ -170,6 +189,10 @@ function Confirm-BedrockItemGrip {
     $holdConditions = [ordered] @{
         first_person = 'context.is_first_person'
         third_person = '!context.is_first_person'
+    }
+    if ($GripStyle -ceq 'utility') {
+        $holdConditions.first_person = "context.is_first_person && context.item_slot == 'main_hand'"
+        $holdConditions.Add('first_person_off', "context.is_first_person && context.item_slot == 'off_hand'")
     }
     foreach ($view in $holdConditions.Keys) {
         $active = @($triggers | Where-Object { $_.name -ceq $view })
@@ -195,7 +218,20 @@ function Confirm-BedrockItemGrip {
                 throw "Bedrock animation for $Id $view grip scale must be between 0.5 and 2.0 on all axes."
             }
         }
-        if (!(Test-ItemGripVector $pose.rotation)) {
+        if ($GripStyle -ceq 'utility') {
+            $rotation = @($pose.rotation)
+            $handYaw = $view -ceq 'third_person' -and $rotation[1] -is [string] -and
+                $rotation[1] -cmatch "^context\.item_slot == 'main_hand' \? ([0-9]+) : -\1$"
+            if (!(Test-ItemGripVector $rotation) -and
+                !($rotation.Count -eq 3 -and $handYaw -and (Test-ItemGripNumber $rotation[0]) -and
+                    (Test-ItemGripNumber $rotation[2]))) {
+                throw "Bedrock animation for $Id $view has an invalid hand rotation."
+            }
+            $maxScale = if ($view -ceq 'third_person') { 1.0 } else { 0.75 }
+            if (!(Test-ItemGripNumber $pose.scale) -or $pose.scale -gt $maxScale) {
+                throw "Bedrock animation for $Id $view must use a reduced handheld scale."
+            }
+        } elseif (!(Test-ItemGripVector $pose.rotation)) {
             throw "Bedrock animation for $Id $view grip rotation must contain three numeric angles."
         }
         foreach ($bone in $gripBones | Where-Object { $_.name -cne 'grip' }) {
@@ -203,6 +239,7 @@ function Confirm-BedrockItemGrip {
                 throw "Bedrock animation for $Id $view must set its held pose on grip only."
             }
         }
+        if ($GripStyle -ceq 'utility') { continue }
         # Bedrock applies the grip rotation, then the neutral right arm for the first-person view.
         $direction = [double[]] @(0, 1, 0)
         $rotations = ,$pose.rotation
@@ -230,6 +267,60 @@ function Confirm-BedrockItemGrip {
             if ($null -ne $animatedBones.($bone.name).position) {
                 throw "Bedrock animation for $Id $($trigger.name) must keep $($bone.name) centered on the wrist."
             }
+        }
+    }
+}
+
+function Confirm-BedrockShieldPose {
+    param($Description, $Animations, [string] $Id)
+
+    $conditions = [ordered] @{
+        first_person = "context.is_first_person && context.item_slot == 'main_hand' && !variable.blocking_main"
+        first_person_off = "context.is_first_person && context.item_slot == 'off_hand' && !query.blocking"
+        first_person_block = "context.is_first_person && context.item_slot == 'main_hand' && variable.blocking_main"
+        first_person_off_block = "context.is_first_person && context.item_slot == 'off_hand' && query.blocking"
+        third_person = '!context.is_first_person'
+    }
+    $aliases = @($Description.animations.PSObject.Properties.Value | Sort-Object -Unique)
+    if ($Description.scripts.animate.Count -ne $conditions.Count -or $aliases.Count -ne $conditions.Count) {
+        throw "Bedrock shield $Id must select exactly one of its held poses."
+    }
+    foreach ($view in $conditions.Keys) {
+        $triggers = @($Description.scripts.animate | ForEach-Object { $_.PSObject.Properties[$view] } |
+            Where-Object { $null -ne $_ })
+        $name = $Description.animations.$view
+        $animation = $Animations.$name
+        $pose = $animation.bones.grip
+        $maxScale = if ($view -ceq 'third_person') { 1.0 } else { 0.75 }
+        if ($triggers.Count -ne 1 -or $triggers[0].Value -cne $conditions[$view] -or
+            $animation.loop -isnot [bool] -or !$animation.loop -or !$pose -or
+            $animation.bones.PSObject.Properties.Name.Count -ne 1 -or
+            !(Test-ItemGripNumber $pose.scale) -or $pose.scale -lt 0.5 -or $pose.scale -gt $maxScale) {
+            throw "Bedrock shield $Id must define a single reduced hold pose for $view."
+        }
+        $position = @($pose.position)
+        $rotation = @($pose.rotation)
+        if ($position.Count -ne 3 -or $rotation.Count -ne 3) {
+            throw "Bedrock shield $Id $view must define its position and rotation."
+        }
+        if ($view -ceq 'third_person') {
+            # The vanilla shield's hand pivot rebased to the handle at our model origin.
+            if ($position[0] -cne "context.item_slot == 'main_hand' ? 0.6 : -0.6" -or
+                $position[1] -ne 24.5 -or $position[2] -ne -0.2 -or
+                $rotation[0] -ne 90 -or $rotation[1] -ne 0 -or
+                $rotation[2] -cne "context.item_slot == 'main_hand' ? 90 : -90") {
+                throw "Bedrock shield $Id third_person must mirror the shield face around the hand."
+            }
+        } elseif (!(Test-ItemGripVector $rotation) -or !(Test-ItemGripNumber $position[0]) -or
+            !(Test-ItemGripNumber $position[1]) -or $position[1] -lt 20 -or $position[1] -gt 35) {
+            throw "Bedrock shield $Id $view must stay near the first-person hand."
+        } elseif ($view.StartsWith('first_person_off')) {
+            if ([Math]::Abs($rotation[1] - 176) -gt 10 -or
+                $position[2] -cnotmatch "^query\.get_equipped_item_name == 'bow' && query\.main_hand_item_use_duration > 0 \? -[0-9.]+ : [0-9.]+$") {
+                throw "Bedrock shield $Id $view must use the offhand pose and bow clearance."
+            }
+        } elseif ([Math]::Abs($rotation[0] - 91) -gt 10 -or !(Test-ItemGripNumber $position[2])) {
+            throw "Bedrock shield $Id $view must use the main hand pose."
         }
     }
 }

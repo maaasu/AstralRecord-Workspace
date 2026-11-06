@@ -16,22 +16,30 @@
       },
       "animations": {
         "first_person": "animation.astralrecord.fang_shield.first_person",
-        "third_person": "animation.astralrecord.fang_shield.third_person",
-        "attack": "animation.astralrecord.fang_shield.attack"
+        "first_person_off": "animation.astralrecord.fang_shield.first_person_off",
+        "first_person_block": "animation.astralrecord.fang_shield.first_person_block",
+        "first_person_off_block": "animation.astralrecord.fang_shield.first_person_off_block",
+        "third_person": "animation.astralrecord.fang_shield.third_person"
       },
       "scripts": {
         "pre_animation": [
-          "variable.nox_swing = math.clamp((context.owning_entity->variable.attack_time) ?? 0.0, 0.0, 1.0);"
+          "variable.blocking_main = query.blocking && !query.is_item_name_any('slot.weapon.offhand', 'minecraft:shield', 'astralrecord:fang_shield');"
         ],
         "animate": [
           {
-            "first_person": "context.is_first_person"
+            "first_person": "context.is_first_person && context.item_slot == 'main_hand' && !variable.blocking_main"
+          },
+          {
+            "first_person_off": "context.is_first_person && context.item_slot == 'off_hand' && !query.blocking"
+          },
+          {
+            "first_person_block": "context.is_first_person && context.item_slot == 'main_hand' && variable.blocking_main"
+          },
+          {
+            "first_person_off_block": "context.is_first_person && context.item_slot == 'off_hand' && query.blocking"
           },
           {
             "third_person": "!context.is_first_person"
-          },
-          {
-            "attack": "context.item_slot == 'main_hand' && variable.nox_swing > 0.0"
           }
         ]
       },

@@ -75,7 +75,7 @@ function Get-ItemModelRegistry {
 }
 
 function Add-JavaItemAssets {
-    param($Entries, [string] $Id, [bool] $Bow, $Grip, $GripTargets)
+    param($Entries, [string] $Id, [bool] $Bow, [bool] $Shield, $Grip, $GripTargets)
 
     $texture = "assets/astralrecord/textures/item/custom/$Id.png"
     Add-PackEntries $Entries $root @($texture)
@@ -94,6 +94,17 @@ function Add-JavaItemAssets {
             throw "$path must contain 3D elements and use $expected."
         }
         if ($Grip) { Confirm-JavaItemGrip $model $Grip $GripTargets $path }
+        if ($Shield) {
+            $blockingPath = "assets/astralrecord/models/item/custom/${Id}_blocking.json"
+            Add-PackEntries $Entries $root @($blockingPath)
+            $blocking = ConvertFrom-Json -InputObject ($utf8.GetString($Entries[$blockingPath]))
+            if ($blocking.parent -cne "astralrecord:item/custom/$Id" -or
+                ($blocking.PSObject.Properties.Name | Where-Object { $_ -cnotin @('parent', 'display') })) {
+                throw "$blockingPath must inherit the shield model and override only display poses."
+            }
+            Confirm-JavaItemGrip ([pscustomobject] @{ elements = $model.elements; display = $blocking.display }) `
+                $Grip $GripTargets.blocking $blockingPath
+        }
         foreach ($reference in $textures.Value) {
             if ($reference -ceq $expected -or $reference -cmatch '^minecraft:[a-z0-9_/]+\z') {
                 continue
@@ -114,7 +125,7 @@ function Add-JavaItemAssets {
 }
 
 function Add-BedrockItemAssets {
-    param($Entries, [string] $Id, [bool] $CheckGrip, [bool] $ArmorItem = $false)
+    param($Entries, [string] $Id, [string] $GripStyle, [bool] $ArmorItem = $false)
 
     $attachablePath = "attachables/$Id.json"
     $geometryPath = "models/entity/items/$Id.geo.json"
@@ -151,7 +162,7 @@ function Add-BedrockItemAssets {
         $description.render_controllers[0] -cne 'controller.render.item_default') {
         throw "$attachablePath must use only the standard item render controller."
     }
-    if ($CheckGrip) { Confirm-BedrockItemGrip $geometry.'minecraft:geometry' $description $animation.animations $Id }
+    if ($GripStyle) { Confirm-BedrockItemGrip $geometry.'minecraft:geometry' $description $animation.animations $Id $GripStyle }
     return $description
 }
 
@@ -292,10 +303,14 @@ function Add-ItemModelEntries {
         $isArmor = $armorItems.ContainsKey($id)
         $base = $item.base_item.Substring('minecraft:'.Length)
         $isBow = $base -ceq 'bow'
-        $grip = if ($item.java_virtual_trident -or $isArmor) { $item.grip }
+        $isShield = $base -ceq 'shield'
+        $grip = $item.grip
         if ($isArmor -and !(Test-ItemGripVector $grip)) { throw "Armor $id must declare its held grip point." }
-        Add-JavaItemAssets $JavaEntries $id $isBow $grip $gripTargets.($item.base_item)
-        $description = Add-BedrockItemAssets $BedrockEntries $id ($item.java_virtual_trident -or $isArmor) $isArmor
+        $gripStyle = if ($isShield) { 'shield' }
+            elseif ($item.java_virtual_trident -or $isArmor) { 'weapon' }
+            elseif ($grip) { 'utility' }
+        Add-JavaItemAssets $JavaEntries $id $isBow $isShield $grip $gripTargets.($item.base_item)
+        $description = Add-BedrockItemAssets $BedrockEntries $id $gripStyle $isArmor
         if ($item.java_virtual_trident) {
             $heldWeapons.Add($item.custom_model_data, $description)
         }
@@ -325,6 +340,13 @@ function Add-ItemModelEntries {
                         [ordered] @{ threshold = 0.9; model = New-JavaModelReference "astralrecord:item/custom/${id}_pull_2" }
                     )
                 }
+            }
+        } elseif ($isShield) {
+            $model = [ordered] @{
+                type = 'minecraft:condition'
+                property = 'minecraft:using_item'
+                on_false = $rest
+                on_true = New-JavaModelReference "astralrecord:item/custom/${id}_blocking"
             }
         }
         if (!$byBase.ContainsKey($base)) {

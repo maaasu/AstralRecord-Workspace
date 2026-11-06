@@ -16,6 +16,7 @@
       },
       "animations": {
         "first_person": "animation.astralrecord.venom_quiver.first_person",
+        "first_person_off": "animation.astralrecord.venom_quiver.first_person_off",
         "third_person": "animation.astralrecord.venom_quiver.third_person",
         "attack": "animation.astralrecord.venom_quiver.attack"
       },
@@ -25,7 +26,10 @@
         ],
         "animate": [
           {
-            "first_person": "context.is_first_person"
+            "first_person": "context.is_first_person && context.item_slot == 'main_hand'"
+          },
+          {
+            "first_person_off": "context.is_first_person && context.item_slot == 'off_hand'"
           },
           {
             "third_person": "!context.is_first_person"

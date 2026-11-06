@@ -15,7 +15,25 @@
             24,
             0
           ],
-          "scale": 1.08
+          "scale": 0.62
+        }
+      }
+    },
+    "animation.astralrecord.cinder_grimoire.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            10,
+            20,
+            -12
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.62
         }
       }
     },
@@ -24,16 +42,16 @@
       "bones": {
         "grip": {
           "rotation": [
-            87,
-            0,
+            15,
+            "context.item_slot == 'main_hand' ? 65 : -65",
             0
           ],
           "position": [
             0,
             24,
-            0
+            -2
           ],
-          "scale": 1.25
+          "scale": 0.86
         }
       }
     },
