@@ -1,0 +1,14 @@
+{
+  "namespace": "scoreboard",
+  "scoreboard_sidebar_player": {
+    "size": [ "default", 11 ],
+    "max_size": [ 250, 11 ],
+    "font_type": "smooth",
+    "shadow": true
+  },
+  "scoreboard_sidebar_score": {
+    "size": [ "default", 11 ],
+    "font_type": "smooth",
+    "shadow": true
+  }
+}
