@@ -404,6 +404,17 @@ public final class BossMechanicService {
         horologiumDirectParticipants.remove(bossInstanceId);
     }
 
+    /**
+     * HP が減少して生存したサンバードの被弾表示を更新します。
+     * @param boss ダメージ適用後の Mob
+     * @param entity 対応する Bukkit 実体
+     */
+    public void showHurt(@NotNull MobInstance boss, @NotNull Entity entity) {
+        if (tickTask != null && BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())) {
+            sunbirdDisplay.hurt(boss.instanceId(), entity, motionClockTicks);
+        }
+    }
+
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
     public void stop() {
         if (tickTask != null) {

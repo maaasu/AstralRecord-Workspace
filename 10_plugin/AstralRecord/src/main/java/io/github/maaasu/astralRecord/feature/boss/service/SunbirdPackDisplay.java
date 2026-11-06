@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
 import io.papermc.paper.event.player.PlayerTrackEntityEvent;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -30,6 +31,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
@@ -54,6 +56,10 @@ final class SunbirdPackDisplay implements Listener {
     private static final int INVISIBLE = 0x20;
     private static final double VIEW_DISTANCE = 64.0D;
     private static final int POSE_TICKS = 5;
+    private static final int HURT_TINT_TICKS = 4;
+    private static final int HURT_COOLDOWN_TICKS = 10;
+    private static final String BODY_MODEL = "sunbird";
+    private static final Color HURT_TINT = Color.fromRGB(0xFF6666);
 
     private final Plugin plugin;
     private final ResourcePackService packs;
@@ -62,6 +68,9 @@ final class SunbirdPackDisplay implements Listener {
     private final Map<Integer, UUID> trackedBosses = new ConcurrentHashMap<>();
     private final Map<Integer, Set<UUID>> maskedViewers = new ConcurrentHashMap<>();
     private final Map<UUID, Body> bodies = new HashMap<>();
+    private final Map<UUID, Long> nextHurtTick = new HashMap<>();
+    private final ItemStack normalBody = modelItem(BODY_MODEL);
+    private final ItemStack hurtBody = createHurtBody();
     private final Map<UUID, List<TimedEffect>> transients = new HashMap<>();
     private final PacketAdapter packets;
 
@@ -99,6 +108,7 @@ final class SunbirdPackDisplay implements Listener {
         protocol.removePacketListener(packets);
         HandlerList.unregisterAll(this);
         trackedBosses.clear();
+        nextHurtTick.clear();
     }
 
     /** パケット送信前に、このボスの追跡対象を記録します。 */
@@ -130,7 +140,7 @@ final class SunbirdPackDisplay implements Listener {
         Location target = entity.getLocation();
         target.setPitch(0.0F);
         if (body == null) {
-            body = new Body(entity, spawn(target, "sunbird", false));
+            body = new Body(entity, spawn(target, normalBody, false));
             bodies.put(bossId, body);
             maskedViewers.put(entity.getEntityId(), body.masked);
         }
@@ -168,8 +178,50 @@ final class SunbirdPackDisplay implements Listener {
         }
     }
 
+    /**
+     * サンバードの被弾表示を開始します。短い間隔の追撃は個体単位でまとめます。
+     * @param bossId ボスのインスタンス ID
+     * @param source ダメージを受けた実体
+     * @param tick ギミック処理と共通のサーバー tick
+     */
+    void hurt(UUID bossId, Entity source, long tick) {
+        if (source.getType() != EntityType.PARROT || !source.isValid()
+                || tick < nextHurtTick.getOrDefault(bossId, 0L)) return;
+        nextHurtTick.put(bossId, tick + HURT_COOLDOWN_TICKS);
+        Body body = bodies.get(bossId);
+        try {
+            if (body != null && body.source == source && body.model.isValid() && !body.model.getTrackedBy().isEmpty()) {
+                body.restoreTint = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    body.restoreTint = null;
+                    if (body.model.isValid()) body.model.setItemStack(normalBody);
+                }, HURT_TINT_TICKS);
+                body.model.setItemStack(hurtBody);
+            }
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_6513, exception);
+        }
+        try {
+            sendBedrockHurt(source);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_6513, exception);
+        }
+    }
+
+    /** 統合版で実体を追跡している閲覧者へ、同じ被弾パケットを使って通知します。 */
+    private void sendBedrockHurt(Entity source) {
+        PacketContainer packet = null;
+        for (Player viewer : source.getTrackedBy()) {
+            if (!isBedrock(viewer)) continue;
+            if (packet == null) {
+                packet = SunbirdBedrockHurt.create(source);
+            }
+            send(viewer, packet);
+        }
+    }
+
     /** 停止したボスの本体・短時間演出を回収します。 */
     void clear(UUID bossId) {
+        nextHurtTick.remove(bossId);
         clearBody(bossId);
         List<TimedEffect> effects = transients.remove(bossId);
         if (effects != null) {
@@ -179,6 +231,7 @@ final class SunbirdPackDisplay implements Listener {
 
     /** 今回確認できなかったボスと、表示期限を過ぎたエフェクトを取り除きます。 */
     void retain(Set<UUID> activeBosses, long tick) {
+        nextHurtTick.keySet().retainAll(activeBosses);
         for (UUID id : List.copyOf(bodies.keySet())) {
             if (!activeBosses.contains(id)) clearBody(id);
         }
@@ -213,6 +266,7 @@ final class SunbirdPackDisplay implements Listener {
     private void clearBody(UUID bossId) {
         Body body = bodies.remove(bossId);
         if (body == null) return;
+        if (body.restoreTint != null) body.restoreTint.cancel();
         int entityId = body.source.getEntityId();
         trackedBosses.remove(entityId);
         maskedViewers.remove(entityId);
@@ -300,11 +354,28 @@ final class SunbirdPackDisplay implements Listener {
         return astPlayer == null ? packs.isBedrock(viewer.getName()) : astPlayer.isBedrock();
     }
 
-    private ItemDisplay spawn(Location location, String model, boolean fullBright) {
+    /** パックのモデル ID を表示用アイテムに設定します。 */
+    private static ItemStack modelItem(String model) {
         ItemStack item = ItemStack.of(Material.PAPER);
         var meta = item.getItemMeta();
         meta.setItemModel(new NamespacedKey("astralrecord", model));
         item.setItemMeta(meta);
+        return item;
+    }
+
+    /** モデルと UV を共用し、着色値だけを指定した被弾用アイテムを作ります。 */
+    private static ItemStack createHurtBody() {
+        ItemStack item = modelItem(BODY_MODEL);
+        var meta = item.getItemMeta();
+        var modelData = meta.getCustomModelDataComponent();
+        modelData.setColors(List.of(HURT_TINT));
+        meta.setCustomModelDataComponent(modelData);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** 指定のアイテムを追跡者限定の表示として生成します。 */
+    private ItemDisplay spawn(Location location, ItemStack item, boolean fullBright) {
         return location.getWorld().spawn(location, ItemDisplay.class, display -> {
             display.setVisibleByDefault(false);
             display.setPersistent(false);
@@ -420,7 +491,7 @@ final class SunbirdPackDisplay implements Listener {
         }
 
         private void spawnJava() {
-            model = spawn(shape.location(), shape.style().model, true);
+            model = spawn(shape.location(), modelItem(shape.style().model), true);
             model.setTransformation(scale(burst ? 0.40F : 1.0F, burst ? 0.25F : 1.0F));
             if (burst) {
                 ItemDisplay display = model;
@@ -466,6 +537,7 @@ final class SunbirdPackDisplay implements Listener {
         private final ItemDisplay model;
         private final Set<Player> viewers = new HashSet<>();
         private final Set<UUID> masked = ConcurrentHashMap.newKeySet();
+        private BukkitTask restoreTint;
 
         private Body(Entity source, ItemDisplay model) {
             this.source = source;

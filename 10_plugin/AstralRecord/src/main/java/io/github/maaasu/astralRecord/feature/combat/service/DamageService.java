@@ -1929,7 +1929,8 @@ public final class DamageService {
         if (mob.currentHealth() > 0.0D && mobService.fishingCombat() != null)
             mobService.fishingCombat().healthChanged(mob);
         applyLifeSteal(attacker, effectiveLifeStealDamage);
-        playMobHurtEffect(mob.bukkitEntityId(), result.critical() || result.superStarCritical());
+        playMobHurtEffect(mob, result.critical() || result.superStarCritical(),
+                mob.currentHealth() > 0.0D && mob.currentHealth() < healthBefore);
         if (knockback) {
             applyDamageKnockback(attacker, victim, attackType);
         }
@@ -2567,11 +2568,20 @@ public final class DamageService {
         return !victim.isPlayer() || playerSettingService.isDamageLogDisplayEnabled(victim.player().getUser().getUuid());
     }
 
-    private void playMobHurtEffect(@Nullable UUID entityId, boolean critical) {
-        Entity entity = resolveBukkitEntity(entityId);
+    /**
+     * Mob の被弾演出を再生します。
+     * @param mob ダメージを受けた Mob
+     * @param critical クリティカル時の演出を使う場合は true
+     * @param healthReduced 生存した Mob の HP が実際に減少した場合は true
+     */
+    private void playMobHurtEffect(@NotNull MobInstance mob, boolean critical, boolean healthReduced) {
+        Entity entity = resolveBukkitEntity(mob.bukkitEntityId());
         if (entity instanceof LivingEntity livingEntity) {
             livingEntity.playHurtAnimation(0.0F);
             livingEntity.setNoDamageTicks(0);
+            if (healthReduced && bossMechanicService != null) {
+                bossMechanicService.showHurt(mob, livingEntity);
+            }
             Location location = livingEntity.getLocation();
             World world = location.getWorld();
             if (world != null) {
