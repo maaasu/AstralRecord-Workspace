@@ -101,25 +101,24 @@ function Add-RingJavaPanel {
 
 function New-RingBedrockBone {
     param([string] $Name, [double[]] $Rect, [double[]] $UV, [double] $Depth,
-          [switch] $AnchorLeft, [switch] $DoubleSided)
-    # Match the damage-number billboard: the south face is visible and positive X points screen-right.
-    $left = $Rect[0] / 8 - 8
+          [switch] $AnchorLeft)
+    # The ring pose faces the viewer along north, with negative model X to screen-right.
+    $minX = 8 - $Rect[2] / 8
     $y = 8 - $Rect[3] / 8
     $face = [ordered]@{
         uv = (Convert-RingJsonNumbers @($UV[0], $UV[1]))
         uv_size = (Convert-RingJsonNumbers @($UV[2], $UV[3]))
     }
-    $faces = [ordered]@{ south = $face }
-    if ($DoubleSided) { $faces.north = $face }
-    $pivot = if ($AnchorLeft) { @($left, $y, 0) } else { @(0, 0, 0) }
+    # Keep the screen-left edge (maximum model X) fixed as the gauge scales.
+    $pivot = if ($AnchorLeft) { @((8 - $Rect[0] / 8), $y, 0) } else { @(0, 0, 0) }
     return [ordered]@{
         name = $Name
         parent = 'wheel'
         pivot = Convert-RingJsonNumbers $pivot
         cubes = @([ordered]@{
-            origin = Convert-RingJsonNumbers @($left, $y, ($Depth - 0.02))
+            origin = Convert-RingJsonNumbers @($minX, $y, (-$Depth))
             size = Convert-RingJsonNumbers @((($Rect[2] - $Rect[0]) / 8), (($Rect[3] - $Rect[1]) / 8), 0.02)
-            uv = $faces
+            uv = @{ north = $face }
         })
     }
 }
@@ -179,7 +178,7 @@ function Add-RingBedrockPanel {
     $names.Add("$rootController.decor")
     $geometries = [Collections.Generic.List[object]]::new()
     $geometries.Add((New-RingBedrockGeometry 'rim' 128 128 @(
-        (New-RingBedrockBone 'rim' @(0, 0, 128, 128) @(0, 0, 128, 128) 0 -DoubleSided)
+        (New-RingBedrockBone 'rim' @(0, 0, 128, 128) @(0, 0, 128, 128) 0)
     )))
     $animation = [ordered]@{}
     $decor = [Collections.Generic.List[object]]::new()
