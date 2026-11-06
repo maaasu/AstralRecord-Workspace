@@ -1,0 +1,11 @@
+@model AstralRecordWeb.Models.ItemIcon
+@inject AstralRecordWeb.Services.ItemTextureCatalog ItemTextures
+@{
+    var modelId = ItemTextures.FindModelId(Model.Item);
+    var textureUrl = modelId is null ? null : Url.Content($"~/images/items/{modelId}.png");
+}
+<span class="ar-item-icon" aria-hidden="true" data-item-icon
+      data-material="@Model.Item?.Icon" data-pack-texture="@textureUrl" data-head-texture="@Model.Item?.IconTexture">
+    <img alt="" referrerpolicy="no-referrer" hidden />
+    <span data-item-icon-fallback>@Model.Fallback</span>
+</span>

@@ -1,14 +1,4 @@
-import { loadIcon } from './minecraft-icons.mjs';
-
-for (const image of document.querySelectorAll('[data-market-icon]')) {
-    loadIcon(image.dataset.marketIcon).then(url => {
-        if (!url) return;
-        image.src = url;
-        image.hidden = false;
-        const fallback = image.parentElement.querySelector('[data-market-icon-fallback]');
-        if (fallback) fallback.hidden = true;
-    });
-}
+import './item-icons.js';
 
 // Omit unused ranges rather than sending hundreds of empty query parameters.
 for (const form of document.querySelectorAll('[data-market-search]')) {

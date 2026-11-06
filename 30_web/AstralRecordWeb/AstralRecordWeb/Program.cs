@@ -3,6 +3,7 @@ using AstralRecordWeb.Services;
 using AstralRecordWeb.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using System.Threading.RateLimiting;
 
@@ -11,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ItemTextureCatalog>();
 builder.Services.AddHttpClient<MinecraftAvatarService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(4);
@@ -240,6 +242,17 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+var itemTextureDirectory = Path.Combine(AppContext.BaseDirectory, "item-textures");
+using var itemTextureFiles = Directory.Exists(itemTextureDirectory) ? new PhysicalFileProvider(itemTextureDirectory) : null;
+if (itemTextureFiles is not null)
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = itemTextureFiles,
+        RequestPath = "/images/items",
+    });
+}
 
 app.UseRouting();
 app.UseRateLimiter();

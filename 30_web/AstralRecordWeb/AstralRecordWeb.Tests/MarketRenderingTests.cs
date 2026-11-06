@@ -78,6 +78,22 @@ public sealed class MarketRenderingTests
         Assert.Contains("readonly=\"readonly\"", forms[0].Value);
     }
 
+    [Fact]
+    public async Task MarketRendersAndServesThePackIconForCustomEquipment()
+    {
+        await using var factory = new MarketRenderingFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
+        const string texturePath = "/images/items/nox_sword.png";
+
+        var html = await client.GetStringAsync("/Market");
+        Assert.Contains($"data-pack-texture=\"{texturePath}\"", html);
+        Assert.Single(Regex.Matches(html, "data-pack-texture=\"/images/items/"));
+
+        using var image = await client.GetAsync(texturePath);
+        image.EnsureSuccessStatusCode();
+        Assert.Equal("image/png", image.Content.Headers.ContentType?.MediaType);
+    }
+
     private sealed class MarketRenderingFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
@@ -116,7 +132,7 @@ public sealed class MarketRenderingTests
                 "/api/market/listings" => new[] {
                     Listing("blade", 12500, 1, true, 0), Listing("crystal", 850, 24, false, 1), Listing("potion", 120, 64, false, 2),
                 },
-                "/api/item/blade" => new { schemaVersion = 1, id = "blade", name = "星霜のロングソード", category = "EQUIPMENT", rarity = "EPIC", icon = "DIAMOND_SWORD",
+                "/api/item/blade" => new { schemaVersion = 1, id = "blade", name = "星霜のロングソード", category = "EQUIPMENT", rarity = "EPIC", icon = "WOODEN_SWORD", customModelData = 21001,
                     lore = new[] { "星の光を宿した刀身。旅路を切り拓く、冒険者の一振り。" }, equipment = new { slot = "MAIN_HAND", requiredLevel = 25, stats = Array.Empty<object>() } },
                 "/api/item/crystal" => new { schemaVersion = 1, id = "crystal", name = "澄んだアストラル結晶", category = "MATERIAL", rarity = "RARE", icon = "AMETHYST_SHARD", lore = new[] { "装備の強化に用いる、淡い輝きを帯びた結晶。" } },
                 "/api/item/potion" => new { schemaVersion = 1, id = "potion", name = "ヒーリングポーション", category = "CONSUMABLE", rarity = "COMMON", icon = "POTION", lore = new[] { "長い冒険のお供に。体力を回復する薬。" } },

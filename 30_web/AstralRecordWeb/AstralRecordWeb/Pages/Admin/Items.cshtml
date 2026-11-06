@@ -85,10 +85,7 @@
                 {
                     <article class="ar-item-card @Model.RarityClass(item.Rarity)">
                         <header class="ar-item-head">
-                            <div class="ar-item-icon" title="@item.Icon">
-                                <img src="@Model.IconUrl(item)" alt="@item.Icon" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
-                                <span>@item.Icon.Replace("_", " ")</span>
-                            </div>
+                            <partial name="_ItemIcon" model="@(new AstralRecordWeb.Models.ItemIcon(item, item.Icon.Replace('_', ' ')))" />
                             <div class="ar-item-title-block">
                                 <h2 class="ar-item-name">@Html.Raw(Model.FormatMinecraftText(item.Name))</h2>
                                 <p class="ar-item-id">@item.Id</p>
@@ -187,3 +184,5 @@
         }
     </div>
 </section>
+
+@section Scripts { <script type="module" src="~/js/item-icons.js" asp-append-version="true"></script> }

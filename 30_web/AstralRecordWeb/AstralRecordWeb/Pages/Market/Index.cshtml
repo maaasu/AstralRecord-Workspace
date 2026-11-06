@@ -119,7 +119,7 @@
                             <article class="ar-item-card market-card rarity-@((entry.Rarity ?? "common").ToLowerInvariant())">
                                 <div class="market-item-overview">
                                     <div class="ar-item-head">
-                                        <div class="ar-item-icon" aria-hidden="true"><img data-market-icon="@entry.Item?.Icon" alt="" hidden /><span data-market-icon-fallback>✦</span></div>
+                                        <partial name="_ItemIcon" model="@(new AstralRecordWeb.Models.ItemIcon(entry.Item))" />
                                         <div class="ar-item-title-block">
                                             <div class="ar-item-tags">@if (!string.IsNullOrWhiteSpace(entry.Rarity)) { <span class="ar-rarity">@entry.Rarity</span> }<span>@entry.Category</span>@if (isOwn) { <span class="market-own-tag">自分の出品</span> }</div>
                                             <div class="market-card-title-row"><h3 class="ar-item-name">@entry.DisplayName</h3>@if (equipment is { EnhanceLevel: > 0 }) { <strong class="market-enhance">+@equipment.EnhanceLevel</strong> }</div>

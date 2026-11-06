@@ -59,7 +59,7 @@
                             <summary>
                                 <span class="ar-history-entry-main">
                                     <span class="market-history-item">
-                                        <span class="ar-item-icon" aria-hidden="true"><img data-market-icon="@entry.Icon" alt="" hidden /><span data-market-icon-fallback>✦</span></span>
+                                        <partial name="_ItemIcon" model="@(new AstralRecordWeb.Models.ItemIcon(entry.Item))" />
                                         <span><span class="ar-history-entry-label">商品</span><strong>@entry.DisplayName</strong> <span class="ar-history-entry-meta">× @transaction.Quantity.ToString("N0")</span></span>
                                     </span>
                                     <span><span class="ar-history-entry-label">出品者</span>@entry.SellerDisplayName</span>

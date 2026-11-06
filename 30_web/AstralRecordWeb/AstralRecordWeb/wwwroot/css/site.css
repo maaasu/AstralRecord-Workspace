@@ -1139,10 +1139,15 @@ img {
     width: 64px;
 }
 
-.ar-item-icon img {
+.ar-item-icon :is(img, canvas) {
     image-rendering: pixelated;
     max-height: 42px;
     max-width: 42px;
+}
+
+.ar-item-icon canvas {
+    width: 42px;
+    height: 42px;
 }
 
 .ar-item-icon span {
@@ -1158,6 +1163,8 @@ img {
     text-align: center;
     text-transform: lowercase;
 }
+
+.ar-item-icon [data-item-icon-fallback]:not([hidden]) { display: grid; }
 
 .ar-item-title-block {
     min-width: 0;

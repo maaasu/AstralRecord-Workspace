@@ -123,7 +123,6 @@ public sealed record MarketTradeHistoryItem(MarketTradeHistoryResponse Transacti
     public string Category => Item?.Category ?? Transaction.ItemCategory;
     public string DisplayName => MarketText.PlainText(string.IsNullOrWhiteSpace(Item?.Name) ? Transaction.ItemId : Item.Name);
     public string? Rarity => Item?.Rarity;
-    public string? Icon => Item?.Icon;
     public string SellerDisplayName => string.IsNullOrWhiteSpace(Transaction.SellerAccountName)
         ? "名前不明のアカウント"
         : Transaction.SellerAccountName;

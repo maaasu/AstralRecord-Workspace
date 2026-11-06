@@ -11,8 +11,6 @@ namespace AstralRecordWeb.Pages.Admin;
 [Authorize(Policy = "WebAdminOnly")]
 public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
 {
-    private const string IconBaseUrl = "https://assets.mcasset.cloud/1.21.11/assets/minecraft/textures/item/";
-
     public IReadOnlyList<ItemMasterResponse> Items { get; private set; } = [];
 
     public IReadOnlyList<string> Categories { get; private set; } = [];
@@ -94,16 +92,6 @@ public class ItemsModel(ItemMasterApiClient itemMasterApiClient) : PageModel
             .ToArray();
 
         Items = ApplyFilters(allItems).ToArray();
-    }
-
-    public string IconUrl(ItemMasterResponse item)
-    {
-        var iconFile = item.Icon
-            .Trim()
-            .ToLowerInvariant()
-            .Replace(' ', '_');
-
-        return IconBaseUrl + Uri.EscapeDataString(iconFile) + ".png";
     }
 
     public string FormatMinecraftText(string? text) => MinecraftTextFormatter.ToHtml(text);
