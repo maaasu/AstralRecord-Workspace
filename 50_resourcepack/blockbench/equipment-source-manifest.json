@@ -44,15 +44,15 @@
       "base_item": "minecraft:wooden_sword",
       "custom_model_data": 21001,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_sword.json": "c5ec2a42e1a7bf32bb6369dc06c6e4c0d758757a112fb410a130e5b5c833e99b",
-        "assets/astralrecord/textures/item/custom/nox_sword.png": "9b4ddf886492e233953ef91e75d2c618c873eb6f6392f8aa5151a019a5e72935",
+        "assets/astralrecord/models/item/custom/nox_sword.json": "c04753cb3400e67f243a058ac7d4ed4284a7a348a67f3cd4a53e7ee423231003",
+        "assets/astralrecord/textures/item/custom/nox_sword.png": "d81b2675a368d43bd6ec62e0b7a1a163a063e725d80c3d21c7a8ab8da87dcaa2",
         "bedrock/animations/nox_sword.animation.json": "0dd53d1faaa2db79f5ea8966deb1836c826c4110b7197e3a8bcf990f6c9c8364",
         "bedrock/attachables/nox_sword.json": "01b0e42582275f3a77e2be4e733e3af21f33b0f1e45a8653b6e855dec07d69fe",
-        "bedrock/models/entity/items/nox_sword.geo.json": "4f443e320f89517b96c3880216d9621ac70e223881b9a503553887d4c1a13288",
-        "bedrock/textures/entity/items/nox_sword.png": "9b4ddf886492e233953ef91e75d2c618c873eb6f6392f8aa5151a019a5e72935",
-        "bedrock/textures/items/nox_sword.png": "30335cf27cc0d8e9ce64b5a33f42e845ea18e871c1efa01a57aad9de920a93c0",
-        "blockbench/items/nox_sword.bedrock.bbmodel": "cf145e4a2a7bcf9365e2c888b1bd1ca670bad796e6db7386dc0520ef02ab4216",
-        "blockbench/items/nox_sword.java.bbmodel": "2502e5edeeaed0cf6c4e3321f407ed30be0a824197680bbca6856f7fca1cf22a"
+        "bedrock/models/entity/items/nox_sword.geo.json": "bbc63bab915c716c99cb8b4bc847d7df029790c926ed4a4cd4e018c806ad642d",
+        "bedrock/textures/entity/items/nox_sword.png": "d81b2675a368d43bd6ec62e0b7a1a163a063e725d80c3d21c7a8ab8da87dcaa2",
+        "bedrock/textures/items/nox_sword.png": "25e557c53cc4ead63eeb1f262d8963d90db7977077dc25a003912aad145befb0",
+        "blockbench/items/nox_sword.bedrock.bbmodel": "8ebbf87b56b0b5395333cdefebee26554dc0ee51322e0c1faf6ee6a17d37571b",
+        "blockbench/items/nox_sword.java.bbmodel": "535918fbf44ddf2dfa0eae794a9f42ca7ac6760aa751dce90eb1d8109ad62244"
       }
     },
     {

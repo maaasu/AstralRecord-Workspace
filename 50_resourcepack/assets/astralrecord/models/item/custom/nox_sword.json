@@ -1,388 +1,298 @@
 {
 	"format_version": "1.21.11",
 	"credit": "Made with Blockbench",
-	"texture_size": [64, 64],
+	"texture_size": [128, 128],
 	"textures": {
 		"particle": "astralrecord:item/custom/nox_sword",
 		"surface": "astralrecord:item/custom/nox_sword"
 	},
 	"elements": [
 		{
-			"name": "Blade face 01",
-			"from": [7.375, 5.31913, 7.72492],
-			"to": [8.651, 7.78087, 8.27508],
-			"rotation": {"angle": 2.2026, "axis": "z", "origin": [7.375, 6.55, 8]},
+			"name": "Forged steel face body",
+			"from": [7.089, 5.14, 7.545],
+			"to": [8.911, 12.605, 8.455],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 5.14, 8]},
 			"faces": {
-				"north": {"uv": [0, 7.78409, 2.5, 10], "texture": "#surface"},
-				"east": {"uv": [0, 7.78409, 2.5, 10], "texture": "#surface"},
-				"south": {"uv": [0, 7.78409, 2.5, 10], "texture": "#surface"},
-				"west": {"uv": [4, 7.78409, 5.25, 10], "texture": "#surface"},
-				"up": {"uv": [0.5, 7.78409, 2, 10], "texture": "#surface"},
-				"down": {"uv": [0.5, 7.78409, 2, 10], "texture": "#surface"}
+				"north": {"uv": [0.03125, 5.0057, 1.71875, 7.96875], "texture": "#surface"},
+				"east": {"uv": [4.03125, 5.0057, 5.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 5.0057, 1.71875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [4.03125, 5.0057, 5.71875, 7.96875], "texture": "#surface"},
+				"up": {"uv": [0.03125, 5.0057, 1.71875, 7.96875], "texture": "#surface"},
+				"down": {"uv": [0.03125, 5.0057, 1.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 01",
-			"from": [8.39967, 5.31195, 7.78858],
-			"to": [8.82252, 7.77272, 8.21142],
-			"rotation": {"x": 0, "y": 45, "z": 1.4688, "origin": [8.6111, 6.54234, 8]},
+			"name": "Ground bevel L body",
+			"from": [6.76473, 5.14, 7.67473],
+			"to": [7.41527, 12.61, 8.32527],
+			"rotation": {"angle": 45, "axis": "y", "origin": [7.09, 8.875, 8]},
 			"faces": {
-				"north": {"uv": [0, 7.78409, 2.5, 10], "texture": "#surface"},
-				"east": {"uv": [2.5, 7.78409, 4, 10], "texture": "#surface"},
-				"south": {"uv": [2.5, 7.78409, 4, 10], "texture": "#surface"},
-				"west": {"uv": [0, 7.78409, 2.5, 10], "texture": "#surface"},
-				"up": {"uv": [0.5, 7.78409, 2, 10], "texture": "#surface"},
-				"down": {"uv": [0.5, 7.78409, 2, 10], "texture": "#surface"}
+				"north": {"uv": [2.03125, 5.00372, 3.71875, 7.96875], "texture": "#surface"},
+				"east": {"uv": [0.03125, 5.00372, 1.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [0.03125, 5.00372, 1.71875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [2.03125, 5.00372, 3.71875, 7.96875], "texture": "#surface"},
+				"down": {"uv": [0.03125, 5.00372, 1.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 02",
-			"from": [7.215, 7.65416, 7.73504],
-			"to": [8.522, 10.04584, 8.26496],
-			"rotation": {"angle": 5.81098, "axis": "z", "origin": [7.215, 8.85, 8]},
+			"name": "Ground bevel R body",
+			"from": [8.58473, 5.14, 7.67473],
+			"to": [9.23527, 12.61, 8.32527],
+			"rotation": {"angle": 45, "axis": "y", "origin": [8.91, 8.875, 8]},
 			"faces": {
-				"north": {"uv": [0, 5.64394, 2.5, 7.78409], "texture": "#surface"},
-				"east": {"uv": [0, 5.64394, 2.5, 7.78409], "texture": "#surface"},
-				"south": {"uv": [0, 5.64394, 2.5, 7.78409], "texture": "#surface"},
-				"west": {"uv": [4, 5.64394, 5.25, 7.78409], "texture": "#surface"},
-				"up": {"uv": [0.5, 5.64394, 2, 7.78409], "texture": "#surface"},
-				"down": {"uv": [0.5, 5.64394, 2, 7.78409], "texture": "#surface"}
+				"north": {"uv": [0.03125, 5.00372, 1.71875, 7.96875], "texture": "#surface"},
+				"east": {"uv": [2.03125, 5.00372, 3.71875, 7.96875], "texture": "#surface"},
+				"south": {"uv": [2.03125, 5.00372, 3.71875, 7.96875], "texture": "#surface"},
+				"west": {"uv": [0.03125, 5.00372, 1.71875, 7.96875], "texture": "#surface"},
+				"down": {"uv": [0.03125, 5.00372, 1.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 02",
-			"from": [8.27971, 7.62676, 7.79635],
-			"to": [8.687, 10.01744, 8.20365],
-			"rotation": {"x": 0, "y": 45, "z": 5.55995, "origin": [8.48335, 8.8221, 8]},
+			"name": "Point facet 1",
+			"from": [6.83063, 12.50806, 7.994],
+			"to": [7.79937, 15.15194, 8],
+			"rotation": {"x": -21.49428, "y": -45, "z": 0, "origin": [7.315, 13.83, 8]},
 			"faces": {
-				"north": {"uv": [0, 5.64394, 2.5, 7.78409], "texture": "#surface"},
-				"east": {"uv": [2.5, 5.64394, 4, 7.78409], "texture": "#surface"},
-				"south": {"uv": [2.5, 5.64394, 4, 7.78409], "texture": "#surface"},
-				"west": {"uv": [0, 5.64394, 2.5, 7.78409], "texture": "#surface"},
-				"up": {"uv": [0.5, 5.64394, 2, 7.78409], "texture": "#surface"},
-				"down": {"uv": [0.5, 5.64394, 2, 7.78409], "texture": "#surface"}
+				"south": {"uv": [0.12687, 8.12688, 3.87313, 11.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 03",
-			"from": [6.965, 9.91115, 7.75344],
-			"to": [8.267, 12.09885, 8.24656],
-			"rotation": {"angle": 7.50309, "axis": "z", "origin": [6.965, 11.005, 8]},
+			"name": "Point facet 2",
+			"from": [7.1118, 12.57094, 8.22607],
+			"to": [8.02531, 15.08906, 8.23207],
+			"rotation": {"x": -12.33465, "y": -5.02408, "z": 0, "origin": [7.56855, 13.83, 8.23207]},
 			"faces": {
-				"north": {"uv": [0, 3.70265, 2.5, 5.64394], "texture": "#surface"},
-				"east": {"uv": [0, 3.70265, 2.5, 5.64394], "texture": "#surface"},
-				"south": {"uv": [0, 3.70265, 2.5, 5.64394], "texture": "#surface"},
-				"west": {"uv": [4, 3.70265, 5.25, 5.64394], "texture": "#surface"},
-				"up": {"uv": [0.5, 3.70265, 2, 5.64394], "texture": "#surface"},
-				"down": {"uv": [0.5, 3.70265, 2, 5.64394], "texture": "#surface"}
+				"south": {"uv": [4.12688, 8.12688, 7.87313, 11.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 03",
-			"from": [8.0409, 9.86421, 7.8105],
-			"to": [8.41991, 12.0606, 8.1895],
-			"rotation": {"x": 0, "y": 45, "z": 9.14477, "origin": [8.23041, 10.96241, 8]},
+			"name": "Blade ridge face 2",
+			"from": [7.08825, 5.14, 8.494],
+			"to": [8.00175, 12.605, 8.5],
+			"rotation": {"angle": -5.02408, "axis": "y", "origin": [7.545, 8.8725, 8.5]},
 			"faces": {
-				"north": {"uv": [0, 3.70265, 2.5, 5.64394], "texture": "#surface"},
-				"east": {"uv": [2.5, 3.70265, 4, 5.64394], "texture": "#surface"},
-				"south": {"uv": [2.5, 3.70265, 4, 5.64394], "texture": "#surface"},
-				"west": {"uv": [0, 3.70265, 2.5, 5.64394], "texture": "#surface"},
-				"up": {"uv": [0.5, 3.70265, 2, 5.64394], "texture": "#surface"},
-				"down": {"uv": [0.5, 3.70265, 2, 5.64394], "texture": "#surface"}
+				"south": {"uv": [0.03125, 5.0057, 1.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 04",
-			"from": [6.73, 11.9641, 7.77966],
-			"to": [7.9455, 13.7859, 8.22034],
-			"rotation": {"angle": 6.74917, "axis": "z", "origin": [6.73, 12.875, 8]},
+			"name": "Point facet 3",
+			"from": [7.97469, 12.57094, 8.22607],
+			"to": [8.8882, 15.08906, 8.23207],
+			"rotation": {"x": -12.33465, "y": 5.02408, "z": 0, "origin": [8.43145, 13.83, 8.23207]},
 			"faces": {
-				"north": {"uv": [0, 2.10227, 2.5, 3.70265], "texture": "#surface"},
-				"east": {"uv": [0, 2.10227, 2.5, 3.70265], "texture": "#surface"},
-				"south": {"uv": [0, 2.10227, 2.5, 3.70265], "texture": "#surface"},
-				"west": {"uv": [4, 2.10227, 5.25, 3.70265], "texture": "#surface"},
-				"up": {"uv": [0.5, 2.10227, 2, 3.70265], "texture": "#surface"},
-				"down": {"uv": [0.5, 2.10227, 2, 3.70265], "texture": "#surface"}
+				"south": {"uv": [8.12688, 8.12688, 11.87313, 11.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 04",
-			"from": [7.74169, 11.89876, 7.83065],
-			"to": [8.08039, 13.74879, 8.16935],
-			"rotation": {"x": 0, "y": 45, "z": 12.3492, "origin": [7.91104, 12.82378, 8]},
+			"name": "Blade ridge face 3",
+			"from": [7.99825, 5.14, 8.494],
+			"to": [8.91175, 12.605, 8.5],
+			"rotation": {"angle": 5.02408, "axis": "y", "origin": [8.455, 8.8725, 8.5]},
 			"faces": {
-				"north": {"uv": [0, 2.10227, 2.5, 3.70265], "texture": "#surface"},
-				"east": {"uv": [2.5, 2.10227, 4, 3.70265], "texture": "#surface"},
-				"south": {"uv": [2.5, 2.10227, 4, 3.70265], "texture": "#surface"},
-				"west": {"uv": [0, 2.10227, 2.5, 3.70265], "texture": "#surface"},
-				"up": {"uv": [0.5, 2.10227, 2, 3.70265], "texture": "#surface"},
-				"down": {"uv": [0.5, 2.10227, 2, 3.70265], "texture": "#surface"}
+				"south": {"uv": [4.03125, 5.0057, 5.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 05",
-			"from": [6.6, 13.65857, 7.81002],
-			"to": [7.6785, 14.41143, 8.18998],
-			"rotation": {"angle": 5.44033, "axis": "z", "origin": [6.6, 14.035, 8]},
+			"name": "Point facet 4",
+			"from": [8.20063, 12.50806, 7.994],
+			"to": [9.16937, 15.15194, 8],
+			"rotation": {"x": -21.49428, "y": 45, "z": 0, "origin": [8.685, 13.83, 8]},
 			"faces": {
-				"north": {"uv": [0, 1.50568, 2.5, 2.10227], "texture": "#surface"},
-				"east": {"uv": [0, 1.50568, 2.5, 2.10227], "texture": "#surface"},
-				"south": {"uv": [0, 1.50568, 2.5, 2.10227], "texture": "#surface"},
-				"west": {"uv": [4, 1.50568, 5.25, 2.10227], "texture": "#surface"},
-				"up": {"uv": [0.5, 1.50568, 2, 2.10227], "texture": "#surface"},
-				"down": {"uv": [0.5, 1.50568, 2, 2.10227], "texture": "#surface"}
+				"south": {"uv": [12.12688, 8.12688, 15.87313, 11.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 05",
-			"from": [7.50501, 13.56885, 7.85398],
-			"to": [7.79704, 14.35952, 8.14602],
-			"rotation": {"x": 0, "y": 45, "z": 20.05609, "origin": [7.65102, 13.96418, 8]},
+			"name": "Point facet 5",
+			"from": [8.20063, 12.50806, 7.994],
+			"to": [9.16937, 15.15194, 8],
+			"rotation": {"x": 158.50572, "y": 45, "z": 180, "origin": [8.685, 13.83, 8]},
 			"faces": {
-				"north": {"uv": [0, 1.50568, 2.5, 2.10227], "texture": "#surface"},
-				"east": {"uv": [2.5, 1.50568, 4, 2.10227], "texture": "#surface"},
-				"south": {"uv": [2.5, 1.50568, 4, 2.10227], "texture": "#surface"},
-				"west": {"uv": [0, 1.50568, 2.5, 2.10227], "texture": "#surface"},
-				"up": {"uv": [0.5, 1.50568, 2, 2.10227], "texture": "#surface"},
-				"down": {"uv": [0.5, 1.50568, 2, 2.10227], "texture": "#surface"}
+				"south": {"uv": [0.12687, 12.12688, 3.87313, 15.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 06",
-			"from": [6.55, 14.32417, 7.83716],
-			"to": [7.458, 14.85583, 8.16284],
-			"rotation": {"angle": 4.76364, "axis": "z", "origin": [6.55, 14.59, 8]},
+			"name": "Point facet 6",
+			"from": [7.97469, 12.57094, 7.76193],
+			"to": [8.8882, 15.08906, 7.76793],
+			"rotation": {"x": 167.66535, "y": 5.02408, "z": 180, "origin": [8.43145, 13.83, 7.76793]},
 			"faces": {
-				"north": {"uv": [0, 1.05114, 2.5, 1.50568], "texture": "#surface"},
-				"east": {"uv": [0, 1.05114, 2.5, 1.50568], "texture": "#surface"},
-				"south": {"uv": [0, 1.05114, 2.5, 1.50568], "texture": "#surface"},
-				"west": {"uv": [4, 1.05114, 5.25, 1.50568], "texture": "#surface"},
-				"up": {"uv": [0.5, 1.05114, 2, 1.50568], "texture": "#surface"},
-				"down": {"uv": [0.5, 1.05114, 2, 1.50568], "texture": "#surface"}
+				"south": {"uv": [4.12688, 12.12688, 7.87313, 15.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 06",
-			"from": [7.31557, 14.20286, 7.87484],
-			"to": [7.56589, 14.80359, 8.12516],
-			"rotation": {"x": 0, "y": 45, "z": 29.35775, "origin": [7.44073, 14.50322, 8]},
+			"name": "Blade ridge face 6",
+			"from": [7.99825, 5.14, 7.494],
+			"to": [8.91175, 12.605, 7.5],
+			"rotation": {"x": 180, "y": 5.02408, "z": 180, "origin": [8.455, 8.8725, 7.5]},
 			"faces": {
-				"north": {"uv": [0, 1.05114, 2.5, 1.50568], "texture": "#surface"},
-				"east": {"uv": [2.5, 1.05114, 4, 1.50568], "texture": "#surface"},
-				"south": {"uv": [2.5, 1.05114, 4, 1.50568], "texture": "#surface"},
-				"west": {"uv": [0, 1.05114, 2.5, 1.50568], "texture": "#surface"},
-				"up": {"uv": [0.5, 1.05114, 2, 1.50568], "texture": "#surface"},
-				"down": {"uv": [0.5, 1.05114, 2, 1.50568], "texture": "#surface"}
+				"south": {"uv": [0.03125, 5.0057, 1.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 07",
-			"from": [6.515, 14.80446, 7.86062],
-			"to": [7.2085, 15.27554, 8.13938],
-			"rotation": {"angle": 4.08562, "axis": "z", "origin": [6.515, 15.04, 8]},
+			"name": "Point facet 7",
+			"from": [7.1118, 12.57094, 7.76193],
+			"to": [8.02531, 15.08906, 7.76793],
+			"rotation": {"x": 167.66535, "y": -5.02408, "z": 180, "origin": [7.56855, 13.83, 7.76793]},
 			"faces": {
-				"north": {"uv": [0, 0.65341, 2.5, 1.05114], "texture": "#surface"},
-				"east": {"uv": [0, 0.65341, 2.5, 1.05114], "texture": "#surface"},
-				"south": {"uv": [0, 0.65341, 2.5, 1.05114], "texture": "#surface"},
-				"west": {"uv": [4, 0.65341, 5.25, 1.05114], "texture": "#surface"},
-				"up": {"uv": [0.5, 0.65341, 2, 1.05114], "texture": "#surface"},
-				"down": {"uv": [0.5, 0.65341, 2, 1.05114], "texture": "#surface"}
+				"south": {"uv": [8.12688, 12.12688, 11.87313, 15.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 07",
-			"from": [7.08682, 14.67857, 7.89287],
-			"to": [7.30107, 15.23335, 8.10713],
-			"rotation": {"x": 0, "y": 45, "z": 33.69007, "origin": [7.19394, 14.95596, 8]},
+			"name": "Blade ridge face 7",
+			"from": [7.08825, 5.14, 7.494],
+			"to": [8.00175, 12.605, 7.5],
+			"rotation": {"x": 180, "y": -5.02408, "z": 180, "origin": [7.545, 8.8725, 7.5]},
 			"faces": {
-				"north": {"uv": [0, 0.65341, 2.5, 1.05114], "texture": "#surface"},
-				"east": {"uv": [2.5, 0.65341, 4, 1.05114], "texture": "#surface"},
-				"south": {"uv": [2.5, 0.65341, 4, 1.05114], "texture": "#surface"},
-				"west": {"uv": [0, 0.65341, 2.5, 1.05114], "texture": "#surface"},
-				"up": {"uv": [0.5, 0.65341, 2, 1.05114], "texture": "#surface"},
-				"down": {"uv": [0.5, 0.65341, 2, 1.05114], "texture": "#surface"}
+				"south": {"uv": [4.03125, 5.0057, 5.71875, 7.96875], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 08",
-			"from": [6.49, 15.22471, 7.88408],
-			"to": [6.954, 15.61529, 8.11592],
-			"rotation": {"angle": 3.36646, "axis": "z", "origin": [6.49, 15.42, 8]},
+			"name": "Point facet 8",
+			"from": [6.83063, 12.50806, 7.994],
+			"to": [7.79937, 15.15194, 8],
+			"rotation": {"x": 158.50572, "y": -45, "z": 180, "origin": [7.315, 13.83, 8]},
 			"faces": {
-				"north": {"uv": [0, 0.33144, 2.5, 0.65341], "texture": "#surface"},
-				"east": {"uv": [0, 0.33144, 2.5, 0.65341], "texture": "#surface"},
-				"south": {"uv": [0, 0.33144, 2.5, 0.65341], "texture": "#surface"},
-				"west": {"uv": [4, 0.33144, 5.25, 0.65341], "texture": "#surface"},
-				"up": {"uv": [0.5, 0.33144, 2, 0.65341], "texture": "#surface"},
-				"down": {"uv": [0.5, 0.33144, 2, 0.65341], "texture": "#surface"}
+				"south": {"uv": [12.12688, 12.12688, 15.87313, 15.87313], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 08",
-			"from": [6.85364, 15.09467, 7.9109],
-			"to": [7.03183, 15.58513, 8.0891],
-			"rotation": {"x": 0, "y": 45, "z": 39.47246, "origin": [6.94274, 15.3399, 8]},
+			"name": "Soot-black crossguard",
+			"from": [5.58, 4.35, 7.27],
+			"to": [10.42, 5.03, 8.73],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.58, 4.35, 7.27]},
 			"faces": {
-				"north": {"uv": [0, 0.33144, 2.5, 0.65341], "texture": "#surface"},
-				"east": {"uv": [2.5, 0.33144, 4, 0.65341], "texture": "#surface"},
-				"south": {"uv": [2.5, 0.33144, 4, 0.65341], "texture": "#surface"},
-				"west": {"uv": [0, 0.33144, 2.5, 0.65341], "texture": "#surface"},
-				"up": {"uv": [0.5, 0.33144, 2, 0.65341], "texture": "#surface"},
-				"down": {"uv": [0.5, 0.33144, 2, 0.65341], "texture": "#surface"}
+				"north": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"east": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"south": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"west": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"up": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"down": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Blade face 09",
-			"from": [6.475, 15.5649, 7.91352],
-			"to": [6.726, 15.8551, 8.08648],
-			"rotation": {"angle": 2.38594, "axis": "z", "origin": [6.475, 15.71, 8]},
+			"name": "Guard shoulder",
+			"from": [6.42, 5.03, 7.39],
+			"to": [9.58, 5.28, 8.61],
+			"rotation": {"angle": 0, "axis": "y", "origin": [6.42, 5.03, 7.39]},
 			"faces": {
-				"north": {"uv": [0, 0.10417, 2.5, 0.33144], "texture": "#surface"},
-				"east": {"uv": [0, 0.10417, 2.5, 0.33144], "texture": "#surface"},
-				"south": {"uv": [0, 0.10417, 2.5, 0.33144], "texture": "#surface"},
-				"west": {"uv": [4, 0.10417, 5.25, 0.33144], "texture": "#surface"},
-				"up": {"uv": [0.5, 0.10417, 2, 0.33144], "texture": "#surface"},
-				"down": {"uv": [0.5, 0.10417, 2, 0.33144], "texture": "#surface"}
+				"north": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"east": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"south": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"west": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"up": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 09",
-			"from": [6.64706, 15.44883, 7.93353],
-			"to": [6.78, 15.83824, 8.06647],
-			"rotation": {"x": 0, "y": 45, "z": 45, "origin": [6.71353, 15.64353, 8]},
+			"name": "Brazen guard pin",
+			"from": [5.43, 4.44, 7.38],
+			"to": [6.09, 4.94, 8.62],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5.43, 4.44, 7.38]},
 			"faces": {
-				"north": {"uv": [0, 0.10417, 2.5, 0.33144], "texture": "#surface"},
-				"east": {"uv": [2.5, 0.10417, 4, 0.33144], "texture": "#surface"},
-				"south": {"uv": [2.5, 0.10417, 4, 0.33144], "texture": "#surface"},
-				"west": {"uv": [0, 0.10417, 2.5, 0.33144], "texture": "#surface"},
-				"up": {"uv": [0.5, 0.10417, 2, 0.33144], "texture": "#surface"},
-				"down": {"uv": [0.5, 0.10417, 2, 0.33144], "texture": "#surface"}
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Cutting bevel 10",
-			"from": [6.50231, 15.71265, 7.95687],
-			"to": [6.58858, 15.95682, 8.04313],
-			"rotation": {"x": 0, "y": 45, "z": 55.49148, "origin": [6.54544, 15.83473, 8]},
+			"name": "Brazen guard pin",
+			"from": [9.91, 4.44, 7.38],
+			"to": [10.57, 4.94, 8.62],
+			"rotation": {"angle": 0, "axis": "y", "origin": [9.91, 4.44, 7.38]},
 			"faces": {
-				"north": {"uv": [0, 0, 2.5, 0.10417], "texture": "#surface"},
-				"east": {"uv": [2.5, 0, 4, 0.10417], "texture": "#surface"},
-				"south": {"uv": [2.5, 0, 4, 0.10417], "texture": "#surface"},
-				"west": {"uv": [0, 0, 2.5, 0.10417], "texture": "#surface"},
-				"up": {"uv": [0.5, 0, 2, 0.10417], "texture": "#surface"},
-				"down": {"uv": [0.5, 0, 2, 0.10417], "texture": "#surface"}
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Tsuba core",
-			"from": [6.72, 4.8, 7.13],
-			"to": [9.28, 5.11, 8.87],
-			"rotation": {"angle": 0, "axis": "y", "origin": [6.72, 4.8, 7.13]},
+			"name": "Wrapped ash handle",
+			"from": [7.39, 1.58, 7.43],
+			"to": [8.61, 4.34, 8.57],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.39, 1.58, 7.43]},
 			"faces": {
-				"north": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"east": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"south": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"west": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"up": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"down": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"}
+				"north": {"uv": [6.375, 0.125, 7.375, 1.125], "texture": "#surface"},
+				"east": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"south": {"uv": [6.375, 0.125, 7.375, 1.125], "texture": "#surface"},
+				"west": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"up": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"},
+				"down": {"uv": [0.125, 1.375, 1.125, 2.375], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Tsuba left rim",
-			"from": [6.42, 4.8, 7.43],
-			"to": [6.72, 5.11, 8.57],
-			"rotation": {"angle": 0, "axis": "y", "origin": [6.42, 4.8, 7.43]},
+			"name": "Grip ferrule",
+			"from": [7.3, 4.07, 7.34],
+			"to": [8.7, 4.35, 8.66],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.3, 4.07, 7.34]},
 			"faces": {
-				"north": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"east": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"south": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"west": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"up": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"down": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"}
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Tsuba right rim",
-			"from": [9.28, 4.8, 7.43],
-			"to": [9.58, 5.11, 8.57],
-			"rotation": {"angle": 0, "axis": "y", "origin": [9.28, 4.8, 7.43]},
+			"name": "Square pommel",
+			"from": [7.18, 1.14, 7.27],
+			"to": [8.82, 1.73, 8.73],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.18, 1.14, 7.27]},
 			"faces": {
-				"north": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"east": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"south": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"west": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"up": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"down": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"}
+				"north": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"east": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"south": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"west": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"up": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [0.125, 0.125, 1.125, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Habaki",
-			"from": [7.34, 5.11, 7.63],
-			"to": [8.9, 5.49, 8.37],
-			"rotation": {"angle": 0, "axis": "y", "origin": [7.34, 5.11, 7.63]},
+			"name": "Pommel peen",
+			"from": [7.42, 0.9, 7.46],
+			"to": [8.58, 1.14, 8.54],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.42, 0.9, 7.46]},
 			"faces": {
-				"north": {"uv": [7.5, 0, 9.5, 2], "texture": "#surface"},
-				"east": {"uv": [7.5, 0, 9.5, 2], "texture": "#surface"},
-				"south": {"uv": [7.5, 0, 9.5, 2], "texture": "#surface"},
-				"west": {"uv": [7.5, 0, 9.5, 2], "texture": "#surface"},
-				"up": {"uv": [7.5, 0, 9.5, 2], "texture": "#surface"},
-				"down": {"uv": [7.5, 0, 9.5, 2], "texture": "#surface"}
+				"north": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"east": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"south": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"west": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"up": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"},
+				"down": {"uv": [5.125, 0.125, 6.125, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Grip collar",
-			"from": [7.33, 4.55, 7.46],
-			"to": [8.67, 4.8, 8.54],
-			"rotation": {"angle": 0, "axis": "y", "origin": [7.33, 4.55, 7.46]},
+			"name": "Nox maker's stamp",
+			"from": [7.52, 5.26, 7.43],
+			"to": [8.48, 6.2, 7.55],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.52, 5.26, 7.43]},
 			"faces": {
-				"north": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"east": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"south": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"west": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"up": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"down": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"}
+				"north": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"south": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"up": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"down": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"}
 			}
 		},
 		{
-			"name": "Wrapped grip",
-			"from": [7.4, 1.12, 7.53],
-			"to": [8.6, 4.56, 8.47],
-			"rotation": {"angle": 0, "axis": "y", "origin": [7.4, 1.12, 7.53]},
+			"name": "Nox maker's stamp",
+			"from": [7.52, 5.26, 8.45],
+			"to": [8.48, 6.2, 8.57],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7.52, 5.26, 8.45]},
 			"faces": {
-				"north": {"uv": [5.5, 3, 7.5, 7], "texture": "#surface"},
-				"east": {"uv": [7.5, 3, 9, 7], "texture": "#surface"},
-				"south": {"uv": [5.5, 3, 7.5, 7], "texture": "#surface"},
-				"west": {"uv": [7.5, 3, 9, 7], "texture": "#surface"},
-				"up": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"down": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Kashira",
-			"from": [7.32, 0.74, 7.47],
-			"to": [8.68, 1.16, 8.53],
-			"rotation": {"angle": 0, "axis": "y", "origin": [7.32, 0.74, 7.47]},
-			"faces": {
-				"north": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"east": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"south": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"west": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"up": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"},
-				"down": {"uv": [9.5, 0, 11.5, 2], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Kashira cap",
-			"from": [7.43, 0.61, 7.56],
-			"to": [8.57, 0.74, 8.44],
-			"rotation": {"angle": 0, "axis": "y", "origin": [7.43, 0.61, 7.56]},
-			"faces": {
-				"north": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"east": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"south": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"west": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"up": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"},
-				"down": {"uv": [5.5, 0, 7.5, 2], "texture": "#surface"}
+				"north": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"east": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"south": {"uv": [0.125, 2.625, 1.125, 3.625], "texture": "#surface"},
+				"west": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"up": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"},
+				"down": {"uv": [3.875, 0.125, 4.875, 1.125], "texture": "#surface"}
 			}
 		}
 	],
