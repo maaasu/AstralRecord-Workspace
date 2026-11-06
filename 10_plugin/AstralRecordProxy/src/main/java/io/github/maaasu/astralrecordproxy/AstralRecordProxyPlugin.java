@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.1.0",
+@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.2.0",
     dependencies = @Dependency(id = "geyser", optional = true))
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
