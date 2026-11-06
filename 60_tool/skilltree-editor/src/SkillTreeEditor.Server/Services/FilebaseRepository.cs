@@ -14,6 +14,9 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly MasterDataPaths _boundary = new(paths);
 
+    public Task<IReadOnlyList<string>> FindProgressionPresetNodeReferencesAsync(string nodeId, CancellationToken token)
+        => ProgressionPresetValidation.FindNodeReferencesAsync(_boundary, new MasterDataCodec(), nodeId, token);
+
     public Task<IReadOnlyList<StoredDocument>> ReadNodesAsync(CancellationToken cancellationToken)
         => ReadDirectoryAsync(paths.Nodes, cancellationToken);
 

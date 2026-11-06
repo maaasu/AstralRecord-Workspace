@@ -368,6 +368,32 @@ public final class SkillBindPresetService {
                 capturedVersions, capturedPresetIndexes, acknowledged));
     }
 
+    /**
+     * 選択中のバインドへ戦闘検証用の構成を反映します。呼出元は保存ロックを保持します。
+     * @param accountId 対象アカウント
+     * @param active 発動枠のスキル個体ID
+     * @param passive 常時発動枠のスキル個体ID
+     */
+    public synchronized void applyProgressionPresetBindings(
+        @NotNull UUID accountId, @NotNull List<String> active, @NotNull List<String> passive
+    ) {
+        int index = selectedPresetIndex(accountId);
+        SkillBindPreset existing = rawPresets(accountId).get(index - 1);
+        SkillBindPreset local = new SkillBindPreset(existing.getPresetId(), accountId, index,
+            active, SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID, passive, existing.isUnlocked(),
+            false, existing.getVersion() + 1, true);
+        presetsByAccount.compute(accountId, (ignored, current) -> mergePreset(accountId, current, local));
+        markLocalMutation(accountId);
+    }
+
+    private void markLocalMutation(UUID accountId) {
+        AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
+        synchronized (state) {
+            state.dirty = true;
+            state.revision++;
+        }
+    }
+
     private void mutateLocal(@NotNull UUID accountId, @NotNull Runnable mutation) {
         InventoryService persistence = localStatePersistence;
         if (persistence == null) {
@@ -376,11 +402,7 @@ public final class SkillBindPresetService {
         persistence.executeLocalPlayerMutation(accountId, () -> {
             synchronized (this) {
                 mutation.run();
-                AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
-                synchronized (state) {
-                    state.dirty = true;
-                    state.revision++;
-                }
+                markLocalMutation(accountId);
                 return null;
             }
         });

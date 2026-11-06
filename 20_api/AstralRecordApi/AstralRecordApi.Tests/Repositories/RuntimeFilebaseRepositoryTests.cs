@@ -40,6 +40,10 @@ public sealed class RuntimeFilebaseRepositoryTests
         expected.Add("42.features.gathering/mining/deep.yml", "id: deep\n");
         fixture.Write("35.features.skilltree/schemas/private.json", "{}\n");
         fixture.Write("35.features.skilltree/node-id-sequence.json", "{}\n");
+        const string presetPath = "36.features.progression_preset/v1.adventurer_default.yml";
+        fixture.Write(presetPath, "id: adventurer_default\n");
+        expected.Add(presetPath, "id: adventurer_default\n");
+        fixture.Write("36.features.progression_preset/schemas/private.json", "{}\n");
         fixture.Write("45.features.shop/docs.shop.yml", "not a runtime definition\n");
         fixture.Write("45.features.shop/other.json", "{}\n");
         fixture.Write("45.features.shop/nested/hidden.yml", "id: hidden\n");
@@ -54,6 +58,16 @@ public sealed class RuntimeFilebaseRepositoryTests
         Assert.Equal(expected.Keys.Order(StringComparer.Ordinal), snapshot.Files.Select(file => file.Path));
         foreach (var file in snapshot.Files)
             Assert.Equal(expected[file.Path], file.Content);
+    }
+
+    [Fact]
+    public async Task GetSnapshot_AcceptsExistingDeploymentsWithoutProgressionPresets()
+    {
+        using var fixture = new FilebaseFixture();
+
+        var snapshot = await fixture.Repository.GetSnapshotAsync();
+
+        Assert.Empty(snapshot.Files);
     }
 
     [Fact]

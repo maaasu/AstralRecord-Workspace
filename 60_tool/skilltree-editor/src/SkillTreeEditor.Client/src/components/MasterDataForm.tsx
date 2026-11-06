@@ -134,7 +134,8 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)}>{masterValueLabel(path, String(entry))}</option>)}
   </select>
   if (kind === 'boolean') return <label className="master-checkbox"><input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />{value === true ? 'true（有効）' : 'false（無効）'}</label>
-  if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />
+  if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]}
+    candidates={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references.filter((entry) => entry.kind === 'node') : undefined} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
   const spawnerMobReference = /^\/spawnMobs\/\d+\/mobId$/.test(path)
@@ -145,7 +146,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   const spawnerMobReferencePrefix = spawnerMobReference && referenceKind === 'mob' ? 'mob:' : undefined
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
-    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? spawnerMobReferencePrefix ?? (typeof resolved.pattern === 'string' && resolved.pattern.startsWith('^item:') ? 'item:' : undefined)}
+    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? spawnerMobReferencePrefix ?? (typeof resolved.pattern === 'string' ? resolved.pattern.match(/^\^(item|skill):/)?.[0].slice(1) : undefined)}
     referenceFilter={path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
 }
 
@@ -270,7 +271,8 @@ function numberInputError(text: string, kind: 'number' | 'integer'): string {
   return invalid ? kind === 'integer' ? '有限の整数を入力してください。' : '有限の数値を入力してください。' : ''
 }
 
-function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText }: { value: number; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string }) {
+function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, candidates }: { value: number; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string; candidates?: MasterReference[] }) {
+  const listId = useId()
   const [text, setText] = useState(restoredText ?? String(value))
   const [error, setError] = useState(() => numberInputError(restoredText ?? String(value), kind))
   useEffect(() => {
@@ -280,13 +282,15 @@ function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText }: 
     if (message) onInvalid?.(path, message, nextText)
     else onInvalid?.(path, null)
   }, [value, path, kind, onInvalid, restoredText])
-  return <div><input type="text" inputMode="decimal" aria-label={path || '/'} aria-invalid={Boolean(error)} value={text} onChange={(event) => {
+  return <div><input type="text" inputMode="decimal" list={candidates?.length ? listId : undefined} aria-label={path || '/'} aria-invalid={Boolean(error)} value={text} onChange={(event) => {
     setText(event.target.value)
     const message = numberInputError(event.target.value, kind)
     setError(message)
     if (message) onInvalid?.(path, message, event.target.value)
     else { onInvalid?.(path, null); onChange(Number(event.target.value)) }
-  }} />{error && <small className="error-message">{error}</small>}</div>
+  }} />{Boolean(candidates?.length) && <datalist id={listId}>{candidates?.map((entry) =>
+    <option key={entry.path} value={entry.value} label={stripMinecraftFormatting(entry.label ?? entry.value)} />
+  )}</datalist>}{error && <small className="error-message">{error}</small>}</div>
 }
 
 function StringEditor({ value, path, label, onChange, references, referenceKind, referencePrefix, referenceFilter }: { value: string; path: string; label: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string; referenceFilter?: (entry: MasterReference) => boolean }) {

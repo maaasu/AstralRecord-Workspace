@@ -19,12 +19,13 @@ public class AccountCommand extends AstCommand {
     private final AccountCreateCommand createCommand = new AccountCreateCommand();
     private final AccountCloneCommand cloneCommand = new AccountCloneCommand();
     private final AccountUuidCommand uuidCommand = new AccountUuidCommand();
+    private final AccountProgressionCommand progressionCommand = new AccountProgressionCommand();
 
     /**
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account <create|rename|mode|delete|switch|uuid|clone|confirm> ...", false,
+        super("account", "アカウントを管理します。", "/account <create|rename|mode|delete|switch|uuid|clone|confirm|progression> ...", false,
             UserPermission.ADMIN.getValue());
     }
 
@@ -68,6 +69,10 @@ public class AccountCommand extends AstCommand {
         }
 
         String action = args[0].toLowerCase(Locale.ROOT);
+        if (action.equals("progression")) {
+            progressionCommand.onCommand(sender, null, "account progression", Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
         if (action.equals("uuid")) {
             uuidCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;

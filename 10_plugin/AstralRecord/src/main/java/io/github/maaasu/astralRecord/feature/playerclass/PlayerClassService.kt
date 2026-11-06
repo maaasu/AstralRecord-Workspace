@@ -483,6 +483,56 @@ class PlayerClassService @JvmOverloads constructor(
 
     fun resolveLoadedClassId(input: String): String? = resolveLoadedClass(input)?.id
 
+    /**
+     * 戦闘検証プリセットに必要な職業レベルと、転職前提職のレベルを解決します。
+     * @return マスターに存在し、上限内の場合の設定レベル。定義が無効な場合は null
+     */
+    fun progressionPresetClassLevels(classId: String, classLevel: Int): Map<String, Int>? {
+        val levels = linkedMapOf<String, Int>()
+        fun collect(id: String, level: Int): Boolean {
+            val model = classService.getLoadedClass(id) ?: return false
+            if (level !in 1..maxClassLevel(model)) return false
+            if ((levels[model.id] ?: 0) >= level) return true
+            levels[model.id] = level
+            return model.unlockClassLevel.all { collect(it.classId, it.level) }
+        }
+        return if (collect(classId, classLevel) && levels[classId] == classLevel) levels else null
+    }
+
+    /**
+     * 外側の保存ロック内で戦闘検証プリセットの職業進行度を反映します。
+     * @param astPlayer 変更対象
+     * @param classId 選択する職業
+     * @param levels 検証済みの職業レベル
+     */
+    fun applyProgressionPresetClasses(astPlayer: AstPlayer, classId: String, levels: Map<String, Int>) {
+        for ((id, level) in levels) {
+            val model = checkNotNull(classService.getLoadedClass(id))
+            val experience = totalRequiredClassExperienceForLevel(model, level)
+            astPlayer.setClassProgress(id, level, experience)
+            persistClassProgress(astPlayer, id, level, experience)
+        }
+        astPlayer.selectClass(classId)
+        persistClassProgress(astPlayer)
+    }
+
+    /**
+     * プリセット適用後の職業に依存する表示と効果を更新します。
+     * @param astPlayer 変更対象
+     */
+    fun refreshProgressionPresetClass(astPlayer: AstPlayer) {
+        classChangeListener?.accept(astPlayer)
+        updatePlayerListName(astPlayer)
+    }
+
+    /**
+     * プリセットの選択職が直接許可するスキル参照を取得します。
+     * @param classId 選択職ID
+     * @return 使用を許可するスキル参照
+     */
+    fun progressionPresetUsableSkills(classId: String): List<String> =
+        classService.getLoadedClass(classId)?.usableSkills.orEmpty()
+
     fun clearCache() = classService.clearCache()
 
     private fun evaluateChangeRequirements(astPlayer: AstPlayer, model: ClassModel): ChangeAvailability {

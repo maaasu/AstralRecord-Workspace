@@ -182,6 +182,29 @@ public final class LearnedSkillService {
         return skillsByAccount.containsKey(accountId);
     }
 
+    /**
+     * プリセットの初期スキル個体をローカル保存ロック内で取得または作成します。
+     * @param accountId 対象アカウント
+     * @param skillId 検証済みのスキルマスターID
+     * @return バインドに使うスキル個体ID
+     */
+    public synchronized @NotNull String ensureProgressionPresetSkill(
+        @NotNull UUID accountId, @NotNull String skillId
+    ) {
+        List<LearnedSkillInstance> current = getLearnedSkills(accountId);
+        var existing = current.stream()
+            .filter(skill -> skill.getSkillId().equalsIgnoreCase(skillId)
+                && skill.getLevel() == 1 && skill.getSigils().isEmpty())
+            .min(java.util.Comparator.comparing(LearnedSkillInstance::getLearnedSkillId));
+        if (existing.isPresent()) return existing.get().getLearnedSkillId().toString();
+        LocalDateTime now = LocalDateTime.now();
+        LearnedSkillInstance created = new LearnedSkillInstance(
+            UUID.randomUUID(), accountId, skillId, 1, List.of(), 1, now, now);
+        skillsByAccount.put(accountId, appendSkill(current, created));
+        markPlayerStateDirty(accountId);
+        return created.getLearnedSkillId().toString();
+    }
+
     public @NotNull List<LearnedSkillInstance> getLearnedSkills(@NotNull UUID accountId) {
         return new ArrayList<>(skillsByAccount.getOrDefault(accountId, List.of()));
     }

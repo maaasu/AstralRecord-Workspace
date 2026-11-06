@@ -44,7 +44,7 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                 ValidateField(content, segments, 0, "", field, issues);
             }
             await ValidateSchemaAsync(path, content, metadata, issues, token);
-            if (path != "config.yml")
+            if (path != "config.yml" && !ProgressionPresetValidation.IsPreset(path))
                 await ValidateReferencesAsync(content, issues, token);
         }
         if (content is JsonObject obj)
@@ -83,6 +83,8 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                     issues.Add(new("error", "DUNGEON_MOB_VARIETY", "/encounter/mobsPerRoom/min",
                         "種類保証を有効にする場合、最小出現数は候補の異なるMob ID数以上にしてください。"));
             }
+            if (ProgressionPresetValidation.IsPreset(path))
+                await ProgressionPresetValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             await PetMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             await FishingMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             if (path.StartsWith("10.features.item/", MasterDataPaths.Comparison))
@@ -208,6 +210,16 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         {
             JsonNode? schemaNode = null;
             if (path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) schemaNode = content;
+            else if (ProgressionPresetValidation.IsPreset(path))
+            {
+                schemaNode = category.JsonSchemas.SingleOrDefault(schema =>
+                    schema.Path == ProgressionPresetValidation.SchemaPath)?.Schema;
+                if (schemaNode is null)
+                {
+                    issues.Add(new("error", "SCHEMA_NOT_FOUND", "/$schema", "進行プリセットの定義スキーマがありません。"));
+                    return;
+                }
+            }
             else if (content is JsonObject obj && obj["$schema"] is JsonValue reference && reference.GetValueKind() == JsonValueKind.String)
             {
                 var value = reference.GetValue<string>();

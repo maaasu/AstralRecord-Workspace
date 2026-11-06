@@ -1,0 +1,235 @@
+# design:
+#   motif: "冒険者 / 魔術"
+#   progression: 0
+schemaVersion: 1
+id: adventurer_magic
+type: PROGRESSION_PRESET
+name: "冒険者・魔術"
+classId: adventurer
+buildId: magic
+levels:
+  - level: 1
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 2
+    classLevel: 4
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1059, 1107, 1108, 1109]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 3
+    classLevel: 7
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1059, 1063, 1085, 1086, 1087, 1107, 1108, 1109]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 5
+    classLevel: 13
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1059, 1063, 1067, 1071, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1107, 1108, 1109]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 8
+    classLevel: 22
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1059, 1063, 1067, 1071, 1072, 1076, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1107, 1108, 1109]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00032"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 10
+    classLevel: 28
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1063, 1067, 1071, 1072, 1076, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00055"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00045"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00052"}
+      - {slot: FEET, item: "item:20a00051"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 12
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1063, 1067, 1071, 1072, 1076, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00055"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00045"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00052"}
+      - {slot: FEET, item: "item:20a00051"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 15
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1063, 1067, 1071, 1072, 1075, 1076, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00080"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00058"}
+      - {slot: CHEST, item: "item:20a00095"}
+      - {slot: LEGS, item: "item:20a00066"}
+      - {slot: FEET, item: "item:20a00065"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 20
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1071, 1072, 1075, 1076, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00406"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00415"}
+      - {slot: CHEST, item: "item:20a00416"}
+      - {slot: LEGS, item: "item:20a00417"}
+      - {slot: FEET, item: "item:20a00418"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 25
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1075, 1076, 1079, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00425"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00434"}
+      - {slot: CHEST, item: "item:20a00435"}
+      - {slot: LEGS, item: "item:20a00436"}
+      - {slot: FEET, item: "item:20a00437"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 30
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1079, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1488, 1489]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 35
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1488, 1489, 1490, 1491, 1492, 1493]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 40
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 45
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 2468, 2469]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 50
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 2468, 2469, 2470, 2471, 2472, 2473, 2474]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}

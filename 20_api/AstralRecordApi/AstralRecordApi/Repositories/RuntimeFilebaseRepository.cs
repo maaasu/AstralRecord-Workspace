@@ -9,18 +9,19 @@ namespace AstralRecordApi.Repositories;
 public sealed class RuntimeFilebaseRepository(IOptions<FileDatabaseOptions> options) : IRuntimeFilebaseRepository
 {
     // Plugin の各 definition repository が読むディレクトリと拡張子に限定する。
-    private static readonly (string Directory, string Extension, bool Recursive)[] Sources =
+    private static readonly Source[] Sources =
     [
-        ("35.features.skilltree/nodes", ".json", false),
-        ("35.features.skilltree/structures", ".json", false),
-        ("45.features.shop", ".yml", false),
-        ("85.shared.recipe", ".yml", false),
-        ("51.features.quest", ".yml", false),
-        ("52.features.quest_board", ".yml", false),
-        ("42.features.gathering", ".yml", true),
-        ("43.features.gathering.spawner", ".yml", false),
-        ("41.features.mob.spawner", ".yml", false),
-        ("65.features.dungeon", ".yml", false),
+        new("35.features.skilltree/nodes", ".json"),
+        new("35.features.skilltree/structures", ".json"),
+        new("36.features.progression_preset", ".yml", Optional: true),
+        new("45.features.shop", ".yml"),
+        new("85.shared.recipe", ".yml"),
+        new("51.features.quest", ".yml"),
+        new("52.features.quest_board", ".yml"),
+        new("42.features.gathering", ".yml", Recursive: true),
+        new("43.features.gathering.spawner", ".yml"),
+        new("41.features.mob.spawner", ".yml"),
+        new("65.features.dungeon", ".yml"),
     ];
 
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
@@ -61,11 +62,20 @@ public sealed class RuntimeFilebaseRepository(IOptions<FileDatabaseOptions> opti
         foreach (var source in Sources)
         {
             var directory = root;
+            var missing = false;
             foreach (var component in source.Directory.Split('/'))
             {
                 directory = new DirectoryInfo(Path.Combine(directory.FullName, component));
+                // 既存の配布先では任意カテゴリが未配置の場合もある。
+                if (source.Optional && IsMissing(directory.FullName))
+                {
+                    missing = true;
+                    break;
+                }
                 RequireSafeDirectory(directory);
             }
+            if (missing)
+                continue;
             Collect(directory, source.Extension, source.Recursive, root.FullName, files);
         }
         files.Sort((left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
@@ -113,6 +123,23 @@ public sealed class RuntimeFilebaseRepository(IOptions<FileDatabaseOptions> opti
             throw new IOException($"Runtime filebase directory is a link: {directory.FullName}");
     }
 
+    private static bool IsMissing(string path)
+    {
+        try
+        {
+            File.GetAttributes(path);
+            return false;
+        }
+        catch (FileNotFoundException)
+        {
+            return true;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return true;
+        }
+    }
+
     private static void RequireSafeFile(FileInfo file)
     {
         file.Refresh();
@@ -130,4 +157,5 @@ public sealed class RuntimeFilebaseRepository(IOptions<FileDatabaseOptions> opti
     }
 
     private sealed record FileEntry(string Path, FileInfo File, long Length, DateTime LastWriteTimeUtc);
+    private sealed record Source(string Directory, string Extension, bool Recursive = false, bool Optional = false);
 }

@@ -5368,6 +5368,139 @@ public class InventoryService {
     // Loadouts
     // ---------------------------------------------------------------
 
+    /**
+     * 戦闘検証用装備をアカウントのローカル保存ロック内で差し替えます。
+     * 退避する装備はバッグに戻し、同じマスターの個体は再利用します。
+     * @param accountId 対象アカウント
+     * @param gear 使用する装備マスター。空欄は装備解除
+     * @return バッグの空きと個体準備が揃い、更新できた場合 true
+     */
+    public boolean applyProgressionPresetEquipment(
+        @NotNull UUID accountId, @NotNull Map<EquipmentType, ItemModel> gear
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) return false;
+        InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
+        InventoryModel hotbar = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
+        EquipmentLoadoutModel loadout = state.findActiveLoadout(DEFAULT_PROFILE);
+        if (bag == null || !bag.isEnabled() || hotbar == null || !hotbar.isEnabled() || loadout == null) return false;
+
+        List<InventoryEntryModel> bagEntries = new ArrayList<>(state.snapshotEntries(bag.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted()).toList());
+        List<InventoryEntryModel> hotbarEntries = new ArrayList<>(state.snapshotEntries(hotbar.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted()).toList());
+        Map<EquipmentType, String> loadoutSlots = Map.of(
+            EquipmentType.HEAD, SLOT_TYPE_HEAD, EquipmentType.CHEST, SLOT_TYPE_CHEST,
+            EquipmentType.LEGS, SLOT_TYPE_LEGS, EquipmentType.FEET, SLOT_TYPE_FEET,
+            EquipmentType.OFF_HAND, SLOT_TYPE_ACCESSORY);
+        Map<EquipmentType, InventoryEntryModel> previous = new LinkedHashMap<>();
+        InventoryEntryModel mainHand = findHotbarEntryBySlot(state, HotbarLayout.DB_SLOT_START);
+        if (mainHand != null) previous.put(EquipmentType.MAIN_HAND, mainHand);
+        for (var target : loadoutSlots.entrySet()) {
+            loadout.getSlots().stream()
+                .filter(slot -> !slot.isDeleted() && slot.getSlotIndex() == 0
+                    && target.getValue().equalsIgnoreCase(slot.getSlotType()))
+                .findFirst()
+                .ifPresent(slot -> previous.put(target.getKey(), toInventoryEntry(slot)));
+        }
+        List<InventoryEntryModel> returned = new ArrayList<>();
+        InventoryEntryModel hotbarOffHand = findHotbarEntryBySlot(state, HotbarLayout.DB_SLOT_OFFHAND);
+        if (hotbarOffHand != null) {
+            InventoryEntryModel offHand = previous.get(EquipmentType.OFF_HAND);
+            if (offHand == null || !java.util.Objects.equals(offHand.getInstanceId(), hotbarOffHand.getInstanceId())) {
+                returned.add(hotbarOffHand);
+            }
+            hotbarEntries.remove(hotbarOffHand);
+        }
+        if (mainHand != null) hotbarEntries.remove(mainHand);
+        Map<EquipmentType, InventoryEntryModel> reused = new LinkedHashMap<>();
+        for (var entry : previous.entrySet()) {
+            ItemModel desired = gear.get(entry.getKey());
+            if (matchesProgressionPresetGear(entry.getValue(), desired)) {
+                reused.put(entry.getKey(), entry.getValue());
+            } else {
+                returned.add(entry.getValue());
+            }
+        }
+        Set<Integer> usedSlots = collectUsedSlots(state, bag);
+        for (var target : gear.entrySet()) {
+            if (reused.containsKey(target.getKey())) continue;
+            InventoryEntryModel match = bagEntries.stream()
+                .filter(entry -> matchesProgressionPresetGear(entry, target.getValue())).findFirst().orElse(null);
+            if (match != null) {
+                reused.put(target.getKey(), match);
+                usedSlots.remove(match.getSlotIndex());
+                bagEntries.remove(match);
+            }
+        }
+        for (InventoryEntryModel entry : returned) {
+            Integer slot = findNextFreeSlot(bag, usedSlots);
+            if (slot == null) return false;
+            usedSlots.add(slot);
+            bagEntries.add(copyEntryWithSlot(entry, bag.getInventoryId(), slot, accountId));
+        }
+
+        List<UUID> created = new ArrayList<>();
+        Map<EquipmentType, UUID> instanceIds = new LinkedHashMap<>();
+        for (var target : gear.entrySet()) {
+            InventoryEntryModel existing = reused.get(target.getKey());
+            UUID instanceId = existing == null
+                ? createEquipmentInstanceId(target.getValue(), accountId, "progression-preset")
+                : existing.getInstanceId();
+            if (instanceId == null) {
+                created.forEach(id -> itemService.evictEquipmentInstanceFromCache(id.toString()));
+                return false;
+            }
+            if (existing == null) created.add(instanceId);
+            instanceIds.put(target.getKey(), instanceId);
+        }
+        if (instanceIds.containsKey(EquipmentType.MAIN_HAND)) {
+            var weapon = gear.get(EquipmentType.MAIN_HAND);
+            InventoryEntryModel weaponEntry = reused.get(EquipmentType.MAIN_HAND);
+            hotbarEntries.add(weaponEntry == mainHand && mainHand != null
+                ? mainHand
+                : newEntry(hotbar.getInventoryId(), HotbarLayout.DB_SLOT_START, weapon.getCategory(),
+                    weapon.getId(), InventoryInstanceType.EQUIPMENT.getCode(),
+                    instanceIds.get(EquipmentType.MAIN_HAND), 1L, null, accountId));
+        }
+        state.replaceEntries(bag.getInventoryId(), bagEntries);
+        state.replaceEntries(hotbar.getInventoryId(), hotbarEntries);
+        for (var target : loadoutSlots.entrySet()) {
+            state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, target.getValue(), 0,
+                instanceIds.get(target.getKey()), accountId);
+        }
+        state.setSelectedHotbarSlot(instanceIds.containsKey(EquipmentType.MAIN_HAND) ? HotbarLayout.DB_SLOT_START : null);
+        return true;
+    }
+
+    private boolean matchesProgressionPresetGear(
+        @NotNull InventoryEntryModel entry, @Nullable ItemModel model
+    ) {
+        if (model == null || entry.getInstanceId() == null
+            || !InventoryInstanceType.EQUIPMENT.getCode().equals(entry.getInstanceType())) return false;
+        var instance = itemService.findLoadedEquipmentInstanceById(entry.getInstanceId().toString());
+        return instance != null && instance.getItemId().equalsIgnoreCase(model.getId())
+            && instance.getDurabilityValue() == instance.getDurabilityMax()
+            && instance.getEnhanceLevel() == 0 && instance.getTranscendenceRank() == 0
+            && instance.getEnchants().isEmpty() && instance.getRunes().isEmpty();
+    }
+
+    /**
+     * プリセットの確定済み装備とホットバーをメインスレッドで再描画します。
+     * @param player 対象プレイヤー
+     */
+    public void refreshProgressionPresetEquipment(@NotNull AstPlayer player) {
+        PlayerInventory inventory = player.getBukkit().getInventory();
+        inventory.setHeldItemSlot(HotbarLayout.BUKKIT_SLOT_START);
+        for (EquipmentType type : List.of(EquipmentType.HEAD, EquipmentType.CHEST,
+                EquipmentType.LEGS, EquipmentType.FEET, EquipmentType.OFF_HAND)) {
+            type.applyTo(inventory, null);
+        }
+        applyActiveEquipmentLoadoutToGui(player);
+        refreshManagedInventoryUi(player);
+        saveEquipSlotSnapshot(player);
+    }
+
     public List<EquipmentLoadoutModel> getEquipmentLoadouts(@NotNull UUID accountId) {
         PlayerInventoryState state = getState(accountId);
         return state == null ? List.of() : state.snapshotLoadouts(DEFAULT_PROFILE);

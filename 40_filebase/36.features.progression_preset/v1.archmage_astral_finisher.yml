@@ -1,0 +1,312 @@
+# design:
+#   motif: "アークメイジ / 星術の決着"
+#   progression: 0
+schemaVersion: 1
+id: archmage_astral_finisher
+type: PROGRESSION_PRESET
+name: "アークメイジ・星術の決着"
+classId: archmage
+buildId: astral_finisher
+levels:
+  - level: 1
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 2
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 3
+    classLevel: 2
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 5
+    classLevel: 3
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2275]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 8
+    classLevel: 4
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2271, 2275]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00032"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 10
+    classLevel: 5
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2271, 2275, 2279]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00055"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00045"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00052"}
+      - {slot: FEET, item: "item:20a00051"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 12
+    classLevel: 6
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2271, 2274, 2275, 2279]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00055"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00045"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00052"}
+      - {slot: FEET, item: "item:20a00051"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 15
+    classLevel: 8
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2271, 2274, 2275, 2279, 2299, 2464]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00080"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00058"}
+      - {slot: CHEST, item: "item:20a00095"}
+      - {slot: LEGS, item: "item:20a00066"}
+      - {slot: FEET, item: "item:20a00065"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 3, skill: "skill:adventurer_mana_burst"}
+      - {slot: 4, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 20
+    classLevel: 25
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2281, 2299, 2303, 2305, 2306, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2464]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00406"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00415"}
+      - {slot: CHEST, item: "item:20a00416"}
+      - {slot: LEGS, item: "item:20a00417"}
+      - {slot: FEET, item: "item:20a00418"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 4, skill: "skill:adventurer_mana_burst"}
+      - {slot: 5, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 25
+    classLevel: 43
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2281, 2282, 2283, 2287, 2288, 2299, 2303, 2305, 2306, 2323, 2324, 2325, 2341, 2342, 2344, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2389, 2464, 2465, 2466]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00425"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00434"}
+      - {slot: CHEST, item: "item:20a00435"}
+      - {slot: LEGS, item: "item:20a00436"}
+      - {slot: FEET, item: "item:20a00437"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:archmage_astral_spear"}
+      - {slot: 4, skill: "skill:archmage_orbital_volley"}
+      - {slot: 5, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 6, skill: "skill:adventurer_mana_burst"}
+      - {slot: 7, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 30
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 1502, 1503, 1504, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2281, 2282, 2283, 2287, 2288, 2299, 2303, 2305, 2306, 2323, 2324, 2325, 2326, 2327, 2328, 2341, 2342, 2343, 2344, 2345, 2346, 2353, 2354, 2355, 2356, 2357, 2358, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2383, 2384, 2385, 2386, 2389, 2464, 2465, 2466, 2467]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:archmage_astral_spear"}
+      - {slot: 4, skill: "skill:archmage_orbital_volley"}
+      - {slot: 5, skill: "skill:archmage_gravity_nova"}
+      - {slot: 6, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 7, skill: "skill:adventurer_mana_burst"}
+      - {slot: 8, skill: "skill:mage_heal_aura"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 35
+    classLevel: 78
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2323, 2324, 2325, 2326, 2327, 2328, 2341, 2342, 2343, 2344, 2345, 2346, 2353, 2354, 2355, 2356, 2357, 2358, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2394, 2464, 2465, 2466, 2467, 2486]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:archmage_astral_spear"}
+      - {slot: 4, skill: "skill:archmage_orbital_volley"}
+      - {slot: 5, skill: "skill:archmage_gravity_nova"}
+      - {slot: 6, skill: "skill:archmage_astral_ray"}
+      - {slot: 7, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 8, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 40
+    classLevel: 95
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2323, 2324, 2325, 2326, 2327, 2328, 2341, 2342, 2343, 2344, 2345, 2346, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2394, 2396, 2397, 2398, 2399, 2464, 2465, 2466, 2467, 2486, 2487, 2488, 2489, 2490, 2491]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:archmage_astral_spear"}
+      - {slot: 4, skill: "skill:archmage_orbital_volley"}
+      - {slot: 5, skill: "skill:archmage_gravity_nova"}
+      - {slot: 6, skill: "skill:archmage_astral_ray"}
+      - {slot: 7, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 8, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 45
+    classLevel: 113
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2323, 2324, 2325, 2326, 2327, 2328, 2341, 2342, 2343, 2344, 2345, 2346, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2394, 2396, 2397, 2398, 2399, 2400, 2401, 2464, 2465, 2466, 2467, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:archmage_astral_spear"}
+      - {slot: 4, skill: "skill:archmage_orbital_volley"}
+      - {slot: 5, skill: "skill:archmage_gravity_nova"}
+      - {slot: 6, skill: "skill:archmage_astral_ray"}
+      - {slot: 7, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 8, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}
+  - level: 50
+    classLevel: 125
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1093, 1094, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310, 1311, 1312, 1313, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1332, 1333, 1334, 1335, 1336, 1342, 1343, 1344, 1345, 1346, 1347, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2323, 2324, 2325, 2326, 2327, 2328, 2341, 2342, 2343, 2344, 2345, 2346, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2394, 2396, 2397, 2398, 2399, 2400, 2401, 2464, 2465, 2466, 2467, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_starfall"}
+      - {slot: 2, skill: "skill:archmage_celestial_circle"}
+      - {slot: 3, skill: "skill:archmage_astral_spear"}
+      - {slot: 4, skill: "skill:archmage_orbital_volley"}
+      - {slot: 5, skill: "skill:archmage_gravity_nova"}
+      - {slot: 6, skill: "skill:archmage_astral_ray"}
+      - {slot: 7, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 8, skill: "skill:adventurer_mana_burst"}
+    passives:
+      - {slot: 1, skill: "skill:mage_blink"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+      - {slot: 3, skill: "skill:mage_arcane_flow"}

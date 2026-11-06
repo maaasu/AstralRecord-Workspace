@@ -1,0 +1,340 @@
+# design:
+#   motif: "アークセージ / 陣地支援"
+#   progression: 0
+schemaVersion: 1
+id: arc_sage_area_support
+type: PROGRESSION_PRESET
+name: "アークセージ・陣地支援"
+classId: arc_sage
+buildId: area_support
+levels:
+  - level: 1
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 2
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1059, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 3
+    classLevel: 2
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1059, 1063, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 5
+    classLevel: 3
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1059, 1063, 1067, 1071, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 8
+    classLevel: 4
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1063, 1067, 1071, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00032"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00016"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00023"}
+      - {slot: FEET, item: "item:20a00022"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 10
+    classLevel: 5
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1063, 1067, 1071, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00055"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00045"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00052"}
+      - {slot: FEET, item: "item:20a00051"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 12
+    classLevel: 6
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1067, 1071, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00055"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00045"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00052"}
+      - {slot: FEET, item: "item:20a00051"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 15
+    classLevel: 8
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1071, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00080"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00058"}
+      - {slot: CHEST, item: "item:20a00095"}
+      - {slot: LEGS, item: "item:20a00066"}
+      - {slot: FEET, item: "item:20a00065"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 20
+    classLevel: 10
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00406"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00415"}
+      - {slot: CHEST, item: "item:20a00416"}
+      - {slot: LEGS, item: "item:20a00417"}
+      - {slot: FEET, item: "item:20a00418"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 25
+    classLevel: 13
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1488, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00425"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00434"}
+      - {slot: CHEST, item: "item:20a00435"}
+      - {slot: LEGS, item: "item:20a00436"}
+      - {slot: FEET, item: "item:20a00437"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 30
+    classLevel: 15
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1488, 1489, 1490, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 35
+    classLevel: 33
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460, 2522]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 40
+    classLevel: 50
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460, 2522, 2523, 2524, 2525, 2526, 2527]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 45
+    classLevel: 68
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460, 2522, 2523, 2524, 2525, 2526, 2527, 2528, 2529, 2530, 2531, 2532]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}
+  - level: 50
+    classLevel: 85
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1083, 1085, 1086, 1087, 1088, 1089, 1100, 1101, 1107, 1108, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2317, 2318, 2319, 2320, 2321, 2329, 2330, 2331, 2332, 2335, 2336, 2337, 2338, 2347, 2348, 2349, 2350, 2351, 2352, 2365, 2366, 2367, 2368, 2369, 2370, 2389, 2391, 2393, 2395, 2458, 2459, 2460, 2522, 2523, 2524, 2525, 2526, 2527, 2528, 2529, 2530, 2531, 2532, 2533, 2534, 2535, 2536, 2537]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00444"}
+      - {slot: OFF_HAND, item: "item:20a00034"}
+      - {slot: HEAD, item: "item:20a00453"}
+      - {slot: CHEST, item: "item:20a00454"}
+      - {slot: LEGS, item: "item:20a00455"}
+      - {slot: FEET, item: "item:20a00456"}
+    skills:
+      - {slot: 1, skill: "skill:archmage_celestial_circle"}
+      - {slot: 2, skill: "skill:archmage_aegis_circle"}
+      - {slot: 3, skill: "skill:archmage_renewal_circle"}
+      - {slot: 4, skill: "skill:archmage_vigor_circle"}
+      - {slot: 5, skill: "skill:archmage_heal_circle"}
+      - {slot: 6, skill: "skill:archmage_clear_circle"}
+      - {slot: 7, skill: "skill:archmage_reborn_protect_circle"}
+      - {slot: 8, skill: "skill:adventurer_lightning_bolt"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+      - {slot: 2, skill: "skill:mage_arcane_flow"}

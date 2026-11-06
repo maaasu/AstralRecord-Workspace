@@ -2110,6 +2110,68 @@ public class SkillTreeService {
         markViewerContextDirty(astPlayer.getBukkit());
     }
 
+    /**
+     * プリセットのノードを現在の定義と設定後のポイント残高に照合します。
+     * @return 解放行。条件またはポイントを満たせない場合は null
+     */
+    public synchronized @Nullable List<SkillTreeUnlockedNode> prepareProgressionPresetNodes(
+            @NotNull AstPlayer player,
+            @NotNull String classId,
+            int playerLevel,
+            @NotNull Map<String, Integer> classLevels,
+            @NotNull List<Integer> nodeIds
+    ) {
+        if (!isStateReady(player) || pendingRuntimeOperationReceipts.containsKey(player.getAccount().getUuid())) {
+            return null;
+        }
+        Set<String> seen = new LinkedHashSet<>();
+        Map<String, Integer> classSpent = new HashMap<>();
+        List<SkillTreeUnlockedNode> result = new ArrayList<>();
+        int passiveSpent = 0;
+        for (int id : nodeIds) {
+            String nodeId = Integer.toString(id);
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null || !seen.add(nodeId) || node.unlockCondition().playerLevel() > playerLevel) {
+                return null;
+            }
+            String required = node.unlockCondition().classId();
+            if (required != null && (playerClassService == null
+                    || !playerClassService.isClassOrAncestor(classId, required))) {
+                return null;
+            }
+            String source = null;
+            if (node.pointType() == SkillTreePointType.PASSIVE_POINT) {
+                passiveSpent += node.pointCost();
+                if (passiveSpent >= playerLevel) return null;
+            } else if (node.pointCost() > 0) {
+                source = required == null ? classId : required;
+                int spent = classSpent.merge(source, node.pointCost(), Integer::sum);
+                if (spent >= classLevels.getOrDefault(source, 1)) {
+                    return null;
+                }
+            }
+            result.add(new SkillTreeUnlockedNode(nodeId, source));
+        }
+        SkillTreePlayerState proposed = new SkillTreePlayerState(player.getAccount().getUuid(), result);
+        return playerStateValidationSnapshot.isStructurallyValid(proposed) ? List.copyOf(result) : null;
+    }
+
+    /**
+     * 同一アカウントの保存ロック内で検証済みのノード構成を全置換します。
+     * @param player 変更対象
+     * @param nodes 反映する解放行
+     */
+    public synchronized void applyProgressionPresetNodes(
+            @NotNull AstPlayer player, @NotNull List<SkillTreeUnlockedNode> nodes
+    ) {
+        SkillTreePlayerState previous = state(player);
+        SkillTreePlayerState updated = new SkillTreePlayerState(previous.accountId(), nodes,
+                previous.persistedVersion(), definitionGenerationId);
+        playerStates.put(updated.accountId(), updated);
+        markLegacyDefinitionGenerationMigration(updated.accountId(), previous.definitionGenerationId() == null);
+        markDirty(updated);
+    }
+
     private @NotNull DerivedPlayerState derivedState(@NotNull AstPlayer astPlayer, @NotNull SkillTreePlayerState state) {
         return derivedPlayerStates.computeIfAbsent(state.accountId(), ignored -> rebuildDerivedState(astPlayer, state));
     }

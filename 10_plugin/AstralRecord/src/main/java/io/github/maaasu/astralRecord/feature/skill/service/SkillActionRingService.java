@@ -95,6 +95,7 @@ public final class SkillActionRingService {
     private final ResourcePackService resourcePackService;
     private final SkillActionRingDisplay actionRingDisplay;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
+    private final Set<UUID> progressionPresetSelections = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private ItemWeaponAttackService itemWeaponAttackService;
     private @Nullable StatusService statusService;
@@ -191,6 +192,10 @@ public final class SkillActionRingService {
 
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
         List<SlotView> slots = resolveSlots(astPlayer, caster, bindings);
+        if (progressionPresetSelections.remove(player.getUniqueId()) && slots.getFirst().configured()) {
+            castSlot(astPlayer, slots.getFirst(), 1, configuredCount);
+            return;
+        }
         if (configuredCount == 1) {
             SlotView onlySlot = slots.stream().filter(SlotView::configured).findFirst().orElseThrow();
             castSlot(astPlayer, onlySlot, 1, 1);
@@ -452,6 +457,7 @@ public final class SkillActionRingService {
      * @param player 対象プレイヤー
      */
     public void close(@NotNull Player player) {
+        progressionPresetSelections.remove(player.getUniqueId());
         RingSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
             destroySession(player, session);
@@ -459,9 +465,28 @@ public final class SkillActionRingService {
     }
 
     /**
+     * 古い表示を閉じ、次回の右クリックで戦闘検証プリセットの第1枠を発動するよう予約します。
+     * @param player 対象プレイヤー
+     */
+    public void prepareProgressionPresetSelection(@NotNull Player player) {
+        close(player);
+        progressionPresetSelections.add(player.getUniqueId());
+    }
+
+    /**
+     * 次の右クリックでプリセットの第1枠を即時選択するかを判定します。
+     * @param player 対象プレイヤー
+     * @return 即時選択を予約している場合 true
+     */
+    public boolean isProgressionPresetQuickCastPending(@NotNull Player player) {
+        return progressionPresetSelections.contains(player.getUniqueId());
+    }
+
+    /**
      * すべてのリング表示を破棄し、更新タスクを停止します。
      */
     public void stop() {
+        progressionPresetSelections.clear();
         if (task != null) {
             task.cancel();
             task = null;

@@ -98,6 +98,10 @@ masterData:
   localOverlay:
     enabled: false
 
+# 開発環境の戦闘検証専用。plugin.debugMode=true と worldPlacements.environment=dev も必要。
+progressionPresets:
+  enabled: false
+
 # サーバーレコード。未設定でも30秒・上位10人で動作します。
 serverRecord:
   refreshIntervalSeconds: 30

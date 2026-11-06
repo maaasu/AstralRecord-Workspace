@@ -55,7 +55,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["orb"] = "オーブ", ["bundle"] = "バンドル", ["rune"] = "ルーン", ["sigil"] = "シジル",
         ["currency"] = "通貨", ["set_effect"] = "セット効果", ["class"] = "クラス", ["skill"] = "スキル",
         ["pet"] = "ペット", ["pet_egg"] = "ペットの卵",
-        ["skilltree"] = "スキルツリー", ["mail"] = "メール", ["guide"] = "ガイド", ["enchant"] = "エンチャント",
+        ["skilltree"] = "スキルツリー", ["progression_preset"] = "アカウント進行プリセット", ["mail"] = "メール", ["guide"] = "ガイド", ["enchant"] = "エンチャント",
         ["mob"] = "モブ", ["enemy"] = "敵", ["boss"] = "ボス", ["npc"] = "NPC", ["spawner"] = "スポナー",
         ["gathering"] = "採集", ["shop"] = "ショップ", ["quest"] = "クエスト", ["quest_board"] = "クエスト掲示板",
         ["world"] = "ワールド", ["dungeon"] = "ダンジョン", ["buff"] = "バフ", ["status"] = "ステータス",
@@ -105,7 +105,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         {
             var raw = await File.ReadAllTextAsync(document, Encoding.UTF8, token);
             documents.Add(new(paths.Relative(document), raw.Split('\n').FirstOrDefault(line => line.StartsWith("# ", StringComparison.Ordinal))?.TrimStart('#', ' ', '\r') ?? Path.GetFileName(document)));
-            if (category != "55.features.pet")
+            if (category is not ("55.features.pet" or ProgressionPresetValidation.Category))
                 foreach (var field in ParseFields(raw, paths.Relative(document), category)) fields[field.Path] = field;
         }
         var schemas = new List<MasterDataSchema>();
@@ -123,7 +123,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             }
             catch (System.Text.Json.JsonException) { /* malformed schema remains available in the file list */ }
         }
-        if (category == "55.features.pet" || category is "44.features.fishing.fish" or "46.features.fishing.area" or "47.features.fishing.rules")
+        if (category == "55.features.pet" || category is "44.features.fishing.fish" or "46.features.fishing.area" or "47.features.fishing.rules" or ProgressionPresetValidation.Category)
             foreach (var schema in schemas)
                 foreach (var field in SchemaFields(schema.Schema, schema.Path)) fields[field.Path] = field;
         var templates = new List<MasterDataTemplate>();
@@ -163,7 +163,12 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                 yield return new(path, path, JsonValueReader.String(child["title"]) ?? Labels.GetValueOrDefault(key) ?? key,
                     type, required.Contains(key), JsonValueReader.String(child["description"]) ?? "", null, source,
                     target["enum"]?.DeepClone() as JsonArray,
-                    FishingReferenceKind(path) ?? (JsonValueReader.String(target["pattern"])?.StartsWith("^item:", StringComparison.Ordinal) == true ? "item" : key == "facilityId" ? "mob" : null));
+                    FishingReferenceKind(path) ?? (JsonValueReader.String(target["pattern"]) switch
+                    {
+                        var pattern when pattern?.StartsWith("^item:", StringComparison.Ordinal) == true => "item",
+                        var pattern when pattern?.StartsWith("^skill:", StringComparison.Ordinal) == true => "skill",
+                        _ => key switch { "facilityId" => "mob", "classId" => "class", _ => null }
+                    }));
                 foreach (var nested in SchemaFields(target, source, path, root)) yield return nested;
             }
         if (resolved["items"] is JsonObject item)

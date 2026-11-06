@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.account.command;
 
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
@@ -9,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * /account 配下のサブコマンド補完を提供します。
@@ -31,8 +34,25 @@ public class AccountTabCompleter extends AstTabCompleter {
         if (!hasAdminPermission(sender)) {
             return List.of();
         }
+        AstralRecord plugin = AstralRecord.getInstance();
+        boolean progressionAvailable = sender instanceof Player && plugin != null && plugin.isProgressionPresetEnabled();
         if (args.length == 1) {
+            if (progressionAvailable) {
+                return List.of("create", "rename", "mode", "delete", "switch", "uuid", "clone", "confirm", "progression");
+            }
             return List.of("create", "rename", "mode", "delete", "switch", "uuid", "clone", "confirm");
+        }
+        if (args.length > 1 && args[0].equalsIgnoreCase("progression") && progressionAvailable) {
+            return switch (args.length) {
+                case 2 -> IntStream.rangeClosed(ProgressionPreset.MIN_LEVEL, ProgressionPreset.MAX_LEVEL)
+                    .mapToObj(Integer::toString).toList();
+                case 3 -> plugin.getProgressionPresets().stream()
+                    .map(ProgressionPreset::classId).distinct().sorted().toList();
+                case 4 -> plugin.getProgressionPresets().stream()
+                    .filter(preset -> preset.classId().equalsIgnoreCase(args[2]))
+                    .map(ProgressionPreset::buildId).sorted().toList();
+                default -> List.of();
+            };
         }
         if (args.length > 1 && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("clone"))) {
             return managementTabCompleter.onTabComplete(sender, null, "account", args);

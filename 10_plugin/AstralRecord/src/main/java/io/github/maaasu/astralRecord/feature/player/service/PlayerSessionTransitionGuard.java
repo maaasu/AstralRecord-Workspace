@@ -66,6 +66,8 @@ public final class PlayerSessionTransitionGuard {
     public enum Transition {
         ACCOUNT_SWITCH,
         CHANNEL_TRANSFER,
+        /** 選択中アカウントの戦闘検証データを差し替えます。 */
+        PROGRESSION_PRESET,
         /** 保存不能 state を破棄して同一 account を再ロードする復旧処理。 */
         PLAYER_STATE_RECOVERY,
     }

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "アカウント進行プリセット",
+  "description": "開発環境で指定レベルの戦闘構成を再現する職業・ビルド別プリセット。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "type", "id", "name", "classId", "buildId", "levels"],
+  "properties": {
+    "schemaVersion": { "title": "スキーマ版", "type": "integer", "const": 1, "default": 1 },
+    "type": { "title": "マスタ種別", "type": "string", "const": "PROGRESSION_PRESET", "default": "PROGRESSION_PRESET" },
+    "id": { "title": "プリセットID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+    "name": { "title": "表示名", "type": "string", "pattern": "\\S" },
+    "classId": {
+      "title": "職業",
+      "description": "適用後に選択する戦闘職業のID。",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+      "not": { "const": "administrator" }
+    },
+    "buildId": {
+      "title": "ビルドID",
+      "description": "同じ職業内で一意のコマンド入力用ID。",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+    },
+    "levels": {
+      "title": "レベル別の戦闘構成",
+      "description": "レベル1から昇順に記載。指定レベル以下の最新構成が使われます。",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "default": [{ "level": 1, "classLevel": 1, "nodes": [], "equipment": [{ "slot": "MAIN_HAND", "item": "" }], "skills": [{ "slot": 1, "skill": "" }] }],
+      "items": {
+        "title": "戦闘構成",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level", "classLevel", "nodes", "equipment", "skills"],
+        "properties": {
+          "level": { "title": "適用開始プレイヤーレベル", "type": "integer", "minimum": 1, "maximum": 50 },
+          "classLevel": { "title": "適用する職業レベル", "type": "integer", "minimum": 1, "maximum": 2147483647 },
+          "nodes": {
+            "title": "習得済みスキルツリーノード",
+            "description": "前提ノードを含む、この段階で習得するノードの一覧。",
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "title": "ノードID", "type": "integer", "minimum": 1, "maximum": 2147483647 }
+          },
+          "equipment": {
+            "title": "装備",
+            "description": "武器は必須です。各枠に対応する装備を一つずつ指定します。",
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "contains": { "properties": { "slot": { "const": "MAIN_HAND" } }, "required": ["slot"] },
+            "items": {
+              "title": "装備するアイテム",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["slot", "item"],
+              "properties": {
+                "slot": {
+                  "title": "装備枠",
+                  "type": "string",
+                  "enum": ["MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET"]
+                },
+                "item": { "title": "装備アイテム", "type": "string", "pattern": "^item:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+              }
+            }
+          },
+          "skills": {
+            "title": "アクションリング",
+            "description": "右クリックですぐ発動するスキルを1番枠に指定します。",
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "contains": { "properties": { "slot": { "const": 1 } }, "required": ["slot"] },
+            "items": {
+              "title": "アクティブスキル設定",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["slot", "skill"],
+              "properties": {
+                "slot": { "title": "リング枠", "type": "integer", "minimum": 1, "maximum": 8 },
+                "skill": { "title": "アクティブスキル", "type": "string", "pattern": "^skill:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+              }
+            }
+          },
+          "passives": {
+            "title": "パッシブスキル設定",
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+              "title": "パッシブスキル設定",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["slot", "skill"],
+              "properties": {
+                "slot": { "title": "パッシブ枠", "type": "integer", "minimum": 1, "maximum": 12 },
+                "skill": { "title": "パッシブスキル", "type": "string", "pattern": "^skill:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

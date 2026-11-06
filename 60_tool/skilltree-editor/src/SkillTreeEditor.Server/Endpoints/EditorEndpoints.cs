@@ -238,6 +238,13 @@ public static class EditorEndpoints
             });
         }
 
+        var presets = await repository.FindProgressionPresetNodeReferencesAsync(nodeId, token);
+        if (presets.Count > 0)
+            return Results.Conflict(new
+            {
+                message = $"ノード '{nodeId}' は進行プリセットから参照されているため削除できません: {string.Join(", ", presets)}"
+            });
+
         await repository.DeleteNodeAsync(nodeId, token);
         return Results.NoContent();
     }

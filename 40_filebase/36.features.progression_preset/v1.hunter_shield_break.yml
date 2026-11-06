@@ -1,0 +1,288 @@
+# design:
+#   motif: "ハンター / 破盾射撃"
+#   progression: 0
+schemaVersion: 1
+id: hunter_shield_break
+type: PROGRESSION_PRESET
+name: "ハンター・破盾射撃"
+classId: hunter
+buildId: shield_break
+levels:
+  - level: 1
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_quick_shot"}
+      - {slot: 2, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 3, skill: "skill:hunter_fade_shot"}
+      - {slot: 4, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 2
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_quick_shot"}
+      - {slot: 2, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 3, skill: "skill:hunter_fade_shot"}
+      - {slot: 4, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 3
+    classLevel: 5
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1242, 1243, 1244, 1267]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00019"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00020"}
+      - {slot: FEET, item: "item:20a00015"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_quick_shot"}
+      - {slot: 2, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 3, skill: "skill:hunter_fade_shot"}
+      - {slot: 4, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 5
+    classLevel: 13
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1242, 1243, 1244, 1245, 1246, 1247, 1267, 1268, 1269, 1271, 1282]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00026"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00019"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00020"}
+      - {slot: FEET, item: "item:20a00015"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:adventurer_quick_shot"}
+      - {slot: 3, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 4, skill: "skill:hunter_fade_shot"}
+      - {slot: 5, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 8
+    classLevel: 25
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00026"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00019"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00020"}
+      - {slot: FEET, item: "item:20a00015"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 10
+    classLevel: 33
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00026"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00048"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00049"}
+      - {slot: FEET, item: "item:20a00044"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 12
+    classLevel: 41
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00026"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00048"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00049"}
+      - {slot: FEET, item: "item:20a00044"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 15
+    classLevel: 53
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00078"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00061"}
+      - {slot: CHEST, item: "item:20a00091"}
+      - {slot: LEGS, item: "item:20a00062"}
+      - {slot: FEET, item: "item:20a00057"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 20
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00404"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00411"}
+      - {slot: CHEST, item: "item:20a00412"}
+      - {slot: LEGS, item: "item:20a00413"}
+      - {slot: FEET, item: "item:20a00414"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 25
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00423"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00430"}
+      - {slot: CHEST, item: "item:20a00431"}
+      - {slot: LEGS, item: "item:20a00432"}
+      - {slot: FEET, item: "item:20a00433"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 30
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1502, 1503, 1504]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00442"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00449"}
+      - {slot: CHEST, item: "item:20a00450"}
+      - {slot: LEGS, item: "item:20a00451"}
+      - {slot: FEET, item: "item:20a00452"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 35
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00442"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00449"}
+      - {slot: CHEST, item: "item:20a00450"}
+      - {slot: LEGS, item: "item:20a00451"}
+      - {slot: FEET, item: "item:20a00452"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 40
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00442"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00449"}
+      - {slot: CHEST, item: "item:20a00450"}
+      - {slot: LEGS, item: "item:20a00451"}
+      - {slot: FEET, item: "item:20a00452"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 45
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00442"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00449"}
+      - {slot: CHEST, item: "item:20a00450"}
+      - {slot: LEGS, item: "item:20a00451"}
+      - {slot: FEET, item: "item:20a00452"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 50
+    classLevel: 60
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00442"}
+      - {slot: OFF_HAND, item: "item:20a00040"}
+      - {slot: HEAD, item: "item:20a00449"}
+      - {slot: CHEST, item: "item:20a00450"}
+      - {slot: LEGS, item: "item:20a00451"}
+      - {slot: FEET, item: "item:20a00452"}
+    skills:
+      - {slot: 1, skill: "skill:hunter_crash_arrow"}
+      - {slot: 2, skill: "skill:hunter_build_up"}
+      - {slot: 3, skill: "skill:adventurer_quick_shot"}
+      - {slot: 4, skill: "skill:adventurer_blast_arrow"}
+      - {slot: 5, skill: "skill:hunter_fade_shot"}
+      - {slot: 6, skill: "skill:hunter_arrow_rain"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}

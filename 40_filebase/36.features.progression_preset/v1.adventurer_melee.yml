@@ -1,0 +1,248 @@
+# design:
+#   motif: "冒険者 / 剣術"
+#   progression: 0
+schemaVersion: 1
+id: adventurer_melee
+type: PROGRESSION_PRESET
+name: "冒険者・剣術"
+classId: adventurer
+buildId: melee
+levels:
+  - level: 1
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00001"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 2
+    classLevel: 4
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1093, 1094, 1095]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00009"}
+      - {slot: CHEST, item: "item:20a00010"}
+      - {slot: LEGS, item: "item:20a00011"}
+      - {slot: FEET, item: "item:20a00012"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:adventurer_meditation"}
+  - level: 3
+    classLevel: 7
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1060, 1085, 1093, 1094, 1095, 1096, 1350]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00018"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00017"}
+      - {slot: FEET, item: "item:20a00021"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 5
+    classLevel: 13
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1060, 1064, 1068, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1093, 1094, 1095, 1096, 1350]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: OFF_HAND, item: "item:20a00007"}
+      - {slot: HEAD, item: "item:20a00018"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00017"}
+      - {slot: FEET, item: "item:20a00021"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 8
+    classLevel: 22
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1064, 1068, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1350]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00018"}
+      - {slot: CHEST, item: "item:20a00014"}
+      - {slot: LEGS, item: "item:20a00017"}
+      - {slot: FEET, item: "item:20a00021"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 10
+    classLevel: 28
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1064, 1068, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1350]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00056"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00047"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00046"}
+      - {slot: FEET, item: "item:20a00050"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 12
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1064, 1068, 1074, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00056"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00047"}
+      - {slot: CHEST, item: "item:20a00041"}
+      - {slot: LEGS, item: "item:20a00046"}
+      - {slot: FEET, item: "item:20a00050"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 15
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1068, 1074, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00073"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00060"}
+      - {slot: CHEST, item: "item:20a00063"}
+      - {slot: LEGS, item: "item:20a00059"}
+      - {slot: FEET, item: "item:20a00064"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 20
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1068, 1072, 1074, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00400"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00407"}
+      - {slot: CHEST, item: "item:20a00408"}
+      - {slot: LEGS, item: "item:20a00409"}
+      - {slot: FEET, item: "item:20a00410"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 25
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1072, 1074, 1076, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495, 1515]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00419"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00426"}
+      - {slot: CHEST, item: "item:20a00427"}
+      - {slot: LEGS, item: "item:20a00428"}
+      - {slot: FEET, item: "item:20a00429"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 30
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495, 1515]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00438"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00445"}
+      - {slot: CHEST, item: "item:20a00446"}
+      - {slot: LEGS, item: "item:20a00447"}
+      - {slot: FEET, item: "item:20a00448"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 35
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495, 1496, 1497, 1498, 1499, 1515]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00438"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00445"}
+      - {slot: CHEST, item: "item:20a00446"}
+      - {slot: LEGS, item: "item:20a00447"}
+      - {slot: FEET, item: "item:20a00448"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 40
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 1515, 1516, 1517, 1518]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00438"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00445"}
+      - {slot: CHEST, item: "item:20a00446"}
+      - {slot: LEGS, item: "item:20a00447"}
+      - {slot: FEET, item: "item:20a00448"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 45
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 1515, 1516, 1517, 1518, 1519, 1520, 1521, 2468, 2469]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00438"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00445"}
+      - {slot: CHEST, item: "item:20a00446"}
+      - {slot: LEGS, item: "item:20a00447"}
+      - {slot: FEET, item: "item:20a00448"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}
+  - level: 50
+    classLevel: 30
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1082, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1350, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 1515, 1516, 1517, 1518, 1519, 1520, 1521, 2468, 2469, 2470, 2471, 2472, 2473, 2474]
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00438"}
+      - {slot: OFF_HAND, item: "item:20a00035"}
+      - {slot: HEAD, item: "item:20a00445"}
+      - {slot: CHEST, item: "item:20a00446"}
+      - {slot: LEGS, item: "item:20a00447"}
+      - {slot: FEET, item: "item:20a00448"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}
+      - {slot: 2, skill: "skill:adventurer_smash"}
+    passives:
+      - {slot: 1, skill: "skill:administrator_just_dodge"}
+      - {slot: 2, skill: "skill:adventurer_meditation"}

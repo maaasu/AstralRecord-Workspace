@@ -21,6 +21,9 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRe
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountClassProgressSaveTask;
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
+import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
+import io.github.maaasu.astralRecord.feature.account.repository.ProgressionPresetRepository;
+import io.github.maaasu.astralRecord.feature.account.service.ProgressionPresetApplicationService;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.event.BossEntryEventHandler;
 import io.github.maaasu.astralRecord.feature.boss.event.BossChallengeCancelEventHandler;
@@ -488,6 +491,8 @@ public final class AstralRecord extends JavaPlugin {
     private ItemStackFactory itemStackFactory;
     private AccountService accountService;
     private AccountModeApplicationService accountModeApplicationService;
+    private ProgressionPresetApplicationService progressionPresetApplicationService;
+    private List<ProgressionPreset> progressionPresets = List.of();
     private UserService userService;
     private PlayerActivityHistoryService playerActivityHistoryService;
     private PlayerCapacityService playerCapacityService;
@@ -818,10 +823,13 @@ public final class AstralRecord extends JavaPlugin {
             try {
                 LocalMasterOverlay.Snapshot localSnapshot = localMasterOverlay.loadSnapshot();
                 RuntimeFilebaseSnapshot snapshot = RuntimeFilebaseRepository.getInstance().loadSnapshot();
+                List<ProgressionPreset> presets = isProgressionPresetEnabled()
+                    ? ProgressionPresetRepository.load(snapshot) : List.of();
                 getServer().getScheduler().runTask(this, () -> {
                     if (!isEnabled()) return;
                     localMasterOverlay.replaceSnapshot(localSnapshot);
                     RuntimeFilebaseRepository.getInstance().replaceSnapshot(snapshot);
+                    progressionPresets = presets;
                     try {
                         enableFeatures();
                     } catch (RuntimeException failure) {
@@ -2600,6 +2608,9 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService
         );
         skillActionRingService.setCloseListener(skillActionRingHoldService::cancel);
+        progressionPresetApplicationService = new ProgressionPresetApplicationService(accountService, playerClassService,
+            skillTreeService, inventoryService, skillBindPresetService, itemService, learnedSkillService, skillService,
+            statusService, skillActionRingService);
         castDiskUseService = new CastDiskUseService(
             this,
             inventoryService,
@@ -3526,6 +3537,23 @@ public final class AstralRecord extends JavaPlugin {
         return accountModeApplicationService;
     }
 
+    /** @return 開発環境で戦闘検証用の進行プリセットが有効な場合は true */
+    public boolean isProgressionPresetEnabled() {
+        return getConfig().getBoolean("progressionPresets.enabled")
+            && getConfig().getBoolean("plugin.debugMode")
+            && "dev".equals(getConfig().getString("worldPlacements.environment"));
+    }
+
+    /** @return 公開済みの進行プリセット一覧 */
+    public List<ProgressionPreset> getProgressionPresets() {
+        return progressionPresets;
+    }
+
+    /** @return 選択中アカウントへの進行プリセット適用サービス */
+    public ProgressionPresetApplicationService getProgressionPresetApplicationService() {
+        return progressionPresetApplicationService;
+    }
+
     public StatusService getStatusService() {
         return statusService;
     }
@@ -3927,10 +3955,14 @@ public final class AstralRecord extends JavaPlugin {
         var shopSnapshot = shopService.loadCacheSnapshot();
         loaded += shopSnapshot.size();
         publications.add(() -> shopService.replaceCacheSnapshot(shopSnapshot));
+        List<ProgressionPreset> presets = isProgressionPresetEnabled()
+            ? ProgressionPresetRepository.load(runtimeFilebaseSnapshot) : List.of();
+        loaded += presets.size();
         return new MasterDataReloadPlan(
             loaded,
             runtimeFilebaseSnapshot,
             localSnapshot,
+            presets,
             mobSnapshot,
             mobSpawnerSnapshot,
             List.copyOf(publications),
@@ -3996,6 +4028,7 @@ public final class AstralRecord extends JavaPlugin {
                     }
                     RuntimeFilebaseRepository.getInstance().replaceSnapshot(plan.runtimeFilebaseSnapshot());
                     localMasterOverlay.replaceSnapshot(plan.localSnapshot());
+                    progressionPresets = plan.progressionPresets();
                 } catch (RuntimeException failure) {
                     if (mobTouched) mobService.replaceTemplateSnapshot(previousMobs);
                     if (spawnerTouched) mobSpawnerService.restorePublishedState(previousSpawners);
@@ -4062,6 +4095,7 @@ public final class AstralRecord extends JavaPlugin {
         int loadedCount,
         @org.jetbrains.annotations.NotNull RuntimeFilebaseSnapshot runtimeFilebaseSnapshot,
         @org.jetbrains.annotations.NotNull LocalMasterOverlay.Snapshot localSnapshot,
+        @org.jetbrains.annotations.NotNull List<ProgressionPreset> progressionPresets,
         @org.jetbrains.annotations.NotNull Map<String, MobTemplate> mobSnapshot,
         @org.jetbrains.annotations.NotNull MobSpawnerService.MasterDataSnapshot mobSpawnerSnapshot,
         @org.jetbrains.annotations.NotNull List<Runnable> publications,

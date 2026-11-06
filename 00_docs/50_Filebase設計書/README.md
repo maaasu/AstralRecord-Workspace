@@ -92,6 +92,7 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 20-class.md
 │  ├─ 30-skill.md
 │  ├─ 35-skilltree.md
+│  ├─ 36-progression_preset.md
 │  ├─ 40-mob.md
 │  ├─ 41-mob_spawner.md
 │  ├─ 42-gathering.md

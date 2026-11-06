@@ -645,9 +645,10 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
   const [debug, setDebug] = useState(false)
   const [templateIndex, setTemplateIndex] = useState(0)
   const [raw, setRaw] = useState(mode === 'import' ? importedRaw : mode === 'copy' ? source?.raw ?? '' : selected?.templates[0]?.raw ?? '')
+  const progressionCategory = '36.features.progression_preset'
   const categoryFormat = (entry?: MasterCategory): 'json' | 'yaml' => entry?.templates.length
     ? entry.templates[0].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml'
-    : entry?.jsonSchemas.length ? 'json' : 'yaml'
+    : entry?.jsonSchemas.length && entry.directory !== progressionCategory ? 'json' : 'yaml'
   const [draftFormat, setDraftFormat] = useState<'json' | 'yaml'>(() => {
     if (mode === 'copy') return source?.format === 'json' ? 'json' : 'yaml'
     if (mode === 'import') {
@@ -685,7 +686,8 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
   const yamlScalar = (key: string) => raw.match(new RegExp(`^${key}:\\s*["']?([^\\s"'#]+)`, 'm'))?.[1]
   const previewId = String(content?.id ?? content?.nodeId ?? content?.structureId ?? yamlScalar('id') ?? '')
   const previewVersion = String(content?.schemaVersion ?? yamlScalar('schemaVersion') ?? '')
-  const stem = slugOf(slug) || slugOf(previewId) || 'new-master'
+  const isProgressionPreset = directory === progressionCategory
+  const stem = (isProgressionPreset ? slugOf(previewId) : slugOf(slug) || slugOf(previewId)) || 'new-master'
   const generatedPath = `${directory ? `${directory}/` : ''}${!jsonFormat && previewVersion && /^\d+$/.test(previewVersion) ? `v${previewVersion}.` : ''}${stem}.${jsonFormat ? 'json' : 'yml'}`
   const path = autoItemId && isItem || autoName ? directory : autoPath ? generatedPath : filePath
   const selectCategory = (id: string) => {
@@ -720,10 +722,10 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
   }}><header className="modal-header"><div><h2>{mode === 'copy' ? '保存済みファイルの複製' : mode === 'import' ? '原稿から新規作成' : 'マスターファイル作成'}</h2><p className="master-muted">保存前に定義と重複を検証します。</p></div></header><fieldset disabled={busy || generating} className="modal-body master-create-fields master-form-lock">
     <label>カテゴリ<select aria-label="カテゴリ" value={categoryId} onChange={(event) => selectCategory(event.target.value)}>{categories.map((entry) => <option key={entry.id} value={entry.id}>{categoryOptionLabel(entry, files.filter((file) => inCategory(file.path, entry.directory)).length, categories)}</option>)}</select><small>親フォルダは配下を含みます。新規アイテムの自動採番には子フォルダを選んでください。</small></label>
     <label>原稿の形式<select aria-label="新規マスターの形式" value={draftFormat} onChange={(event) => setDraftFormat(event.target.value as 'json' | 'yaml')}><option value="yaml">YAML</option><option value="json">JSON</option></select><small>原稿と一致する形式を選びます。自動提案する保存先の拡張子にも反映します。</small></label>
-    <label>ファイル名用 slug（小文字英数字）<input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="iron-sword" /><small>提案: {slugOf(slug) || 'new-master'}</small></label>
+    {!isProgressionPreset && <label>ファイル名用 slug（小文字英数字）<input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="iron-sword" /><small>提案: {slugOf(slug) || 'new-master'}</small></label>}
     {isItem && <><label className="master-checkbox"><input type="checkbox" checked={autoItemId} onChange={(event) => setAutoItemId(event.target.checked)} />カテゴリに沿ったアイテムID・ファイル名を自動採番</label>{autoItemId && <label className="master-checkbox"><input type="checkbox" checked={debug} onChange={(event) => setDebug(event.target.checked)} />デバッグ用 group z を使用</label>}</>}
     {selected?.directory.includes('features.class') && <label className="master-checkbox"><input type="checkbox" checked={autoName} onChange={(event) => setAutoName(event.target.checked)} />schemaVersion / order / id からファイル名を生成</label>}
-    {!autoItemId && !autoName && <label className="master-checkbox"><input type="checkbox" checked={autoPath} onChange={(event) => { setAutoPath(event.target.checked); if (!filePath) setFilePath(generatedPath) }} />slugから保存先を自動提案</label>}
+    {!autoItemId && !autoName && <label className="master-checkbox"><input type="checkbox" checked={autoPath} onChange={(event) => { setAutoPath(event.target.checked); if (!filePath) setFilePath(generatedPath) }} />{isProgressionPreset ? 'プリセットIDから保存先を自動提案' : 'slugから保存先を自動提案'}</label>}
     <label>保存先（Filebase内の相対パス）<input value={path} disabled={autoPath || autoItemId && isItem || autoName} onChange={(event) => setFilePath(event.target.value)} /><small>{autoItemId && isItem ? 'ID・グループの採番後、確定したファイル名を表示します。' : autoName ? '原稿の定義から確定したファイル名を表示します。' : 'サブフォルダや既存の命名規則も直接指定できます。'}</small></label>
     {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={(event) => { if (generationPending.current || !allowReplace()) return; const index = Number(event.target.value); setTemplateIndex(index); setRaw(selected.templates[index].raw); setDraftFormat(selected.templates[index].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml') }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{files.find((file) => file.path === entry.path)?.name ? `${stripMinecraftFormatting(files.find((file) => file.path === entry.path)!.name!)} · ` : ''}{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
     <label>原稿<textarea className="master-raw" aria-label="新規マスター原稿" spellCheck={false} value={raw} onChange={(event) => setRaw(event.target.value)} /></label>

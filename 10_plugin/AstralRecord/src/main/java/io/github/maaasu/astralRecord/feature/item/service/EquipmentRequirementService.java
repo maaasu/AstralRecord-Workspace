@@ -29,16 +29,30 @@ public final class EquipmentRequirementService {
         @NotNull AstPlayer player,
         @NotNull ItemEquipment equipment
     ) {
+        return check(player.getAccount().getLevel(), player.getClassId(), player.getClassLevel(), equipment);
+    }
+
+    /**
+     * 設定予定のレベル・職業に対して装備条件を評価します。
+     * @param playerLevel プレイヤーレベル
+     * @param classId 現在職ID
+     * @param classLevel 現在職レベル
+     * @param equipment 装備マスター
+     * @return 装備条件の評価結果
+     */
+    public static @NotNull Result check(
+        int playerLevel, @NotNull String classId, int classLevel, @NotNull ItemEquipment equipment
+    ) {
         int requiredPlayerLevel = Math.max(0, equipment.getRequiredLevel());
-        int currentPlayerLevel = Math.max(0, player.getAccount().getLevel());
+        int currentPlayerLevel = Math.max(0, playerLevel);
         if (currentPlayerLevel < requiredPlayerLevel) {
             return new Result(
                 Failure.PLAYER_LEVEL,
                 requiredPlayerLevel,
                 currentPlayerLevel,
-                player.getClassId(),
+                classId,
                 0,
-                player.getClassLevel(),
+                classLevel,
                 requiredClassesLabel(equipment)
             );
         }
@@ -48,7 +62,7 @@ public final class EquipmentRequirementService {
         }
 
         ItemEquipmentClassRequirement currentRequirement = equipment.getRequiredClasses().stream()
-            .filter(requirement -> requirement.getClassId().equalsIgnoreCase(player.getClassId()))
+            .filter(requirement -> requirement.getClassId().equalsIgnoreCase(classId))
             .min(Comparator.comparingInt(ItemEquipmentClassRequirement::getLevel))
             .orElse(null);
         if (currentRequirement == null) {
@@ -56,15 +70,15 @@ public final class EquipmentRequirementService {
                 Failure.CLASS,
                 requiredPlayerLevel,
                 currentPlayerLevel,
-                player.getClassId(),
+                classId,
                 0,
-                player.getClassLevel(),
+                classLevel,
                 requiredClassesLabel(equipment)
             );
         }
 
         int requiredClassLevel = Math.max(1, currentRequirement.getLevel());
-        int currentClassLevel = Math.max(1, player.getClassLevel());
+        int currentClassLevel = Math.max(1, classLevel);
         if (currentClassLevel < requiredClassLevel) {
             return new Result(
                 Failure.CLASS_LEVEL,
