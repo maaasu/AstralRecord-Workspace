@@ -71,7 +71,7 @@ function Add-GuiIconModelEntries {
         $id = $icon.id
         $role = $icon.role
         $base = $icon.base_item.Substring('minecraft:'.Length)
-        $javaPath = "assets/astralrecord/textures/gui/gui_$role.png"
+        $javaPath = "assets/astralrecord/textures/item/gui/gui_$role.png"
         $bedrockPath = "textures/ui/astralrecord/gui/gui_$role.png"
         if (!$JavaEntries.ContainsKey($javaPath)) {
             Add-PackEntries $JavaEntries $root @($javaPath)
@@ -87,7 +87,7 @@ function Add-GuiIconModelEntries {
         $IconTextures.Add("astralrecord.$id", [ordered] @{ textures = "textures/items/$id" })
         Add-PackJson $JavaEntries "assets/astralrecord/models/item/gui/$id.json" ([ordered] @{
             parent = 'minecraft:item/generated'
-            textures = [ordered] @{ layer0 = "astralrecord:gui/gui_$role" }
+            textures = [ordered] @{ layer0 = "astralrecord:item/gui/gui_$role" }
         })
         if (!$ByBase.ContainsKey($base)) { $ByBase[$base] = [ordered] @{} }
         $ByBase[$base].Add([string] $icon.custom_model_data, (New-JavaModelReference "astralrecord:item/gui/$id"))

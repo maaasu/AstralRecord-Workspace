@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "gui-source/kenney-pixel-adventure/stone-tile-pixels.json"
-JAVA = ROOT / "assets/astralrecord/textures/gui"
+JAVA = ROOT / "assets/astralrecord/textures/item/gui"
 BEDROCK = ROOT / "bedrock/textures/ui/astralrecord/gui"
 
 # Native design grid: 16px. Every pixel becomes 2x2 in the shipped 32px PNG.

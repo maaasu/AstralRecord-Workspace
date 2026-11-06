@@ -88,7 +88,9 @@ def panel(rows: int) -> Raster:
         draw.line((3, y, 3, y + 2), fill=TEAL)
         draw.line((172, y, 172, y + 2), fill=TEAL)
 
-    def slot(x: int, y: int) -> None:
+    def slot(item_x: int, item_y: int) -> None:
+        # Draw a 1px border around the client's 16x16 item area.
+        x, y = item_x - 1, item_y - 1
         draw.rectangle((x, y, x + 17, y + 17), fill="#607985")
         draw.rectangle((x + 1, y + 1, x + 16, y + 16), fill="#879d9e")
         draw.line((x, y, x + 16, y), fill=OUTLINE)
@@ -96,14 +98,16 @@ def panel(rows: int) -> Raster:
         draw.line((x + 1, y + 17, x + 17, y + 17), fill="#d6dfd5")
         draw.line((x + 17, y + 1, x + 17, y + 17), fill="#d6dfd5")
 
+    # ChestMenu slot coordinates and AbstractContainerMenu's hotbar offset.
+    inventory_y = 31 + 18 * rows
     for row in range(rows):
         for col in range(9):
-            slot(7 + 18 * col, 17 + 18 * row)
+            slot(8 + 18 * col, 18 + 18 * row)
     for row in range(3):
         for col in range(9):
-            slot(7 + 18 * col, 31 + 18 * rows + 18 * row)
+            slot(8 + 18 * col, inventory_y + 18 * row)
     for col in range(9):
-        slot(7 + 18 * col, 89 + 18 * rows)
+        slot(8 + 18 * col, inventory_y + 58)
     return image
 
 
