@@ -4,9 +4,9 @@ import java.util.UUID;
 import org.geysermc.api.Geyser;
 import org.geysermc.geyser.api.GeyserApi;
 
-/** 接続時に選んだBedrockパックの効果音対応を、Geyser拡張へ問い合わせます。 */
-final class GeyserGameplaySounds {
-    private GeyserGameplaySounds() {
+/** 接続時に選んだ Bedrock パックの機能対応を、Geyser 拡張へ問い合わせます。 */
+final class GeyserPackCapabilities {
+    private GeyserPackCapabilities() {
     }
 
     /**
@@ -15,7 +15,19 @@ final class GeyserGameplaySounds {
      * @param playerId 接続中プレイヤーのJava側UUID
      * @return 拡張が専用効果音に対応する接続と確認した場合はtrue
      */
-    static boolean isReady(UUID playerId) {
+    static boolean hasGameplaySounds(UUID playerId) {
+        return supports(playerId, "hasGameplaySounds");
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 拡張がツールチップに対応する接続と確認した場合は true
+     */
+    static boolean hasItemTooltips(UUID playerId) {
+        return supports(playerId, "hasItemTooltips");
+    }
+
+    private static boolean supports(UUID playerId, String method) {
         if (!Geyser.isRegistered()) return false;
         var geyser = GeyserApi.api();
         if (geyser.connectionByUuid(playerId) == null) return false;
@@ -23,7 +35,7 @@ final class GeyserGameplaySounds {
         if (extension == null || !extension.isEnabled()) return false;
         try {
             // 拡張のクラスローダーやバージョンにProxyを直接依存させない。
-            return Boolean.TRUE.equals(extension.getClass().getMethod("hasGameplaySounds", UUID.class)
+            return Boolean.TRUE.equals(extension.getClass().getMethod(method, UUID.class)
                 .invoke(extension, playerId));
         } catch (ReflectiveOperationException | LinkageError ignored) {
             return false;

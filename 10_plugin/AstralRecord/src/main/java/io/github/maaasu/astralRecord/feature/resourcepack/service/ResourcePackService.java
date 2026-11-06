@@ -41,6 +41,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockGameplaySounds = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedSunbirdPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> loadedSunbirdPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaItemTooltips = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -116,7 +118,12 @@ public class ResourcePackService {
             try {
                 if (url != null) {
                     UUID viewer = player.getUniqueId();
+                    boolean hadItemTooltips = hasJavaItemTooltips(viewer);
                     loadedManagedJavaPacks.remove(viewer);
+                    requestedJavaItemTooltips.remove(viewer);
+                    if (hadItemTooltips) {
+                        player.updateInventory();
+                    }
                     requestedActionRingPanels.remove(viewer);
                     requestedGuiThemes.remove(viewer);
                     requestedGameplaySounds.remove(viewer);
@@ -128,6 +135,9 @@ public class ResourcePackService {
                     }
                     if (pack.hasGameplaySounds()) {
                         requestedGameplaySounds.add(viewer);
+                    }
+                    if (pack.itemTooltips()) {
+                        requestedJavaItemTooltips.add(viewer);
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -225,6 +235,7 @@ public class ResourcePackService {
     public void handleStatus(Player player, UUID packId, PlayerResourcePackStatusEvent.Status status) {
         if (MANAGED_JAVA_PACK_ID.equals(packId)) {
             UUID viewer = player.getUniqueId();
+            boolean hadItemTooltips = hasJavaItemTooltips(viewer);
             switch (status) {
                 case SUCCESSFULLY_LOADED -> {
                     loadedManagedJavaPacks.add(viewer);
@@ -237,6 +248,9 @@ public class ResourcePackService {
                     loadedSunbirdPresentation.remove(viewer);
                 }
                 default -> { }
+            }
+            if (hadItemTooltips != hasJavaItemTooltips(viewer)) {
+                player.updateInventory();
             }
         }
         switch (status) {
@@ -309,6 +323,37 @@ public class ResourcePackService {
     }
 
     /**
+     * 対応する管理パックを適用済みの Java 版接続か判定します。パケット送信スレッドから参照できます。
+     *
+     * @param playerId 閲覧者の UUID
+     * @return ツールチップの互換版が一致し、適用に成功した場合は true
+     */
+    public boolean hasJavaItemTooltips(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaItemTooltips.contains(playerId);
+    }
+
+    /**
+     * 対応パックの通知を受け取った統合版接続か判定します。パケット送信スレッドから参照できます。
+     *
+     * @param playerId 閲覧者の UUID
+     * @return 接続時のパックがツールチップに対応する場合は true
+     */
+    public boolean hasBedrockItemTooltips(UUID playerId) {
+        return readyBedrockItemTooltips.contains(playerId);
+    }
+
+    /**
+     * Proxy が通知した統合版接続をメインスレッドで記録し、初回だけ表示を再送します。
+     *
+     * @param player 通知が届いた現在のオンラインプレイヤー
+     */
+    public void markBedrockItemTooltipsReady(Player player) {
+        if (player.isOnline() && readyBedrockItemTooltips.add(player.getUniqueId())) {
+            player.updateInventory();
+        }
+    }
+
+    /**
      * Sunbird演出の互換版1を含む管理Javaパックを適用済みか確認します。
      *
      * @param playerId 閲覧者のUUID
@@ -332,6 +377,8 @@ public class ResourcePackService {
         readyBedrockGameplaySounds.remove(playerId);
         loadedSunbirdPresentation.remove(playerId);
         requestedSunbirdPresentation.remove(playerId);
+        requestedJavaItemTooltips.remove(playerId);
+        readyBedrockItemTooltips.remove(playerId);
     }
 
     /**

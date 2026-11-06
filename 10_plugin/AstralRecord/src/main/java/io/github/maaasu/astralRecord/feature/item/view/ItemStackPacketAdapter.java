@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
@@ -94,6 +95,7 @@ public class ItemStackPacketAdapter {
     private final SkillActionRingService actionRingService;
     private final @Nullable SkillPermissionService skillPermissionService;
     private final ItemService itemService;
+    private final ResourcePackService resourcePacks;
     private final BedrockHeldWeaponDisplay bedrockHeldWeaponDisplay = new BedrockHeldWeaponDisplay();
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
@@ -110,19 +112,22 @@ public class ItemStackPacketAdapter {
      * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
      * @param skillPermissionService 受信者のスキル使用可否を判定するサービス
      * @param itemService 公開済みアイテムマスタを参照するサービス
+     * @param resourcePacks 受信者がツールチップ用のパックを使えるか判定するサービス
      */
     public ItemStackPacketAdapter(
         @NotNull Plugin plugin,
         @NotNull PlayerSettingService playerSettingService,
         @NotNull SkillActionRingService actionRingService,
         @Nullable SkillPermissionService skillPermissionService,
-        @NotNull ItemService itemService
+        @NotNull ItemService itemService,
+        @NotNull ResourcePackService resourcePacks
     ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
         this.actionRingService = actionRingService;
         this.skillPermissionService = skillPermissionService;
         this.itemService = itemService;
+        this.resourcePacks = resourcePacks;
     }
 
     /**
@@ -177,6 +182,7 @@ public class ItemStackPacketAdapter {
                     ? actionRingService.getSelectedHotbarSlot(viewer)
                     : selectedHotbarSlots.getOrDefault(viewer.getUniqueId(), -1);
 
+                ItemTooltipPresentation tooltip = tooltipPresentation(viewer.getUniqueId());
                 if (type == PacketType.Play.Server.SET_SLOT
                     || type == PacketType.Play.Server.SET_PLAYER_INVENTORY
                     || type == PacketType.Play.Server.SET_CURSOR_ITEM) {
@@ -197,7 +203,8 @@ public class ItemStackPacketAdapter {
                         ),
                         permittedSkillIds,
                         bedrockViewer,
-                        randomStatusRangeDisplayEnabled
+                        randomStatusRangeDisplayEnabled,
+                        tooltip
                     );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
@@ -207,7 +214,8 @@ public class ItemStackPacketAdapter {
                         selectedHotbarSlot,
                         permittedSkillIds,
                         bedrockViewer,
-                        randomStatusRangeDisplayEnabled
+                        randomStatusRangeDisplayEnabled,
+                        tooltip
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
@@ -379,6 +387,14 @@ public class ItemStackPacketAdapter {
 
     // region --- パケットハンドラ ---
 
+    /** 受信者の接続で利用可能なツールチップ装飾を返します。 */
+    private @Nullable ItemTooltipPresentation tooltipPresentation(UUID viewer) {
+        if (resourcePacks.hasJavaItemTooltips(viewer)) {
+            return ItemTooltipPresentation.JAVA;
+        }
+        return resourcePacks.hasBedrockItemTooltips(viewer) ? ItemTooltipPresentation.BEDROCK : null;
+    }
+
     /**
      * 単一スロットまたはカーソルの ItemStack を書き換えます。
      *
@@ -388,6 +404,7 @@ public class ItemStackPacketAdapter {
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
+     * @param tooltip 受信者の装飾方式。パックが使えない場合は null
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
@@ -395,7 +412,8 @@ public class ItemStackPacketAdapter {
         boolean virtualTrident,
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer,
-        boolean randomStatusRangeDisplayEnabled
+        boolean randomStatusRangeDisplayEnabled,
+        @Nullable ItemTooltipPresentation tooltip
     ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
@@ -403,7 +421,7 @@ public class ItemStackPacketAdapter {
         }
 
         var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
-            randomStatusRangeDisplayEnabled);
+            randomStatusRangeDisplayEnabled, tooltip);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -419,6 +437,7 @@ public class ItemStackPacketAdapter {
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
+     * @param tooltip 受信者の装飾方式。パックが使えない場合は null
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
@@ -427,11 +446,12 @@ public class ItemStackPacketAdapter {
         int selectedHotbarSlot,
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer,
-        boolean randomStatusRangeDisplayEnabled
+        boolean randomStatusRangeDisplayEnabled,
+        @Nullable ItemTooltipPresentation tooltip
     ) {
         // カーソルで保持しているスタックにも、受信者の表示設定を適用します。
         handleSetSlot(packet, armorDisplayEnabled, false, permittedSkillIds, bedrockViewer,
-            randomStatusRangeDisplayEnabled);
+            randomStatusRangeDisplayEnabled, tooltip);
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
             return;
@@ -450,7 +470,7 @@ public class ItemStackPacketAdapter {
                 selectedHotbarSlot
             );
             var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
-                randomStatusRangeDisplayEnabled);
+                randomStatusRangeDisplayEnabled, tooltip);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -626,6 +646,20 @@ public class ItemStackPacketAdapter {
         boolean bedrockViewer,
         boolean randomStatusRangeDisplayEnabled
     ) {
+        return replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
+            randomStatusRangeDisplayEnabled, null);
+    }
+
+    /** 通常の表示変換と、適用可能なツールチップ装飾を同じ送信コピーにまとめます。 */
+    private ItemStack replaceIcon(
+        @NotNull ItemStack original,
+        boolean armorDisplayEnabled,
+        boolean virtualTrident,
+        @Nullable Set<String> permittedSkillIds,
+        boolean bedrockViewer,
+        boolean randomStatusRangeDisplayEnabled,
+        @Nullable ItemTooltipPresentation tooltip
+    ) {
         var iconName = ItemStackFactory.getIconName(original);
         var iconTexture = ItemStackFactory.getIconTexture(original);
         var itemId = ItemStackFactory.getAstralItemId(original);
@@ -644,7 +678,8 @@ public class ItemStackPacketAdapter {
         boolean virtualWeapon = virtualTrident && ItemStackFactory.isWeapon(original);
         boolean nativeBedrockTrident = bedrockViewer && virtualWeapon;
 
-        if (!virtualWeapon
+        boolean decorateTooltip = tooltip != null && itemId != null;
+        if (!decorateTooltip && !virtualWeapon
             && iconName == null
             && iconTexture == null
             && customModelData == null
@@ -685,6 +720,9 @@ public class ItemStackPacketAdapter {
 
         modified |= applyHookshotChargedIcon(replaced, hookshotLoaded);
         modified |= ItemStackFactory.hideBundleContentsTooltip(replaced);
+        if (decorateTooltip) {
+            modified |= tooltip.apply(replaced, itemMaster);
+        }
         if (!randomStatusRangeDisplayEnabled) {
             modified |= ItemStackFactory.hideRandomStatusRangeLore(replaced);
         }

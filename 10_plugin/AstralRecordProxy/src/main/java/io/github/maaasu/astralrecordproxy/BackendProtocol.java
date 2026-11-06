@@ -21,6 +21,7 @@ final class BackendProtocol {
     static final String PREPARE_CONNECT = "prepare_connect";
     static final String CHANNEL_CONNECTION = "channel_connection";
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
+    static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
 
     private BackendProtocol() {
     }
@@ -96,6 +97,11 @@ final class BackendProtocol {
     /** @return 対象プレイヤーのBedrockパックが効果音に対応していることを伝える通知 */
     static byte[] gameplaySoundsReady() {
         return outgoing(GAMEPLAY_SOUNDS_READY, null);
+    }
+
+    /** @return 対象プレイヤーの Bedrock パックがツールチップに対応していることを伝える通知 */
+    static byte[] itemTooltipsReady() {
+        return outgoing(ITEM_TOOLTIPS_READY, null);
     }
 
     private static Set<UUID> readParticipantIds(DataInputStream input) throws IOException {

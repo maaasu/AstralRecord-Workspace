@@ -166,6 +166,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().gameplaySounds();
     }
 
+    boolean itemTooltipsReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().itemTooltips();
+    }
+
     boolean sunbirdReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() && selection.pack().sunbird();

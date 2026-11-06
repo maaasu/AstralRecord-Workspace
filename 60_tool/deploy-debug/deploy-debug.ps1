@@ -416,6 +416,7 @@ function Publish-ResourcePacks {
     $sha256 = (Get-FileHash -LiteralPath $bedrock -Algorithm SHA256).Hash.ToLowerInvariant()
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
     $sunbirdPresentation = $null
+    $itemTooltips = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -444,6 +445,25 @@ function Publish-ResourcePacks {
             finally { $reader.Dispose() }
             if ($sunbirdPresentation -cne '1') { throw 'Unsupported Sunbird presentation version.' }
         }
+        $tooltipsEntry = $archive.GetEntry('item-tooltips-version.txt')
+        if ($null -ne $tooltipsEntry) {
+            if ($tooltipsEntry.Length -ne 1) { throw 'Invalid item tooltips version marker.' }
+            $reader = [IO.StreamReader]::new($tooltipsEntry.Open())
+            try { $itemTooltips = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($itemTooltips -cne '1') { throw 'Unsupported item tooltips version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/font/tooltip_icons.json'
+                'assets/astralrecord/textures/font/tooltip_icons.png'
+                'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png'
+                'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png.mcmeta'
+                'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_frame.png'
+                'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_frame.png.mcmeta'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing item tooltip asset in Java pack: $asset" }
+            }
+        }
     }
     finally {
         $archive.Dispose()
@@ -461,6 +481,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $sunbirdPresentation) {
         $javaManifest.sunbirdPresentation = $sunbirdPresentation
+    }
+    if ($null -ne $itemTooltips) {
+        $javaManifest.itemTooltips = $itemTooltips
     }
     [ordered]@{
         java = $javaManifest

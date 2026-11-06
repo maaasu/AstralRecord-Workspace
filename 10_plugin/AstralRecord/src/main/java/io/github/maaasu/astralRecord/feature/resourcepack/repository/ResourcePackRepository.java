@@ -17,7 +17,7 @@ public final class ResourcePackRepository {
 
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
-                           boolean hasGameplaySounds, boolean sunbirdPresentation) {
+                           boolean hasGameplaySounds, boolean sunbirdPresentation, boolean itemTooltips) {
     }
 
     /**
@@ -54,7 +54,11 @@ public final class ResourcePackRepository {
                 JsonElement sunbird = java.get("sunbirdPresentation");
                 boolean sunbirdPresentation = sunbird != null && sunbird.isJsonPrimitive()
                     && sunbird.getAsJsonPrimitive().isString() && "1".equals(sunbird.getAsString());
-                return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation);
+                JsonElement tooltips = java.get("itemTooltips");
+                boolean itemTooltips = tooltips != null && tooltips.isJsonPrimitive()
+                    && tooltips.getAsJsonPrimitive().isString() && "1".equals(tooltips.getAsString());
+                return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
+                    itemTooltips);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

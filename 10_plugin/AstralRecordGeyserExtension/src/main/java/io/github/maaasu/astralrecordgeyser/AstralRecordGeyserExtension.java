@@ -138,6 +138,17 @@ public final class AstralRecordGeyserExtension implements Extension {
         return connection != null && damagePacks.gameplaySoundsReady(connection);
     }
 
+    /**
+     * Velocity 上の AstralRecordProxy から、接続時に配布したツールチップの対応状況を照会します。
+     *
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return ログインまで完了した接続のパックに対応する字形と枠がある場合は true
+     */
+    public boolean hasItemTooltips(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && damagePacks.itemTooltipsReady(connection);
+    }
+
     @Subscribe
     public void onServerTransfer(ServerTransferEvent event) {
         updateHeldWeaponModel(event.connection(), 0);

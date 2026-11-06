@@ -316,6 +316,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        if (BackendProtocol.isItemTooltipsReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockItemTooltipsReady(player);
+            }
+            return;
+        }
         String targetServer;
         try {
             BackendProtocol.ChannelConnection notification = BackendProtocol.decodeChannelConnection(message);

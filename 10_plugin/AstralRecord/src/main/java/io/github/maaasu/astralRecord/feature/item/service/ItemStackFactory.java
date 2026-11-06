@@ -780,21 +780,7 @@ public class ItemStackFactory {
     private @NotNull List<String> buildLore(@NotNull ItemModel model, boolean shopDisplay) {
         List<String> lore = new ArrayList<>();
 
-        // ヘッダー
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
-        lore.add(rarityStars(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
-        lore.add("");
-
-        // ユーザー定義 lore（フレーバーテキスト: イタリック）
-        if (!model.getLore().isEmpty()) {
-            for (String line : model.getLore()) {
-                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
-                        + ColorCodeUtil.translateAlternateColorCodes(line));
-            }
-            lore.add("");
-        }
+        appendTooltipHeader(lore, model);
 
         // equipment / rune のカテゴリ固有情報
         if (model.getEquipment() != null) {
@@ -814,21 +800,40 @@ public class ItemStackFactory {
 
         appendSaleValueLore(lore, model);
 
-        // フッター
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         if (model.getBundle() != null
                 && model.getBundle().getLootTableId() != null
                 && !model.getBundle().getLootTableId().isBlank()) {
             appendBundleLootLore(lore, model.getBundle().getLootTableId());
         }
+        appendTooltipFooter(lore, model);
+        return lore;
+    }
+
+    /** レア度と分類を表示し、内部IDは濃い灰色に抑えます。 */
+    private void appendTooltipHeader(List<String> lore, ItemModel model) {
+        String rarity = model.getRarity();
+        String rarityLabelColor = ItemRarity.find(rarity) == ItemRarity.COMMON
+                ? ColorCodeUtil.GRAY : rarityToColor(rarity);
+        lore.add(rarityStars(rarity) + rarityLabelColor + "  " + rarityDisplayName(rarity)
+                + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
+    }
+
+    /** 取引制限と由来の説明文をロアの末尾に追加します。 */
+    private void appendTooltipFooter(List<String> lore, ItemModel model) {
         if (model.getUnTradeable()) {
             lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         }
         if (shouldShowUnSellable(model)) {
             lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         }
-
-        return lore;
+        if (!model.getLore().isEmpty()) {
+            lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
+            for (String line : model.getLore()) {
+                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
+                        + ColorCodeUtil.translateAlternateColorCodes(line));
+            }
+        }
     }
 
     /** シジル自体を手に取った時点で、装着時に得る能力を数値と日本語名で示します。 */
@@ -861,36 +866,9 @@ public class ItemStackFactory {
      */
     private void appendEquipmentLore(
             @NotNull List<String> lore, @NotNull ItemEquipment equipment, boolean shopDisplay) {
-        lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
-
-        // スロット / ハンドタイプ
-        if (equipment.getSlot() != null) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
-                    + toEquipmentSlotLabel(equipment.getSlot()));
-        }
-        String accessorySlotLabel = toAccessorySlotLabel(equipment);
-        if (accessorySlotLabel != null) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ アクセサリ枠: " + ColorCodeUtil.WHITE
-                    + accessorySlotLabel);
-        }
-        if (shouldShowHandType(equipment.getSlot())) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
-                    + toHandTypeLabel(equipment.getHandType()));
-        }
-
-        // 装備条件
-        if (equipment.getRequiredLevel() > 0) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + equipment.getRequiredLevel());
-        }
-        if (!equipment.getRequiredClasses().isEmpty()) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
-                    + formatRequiredClasses(equipment));
-        }
-
         // ステータス
         if (!equipment.getStats().isEmpty()) {
-            lore.add("");
-            lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
+            lore.add(ColorCodeUtil.GOLD + "❖ 性能");
             for (ItemEquipmentStat stat : equipment.getStats()) {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
@@ -907,6 +885,8 @@ public class ItemStackFactory {
             }
         }
 
+        appendEquipmentRequirements(lore, equipment);
+
         // 耐久値
         if (equipment.getDurability() != null) {
             int durabilityMax = equipment.getDurability().getMax();
@@ -915,6 +895,33 @@ public class ItemStackFactory {
 
         appendSetEffectLore(lore, equipment);
         lore.add("");
+    }
+
+    /** 装備部位、持ち手と装備条件を追加します。 */
+    private void appendEquipmentRequirements(List<String> lore, ItemEquipment equipment) {
+        lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
+
+        if (equipment.getSlot() != null) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
+                    + toEquipmentSlotLabel(equipment.getSlot()));
+        }
+        String accessorySlotLabel = toAccessorySlotLabel(equipment);
+        if (accessorySlotLabel != null) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ アクセサリ枠: " + ColorCodeUtil.WHITE
+                    + accessorySlotLabel);
+        }
+        if (shouldShowHandType(equipment.getSlot())) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
+                    + toHandTypeLabel(equipment.getHandType()));
+        }
+
+        if (equipment.getRequiredLevel() > 0) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + equipment.getRequiredLevel());
+        }
+        if (!equipment.getRequiredClasses().isEmpty()) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
+                    + formatRequiredClasses(equipment));
+        }
     }
 
     /**
@@ -1117,6 +1124,12 @@ public class ItemStackFactory {
     }
 
     private void appendConsumableLore(@NotNull List<String> lore, @NotNull ItemConsumable consumable) {
+        if (!consumable.getEffects().isEmpty()) {
+            lore.add(ColorCodeUtil.GREEN + " ▸ 効果");
+            for (ItemConsumableEffect effect : consumable.getEffects()) {
+                appendConsumableEffectLore(lore, effect);
+            }
+        }
         lore.add(ColorCodeUtil.AQUA + "❖ 使用情報");
         lore.add(ColorCodeUtil.GRAY + " ▸ 待機時間: "
                 + ColorCodeUtil.WHITE + formatTicksAsSeconds(resolveConsumableUseTimeTicks(consumable)));
@@ -1124,14 +1137,6 @@ public class ItemStackFactory {
                 + ColorCodeUtil.WHITE + formatTicksAsSeconds(resolveConsumableCooldownTicks(consumable)));
         int consumeAmount = consumable.getOnUse() == null ? 1 : Math.max(1, consumable.getOnUse().getAmount());
         lore.add(ColorCodeUtil.GRAY + " ▸ 消費数: " + ColorCodeUtil.WHITE + consumeAmount);
-
-        if (!consumable.getEffects().isEmpty()) {
-            lore.add("");
-            lore.add(ColorCodeUtil.GREEN + " ▸ 効果");
-            for (ItemConsumableEffect effect : consumable.getEffects()) {
-                appendConsumableEffectLore(lore, effect);
-            }
-        }
         lore.add("");
     }
 
@@ -1328,82 +1333,14 @@ public class ItemStackFactory {
     ) {
         List<String> lore = new ArrayList<>();
 
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
-        lore.add(rarityStars(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
-        lore.add("");
-
-        if (!model.getLore().isEmpty()) {
-            for (String line : model.getLore()) {
-                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
-                        + ColorCodeUtil.translateAlternateColorCodes(line));
-            }
-            lore.add("");
-        }
+        appendTooltipHeader(lore, model);
 
         if (model.getEquipment() != null) {
             var eq = model.getEquipment();
 
-            lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
-            if (eq.getSlot() != null) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
-                        + toEquipmentSlotLabel(eq.getSlot()));
-            }
-            String accessorySlotLabel = toAccessorySlotLabel(eq);
-            if (accessorySlotLabel != null) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ アクセサリ枠: " + ColorCodeUtil.WHITE
-                        + accessorySlotLabel);
-            }
-            if (shouldShowHandType(eq.getSlot())) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
-                        + toHandTypeLabel(eq.getHandType()));
-            }
-            if (eq.getRequiredLevel() > 0) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + eq.getRequiredLevel());
-            }
-            if (!eq.getRequiredClasses().isEmpty()) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
-                        + formatRequiredClasses(eq));
-            }
-            if (isSkillCastDiskEquipment(model)) {
-                appendSkillCastDiskSettingsLore(lore, metadataJson);
-            }
-            if (hookshotLoaded && isHookshotEquipment(model)) {
-                lore.add(ColorCodeUtil.GREEN + " ▸ フック装填済み");
-            }
-
-            // --- transcendence 状態変化表示 ---
-            if (instance.getTranscendenceRank() > 0) {
-                ItemEquipmentTranscendence currentTrans = eq.getTranscendence().stream()
-                        .filter(t -> t.getRank() == instance.getTranscendenceRank())
-                        .findFirst().orElse(null);
-                boolean hasTranscendenceName = currentTrans != null
-                        && currentTrans.getName() != null
-                        && !currentTrans.getName().isBlank();
-                String transName = hasTranscendenceName
-                        ? currentTrans.getName() : "ランク " + instance.getTranscendenceRank();
-                String rankNote = hasTranscendenceName
-                        ? ColorCodeUtil.GRAY + " (ランク" + instance.getTranscendenceRank() + ")"
-                        : "";
-                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE
-                        + "【" + transName + ColorCodeUtil.RESET + ColorCodeUtil.WHITE + "】" + rankNote);
-            }
-
-            // --- 強化レベル表示 ---
-            if (eq.getEnhance() != null) {
-                int effectiveMaxLevel = resolveEffectiveEnhanceMaxLevel(eq, instance);
-                String enhanceLabel = instance.getEnhanceLevel() > 0
-                        ? ColorCodeUtil.YELLOW + "+" + instance.getEnhanceLevel()
-                        + ColorCodeUtil.GRAY + " / 最大 " + ColorCodeUtil.WHITE + "+" + effectiveMaxLevel
-                        : ColorCodeUtil.GRAY + "未強化" + ColorCodeUtil.DARK_GRAY + " (最大 +" + effectiveMaxLevel + ")";
-                lore.add(ColorCodeUtil.GRAY + " ▸ 強化: " + enhanceLabel);
-            }
-
             // --- ステータス表示（ベース + enhance 累積） ---
             if (!instance.getStatRolls().isEmpty() || !eq.getStats().isEmpty()) {
-                lore.add("");
-                lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
+                lore.add(ColorCodeUtil.GOLD + "❖ 性能");
 
                 // enhance 累積計算 (status#type → [minAccum, maxAccum])
                 Map<String, double[]> enhanceAccum = calculateEnhanceStats(eq, instance.getEnhanceLevel());
@@ -1466,15 +1403,39 @@ public class ItemStackFactory {
                 }
             }
 
+            appendEquipmentRequirements(lore, eq);
+            if (isSkillCastDiskEquipment(model)) {
+                appendSkillCastDiskSettingsLore(lore, metadataJson);
+            }
+            if (hookshotLoaded && isHookshotEquipment(model)) {
+                lore.add(ColorCodeUtil.GREEN + " ▸ フック装填済み");
+            }
+
+            // --- transcendence 状態変化表示 ---
+            if (instance.getTranscendenceRank() > 0) {
+                ItemEquipmentTranscendence currentTrans = eq.getTranscendence().stream()
+                        .filter(t -> t.getRank() == instance.getTranscendenceRank())
+                        .findFirst().orElse(null);
+                boolean hasTranscendenceName = currentTrans != null
+                        && currentTrans.getName() != null
+                        && !currentTrans.getName().isBlank();
+                String transName = hasTranscendenceName
+                        ? currentTrans.getName() : "ランク " + instance.getTranscendenceRank();
+                String rankNote = hasTranscendenceName
+                        ? ColorCodeUtil.GRAY + " (ランク" + instance.getTranscendenceRank() + ")"
+                        : "";
+                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE
+                        + "【" + transName + ColorCodeUtil.RESET + ColorCodeUtil.WHITE + "】" + rankNote);
+            }
+
             // --- enchant（エンチャント）情報 ---
             if (eq.getEnchant() != null) {
                 int effectiveMaxSlots = resolveEffectiveEnchantMaxSlots(eq, instance);
                 lore.add("");
-                lore.add(ColorCodeUtil.AQUA + "✦ エンチャント"
-                        + ColorCodeUtil.DARK_GRAY + " (" + instance.getEnchants().size()
-                        + "/" + effectiveMaxSlots + ")");
+                lore.add(formatSocketSummary("✦ エンチャント", ColorCodeUtil.AQUA,
+                        instance.getEnchants().size(), effectiveMaxSlots));
                 if (instance.getEnchants().isEmpty()) {
-                    lore.add(ColorCodeUtil.DARK_GRAY + "   ─ 未付与");
+                    lore.add(ColorCodeUtil.GRAY + "   ─ 未付与");
                 } else {
                     var contribution = EquipmentStatContributionCalculator.calculate(eq, instance, itemService::findLoadedById);
                     // 1回の描画中は同じmaster参照を使い、次の描画では公開済みの最新世代を参照します。
@@ -1516,9 +1477,8 @@ public class ItemStackFactory {
             // --- rune（ルーン）スロット情報 ---
             if (instance.getRuneMaxSlots() > 0) {
                 lore.add("");
-                lore.add(ColorCodeUtil.GREEN + "◆ ルーンスロット"
-                        + ColorCodeUtil.DARK_GRAY + " (" + instance.getRunes().size()
-                        + "/" + instance.getRuneMaxSlots() + ")");
+                lore.add(formatSocketSummary("◆ ルーンスロット", ColorCodeUtil.GREEN,
+                        instance.getRunes().size(), instance.getRuneMaxSlots()));
                 // 装着済みルーン
                 Map<Integer, EquipmentRune> runeBySlot = new LinkedHashMap<>();
                 for (EquipmentRune rune : instance.getRunes()) {
@@ -1543,7 +1503,7 @@ public class ItemStackFactory {
                             }
                         }
                     } else {
-                        lore.add(ColorCodeUtil.DARK_GRAY + " ○ 空きスロット");
+                        lore.add(ColorCodeUtil.GRAY + " ○ 空きスロット");
                     }
                 }
             }
@@ -1553,15 +1513,34 @@ public class ItemStackFactory {
                 lore.add("");
                 lore.add(formatDurabilityLore(instance));
             }
+            // --- 強化レベル表示 ---
+            if (eq.getEnhance() != null) {
+                int effectiveMaxLevel = resolveEffectiveEnhanceMaxLevel(eq, instance);
+                String enhanceLabel = instance.getEnhanceLevel() > 0
+                        ? ColorCodeUtil.YELLOW + "+" + instance.getEnhanceLevel()
+                        + ColorCodeUtil.GRAY + " / 最大 " + ColorCodeUtil.WHITE + "+" + effectiveMaxLevel
+                        : ColorCodeUtil.GRAY + "未強化" + ColorCodeUtil.DARK_GRAY + " (最大 +" + effectiveMaxLevel + ")";
+                lore.add(ColorCodeUtil.GRAY + " ▸ 強化: " + enhanceLabel);
+            }
+
             appendSetEffectLore(lore, eq, equippedSetCounts);
             lore.add("");
         }
 
         appendSaleValueLore(lore, model);
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
-        if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
-        if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
+        appendTooltipFooter(lore, model);
         return lore;
+    }
+
+    /** 使用数と上限を表示し、短い枠一覧には使用済みと空きの印を加えます。 */
+    private static String formatSocketSummary(String label, String activeColor, int used, int capacity) {
+        String color = used > 0 ? activeColor : ColorCodeUtil.GRAY;
+        String summary = color + label + "  " + used + ColorCodeUtil.GRAY + "/" + capacity;
+        if (capacity > 12 || used > capacity) {
+            return summary;
+        }
+        return summary + "  " + color + "◆".repeat(used)
+                + ColorCodeUtil.DARK_GRAY + "◇".repeat(capacity - used);
     }
 
     /**
@@ -1861,7 +1840,8 @@ public class ItemStackFactory {
         bar.repeat(DURABILITY_BAR_CHAR, filledLength);
         bar.append(ColorCodeUtil.GRAY);
         bar.repeat(DURABILITY_BAR_CHAR, DURABILITY_BAR_LENGTH - filledLength);
-        return ColorCodeUtil.GRAY + " ▸ 耐久値: " + bar;
+        return ColorCodeUtil.GRAY + " ▸ 耐久値: " + bar
+                + ColorCodeUtil.GRAY + "  " + value + "/" + max;
     }
 
     private boolean isHookshotEquipment(@NotNull ItemModel model) {

@@ -31,7 +31,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean gameplaySounds, boolean sunbird, Set<Integer> heldWeaponModels,
-    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -119,6 +119,7 @@ record DamagePack(
             boolean gameplaySounds;
             boolean sunbird;
             boolean worldDisplay;
+            boolean itemTooltips;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -144,6 +145,9 @@ record DamagePack(
                 gameplaySounds = hasGameplaySounds(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
+                    && present(zip.getEntry("textures/ui/purpleBorder.png"))
+                    && hasVersionOne(zip, "item-tooltips-version.txt");
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -157,7 +161,7 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites, worldDisplay);
+                gameplaySounds, sunbird, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
@@ -165,8 +169,13 @@ record DamagePack(
 
     /** 効果音の定義と、ビルド時に記録した対応バージョンを確認します。 */
     private static boolean hasGameplaySounds(ZipFile zip) throws IOException {
-        var version = zip.getEntry("gameplay-sounds-version.txt");
-        if (!present(version) || version.getSize() != 1 || !present(zip.getEntry("sounds/sound_definitions.json"))) {
+        return present(zip.getEntry("sounds/sound_definitions.json"))
+            && hasVersionOne(zip, "gameplay-sounds-version.txt");
+    }
+
+    private static boolean hasVersionOne(ZipFile zip, String path) throws IOException {
+        var version = zip.getEntry(path);
+        if (!present(version) || version.getSize() != 1) {
             return false;
         }
         try (var input = zip.getInputStream(version)) {

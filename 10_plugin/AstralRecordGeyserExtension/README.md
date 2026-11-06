@@ -38,6 +38,10 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.4.0` 以降は、必要な描画ファイルが揃ったパック `1.1.0` 以降を登録してログインまで進んだ接続で、RPG が送るダメージ数値を `astralrecord:damage_number` に置き換えます。対応パックを使えない接続では、元の TextDisplay を Geyser が文字表示に変換します。Geyser の公開 API で確認できるのはパックの登録とログイン完了までです。ダウンロードには Geyser の強制パック設定を使います。
 
+## Bedrock のアイテムツールチップ
+
+拡張は `item-tooltips-version.txt` が互換版 `1` を示し、`font/glyph_E6.png` と `textures/ui/purpleBorder.png` を含むパックを配布対象にした接続を確認します。パック交渉を経てログインした後、Velocity の AstralRecordProxy が RPG に通知します。RPG は通知を受けた接続向けにアイテムのツールチップへ専用字形を追加します。更新後はパックを受け取るために再接続してください。配布には Geyser の `gameplay.force-resource-packs: true` を使います。
+
 ## Bedrockのアクションリング
 
 接続時に一体型アセットを含むパックを登録した接続では、輪郭用 TextDisplay を `astralrecord:action_ring_panel` に置き換えます。一枚の両面モデルを輪郭に使い、後続の状態通知でスプライト、選択マーカー、ゲージ、向きと縮尺を更新します。一体型表示に含まれるアイコンとゲージの個別表示を抑止し、パックにないアイコンは元のアイテムで表示します。操作案内と視線を合わせた枠の短い状態表示には Geyser の TextDisplay 変換を使います。発動判定は RPG 側で行います。

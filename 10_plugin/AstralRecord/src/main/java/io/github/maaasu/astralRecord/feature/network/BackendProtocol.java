@@ -19,17 +19,23 @@ import java.util.UUID;
 final class BackendProtocol {
     static final String CHANNEL = "astralrecord:network";
     private static final String PREPARE_CONNECT = "prepare_connect";
-    private static final byte[] GAMEPLAY_SOUNDS_READY = gameplaySoundsReadyPayload();
+    private static final byte[] GAMEPLAY_SOUNDS_READY = emptyNotification("gameplay_sounds_ready");
+    private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
 
     /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
     static boolean isGameplaySoundsReady(byte[] payload) {
         return Arrays.equals(GAMEPLAY_SOUNDS_READY, payload);
     }
 
+    /** 対応パックのツールチップを使える統合版接続の完全な通知か判定します。 */
+    static boolean isItemTooltipsReady(byte[] payload) {
+        return Arrays.equals(ITEM_TOOLTIPS_READY, payload);
+    }
+
     /** UTF 長ヘッダーを含む、引数のない通知の正規形を作成します。 */
-    private static byte[] gameplaySoundsReadyPayload() {
+    private static byte[] emptyNotification(String name) {
         try (var bytes = new ByteArrayOutputStream(); var output = new DataOutputStream(bytes)) {
-            output.writeUTF("gameplay_sounds_ready");
+            output.writeUTF(name);
             return bytes.toByteArray();
         } catch (IOException exception) {
             throw new ExceptionInInitializerError(exception);

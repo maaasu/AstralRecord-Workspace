@@ -75,6 +75,12 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
     'assets/astralrecord/textures/font/combat_hud.png'
+    'assets/astralrecord/font/tooltip_icons.json'
+    'assets/astralrecord/textures/font/tooltip_icons.png'
+    'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png'
+    'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png.mcmeta'
+    'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_frame.png'
+    'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_frame.png.mcmeta'
     'assets/astralrecord/models/world/waystone.json'
     'assets/astralrecord/models/world/waystone_locked.json'
     'assets/astralrecord/models/world/waystone_unlocked.json'
@@ -111,6 +117,8 @@ $java = Read-PackEntries $root @(
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
+    'font/glyph_E6.png'
+    'textures/ui/purpleBorder.png'
     'entity/damage_number.entity.json'
     'animations/damage_number.animation.json'
     'models/entity/damage_number.geo.json'
@@ -173,6 +181,10 @@ Add-ItemModelEntries $java $bedrock $skillIcons
 Add-ActionRingPanelEntries $java $bedrock $skillIcons
 Add-ArmorAssetEntries $java $bedrock
 Add-GuiThemeEntries $java $bedrock
+
+$tooltipVersion = $utf8.GetBytes('1')
+$java.Add('item-tooltips-version.txt', $tooltipVersion)
+$bedrock.Add('item-tooltips-version.txt', $tooltipVersion)
 
 # Derive the Bedrock event list and package only the Ogg files referenced by Java.
 $javaSoundPath = 'assets/astralrecord/sounds.json'

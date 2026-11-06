@@ -6,5 +6,6 @@ public sealed record JavaResourcePack(
     string? ActionRingPanel = null,
     string? GuiTheme = null,
     string? GameplaySounds = null,
-    string? SunbirdPresentation = null);
+    string? SunbirdPresentation = null,
+    string? ItemTooltips = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

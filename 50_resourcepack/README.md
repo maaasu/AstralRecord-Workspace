@@ -96,6 +96,14 @@ JE で素材の振り分けだけを確認する場合は `/give @s minecraft:wo
 
 ノクスソードは 21001、ノクスボウは 21002、ノクススタッフは 21003 を使います。通常攻撃の腕振りと戦闘エフェクトはサーバー処理に同期します。BE の手持ちモデルは腕振りの進捗に合わせて動きます。バニラの弓の使用状態では、JE は3段階の引き絵、BE は弦の変形を使います。
 
+### アイテムのツールチップ
+
+両版で濃紺の背景と金の枠を使い、対応するパックを適用した接続では、AstralRecord のアイテム名の先頭に種類を表す絵柄を表示します。絵柄は輪郭と明暗を描き分けた16×16 pxの原画で、剣・槌・槍・弓・ワンド・スタッフや、瓶入りのポーションなど18種類です。弓の派生型は同じ絵柄を使います。
+
+Java 版は `astralrecord:shared_item` で専用の背景と枠を選び、`astralrecord:tooltip_icons` で絵柄を描画します。統合版は `textures/ui/purpleBorder.png` を差し替えるため、この画像を参照する標準ツールチップや一部のチャット・ポーズ画面のUIにも同じ枠が適用されます。統合版の絵柄は `font/glyph_E6.png` に収録しています。両版のパックは機能の互換判定に使う `item-tooltips-version.txt` を含みます。[Minecraft Java Edition 1.21.2](https://www.minecraft.net/en-us/article/minecraft-java-edition-1-21-2) · [Mojang の統合版ツールチップ画像の伸縮設定](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/textures/ui/purpleBorder.json)
+
+原画の編集先は `assets/astralrecord/textures/font/tooltip_icons.png` です。更新時は左上の256×32 pxを統合版の256×256 pxのフォント画像に同じ位置でコピーします。既存の `U+E600` ～ `U+E611` の割り当てを維持し、両版で同じ絵柄を使います。配布用 PNG を最近傍拡大し、背景と枠を9分割で伸縮した静止画で、全18種類の輪郭とポーション名の配置を確認しました。実クライアントの描画は未確認です。
+
 ### 武器の握り位置
 
 `java_virtual_trident: true` の武器は、台帳の `grip` に Java モデル座標の握りの中心を `[x, y, z]` で登録します。モデルは握りから先端が +Y 方向になるように作ります。ビルドは握りが形状の内側にあること、一人称・三人称それぞれの左右の手で基本素材の基準に収まることを確認します。位置はモデルの 0.5 px 以内、向きは基準ベクトルとの内積 0.95 以上です。弓では引き段階にも同じ検証を行います。新しい基本素材の武器には `item-model-grip-targets.json` に4つの表示姿勢の基準を登録します。
