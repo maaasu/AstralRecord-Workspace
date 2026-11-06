@@ -1,0 +1,16 @@
+AstralRecord GUI artwork
+
+The shared stone button relief is adapted from:
+UI Pack - Pixel Adventure 2.0 by Kenney
+https://kenney.nl/assets/ui-pack-pixel-adventure
+Original tile: Tiles/Small tiles/Thin outline/tile_0058.png
+License: Creative Commons Zero (CC0 1.0 Universal)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 permits copying, modification and redistribution, including commercial use.
+Attribution is not required by the creator; this credit is included voluntarily.
+No endorsement by Kenney is implied. The Kenney logo is not used.
+
+Changes: recolored stone/metal relief, original AstralRecord feature and action
+glyphs, nearest-neighbor scaling to 32 pixels. Palette, source pixels and
+regeneration instructions are kept in gui-source/ and generate-gui-assets.py.

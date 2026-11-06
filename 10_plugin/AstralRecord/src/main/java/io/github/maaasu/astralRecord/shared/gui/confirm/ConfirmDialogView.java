@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui.confirm;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -95,16 +96,16 @@ public final class ConfirmDialogView {
             message,
             messageLore
         ));
-        inventory.setItem(CONFIRM_SLOT, createItem(
+        inventory.setItem(CONFIRM_SLOT, GuiResourcePackIcons.apply(createItem(
             Material.LIME_CONCRETE,
             confirmName,
             confirmLore
-        ));
-        inventory.setItem(CANCEL_SLOT, createItem(
+        ), "confirm"));
+        inventory.setItem(CANCEL_SLOT, GuiResourcePackIcons.apply(createItem(
             Material.RED_CONCRETE,
             cancelName,
             List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
-        ));
+        ), "cancel"));
     }
 
     private @NotNull ItemStack createItem(

@@ -1,0 +1,413 @@
+{
+  "format_version": 1,
+  "icons": [
+    {
+      "id": "gui_close_barrier",
+      "role": "close",
+      "base_item": "minecraft:barrier",
+      "custom_model_data": 910001
+    },
+    {
+      "id": "gui_processing_clock",
+      "role": "processing",
+      "base_item": "minecraft:clock",
+      "custom_model_data": 910002
+    },
+    {
+      "id": "gui_previous_player_head",
+      "role": "previous",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910003
+    },
+    {
+      "id": "gui_next_player_head",
+      "role": "next",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910004
+    },
+    {
+      "id": "gui_up_player_head",
+      "role": "up",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910005
+    },
+    {
+      "id": "gui_down_player_head",
+      "role": "down",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910006
+    },
+    {
+      "id": "gui_disabled_player_head",
+      "role": "disabled",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910007
+    },
+    {
+      "id": "gui_frame_black_stained_glass_pane",
+      "role": "frame",
+      "base_item": "minecraft:black_stained_glass_pane",
+      "custom_model_data": 910008
+    },
+    {
+      "id": "gui_panel_gray_stained_glass_pane",
+      "role": "panel",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910009
+    },
+    {
+      "id": "gui_confirm_lime_concrete",
+      "role": "confirm",
+      "base_item": "minecraft:lime_concrete",
+      "custom_model_data": 910010
+    },
+    {
+      "id": "gui_confirm_lime_stained_glass_pane",
+      "role": "confirm",
+      "base_item": "minecraft:lime_stained_glass_pane",
+      "custom_model_data": 910011
+    },
+    {
+      "id": "gui_confirm_lime_wool",
+      "role": "confirm",
+      "base_item": "minecraft:lime_wool",
+      "custom_model_data": 910012
+    },
+    {
+      "id": "gui_cancel_red_concrete",
+      "role": "cancel",
+      "base_item": "minecraft:red_concrete",
+      "custom_model_data": 910013
+    },
+    {
+      "id": "gui_cancel_red_stained_glass_pane",
+      "role": "cancel",
+      "base_item": "minecraft:red_stained_glass_pane",
+      "custom_model_data": 910014
+    },
+    {
+      "id": "gui_cancel_red_wool",
+      "role": "cancel",
+      "base_item": "minecraft:red_wool",
+      "custom_model_data": 910015
+    },
+    {
+      "id": "gui_unset_gray_dye",
+      "role": "unset",
+      "base_item": "minecraft:gray_dye",
+      "custom_model_data": 910016
+    },
+    {
+      "id": "gui_menu_player_head",
+      "role": "menu",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910017
+    },
+    {
+      "id": "gui_profile_player_head",
+      "role": "profile",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910018
+    },
+    {
+      "id": "gui_quest_map",
+      "role": "quest",
+      "base_item": "minecraft:map",
+      "custom_model_data": 910019
+    },
+    {
+      "id": "gui_settings_comparator",
+      "role": "settings",
+      "base_item": "minecraft:comparator",
+      "custom_model_data": 910020
+    },
+    {
+      "id": "gui_equipment_netherite_chestplate",
+      "role": "equipment",
+      "base_item": "minecraft:netherite_chestplate",
+      "custom_model_data": 910021
+    },
+    {
+      "id": "gui_trash_lava_bucket",
+      "role": "trash",
+      "base_item": "minecraft:lava_bucket",
+      "custom_model_data": 910022
+    },
+    {
+      "id": "gui_guide_knowledge_book",
+      "role": "guide",
+      "base_item": "minecraft:knowledge_book",
+      "custom_model_data": 910023
+    },
+    {
+      "id": "gui_warp_beacon",
+      "role": "warp",
+      "base_item": "minecraft:beacon",
+      "custom_model_data": 910024
+    },
+    {
+      "id": "gui_adventure_spyglass",
+      "role": "adventure",
+      "base_item": "minecraft:spyglass",
+      "custom_model_data": 910025
+    },
+    {
+      "id": "gui_mail_chest",
+      "role": "mail",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 910026
+    },
+    {
+      "id": "gui_skill_enchanting_table",
+      "role": "skill",
+      "base_item": "minecraft:enchanting_table",
+      "custom_model_data": 910027
+    },
+    {
+      "id": "gui_currency_player_head",
+      "role": "currency",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910028
+    },
+    {
+      "id": "gui_party_iron_chain",
+      "role": "party",
+      "base_item": "minecraft:iron_chain",
+      "custom_model_data": 910029
+    },
+    {
+      "id": "gui_players_name_tag",
+      "role": "players",
+      "base_item": "minecraft:name_tag",
+      "custom_model_data": 910030
+    },
+    {
+      "id": "gui_inventory_chest",
+      "role": "inventory",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 910031
+    },
+    {
+      "id": "gui_storage_ender_chest",
+      "role": "storage",
+      "base_item": "minecraft:ender_chest",
+      "custom_model_data": 910032
+    },
+    {
+      "id": "gui_back_arrow",
+      "role": "back",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910033
+    },
+    {
+      "id": "gui_back_gray_dye",
+      "role": "back",
+      "base_item": "minecraft:gray_dye",
+      "custom_model_data": 910034
+    },
+    {
+      "id": "gui_back_player_head",
+      "role": "back",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 910035
+    },
+    {
+      "id": "gui_back_map",
+      "role": "back",
+      "base_item": "minecraft:map",
+      "custom_model_data": 910036
+    },
+    {
+      "id": "gui_back_comparator",
+      "role": "back",
+      "base_item": "minecraft:comparator",
+      "custom_model_data": 910037
+    },
+    {
+      "id": "gui_back_netherite_chestplate",
+      "role": "back",
+      "base_item": "minecraft:netherite_chestplate",
+      "custom_model_data": 910038
+    },
+    {
+      "id": "gui_back_lava_bucket",
+      "role": "back",
+      "base_item": "minecraft:lava_bucket",
+      "custom_model_data": 910039
+    },
+    {
+      "id": "gui_back_knowledge_book",
+      "role": "back",
+      "base_item": "minecraft:knowledge_book",
+      "custom_model_data": 910040
+    },
+    {
+      "id": "gui_back_beacon",
+      "role": "back",
+      "base_item": "minecraft:beacon",
+      "custom_model_data": 910041
+    },
+    {
+      "id": "gui_back_spyglass",
+      "role": "back",
+      "base_item": "minecraft:spyglass",
+      "custom_model_data": 910042
+    },
+    {
+      "id": "gui_back_chest",
+      "role": "back",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 910043
+    },
+    {
+      "id": "gui_back_enchanting_table",
+      "role": "back",
+      "base_item": "minecraft:enchanting_table",
+      "custom_model_data": 910044
+    },
+    {
+      "id": "gui_back_iron_chain",
+      "role": "back",
+      "base_item": "minecraft:iron_chain",
+      "custom_model_data": 910045
+    },
+    {
+      "id": "gui_back_name_tag",
+      "role": "back",
+      "base_item": "minecraft:name_tag",
+      "custom_model_data": 910046
+    },
+    {
+      "id": "gui_back_ender_chest",
+      "role": "back",
+      "base_item": "minecraft:ender_chest",
+      "custom_model_data": 910047
+    },
+    {
+      "id": "gui_back_amethyst_shard",
+      "role": "back",
+      "base_item": "minecraft:amethyst_shard",
+      "custom_model_data": 910048
+    },
+    {
+      "id": "gui_back_anvil",
+      "role": "back",
+      "base_item": "minecraft:anvil",
+      "custom_model_data": 910049
+    },
+    {
+      "id": "gui_back_book",
+      "role": "back",
+      "base_item": "minecraft:book",
+      "custom_model_data": 910050
+    },
+    {
+      "id": "gui_back_paper",
+      "role": "back",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910051
+    },
+    {
+      "id": "gui_back_nether_star",
+      "role": "back",
+      "base_item": "minecraft:nether_star",
+      "custom_model_data": 910052
+    },
+    {
+      "id": "gui_back_compass",
+      "role": "back",
+      "base_item": "minecraft:compass",
+      "custom_model_data": 910053
+    },
+    {
+      "id": "gui_back_barrier",
+      "role": "back",
+      "base_item": "minecraft:barrier",
+      "custom_model_data": 910054
+    },
+    {
+      "id": "gui_back_clock",
+      "role": "back",
+      "base_item": "minecraft:clock",
+      "custom_model_data": 910055
+    },
+    {
+      "id": "gui_back_emerald",
+      "role": "back",
+      "base_item": "minecraft:emerald",
+      "custom_model_data": 910056
+    },
+    {
+      "id": "gui_back_emerald_block",
+      "role": "back",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910057
+    },
+    {
+      "id": "gui_back_ender_pearl",
+      "role": "back",
+      "base_item": "minecraft:ender_pearl",
+      "custom_model_data": 910058
+    },
+    {
+      "id": "gui_back_experience_bottle",
+      "role": "back",
+      "base_item": "minecraft:experience_bottle",
+      "custom_model_data": 910059
+    },
+    {
+      "id": "gui_back_filled_map",
+      "role": "back",
+      "base_item": "minecraft:filled_map",
+      "custom_model_data": 910060
+    },
+    {
+      "id": "gui_back_gold_ingot",
+      "role": "back",
+      "base_item": "minecraft:gold_ingot",
+      "custom_model_data": 910061
+    },
+    {
+      "id": "gui_back_hopper",
+      "role": "back",
+      "base_item": "minecraft:hopper",
+      "custom_model_data": 910062
+    },
+    {
+      "id": "gui_back_orange_concrete",
+      "role": "back",
+      "base_item": "minecraft:orange_concrete",
+      "custom_model_data": 910063
+    },
+    {
+      "id": "gui_back_potion",
+      "role": "back",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 910064
+    },
+    {
+      "id": "gui_back_redstone",
+      "role": "back",
+      "base_item": "minecraft:redstone",
+      "custom_model_data": 910065
+    },
+    {
+      "id": "gui_back_writable_book",
+      "role": "back",
+      "base_item": "minecraft:writable_book",
+      "custom_model_data": 910066
+    },
+    {
+      "id": "gui_increase_lime_concrete",
+      "role": "increase",
+      "base_item": "minecraft:lime_concrete",
+      "custom_model_data": 910067
+    },
+    {
+      "id": "gui_decrease_red_concrete",
+      "role": "decrease",
+      "base_item": "minecraft:red_concrete",
+      "custom_model_data": 910068
+    }
+  ]
+}

@@ -36,6 +36,7 @@ public class ResourcePackService {
     private final ResourcePackRepository repository = new ResourcePackRepository();
     private final Set<UUID> loadedManagedJavaPacks = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> requestedActionRingPanels = new ConcurrentHashMap<>();
+    private final Map<UUID, String> requestedGuiThemes = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -111,8 +112,12 @@ public class ResourcePackService {
                     UUID viewer = player.getUniqueId();
                     loadedManagedJavaPacks.remove(viewer);
                     requestedActionRingPanels.remove(viewer);
+                    requestedGuiThemes.remove(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
+                    }
+                    if (pack.guiTheme() != null) {
+                        requestedGuiThemes.put(viewer, pack.guiTheme());
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -248,6 +253,17 @@ public class ResourcePackService {
     }
 
     /**
+     * GUIフォント互換版1を含む管理パックの適用が成功しているか確認します。
+     * 古い管理パック、固定URL、未適用・拒否・失敗した接続では専用字形を使いません。
+     *
+     * @param playerId 閲覧者のUUID
+     * @return 対応版の適用が成功済みならtrue
+     */
+    public boolean hasGuiTheme(UUID playerId) {
+        return hasManagedJavaPack(playerId) && "1".equals(requestedGuiThemes.get(playerId));
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -256,6 +272,7 @@ public class ResourcePackService {
         pendingViewers.remove(playerId);
         loadedManagedJavaPacks.remove(playerId);
         requestedActionRingPanels.remove(playerId);
+        requestedGuiThemes.remove(playerId);
     }
 
     /**

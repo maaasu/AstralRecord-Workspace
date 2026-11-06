@@ -83,7 +83,7 @@ public final class GuiOpenSupport {
         var astPlayer = AstPlayerCache.get(player);
         boolean bedrock = astPlayer != null && astPlayer.isBedrock();
         if (!isPluginGui(source) && !bedrock) {
-            player.openInventory(inventory);
+            GuiResourcePackTitle.open(player, inventory);
             if (player.getOpenInventory().getTopInventory() == inventory) {
                 io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport.afterOpen(player, source);
                 onOpened.run();
@@ -179,7 +179,7 @@ public final class GuiOpenSupport {
         if (!isSourceCurrent(player, source)) {
             return false;
         }
-        player.openInventory(target);
+        GuiResourcePackTitle.open(player, target);
         if (player.getOpenInventory().getTopInventory() != target) {
             return false;
         }

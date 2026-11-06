@@ -1,0 +1,65 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        "\uea00": -8,
+        "\uea01": -169
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_1.png",
+      "height": 132,
+      "ascent": 13,
+      "chars": [
+        "\uea10"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_2.png",
+      "height": 150,
+      "ascent": 13,
+      "chars": [
+        "\uea11"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_3.png",
+      "height": 168,
+      "ascent": 13,
+      "chars": [
+        "\uea12"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_4.png",
+      "height": 186,
+      "ascent": 13,
+      "chars": [
+        "\uea13"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_5.png",
+      "height": 204,
+      "ascent": 13,
+      "chars": [
+        "\uea14"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_6.png",
+      "height": 222,
+      "ascent": 13,
+      "chars": [
+        "\uea15"
+      ]
+    }
+  ]
+}

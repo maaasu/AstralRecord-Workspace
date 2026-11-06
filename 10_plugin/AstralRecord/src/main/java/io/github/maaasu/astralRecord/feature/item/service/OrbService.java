@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
@@ -542,7 +543,7 @@ public final class OrbService {
                 sessions.remove(session.player.getUniqueId(), session);
                 return;
             }
-            session.player.openInventory(session.inventory);
+            GuiResourcePackTitle.open(session.player, session.inventory);
             session.reopening = false;
             if (!isCurrentInventory(session.player, session)) {
                 sessions.remove(session.player.getUniqueId(), session);
@@ -869,11 +870,12 @@ public final class OrbService {
                 session.storageMode ? PlayerMsgId.P_5990 : PlayerMsgId.P_5989,
                 NamedTextColor.GOLD
             );
-            session.inventory.setItem(INVENTORY_ORB_STORAGE_TOGGLE_SLOT, GuiItems.create(
-                session.storageMode ? Material.CHEST : Material.ENDER_CHEST,
-                instruction,
-                List.of(instruction)
-            ));
+            session.inventory.setItem(INVENTORY_ORB_STORAGE_TOGGLE_SLOT,
+                io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons.apply(GuiItems.create(
+                    session.storageMode ? Material.CHEST : Material.ENDER_CHEST,
+                    instruction,
+                    List.of(instruction)
+                ), session.storageMode ? "inventory" : "storage"));
         }
     }
 

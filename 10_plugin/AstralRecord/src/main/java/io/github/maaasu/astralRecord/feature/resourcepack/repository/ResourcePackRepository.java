@@ -15,8 +15,8 @@ public final class ResourcePackRepository {
     private static final Pattern SHA1 = Pattern.compile("[0-9a-f]{40}");
     private static final Pattern PANEL_REVISION = Pattern.compile("[0-9a-f]{64}");
 
-    /** 配布物のハッシュと、含まれるアクションリングのスプライト台帳を識別します。 */
-    public record JavaPack(String sha1, @Nullable String actionRingPanel) {
+    /** 配布物のハッシュ、アクションリング台帳、GUIテーマの互換版を識別します。 */
+    public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme) {
     }
 
     /**
@@ -44,7 +44,10 @@ public final class ResourcePackRepository {
                 String panel = revision != null && revision.isJsonPrimitive()
                     && revision.getAsJsonPrimitive().isString()
                     && PANEL_REVISION.matcher(revision.getAsString()).matches() ? revision.getAsString() : null;
-                return new JavaPack(sha1.getAsString(), panel);
+                JsonElement gui = java.get("guiTheme");
+                String guiTheme = gui != null && gui.isJsonPrimitive()
+                    && gui.getAsJsonPrimitive().isString() && "1".equals(gui.getAsString()) ? "1" : null;
+                return new JavaPack(sha1.getAsString(), panel, guiTheme);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

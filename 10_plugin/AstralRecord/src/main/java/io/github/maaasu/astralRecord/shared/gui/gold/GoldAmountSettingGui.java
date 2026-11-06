@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui.gold;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -311,14 +312,14 @@ public final class GoldAmountSettingGui {
                 Component.text("左: 1桁 / Shift: 3桁", NamedTextColor.GRAY)
             )
         ));
-        inventory.setItem(MINUS_SLOT, item(
+        inventory.setItem(MINUS_SLOT, GuiResourcePackIcons.apply(item(
             Material.RED_CONCRETE,
             Component.text("-" + formatAmount(step), NamedTextColor.RED, TextDecoration.BOLD),
             List.of(
                 Component.text("右クリック: 5倍", NamedTextColor.GRAY),
                 Component.text("Shiftクリック: 10倍", NamedTextColor.GRAY)
             )
-        ));
+        ), "decrease"));
         inventory.setItem(HALF_SLOT, item(
             Material.ORANGE_STAINED_GLASS_PANE,
             Component.text("半分", NamedTextColor.GOLD, TextDecoration.BOLD),
@@ -341,14 +342,14 @@ public final class GoldAmountSettingGui {
             List.of(Component.text(formatAmount(clamp(saturatingMultiply(amount, 2L), maxAmount))
                 + " ゴールド", NamedTextColor.GRAY))
         ));
-        inventory.setItem(PLUS_SLOT, item(
+        inventory.setItem(PLUS_SLOT, GuiResourcePackIcons.apply(item(
             Material.LIME_CONCRETE,
             Component.text("+" + formatAmount(step), NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(
                 Component.text("右クリック: 5倍", NamedTextColor.GRAY),
                 Component.text("Shiftクリック: 10倍", NamedTextColor.GRAY)
             )
-        ));
+        ), "increase"));
         inventory.setItem(STEP_UP_SLOT, item(
             Material.GLOWSTONE_DUST,
             Component.text("調整桁を上げる", NamedTextColor.YELLOW, TextDecoration.BOLD),
@@ -363,11 +364,11 @@ public final class GoldAmountSettingGui {
             List.of(Component.text(formatAmount(quickMaxAmount) + " ゴールド", NamedTextColor.YELLOW))
         ));
         inventory.setItem(BACK_SLOT, GuiItems.backButton(returnDestination));
-        inventory.setItem(CONFIRM_SLOT, item(
+        inventory.setItem(CONFIRM_SLOT, GuiResourcePackIcons.apply(item(
             Material.LIME_CONCRETE,
             Component.text("確定", NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(Component.text(formatAmount(amount) + " ゴールド", NamedTextColor.YELLOW))
-        ));
+        ), "confirm"));
     }
 
     private static long clamp(long amount, long maxAmount) {

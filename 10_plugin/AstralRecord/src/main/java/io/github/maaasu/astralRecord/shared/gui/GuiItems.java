@@ -73,7 +73,7 @@ public final class GuiItems {
         if (modelOnlyIcon) {
             itemStack.setData(DataComponentTypes.ITEM_MODEL, material.getKey());
         }
-        return itemStack;
+        return GuiResourcePackIcons.applyControl(itemStack);
     }
 
     /**
@@ -102,11 +102,11 @@ public final class GuiItems {
      * @return 処理中表示用 ItemStack
      */
     public static @NotNull ItemStack processingItem() {
-        return create(
+        return GuiResourcePackIcons.apply(create(
             Material.CLOCK,
             Component.text("処理中...", NamedTextColor.YELLOW),
             List.of(Component.text("完了までお待ちください", NamedTextColor.GRAY))
-        );
+        ), "processing");
     }
 
     /**
@@ -131,11 +131,11 @@ public final class GuiItems {
      * @return 閉じるボタン ItemStack
      */
     public static @NotNull ItemStack closeButton() {
-        return create(
+        return GuiResourcePackIcons.apply(create(
             Material.BARRIER,
             Component.text("閉じる", NamedTextColor.RED, TextDecoration.BOLD),
             List.of(Component.text("画面を閉じます", NamedTextColor.GRAY))
-        );
+        ), "close");
     }
 
     /**
@@ -145,12 +145,12 @@ public final class GuiItems {
      * @return 戻るボタン ItemStack
      */
     public static @NotNull ItemStack backButton(@NotNull GuiNavigationDestination destination) {
-        return create(
+        return GuiResourcePackIcons.apply(create(
             destination.icon(),
             Component.text(destination.screenName() + "画面へ戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
             List.of(Component.text("クリックして戻ります", NamedTextColor.GRAY)),
             destination.iconTexture()
-        );
+        ), "back");
     }
 
     /**
@@ -178,8 +178,8 @@ public final class GuiItems {
         boolean enabled
     ) {
         return enabled
-            ? texturedHead(name, lore, OAK_WOOD_ARROW_LEFT_TEXTURE)
-            : texturedHead(DISABLED_PAGE_NAME, DISABLED_PAGE_LORE, OAK_WOOD_BLANK_TEXTURE);
+            ? GuiResourcePackIcons.apply(texturedHead(name, lore, OAK_WOOD_ARROW_LEFT_TEXTURE), "previous")
+            : GuiResourcePackIcons.apply(texturedHead(DISABLED_PAGE_NAME, DISABLED_PAGE_LORE, OAK_WOOD_BLANK_TEXTURE), "disabled");
     }
 
     /**
@@ -207,8 +207,8 @@ public final class GuiItems {
         boolean enabled
     ) {
         return enabled
-            ? texturedHead(name, lore, OAK_WOOD_ARROW_RIGHT_TEXTURE)
-            : texturedHead(DISABLED_PAGE_NAME, DISABLED_PAGE_LORE, OAK_WOOD_BLANK_TEXTURE);
+            ? GuiResourcePackIcons.apply(texturedHead(name, lore, OAK_WOOD_ARROW_RIGHT_TEXTURE), "next")
+            : GuiResourcePackIcons.apply(texturedHead(DISABLED_PAGE_NAME, DISABLED_PAGE_LORE, OAK_WOOD_BLANK_TEXTURE), "disabled");
     }
 
     /**
@@ -229,7 +229,7 @@ public final class GuiItems {
         boolean enabled
     ) {
         if (!enabled) {
-            return texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE);
+            return GuiResourcePackIcons.apply(texturedHead(name, lore, OAK_WOOD_BLANK_TEXTURE), "disabled");
         }
         ItemStack itemStack = texturedHead(
             name,
@@ -237,7 +237,7 @@ public final class GuiItems {
             up ? OAK_WOOD_ARROW_UP_TEXTURE : OAK_WOOD_ARROW_DOWN_TEXTURE
         );
         itemStack.setAmount(Math.max(1, availableMoves));
-        return itemStack;
+        return GuiResourcePackIcons.apply(itemStack, up ? "up" : "down");
     }
 
     private static @NotNull ItemStack texturedHead(

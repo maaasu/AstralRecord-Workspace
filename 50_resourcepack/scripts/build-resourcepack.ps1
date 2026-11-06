@@ -67,6 +67,7 @@ function Write-Pack {
 . (Join-Path $PSScriptRoot 'item-models.ps1')
 . (Join-Path $PSScriptRoot 'action-ring-panel.ps1')
 . (Join-Path $PSScriptRoot 'armor-assets.ps1')
+. (Join-Path $PSScriptRoot 'gui-assets.ps1')
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
     'assets/astralrecord/font/damage_number.json'
@@ -128,6 +129,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
 Add-ItemModelEntries $java $bedrock
 Add-ActionRingPanelEntries $java $bedrock
 Add-ArmorAssetEntries $java $bedrock
+Add-GuiThemeEntries $java $bedrock
 
 # Include the template and file names in the fingerprint. Any distributed
 # Bedrock asset change results in a new pack ID, bypassing client pack caching.

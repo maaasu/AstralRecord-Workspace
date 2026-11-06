@@ -10,6 +10,11 @@
         "directory": "transformed_item_models",
         "min_format": [83, 0],
         "max_format": [97, 1]
+      },
+      {
+        "directory": "gui_modern_item_models",
+        "min_format": [97, 1],
+        "max_format": [97, 1]
       }
     ]
   }

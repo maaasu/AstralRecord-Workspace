@@ -9029,7 +9029,7 @@ public class InventoryService {
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
-        return itemStack;
+        return io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons.apply(itemStack, "inventory");
     }
 
     private @NotNull ItemStack itemOrAir(@Nullable ItemStack itemStack) {

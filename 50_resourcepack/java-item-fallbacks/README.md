@@ -7,3 +7,7 @@
 player_headの変換クォータニオンの負のゼロは正のゼロへ正規化している。回転は同じで、PowerShell 5.1と7のJSON数値のシリアライズ差を避ける。
 
 これらはアイテム定義JSONのみ。バニラのモデルとテクスチャ本体はクライアントのリソースを参照し、このリポジトリへ複製しない。
+
+GUI用の基本素材38種も、同じMinecraft Java Edition 1.21.11の公式client JAR（SHA-1 `ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd`）の`assets/minecraft/items/`から追加した。チェストの季節表示、コンパスの針、ポーションと地図の色、防具の装飾などの定義をそのまま保持し、GUIモデル番号が一致しないアイテムには元の表示を使う。
+
+GUI素材を26.1・26.2・26.3の公式client JARとも比較し、プレイヤーヘッド以外では26.3の`filled_map`だけに差分があった。`java-item-fallbacks/gui_modern_item_models/filled_map.json`に26.3の定義を保持し、形式97.1のオーバーレイで地図の色処理を同版の定義へ切り替える。

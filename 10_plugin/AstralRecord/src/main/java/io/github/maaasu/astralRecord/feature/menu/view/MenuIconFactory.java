@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -56,12 +57,29 @@ public final class MenuIconFactory {
             lore.add(Component.text(definition.getDescriptionJa(), NamedTextColor.GRAY));
         }
         lore.addAll(additionalLore);
-        return GuiItems.create(
+        ItemStack itemStack = GuiItems.create(
             definition.getMaterial(),
             Component.text(definition.getDisplayNameJa(), definition.getColor()),
             lore,
             definition.getIconTexture()
         );
+        return switch (definition) {
+            case UNSET -> GuiResourcePackIcons.apply(itemStack, "unset");
+            case MAIN_MENU -> GuiResourcePackIcons.apply(itemStack, "menu");
+            case ACCOUNT_INFO -> itemStack;
+            case QUEST -> GuiResourcePackIcons.apply(itemStack, "quest");
+            case PLAYER_SETTING -> GuiResourcePackIcons.apply(itemStack, "settings");
+            case EQUIPMENT -> GuiResourcePackIcons.apply(itemStack, "equipment");
+            case TRASH -> GuiResourcePackIcons.apply(itemStack, "trash");
+            case GUIDE -> GuiResourcePackIcons.apply(itemStack, "guide");
+            case RETURN_TO_BASE -> GuiResourcePackIcons.apply(itemStack, "warp");
+            case ADVENTURE_RECORD -> GuiResourcePackIcons.apply(itemStack, "adventure");
+            case MAIL -> GuiResourcePackIcons.apply(itemStack, "mail");
+            case SKILL_BIND -> GuiResourcePackIcons.apply(itemStack, "skill");
+            case CURRENCY -> GuiResourcePackIcons.apply(itemStack, "currency");
+            case PARTY -> GuiResourcePackIcons.apply(itemStack, "party");
+            case PLAYER_LIST -> GuiResourcePackIcons.apply(itemStack, "players");
+        };
     }
 
     /**

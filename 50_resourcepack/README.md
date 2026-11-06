@@ -1,6 +1,14 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃の演出を配布します。配布するアイテムモデルは `item-models.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃の演出、GUI共通アイコンを配布します。配布する装備モデルは `item-models.json`、GUI専用の31絵柄・68割り当ては `gui-icons.json` で管理します。
+
+## GUI
+
+Java版では、互換版1の管理パックの適用成功後に、Plugin管理の1～6行チェストへ専用背景を表示します。暗いタイトル帯とクリーム色の文字を送信時だけ重ね、元のInventory・holder・内容・タイトル・操作を維持します。未適用・旧パック・固定URL・統合版では標準背景を使います。統合版でも、既存Geyserのカスタムアイテム登録を通して共通アイコンを利用できます。
+
+メニュー、ページ移動、戻る、決定・取消、数量増減、仕切りを統一し、実際の装備・商品・報酬・プレイヤースキンは維持します。実装済みGUI全体の棚卸しと、金床・ネイティブフォーム・HUDなどの対応境界は [GUI対応表](GUI_COVERAGE.md) に記載しています。
+
+原画・CC0素材の出典とライセンスは [gui-source](gui-source/README.md) にあります。両配布パックへ `NOTICE-GUI.txt` を含めます。`python scripts/generate-gui-assets.py --check` と `python scripts/generate-gui-panels.py --check` で再生成結果を検証できます。後者の `--preview <path>` は配置図を生成し、実ゲームの目視確認とは区別します。
 
 ## 対象と構成
 

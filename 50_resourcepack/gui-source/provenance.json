@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "creator": "Kenney",
+    "title": "UI Pack - Pixel Adventure",
+    "version": "2.0",
+    "source_url": "https://kenney.nl/assets/ui-pack-pixel-adventure",
+    "license": "CC0-1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "retrieved_utc": "2026-11-06",
+    "archive_sha256": "0b0ed4802ebcfff5e44e370f394baa1d751862a5a4a7612ac4ce84e85faa0627",
+    "selected_files": [
+      "Tiles/Small tiles/Thin outline/tile_0058.png"
+    ],
+    "license_copy": "kenney-pixel-adventure/License.txt",
+    "selected_file_sha256": {
+      "kenney-pixel-adventure/tile_0058.png": "9f61051d2d90516f62daa6435e9c4a929888b13ef5b940860edfbed51494f6b9",
+      "kenney-pixel-adventure/License.txt": "ab0032cce635dfd1c71b4ba16513b2777cb560d6b93d52265bb0731491a41dbc"
+    }
+  },
+  "adaptation": {
+    "base": "The original 16px riveted stone plate is recolored with a darker slate center and warm metal corner rivets.",
+    "glyphs": "AstralRecord original pixel drawings, defined in scripts/generate-gui-assets.py. No third-party logos, fonts, character art or Minecraft texture pixels are included.",
+    "output": "32x32 RGBA PNGs. Each 16px design pixel is expanded to 2x2 with nearest-neighbor sampling; Java and Bedrock outputs are byte-identical.",
+    "roles": "Navigation uses gold, confirm uses teal, close and cancel use coral with different silhouettes, disabled uses a lock, unset uses an empty outlined diamond. Color is accompanied by shape.",
+    "scope": "GUI control sprites only. Existing equipment, item, skin and skill artwork remain their own assets."
+  }
+}

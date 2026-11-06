@@ -423,6 +423,12 @@ function Publish-ResourcePacks {
         try { $panelRevision = $reader.ReadToEnd() }
         finally { $reader.Dispose() }
         if ($panelRevision -cnotmatch '^[a-f0-9]{64}$') { throw 'Invalid action ring panel revision.' }
+        $guiEntry = $archive.GetEntry('gui-theme-version.txt')
+        if ($null -eq $guiEntry -or $guiEntry.Length -ne 1) { throw 'Missing GUI theme version in Java pack.' }
+        $reader = [IO.StreamReader]::new($guiEntry.Open())
+        try { $guiTheme = $reader.ReadToEnd() }
+        finally { $reader.Dispose() }
+        if ($guiTheme -cne '1') { throw 'Unsupported GUI theme version.' }
     }
     finally {
         $archive.Dispose()
@@ -433,7 +439,7 @@ function Publish-ResourcePacks {
     Move-Item -LiteralPath $bedrock -Destination (Join-Path $output $bedrockName) -Force
 
     [ordered]@{
-        java = [ordered]@{ sha1 = $sha1; actionRingPanel = $panelRevision }
+        java = [ordered]@{ sha1 = $sha1; actionRingPanel = $panelRevision; guiTheme = $guiTheme }
         bedrock = [ordered]@{
             sha256 = $sha256
             uuid = $uuid

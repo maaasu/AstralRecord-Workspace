@@ -340,9 +340,11 @@ function Add-ItemModelEntries {
         }
     }
 
+    $bedrockItems += Add-GuiIconModelEntries $JavaEntries $BedrockEntries $iconTextures $byBase $models
     foreach ($base in $byBase.Keys) {
         Add-JavaItemDispatch $JavaEntries $base $byBase[$base]
         Add-GeneratedItemOverlayDispatch $JavaEntries $base $byBase[$base]
+        Add-GuiIconOverlayDispatch $JavaEntries $base $byBase[$base]
     }
     if ($byBase.ContainsKey('trident')) {
         # Format 83 moved the native trident transform from the renderer into the item model.

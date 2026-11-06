@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.shared.gui.session;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -154,7 +155,7 @@ public final class GuiSessionTransitionEventHandler extends AbstractEventHandler
                 completeContinuationFailure(player, continuation);
                 return;
             }
-            player.openInventory(targetInventory);
+            GuiResourcePackTitle.open(player, targetInventory);
             if (player.getOpenInventory().getTopInventory() != targetInventory) {
                 completeContinuationFailure(player, continuation);
                 return;

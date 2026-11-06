@@ -893,6 +893,7 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.clear();
         if (overworldTeleportService != null) overworldTeleportService.stop();
         if (defenseService != null) defenseService.stop();
         RuntimeException shadeHedgehogStopFailure = null;
@@ -1568,6 +1569,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
         resourcePackService = new ResourcePackService(this, ConfigProperties.getInstance());
+        io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.configure(this, resourcePackService);
         displayTextService = new DisplayTextService(playerSettingService, resourcePackService);
         textDisplayPlacementService.setDisplayTextService(displayTextService);
         waystonePacketView = new WaystonePacketView(this, teleporterService, particleDisplayService);

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
@@ -895,7 +896,7 @@ public final class SkillSigilOrbService {
             session.reopenTask = null;
             if (!session.locked || sessions.get(session.player.getUniqueId()) != session
                 || !session.player.isOnline() || !isGameplaySession(session)) return;
-            session.player.openInventory(session.inventory);
+            GuiResourcePackTitle.open(session.player, session.inventory);
             if (session.player.getOpenInventory().getTopInventory() != session.inventory) {
                 sessions.remove(session.player.getUniqueId(), session);
             }

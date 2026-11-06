@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skilltree.event;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -380,7 +381,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             holder.classIdsBySlot.put(slot, option.classId());
         }
         GuiSound.OPEN.play(player);
-        player.openInventory(inventory);
+        GuiResourcePackTitle.open(player, inventory);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -499,7 +500,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         holder.bind(inventory);
         renderRelockConfirmation(inventory, node, holder.dontAskAgain);
         GuiSound.OPEN.play(player);
-        player.openInventory(inventory);
+        GuiResourcePackTitle.open(player, inventory);
     }
 
     private void renderRelockConfirmation(

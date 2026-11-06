@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuote;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
@@ -183,12 +184,12 @@ public final class MarketGui {
     ) {
         Inventory inventory = create(viewer, sessionId, MarketScreen.SELL_CONFIG, DIALOG_SIZE, "マーケット: 出品設定");
         fill(inventory);
-        inventory.setItem(QUANTITY_DOWN_SLOT, item(
+        inventory.setItem(QUANTITY_DOWN_SLOT, GuiResourcePackIcons.apply(item(
             Material.RED_CONCRETE,
             "数量を減らす",
             NamedTextColor.RED,
             List.of("Shiftクリックで 16 個減らします。")
-        ));
+        ), "decrease"));
         inventory.setItem(QUANTITY_SLOT, item(
             Material.HOPPER,
             "数量: " + format(draft.quantity()),
@@ -202,12 +203,12 @@ public final class MarketGui {
             NamedTextColor.GOLD,
             sellPriceLore(draft)
         ));
-        inventory.setItem(QUANTITY_UP_SLOT, item(
+        inventory.setItem(QUANTITY_UP_SLOT, GuiResourcePackIcons.apply(item(
             Material.LIME_CONCRETE,
             "数量を増やす",
             NamedTextColor.GREEN,
             List.of("Shiftクリックで 16 個増やします。")
-        ));
+        ), "increase"));
         inventory.setItem(BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.CHEST, "出品アイテム選択")
         ));
@@ -234,12 +235,12 @@ public final class MarketGui {
         fill(inventory);
         long safeQuantity = Math.max(1L, Math.min(purchaseQuantity, listing.remainingQuantity()));
         long purchasePrice = totalPrice(listing.unitPrice(), safeQuantity);
-        inventory.setItem(QUANTITY_DOWN_SLOT, item(
+        inventory.setItem(QUANTITY_DOWN_SLOT, GuiResourcePackIcons.apply(item(
             Material.RED_CONCRETE,
             "購入数を減らす",
             NamedTextColor.RED,
             List.of("Shiftクリックで 16 個減らします。")
-        ));
+        ), "decrease"));
         inventory.setItem(QUANTITY_SLOT, item(
             Material.HOPPER,
             "購入数: " + format(safeQuantity),
@@ -256,12 +257,12 @@ public final class MarketGui {
                 "所持 Gold: " + format(goldAmount)
             )
         ));
-        inventory.setItem(QUANTITY_UP_SLOT, item(
+        inventory.setItem(QUANTITY_UP_SLOT, GuiResourcePackIcons.apply(item(
             Material.LIME_CONCRETE,
             "購入数を増やす",
             NamedTextColor.GREEN,
             List.of("Shiftクリックで 16 個増やします。")
-        ));
+        ), "increase"));
         inventory.setItem(BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.EMERALD, "マーケット")
         ));
