@@ -1,0 +1,29 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        " ": 3,
+        "\ue950": 1,
+        "\ue951": 2,
+        "\ue952": 4,
+        "\ue953": 8,
+        "\ue954": 16,
+        "\ue955": -1,
+        "\ue956": -2,
+        "\ue957": -4,
+        "\ue958": -8,
+        "\ue959": -16
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/profile_hud.png",
+      "height": 26,
+      "ascent": 17,
+      "chars": [
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?+-/()%.,:|\ue940\ue941\ue942\ue943\ue944"
+      ]
+    }
+  ]
+}

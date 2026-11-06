@@ -8,5 +8,6 @@ public sealed record JavaResourcePack(
     string? GameplaySounds = null,
     string? SunbirdPresentation = null,
     string? ItemTooltips = null,
-    string? WeaponAttackProjectiles = null);
+    string? WeaponAttackProjectiles = null,
+    string? ProfileHud = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

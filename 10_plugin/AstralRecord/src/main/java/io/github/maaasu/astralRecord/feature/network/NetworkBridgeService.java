@@ -100,6 +100,20 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         resourcePackService = service;
     }
 
+    /**
+     * Proxyへ統合版の個人情報HUDを送ります。メインスレッドで呼び出します。
+     * @param player 表示対象
+     * @param text 表示する文字列。空白一文字の場合は表示を解除
+     * @return Proxyへの送信を開始した場合はtrue
+     */
+    public boolean sendBedrockProfileHud(@NotNull Player player, @NotNull String text) {
+        if (metadataTask == null || !player.isOnline() || text.isEmpty() || text.length() > 512) {
+            return false;
+        }
+        BackendProtocol.sendBedrockProfileHud(plugin, player, text);
+        return true;
+    }
+
     public void start() {
         playerClassService.setPlayerListNameUpdatesEnabled(!enabled);
         if (!enabled) return;
@@ -325,6 +339,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         if (BackendProtocol.isWeaponAttackProjectilesReady(message)) {
             if (resourcePackService != null) {
                 resourcePackService.markBedrockWeaponAttackProjectilesReady(player);
+            }
+            return;
+        }
+        if (BackendProtocol.isBedrockProfileHudReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockProfileHudReady(player);
             }
             return;
         }

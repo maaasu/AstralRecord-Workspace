@@ -14,6 +14,88 @@
     "uv_size": [ 24, 24 ],
     "uv": "@hud.astral_hotbar_selection_animation"
   },
+  "root_panel": {
+    "modifications": [
+      {
+        "array_name": "controls",
+        "operation": "insert_back",
+        "value": [
+          { "astralrecord_profile_hud@hud.astralrecord_profile_hud": {} }
+        ]
+      }
+    ]
+  },
+  "hud_tip_text": {
+    "bindings": [
+      {
+        "binding_name": "#tip_text",
+        "binding_condition": "always"
+      },
+      {
+        "binding_type": "view",
+        "source_property_name": "(#tip_text = (#tip_text - 'geyseropt:astralrecord_profile_hud:'))",
+        "target_property_name": "#visible"
+      }
+    ]
+  },
+  "astralrecord_profile_hud": {
+    "type": "panel",
+    "size": [ "100%", "100%" ],
+    "$profile_prefix": "geyseropt:astralrecord_profile_hud:",
+    "controls": [
+      {
+        "profile_data": {
+          "type": "panel",
+          "size": [ 0, 0 ],
+          "bindings": [
+            {
+              "binding_name": "#tip_text",
+              "binding_condition": "always"
+            },
+            {
+              "binding_name": "#tip_text",
+              "binding_name_override": "#preserved_text",
+              "binding_condition": "visibility_changed"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "(not (#tip_text = #preserved_text) and (('%.35s' * #tip_text) = $profile_prefix))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "profile_text": {
+          "type": "label",
+          "anchor_from": "bottom_middle",
+          "anchor_to": "bottom_left",
+          "offset": [ -104, -88 ],
+          "size": [ "72%", "default" ],
+          "layer": 31,
+          "text": "#text",
+          "text_alignment": "left",
+          "shadow": true,
+          "localize": false,
+          "visible": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "profile_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(#preserved_text - $profile_prefix)",
+              "target_property_name": "#text"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "(not (#text = '') and not (#text = ' '))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      }
+    ]
+  },
   "hud_actionbar_text": {
     "size": [ "100%c + 18px", "100%c + 5px" ],
     "texture": "textures/ui/astralrecord/actionbar_plate",

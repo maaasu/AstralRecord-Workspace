@@ -32,7 +32,7 @@ record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean gameplaySounds, boolean sunbird,
     boolean sunbirdMotion, Set<Integer> heldWeaponModels,
-    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips, boolean profileHud
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -128,6 +128,7 @@ record DamagePack(
             boolean sunbirdMotion;
             boolean worldDisplay;
             boolean itemTooltips;
+            boolean profileHud;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -160,6 +161,9 @@ record DamagePack(
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
                     && hasVersionOne(zip, "item-tooltips-version.txt");
+                profileHud = present(zip.getEntry("ui/hud_screen.json"))
+                    && present(zip.getEntry("font/glyph_E9.png"))
+                    && hasVersionOne(zip, "player-progress-hud-version.txt");
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -174,7 +178,7 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
                 weaponAttackProjectiles, gameplaySounds, sunbird, sunbirdMotion, heldWeaponModels, itemModels, actionRingSprites,
-                worldDisplay, itemTooltips);
+                worldDisplay, itemTooltips, profileHud);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

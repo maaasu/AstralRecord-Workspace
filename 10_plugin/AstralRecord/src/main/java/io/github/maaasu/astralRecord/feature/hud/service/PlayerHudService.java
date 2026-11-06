@@ -2,7 +2,8 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
-import io.github.maaasu.astralRecord.feature.hud.view.PlayerProgressHudView;
+import io.github.maaasu.astralRecord.feature.hud.view.ProfileHudText;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -32,14 +33,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public class PlayerHudService {
     private static final long DPS_SAMPLE_WINDOW_MS = 10_000L;
+    private static final Pattern PROFILE_CLASS_NAME = Pattern.compile("[A-Za-z0-9-]{1,8}");
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
@@ -49,9 +54,9 @@ public class PlayerHudService {
     private final BossChallengeService bossChallengeService;
     private final WorldService worldService;
     private final SkillTreeService skillTreeService;
-    private final AdminMessageBossBarService adminMessageBossBarService;
     private final PlayerHudView playerHudView;
-    private final PlayerProgressHudView progressHudView = new PlayerProgressHudView();
+    private final ResourcePackService resourcePackService;
+    private final Set<UUID> visibleBedrockProfiles = new HashSet<>();
     private CombatDpsTrackerService combatDpsTrackerService;
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
@@ -64,7 +69,6 @@ public class PlayerHudService {
     private boolean proxyOwnsTabHeader;
     private final Map<UUID, UUID> sidebarAccounts = new HashMap<>();
     private Predicate<Player> sidebarInputBlocked = ignored -> false;
-    private Predicate<UUID> combatBossBarActive = ignored -> false;
 
     /**
      * ロード・セッション遷移・スキル選択など、効果ページ入力を停止する判定を設定します。
@@ -75,18 +79,10 @@ public class PlayerHudService {
     }
 
     /**
-     * 個人情報より優先する戦闘BossBarの表示判定を設定します。
-     * @param active メインスレッド上でプレイヤーUUIDから戦闘BossBarの表示有無を返す判定
-     */
-    public void setCombatBossBarActive(@NotNull Predicate<UUID> active) {
-        combatBossBarActive = active;
-    }
-
-    /**
      * HUD サービスを構築します。
      *
      * @param statusService       ステータスサービス
-     * @param playerClassService  職業サービス（職業名・レベル・経験値進捗の表示に使用）
+     * @param playerClassService  職業サービス（サイドバーの職業名・レベル・経験値進捗表示に使用）
      * @param accountService      アカウント経験値サービス
      * @param currencyService     所持Goldの参照サービス
      * @param playerSettingService プレイヤー設定サービス
@@ -95,7 +91,6 @@ public class PlayerHudService {
      * @param worldService ワールド表示名・種別の解決サービス
      * @param skillTreeService スキルツリーワールド判定と CP / PP 残高の解決サービス
      * @param resourcePackService Java版のパック適用状態の参照先
-     * @param adminMessageBossBarService 管理者通知の表示状態の参照先
      */
     public PlayerHudService(
         StatusService statusService,
@@ -107,8 +102,7 @@ public class PlayerHudService {
         BossChallengeService bossChallengeService,
         WorldService worldService,
         SkillTreeService skillTreeService,
-        ResourcePackService resourcePackService,
-        AdminMessageBossBarService adminMessageBossBarService
+        ResourcePackService resourcePackService
     ) {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
@@ -119,7 +113,7 @@ public class PlayerHudService {
         this.bossChallengeService = bossChallengeService;
         this.worldService = worldService;
         this.skillTreeService = skillTreeService;
-        this.adminMessageBossBarService = adminMessageBossBarService;
+        this.resourcePackService = resourcePackService;
         this.playerHudView = new PlayerHudView(resourcePackService);
     }
 
@@ -161,7 +155,7 @@ public class PlayerHudService {
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::updateAll, 10L, 10L);
     }
 
-    /** 周期更新と一時ActionBarを停止し、個人情報HUDと効果ページを破棄します。 */
+    /** 周期更新と一時ActionBarを停止し、個人情報HUDと効果ページを解除します。 */
     public void stop() {
         if (task != null) {
             task.cancel();
@@ -173,7 +167,10 @@ public class PlayerHudService {
         actionBarOverrideTasks.clear();
         sidebarAccounts.clear();
         playerHudView.clearBuffPages();
-        progressHudView.clear();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            clearProfileHud(player);
+        }
+        visibleBedrockProfiles.clear();
         proxyOwnsTabHeader = false;
         plugin = null;
     }
@@ -283,7 +280,7 @@ public class PlayerHudService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) {
-                clearProgressHud(player);
+                clearProfileHud(player);
                 continue;
             }
 
@@ -291,6 +288,7 @@ public class PlayerHudService {
             int playerLevel = astPlayer.getAccount().getLevel();
             double experienceProgress = accountService.experienceProgress(astPlayer.getAccount());
             if (astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+                renderSidebar(astPlayer, mspt);
                 if (isWallClingActive(astPlayer)) {
                     renderWallClingWindow(astPlayer);
                 } else if (isDodgeWindowActive(astPlayer)) {
@@ -298,13 +296,10 @@ public class PlayerHudService {
                 } else {
                 renderPrimaryActionBar(astPlayer, snapshot);
                 }
-                WorldType worldType = worldService.resolveWorldType(player.getWorld());
-                renderSidebar(astPlayer, mspt, worldType);
-                renderProgressHud(astPlayer, playerLevel, experienceProgress, worldType);
             } else {
                 cancelActionBarOverrideTask(player.getUniqueId());
                 playerHudView.removeSidebar(player);
-                clearProgressHud(player);
+                clearProfileHud(player);
                 clearSidebarBuffPage(player.getUniqueId());
             }
             playerHudView.renderBars(
@@ -326,14 +321,16 @@ public class PlayerHudService {
     }
 
     /**
-     * 現在の状態・表示設定・挑戦情報を使い、選択中の効果ページを再描画します。
+     * 個人情報、現在地、設定、挑戦情報、選択中の効果ページをサイドバーへ描画します。
      * @param astPlayer 表示対象
      * @param mspt 現在のMSPT
-     * @param worldType 現在のワールド種別。管理対象外の場合は null
      */
-    private void renderSidebar(@NotNull AstPlayer astPlayer, double mspt, @Nullable WorldType worldType) {
+    private void renderSidebar(@NotNull AstPlayer astPlayer, double mspt) {
         Player player = astPlayer.getBukkit();
         prepareSidebarBuffPage(astPlayer);
+        int playerLevel = astPlayer.getAccount().getLevel();
+        String className = playerClassService.getDisplayName(astPlayer.getClassId());
+        double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
         boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
             astPlayer.getUser().getUuid()
         );
@@ -343,15 +340,46 @@ public class PlayerHudService {
         BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
         DungeonSidebarInfo dungeonInfo = dungeonService == null
                 ? null : dungeonService.findSidebarInfo(player.getUniqueId());
+        WorldType worldType = worldService.resolveWorldType(player.getWorld());
+        boolean isSkillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
+        String skillTreeClassPointLabel = isSkillTreeWorld
+                ? skillTreeService.currentClassPointLabel(astPlayer)
+                : null;
+        int availableClassPoints = isSkillTreeWorld
+                ? skillTreeService.availableClassPoints(astPlayer)
+                : 0;
+        int availablePassivePoints = isSkillTreeWorld
+                ? skillTreeService.availablePassivePoints(astPlayer)
+                : 0;
         String regionName = astPlayer.getCurrentRegion();
         if (regionName == null || regionName.isBlank()) {
             regionName = worldType == null
                     ? player.getWorld().getName()
                     : worldType.getRegionDisplayName();
         }
+        int classLevel = astPlayer.getClassLevel();
+        boolean classLevelMax = playerClassService.isMaxClassLevel(astPlayer);
+        long goldAmount = currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
+        Integer originalLevel = astPlayer.getAccount().getRebirthOriginalLevel();
+        String shortClassName = ColorCodeUtil.toPlainText(
+                playerClassService.getShortDisplayName(astPlayer.getClassId()), "");
+        boolean overlay = renderProfileHud(
+                player, playerLevel, originalLevel, goldAmount, shortClassName, classLevel, classLevelMax,
+                classExperienceProgress, isSkillTreeWorld, availableClassPoints, availablePassivePoints
+        );
         playerHudView.renderSidebar(
             player,
             mspt,
+            playerLevel,
+            classExperienceProgress,
+            classLevel,
+            classLevelMax,
+            className,
+            goldAmount,
+            !overlay,
+            skillTreeClassPointLabel,
+            availableClassPoints,
+            availablePassivePoints,
             worldService.resolveDisplayName(player.getWorld()),
             regionName,
             resolveRegionLevel(astPlayer, worldType, bossInfo),
@@ -359,56 +387,81 @@ public class PlayerHudService {
             bossInfo,
             dungeonInfo,
             showBuffInfo,
-            statusService.getActiveBuffs(astPlayer)
+            statusService.getActiveBuffs(astPlayer),
+            originalLevel
         );
     }
 
     /**
-     * 戦闘・通知のBossBarを優先し、それ以外では個人情報を戦闘アクションバーと別に表示します。
-     * @param astPlayer 対象プレイヤー
+     * 対応パックがある接続へ2行を描画し、使えない場合はサイドバーに委ねます。
+     * @param player 表示対象
      * @param playerLevel プレイヤーレベル
-     * @param experienceProgress プレイヤーのレベル内経験値進捗
-     * @param worldType 現在のワールド種別。管理対象外の場合は null
+     * @param originalLevel 転生前レベル。転生中でなければnull
+     * @param goldAmount 所持Gold
+     * @param className クラスの短縮表示名
+     * @param classLevel クラスレベル
+     * @param classLevelMax クラスが最大レベルならtrue
+     * @param classProgress クラス経験値の進捗
+     * @param showPoints スキルツリーポイントを併記する場合true
+     * @param classPoints 未使用CP
+     * @param passivePoints 未使用PP
+     * @return 個人情報を画面へ表示する場合true
      */
-    private void renderProgressHud(
-            @NotNull AstPlayer astPlayer,
+    private boolean renderProfileHud(
+            Player player,
             int playerLevel,
-            double experienceProgress,
-            @Nullable WorldType worldType
+            @Nullable Integer originalLevel,
+            long goldAmount,
+            String className,
+            int classLevel,
+            boolean classLevelMax,
+            double classProgress,
+            boolean showPoints,
+            int classPoints,
+            int passivePoints
     ) {
-        Player player = astPlayer.getBukkit();
-        var defenseService = plugin.getDefenseService();
-        if (adminMessageBossBarService.isActive() || worldType == WorldType.BOSS_FIELD
-                || worldType == WorldType.DUNGEON
-                || combatBossBarActive.test(player.getUniqueId())
-                || (defenseService != null && defenseService.isParticipant(player.getUniqueId()))) {
-            clearProgressHud(player);
-            return;
+        UUID playerId = player.getUniqueId();
+        if (!PROFILE_CLASS_NAME.matcher(className).matches()) {
+            clearProfileHud(player);
+            return false;
+        }
+        boolean javaOverlay = resourcePackService.hasJavaProfileHud(playerId);
+        if (!javaOverlay && !resourcePackService.hasBedrockProfileHud(playerId)) {
+            clearProfileHud(player);
+            return false;
         }
 
-        boolean skillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
-        progressHudView.render(
-                player,
-                playerLevel,
-                astPlayer.getAccount().getRebirthOriginalLevel(),
-                experienceProgress,
-                currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
-                playerClassService.getDisplayName(astPlayer.getClassId()),
-                astPlayer.getClassLevel(),
-                playerClassService.isMaxClassLevel(astPlayer),
-                playerClassService.classExperienceProgress(astPlayer),
-                skillTreeWorld,
-                skillTreeWorld ? skillTreeService.availableClassPoints(astPlayer) : 0,
-                skillTreeWorld ? skillTreeService.availablePassivePoints(astPlayer) : 0
-        );
+        ProfileHudText profile = ProfileHudText.create(playerLevel, originalLevel, goldAmount, className,
+                classLevel, classLevelMax, classProgress, showPoints, classPoints, passivePoints);
+        if (javaOverlay) {
+            playerHudView.setJavaProfile(playerId, profile);
+            return true;
+        }
+
+        var bridge = plugin.getNetworkBridgeService();
+        if (bridge != null && bridge.sendBedrockProfileHud(player, profile.bedrockMessage())) {
+            visibleBedrockProfiles.add(playerId);
+            return true;
+        }
+        clearProfileHud(player);
+        return false;
     }
 
     /**
-     * 退出・ワールド変更・runtime破棄・優先表示への遷移時に個人情報HUDを解除します。
-     * @param player 対象プレイヤー
+     * 退出、復旧、モードやワールドの切替で個人情報を解除します。
+     * @param player 表示対象
      */
-    public void clearProgressHud(@NotNull Player player) {
-        progressHudView.hide(player);
+    public void clearProfileHud(@NotNull Player player) {
+        UUID playerId = player.getUniqueId();
+        if (playerHudView.setJavaProfile(playerId, null) && player.isOnline()) {
+            player.sendActionBar(Component.empty());
+        }
+        if (visibleBedrockProfiles.remove(playerId) && player.isOnline() && plugin != null) {
+            var bridge = plugin.getNetworkBridgeService();
+            if (bridge != null) {
+                bridge.sendBedrockProfileHud(player, " ");
+            }
+        }
     }
 
     /**
@@ -425,8 +478,7 @@ public class PlayerHudService {
         }
         prepareSidebarBuffPage(astPlayer);
         playerHudView.moveBuffPage(player.getUniqueId(), direction);
-        WorldType worldType = worldService.resolveWorldType(player.getWorld());
-        renderSidebar(astPlayer, Bukkit.getServer().getAverageTickTime(), worldType);
+        renderSidebar(astPlayer, Bukkit.getServer().getAverageTickTime());
         return true;
     }
 
@@ -541,7 +593,7 @@ public class PlayerHudService {
                 : combatDpsTrackerService.getAverageDps(player.getUniqueId(), DPS_SAMPLE_WINDOW_MS);
         Component override = resolvePrimaryActionBar(astPlayer);
         if (override != null) {
-            player.sendActionBar(override);
+            playerHudView.sendActionBar(player, override);
             return;
         }
         boolean showDps = playerSettingService.isCombatDpsDisplayEnabled(astPlayer.getUser().getUuid());

@@ -23,6 +23,8 @@ final class BackendProtocol {
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
+    private static final String BEDROCK_PROFILE_HUD = "bedrock_profile_hud";
+    private static final String BEDROCK_PROFILE_HUD_READY = "bedrock_profile_hud_ready";
 
     private BackendProtocol() {
     }
@@ -65,6 +67,13 @@ final class BackendProtocol {
                     yield new Chat(messageId, playerId, authorName, channel, displayName, level, className, original, converted);
                 }
                 case SERVER_METRICS -> new ServerMetrics(input.readDouble());
+                case BEDROCK_PROFILE_HUD -> {
+                    String text = input.readUTF();
+                    if (text.isEmpty() || text.length() > 512 || input.available() > 0) {
+                        throw new IOException("Invalid Bedrock profile HUD payload");
+                    }
+                    yield new BedrockProfileHud(text);
+                }
                 case PRIVATE_CHAT -> {
                     UUID playerId = UUID.fromString(input.readUTF());
                     String chatType = input.readUTF();
@@ -108,6 +117,11 @@ final class BackendProtocol {
     /** @return 対象プレイヤーの統合版パックが通常攻撃の飛翔演出に対応していることを伝える通知 */
     static byte[] weaponAttackProjectilesReady() {
         return outgoing(WEAPON_ATTACK_PROJECTILES_READY, null);
+    }
+
+    /** @return 統合版の個人情報HUDに対応した接続を伝える通知 */
+    static byte[] bedrockProfileHudReady() {
+        return outgoing(BEDROCK_PROFILE_HUD_READY, null);
     }
 
     private static Set<UUID> readParticipantIds(DataInputStream input) throws IOException {
@@ -173,7 +187,8 @@ final class BackendProtocol {
         }
     }
 
-    sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat, DirectMessage {
+    sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat, DirectMessage,
+        BedrockProfileHud {
     }
 
     record Connect(String targetServer, int permission) implements Incoming {
@@ -206,6 +221,9 @@ final class BackendProtocol {
         String original,
         String converted
     ) implements Incoming {
+    }
+
+    record BedrockProfileHud(String text) implements Incoming {
     }
 
     record ServerMetrics(double mspt) implements Incoming {

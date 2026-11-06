@@ -23,6 +23,7 @@ final class BackendProtocol {
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
+    private static final byte[] BEDROCK_PROFILE_HUD_READY = emptyNotification("bedrock_profile_hud_ready");
 
     /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
     static boolean isGameplaySoundsReady(byte[] payload) {
@@ -37,6 +38,11 @@ final class BackendProtocol {
     /** 通常攻撃の飛翔演出を使える統合版接続の完全な通知か判定します。 */
     static boolean isWeaponAttackProjectilesReady(byte[] payload) {
         return Arrays.equals(WEAPON_ATTACK_PROJECTILES_READY, payload);
+    }
+
+    /** 個人情報HUD対応パックの通知か判定します。 */
+    static boolean isBedrockProfileHudReady(byte[] payload) {
+        return Arrays.equals(BEDROCK_PROFILE_HUD_READY, payload);
     }
 
     /** UTF 長ヘッダーを含む、引数のない通知の正規形を作成します。 */
@@ -267,6 +273,14 @@ final class BackendProtocol {
             output.writeInt(senderLevel);
             output.writeUTF(message.original());
             output.writeUTF(message.converted());
+        });
+    }
+
+    /** 対象プレイヤーを運ぶ接続に個人情報HUDの表示値を送ります。 */
+    static void sendBedrockProfileHud(@NotNull Plugin plugin, @NotNull Player player, @NotNull String text) {
+        send(plugin, player, output -> {
+            output.writeUTF("bedrock_profile_hud");
+            output.writeUTF(text);
         });
     }
 

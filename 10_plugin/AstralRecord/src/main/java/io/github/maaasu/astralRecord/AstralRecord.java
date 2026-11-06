@@ -1887,8 +1887,7 @@ public final class AstralRecord extends JavaPlugin {
             bossChallengeService,
             worldService,
             skillTreeService,
-            resourcePackService,
-            adminMessageBossBarService
+            resourcePackService
         );
         playerHudService.setCombatDpsTrackerService(combatDpsTrackerService);
         playerHudService.setDungeonService(dungeonService);
@@ -2136,8 +2135,6 @@ public final class AstralRecord extends JavaPlugin {
         conditionService.setAppliedListener(wizardPrismConditionRuntimeService::onConditionApplied);
         skillService.registerExecutor(new WizardPrismConditionSkillExecutor(wizardPrismConditionRuntimeService));
         normalAttackDegradationService = new NormalAttackDegradationService(statusService);
-        playerHudService.setCombatBossBarActive(playerId -> skillCooldownBossBarService.hasVisibleBossBar(playerId)
-            || normalAttackDegradationService.hasVisibleBossBar(playerId));
         paladinHolySmiteRuntimeService = new PaladinHolySmiteRuntimeService();
         paladinHolyFieldRuntimeService = new PaladinHolyFieldRuntimeService(
             statusService, partyService

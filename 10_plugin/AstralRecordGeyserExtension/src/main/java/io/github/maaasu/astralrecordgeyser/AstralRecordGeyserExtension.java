@@ -20,7 +20,9 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.util.Identifier;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.UUID;
 
 /** AstralRecord のヘッド、アイテム、Bedrock 向け専用エンティティを Geyser へ登録します。 */
@@ -34,6 +36,18 @@ public final class AstralRecordGeyserExtension implements Extension {
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
+    private static final String PROFILE_HUD_KEY = "astralrecord_profile_hud";
+    private static final ClassValue<Optional<Method>> JSON_UI_SENDERS = new ClassValue<>() {
+        @Override
+        protected Optional<Method> computeValue(Class<?> connectionType) {
+            // 公開APIにはTIP送信がないため、Geyser本体のJSON UI送信口がある場合だけ使用します。
+            try {
+                return Optional.of(connectionType.getMethod("sendJsonUIData", String.class, String.class));
+            } catch (NoSuchMethodException | LinkageError ignored) {
+                return Optional.empty();
+            }
+        }
+    };
     private final DamagePackDistribution damagePacks = new DamagePackDistribution(this);
     private CustomEntityDefinition damageNumberDefinition;
     private DamageNumberEntity damageNumberProperties;
@@ -160,6 +174,37 @@ public final class AstralRecordGeyserExtension implements Extension {
     public boolean hasItemTooltips(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && damagePacks.itemTooltipsReady(connection);
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーのJava側UUID
+     * @return 対応パックを登録済みで、TIPを送信できる接続の場合はtrue
+     */
+    public boolean hasProfileHud(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && damagePacks.profileHudReady(connection)
+            && JSON_UI_SENDERS.get(connection.getClass()).isPresent();
+    }
+
+    /**
+     * 個人情報HUDの文字列をGeyserのJSON UIデータとして送ります。
+     * @param playerId 接続中プレイヤーのJava側UUID
+     * @param text 表示文字列。空白一文字で消去
+     */
+    public void sendProfileHud(UUID playerId, String text) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        if (connection == null || !damagePacks.profileHudReady(connection)) {
+            return;
+        }
+        var sender = JSON_UI_SENDERS.get(connection.getClass());
+        if (sender.isEmpty()) {
+            return;
+        }
+        try {
+            sender.get().invoke(connection, PROFILE_HUD_KEY, text);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            // Geyser内部の送信口に互換性がない場合は、ゲームプレイへの影響を避けます。
+        }
     }
 
     @Subscribe

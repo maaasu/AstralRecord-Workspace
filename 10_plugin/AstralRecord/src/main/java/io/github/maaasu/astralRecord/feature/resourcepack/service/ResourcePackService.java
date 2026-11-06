@@ -46,6 +46,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaProfileHud = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockProfileHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
 
@@ -125,6 +127,7 @@ public class ResourcePackService {
                     boolean hadItemTooltips = hasJavaItemTooltips(viewer);
                     loadedManagedJavaPacks.remove(viewer);
                     requestedJavaItemTooltips.remove(viewer);
+                    requestedJavaProfileHud.remove(viewer);
                     if (hadItemTooltips) {
                         player.updateInventory();
                     }
@@ -146,6 +149,9 @@ public class ResourcePackService {
                     }
                     if (pack.weaponAttackProjectiles()) {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
+                    }
+                    if (pack.profileHud()) {
+                        requestedJavaProfileHud.add(viewer);
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
@@ -390,6 +396,34 @@ public class ResourcePackService {
     }
 
     /**
+     * 個人情報HUDを含むJava版の管理パックを適用済みか判定します。
+     * @param playerId 表示対象のUUID
+     * @return 対応パックの適用が成功済みならtrue
+     */
+    public boolean hasJavaProfileHud(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaProfileHud.contains(playerId);
+    }
+
+    /**
+     * 個人情報HUDを使える統合版接続か判定します。
+     * @param playerId 表示対象のUUID
+     * @return Proxyから対応を通知済みならtrue
+     */
+    public boolean hasBedrockProfileHud(UUID playerId) {
+        return readyBedrockProfileHud.contains(playerId);
+    }
+
+    /**
+     * Proxyから通知された統合版の個人情報HUD対応を記録します。
+     * @param player 対象のオンラインプレイヤー
+     */
+    public void markBedrockProfileHudReady(Player player) {
+        if (player.isOnline()) {
+            readyBedrockProfileHud.add(player.getUniqueId());
+        }
+    }
+
+    /**
      * Sunbird演出の互換版1を含む管理Javaパックを適用済みか確認します。
      *
      * @param playerId 閲覧者のUUID
@@ -417,6 +451,8 @@ public class ResourcePackService {
         readyBedrockItemTooltips.remove(playerId);
         requestedJavaWeaponAttackProjectiles.remove(playerId);
         readyBedrockWeaponAttackProjectiles.remove(playerId);
+        requestedJavaProfileHud.remove(playerId);
+        readyBedrockProfileHud.remove(playerId);
     }
 
     /**

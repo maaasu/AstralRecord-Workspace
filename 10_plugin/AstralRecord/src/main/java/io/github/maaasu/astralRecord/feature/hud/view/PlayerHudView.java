@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.playerclass.view.ClassLevelDisplay;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -51,12 +53,17 @@ public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int COMPACT_TRANSIENT_BAR_LENGTH = 10;
+    private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
     private static final int SIDEBAR_BASE_LINE_COUNT = 4;
+    private static final int SIDEBAR_PROFILE_LINE_COUNT = 5;
+    private static final int SKILL_TREE_POINT_LINE_COUNT = 1;
     private static final int PERFORMANCE_LINE_COUNT = 2;
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
+    private static final String SIDEBAR_BAR_CHAR = "▰";
     private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
+    private final Map<UUID, ProfileHudText> javaProfiles = new HashMap<>();
     private final ResourcePackService resourcePackService;
 
     /**
@@ -86,6 +93,32 @@ public class PlayerHudView {
     /** プラグイン停止時にすべての効果ページ状態を破棄します。 */
     public void clearBuffPages() {
         buffPages.clear();
+    }
+
+    /**
+     * Java版のアクションバーへ重ねる個人情報を更新します。
+     * @param playerId 対象プレイヤーUUID
+     * @param profile 表示する2行。nullの場合は解除する
+     * @return 解除時に表示中の個人情報があった場合はtrue
+     */
+    public boolean setJavaProfile(UUID playerId, @Nullable ProfileHudText profile) {
+        if (profile == null) {
+            return javaProfiles.remove(playerId) != null;
+        }
+        javaProfiles.put(playerId, profile);
+        return false;
+    }
+
+    /**
+     * 戦闘表示に個人情報の別行を合成して同じアクションバー更新で送ります。
+     * @param player 表示対象
+     * @param combat 戦闘・受付・詠唱など現在優先されるアクションバー本文
+     */
+    public void sendActionBar(Player player, Component combat) {
+        ProfileHudText profile = javaProfiles.get(player.getUniqueId());
+        player.sendActionBar(profile != null && resourcePackService.hasJavaProfileHud(player.getUniqueId())
+                ? JavaProfileHud.compose(combat, profile.playerLine(), profile.classLine())
+                : combat);
     }
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
@@ -303,10 +336,12 @@ public class PlayerHudView {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
-        boolean pack = resourcePackService.hasManagedJavaPack(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        boolean pack = resourcePackService.hasManagedJavaPack(playerId)
+                || resourcePackService.hasBedrockProfileHud(playerId);
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
-        player.sendActionBar(Component.empty()
+        sendActionBar(player, Component.empty()
             .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter)
                     : statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
@@ -421,30 +456,53 @@ public class PlayerHudView {
     }
 
     /**
-     * 現在地・接続情報と、適用中の効果・挑戦情報をサイドバーに表示します。
+     * サイドバーを描画します。デバフを優先し、通常バフは表示設定が有効な場合に表示します。
+     * 表示行数が15行を超えないよう、挑戦名と参加者を優先して任意情報・バフ・性能情報を調整します。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT
+     * @param playerLevel アカウント単位のプレイヤーレベル
+     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
+     * @param classLevel 現在のクラスレベル
+     * @param classLevelMax 現在クラスが最大レベルへ到達済みか
+     * @param className 現在のクラス表示名
+     * @param goldAmount 現在のゴールド所持量
+     * @param showPlayerDetails 対応パックを使用できない場合に個人情報を表示するか
+     * @param skillTreeClassPointLabel スキルツリーワールドで表示する現在クラスの CP 表示名。通常は null
+     * @param availableClassPoints スキルツリーワールドで表示する現在クラスの未使用 CP
+     * @param availablePassivePoints スキルツリーワールドで表示する未使用 PP
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
      * @param showPerformanceInfo MSPT・Ping を表示するか
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      * @param dungeonInfo 挑戦中ダンジョン情報。挑戦していない場合は null
-     * @param showBuffInfo 通常バフを表示するか
-     * @param activeBuffs 獲得順の有効バフ・デバフ一覧
+     * @param showBuffInfo バフ情報を表示するか
+     * @param activeBuffs 獲得順の有効バフ一覧
+     * @param rebirthOriginalLevel 転生前レベル。転生中でなければnull
      */
     public void renderSidebar(
         Player player,
         double mspt,
+        int playerLevel,
+        double classExperienceProgress,
+        int classLevel,
+        boolean classLevelMax,
+        String className,
+        long goldAmount,
+        boolean showPlayerDetails,
+        @Nullable String skillTreeClassPointLabel,
+        int availableClassPoints,
+        int availablePassivePoints,
         String worldName,
         String regionName,
         int regionLevel,
         boolean showPerformanceInfo,
-        @Nullable BossChallengeSidebarInfo bossInfo,
-        @Nullable DungeonSidebarInfo dungeonInfo,
+        BossChallengeSidebarInfo bossInfo,
+        DungeonSidebarInfo dungeonInfo,
         boolean showBuffInfo,
-        List<ActiveBuff> activeBuffs
+        List<ActiveBuff> activeBuffs,
+        @Nullable Integer rebirthOriginalLevel
     ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
@@ -466,7 +524,21 @@ public class PlayerHudView {
         int requiredChallengeLineCount = bossInfo != null
                 ? bossInfo.requiredSidebarLineCount()
                 : dungeonInfo != null ? dungeonInfo.requiredSidebarLineCount() : 0;
-        int baseLineCount = SIDEBAR_BASE_LINE_COUNT + (showPerformanceInfo ? PERFORMANCE_LINE_COUNT : 0);
+        boolean showSkillTreePoints = showPlayerDetails && skillTreeClassPointLabel != null;
+        int baseLineCount = SIDEBAR_BASE_LINE_COUNT
+                + (showPlayerDetails ? SIDEBAR_PROFILE_LINE_COUNT : 0)
+                + (showSkillTreePoints ? SKILL_TREE_POINT_LINE_COUNT : 0);
+        boolean reservePerformanceLines = showPerformanceInfo && !showPlayerDetails;
+        if (reservePerformanceLines) {
+            baseLineCount += PERFORMANCE_LINE_COUNT;
+        }
+        boolean hasDebuff = showPlayerDetails && activeBuffs.stream().anyMatch(buff -> buff.getType().isDebuff());
+        int linesToReserve = hasDebuff
+                ? Math.max(0, baseLineCount + requiredChallengeLineCount + 1 - SIDEBAR_LINE_LIMIT)
+                : 0;
+        boolean hideGold = linesToReserve >= 1;
+        boolean hideClassExperience = linesToReserve >= 2;
+        baseLineCount -= (hideGold ? 1 : 0) + (hideClassExperience ? 1 : 0);
         List<String> buffLines = buildBuffLines(
                 player.getUniqueId(),
                 activeBuffs,
@@ -484,13 +556,37 @@ public class PlayerHudView {
                 + ColorCodeUtil.toLegacyText(regionName, "不明"));
         lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
                 + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
-        if (showPerformanceInfo) {
-            lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + String.format(Locale.ROOT, "%.1f", mspt));
-            lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + ping + "ms");
+        if (showPlayerDetails) {
+            lines.add(buildSeparator("player"));
+            String playerLevelLine = ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv."
+                + (rebirthOriginalLevel == null
+                    ? ColorCodeUtil.YELLOW + Integer.toString(playerLevel)
+                    : ColorCodeUtil.AQUA + Integer.toString(playerLevel)
+                        + ColorCodeUtil.GRAY + " (" + rebirthOriginalLevel + ")");
+            lines.add(playerLevelLine);
+            String classLevelText = ClassLevelDisplay.legacy(classLevel, classLevelMax);
+            lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
+                    + ColorCodeUtil.GRAY + " " + classLevelText);
+            if (!hideClassExperience) {
+                lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
+            }
+            if (!hideGold) {
+                lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                        + String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount))
+                        + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
+            }
+            if (showSkillTreePoints) {
+                lines.add(ColorCodeUtil.AQUA + skillTreeClassPointLabel + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + Math.max(0, availableClassPoints)
+                        + ColorCodeUtil.GRAY + " / " + ColorCodeUtil.LIGHT_PURPLE
+                        + SkillTreePointType.PASSIVE_POINT.displayName() + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + Math.max(0, availablePassivePoints));
+            }
         }
 
+        if (reservePerformanceLines) {
+            addPerformanceLines(lines, mspt, ping);
+        }
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);
@@ -498,7 +594,24 @@ public class PlayerHudView {
             appendDungeonInfo(lines, dungeonInfo);
         }
 
+        if (showPlayerDetails && showPerformanceInfo && SIDEBAR_LINE_LIMIT - lines.size() >= PERFORMANCE_LINE_COUNT) {
+            addPerformanceLines(lines, mspt, ping);
+        }
+
         updateSidebarLines(objective, lines);
+    }
+
+    /**
+     * オンライン人数の直下へ性能情報を追加します。
+     * @param lines 表示行。先頭にオンライン人数を含む
+     * @param mspt 現在のMSPT
+     * @param ping 現在の通信遅延
+     */
+    private void addPerformanceLines(List<String> lines, double mspt, int ping) {
+        lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + String.format(Locale.ROOT, "%.1f", mspt));
+        lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + ping + "ms");
     }
 
     /**
@@ -811,6 +924,28 @@ public class PlayerHudView {
         }
     }
 
+    /**
+     * 現在のクラスレベル内での経験値進捗をサイドバーのバーと割合へ変換します。
+     * @param label バーの表示名
+     * @param ratio 現在レベル内の進捗率
+     * @param fillColor 進捗部分に使うlegacy色コード
+     * @return 色と進捗率を含むサイドバー用テキスト
+     */
+    private String buildExperienceBar(String label, double ratio, String fillColor) {
+        int progressPercent = (int) Math.round(Math.clamp(ratio, 0.0D, 1.0D) * 100.0D);
+        int filledLength = (progressPercent * SIDEBAR_BAR_LENGTH) / 100;
+
+        StringBuilder bar = new StringBuilder();
+        bar.append(ColorCodeUtil.DARK_GRAY).append(label).append(" ");
+        bar.append(fillColor);
+        bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, filledLength));
+        bar.append(ColorCodeUtil.DARK_GRAY);
+        bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, SIDEBAR_BAR_LENGTH - filledLength));
+        bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
+
+        return bar.toString();
+    }
+
     private String buildSeparator(String label) {
         return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
     }
@@ -854,7 +989,7 @@ public class PlayerHudView {
     }
 
     /**
-     * 専用アイコンと10段階のゲージを、現在値と最大値の横へ描画します。
+     * 専用アイコンと現在値の間に空白を入れ、現在値と最大値の横に10段階のゲージを描画します。
      * @param icon リソース種別の字形
      * @param current 現在値
      * @param max 最大値
@@ -1025,7 +1160,7 @@ public class PlayerHudView {
         Component resources = snapshot == null ? Component.empty()
                 : statText("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED)
                         .append(Component.text(" ", NamedTextColor.DARK_GRAY));
-        player.sendActionBar(resources
+        sendActionBar(player, resources
             .append(Component.text(label, labelColor, TextDecoration.BOLD))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(bar)

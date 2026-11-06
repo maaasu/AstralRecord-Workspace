@@ -18,7 +18,7 @@ public final class ResourcePackRepository {
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean itemTooltips,
-                           boolean weaponAttackProjectiles) {
+                           boolean weaponAttackProjectiles, boolean profileHud) {
     }
 
     /**
@@ -61,8 +61,11 @@ public final class ResourcePackRepository {
                 JsonElement projectiles = java.get("weaponAttackProjectiles");
                 boolean weaponAttackProjectiles = projectiles != null && projectiles.isJsonPrimitive()
                     && projectiles.getAsJsonPrimitive().isString() && "1".equals(projectiles.getAsString());
+                JsonElement profile = java.get("profileHud");
+                boolean profileHud = profile != null && profile.isJsonPrimitive()
+                    && profile.getAsJsonPrimitive().isString() && "1".equals(profile.getAsString());
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    itemTooltips, weaponAttackProjectiles);
+                    itemTooltips, weaponAttackProjectiles, profileHud);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

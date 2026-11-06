@@ -418,6 +418,7 @@ function Publish-ResourcePacks {
     $sunbirdPresentation = $null
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
+    $profileHud = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -445,6 +446,22 @@ function Publish-ResourcePacks {
             try { $sunbirdPresentation = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
             if ($sunbirdPresentation -cne '1') { throw 'Unsupported Sunbird presentation version.' }
+        }
+        $profileEntry = $archive.GetEntry('player-progress-hud-version.txt')
+        if ($null -ne $profileEntry) {
+            if ($profileEntry.Length -ne 1) { throw 'Invalid profile HUD version marker.' }
+            $reader = [IO.StreamReader]::new($profileEntry.Open())
+            try { $profileHud = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($profileHud -cne '1') { throw 'Unsupported profile HUD version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/font/profile_hud_player.json'
+                'assets/astralrecord/font/profile_hud_class.json'
+                'assets/astralrecord/textures/font/profile_hud.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing profile HUD asset in Java pack: $asset" }
+            }
         }
         $tooltipsEntry = $archive.GetEntry('item-tooltips-version.txt')
         if ($null -ne $tooltipsEntry) {
@@ -529,6 +546,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $weaponAttackProjectiles) {
         $javaManifest.weaponAttackProjectiles = $weaponAttackProjectiles
+    }
+    if ($null -ne $profileHud) {
+        $javaManifest.profileHud = $profileHud
     }
     [ordered]@{
         java = $javaManifest

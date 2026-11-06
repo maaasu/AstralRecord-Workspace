@@ -35,18 +35,29 @@ final class GeyserPackCapabilities {
         return supports(playerId, "hasWeaponAttackProjectiles");
     }
 
+    static boolean hasProfileHud(UUID playerId) {
+        return supports(playerId, "hasProfileHud");
+    }
+
+    static void sendProfileHud(UUID playerId, String text) {
+        invoke(playerId, "sendProfileHud", new Class<?>[] {UUID.class, String.class}, playerId, text);
+    }
+
     private static boolean supports(UUID playerId, String method) {
-        if (!Geyser.isRegistered()) return false;
+        return Boolean.TRUE.equals(invoke(playerId, method, new Class<?>[] {UUID.class}, playerId));
+    }
+
+    private static Object invoke(UUID playerId, String method, Class<?>[] types, Object... args) {
+        if (!Geyser.isRegistered()) return null;
         var geyser = GeyserApi.api();
-        if (geyser.connectionByUuid(playerId) == null) return false;
+        if (geyser.connectionByUuid(playerId) == null) return null;
         var extension = geyser.extensionManager().extension("astralrecordgeyser");
-        if (extension == null || !extension.isEnabled()) return false;
+        if (extension == null || !extension.isEnabled()) return null;
         try {
             // 拡張のクラスローダーやバージョンにProxyを直接依存させない。
-            return Boolean.TRUE.equals(extension.getClass().getMethod(method, UUID.class)
-                .invoke(extension, playerId));
+            return extension.getClass().getMethod(method, types).invoke(extension, args);
         } catch (ReflectiveOperationException | LinkageError ignored) {
-            return false;
+            return null;
         }
     }
 }
