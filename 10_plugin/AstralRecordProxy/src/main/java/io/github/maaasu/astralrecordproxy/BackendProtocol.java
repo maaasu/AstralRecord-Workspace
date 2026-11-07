@@ -148,7 +148,7 @@ final class BackendProtocol {
         return outgoing(ITEM_TOOLTIPS_READY, null);
     }
 
-    /** @return 対象プレイヤーの統合版パックが通常攻撃の飛翔演出に対応していることを伝える通知 */
+    /** @return 対象プレイヤーの統合版パックが固定UVのスキル演出に対応していることを伝える通知 */
     static byte[] skillEffectsV2Ready() {
         return outgoing(SKILL_EFFECTS_V2_READY, null);
     }
