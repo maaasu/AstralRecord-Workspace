@@ -5,6 +5,7 @@ schemaVersion: 1
 id: potion_magic_defense_medium
 type: BUFF
 name: '&a魔法防御力強化【中】'
+hudIconTexture: "astralrecord:buff_hud/magic_defense.png"
 lore:
   - '&7魔法防御力だけを120秒間、20%上昇させる。'
   - '&7同じ能力のポーションは、後から使った効果で置き換わる。'

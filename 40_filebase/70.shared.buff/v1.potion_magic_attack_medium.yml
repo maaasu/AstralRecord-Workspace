@@ -5,6 +5,7 @@ schemaVersion: 1
 id: potion_magic_attack_medium
 type: BUFF
 name: '&a魔法攻撃力強化【中】'
+hudIconTexture: "astralrecord:buff_hud/magic_attack.png"
 lore:
   - '&7魔法攻撃力だけを120秒間、20%上昇させる。'
   - '&7同じ能力のポーションは、後から使った効果で置き換わる。'

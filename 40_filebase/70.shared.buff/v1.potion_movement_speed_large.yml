@@ -5,6 +5,7 @@ schemaVersion: 1
 id: potion_movement_speed_large
 type: BUFF
 name: '&a移動速度強化【大】'
+hudIconTexture: "astralrecord:buff_hud/movement_speed.png"
 lore:
   - '&7移動速度だけを120秒間、15%上昇させる。'
   - '&7同じ能力のポーションは、後から使った効果で置き換わる。'

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using SkillTreeEditor.Server.Models;
@@ -7,6 +8,9 @@ namespace SkillTreeEditor.Server.Services;
 
 public sealed partial class MasterDataCatalog(MasterDataPaths paths)
 {
+    internal const string BuffCategory = "70.shared.buff";
+    internal const string BuffHudIconFieldPath = "/hudIconTexture";
+
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {
         ["schemaVersion"] = "スキーマバージョン", ["id"] = "ID", ["name"] = "表示名",
@@ -16,6 +20,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["entry"] = "入場地点", ["party"] = "パーティー", ["challenge"] = "挑戦ルール",
         ["clearRewards"] = "クリア報酬", ["generation"] = "生成設定", ["theme"] = "外観テーマ", ["encounter"] = "モブの出現設定",
         ["category"] = "カテゴリ", ["icon"] = "アイコン素材", ["iconTexture"] = "頭アイコンのテクスチャ",
+        ["hudIconTexture"] = "Java版HUDのアイコン",
         ["customModelData"] = "カスタムモデルID",
         ["equipmentAsset"] = "着用防具の外観アセット",
         ["defenseEligible"] = "防衛戦への参加を許可",
@@ -108,6 +113,9 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             if (category is not ("55.features.pet" or ProgressionPresetValidation.Category))
                 foreach (var field in ParseFields(raw, paths.Relative(document), category)) fields[field.Path] = field;
         }
+        if (category.Equals(BuffCategory, MasterDataPaths.Comparison)
+            && fields.TryGetValue(BuffHudIconFieldPath, out var buffHudIcon))
+            fields[BuffHudIconFieldPath] = buffHudIcon with { Enum = await ReadBuffHudIconsAsync(token) };
         var schemas = new List<MasterDataSchema>();
         var schemaDirectories = new HashSet<string>(MasterDataPaths.Comparer) { directory, Path.Combine(directory, "schemas") };
         if (category.StartsWith("35.features.skilltree/", MasterDataPaths.Comparison))
@@ -137,6 +145,21 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         }));
         return new(category, category == "." ? "Filebase 設定" : label, category, ownFiles.Length,
             documents, fields.Values.ToArray(), schemas, templates, ItemCode(category));
+    }
+
+    private async Task<JsonArray?> ReadBuffHudIconsAsync(CancellationToken token)
+    {
+        paths.RequireNoLinks(paths.BuffHudIconRegistry);
+        if (!File.Exists(paths.BuffHudIconRegistry)) return null;
+        try
+        {
+            await using var stream = File.OpenRead(paths.BuffHudIconRegistry);
+            return await JsonNode.ParseAsync(stream, cancellationToken: token) as JsonArray;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public static string? ItemCode(string category)

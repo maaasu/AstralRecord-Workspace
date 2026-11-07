@@ -12,6 +12,8 @@ public class BuffResponse
 
     public string? Icon { get; init; }
 
+    public string? HudIconTexture { get; init; }
+
     public IReadOnlyList<string> Lore { get; init; } = [];
 
     public required long DurationTicks { get; init; }
@@ -37,6 +39,8 @@ public class BuffSummaryResponse
     public required string Name { get; init; }
 
     public string? Icon { get; init; }
+
+    public string? HudIconTexture { get; init; }
 
     public long DurationTicks { get; init; }
 

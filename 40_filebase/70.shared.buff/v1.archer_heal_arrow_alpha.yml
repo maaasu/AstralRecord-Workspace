@@ -5,6 +5,7 @@ schemaVersion: 1
 id: archer_heal_arrow_alpha
 type: BUFF
 name: "&aヒールアローα"
+hudIconTexture: "astralrecord:buff_hud/healing.png"
 lore:
   - "&7受けるHP回復量が1%増加する。"
 durationTicks: 60

@@ -4,6 +4,8 @@ namespace SkillTreeEditor.Server.Services;
 public sealed class MasterDataPaths(WorkspacePaths workspace)
 {
     public string Root { get; } = Path.GetFullPath(Path.Combine(workspace.WorkspaceRoot, "40_filebase"));
+    internal string BuffHudIconRegistry { get; } = Path.Combine(workspace.WorkspaceRoot,
+        "10_plugin", "AstralRecord", "src", "main", "resources", "buff-hud-icons.json");
     public static StringComparison Comparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
     public static StringComparer Comparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 

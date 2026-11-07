@@ -1,7 +1,11 @@
+# design:
+#   motif: "魔術 / 魔力再生"
+#   progression: 0
 schemaVersion: 1
 id: mana_regen_up
 type: BUFF
 name: "&b魔力再生"
+hudIconTexture: "astralrecord:buff_hud/mana_regen.png"
 lore:
   - "&7一定時間、MP回復速度が上昇する。"
 durationTicks: 1200 # 60秒

@@ -1,7 +1,11 @@
+# design:
+#   motif: "防具 / 防御強化"
+#   progression: 0
 schemaVersion: 1
 id: defense_up_small
 type: BUFF
 name: "&9防御強化(小)"
+hudIconTexture: "astralrecord:buff_hud/defense.png"
 lore:
   - "&7一定時間、防御力が上昇する。"
 durationTicks: 600 # 30秒

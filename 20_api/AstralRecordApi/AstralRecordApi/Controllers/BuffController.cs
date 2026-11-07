@@ -8,7 +8,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/[controller]")]
 public class BuffController(IBuffRepository buffRepository) : ControllerBase
 {
-    /// <summary>バフ一覧取得（主要項目のみ）</summary>
+    /// <summary>Java 版 HUD 用テクスチャを含むバフ一覧の主要項目を取得する。</summary>
     /// <response code="200">バフ一覧取得成功</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -18,7 +18,7 @@ public class BuffController(IBuffRepository buffRepository) : ControllerBase
         return Ok(buffs);
     }
 
-    /// <summary>バフ取得</summary>
+    /// <summary>Java 版 HUD 用テクスチャを含むバフ定義を取得する。</summary>
     /// <param name="buffId">バフ ID</param>
     /// <response code="200">バフ取得成功</response>
     /// <response code="404">指定 buff ID が存在しない</response>

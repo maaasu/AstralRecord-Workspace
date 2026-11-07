@@ -1,7 +1,11 @@
+# design:
+#   motif: "俊足 / 迅速"
+#   progression: 0
 schemaVersion: 1
 id: haste_small
 type: BUFF
 name: "&e迅速(小)"
+hudIconTexture: "astralrecord:buff_hud/movement_speed.png"
 lore:
   - "&7一定時間、移動速度が上昇する。"
 durationTicks: 600 # 30秒

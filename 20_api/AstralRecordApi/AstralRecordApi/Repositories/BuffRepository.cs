@@ -22,6 +22,7 @@ public class BuffRepository(MasterDataDbContext dbContext, MasterDataCache? cach
                 Type = buff.Type,
                 Name = buff.Name,
                 Icon = buff.Icon,
+                HudIconTexture = buff.HudIconTexture,
                 DurationTicks = buff.DurationTicks,
                 IsDebuff = buff.IsDebuff,
                 StackGroup = buff.StackGroup,

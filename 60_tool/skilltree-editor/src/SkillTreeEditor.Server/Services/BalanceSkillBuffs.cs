@@ -11,7 +11,7 @@ internal static class BalanceSkillBuffs
     private const string BuffRoot = "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/";
     private static readonly HashSet<string> KnownFields = new(StringComparer.Ordinal)
     {
-        "schemaVersion", "id", "type", "name", "lore", "icon", "durationTicks",
+        "schemaVersion", "id", "type", "name", "lore", "icon", "hudIconTexture", "durationTicks",
         "isDebuff", "resetOnChallenge", "stackGroup", "modifiers"
     };
 

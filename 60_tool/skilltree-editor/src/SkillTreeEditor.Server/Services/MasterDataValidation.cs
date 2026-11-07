@@ -43,6 +43,17 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                 var segments = field.Path.TrimStart('/').Split('/').Select(Unescape).ToArray();
                 ValidateField(content, segments, 0, "", field, issues);
             }
+            if (category.Equals(MasterDataCatalog.BuffCategory, MasterDataPaths.Comparison)
+                && JsonValueReader.String(content["hudIconTexture"]) is { } texture)
+            {
+                var registered = metadata.Fields.FirstOrDefault(field => field.Path == MasterDataCatalog.BuffHudIconFieldPath)?.Enum;
+                if (!Regex.IsMatch(texture, @"\Aastralrecord:buff_hud/[a-z0-9]+(?:_[a-z0-9]+)*\.png\z"))
+                    issues.Add(new("error", "BUFF_HUD_ICON_TEXTURE", MasterDataCatalog.BuffHudIconFieldPath,
+                        "Java版HUDのアイコンは astralrecord:buff_hud/<id>.png 形式で指定してください。"));
+                else if (registered is not null && !registered.Any(candidate => JsonValueReader.String(candidate) == texture))
+                    issues.Add(new("error", "BUFF_HUD_ICON_TEXTURE", MasterDataCatalog.BuffHudIconFieldPath,
+                        "Java版HUDのアイコンは登録済みのテクスチャから選んでください。"));
+            }
             await ValidateSchemaAsync(path, content, metadata, issues, token);
             if (path != "config.yml" && !ProgressionPresetValidation.IsPreset(path))
                 await ValidateReferencesAsync(content, issues, token);

@@ -5,6 +5,7 @@ schemaVersion: 1
 id: sharpshooter_fire_arrow_inheritance
 type: BUFF
 name: "&6継承バフ火属性Ⅰ"
+hudIconTexture: "astralrecord:buff_hud/inheritance.png"
 lore:
   - "&7残り時間中の通常攻撃へ火属性を継承する。"
 durationTicks: 2980

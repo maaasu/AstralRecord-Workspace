@@ -5,6 +5,7 @@ schemaVersion: 1
 id: adventurer_meditation
 type: BUFF
 name: "&dメディテーション"
+hudIconTexture: "astralrecord:buff_hud/movement_speed.png"
 lore:
   - "&7一定時間、移動速度が大きく上昇する。"
 durationTicks: 140 # 7秒

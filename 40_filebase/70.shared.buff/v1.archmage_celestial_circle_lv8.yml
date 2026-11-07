@@ -5,6 +5,7 @@ schemaVersion: 1
 id: archmage_celestial_circle_lv8
 type: BUFF
 name: "&bセレスティアルサークル"
+hudIconTexture: "astralrecord:buff_hud/general_buff.png"
 lore:
   - "&7最終ダメージ倍率 +4%、ライフスティール +8%。"
   - "&7HP・MP・ENG回復力 +8%、ドロップ増加率 +8%。"

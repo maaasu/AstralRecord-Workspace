@@ -1,7 +1,11 @@
+# design:
+#   motif: "防具 / 防御崩壊"
+#   progression: 0
 schemaVersion: 1
 id: armor_break
 type: BUFF
 name: "&0防御崩壊"
+hudIconTexture: "astralrecord:buff_hud/general_debuff.png"
 lore:
   - "&7防御力が大幅に低下する。"
 durationTicks: 200 # 10秒

@@ -5,6 +5,7 @@ schemaVersion: 1
 id: potion_defense_large
 type: BUFF
 name: '&a防御力強化【大】'
+hudIconTexture: "astralrecord:buff_hud/defense.png"
 lore:
   - '&7防御力だけを120秒間、30%上昇させる。'
   - '&7同じ能力のポーションは、後から使った効果で置き換わる。'

@@ -1,7 +1,11 @@
+# design:
+#   motif: "武技 / 攻撃強化"
+#   progression: 0
 schemaVersion: 1
 id: attack_up_small
 type: BUFF
 name: "&c攻撃強化(小)"
+hudIconTexture: "astralrecord:buff_hud/attack.png"
 lore:
   - "&7一定時間、攻撃力が上昇する。"
 durationTicks: 600 # 30秒

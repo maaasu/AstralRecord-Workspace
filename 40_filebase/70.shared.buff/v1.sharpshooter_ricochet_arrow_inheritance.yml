@@ -5,6 +5,7 @@ schemaVersion: 1
 id: sharpshooter_ricochet_arrow_inheritance
 type: BUFF
 name: "&e継承・リフレインアロー"
+hudIconTexture: "astralrecord:buff_hud/inheritance.png"
 lore:
   - "&7通常攻撃の命中対象から、別の敵を渡る跳弾を継承する。"
   - "&7継承の心得のダメージ倍率を適用し、追撃時に元スキルのリソースを消費する。"

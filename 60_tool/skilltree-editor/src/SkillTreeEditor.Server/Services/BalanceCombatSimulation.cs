@@ -538,7 +538,7 @@ public static partial class BalanceCombat
             var matches = BalanceCombatData.Masters(catalog).Where(master => master.Kind == "buff" && BalanceCombatData.Text(master.Content["id"]) == id).ToArray();
             if (matches.Length != 1) throw new BalanceRuntimeUnsupportedException($"参照Buff {id} の定義を一意に取得できません。");
             var definition = matches[0].Content;
-            var knownFields = new[] { "schemaVersion", "id", "type", "name", "lore", "icon", "durationTicks", "isDebuff", "resetOnChallenge", "stackGroup", "modifiers" };
+            var knownFields = new[] { "schemaVersion", "id", "type", "name", "lore", "icon", "hudIconTexture", "durationTicks", "isDebuff", "resetOnChallenge", "stackGroup", "modifiers" };
             if (definition.Select(pair => pair.Key).Any(key => !knownFields.Contains(key, StringComparer.Ordinal)) || BalanceCombatData.Text(definition["type"]) != "BUFF"
                 || definition["modifiers"] is not JsonArray)
                 throw new BalanceRuntimeUnsupportedException($"参照Buff {id} の追加効果・形式は未検証です。");

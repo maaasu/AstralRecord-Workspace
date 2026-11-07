@@ -5,6 +5,7 @@ schemaVersion: 1
 id: hunter_crash_arrow_inheritance
 type: BUFF
 name: "&a継承バフ・クラッシュアロー"
+hudIconTexture: "astralrecord:buff_hud/inheritance.png"
 lore:
   - "&7次の通常攻撃の命中対象へ盾破壊攻撃を行う。"
 durationTicks: 600

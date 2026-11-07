@@ -5,6 +5,7 @@ schemaVersion: 1
 id: hunter_build_up_lv4
 type: BUFF
 name: "&eビルドアップ"
+hudIconTexture: "astralrecord:buff_hud/attack.png"
 lore:
   - "&7間接攻撃力が14%上昇する。"
 durationTicks: 200 # 10秒

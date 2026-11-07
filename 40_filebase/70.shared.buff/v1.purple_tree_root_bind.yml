@@ -5,6 +5,7 @@ schemaVersion: 1
 id: purple_tree_root_bind
 type: BUFF
 name: "&c根縛り"
+hudIconTexture: "astralrecord:buff_hud/binding.png"
 lore:
   - "&7短時間、移動できなくなる。"
 durationTicks: 40

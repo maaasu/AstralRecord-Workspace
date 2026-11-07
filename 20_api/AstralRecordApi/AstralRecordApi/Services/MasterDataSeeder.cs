@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -376,6 +377,12 @@ public class MasterDataSeeder(
                 var schemaVersion = RequireInt(root, "schemaVersion", file.RelativePath);
                 if (KeyComparer.Equals(plan.MasterType, "item"))
                     ValidateItemFileContract(root, masterId, schemaVersion, file);
+                if (KeyComparer.Equals(plan.MasterType, "buff")
+                    && root["hudIconTexture"] is { } hudIconTexture
+                    && (hudIconTexture is not JsonValue value || !value.TryGetValue<string>(out var texture)
+                        || !Regex.IsMatch(texture, @"\Aastralrecord:buff_hud/[a-z0-9]+(?:_[a-z0-9]+)*\.png\z")))
+                    throw new InvalidOperationException(
+                        $"hudIconTexture は astralrecord:buff_hud/<id>.png 形式で指定してください: {file.RelativePath}");
                 var type = OptionalScalar(root, "type");
                 var displayName = OptionalScalar(root, "name");
                 if (string.Equals(plan.MasterType, "class", StringComparison.OrdinalIgnoreCase))

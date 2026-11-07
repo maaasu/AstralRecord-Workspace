@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.buff.repository
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import io.github.maaasu.astralRecord.feature.buff.model.BuffModifier
 import io.github.maaasu.astralRecord.feature.buff.model.BuffModifierType
 import io.github.maaasu.astralRecord.feature.buff.model.BuffType
@@ -55,6 +56,7 @@ class BuffRepository {
             resetOnChallenge = obj.get("resetOnChallenge")?.asBoolean ?: false,
             stackGroup = obj.get("stackGroup")?.takeUnless { it.isJsonNull }?.asString,
             modifiers = parseModifiers(modifiersArray),
+            hudIconTexture = (obj.get("hudIconTexture") as? JsonPrimitive)?.takeIf { it.isString }?.asString,
         )
     }
 

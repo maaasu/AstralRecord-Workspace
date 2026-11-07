@@ -5,6 +5,7 @@ schemaVersion: 1
 id: potion_critical_rate_small
 type: BUFF
 name: '&a会心率強化【小】'
+hudIconTexture: "astralrecord:buff_hud/critical_rate.png"
 lore:
   - '&7会心率だけを120秒間、3ポイント上昇させる。'
   - '&7同じ能力のポーションは、後から使った効果で置き換わる。'

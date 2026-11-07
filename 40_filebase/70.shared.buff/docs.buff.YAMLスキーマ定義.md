@@ -15,7 +15,8 @@ Buff（一定時間付与される効果）のスキーマ定義。
 | `id`                 | String       | ○  | -         | buffのテンプレートID。（例: `haste_small`）                                 |
 | `type`               | String       | ○  | -         | 種別（BUFF(bf)）                                                     |
 | `name`               | String       | ○  | -         | ゲーム内に表示される名前                                                     |
-| `icon`               | String       | ×  | Null      | 表示用アイコン（任意。表現は実装側に委ねる）                                           |
+| `icon`               | String       | ×  | Null      | GUI などに使用する Minecraft のアイコン素材                                       |
+| `hudIconTexture`     | String       | ×  | Null      | Java 版 HUD に表示する登録済みのアイコンテクスチャ                                   |
 | `lore`               | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                           |
 | `durationTicks`      | Long         | ○  | -         | 効果時間（tick）。Minecraftの慣習として 20 tick = 1 秒。`-1` の場合は無期限（tickで減らない） |
 | `isDebuff`           | Boolean      | ×  | false     | trueでデバフ扱い。表示に使用し、バフ持続時間増加の対象から除外する。ステータス補正値の計算には影響しない |
@@ -28,6 +29,14 @@ Buff（一定時間付与される効果）のスキーマ定義。
 
 ### 参照（ref）
 他DBからbuffを参照する場合は `buff:` prefix を使用します（aliases: `bf`）。
+
+### hudIconTexture
+
+`astralrecord:buff_hud/<id>.png` 形式で指定します。ID は英小文字と数字で構成し、語の区切りにアンダースコアを使えます。使用可能な値は[プラグインの登録一覧](../../10_plugin/AstralRecord/src/main/resources/buff-hud-icons.json)にあるものに限ります。画像は[Java 版リソースパック](../../50_resourcepack/assets/astralrecord/textures/buff_hud/)に配置します。
+
+省略、`null`、または実行中のプラグインに登録されていない値の場合は、`isDebuff` に応じて汎用のバフまたはデバフのアイコンを表示します。
+
+マスター編集サイトでは登録一覧から選択します。登録一覧を読み込めない環境では入力形式を検証します。
 
 ### modifiers[].status（StatusType）
 
@@ -49,6 +58,7 @@ schemaVersion: 1
 id: haste_small
 type: BUFF
 name: "&e迅速(小)"
+hudIconTexture: "astralrecord:buff_hud/movement_speed.png"
 stackGroup: movement_speed
 lore:
   - "&7一定時間、移動速度が上昇する。"
@@ -81,6 +91,7 @@ schemaVersion: 1
 id: armor_break
 type: BUFF
 name: "&9防御低下"
+hudIconTexture: "astralrecord:buff_hud/general_debuff.png"
 durationTicks: 200 # 10秒
 isDebuff: true
 modifiers:

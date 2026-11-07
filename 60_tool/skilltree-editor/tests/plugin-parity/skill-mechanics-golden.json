@@ -12,7 +12,7 @@
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageContext.java", "sha256": "8b786e9b2b6f2fdeb0f80bc0d54b8f03327d26d565d7295f468c45f662af0d54" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageComponent.java", "sha256": "17306128fdde270ffbdf8191f43b41b193ea48fe680d7c0d7775ac9fe349d12d" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/service/BuffService.java", "sha256": "4724ecf9c2a1ffcec58a37eaf206225a3f3017ed80c8a3b6f0d68f145ffa6b5a" },
-    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffType.kt", "sha256": "b4cd79fcb89f635838322d7ea6a70e9ddfeb3ee204354d3412491d315e87a52f" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffType.kt", "sha256": "4bb8889109bb4bf47e71c81e8e7d8488356d2409964db31d3b8dce7d731b72f2" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/BuffModifier.kt", "sha256": "6cb7ce6b4370948759a77f654f1e411d1fa0906669fdf07eda182172344567a7" }
   ],
   "cases": [

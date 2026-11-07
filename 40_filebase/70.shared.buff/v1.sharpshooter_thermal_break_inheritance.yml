@@ -5,6 +5,7 @@ schemaVersion: 1
 id: sharpshooter_thermal_break_inheritance
 type: BUFF
 name: "&d継承・パラドックスボルト"
+hudIconTexture: "astralrecord:buff_hud/inheritance.png"
 lore:
   - "&7通常攻撃の命中対象へ火氷の追撃を継承し、炎上・凍結への特効も引き継ぐ。"
   - "&7継承の心得のダメージ倍率を適用し、追撃時に元スキルのリソースを消費する。"

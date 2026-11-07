@@ -5,6 +5,7 @@ schemaVersion: 1
 id: sharpshooter_phantom_shot_inheritance
 type: BUFF
 name: "&5継承バフ連撃Ⅰ"
+hudIconTexture: "astralrecord:buff_hud/inheritance.png"
 lore:
   - "&7通常攻撃時に5ティック間隔で通常攻撃を2回追加する。"
   - "&7通常攻撃1回につき残り時間を30秒消費する。"

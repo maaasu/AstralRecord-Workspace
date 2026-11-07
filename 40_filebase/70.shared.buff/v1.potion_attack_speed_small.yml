@@ -5,6 +5,7 @@ schemaVersion: 1
 id: potion_attack_speed_small
 type: BUFF
 name: '&a攻撃速度強化【小】'
+hudIconTexture: "astralrecord:buff_hud/haste.png"
 lore:
   - '&7攻撃速度だけを120秒間、5ポイント上昇させる。'
   - '&7同じ能力のポーションは、後から使った効果で置き換わる。'

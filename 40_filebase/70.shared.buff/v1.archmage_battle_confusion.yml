@@ -6,6 +6,7 @@ id: archmage_battle_confusion
 type: BUFF
 name: "&6戦意の混乱"
 icon: TOTEM_OF_UNDYING
+hudIconTexture: "astralrecord:buff_hud/confusion.png"
 lore:
   - "&7最終ダメージ倍率、防御力、近接防御力、魔法防御力が100%低下する。"
 durationTicks: 200

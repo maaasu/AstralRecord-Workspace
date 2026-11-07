@@ -5,6 +5,7 @@ schemaVersion: 1
 id: hunter_arrow_rain_inheritance
 type: BUFF
 name: "&a継承バフ・アローレイン"
+hudIconTexture: "astralrecord:buff_hud/inheritance.png"
 lore:
   - "&7通常攻撃の着弾地点へ矢の雨を降らせる。"
 durationTicks: 600
