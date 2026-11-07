@@ -160,6 +160,61 @@ public sealed class OperationGateTests
     }
 
     [Fact]
+    public async Task ChannelMaintenanceReleaseUnblocksNormalStopAndDevDeployment()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var dev = await fixture.ServerAsync("dev");
+        dev.RuntimeServerId = "Dev";
+        var channel = await fixture.ServerAsync("channel2");
+        channel.EnvironmentId = dev.EnvironmentId;
+        await fixture.Db.SaveChangesAsync();
+        var maintenance = new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), AdapterId = "16", RunReference = "run-16", Mode = HoldMode.Maintenance,
+            ResourceKeys = [ReservationService.ServerKey(dev.ServerId), ReservationService.ServerKey(channel.ServerId)],
+            ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped), new(channel.ServerId, ProcessRequirement.Stopped)]
+        };
+        var lease = await fixture.Reservations.AcquireAsync(maintenance);
+        await fixture.Reservations.ValidateAsync(lease.ReservationId, new(lease.WorkflowId, lease.Fences, "WaitForStartup", "run-16"));
+        var channelState = fixture.Agent.States[channel.HostId];
+        var start = await fixture.Operations.CreateAsync(channel.ServerId, new ServerOperationRequest
+        {
+            Kind = OperationKind.Start, ConfigRevision = channelState.ConfigRevision, ExpectedStateRevision = channelState.StateRevision,
+            WorkflowId = lease.WorkflowId, ReservationId = lease.ReservationId
+        }, Guid.NewGuid());
+        await fixture.Operations.ApplyExecutionAsync(start.OperationId, new ExecutionSnapshot
+        {
+            OperationId = start.OperationId, CommandSha256 = start.CommandSha256, Status = OperationStatus.Succeeded,
+            StatusVersion = start.StatusVersion + 1, UpdatedAtUtc = DateTimeOffset.UtcNow
+        });
+        fixture.Agent.States[dev.HostId] = fixture.Agent.States[dev.HostId] with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        var running = channelState with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        fixture.Agent.States[channel.HostId] = running;
+        var stop = new ServerOperationRequest
+        {
+            Kind = OperationKind.Stop, ConfigRevision = running.ConfigRevision, ExpectedStateRevision = running.StateRevision,
+            ExpectedServerSessionId = running.CurrentSessionId
+        };
+        var deploy = new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), AdapterId = "01", RunReference = "run-01", Mode = HoldMode.Maintenance,
+            DevLifecycleServerId = dev.ServerId,
+            ResourceKeys = [ReservationService.ServerKey(dev.ServerId), ReservationService.EnvironmentKey(dev.EnvironmentId!.Value)],
+            ServerConditions = [new(dev.ServerId, ProcessRequirement.Stopped)]
+        };
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(channel.ServerId, stop, Guid.NewGuid()));
+        await Fault("ReservationConflict", () => fixture.Reservations.AcquireAsync(deploy));
+        Assert.Equal(ReservationStatus.Prepared, (await fixture.Reservations.GetAsync(maintenance.WorkflowId)).Status);
+
+        await fixture.Reservations.ValidateAsync(lease.ReservationId, new(lease.WorkflowId, lease.Fences, "Publish", "run-16"));
+        await fixture.Reservations.ReleaseAsync(lease.ReservationId, new(lease.WorkflowId, lease.Fences, GateOutcome.Succeeded, "run-16"));
+        var deployLease = await fixture.Reservations.AcquireAsync(deploy);
+        Assert.Equal(ReservationStatus.Prepared, deployLease.Status);
+        await fixture.Reservations.ReleaseAsync(deployLease.ReservationId, new(deployLease.WorkflowId, deployLease.Fences, GateOutcome.Failed, "run-01"));
+        Assert.Equal(OperationStatus.Accepted, (await fixture.Operations.CreateAsync(channel.ServerId, stop, Guid.NewGuid())).Status);
+    }
+
+    [Fact]
     public async Task KnownPartialPrepareReleasesHoldsAndCentralReservation()
     {
         await using var fixture = await Fixture.CreateAsync();

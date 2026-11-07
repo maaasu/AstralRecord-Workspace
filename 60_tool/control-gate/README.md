@@ -31,6 +31,8 @@ Managedでは設定の`controlGate`に`mode`、Control CLIの絶対パス、固�
 
 Control CLIは先に`login --server-url <HTTPS origin>`で対話ログインします。password/tokenをBAT引数や設定ファイルへ入れません。gateは全資源の中央予約とRunner holdを取得し、各段階で再検証します。子プロセスは同じleaseを継承します。leaseはユーザー専用の`%LOCALAPPDATA%\AstralRecordControl\GateLeases`に保存し、失敗や状態不明では解放しません。01/16は開始前にrun pathを決めて予約へ渡し、再開時は同じworkflowId/予約と既存run記録を照合します。17のPreview/Commitは同じRunDirectoryとAPI要求IDを使い、各段階で別のControl予約を取得します。
 
+CLIが `HTTP_409 ReservationConflict` を表示した場合は、Controlの「履歴・復旧」で対象を予約している操作や保守を確認してください。既知の拒否理由はHTTP状態とコードを表示します。
+
 `Enter-ControlGate`の戻り値は単一のcontextです。CLIの取得結果や検証・解放の確認文は戻り値へ流さず、inspectだけJSONを取得します。予約取得後に呼出し側が失敗した場合も、再取得を繰り返さず、保護leaseと実予約を照合してから復旧します。
 
 Windowsディレクトリの資源キーは、Control側と同じく区切りを`/`、文字をinvariant小文字へ正規化します。実パスの設定は元の表記を保持し、資源キーだけを照合に使用します。
