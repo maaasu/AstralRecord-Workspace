@@ -382,6 +382,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        if (BackendProtocol.isCombatRewardPlaqueReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockCombatRewardPlaqueReady(player);
+            }
+            return;
+        }
         String actionRingHudRevision = BackendProtocol.decodeActionRingHudRevision(message);
         if (actionRingHudRevision != null) {
             if (resourcePackService != null) {

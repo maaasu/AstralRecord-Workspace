@@ -49,6 +49,14 @@ final class GeyserPackCapabilities {
 
     /**
      * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 拡張が戦闘報酬プレートに対応する接続と確認した場合は true
+     */
+    static boolean hasCombatRewardPlaque(UUID playerId) {
+        return supports(playerId, "hasCombatRewardPlaque");
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 接続のアクションリング HUD 互換性識別子。非対応なら null
      */
     static String actionRingHudRevision(UUID playerId) {

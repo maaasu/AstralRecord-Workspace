@@ -1,0 +1,24 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.combat_reward_plaque": {
+      "arrays": {
+        "textures": { "Array.rewards": [ "Texture.normal", "Texture.rare" ] }
+      },
+      "geometry": "Geometry.default",
+      "materials": [ { "*": "Material.default" } ],
+      "textures": [ "Array.rewards[query.property('astralrecord:reward_rare')]" ],
+      "part_visibility": [
+        { "sparkle_left": "query.property('astralrecord:reward_rare') != 0" },
+        { "sparkle_right": "query.property('astralrecord:reward_rare') != 0" }
+      ],
+      "ignore_lighting": true,
+      "color": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": "variable.alpha"
+      }
+    }
+  }
+}

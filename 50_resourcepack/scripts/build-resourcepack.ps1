@@ -81,11 +81,33 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_right.png'
     'sunbird-presentation-version.txt'
     'selenea-presentation-version.txt'
+    'combat-reward-plaque-version.txt'
     'fishing-visuals-version.txt'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
     'assets/astralrecord/textures/font/combat_hud.png'
+    'assets/astralrecord/font/combat_reward_plaque.json'
+    'assets/astralrecord/textures/font/combat_reward_plaque_icons.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_divider.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_normal_5.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_normal_6.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_normal_7.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_normal_8.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_normal_9.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_normal_10.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_5.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_6.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_7.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_8.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_9.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_10.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_glint_5.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_glint_6.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_glint_7.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_glint_8.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_glint_9.png'
+    'assets/astralrecord/textures/font/combat_reward_plaque_rare_glint_10.png'
     'player-progress-hud-version.txt'
     'wide-combat-meter-version.txt'
     'assets/astralrecord/font/profile_hud_player.json'
@@ -236,6 +258,8 @@ $java = Read-PackEntries $root @(
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
     'font/glyph_E6.png'
+    'font/glyph_E7.png'
+    'combat-reward-plaque-version.txt'
     'textures/ui/absorption_heart.png'
     'textures/ui/absorption_heart_half.png'
     'textures/ui/freeze_heart.png'
@@ -332,6 +356,10 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'animations/combat_result.animation.json'
     'models/entity/combat_result.geo.json'
     'render_controllers/combat_result.render_controllers.json'
+    'entity/combat_reward_plaque.entity.json'
+    'animations/combat_reward_plaque.animation.json'
+    'models/entity/combat_reward_plaque.geo.json'
+    'render_controllers/combat_reward_plaque.render_controllers.json'
     'entity/world_display.entity.json'
     'models/entity/world_display.geo.json'
     'render_controllers/world_display.render_controllers.json'
@@ -340,6 +368,8 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/world/storage.png'
     'textures/entity/world/blast_furnace.png'
     'textures/entity/combat_result.png'
+    'textures/entity/combat_reward_plaque/normal.png'
+    'textures/entity/combat_reward_plaque/rare.png'
     'entity/skill_effect.entity.json'
     'animations/skill_effect.animation.json'
     'models/entity/skill_effect_v2.geo.json'
@@ -406,6 +436,14 @@ if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
     throw 'Invalid Selenea presentation version marker in resource pack.'
 }
 $bedrock.Add($seleneaVersionMarker, $java[$seleneaVersionMarker])
+
+$rewardPlaqueVersionMarker = 'combat-reward-plaque-version.txt'
+if ($utf8.GetString($java[$rewardPlaqueVersionMarker]) -cne '1') {
+    throw 'Invalid combat reward plaque version marker in resource pack.'
+}
+if ($utf8.GetString($bedrock[$rewardPlaqueVersionMarker]) -cne '1') {
+    throw 'Invalid Bedrock combat reward plaque version marker in resource pack.'
+}
 
 $fishingVersionMarker = 'fishing-visuals-version.txt'
 if ($utf8.GetString($java[$fishingVersionMarker]) -cne '1') {

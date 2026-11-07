@@ -50,6 +50,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaSkillEffects = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockSkillEffects = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
@@ -86,6 +88,7 @@ public class ResourcePackService {
         requestedSeleneaPresentation.remove(player.getUniqueId());
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
         requestedJavaSkillEffects.remove(player.getUniqueId());
+        requestedJavaCombatRewardPlaque.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -162,6 +165,9 @@ public class ResourcePackService {
                     }
                     if (pack.skillEffects()) {
                         requestedJavaSkillEffects.add(viewer);
+                    }
+                    if (pack.combatRewardPlaque()) {
+                        requestedJavaCombatRewardPlaque.add(viewer);
                     }
                     if (pack.profileHud() != null) {
                         requestedJavaProfileHud.put(viewer, pack.profileHud());
@@ -276,6 +282,7 @@ public class ResourcePackService {
                     requestedSeleneaPresentation.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
+                    requestedJavaCombatRewardPlaque.remove(viewer);
                 }
                 default -> { }
             }
@@ -556,6 +563,37 @@ public class ResourcePackService {
     }
 
     /**
+     * 戦闘報酬プレートの互換版1を含む管理Javaパックの適用成功を確認します。
+     *
+     * @param playerId 閲覧者のUUID
+     * @return 対応版が適用済みならtrue
+     */
+    public boolean hasJavaCombatRewardPlaque(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaCombatRewardPlaque.contains(playerId);
+    }
+
+    /**
+     * Proxyが確認した統合版パックの戦闘報酬プレート対応状態を調べます。
+     *
+     * @param playerId 閲覧者のUUID
+     * @return 現在の接続が対応パックを読み込んだ場合はtrue
+     */
+    public boolean hasBedrockCombatRewardPlaque(UUID playerId) {
+        return readyBedrockCombatRewardPlaque.contains(playerId);
+    }
+
+    /**
+     * Proxyから届いた戦闘報酬プレートの対応通知を現在の接続に登録します。
+     *
+     * @param player 通知の対象プレイヤー
+     */
+    public void markBedrockCombatRewardPlaqueReady(Player player) {
+        if (player.isOnline()) {
+            readyBedrockCombatRewardPlaque.add(player.getUniqueId());
+        }
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -577,6 +615,8 @@ public class ResourcePackService {
         readyBedrockWeaponAttackProjectiles.remove(playerId);
         requestedJavaSkillEffects.remove(playerId);
         readyBedrockSkillEffects.remove(playerId);
+        requestedJavaCombatRewardPlaque.remove(playerId);
+        readyBedrockCombatRewardPlaque.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
         bedrockActionRingHudRevisions.remove(playerId);
     }

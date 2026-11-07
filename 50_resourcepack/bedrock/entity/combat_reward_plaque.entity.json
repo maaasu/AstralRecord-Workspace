@@ -1,0 +1,29 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:combat_reward_plaque",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": {
+        "normal": "textures/entity/combat_reward_plaque/normal",
+        "rare": "textures/entity/combat_reward_plaque/rare"
+      },
+      "geometry": { "default": "geometry.astralrecord.combat_reward_plaque" },
+      "animations": { "layout": "animation.astralrecord.combat_reward_plaque.layout" },
+      "scripts": {
+        "pre_animation": [
+          "variable.middle_height = 1.6 + 2.2624 * query.property('astralrecord:reward_lines');",
+          "variable.age = query.life_time;",
+          "variable.enter = math.clamp(variable.age / 0.18, 0.0, 1.0);",
+          "variable.exit = math.clamp((variable.age - 5.55) / 0.45, 0.0, 1.0);",
+          "variable.frame_scale = 0.94 + 0.06 * variable.enter - 0.03 * variable.exit;",
+          "variable.alpha = (0.42 + 0.58 * variable.enter) * (1.0 - variable.exit);",
+          "variable.twinkle_left = 0.42 + 0.83 * math.pow(math.max(0.0, math.sin(variable.age * 240.0)), 2.0);",
+          "variable.twinkle_right = 0.42 + 0.83 * math.pow(math.max(0.0, math.sin(variable.age * 240.0 + 130.0)), 2.0);"
+        ],
+        "animate": [ "layout" ]
+      },
+      "render_controllers": [ "controller.render.astralrecord.combat_reward_plaque" ]
+    }
+  }
+}

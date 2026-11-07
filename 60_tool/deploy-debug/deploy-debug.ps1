@@ -420,6 +420,7 @@ function Publish-ResourcePacks {
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
     $skillEffects = $null
+    $combatRewardPlaque = $null
     $profileHud = $null
     $wideCombatMeter = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
@@ -442,6 +443,29 @@ function Publish-ResourcePacks {
         try { $gameplaySounds = $reader.ReadToEnd() }
         finally { $reader.Dispose() }
         if ($gameplaySounds -cne '1') { throw 'Unsupported gameplay sounds version.' }
+        $combatRewardPlaqueEntry = $archive.GetEntry('combat-reward-plaque-version.txt')
+        if ($null -ne $combatRewardPlaqueEntry) {
+            if ($combatRewardPlaqueEntry.Length -ne 1) { throw 'Invalid combat reward plaque version marker.' }
+            $reader = [IO.StreamReader]::new($combatRewardPlaqueEntry.Open())
+            try { $combatRewardPlaque = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($combatRewardPlaque -cne '1') { throw 'Unsupported combat reward plaque version.' }
+            $plaqueAssets = @(
+                'assets/astralrecord/font/combat_reward_plaque.json'
+                'assets/astralrecord/textures/font/combat_reward_plaque_icons.png'
+                'assets/astralrecord/textures/font/combat_reward_plaque_divider.png'
+                foreach ($style in @('normal', 'rare', 'rare_glint')) {
+                    foreach ($lineCount in 5..10) {
+                        "assets/astralrecord/textures/font/combat_reward_plaque_${style}_$lineCount.png"
+                    }
+                }
+            )
+            foreach ($asset in $plaqueAssets) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing combat reward plaque asset in Java pack: $asset" }
+            }
+        }
+
         $seleneaEntry = $archive.GetEntry('selenea-presentation-version.txt')
         if ($null -ne $seleneaEntry) {
             if ($seleneaEntry.Length -ne 1) { throw 'Invalid Selenea presentation version marker.' }
@@ -610,6 +634,9 @@ function Publish-ResourcePacks {
         actionRingPanel = $panelRevision
         guiTheme = $guiTheme
         gameplaySounds = $gameplaySounds
+    }
+    if ($null -ne $combatRewardPlaque) {
+        $javaManifest.combatRewardPlaque = $combatRewardPlaque
     }
     if ($null -ne $seleneaPresentation) {
         $javaManifest.seleneaPresentation = $seleneaPresentation

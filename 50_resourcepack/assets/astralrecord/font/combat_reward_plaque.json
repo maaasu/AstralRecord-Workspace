@@ -1,0 +1,202 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_normal_5.png",
+      "height": 98,
+      "ascent": 46,
+      "chars": [
+        "\ue710"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_normal_6.png",
+      "height": 108,
+      "ascent": 46,
+      "chars": [
+        "\ue711"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_normal_7.png",
+      "height": 118,
+      "ascent": 46,
+      "chars": [
+        "\ue712"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_normal_8.png",
+      "height": 128,
+      "ascent": 46,
+      "chars": [
+        "\ue713"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_normal_9.png",
+      "height": 138,
+      "ascent": 46,
+      "chars": [
+        "\ue714"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_normal_10.png",
+      "height": 148,
+      "ascent": 46,
+      "chars": [
+        "\ue715"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_5.png",
+      "height": 98,
+      "ascent": 46,
+      "chars": [
+        "\ue720"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_6.png",
+      "height": 108,
+      "ascent": 46,
+      "chars": [
+        "\ue721"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_7.png",
+      "height": 118,
+      "ascent": 46,
+      "chars": [
+        "\ue722"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_8.png",
+      "height": 128,
+      "ascent": 46,
+      "chars": [
+        "\ue723"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_9.png",
+      "height": 138,
+      "ascent": 46,
+      "chars": [
+        "\ue724"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_10.png",
+      "height": 148,
+      "ascent": 46,
+      "chars": [
+        "\ue725"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_glint_5.png",
+      "height": 98,
+      "ascent": 46,
+      "chars": [
+        "\ue750"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_glint_6.png",
+      "height": 108,
+      "ascent": 46,
+      "chars": [
+        "\ue751"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_glint_7.png",
+      "height": 118,
+      "ascent": 46,
+      "chars": [
+        "\ue752"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_glint_8.png",
+      "height": 128,
+      "ascent": 46,
+      "chars": [
+        "\ue753"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_glint_9.png",
+      "height": 138,
+      "ascent": 46,
+      "chars": [
+        "\ue754"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_rare_glint_10.png",
+      "height": 148,
+      "ascent": 46,
+      "chars": [
+        "\ue755"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_icons.png",
+      "height": 10,
+      "ascent": 8,
+      "chars": [
+        "\ue700\ue701\ue702\ue703\ue704\ue705\ue706\ue707\ue708"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/combat_reward_plaque_divider.png",
+      "height": 6,
+      "ascent": 4,
+      "chars": [
+        "\ue709"
+      ]
+    },
+    {
+      "type": "space",
+      "advances": {
+        "\ue731": 192,
+        "\ue740": 1,
+        "\ue741": 2,
+        "\ue742": 4,
+        "\ue743": 8,
+        "\ue744": 16,
+        "\ue745": 32,
+        "\ue746": 64,
+        "\ue747": 128
+      }
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

@@ -213,6 +213,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().combatResult();
     }
 
+    boolean combatRewardPlaqueReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().combatRewardPlaque();
+    }
+
     Set<Integer> actionRingSprites(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() ? selection.pack().actionRingSprites() : Set.of();

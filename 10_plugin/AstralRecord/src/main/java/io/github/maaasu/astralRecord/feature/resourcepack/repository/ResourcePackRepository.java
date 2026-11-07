@@ -19,7 +19,8 @@ public final class ResourcePackRepository {
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
                            boolean itemTooltips,
-                           boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects) {
+                           boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
+                           boolean combatRewardPlaque) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -72,6 +73,9 @@ public final class ResourcePackRepository {
                 JsonElement effects = java.get("skillEffects");
                 boolean skillEffects = effects != null && effects.isJsonPrimitive()
                     && effects.getAsJsonPrimitive().isString() && "1".equals(effects.getAsString());
+                JsonElement plaque = java.get("combatRewardPlaque");
+                boolean combatRewardPlaque = plaque != null && plaque.isJsonPrimitive()
+                    && plaque.getAsJsonPrimitive().isString() && "1".equals(plaque.getAsString());
                 JsonElement profile = java.get("profileHud");
                 String profileVersion = profile != null && profile.isJsonPrimitive()
                     && profile.getAsJsonPrimitive().isString() ? profile.getAsString() : "";
@@ -87,7 +91,7 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects);
+                    seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects, combatRewardPlaque);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

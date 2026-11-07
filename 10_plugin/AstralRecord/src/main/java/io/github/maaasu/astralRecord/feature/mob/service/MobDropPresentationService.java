@@ -21,6 +21,8 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
+import io.github.maaasu.astralRecord.shared.display.CombatRewardPlaque;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -38,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -278,7 +281,7 @@ public final class MobDropPresentationService {
         }
         if (resultTextHandler == null
                 || !resultTextHandler.test(formatResultText(sourceName, result, resolvedItems, false))) {
-            spawnResultText(player, deathLocation, formatResultText(sourceName, result, resolvedItems));
+            spawnResultText(player, deathLocation, sourceName, result, resolvedItems, mobCategory);
         }
         announceDropLogs(recipient, mobCategory, resolvedItems);
         List<ResolvedDropItem> grantItems = expandInstanceItems(resolvedItems);
@@ -340,16 +343,98 @@ public final class MobDropPresentationService {
      * 受取人だけへ、共通の拡大・順次表示・フェード演出付きの報酬を表示します。
      * @param viewer 受取人
      * @param deathLocation 取得位置
-     * @param text 解決済み報酬本文
+     * @param sourceName 取得元の表示名
+     * @param result 経験値とゴールドの抽選結果
+     * @param items 解決済み獲得アイテム
+     * @param category Mob のカテゴリ。採集・釣りなどの別経路はnull
      */
     private void spawnResultText(
         @NotNull Player viewer,
         @NotNull Location deathLocation,
-        @NotNull String text
+        @NotNull String sourceName,
+        @NotNull MobDropResult result,
+        @NotNull List<ResolvedDropItem> items,
+        @Nullable MobCategory category
     ) {
         if (deathLocation.getWorld() == null) return;
-        displayTextService.createResultText(deathLocation.clone().add(0.0D, RESULT_HEIGHT, 0.0D),
-                text, viewer, RESULT_DISPLAY_DURATION_TICKS);
+        Location origin = deathLocation.clone().add(0.0D, RESULT_HEIGHT, 0.0D);
+        String text = formatResultText(sourceName, result, items);
+        if (category == null) {
+            displayTextService.createResultText(origin, text, viewer, RESULT_DISPLAY_DURATION_TICKS);
+        } else {
+            displayTextService.createCombatRewardPlaque(origin, text, viewer, RESULT_DISPLAY_DURATION_TICKS,
+                    () -> formatRewardPlaque(sourceName, result, items, category));
+        }
+    }
+
+    private static CombatRewardPlaque formatRewardPlaque(
+            String mobName, MobDropResult result, List<ResolvedDropItem> items, MobCategory category
+    ) {
+        List<String> lines = new ArrayList<>();
+        lines.add(PlayerMsgResource.getMessage(PlayerMsgId.P_8080.getId()));
+        lines.add(PlayerMsgResource.format(PlayerMsgId.P_5741.getId(), mobName));
+        List<String> totals = new ArrayList<>(2);
+        if (result.exp() >= 1) {
+            totals.add("&f\uE706 " + PlayerMsgResource.format(PlayerMsgId.P_8081.getId(),
+                    String.format(Locale.ROOT, "%,d", result.exp())));
+        }
+        if (result.money() >= 1) {
+            totals.add("&f\uE707 " + PlayerMsgResource.format(PlayerMsgId.P_8082.getId(),
+                    String.format(Locale.ROOT, "%,d", result.money())));
+        }
+        lines.add(totals.isEmpty() ? "\u00a0" : String.join("   ", totals));
+        lines.add("&6" + DisplaySeparators.SECTION);
+
+        boolean rare = items.stream().anyMatch(item -> isRareDrop(category, item.dropRate()));
+        List<ResolvedDropItem> shown = items.stream()
+                .sorted(Comparator.comparing(item -> !isRareDrop(category, item.dropRate())))
+                .limit(MAX_RESULT_TEXT_ITEMS)
+                .toList();
+        String rareBadge = PlayerMsgResource.getMessage(PlayerMsgId.P_8084.getId());
+        boolean badgeInTitle = false;
+        for (ResolvedDropItem item : shown) {
+            boolean rareItem = isRareDrop(category, item.dropRate());
+            String name = ColorCodeUtil.toLegacyText(item.model().getName(),
+                    PlayerMsgResource.getMessage(PlayerMsgId.P_5748.getId()));
+            String row = "&f" + rewardIcon(item.model(), rareItem) + " "
+                    + PlayerMsgResource.format(PlayerMsgId.P_8083.getId(), name,
+                            String.format(Locale.ROOT, "%,d", item.amount()),
+                            rareItem ? ColorCodeUtil.LIGHT_PURPLE : ColorCodeUtil.GRAY, formatDropRate(item.dropRate()));
+            if (rareItem) {
+                String marked = row + " " + rareBadge;
+                if (CombatRewardPlaque.fitsItemRow(marked)) {
+                    row = marked;
+                } else {
+                    badgeInTitle = true;
+                }
+            }
+            lines.add(row);
+        }
+        if (badgeInTitle) lines.set(0, lines.getFirst() + "  " + rareBadge);
+        if (shown.isEmpty()) {
+            lines.add("&f\uE708 " + PlayerMsgResource.getMessage(PlayerMsgId.P_8085.getId()));
+        }
+        if (shown.size() < items.size()) {
+            lines.add(PlayerMsgResource.format(PlayerMsgId.P_5747.getId(), items.size() - shown.size()));
+        }
+        return new CombatRewardPlaque(lines, rare);
+    }
+
+    private static char rewardIcon(ItemModel item, boolean rare) {
+        ItemCategory category = ItemCategory.fromApiValue(item.getCategory());
+        if (category == ItemCategory.EQUIPMENT) return '\uE703';
+        if (category == ItemCategory.CONSUMABLE) return '\uE704';
+        if (category == ItemCategory.CURRENCY) return '\uE707';
+        if (category == ItemCategory.BUNDLE) return '\uE708';
+        var material = MaterialNameResolver.match(item.getIcon());
+        if (material != null) {
+            switch (material) {
+                case LEATHER, RABBIT_HIDE -> { return '\uE701'; }
+                case BEEF, PORKCHOP, CHICKEN, RABBIT, MUTTON, ROTTEN_FLESH -> { return '\uE705'; }
+                default -> { }
+            }
+        }
+        return rare ? '\uE702' : '\uE700';
     }
 
     /**

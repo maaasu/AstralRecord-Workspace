@@ -42,6 +42,7 @@ public final class AstralRecordGeyserExtension implements Extension {
     private CustomEntityDefinition skillEffectDefinition;
     private SkillEffectEntity skillEffectProperties;
     private FishingVisualEntity fishingVisuals;
+    private CombatRewardPlaqueEntity combatRewardPlaque;
     // Paper のボス用 UUID マーカー。並びは本体・技・モーション。
     private final BossDisplay sunbird = new BossDisplay("sunbird", "parrot",
         0x41535453554e4231L, 0x41535453554e4631L, 0x41535453554e4d31L, 5, 3,
@@ -76,6 +77,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         skillEffectDefinition = effectDefinition;
         event.register(FishingVisualEntity.DEFINITION);
         event.register(COMBAT_RESULT);
+        event.register(CombatRewardPlaqueEntity.DEFINITION);
         sunbird.register(event);
         event.register(WorldDisplayEntity.DEFINITION);
         selenea.register(event);
@@ -101,6 +103,7 @@ public final class AstralRecordGeyserExtension implements Extension {
             skillEffectProperties = SkillEffectEntity.registerProperties(event, skillEffectDefinition.identifier());
         }
         fishingVisuals = FishingVisualEntity.registerProperties(event);
+        combatRewardPlaque = CombatRewardPlaqueEntity.registerProperties(event);
         worldDisplays = WorldDisplayEntity.registerProperties(event);
     }
 
@@ -188,6 +191,12 @@ public final class AstralRecordGeyserExtension implements Extension {
         return connection != null && damagePacks.itemTooltipsReady(connection);
     }
 
+    /** @return 討伐報酬のプレートに対応したパックを登録し、ログインを完了していれば true */
+    public boolean hasCombatRewardPlaque(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return combatRewardPlaque != null && connection != null && damagePacks.combatRewardPlaqueReady(connection);
+    }
+
     /**
      * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return ログインを完了した接続のアクションリング HUD 互換性識別子。非対応なら null
@@ -250,6 +259,15 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (heldWeapon != null) {
             event.setCancelled(true);
             updateHeldWeaponModel(event.connection(), heldWeapon.id());
+            return;
+        }
+        var plaqueLayout = CombatRewardPlaqueEntity.decode(event.uuid(), event.entityId());
+        if (plaqueLayout != null) {
+            var properties = combatRewardPlaque;
+            if (properties != null && damagePacks.combatRewardPlaqueReady(event.connection())) {
+                event.definition(CombatRewardPlaqueEntity.DEFINITION);
+                event.preSpawnConsumer(entity -> properties.initialize(entity, plaqueLayout));
+            }
             return;
         }
         if (event.uuid().getMostSignificantBits() == COMBAT_RESULT_TAG

@@ -29,7 +29,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
@@ -43,11 +42,12 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
     private static final int DISPLAY_TEXT_INDEX = 23;
     private static final long BEDROCK_DISPLAY_TAG = 0xa57ad00d00000000L;
     private static final long BEDROCK_RESULT_TAG = 0xa57ac2e570000001L;
+    private static final long BEDROCK_PLAQUE_TAG = 0xa57ac2e570000002L;
     private static final long MAX_BEDROCK_AMOUNT = 999_999_999_999L;
     private static final Key DAMAGE_FONT = Key.key("astralrecord", "damage_number");
 
     private final Map<Integer, NumberDisplay> activeNumbers;
-    private final Set<UUID> bedrockResults;
+    private final Map<UUID, Integer> bedrockResults;
     private final PlayerSettingService playerSettingService;
     private final ResourcePackService resourcePackService;
     private final Map<UUID, Map<Integer, Integer>> bedrockMarkers = new ConcurrentHashMap<>();
@@ -57,14 +57,14 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
      *
      * @param plugin リスナーを所有するプラグイン
      * @param activeNumbers 表示サービスが更新する並行アクセス可能な実体情報
-     * @param bedrockResults 統合版向け個人リザルトの実体UUID
+     * @param bedrockResults 統合版向け個人リザルトの実体UUIDとプレートのレイアウト。従来表示は0
      * @param playerSettingService ロード済みの設定の参照先
      * @param resourcePackService エディションとJavaパック適用状態の参照先
      */
     DamageNumberPacketAdapter(
             Plugin plugin,
             Map<Integer, NumberDisplay> activeNumbers,
-            Set<UUID> bedrockResults,
+            Map<UUID, Integer> bedrockResults,
             PlayerSettingService playerSettingService,
             ResourcePackService resourcePackService
     ) {
@@ -199,7 +199,7 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
      */
     private boolean isBedrockResult(PacketContainer packet) {
         return !bedrockResults.isEmpty() && packet.getType() == PacketType.Play.Server.SPAWN_ENTITY
-                && bedrockResults.contains(packet.getUUIDs().read(0));
+                && bedrockResults.containsKey(packet.getUUIDs().read(0));
     }
 
     /**
@@ -209,7 +209,9 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
     private PacketContainer markBedrockResult(PacketContainer packet) {
         PacketContainer result = packet.shallowClone();
         int entityId = packet.getIntegers().read(0);
-        result.getUUIDs().write(0, new UUID(BEDROCK_RESULT_TAG, Integer.toUnsignedLong(entityId)));
+        int layout = bedrockResults.getOrDefault(packet.getUUIDs().read(0), 0);
+        long payload = (long) layout << 32 | Integer.toUnsignedLong(entityId);
+        result.getUUIDs().write(0, new UUID(layout == 0 ? BEDROCK_RESULT_TAG : BEDROCK_PLAQUE_TAG, payload));
         return result;
     }
 

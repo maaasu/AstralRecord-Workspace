@@ -30,8 +30,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -57,12 +57,18 @@ public final class DisplayTextService {
     private static final long RESULT_REVEAL_TICKS = 36L;
     private static final int MAX_RESULT_LINES = 16;
     private static final int RESULT_HEADER_LINES = 3;
+    private static final float PLAQUE_SCALE = 0.68F;
+    // Java の TextDisplay は行間が10px、1pxが0.025ブロックで、本文の下端が原点です。
+    private static final float PLAQUE_LINE_HEIGHT = 0.25F;
+    // CENTER billboard のローカル負のZへ背景を置き、本文の手前に出さないようにします。
+    private static final float PLAQUE_BACKGROUND_DEPTH = -0.012F;
+    private static final Color TRANSPARENT = Color.fromARGB(0, 0, 0, 0);
     private static final Pattern RESULT_DIVIDER = Pattern.compile(Pattern.quote("&8" + DisplaySeparators.SECTION));
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
     private final ConcurrentHashMap<Integer, DamageNumberPacketAdapter.NumberDisplay> damageNumbers = new ConcurrentHashMap<>();
-    private final Set<UUID> bedrockResultDisplays = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Integer> bedrockResultDisplays = new ConcurrentHashMap<>();
     private final PlayerSettingService playerSettingService;
     private final ResourcePackService resourcePackService;
     private DamageNumberPacketAdapter damageNumberPacketAdapter;
@@ -300,6 +306,41 @@ public final class DisplayTextService {
             @Nullable Player viewer,
             long durationTicks
     ) {
+        return createResult(origin, text, viewer, durationTicks, null, false);
+    }
+
+    /**
+     * 対応パックでは討伐報酬プレートを、ほかの接続では通常の結果本文を本人に表示します。
+     *
+     * @param origin 表示基準位置
+     * @param fallbackText 通常の結果本文
+     * @param viewer 報酬の受取人
+     * @param durationTicks 表示寿命
+     * @param plaqueSupplier 対応パックを適用した受取人用のプレート本文
+     * @return 表示の管理ハンドル
+     * @throws IllegalArgumentException 寿命が0以下の場合
+     * @implNote Bukkitメインスレッドから呼び出します。
+     */
+    public @NotNull ManagedTextDisplay createCombatRewardPlaque(
+            @NotNull Location origin,
+            @NotNull String fallbackText,
+            @NotNull Player viewer,
+            long durationTicks,
+            @NotNull Supplier<CombatRewardPlaque> plaqueSupplier
+    ) {
+        UUID viewerId = viewer.getUniqueId();
+        boolean bedrock = resourcePackService.isBedrock(viewer.getName());
+        boolean supported = bedrock ? resourcePackService.hasBedrockCombatRewardPlaque(viewerId)
+                : resourcePackService.hasJavaCombatRewardPlaque(viewerId);
+        CombatRewardPlaque plaque = supported ? plaqueSupplier.get() : null;
+        if (plaque != null && !plaque.fits()) plaque = null;
+        return createResult(origin, fallbackText, viewer, durationTicks, plaque, bedrock && plaque != null);
+    }
+
+    private @NotNull ManagedTextDisplay createResult(
+            Location origin, String text, @Nullable Player viewer, long durationTicks,
+            @Nullable CombatRewardPlaque plaque, boolean bedrockPlaque
+    ) {
         if (durationTicks <= 0L) {
             throw new IllegalArgumentException("Result duration must be positive.");
         }
@@ -321,10 +362,11 @@ public final class DisplayTextService {
                 DisplayAnchor.fixed(origin),
                 new DisplayTextOptions(text, new Vector(), Display.Billboard.CENTER,
                         440, 64.0F, (byte) 0xFF, false, true, false,
-                        Color.fromARGB(176, 13, 21, 34), (int) RESULT_FRAME_TICKS, 0,
+                        plaque == null ? Color.fromARGB(176, 13, 21, 34) : TRANSPARENT,
+                        (int) RESULT_FRAME_TICKS, 0,
                         false, 15, 15)
         );
-        display.requireState().resultAnimation = new ResultAnimation(viewerId, durationTicks);
+        display.requireState().resultAnimation = new ResultAnimation(viewerId, durationTicks, plaque, bedrockPlaque);
         return display;
     }
 
@@ -494,6 +536,11 @@ public final class DisplayTextService {
         TextDisplay entity = ensureEntity(state, anchorLocation);
         if (entity == null) return;
         applyOptionsIfNeeded(entity, state);
+        if (animation.plaque() != null) {
+            if (!animation.bedrockPlaque()) tickJavaPlaque(state, entity, animation, animation.plaque());
+            state.animationAge++;
+            return;
+        }
         if (!Objects.equals(state.resultFullText, state.options.text())) {
             state.resultFullText = state.options.text();
             state.resultPages = resultPages(state.resultFullText);
@@ -538,6 +585,48 @@ public final class DisplayTextService {
             }
         }
         state.animationAge++;
+    }
+
+    private void tickJavaPlaque(
+            ManagedDisplayState state, TextDisplay entity, ResultAnimation animation, CombatRewardPlaque plaque
+    ) {
+        int visibleLines = Math.min(plaque.lines().size(), 1 + (int) (state.animationAge / 2));
+        if (visibleLines != state.resultVisibleLines) {
+            entity.text(plaque.body(false, visibleLines));
+            state.resultVisibleLines = visibleLines;
+        }
+        if (state.animationAge % RESULT_FRAME_TICKS != 0L || state.plaqueBackground == null) return;
+
+        long age = state.animationAge;
+        TextDisplay background = state.plaqueBackground;
+        boolean sparkle = plaque.rare() && age < 24L && (age / RESULT_FRAME_TICKS) % 2L == 0L;
+        int frame = sparkle ? 1 : 0;
+        if (frame != state.resultCrestFrame) {
+            background.text(plaque.frame(sparkle));
+            state.resultCrestFrame = frame;
+        }
+        if (!Float.isNaN(state.lastResultScale)
+                && age > RESULT_ENTRANCE_TICKS && age < animation.durationTicks() - RESULT_EXIT_TICKS) return;
+
+        double entrance = Math.min(1.0D, age / (double) RESULT_ENTRANCE_TICKS);
+        double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
+        double exit = Math.clamp((age - animation.durationTicks() + RESULT_EXIT_TICKS)
+                / (double) RESULT_EXIT_TICKS, 0.0D, 1.0D);
+        float scale = PLAQUE_SCALE * (float) (0.72D + 0.28D * eased + 0.08D * Math.sin(entrance * Math.PI));
+        float lift = (float) (-0.24D * (1.0D - eased) + 0.18D * exit);
+        byte opacity = (byte) Math.max(4L, Math.round(255.0D * (0.25D + 0.75D * eased) * (1.0D - exit)));
+        applyPlaqueFrame(entity, scale, lift, 0.0F, opacity);
+        applyPlaqueFrame(background, scale, lift + (plaque.lines().size() - 1) * PLAQUE_LINE_HEIGHT * scale,
+                PLAQUE_BACKGROUND_DEPTH, opacity);
+        state.lastResultScale = scale;
+    }
+
+    private static void applyPlaqueFrame(TextDisplay entity, float scale, float lift, float depth, byte opacity) {
+        entity.setInterpolationDelay(0);
+        entity.setInterpolationDuration((int) RESULT_FRAME_TICKS);
+        entity.setTransformation(new Transformation(new Vector3f(0.0F, lift, depth),
+                new Quaternionf(), new Vector3f(scale), new Quaternionf()));
+        entity.setTextOpacity(opacity);
     }
 
     /**
@@ -619,7 +708,8 @@ public final class DisplayTextService {
      */
     private @Nullable TextDisplay ensureEntity(@NotNull ManagedDisplayState state, @NotNull Location location) {
         TextDisplay entity = state.entity;
-        if (entity != null && entity.isValid() && entity.getWorld().equals(location.getWorld())) {
+        if (entity != null && entity.isValid() && entity.getWorld().equals(location.getWorld())
+                && (state.plaqueBackground == null || state.plaqueBackground.isValid())) {
             return entity;
         }
 
@@ -636,17 +726,28 @@ public final class DisplayTextService {
             display.setSilent(true);
             if (state.resultAnimation != null) {
                 applyOptions(display, state.options);
+                ResultAnimation animation = state.resultAnimation;
+                CombatRewardPlaque plaque = animation.plaque();
                 display.setAlignment(TextDisplay.TextAlignment.LEFT);
                 display.setVisibleByDefault(state.resultAnimation.viewerId() == null);
-                display.setTransformation(new Transformation(
-                        new Vector3f(0.0F, -0.24F, 0.0F), new Quaternionf(),
-                        new Vector3f(0.55F, 0.55F, 0.55F), new Quaternionf()));
-                display.setTextOpacity((byte) 64);
-                display.setBackgroundColor(Color.fromARGB(44, 13, 21, 34));
+                if (plaque == null) {
+                    display.setTransformation(new Transformation(
+                            new Vector3f(0.0F, -0.24F, 0.0F), new Quaternionf(),
+                            new Vector3f(0.55F, 0.55F, 0.55F), new Quaternionf()));
+                    display.setTextOpacity((byte) 64);
+                    display.setBackgroundColor(Color.fromARGB(44, 13, 21, 34));
+                } else if (animation.bedrockPlaque()) {
+                    // Geyser の名札アンカーは行数で動くため、表示開始時に全行を確定します。
+                    display.text(plaque.body(true, plaque.lines().size()));
+                } else {
+                    display.text(plaque.body(false, 1));
+                    applyPlaqueFrame(display, PLAQUE_SCALE * 0.72F, -0.24F, 0.0F, (byte) 64);
+                }
                 UUID viewerId = state.resultAnimation.viewerId();
                 Player viewer = viewerId == null ? null : Bukkit.getPlayer(viewerId);
                 if (viewer != null && resourcePackService.isBedrock(viewer.getName())) {
-                    bedrockResultDisplays.add(display.getUniqueId());
+                    int layout = animation.bedrockPlaque() && plaque != null ? plaque.bedrockLayout() : 0;
+                    bedrockResultDisplays.put(display.getUniqueId(), layout);
                 }
             } else if (state.floatingAnimation != null) {
                 applyOptions(display, state.options);
@@ -667,15 +768,41 @@ public final class DisplayTextService {
         });
         if (state.resultAnimation != null && state.resultAnimation.viewerId() != null && plugin != null) {
             Player viewer = Bukkit.getPlayer(state.resultAnimation.viewerId());
-            if (viewer != null) viewer.showEntity(plugin, state.entity);
+            if (viewer != null) {
+                CombatRewardPlaque plaque = state.resultAnimation.plaque();
+                if (plaque != null && !state.resultAnimation.bedrockPlaque()) {
+                    state.plaqueBackground = spawnPlaqueBackground(world, location, state.options, plaque);
+                    viewer.showEntity(plugin, state.plaqueBackground);
+                }
+                viewer.showEntity(plugin, state.entity);
+            }
         }
         state.lastLocation = location.clone();
         state.lastText = null;
         state.lastTransformOffset = null;
         state.lastResultScale = Float.NaN;
         state.resultPageIndex = -1;
+        state.resultVisibleLines = -1;
+        state.resultCrestFrame = -1;
         state.lastAppliedOptions = null;
         return state.entity;
+    }
+
+    private TextDisplay spawnPlaqueBackground(
+            World world, Location location, DisplayTextOptions options, CombatRewardPlaque plaque
+    ) {
+        return world.spawn(location, TextDisplay.class, display -> {
+            applyOptions(display, options.withShadowed(false));
+            display.setVisibleByDefault(false);
+            display.setPersistent(false);
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setSilent(true);
+            display.text(plaque.frame(plaque.rare()));
+            float scale = PLAQUE_SCALE * 0.72F;
+            applyPlaqueFrame(display, scale, -0.24F + (plaque.lines().size() - 1) * PLAQUE_LINE_HEIGHT * scale,
+                    PLAQUE_BACKGROUND_DEPTH, (byte) 64);
+        });
     }
 
     /**
@@ -872,6 +999,10 @@ public final class DisplayTextService {
      * @param state 削除対象の表示状態
      */
     private void destroyEntity(@NotNull ManagedDisplayState state) {
+        if (state.plaqueBackground != null) {
+            state.plaqueBackground.remove();
+            state.plaqueBackground = null;
+        }
         Entity entity = state.entity;
         if (entity != null) {
             entity.remove();
@@ -1026,6 +1157,7 @@ public final class DisplayTextService {
         private long animationAge;
         private boolean destroyed;
         private @Nullable TextDisplay entity;
+        private @Nullable TextDisplay plaqueBackground;
         private @Nullable String lastText;
         private @Nullable Location lastLocation;
         private @Nullable Vector lastTransformOffset;
@@ -1056,8 +1188,12 @@ public final class DisplayTextService {
     /**
      * @param viewerId 個人表示の閲覧者。共有表示の場合はnull
      * @param durationTicks 表示寿命
+     * @param plaque 対応パック向けプレート。nullなら従来の表示
+     * @param bedrockPlaque 統合版の描画モデルと名札を使うか
      */
-    private record ResultAnimation(@Nullable UUID viewerId, long durationTicks) { }
+    private record ResultAnimation(
+            @Nullable UUID viewerId, long durationTicks, @Nullable CombatRewardPlaque plaque, boolean bedrockPlaque
+    ) { }
 
     /** HP ダメージの発生元に応じた数値表示の種別です。 */
     public enum DamageNumberType {

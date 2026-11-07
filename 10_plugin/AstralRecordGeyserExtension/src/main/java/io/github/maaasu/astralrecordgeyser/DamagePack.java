@@ -30,7 +30,8 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean skillEffectsV2, boolean fishingVisuals,
+    boolean combatResult, boolean combatRewardPlaque, boolean weaponAttack, boolean weaponAttackProjectiles,
+    boolean skillEffectsV2, boolean fishingVisuals,
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
     String actionRingHudRevision
@@ -65,6 +66,12 @@ record DamagePack(
         "entity/combat_result.entity.json", "animations/combat_result.animation.json",
         "models/entity/combat_result.geo.json", "render_controllers/combat_result.render_controllers.json",
         "textures/entity/combat_result.png"
+    );
+    private static final List<String> COMBAT_REWARD_PLAQUE_ENTRIES = List.of(
+        "entity/combat_reward_plaque.entity.json", "animations/combat_reward_plaque.animation.json",
+        "models/entity/combat_reward_plaque.geo.json", "render_controllers/combat_reward_plaque.render_controllers.json",
+        "textures/entity/combat_reward_plaque/normal.png", "textures/entity/combat_reward_plaque/rare.png",
+        "font/glyph_E7.png"
     );
     private static final List<String> WEAPON_ATTACK_ENTRIES = List.of(
         "entity/weapon_attack.entity.json", "animations/weapon_attack.animation.json",
@@ -143,6 +150,7 @@ record DamagePack(
             boolean damageNumberAssets;
             boolean actionRing;
             boolean combatResult;
+            boolean combatRewardPlaque;
             boolean weaponAttack;
             boolean weaponAttackProjectiles;
             boolean skillEffectsV2;
@@ -174,6 +182,8 @@ record DamagePack(
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
                 combatResult = COMBAT_RESULT_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
+                combatRewardPlaque = hasVersionOne(zip, "combat-reward-plaque-version.txt")
+                    && COMBAT_REWARD_PLAQUE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 weaponAttackProjectiles = weaponAttack && hasVersionOne(zip, "weapon-attack-projectiles-version.txt")
                     && WEAPON_ATTACK_PROJECTILE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
@@ -205,7 +215,7 @@ record DamagePack(
                 && (version.major() > 1 || (version.major() == 1 && version.minor() >= 1));
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
+            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaque, weaponAttack,
                 weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
                 heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision);
         } finally {
