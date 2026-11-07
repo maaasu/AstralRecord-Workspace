@@ -259,8 +259,7 @@ public final class SkillProjectileService {
                 drawImpact(impact, spec.impact());
                 onEntityHit.accept(candidate.target(), impact);
                 if (!spec.piercing() || hitIds.size() >= spec.maxHits()) {
-                    effectService.projectileParticles(current[0], impact, 0.45D, spec.trail());
-                    effectService.projectileTrail(current[0], impact);
+                    effectService.projectileTrail(current[0], impact, spec.trail(), null);
                     finish(
                             player.getUniqueId(), scope, impact, SkillProjectileTermination.Type.ENTITY, impact,
                             ignored -> { }, onTerminate, finished
@@ -269,8 +268,7 @@ public final class SkillProjectileService {
                 }
             }
 
-            effectService.projectileParticles(current[0], next, 0.45D, spec.trail());
-            effectService.projectileTrail(current[0], next);
+            effectService.projectileTrail(current[0], next, spec.trail(), null);
             travelled[0] += actualDistance;
             current[0] = next;
             if (blockImpact != null) {
@@ -581,12 +579,7 @@ public final class SkillProjectileService {
                                     1,
                                     false
                             ).isEmpty()) {
-                        if (trailRenderer == null) {
-                            drawTrail(current[0], interception.location(), spec);
-                        } else {
-                            renderVisualTrail(current[0], interception.location(), trailRenderer);
-                        }
-                        effectService.projectileTrail(current[0], interception.location());
+                        drawTrail(current[0], interception.location(), spec, trailRenderer);
                         finish(
                                 player.getUniqueId(), scope, interception.location(),
                                 SkillProjectileTermination.Type.INTERCEPTED, interception.location(),
@@ -597,10 +590,6 @@ public final class SkillProjectileService {
                     }
                 }
             }
-            if (trailRenderer == null) {
-                drawTrail(current[0], next, spec);
-            }
-
             List<AstEntity> candidates = blockImpact == null
                     ? targetingService.inLine(
                             player,
@@ -629,8 +618,7 @@ public final class SkillProjectileService {
                 boolean terminatesOnEntity = !spec.piercing() || hitIds.size() >= spec.maxHits();
                 if (terminatesOnEntity) {
                     Location trailEnd = clippedTrailEnd(current[0], next, impact);
-                    if (trailRenderer != null) renderVisualTrail(current[0], trailEnd, trailRenderer);
-                    effectService.projectileTrail(current[0], trailEnd);
+                    drawTrail(current[0], trailEnd, spec, trailRenderer);
                 }
                 drawImpact(impact, spec.impact());
                 onHit.accept(candidate, impact);
@@ -643,11 +631,7 @@ public final class SkillProjectileService {
                 }
             }
 
-            if (trailRenderer != null) {
-                renderVisualTrail(current[0], next, trailRenderer);
-            }
-
-            effectService.projectileTrail(current[0], next);
+            drawTrail(current[0], next, spec, trailRenderer);
             travelled[0] += actualDistance;
             current[0] = next;
             if (blockImpact != null) {
@@ -673,11 +657,14 @@ public final class SkillProjectileService {
         }
     }
 
-    /** 飛翔区間へ既存の軌跡と任意の追加粒子を重ね、衝突判定とは独立して描画します。 */
-    private void drawTrail(@NotNull Location start, @NotNull Location end, @NotNull SkillProjectileSpec spec) {
-        effectService.projectileParticles(start, end, 0.45D, spec.trail());
-        if (spec.accentTrail() != null) {
-            effectService.projectileParticles(start, end, 0.65D, spec.accentTrail());
+    /** 確定した飛翔区間を通常の軌跡またはスキル固有の描画処理へ渡します。 */
+    private void drawTrail(Location start, Location end, SkillProjectileSpec spec,
+                           @Nullable BiConsumer<Location, Location> trailRenderer) {
+        if (trailRenderer == null) {
+            effectService.projectileTrail(start, end, spec.trail(), spec.accentTrail());
+        } else if (start.distanceSquared(end) > 1.0E-8D) {
+            trailRenderer.accept(start.clone(), end.clone());
+            effectService.projectileTrail(start, end);
         }
     }
 
@@ -691,14 +678,6 @@ public final class SkillProjectileService {
         double position = target.toVector().subtract(start.toVector()).dot(segment) / lengthSquared;
         double bounded = Math.max(0.0D, Math.min(1.0D, position));
         return start.clone().add(segment.multiply(bounded));
-    }
-
-    /** 専用描画側へ変更されない飛翔区間のコピーを渡します。 */
-    private static void renderVisualTrail(@NotNull Location start, @NotNull Location end,
-                                          @NotNull BiConsumer<Location, Location> trailRenderer) {
-        if (start.distanceSquared(end) > 1.0E-8D) {
-            trailRenderer.accept(start.clone(), end.clone());
-        }
     }
 
     private void finish(

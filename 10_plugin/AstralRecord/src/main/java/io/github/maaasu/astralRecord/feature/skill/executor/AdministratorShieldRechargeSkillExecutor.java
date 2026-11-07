@@ -93,8 +93,10 @@ public final class AdministratorShieldRechargeSkillExecutor implements SkillExec
             double angle = phase + Math.PI * 2.0D * index / 12.0D;
             locations.add(center.clone().add(Math.cos(angle) * 0.75D, Math.sin(angle) * 0.22D, Math.sin(angle) * 0.75D));
         }
-        particleDisplayService.spawnForNearbyViewers(center, locations, SharedParticleDefinitions.SHIELD_RECHARGE_DUST);
-        packDisplay.show(ID, SkillPackDisplay.Phase.AREA, center, 1.5F, context.player().getBukkit());
+        var rendered = packDisplay.show(ID, SkillPackDisplay.Phase.AREA, center, 1.5F, context.player().getBukkit());
+        particleDisplayService.spawnBudgetedForViewers(center.getWorld(), locations,
+                SharedParticleDefinitions.SHIELD_RECHARGE_DUST, null, viewer -> true,
+                ParticleDisplayService.EffectPoints.LOOP, viewer -> rendered.contains(viewer) ? 0 : 3);
     }
 
     private void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {

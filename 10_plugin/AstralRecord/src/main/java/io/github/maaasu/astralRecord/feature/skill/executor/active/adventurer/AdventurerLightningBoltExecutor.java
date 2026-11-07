@@ -135,7 +135,7 @@ public final class AdventurerLightningBoltExecutor extends PlayerActiveSkillExec
                 .limit(maxChainTargets)
                 .forEach(target -> {
                     Location chainImpact = target.location().clone().add(0.0D, 1.0D, 0.0D);
-                    context.services().effects().line(
+                    context.services().effects().chain(
                             primaryImpact,
                             chainImpact,
                             0.22D,

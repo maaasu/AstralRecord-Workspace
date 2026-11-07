@@ -160,7 +160,7 @@ public final class ArcaneFlowSkillRuntimeService {
             return;
         }
         Location center = base.clone().add(0.0D, ACTIVATION_PARTICLE_HEIGHT, 0.0D);
-        packDisplay.show(MageArcaneFlowSkillExecutor.ID, SkillPackDisplay.Phase.CAST, center, (float) (2.0D * ACTIVATION_PARTICLE_RADIUS), player.getBukkit());
+        var rendered = packDisplay.show(MageArcaneFlowSkillExecutor.ID, SkillPackDisplay.Phase.CAST, center, (float) (2.0D * ACTIVATION_PARTICLE_RADIUS), player.getBukkit());
         List<Location> locations = new ArrayList<>(ACTIVATION_PARTICLE_POINTS);
         for (int index = 0; index < ACTIVATION_PARTICLE_POINTS; index++) {
             double angle = Math.PI * 2.0D * index / ACTIVATION_PARTICLE_POINTS;
@@ -170,10 +170,9 @@ public final class ArcaneFlowSkillRuntimeService {
                     Math.sin(angle) * ACTIVATION_PARTICLE_RADIUS
             ));
         }
-        particleDisplayService.spawnForNearbyViewers(
-                center,
-                locations,
-                SharedParticleDefinitions.SKILL_MAGE_ARCANE_DUST
+        particleDisplayService.spawnBudgetedForViewers(
+                center.getWorld(), locations, SharedParticleDefinitions.SKILL_MAGE_ARCANE_DUST, null, viewer -> true,
+                ParticleDisplayService.EffectPoints.LOOP, viewer -> rendered.contains(viewer) ? 0 : 3
         );
     }
 

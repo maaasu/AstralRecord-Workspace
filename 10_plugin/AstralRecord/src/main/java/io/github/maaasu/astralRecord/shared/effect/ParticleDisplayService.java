@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -811,6 +812,69 @@ public class ParticleDisplayService {
                 if (geometry) spawnBatch(viewer, points, definition, density, longDistance, true);
                 else spawnBurstBatch(viewer, points, definition, density, longDistance, true);
             }
+        }
+    }
+
+    /** 表示位置が開いた線、閉じた輪郭、独立した散布のいずれかを指定します。 */
+    public enum EffectPoints { LINE, LOOP, BURSTS }
+
+    /**
+     * 元のJava演出を送り、統合版の粒子は指定された地点数に制限します。
+     * @param world 描画するワールド
+     * @param locations 順序付けられた地点
+     * @param definition 粒子の共通定義
+     * @param audience 元の演出が選んだ閲覧者。null の場合は同一ワールドの近傍
+     * @param javaAudience Java版で元の粒子を表示する閲覧者
+     * @param mode 地点を開いた線、閉じた輪郭、独立した散布のいずれとして扱うか
+     * @param bedrockLimit 統合版閲覧者あたりの地点数上限。0なら送信しない
+     */
+    public void spawnBudgetedForViewers(
+            World world, Collection<Location> locations, SharedParticleDefinition definition,
+            @Nullable Collection<Player> audience, Predicate<Player> javaAudience, EffectPoints mode,
+            ToIntFunction<Player> bedrockLimit
+    ) {
+        if (locations.isEmpty() || definition.count() <= 0) return;
+        Collection<? extends Player> viewers = audience;
+        if (viewers == null) {
+            viewers = locations.size() == 1
+                    ? world.getNearbyPlayers(locations.iterator().next(), Math.sqrt(DEFAULT_VIEWER_DISTANCE_SQUARED))
+                    : world.getPlayers();
+        }
+        if (viewers.isEmpty()) return;
+        List<Location> points = uniqueLocations(locations, world);
+        for (Player viewer : viewers) {
+            if (!viewer.isOnline() || viewer.getWorld() != world) continue;
+            boolean bedrock = isBedrock(viewer);
+            if (bedrock && definition.hideForBedrock()) continue;
+            int limit = bedrock ? Math.min(BEDROCK_MAX_POINTS, bedrockLimit.applyAsInt(viewer)) : 0;
+            if (bedrock ? limit <= 0 : !javaAudience.test(viewer)) continue;
+            double density = resolvePlayerDensityScale(viewer);
+            if (density <= 0.0D) continue;
+            if (bedrock) {
+                spawnBoundedBedrock(viewer, points, definition, density, limit, mode);
+            } else if (mode == EffectPoints.BURSTS) {
+                spawnBurstBatch(viewer, points, definition, density, false, audience == null);
+            } else {
+                spawnBatch(viewer, points, definition, density, false, audience == null);
+            }
+        }
+    }
+
+    /** 距離内の点を均等に間引き、各地点に1粒を送ります。 */
+    private void spawnBoundedBedrock(Player viewer, List<Location> points, SharedParticleDefinition definition,
+                                     double density, int limit, EffectPoints mode) {
+        Location eye = viewer.getLocation();
+        List<Location> nearby = new ArrayList<>();
+        for (Location point : points) {
+            if (eye.distanceSquared(point) <= DEFAULT_VIEWER_DISTANCE_SQUARED) nearby.add(point);
+        }
+        int selected = Math.min(limit, ParticlePointSampling.count(Math.min(limit, nearby.size()), density));
+        boolean closed = mode == EffectPoints.LOOP && nearby.size() == points.size();
+        for (int index = 0; index < selected; index++) {
+            int sample = closed ? index * nearby.size() / selected
+                    : ParticlePointSampling.index(index, nearby.size(), selected);
+            Location point = nearby.get(sample);
+            spawnForViewerResolvedCount(viewer, point, definition.particle(), 1, 0, 0, 0, 0, definition.data());
         }
     }
 

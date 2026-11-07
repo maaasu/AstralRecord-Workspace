@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService.SkillEffectsClient;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
@@ -120,7 +121,7 @@ public final class SkillPackDisplay {
      * @return パック演出で処理した閲覧者。既存粒子へのフォールバックから除外できる
      */
     public Set<Player> show(String skillId, Phase phase, Location location, float diameter, @Nullable Player source) {
-        return show(skillId, phase, location, diameter, source, null);
+        return show(skillId, phase, location, diameter, source, null, null);
     }
 
     /**
@@ -131,10 +132,11 @@ public final class SkillPackDisplay {
      * @param diameter スプライトの直径（ブロック）
      * @param source 発動者。発動者を持たない場合はnull
      * @param audience 元の演出が使用する閲覧者。nullなら近傍の閲覧者を検索
+     * @param edition 対象の版。null の場合は両版
      * @return パック演出で処理した閲覧者
      */
     Set<Player> show(String skillId, Phase phase, Location location, float diameter, @Nullable Player source,
-                     @Nullable List<Player> audience) {
+                     @Nullable List<Player> audience, @Nullable SkillEffectsClient edition) {
         Integer slot = slots.get(skillId);
         World world = location.getWorld();
         if (slot == null || world == null || !Bukkit.isPrimaryThread() || active.size() >= MAX_ACTIVE) {
@@ -148,13 +150,13 @@ public final class SkillPackDisplay {
             Set<Player> handled = new HashSet<>();
             int checked = 0;
             if (audience == null && source != null) {
-                collect(source, source, location, phase, java, bedrock, handled);
+                collect(source, source, location, phase, java, bedrock, handled, edition);
             }
             var candidates = audience == null ? world.getNearbyPlayers(location, VIEW_DISTANCE) : audience;
             for (Player viewer : candidates) {
                 if (checked++ >= MAX_CANDIDATES || handled.size() >= MAX_VIEWERS) break;
                 if (audience != null || viewer != source) {
-                    collect(viewer, source, location, phase, java, bedrock, handled);
+                    collect(viewer, source, location, phase, java, bedrock, handled, edition);
                 }
             }
             if (java.isEmpty() && bedrock.isEmpty()) return handled;
@@ -189,17 +191,19 @@ public final class SkillPackDisplay {
 
     /** 範囲、発動者の可視性、パック、粒子密度の順に閲覧者を絞ります。 */
     private void collect(Player viewer, @Nullable Player source, Location location, Phase phase,
-                         List<Player> java, List<Player> bedrock, Set<Player> handled) {
+                         List<Player> java, List<Player> bedrock, Set<Player> handled,
+                         @Nullable SkillEffectsClient edition) {
         if (!viewer.isOnline() || viewer.getWorld() != location.getWorld()
                 || viewer.getLocation().distanceSquared(location) > VIEW_DISTANCE * VIEW_DISTANCE
                 || (source != null && viewer != source && !viewer.canSee(source))) return;
         var client = resourcePacks.skillEffectsClient(viewer);
-        if (client == ResourcePackService.SkillEffectsClient.NONE) return;
+        if (client == SkillEffectsClient.NONE || (edition != null && client != edition)) return;
         handled.add(viewer);
         double density = density(viewer);
-        if (density <= 0.0D || (phase == Phase.TRAIL && density < 1.0D
+        if (density <= 0.0D || (client == SkillEffectsClient.JAVA
+                && phase == Phase.TRAIL && density < 1.0D
                 && ThreadLocalRandom.current().nextDouble() >= density)) return;
-        (client == ResourcePackService.SkillEffectsClient.JAVA ? java : bedrock).add(viewer);
+        (client == SkillEffectsClient.JAVA ? java : bedrock).add(viewer);
     }
 
     /** 設定キャッシュを使用し、読み込み前の閲覧者には標準密度を使用します。 */

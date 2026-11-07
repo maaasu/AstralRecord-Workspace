@@ -26,7 +26,7 @@ final class BackendProtocol {
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
-    private static final byte[] SKILL_EFFECTS_READY = emptyNotification("skill_effects_ready");
+    private static final byte[] SKILL_EFFECTS_READY = emptyNotification("skill_effects_v2_ready");
     private static final byte[] SELENEA_READY = emptyNotification("selenea_ready");
     private static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     private static final int ACTION_RING_HUD_NOTIFICATION_SIZE = 2 + ACTION_RING_HUD_READY.length() + 2 + 64;
