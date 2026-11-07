@@ -13,7 +13,7 @@
       "bones": [
         { "name": "billboard", "pivot": [ 0, 0, 0 ] },
         {
-          "name": "crest",
+          "name": "header",
           "parent": "billboard",
           "pivot": [ 0, 4, 0 ],
           "cubes": [
@@ -49,24 +49,12 @@
           ]
         },
         {
-          "name": "sparkle_left",
+          "name": "sparkle_corner",
           "parent": "billboard",
-          "pivot": [ -23, 8.5, 0 ],
+          "pivot": [ 24, 6.5, 0 ],
           "cubes": [
             {
-              "origin": [ -24.5, 7, 0 ],
-              "size": [ 3, 3, 0 ],
-              "uv": { "north": { "uv": [ 192, 0 ], "uv_size": [ 16, 16 ] } }
-            }
-          ]
-        },
-        {
-          "name": "sparkle_right",
-          "parent": "billboard",
-          "pivot": [ 23, 9, 0 ],
-          "cubes": [
-            {
-              "origin": [ 21.5, 7.5, 0 ],
+              "origin": [ 22.5, 5, 0 ],
               "size": [ 3, 3, 0 ],
               "uv": { "north": { "uv": [ 192, 0 ], "uv_size": [ 16, 16 ] } }
             }

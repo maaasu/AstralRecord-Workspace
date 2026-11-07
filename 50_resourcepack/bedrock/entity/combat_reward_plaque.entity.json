@@ -14,12 +14,15 @@
         "pre_animation": [
           "variable.middle_height = 1.6 + 2.2624 * query.property('astralrecord:reward_lines');",
           "variable.age = query.life_time;",
-          "variable.enter = math.clamp(variable.age / 0.18, 0.0, 1.0);",
-          "variable.exit = math.clamp((variable.age - 5.55) / 0.45, 0.0, 1.0);",
-          "variable.frame_scale = 0.94 + 0.06 * variable.enter - 0.03 * variable.exit;",
-          "variable.alpha = (0.42 + 0.58 * variable.enter) * (1.0 - variable.exit);",
-          "variable.twinkle_left = 0.42 + 0.83 * math.pow(math.max(0.0, math.sin(variable.age * 240.0)), 2.0);",
-          "variable.twinkle_right = 0.42 + 0.83 * math.pow(math.max(0.0, math.sin(variable.age * 240.0 + 130.0)), 2.0);"
+          "variable.enter = math.clamp(variable.age / 0.5, 0.0, 1.0);",
+          "variable.enter = 1.0 - (1.0 - variable.enter) * (1.0 - variable.enter) * (1.0 - variable.enter);",
+          "variable.exit = math.clamp((variable.age - 5.5) / 0.5, 0.0, 1.0);",
+          "variable.exit = variable.exit * variable.exit * (3.0 - 2.0 * variable.exit);",
+          "variable.frame_y = 7.4 + 0.6 * variable.enter + 0.4 * variable.exit;",
+          "variable.frame_scale = 0.98 + 0.02 * variable.enter - 0.015 * variable.exit;",
+          "variable.alpha = (0.58 + 0.42 * variable.enter) * (1.0 - variable.exit);",
+          "variable.corner_glint = math.min(math.clamp((variable.age - 0.62) / 0.26, 0.0, 1.0), math.clamp((1.30 - variable.age) / 0.42, 0.0, 1.0));",
+          "variable.corner_glint = variable.corner_glint * variable.corner_glint * (3.0 - 2.0 * variable.corner_glint);"
         ],
         "animate": [ "layout" ]
       },

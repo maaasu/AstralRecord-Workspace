@@ -3,8 +3,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_normal_5.png",
-      "height": 98,
-      "ascent": 46,
+      "height": 75,
+      "ascent": 24,
       "chars": [
         "\ue710"
       ]
@@ -12,8 +12,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_normal_6.png",
-      "height": 108,
-      "ascent": 46,
+      "height": 85,
+      "ascent": 24,
       "chars": [
         "\ue711"
       ]
@@ -21,8 +21,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_normal_7.png",
-      "height": 118,
-      "ascent": 46,
+      "height": 95,
+      "ascent": 24,
       "chars": [
         "\ue712"
       ]
@@ -30,8 +30,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_normal_8.png",
-      "height": 128,
-      "ascent": 46,
+      "height": 105,
+      "ascent": 24,
       "chars": [
         "\ue713"
       ]
@@ -39,8 +39,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_normal_9.png",
-      "height": 138,
-      "ascent": 46,
+      "height": 115,
+      "ascent": 24,
       "chars": [
         "\ue714"
       ]
@@ -48,8 +48,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_normal_10.png",
-      "height": 148,
-      "ascent": 46,
+      "height": 125,
+      "ascent": 24,
       "chars": [
         "\ue715"
       ]
@@ -57,8 +57,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_5.png",
-      "height": 98,
-      "ascent": 46,
+      "height": 75,
+      "ascent": 24,
       "chars": [
         "\ue720"
       ]
@@ -66,8 +66,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_6.png",
-      "height": 108,
-      "ascent": 46,
+      "height": 85,
+      "ascent": 24,
       "chars": [
         "\ue721"
       ]
@@ -75,8 +75,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_7.png",
-      "height": 118,
-      "ascent": 46,
+      "height": 95,
+      "ascent": 24,
       "chars": [
         "\ue722"
       ]
@@ -84,8 +84,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_8.png",
-      "height": 128,
-      "ascent": 46,
+      "height": 105,
+      "ascent": 24,
       "chars": [
         "\ue723"
       ]
@@ -93,8 +93,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_9.png",
-      "height": 138,
-      "ascent": 46,
+      "height": 115,
+      "ascent": 24,
       "chars": [
         "\ue724"
       ]
@@ -102,8 +102,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_10.png",
-      "height": 148,
-      "ascent": 46,
+      "height": 125,
+      "ascent": 24,
       "chars": [
         "\ue725"
       ]
@@ -111,8 +111,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_glint_5.png",
-      "height": 98,
-      "ascent": 46,
+      "height": 75,
+      "ascent": 24,
       "chars": [
         "\ue750"
       ]
@@ -120,8 +120,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_glint_6.png",
-      "height": 108,
-      "ascent": 46,
+      "height": 85,
+      "ascent": 24,
       "chars": [
         "\ue751"
       ]
@@ -129,8 +129,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_glint_7.png",
-      "height": 118,
-      "ascent": 46,
+      "height": 95,
+      "ascent": 24,
       "chars": [
         "\ue752"
       ]
@@ -138,8 +138,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_glint_8.png",
-      "height": 128,
-      "ascent": 46,
+      "height": 105,
+      "ascent": 24,
       "chars": [
         "\ue753"
       ]
@@ -147,8 +147,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_glint_9.png",
-      "height": 138,
-      "ascent": 46,
+      "height": 115,
+      "ascent": 24,
       "chars": [
         "\ue754"
       ]
@@ -156,8 +156,8 @@
     {
       "type": "bitmap",
       "file": "astralrecord:font/combat_reward_plaque_rare_glint_10.png",
-      "height": 148,
-      "ascent": 46,
+      "height": 125,
+      "ascent": 24,
       "chars": [
         "\ue755"
       ]

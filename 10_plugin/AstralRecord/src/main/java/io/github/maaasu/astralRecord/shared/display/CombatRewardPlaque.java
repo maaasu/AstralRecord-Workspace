@@ -12,18 +12,19 @@ import java.util.regex.Pattern;
 /**
  * 両版の討伐報酬プレートに表示する、確定済みの本文と装飾の種類です。
  *
- * @param lines 見出し、取得元、固定報酬、区切り、アイテム行。5〜10行
+ * @param lines 見出し、取得元、固定報酬、余白、アイテム行。5〜10行
  * @param rare レアドロップが含まれるか
  */
 public record CombatRewardPlaque(@NotNull List<String> lines, boolean rare) {
     private static final int MIN_LINES = 5;
     private static final int MAX_LINES = 10;
+    private static final int SPACER_INDEX = 3;
+    private static final long REVEAL_INTERVAL_TICKS = 2L;
     private static final int FRAME_WIDTH = 192;
     private static final int ITEM_INSET = 16;
+    // 既存パックのアイコン枠にも収まるよう、Java版の字送りを維持します。
     private static final int ITEM_ICON_GAP = 11;
     private static final int MAX_TEXT_WIDTH = FRAME_WIDTH - 2 * ITEM_INSET;
-    private static final int DIVIDER_ADVANCE = 151;
-    private static final int DIVIDER_INSET = (FRAME_WIDTH - DIVIDER_ADVANCE) / 2;
     private static final Key FONT = Key.key("astralrecord", "combat_reward_plaque");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final Pattern ICONS = Pattern.compile("[\uE700-\uE708]");
@@ -47,7 +48,7 @@ public record CombatRewardPlaque(@NotNull List<String> lines, boolean rare) {
         for (int index = 0; index < lines.size(); index++) {
             String line = lines.get(index);
             if (line.indexOf('\n') >= 0 || line.indexOf('\r') >= 0) return false;
-            if (index < 4 ? textWidth(line) > MAX_TEXT_WIDTH : !fitsItemRow(line)) return false;
+            if (index <= SPACER_INDEX ? textWidth(line) > MAX_TEXT_WIDTH : !fitsItemRow(line)) return false;
         }
         return true;
     }
@@ -62,24 +63,44 @@ public record CombatRewardPlaque(@NotNull List<String> lines, boolean rare) {
         return textWidth(line) + iconGap <= MAX_TEXT_WIDTH;
     }
 
+    /**
+     * 最初の行から本文を順に開示し、装飾用の空行には開示時間を割り当てません。
+     * @param age 表示開始からの経過tick
+     * @return 先頭から開示した行数。途中の空行を含む
+     */
+    int visibleLines(long age) {
+        int revealStep = (int) Math.min(age / REVEAL_INTERVAL_TICKS, lines.size() - 2L);
+        return 1 + revealStep + (revealStep >= SPACER_INDEX ? 1 : 0);
+    }
+
+    /**
+     * @return 最後の行を開示する表示開始からの経過tick
+     */
+    long revealDurationTicks() {
+        return (lines.size() - 2L) * REVEAL_INTERVAL_TICKS;
+    }
+
+    /**
+     * 行を開示しつつ、空白でプレートの行数とJava版の全幅を固定します。
+     * @param bedrock 統合版の名札として整形するか
+     * @param visibleLines 開示済みの先頭行数
+     * @return 行数が固定された表示本文
+     */
     Component body(boolean bedrock, int visibleLines) {
         var body = Component.text();
         for (int index = 0; index < lines.size(); index++) {
             if (index > 0) body.append(Component.newline());
-            if (index >= visibleLines) {
-                // 区切りを開示する前も表示幅を固定し、既に見えている行を動かしません。
-                body.append(!bedrock && index == 3 ? Component.text("\uE731").font(FONT)
-                        : Component.text("\u00a0"));
+            if (!bedrock && index == SPACER_INDEX) {
+                body.append(Component.text("\uE731").font(FONT));
                 continue;
             }
-            if (!bedrock && index == 3) {
-                body.append(javaPadding(DIVIDER_INSET), Component.text("\uE709").font(FONT),
-                        javaPadding(FRAME_WIDTH - DIVIDER_ADVANCE - DIVIDER_INSET));
+            if (index >= visibleLines) {
+                body.append(Component.text("\u00a0"));
                 continue;
             }
             Component line = LEGACY.deserialize(ColorCodeUtil.translateAlternateColorCodes(lines.get(index)));
             if (!bedrock) {
-                boolean itemRow = index >= 4;
+                boolean itemRow = index > SPACER_INDEX;
                 line = line.replaceText(config -> config.match(ICONS)
                         .replacement((match, glyph) -> {
                             glyph.font(FONT);

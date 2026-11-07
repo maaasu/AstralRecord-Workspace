@@ -57,6 +57,10 @@ public final class DisplayTextService {
     private static final long RESULT_REVEAL_TICKS = 36L;
     private static final int MAX_RESULT_LINES = 16;
     private static final int RESULT_HEADER_LINES = 3;
+    private static final long PLAQUE_ENTRANCE_TICKS = 10L;
+    private static final long PLAQUE_EXIT_TICKS = 10L;
+    private static final long PLAQUE_GLINT_DELAY_TICKS = 2L;
+    private static final long PLAQUE_GLINT_TICKS = 6L;
     private static final float PLAQUE_SCALE = 0.68F;
     // Java の TextDisplay は行間が10px、1pxが0.025ブロックで、本文の下端が原点です。
     private static final float PLAQUE_LINE_HEIGHT = 0.25F;
@@ -518,7 +522,7 @@ public final class DisplayTextService {
 
     /**
      * 結果表示の本文・補間・透過を更新し、寿命や閲覧者の退出時に回収します。
-     * 安定表示中は変換を再送せず、登場・退場の変換更新も4tickごとに制限します。
+     * 安定表示中は変換を再送しません。登場と退場は従来表示を4tickごと、Java版プレートを毎tick更新します。
      * @param state 結果表示の状態
      * @param anchorLocation 解決済みの表示座標
      */
@@ -587,43 +591,69 @@ public final class DisplayTextService {
         state.animationAge++;
     }
 
-    private void tickJavaPlaque(
+    /**
+     * Java版の本文と枠を同期し、登場・退場の姿勢とレア枠の一度の点灯を送ります。
+     * @param state 表示の管理状態
+     * @param entity 本文の実体
+     * @param animation 表示寿命と閲覧者の設定
+     * @param plaque 表示する討伐報酬
+     */
+    private static void tickJavaPlaque(
             ManagedDisplayState state, TextDisplay entity, ResultAnimation animation, CombatRewardPlaque plaque
     ) {
-        int visibleLines = Math.min(plaque.lines().size(), 1 + (int) (state.animationAge / 2));
+        long age = state.animationAge;
+        int visibleLines = plaque.visibleLines(age);
         if (visibleLines != state.resultVisibleLines) {
             entity.text(plaque.body(false, visibleLines));
             state.resultVisibleLines = visibleLines;
         }
-        if (state.animationAge % RESULT_FRAME_TICKS != 0L || state.plaqueBackground == null) return;
-
-        long age = state.animationAge;
         TextDisplay background = state.plaqueBackground;
-        boolean sparkle = plaque.rare() && age < 24L && (age / RESULT_FRAME_TICKS) % 2L == 0L;
+        if (background == null) return;
+        boolean sparkle = isPlaqueGlintActive(plaque, age);
         int frame = sparkle ? 1 : 0;
         if (frame != state.resultCrestFrame) {
             background.text(plaque.frame(sparkle));
             state.resultCrestFrame = frame;
         }
-        if (!Float.isNaN(state.lastResultScale)
-                && age > RESULT_ENTRANCE_TICKS && age < animation.durationTicks() - RESULT_EXIT_TICKS) return;
 
-        double entrance = Math.min(1.0D, age / (double) RESULT_ENTRANCE_TICKS);
-        double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
-        double exit = Math.clamp((age - animation.durationTicks() + RESULT_EXIT_TICKS)
-                / (double) RESULT_EXIT_TICKS, 0.0D, 1.0D);
-        float scale = PLAQUE_SCALE * (float) (0.72D + 0.28D * eased + 0.08D * Math.sin(entrance * Math.PI));
-        float lift = (float) (-0.24D * (1.0D - eased) + 0.18D * exit);
-        byte opacity = (byte) Math.max(4L, Math.round(255.0D * (0.25D + 0.75D * eased) * (1.0D - exit)));
-        applyPlaqueFrame(entity, scale, lift, 0.0F, opacity);
-        applyPlaqueFrame(background, scale, lift + (plaque.lines().size() - 1) * PLAQUE_LINE_HEIGHT * scale,
-                PLAQUE_BACKGROUND_DEPTH, opacity);
-        state.lastResultScale = scale;
+        long durationTicks = animation.durationTicks();
+        long exitStart = Math.max(0L, durationTicks - PLAQUE_EXIT_TICKS);
+        if (age == 0L || (age > PLAQUE_ENTRANCE_TICKS && age <= exitStart)) return;
+        applyPlaqueMotion(entity, age, durationTicks, 0);
+        applyPlaqueMotion(background, age, durationTicks, plaque.lines().size() - 1);
     }
 
-    private static void applyPlaqueFrame(TextDisplay entity, float scale, float lift, float depth, byte opacity) {
-        entity.setInterpolationDelay(0);
-        entity.setInterpolationDuration((int) RESULT_FRAME_TICKS);
+    /**
+     * @param plaque 表示する討伐報酬
+     * @param age 表示開始からの経過tick
+     * @return 全行の開示と登場が終わり、レア枠が点灯する期間に限りtrue
+     */
+    private static boolean isPlaqueGlintActive(CombatRewardPlaque plaque, long age) {
+        long start = Math.max(PLAQUE_ENTRANCE_TICKS, plaque.revealDurationTicks()) + PLAQUE_GLINT_DELAY_TICKS;
+        return plaque.rare() && age >= start && age < start + PLAQUE_GLINT_TICKS;
+    }
+
+    /**
+     * 本文と枠に同じ拡大・浮上・透過を適用し、枠は最初の行の背後に合わせます。
+     * @param entity 本文または枠の実体
+     * @param age 表示開始からの経過tick
+     * @param durationTicks 表示寿命
+     * @param frameOffsetLines 枠を最初の行へ上げる行数。本文の場合は0
+     */
+    private static void applyPlaqueMotion(
+            TextDisplay entity, long age, long durationTicks, int frameOffsetLines
+    ) {
+        double entrance = Math.min(1.0D, age / (double) PLAQUE_ENTRANCE_TICKS);
+        double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
+        double exit = Math.clamp((age - durationTicks + PLAQUE_EXIT_TICKS) / (double) PLAQUE_EXIT_TICKS, 0.0D, 1.0D);
+        double fade = exit * exit * (3.0D - 2.0D * exit);
+        float scale = PLAQUE_SCALE * (float) (0.94D + 0.06D * eased);
+        float lift = (float) (0.12D * (eased - 1.0D + fade)) + frameOffsetLines * PLAQUE_LINE_HEIGHT * scale;
+        float depth = frameOffsetLines == 0 ? 0.0F : PLAQUE_BACKGROUND_DEPTH;
+        // TextDisplayの文字透過度は0〜3が特殊値のため、4で止めてから回収します。
+        byte opacity = (byte) Math.max(4L, Math.round(255.0D * (0.38D + 0.62D * eased) * (1.0D - fade)));
+        // クライアントは透過度を符号付きbyteのまま補間するため、各tickの値をそのまま表示します。
+        entity.setInterpolationDuration(0);
         entity.setTransformation(new Transformation(new Vector3f(0.0F, lift, depth),
                 new Quaternionf(), new Vector3f(scale), new Quaternionf()));
         entity.setTextOpacity(opacity);
@@ -740,8 +770,8 @@ public final class DisplayTextService {
                     // Geyser の名札アンカーは行数で動くため、表示開始時に全行を確定します。
                     display.text(plaque.body(true, plaque.lines().size()));
                 } else {
-                    display.text(plaque.body(false, 1));
-                    applyPlaqueFrame(display, PLAQUE_SCALE * 0.72F, -0.24F, 0.0F, (byte) 64);
+                    display.text(plaque.body(false, plaque.visibleLines(state.animationAge)));
+                    applyPlaqueMotion(display, state.animationAge, animation.durationTicks(), 0);
                 }
                 UUID viewerId = state.resultAnimation.viewerId();
                 Player viewer = viewerId == null ? null : Bukkit.getPlayer(viewerId);
@@ -771,7 +801,7 @@ public final class DisplayTextService {
             if (viewer != null) {
                 CombatRewardPlaque plaque = state.resultAnimation.plaque();
                 if (plaque != null && !state.resultAnimation.bedrockPlaque()) {
-                    state.plaqueBackground = spawnPlaqueBackground(world, location, state.options, plaque);
+                    state.plaqueBackground = spawnPlaqueBackground(world, location, state, plaque);
                     viewer.showEntity(plugin, state.plaqueBackground);
                 }
                 viewer.showEntity(plugin, state.entity);
@@ -784,24 +814,32 @@ public final class DisplayTextService {
         state.resultPageIndex = -1;
         state.resultVisibleLines = -1;
         state.resultCrestFrame = -1;
-        state.lastAppliedOptions = null;
+        state.lastAppliedOptions = state.resultAnimation != null && state.resultAnimation.plaque() != null
+                ? state.options : null;
         return state.entity;
     }
 
+    /**
+     * Java版の枠を、表示中の時点に合わせて受取人だけに見える実体として生成します。
+     * @param world 生成先のワールド
+     * @param location 本文と共有する表示位置
+     * @param state 表示の管理状態。討伐報酬プレートの設定が必要
+     * @param plaque 枠の種類と高さを決める報酬プレート
+     * @return 枠の実体
+     */
     private TextDisplay spawnPlaqueBackground(
-            World world, Location location, DisplayTextOptions options, CombatRewardPlaque plaque
+            World world, Location location, ManagedDisplayState state, CombatRewardPlaque plaque
     ) {
         return world.spawn(location, TextDisplay.class, display -> {
-            applyOptions(display, options.withShadowed(false));
+            applyOptions(display, state.options.withShadowed(false));
             display.setVisibleByDefault(false);
             display.setPersistent(false);
             display.setGravity(false);
             display.setInvulnerable(true);
             display.setSilent(true);
-            display.text(plaque.frame(plaque.rare()));
-            float scale = PLAQUE_SCALE * 0.72F;
-            applyPlaqueFrame(display, scale, -0.24F + (plaque.lines().size() - 1) * PLAQUE_LINE_HEIGHT * scale,
-                    PLAQUE_BACKGROUND_DEPTH, (byte) 64);
+            display.text(plaque.frame(isPlaqueGlintActive(plaque, state.animationAge)));
+            applyPlaqueMotion(display, state.animationAge, state.resultAnimation.durationTicks(),
+                    plaque.lines().size() - 1);
         });
     }
 

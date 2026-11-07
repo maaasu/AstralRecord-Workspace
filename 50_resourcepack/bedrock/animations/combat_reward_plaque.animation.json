@@ -5,14 +5,13 @@
       "loop": true,
       "bones": {
         "billboard": {
-          "position": [ 0, 8, 0 ],
+          "position": [ 0, "variable.frame_y", 0 ],
           "rotation": [ "query.camera_rotation(0)", "query.camera_rotation(1) - query.body_y_rotation", 0 ],
           "scale": [ "variable.frame_scale", "variable.frame_scale", 1 ]
         },
         "middle": { "scale": [ 1, "variable.middle_height / 22.75", 1 ] },
         "footer": { "position": [ 0, "-variable.middle_height", 0 ] },
-        "sparkle_left": { "scale": [ "variable.twinkle_left", "variable.twinkle_left", 1 ] },
-        "sparkle_right": { "scale": [ "variable.twinkle_right", "variable.twinkle_right", 1 ] }
+        "sparkle_corner": { "scale": [ "variable.corner_glint", "variable.corner_glint", 1 ] }
       }
     }
   }

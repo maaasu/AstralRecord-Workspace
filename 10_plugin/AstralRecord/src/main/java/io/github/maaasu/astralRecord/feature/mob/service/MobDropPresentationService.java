@@ -367,6 +367,14 @@ public final class MobDropPresentationService {
         }
     }
 
+    /**
+     * 確定した討伐報酬を、固定報酬とアイテム行の間に余白を持つプレートへ整形します。
+     * @param mobName 討伐対象の表示名
+     * @param result 経験値とゴールドの抽選結果
+     * @param items 解決済み獲得アイテム
+     * @param category レア判定に使うMobのカテゴリ
+     * @return 両版のプレートに使う報酬本文
+     */
     private static CombatRewardPlaque formatRewardPlaque(
             String mobName, MobDropResult result, List<ResolvedDropItem> items, MobCategory category
     ) {
@@ -383,7 +391,7 @@ public final class MobDropPresentationService {
                     String.format(Locale.ROOT, "%,d", result.money())));
         }
         lines.add(totals.isEmpty() ? "\u00a0" : String.join("   ", totals));
-        lines.add("&6" + DisplaySeparators.SECTION);
+        lines.add("\u00a0");
 
         boolean rare = items.stream().anyMatch(item -> isRareDrop(category, item.dropRate()));
         List<ResolvedDropItem> shown = items.stream()

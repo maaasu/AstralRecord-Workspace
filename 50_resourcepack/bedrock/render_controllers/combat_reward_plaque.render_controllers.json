@@ -9,8 +9,7 @@
       "materials": [ { "*": "Material.default" } ],
       "textures": [ "Array.rewards[query.property('astralrecord:reward_rare')]" ],
       "part_visibility": [
-        { "sparkle_left": "query.property('astralrecord:reward_rare') != 0" },
-        { "sparkle_right": "query.property('astralrecord:reward_rare') != 0" }
+        { "sparkle_corner": "query.property('astralrecord:reward_rare') != 0 && variable.corner_glint > 0.0" }
       ],
       "ignore_lighting": true,
       "color": {
