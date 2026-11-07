@@ -24,7 +24,7 @@ final class GeyserSkillMenu {
 
         var form = SimpleForm.builder()
             .title("スキル選択")
-            .content("選択後、攻撃で発動します。");
+            .content("選んだスキルは、立ち上がって武器を使うと発動します。変更するときは、しゃがんだ状態で武器を使います。");
         labels.forEach(form::button);
         return connection.sendForm(form
             .validResultHandler(response -> {
