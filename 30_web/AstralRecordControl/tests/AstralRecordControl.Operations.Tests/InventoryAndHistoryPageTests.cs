@@ -1,5 +1,6 @@
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
+using AstralRecordControl.Web.Inventory;
 using AstralRecordControl.Web.Pages;
 using AstralRecordControl.Web.Pages.Shared;
 using Microsoft.AspNetCore.Mvc;
@@ -80,7 +81,8 @@ public sealed class InventoryAndHistoryPageTests
         db.Environments.Add(new InventoryEnvironment { EnvironmentId = server.EnvironmentId!.Value, EnvironmentKey = "fixture", DisplayName = "Fixture" });
         db.Servers.Add(server);
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Control:EnableProcessControl"] = "true" }).Build();
-        var page = new ServerIndex(db, null!, null!, new FixedClock(now), configuration, null!);
+        var clock = new FixedClock(now);
+        var page = new ServerIndex(db, new InventoryStore(db, new InventoryWriteGate(), clock, configuration), null!, clock, configuration, null!);
         async Task Reload()
         {
             host.RuntimeSnapshotJson = ControlJson.Serialize(new[] { runtime });

@@ -11,6 +11,10 @@
 <div class="page-heading"><div><h1>サーバー台帳</h1><p>稼働状態を確認し、一覧から起動・正常停止できます。</p></div><a class="button-link button-link--back" href="/">概要へ戻る</a></div>
 <p class="snapshot-note" data-live-region="server-updated">最終更新 @ControlDisplay.LastSeen(Model.ObservedAtUtc) · PCから30秒以内に届いた状態を表示します。</p>
 <p class="snapshot-note" id="inventory-live-status" role="status">3秒ごとに自動更新します。</p>
+<div id="inventory-operation-recovery" hidden>
+    <a asp-page="/Workflows">履歴・復旧で受付結果を確認</a>
+    <a asp-page="/Servers/Index" data-native-navigation>最新の状態を確認</a>
+</div>
 @if (Model.Error != null) { <p role="alert">@Model.Error</p> }
 
 <section class="page-section" aria-labelledby="server-list-heading" data-live-region="server-list">
@@ -24,21 +28,24 @@
             var status = Model.Status(server);
             var actions = Model.Actions(server);
             <tr><td><strong>@server.DisplayName</strong><span class="entity-key">@server.ServerKey</span></td><td><span class="state-badge @status.CssClass">@status.Label</span><span class="entity-key">@status.Detail</span></td><td>@(Model.Hosts.FirstOrDefault(h => h.HostId == server.HostId)?.DisplayName ?? "PC未確認")<span class="entity-key">@ControlDisplay.Kind(kind)</span></td><td><span class="state-badge @(server.DesiredRevision == server.AppliedRevision ? "is-online" : "is-pending")">@(server.DesiredRevision == server.AppliedRevision ? "適用済み" : "適用待ち")</span><details class="inline-details" data-live-detail="@server.ServerId"><summary data-live-focus="@($"{server.ServerId}-revision")">版を表示</summary>希望 @server.DesiredRevision / 適用 @server.AppliedRevision</details></td><td><div class="table-actions">
-            @if (kind is ServerKind.Java or ServerKind.Velocity) {
+            @if (kind is ServerKind.Java or ServerKind.Velocity || actions.CanStop) {
                 <form method="post" asp-page-handler="Operate" class="register-operation-form" data-list-operation-form>
                     <input type="hidden" name="serverId" value="@server.ServerId" />
                     <input type="hidden" name="requestKey" value="@Guid.NewGuid()" />
                     <input type="hidden" name="configRevision" value="@server.AppliedRevision" />
                     <input type="hidden" name="expectedStateRevision" value="@actions.Runtime?.StateRevision" />
                     <input type="hidden" name="expectedServerSessionId" value="@actions.Runtime?.CurrentSessionId" />
-                    <button type="submit" name="kind" value="Start" class="operation-start" disabled="@(!actions.CanStart)" data-live-focus="@($"{server.ServerId}-start")" aria-label="@(server.DisplayName + "を起動")">起動</button>
-                    <button type="submit" name="kind" value="Stop" class="operation-stop" disabled="@(!actions.CanStop)" data-live-focus="@($"{server.ServerId}-stop")" aria-label="@(server.DisplayName + "を正常停止")">正常停止</button>
+                    <button type="submit" name="kind" value="Start" class="operation-start" disabled="@(!actions.CanStart)" data-live-focus="@($"{server.ServerId}-start")" aria-label="@(server.DisplayName + "を起動")" aria-describedby="operation-state-@server.ServerId">起動</button>
+                    <button type="submit" name="kind" value="Stop" class="operation-stop" disabled="@(!actions.CanStop)" data-live-focus="@($"{server.ServerId}-stop")" aria-label="@(server.DisplayName + "を正常停止")" aria-describedby="operation-state-@server.ServerId">正常停止</button>
                 </form>
+                <span class="secondary-text" id="operation-state-@server.ServerId">@(actions.Reason ?? (actions.CanStart ? "停止中。起動できます。" : "稼働中。正常停止できます。"))</span>
+                @if (actions.WorkflowId is Guid workflowId) {
+                    <a asp-page="/Workflows" asp-route-workflowId="@workflowId" data-live-focus="@($"{server.ServerId}-workflow")">履歴・復旧を確認</a>
+                }
                 <a class="button-link button-link--primary" asp-page="Operations" asp-route-serverId="@server.ServerId" data-live-focus="@($"{server.ServerId}-logs")">操作・ログ</a>
             }
             else { <span class="secondary-text">台帳のみ · 起動・停止は未対応</span> }
             <a class="button-link" asp-page="Edit" asp-route-serverId="@server.ServerId" data-live-focus="@($"{server.ServerId}-edit")">設定・詳細</a>
-            @if (actions.Pending) { <span class="secondary-text">操作・保守の処理中、または要確認</span> }
             </div></td></tr>
         }
         </tbody></table></div>
