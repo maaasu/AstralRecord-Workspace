@@ -35,9 +35,11 @@ CELL_HEIGHT = 39
 INK_HEIGHT = 12
 RASTER_ORIGIN = (3, 12)
 SPACES = {" ": 4, "\u3000": 12}
-COMPACT_CELL_WIDTH = 9
-COMPACT_CELL_HEIGHT = 37
-COMPACT_INK_HEIGHT = 9
+COMPACT_SCALE = 2
+COMPACT_CELL_WIDTH = 9 * COMPACT_SCALE
+COMPACT_CELL_HEIGHT = 37 * COMPACT_SCALE
+COMPACT_INK_HEIGHT = 9 * COMPACT_SCALE
+COMPACT_RASTER_ORIGIN = (6, 18)
 COMPACT_SPACES = {" ": 3, "\u3000": 9}
 
 
@@ -83,26 +85,41 @@ def render_glyph(font: ImageFont.FreeTypeFont, char: str) -> Image.Image:
     return cell
 
 
-def compact_glyph(legacy: Image.Image) -> Image.Image:
+def compact_glyph(font: ImageFont.FreeTypeFont, char: str, legacy: Image.Image) -> Image.Image:
     legacy_right = legacy.getbbox()[2]
     # The plugin calculates the same width from the legacy advance (right edge plus one).
-    right = (legacy_right * 3 + 3) // 4
-    coverage = legacy.crop((0, 0, legacy_right, INK_HEIGHT)).resize(
-        (right, COMPACT_INK_HEIGHT), Image.Resampling.LANCZOS
-    )
-    glyph = coverage.point(lambda pixel: 255 if pixel >= 115 else 0)
+    display_right = (legacy_right * 3 + 3) // 4
+    right = display_right * COMPACT_SCALE
+    raster = Image.new("L", (32, 32))
+    ImageDraw.Draw(raster).text(COMPACT_RASTER_ORIGIN, char, anchor="ls", font=font, fill=255)
+    bounds = raster.point(lambda pixel: 255 if pixel >= 20 else 0).getbbox()
+    if bounds is None:
+        raise ValueError(f"No compact pixels for U+{ord(char):04X}")
+    x0, y0, x1, y1 = bounds
+    ink = raster.crop((min(x0, COMPACT_RASTER_ORIGIN[0]), y0, x1, y1))
+    ink_height = min(ink.height, COMPACT_INK_HEIGHT)
+    top = max(0, min(y0 - COMPACT_SCALE, COMPACT_INK_HEIGHT - ink_height))
+    coverage = Image.new("L", (right, COMPACT_INK_HEIGHT))
+    coverage.paste(ink.resize((right, ink_height), Image.Resampling.LANCZOS), (0, top))
+
+    # Share some coverage within each GUI pixel to keep thin strokes under point sampling.
+    display_size = (display_right, COMPACT_INK_HEIGHT // COMPACT_SCALE)
+    averaged = coverage.resize(display_size, Image.Resampling.BOX).resize(coverage.size, Image.Resampling.NEAREST)
+    coverage = Image.blend(coverage, averaged, 0.55)
+    glyph = coverage.point(lambda pixel: 0 if pixel < 24 else min(255, pixel * 3 // 2))
     box = glyph.getbbox()
     if box is None or box[2] != right:
-        # Keep the strongest part of a thin stroke if quantization removed the right edge.
+        # Keep the strongest part of the rightmost stroke after dropping faint coverage.
         edge = [coverage.getpixel((right - 1, row)) for row in range(COMPACT_INK_HEIGHT)]
-        glyph.putpixel((right - 1, edge.index(max(edge))), 255)
+        strongest = max(edge)
+        glyph.putpixel((right - 1, edge.index(strongest)), max(32, strongest))
     cell = Image.new("L", (COMPACT_CELL_WIDTH, COMPACT_CELL_HEIGHT))
     cell.paste(glyph)
     return cell
 
 
 def font_assets(
-    stem: str, rows: list[str], glyphs: dict[str, Image.Image], spaces: dict[str, int]
+    stem: str, rows: list[str], glyphs: dict[str, Image.Image], spaces: dict[str, int], scale: int = 1
 ) -> dict[Path, bytes]:
     cell_width, cell_height = next(iter(glyphs.values())).size
     alpha = Image.new("L", (cell_width * COLUMNS, cell_height * len(rows)))
@@ -120,8 +137,8 @@ def font_assets(
             {
                 "type": "bitmap",
                 "file": f"astralrecord:font/{stem}.png",
-                "height": cell_height,
-                "ascent": cell_height,
+                "height": cell_height // scale,
+                "ascent": cell_height // scale,
                 "chars": rows,
             },
         ],
@@ -147,7 +164,8 @@ def assets(
         raise ValueError(f"Font lacks requested glyphs: {''.join(unsupported)}")
     font = ImageFont.truetype(font_path, 12, layout_engine=ImageFont.Layout.BASIC)
     glyphs = {char: render_glyph(font, char) for char in chars}
-    compact = {char: compact_glyph(glyph) for char, glyph in glyphs.items()}
+    compact_font = ImageFont.truetype(font_path, COMPACT_INK_HEIGHT, layout_engine=ImageFont.Layout.BASIC)
+    compact = {char: compact_glyph(compact_font, char, glyph) for char, glyph in glyphs.items()}
     advances = SPACES | {char: glyph.getbbox()[2] + 1 for char, glyph in glyphs.items()}
     for name in names:
         missing = set(name) - advances.keys()
@@ -156,18 +174,20 @@ def assets(
 
     rows = [chars[start : start + COLUMNS].ljust(COLUMNS, "\0") for start in range(0, len(chars), COLUMNS)]
     metrics = "".join(f"{ord(char):04X} {advance}\n" for char, advance in sorted(advances.items()))
-    outputs = font_assets(LEGACY_FONT, rows, glyphs, SPACES) | font_assets(COMPACT_FONT, rows, compact, COMPACT_SPACES)
+    outputs = font_assets(LEGACY_FONT, rows, glyphs, SPACES) | font_assets(
+        COMPACT_FONT, rows, compact, COMPACT_SPACES, scale=COMPACT_SCALE
+    )
     outputs[METRICS] = metrics.encode("ascii")
     return outputs, glyphs, compact
 
 
 def preview(names: list[str], glyphs: dict[str, Image.Image], compact: dict[str, Image.Image], path: Path) -> None:
-    columns = (("12 px", glyphs, SPACES), ("9 px", compact, COMPACT_SPACES))
+    columns = (("12 px", glyphs, SPACES, 1), ("9 px", compact, COMPACT_SPACES, COMPACT_SCALE))
     legacy_advances = SPACES | {char: glyph.getbbox()[2] + 1 for char, glyph in glyphs.items()}
     column_width = max(sum(legacy_advances[char] for char in name) for name in names) + 16
     image = Image.new("RGB", (column_width * len(columns), 17 * (len(names) + 1) + 8), (25, 29, 38))
     pen = ImageDraw.Draw(image)
-    for column, (label, images, spaces) in enumerate(columns):
+    for column, (label, images, spaces, scale) in enumerate(columns):
         start = 8 + column * column_width
         pen.text((start, 4), label, fill=(177, 187, 205))
         for row, name in enumerate(names, start=1):
@@ -178,11 +198,13 @@ def preview(names: list[str], glyphs: dict[str, Image.Image], compact: dict[str,
                     continue
                 glyph = images[char]
                 right = glyph.getbbox()[2]
-                mask = glyph.crop((0, 0, right, INK_HEIGHT))
+                mask = glyph.crop((0, 0, right, INK_HEIGHT * scale))
+                if scale != 1:
+                    mask = mask.resize((right // scale, INK_HEIGHT), Image.Resampling.BOX)
                 y = 4 + row * 17
                 image.paste((0, 0, 0), (x + 1, y + 1), mask)
                 image.paste((243, 227, 182), (x, y), mask)
-                x += right + 1
+                x += right // scale + 1
     image.resize((image.width * 3, image.height * 3), Image.Resampling.NEAREST).save(path)
 
 
