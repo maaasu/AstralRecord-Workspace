@@ -40,15 +40,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 public class PlayerModeEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
     private final AccountModeApplicationService accountModeApplicationService;
+    private final Predicate<PlayerInteractionSnapshot> bedrockSkillShortcutInput;
     private final Map<UUID, PendingModeChange> pendingModeChanges = new ConcurrentHashMap<>();
 
     public PlayerModeEventHandler(@NotNull AccountModeApplicationService accountModeApplicationService) {
+        this(accountModeApplicationService, snapshot -> false);
+    }
+
+    public PlayerModeEventHandler(
+        @NotNull AccountModeApplicationService accountModeApplicationService,
+        @NotNull Predicate<PlayerInteractionSnapshot> bedrockSkillShortcutInput
+    ) {
         this.accountModeApplicationService = accountModeApplicationService;
+        this.bedrockSkillShortcutInput = bedrockSkillShortcutInput;
     }
 
     /**
@@ -121,7 +131,8 @@ public class PlayerModeEventHandler extends AbstractEventHandler
     ) {
         if (context.family() == InputFamily.RIGHT_CLICK
             && isEntityInteractionSource(context.source())
-            && snapshot.targetEntity() != null) {
+            && snapshot.targetEntity() != null
+            && !bedrockSkillShortcutInput.test(snapshot)) {
             Entity target = snapshot.targetEntity();
             Double hitDistance = snapshot.hitDistance(target);
             double candidateDistance = hitDistance != null

@@ -33,10 +33,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 /**
- * 右クリック入力をアクションリング表示へ差し替えるイベントハンドラです。
+ * 武器の使用入力を版ごとのスキル操作へ振り替えます。
  */
 public final class SkillActionRingEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
@@ -60,6 +59,13 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         this.inventoryService = inventoryService;
         this.playerSettingService = playerSettingService;
         this.actionRingHoldService = actionRingHoldService;
+    }
+
+    /** 統合版で武器の使用をスキル操作として受け付けるかを返します。 */
+    public boolean isBedrockShortcutInput(@NotNull PlayerInteractionSnapshot snapshot) {
+        AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
+        return snapshot.isMainHandInput() && astPlayer != null && astPlayer.isBedrock()
+            && isArmedPlayer(astPlayer);
     }
 
     @Override
@@ -115,9 +121,19 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
             return List.of();
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null && astPlayer.isBedrock()) {
+            if (context.family() != InputFamily.RIGHT_CLICK || !isArmedPlayer(astPlayer)) {
+                return List.of();
+            }
+            boolean select = player.isSneaking();
+            return List.of(candidate(
+                "skill-action-ring-bedrock-shortcut",
+                InteractionCandidateOrder.NEW_ACTION_RING,
+                player,
+                () -> actionRingService.useBedrockShortcut(astPlayer, select)
+            ));
+        }
         if (actionRingService.isOpen(player)) {
-            UUID armedMenuToken = context.family() == InputFamily.LEFT_CLICK
-                ? actionRingService.armedBedrockMenuToken(player) : null;
             Runnable executor = context.family() == InputFamily.RIGHT_CLICK
                 ? () -> {
                     if (isPlayerMode(astPlayer)) {
@@ -129,7 +145,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
                 : () -> {
                     actionRingService.suppressAttack(player);
                     if (isPlayerMode(astPlayer)) {
-                        actionRingService.activateSelected(astPlayer, armedMenuToken);
+                        actionRingService.activateSelected(astPlayer);
                     } else {
                         actionRingService.close(player);
                     }
@@ -142,11 +158,8 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
             ));
         }
 
-        if (context.family() == InputFamily.RIGHT_CLICK
-            && isPlayerMode(astPlayer)
-            && isWeapon(astPlayer)) {
-            boolean holdSelectEnabled = !astPlayer.isBedrock()
-                && !actionRingService.isProgressionPresetQuickCastPending(player)
+        if (context.family() == InputFamily.RIGHT_CLICK && isArmedPlayer(astPlayer)) {
+            boolean holdSelectEnabled = !actionRingService.isProgressionPresetQuickCastPending(player)
                 && playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())
                 && actionRingService.hasMultipleConfiguredActions(astPlayer);
             // 長押しはクライアント側の仮想トライデント使用を始められる AIR 入力だけで受け付ける。
@@ -201,7 +214,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(
-            () -> actionRingService.close(event.getPlayer()),
+            () -> {
+                actionRingService.forgetBedrockShortcut(event.getPlayer());
+                actionRingService.close(event.getPlayer());
+            },
             LogId.E_3002,
             "skill_action_ring_quit:" + event.getPlayer().getName()
         );
@@ -226,6 +242,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
 
     private boolean isPlayerMode(AstPlayer astPlayer) {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
+    }
+
+    private boolean isArmedPlayer(AstPlayer astPlayer) {
+        return isPlayerMode(astPlayer) && isWeapon(astPlayer);
     }
 
     private boolean isWeapon(@NotNull AstPlayer astPlayer) {

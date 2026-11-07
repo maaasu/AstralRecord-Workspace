@@ -109,7 +109,7 @@ public final class ProgressionPresetApplicationService {
                 classes.refreshProgressionPresetClass(player);
                 status.refreshStatus(player);
                 status.restoreAll(player, null);
-                actionRing.prepareProgressionPresetSelection(player.getBukkit());
+                actionRing.prepareProgressionPresetSelection(player);
             } finally {
                 inventory.queueLocalPlayerSave(accountId);
             }

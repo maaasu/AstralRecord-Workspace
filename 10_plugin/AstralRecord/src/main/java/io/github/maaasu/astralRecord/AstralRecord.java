@@ -464,6 +464,7 @@ import io.github.maaasu.astralRecord.shared.display.PlayerTeleportDisplayEventHa
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
+import io.github.maaasu.astralRecord.shared.interaction.VanillaInteractionResolver;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -2892,6 +2893,7 @@ public final class AstralRecord extends JavaPlugin {
         });
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
+            skillActionRingService.forgetBedrockShortcut(player.getBukkit());
             guideCompletionRewardService.discardAccountState(player.getAccount().getUuid());
             mailService.discardMenuState(player.getAccount().getUuid());
             try {
@@ -3234,7 +3236,9 @@ public final class AstralRecord extends JavaPlugin {
             new ArcaneFlowSkillEventHandler(arcaneFlowSkillRuntimeService),
             getServer().getPluginManager()
         );
-        var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);
+        var playerModeEventHandler = new PlayerModeEventHandler(
+            accountModeApplicationService, skillActionRingEventHandler::isBedrockShortcutInput
+        );
         eventManager.registerHandler(playerModeEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new PlayerInputEventHandler(airActionService),
@@ -3329,7 +3333,8 @@ public final class AstralRecord extends JavaPlugin {
                 ),
                 playerJoinEventHandler::isLoading,
                 skillActionRingService::isOpen,
-                skillActionRingService::close
+                skillActionRingService::close,
+                new VanillaInteractionResolver(skillActionRingEventHandler::isBedrockShortcutInput)
             ),
             getServer().getPluginManager()
         );

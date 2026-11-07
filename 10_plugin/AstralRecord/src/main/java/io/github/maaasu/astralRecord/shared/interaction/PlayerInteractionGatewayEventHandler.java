@@ -66,6 +66,17 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
         @NotNull Predicate<Player> actionRingOpen,
         @NotNull Consumer<Player> actionRingClose
     ) {
+        this(plugin, resolvers, inputLocked, actionRingOpen, actionRingClose, new VanillaInteractionResolver());
+    }
+
+    public PlayerInteractionGatewayEventHandler(
+        @NotNull AstralRecord plugin,
+        @NotNull Collection<? extends PlayerInputResolver<PlayerInteractionSnapshot>> resolvers,
+        @NotNull Predicate<Player> inputLocked,
+        @NotNull Predicate<Player> actionRingOpen,
+        @NotNull Consumer<Player> actionRingClose,
+        @NotNull VanillaInteractionResolver vanillaInteractionResolver
+    ) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.actionRingOpen = Objects.requireNonNull(actionRingOpen, "actionRingOpen");
         this.actionRingClose = Objects.requireNonNull(actionRingClose, "actionRingClose");
@@ -84,7 +95,7 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
             ))
             : List.of());
         allResolvers.addAll(resolvers);
-        allResolvers.add(new VanillaInteractionResolver());
+        allResolvers.add(vanillaInteractionResolver);
         this.dispatcher = new PlayerInputDispatcher<>(allResolvers);
     }
 

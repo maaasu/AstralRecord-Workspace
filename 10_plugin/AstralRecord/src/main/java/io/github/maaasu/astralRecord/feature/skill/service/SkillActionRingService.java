@@ -96,6 +96,7 @@ public final class SkillActionRingService {
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final int BEDROCK_MENU_LIMIT_TICKS = 20 * 60;
+    private static final int BEDROCK_HINT_INTERVAL_TICKS = 20 * 10;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final SlotView EMPTY_SLOT = new SlotView(null, null, "", Material.AIR, false, SlotAvailability.UNAVAILABLE);
 
@@ -108,7 +109,9 @@ public final class SkillActionRingService {
     private final SkillActionRingDisplay actionRingDisplay;
     private final SkillActionRingHud actionRingHud;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
-    private final Map<UUID, BedrockSelection> bedrockSelections = new ConcurrentHashMap<>();
+    private final Map<UUID, BedrockMenu> bedrockMenus = new ConcurrentHashMap<>();
+    private final Map<UUID, SelectedBedrockSkill> bedrockSkills = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> lastBedrockHintTicks = new ConcurrentHashMap<>();
     private BedrockMenuSender bedrockMenuSender = (player, token, labels) -> false;
     private final Set<UUID> progressionPresetSelections = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
@@ -192,12 +195,9 @@ public final class SkillActionRingService {
     public void toggle(@NotNull AstPlayer astPlayer) {
         var player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
-        BedrockSelection selection = bedrockSelections.get(playerId);
-        if (selection != null) {
-            if (!selection.armed() && !selection.expired(plugin.getServer().getCurrentTick())) {
-                return;
-            }
-            bedrockSelections.remove(playerId, selection);
+        if (astPlayer.isBedrock()) {
+            useBedrockShortcut(astPlayer, player.isSneaking());
+            return;
         }
         if (sessions.containsKey(playerId)) {
             close(player, true);
@@ -218,12 +218,7 @@ public final class SkillActionRingService {
 
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
         List<SlotView> slots = resolveSlots(astPlayer, caster, bindings);
-        boolean quickCast = progressionPresetSelections.remove(playerId);
-        if (astPlayer.isBedrock()) {
-            openBedrockMenu(astPlayer, caster, slots);
-            return;
-        }
-        if (quickCast && slots.getFirst().configured()) {
+        if (progressionPresetSelections.remove(playerId) && slots.getFirst().configured()) {
             castSlot(astPlayer, slots.getFirst().skillId(), 1, configuredCount);
             return;
         }
@@ -256,7 +251,7 @@ public final class SkillActionRingService {
      */
     public boolean open(@NotNull AstPlayer astPlayer, @NotNull PlayerMsgId selectionInstruction) {
         var player = astPlayer.getBukkit();
-        if (isOpen(player)) {
+        if (astPlayer.isBedrock() || isOpen(player)) {
             return false;
         }
         if (!hasUsableMainHandWeapon(astPlayer)) {
@@ -265,14 +260,12 @@ public final class SkillActionRingService {
         }
 
         List<String> bindings = ringBindings(astPlayer);
-        if (configuredCount(bindings) < (astPlayer.isBedrock() ? 1 : 2)) {
+        if (configuredCount(bindings) < 2) {
             return false;
         }
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
         List<SlotView> slots = resolveSlots(astPlayer, caster, bindings);
-        return astPlayer.isBedrock()
-            ? openBedrockMenu(astPlayer, caster, slots)
-            : open(astPlayer, selectionInstruction, slots, caster);
+        return open(astPlayer, selectionInstruction, slots, caster);
     }
 
     private boolean open(
@@ -337,8 +330,7 @@ public final class SkillActionRingService {
      * @return 表示中なら true
      */
     public boolean isOpen(@NotNull Player player) {
-        UUID playerId = player.getUniqueId();
-        return sessions.containsKey(playerId) || bedrockSelections.containsKey(playerId);
+        return sessions.containsKey(player.getUniqueId());
     }
 
     /**
@@ -349,8 +341,7 @@ public final class SkillActionRingService {
      */
     public boolean isWaitingForCast(@NotNull Player player) {
         RingSession session = sessions.get(player.getUniqueId());
-        BedrockSelection selection = bedrockSelections.get(player.getUniqueId());
-        return session != null && session.hasConfirmedSelection() || selection != null && selection.armed();
+        return session != null && session.hasConfirmedSelection();
     }
 
     /**
@@ -365,11 +356,7 @@ public final class SkillActionRingService {
      */
     public int getSelectedHotbarSlot(@NotNull Player player) {
         RingSession session = sessions.get(player.getUniqueId());
-        if (session != null) {
-            return session.hotbarSlot();
-        }
-        BedrockSelection selection = bedrockSelections.get(player.getUniqueId());
-        return selection == null ? -1 : selection.hotbarSlot();
+        return session == null ? -1 : session.hotbarSlot();
     }
 
     /**
@@ -418,25 +405,13 @@ public final class SkillActionRingService {
         return true;
     }
 
-    /** 攻撃入力を受け取った時点で発動待ちの統合版トークンを返します。 */
-    public @Nullable UUID armedBedrockMenuToken(@NotNull Player player) {
-        BedrockSelection selection = bedrockSelections.get(player.getUniqueId());
-        return selection != null && selection.armed() ? selection.token() : null;
-    }
-
     /**
-     * 表示中の選択を確定し、確定済みの場合は発動してリングを閉じます。
-     * 統合版ではフォームで選択したスキルを、ここで初めて発動します。
+     * Java 版のリングを確定し、確定済みの場合は発動して閉じます。
      *
      * @param astPlayer 対象プレイヤー
-     * @param armedMenuToken 入力時点で選択済みだった統合版のトークン
      */
-    public void activateSelected(@NotNull AstPlayer astPlayer, @Nullable UUID armedMenuToken) {
+    public void activateSelected(@NotNull AstPlayer astPlayer) {
         Player player = astPlayer.getBukkit();
-        if (astPlayer.isBedrock()) {
-            castBedrockSelection(player, armedMenuToken);
-            return;
-        }
         RingSession session = sessions.get(player.getUniqueId());
         if (session == null) {
             return;
@@ -471,27 +446,94 @@ public final class SkillActionRingService {
         bedrockMenuSender = sender;
     }
 
-    /** プロキシから返ったフォーム操作を、同じ武器とスキルの発動待ちへ移します。 */
-    public void acceptBedrockMenuResult(@NotNull Player player, @NotNull UUID token, int index) {
-        UUID playerId = player.getUniqueId();
-        BedrockSelection selection = bedrockSelections.get(playerId);
-        if (selection == null || !selection.token().equals(token) || selection.armed()) {
+    /**
+     * 統合版の武器使用を処理します。スニーク中は選択画面、通常使用は選択済みのスキルを使います。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param select 入力を受け取った時点でスニークしていた場合は true
+     */
+    public void useBedrockShortcut(@NotNull AstPlayer astPlayer, boolean select) {
+        Player player = astPlayer.getBukkit();
+        if (!astPlayer.isBedrock() || astPlayer.getAccount().getMode() != AccountMode.PLAYER
+            || !player.isOnline() || player.isDead() || !hasUsableMainHandWeapon(astPlayer)) {
             return;
         }
-        if (index < 0 || index >= selection.options().size()
-            || selection.expired(plugin.getServer().getCurrentTick())) {
-            bedrockSelections.remove(playerId, selection);
+        UUID playerId = player.getUniqueId();
+        BedrockMenu pending = bedrockMenus.get(playerId);
+        int now = plugin.getServer().getCurrentTick();
+        if (pending != null) {
+            if (!pending.expired(now)) {
+                return;
+            }
+            bedrockMenus.remove(playerId, pending);
+        }
+
+        List<String> bindings = ringBindings(astPlayer);
+        if (select) {
+            if (configuredCount(bindings) == 0) {
+                showBedrockShortcutHint(player, false, now);
+                return;
+            }
+            PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+            openBedrockMenu(astPlayer, caster, resolveSlots(astPlayer, caster, bindings));
+            return;
+        }
+
+        SelectedBedrockSkill selected = bedrockSkills.get(playerId);
+        if (selected != null && selected.accountId().equals(astPlayer.getAccount().getUuid())
+            && hasCurrentMenuBinding(bindings, selected.option())) {
+            MenuOption option = selected.option();
+            castSlot(astPlayer, option.skillId(), option.slotIndex() + 1, SLOT_COUNT);
+            return;
+        }
+        if (selected != null) {
+            bedrockSkills.remove(playerId, selected);
+        }
+        showBedrockShortcutHint(player, configuredCount(bindings) > 0, now);
+    }
+
+    private void showBedrockShortcutHint(Player player, boolean hasBindings, int now) {
+        if (!claimBedrockHint(player.getUniqueId(), now)) {
+            return;
+        }
+        PlayerMessageService messages = PlayerMessageService.getInstance();
+        if (hasBindings) {
+            messages.send(player, PlayerMsgId.P_5898);
+        } else {
+            messages.sendClickable(player, PlayerMsgId.P_5856, "/skill gui");
+        }
+    }
+
+    private boolean claimBedrockHint(UUID playerId, int now) {
+        Integer previous = lastBedrockHintTicks.get(playerId);
+        if (previous != null && now - previous < BEDROCK_HINT_INTERVAL_TICKS) {
+            return false;
+        }
+        lastBedrockHintTicks.put(playerId, now);
+        return true;
+    }
+
+    /** 対応するフォームの結果だけを反映し、閉じた場合は現在の選択を保ちます。 */
+    public void acceptBedrockMenuResult(@NotNull Player player, @NotNull UUID token, int index) {
+        UUID playerId = player.getUniqueId();
+        BedrockMenu menu = bedrockMenus.get(playerId);
+        if (menu == null || !menu.token().equals(token) || !bedrockMenus.remove(playerId, menu)) {
+            return;
+        }
+        if (index < 0 || index >= menu.options().size() || menu.expired(plugin.getServer().getCurrentTick())) {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        MenuOption option = selection.options().get(index);
-        if (!canUseBedrockSelection(astPlayer, player, selection, option)) {
-            bedrockSelections.remove(playerId, selection);
+        MenuOption option = menu.options().get(index);
+        if (!canAcceptBedrockMenu(astPlayer, player, menu, option)) {
             return;
         }
-        bedrockSelections.put(playerId, selection.arm(index));
-        GuiSound.RING_SELECT.play(player);
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5892, option.name());
+        SelectedBedrockSkill selected = new SelectedBedrockSkill(menu.accountId(), option);
+        SelectedBedrockSkill previous = bedrockSkills.put(playerId, selected);
+        if (!selected.equals(previous)) {
+            GuiSound.RING_SELECT.play(player);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5892, option.name());
+        }
     }
 
     private boolean openBedrockMenu(AstPlayer astPlayer, PlayerSkillCaster caster, List<SlotView> slots) {
@@ -504,27 +546,36 @@ public final class SkillActionRingService {
             return false;
         }
 
+        UUID playerId = player.getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        SelectedBedrockSkill current = bedrockSkills.get(playerId);
         List<MenuOption> options = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         for (int index = 0; index < slots.size(); index++) {
             SlotView slot = slots.get(index);
             if (slot.configured()) {
                 String name = ColorCodeUtil.toPlainText(slot.name(), "スキル");
-                options.add(new MenuOption(index, slot.skillId(), name));
-                labels.add(bedrockMenuLabel(caster, slot, name));
+                MenuOption option = new MenuOption(index, slot.skillId(), name);
+                options.add(option);
+                String label = bedrockMenuLabel(caster, slot, name);
+                if (current != null && current.accountId().equals(accountId) && current.option().equals(option)) {
+                    label = PlayerMsgResource.format(PlayerMsgId.P_5899.getId(), label);
+                }
+                labels.add(label);
             }
         }
-        UUID playerId = player.getUniqueId();
-        BedrockSelection selection = new BedrockSelection(
-            UUID.randomUUID(), astPlayer.getAccount().getUuid(), player.getWorld().getUID(),
+        BedrockMenu menu = new BedrockMenu(
+            UUID.randomUUID(), accountId, player.getWorld().getUID(),
             hotbarSlot, itemId, ItemStackFactory.getEquipmentInstanceId(weapon), List.copyOf(options),
-            plugin.getServer().getCurrentTick(), -1
+            plugin.getServer().getCurrentTick()
         );
-        bedrockSelections.put(playerId, selection);
-        if (!bedrockMenuSender.open(player, selection.token(), List.copyOf(labels))) {
-            bedrockSelections.remove(playerId, selection);
-            GuiSound.DENY.play(player);
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5893);
+        bedrockMenus.put(playerId, menu);
+        if (!bedrockMenuSender.open(player, menu.token(), List.copyOf(labels))) {
+            bedrockMenus.remove(playerId, menu);
+            if (claimBedrockHint(playerId, plugin.getServer().getCurrentTick())) {
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5893);
+            }
             return false;
         }
         openListener.accept(astPlayer);
@@ -552,40 +603,20 @@ public final class SkillActionRingService {
         return status == null ? label : label + " / " + PlayerMsgResource.getMessage(status.getId());
     }
 
-    private boolean canUseBedrockSelection(@Nullable AstPlayer astPlayer, Player player,
-                                           BedrockSelection selection, MenuOption option) {
+    private boolean canAcceptBedrockMenu(@Nullable AstPlayer astPlayer, Player player,
+                                         BedrockMenu menu, MenuOption option) {
         return astPlayer != null && astPlayer.isBedrock() && player.isOnline() && !player.isDead()
             && astPlayer.getAccount().getMode() == AccountMode.PLAYER
-            && selection.accountId().equals(astPlayer.getAccount().getUuid())
-            && selection.worldId().equals(player.getWorld().getUID())
-            && SkillActionRingHoldService.matchesHeldWeapon(player, selection.hotbarSlot(),
-                selection.itemId(), selection.equipmentInstanceId())
+            && menu.accountId().equals(astPlayer.getAccount().getUuid())
+            && menu.worldId().equals(player.getWorld().getUID())
+            && SkillActionRingHoldService.matchesHeldWeapon(player, menu.hotbarSlot(),
+                menu.itemId(), menu.equipmentInstanceId())
             && hasUsableMainHandWeapon(astPlayer)
-            && hasCurrentMenuBinding(astPlayer, option);
+            && hasCurrentMenuBinding(ringBindings(astPlayer), option);
     }
 
-    private boolean hasCurrentMenuBinding(AstPlayer astPlayer, MenuOption option) {
-        List<String> bindings = ringBindings(astPlayer);
+    private static boolean hasCurrentMenuBinding(List<String> bindings, MenuOption option) {
         return option.slotIndex() < bindings.size() && option.skillId().equals(bindings.get(option.slotIndex()));
-    }
-
-    private void castBedrockSelection(Player player, @Nullable UUID armedMenuToken) {
-        if (armedMenuToken == null) {
-            return;
-        }
-        UUID playerId = player.getUniqueId();
-        BedrockSelection selection = bedrockSelections.get(playerId);
-        if (selection == null || !selection.armed() || !selection.token().equals(armedMenuToken)
-            || !bedrockSelections.remove(playerId, selection)) {
-            return;
-        }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        MenuOption option = selection.options().get(selection.selectedIndex());
-        if (astPlayer == null || !canUseBedrockSelection(astPlayer, player, selection, option)) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        castSlot(astPlayer, option.skillId(), option.slotIndex() + 1, SLOT_COUNT);
     }
 
     /** 統合版のボタン一覧をプロキシに渡します。 */
@@ -596,20 +627,13 @@ public final class SkillActionRingService {
 
     private record MenuOption(int slotIndex, String skillId, String name) {}
 
-    private record BedrockSelection(UUID token, UUID accountId, UUID worldId, int hotbarSlot,
-                                    String itemId, @Nullable String equipmentInstanceId,
-                                    List<MenuOption> options, int openedTick, int selectedIndex) {
-        private boolean armed() {
-            return selectedIndex >= 0;
-        }
+    private record SelectedBedrockSkill(UUID accountId, MenuOption option) {}
 
+    private record BedrockMenu(UUID token, UUID accountId, UUID worldId, int hotbarSlot,
+                               String itemId, @Nullable String equipmentInstanceId,
+                               List<MenuOption> options, int openedTick) {
         private boolean expired(int now) {
-            return !armed() && now - openedTick >= BEDROCK_MENU_LIMIT_TICKS;
-        }
-
-        private BedrockSelection arm(int index) {
-            return new BedrockSelection(token, accountId, worldId, hotbarSlot, itemId,
-                equipmentInstanceId, options, openedTick, index);
+            return now - openedTick >= BEDROCK_MENU_LIMIT_TICKS;
         }
     }
 
@@ -657,9 +681,7 @@ public final class SkillActionRingService {
             }
         }
         GuiSound.RING_CAST.play(player);
-        if (astPlayer.isBedrock()) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5894, skillDisplayName);
-        } else {
+        if (!astPlayer.isBedrock()) {
             PlayerMessageService.getInstance().send(
                 astPlayer, PlayerMsgId.P_5807, slotCount, selectedPosition, skillDisplayName);
         }
@@ -677,14 +699,21 @@ public final class SkillActionRingService {
         close(player, false);
     }
 
-    /** プレイヤーの移動や他の画面により統合版の選択を破棄します。 */
+    /** ワールド移動や他の画面で、統合版フォームの応答待ちを終了します。 */
     public void closeBedrockMenu(@NotNull Player player) {
-        bedrockSelections.remove(player.getUniqueId());
+        bedrockMenus.remove(player.getUniqueId());
+    }
+
+    /** 退出またはアカウント切り替え時に統合版の選択と案内履歴を破棄します。 */
+    public void forgetBedrockShortcut(@NotNull Player player) {
+        closeBedrockMenu(player);
+        bedrockSkills.remove(player.getUniqueId());
+        lastBedrockHintTicks.remove(player.getUniqueId());
     }
 
     private void close(Player player, boolean animate) {
         progressionPresetSelections.remove(player.getUniqueId());
-        bedrockSelections.remove(player.getUniqueId());
+        closeBedrockMenu(player);
         RingSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
             destroySession(player, session, animate);
@@ -694,12 +723,19 @@ public final class SkillActionRingService {
     }
 
     /**
-     * 古い表示を閉じ、次回の右クリックで戦闘検証プリセットの第1枠を発動するよう予約します。
-     * @param player 対象プレイヤー
+     * 戦闘検証プリセットへの切り替え時に、以前の選択を解除します。
+     * Java 版は次の右クリックで第1枠を発動するよう予約します。
+     *
+     * @param astPlayer 対象プレイヤー
      */
-    public void prepareProgressionPresetSelection(@NotNull Player player) {
+    public void prepareProgressionPresetSelection(@NotNull AstPlayer astPlayer) {
+        Player player = astPlayer.getBukkit();
         close(player);
-        progressionPresetSelections.add(player.getUniqueId());
+        if (astPlayer.isBedrock()) {
+            forgetBedrockShortcut(player);
+        } else {
+            progressionPresetSelections.add(player.getUniqueId());
+        }
     }
 
     /**
@@ -716,7 +752,9 @@ public final class SkillActionRingService {
      */
     public void stop() {
         progressionPresetSelections.clear();
-        bedrockSelections.clear();
+        bedrockMenus.clear();
+        bedrockSkills.clear();
+        lastBedrockHintTicks.clear();
         if (task != null) {
             task.cancel();
             task = null;
@@ -739,7 +777,7 @@ public final class SkillActionRingService {
 
     private void tick() {
         int now = plugin.getServer().getCurrentTick();
-        bedrockSelections.values().removeIf(selection -> selection.expired(now));
+        bedrockMenus.values().removeIf(menu -> menu.expired(now));
         for (Map.Entry<UUID, RingSession> entry : sessions.entrySet()) {
             Player player = plugin.getServer().getPlayer(entry.getKey());
             RingSession session = entry.getValue();
@@ -756,7 +794,7 @@ public final class SkillActionRingService {
                 }
             }
         }
-        if (sessions.isEmpty() && bedrockSelections.isEmpty() && task != null) {
+        if (sessions.isEmpty() && bedrockMenus.isEmpty() && task != null) {
             task.cancel();
             task = null;
         }

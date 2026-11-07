@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * 明示的な vanilla block/entity 操作と vanilla entity 攻撃を候補として表現します。
@@ -13,6 +14,15 @@ import java.util.List;
  */
 public final class VanillaInteractionResolver implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final double FALLBACK_DISTANCE = 0.0D;
+    private final Predicate<PlayerInteractionSnapshot> bedrockSkillShortcutInput;
+
+    public VanillaInteractionResolver() {
+        this(snapshot -> false);
+    }
+
+    public VanillaInteractionResolver(@NotNull Predicate<PlayerInteractionSnapshot> bedrockSkillShortcutInput) {
+        this.bedrockSkillShortcutInput = bedrockSkillShortcutInput;
+    }
 
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
@@ -53,7 +63,8 @@ public final class VanillaInteractionResolver implements PlayerInputResolver<Pla
     ) {
         if (snapshot.targetEntity() == null
             || (context.source() != InputSource.PLAYER_INTERACT_ENTITY
-            && context.source() != InputSource.PLAYER_INTERACT_AT_ENTITY)) {
+            && context.source() != InputSource.PLAYER_INTERACT_AT_ENTITY)
+            || bedrockSkillShortcutInput.test(snapshot)) {
             return null;
         }
         Double hitDistance = snapshot.hitDistance(snapshot.targetEntity());
@@ -72,6 +83,7 @@ public final class VanillaInteractionResolver implements PlayerInputResolver<Pla
         );
     }
 
+    @SuppressWarnings("deprecation")
     private PlayerInputCandidate resolveBlock(
         PlayerInputContext<PlayerInteractionSnapshot> context,
         PlayerInteractionSnapshot snapshot
@@ -81,6 +93,10 @@ public final class VanillaInteractionResolver implements PlayerInputResolver<Pla
         }
         if (!(snapshot.event() instanceof PlayerInteractEvent interactEvent)
             || interactEvent.useInteractedBlock() == Event.Result.DENY) {
+            return null;
+        }
+        // 実際の操作があり得る block は保守的に優先し、通常の地形では統合版の武器使用を通す。
+        if (bedrockSkillShortcutInput.test(snapshot) && !snapshot.clickedBlock().getType().isInteractable()) {
             return null;
         }
         Double hitDistance = snapshot.hitDistance(snapshot.clickedBlock());

@@ -56,8 +56,10 @@ final class AccountProgressionCommand extends AstCommand {
         }
         try {
             switch (plugin.getProgressionPresetApplicationService().apply(player, preset, checkpoint, level)) {
-                case APPLIED -> sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_7435.getId(),
-                    preset.name(), level, checkpoint.classLevel()));
+                case APPLIED -> {
+                    PlayerMsgId message = player.isBedrock() ? PlayerMsgId.P_7438 : PlayerMsgId.P_7435;
+                    sendSuccess(sender, PlayerMsgResource.format(message.getId(), preset.name(), level, checkpoint.classLevel()));
+                }
                 case UNAVAILABLE -> sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_7436.getId()));
                 case INVALID -> sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_7437.getId(), preset.id()));
             }
