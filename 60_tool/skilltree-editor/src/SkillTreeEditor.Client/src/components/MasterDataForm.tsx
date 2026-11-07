@@ -18,6 +18,7 @@ const typeLabels: Record<ValueType, string> = {
 }
 const types = Object.keys(typeLabels) as ValueType[]
 const emptyReferences: MasterReference[] = []
+const isSigilReference = (entry: MasterReference) => entry.path.startsWith('10.features.item/70.sigil/')
 const isCaughtItemReference = (entry: MasterReference) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`))
 const textFieldName = (path: string) => path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~')
 const isDescriptionField = (path: string) => ['description', 'lore'].includes(textFieldName(path) ?? '')
@@ -138,6 +139,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     candidates={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references.filter((entry) => entry.kind === 'node') : undefined} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
+  const progressionSigilReference = /^\/levels\/\d+\/(skills|passives)\/\d+\/sigils\/\d+\/item$/.test(path)
   const spawnerMobReference = /^\/spawnMobs\/\d+\/mobId$/.test(path)
   const referenceKind = metadata?.reference ?? parentReference ?? masterValueReferenceKind(path) ?? (spawnerMobReference ? 'mob' : path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
   const fishingReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
@@ -147,7 +149,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path} />
   return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
     referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? spawnerMobReferencePrefix ?? (typeof resolved.pattern === 'string' ? resolved.pattern.match(/^\^(item|skill):/)?.[0].slice(1) : undefined)}
-    referenceFilter={path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
+    referenceFilter={progressionSigilReference ? isSigilReference : path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
 }
 
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {

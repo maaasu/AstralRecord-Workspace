@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using SkillTreeEditor.Server.Models;
 
@@ -43,6 +44,7 @@ internal static class ProgressionPresetValidation
         var nodeIds = nodes.Select(entry => MasterDataValidation.Text(entry.Content["nodeId"])).ToHashSet(StringComparer.Ordinal);
         var equipment = await ReadReferenceIndexAsync(paths, codec, "10.features.item/20.equipment", "item:", token);
         var skills = await ReadReferenceIndexAsync(paths, codec, "30.features.skill", "skill:", token);
+        var sigils = await ReadReferenceIndexAsync(paths, codec, "10.features.item/70.sigil", "item:", token);
         var previous = 0;
         for (var index = 0; index < levels.Count; index++)
         {
@@ -82,7 +84,7 @@ internal static class ProgressionPresetValidation
                     if (!skillIds.Add(skill))
                         issues.Add(new("error", "PROGRESSION_PRESET_DUPLICATE_SKILL", assignmentPath + "/skill",
                             $"スキル '{skill}' が重複しています。"));
-                    ValidateSkill(skill, skills, key == "passives", level, assignmentPath + "/skill", issues);
+                    ValidateSkill(assignment, skill, skills, sigils, key == "passives", level, assignmentPath, issues);
                 }
             }
         }
@@ -104,26 +106,101 @@ internal static class ProgressionPresetValidation
             var slot => slot
         };
         if (item["equipment"] is not JsonObject definition || MasterDataValidation.Text(definition["slot"]) != expected)
+        {
             issues.Add(new("error", "PROGRESSION_PRESET_EQUIPMENT_SLOT", pointer + "/item", "指定した装備枠に対応するアイテムを選んでください。"));
+            return;
+        }
+
+        var enhanceLevel = ReadInteger(assignment["enhanceLevel"]);
+        if (enhanceLevel == 0) return;
+        var maxEnhanceLevel = ReachableEnhanceLevel(definition["enhance"] as JsonObject);
+        if (enhanceLevel > maxEnhanceLevel)
+            issues.Add(new("error", "PROGRESSION_PRESET_ENHANCE_LEVEL", pointer + "/enhanceLevel",
+                $"状態変化前の装備の強化上限は +{maxEnhanceLevel} です。"));
     }
 
-    private static void ValidateSkill(string reference, IReadOnlyDictionary<string, JsonObject> skills,
-        bool passive, int level, string pointer, List<MasterDataIssue> issues)
+    private static int ReachableEnhanceLevel(JsonObject? enhance)
+    {
+        var cap = ReadInteger(enhance?["maxLevel"]);
+        var levels = (enhance?["levels"] as JsonArray ?? []).OfType<JsonObject>()
+            .Select(row => ReadInteger(row["level"])).Where(level => level > 0).Distinct().Order();
+        var reachable = 0;
+        foreach (var level in levels)
+        {
+            if (level > cap || level - reachable != 1) break;
+            reachable = level;
+        }
+        return reachable;
+    }
+
+    private static void ValidateSkill(JsonObject assignment, string reference, IReadOnlyDictionary<string, JsonObject> skills,
+        IReadOnlyDictionary<string, JsonObject> sigils, bool passive, int level, string pointer, List<MasterDataIssue> issues)
     {
         if (!skills.TryGetValue(reference, out var skill))
         {
-            issues.Add(new("error", "REFERENCE_NOT_FOUND", pointer, $"スキル '{reference}' がありません。"));
+            issues.Add(new("error", "REFERENCE_NOT_FOUND", pointer + "/skill", $"スキル '{reference}' がありません。"));
             return;
         }
         if ((skill["passive"] is JsonObject) != passive)
-            issues.Add(new("error", "PROGRESSION_PRESET_SKILL_KIND", pointer,
+            issues.Add(new("error", "PROGRESSION_PRESET_SKILL_KIND", pointer + "/skill",
                 passive ? "パッシブスキルを指定してください。" : "アクティブスキルを指定してください。"));
         if (level > 0 && ReadInteger(skill["requiredLevel"]) > level)
-            issues.Add(new("error", "PROGRESSION_PRESET_SKILL_LEVEL", pointer, "このスキルの必要プレイヤーレベルが適用開始レベルを超えています。"));
+            issues.Add(new("error", "PROGRESSION_PRESET_SKILL_LEVEL", pointer + "/skill", "このスキルの必要プレイヤーレベルが適用開始レベルを超えています。"));
+
+        var skillLevel = ReadInteger(assignment["skillLevel"], 1);
+        var maxSkillLevel = ReadInteger(skill["maxLevel"], 1);
+        if (skillLevel > maxSkillLevel)
+            issues.Add(new("error", "PROGRESSION_PRESET_SKILL_MAX_LEVEL", pointer + "/skillLevel",
+                $"このスキルの最大レベルは {maxSkillLevel} です。"));
+        var attachments = assignment["sigils"] as JsonArray;
+        if ((skill["passive"] as JsonObject)?["bindRequired"]?.GetValueKind() == JsonValueKind.False
+            && (skillLevel > 1 || attachments?.Count > 0))
+        {
+            issues.Add(new("error", "PROGRESSION_PRESET_BIND_FREE_PASSIVE", pointer,
+                "バインド不要のパッシブにはスキルレベルの変更やシジルの装着を指定できません。"));
+        }
+        if (attachments is { Count: > 0 })
+            ValidateSigils(attachments, skill, skillLevel, sigils, pointer + "/sigils", issues);
     }
 
-    private static int ReadInteger(JsonNode? node)
-        => int.TryParse(MasterDataValidation.Text(node), NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;
+    private static void ValidateSigils(JsonArray attachments, JsonObject skill, int skillLevel,
+        IReadOnlyDictionary<string, JsonObject> sigils, string pointer, List<MasterDataIssue> issues)
+    {
+        var maxSlots = (skill["sigilSlotsByLevel"] as JsonArray ?? []).OfType<JsonObject>()
+            .Where(row => ReadInteger(row["level"], int.MaxValue) <= skillLevel)
+            .Select(row => ReadInteger(row["slots"])).DefaultIfEmpty(0).Max();
+        var allowedIds = (skill["allowedSigilIds"] as JsonArray ?? [])
+            .Select(node => MasterDataValidation.Text(node)?.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var slots = new HashSet<int>();
+        var groups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < attachments.Count; index++)
+        {
+            if (attachments[index] is not JsonObject attachment) continue;
+            var attachmentPath = $"{pointer}/{index}";
+            var slot = ReadInteger(attachment["slot"]);
+            if (slot > maxSlots)
+                issues.Add(new("error", "PROGRESSION_PRESET_SIGIL_SLOT", attachmentPath + "/slot",
+                    $"スキルレベル {skillLevel} で使用できるシジル枠は {maxSlots} 個です。"));
+            if (slot > 0 && !slots.Add(slot))
+                issues.Add(new("error", "PROGRESSION_PRESET_DUPLICATE_SIGIL_SLOT", attachmentPath + "/slot", "同じシジル枠が重複しています。"));
+
+            if (MasterDataValidation.Text(attachment["item"]) is not { } reference) continue;
+            if (!sigils.TryGetValue(reference, out var item) || MasterDataValidation.Text(item["category"]) != "sigil"
+                || MasterDataValidation.Text((item["sigil"] as JsonObject)?["equipGroupId"])?.Trim() is not { Length: > 0 } group)
+            {
+                issues.Add(new("error", "PROGRESSION_PRESET_SIGIL_ITEM", attachmentPath + "/item", $"シジル '{reference}' がありません。"));
+                continue;
+            }
+            if (!allowedIds.Contains(MasterDataValidation.Text(item["id"])))
+                issues.Add(new("error", "PROGRESSION_PRESET_SIGIL_NOT_ALLOWED", attachmentPath + "/item", "このスキルに装着できるシジルを選んでください。"));
+            if (!groups.Add(group))
+                issues.Add(new("error", "PROGRESSION_PRESET_DUPLICATE_SIGIL_GROUP", attachmentPath + "/item",
+                    $"同じシジルグループ '{group}' を複数装着できません。"));
+        }
+    }
+
+    private static int ReadInteger(JsonNode? node, int fallback = 0)
+        => int.TryParse(MasterDataValidation.Text(node), NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : fallback;
 
     private static async Task<Dictionary<string, JsonObject>> ReadReferenceIndexAsync(MasterDataPaths paths,
         MasterDataCodec codec, string category, string prefix, CancellationToken token)

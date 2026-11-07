@@ -384,6 +384,22 @@ describe('master form', () => {
     expect(document.querySelector('option[value="slash"]')).toHaveTextContent('斬撃')
   })
 
+  it.each(['skills', 'passives'])('lists only sigils for nested %s and writes the canonical item reference', (key) => {
+    const path = `/levels/0/${key}/0/sigils/0/item`
+    const onChange = vi.fn()
+    render(<MasterDataForm value="" path={path} schema={{ type: 'string', pattern: '^item:[a-z0-9]+$' }}
+      fields={[{ path: `/levels/*/${key}/*/sigils/*/item`, key: 'item', label: 'シジル', type: 'string', required: true, description: '', reference: 'item' }]}
+      references={[
+        { path: '10.features.item/70.sigil/v1.70a00001.sigil.yml', pointer: '/id', value: '70a00001', kind: 'item', label: '短縮シジル' },
+        { path: '10.features.item/20.equipment/v1.20a00001.weapon.yml', pointer: '/id', value: '20a00001', kind: 'item', label: '簡素な武器' },
+      ]} onChange={onChange} />)
+    expect(document.querySelector('option[value="item:70a00001"]')).toHaveTextContent('短縮シジル')
+    expect(document.querySelector('option[value="item:20a00001"]')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('シジルの候補を選択'))
+    fireEvent.click(screen.getByRole('button', { name: /短縮シジル/ }))
+    expect(onChange).toHaveBeenLastCalledWith('item:70a00001')
+  })
+
   it('inherits only the reference kind for scalar entries of a documented list', () => {
     render(<MasterDataForm value={['']} path="/tags" fields={[{ path: '/tags', key: 'tags', label: 'タグ', type: 'List<String>', required: false, description: '', reference: 'tag' }]} references={[{ path: 'tags.yml', pointer: '/tags/0/id', value: 'weapon', kind: 'tag', label: '武器' }]} onChange={vi.fn()} />)
     expect(screen.getByRole('combobox', { name: '/tags/0' })).toHaveAttribute('list')
