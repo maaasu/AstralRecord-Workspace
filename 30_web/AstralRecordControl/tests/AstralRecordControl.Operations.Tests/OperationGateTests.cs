@@ -337,6 +337,24 @@ public sealed class OperationGateTests
         Assert.All(extraEnvironments, environment => Assert.Contains(ReservationService.EnvironmentKey(environment.EnvironmentId), lease.ResourceKeys));
     }
 
+    [Theory]
+    [InlineData(null, 1500)]
+    [InlineData(45, 45)]
+    public async Task RestartDefaultAddsTheConfiguredStopWaitToTheStartupBudget(int? clientTimeout, int expectedTimeout)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var applied = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { StopTimeoutSeconds = 600 };
+        server.DesiredConfigJson = ControlJson.Serialize(applied);
+        await fixture.Db.SaveChangesAsync();
+        var state = fixture.Agent.States[server.HostId] with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        fixture.Agent.States[server.HostId] = state;
+
+        var request = new ServerOperationRequest { Kind = OperationKind.Restart, ConfigRevision = applied.Revision, ExpectedStateRevision = state.StateRevision, ExpectedServerSessionId = state.CurrentSessionId, ExecutionTimeoutSeconds = clientTimeout };
+        var operation = await fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid());
+        Assert.Equal(expectedTimeout, ControlJson.Deserialize<OperationCommand>(operation.CommandJson).ExecutionTimeoutSeconds);
+    }
+
     [Fact]
     public async Task Adapter16CanStartAppliedSettingsOnlyWithinPreparedStartupScope()
     {

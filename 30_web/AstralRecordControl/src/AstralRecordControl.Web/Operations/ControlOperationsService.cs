@@ -140,7 +140,13 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 ConfigRevision = request.ConfigRevision, ExpectedStateRevision = current.StateRevision,
                 ExpectedServerSessionId = current.CurrentSessionId,
                 StartBeforeUtc = request.StartBeforeUtc ?? Now.AddSeconds(60),
-                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? (dataOperation ? 3600 : request.Kind switch { OperationKind.Start => 900, OperationKind.Stop => config.StopTimeoutSeconds, OperationKind.Restart => 1020, _ => 30 }),
+                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? (dataOperation ? 3600 : request.Kind switch
+                {
+                    OperationKind.Start => 900,
+                    OperationKind.Stop => config.StopTimeoutSeconds,
+                    OperationKind.Restart => config.StopTimeoutSeconds + 900,
+                    _ => 30
+                }),
                 Payload = request.Payload
             };
             try { OperationValidation.Validate(command, server.HostId); }
