@@ -20,6 +20,8 @@
 
 - 質問、説明、診断、読み取り専用レビューは、変更・commit・buildを伴わない限り worktree を作らない。
 - 差分を作る実装・設計書・filebase・skill変更は、原則 `$astralrecord-code-version-commit-develop` を入口にする。既存 task worktree の差分commitだけなら `$astralrecord-commit-current-diff` を使う。
+- 通常の変更は Codex Cloud を既定とする。会話を開始した環境で開始ブランチを同期し、Cloud の専用作業ツリーで実装・検証した差分を、開始環境の `develop` に反映する。手順とローカル作業の例外は統合入口に従う。
+- リポジトリ内の資料・スクリプトは、各工程で `git rev-parse --show-toplevel` が返す作業ルートから解決する。既存資料の Windows 固定パスは、そのリポジトリ内を指す場合に限り作業ルートに読み替える。外部配置先は実行環境の設定を使う。
 - 例外として、指定filebaseを明示的な単一ライター作業で直接更新する場合は `$astralrecord-master-data-create-direct` の適用条件を確認する。コード変更・複数project変更・並列編集や、branch/worktree/merge方式の指定がある場合は統合入口を使う。
 - 並列編集では task ごとに専用 branch / git worktree を使う。worktreeを省略するために同じ作業ツリーを共有してはいけない。
 - 無関係な未コミット差分だけを理由にコミット・マージを停止しない。対象外の内容とステージ状態を保持し、[Git スキルの分離・競合確認](.codex/skills/astralrecord-git-worktree-develop/references/unrelated-changes.md)に従う。

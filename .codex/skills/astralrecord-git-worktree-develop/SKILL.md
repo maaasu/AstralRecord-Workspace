@@ -17,6 +17,8 @@ description: AstralRecord ワークスペースの Git 運用専用スキル。�
 
 ## 対応モード
 
+統合入口から Codex Cloud を使うときは [Cloud の往復手順](../astralrecord-code-version-commit-develop/references/cloud-workflow.md) がベース取得と引き継ぎを担当する。このスキルのローカル準備モードは Cloud 側で使わない。開始側では Cloud 成果から作った統合作業ツリーに完了処理モードを適用し、以下の作業ツリー管理先は開始環境の設定済みパスに読み替える。
+
 このスキルは2つのモードに対応する。
 
 - 準備モード: ローカル `develop` から作業ブランチと専用作業ツリーを作成し、後続作業用にブランチ名と作業ツリーのパスを報告する。

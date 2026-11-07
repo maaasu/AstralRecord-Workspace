@@ -11,7 +11,7 @@
 | 目的 | スキル |
 |:--|:--|
 | 作業ツリーの作成・完了処理・マージ | `$astralrecord-git-worktree-develop` |
-| 実装から品質ゲート・develop への反映 | `$astralrecord-code-version-commit-develop` |
+| Codex Cloud での実装と品質ゲート、開始環境の develop への反映 | `$astralrecord-code-version-commit-develop` |
 | 新規実装・仕様反映の担当 | `$astralrecord-code` |
 | Minecraft 内スキルの担当 | `$astralrecord-skill-author` |
 | 本番 ファイルベース 作成の担当 | `$astralrecord-master-data-author` |
