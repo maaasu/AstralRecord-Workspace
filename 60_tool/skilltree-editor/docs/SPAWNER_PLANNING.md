@@ -1,8 +1,11 @@
 # ワールド配置計画
 
-マスタデータエディタ上部の「ワールド配置・編集」で、エリヴァ超大陸の保存済み Dev 配置を編集します。初期表示は「配置編集」です。「AI 配置案」に切り替えると、コピーしたワールドの保存済みブロックを解析して作った全域の案を確認できます。案は現在の Enemy マスタに存在するモブと実レベルを選び、既存の設置場所は使用しません。地域名と距離による進行レベルは計画用の提案です。
+マスタデータエディタ上部の「ワールド配置・編集」で、選択したワールドの地形と保存済み Dev 配置を確認します。ワールド選択欄には解析結果を公開済みの地図が並びます。初期表示の「配置編集」でスポナー・NPC・道標を編集できます。AI 配置案があるワールドでは、保存済みブロックから計算した案を「AI 配置案」で確認できます。案は現在の Enemy マスタに存在するモブと実レベルを選びます。地域名と距離による進行レベルは計画用の提案です。
 
 ## 操作
+
+- ダンジョン・ボスの挑戦受付地点は同じ地図から、地図上の候補地点か数値入力で設定できます。保存先は各マスター YAML のダンジョン `entry` とボス `challenge.entryLocation` です。受付と内部の戦闘スポーン位置はそれぞれのマスター項目で管理します。保存したマスターの Dev への反映は通常のマスター反映手順に従います。
+- 地図の「解析結果を再読込」は公開済みの地形を取り直します。配置編集の「Dev を再読込」は Dev API から保存済み配置とカタログを取り直します。
 
 - 保存済みDev配置の編集欄にある「座標をコピー」で、現在の作業中の X Y Z を空白区切りでコピーできます。スポナー・NPC・道標に対応し、負数・小数は丸めません。日本語のワールド名と選択配置の実ワールド名を併記します。X/Y/Zの未確定入力がある間はコピーを無効にし、Enterまたは欄からの移動で確定してから使用します。コピーが拒否された場合は手動選択できる座標欄を表示します。コピーだけでは保存・再読込・ゲーム内の移動や設置を行いません。
 - 地図上部の「移動先X」「移動先Z」に座標を入力し、「座標へ移動」またはEnterでその地点を中央に表示します。負数・小数に対応し、入力欄の下に表示する解析範囲（下端を含み、上端を含まない）の外や空欄・数値以外はエラーにして、直前の表示を保持します。移動先には十字の目印が残り、「目印を消す」で表示だけを解除できます。同じ座標へ繰り返し移動でき、拡大済みの倍率は維持します（遠景からは0.7px/m以上、上限16px/m）。移動後は地図にフォーカスし、矢印キーや拡大縮小を続けて操作できます。配置編集・AI配置案の両方で使え、配置の追加・移動・選択や未保存原稿は変更しません。ワールドまたは解析範囲が変わると座標欄と目印を初期化します。
@@ -130,6 +133,17 @@ python 60_tool/spawner-planner/continent.py --terrain C:/server/AstralRecord-Cod
 ```
 
 別の出力先を読む場合は、ASP.NETの `SkillTreeEditor:SpawnerPlanningDataDirectory` に絶対パスまたはワークスペース相対パスを設定します。環境変数なら `SkillTreeEditor__SpawnerPlanningDataDirectory` です。実行例のワールド位置や認証情報をソースの設定に埋め込みません。
+
+### Dev の地形をワールド別に更新する
+
+Python の `requirements.txt` と `requirements-detail.txt` を導入し、[スキャナーの JAR](../../spawner-planner/scanner/README.md) と Java 21 を用意します。Dev の正常停止中に `capture` で対象ワールドを新しい隔離先へコピーします。コピー後は Dev を再開でき、`publish` は隔離先で解析します。次はミズガルズの緑野を更新する例です。設定で解析データのディレクトリを変更している場合は、同じ場所を `--cache-root` に指定します。
+
+```powershell
+python 60_tool/spawner-planner/refresh_world_map.py capture --world-id midgard_greenfields --dev-server $devRoot --snapshot-root $snapshotRoot --scanner-jar $scannerJar
+python 60_tool/spawner-planner/refresh_world_map.py publish --world-id midgard_greenfields --snapshot-root $snapshotRoot --cache-root 60_tool/skilltree-editor/.cache/spawner-planning --java $javaExe
+```
+
+公開後、「解析結果を再読込」を押してワールドを選びます。地図は `worlds/<worldId>/<exportRevision>/` へ公開し、完成した版を `current.txt` で切り替えます。エリヴァの既存の単一出力も、そのワールドに新しい版を公開するまでは選択できます。AI 配置案のポリシーを持たないワールドは、地形と既存 Dev 配置を表示します。
 
 ## 読み取りAPIと世代管理
 

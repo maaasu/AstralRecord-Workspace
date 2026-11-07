@@ -15,11 +15,46 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
     private const int MaxDetailDimension = 8192;
     private static readonly string[] Radii = ["32", "48", "64"];
 
-    public async Task<IResult> ReadManifestAsync(HttpContext context, CancellationToken cancellationToken)
+    public async Task<IResult> ListWorldsAsync(HttpContext context, CancellationToken cancellationToken)
     {
+        var root = ResolveDataDirectory();
+        var worlds = new Dictionary<string, string>(StringComparer.Ordinal);
+        await AddWorldAsync(null);
+        var publishedWorlds = Path.Combine(root, "worlds");
+        RequireNoLinks(publishedWorlds);
+        if (Directory.Exists(publishedWorlds))
+        {
+            foreach (var directory in Directory.EnumerateDirectories(publishedWorlds))
+            {
+                var id = Path.GetFileName(directory);
+                if (IsWorldId(id)) await AddWorldAsync(id);
+            }
+        }
+
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Ok(worlds.OrderBy(entry => entry.Key, StringComparer.Ordinal)
+            .Select(entry => new { id = entry.Key, name = entry.Value }));
+
+        async Task AddWorldAsync(string? id)
+        {
+            try
+            {
+                var manifest = await ReadManifestSnapshotAsync(id, cancellationToken, root);
+                if (IsWorldId(manifest.WorldId)) worlds[manifest.WorldId] = manifest.WorldName;
+            }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+            catch (InvalidDataException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    public async Task<IResult> ReadManifestAsync(HttpContext context, string? worldId, CancellationToken cancellationToken)
+    {
+        if (worldId is not null && !IsWorldId(worldId)) return InvalidWorldId();
         try
         {
-            var snapshot = await ReadManifestSnapshotAsync(cancellationToken);
+            var snapshot = await ReadManifestSnapshotAsync(worldId, cancellationToken);
             context.Response.Headers.ETag = $"\"{snapshot.Revision}\"";
             context.Response.Headers.CacheControl = "no-store";
             return Results.Bytes(snapshot.Bytes, contentType: "application/json; charset=utf-8");
@@ -36,10 +71,15 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         {
             return InvalidExport();
         }
+        catch (UnauthorizedAccessException)
+        {
+            return InvalidExport();
+        }
     }
 
-    public async Task<IResult> ReadDataAsync(HttpContext context, string kind, string? radius, string? revision, CancellationToken cancellationToken)
+    public async Task<IResult> ReadDataAsync(HttpContext context, string kind, string? radius, string? worldId, string? revision, CancellationToken cancellationToken)
     {
+        if (worldId is not null && !IsWorldId(worldId)) return InvalidWorldId();
         if (kind == "proposals" && !Radii.Contains(radius, StringComparer.Ordinal))
             return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
                 title: "半径は 32、48、64 のいずれかを指定してください。");
@@ -51,7 +91,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         ManifestSnapshot? snapshot = null;
         try
         {
-            snapshot = await ReadManifestSnapshotAsync(cancellationToken);
+            snapshot = await ReadManifestSnapshotAsync(worldId, cancellationToken);
             if (!string.Equals(snapshot.Revision, revision, StringComparison.Ordinal)) return StaleExport();
             if (kind == "proposals" && !snapshot.ProposalFiles.ContainsKey(radius!))
                 return Results.Problem(statusCode: StatusCodes.Status404NotFound,
@@ -96,21 +136,26 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         {
             return InvalidExport();
         }
+        catch (UnauthorizedAccessException)
+        {
+            return InvalidExport();
+        }
         finally
         {
             if (stream is not null) await stream.DisposeAsync();
         }
     }
 
-    public async Task<IResult> ReadTerrainDetailAsync(HttpContext context, string? revision, bool image, CancellationToken cancellationToken)
+    public async Task<IResult> ReadTerrainDetailAsync(HttpContext context, string? worldId, string? revision, bool image, CancellationToken cancellationToken)
     {
+        if (worldId is not null && !IsWorldId(worldId)) return InvalidWorldId();
         if (string.IsNullOrWhiteSpace(revision))
             return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
                 title: "manifest の exportRevision を revision クエリに指定してください。");
         FileStream? imageStream = null;
         try
         {
-            var manifest = await ReadManifestSnapshotAsync(cancellationToken);
+            var manifest = await ReadManifestSnapshotAsync(worldId, cancellationToken);
             if (!string.Equals(manifest.Revision, revision, StringComparison.Ordinal)) return StaleExport();
             var metadataPath = Path.Combine(manifest.Directory, "terrain-detail.json");
             RequireNoLinks(metadataPath);
@@ -155,6 +200,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         catch (FileNotFoundException) { return DetailUnavailable(); }
         catch (DirectoryNotFoundException) { return DetailUnavailable(); }
         catch (InvalidDataException) { return InvalidExport(); }
+        catch (UnauthorizedAccessException) { return InvalidExport(); }
         catch (JsonException) { return InvalidExport(); }
         catch (EndOfStreamException) { return InvalidExport(); }
         finally { if (imageStream is not null) await imageStream.DisposeAsync(); }
@@ -171,9 +217,37 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         return memory.ToArray();
     }
 
-    private async Task<ManifestSnapshot> ReadManifestSnapshotAsync(CancellationToken cancellationToken)
+    private async Task<ManifestSnapshot> ReadManifestSnapshotAsync(string? worldId, CancellationToken cancellationToken, string? root = null)
     {
-        var directory = ResolveDataDirectory();
+        root ??= ResolveDataDirectory();
+        string? revision = null;
+        var directory = root;
+        if (worldId is not null)
+        {
+            var worldDirectory = Path.Combine(root, "worlds", worldId);
+            var pointer = Path.Combine(worldDirectory, "current.txt");
+            RequireNoLinks(pointer);
+            try
+            {
+                var bytes = await ReadSmallFileAsync(pointer, 128, cancellationToken);
+                revision = System.Text.Encoding.UTF8.GetString(bytes).Trim();
+                if (!IsSha256(revision)) throw new InvalidDataException("地図の公開版が不正です。");
+                directory = Path.Combine(worldDirectory, revision);
+            }
+            // The original cache can still be selected by the world ID in its manifest.
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+        }
+
+        var snapshot = await ReadManifestAtAsync(directory, cancellationToken);
+        if (revision is not null && (snapshot.Revision != revision || snapshot.WorldId != worldId))
+            throw new InvalidDataException("地図の公開版と manifest が一致しません。");
+        if (worldId is not null && snapshot.WorldId != worldId) throw new FileNotFoundException();
+        return snapshot;
+    }
+
+    private static async Task<ManifestSnapshot> ReadManifestAtAsync(string directory, CancellationToken cancellationToken)
+    {
         var path = Path.Combine(directory, "manifest.json");
         RequireNoLinks(path);
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
@@ -187,14 +261,16 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         {
             using var document = JsonDocument.Parse(bytes);
             var root = document.RootElement;
+            var mode = root.ValueKind == JsonValueKind.Object ? GetString(root, "mode") : null;
             if (root.ValueKind != JsonValueKind.Object
                 || GetInt(root, "schemaVersion") != 2
-                || GetString(root, "mode") != "continent-redesign"
+                || mode is not ("continent-redesign" or "terrain-only")
                 || GetBool(root, "previewOnly") != true)
                 throw new InvalidDataException("manifest の形式が一致しません。");
 
             var revision = GetString(root, "exportRevision");
             var worldId = GetString(root, "worldId");
+            var worldName = GetString(root, "worldName");
             var fingerprint = GetString(root, "terrainFingerprint");
             if (!root.TryGetProperty("bounds", out var bounds) || bounds.ValueKind != JsonValueKind.Object)
                 throw new InvalidDataException("manifest の範囲が不正です。");
@@ -207,7 +283,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
 
             if (!root.TryGetProperty("radiusOptions", out var radiusOptions)
                 || radiusOptions.ValueKind != JsonValueKind.Array
-                || radiusOptions.GetArrayLength() == 0
+                || (radiusOptions.GetArrayLength() == 0) != (mode == "terrain-only")
                 || radiusOptions.EnumerateArray().Any(value => value.ValueKind != JsonValueKind.Number
                     || !value.TryGetInt32(out var number) || !Radii.Contains(number.ToString(), StringComparer.Ordinal)))
                 throw new InvalidDataException("manifest の半径候補が不足しています。");
@@ -228,7 +304,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
                     throw new InvalidDataException("manifest のファイル参照が不正です。");
                 proposalFiles.Add(radius, expected);
             }
-            return new ManifestSnapshot(directory, bytes, revision!, worldId!, fingerprint!, minX.Value, minZ.Value, width.Value, height.Value,
+            return new ManifestSnapshot(directory, bytes, revision!, worldId!, worldName ?? worldId!, fingerprint!, minX.Value, minZ.Value, width.Value, height.Value,
                 "cells.json", "regions.json", proposalFiles);
         }
         catch (JsonException ex)
@@ -352,21 +428,26 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         } : null;
     private static bool IsSha256(string? value)
         => value is { Length: 64 } && value.All(Uri.IsHexDigit);
+    private static bool IsWorldId(string value)
+        => value.Length is > 0 and <= 128
+            && value.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-');
 
+    private static IResult InvalidWorldId()
+        => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "地図のワールド ID が不正です。");
     private static IResult NotReady()
         => Results.Problem(statusCode: StatusCodes.Status404NotFound,
-            title: "スポナー配置案はまだありません。地形解析と配置案の生成を実行してください。");
+            title: "このワールドの地図はまだありません。Dev の地形解析と地図の生成を実行してください。");
     private static IResult StaleExport()
         => Results.Problem(statusCode: StatusCodes.Status409Conflict,
-            title: "配置案が更新されました。manifest を再読み込みしてください。");
+            title: "地図が更新されました。解析結果を再読み込みしてください。");
     private static IResult InvalidExport()
         => Results.Problem(statusCode: StatusCodes.Status409Conflict,
-            title: "配置案のファイルが揃っていないか、版が一致しません。配置案を再生成してください。");
+            title: "地図のファイルが揃っていないか、版が一致しません。地図を再生成してください。");
     private static IResult DetailUnavailable()
         => Results.Problem(statusCode: StatusCodes.Status404NotFound,
             title: "詳細地図はまだありません。16m区画の地図を表示してください。");
 
-    private sealed record ManifestSnapshot(string Directory, byte[] Bytes, string Revision, string WorldId,
+    private sealed record ManifestSnapshot(string Directory, byte[] Bytes, string Revision, string WorldId, string WorldName,
         string TerrainFingerprint, int MinX, int MinZ, int Width, int Height,
         string CellsFile, string RegionsFile, Dictionary<string, string> ProposalFiles);
     private sealed record RootMetadata(int? SchemaVersion, string? ExportRevision, string? TerrainFingerprint,

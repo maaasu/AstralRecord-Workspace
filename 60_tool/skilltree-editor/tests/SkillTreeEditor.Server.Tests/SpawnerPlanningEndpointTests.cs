@@ -25,7 +25,7 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
         await using var host = await StartAsync();
         using var response = await host.Client.GetAsync("/api/spawner-planning/manifest");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Contains("地形解析と配置案の生成", await response.Content.ReadAsStringAsync());
+        Assert.Contains("地形解析と地図の生成", await response.Content.ReadAsStringAsync());
         Assert.False(Directory.Exists(host.DataDirectory));
     }
 
@@ -157,6 +157,53 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
     }
 
     [Fact]
+    public async Task ScopedTerrainOnlyExportsCoexistWithLegacyAndRequireTheirOwnRevision()
+    {
+        await using var host = await StartAsync();
+        WriteExport(host.DataDirectory);
+        var scopedRevision = new string('c', 64);
+        var worldRoot = Path.Combine(host.DataDirectory, "worlds", "midgard");
+        var published = Path.Combine(worldRoot, scopedRevision);
+        Directory.CreateDirectory(published);
+        File.WriteAllText(Path.Combine(published, "manifest.json"), JsonSerializer.Serialize(new
+        {
+            schemaVersion = 2, mode = "terrain-only", previewOnly = true, exportRevision = scopedRevision,
+            worldId = "midgard", worldName = "ミズガルズ", terrainFingerprint = _fingerprint,
+            bounds = new { minX = -8, minZ = 16, width = 32, height = 48, cellSize = 16 },
+            radiusOptions = Array.Empty<int>(),
+            files = new { cells = "cells.json", regions = "regions.json", proposals = new Dictionary<string, string>() }
+        }));
+        File.WriteAllText(Path.Combine(published, "cells.json"), Data("cells", scopedRevision, worldId: "midgard"));
+        WriteDetail(published);
+        Directory.CreateDirectory(Path.Combine(host.DataDirectory, "worlds", "unfinished"));
+        File.WriteAllText(Path.Combine(worldRoot, "current.txt"), scopedRevision);
+
+        using var catalog = JsonDocument.Parse(await host.Client.GetStringAsync("/api/spawner-planning/worlds"));
+        Assert.Equal(new[] { "eriva", "midgard" }, catalog.RootElement.EnumerateArray().Select(world => world.GetProperty("id").GetString()));
+        using var legacy = await host.Client.GetAsync("/api/spawner-planning/manifest?worldId=eriva");
+        Assert.Equal(HttpStatusCode.OK, legacy.StatusCode);
+        using var scoped = await host.Client.GetAsync("/api/spawner-planning/manifest?worldId=midgard");
+        Assert.Equal($"\"{scopedRevision}\"", scoped.Headers.ETag?.ToString());
+        foreach (var route in new[] { "cells", "terrain-detail", "terrain-detail/image" })
+        {
+            using var response = await host.Client.GetAsync($"/api/spawner-planning/{route}?worldId=midgard&revision={scopedRevision}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using var absent = await host.Client.GetAsync($"/api/spawner-planning/proposals/32?worldId=midgard&revision={scopedRevision}");
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+        using var stale = await host.Client.GetAsync($"/api/spawner-planning/cells?worldId=midgard&revision={_revision}");
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        using var unknown = await host.Client.GetAsync("/api/spawner-planning/manifest?worldId=unknown");
+        Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+        using var traversal = await host.Client.GetAsync("/api/spawner-planning/manifest?worldId=..%2f..%2f");
+        Assert.Equal(HttpStatusCode.BadRequest, traversal.StatusCode);
+
+        File.WriteAllText(Path.Combine(worldRoot, "current.txt"), "../" + scopedRevision);
+        using var invalidPointer = await host.Client.GetAsync("/api/spawner-planning/manifest?worldId=midgard");
+        Assert.Equal(HttpStatusCode.Conflict, invalidPointer.StatusCode);
+    }
+
+    [Fact]
     public async Task ConfiguredRelativeTraversalIsRejected()
     {
         Directory.CreateDirectory(_workspace);
@@ -164,7 +211,7 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
         {
             SpawnerPlanningDataDirectory = "../other"
         }), new WorkspacePaths(_workspace));
-        await Assert.ThrowsAsync<ArgumentException>(() => service.ReadManifestAsync(new DefaultHttpContext(), CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.ReadManifestAsync(new DefaultHttpContext(), null, CancellationToken.None));
     }
 
     private async Task<RunningHost> StartAsync()
