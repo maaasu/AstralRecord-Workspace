@@ -324,10 +324,19 @@ public sealed partial class RunnerStore
                 var desired = (string?)Scalar("SELECT desiredState FROM Servers WHERE id=$server;", null, ("$server", serverId.ToString()));
                 if (desired == "Stopped")
                 {
-                    // A delayed exit settles a timed-out Stop; Restart did not reach its new Start.
-                    Execute("UPDATE ExecutionLedger SET status=CASE WHEN kind='Stop' THEN 'Succeeded' ELSE 'Failed' END,phase='Completed',statusVersion=statusVersion+1,finishedUtc=$now WHERE serverId=$server AND kind IN ('Stop','Restart') AND status='NeedsAttention' AND phase='Stopping';", null,
-                        ("$server", serverId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
-                    var pending = Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention';", null, ("$server", serverId.ToString()))) != 0;
+                    // A delayed exit settles Stop for this session. Restart did not reach its new Start.
+                    Execute("""
+                        UPDATE ExecutionLedger
+                        SET status=CASE WHEN kind='Stop' THEN 'Succeeded' ELSE 'Failed' END,
+                            phase='Completed',statusVersion=statusVersion+1,finishedUtc=$now,
+                            errorCode=CASE WHEN kind='Stop' THEN NULL ELSE errorCode END
+                        WHERE serverId=$server AND kind IN ('Stop','Restart') AND status='NeedsAttention' AND phase='Stopping'
+                          AND json_extract(commandJson,'$.expectedServerSessionId')=$session;
+                        """, null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
+                    var pending = Convert.ToInt64(Scalar("""
+                        SELECT EXISTS(SELECT 1 FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention')
+                            OR EXISTS(SELECT 1 FROM DataOperationLedger WHERE serverId=$server AND status='NeedsAttention');
+                        """, null, ("$server", serverId.ToString()))) != 0;
                     SetRuntime(serverId, ProcessState.Stopped, null, "Stopped", pending);
                 }
                 else ScheduleCrashRestart(serverId, process.ExitCode);

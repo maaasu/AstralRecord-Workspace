@@ -28,27 +28,34 @@ public sealed partial class RunnerStore
             ChangeExecution(command.OperationId, OperationStatus.Running, ExecutionPhase.Stopping);
         }
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(config.StopTimeoutSeconds, command.ExecutionTimeoutSeconds)));
+        var stopError = ErrorCode.Timeout;
         try
         {
-            await process.StandardInput.WriteLineAsync(ServerProcessSupport.EffectiveStopCommand(config).AsMemory(), timeout.Token);
-            await process.StandardInput.FlushAsync(timeout.Token);
+            try
+            {
+                await process.StandardInput.WriteLineAsync(ServerProcessSupport.EffectiveStopCommand(config).AsMemory(), timeout.Token);
+                await process.StandardInput.FlushAsync(timeout.Token);
+            }
+            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            {
+                // The process can close stdin after receiving the command. Wait for the owned process to exit.
+                stopError = ErrorCode.RecoveryRequired;
+            }
+            await process.WaitForExitAsync(timeout.Token);
         }
-        catch
-        {
-            lock (sync) ChangeExecution(command.OperationId, OperationStatus.NeedsAttention, ExecutionPhase.Unknown, ErrorCode.RecoveryRequired);
-            return;
-        }
-        try { await process.WaitForExitAsync(timeout.Token); }
-        catch (OperationCanceledException)
-        {
-            lock (sync) ChangeExecution(command.OperationId, OperationStatus.NeedsAttention, ExecutionPhase.Stopping, ErrorCode.Timeout);
-            return;
-        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested) { }
         lock (sync)
         {
+            // Serialize the timeout with the exit monitor. If it observed the exit first, do not leave a pending stop.
+            if (!process.HasExited)
+            {
+                ChangeExecution(command.OperationId, OperationStatus.NeedsAttention, ExecutionPhase.Stopping, stopError);
+                return;
+            }
             var current = CurrentSession(serverId);
             if (current == sessionId.ToString()) SetRuntime(serverId, ProcessState.Stopped, null, "Stopped");
             if (!fromRestart) ChangeExecution(command.OperationId, OperationStatus.Succeeded, ExecutionPhase.Completed);
+            else if (timeout.IsCancellationRequested) ChangeExecution(command.OperationId, OperationStatus.Failed, ExecutionPhase.Completed, stopError);
         }
     }
 

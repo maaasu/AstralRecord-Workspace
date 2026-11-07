@@ -9,17 +9,27 @@ public static class Program
         Console.InputEncoding = new System.Text.UTF8Encoding(false);
         Console.OutputEncoding = new System.Text.UTF8Encoding(false);
         var ignoreStop = args.Contains("ignore-stop", StringComparer.Ordinal);
+        var deferExit = args.Contains("defer-exit", StringComparer.Ordinal);
         var stopCommand = args.Contains("velocity", StringComparer.Ordinal) ? "shutdown" : "stop";
         Console.WriteLine("fixture-ready");
         Console.Error.WriteLine("fixture-stderr");
         Console.WriteLine("fixture-utf8-stdout:日本語😀\u001b[90m灰色\u001b[0m");
         Console.Error.WriteLine("fixture-utf8-stderr:警告⚠️\u001b[31m赤色\u001b[0m");
-        if (args.Contains("no-read", StringComparer.Ordinal)) await Task.Delay(Timeout.InfiniteTimeSpan);
+        if (args.Contains("no-read", StringComparer.Ordinal))
+        {
+            if (deferExit) await WaitForExitSignalAsync();
+            else await Task.Delay(Timeout.InfiniteTimeSpan);
+            return;
+        }
         while (true)
         {
             var line = await Console.In.ReadLineAsync();
             if (line is null) { await Task.Delay(100); continue; }
-            if (line == stopCommand && !ignoreStop) return;
+            if (line == stopCommand && !ignoreStop)
+            {
+                if (deferExit) await WaitForExitSignalAsync();
+                return;
+            }
             if (line == "crash") Environment.Exit(17);
             if (line == "environment-probe")
             {
@@ -38,5 +48,10 @@ public static class Program
             else if (line == "unicode-boundary") Console.WriteLine(new string('x', 32767) + "😀日本語");
             else Console.WriteLine("echo:" + line);
         }
+    }
+
+    private static async Task WaitForExitSignalAsync()
+    {
+        while (!File.Exists("allow-fixture-exit")) await Task.Delay(25);
     }
 }

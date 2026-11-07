@@ -297,6 +297,40 @@ public sealed class ProcessTests
         runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
     }
 
+    [Theory]
+    [InlineData(OperationKind.Stop, false)]
+    [InlineData(OperationKind.Stop, true)]
+    [InlineData(OperationKind.Restart, false)]
+    public async Task ExitAfterStopDeadlineSettlesTheExactSession(OperationKind kind, bool noRead)
+    {
+        using var fixture = new Fixture(noRead: noRead, deferExit: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId)).Status);
+        var started = runner.InspectRecovery(new(fixture.Server.ServerId));
+        fixture.Track(started);
+
+        var pending = runner.Execute(fixture.Request(runner, hold, kind, timeout: 1));
+        var timedOut = await WaitTerminal(runner, pending.OperationId);
+        Assert.Equal(OperationStatus.NeedsAttention, timedOut.Status);
+        Assert.Equal(ExecutionPhase.Stopping, timedOut.Phase);
+        Assert.Equal(started.Runtime.CurrentSessionId, timedOut.ServerSessionId);
+        Assert.True(runner.InspectRecovery(new(fixture.Server.ServerId)).ProcessAlive);
+
+        fixture.AllowExit();
+        await WaitUntil(() => runner.GetExecution(pending.OperationId).IsTerminal);
+        var settled = runner.GetExecution(pending.OperationId);
+        Assert.Equal(kind == OperationKind.Stop ? OperationStatus.Succeeded : OperationStatus.Failed, settled.Status);
+        Assert.Equal(kind == OperationKind.Stop ? null : nameof(ErrorCode.Timeout), settled.ErrorCode);
+        Assert.Equal(started.Runtime.CurrentSessionId, settled.ServerSessionId);
+        var inspected = runner.InspectRecovery(new(fixture.Server.ServerId));
+        Assert.Equal(ProcessState.Stopped, inspected.Runtime.ProcessState);
+        Assert.Null(inspected.Runtime.CurrentSessionId);
+        Assert.False(inspected.RecoveryRequired);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
     [Fact]
     public async Task RunnerRestartLeavesLiveChildUnmanagedAndCannotReplayStdin()
     {
@@ -576,7 +610,7 @@ public sealed class ProcessTests
         public ServerConfig? SecondServer { get; }
         public string DatabasePath => Path.Combine(root, "runner", "runner.db");
         public string TemporaryDirectory => Path.Combine(root, "runner", "process-temp", Server.ServerId.ToString("N"));
-        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false, ServerKind kind = ServerKind.Java, bool enableFileControl = false)
+        public Fixture(bool ignoreStop = false, bool autoStart = false, bool restartOnCrash = false, bool twoServers = false, bool noRead = false, ServerKind kind = ServerKind.Java, bool enableFileControl = false, bool deferExit = false)
         {
             var managed = Path.Combine(root, "managed");
             Directory.CreateDirectory(Path.Combine(managed, "server"));
@@ -587,6 +621,7 @@ public sealed class ProcessTests
             Server = new ServerConfig { ServerId = Guid.NewGuid(), HostId = host, Revision = 1, Kind = ServerKind.Java, ManagedRootId = managedId, ExecutableId = executableId, ServerDirectory = "server", ArgumentList = ignoreStop ? [typeof(Marker).Assembly.Location, "ignore-stop"] : [typeof(Marker).Assembly.Location], AutoStart = autoStart, RestartOnCrash = restartOnCrash, RestartDelaySeconds = 1 };
             if (kind == ServerKind.Velocity) Server = Server with { Kind = kind, ArgumentList = [.. Server.ArgumentList, "velocity"] };
             if (noRead) Server = Server with { ArgumentList = [typeof(Marker).Assembly.Location, "no-read"], StopCommand = new string('x', 4096) };
+            if (deferExit) Server = Server with { ArgumentList = [.. Server.ArgumentList, "defer-exit"] };
             if (twoServers)
             {
                 Directory.CreateDirectory(Path.Combine(managed, "server2"));
@@ -594,6 +629,7 @@ public sealed class ProcessTests
             }
         }
         public RunnerStore Open(TimeProvider? clock = null) => new(Path.Combine(root, "runner"), Configuration, clock);
+        public void AllowExit() => File.WriteAllText(Path.Combine(root, "managed", "server", "allow-fixture-exit"), "");
         public InventoryEnvelope Envelope()
         {
             var inventory = new InventorySnapshot { HostId = Configuration.HostId, Revision = 1, Servers = SecondServer is null ? [Server] : [Server, SecondServer] };
