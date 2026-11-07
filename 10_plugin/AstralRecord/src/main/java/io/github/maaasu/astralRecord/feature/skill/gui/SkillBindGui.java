@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
@@ -548,15 +549,12 @@ public final class SkillBindGui {
             ));
         }
         SkillDefinition skill = entry.definition();
-        ItemStack item = createItem(
-            listDisplay && !entry.permitted()
-                ? Material.LIGHT_GRAY_WOOL
-                : parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
+        ItemStack item = createSkillItem(
+            skill,
+            entry.permitted(),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
                 .append(skillLevelDisplay(entry.learnedSkill().getLevel(), skill.getMaxLevel(), NamedTextColor.GOLD)),
-            lore,
-            skill.getIconTexture(),
-            skill.getId()
+            lore
         );
         return withBindingId(item, entry.bindingId());
     }
@@ -630,15 +628,10 @@ public final class SkillBindGui {
                 resolved.learnedSkill().getLevel(), definition.getMaxLevel(), NamedTextColor.GOLD
             ));
         }
-        return createItem(
-            permitted ? parseMaterial(definition.getIcon(), DEFAULT_SKILL_ICON) : Material.LIGHT_GRAY_WOOL,
-            name,
-            lore,
-            permitted ? definition.getIconTexture() : null,
-            definition.getId()
-        );
+        return createSkillItem(definition, permitted, name, lore);
     }
 
+    /** 一覧へ渡された使用許可済みの未習得スキルを表示します。 */
     private ItemStack createUnlearnedSkillItem(
         @NotNull SkillDefinition skill,
         @Nullable String processingSkillId,
@@ -656,9 +649,8 @@ public final class SkillBindGui {
         lore.add(Component.text("未習得", NamedTextColor.RED));
         appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材", accountId);
         lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
-        ItemStack item = createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
-            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore,
-            skill.getIconTexture(), skill.getId());
+        ItemStack item = createSkillItem(skill, true,
+            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(unlearnedSkillIdKey, PersistentDataType.STRING, skill.getId());
         item.setItemMeta(meta);
@@ -987,7 +979,6 @@ public final class SkillBindGui {
                 lore.add(Component.text("この枠をクリックしてバインドを解除してください。", NamedTextColor.YELLOW));
             }
         }
-        Material material = bindSlotMaterial(enabled, bindingId, normalAttack, entry);
         Component name = bindingId == null
             ? Component.text(label + "（未設定）", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
             : normalAttack
@@ -999,10 +990,10 @@ public final class SkillBindGui {
                             entry.definition(), "未登録のスキル", NamedTextColor.WHITE
                         ))
                         .append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
-        String skillId = normalAttack ? SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID
-            : entry == null ? null : entry.definition().getId();
-        ItemStack item = createItem(material, name, lore,
-            entry == null ? null : entry.definition().getIconTexture(), enabled ? skillId : null);
+        ItemStack item = enabled && !normalAttack && entry != null
+            ? createSkillItem(entry.definition(), entry.permitted(), name, lore)
+            : createItem(bindSlotMaterial(enabled, bindingId, normalAttack), name, lore, null,
+                enabled && normalAttack ? SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID : null);
         if (bindingId == null && (type == SkillBindType.PASSIVE || type == SkillBindType.ACTIVE)) {
             item.setAmount(index + 1);
         }
@@ -1072,31 +1063,17 @@ public final class SkillBindGui {
     }
 
     /**
-     * 習得個体の使用許可に応じたスキルアイコン素材を解決します。
-     *
-     * @param entry 表示対象の習得個体
-     * @return 許可時は定義アイコン、未許可時は薄灰色の羊毛
-     */
-    static @NotNull Material skillIconMaterial(@NotNull SkillManagerEntry entry) {
-        return entry.permitted()
-            ? parseMaterial(entry.definition().getIcon(), DEFAULT_SKILL_ICON)
-            : Material.LIGHT_GRAY_WOOL;
-    }
-
-    /**
-     * バインド枠の状態に応じて表示素材を選択します。
+     * 有効な習得個体を表示しないバインド枠の素材を選びます。
      *
      * @param enabled 現在設定可能な枠かどうか
      * @param bindingId バインドID。未設定時は null
      * @param normalAttack 通常攻撃予約IDの枠かどうか
-     * @param entry バインド対象の習得個体。解決できない場合は null
      * @return バインド枠の表示素材
      */
-    static @NotNull Material bindSlotMaterial(
+    private static @NotNull Material bindSlotMaterial(
         boolean enabled,
         @Nullable String bindingId,
-        boolean normalAttack,
-        @Nullable SkillManagerEntry entry
+        boolean normalAttack
     ) {
         if (!enabled) {
             return Material.IRON_BARS;
@@ -1107,10 +1084,7 @@ public final class SkillBindGui {
         if (normalAttack) {
             return Material.STICK;
         }
-        if (entry == null) {
-            return Material.BARRIER;
-        }
-        return skillIconMaterial(entry);
+        return Material.BARRIER;
     }
 
     /** 下段右端へ表示する武器通常攻撃の設定アイテムを生成します。 */
@@ -1327,8 +1301,8 @@ public final class SkillBindGui {
         ));
         return createItem(
             parseMaterial(preview.definition().getIcon(), DEFAULT_SKILL_ICON),
-                SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
-                    .append(skillLevelDisplay(resultingLevel, skill.getMaxLevel(), NamedTextColor.GREEN)),
+            SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
+                .append(skillLevelDisplay(resultingLevel, skill.getMaxLevel(), NamedTextColor.GREEN)),
             lore,
             preview.definition().getIconTexture(),
             preview.definition().getId()
@@ -1394,6 +1368,22 @@ public final class SkillBindGui {
 
     private ItemStack createItem(Material material, Component name, List<Component> lore) {
         return GuiItems.create(material, name, lore);
+    }
+
+    /**
+     * 使用許可に応じてスキル固有の絵柄か、バリアを代替素材にした南京錠アイコンを使います。
+     * @param skill 表示対象のスキル定義
+     * @param permitted 現在の使用許可
+     * @param name 表示名
+     * @param lore 説明行
+     * @return スキルカードの表示専用アイテム
+     */
+    private ItemStack createSkillItem(SkillDefinition skill, boolean permitted, Component name, List<Component> lore) {
+        if (!permitted) {
+            return GuiResourcePackIcons.apply(createItem(Material.BARRIER, name, lore), "skill_unavailable");
+        }
+        return createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON), name, lore,
+            skill.getIconTexture(), skill.getId());
     }
 
     private ItemStack createItem(

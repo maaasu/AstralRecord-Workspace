@@ -261,6 +261,11 @@ PICTOGRAMS: dict[str, tuple[str, ...]] = {
         ".SSSSS.SSSSS", ".SWWWWsWWWWS", ".SWWsWsWsWWS", ".SWWWWsWWWWS",
         ".SWssWsWssWS", ".SWWWWsWWWWS", ".SSSSSsSSSSS",
     ),
+    "skill_unavailable": (
+        "....rrr.....", "...rRRRr....", "..rR...Rr...", "..rR...Rr...",
+        "..rR...Rr...", ".rrrrrrrrr..", "rRRRRRRRRRR.", "rRRRWWRRRRR.",
+        "rRRRWWRRRRR.", "rRRRRWRRRRR.", ".RRRRRRRRR..", "..RRRRRRR...",
+    ),
 }
 
 

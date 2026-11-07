@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃の演出、GUI共通アイコンを配布します。配布する装備モデルは `item-models.json`、GUI専用の45種・83割り当ては `gui-icons.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃の演出、GUI共通アイコンを配布します。配布する装備モデルは `item-models.json`、GUI専用の46種・84割り当ては `gui-icons.json` で管理します。
 
 ## GUI
 

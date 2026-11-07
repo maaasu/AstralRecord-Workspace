@@ -498,6 +498,12 @@
       "role": "setting_save_guide",
       "base_item": "minecraft:writable_book",
       "custom_model_data": 910083
+    },
+    {
+      "id": "gui_skill_unavailable_barrier",
+      "role": "skill_unavailable",
+      "base_item": "minecraft:barrier",
+      "custom_model_data": 910084
     }
   ]
 }
