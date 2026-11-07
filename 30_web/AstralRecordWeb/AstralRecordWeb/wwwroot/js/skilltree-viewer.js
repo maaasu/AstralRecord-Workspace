@@ -1,4 +1,4 @@
-import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeArtScale, nodeDetailLevel, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeArtScale, nodeDetailLevel, nodeStatus, nodeState, nodeCost, nodeLabelLines } from './skilltree-geometry.mjs';
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
 import { initializeStarfield } from './skilltree-stars.mjs';
@@ -8,6 +8,7 @@ const ns = 'http://www.w3.org/2000/svg';
 const expandedViews = new WeakMap();
 const maxZoom = 2.5;
 const compactLabelWidth = 176;
+const statusMarks = { unlocked: '✓', available: '+', locked: '−', unmet: '!', 'draft-unlock': '↑', 'draft-relock': '↓' };
 const make = (tag, attrs = {}, text) => {
     const element = document.createElementNS(ns, tag);
     Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, String(value)));
@@ -49,31 +50,99 @@ export function initializeViewer(viewer, viewState) {
     motionButton.addEventListener('click', () => { motionPaused = !motionPaused; stars.pause(motionPaused); renderMotion(); });
     reducedMotion.addEventListener('change', renderMotion, { signal: lifecycle.signal });
     renderMotion();
+    const toolsToggle = viewer.querySelector('[data-tree-tools-toggle]');
+    const toolsPanel = viewer.querySelector('.ar-tree-tools-panel');
+    const setToolsVisible = visible => {
+        toolsPanel.hidden = !visible;
+        toolsToggle.setAttribute('aria-expanded', String(visible));
+    };
+    setToolsVisible(viewState?.toolsVisible ?? false);
+    toolsToggle.addEventListener('click', () => setToolsVisible(toolsPanel.hidden));
+
+    const layout = viewer.querySelector('.ar-tree-layout');
     const detail = viewer.querySelector('.ar-tree-detail');
     const detailToggle = viewer.querySelector('[data-tree-detail-toggle]');
+    const resizeHandle = viewer.querySelector('[data-tree-detail-resize]');
+    let detailWidth = viewState?.detailWidth, resizing = null;
+    if (detailWidth !== undefined) layout.style.setProperty('--tree-detail-size', `${detailWidth}px`);
+    const detailLimits = () => {
+        const max = Math.round(layout.clientWidth * .55);
+        return { min: Math.min(240, max), max };
+    };
+    const updateResizeHandle = () => {
+        const { min, max } = detailLimits();
+        resizeHandle.setAttribute('aria-valuemin', min);
+        resizeHandle.setAttribute('aria-valuemax', max);
+        resizeHandle.setAttribute('aria-valuenow', detail.offsetWidth);
+    };
+    const resizeDetail = width => {
+        const { min, max } = detailLimits();
+        detailWidth = Math.round(Math.min(max, Math.max(min, width)));
+        layout.style.setProperty('--tree-detail-size', `${detailWidth}px`);
+        updateResizeHandle();
+    };
+    resizeHandle.addEventListener('pointerdown', event => {
+        if (event.button !== 0 || resizing) return;
+        resizeHandle.setPointerCapture(event.pointerId);
+        resizing = { id: event.pointerId, x: event.clientX, width: detail.offsetWidth };
+        layout.classList.add('is-resizing');
+    });
+    resizeHandle.addEventListener('pointermove', event => {
+        if (event.pointerId === resizing?.id) resizeDetail(resizing.width + resizing.x - event.clientX);
+    });
+    resizeHandle.addEventListener('lostpointercapture', () => {
+        resizing = null;
+        layout.classList.remove('is-resizing');
+    });
+    resizeHandle.addEventListener('keydown', event => {
+        const widths = { ArrowLeft: detail.offsetWidth + 24, ArrowRight: detail.offsetWidth - 24, Home: 0, End: layout.clientWidth };
+        if (!Object.hasOwn(widths, event.key)) return;
+        event.preventDefault();
+        resizeDetail(widths[event.key]);
+    });
     const setDetailVisible = visible => {
         viewer.classList.toggle('is-detail-hidden', !visible);
         detail.hidden = !visible;
         detailToggle.textContent = visible ? '詳細を隠す' : '詳細を表示';
         detailToggle.setAttribute('aria-expanded', String(visible));
+        if (visible) updateResizeHandle();
     };
     const svg = viewer.querySelector('.ar-tree-canvas');
     const summary = viewer.querySelector('.ar-tree-node-summary');
     const summaryName = summary.querySelector('[data-tree-summary-name]');
-    const summaryEffect = summary.querySelector('[data-tree-summary-effect]');
+    const summaryCaption = summary.querySelector('[data-tree-summary-caption]');
+    const summaryEffects = summary.querySelector('[data-tree-summary-effects]');
     const summaryCost = summary.querySelector('[data-tree-summary-cost]');
     const summaryState = summary.querySelector('[data-tree-summary-state]');
-    let summarySize;
-    summary.hidden = true;
-    const updateSummary = node => {
+    const detailState = viewer.querySelector('[data-node-state]');
+    const renderStateChip = (element, node) => {
+        element.dataset.state = nodeStatus(node);
+        const mark = document.createElement('b');
+        mark.setAttribute('aria-hidden', 'true');
+        mark.textContent = statusMarks[element.dataset.state];
+        element.replaceChildren(mark, nodeState(node));
+    };
+    let hoveredId, focusedId;
+    const updateSummary = () => {
+        const node = nodes.get(hoveredId ?? focusedId ?? selectedId);
+        if (!node) return;
+        summary.hidden = false;
+        summary.toggleAttribute('data-tree-previewing', node.nodeId !== selectedId);
+        summaryCaption.textContent = node.nodeId === selectedId ? '選択中' : 'ノードのプレビュー';
         summaryName.textContent = node.name;
-        summaryEffect.textContent = node.displayEffects?.[0] ?? '';
         summaryCost.textContent = nodeCost(node);
-        summaryState.textContent = nodeState(node);
-        summarySize = null;
+        renderStateChip(summaryState, node);
+        const effects = node.displayEffects ?? [];
+        const lines = effects.slice(0, 3);
+        if (!effects.length) lines.push('追加効果なし');
+        if (effects.length > 3) lines.push(`ほか ${effects.length - 3} 件`);
+        summaryEffects.replaceChildren(...lines.map(text => {
+            const item = document.createElement('li');
+            item.textContent = text;
+            return item;
+        }));
     };
     const minimap = viewer.querySelector('[data-tree-minimap]');
-    const minimapBox = minimap.parentElement;
     svg.replaceChildren(); minimap.replaceChildren();
     const graph = make('g');
     svg.append(graph);
@@ -123,40 +192,11 @@ export function initializeViewer(viewer, viewState) {
     let miniRadius = Math.max(bounds.width, bounds.height) / 110;
     const miniNodes = new Map();
     for (const node of nodes.values()) {
-        const point = make('circle', { cx: node.px, cy: node.py, r: miniRadius, class: `ar-tree-mini-node${node.isUnlocked ? ' is-unlocked' : ''}` });
+        const point = make('circle', { cx: node.px, cy: node.py, r: miniRadius, class: 'ar-tree-mini-node', 'data-state': nodeStatus(node) });
         minimap.append(point); miniNodes.set(node.nodeId, point);
     }
     const miniViewport = make('rect', { class: 'ar-tree-mini-viewport' });
     minimap.append(miniViewport);
-    const placeSummary = (level, visualScale) => {
-        const node = nodes.get(selectedId);
-        const x = node.px * camera.zoom + camera.x, y = node.py * camera.zoom + camera.y;
-        const scale = artScaleFor(node, visualScale) * camera.zoom;
-        const group = groups.get(selectedId);
-        const fullLabelVisible = level === 'full' && !group.classList.contains('is-label-compact')
-            && x - 128 * scale >= 0 && x + 128 * scale <= viewportWidth
-            && y + (73 + node.labelExtent) * scale <= viewportHeight;
-        summary.hidden = fullLabelVisible || x < 0 || x > viewportWidth || y < 0 || y > viewportHeight;
-        if (summary.hidden) return;
-
-        summarySize ??= {
-            width: summary.offsetWidth, height: summary.offsetHeight,
-            minimapLeft: minimapBox.offsetLeft, minimapTop: minimapBox.offsetTop,
-        };
-        const { width, height, minimapLeft, minimapTop } = summarySize;
-        const margin = 8;
-        let left = Math.max(margin, Math.min(x - width / 2, viewportWidth - width - margin));
-        const distance = 55 * scale + margin;
-        const above = y - distance - height;
-        let top = above >= margin ? above : Math.max(margin, Math.min(y + distance, viewportHeight - height - margin));
-        if (left + width > minimapLeft - margin && top + height > minimapTop - margin) {
-            const aboveMinimap = minimapTop - height - margin;
-            const beforeMinimap = minimapLeft - width - margin;
-            if (aboveMinimap >= margin) top = aboveMinimap;
-            else if (beforeMinimap >= margin) left = beforeMinimap;
-        }
-        summary.style.transform = `translate(${left}px, ${top}px)`;
-    };
     const paint = () => {
         if (disposed) return;
         const artScale = nodeVisualScale(camera.zoom);
@@ -191,10 +231,8 @@ export function initializeViewer(viewer, viewState) {
         }
         }
         graph.setAttribute('transform', `translate(${camera.x},${camera.y}) scale(${camera.zoom})`);
-        const overview = String(level === 'overview'), zoomText = `${Math.round(camera.zoom * 100)}%`;
-        if (viewer.dataset.overview !== overview) viewer.dataset.overview = overview;
+        const zoomText = `${Math.round(camera.zoom * 100)}%`;
         if (viewer.dataset.nodeDetail !== level) viewer.dataset.nodeDetail = level;
-        placeSummary(level, artScale);
         if (zoomLabel.textContent !== zoomText) zoomLabel.textContent = zoomText;
         const left = Math.max(bounds.x, -camera.x / camera.zoom);
         const top = Math.max(bounds.y, -camera.y / camera.zoom);
@@ -204,23 +242,35 @@ export function initializeViewer(viewer, viewState) {
         frame = 0;
     };
     const draw = () => { if (!frame) frame = requestAnimationFrame(paint); };
-    const focusNode = (node, readable = true) => {
+    const focusNode = node => {
         // A detail toggle can resize the map before ResizeObserver delivers its callback.
         viewportWidth = previousWidth = viewport.clientWidth;
         viewportHeight = previousHeight = viewport.clientHeight;
         cullBounds = null;
-        if (readable) camera.zoom = Math.max(1, camera.zoom);
-        camera.x = viewportWidth / 2 - node.px * camera.zoom;
-        const labelCenter = node.nodeId ? 9 + (node.labelExtent ?? nodeLabelLines(node).length * 20) / 2 : 0;
-        camera.y = viewportHeight / 2 - (node.py + labelCenter * artScaleFor(node, nodeVisualScale(camera.zoom))) * camera.zoom;
+        const scale = node.nodeId ? artScaleFor(node, nodeVisualScale(camera.zoom)) * camera.zoom : 0;
+        const labelCenter = node.nodeId && nodeDetailLevel(camera.zoom) === 'full' ? 9 + node.labelExtent / 2 : 0;
+        let x = viewportWidth / 2, y = viewportHeight / 2 - labelCenter * scale;
+        const radius = 55 * scale;
+        const summaryWidth = summary.offsetWidth, summaryTop = summary.offsetTop;
+        const summaryRight = summary.offsetLeft + summaryWidth;
+        if (node.nodeId && summaryWidth && x - radius < summaryRight && y + radius > summaryTop) {
+            const spaceRight = viewportWidth - summaryRight;
+            if (summaryTop >= spaceRight) y = Math.min(y, summaryTop / 2);
+            else {
+                x = summaryRight + spaceRight / 2;
+                const minimapTop = minimap.parentElement.offsetTop;
+                y = Math.min(y, minimapTop - Math.min(radius, minimapTop / 2));
+            }
+        }
+        camera.x = x - node.px * camera.zoom;
+        camera.y = y - node.py * camera.zoom;
         draw();
     };
     const showDetails = (node, announce = true) => {
         const selectionChanged = selectedId !== node.nodeId;
         selectedId = node.nodeId;
-        updateSummary(node);
+        updateSummary();
         draw();
-        if (announce) setDetailVisible(true);
         groups.forEach((g, id) => {
             g.setAttribute('aria-pressed', String(id === selectedId));
             g.classList.toggle('is-neighbor', neighbors.get(selectedId).some(n => n.nodeId === id));
@@ -228,12 +278,9 @@ export function initializeViewer(viewer, viewState) {
         links.forEach(edge => edge.line.classList.toggle('is-connected', edge.source === selectedId || edge.target === selectedId));
         miniNodes.forEach((point, id) => point.classList.toggle('is-selected', id === selectedId));
         if (selectionChanged) detail.scrollTop = 0;
-        detail.dataset.state = node.isUnlocked ? 'unlocked' : 'locked';
-        detail.dataset.pointType = node.pointType;
         viewer.querySelector('[data-node-name]').textContent = node.name;
         viewer.querySelector('[data-node-type]').textContent = node.pointType === 'CP' ? 'クラスの成長 · CP' : 'プレイヤーの成長 · PP';
-        viewer.querySelector('[data-node-state]').textContent = nodeState(node);
-        viewer.querySelector('[data-node-state]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
+        renderStateChip(detailState, node);
         viewer.querySelector('[data-node-requirement]').textContent = node.requirementText || 'クラス・プレイヤーレベルの指定条件なし';
         viewer.querySelector('[data-node-requirement]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
         viewer.querySelector('[data-node-cost]').textContent = nodeCost(node);
@@ -256,15 +303,24 @@ export function initializeViewer(viewer, viewState) {
             if (selectedId !== node.nodeId || !url) return;
             icon.src = url; icon.hidden = false; fallback.hidden = true;
         });
-        if (announce) viewer.querySelector('[data-tree-announcement]').textContent = `${node.name}。${nodeState(node)}。${node.pointCost} ${node.pointType}`;
+        if (announce) viewer.querySelector('[data-tree-announcement]').textContent =
+            [node.name, nodeState(node), nodeCost(node), ...(node.displayEffects ?? [])].join('。');
         viewer.dispatchEvent(new CustomEvent('skilltree:select', { bubbles: true, detail: node }));
+    };
+    const renderNodeStatus = (group, node) => {
+        const status = nodeStatus(node);
+        group.dataset.state = status;
+        group.setAttribute('aria-label', `${node.name}、${nodeState(node)}`);
+        group.querySelector('.ar-tree-node-status-mark').textContent = statusMarks[status];
+        group.querySelector('title').textContent = [node.name, nodeState(node), node.requirementText].filter(Boolean).join('\n');
+        miniNodes.get(node.nodeId).dataset.state = status;
     };
     for (const node of nodes.values()) {
         const isRoot = node.nodeId === tree.rootNodeId;
         const g = make('g', {
-            class: `ar-tree-node${node.isUnlocked ? ' is-unlocked' : ''}${node.canUnlock ? ' is-available' : ''}${isRoot ? ' is-root' : ''}${node.isConditionMet === false ? ' is-unmet' : ''}`,
+            class: `ar-tree-node${isRoot ? ' is-root' : ''}`,
             transform: `translate(${node.px},${node.py})`, role: 'button', tabindex: 0,
-            'aria-label': `${node.name}、${nodeState(node)}`, 'aria-pressed': 'false', 'data-point-type': node.pointType, 'data-node-key': node.nodeId,
+            'aria-pressed': 'false', 'data-point-type': node.pointType, 'data-node-key': node.nodeId,
         });
         const labelLines = nodeLabelLines(node);
         node.labelExtent = labelLines.length * 20;
@@ -277,11 +333,11 @@ export function initializeViewer(viewer, viewState) {
         const icon = make('image', { x: -24, y: -24, width: 48, height: 48, class: 'ar-tree-node-icon', 'aria-hidden': 'true' });
         loadIcon(node.icon).then(url => {
             if (disposed || !url) return;
-            icon.setAttribute('href', url); g.append(icon); fallback.remove();
+            icon.setAttribute('href', url); fallback.replaceWith(icon);
         });
         g.append(make('path', { d: 'M0-55 L5-48 0-41-5-48Z', class: 'ar-tree-node-gem', 'aria-hidden': 'true' }));
-        g.append(make('circle', { cx: 31, cy: 31, r: 10, class: 'ar-tree-node-status' }));
-        g.append(make('text', { x: 31, y: 35, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }, node.isUnlocked ? '✓' : node.canUnlock ? '＋' : '·'));
+        g.append(make('circle', { cx: 34, cy: 34, r: 15, class: 'ar-tree-node-status', 'aria-hidden': 'true' }));
+        g.append(make('text', { x: 34, y: 34, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }));
         const label = make('g', { class: 'ar-tree-node-label', 'aria-hidden': 'true' });
         label.append(make('rect', { x: -128, y: 61, width: 256, height: labelLines.length * 20 + 12, rx: 4 }));
         labelLines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
@@ -292,16 +348,15 @@ export function initializeViewer(viewer, viewState) {
         compact.append(make('text', { y: 81, class: 'ar-tree-label-name' }, nameChars.length > 12 ? nameChars.slice(0, 11).join('') + '…' : node.name));
         compact.append(make('text', { y: 101, class: 'ar-tree-label-cost' }, `${node.pointCost} ${node.pointType}`));
         g.append(compact);
-        g.append(make('title', {}, `${node.name}\n${nodeState(node)}\n${node.requirementText ?? ''}`));
+        g.append(make('title'));
+        renderNodeStatus(g, node);
         g.addEventListener('click', event => {
             if (dragged && event.detail !== 0) return;
             const mouseClick = primaryPress?.type === 'mouse' && primaryPress.nodeId === node.nodeId;
             primaryPress = null;
             if (event.detail > 0 && mouseClick && (!event.pointerType || event.pointerType === 'mouse')
                 && !viewer.dispatchEvent(new CustomEvent('skilltree:action', { bubbles: true, cancelable: true, detail: { nodeId: node.nodeId, action: 'UNLOCK' } }))) return;
-            const wasOverview = nodeDetailLevel(camera.zoom) === 'overview';
             showDetails(node);
-            if (wasOverview) focusNode(node);
         });
         g.addEventListener('keydown', event => {
             if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); showDetails(node); }
@@ -311,7 +366,28 @@ export function initializeViewer(viewer, viewState) {
             if (rightPress.moved) return;
             if (!viewer.dispatchEvent(new CustomEvent('skilltree:action', { bubbles: true, cancelable: true, detail: { nodeId: node.nodeId, action: 'RELOCK' } }))) event.preventDefault();
         });
-        g.addEventListener('focus', () => { if (g.matches(':focus-visible')) focusNode(node, camera.zoom < .4); });
+        g.addEventListener('pointerenter', event => {
+            if (event.pointerType !== 'mouse' || pointers.size) return;
+            hoveredId = node.nodeId;
+            updateSummary();
+        });
+        g.addEventListener('pointerleave', () => {
+            if (hoveredId !== node.nodeId) return;
+            hoveredId = undefined;
+            updateSummary();
+        });
+        g.addEventListener('focus', () => {
+            if (!g.matches(':focus-visible')) return;
+            focusedId = node.nodeId;
+            hoveredId = undefined;
+            updateSummary();
+            focusNode(node);
+        });
+        g.addEventListener('blur', () => {
+            if (focusedId !== node.nodeId) return;
+            focusedId = undefined;
+            updateSummary();
+        });
         graph.append(g); groups.set(node.nodeId, g);
     }
     spacingInput.addEventListener('input', () => {
@@ -446,7 +522,7 @@ export function initializeViewer(viewer, viewState) {
         const transform = minimap.getScreenCTM();
         if (!transform) return;
         const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(transform.inverse());
-        focusNode({ px: point.x, py: point.y }, false);
+        focusNode({ px: point.x, py: point.y });
     });
     const query = viewer.querySelector('[data-tree-query]'), results = viewer.querySelector('[data-tree-results]');
     const searchMode = viewer.querySelector('[data-tree-search-mode]'), effectFilter = viewer.querySelector('[data-tree-effect-filter]');
@@ -514,7 +590,7 @@ export function initializeViewer(viewer, viewState) {
     viewer.querySelector('[data-tree-match-next]').addEventListener('click', () => stepMatch(1));
     viewer.querySelector('[data-tree-search-clear]').addEventListener('click', () => {
         query.value = ''; effectFilter.value = ''; search(false);
-        query.focus({ preventScroll: true });
+        (toolsPanel.hidden ? toolsToggle : query).focus({ preventScroll: true });
     });
     viewer.addEventListener('click', event => { if (!event.target.closest('[data-tree-search]')) results.hidden = true; });
     const geometryKey = value => JSON.stringify([value.rootNodeId, value.edges, value.nodes.map(node => [node.nodeId, node.x, node.y, node.z, node.name, node.icon, node.pointType, node.pointCost, node.displayEffects, node.costText])]);
@@ -524,27 +600,24 @@ export function initializeViewer(viewer, viewState) {
         for (const value of next.nodes) {
             const node = nodes.get(value.nodeId), group = groups.get(value.nodeId);
             if (!node || !group) return false;
-            const changed = node.isUnlocked !== value.isUnlocked || node.canUnlock !== value.canUnlock || node.stateText !== value.stateText || node.draftAction !== value.draftAction;
+            const changed = nodeStatus(node) !== nodeStatus(value) || nodeState(node) !== nodeState(value)
+                || node.requirementText !== value.requirementText;
             Object.assign(node, value);
             if (!changed) continue;
-            group.classList.toggle('is-unlocked', Boolean(node.isUnlocked));
-            group.classList.toggle('is-unmet', node.isConditionMet === false);
-            group.classList.toggle('is-available', Boolean(node.canUnlock));
-            group.classList.toggle('is-draft-unlock', node.draftAction === 'UNLOCK');
-            group.classList.toggle('is-draft-relock', node.draftAction === 'RELOCK');
-            group.setAttribute('aria-label', `${node.name}、${nodeState(node)}`);
-            group.querySelector('.ar-tree-node-status-mark').textContent = node.draftAction ? '◌' : node.isUnlocked ? '✓' : node.canUnlock ? '＋' : '·';
+            renderNodeStatus(group, node);
             const label = group.querySelector('.ar-tree-node-label'), lines = nodeLabelLines(node);
             node.labelExtent = lines.length * 20;
             label.replaceChildren(make('rect', { x: -128, y: 61, width: 256, height: lines.length * 20 + 12, rx: 4 }));
             lines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
-            miniNodes.get(node.nodeId)?.classList.toggle('is-unlocked', Boolean(node.isUnlocked));
         }
         links.forEach(edge => edge.line.classList.toggle('is-unlocked', nodes.get(edge.source).isUnlocked && nodes.get(edge.target).isUnlocked));
         const current = nodes.get(selectedId);
         if (current) {
-            updateSummary(current);
-            viewer.querySelector('[data-node-state]').textContent = nodeState(current);
+            updateSummary();
+            renderStateChip(detailState, current);
+            const requirement = viewer.querySelector('[data-node-requirement]');
+            requirement.textContent = current.requirementText || 'クラス・プレイヤーレベルの指定条件なし';
+            requirement.classList.toggle('ar-condition-unmet', current.isConditionMet === false);
             viewer.querySelector('[data-node-cost]').textContent = nodeCost(current);
         }
         cullBounds = null; paintedVisualScale = 0; draw();
@@ -554,7 +627,7 @@ export function initializeViewer(viewer, viewState) {
     const observer = new ResizeObserver(() => {
         const width = viewport.clientWidth, height = viewport.clientHeight;
         if (width <= 0 || height <= 0) return;
-        summarySize = null;
+        if (!detail.hidden) updateResizeHandle();
         viewportWidth = width; viewportHeight = height;
         camera.x += (width - previousWidth) / 2; camera.y += (height - previousHeight) / 2;
         previousWidth = width; previousHeight = height;
@@ -562,9 +635,14 @@ export function initializeViewer(viewer, viewState) {
     });
     observer.observe(viewport);
     viewer.dispose = () => { disposed = true; stars.dispose(); lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
-    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !viewer.classList.contains('is-detail-hidden'), width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
-    viewer.selectNode = (id, openDetails = true) => { const node = nodes.get(id); if (node) showDetails(node, openDetails); };
-    viewer.isInteracting = () => pointers.size > 0 || performance.now() < interactionUntil;
+    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, toolsVisible: !toolsPanel.hidden, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
+    viewer.selectNode = (id, openDetails = true) => {
+        const node = nodes.get(id);
+        if (!node) return;
+        if (openDetails) setDetailVisible(true);
+        showDetails(node, openDetails);
+    };
+    viewer.isInteracting = () => pointers.size > 0 || Boolean(resizing) || performance.now() < interactionUntil;
     showDetails(nodes.get(viewState?.selectedId) ?? root, false);
     setDetailVisible(viewState?.detailVisible ?? !window.matchMedia('(max-width: 760px)').matches);
     if (viewState) { camera = { ...viewState.camera }; draw(); }

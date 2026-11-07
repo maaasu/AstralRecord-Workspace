@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeArtScale, nodeDetailLevel, materialId, nodeState } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
+import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoomFactor, nodeVisualScale, nodeArtScale, nodeDetailLevel, materialId, nodeState, nodeStatus } from '../AstralRecordWeb/wwwroot/js/skilltree-geometry.mjs';
 
 test('camera enlargement always enlarges nodes while lowering their relative footprint', () => {
     let previousSize = 0, previousRatio = Infinity;
@@ -121,6 +121,19 @@ test('material paths allow Bukkit names but reject URLs and traversal', () => {
 
 test('unlocked but unmet nodes are described as inactive instead of active', () => {
     assert.equal(nodeState({ isUnlocked: true, isConditionMet: false }), '解放済み・条件未達のため無効');
+    assert.equal(nodeState({ isUnlocked: true, isEffectiveUnlocked: false }), '解放済み・効果無効');
     assert.equal(nodeState({ isUnlocked: true, isConditionMet: true }), '解放済み');
     assert.equal(nodeState({ isUnlocked: false, isConditionMet: true }), '未解放');
+});
+
+test('map markers distinguish evaluated availability, unmet conditions and pending changes', () => {
+    assert.equal(nodeStatus({}), 'locked');
+    assert.equal(nodeStatus({ canUnlock: true }), 'available');
+    assert.equal(nodeStatus({ isUnlocked: true }), 'unlocked');
+    assert.equal(nodeStatus({ isUnlocked: true, isConditionMet: false }), 'unmet');
+    assert.equal(nodeStatus({ isUnlocked: true, isEffectiveUnlocked: false }), 'unmet');
+    assert.equal(nodeStatus({ isUnlocked: false, isEffectiveUnlocked: false }), 'locked');
+    assert.equal(nodeStatus({ isUnlocked: false, isConditionMet: false }), 'unmet');
+    assert.equal(nodeStatus({ isUnlocked: true, draftAction: 'UNLOCK' }), 'draft-unlock');
+    assert.equal(nodeStatus({ isUnlocked: false, draftAction: 'RELOCK' }), 'draft-relock');
 });

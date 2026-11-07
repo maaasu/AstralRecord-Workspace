@@ -13,7 +13,6 @@
             </div>
             <p class="ar-tree-mode-description">@(editable ? "変更案を確認してまとめて送信します。送信までは適用されません。" : "習得状況とノードの効果を確認できます。この画面では変更できません。")</p>
         </div>
-        <span class="ar-tree-heading-balance-kind" data-editor-heading-kind></span>
         <div class="ar-tree-progress">
             <strong>@Model.Nodes.Count(n => n.IsUnlocked)<span> / @Model.Nodes.Count</span></strong>
             <span>表示中の解放ノード</span>
@@ -27,88 +26,104 @@
     <div data-skilltree-viewer>
         <script type="application/json" data-tree-json>@Html.Raw(JsonSerializer.Serialize(Model, new JsonSerializerOptions(JsonSerializerDefaults.Web)))</script>
         <div class="ar-tree-tools">
-            <div class="ar-tree-map-tools">
-                <div class="ar-tree-toolbar">
+            <div class="ar-tree-toolbar">
+                <div class="ar-tree-controls" role="group" aria-label="地図の表示">
+                    <button type="button" data-tree-tools-toggle aria-controls="tree-tools-panel" aria-expanded="false">@(editable ? "検索・編集ツール" : "検索・設定")</button>
+                    <div class="ar-tree-zoom" role="group" aria-label="表示倍率の調整">
+                        <button type="button" data-tree-zoom="out" aria-label="スキルツリーを縮小">−</button>
+                        <output data-tree-zoom-label aria-label="表示倍率" aria-live="off">100%</output>
+                        <button type="button" data-tree-zoom="in" aria-label="スキルツリーを拡大">＋</button>
+                    </div>
+                    <button type="button" data-tree-fit>全体図</button>
+                    <button type="button" data-tree-detail-toggle aria-controls="tree-node-detail" aria-expanded="true">詳細を隠す</button>
+                    <button type="button" data-tree-expand aria-pressed="false">最大表示</button>
+                </div>
+                @if (editable)
+                {
+                    <div class="ar-tree-request-status">
+                        <span data-editor-status role="status">編集中</span>
+                        <span data-editor-draft-count>変更なし</span>
+                        <small data-editor-heading-kind></small>
+                        <button type="button" data-editor-batch-review disabled>変更内容を確認</button>
+                    </div>
+                }
+                <div class="ar-tree-search-feedback" data-tree-search-feedback hidden role="group" aria-label="検索の強調表示">
+                    <span data-tree-match-count role="status"></span>
+                    <button type="button" data-tree-match-prev aria-label="前の検索結果へ">前へ</button>
+                    <button type="button" data-tree-match-next aria-label="次の検索結果へ">次へ</button>
+                    <button type="button" data-tree-search-clear>強調を解除</button>
+                </div>
+            </div>
+            @if (editable)
+            {
+                <div class="ar-tree-notices">
+                    <p data-editor-reason></p>
+                    <p data-editor-feedback role="status"></p>
+                </div>
+            }
+            <div id="tree-tools-panel" class="ar-tree-tools-panel" hidden>
+                <div class="ar-tree-map-tools">
                     <form class="ar-tree-search" data-tree-search role="search" aria-label="スキルツリー内のノード検索">
                         <label class="visually-hidden" for="tree-search">名前・効果・スキルを検索</label>
                         <input id="tree-search" type="search" autocomplete="off" placeholder="名前・効果・スキルを検索" data-tree-query />
                         <button type="submit">探す</button>
                         <div class="ar-tree-search-results" data-tree-results hidden></div>
                     </form>
-                    <div class="ar-tree-controls" role="group" aria-label="地図の表示">
-                        <div class="ar-tree-zoom" role="group" aria-label="表示倍率の調整">
-                            <button type="button" data-tree-zoom="out" aria-label="スキルツリーを縮小">−</button>
-                            <output data-tree-zoom-label aria-label="表示倍率" aria-live="off">100%</output>
-                            <button type="button" data-tree-zoom="in" aria-label="スキルツリーを拡大">＋</button>
-                        </div>
-                        <button type="button" data-tree-fit>全体図</button>
-                        <button type="button" data-tree-detail-toggle aria-controls="tree-node-detail" aria-expanded="true">詳細を隠す</button>
-                        <button type="button" data-tree-expand aria-pressed="false">最大表示</button>
-                    </div>
-                </div>
-                <div class="ar-tree-search-feedback" data-tree-search-feedback hidden>
-                    <span data-tree-match-count role="status"></span>
-                    <button type="button" data-tree-match-prev aria-label="前の検索結果へ">前へ</button>
-                    <button type="button" data-tree-match-next aria-label="次の検索結果へ">次へ</button>
-                    <button type="button" data-tree-search-clear>強調を解除</button>
-                </div>
-                <div class="ar-tree-options">
-                    <details>
-                        <summary>検索条件</summary>
-                        <div class="ar-tree-options-content">
-                            <label>対象 <select data-tree-search-mode><option value="all">すべて</option><option value="name">名前</option><option value="effect">効果・スキル</option></select></label>
-                            <label>効果 <select data-tree-effect-filter><option value="">指定なし</option></select></label>
-                        </div>
-                    </details>
-                    <details>
-                        <summary>表示設定</summary>
-                        <div class="ar-tree-options-content">
-                            <button type="button" data-tree-home>選択ノードへ</button>
-                            <button type="button" data-tree-reset>起点へ</button>
-                            <button type="button" data-tree-motion aria-pressed="false">背景の動きを停止</button>
-                            <a class="ar-tree-video-source" href="https://svs.gsfc.nasa.gov/30680/" target="_blank" rel="noopener noreferrer" title="NASA, ESA, Z. Levay, F. Summers, G. Bacon, T. Davis, L. Frattare (Viz 3D Team/STScI)">映像出典：NASA / ESA / STScI</a>
-                            <label class="ar-tree-spacing">ノード間隔 <input type="range" min="50" max="200" step="10" value="70" data-tree-spacing /><output data-tree-spacing-label aria-live="off">70%</output></label>
-                        </div>
-                    </details>
-                    @if (editable)
-                    {
+                    <div class="ar-tree-options">
                         <details>
-                            <summary>操作設定</summary>
-                            <div class="ar-tree-options-content ar-tree-preferences">
-                                <label><input type="checkbox" data-editor-sound checked /> サウンド</label>
-                                <label>音量 <input type="range" min="0" max="100" step="5" value="35" data-editor-volume /><output data-editor-volume-label aria-live="off">35%</output></label>
-                                <label><input type="checkbox" data-editor-direct-click aria-describedby="tree-direct-click-help" /> クリックで解放・解除</label>
-                                <p id="tree-direct-click-help">左クリックで解放案、右クリックで解除案を追加します。</p>
+                            <summary>検索条件</summary>
+                            <div class="ar-tree-options-content">
+                                <label>対象 <select data-tree-search-mode><option value="all">すべて</option><option value="name">名前</option><option value="effect">効果・スキル</option></select></label>
+                                <label>効果 <select data-tree-effect-filter><option value="">指定なし</option></select></label>
                             </div>
                         </details>
-                    }
+                        <details>
+                            <summary>表示設定</summary>
+                            <div class="ar-tree-options-content">
+                                <button type="button" data-tree-home>選択ノードへ</button>
+                                <button type="button" data-tree-reset>起点へ</button>
+                                <button type="button" data-tree-motion aria-pressed="false">背景の動きを停止</button>
+                                <a class="ar-tree-video-source" href="https://svs.gsfc.nasa.gov/30680/" target="_blank" rel="noopener noreferrer" title="NASA, ESA, Z. Levay, F. Summers, G. Bacon, T. Davis, L. Frattare (Viz 3D Team/STScI)">映像出典：NASA / ESA / STScI</a>
+                                <label class="ar-tree-spacing">ノード間隔 <input type="range" min="50" max="200" step="10" value="70" data-tree-spacing /><output data-tree-spacing-label aria-live="off">70%</output></label>
+                            </div>
+                        </details>
+                        @if (editable)
+                        {
+                            <details>
+                                <summary>操作設定</summary>
+                                <div class="ar-tree-options-content ar-tree-preferences">
+                                    <label><input type="checkbox" data-editor-sound checked /> サウンド</label>
+                                    <label>音量 <input type="range" min="0" max="100" step="5" value="35" data-editor-volume /><output data-editor-volume-label aria-live="off">35%</output></label>
+                                    <label><input type="checkbox" data-editor-direct-click aria-describedby="tree-direct-click-help" /> クリックで解放・解除</label>
+                                    <p id="tree-direct-click-help">左クリックで解放案、右クリックで解除案を追加します。</p>
+                                </div>
+                            </details>
+                        }
+                    </div>
                 </div>
-            </div>
-            @if (editable)
-            {
-                <div class="ar-tree-account-state">
-                    <details class="ar-tree-balances">
-                        <summary>ポイントと所持Gold <small data-editor-balance-kind>残高を確認中</small></summary>
-                        <div class="ar-tree-ledger" aria-label="確定残高と変更後のポイント">
-                            <section class="ar-tree-point-card"><h3>パッシブポイント <span>PP</span></h3><strong data-editor-pp>—</strong><p data-editor-pp-after>変更なし</p></section>
-                            <section class="ar-tree-class-points"><h3>クラス別ポイント <span>CP</span></h3><div data-editor-cp class="ar-tree-cp-list"></div></section>
-                            <section class="ar-tree-point-card ar-tree-gold-card"><h3>所持Gold</h3><strong data-editor-gold>—</strong><p data-editor-gold-after>解除費用なし</p></section>
-                        </div>
-                    </details>
-                    <div class="ar-tree-request">
-                        <div class="ar-tree-request-status"><span data-editor-status role="status">編集中</span><span data-editor-draft-count>変更なし</span></div>
+                @if (editable)
+                {
+                    <div class="ar-tree-account-state">
+                        <details class="ar-tree-balances">
+                            <summary>ポイントと所持Gold <small data-editor-balance-kind>残高を確認中</small></summary>
+                            <div class="ar-tree-ledger" aria-label="確定残高と変更後のポイント">
+                                <section class="ar-tree-point-card"><h3>パッシブポイント <span>PP</span></h3><strong data-editor-pp>—</strong><p data-editor-pp-after>変更なし</p></section>
+                                <section class="ar-tree-class-points"><h3>クラス別ポイント <span>CP</span></h3><div data-editor-cp class="ar-tree-cp-list"></div></section>
+                                <section class="ar-tree-point-card ar-tree-gold-card"><h3>所持Gold</h3><strong data-editor-gold>—</strong><p data-editor-gold-after>解除費用なし</p></section>
+                            </div>
+                        </details>
                         <div class="ar-tree-draft-actions">
                             <button type="button" data-editor-refresh>最新の状態を取得</button>
                             <button type="button" data-editor-undo disabled>ひとつ戻す</button>
                             <button type="button" data-editor-clear disabled>案を取り消す</button>
                             <button type="button" data-editor-cancel hidden>適用待ちを取り消す</button>
                             <button type="button" data-editor-review hidden>最新の状態で再確認</button>
-                            <button type="button" data-editor-batch-review disabled>変更内容を確認</button>
                         </div>
                     </div>
-                    <p data-editor-reason></p>
-                    <p data-editor-feedback role="status"></p>
-                </div>
+                }
+            </div>
+            @if (editable)
+            {
                 <dialog class="ar-tree-batch-review" data-editor-confirm aria-labelledby="tree-confirm-title">
                     <h3 id="tree-confirm-title">変更案の確認</h3>
                     <p data-editor-confirm-summary></p>
@@ -134,17 +149,22 @@
                     <svg data-tree-minimap role="img" aria-label="現在見ている範囲。クリックで移動"></svg>
                 </div>
                 <div class="ar-tree-node-summary" aria-hidden="true" hidden>
+                    <div class="ar-tree-summary-meta">
+                        <small data-tree-summary-caption></small>
+                        <span data-tree-summary-cost></span>
+                    </div>
                     <strong data-tree-summary-name></strong>
-                    <span data-tree-summary-effect></span>
-                    <span data-tree-summary-cost></span>
-                    <span data-tree-summary-state></span>
+                    <span class="ar-tree-state-chip" data-tree-summary-state></span>
+                    <ul data-tree-summary-effects></ul>
                 </div>
             </div>
+            <div class="ar-tree-detail-resize" data-tree-detail-resize role="separator" tabindex="0" aria-orientation="vertical"
+                 aria-label="ノード詳細の幅" aria-controls="tree-node-detail" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
             <aside id="tree-node-detail" class="ar-tree-detail" aria-label="選択ノードの詳細">
                 <div class="ar-tree-detail-header"><span>ノード詳細</span><button type="button" data-tree-detail-close aria-label="ノード詳細を閉じる">閉じる</button></div>
                 <div class="ar-tree-detail-summary">
                     <div class="ar-tree-relic" data-node-relic><img data-node-icon alt="" hidden /><span class="ar-tree-relic-fallback" data-node-icon-fallback aria-hidden="true">✦</span></div>
-                    <div class="ar-tree-detail-title"><span data-node-type class="ar-tree-point-kind"></span><h3 data-node-name>ノードを選択</h3><span class="ar-tree-state" data-node-state>習得状況と効果を確認できます。</span></div>
+                    <div class="ar-tree-detail-title"><span data-node-type class="ar-tree-point-kind"></span><h3 data-node-name>ノードを選択</h3><span class="ar-tree-state-chip" data-node-state>習得状況と効果を確認できます。</span></div>
                 </div>
                 <div class="ar-tree-cost"><span>解放コスト</span><strong data-node-cost>—</strong></div>
                 @if (editable)
@@ -169,7 +189,20 @@
         <p class="visually-hidden" data-tree-announcement role="status"></p>
         <footer class="ar-tree-map-footer">
             <p id="tree-map-instructions"><span class="ar-tree-pointer-help">ドラッグで移動。地図の上でホイール・ピンチで拡大・縮小。</span><span class="ar-tree-touch-help">スワイプで移動。ピンチで拡大・縮小。</span><span class="visually-hidden">矢印キーで移動。プラス・マイナスキーで拡大・縮小。</span></p>
-            <div class="ar-tree-legend"><span><i class="edge is-unlocked"></i>解放済み同士</span><span><i class="edge"></i>未解放を含む経路</span><span><i class="edge is-selected"></i>選択ノードの接続</span><span>＋ 解放可能</span></div>
+            <div class="ar-tree-legend" aria-label="ノード状態の凡例">
+                <span class="ar-tree-state-chip" data-state="unlocked"><b aria-hidden="true">✓</b> 解放済み</span>
+                @if (editable || Model.Nodes.Any(n => n.CanUnlock))
+                {
+                    <span class="ar-tree-state-chip" data-state="available"><b aria-hidden="true">+</b> 解放可能</span>
+                }
+                <span class="ar-tree-state-chip" data-state="locked"><b aria-hidden="true">−</b> 未解放</span>
+                <span class="ar-tree-state-chip" data-state="unmet"><b aria-hidden="true">!</b> 条件未達／効果無効</span>
+                @if (editable)
+                {
+                    <span class="ar-tree-state-chip" data-state="draft-unlock"><b aria-hidden="true">↑</b> 解放予定</span>
+                    <span class="ar-tree-state-chip" data-state="draft-relock"><b aria-hidden="true">↓</b> 解除予定</span>
+                }
+            </div>
         </footer>
         <details class="ar-tree-accessible"><summary>ノードをテキストで確認</summary><ul>@foreach (var n in Model.Nodes) { <li><strong>@n.Name</strong> — @(n.IsUnlocked ? "解放済み" : "未解放") / @n.PointType @n.PointCost<br />@n.RequirementText<br />@string.Join(" / ", n.DisplayEffects)</li> }</ul></details>
     </div>

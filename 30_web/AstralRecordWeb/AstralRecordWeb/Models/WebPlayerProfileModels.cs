@@ -74,6 +74,7 @@ public sealed class WebSkillTreeNodeProfileResponse
     public required double Z { get; init; }
     public bool IsUnlocked { get; init; }
     public bool IsConditionMet { get; init; } = true;
+    public bool? IsEffectiveUnlocked { get; init; }
     public string RequirementText { get; init; } = string.Empty;
     public string? ConsumedClassId { get; init; }
     public string? ConsumedClassName { get; init; }

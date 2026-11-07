@@ -63,9 +63,20 @@ export function nodeDetailLevel(zoom) {
     return zoom < .24 ? 'overview' : zoom < .7 ? 'compact' : 'full';
 }
 
+export function nodeStatus(node) {
+    if (node.draftAction === 'UNLOCK') return 'draft-unlock';
+    if (node.draftAction === 'RELOCK') return 'draft-relock';
+    if (node.isConditionMet === false || (node.isUnlocked && node.isEffectiveUnlocked === false)) return 'unmet';
+    if (node.isUnlocked) return 'unlocked';
+    return node.canUnlock === true ? 'available' : 'locked';
+}
+
 export function nodeState(node) {
     if (node.stateText) return node.stateText;
-    if (node.isUnlocked) return node.isConditionMet === false ? '解放済み・条件未達のため無効' : '解放済み';
+    if (node.isUnlocked) {
+        if (node.isConditionMet === false) return '解放済み・条件未達のため無効';
+        return node.isEffectiveUnlocked === false ? '解放済み・効果無効' : '解放済み';
+    }
     if (node.canUnlock === true) return '解放可能';
     if (node.blockedReason) return ({ NOT_CONNECTED: '未解放・隣接ノードが必要', INSUFFICIENT_POINTS: '未解放・ポイント不足', UNLOCK_CONDITION_NOT_MET: '未解放・必要条件未達' })[node.blockedReason] || '条件を確認してください';
     return node.isConditionMet === false ? '未解放・必要条件未達' : '未解放';
