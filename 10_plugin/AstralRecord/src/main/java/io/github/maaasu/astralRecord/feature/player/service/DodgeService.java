@@ -247,7 +247,7 @@ public class DodgeService {
     }
 
     /**
-     * 凍結の付与・更新に成功したプレイヤーの受付状態と HUD を即座に破棄します。
+     * 凍結の付与・更新に成功したプレイヤーのドッジ受付を取り消し、HUD を再描画します。
      * 解除後も古いしゃがみ入力から発動できないようにします。
      *
      * @param request 同期的な付与成功通知。プレイヤーの凍結以外は変更しません
@@ -255,9 +255,9 @@ public class DodgeService {
     public void onConditionApplied(@NotNull ConditionApplyRequest request) {
         if (request.type() != ConditionType.FROZEN || !request.target().isPlayer()) return;
         AstPlayer player = request.target().player();
-        if (player == null) return;
+        if (player == null || player.getSneakStartedAtMs() <= 0L) return;
         clearSneakWindowState(player);
-        playerHudService.restoreStatusActionBar(player);
+        playerHudService.refreshActionBar(player);
     }
 
     /**
