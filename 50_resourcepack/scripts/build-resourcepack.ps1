@@ -73,6 +73,13 @@ function Write-Pack {
 . (Join-Path $PSScriptRoot 'gui-assets.ps1')
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
+    'quest-tracking-hud-version.txt'
+    'assets/astralrecord/font/quest_hud.json'
+    'assets/astralrecord/font/quest_hud_space.json'
+    'assets/minecraft/shaders/core/rendertype_text.vsh'
+    'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
+    'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
+    'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
     'assets/minecraft/textures/gui/container/inventory.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar_selection.png'
@@ -257,6 +264,8 @@ $java = Read-PackEntries $root @(
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
+    'quest-tracking-hud-version.txt'
+    'ui/astralrecord_quest_hud.json'
     'font/glyph_E6.png'
     'font/glyph_E7.png'
     'combat-reward-plaque-version.txt'
@@ -419,6 +428,13 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'render_controllers/fishing_visual.render_controllers.json'
     'textures/entity/fishing_visual.png'
 )
+# Fail closed before packaging either edition's dedicated quest payload assets.
+foreach ($entries in @($java, $bedrock)) {
+    if ($utf8.GetString($entries['quest-tracking-hud-version.txt']) -cne '1') {
+        throw 'Unsupported quest tracking HUD version.'
+    }
+}
+
 $seleneaSkillStyles = @(
     'warning_circle', 'warning_line', 'warning_boundary', 'warning_safe', 'impact', 'impact_line',
     'wave', 'bolt', 'warning_edge', 'warning_grimoire', 'impact_grimoire'

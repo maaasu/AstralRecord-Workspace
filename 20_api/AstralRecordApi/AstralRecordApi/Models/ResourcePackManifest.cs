@@ -13,5 +13,6 @@ public sealed record JavaResourcePack(
     string? WideCombatMeter = null,
     string? SkillEffects = null,
     string? SeleneaPresentation = null,
-    string? CombatRewardPlaque = null);
+    string? CombatRewardPlaque = null,
+    string? QuestTrackingHud = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);
