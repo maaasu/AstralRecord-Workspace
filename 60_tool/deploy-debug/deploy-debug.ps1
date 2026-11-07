@@ -422,6 +422,7 @@ function Publish-ResourcePacks {
     $skillEffects = $null
     $combatRewardPlaque = $null
     $profileHud = $null
+    $questTrackingHud = $null
     $wideCombatMeter = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
@@ -482,6 +483,42 @@ function Publish-ResourcePacks {
             try { $sunbirdPresentation = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
             if ($sunbirdPresentation -cne '1') { throw 'Unsupported Sunbird presentation version.' }
+        }
+        $questEntry = $archive.GetEntry('quest-tracking-hud-version.txt')
+        if ($null -ne $questEntry) {
+            if ($questEntry.Length -ne 1) { throw 'Invalid quest tracking HUD version marker.' }
+            $reader = [IO.StreamReader]::new($questEntry.Open())
+            try { $questTrackingHud = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($questTrackingHud -cne '1') { throw 'Unsupported quest tracking HUD version.' }
+            foreach ($asset in @(
+                'pack.mcmeta'
+                'assets/astralrecord/font/quest_hud.json'
+                'assets/astralrecord/font/quest_hud_space.json'
+                'assets/astralrecord/textures/font/profile_hud_class_name_compact.png'
+                'assets/minecraft/shaders/core/rendertype_text.vsh'
+                'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
+                'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
+                'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing quest tracking HUD asset in Java pack: $asset" }
+            }
+            $reader = [IO.StreamReader]::new($archive.GetEntry('pack.mcmeta').Open())
+            try { $questMetadata = $reader.ReadToEnd() | ConvertFrom-Json }
+            finally { $reader.Dispose() }
+            foreach ($overlaySpec in @(
+                @{ directory = 'quest_hud_84'; min = '84,0'; max = '87,99' }
+                @{ directory = 'quest_hud_88'; min = '88,0'; max = '97,0' }
+                @{ directory = 'quest_hud_97'; min = '97,1'; max = '97,1' }
+            )) {
+                $matches = @($questMetadata.overlays.entries | Where-Object {
+                    $_.directory -ceq $overlaySpec.directory -and
+                    ($_.min_format -join ',') -ceq $overlaySpec.min -and
+                    ($_.max_format -join ',') -ceq $overlaySpec.max
+                })
+                if ($matches.Count -ne 1) { throw "Missing quest tracking HUD shader overlay: $($overlaySpec.directory)" }
+            }
         }
         $profileEntry = $archive.GetEntry('player-progress-hud-version.txt')
         if ($null -ne $profileEntry) {
@@ -652,6 +689,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $skillEffects) {
         $javaManifest.skillEffects = $skillEffects
+    }
+    if ($null -ne $questTrackingHud) {
+        $javaManifest.questTrackingHud = $questTrackingHud
     }
     if ($null -ne $profileHud) {
         $javaManifest.profileHud = $profileHud
