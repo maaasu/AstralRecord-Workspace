@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Net;
 using System.ServiceProcess;
 using System.Net.Http.Headers;
 using System.Runtime.Versioning;
@@ -166,11 +167,18 @@ public static class ControlCli
         catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException or IOException or HttpRequestException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException or OperationCanceledException or System.Security.SecurityException or Win32Exception or System.ServiceProcess.TimeoutException)
         {
             // Remote bodies, commands, credentials and exception messages are never echoed.
-            Console.Error.WriteLine($"Control CLI処理を拒否しました ({GetSafeFailureCode(exception)})。設定、認証期限、予約状態を確認してください。"); return 1;
+            Console.Error.WriteLine(GetSafeFailureMessage(exception)); return 1;
         }
     }
+    internal static string GetSafeFailureMessage(Exception exception)
+    {
+        var advice = exception is GateHttpException gate ? gate.Advice : "設定、認証期限、予約状態を確認してください。";
+        return $"Control CLI処理を拒否しました ({GetSafeFailureCode(exception)})。{advice}";
+    }
+
     public static string GetSafeFailureCode(Exception exception) => exception switch
     {
+        GateHttpException { StatusCode: { } status } gate => $"HTTP_{(int)status} {gate.Code}",
         HttpRequestException { StatusCode: { } status } => "HTTP_" + (int)status,
         HttpRequestException => "HTTPS_CONNECTION",
         OperationCanceledException => "TIMEOUT",
@@ -364,15 +372,66 @@ public static class ControlCli
         return ControlJson.Deserialize<T>(new UTF8Encoding(false, true).GetString(output.ToArray()));
     }
     private static async Task SendEmptyAsync(HttpClient client, HttpMethod method, string path, object? body) { using var response = await SendResponseAsync(client, method, path, body, null); }
-    private static async Task<HttpResponseMessage> SendResponseAsync(HttpClient client, HttpMethod method, string path, object? body, Guid? requestId)
+    internal static async Task<HttpResponseMessage> SendResponseAsync(HttpClient client, HttpMethod method, string path, object? body, Guid? requestId)
     {
         using var message = new HttpRequestMessage(method, path);
         if (body is not null) message.Content = new StringContent(ControlJson.Serialize(body), Encoding.UTF8, "application/json");
         if (requestId.HasValue) { message.Headers.Add("Idempotency-Key", requestId.Value.ToString()); message.Headers.IfNoneMatch.Add(EntityTagHeaderValue.Any); }
         var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead);
-        if (!response.IsSuccessStatusCode) { var status = response.StatusCode; response.Dispose(); throw new HttpRequestException(null, null, status); }
-        return response;
+        if (response.IsSuccessStatusCode) return response;
+        using (response)
+        {
+            const string gatePath = "/api/control/v1/reservations";
+            if ((path == gatePath || path.StartsWith(gatePath + "/", StringComparison.Ordinal))
+                && await ReadGateFailureAsync(response) is GateHttpException gateFailure)
+                throw gateFailure;
+            throw new HttpRequestException(null, null, response.StatusCode);
+        }
     }
+
+    private sealed class GateHttpException(HttpStatusCode status, string code, string advice) : HttpRequestException(null, null, status)
+    {
+        public string Code { get; } = code;
+        public string Advice { get; } = advice;
+    }
+
+    private static async Task<GateHttpException?> ReadGateFailureAsync(HttpResponseMessage response)
+    {
+        const int maxBytes = 4096;
+        if (!string.Equals(response.Content.Headers.ContentType?.MediaType, "application/problem+json", StringComparison.OrdinalIgnoreCase)
+            || response.Content.Headers.ContentLength > maxBytes) return null;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            await using var input = await response.Content.ReadAsStreamAsync(timeout.Token);
+            var buffer = new byte[maxBytes + 1];
+            var count = await input.ReadAtLeastAsync(buffer, buffer.Length, throwOnEndOfStream: false, timeout.Token);
+            if (count > maxBytes) return null;
+            using var problem = JsonDocument.Parse(buffer.AsMemory(0, count), new JsonDocumentOptions { MaxDepth = 8, AllowDuplicateProperties = false });
+            if (problem.RootElement.ValueKind != JsonValueKind.Object || !problem.RootElement.TryGetProperty("errorCode", out var value)
+                || value.ValueKind != JsonValueKind.String) return null;
+
+            var code = value.GetString();
+            var advice = (response.StatusCode, code) switch
+            {
+                (HttpStatusCode.Conflict, nameof(ErrorCode.ReservationConflict)) => "操作または保守の予約が競合しています。Control の履歴・復旧で対象を確認してください。別の保守が進行中なら、完了後に再実行してください。",
+                (HttpStatusCode.Conflict, nameof(ErrorCode.StateConflict)) => "サーバーの状態が操作の条件と一致しません。Control の操作・ログで稼働状態と保守の工程を確認してください。",
+                (HttpStatusCode.Conflict, nameof(ErrorCode.StaleRevision)) => "設定の版が一致しません。Control の設定・詳細で希望版と適用版を確認してください。",
+                (HttpStatusCode.Conflict, nameof(ErrorCode.RecoveryRequired)) => "前回の操作または保守の点検が必要です。Control の履歴・復旧で状態を確認してください。",
+                (HttpStatusCode.Conflict, nameof(ErrorCode.OperationConflict)) => "同じ要求 ID に別の操作が記録されています。Control の履歴・復旧で前回の要求を確認してください。",
+                (HttpStatusCode.Conflict, nameof(ErrorCode.UnsupportedCapability)) => "操作に必要な機能を利用できません。Control の運用設定と対象 PC の Agent・Runner を確認してください。",
+                (HttpStatusCode.Conflict, nameof(ErrorCode.DeadlineExpired)) => "操作の受付期限を過ぎました。Control で現在の状態を確認してください。",
+                (HttpStatusCode.ServiceUnavailable, nameof(ErrorCode.HostOffline)) => "対象 PC に接続できません。Control の接続 PC で Agent の状態を確認してください。",
+                _ => null
+            };
+            return advice is null ? null : new GateHttpException(response.StatusCode, code!, advice);
+        }
+        catch (Exception exception) when (exception is IOException or HttpRequestException or OperationCanceledException or JsonException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     public static async Task<T> RunnerAsync<T>(string pipeName, string method, object body)
     {
         if (string.IsNullOrWhiteSpace(pipeName) || pipeName.Contains('\\') || pipeName.Contains('/')) throw new ArgumentException();
