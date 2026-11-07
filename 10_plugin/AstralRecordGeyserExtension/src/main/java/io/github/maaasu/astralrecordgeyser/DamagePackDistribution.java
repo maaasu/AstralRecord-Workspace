@@ -189,6 +189,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().itemTooltips();
     }
 
+    boolean questHudReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().questHud();
+    }
+
     String actionRingHudRevision(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() ? selection.pack().actionRingHudRevision() : null;

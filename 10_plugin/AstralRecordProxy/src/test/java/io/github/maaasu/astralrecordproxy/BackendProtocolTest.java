@@ -20,6 +20,34 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class BackendProtocolTest {
+    /** 専用TIP経路へ不正な長さや末尾データを転送しないことを検証する。 */
+    @Test
+    void validatesQuestHudPacketBoundary() throws Exception {
+        for (String text : List.of(" ", "a\nb", "a".repeat(512))) {
+            byte[] valid = questHudPayload(text);
+            assertEquals(text, assertInstanceOf(BackendProtocol.BedrockQuestHud.class,
+                BackendProtocol.decode(valid)).text());
+            assertThrows(IOException.class, () -> BackendProtocol.decode(Arrays.copyOf(valid, valid.length - 1)));
+            assertThrows(IOException.class, () -> BackendProtocol.decode(Arrays.copyOf(valid, valid.length + 1)));
+        }
+        assertThrows(IOException.class, () -> BackendProtocol.decode(questHudPayload("")));
+        assertThrows(IOException.class, () -> BackendProtocol.decode(questHudPayload("a".repeat(513))));
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(
+                BackendProtocol.bedrockQuestHudReady()))) {
+            assertEquals("bedrock_quest_hud_ready", input.readUTF());
+            assertEquals(0, input.available());
+        }
+    }
+
+    private static byte[] questHudPayload(String text) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("bedrock_quest_hud");
+            output.writeUTF(text);
+        }
+        return bytes.toByteArray();
+    }
+
     @Test
     void decodesBedrockSkillMenuTokenAndOrderedLabels() throws Exception {
         UUID token = UUID.fromString("7c72cb6c-8cfd-4d74-8c67-6f39a4b4b9ca");

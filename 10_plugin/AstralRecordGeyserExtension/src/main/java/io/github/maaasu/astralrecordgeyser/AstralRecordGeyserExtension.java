@@ -20,6 +20,9 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.util.Identifier;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.Optional;
+
 import java.util.LinkedHashSet;
 import java.util.UUID;
 
@@ -30,6 +33,18 @@ public final class AstralRecordGeyserExtension implements Extension {
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
+    private static final String QUEST_HUD_KEY = "astralrecord_quest_hud";
+    private static final ClassValue<Optional<Method>> JSON_UI_SENDERS = new ClassValue<>() {
+        @Override
+        protected Optional<Method> computeValue(Class<?> connectionType) {
+            // 公開APIにはTIP送信がないため、Geyser本体のJSON UI送信口がある場合だけ使用します。
+            try {
+                return Optional.of(connectionType.getMethod("sendJsonUIData", String.class, String.class));
+            } catch (NoSuchMethodException | LinkageError ignored) {
+                return Optional.empty();
+            }
+        }
+    };
     private final DamagePackDistribution damagePacks = new DamagePackDistribution(this);
     private CustomEntityDefinition damageNumberDefinition;
     private DamageNumberEntity damageNumberProperties;
@@ -204,6 +219,57 @@ public final class AstralRecordGeyserExtension implements Extension {
     public String actionRingHudRevision(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection == null ? null : damagePacks.actionRingHudRevision(connection);
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーのJava側UUID
+     * @return 対応パックを登録済みで、TIPを送信できる接続の場合はtrue
+     */
+    public boolean hasQuestHud(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && damagePacks.questHudReady(connection) && forcesResourcePacks()
+            && JSON_UI_SENDERS.get(connection.getClass()).isPresent();
+    }
+
+    /**
+     * クエストHUDの文字列をGeyserのJSON UIデータとして送ります。
+     * @param playerId 接続中プレイヤーのJava側UUID
+     * @param text 表示文字列。空白一文字で消去
+     * @return 対応接続へのTIP送信が成功した場合はtrue
+     */
+    public boolean sendQuestHud(UUID playerId, String text) {
+        if (text == null || text.isEmpty() || text.length() > 512) return false;
+        var connection = geyserApi().connectionByUuid(playerId);
+        if (connection == null || !damagePacks.questHudReady(connection) || !forcesResourcePacks()) {
+            return false;
+        }
+        var sender = JSON_UI_SENDERS.get(connection.getClass());
+        if (sender.isEmpty()) {
+            return false;
+        }
+        try {
+            sender.get().invoke(connection, QUEST_HUD_KEY, text);
+            return true;
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            // Geyser内部の送信口に互換性がない場合は、ゲームプレイへの影響を避けます。
+            return false;
+        }
+    }
+
+    /** パック受諾を公開APIで確認できないため、強制配布設定を読めた場合だけ専用TIPを許可する。 */
+    private boolean forcesResourcePacks() {
+        try {
+            Object geyser = geyserApi();
+            ClassLoader loader = geyser.getClass().getClassLoader();
+            Object config = geyser.getClass().getMethod("config").invoke(geyser);
+            Class<?> configType = Class.forName("org.geysermc.geyser.configuration.GeyserConfig", false, loader);
+            Object gameplay = configType.getMethod("gameplay").invoke(config);
+            Class<?> gameplayType = Class.forName(
+                "org.geysermc.geyser.configuration.GeyserConfig$GameplayConfig", false, loader);
+            return Boolean.TRUE.equals(gameplayType.getMethod("forceResourcePacks").invoke(gameplay));
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return false;
+        }
     }
 
     @Subscribe

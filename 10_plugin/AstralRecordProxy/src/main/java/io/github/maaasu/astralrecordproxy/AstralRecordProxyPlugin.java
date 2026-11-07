@@ -16,6 +16,7 @@ import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
@@ -78,6 +79,8 @@ public final class AstralRecordProxyPlugin {
     private final ProxyServer proxy;
     private final Logger logger;
     private final Path dataDirectory;
+    private static final long QUEST_HUD_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(5);
+    private final Map<UUID, Long> questHudUpdates = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerMetadata> metadata = new ConcurrentHashMap<>();
     private final Map<UUID, String> pendingChannelNotifications = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
@@ -140,6 +143,8 @@ public final class AstralRecordProxyPlugin {
             .repeat(Duration.ofMillis(config.discordPollMillis())).schedule();
         proxy.getScheduler().buildTask(this, this::refreshManagedSettings)
             .repeat(Duration.ofSeconds(config.settingsRefreshSeconds())).schedule();
+        proxy.getScheduler().buildTask(this, this::expireQuestHud)
+            .repeat(Duration.ofSeconds(1)).schedule();
         proxy.getScheduler().buildTask(this, this::pollEditDrains)
             .repeat(Duration.ofSeconds(1)).schedule();
         proxy.getScheduler().buildTask(this, this::advanceTabAnimation)
@@ -298,6 +303,7 @@ public final class AstralRecordProxyPlugin {
     public void onServerConnected(ServerConnectedEvent event) {
         if (event.getPreviousServer().isPresent() && proxy.getPluginManager().isLoaded("geyser")) {
             GeyserHeldWeaponReset.reset(event.getPlayer().getUniqueId());
+            clearQuestHud(event.getPlayer().getUniqueId());
         }
         pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
@@ -352,6 +358,7 @@ public final class AstralRecordProxyPlugin {
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
+        questHudUpdates.remove(event.getPlayer().getUniqueId());
         pendingLogins.remove(event.getPlayer().getUniqueId());
         NetworkSettings settings = settings();
         if (settings == null) return;
@@ -427,6 +434,10 @@ public final class AstralRecordProxyPlugin {
         }
         try {
             BackendProtocol.Incoming incoming = BackendProtocol.decode(event.getData());
+            if (incoming instanceof BackendProtocol.BedrockQuestHud hud) {
+                if (proxy.getPluginManager().isLoaded("geyser")) forwardQuestHud(connection, hud.text());
+                return;
+            }
             if (incoming instanceof BackendProtocol.BedrockSkillMenu menu) {
                 openBedrockSkillMenu(connection, menu);
                 return;
@@ -469,6 +480,10 @@ public final class AstralRecordProxyPlugin {
                     }
                     if (GeyserPackCapabilities.hasCombatRewardPlaque(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.combatRewardPlaqueReady());
+                    }
+                    if (connection.getPlayer().getCurrentServer().filter(current -> current == connection).isPresent()
+                        && GeyserPackCapabilities.hasQuestHud(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.bedrockQuestHudReady());
                     }
                     String actionRingHudRevision = GeyserPackCapabilities.actionRingHudRevision(update.playerId());
                     if (actionRingHudRevision != null) {
@@ -1102,6 +1117,57 @@ public final class AstralRecordProxyPlugin {
             .append(Component.text("[", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
             .append(Component.text(converted, NamedTextColor.GOLD, TextDecoration.ITALIC))
             .append(Component.text("]", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+    }
+
+    /**
+     * 現在接続中のバックエンドのクエストHUDだけを送り、消去と更新をUUID単位で直列化する。
+     * @param connection 通知元のバックエンド接続
+     * @param message 本人へ表示する文字列。空白一文字で解除
+     */
+    private void forwardQuestHud(ServerConnection connection, String message) {
+        Player player = connection.getPlayer();
+        questHudUpdates.compute(player.getUniqueId(), (playerId, lastUpdate) -> {
+            if (player.getCurrentServer().filter(current -> current == connection).isEmpty()) {
+                return lastUpdate;
+            }
+            boolean sent = GeyserPackCapabilities.sendQuestHud(playerId, message);
+            return !sent || " ".equals(message) ? null : System.nanoTime();
+        });
+    }
+
+    /**
+     * サーバー移動で前のバックエンドのクエストHUDを解除する。
+     * @param playerId 対象プレイヤーUUID
+     */
+    private void clearQuestHud(UUID playerId) {
+        questHudUpdates.computeIfPresent(playerId, (id, lastUpdate) -> {
+            GeyserPackCapabilities.sendQuestHud(id, " ");
+            return null;
+        });
+    }
+
+    /** Proxy停止時にラッチ済みのクエスト欄を解除します。
+     * @param event Proxy停止イベント
+     */
+    @Subscribe
+    public void onProxyShutdown(ProxyShutdownEvent event) {
+        questHudUpdates.keySet().forEach(this::clearQuestHud);
+    }
+
+    /** バックエンド停止などで更新が途絶えたクエストHUDを消去する。 */
+    private void expireQuestHud() {
+        long now = System.nanoTime();
+        questHudUpdates.forEach((playerId, lastUpdate) -> {
+            if (now - lastUpdate >= QUEST_HUD_TIMEOUT_NANOS) {
+                questHudUpdates.computeIfPresent(playerId, (id, current) -> {
+                    if (now - current < QUEST_HUD_TIMEOUT_NANOS) {
+                        return current;
+                    }
+                    GeyserPackCapabilities.sendQuestHud(id, " ");
+                    return null;
+                });
+            }
+        });
     }
 
     private void pollDiscordChat() {

@@ -1,6 +1,7 @@
 {
   "ui_defs": [
     "ui/astralrecord_hud.json",
-    "ui/astralrecord_action_ring.json"
+    "ui/astralrecord_action_ring.json",
+    "ui/astralrecord_quest_hud.json"
   ]
 }

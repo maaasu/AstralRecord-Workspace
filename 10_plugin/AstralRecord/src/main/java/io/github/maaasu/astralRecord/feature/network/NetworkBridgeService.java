@@ -103,6 +103,21 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
     }
 
     /**
+     * Proxyへ統合版のクエストHUDを送ります。メインスレッドで呼び出します。
+     * @param player 表示対象
+     * @param text 表示する文字列。空白一文字の場合は表示を解除
+     * @return Proxyへの送信を開始した場合はtrue
+     */
+    public boolean sendBedrockQuestHud(@NotNull Player player, @NotNull String text) {
+        if (metadataTask == null || !player.isOnline() || text.isEmpty() || text.length() > 512
+            || resourcePackService == null || !resourcePackService.hasBedrockQuestHud(player.getUniqueId())) {
+            return false;
+        }
+        BackendProtocol.sendBedrockQuestHud(plugin, player, text);
+        return true;
+    }
+
+    /**
      * Proxy から届く統合版スキルメニューの応答の受け取り先を設定します。
      *
      * @param handler 応答を処理するハンドラ
@@ -386,6 +401,10 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             if (resourcePackService != null) {
                 resourcePackService.markBedrockCombatRewardPlaqueReady(player);
             }
+            return;
+        }
+        if (BackendProtocol.isBedrockQuestHudReady(message)) {
+            if (resourcePackService != null) resourcePackService.markBedrockQuestHudReady(player);
             return;
         }
         String actionRingHudRevision = BackendProtocol.decodeActionRingHudRevision(message);

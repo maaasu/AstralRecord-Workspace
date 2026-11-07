@@ -117,3 +117,9 @@ Mojang への問い合わせは起動ごとに順序を変え、最大8件並行
 RPGに固定のプレイヤーヘッドスキンを追加・変更したら、`BuiltinHeadTextures` の定数と `ALL` も同じ変更で同期する。マスター由来テクスチャはこの定数へ追加しない。プログラムに設定する値はBase64の `textures` 値であり、仮のProfile UUIDではない。
 
 公式参照: [Custom Skulls](https://geysermc.org/wiki/geyser/custom-skulls/)、[Extensions](https://geysermc.org/wiki/geyser/extensions/)。
+
+## Bedrockのクエスト追跡HUD
+
+`quest-tracking-hud-version.txt` が互換版 `1` を示し、`ui/astralrecord_quest_hud.json`、`ui/hud_screen.json`、`ui/_ui_defs.json` が揃ったパックを登録しログインした接続だけで有効です。Geyserの `sendJsonUIData` が利用できることも確認し、Velocityから現在のバックエンドへ対応を通知します。RPGの2行を `geyseropt:astralrecord_quest_hud:` 専用TIPに送り、JSON UIはそのprefixだけをラッチします。通常TIP・ActionBar・Title・Sidebarはクエスト用送信に使いません。
+
+クエスト欄は左上の `chat_stack` 内で、バニラのペーパードール余白・座標・経過日数の下、チャットの前に配置します。サーバー切替で解除し、更新が5秒途絶えた場合もProxyで消去します。旧パックと送信APIがない接続には専用TIPを送りません。Geyser公開APIで確認できるのはパック登録とログインまでのため、送信時にも `gameplay.force-resource-packs: true` を確認します。設定を確認できないGeyser版では表示を無効にします。実クライアント描画の確認とは区別してください。
