@@ -1,5 +1,8 @@
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using AstralRecordControl.Contracts;
+using Microsoft.Win32.SafeHandles;
 
 namespace AstralRecordControl.Runner;
 
@@ -62,43 +65,121 @@ public sealed partial class RunnerStore
     private async Task KillAsync(OperationCommand command)
     {
         var serverId = command.ServerId!.Value;
-        Process process;
-        Guid sessionId;
-        var rescue = false;
-        lock (sync)
+        Process? opened = null;
+        try
         {
-            var current = CurrentSession(serverId) ?? throw new RunnerFault(ErrorCode.StateConflict);
-            sessionId = Guid.Parse(current);
-            rescue = IsRescueKill(command);
-            if (rescue)
+            Process process;
+            Guid sessionId;
+            bool rescue;
+            var terminationPerformed = false;
+            lock (sync)
             {
-                var inspected = InspectRecovery(new(serverId));
-                if (!inspected.ProcessAlive || !inspected.IdentityMatches || inspected.Session?.ProcessId is not int pid) throw new RunnerFault(ErrorCode.RecoveryRequired);
-                process = Process.GetProcessById(pid);
+                var current = CurrentSession(serverId);
+                if (current is null)
+                {
+                    if ((string?)Scalar("SELECT processState FROM Servers WHERE id=$id;", null, ("$id", serverId.ToString())) != nameof(ProcessState.Stopped) ||
+                        !IsExitedRescueTarget(command)) throw new RunnerFault(ErrorCode.StateConflict);
+                    ChangeExecution(command.OperationId, OperationStatus.Cancelled, ExecutionPhase.Completed);
+                    return;
+                }
+                sessionId = Guid.Parse(current);
+                if (sessionId != command.ExpectedServerSessionId) throw new RunnerFault(ErrorCode.StateConflict);
+                rescue = HasRescueTarget(command);
+                if (rescue)
+                {
+                    var session = GetSession(sessionId);
+                    if (session?.ProcessId is not int pid || session.ServerId != serverId) throw new RunnerFault(ErrorCode.RecoveryRequired);
+                    var tracked = session.RunnerEpoch == Epoch && ownedProcesses.TryGetValue(serverId, out var owned) && owned.Id == pid ? owned : null;
+                    process = tracked ?? (opened = OpenPinnedProcess(pid));
+                    if (!IdentityMatches(process, session))
+                    {
+                        if (tracked is null || !process.HasExited) throw new RunnerFault(ErrorCode.RecoveryRequired);
+                        CompleteRescueKill(command, sessionId, process, terminationPerformed: false);
+                        return;
+                    }
+                }
+                else process = VerifyOwnedProcess(serverId, sessionId);
+
+                SetRuntime(serverId, ProcessState.Stopping, sessionId, "Stopped", rescue);
+                Execute("UPDATE ServerSessions SET lastExitWasExpected=1 WHERE sessionId=$session AND exitedUtc IS NULL;", null, ("$session", sessionId.ToString()));
+                ChangeExecution(command.OperationId, OperationStatus.Running, ExecutionPhase.Stopping);
+                if (rescue)
+                {
+                    // Process.Kill reports success when the target already exited. Use the pinned handle to distinguish the outcomes.
+                    terminationPerformed = TerminateProcess(process.SafeHandle, uint.MaxValue);
+                    if (terminationPerformed) SettleRescueStop(command, sessionId, terminationPerformed);
+                }
+                else process.Kill(entireProcessTree: false);
             }
-            else process = VerifyOwnedProcess(serverId, sessionId);
-            SetRuntime(serverId, ProcessState.Stopping, sessionId, "Stopped", rescue);
-            Execute("UPDATE ServerSessions SET lastExitWasExpected=1 WHERE sessionId=$session AND exitedUtc IS NULL;", null, ("$session", sessionId.ToString()));
-            ChangeExecution(command.OperationId, OperationStatus.Running, ExecutionPhase.Stopping);
+
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(30, command.ExecutionTimeoutSeconds)));
+            try { await process.WaitForExitAsync(timeout.Token); }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested) { }
+            lock (sync)
+            {
+                if (!process.HasExited)
+                {
+                    ChangeExecution(command.OperationId, OperationStatus.NeedsAttention, rescue ? ExecutionPhase.Stopping : ExecutionPhase.Unknown,
+                        rescue && !terminationPerformed ? ErrorCode.RecoveryRequired : ErrorCode.Timeout,
+                        rescue ? new { terminationPerformed } : null);
+                    return;
+                }
+                if (rescue) CompleteRescueKill(command, sessionId, process, terminationPerformed);
+                else
+                {
+                    if (CurrentSession(serverId) == sessionId.ToString()) SetRuntime(serverId, ProcessState.Stopped, null, "Stopped");
+                    ChangeExecution(command.OperationId, OperationStatus.Succeeded, ExecutionPhase.Completed);
+                }
+            }
         }
-        process.Kill(entireProcessTree: false);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(30, command.ExecutionTimeoutSeconds)));
-        try { await process.WaitForExitAsync(timeout.Token); }
-        catch (OperationCanceledException)
+        finally { opened?.Dispose(); }
+    }
+
+    private void CompleteRescueKill(OperationCommand command, Guid sessionId, Process process, bool terminationPerformed)
+    {
+        var serverId = command.ServerId!.Value;
+        Execute("UPDATE ServerSessions SET exitedUtc=$now,exitCode=$code WHERE sessionId=$session AND exitedUtc IS NULL;", null,
+            ("$now", clock.GetUtcNow().ToString("O")), ("$code", process.ExitCode), ("$session", sessionId.ToString()));
+        SettleRescueStop(command, sessionId, terminationPerformed);
+        ChangeExecution(command.OperationId, terminationPerformed ? OperationStatus.Succeeded : OperationStatus.Cancelled, ExecutionPhase.Completed);
+        var current = CurrentSession(serverId);
+        var pendingRecovery = HasPendingRecovery(serverId);
+        if (current == sessionId.ToString()) SetRuntime(serverId, ProcessState.Stopped, null, "Stopped", pendingRecovery);
+        else if (current is null)
+            Execute("UPDATE Servers SET recoveryRequired=$pending,stateRevision=stateRevision+1 WHERE id=$server AND processState='Stopped' AND recoveryRequired<>$pending;", null,
+                ("$server", serverId.ToString()), ("$pending", pendingRecovery ? 1 : 0));
+    }
+
+    private void SettleRescueStop(OperationCommand command, Guid sessionId, bool terminationPerformed) => Execute("""
+        UPDATE ExecutionLedger
+        SET status=CASE WHEN $terminated=0 AND kind='Stop' THEN 'Succeeded' ELSE 'Failed' END,
+            phase='Completed',statusVersion=statusVersion+1,finishedUtc=$now,
+            errorCode=CASE WHEN $terminated=1 THEN 'RecoveryRequired' WHEN kind='Stop' THEN NULL ELSE COALESCE(errorCode,'RecoveryRequired') END
+        WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind IN ('Stop','Restart')
+          AND status='NeedsAttention' AND json_extract(commandJson,'$.expectedServerSessionId')=$session;
+        """, null, ("$server", command.ServerId!.Value.ToString()), ("$reservation", command.ReservationId!.Value.ToString()),
+        ("$workflow", command.WorkflowId!.Value.ToString()), ("$fence", command.ReservationFence!.Value), ("$session", sessionId.ToString()),
+        ("$terminated", terminationPerformed ? 1 : 0), ("$now", clock.GetUtcNow().ToString("O")));
+
+    private static Process OpenPinnedProcess(int pid)
+    {
+        Process? process = null;
+        try
         {
-            lock (sync) ChangeExecution(command.OperationId, OperationStatus.NeedsAttention, ExecutionPhase.Unknown, ErrorCode.Timeout);
-            return;
+            process = Process.GetProcessById(pid);
+            _ = process.SafeHandle;
+            return process;
         }
-        lock (sync)
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception)
         {
-            var current = CurrentSession(serverId);
-            if (current == sessionId.ToString()) SetRuntime(serverId, ProcessState.Stopped, null, "Stopped");
-            if (rescue)
-                Execute("UPDATE ExecutionLedger SET status='Failed',phase='Completed',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind IN ('Stop','Restart') AND status='NeedsAttention';", null,
-                    ("$server", serverId.ToString()), ("$reservation", command.ReservationId!.Value.ToString()), ("$workflow", command.WorkflowId!.Value.ToString()), ("$fence", command.ReservationFence!.Value), ("$now", clock.GetUtcNow().ToString("O")));
-            ChangeExecution(command.OperationId, OperationStatus.Succeeded, ExecutionPhase.Completed);
+            process?.Dispose();
+            throw new RunnerFault(ErrorCode.RecoveryRequired);
         }
     }
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool TerminateProcess(SafeProcessHandle process, uint exitCode);
 
     private async Task ConsoleAsync(OperationCommand command)
     {
@@ -196,7 +277,7 @@ public sealed partial class RunnerStore
             if (request.Action == WorkflowRecoveryAction.KillAfterInspection)
             {
                 if (!inspected.ProcessAlive || !inspected.IdentityMatches || inspected.Session?.ProcessId is not int pid) throw new RunnerFault(ErrorCode.RecoveryRequired);
-                using var process = Process.GetProcessById(pid);
+                using var process = OpenPinnedProcess(pid);
                 if (!IdentityMatches(process, inspected.Session)) throw new RunnerFault(ErrorCode.RecoveryRequired);
                 process.Kill(entireProcessTree: false);
                 if (!process.WaitForExit(30000)) throw new RunnerFault(ErrorCode.Timeout);

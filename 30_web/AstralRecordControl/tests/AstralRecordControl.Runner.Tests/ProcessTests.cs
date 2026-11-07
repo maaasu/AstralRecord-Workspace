@@ -260,6 +260,36 @@ public sealed class ProcessTests
     [Theory]
     [InlineData(OperationKind.Stop)]
     [InlineData(OperationKind.Restart)]
+    public async Task RescueKillIsCancelledIfItsExactSessionExitedBeforeDispatch(OperationKind kind)
+    {
+        using var fixture = new Fixture(deferExit: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId);
+        fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+        var stop = runner.Execute(fixture.Request(runner, hold, kind, timeout: 1));
+        Assert.Equal(OperationStatus.NeedsAttention, (await WaitTerminal(runner, stop.OperationId)).Status);
+        var rescue = fixture.Request(runner, hold, OperationKind.Kill, new { reason = "fixture rescue before exit" });
+
+        fixture.AllowExit();
+        await WaitUntil(() => runner.GetExecution(stop.OperationId).IsTerminal);
+        var expectedStop = kind == OperationKind.Stop ? OperationStatus.Succeeded : OperationStatus.Failed;
+        Assert.Equal(expectedStop, runner.GetExecution(stop.OperationId).Status);
+
+        var wrongTarget = ControlJson.Deserialize<OperationCommand>(rescue.CommandJson) with { ExpectedServerSessionId = Guid.NewGuid() };
+        var wrongJson = ControlJson.Serialize(wrongTarget);
+        Assert.Equal(ErrorCode.StateConflict, Assert.Throws<RunnerFault>(() => runner.Execute(new(wrongTarget.OperationId, wrongJson, ControlProtocol.Hash(wrongJson)))).Code);
+        var cancelled = await WaitTerminal(runner, runner.Execute(rescue).OperationId);
+        Assert.Equal(OperationStatus.Cancelled, cancelled.Status);
+        Assert.Equal(expectedStop, runner.GetExecution(stop.OperationId).Status);
+        Assert.False(runner.InspectRecovery(new(fixture.Server.ServerId)).RecoveryRequired);
+        runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    [Theory]
+    [InlineData(OperationKind.Stop)]
+    [InlineData(OperationKind.Restart)]
     public async Task TimedOutPowerOperationCanBeRecoveredByLocalAdministrator(OperationKind kind)
     {
         using var fixture = new Fixture(ignoreStop: true);
@@ -477,6 +507,45 @@ public sealed class ProcessTests
         Assert.Equal(ProcessState.Stopped, recovered.Runtime.ProcessState);
         Assert.False(recovered.RecoveryRequired);
         restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+    }
+
+    [Fact]
+    public async Task RescueKillDoesNotTerminateAnOpenedProcessWithReusedPid()
+    {
+        using var fixture = new Fixture(ignoreStop: true, twoServers: true);
+        using var runner = fixture.Open();
+        runner.ApplyInventory(fixture.Envelope());
+        var hold = fixture.Hold(runner);
+        await WaitTerminal(runner, runner.Execute(fixture.Request(runner, hold, OperationKind.Start)).OperationId);
+        var original = runner.InspectRecovery(new(fixture.Server.ServerId));
+        fixture.Track(original);
+        var stop = runner.Execute(fixture.Request(runner, hold, OperationKind.Stop, timeout: 1));
+        Assert.Equal(OperationStatus.NeedsAttention, (await WaitTerminal(runner, stop.OperationId)).Status);
+        var second = Assert.IsType<ServerConfig>(fixture.SecondServer);
+        var secondHold = fixture.Hold(runner, second);
+        await WaitTerminal(runner, runner.Execute(fixture.RequestFor(runner, second, secondHold, OperationKind.Start)).OperationId);
+        var replacement = runner.InspectRecovery(new(second.ServerId));
+        fixture.Track(replacement);
+        runner.Dispose();
+        fixture.KillFixtureProcess(original);
+
+        using (var database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.DatabasePath, Pooling = false }.ToString()))
+        {
+            database.Open();
+            using var tamper = database.CreateCommand();
+            tamper.CommandText = "UPDATE ServerSessions SET pid=$pid WHERE sessionId=$session;";
+            tamper.Parameters.AddWithValue("$pid", replacement.Session!.ProcessId!.Value);
+            tamper.Parameters.AddWithValue("$session", original.Session!.ServerSessionId.ToString());
+            Assert.Equal(1, tamper.ExecuteNonQuery());
+        }
+        using var restarted = fixture.Open();
+        var rescue = restarted.Execute(fixture.Request(restarted, hold, OperationKind.Kill, new { reason = "fixture PID reuse" }));
+        var rejected = await WaitTerminal(restarted, rescue.OperationId);
+        Assert.Equal(OperationStatus.NeedsAttention, rejected.Status);
+        Assert.Equal(nameof(ErrorCode.RecoveryRequired), rejected.ErrorCode);
+        Assert.True(restarted.InspectRecovery(new(second.ServerId)).ProcessAlive);
+        Assert.Equal(OperationStatus.NeedsAttention, restarted.GetExecution(stop.OperationId).Status);
+        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => restarted.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence))).Code);
     }
 
     [Fact]

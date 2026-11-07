@@ -73,8 +73,9 @@ public sealed partial class RunnerStore
         reader.Close();
         if (!ServerProcessSupport.IsSupported(config.Kind) || config.DependencyReadiness != DependencyReadiness.Running || config.DependsOnServerIds.Length != 0) throw new RunnerFault(ErrorCode.UnsupportedCapability);
         if (config.Revision != command.ConfigRevision) throw new RunnerFault(ErrorCode.StaleRevision);
-        if (revision != command.ExpectedStateRevision || session != command.ExpectedServerSessionId) throw new RunnerFault(ErrorCode.StateConflict);
-        var rescueKill = command.Kind == OperationKind.Kill && IsRescueKill(command);
+        var exitedRescue = command.Kind == OperationKind.Kill && state == ProcessState.Stopped && session is null && IsExitedRescueTarget(command);
+        if (!exitedRescue && (revision != command.ExpectedStateRevision || session != command.ExpectedServerSessionId)) throw new RunnerFault(ErrorCode.StateConflict);
+        var rescueKill = command.Kind == OperationKind.Kill && (exitedRescue || HasRescueTarget(command));
         using (var pendingData = Command("SELECT operationId,kind,reservation,workflow,fence,status,readyForRestart FROM DataOperationLedger WHERE serverId=$server AND status IN ('Accepted','Running','NeedsAttention');", null, ("$server", serverId.ToString())))
         using (var pendingReader = pendingData.ExecuteReader())
             while (pendingReader.Read())
@@ -89,14 +90,25 @@ public sealed partial class RunnerStore
             }
         if ((recovery || state == ProcessState.Unmanaged) && !rescueKill) throw new RunnerFault(ErrorCode.RecoveryRequired);
         if (command.Kind == OperationKind.Start && state != ProcessState.Stopped) throw new RunnerFault(ErrorCode.StateConflict);
-        if (command.Kind != OperationKind.Start && state != ProcessState.Running && !(command.Kind == OperationKind.Stop && state == ProcessState.Stopped) && !(rescueKill && state is ProcessState.Stopping or ProcessState.Unmanaged)) throw new RunnerFault(ErrorCode.StateConflict);
+        if (command.Kind != OperationKind.Start && state != ProcessState.Running && !(command.Kind == OperationKind.Stop && state == ProcessState.Stopped) && !exitedRescue && !(rescueKill && state is ProcessState.Stopping or ProcessState.Unmanaged)) throw new RunnerFault(ErrorCode.StateConflict);
         if (state == ProcessState.Running && session is null) throw new RunnerFault(ErrorCode.RecoveryRequired);
         var hold = ReadHolds().SingleOrDefault(h => h.ReservationId == command.ReservationId);
         if (hold is null || hold.OwnerWorkflowId != command.WorkflowId || hold.Fence != command.ReservationFence || !hold.ResourceKeys.Contains("server:" + serverId)) throw new RunnerFault(ErrorCode.ReservationConflict);
     }
 
-    private bool IsRescueKill(OperationCommand command) => Convert.ToInt64(Scalar("SELECT COUNT(*) FROM ExecutionLedger WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence AND kind IN ('Stop','Restart') AND status='NeedsAttention';", null,
-        ("$server", command.ServerId!.Value.ToString()), ("$reservation", command.ReservationId!.Value.ToString()), ("$workflow", command.WorkflowId!.Value.ToString()), ("$fence", command.ReservationFence!.Value))) > 0;
+    private bool HasRescueTarget(OperationCommand command, bool completed = false) => Convert.ToInt64(Scalar("""
+        SELECT EXISTS(SELECT 1 FROM ExecutionLedger
+            WHERE serverId=$server AND reservation=$reservation AND workflow=$workflow AND fence=$fence
+              AND json_extract(commandJson,'$.expectedServerSessionId')=$session
+              AND kind IN ('Stop','Restart')
+              AND (($completed=0 AND status='NeedsAttention') OR ($completed=1 AND
+                (kind='Stop' AND status='Succeeded' OR kind='Restart' AND status='Failed' AND errorCode IN ('Timeout','RecoveryRequired')))));
+        """, null, ("$server", command.ServerId!.Value.ToString()), ("$reservation", command.ReservationId!.Value.ToString()),
+        ("$workflow", command.WorkflowId!.Value.ToString()), ("$fence", command.ReservationFence!.Value),
+        ("$session", command.ExpectedServerSessionId?.ToString() ?? (object)DBNull.Value), ("$completed", completed ? 1 : 0))) != 0;
+
+    private bool IsExitedRescueTarget(OperationCommand command) => command.ExpectedServerSessionId is Guid sessionId &&
+        GetSession(sessionId) is { ExitedAtUtc: not null } session && session.ServerId == command.ServerId && HasRescueTarget(command, completed: true);
 
     private async Task RunOperationAsync(OperationCommand command)
     {
@@ -324,25 +336,29 @@ public sealed partial class RunnerStore
                 var desired = (string?)Scalar("SELECT desiredState FROM Servers WHERE id=$server;", null, ("$server", serverId.ToString()));
                 if (desired == "Stopped")
                 {
-                    // A delayed exit settles Stop for this session. Restart did not reach its new Start.
+                    // A delayed exit settles only operations targeting this session.
                     Execute("""
                         UPDATE ExecutionLedger
-                        SET status=CASE WHEN kind='Stop' THEN 'Succeeded' ELSE 'Failed' END,
+                        SET status=CASE
+                                WHEN kind='Stop' OR kind='Kill' AND json_extract(result,'$.terminationPerformed')=1 THEN 'Succeeded'
+                                WHEN kind='Kill' THEN 'Cancelled' ELSE 'Failed' END,
                             phase='Completed',statusVersion=statusVersion+1,finishedUtc=$now,
-                            errorCode=CASE WHEN kind='Stop' THEN NULL ELSE errorCode END
-                        WHERE serverId=$server AND kind IN ('Stop','Restart') AND status='NeedsAttention' AND phase='Stopping'
+                            errorCode=CASE WHEN kind='Restart' THEN errorCode ELSE NULL END
+                        WHERE serverId=$server AND status='NeedsAttention' AND phase='Stopping'
+                          AND (kind IN ('Stop','Restart') OR kind='Kill' AND json_type(result,'$.terminationPerformed') IN ('true','false'))
                           AND json_extract(commandJson,'$.expectedServerSessionId')=$session;
                         """, null, ("$server", serverId.ToString()), ("$session", sessionId.ToString()), ("$now", clock.GetUtcNow().ToString("O")));
-                    var pending = Convert.ToInt64(Scalar("""
-                        SELECT EXISTS(SELECT 1 FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention')
-                            OR EXISTS(SELECT 1 FROM DataOperationLedger WHERE serverId=$server AND status='NeedsAttention');
-                        """, null, ("$server", serverId.ToString()))) != 0;
-                    SetRuntime(serverId, ProcessState.Stopped, null, "Stopped", pending);
+                    SetRuntime(serverId, ProcessState.Stopped, null, "Stopped", HasPendingRecovery(serverId));
                 }
                 else ScheduleCrashRestart(serverId, process.ExitCode);
             }
         }
     }
+
+    private bool HasPendingRecovery(Guid serverId) => Convert.ToInt64(Scalar("""
+        SELECT EXISTS(SELECT 1 FROM ExecutionLedger WHERE serverId=$server AND status='NeedsAttention')
+            OR EXISTS(SELECT 1 FROM DataOperationLedger WHERE serverId=$server AND status='NeedsAttention');
+        """, null, ("$server", serverId.ToString()))) != 0;
 
     private void MarkUnmanaged(Guid serverId, Guid sessionId)
     {
