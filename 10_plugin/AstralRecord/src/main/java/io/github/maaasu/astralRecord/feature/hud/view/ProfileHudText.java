@@ -31,6 +31,7 @@ public record ProfileHudText(Component playerLine, Component classLine, Componen
      * @param showPoints スキルツリーワールドの未使用ポイントを表示する場合true
      * @param classPoints 現在クラスの未使用CP
      * @param passivePoints 未使用PP
+     * @param compactClassName 小さいクラス名字形の幅で確認する場合true
      * @return 本人へ表示する個人情報。正式名を描画できない場合はnull
      */
     public static @Nullable ProfileHudText create(
@@ -43,11 +44,12 @@ public record ProfileHudText(Component playerLine, Component classLine, Componen
             double classProgress,
             boolean showPoints,
             int classPoints,
-            int passivePoints
+            int passivePoints,
+            boolean compactClassName
     ) {
         Component classTitle = ColorCodeUtil.toComponent(className, "", NamedTextColor.WHITE);
         String plainClassName = PlainTextComponentSerializer.plainText().serialize(classTitle);
-        if (!ClassNameGlyphs.supports(plainClassName)) {
+        if (!ClassNameGlyphs.supports(plainClassName, compactClassName)) {
             return null;
         }
         String goldText = String.format(Locale.ROOT, "%,d", Math.max(0L, goldAmount));

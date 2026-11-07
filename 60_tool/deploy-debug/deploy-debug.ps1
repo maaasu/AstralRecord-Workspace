@@ -465,12 +465,12 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($profileEntry.Open())
             try { $profileHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($profileHud -cnotin @('1', '2', '3', '4', '5')) { throw 'Unsupported profile HUD version.' }
+            if ($profileHud -cnotin @('1', '2', '3', '4', '5', '6')) { throw 'Unsupported profile HUD version.' }
             $profileAssets = @(
                 'assets/astralrecord/font/profile_hud_player.json'
                 'assets/astralrecord/font/profile_hud_class.json'
             )
-            if ($profileHud -cin @('2', '3', '4', '5')) {
+            if ($profileHud -cin @('2', '3', '4', '5', '6')) {
                 $profileAssets += @(
                     'assets/astralrecord/font/gameplay_hud.json'
                     'assets/astralrecord/textures/font/gameplay_hud.png'
@@ -478,13 +478,13 @@ function Publish-ResourcePacks {
             } else {
                 $profileAssets += 'assets/astralrecord/textures/font/profile_hud.png'
             }
-            if ($profileHud -cin @('3', '4', '5')) {
+            if ($profileHud -cin @('3', '4', '5', '6')) {
                 $profileAssets += @(
                     'assets/astralrecord/font/gameplay_hud_details.json'
                     'assets/astralrecord/font/profile_hud_points.json'
                 )
             }
-            if ($profileHud -cin @('4', '5')) {
+            if ($profileHud -cin @('4', '5', '6')) {
                 $profileAssets += @(
                     'assets/astralrecord/font/profile_hud_class_name.json'
                     'assets/astralrecord/textures/font/profile_hud_class_name.png'
@@ -493,10 +493,16 @@ function Publish-ResourcePacks {
                     'licenses/OFL-DotGothic16.txt'
                 )
             }
-            if ($profileHud -ceq '5') {
+            if ($profileHud -cin @('5', '6')) {
                 $profileAssets += @(
                     'assets/astralrecord/font/buff_hud.json'
                     'assets/astralrecord/textures/font/buff_hud.png'
+                )
+            }
+            if ($profileHud -ceq '6') {
+                $profileAssets += @(
+                    'assets/astralrecord/font/profile_hud_class_name_compact.json'
+                    'assets/astralrecord/textures/font/profile_hud_class_name_compact.png'
                 )
             }
             foreach ($asset in $profileAssets) {
@@ -506,7 +512,7 @@ function Publish-ResourcePacks {
         }
         $meterEntry = $archive.GetEntry('wide-combat-meter-version.txt')
         if ($null -ne $meterEntry) {
-            if ($profileHud -cnotin @('2', '3', '4', '5') -or $meterEntry.Length -ne 1) {
+            if ($profileHud -cnotin @('2', '3', '4', '5', '6') -or $meterEntry.Length -ne 1) {
                 throw 'Invalid wide combat meter version marker.'
             }
             $reader = [IO.StreamReader]::new($meterEntry.Open())

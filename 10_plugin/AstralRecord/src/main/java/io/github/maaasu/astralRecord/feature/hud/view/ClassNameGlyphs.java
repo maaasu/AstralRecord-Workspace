@@ -13,6 +13,7 @@ import java.util.Map;
 /** Java版パックに収録した正式クラス名用の字形を照合します。 */
 final class ClassNameGlyphs {
     static final Key FONT = Key.key("astralrecord", "profile_hud_class_name");
+    static final Key COMPACT_FONT = Key.key("astralrecord", "profile_hud_class_name_compact");
     // 320pxの表示幅から左右の余白と、アイコン・最大桁のクラスLv・EXPの幅を引く。
     private static final int MAX_NAME_WIDTH = 156;
     private static final Map<Integer, Integer> ADVANCES = loadAdvances();
@@ -20,14 +21,14 @@ final class ClassNameGlyphs {
     private ClassNameGlyphs() {
     }
 
-    static boolean supports(String name) {
+    static boolean supports(String name, boolean compact) {
         if (name.isBlank()) {
             return false;
         }
         int width = 0;
         for (int offset = 0; offset < name.length();) {
             int codePoint = name.codePointAt(offset);
-            int advance = advance(codePoint);
+            int advance = advance(codePoint, compact);
             if (advance == 0 || width + advance > MAX_NAME_WIDTH) {
                 return false;
             }
@@ -37,8 +38,16 @@ final class ClassNameGlyphs {
         return true;
     }
 
-    static int advance(int codePoint) {
-        return ADVANCES.getOrDefault(codePoint, 0);
+    static int advance(int codePoint, boolean compact) {
+        int advance = ADVANCES.getOrDefault(codePoint, 0);
+        if (!compact || advance == 0) {
+            return advance;
+        }
+        if (codePoint == ' ' || codePoint == 0x3000) {
+            return advance * 3 / 4;
+        }
+        // 小さい字形は元の可視幅の3/4を切り上げ、標準の1pxの送りを加える。
+        return Math.ceilDiv((advance - 1) * 3, 4) + 1;
     }
 
     private static Map<Integer, Integer> loadAdvances() {

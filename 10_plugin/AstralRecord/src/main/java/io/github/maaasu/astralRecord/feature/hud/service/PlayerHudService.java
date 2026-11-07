@@ -422,7 +422,8 @@ public class PlayerHudService {
         }
 
         ProfileHudText profile = ProfileHudText.create(playerLevel, originalLevel, goldAmount, className,
-                classLevel, classLevelMax, classProgress, showPoints, classPoints, passivePoints);
+                classLevel, classLevelMax, classProgress, showPoints, classPoints, passivePoints,
+                resourcePackService.hasJavaHudV6(playerId));
         if (profile == null) {
             clearProfileHud(player);
             return false;

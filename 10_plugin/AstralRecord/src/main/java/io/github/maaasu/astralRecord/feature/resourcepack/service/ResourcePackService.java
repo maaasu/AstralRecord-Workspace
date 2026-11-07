@@ -510,6 +510,16 @@ public class ResourcePackService {
     }
 
     /**
+     * 小さい正式クラス名の字形を含むJava版パックの適用を確認します。
+     * @param playerId 表示対象のUUID
+     * @return 横長HUD用の対応パックの適用が成功済みならtrue
+     */
+    public boolean hasJavaHudV6(UUID playerId) {
+        ResourcePackRepository.ProfileHud profileHud = requestedJavaProfileHud.get(playerId);
+        return profileHud != null && profileHud.version() >= 6 && hasManagedJavaPack(playerId);
+    }
+
+    /**
      * Sunbird演出の互換版1を含む管理Javaパックを適用済みか確認します。
      *
      * @param playerId 閲覧者のUUID

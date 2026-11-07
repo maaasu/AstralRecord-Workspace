@@ -37,6 +37,9 @@ public final class JavaProfileHud {
     private static final int LEFT_OFFSET = 8;
     private static final int PROFILE_LEFT_OF_CENTER = 118;
     private static final int PROFILE_VIEW_HALF_WIDTH = 154;
+    private static final int WIDE_PROFILE_LEFT_OF_CENTER = 142;
+    private static final int WIDE_RESOURCE_TARGET_WIDTH = 268;
+    private static final int RESOURCE_GAP = 10;
     private static final int BUFF_CONDITION_GAP = 10;
     private static final int READABLE_ICON_GAP = 5;
     private static final int FIRST_ICON = 0xE940;
@@ -47,7 +50,7 @@ public final class JavaProfileHud {
     private static final int METER_ADVANCE = 13;
     private static final int WIDE_METER_ADVANCE = 25;
     private static final int FIRST_WIDE_METER = 0xE960;
-    static final Component READABLE_RESOURCE_GAP = spacing(10, GAMEPLAY_FONT);
+    static final Component READABLE_RESOURCE_GAP = spacing(RESOURCE_GAP, GAMEPLAY_FONT);
 
     private JavaProfileHud() {
     }
@@ -59,16 +62,19 @@ public final class JavaProfileHud {
      * @param conditions 状態異常のアイコンと残り秒数
      * @param buffs 有効なバフのアイコン列
      * @param vanillaTypeface 互換版5の小文字を使う場合true
+     * @param wideLayout 互換版6の横長配置と小さい正式クラス名を使う場合true
      * @return 上側の各行の描画幅を相殺したアクションバー
      */
     static Component compose(Component combat, @Nullable ProfileHudText profile, Component conditions,
-            BuffHudIcons.Line buffs, boolean vanillaTypeface) {
+            BuffHudIcons.Line buffs, boolean vanillaTypeface, boolean wideLayout) {
         if (profile == null && conditions.equals(Component.empty()) && buffs.width() == 0) {
             return combat;
         }
         int halfWidth = combatWidthUpperBound(combat, null, false, true) / 2;
-        int shift = Math.max(-LEFT_OFFSET, halfWidth - PROFILE_LEFT_OF_CENTER);
-        return upperLayers(profile, conditions, buffs, combat, halfWidth, shift, vanillaTypeface).append(combat);
+        int shift = wideLayout ? halfWidth - WIDE_PROFILE_LEFT_OF_CENTER
+                : Math.max(-LEFT_OFFSET, halfWidth - PROFILE_LEFT_OF_CENTER);
+        return upperLayers(profile, conditions, buffs, combat, halfWidth, shift, vanillaTypeface, wideLayout)
+                .append(combat);
     }
 
     /**
@@ -79,27 +85,30 @@ public final class JavaProfileHud {
      * @param conditions 状態異常のアイコンと残り秒数
      * @param buffs 有効なバフのアイコン列
      * @param vanillaTypeface 互換版5の小文字を使う場合true
+     * @param wideLayout 互換版6の横長配置と小さい正式クラス名を使う場合true
      * @return リソースと補足情報の横幅を互いに加算しないアクションバー
      */
     static Component arrangeCombat(Component resources, Component details, @Nullable ProfileHudText profile,
-            Component conditions, BuffHudIcons.Line buffs, boolean vanillaTypeface) {
+            Component conditions, BuffHudIcons.Line buffs, boolean vanillaTypeface, boolean wideLayout) {
         int detailsWidth = combatWidthUpperBound(details, null, false, true);
         if (detailsWidth == 0) {
-            return compose(resources, profile, conditions, buffs, vanillaTypeface);
+            return compose(resources, profile, conditions, buffs, vanillaTypeface, wideLayout);
         }
         int resourcesWidth = combatWidthUpperBound(resources, null, false, true);
         int detailsHalf = detailsWidth / 2;
         int resourceShift = detailsHalf - resourcesWidth / 2;
-        int profileShift = Math.max(resourceShift - LEFT_OFFSET, detailsHalf - PROFILE_LEFT_OF_CENTER);
-        return upperLayers(profile, conditions, buffs, details, detailsHalf, profileShift, vanillaTypeface)
+        int profileShift = wideLayout ? detailsHalf - WIDE_PROFILE_LEFT_OF_CENTER
+                : Math.max(resourceShift - LEFT_OFFSET, detailsHalf - PROFILE_LEFT_OF_CENTER);
+        return upperLayers(profile, conditions, buffs, details, detailsHalf, profileShift, vanillaTypeface, wideLayout)
                 .append(overlay(new OverlayLine(resources, resourcesWidth), GAMEPLAY_FONT, resourceShift))
                 .append(details);
     }
 
     private static Component upperLayers(@Nullable ProfileHudText profile, Component conditions,
-            BuffHudIcons.Line buffs, Component base, int halfWidth, int preferredShift, boolean vanillaTypeface) {
+            BuffHudIcons.Line buffs, Component base, int halfWidth, int preferredShift, boolean vanillaTypeface,
+            boolean wideLayout) {
         Component layers = profile == null ? Component.empty()
-                : profileLayers(profile, halfWidth, preferredShift, vanillaTypeface);
+                : profileLayers(profile, halfWidth, preferredShift, vanillaTypeface, wideLayout);
         boolean hasConditions = !conditions.equals(Component.empty());
         if (!hasConditions && buffs.width() == 0) {
             return layers;
@@ -124,13 +133,14 @@ public final class JavaProfileHud {
     }
 
     private static Component profileLayers(ProfileHudText profile, int halfWidth, int preferredShift,
-            boolean vanillaTypeface) {
-        OverlayLine player = withHudFont(profile.playerLine(), PLAYER_FONT, true, vanillaTypeface);
-        OverlayLine playerClass = withHudFont(profile.classLineWithPoints(), CLASS_FONT, true, vanillaTypeface);
+            boolean vanillaTypeface, boolean compactClassName) {
+        OverlayLine player = withHudFont(profile.playerLine(), PLAYER_FONT, true, vanillaTypeface, compactClassName);
+        OverlayLine playerClass = withHudFont(profile.classLineWithPoints(), CLASS_FONT, true, vanillaTypeface,
+                compactClassName);
         OverlayLine points = new OverlayLine(Component.empty(), 0);
         if (playerClass.width() > PROFILE_VIEW_HALF_WIDTH * 2 && !profile.points().equals(Component.empty())) {
-            playerClass = withHudFont(profile.classLine(), CLASS_FONT, true, vanillaTypeface);
-            points = withHudFont(profile.points(), POINTS_FONT, true, vanillaTypeface);
+            playerClass = withHudFont(profile.classLine(), CLASS_FONT, true, vanillaTypeface, compactClassName);
+            points = withHudFont(profile.points(), POINTS_FONT, true, vanillaTypeface, compactClassName);
         }
         int maxLineWidth = Math.max(points.width(), Math.max(player.width(), playerClass.width()));
         int rightLimit = halfWidth + PROFILE_VIEW_HALF_WIDTH - maxLineWidth;
@@ -232,19 +242,21 @@ public final class JavaProfileHud {
      * @param font 表示に使う専用フォント
      * @param readableTypeface 互換版3の字形を使う場合true
      * @param vanillaTypeface 互換版5の小文字を使う場合true
+     * @param compactClassName 互換版6の小さい正式クラス名を使う場合true
      * @return 変換後の表示と字送り
      */
     private static OverlayLine withHudFont(Component source, Key font, boolean readableTypeface,
-            boolean vanillaTypeface) {
-        Key renderedFont = ClassNameGlyphs.FONT.equals(source.font()) ? ClassNameGlyphs.FONT : font;
+            boolean vanillaTypeface, boolean compactClassName) {
+        Key classNameFont = compactClassName ? ClassNameGlyphs.COMPACT_FONT : ClassNameGlyphs.FONT;
+        Key renderedFont = ClassNameGlyphs.FONT.equals(source.font()) ? classNameFont : font;
         TextComponent.Builder line = Component.text().font(renderedFont);
         if (source.color() != null) {
             line.color(source.color());
         }
         int width = 0;
-        if (source instanceof TextComponent text && ClassNameGlyphs.FONT.equals(renderedFont)) {
+        if (source instanceof TextComponent text && classNameFont.equals(renderedFont)) {
             line.content(text.content());
-            width += text.content().codePoints().map(ClassNameGlyphs::advance).sum();
+            width += text.content().codePoints().map(glyph -> ClassNameGlyphs.advance(glyph, compactClassName)).sum();
         } else if (source instanceof TextComponent text) {
             String content = text.content();
             if (!vanillaTypeface && "   ".equals(content) && source.children().isEmpty()) {
@@ -271,7 +283,8 @@ public final class JavaProfileHud {
             line.content(glyphs.toString());
         }
         for (Component child : source.children()) {
-            OverlayLine formatted = withHudFont(child, renderedFont, readableTypeface, vanillaTypeface);
+            OverlayLine formatted = withHudFont(child, renderedFont, readableTypeface, vanillaTypeface,
+                    compactClassName);
             line.append(formatted.text());
             width += formatted.width();
         }
@@ -318,7 +331,17 @@ public final class JavaProfileHud {
 
     static Component styleStat(Component stat, boolean enabled, boolean readableTypeface, boolean vanillaTypeface) {
         Key font = readableTypeface ? DETAIL_FONT : GAMEPLAY_FONT;
-        return enabled ? withHudFont(stat, font, readableTypeface, vanillaTypeface).text() : stat;
+        return enabled ? withHudFont(stat, font, readableTypeface, vanillaTypeface, false).text() : stat;
+    }
+
+    /** 3種のリソースの送り幅に合わせ、横長HUDの2つの間隔を等しく確保します。 */
+    static Component wideResourceGap(Component hp, Component mp, Component energy) {
+        int resourcesWidth = combatWidthUpperBound(hp, null, false, true)
+                + combatWidthUpperBound(mp, null, false, true)
+                + combatWidthUpperBound(energy, null, false, true);
+        int preferredGap = Math.max(RESOURCE_GAP, (WIDE_RESOURCE_TARGET_WIDTH - resourcesWidth) / 2);
+        int maxGap = Math.max(0, (PROFILE_VIEW_HALF_WIDTH * 2 - resourcesWidth) / 2);
+        return spacing(Math.min(preferredGap, maxGap), GAMEPLAY_FONT);
     }
 
     private static int textAdvance(String text, boolean readableTypeface) {
