@@ -71,5 +71,31 @@
     "duration": 1.2,
     "destroy_at_end": "hud_actionbar_text",
     "end_event": "hud_actionbar_text_complete"
+  },
+  "root_panel/chat_stack": {
+    "modifications": [
+      {
+        "operation": "insert_before",
+        "value": [
+          {
+            "astralrecord_quest_hud@astralrecord_quest_hud.panel": {}
+          }
+        ],
+        "control_name": "chat_panel"
+      }
+    ]
+  },
+  "hud_tip_text": {
+    "bindings": [
+      {
+        "binding_name": "#tip_text",
+        "binding_condition": "always"
+      },
+      {
+        "binding_type": "view",
+        "source_property_name": "(not (('%.33s' * #tip_text) = 'geyseropt:astralrecord_quest_hud:'))",
+        "target_property_name": "#visible"
+      }
+    ]
   }
 }

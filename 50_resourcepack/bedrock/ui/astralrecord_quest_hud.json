@@ -1,0 +1,75 @@
+{
+  "namespace": "astralrecord_quest_hud",
+  "panel": {
+    "type": "panel",
+    "size": [
+      "100%",
+      28
+    ],
+    "anchor_from": "top_left",
+    "anchor_to": "top_left",
+    "controls": [
+      {
+        "quest_data": {
+          "type": "panel",
+          "size": [
+            0,
+            0
+          ],
+          "bindings": [
+            {
+              "binding_name": "#tip_text",
+              "binding_condition": "always"
+            },
+            {
+              "binding_name": "#tip_text",
+              "binding_name_override": "#preserved_text",
+              "binding_condition": "visibility_changed"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "(not (#tip_text = #preserved_text) and (('%.33s' * #tip_text) = 'geyseropt:astralrecord_quest_hud:'))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "quest_text": {
+          "type": "label",
+          "anchor_from": "top_left",
+          "anchor_to": "top_left",
+          "offset": [
+            8,
+            4
+          ],
+          "size": [
+            280,
+            24
+          ],
+          "layer": 31,
+          "text": "#text",
+          "text_alignment": "left",
+          "shadow": true,
+          "localize": false,
+          "visible": false,
+          "bindings": [
+            {
+              "binding_type": "view",
+              "source_control_name": "quest_data",
+              "resolve_sibling_scope": true,
+              "source_property_name": "(#preserved_text - 'geyseropt:astralrecord_quest_hud:')",
+              "target_property_name": "#text"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "(not (#text = '') and not (#text = ' '))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      }
+    ],
+    "clips_children": false
+  }
+}

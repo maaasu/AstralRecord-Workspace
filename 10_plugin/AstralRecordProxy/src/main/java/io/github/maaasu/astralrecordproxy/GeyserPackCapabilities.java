@@ -64,6 +64,24 @@ final class GeyserPackCapabilities {
         return value instanceof String revision && revision.matches("[0-9a-f]{64}") ? revision : null;
     }
 
+    static boolean hasQuestHud(UUID playerId) {
+        return supports(playerId, "hasQuestHud");
+    }
+
+    static boolean sendQuestHud(UUID playerId, String text) {
+        if (!Geyser.isRegistered()) return false;
+        var geyser = GeyserApi.api();
+        if (geyser.connectionByUuid(playerId) == null) return false;
+        var extension = geyser.extensionManager().extension("astralrecordgeyser");
+        if (extension == null || !extension.isEnabled()) return false;
+        try {
+            return Boolean.TRUE.equals(extension.getClass()
+                .getMethod("sendQuestHud", UUID.class, String.class).invoke(extension, playerId, text));
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return false;
+        }
+    }
+
     private static boolean supports(UUID playerId, String method) {
         return Boolean.TRUE.equals(invoke(playerId, method));
     }

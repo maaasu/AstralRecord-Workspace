@@ -26,6 +26,7 @@ final class BackendProtocol {
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
+    private static final byte[] BEDROCK_QUEST_HUD_READY = emptyNotification("bedrock_quest_hud_ready");
     private static final byte[] SKILL_EFFECTS_READY = emptyNotification("skill_effects_v2_ready");
     private static final byte[] SELENEA_READY = emptyNotification("selenea_ready");
     private static final byte[] COMBAT_REWARD_PLAQUE_READY = emptyNotification("combat_reward_plaque_ready");
@@ -49,6 +50,11 @@ final class BackendProtocol {
     /** 通常攻撃の飛翔演出を使える統合版接続の完全な通知か判定します。 */
     static boolean isWeaponAttackProjectilesReady(byte[] payload) {
         return Arrays.equals(WEAPON_ATTACK_PROJECTILES_READY, payload);
+    }
+
+    /** クエストHUD対応パックの完全な通知か判定します。 */
+    static boolean isBedrockQuestHudReady(byte[] payload) {
+        return Arrays.equals(BEDROCK_QUEST_HUD_READY, payload);
     }
 
     /** スキル演出を使える統合版接続の完全な通知か判定します。 */
@@ -379,6 +385,14 @@ final class BackendProtocol {
             output.writeInt(senderLevel);
             output.writeUTF(message.original());
             output.writeUTF(message.converted());
+        });
+    }
+
+    /** 対象プレイヤーを運ぶ接続にクエストHUDの表示値を送ります。 */
+    static void sendBedrockQuestHud(@NotNull Plugin plugin, @NotNull Player player, @NotNull String text) {
+        send(plugin, player, output -> {
+            output.writeUTF("bedrock_quest_hud");
+            output.writeUTF(text);
         });
     }
 

@@ -29,6 +29,8 @@ final class BackendProtocol {
     static final String SELENEA_READY = "selenea_ready";
     static final String COMBAT_REWARD_PLAQUE_READY = "combat_reward_plaque_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
+    static final String BEDROCK_QUEST_HUD = "bedrock_quest_hud";
+    static final String BEDROCK_QUEST_HUD_READY = "bedrock_quest_hud_ready";
     static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
     static final String BEDROCK_SKILL_MENU_RESULT = "bedrock_skill_menu_result";
     static final int SKILL_MENU_NO_SELECTION = -1;
@@ -75,6 +77,13 @@ final class BackendProtocol {
                     yield new Chat(messageId, playerId, authorName, channel, displayName, level, className, original, converted);
                 }
                 case SERVER_METRICS -> new ServerMetrics(input.readDouble());
+                case BEDROCK_QUEST_HUD -> {
+                    String text = input.readUTF();
+                    if (text.isEmpty() || text.length() > 512 || input.available() != 0) {
+                        throw new IOException("Quest HUD payload is invalid");
+                    }
+                    yield new BedrockQuestHud(text);
+                }
                 case BEDROCK_SKILL_MENU -> readBedrockSkillMenu(input);
                 // 旧RPGが更新前に受け取った対応通知で送信を続けている場合は破棄する。
                 case "bedrock_profile_hud", "bedrock_profile_hud_images" -> Retired.INSTANCE;
@@ -236,8 +245,15 @@ final class BackendProtocol {
         }
     }
 
+    static byte[] bedrockQuestHudReady() {
+        return outgoing(BEDROCK_QUEST_HUD_READY, null);
+    }
+
+    record BedrockQuestHud(String text) implements Incoming {
+    }
+
     sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics, PrivateChat, DirectMessage,
-        BedrockSkillMenu, Retired {
+        BedrockSkillMenu, BedrockQuestHud, Retired {
     }
 
     record Connect(String targetServer, int permission) implements Incoming {

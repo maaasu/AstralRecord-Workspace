@@ -34,7 +34,7 @@ record DamagePack(
     boolean skillEffectsV2, boolean fishingVisuals,
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
-    String actionRingHudRevision
+    String actionRingHudRevision, boolean questHud
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -162,6 +162,7 @@ record DamagePack(
             boolean worldDisplay;
             boolean itemTooltips;
             String actionRingHudRevision;
+            boolean questHud;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -203,6 +204,10 @@ record DamagePack(
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
                     && hasVersionOne(zip, "item-tooltips-version.txt");
                 actionRingHudRevision = readActionRingHudRevision(zip);
+                questHud = hasVersionOne(zip, "quest-tracking-hud-version.txt")
+                    && present(zip.getEntry("ui/astralrecord_quest_hud.json"))
+                    && present(zip.getEntry("ui/hud_screen.json"))
+                    && present(zip.getEntry("ui/_ui_defs.json"));
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -217,7 +222,7 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaque, weaponAttack,
                 weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
-                heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision);
+                heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision, questHud);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
