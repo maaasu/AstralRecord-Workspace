@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -18,6 +19,8 @@ DEFAULT_FILEBASE = TOOL_ROOT.parents[1] / "40_filebase"
 ERIVA_WORLD = "eriva_supercontinent"
 BOUNDS_FIELDS = ("minX", "minZ", "width", "height", "cellSize")
 TERRAIN_FILENAME = "continent-terrain.json"
+PLAN_RADII = {32, 48, 64}
+MAX_MANIFEST_BYTES = 1024 * 1024
 
 
 def world_id_arg(value: str) -> str:
@@ -48,6 +51,29 @@ def capture(args: argparse.Namespace) -> None:
 def sha256(path: Path) -> str:
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def unlinked_stat(path: Path, *, missing_ok: bool = False) -> os.stat_result | None:
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        if missing_ok:
+            return None
+        raise
+    if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+        raise ValueError(f"Linked path is not supported: {path}")
+    return info
+
+
+def require_unlinked_snapshot(snapshot: Path) -> None:
+    for ancestor in reversed(snapshot.parents):
+        unlinked_stat(ancestor)
+    pending = [snapshot]
+    while pending:
+        path = pending.pop()
+        info = unlinked_stat(path)
+        if stat.S_ISDIR(info.st_mode):
+            pending.extend(path.iterdir())
 
 
 def snapshot_source_server(receipt: dict) -> Path:
@@ -125,19 +151,21 @@ def export_terrain(output: Path, terrain: dict, world: dict, fingerprint: str, r
 
 
 def publish_revision(output: Path, destination: Path, revision: str) -> None:
+    if (output / "manifest.json").stat().st_size > MAX_MANIFEST_BYTES:
+        raise ValueError("Exported manifest exceeds the editor's 1 MiB limit")
     final = destination / revision
-    if final.resolve() != final:
-        raise ValueError(f"Linked revision directory is not supported: {final}")
     try:
-        if not final.exists():
+        if unlinked_stat(final, missing_ok=True) is None:
             output.rename(final)
     except OSError:
-        if not final.is_dir():
+        info = unlinked_stat(final, missing_ok=True)
+        if info is None or not stat.S_ISDIR(info.st_mode):
             raise
     if output.exists():
-        if ({entry.name for entry in output.iterdir()} != {entry.name for entry in final.iterdir()} or
-                any(not (final / entry.name).is_file() or sha256(entry) != sha256(final / entry.name)
-                    for entry in output.iterdir())):
+        entries = {entry.name: entry for entry in final.iterdir()}
+        if ({entry.name for entry in output.iterdir()} != entries.keys() or
+                any(not stat.S_ISREG(unlinked_stat(entry).st_mode) or sha256(entry) != sha256(output / name)
+                    for name, entry in entries.items())):
             raise ValueError(f"Existing revision does not match generated files: {final}") from None
 
     pointer = destination / "current.txt"
@@ -163,19 +191,21 @@ def publish(args: argparse.Namespace) -> None:
     from terrain_detail import render
 
     world, world_hash = load_world_master(args.filebase, args.world_id)
-    snapshot = args.snapshot_root.resolve(strict=True)
+    snapshot = args.snapshot_root.absolute()
+    require_unlinked_snapshot(snapshot)
+    snapshot = snapshot.resolve(strict=True)
     if (snapshot / ".capture.lock").exists():
         raise ValueError("Snapshot capture is still in progress or was interrupted")
     copied_world = snapshot / args.world_id
     receipt = json.loads((snapshot / "analysis" / "snapshot-receipt.json").read_text(encoding="utf-8-sig"))
     source = snapshot_source_server(receipt)
     if (snapshot.is_relative_to(source) or source.is_relative_to(snapshot) or
-            Path(receipt["targetWorld"]) != copied_world or copied_world.resolve(strict=True) != copied_world):
+            Path(receipt["targetWorld"]) != copied_world or not copied_world.is_dir()):
         raise ValueError("Snapshot receipt does not identify this isolated copy")
 
     destination = args.cache_root.resolve() / "worlds" / args.world_id
-    if destination.resolve() != destination:
-        raise ValueError("Linked directories inside the cache root are not supported")
+    unlinked_stat(destination.parent, missing_ok=True)
+    unlinked_stat(destination, missing_ok=True)
     if destination.is_relative_to(snapshot) or destination.is_relative_to(source):
         raise ValueError("Cache must be separate from the source and snapshot servers")
     policy = args.policy
@@ -185,6 +215,11 @@ def publish(args: argparse.Namespace) -> None:
     terrain_path = completed_scan(snapshot, copied_world, receipt, args.java, args.scan_timeout_seconds)
     planner = ContinentPlanner(terrain_path, args.filebase, policy) if policy else None
     if planner:
+        radii = planner.policy.get("radii")
+        if (not isinstance(radii, list) or not radii or
+                any(type(radius) is not int or radius not in PLAN_RADII for radius in radii) or
+                len(set(radii)) != len(radii)):
+            raise ValueError("A proposal policy must select distinct radii from 32, 48 and 64 metres")
         terrain, fingerprint = planner.terrain, planner.terrain_fingerprint
     else:
         raw = terrain_path.read_bytes()

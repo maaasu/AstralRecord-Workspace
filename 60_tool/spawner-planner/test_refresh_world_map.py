@@ -20,7 +20,8 @@ class RefreshWorldMapTests(unittest.TestCase):
 
     def fixture(self, world_id):
         (self.filebase / "60.features.world" / f"{world_id}.yml").write_text(
-            f"id: {world_id}\ndisplayName: Test World\nspawnLocation: {{x: 3, y: 72, z: 7}}\n", encoding="utf-8"
+            f"id: {world_id}\ndisplayName: Test World\nspawnLocation: {{x: 3, y: 72, z: 7}}\n"
+            "adventureGuide: {recommendedLevelMin: 15}\n", encoding="utf-8"
         )
         snapshot = self.root / f"snapshot-{world_id}"
         copied_world = snapshot / world_id
@@ -94,6 +95,78 @@ class RefreshWorldMapTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Cache must be separate"):
             publish(args)
         self.assertFalse(source_server.exists())
+
+    def test_invalid_policy_radii_keep_previous_generation(self):
+        args, _, world_cache = self.fixture("verdia")
+        publish(args)
+        pointer = world_cache / "current.txt"
+        revision = pointer.read_text().strip()
+        args.policy = self.root / "policy.json"
+        policy = {
+            "schemaVersion": 1, "worldId": "verdia", "minSafeColumns": 128, "spawnSafeRadius": 48,
+            "fieldSpawnerIds": {"grass": [], "forest": []},
+            "draftEnemyIds": {"grass": [], "forest": [], "snow": [], "dry": []},
+            "distanceBands": [{"maxDistance": None, "level": 15, "name": "test"}],
+        }
+        for radii in ([], [16], [64, 64], [32.0]):
+            with self.subTest(radii=radii):
+                args.policy.write_text(json.dumps({**policy, "radii": radii}), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "distinct radii"):
+                    publish(args)
+                self.assertEqual(pointer.read_text().strip(), revision)
+                self.assertEqual({entry.name for entry in world_cache.iterdir()}, {"current.txt", revision})
+
+    def test_manifest_over_editor_limit_keeps_previous_generation(self):
+        args, _, world_cache = self.fixture("verdia")
+        publish(args)
+        pointer = world_cache / "current.txt"
+        revision = pointer.read_text().strip()
+        world = self.filebase / "60.features.world" / "verdia.yml"
+        world.write_text(world.read_text().replace("Test World", "X" * (1024 * 1024)), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "manifest exceeds the editor's 1 MiB limit"):
+            publish(args)
+        self.assertEqual(pointer.read_text().strip(), revision)
+        self.assertEqual({entry.name for entry in world_cache.iterdir()}, {"current.txt", revision})
+
+    def symlink(self, link, target, directory=False):
+        try:
+            link.symlink_to(target, target_is_directory=directory)
+        except (OSError, NotImplementedError) as error:
+            self.skipTest(f"Symlinks are unavailable: {error}")
+
+    def test_linked_snapshot_ancestor_or_child_is_rejected_before_publication(self):
+        args, _, world_cache = self.fixture("verdia")
+        actual_root = args.snapshot_root
+        linked_parent = self.root / "linked-parent"
+        self.symlink(linked_parent, self.root, directory=True)
+        args.snapshot_root = linked_parent / actual_root.name
+        with self.assertRaisesRegex(ValueError, "Linked path is not supported"):
+            publish(args)
+        args.snapshot_root = actual_root
+        external = self.root / "external-analysis"
+        (actual_root / "analysis").rename(external)
+        self.symlink(actual_root / "analysis", external, directory=True)
+        with self.assertRaisesRegex(ValueError, "Linked path is not supported"):
+            publish(args)
+        self.assertFalse(world_cache.exists())
+
+    def test_identical_linked_file_in_existing_revision_is_rejected(self):
+        args, terrain, world_cache = self.fixture("verdia")
+        publish(args)
+        pointer = world_cache / "current.txt"
+        previous = pointer.read_text().strip()
+        original = terrain.read_text(encoding="utf-8")
+        terrain.write_text(original.replace("2026-11-07", "2026-11-08"), encoding="utf-8")
+        publish(args)
+        current = pointer.read_text().strip()
+        terrain.write_text(original, encoding="utf-8")
+        cells = world_cache / previous / "cells.json"
+        external = self.root / "external-cells.json"
+        cells.rename(external)
+        self.symlink(cells, external)
+        with self.assertRaisesRegex(ValueError, "Linked path is not supported"):
+            publish(args)
+        self.assertEqual(pointer.read_text().strip(), current)
 
 
 if __name__ == "__main__":
