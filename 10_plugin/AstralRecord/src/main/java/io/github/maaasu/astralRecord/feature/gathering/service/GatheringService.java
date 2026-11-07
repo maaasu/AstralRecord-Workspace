@@ -545,7 +545,7 @@ public class GatheringService {
                         instance.contributorEquipmentInstanceId(recipient.getBukkit().getUniqueId())
                     );
                 }
-                dropPresentationService.presentAndGrant(
+                dropPresentationService.presentGatheringAndGrant(
                         recipient,
                         instance.location(),
                         ColorCodeUtil.toLegacyText(instance.definition().name(), instance.definition().id()),

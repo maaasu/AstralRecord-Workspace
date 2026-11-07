@@ -209,10 +209,22 @@ public final class AstralRecordGeyserExtension implements Extension {
         return connection != null && damagePacks.itemTooltipsReady(connection);
     }
 
-    /** @return 討伐報酬のプレートに対応したパックを登録し、ログインを完了していれば true */
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 報酬プレートに対応するパックでログインを完了していればtrue
+     */
     public boolean hasCombatRewardPlaque(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
-        return combatRewardPlaque != null && connection != null && damagePacks.combatRewardPlaqueReady(connection);
+        return combatRewardPlaque != null && connection != null && damagePacks.combatRewardPlaqueVersion(connection) >= 1;
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 可変表示時間に対応する報酬プレートのパックでログインを完了していればtrue
+     */
+    public boolean hasCombatRewardPlaqueTiming(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return combatRewardPlaque != null && connection != null && damagePacks.combatRewardPlaqueVersion(connection) >= 2;
     }
 
     /**
@@ -336,9 +348,10 @@ public final class AstralRecordGeyserExtension implements Extension {
         var plaqueLayout = CombatRewardPlaqueEntity.decode(event.uuid(), event.entityId());
         if (plaqueLayout != null) {
             var properties = combatRewardPlaque;
-            if (properties != null && damagePacks.combatRewardPlaqueReady(event.connection())) {
+            int packVersion = damagePacks.combatRewardPlaqueVersion(event.connection());
+            if (properties != null && packVersion >= 1) {
                 event.definition(CombatRewardPlaqueEntity.DEFINITION);
-                event.preSpawnConsumer(entity -> properties.initialize(entity, plaqueLayout));
+                event.preSpawnConsumer(entity -> properties.initialize(entity, plaqueLayout, packVersion >= 2));
             }
             return;
         }

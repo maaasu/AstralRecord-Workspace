@@ -30,7 +30,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean combatRewardPlaque, boolean weaponAttack, boolean weaponAttackProjectiles,
+    boolean combatResult, int combatRewardPlaqueVersion, boolean weaponAttack, boolean weaponAttackProjectiles,
     boolean skillEffectsV2, boolean fishingVisuals,
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
@@ -150,7 +150,7 @@ record DamagePack(
             boolean damageNumberAssets;
             boolean actionRing;
             boolean combatResult;
-            boolean combatRewardPlaque;
+            int combatRewardPlaqueVersion;
             boolean weaponAttack;
             boolean weaponAttackProjectiles;
             boolean skillEffectsV2;
@@ -183,8 +183,7 @@ record DamagePack(
                 actionRing = ACTION_RING_ENTRIES.stream().allMatch(entry -> zip.getEntry(entry) != null);
                 combatResult = COMBAT_RESULT_ENTRIES.stream().map(zip::getEntry)
                     .allMatch(entry -> entry != null && !entry.isDirectory() && entry.getSize() > 0);
-                combatRewardPlaque = hasVersionOne(zip, "combat-reward-plaque-version.txt")
-                    && COMBAT_REWARD_PLAQUE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                combatRewardPlaqueVersion = readCombatRewardPlaqueVersion(zip);
                 weaponAttack = WEAPON_ATTACK_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 weaponAttackProjectiles = weaponAttack && hasVersionOne(zip, "weapon-attack-projectiles-version.txt")
                     && WEAPON_ATTACK_PROJECTILE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
@@ -220,12 +219,26 @@ record DamagePack(
                 && (version.major() > 1 || (version.major() == 1 && version.minor() >= 1));
             file.toFile().deleteOnExit();
             keep = true;
-            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaque, weaponAttack,
-                weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
+            return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
+                weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
                 heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision, questHud);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
+    }
+
+    /**
+     * @param zip 配布パックのアーカイブ
+     * @return 報酬プレートの互換版。マーカーまたは必須素材が揃わない場合は0
+     * @throws IOException マーカーを読み取れない場合
+     */
+    private static int readCombatRewardPlaqueVersion(ZipFile zip) throws IOException {
+        if (!COMBAT_REWARD_PLAQUE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present)) {
+            return 0;
+        }
+        String marker = "combat-reward-plaque-version.txt";
+        if (hasVersion(zip, marker, '2')) return 2;
+        return hasVersionOne(zip, marker) ? 1 : 0;
     }
 
     private static String readActionRingHudRevision(ZipFile zip) throws IOException {

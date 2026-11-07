@@ -1963,8 +1963,8 @@ public final class DamageService {
                 finishBossDeath(mob, deathLocation, mobCombatService, bossChallengeService, mobService);
             } else if (dungeonService != null && dungeonService.isDungeonMob(mob.instanceId())) {
                 mobCombatService.handleDeath(mob, dungeonService.resolveMobRewardRecipients(mob.instanceId()),
-                        (recipient, text) -> dungeonService.captureBossDropResult(
-                                mob.instanceId(), recipient.getBukkit().getUniqueId(), text));
+                        (recipient, rewards) -> dungeonService.captureBossDropResult(
+                                mob.instanceId(), recipient.getBukkit().getUniqueId(), rewards));
             } else {
                 mobCombatService.handleDeath(mob);
             }
@@ -1988,8 +1988,8 @@ public final class DamageService {
         UUID bossId = mob.instanceId();
         try {
             mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(bossId),
-                    (recipient, text) -> bossChallengeService.captureBossDropResult(
-                            bossId, recipient.getBukkit().getUniqueId(), text));
+                    (recipient, rewards) -> bossChallengeService.captureBossDropResult(
+                            bossId, recipient.getBukkit().getUniqueId(), rewards));
         } catch (RuntimeException failure) {
             Logger.log(LogId.E_6511, failure, bossId);
             try {

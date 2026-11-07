@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService.RewardResult;
 import io.github.maaasu.astralRecord.feature.combat.model.EncounterCombatStatistics;
 import io.github.maaasu.astralRecord.feature.history.model.ActivityPlayerSnapshot;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -43,7 +44,7 @@ public final class BossChallengeInstance {
     private BukkitTask resultWaitTask;
     private BukkitTask startCountdownTask;
     private List<DisplayTextService.ManagedTextDisplay> resultDisplays = List.of();
-    private final Map<UUID, String> dropResultTexts = new ConcurrentHashMap<>();
+    private final Map<UUID, RewardResult> dropResults = new ConcurrentHashMap<>();
     private BossBar bossBar;
     private UUID creationQueueLeaderId;
     private UUID creationQueueTicketId;
@@ -333,23 +334,23 @@ public final class BossChallengeInstance {
 
     /**
      * @param playerId 受取人UUID
-     * @param text 解決済みの個人報酬本文
+     * @param rewards 解決済みの個人報酬
      */
-    public void recordDropResult(@NotNull UUID playerId, @NotNull String text) {
-        dropResultTexts.put(playerId, text);
+    public void recordDropResult(@NotNull UUID playerId, @NotNull RewardResult rewards) {
+        dropResults.put(playerId, rewards);
     }
 
     /**
      * @param playerId 閲覧者UUID
-     * @return 個人報酬本文。報酬対象でなければ空文字
+     * @return 保存済みの個人報酬。報酬対象でなければnull
      */
-    public @NotNull String dropResultText(@NotNull UUID playerId) {
-        return dropResultTexts.getOrDefault(playerId, "");
+    public @Nullable RewardResult dropResult(@NotNull UUID playerId) {
+        return dropResults.get(playerId);
     }
 
-    /** 統合表示の回収後に個人報酬本文を破棄します。 */
+    /** 統合表示の回収後に個人報酬を破棄します。 */
     public void clearDropResults() {
-        dropResultTexts.clear();
+        dropResults.clear();
     }
 
     /**

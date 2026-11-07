@@ -396,14 +396,14 @@ public class MobCombatService {
      * 固定受取人へ報酬を付与し、解決済みの個人報酬本文を戦績との統合先へ渡します。
      * @param instance 死亡Mob
      * @param recipients 固定済みの受取人
-     * @param resultTextHandler trueを返す受取人の通常表示を統合先へ委ねます。nullなら通常表示
+     * @param resultHandler trueを返す受取人の通常表示を統合先へ委ねます。nullなら通常表示
      * @return 受取人順の抽選結果
      * @implNote メインスレッドから呼び出します。抽選・経験値・アイテム付与とMob破棄の順序は維持します。
      */
     public @NotNull List<MobDropResult> handleDeath(
             @NotNull MobInstance instance,
             @NotNull List<AstPlayer> recipients,
-            @Nullable BiPredicate<AstPlayer, String> resultTextHandler
+            @Nullable BiPredicate<AstPlayer, MobDropPresentationService.RewardResult> resultHandler
     ) {
         Logger.log(LogId.D_5703, instance.template().id(), instance.lastAttackerUuid());
         Map<UUID, AstPlayer> uniqueRecipients = new LinkedHashMap<>();
@@ -412,20 +412,20 @@ public class MobCombatService {
                 uniqueRecipients.putIfAbsent(recipient.getBukkit().getUniqueId(), recipient);
             }
         }
-        return handleDeathWithRecipients(instance, List.copyOf(uniqueRecipients.values()), resultTextHandler);
+        return handleDeathWithRecipients(instance, List.copyOf(uniqueRecipients.values()), resultHandler);
     }
 
     /**
      * 報酬対象の個体へ全報酬を付与し、個人本文の統合判定後にMobを破棄します。
      * @param instance 死亡Mob。召喚専用個体は破棄だけを行います
      * @param recipients 配布先
-     * @param resultTextHandler 個人結果の統合判定。nullなら通常表示
+     * @param resultHandler 個人結果の統合判定。nullなら通常表示
      * @return 抽選結果
      */
     private @NotNull List<MobDropResult> handleDeathWithRecipients(
             @NotNull MobInstance instance,
             @NotNull List<AstPlayer> recipients,
-            @Nullable BiPredicate<AstPlayer, String> resultTextHandler
+            @Nullable BiPredicate<AstPlayer, MobDropPresentationService.RewardResult> resultHandler
     ) {
         if (!instance.rewardEligible()) {
             mobService.destroy(instance.instanceId());
@@ -463,7 +463,7 @@ public class MobCombatService {
                     ColorCodeUtil.toLegacyText(template.displayName(), template.id()),
                     result,
                     template.category(),
-                    resultTextHandler == null ? null : text -> resultTextHandler.test(recipient, text)
+                    resultHandler == null ? null : reward -> resultHandler.test(recipient, reward)
             );
         }
 

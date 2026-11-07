@@ -57,6 +57,14 @@ final class GeyserPackCapabilities {
 
     /**
      * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 拡張が報酬プレートの可変表示時間に対応すると確認した場合はtrue
+     */
+    static boolean hasCombatRewardPlaqueTiming(UUID playerId) {
+        return supports(playerId, "hasCombatRewardPlaqueTiming");
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 接続のアクションリング HUD 互換性識別子。非対応なら null
      */
     static String actionRingHudRevision(UUID playerId) {

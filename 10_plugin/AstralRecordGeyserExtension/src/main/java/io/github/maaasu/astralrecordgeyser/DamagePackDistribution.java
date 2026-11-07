@@ -218,9 +218,13 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().combatResult();
     }
 
-    boolean combatRewardPlaqueReady(GeyserConnection connection) {
+    /**
+     * @param connection 対象の統合版接続
+     * @return ログインまで進んだ接続に登録した報酬プレートの互換版。非対応は0
+     */
+    int combatRewardPlaqueVersion(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().combatRewardPlaque();
+        return selection != null && selection.ready() ? selection.pack().combatRewardPlaqueVersion() : 0;
     }
 
     Set<Integer> actionRingSprites(GeyserConnection connection) {

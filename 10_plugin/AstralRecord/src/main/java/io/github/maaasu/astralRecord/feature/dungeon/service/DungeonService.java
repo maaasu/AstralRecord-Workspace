@@ -39,6 +39,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService.RewardResult;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
@@ -73,10 +75,10 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrival
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
+import io.github.maaasu.astralRecord.shared.display.CombatRewardPlaque;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
-import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
@@ -117,6 +119,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -2286,45 +2289,53 @@ public final class DungeonService {
     }
 
     /**
-     * ダンジョン全体の戦績を確定し、各自のボス報酬と統合して個人表示します。
+     * ダンジョン全体の戦績を確定し、各自のボス報酬とクリア報酬を統合して個人表示します。
      * @param session クリア済みセッション
      * @implNote 同じ確定戦績をチャットへ送信し、統合表示は帰還時とPlugin停止時に回収します。
      */
     private void showCombatResult(@NotNull Session session) {
-        session.clearElapsedSeconds = Math.max(0L, (System.currentTimeMillis() - session.startedAtMs) / 1000L);
+        long clearElapsedSeconds = Math.max(0L, (System.currentTimeMillis() - session.startedAtMs) / 1000L);
         String ranking = EncounterResultFormatter.format(session.combatStatistics, session.originalParticipants,
                 session.deathsByPlayer, this::playerName);
-        session.combatResultRanking = ranking;
         for (Player participant : activePlayersInWorld(session)) {
-            messageService.send(participant, PlayerMsgId.P_6556, session.clearElapsedSeconds);
+            messageService.send(participant, PlayerMsgId.P_6556, clearElapsedSeconds);
             for (String line : ranking.split("\n")) {
                 if (!line.isBlank()) messageService.sendRaw(participant, line);
             }
         }
         if (session.lastMobDeathLocation == null) return;
         Location origin = session.lastMobDeathLocation.clone().add(0.0D, 2.4D, 0.0D);
+        String heading = PlayerMsgResource.format(PlayerMsgId.P_6555.getId(), session.loaded.definition().displayName());
+        String elapsed = PlayerMsgResource.format(PlayerMsgId.P_6556.getId(), clearElapsedSeconds);
+        Supplier<String> countdown = () -> EncounterResultFormatter.formatCountdown(session.clearReturnEndsAtMs);
         for (Player participant : activePlayersInWorld(session)) {
-            String rewards = session.bossDropResultTexts.getOrDefault(participant.getUniqueId(), "");
-            DisplayTextService.ManagedTextDisplay display = displayTextService.createResultText(
-                    origin, formatCombatResult(session, rewards), participant, CLEAR_RETURN_DELAY_TICKS);
-            display.setDynamicText(() -> formatCombatResult(session, rewards));
+            UUID viewerId = participant.getUniqueId();
+            RewardResult rewards = session.bossDropResults.get(viewerId);
+            Supplier<String> fallback = () -> EncounterResultFormatter.formatFallback(
+                    heading, elapsed, countdown.get(), ranking, rewards);
+            DisplayTextService.ManagedTextDisplay display = displayTextService.createEncounterRewardPlaque(
+                    origin, fallback.get(), participant, CLEAR_RETURN_DELAY_TICKS,
+                    () -> EncounterResultFormatter.formatPlaque(heading, elapsed, countdown, ranking, rewards,
+                            formatClearRewardRows(session.rewardsByPlayer.getOrDefault(viewerId, List.of()))));
+            display.setDynamicText(fallback);
             session.resultDisplays.add(display);
         }
     }
 
     /**
-     * 確定した全体戦績と個人報酬、動的な帰還残秒を一つの本文へまとめます。
-     * @param session クリア済みセッション
-     * @param rewards 閲覧者のボス報酬本文。報酬対象外は空文字
-     * @return 統合リザルト本文
+     * 受取GUIと同じ確定済みクリア報酬をプレートの行にします。
+     * @param rewards 閲覧者の抽選済み報酬
+     * @return クリア報酬の見出しと各アイテム行。報酬がない場合は空
      */
-    private @NotNull String formatCombatResult(@NotNull Session session, @NotNull String rewards) {
-        long remaining = Math.max(0L, (session.clearReturnEndsAtMs - System.currentTimeMillis() + 999L) / 1000L);
-        return PlayerMsgResource.format(PlayerMsgId.P_6555.getId(), session.loaded.definition().displayName())
-                + "\n" + PlayerMsgResource.format(PlayerMsgId.P_6556.getId(), session.clearElapsedSeconds)
-                + " &8│ " + PlayerMsgResource.format(PlayerMsgId.P_6557.getId(), remaining)
-                + "\n\n&8" + DisplaySeparators.SECTION + "\n" + session.combatResultRanking
-                + (rewards.isEmpty() ? "" : "\n\n&8" + DisplaySeparators.SECTION + "\n" + rewards);
+    private List<CombatRewardPlaque.Row> formatClearRewardRows(List<DungeonRewardEntry> rewards) {
+        if (rewards.isEmpty()) return List.of();
+        List<CombatRewardPlaque.Row> rows = new ArrayList<>(rewards.size() + 1);
+        rows.add(CombatRewardPlaque.Row.text(PlayerMsgResource.getMessage(PlayerMsgId.P_8088.getId())));
+        for (DungeonRewardEntry reward : rewards) {
+            ItemModel model = itemService.findLoadedById(reward.itemId());
+            rows.add(MobDropPresentationService.formatRewardItem(model, reward.amount(), reward.configuredRate(), false));
+        }
+        return rows;
     }
 
     private void recordDungeonClearHistory(@NotNull Session session) {
@@ -3581,18 +3592,18 @@ public final class DungeonService {
      * BOSS部屋のボスが死亡確定した時点で、個人報酬をクリア戦績との統合用に保持します。
      * @param mobInstanceId 死亡確定したダンジョンMob
      * @param playerId 報酬受取人
-     * @param text 解決済みの個人報酬本文
+     * @param rewards 解決済みの個人報酬
      * @return ボス報酬を保存して通常の別表示を省略する場合はtrue。通常部屋はfalse
      * @implNote メインスレッドから、handleMobDefeatedが対応表を削除する前に呼び出します。
      */
     public boolean captureBossDropResult(@NotNull UUID mobInstanceId, @NotNull UUID playerId,
-                                         @NotNull String text) {
+                                         @NotNull RewardResult rewards) {
         requireMainThread();
         MobBinding binding = mobBindings.get(mobInstanceId);
         Session session = binding == null ? null : sessionsById.get(binding.sessionId());
         if (session == null || session.ending || session.cleared || !session.participants.contains(playerId)
                 || room(session, binding.roomId()).role() != DungeonLayout.RoomRole.BOSS) return false;
-        session.bossDropResultTexts.put(playerId, text);
+        session.bossDropResults.put(playerId, rewards);
         return true;
     }
 
@@ -4415,7 +4426,7 @@ public final class DungeonService {
             cleanupSafely(session, "combat_result_display", display::destroy);
         }
         session.resultDisplays.clear();
-        session.bossDropResultTexts.clear();
+        session.bossDropResults.clear();
         if (session.rewardDisplay != null) {
             DisplayTextService.ManagedTextDisplay display = session.rewardDisplay;
             session.rewardDisplay = null;
@@ -5394,10 +5405,8 @@ public final class DungeonService {
         private DisplayTextService.ManagedTextDisplay returnGateDisplay;
         private DisplayTextService.ManagedTextDisplay rewardDisplay;
         private final List<DisplayTextService.ManagedTextDisplay> resultDisplays = new ArrayList<>();
-        private final Map<UUID, String> bossDropResultTexts = new HashMap<>();
+        private final Map<UUID, RewardResult> bossDropResults = new HashMap<>();
         private Location lastMobDeathLocation;
-        private long clearElapsedSeconds;
-        private String combatResultRanking;
         private BukkitTask startCountdownTask;
         private BukkitTask clearReturnTask;
         private BukkitTask challengeTimeLimitTask;

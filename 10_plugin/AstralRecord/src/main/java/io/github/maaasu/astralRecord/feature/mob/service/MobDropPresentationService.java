@@ -148,7 +148,7 @@ public final class MobDropPresentationService {
         @NotNull String mobName,
         @NotNull MobDropResult result
     ) {
-        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE, null);
+        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE, null, null);
     }
 
     /**
@@ -167,7 +167,7 @@ public final class MobDropPresentationService {
         @NotNull MobDropResult result,
         @NotNull MobCategory mobCategory
     ) {
-        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE, mobCategory);
+        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE, mobCategory, PlayerMsgId.P_8080);
     }
 
     /**
@@ -178,7 +178,7 @@ public final class MobDropPresentationService {
      * @param mobName Mob表示名
      * @param result 抽選結果
      * @param mobCategory レア判定対象のカテゴリ
-     * @param resultTextHandler trueを返すと通常表示を統合先へ委ねる判定。nullなら通常表示
+     * @param resultHandler trueを返すと通常表示を統合先へ委ねる判定。nullなら通常表示
      * @implNote メインスレッドから呼び出します。AFK中の付与・表示抑止を維持します。
      */
     public void presentAndGrant(
@@ -187,11 +187,11 @@ public final class MobDropPresentationService {
         @NotNull String mobName,
         @NotNull MobDropResult result,
         @NotNull MobCategory mobCategory,
-        @Nullable Predicate<String> resultTextHandler
+        @Nullable Predicate<RewardResult> resultHandler
     ) {
         if (!recipient.getBukkit().isOnline() || (afkService != null && afkService.isAfk(recipient))) return;
         presentResolved(recipient, deathLocation, mobName, result, DROP_SOURCE, mobCategory,
-                resolveItems(result), resultTextHandler);
+                resolveItems(result), PlayerMsgId.P_8080, resultHandler);
     }
 
     /**
@@ -210,7 +210,26 @@ public final class MobDropPresentationService {
         @NotNull MobDropResult result,
         @NotNull String dropSource
     ) {
-        presentAndGrant(recipient, deathLocation, sourceName, result, dropSource, null);
+        presentAndGrant(recipient, deathLocation, sourceName, result, dropSource, null, null);
+    }
+
+    /**
+     * 採集の当選報酬を付与し、受取人へ採集報酬プレートを表示します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param location 採集位置
+     * @param sourceName 採集対象の表示名
+     * @param result 抽選結果
+     * @param dropSource インベントリ履歴用取得元
+     */
+    public void presentGatheringAndGrant(
+        @NotNull AstPlayer recipient,
+        @NotNull Location location,
+        @NotNull String sourceName,
+        @NotNull MobDropResult result,
+        @NotNull String dropSource
+    ) {
+        presentAndGrant(recipient, location, sourceName, result, dropSource, null, PlayerMsgId.P_8086);
     }
 
     /**
@@ -236,7 +255,7 @@ public final class MobDropPresentationService {
             if (model == null) throw new IllegalArgumentException("Snapshot reward item is missing");
             resolved.add(new ResolvedDropItem(model, Math.max(1, reward.amount()), reward.dropRate()));
         }
-        presentResolved(recipient, deathLocation, sourceName, result, dropSource, null, resolved, null);
+        presentResolved(recipient, deathLocation, sourceName, result, dropSource, null, resolved, null, null);
     }
 
     /**
@@ -248,6 +267,7 @@ public final class MobDropPresentationService {
      * @param result 抽選結果
      * @param dropSource インベントリ履歴用取得元
      * @param mobCategory レア判定対象の Mob カテゴリ。Mob 以外は {@code null} で全当選アイテムを通常ドロップ通知
+     * @param plaqueTitle 専用プレートの見出し。従来表示の取得元は {@code null}
      */
     private void presentAndGrant(
         @NotNull AstPlayer recipient,
@@ -255,12 +275,27 @@ public final class MobDropPresentationService {
         @NotNull String sourceName,
         @NotNull MobDropResult result,
         @NotNull String dropSource,
-        @Nullable MobCategory mobCategory
+        @Nullable MobCategory mobCategory,
+        @Nullable PlayerMsgId plaqueTitle
     ) {
         if (!recipient.getBukkit().isOnline() || (afkService != null && afkService.isAfk(recipient))) return;
-        presentResolved(recipient, deathLocation, sourceName, result, dropSource, mobCategory, resolveItems(result), null);
+        presentResolved(recipient, deathLocation, sourceName, result, dropSource, mobCategory,
+                resolveItems(result), plaqueTitle, null);
     }
 
+    /**
+     * 解決済み報酬を表示または戦績へ統合し、付与と通知を行います。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation ドロップ発生位置
+     * @param sourceName 取得元の表示名
+     * @param result 確定報酬
+     * @param dropSource インベントリ履歴用取得元
+     * @param mobCategory レア判定に用いるMobカテゴリ。Mob以外はnull
+     * @param resolvedItems 解決済みの当選アイテム
+     * @param plaqueTitle 専用プレートの見出し。従来表示の取得元はnull
+     * @param resultHandler 戦績に統合した場合にtrueを返す処理。統合しない場合はnull
+     */
     private void presentResolved(
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
@@ -269,7 +304,8 @@ public final class MobDropPresentationService {
         @NotNull String dropSource,
         @Nullable MobCategory mobCategory,
         @NotNull List<ResolvedDropItem> resolvedItems,
-        @Nullable Predicate<String> resultTextHandler
+        @Nullable PlayerMsgId plaqueTitle,
+        @Nullable Predicate<RewardResult> resultHandler
     ) {
         Player player = recipient.getBukkit();
         if (!player.isOnline() || (afkService != null && afkService.isAfk(recipient))) {
@@ -279,9 +315,9 @@ public final class MobDropPresentationService {
         if (result.money() > 0) {
             inventoryService.addGold(recipient, result.money());
         }
-        if (resultTextHandler == null
-                || !resultTextHandler.test(formatResultText(sourceName, result, resolvedItems, false))) {
-            spawnResultText(player, deathLocation, sourceName, result, resolvedItems, mobCategory);
+        if (resultHandler == null
+                || !resultHandler.test(formatRewardResult(sourceName, result, resolvedItems, mobCategory))) {
+            spawnResultText(player, deathLocation, sourceName, result, resolvedItems, mobCategory, plaqueTitle);
         }
         announceDropLogs(recipient, mobCategory, resolvedItems);
         List<ResolvedDropItem> grantItems = expandInstanceItems(resolvedItems);
@@ -341,12 +377,14 @@ public final class MobDropPresentationService {
 
     /**
      * 受取人だけへ、共通の拡大・順次表示・フェード演出付きの報酬を表示します。
+     *
      * @param viewer 受取人
      * @param deathLocation 取得位置
      * @param sourceName 取得元の表示名
      * @param result 経験値とゴールドの抽選結果
      * @param items 解決済み獲得アイテム
-     * @param category Mob のカテゴリ。採集・釣りなどの別経路はnull
+     * @param category レア判定に用いるMobカテゴリ。Mob以外はnull
+     * @param plaqueTitle 専用プレートの見出し。従来表示の取得元はnull
      */
     private void spawnResultText(
         @NotNull Player viewer,
@@ -354,33 +392,75 @@ public final class MobDropPresentationService {
         @NotNull String sourceName,
         @NotNull MobDropResult result,
         @NotNull List<ResolvedDropItem> items,
-        @Nullable MobCategory category
+        @Nullable MobCategory category,
+        @Nullable PlayerMsgId plaqueTitle
     ) {
         if (deathLocation.getWorld() == null) return;
         Location origin = deathLocation.clone().add(0.0D, RESULT_HEIGHT, 0.0D);
         String text = formatResultText(sourceName, result, items);
-        if (category == null) {
+        if (plaqueTitle == null) {
             displayTextService.createResultText(origin, text, viewer, RESULT_DISPLAY_DURATION_TICKS);
         } else {
             displayTextService.createCombatRewardPlaque(origin, text, viewer, RESULT_DISPLAY_DURATION_TICKS,
-                    () -> formatRewardPlaque(sourceName, result, items, category));
+                    () -> formatRewardPlaque(plaqueTitle, sourceName, result, items, category));
         }
     }
 
     /**
-     * 確定した討伐報酬を、固定報酬とアイテム行の間に余白を持つプレートへ整形します。
-     * @param mobName 討伐対象の表示名
+     * 単独表示用の報酬を、固定報酬とアイテムの行に分けてプレートへ渡します。
+     *
+     * @param plaqueTitle 専用プレートの見出し
+     * @param sourceName 取得元の表示名
      * @param result 経験値とゴールドの抽選結果
      * @param items 解決済み獲得アイテム
-     * @param category レア判定に使うMobのカテゴリ
+     * @param category レア判定に用いるMobカテゴリ。Mob以外はnull
      * @return 両版のプレートに使う報酬本文
      */
     private static CombatRewardPlaque formatRewardPlaque(
-            String mobName, MobDropResult result, List<ResolvedDropItem> items, MobCategory category
+            PlayerMsgId plaqueTitle, String sourceName, MobDropResult result,
+            List<ResolvedDropItem> items, @Nullable MobCategory category
     ) {
-        List<String> lines = new ArrayList<>();
-        lines.add(PlayerMsgResource.getMessage(PlayerMsgId.P_8080.getId()));
-        lines.add(PlayerMsgResource.format(PlayerMsgId.P_5741.getId(), mobName));
+        PlaqueItems details = formatPlaqueItems(items, category);
+        String title = PlayerMsgResource.getMessage(plaqueTitle.getId());
+        if (details.titleBadge()) {
+            title += "  " + PlayerMsgResource.getMessage(PlayerMsgId.P_8084.getId());
+        }
+        String summary = String.join("   ", formatFixedRewards(result));
+        return CombatRewardPlaque.layout(title, PlayerMsgResource.format(PlayerMsgId.P_5741.getId(), sourceName),
+                () -> summary, details.rows(), details.rare());
+    }
+
+    /**
+     * 戦績へ統合できる個人報酬を作ります。取得元と外枠の見出しは統合先で付けます。
+     *
+     * @param sourceName 取得元の表示名
+     * @param result 経験値とゴールドの抽選結果
+     * @param items 解決済み獲得アイテム
+     * @param category レア判定に用いるMobカテゴリ。Mob以外はnull
+     * @return 従来表示と専用プレート用の個人報酬
+     */
+    private static RewardResult formatRewardResult(
+            String sourceName, MobDropResult result, List<ResolvedDropItem> items, @Nullable MobCategory category
+    ) {
+        PlaqueItems details = formatPlaqueItems(items, category);
+        List<CombatRewardPlaque.Row> rows = new ArrayList<>();
+        if (details.titleBadge()) {
+            rows.add(CombatRewardPlaque.Row.text(PlayerMsgResource.getMessage(PlayerMsgId.P_8084.getId())));
+        }
+        for (String total : formatFixedRewards(result)) {
+            rows.add(CombatRewardPlaque.Row.text(total));
+        }
+        rows.addAll(details.rows());
+        return new RewardResult(formatResultText(sourceName, result, items, false), rows, details.rare());
+    }
+
+    /**
+     * 付与済み経験値とゴールドを、アイコン付きの個別表示へ整形します。
+     *
+     * @param result 経験値とゴールドの抽選結果
+     * @return 付与があった固定報酬の行
+     */
+    private static List<String> formatFixedRewards(MobDropResult result) {
         List<String> totals = new ArrayList<>(2);
         if (result.exp() >= 1) {
             totals.add("&f\uE706 " + PlayerMsgResource.format(PlayerMsgId.P_8081.getId(),
@@ -390,42 +470,80 @@ public final class MobDropPresentationService {
             totals.add("&f\uE707 " + PlayerMsgResource.format(PlayerMsgId.P_8082.getId(),
                     String.format(Locale.ROOT, "%,d", result.money())));
         }
-        lines.add(totals.isEmpty() ? "\u00a0" : String.join("   ", totals));
-        lines.add("\u00a0");
+        return totals;
+    }
 
-        boolean rare = items.stream().anyMatch(item -> isRareDrop(category, item.dropRate()));
-        List<ResolvedDropItem> shown = items.stream()
+    /**
+     * レアを先頭へ移し、名前と数量・確率を分けた獲得アイテム行へ整形します。
+     *
+     * @param items 解決済み獲得アイテム
+     * @param category レア判定に用いるMobカテゴリ。Mob以外はnull
+     * @return 全獲得アイテム行とレア表示の状態
+     */
+    private static PlaqueItems formatPlaqueItems(List<ResolvedDropItem> items, @Nullable MobCategory category) {
+        if (items.isEmpty()) {
+            return new PlaqueItems(List.of(new CombatRewardPlaque.Row("&f\uE708 ",
+                    PlayerMsgResource.getMessage(PlayerMsgId.P_8085.getId()), "")), false, false);
+        }
+
+        List<CombatRewardPlaque.Row> rows = new ArrayList<>(items.size());
+        List<ResolvedDropItem> ordered = items.stream()
                 .sorted(Comparator.comparing(item -> !isRareDrop(category, item.dropRate())))
-                .limit(MAX_RESULT_TEXT_ITEMS)
                 .toList();
         String rareBadge = PlayerMsgResource.getMessage(PlayerMsgId.P_8084.getId());
-        boolean badgeInTitle = false;
-        for (ResolvedDropItem item : shown) {
+        boolean rare = false;
+        boolean titleBadge = false;
+        for (ResolvedDropItem item : ordered) {
             boolean rareItem = isRareDrop(category, item.dropRate());
-            String name = ColorCodeUtil.toLegacyText(item.model().getName(),
-                    PlayerMsgResource.getMessage(PlayerMsgId.P_5748.getId()));
-            String row = "&f" + rewardIcon(item.model(), rareItem) + " "
-                    + PlayerMsgResource.format(PlayerMsgId.P_8083.getId(), name,
-                            String.format(Locale.ROOT, "%,d", item.amount()),
-                            rareItem ? ColorCodeUtil.LIGHT_PURPLE : ColorCodeUtil.GRAY, formatDropRate(item.dropRate()));
+            CombatRewardPlaque.Row row = formatRewardItem(item.model(), item.amount(), item.dropRate(), rareItem);
             if (rareItem) {
-                String marked = row + " " + rareBadge;
-                if (CombatRewardPlaque.fitsItemRow(marked)) {
-                    row = marked;
+                rare = true;
+                String markedSuffix = row.suffix() + " " + rareBadge;
+                if (CombatRewardPlaque.fitsItemRow(row.prefix() + row.text() + markedSuffix)) {
+                    row = new CombatRewardPlaque.Row(row.prefix(), row.text(), markedSuffix);
                 } else {
-                    badgeInTitle = true;
+                    titleBadge = true;
                 }
             }
-            lines.add(row);
+            rows.add(row);
         }
-        if (badgeInTitle) lines.set(0, lines.getFirst() + "  " + rareBadge);
-        if (shown.isEmpty()) {
-            lines.add("&f\uE708 " + PlayerMsgResource.getMessage(PlayerMsgId.P_8085.getId()));
+        return new PlaqueItems(rows, rare, titleBadge);
+    }
+
+    /**
+     * 確定報酬のアイコン、表示名、数量と設定確率を一つの詳細項目にまとめます。
+     * @param model アイテム定義。未解決の場合は共通の代替名を表示
+     * @param amount 確定した数量
+     * @param configuredRate 報酬の設定確率（%）
+     * @param rare レアドロップとして色を付けるか
+     * @return プレート用の詳細項目
+     */
+    public static @NotNull CombatRewardPlaque.Row formatRewardItem(
+            @Nullable ItemModel model, int amount, double configuredRate, boolean rare
+    ) {
+        char icon = model == null ? '\uE700' : rewardIcon(model, rare);
+        String name = ColorCodeUtil.toLegacyText(model == null ? null : model.getName(),
+                PlayerMsgResource.getMessage(PlayerMsgId.P_5748.getId()));
+        String suffix = PlayerMsgResource.format(PlayerMsgId.P_8083.getId(),
+                String.format(Locale.ROOT, "%,d", amount),
+                rare ? ColorCodeUtil.LIGHT_PURPLE : ColorCodeUtil.GRAY, formatDropRate(configuredRate));
+        return new CombatRewardPlaque.Row("&f" + icon + " ", name, suffix);
+    }
+
+    /**
+     * 戦績へ統合するための個人報酬です。
+     *
+     * @param fallbackText 専用パックを利用できない場合の従来表示
+     * @param rows 専用プレートに表示する固定報酬と獲得アイテム
+     * @param rare レアドロップを含むか
+     */
+    public record RewardResult(@NotNull String fallbackText, @NotNull List<CombatRewardPlaque.Row> rows, boolean rare) {
+        public RewardResult {
+            rows = List.copyOf(rows);
         }
-        if (shown.size() < items.size()) {
-            lines.add(PlayerMsgResource.format(PlayerMsgId.P_5747.getId(), items.size() - shown.size()));
-        }
-        return new CombatRewardPlaque(lines, rare);
+    }
+
+    private record PlaqueItems(List<CombatRewardPlaque.Row> rows, boolean rare, boolean titleBadge) {
     }
 
     private static char rewardIcon(ItemModel item, boolean rare) {
@@ -523,7 +641,7 @@ public final class MobDropPresentationService {
         Player recipientPlayer = recipient.getBukkit();
         UUID recipientId = recipientPlayer.getUniqueId();
         for (ResolvedDropItem item : items) {
-            boolean rareDrop = mobCategory != null && isRareDrop(mobCategory, item.dropRate());
+            boolean rareDrop = isRareDrop(mobCategory, item.dropRate());
             String itemName = ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId());
             if (rareDrop) {
                 Player player = recipient.getBukkit();
@@ -624,11 +742,12 @@ public final class MobDropPresentationService {
     /**
      * Mob カテゴリ別の閾値に基づいてレアドロップかを判定します。
      *
-     * @param mobCategory Mob カテゴリ
+     * @param mobCategory Mob カテゴリ。レア判定の対象外はnull
      * @param dropRate 設定上のドロップ確率（%）
      * @return レアドロップなら {@code true}
      */
-    static boolean isRareDrop(@NotNull MobCategory mobCategory, double dropRate) {
+    static boolean isRareDrop(@Nullable MobCategory mobCategory, double dropRate) {
+        if (mobCategory == null) return false;
         double threshold = mobCategory == MobCategory.BOSS
             ? BOSS_RARE_DROP_MAX_RATE
             : ENEMY_RARE_DROP_MAX_RATE;

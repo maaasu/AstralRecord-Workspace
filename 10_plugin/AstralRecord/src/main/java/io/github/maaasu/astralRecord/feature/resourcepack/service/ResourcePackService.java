@@ -52,6 +52,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockSkillEffects = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockCombatRewardPlaqueTiming = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
@@ -616,6 +617,25 @@ public class ResourcePackService {
     }
 
     /**
+     * @param playerId 閲覧者のUUID
+     * @return 現在の統合版接続が表示寿命を指定できる場合はtrue
+     */
+    public boolean hasBedrockCombatRewardPlaqueTiming(UUID playerId) {
+        return readyBedrockCombatRewardPlaqueTiming.contains(playerId);
+    }
+
+    /**
+     * 表示寿命に対応したパックを通知された接続に記録します。
+     * @param player 通知の対象プレイヤー
+     */
+    public void markBedrockCombatRewardPlaqueTimingReady(Player player) {
+        if (player.isOnline()) {
+            readyBedrockCombatRewardPlaqueTiming.add(player.getUniqueId());
+            readyBedrockCombatRewardPlaque.add(player.getUniqueId());
+        }
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -639,6 +659,7 @@ public class ResourcePackService {
         readyBedrockSkillEffects.remove(playerId);
         requestedJavaCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaque.remove(playerId);
+        readyBedrockCombatRewardPlaqueTiming.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
         requestedJavaQuestHud.remove(playerId);
         readyBedrockQuestHud.remove(playerId);

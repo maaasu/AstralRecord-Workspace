@@ -8,36 +8,65 @@ import org.geysermc.geyser.api.entity.type.GeyserEntity;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntityPropertiesEvent;
 import org.geysermc.geyser.api.util.Identifier;
 
-/** 討伐報酬の TextDisplay に、本文の行数に合わせた統合版の枠を表示します。 */
-record CombatRewardPlaqueEntity(GeyserIntEntityProperty lines, GeyserIntEntityProperty rare) {
+/**
+ * 報酬の TextDisplay に、本文の行数と表示時間に合わせた統合版の枠を表示します。
+ *
+ * @param lines 枠の高さを決める本文の行数
+ * @param rare レアドロップの装飾を有効にする値
+ * @param duration 枠のアニメーションを終えるtick
+ */
+record CombatRewardPlaqueEntity(
+    GeyserIntEntityProperty lines, GeyserIntEntityProperty rare, GeyserIntEntityProperty duration
+) {
     private static final long TAG = 0xa57ac2e570000002L;
     private static final int MIN_LINES = 5;
     private static final int MAX_LINES = 10;
     private static final int LINE_MASK = 0xf;
     private static final int RARE_FLAG = 0x10;
+    private static final int DURATION_SHIFT = 5;
+    private static final int DEFAULT_DURATION_TICKS = 120;
+    private static final int MAX_DURATION_TICKS = 65535;
     private static final Identifier IDENTIFIER = Identifier.of("astralrecord", "combat_reward_plaque");
     static final CustomEntityDefinition DEFINITION = CustomEntityDefinition.of(IDENTIFIER);
 
+    /**
+     * @param event Geyserのエンティティプロパティ登録イベント
+     * @return 描画時に使うプロパティの定義
+     */
     static CombatRewardPlaqueEntity registerProperties(GeyserDefineEntityPropertiesEvent event) {
         return new CombatRewardPlaqueEntity(
             event.registerIntegerProperty(IDENTIFIER, Identifier.of("astralrecord", "reward_lines"),
                 MIN_LINES, MAX_LINES, MIN_LINES),
-            event.registerIntegerProperty(IDENTIFIER, Identifier.of("astralrecord", "reward_rare"), 0, 1, 0)
+            event.registerIntegerProperty(IDENTIFIER, Identifier.of("astralrecord", "reward_rare"), 0, 1, 0),
+            event.registerIntegerProperty(IDENTIFIER, Identifier.of("astralrecord", "reward_duration"),
+                1, MAX_DURATION_TICKS, DEFAULT_DURATION_TICKS)
         );
     }
 
+    /**
+     * @param uuid 報酬TextDisplayの識別子。既存形式では表示時間のビットが0
+     * @param entityId Java側のエンティティID
+     * @return 正規の識別子から解決した描画設定。対象外または不正な識別子はnull
+     */
     static Layout decode(UUID uuid, int entityId) {
         if (uuid == null || uuid.getMostSignificantBits() != TAG) return null;
         long payload = uuid.getLeastSignificantBits();
         long flags = payload >>> 32;
         int lines = (int) flags & LINE_MASK;
-        if ((int) payload != entityId || flags > (LINE_MASK | RARE_FLAG) || lines < MIN_LINES || lines > MAX_LINES) {
+        long encodedDuration = flags >>> DURATION_SHIFT;
+        if ((int) payload != entityId || lines < MIN_LINES || lines > MAX_LINES || encodedDuration > MAX_DURATION_TICKS) {
             return null;
         }
-        return new Layout(lines, (flags & RARE_FLAG) != 0);
+        int durationTicks = encodedDuration == 0 ? DEFAULT_DURATION_TICKS : (int) encodedDuration;
+        return new Layout(lines, (flags & RARE_FLAG) != 0, durationTicks);
     }
 
-    void initialize(GeyserEntity entity, Layout layout) {
+    /**
+     * @param entity Geyserが生成する表示エンティティ
+     * @param layout UUIDから解決した描画設定
+     * @param timingSupported 接続時に可変表示時間へ対応したパックを登録した場合はtrue
+     */
+    void initialize(GeyserEntity entity, Layout layout, boolean timingSupported) {
         // 元の TextDisplay の名前欄と、Geyser が計算する行数別の位置を利用します。
         entity.override(GeyserEntityDataTypes.SCALE, 1f);
         entity.override(GeyserEntityDataTypes.WIDTH, 0f);
@@ -45,8 +74,9 @@ record CombatRewardPlaqueEntity(GeyserIntEntityProperty lines, GeyserIntEntityPr
         entity.updatePropertiesBatched(batch -> {
             batch.update(lines, layout.lines());
             batch.update(rare, layout.rare() ? 1 : 0);
+            batch.update(duration, timingSupported ? layout.durationTicks() : DEFAULT_DURATION_TICKS);
         }, false);
     }
 
-    record Layout(int lines, boolean rare) {}
+    record Layout(int lines, boolean rare, int durationTicks) {}
 }

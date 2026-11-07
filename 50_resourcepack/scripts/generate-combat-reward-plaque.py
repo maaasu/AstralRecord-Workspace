@@ -219,6 +219,7 @@ def outputs() -> dict[Path, bytes]:
     atlas.paste(icons, (0, 0))
     result[BEDROCK / "font/glyph_E7.png"] = png(atlas)
     result[ROOT / "combat-reward-plaque-version.txt"] = b"1"
+    result[BEDROCK / "combat-reward-plaque-version.txt"] = b"2"
     return result
 
 

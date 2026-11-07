@@ -61,6 +61,11 @@ public final class DisplayTextService {
     private static final long PLAQUE_EXIT_TICKS = 10L;
     private static final long PLAQUE_GLINT_DELAY_TICKS = 2L;
     private static final long PLAQUE_GLINT_TICKS = 6L;
+    // 統合版の互換版1パックが持つ登場から退場までの長さです。
+    private static final long BEDROCK_PLAQUE_DURATION_TICKS = 120L;
+    private static final int BEDROCK_PLAQUE_MAX_DURATION = 0xffff;
+    private static final int BEDROCK_PLAQUE_DURATION_SHIFT = 5;
+    private static final long ENCOUNTER_PLAQUE_PAGE_TICKS = 60L;
     private static final float PLAQUE_SCALE = 0.68F;
     // Java の TextDisplay は行間が10px、1pxが0.025ブロックで、本文の下端が原点です。
     private static final float PLAQUE_LINE_HEIGHT = 0.25F;
@@ -310,16 +315,16 @@ public final class DisplayTextService {
             @Nullable Player viewer,
             long durationTicks
     ) {
-        return createResult(origin, text, viewer, durationTicks, null, false);
+        return createResult(origin, text, viewer, durationTicks, null, 0L, false, 0);
     }
 
     /**
-     * 対応パックでは討伐報酬プレートを、ほかの接続では通常の結果本文を本人に表示します。
+     * 対応パックでは報酬プレートを本人に表示し、複数ページにはそれぞれ表示時間を確保します。
      *
      * @param origin 表示基準位置
      * @param fallbackText 通常の結果本文
      * @param viewer 報酬の受取人
-     * @param durationTicks 表示寿命
+     * @param durationTicks 1ページの表示時間。通常表示では全体の表示寿命
      * @param plaqueSupplier 対応パックを適用した受取人用のプレート本文
      * @return 表示の管理ハンドル
      * @throws IllegalArgumentException 寿命が0以下の場合
@@ -332,18 +337,67 @@ public final class DisplayTextService {
             long durationTicks,
             @NotNull Supplier<CombatRewardPlaque> plaqueSupplier
     ) {
+        return createRewardPlaque(origin, fallbackText, viewer, durationTicks, plaqueSupplier, true);
+    }
+
+    /**
+     * 帰還時刻が決まっている戦績と報酬を、指定された寿命の中で本人に表示します。
+     * @param origin 表示基準位置
+     * @param fallbackText 非対応接続向けの初期本文
+     * @param viewer リザルトを見るプレイヤー
+     * @param durationTicks 帰還までの全体の表示寿命
+     * @param plaqueSupplier 対応パック用の本文
+     * @return 表示の管理ハンドル
+     * @throws IllegalArgumentException 寿命が0以下の場合
+     * @implNote Bukkitメインスレッドから呼び出します。
+     */
+    public @NotNull ManagedTextDisplay createEncounterRewardPlaque(
+            @NotNull Location origin,
+            @NotNull String fallbackText,
+            @NotNull Player viewer,
+            long durationTicks,
+            @NotNull Supplier<CombatRewardPlaque> plaqueSupplier
+    ) {
+        return createRewardPlaque(origin, fallbackText, viewer, durationTicks, plaqueSupplier, false);
+    }
+
+    /**
+     * 接続のパック対応状況で表示を選び、ページと既存アニメーションの寿命を設定します。
+     * @param origin 表示基準位置
+     * @param fallbackText 非対応接続用の本文
+     * @param viewer リザルトを見るプレイヤー
+     * @param durationTicks 表示時間
+     * @param plaqueSupplier 対応パック用の本文
+     * @param extendPerPage ページ数に応じて表示寿命を延ばすか
+     * @return 表示の管理ハンドル
+     */
+    private @NotNull ManagedTextDisplay createRewardPlaque(
+            Location origin, String fallbackText, Player viewer, long durationTicks,
+            Supplier<CombatRewardPlaque> plaqueSupplier, boolean extendPerPage
+    ) {
         UUID viewerId = viewer.getUniqueId();
         boolean bedrock = resourcePackService.isBedrock(viewer.getName());
         boolean supported = bedrock ? resourcePackService.hasBedrockCombatRewardPlaque(viewerId)
                 : resourcePackService.hasJavaCombatRewardPlaque(viewerId);
         CombatRewardPlaque plaque = supported ? plaqueSupplier.get() : null;
-        if (plaque != null && !plaque.fits()) plaque = null;
-        return createResult(origin, fallbackText, viewer, durationTicks, plaque, bedrock && plaque != null);
+        long pageTicks = durationTicks;
+        if (plaque != null) {
+            if (extendPerPage) {
+                durationTicks = Math.multiplyExact(durationTicks, plaque.pageCount());
+            } else {
+                pageTicks = Math.clamp(durationTicks / plaque.pageCount(), 1L, ENCOUNTER_PLAQUE_PAGE_TICKS);
+            }
+        }
+        boolean bedrockPlaque = bedrock && plaque != null;
+        int bedrockDuration = bedrockPlaque && durationTicks > BEDROCK_PLAQUE_DURATION_TICKS
+                && durationTicks <= BEDROCK_PLAQUE_MAX_DURATION
+                && resourcePackService.hasBedrockCombatRewardPlaqueTiming(viewerId) ? (int) durationTicks : 0;
+        return createResult(origin, fallbackText, viewer, durationTicks, plaque, pageTicks, bedrockPlaque, bedrockDuration);
     }
 
     private @NotNull ManagedTextDisplay createResult(
             Location origin, String text, @Nullable Player viewer, long durationTicks,
-            @Nullable CombatRewardPlaque plaque, boolean bedrockPlaque
+            @Nullable CombatRewardPlaque plaque, long pageTicks, boolean bedrockPlaque, int bedrockDuration
     ) {
         if (durationTicks <= 0L) {
             throw new IllegalArgumentException("Result duration must be positive.");
@@ -370,7 +424,8 @@ public final class DisplayTextService {
                         (int) RESULT_FRAME_TICKS, 0,
                         false, 15, 15)
         );
-        display.requireState().resultAnimation = new ResultAnimation(viewerId, durationTicks, plaque, bedrockPlaque);
+        display.requireState().resultAnimation =
+                new ResultAnimation(viewerId, durationTicks, plaque, pageTicks, bedrockPlaque, bedrockDuration);
         return display;
     }
 
@@ -391,7 +446,7 @@ public final class DisplayTextService {
             return;
         }
 
-        refreshDynamicText(state);
+        if (state.resultAnimation == null || state.resultAnimation.plaque() == null) refreshDynamicText(state);
         if (state.resultAnimation != null) {
             tickResult(state, anchorLocation);
             return;
@@ -537,11 +592,18 @@ public final class DisplayTextService {
             displays.remove(state.id);
             return;
         }
+        CombatRewardPlaque plaque = animation.plaque();
+        if (animation.bedrockPlaque() && animation.bedrockDuration() == 0 && state.animationAge > 0L
+                && state.animationAge % BEDROCK_PLAQUE_DURATION_TICKS == 0L) {
+            // 6秒を超える結果も、現行パックの再生単位で枠を更新します。
+            destroyEntity(state);
+        }
         TextDisplay entity = ensureEntity(state, anchorLocation);
         if (entity == null) return;
         applyOptionsIfNeeded(entity, state);
-        if (animation.plaque() != null) {
-            if (!animation.bedrockPlaque()) tickJavaPlaque(state, entity, animation, animation.plaque());
+        if (plaque != null) {
+            updatePlaqueBody(state, entity, animation, plaque);
+            if (!animation.bedrockPlaque()) tickJavaPlaque(state, entity, animation, plaque);
             state.animationAge++;
             return;
         }
@@ -592,6 +654,29 @@ public final class DisplayTextService {
     }
 
     /**
+     * ページや帰還残秒が変わったときだけ、行数を保ったまま本文を更新します。
+     * @param state 表示の管理状態
+     * @param entity 本文の実体
+     * @param animation 表示寿命と対象エディション
+     * @param plaque 固定レイアウトと現在の要約
+     */
+    private static void updatePlaqueBody(
+            ManagedDisplayState state, TextDisplay entity, ResultAnimation animation, CombatRewardPlaque plaque
+    ) {
+        int page = animation.plaquePage(state.animationAge);
+        // ページ切り替えまでに順次開示を終えられない場合は、先頭から全行を表示します。
+        boolean reveal = !animation.bedrockPlaque() && animation.pageTicks() > plaque.revealDurationTicks();
+        int visibleLines = reveal ? plaque.visibleLines(state.animationAge) : plaque.lineCount();
+        String summary = plaque.summary();
+        if (page == state.resultPageIndex && visibleLines == state.resultVisibleLines
+                && summary.equals(state.lastPlaqueSummary)) return;
+        entity.text(plaque.body(animation.bedrockPlaque(), page, visibleLines, summary));
+        state.resultPageIndex = page;
+        state.resultVisibleLines = visibleLines;
+        state.lastPlaqueSummary = summary;
+    }
+
+    /**
      * Java版の本文と枠を同期し、登場・退場の姿勢とレア枠の一度の点灯を送ります。
      * @param state 表示の管理状態
      * @param entity 本文の実体
@@ -602,11 +687,6 @@ public final class DisplayTextService {
             ManagedDisplayState state, TextDisplay entity, ResultAnimation animation, CombatRewardPlaque plaque
     ) {
         long age = state.animationAge;
-        int visibleLines = plaque.visibleLines(age);
-        if (visibleLines != state.resultVisibleLines) {
-            entity.text(plaque.body(false, visibleLines));
-            state.resultVisibleLines = visibleLines;
-        }
         TextDisplay background = state.plaqueBackground;
         if (background == null) return;
         boolean sparkle = isPlaqueGlintActive(plaque, age);
@@ -620,7 +700,7 @@ public final class DisplayTextService {
         long exitStart = Math.max(0L, durationTicks - PLAQUE_EXIT_TICKS);
         if (age == 0L || (age > PLAQUE_ENTRANCE_TICKS && age <= exitStart)) return;
         applyPlaqueMotion(entity, age, durationTicks, 0);
-        applyPlaqueMotion(background, age, durationTicks, plaque.lines().size() - 1);
+        applyPlaqueMotion(background, age, durationTicks, plaque.lineCount() - 1);
     }
 
     /**
@@ -766,17 +846,19 @@ public final class DisplayTextService {
                             new Vector3f(0.55F, 0.55F, 0.55F), new Quaternionf()));
                     display.setTextOpacity((byte) 64);
                     display.setBackgroundColor(Color.fromARGB(44, 13, 21, 34));
-                } else if (animation.bedrockPlaque()) {
-                    // Geyser の名札アンカーは行数で動くため、表示開始時に全行を確定します。
-                    display.text(plaque.body(true, plaque.lines().size()));
                 } else {
-                    display.text(plaque.body(false, plaque.visibleLines(state.animationAge)));
-                    applyPlaqueMotion(display, state.animationAge, animation.durationTicks(), 0);
+                    // 名札の行数を最初から固定し、ページを送っても枠の位置を保ちます。
+                    updatePlaqueBody(state, display, animation, plaque);
+                    if (!animation.bedrockPlaque()) {
+                        applyPlaqueMotion(display, state.animationAge, animation.durationTicks(), 0);
+                    }
                 }
                 UUID viewerId = state.resultAnimation.viewerId();
                 Player viewer = viewerId == null ? null : Bukkit.getPlayer(viewerId);
                 if (viewer != null && resourcePackService.isBedrock(viewer.getName())) {
-                    int layout = animation.bedrockPlaque() && plaque != null ? plaque.bedrockLayout() : 0;
+                    int layout = animation.bedrockPlaque() && plaque != null
+                            ? plaque.bedrockLayout() | (animation.bedrockDuration() << BEDROCK_PLAQUE_DURATION_SHIFT)
+                            : 0;
                     bedrockResultDisplays.put(display.getUniqueId(), layout);
                 }
             } else if (state.floatingAnimation != null) {
@@ -811,8 +893,6 @@ public final class DisplayTextService {
         state.lastText = null;
         state.lastTransformOffset = null;
         state.lastResultScale = Float.NaN;
-        state.resultPageIndex = -1;
-        state.resultVisibleLines = -1;
         state.resultCrestFrame = -1;
         state.lastAppliedOptions = state.resultAnimation != null && state.resultAnimation.plaque() != null
                 ? state.options : null;
@@ -839,7 +919,7 @@ public final class DisplayTextService {
             display.setSilent(true);
             display.text(plaque.frame(isPlaqueGlintActive(plaque, state.animationAge)));
             applyPlaqueMotion(display, state.animationAge, state.resultAnimation.durationTicks(),
-                    plaque.lines().size() - 1);
+                    plaque.lineCount() - 1);
         });
     }
 
@@ -1053,6 +1133,8 @@ public final class DisplayTextService {
         state.lastTransformOffset = null;
         state.lastResultScale = Float.NaN;
         state.lastAppliedOptions = null;
+        state.resultPageIndex = -1;
+        state.resultVisibleLines = -1;
     }
 
     private boolean isSameLocation(@NotNull Location current, @NotNull Location target) {
@@ -1207,6 +1289,7 @@ public final class DisplayTextService {
         private List<List<String>> resultPages = List.of();
         private int resultPageIndex = -1;
         private int resultVisibleLines;
+        private @Nullable String lastPlaqueSummary;
         private int resultCrestFrame = -1;
         private float lastResultScale = Float.NaN;
 
@@ -1227,11 +1310,22 @@ public final class DisplayTextService {
      * @param viewerId 個人表示の閲覧者。共有表示の場合はnull
      * @param durationTicks 表示寿命
      * @param plaque 対応パック向けプレート。nullなら従来の表示
+     * @param pageTicks 1ページの表示tick数
      * @param bedrockPlaque 統合版の描画モデルと名札を使うか
+     * @param bedrockDuration 統合版のクライアントへ渡す表示寿命。0なら従来の6秒
      */
     private record ResultAnimation(
-            @Nullable UUID viewerId, long durationTicks, @Nullable CombatRewardPlaque plaque, boolean bedrockPlaque
-    ) { }
+            @Nullable UUID viewerId, long durationTicks, @Nullable CombatRewardPlaque plaque, long pageTicks,
+            boolean bedrockPlaque, int bedrockDuration
+    ) {
+        /**
+         * @param age 結果全体の経過tick
+         * @return 表示時間内に循環する、0始まりのページ番号
+         */
+        int plaquePage(long age) {
+            return (int) (age / pageTicks % plaque.pageCount());
+        }
+    }
 
     /** HP ダメージの発生元に応じた数値表示の種別です。 */
     public enum DamageNumberType {
