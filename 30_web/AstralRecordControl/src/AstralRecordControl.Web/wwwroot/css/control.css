@@ -78,6 +78,9 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 24px}dd{margin:0;o
 .server-tabs a:hover{background:#1a293d;color:var(--text)}.server-tabs a.is-active{background:#203a56;color:#d4ebff;border:1px solid #426582}
 .server-console{margin:20px 0}.server-console h2{margin-top:0}.server-console form{margin:16px 0}
 .operation-actions{display:flex;flex-wrap:wrap;gap:8px}.operation-actions button{margin:0}
+.operation-guidance p{margin:0}.operation-guidance a,.operation-history-link{display:inline-block;margin:6px 12px 0 0}.operation-guidance [hidden]{display:none}
+.operation-diagnostics{color:var(--muted)}.operation-diagnostics p{margin:.5rem 0}.operation-diagnostics summary{cursor:pointer}
+.operation-start:disabled,.operation-stop:disabled,.operation-restart:disabled,.operation-kill:disabled{background:var(--panel);border-color:var(--line);color:var(--muted);opacity:1;cursor:not-allowed}
 .register-operation-form{display:flex;flex-wrap:wrap;gap:8px;margin:0;grid-column:1/-1}.register-operation-form button{margin:0;min-height:44px}
 .server-register .table-actions{display:grid;grid-template-columns:repeat(2,max-content);gap:8px}.server-register .table-actions>.secondary-text{grid-column:1/-1}
 .operation-start{background:#216847;border-color:#438968}.operation-start:hover:not(:disabled){background:#2b8058}

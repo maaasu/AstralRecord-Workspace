@@ -78,6 +78,21 @@ public static class ControlDisplay
         OperationStatus.Expired => "期限切れ", OperationStatus.Cancelled => "中断済み", OperationStatus.NeedsAttention => "要確認", _ => "不明"
     };
 
+    public static string? OperationError(string? code) => code switch
+    {
+        null or "" => null,
+        "HostOffline" or "AgentDisabled" => "実行PCに接続できません。接続PCの状態を確認してください。",
+        "StaleRevision" => "新しい設定が未適用です。設定・詳細で希望版と適用版を確認してください。",
+        "StateConflict" => "サーバーの状態が変わりました。最新の状態を確認してください。",
+        "ReservationConflict" => "別の操作または保守が対象を予約しています。履歴・復旧を確認してください。",
+        "OperationConflict" => "同じ要求IDで異なる操作を受け付けることはできません。履歴・復旧を確認してください。",
+        "UnsupportedCapability" => "この操作に必要な設定または実行PCの対応機能が不足しています。",
+        "Timeout" => "操作が制限時間内に完了しませんでした。ログと履歴・復旧を確認してください。",
+        "DeadlineExpired" => "操作の受付期限を過ぎました。最新の状態を確認してください。",
+        "RecoveryRequired" => "実行結果の確認が必要です。履歴・復旧で対象の状態を確認してください。",
+        _ => code
+    };
+
     public static string WorkflowStateClass(WorkflowStatus state) => state switch
     {
         WorkflowStatus.Succeeded => "is-online", WorkflowStatus.Failed or WorkflowStatus.RecoveryRequired => "is-warning",

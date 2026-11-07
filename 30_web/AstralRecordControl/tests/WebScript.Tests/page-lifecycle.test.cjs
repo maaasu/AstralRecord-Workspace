@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const script = name => fs.readFileSync(path.join(__dirname, '../../src/AstralRecordControl.Web/wwwroot/js', name), 'utf8');
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 
-const consoleFixture = (fetch, renderer, loadTime = true) => {
+const consoleFixture = (fetch, renderer, loadTime = true, maintenance = false) => {
     const fields = Object.fromEntries(['configRevision', 'expectedStateRevision', 'expectedServerSessionId'].map(name => [name, { name, value: '' }]));
     const buttons = ['Start', 'Stop', 'Restart', 'Kill', 'ConsoleCommand'].map(value => ({ name: 'kind', value, disabled: false }));
     const form = new EventTarget();
@@ -15,17 +15,28 @@ const consoleFixture = (fetch, renderer, loadTime = true) => {
     form.querySelectorAll = () => buttons;
     form.contains = button => buttons.includes(button);
     form.append = field => { fields[field.name] = field; };
-    const root = { dataset: { serverId: 'server' }, isConnected: true, querySelectorAll: () => [form] };
+    const maintenanceForm = new EventTarget();
+    const maintenanceButton = { name: 'kind', value: 'Start', disabled: true };
+    const reservation = { value: '' };
+    const maintenanceFields = Object.fromEntries(Object.keys(fields).map(name => [name, { name, value: '' }]));
+    maintenanceForm.querySelector = selector => selector.startsWith('button') ? maintenanceButton
+        : selector.includes('reservationId') ? reservation : maintenanceFields[selector.match(/name="([^"]+)/)[1]];
+    maintenanceForm.querySelectorAll = () => [maintenanceButton];
+    const root = { dataset: { serverId: 'server' }, isConnected: true, querySelectorAll: () => maintenance ? [form, maintenanceForm] : [form] };
     const log = { dataset: { sessionId: 'old', cursor: '0' }, textContent: '', isConnected: true, scrollHeight: 100, scrollTop: 0, clientHeight: 100 };
     const status = { textContent: 'initial', isConnected: true };
     const process = { textContent: '' }, session = { textContent: '' }, availability = { hidden: false };
     const history = { rows: [], replaceChildren(fragment) { this.rows = fragment.children; } };
     const elements = { 'server-console': root, 'server-log': log, 'log-status': status, 'server-process-state': process, 'server-session': session, 'server-availability': availability, 'server-operation-history': history };
+    const workflowLink = {}, reloadLink = {};
+    elements['server-workflow-link'] = workflowLink;
+    elements['server-operation-reload'] = reloadLink;
+    if (maintenance) elements['server-maintenance-start'] = maintenanceForm;
     const window = new EventTarget();
     if (renderer) window.ControlConsoleLog = renderer;
     const timers = new Map();
     let nextTimer = 0;
-    window.setTimeout = callback => { const id = ++nextTimer; timers.set(id, callback); return id; };
+    window.setTimeout = (callback, delay) => { const id = ++nextTimer; callback.delay = delay; timers.set(id, callback); return id; };
     window.clearTimeout = id => timers.delete(id);
     const document = {
         getElementById: id => elements[id], querySelectorAll: () => [],
@@ -35,7 +46,7 @@ const consoleFixture = (fetch, renderer, loadTime = true) => {
     const context = vm.createContext({ document, window, AbortController, URLSearchParams, fetch, queueMicrotask });
     if (loadTime) vm.runInContext(script('control-time.js'), context);
     vm.runInContext(script('server-logs.js'), context);
-    return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers };
+    return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers, maintenanceForm, maintenanceButton, reservation, workflowLink, reloadLink };
 };
 
 test('old shells without the shared time asset still poll and keep Japanese history labels', async () => {
@@ -132,7 +143,8 @@ test('console disables operations when status cannot be checked', async () => {
     callback();
     await new Promise(setImmediate);
     assert.equal(fixture.buttons.every(button => button.disabled), true);
-    assert.match(fixture.status.textContent, /操作を停止/);
+    assert.match(fixture.availability.textContent, /操作を停止/);
+    assert.equal(fixture.process.textContent, '確認不能');
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
 });
 
@@ -215,6 +227,55 @@ test('console stays disabled after redirect while an accepted operation awaits a
         assert.match(fixture.availability.textContent, /操作を処理中/);
         fixture.window.dispatchEvent(new Event('control:before-page-change'));
     }
+});
+
+test('operation status advances while a log request is stalled, and uses the current maintenance reservation', async () => {
+    let statusCalls = 0;
+    let logSignal;
+    const fixture = consoleFixture((url, options) => {
+        if (!String(url).includes('handler=Status')) {
+            logSignal = options.signal;
+            return new Promise(() => {});
+        }
+        statusCalls++;
+        const common = { enabled: true, operationPending: false, configRevision: 1, stateRevision: 4, processState: 'Stopped', currentSessionId: null, recent: [] };
+        const snapshot = statusCalls === 1
+            ? { ...common, canStart: false, canStop: false, reason: '保守作業が起動を待っています。', workflowId: 'workflow', maintenanceStarts: [{ reservationId: 'reservation', workflowId: 'workflow', adapterId: '16' }] }
+            : { ...common, enabled: false, configRevision: 0, canStart: false, canStop: false, reason: '設定の適用を待っています。', maintenanceStarts: [] };
+        return Promise.resolve({ ok: true, json: async () => snapshot });
+    }, undefined, true, true);
+    await new Promise(setImmediate);
+    assert.equal(fixture.buttons[0].disabled, true);
+    assert.equal(fixture.maintenanceButton.disabled, false);
+    assert.equal(fixture.reservation.value, 'reservation');
+    assert.equal(fixture.workflowLink.href, '/Workflows?workflowId=workflow');
+    const [timerId, callback] = [...fixture.timers].find(([, handler]) => handler.delay === 3000);
+    fixture.timers.delete(timerId);
+    callback();
+    await new Promise(setImmediate);
+    assert.equal(statusCalls, 2);
+    assert.equal(fixture.maintenanceForm.hidden, true);
+    assert.equal(fixture.maintenanceButton.disabled, true);
+    assert.equal(fixture.fields.configRevision.value, '0');
+    assert.equal(fixture.availability.textContent, '設定の適用を待っています。');
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+    assert.equal(logSignal.aborted, true);
+});
+
+test('an uncertain operation response links to history and a fresh GET without sending a duplicate', async () => {
+    const fixture = consoleFixture(url => String(url).includes('handler=Status')
+        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 1, stateRevision: 1, processState: 'Running', currentSessionId: 'old', recent: [] }) })
+        : Promise.resolve({ ok: true, json: async () => ({ sessionId: 'old', nextCursor: 0, rows: [] }) }));
+    await new Promise(setImmediate);
+    const submission = new Event('submit', { cancelable: true });
+    Object.defineProperty(submission, 'submitter', { value: fixture.buttons[1] });
+    fixture.form.dispatchEvent(submission);
+    fixture.window.dispatchEvent(new Event('control:navigation-failed'));
+    assert.match(fixture.availability.textContent, /正常停止の受付結果を確認できません/);
+    assert.equal(fixture.workflowLink.href, '/Workflows');
+    assert.equal(fixture.reloadLink.hidden, false);
+    assert.equal(fixture.buttons.every(button => button.disabled), true);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
 });
 
 test('metrics range change aborts the previous request and departure ignores late data', async () => {

@@ -96,7 +96,12 @@ public sealed partial class LiveTransportTests
             Assert.Equal(ProcessState.Running, running.ProcessState);
             Assert.NotNull(running.CurrentSessionId);
             await Heartbeat(hub, epoch, await runnerClient.GetSnapshotAsync(timeout.Token), timeout.Token);
-            using (var operationsPage = await owner.GetAsync($"/Servers/{serverId}/Operations", timeout.Token)) Assert.Equal(HttpStatusCode.OK, operationsPage.StatusCode);
+            using (var operationsPage = await owner.GetAsync($"/Servers/{serverId}/Operations", timeout.Token))
+            {
+                Assert.Equal(HttpStatusCode.OK, operationsPage.StatusCode);
+                var html = await operationsPage.Content.ReadAsStringAsync(timeout.Token);
+                Assert.Matches("""(?s)<pre id="server-log"[^>]*><!--email_off-->.*?<!--/email_off--></pre>""", html);
+            }
             using (var workflowsPage = await owner.GetAsync("/Workflows", timeout.Token)) Assert.Equal(HttpStatusCode.OK, workflowsPage.StatusCode);
             await Task.Delay(100, timeout.Token);
             var held = ControlJson.Deserialize<GateLease>(await owner.GetStringAsync($"/api/control/v1/reservations/{lease.ReservationId}", timeout.Token));
