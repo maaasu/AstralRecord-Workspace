@@ -212,11 +212,11 @@ public final class ProgressionPresetApplicationService {
                 if (configured.slot() < 1 || configured.slot() > maxSigilSlot || !sigilSlots.add(configured.slot())
                     || item == null || ItemCategory.fromApiValue(item.getCategory()) != ItemCategory.SIGIL
                     || item.getSigil() == null || definition.getAllowedSigilIds().stream()
-                        .noneMatch(allowed -> allowed.equalsIgnoreCase(item.getId()))) {
+                        .noneMatch(allowed -> allowed.trim().equalsIgnoreCase(item.getId()))) {
                     return null;
                 }
-                String group = item.getSigil().getEquipGroupId();
-                if (group.isBlank() || !equipGroups.add(group.trim().toLowerCase(Locale.ROOT))) return null;
+                String group = item.getSigil().getEquipGroupId().trim();
+                if (group.isBlank() || !equipGroups.add(group.toLowerCase(Locale.ROOT))) return null;
                 sigils.add(new ProgressionPresetSigil(item.getId(), group, configured.slot() - 1));
             }
             prepared.add(new PreparedSkillBinding(entry.slot() - 1, id, skillLevel, sigils, bindFree));

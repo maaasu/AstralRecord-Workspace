@@ -34,7 +34,7 @@ levels:
     classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
       - {slot: HEAD, item: "item:20a00009"}
       - {slot: CHEST, item: "item:20a00010"}
@@ -53,15 +53,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 3
-    classLevel: 2
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -75,15 +75,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 5
-    classLevel: 3
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
-      - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00007", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -97,15 +97,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 8
-    classLevel: 4
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -119,15 +119,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 10
-    classLevel: 5
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00056"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00047"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00046"}
-      - {slot: FEET, item: "item:20a00050"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -141,15 +141,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 12
-    classLevel: 6
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00056"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00047"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00046"}
-      - {slot: FEET, item: "item:20a00050"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -163,15 +163,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 15
-    classLevel: 8
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00073"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00060"}
-      - {slot: CHEST, item: "item:20a00063"}
-      - {slot: LEGS, item: "item:20a00059"}
-      - {slot: FEET, item: "item:20a00064"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -185,15 +185,15 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 20
-    classLevel: 10
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00400"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00407"}
-      - {slot: CHEST, item: "item:20a00408"}
-      - {slot: LEGS, item: "item:20a00409"}
-      - {slot: FEET, item: "item:20a00410"}
+      - {slot: MAIN_HAND, item: "item:20a00073", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00086", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00087", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00088", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00089", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordmaster_star_cleave"}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
@@ -207,17 +207,17 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 25
-    classLevel: 13
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00419"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00426"}
-      - {slot: CHEST, item: "item:20a00427"}
-      - {slot: LEGS, item: "item:20a00428"}
-      - {slot: FEET, item: "item:20a00429"}
+      - {slot: MAIN_HAND, item: "item:20a00400", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00407", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00408", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00409", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00410", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:swordmaster_star_cleave"}
+      - {slot: 1, skill: "skill:swordmaster_star_cleave", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
       - {slot: 3, skill: "skill:swordmaster_riposte"}
       - {slot: 4, skill: "skill:swordmaster_thunder_line"}
@@ -229,17 +229,17 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 30
-    classLevel: 15
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1502, 1503, 1504, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00400", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00407", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00408", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00409", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00410", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:swordmaster_star_cleave"}
+      - {slot: 1, skill: "skill:swordmaster_star_cleave", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
       - {slot: 3, skill: "skill:swordmaster_riposte"}
       - {slot: 4, skill: "skill:swordmaster_thunder_line"}
@@ -251,17 +251,17 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 35
-    classLevel: 33
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413, 2486]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00419", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00426", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00427", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00428", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00429", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:swordmaster_star_cleave"}
+      - {slot: 1, skill: "skill:swordmaster_star_cleave", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
       - {slot: 3, skill: "skill:swordmaster_riposte"}
       - {slot: 4, skill: "skill:swordmaster_thunder_line"}
@@ -273,17 +273,17 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 40
-    classLevel: 50
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413, 2486, 2487, 2488, 2489, 2490, 2491]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00419", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00426", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00427", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00428", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00429", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:swordmaster_star_cleave"}
+      - {slot: 1, skill: "skill:swordmaster_star_cleave", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
       - {slot: 3, skill: "skill:swordmaster_riposte"}
       - {slot: 4, skill: "skill:swordmaster_thunder_line"}
@@ -295,17 +295,17 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 45
-    classLevel: 68
+    classLevel: 17
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00419", enhanceLevel: 5}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00426", enhanceLevel: 5}
+      - {slot: CHEST, item: "item:20a00427", enhanceLevel: 5}
+      - {slot: LEGS, item: "item:20a00428", enhanceLevel: 5}
+      - {slot: FEET, item: "item:20a00429", enhanceLevel: 5}
     skills:
-      - {slot: 1, skill: "skill:swordmaster_star_cleave"}
+      - {slot: 1, skill: "skill:swordmaster_star_cleave", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00017"}, {slot: 2, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
       - {slot: 3, skill: "skill:swordmaster_riposte"}
       - {slot: 4, skill: "skill:swordmaster_thunder_line"}
@@ -317,17 +317,17 @@ levels:
       - {slot: 1, skill: "skill:swordmaster_seijaku_issen"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 50
-    classLevel: 85
+    classLevel: 33
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1215, 1216, 1217, 1218, 1219, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1356, 1357, 1358, 1359, 1360, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1655, 1656, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1679, 1680, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1711, 1712, 1719, 1720, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1744, 1751, 1752, 1753, 1754, 1755, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 2402, 2406, 2408, 2409, 2411, 2412, 2413, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00438", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00445", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00446", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00447", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00448", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:swordmaster_star_cleave"}
+      - {slot: 1, skill: "skill:swordmaster_star_cleave", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00017"}, {slot: 2, item: "item:70a00027"}]}
       - {slot: 2, skill: "skill:swordmaster_heartseeker"}
       - {slot: 3, skill: "skill:swordmaster_riposte"}
       - {slot: 4, skill: "skill:swordmaster_thunder_line"}

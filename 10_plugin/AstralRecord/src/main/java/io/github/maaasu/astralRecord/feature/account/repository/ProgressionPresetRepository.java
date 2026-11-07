@@ -154,7 +154,10 @@ public final class ProgressionPresetRepository {
     }
 
     private static int integer(Object value, String field, int minimum) {
-        if (value instanceof Integer number && number >= minimum) return number;
+        if (value instanceof Number number) {
+            int integer = number.intValue();
+            if (integer >= minimum && number.doubleValue() == integer) return integer;
+        }
         throw new IllegalArgumentException(field + " must be an integer >= " + minimum);
     }
 

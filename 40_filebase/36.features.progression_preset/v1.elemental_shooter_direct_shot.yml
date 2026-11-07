@@ -33,7 +33,7 @@ levels:
     classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: MAIN_HAND, item: "item:20a00003", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
       - {slot: HEAD, item: "item:20a00009"}
       - {slot: CHEST, item: "item:20a00010"}
@@ -51,15 +51,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 3
-    classLevel: 2
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: MAIN_HAND, item: "item:20a00003", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00019"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00020"}
-      - {slot: FEET, item: "item:20a00015"}
+      - {slot: HEAD, item: "item:20a00019", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00020", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00015", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -72,15 +72,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 5
-    classLevel: 3
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00003"}
-      - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00019"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00020"}
-      - {slot: FEET, item: "item:20a00015"}
+      - {slot: MAIN_HAND, item: "item:20a00003", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00007", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00019", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00020", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00015", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -93,15 +93,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 8
-    classLevel: 4
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00030"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00019"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00020"}
-      - {slot: FEET, item: "item:20a00015"}
+      - {slot: MAIN_HAND, item: "item:20a00030", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00019", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00020", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00015", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -114,15 +114,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 10
-    classLevel: 5
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00030"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00048"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00049"}
-      - {slot: FEET, item: "item:20a00044"}
+      - {slot: MAIN_HAND, item: "item:20a00030", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00048", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00049", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00044", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -135,15 +135,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 12
-    classLevel: 6
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00030"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00048"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00049"}
-      - {slot: FEET, item: "item:20a00044"}
+      - {slot: MAIN_HAND, item: "item:20a00030", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00048", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00049", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00044", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -156,15 +156,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 15
-    classLevel: 8
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00077"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00061"}
-      - {slot: CHEST, item: "item:20a00091"}
-      - {slot: LEGS, item: "item:20a00062"}
-      - {slot: FEET, item: "item:20a00057"}
+      - {slot: MAIN_HAND, item: "item:20a00030", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00048", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00049", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00044", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -177,15 +177,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 20
-    classLevel: 10
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00403"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00411"}
-      - {slot: CHEST, item: "item:20a00412"}
-      - {slot: LEGS, item: "item:20a00413"}
-      - {slot: FEET, item: "item:20a00414"}
+      - {slot: MAIN_HAND, item: "item:20a00077", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00090", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00091", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00092", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00093", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
@@ -198,17 +198,17 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 25
-    classLevel: 13
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00422"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00430"}
-      - {slot: CHEST, item: "item:20a00431"}
-      - {slot: LEGS, item: "item:20a00432"}
-      - {slot: FEET, item: "item:20a00433"}
+      - {slot: MAIN_HAND, item: "item:20a00403", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00411", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00412", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00413", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00414", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
+      - {slot: 1, skill: "skill:sharpshooter_phantom_shot", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
       - {slot: 3, skill: "skill:sharpshooter_ricochet_arrow"}
       - {slot: 4, skill: "skill:archer_heal_arrow_alpha"}
@@ -219,17 +219,17 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 30
-    classLevel: 15
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 1502, 1503, 1504, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00441"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00403", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00411", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00412", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00413", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00414", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
+      - {slot: 1, skill: "skill:sharpshooter_phantom_shot", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
       - {slot: 3, skill: "skill:sharpshooter_ricochet_arrow"}
       - {slot: 4, skill: "skill:archer_heal_arrow_alpha"}
@@ -240,17 +240,17 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 35
-    classLevel: 33
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446, 2486]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00441"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00422", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00430", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00431", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00432", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00433", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
+      - {slot: 1, skill: "skill:sharpshooter_phantom_shot", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
       - {slot: 3, skill: "skill:sharpshooter_ricochet_arrow"}
       - {slot: 4, skill: "skill:archer_heal_arrow_alpha"}
@@ -261,17 +261,17 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 40
-    classLevel: 50
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446, 2486, 2487, 2488, 2489, 2490, 2491]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00441"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00422", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00430", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00431", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00432", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00433", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
+      - {slot: 1, skill: "skill:sharpshooter_phantom_shot", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
       - {slot: 3, skill: "skill:sharpshooter_ricochet_arrow"}
       - {slot: 4, skill: "skill:archer_heal_arrow_alpha"}
@@ -282,17 +282,17 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 45
-    classLevel: 68
+    classLevel: 17
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00441"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00422", enhanceLevel: 5}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00430", enhanceLevel: 5}
+      - {slot: CHEST, item: "item:20a00431", enhanceLevel: 5}
+      - {slot: LEGS, item: "item:20a00432", enhanceLevel: 5}
+      - {slot: FEET, item: "item:20a00433", enhanceLevel: 5}
     skills:
-      - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
+      - {slot: 1, skill: "skill:sharpshooter_phantom_shot", skillLevel: 4, sigils: [{slot: 1, item: "item:70a00017"}, {slot: 2, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
       - {slot: 3, skill: "skill:sharpshooter_ricochet_arrow"}
       - {slot: 4, skill: "skill:archer_heal_arrow_alpha"}
@@ -303,17 +303,17 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 50
-    classLevel: 85
+    classLevel: 33
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1093, 1094, 1100, 1101, 1107, 1108, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278, 1279, 1280, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2128, 2129, 2130, 2131, 2133, 2136, 2137, 2144, 2145, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2176, 2177, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2207, 2208, 2209, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2255, 2257, 2258, 2438, 2446, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00441"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00441", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00449", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00450", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00451", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00452", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:sharpshooter_phantom_shot"}
+      - {slot: 1, skill: "skill:sharpshooter_phantom_shot", skillLevel: 4, sigils: [{slot: 1, item: "item:70a00017"}, {slot: 2, item: "item:70a00027"}]}
       - {slot: 2, skill: "skill:sharpshooter_spreading_ambition"}
       - {slot: 3, skill: "skill:sharpshooter_ricochet_arrow"}
       - {slot: 4, skill: "skill:archer_heal_arrow_alpha"}

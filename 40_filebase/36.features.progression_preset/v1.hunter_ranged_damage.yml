@@ -29,7 +29,7 @@ levels:
     classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: MAIN_HAND, item: "item:20a00003", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
       - {slot: HEAD, item: "item:20a00009"}
       - {slot: CHEST, item: "item:20a00010"}
@@ -43,15 +43,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 3
-    classLevel: 5
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238]
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00003"}
+      - {slot: MAIN_HAND, item: "item:20a00003", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00019"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00020"}
-      - {slot: FEET, item: "item:20a00015"}
+      - {slot: HEAD, item: "item:20a00019", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00020", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00015", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:adventurer_quick_shot"}
       - {slot: 2, skill: "skill:adventurer_blast_arrow"}
@@ -60,15 +60,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 5
-    classLevel: 13
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1242, 1243, 1244, 1262, 1263, 1266]
+    classLevel: 9
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1242, 1262, 1263]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00026"}
-      - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00019"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00020"}
-      - {slot: FEET, item: "item:20a00015"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00007", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00019", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00020", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00015", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:adventurer_quick_shot"}
       - {slot: 2, skill: "skill:adventurer_blast_arrow"}
@@ -77,15 +77,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 8
-    classLevel: 25
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1269, 1282, 1353]
+    classLevel: 22
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1269, 1282, 1353]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00026"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00019"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00020"}
-      - {slot: FEET, item: "item:20a00015"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00019", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00020", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00015", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:hunter_build_up"}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
@@ -96,15 +96,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 10
-    classLevel: 33
+    classLevel: 30
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00026"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00048"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00049"}
-      - {slot: FEET, item: "item:20a00044"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00048", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00049", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00044", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:hunter_build_up"}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
@@ -115,15 +115,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 12
-    classLevel: 41
+    classLevel: 38
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1072, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00026"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00048"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00049"}
-      - {slot: FEET, item: "item:20a00044"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00048", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00049", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00044", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:hunter_build_up"}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
@@ -134,15 +134,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 15
-    classLevel: 53
+    classLevel: 50
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1072, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00078"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00061"}
-      - {slot: CHEST, item: "item:20a00091"}
-      - {slot: LEGS, item: "item:20a00062"}
-      - {slot: FEET, item: "item:20a00057"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00048", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00049", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00044", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:hunter_build_up"}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
@@ -156,12 +156,12 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1072, 1076, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00404"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00411"}
-      - {slot: CHEST, item: "item:20a00412"}
-      - {slot: LEGS, item: "item:20a00413"}
-      - {slot: FEET, item: "item:20a00414"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:hunter_build_up"}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
@@ -175,14 +175,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00423"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00430"}
-      - {slot: CHEST, item: "item:20a00431"}
-      - {slot: LEGS, item: "item:20a00432"}
-      - {slot: FEET, item: "item:20a00433"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:hunter_build_up"}
+      - {slot: 1, skill: "skill:hunter_build_up", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
       - {slot: 3, skill: "skill:adventurer_quick_shot"}
       - {slot: 4, skill: "skill:adventurer_blast_arrow"}
@@ -194,14 +194,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1495, 1496, 1497]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00442"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:hunter_build_up"}
+      - {slot: 1, skill: "skill:hunter_build_up", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
       - {slot: 3, skill: "skill:adventurer_quick_shot"}
       - {slot: 4, skill: "skill:adventurer_blast_arrow"}
@@ -213,14 +213,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 2468]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00442"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 5}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 4}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 4}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 4}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 4}
     skills:
-      - {slot: 1, skill: "skill:hunter_build_up"}
+      - {slot: 1, skill: "skill:hunter_build_up", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
       - {slot: 3, skill: "skill:adventurer_quick_shot"}
       - {slot: 4, skill: "skill:adventurer_blast_arrow"}
@@ -232,14 +232,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 2468, 2469, 2470, 2471, 2472, 2473]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00442"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 6}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 4}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 4}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 4}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 4}
     skills:
-      - {slot: 1, skill: "skill:hunter_build_up"}
+      - {slot: 1, skill: "skill:hunter_build_up", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
       - {slot: 3, skill: "skill:adventurer_quick_shot"}
       - {slot: 4, skill: "skill:adventurer_blast_arrow"}
@@ -251,14 +251,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 2468, 2469, 2470, 2471, 2472, 2473, 2474, 2475, 2476, 2477, 2478]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00442"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 7}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 5}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 5}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 5}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 5}
     skills:
-      - {slot: 1, skill: "skill:hunter_build_up"}
+      - {slot: 1, skill: "skill:hunter_build_up", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
       - {slot: 3, skill: "skill:adventurer_quick_shot"}
       - {slot: 4, skill: "skill:adventurer_blast_arrow"}
@@ -270,14 +270,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1262, 1263, 1264, 1265, 1266, 1267, 1268, 1269, 1270, 1271, 1282, 1353, 1495, 1496, 1497, 1498, 1499, 1500, 1501, 2468, 2469, 2470, 2471, 2472, 2473, 2474, 2475, 2476, 2477, 2478, 2479, 2480, 2481, 2482, 2483]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00442"}
-      - {slot: OFF_HAND, item: "item:20a00040"}
-      - {slot: HEAD, item: "item:20a00449"}
-      - {slot: CHEST, item: "item:20a00450"}
-      - {slot: LEGS, item: "item:20a00451"}
-      - {slot: FEET, item: "item:20a00452"}
+      - {slot: MAIN_HAND, item: "item:20a00026", enhanceLevel: 8}
+      - {slot: OFF_HAND, item: "item:20a00040", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00061", enhanceLevel: 6}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 6}
+      - {slot: LEGS, item: "item:20a00062", enhanceLevel: 6}
+      - {slot: FEET, item: "item:20a00057", enhanceLevel: 6}
     skills:
-      - {slot: 1, skill: "skill:hunter_build_up"}
+      - {slot: 1, skill: "skill:hunter_build_up", sigils: [{slot: 1, item: "item:70a00027"}]}
       - {slot: 2, skill: "skill:hunter_crash_arrow"}
       - {slot: 3, skill: "skill:adventurer_quick_shot"}
       - {slot: 4, skill: "skill:adventurer_blast_arrow"}

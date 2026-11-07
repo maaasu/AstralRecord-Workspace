@@ -34,7 +34,7 @@ levels:
     classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
       - {slot: HEAD, item: "item:20a00009"}
       - {slot: CHEST, item: "item:20a00010"}
@@ -53,15 +53,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 3
-    classLevel: 2
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -75,15 +75,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 5
-    classLevel: 3
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00025"}
-      - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: MAIN_HAND, item: "item:20a00025", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00007", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -97,15 +97,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 8
-    classLevel: 4
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00025"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: MAIN_HAND, item: "item:20a00025", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -119,15 +119,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 10
-    classLevel: 5
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00025"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00047"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00046"}
-      - {slot: FEET, item: "item:20a00050"}
+      - {slot: MAIN_HAND, item: "item:20a00025", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -141,15 +141,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 12
-    classLevel: 6
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00025"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00047"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00046"}
-      - {slot: FEET, item: "item:20a00050"}
+      - {slot: MAIN_HAND, item: "item:20a00025", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -163,15 +163,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 15
-    classLevel: 8
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00074"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00060"}
-      - {slot: CHEST, item: "item:20a00063"}
-      - {slot: LEGS, item: "item:20a00059"}
-      - {slot: FEET, item: "item:20a00064"}
+      - {slot: MAIN_HAND, item: "item:20a00025", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -185,15 +185,15 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 20
-    classLevel: 10
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00401"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00407"}
-      - {slot: CHEST, item: "item:20a00408"}
-      - {slot: LEGS, item: "item:20a00409"}
-      - {slot: FEET, item: "item:20a00410"}
+      - {slot: MAIN_HAND, item: "item:20a00074", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00086", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00087", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00088", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00089", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:paladin_holy_smite"}
       - {slot: 2, skill: "skill:paladin_holy_field"}
@@ -207,17 +207,17 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 25
-    classLevel: 13
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00420"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00426"}
-      - {slot: CHEST, item: "item:20a00427"}
-      - {slot: LEGS, item: "item:20a00428"}
-      - {slot: FEET, item: "item:20a00429"}
+      - {slot: MAIN_HAND, item: "item:20a00401", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00407", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00408", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00409", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00410", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:paladin_holy_smite"}
+      - {slot: 1, skill: "skill:paladin_holy_smite", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:paladin_holy_field"}
       - {slot: 3, skill: "skill:paladin_holy_smash"}
       - {slot: 4, skill: "skill:paladin_shield"}
@@ -229,17 +229,17 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 30
-    classLevel: 15
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1502, 1503, 1504, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00439"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00401", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00407", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00408", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00409", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00410", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:paladin_holy_smite"}
+      - {slot: 1, skill: "skill:paladin_holy_smite", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:paladin_holy_field"}
       - {slot: 3, skill: "skill:paladin_holy_smash"}
       - {slot: 4, skill: "skill:paladin_shield"}
@@ -251,17 +251,17 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 35
-    classLevel: 33
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434, 2486]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00439"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00420", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00426", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00427", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00428", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00429", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:paladin_holy_smite"}
+      - {slot: 1, skill: "skill:paladin_holy_smite", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:paladin_holy_field"}
       - {slot: 3, skill: "skill:paladin_holy_smash"}
       - {slot: 4, skill: "skill:paladin_shield"}
@@ -273,17 +273,17 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 40
-    classLevel: 50
+    classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434, 2486, 2487, 2488, 2489, 2490, 2491]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00439"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00420", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00426", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00427", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00428", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00429", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:paladin_holy_smite"}
+      - {slot: 1, skill: "skill:paladin_holy_smite", skillLevel: 4, sigils: [{slot: 1, item: "item:70a00001"}, {slot: 2, item: "item:70a00049"}]}
       - {slot: 2, skill: "skill:paladin_holy_field"}
       - {slot: 3, skill: "skill:paladin_holy_smash"}
       - {slot: 4, skill: "skill:paladin_shield"}
@@ -295,17 +295,17 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 45
-    classLevel: 68
+    classLevel: 17
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00439"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00420", enhanceLevel: 5}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00426", enhanceLevel: 5}
+      - {slot: CHEST, item: "item:20a00427", enhanceLevel: 5}
+      - {slot: LEGS, item: "item:20a00428", enhanceLevel: 5}
+      - {slot: FEET, item: "item:20a00429", enhanceLevel: 5}
     skills:
-      - {slot: 1, skill: "skill:paladin_holy_smite"}
+      - {slot: 1, skill: "skill:paladin_holy_smite", skillLevel: 4, sigils: [{slot: 1, item: "item:70a00001"}, {slot: 2, item: "item:70a00017"}]}
       - {slot: 2, skill: "skill:paladin_holy_field"}
       - {slot: 3, skill: "skill:paladin_holy_smash"}
       - {slot: 4, skill: "skill:paladin_shield"}
@@ -317,17 +317,17 @@ levels:
       - {slot: 1, skill: "skill:paladin_divine_chaser"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 50
-    classLevel: 85
+    classLevel: 33
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1093, 1094, 1095, 1100, 1101, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1356, 1357, 1358, 1359, 1360, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1387, 1388, 1389, 1390, 1391, 1392, 1393, 1394, 1395, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1436, 1437, 1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1475, 1476, 1477, 1478, 1479, 1480, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 1523, 1524, 1525, 1526, 1527, 1528, 2433, 2434, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00439"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00439", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00445", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00446", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00447", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00448", enhanceLevel: 2}
     skills:
-      - {slot: 1, skill: "skill:paladin_holy_smite"}
+      - {slot: 1, skill: "skill:paladin_holy_smite", skillLevel: 4, sigils: [{slot: 1, item: "item:70a00027"}, {slot: 2, item: "item:70a00017"}]}
       - {slot: 2, skill: "skill:paladin_holy_field"}
       - {slot: 3, skill: "skill:paladin_holy_smash"}
       - {slot: 4, skill: "skill:paladin_shield"}

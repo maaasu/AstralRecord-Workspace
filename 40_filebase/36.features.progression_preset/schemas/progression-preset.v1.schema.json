@@ -63,7 +63,15 @@
                   "type": "string",
                   "enum": ["MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET"]
                 },
-                "item": { "title": "装備アイテム", "type": "string", "pattern": "^item:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+                "item": { "title": "装備アイテム", "type": "string", "pattern": "^item:[a-z0-9]+(?:_[a-z0-9]+)*$" },
+                "enhanceLevel": {
+                  "title": "装備の強化値",
+                  "description": "状態変化前の装備で定義済みの強化値。省略時は +0。",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "maximum": 2147483647
+                }
               }
             }
           },
@@ -81,7 +89,29 @@
               "required": ["slot", "skill"],
               "properties": {
                 "slot": { "title": "リング枠", "type": "integer", "minimum": 1, "maximum": 8 },
-                "skill": { "title": "アクティブスキル", "type": "string", "pattern": "^skill:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+                "skill": { "title": "アクティブスキル", "type": "string", "pattern": "^skill:[a-z0-9]+(?:_[a-z0-9]+)*$" },
+                "skillLevel": {
+                  "title": "スキルレベル",
+                  "description": "省略時はLv.1。シジル枠数はこのスキルレベルで決まります。",
+                  "type": "integer",
+                  "default": 1,
+                  "minimum": 1,
+                  "maximum": 2147483647
+                },
+                "sigils": {
+                  "title": "装着シジル",
+                  "description": "このスキルで使えるシジルを、開放済みの枠に指定します。",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["slot", "item"],
+                    "properties": {
+                      "slot": { "title": "シジル枠", "type": "integer", "default": 1, "minimum": 1, "maximum": 2147483647 },
+                      "item": { "title": "シジル", "type": "string", "pattern": "^item:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+                    }
+                  }
+                }
               }
             }
           },
@@ -96,7 +126,29 @@
               "required": ["slot", "skill"],
               "properties": {
                 "slot": { "title": "パッシブ枠", "type": "integer", "minimum": 1, "maximum": 12 },
-                "skill": { "title": "パッシブスキル", "type": "string", "pattern": "^skill:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+                "skill": { "title": "パッシブスキル", "type": "string", "pattern": "^skill:[a-z0-9]+(?:_[a-z0-9]+)*$" },
+                "skillLevel": {
+                  "title": "スキルレベル",
+                  "description": "省略時はLv.1。シジル枠数はこのスキルレベルで決まります。",
+                  "type": "integer",
+                  "default": 1,
+                  "minimum": 1,
+                  "maximum": 2147483647
+                },
+                "sigils": {
+                  "title": "装着シジル",
+                  "description": "このスキルで使えるシジルを、開放済みの枠に指定します。",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["slot", "item"],
+                    "properties": {
+                      "slot": { "title": "シジル枠", "type": "integer", "default": 1, "minimum": 1, "maximum": 2147483647 },
+                      "item": { "title": "シジル", "type": "string", "pattern": "^item:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+                    }
+                  }
+                }
               }
             }
           }

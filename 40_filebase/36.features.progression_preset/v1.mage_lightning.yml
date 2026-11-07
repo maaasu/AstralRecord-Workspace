@@ -28,7 +28,7 @@ levels:
     classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: MAIN_HAND, item: "item:20a00004", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
       - {slot: HEAD, item: "item:20a00009"}
       - {slot: CHEST, item: "item:20a00010"}
@@ -41,15 +41,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 3
-    classLevel: 5
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1314, 1315, 1316, 1317]
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00004"}
+      - {slot: MAIN_HAND, item: "item:20a00004", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00016"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00023"}
-      - {slot: FEET, item: "item:20a00022"}
+      - {slot: HEAD, item: "item:20a00016", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00023", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00022", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 2, skill: "skill:adventurer_mana_burst"}
@@ -57,32 +57,31 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 5
-    classLevel: 13
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1314, 1315, 1316, 1317, 1318, 1337, 1338, 1339, 1340, 1341, 1348]
+    classLevel: 9
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1314, 1315, 1316, 1317, 1339, 1340, 1341]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00029"}
-      - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00016"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00023"}
-      - {slot: FEET, item: "item:20a00022"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00007", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00016", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00023", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00022", enhanceLevel: 1}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
-      - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
-      - {slot: 3, skill: "skill:adventurer_mana_burst"}
-      - {slot: 4, skill: "skill:mage_heal_aura"}
+      - {slot: 1, skill: "skill:adventurer_lightning_bolt"}
+      - {slot: 2, skill: "skill:adventurer_mana_burst"}
+      - {slot: 3, skill: "skill:mage_heal_aura"}
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 8
-    classLevel: 25
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1327, 1328, 1329, 1330, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
+    classLevel: 22
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1314, 1315, 1316, 1317, 1318, 1327, 1328, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00029"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00016"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00023"}
-      - {slot: FEET, item: "item:20a00022"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00016", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00023", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00022", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:mage_sparking"}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
@@ -92,15 +91,15 @@ levels:
       - {slot: 1, skill: "skill:mage_arcane_flow"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 10
-    classLevel: 33
+    classLevel: 30
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00029"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00045"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00052"}
-      - {slot: FEET, item: "item:20a00051"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00045", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00052", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00051", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:mage_sparking"}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
@@ -110,15 +109,15 @@ levels:
       - {slot: 1, skill: "skill:mage_arcane_flow"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 12
-    classLevel: 41
+    classLevel: 38
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00029"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00045"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00052"}
-      - {slot: FEET, item: "item:20a00051"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00045", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00052", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00051", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:mage_sparking"}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
@@ -128,15 +127,15 @@ levels:
       - {slot: 1, skill: "skill:mage_arcane_flow"}
       - {slot: 2, skill: "skill:adventurer_meditation"}
   - level: 15
-    classLevel: 53
+    classLevel: 50
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00079"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00058"}
-      - {slot: CHEST, item: "item:20a00095"}
-      - {slot: LEGS, item: "item:20a00066"}
-      - {slot: FEET, item: "item:20a00065"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00045", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00052", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00051", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:mage_sparking"}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
@@ -149,12 +148,12 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00405"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00415"}
-      - {slot: CHEST, item: "item:20a00416"}
-      - {slot: LEGS, item: "item:20a00417"}
-      - {slot: FEET, item: "item:20a00418"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:mage_sparking"}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
@@ -167,14 +166,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00424"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00434"}
-      - {slot: CHEST, item: "item:20a00435"}
-      - {slot: LEGS, item: "item:20a00436"}
-      - {slot: FEET, item: "item:20a00437"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
+      - {slot: 1, skill: "skill:mage_sparking", sigils: [{slot: 1, item: "item:70a00049"}]}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 3, skill: "skill:adventurer_mana_burst"}
       - {slot: 4, skill: "skill:mage_heal_aura"}
@@ -185,14 +184,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348, 1502, 1503, 1504]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00443"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00453"}
-      - {slot: CHEST, item: "item:20a00454"}
-      - {slot: LEGS, item: "item:20a00455"}
-      - {slot: FEET, item: "item:20a00456"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
+      - {slot: 1, skill: "skill:mage_sparking", sigils: [{slot: 1, item: "item:70a00049"}]}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 3, skill: "skill:adventurer_mana_burst"}
       - {slot: 4, skill: "skill:mage_heal_aura"}
@@ -203,14 +202,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00443"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00453"}
-      - {slot: CHEST, item: "item:20a00454"}
-      - {slot: LEGS, item: "item:20a00455"}
-      - {slot: FEET, item: "item:20a00456"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 5}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 4}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 4}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 4}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 4}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
+      - {slot: 1, skill: "skill:mage_sparking", sigils: [{slot: 1, item: "item:70a00049"}]}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 3, skill: "skill:adventurer_mana_burst"}
       - {slot: 4, skill: "skill:mage_heal_aura"}
@@ -221,14 +220,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00443"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00453"}
-      - {slot: CHEST, item: "item:20a00454"}
-      - {slot: LEGS, item: "item:20a00455"}
-      - {slot: FEET, item: "item:20a00456"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 6}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 4}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 4}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 4}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 4}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
+      - {slot: 1, skill: "skill:mage_sparking", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00049"}, {slot: 2, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 3, skill: "skill:adventurer_mana_burst"}
       - {slot: 4, skill: "skill:mage_heal_aura"}
@@ -239,14 +238,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00443"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00453"}
-      - {slot: CHEST, item: "item:20a00454"}
-      - {slot: LEGS, item: "item:20a00455"}
-      - {slot: FEET, item: "item:20a00456"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 7}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 5}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 5}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 5}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 5}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
+      - {slot: 1, skill: "skill:mage_sparking", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00049"}, {slot: 2, item: "item:70a00017"}]}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 3, skill: "skill:adventurer_mana_burst"}
       - {slot: 4, skill: "skill:mage_heal_aura"}
@@ -257,14 +256,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1100, 1101, 1300, 1301, 1302, 1303, 1304, 1305, 1306, 1314, 1315, 1316, 1317, 1318, 1319, 1320, 1327, 1328, 1329, 1330, 1331, 1337, 1338, 1339, 1340, 1341, 1347, 1348, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00443"}
-      - {slot: OFF_HAND, item: "item:20a00034"}
-      - {slot: HEAD, item: "item:20a00453"}
-      - {slot: CHEST, item: "item:20a00454"}
-      - {slot: LEGS, item: "item:20a00455"}
-      - {slot: FEET, item: "item:20a00456"}
+      - {slot: MAIN_HAND, item: "item:20a00029", enhanceLevel: 8}
+      - {slot: OFF_HAND, item: "item:20a00034", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00058", enhanceLevel: 6}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 6}
+      - {slot: LEGS, item: "item:20a00066", enhanceLevel: 6}
+      - {slot: FEET, item: "item:20a00065", enhanceLevel: 6}
     skills:
-      - {slot: 1, skill: "skill:mage_sparking"}
+      - {slot: 1, skill: "skill:mage_sparking", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00050"}, {slot: 2, item: "item:70a00017"}]}
       - {slot: 2, skill: "skill:adventurer_lightning_bolt"}
       - {slot: 3, skill: "skill:adventurer_mana_burst"}
       - {slot: 4, skill: "skill:mage_heal_aura"}

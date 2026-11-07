@@ -28,7 +28,7 @@ levels:
     classLevel: 1
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
       - {slot: HEAD, item: "item:20a00009"}
       - {slot: CHEST, item: "item:20a00010"}
@@ -41,15 +41,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 3
-    classLevel: 5
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1123, 1124, 1125, 1126]
+    classLevel: 1
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 1}
       - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:adventurer_astral_edge"}
       - {slot: 2, skill: "skill:adventurer_smash"}
@@ -57,15 +57,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 5
-    classLevel: 13
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1123, 1124, 1125, 1126, 1127, 1220, 1221, 1222, 1223, 1224]
+    classLevel: 9
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1123, 1124, 1125, 1126, 1127, 1220, 1222, 1223]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
-      - {slot: OFF_HAND, item: "item:20a00007"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00007", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:adventurer_astral_edge"}
       - {slot: 2, skill: "skill:adventurer_smash"}
@@ -73,15 +73,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 8
-    classLevel: 25
-    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1216, 1217, 1218, 1220, 1221, 1222, 1223, 1224, 1361]
+    classLevel: 22
+    nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1220, 1221, 1222, 1223, 1224, 1361]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00002"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00018"}
-      - {slot: CHEST, item: "item:20a00014"}
-      - {slot: LEGS, item: "item:20a00017"}
-      - {slot: FEET, item: "item:20a00021"}
+      - {slot: MAIN_HAND, item: "item:20a00002", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00018", enhanceLevel: 1}
+      - {slot: CHEST, item: "item:20a00014", enhanceLevel: 1}
+      - {slot: LEGS, item: "item:20a00017", enhanceLevel: 1}
+      - {slot: FEET, item: "item:20a00021", enhanceLevel: 1}
     skills:
       - {slot: 1, skill: "skill:swordsman_exept_stamp"}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
@@ -90,15 +90,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 10
-    classLevel: 33
+    classLevel: 30
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00056"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00047"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00046"}
-      - {slot: FEET, item: "item:20a00050"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordsman_exept_stamp"}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
@@ -107,15 +107,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 12
-    classLevel: 41
+    classLevel: 38
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00056"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00047"}
-      - {slot: CHEST, item: "item:20a00041"}
-      - {slot: LEGS, item: "item:20a00046"}
-      - {slot: FEET, item: "item:20a00050"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 2}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 1}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordsman_exept_stamp"}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
@@ -124,15 +124,15 @@ levels:
     passives:
       - {slot: 1, skill: "skill:adventurer_meditation"}
   - level: 15
-    classLevel: 53
+    classLevel: 50
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00073"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00060"}
-      - {slot: CHEST, item: "item:20a00063"}
-      - {slot: LEGS, item: "item:20a00059"}
-      - {slot: FEET, item: "item:20a00064"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 3}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00047", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00041", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00046", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00050", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordsman_exept_stamp"}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
@@ -144,12 +144,12 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00400"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00407"}
-      - {slot: CHEST, item: "item:20a00408"}
-      - {slot: LEGS, item: "item:20a00409"}
-      - {slot: FEET, item: "item:20a00410"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 2}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 2}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 2}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 2}
     skills:
       - {slot: 1, skill: "skill:swordsman_exept_stamp"}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
@@ -161,14 +161,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00419"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00426"}
-      - {slot: CHEST, item: "item:20a00427"}
-      - {slot: LEGS, item: "item:20a00428"}
-      - {slot: FEET, item: "item:20a00429"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 2}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:swordsman_exept_stamp"}
+      - {slot: 1, skill: "skill:swordsman_exept_stamp", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
       - {slot: 3, skill: "skill:adventurer_smash"}
       - {slot: 4, skill: "skill:swordsman_challenging_roar"}
@@ -178,14 +178,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361, 1502, 1503, 1504]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 4}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 3}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 3}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 3}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 3}
     skills:
-      - {slot: 1, skill: "skill:swordsman_exept_stamp"}
+      - {slot: 1, skill: "skill:swordsman_exept_stamp", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
       - {slot: 3, skill: "skill:adventurer_smash"}
       - {slot: 4, skill: "skill:swordsman_challenging_roar"}
@@ -195,14 +195,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 5}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 4}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 4}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 4}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 4}
     skills:
-      - {slot: 1, skill: "skill:swordsman_exept_stamp"}
+      - {slot: 1, skill: "skill:swordsman_exept_stamp", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
       - {slot: 3, skill: "skill:adventurer_smash"}
       - {slot: 4, skill: "skill:swordsman_challenging_roar"}
@@ -212,14 +212,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 6}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 3}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 4}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 4}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 4}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 4}
     skills:
-      - {slot: 1, skill: "skill:swordsman_exept_stamp"}
+      - {slot: 1, skill: "skill:swordsman_exept_stamp", sigils: [{slot: 1, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
       - {slot: 3, skill: "skill:adventurer_smash"}
       - {slot: 4, skill: "skill:swordsman_challenging_roar"}
@@ -229,14 +229,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 7}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 5}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 5}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 5}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 5}
     skills:
-      - {slot: 1, skill: "skill:swordsman_exept_stamp"}
+      - {slot: 1, skill: "skill:swordsman_exept_stamp", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00017"}, {slot: 2, item: "item:70a00001"}]}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
       - {slot: 3, skill: "skill:adventurer_smash"}
       - {slot: 4, skill: "skill:swordsman_challenging_roar"}
@@ -246,14 +246,14 @@ levels:
     classLevel: 60
     nodes: [1047, 1048, 1049, 1050, 1052, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1081, 1085, 1086, 1087, 1088, 1089, 1090, 1093, 1094, 1095, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1361, 1502, 1503, 1504, 1511, 1512, 1513, 1514, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501]
     equipment:
-      - {slot: MAIN_HAND, item: "item:20a00438"}
-      - {slot: OFF_HAND, item: "item:20a00035"}
-      - {slot: HEAD, item: "item:20a00445"}
-      - {slot: CHEST, item: "item:20a00446"}
-      - {slot: LEGS, item: "item:20a00447"}
-      - {slot: FEET, item: "item:20a00448"}
+      - {slot: MAIN_HAND, item: "item:20a00056", enhanceLevel: 8}
+      - {slot: OFF_HAND, item: "item:20a00035", enhanceLevel: 4}
+      - {slot: HEAD, item: "item:20a00060", enhanceLevel: 6}
+      - {slot: CHEST, item: "item:20a00063", enhanceLevel: 6}
+      - {slot: LEGS, item: "item:20a00059", enhanceLevel: 6}
+      - {slot: FEET, item: "item:20a00064", enhanceLevel: 6}
     skills:
-      - {slot: 1, skill: "skill:swordsman_exept_stamp"}
+      - {slot: 1, skill: "skill:swordsman_exept_stamp", skillLevel: 3, sigils: [{slot: 1, item: "item:70a00017"}, {slot: 2, item: "item:70a00027"}]}
       - {slot: 2, skill: "skill:adventurer_astral_edge"}
       - {slot: 3, skill: "skill:adventurer_smash"}
       - {slot: 4, skill: "skill:swordsman_challenging_roar"}
