@@ -204,8 +204,9 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             foreach (var value in Walk(document.Content))
             {
                 if (sourceIds.Any(sourceId => prefixes.Any(prefix => value.Value == prefix + ":" + sourceId)
-                    || value.Value == sourceId && (IsReferenceKey(value.Key, kind)
-                        || kind == "node" && value.Key == "nodes" && ProgressionPresetValidation.IsPreset(relative))))
+                    || value.Value == sourceId && IsReferenceKey(value.Key, kind)
+                    || kind == "node" && value.Key == "nodes" && ProgressionPresetValidation.IsPreset(relative)
+                        && ProgressionPresetValidation.MatchesNodeId(value.Value, sourceId)))
                     result.Add(new(relative, value.Pointer, value.Value, DisplayName(document.Content as JsonObject), kind));
             }
             // Local $schema references are path based, not identity based.

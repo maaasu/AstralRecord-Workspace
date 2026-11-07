@@ -60,8 +60,11 @@ internal static class ProgressionPresetValidation
             }
             if (snapshot["nodes"] is JsonArray selectedNodes)
                 for (var nodeIndex = 0; nodeIndex < selectedNodes.Count; nodeIndex++)
-                    if (MasterDataValidation.Text(selectedNodes[nodeIndex]) is { } nodeId && !nodeIds.Contains(nodeId))
+                {
+                    var nodeId = ReadInteger(selectedNodes[nodeIndex]);
+                    if (nodeId > 0 && !nodeIds.Contains(nodeId.ToString(CultureInfo.InvariantCulture)))
                         issues.Add(new("error", "REFERENCE_NOT_FOUND", $"{pointer}/nodes/{nodeIndex}", $"ノード '{nodeId}' がありません。"));
+                }
 
             foreach (var key in new[] { "equipment", "skills", "passives" })
             {
@@ -72,7 +75,10 @@ internal static class ProgressionPresetValidation
                 {
                     if (assignments[slotIndex] is not JsonObject assignment) continue;
                     var assignmentPath = $"{pointer}/{key}/{slotIndex}";
-                    if (MasterDataValidation.Text(assignment["slot"]) is { } slot && !slots.Add(slot))
+                    var slot = key == "equipment"
+                        ? MasterDataValidation.Text(assignment["slot"])
+                        : ReadPositiveIntegerText(assignment["slot"]);
+                    if (slot is not null && !slots.Add(slot))
                         issues.Add(new("error", "PROGRESSION_PRESET_DUPLICATE_SLOT", assignmentPath + "/slot",
                             $"スロット '{slot}' が重複しています。"));
                     if (key == "equipment")
@@ -200,7 +206,18 @@ internal static class ProgressionPresetValidation
     }
 
     private static int ReadInteger(JsonNode? node, int fallback = 0)
-        => int.TryParse(MasterDataValidation.Text(node), NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+        => node?.GetValueKind() == JsonValueKind.Number ? ParseInteger(node.ToJsonString(), fallback) : fallback;
+
+    private static string? ReadPositiveIntegerText(JsonNode? node)
+        => ReadInteger(node) is var value && value > 0 ? value.ToString(CultureInfo.InvariantCulture) : null;
+
+    internal static bool MatchesNodeId(string text, string nodeId)
+        => ParseInteger(text, -1).ToString(CultureInfo.InvariantCulture) == nodeId;
+
+    private static int ParseInteger(string text, int fallback)
+        => decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            && value is >= 0 and <= int.MaxValue && value == decimal.Truncate(value)
+                ? (int)value : fallback;
 
     private static async Task<Dictionary<string, JsonObject>> ReadReferenceIndexAsync(MasterDataPaths paths,
         MasterDataCodec codec, string category, string prefix, CancellationToken token)
@@ -218,7 +235,7 @@ internal static class ProgressionPresetValidation
         var presets = await ReadMastersAsync(paths, codec, Category, token);
         return presets.Where(preset => preset.Content["levels"] is JsonArray levels
                 && levels.OfType<JsonObject>().Any(snapshot => snapshot["nodes"] is JsonArray nodes
-                    && nodes.Any(node => MasterDataValidation.Text(node) == nodeId)))
+                    && nodes.Any(node => ReadPositiveIntegerText(node) == nodeId)))
             .Select(preset => preset.Path).ToArray();
     }
 
