@@ -1702,13 +1702,13 @@ public final class SkillActionRingService {
             return hudSkillDetail(slot, status);
         }
 
-        /** 発動可否にかかわらず、装飾コードを取り除いた名前と現在の案内を並べます。 */
+        /** 発動可否にかかわらず、設定色を保持したスキル名と独立した色の案内を並べます。 */
         private static Component hudSkillDetail(SlotView slot, Component status) {
             String name = PlainTextComponentSerializer.plainText().serialize(legacyComponent(slot.name()));
             if (name.isBlank()) {
                 return status;
             }
-            Component label = Component.text(name, NamedTextColor.WHITE, TextDecoration.BOLD);
+            Component label = ColorCodeUtil.toComponent(slot.name(), "", NamedTextColor.WHITE).decorate(TextDecoration.BOLD);
             return status.equals(Component.empty()) ? label
                 : Component.empty().append(label).append(Component.space()).append(status);
         }

@@ -56,6 +56,7 @@ final class SkillActionRingHud {
         this.playerHud = playerHud;
         listener = new PacketAdapter(plugin, ListenerPriority.HIGHEST, PacketType.Play.Server.SET_ACTION_BAR_TEXT,
             PacketType.Play.Server.SYSTEM_CHAT, PacketType.Play.Server.SET_TITLE_TEXT,
+            PacketType.Play.Server.SET_SUBTITLE_TEXT, PacketType.Play.Server.SET_TITLES_ANIMATION,
             PacketType.Play.Server.CLEAR_TITLES) {
             @Override
             public void onPacketSending(PacketEvent event) {
@@ -100,9 +101,17 @@ final class SkillActionRingHud {
                 || type == PacketType.Play.Server.SYSTEM_CHAT && Boolean.TRUE.equals(event.getPacket().getBooleans().readSafely(0)))) {
                 event.setCancelled(true);
             }
-        } else if (type == PacketType.Play.Server.SET_TITLE_TEXT || type == PacketType.Play.Server.CLEAR_TITLES) {
-            // 到着したワールド案内や演出を優先し、閉じる際もその Title を消去しません。
-            view.titleSuperseded = true;
+        } else if (type == PacketType.Play.Server.SET_TITLE_TEXT
+            || type == PacketType.Play.Server.SET_SUBTITLE_TEXT
+            || type == PacketType.Play.Server.SET_TITLES_ANIMATION
+            || type == PacketType.Play.Server.CLEAR_TITLES) {
+            // 固定 HUD は閉じる演出まで Title を所有します。自身の送信は filters=false で監視を通りません。
+            if (view.sendFailed) {
+                // 送信失敗で所有を放棄した後に到着した Title は、後始末で消去しません。
+                view.titleSuperseded = true;
+            } else {
+                event.setCancelled(true);
+            }
         }
     }
 
@@ -133,9 +142,9 @@ final class SkillActionRingHud {
             this.bedrock = bedrock;
         }
 
-        /** 外部通知または送信失敗でリング表示が終了したかを返します。 */
+        /** 送信失敗でリング表示が終了したかを返します。 */
         boolean interrupted() {
-            return titleSuperseded || sendFailed;
+            return sendFailed;
         }
 
         /** 描画が変化したとき、または表示期限の前に、画面固定のフレームを送ります。 */

@@ -79,7 +79,7 @@ def opening(frame):
     radius = 22 + 21 * ease
     fade = round(255 * ease)
     # Interior rings remain faint so the scenery and crosshair read through the center.
-    art.ellipse(CENTER, CENTER, 22 * ease, (7, 17, 29, round(48*ease)),
+    art.ellipse(CENTER, CENTER, 22 * ease, (7, 17, 29, round(36*ease)),
                 (57, 112, 132, round(125*ease)))
     art.ellipse(CENTER, CENTER, radius-2, None, (13, 35, 57, round(195*ease)))
     for slot in range(SLOTS):
@@ -90,8 +90,8 @@ def opening(frame):
         art.arc(CENTER, CENTER, radius-0.4, angle-9*ease, angle+9*ease, (153, 219, 239, fade))
         x, y = point(slot, 14 + 16 * ease)
         border = (60, 113, 141, round(219 * ease))
-        art.polygon(cut_square(x,y,10.4*ease,3.2*ease), (8,17,30,round(124*ease)), border)
-        art.polygon(cut_square(x,y,8.7*ease,2.6*ease), (13,26,42,round(132*ease)))
+        art.polygon(cut_square(x,y,10.4*ease,3.2*ease), (8,17,30,round(100*ease)), border)
+        art.polygon(cut_square(x,y,8.7*ease,2.6*ease), (13,26,42,round(108*ease)))
         dx, dy = point(slot, radius)
         art.polygon(diamond(dx,dy,2.1*ease), (151,225,242,fade))
     return art.image96()
