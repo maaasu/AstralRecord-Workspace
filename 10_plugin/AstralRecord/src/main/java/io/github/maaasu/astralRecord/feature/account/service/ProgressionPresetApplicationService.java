@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService.ProgressionPresetGear;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
@@ -12,23 +14,30 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService.ProgressionPresetSigil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockedNode;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -125,21 +134,22 @@ public final class ProgressionPresetApplicationService {
             player, classId, level, classLevels, checkpoint.nodes());
         if (nodes == null) return Result.INVALID;
 
-        Map<EquipmentType, ItemModel> gear = new EnumMap<>(EquipmentType.class);
+        Map<EquipmentType, ProgressionPresetGear> gear = new EnumMap<>(EquipmentType.class);
         for (var entry : checkpoint.equipment()) {
             EquipmentType type = EquipmentType.valueOf(entry.slot());
             ItemModel item = items.findLoadedById(itemId(entry.item()));
             if (item == null || item.getEquipment() == null
                 || EquipmentType.fromItemEquipmentSlot(item.getEquipment().getSlot()) != type
-                || !EquipmentRequirementService.check(level, classId, checkpoint.classLevel(), item.getEquipment()).allowed()) {
+                || !EquipmentRequirementService.check(level, classId, checkpoint.classLevel(), item.getEquipment()).allowed()
+                || !ItemService.supportsInitialEquipmentEnhancement(item, entry.enhanceLevel())) {
                 return Result.INVALID;
             }
-            gear.put(type, item);
+            gear.put(type, new ProgressionPresetGear(item, entry.enhanceLevel()));
         }
 
-        ItemModel mainHand = gear.get(EquipmentType.MAIN_HAND);
+        ProgressionPresetGear mainHand = gear.get(EquipmentType.MAIN_HAND);
         if (mainHand == null || gear.containsKey(EquipmentType.OFF_HAND)
-            && mainHand.getEquipment().getHandType() == ItemEquipmentHandType.TWO) {
+            && mainHand.model().getEquipment().getHandType() == ItemEquipmentHandType.TWO) {
             return Result.INVALID;
         }
 
@@ -148,10 +158,9 @@ public final class ProgressionPresetApplicationService {
         for (var node : nodes) {
             tree.getNode(node.nodeId()).skillEffects().forEach(effect -> permitted.add(skillId(effect.skillId())));
         }
-        if (!validBindings(checkpoint.skills(), SkillKind.ACTIVE, permitted, level)
-            || !validBindings(checkpoint.passives(), SkillKind.PASSIVE, permitted, level)) {
-            return Result.INVALID;
-        }
+        var active = prepareBindings(checkpoint.skills(), SkillKind.ACTIVE, permitted, level);
+        var passive = prepareBindings(checkpoint.passives(), SkillKind.PASSIVE, permitted, level);
+        if (active == null || passive == null) return Result.INVALID;
 
         var legacyInventory = inventory.getActiveEquipmentLoadout(accountId) == null
             ? inventory.snapshotState(accountId) : null;
@@ -169,37 +178,70 @@ public final class ProgressionPresetApplicationService {
             if (definition != null && definition.getKind() == SkillKind.PASSIVE
                 && !definition.getPassiveBindRequired() && definition.getRequiredLevel() <= level
                 && !learned.ownsSkill(accountId, id)) {
-                learned.ensureProgressionPresetSkill(accountId, id);
+                learned.ensureProgressionPresetSkill(accountId, id, 1, List.of());
             }
         }
 
-        List<String> active = resolveBindings(accountId, checkpoint.skills(), SkillBindPreset.ACTIVE_SLOT_COUNT);
-        List<String> passive = resolveBindings(accountId, checkpoint.passives(), SkillBindPreset.PASSIVE_SLOT_COUNT);
-        bindings.applyProgressionPresetBindings(accountId, active, passive);
+        bindings.applyProgressionPresetBindings(accountId,
+            resolveBindings(accountId, active, SkillBindPreset.ACTIVE_SLOT_COUNT),
+            resolveBindings(accountId, passive, SkillBindPreset.PASSIVE_SLOT_COUNT));
         return Result.APPLIED;
     }
 
-    private boolean validBindings(
-        List<ProgressionPreset.SkillBinding> entries, SkillKind kind, Set<String> permitted, int level
+    private @Nullable List<PreparedSkillBinding> prepareBindings(
+        List<ProgressionPreset.SkillBinding> entries, SkillKind kind, Set<String> permitted, int playerLevel
     ) {
+        List<PreparedSkillBinding> prepared = new ArrayList<>();
         for (var entry : entries) {
             String id = skillId(entry.skill());
             var definition = skills.registry().getDefinition(id);
+            int skillLevel = entry.skillLevel();
             if (!permitted.contains(id) || definition == null || definition.getKind() != kind
-                || definition.getRequiredLevel() > level) {
-                return false;
+                || definition.getRequiredLevel() > playerLevel || skillLevel < 1 || skillLevel > definition.getMaxLevel()) {
+                return null;
             }
+            boolean bindFree = kind == SkillKind.PASSIVE && !definition.getPassiveBindRequired();
+            if (bindFree && (skillLevel != 1 || !entry.sigils().isEmpty())) return null;
+
+            int maxSigilSlot = SkillSynthesisMaterialEligibility.sigilSlotCount(skillLevel, definition);
+            Set<String> equipGroups = new HashSet<>();
+            Set<Integer> sigilSlots = new HashSet<>();
+            List<ProgressionPresetSigil> sigils = new ArrayList<>();
+            for (var configured : entry.sigils()) {
+                ItemModel item = items.findLoadedById(itemId(configured.item()));
+                if (configured.slot() < 1 || configured.slot() > maxSigilSlot || !sigilSlots.add(configured.slot())
+                    || item == null || ItemCategory.fromApiValue(item.getCategory()) != ItemCategory.SIGIL
+                    || item.getSigil() == null || definition.getAllowedSigilIds().stream()
+                        .noneMatch(allowed -> allowed.equalsIgnoreCase(item.getId()))) {
+                    return null;
+                }
+                String group = item.getSigil().getEquipGroupId();
+                if (group.isBlank() || !equipGroups.add(group.trim().toLowerCase(Locale.ROOT))) return null;
+                sigils.add(new ProgressionPresetSigil(item.getId(), group, configured.slot() - 1));
+            }
+            prepared.add(new PreparedSkillBinding(entry.slot() - 1, id, skillLevel, sigils, bindFree));
         }
-        return true;
+        return prepared;
     }
 
-    private List<String> resolveBindings(UUID accountId, List<ProgressionPreset.SkillBinding> entries, int slotCount) {
+    private List<String> resolveBindings(UUID accountId, List<PreparedSkillBinding> entries, int slotCount) {
         List<String> slots = new ArrayList<>(Collections.nCopies(slotCount, null));
         for (var entry : entries) {
-            slots.set(entry.slot() - 1, learned.ensureProgressionPresetSkill(accountId, skillId(entry.skill())));
+            if (entry.bindFree()) {
+                learned.getLearnedSkills(accountId).stream()
+                    .filter(skill -> skill.getSkillId().equalsIgnoreCase(entry.skillId()))
+                    .min(Comparator.comparing(LearnedSkillInstance::getLearnedSkillId))
+                    .ifPresent(skill -> slots.set(entry.slotIndex(), skill.getLearnedSkillId().toString()));
+            } else {
+                slots.set(entry.slotIndex(),
+                    learned.ensureProgressionPresetSkill(accountId, entry.skillId(), entry.skillLevel(), entry.sigils()));
+            }
         }
         return slots;
     }
+
+    private record PreparedSkillBinding(int slotIndex, String skillId, int skillLevel,
+                                        List<ProgressionPresetSigil> sigils, boolean bindFree) { }
 
     private static String skillId(String reference) {
         return reference.startsWith("skill:") ? reference.substring("skill:".length()) : reference;

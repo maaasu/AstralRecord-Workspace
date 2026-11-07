@@ -183,26 +183,44 @@ public final class LearnedSkillService {
     }
 
     /**
-     * プリセットの初期スキル個体をローカル保存ロック内で取得または作成します。
+     * プリセットと同じスキル個体をローカル保存ロック内で取得または作成します。
      * @param accountId 対象アカウント
      * @param skillId 検証済みのスキルマスターID
+     * @param level 検証済みの個体レベル
+     * @param sigils 検証済みの装着シジル
      * @return バインドに使うスキル個体ID
      */
     public synchronized @NotNull String ensureProgressionPresetSkill(
-        @NotNull UUID accountId, @NotNull String skillId
+        @NotNull UUID accountId, @NotNull String skillId, int level,
+        @NotNull List<ProgressionPresetSigil> sigils
     ) {
         List<LearnedSkillInstance> current = getLearnedSkills(accountId);
         var existing = current.stream()
             .filter(skill -> skill.getSkillId().equalsIgnoreCase(skillId)
-                && skill.getLevel() == 1 && skill.getSigils().isEmpty())
+                && skill.getLevel() == level && matchesProgressionPresetSigils(skill.getSigils(), sigils))
             .min(java.util.Comparator.comparing(LearnedSkillInstance::getLearnedSkillId));
         if (existing.isPresent()) return existing.get().getLearnedSkillId().toString();
         LocalDateTime now = LocalDateTime.now();
+        var attached = sigils.stream()
+            .map(sigil -> new LearnedSkillSigil(UUID.randomUUID(), sigil.itemId(), sigil.equipGroupId(), sigil.slotIndex()))
+            .toList();
         LearnedSkillInstance created = new LearnedSkillInstance(
-            UUID.randomUUID(), accountId, skillId, 1, List.of(), 1, now, now);
+            UUID.randomUUID(), accountId, skillId, level, attached, 1, now, now);
         skillsByAccount.put(accountId, appendSkill(current, created));
         markPlayerStateDirty(accountId);
         return created.getLearnedSkillId().toString();
+    }
+
+    /** 検証済みのシジルID・装着グループと0始まりの保存枠です。 */
+    public record ProgressionPresetSigil(@NotNull String itemId, @NotNull String equipGroupId, int slotIndex) { }
+
+    private static boolean matchesProgressionPresetSigils(
+        List<LearnedSkillSigil> existing, List<ProgressionPresetSigil> requested
+    ) {
+        return existing.size() == requested.size() && requested.stream().allMatch(wanted ->
+            existing.stream().anyMatch(attached -> attached.getSlotIndex() == wanted.slotIndex()
+                && attached.getSigilId().equalsIgnoreCase(wanted.itemId())
+                && attached.getEquipGroupId().equalsIgnoreCase(wanted.equipGroupId())));
     }
 
     public @NotNull List<LearnedSkillInstance> getLearnedSkills(@NotNull UUID accountId) {

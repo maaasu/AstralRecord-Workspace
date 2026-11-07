@@ -5370,13 +5370,13 @@ public class InventoryService {
 
     /**
      * 戦闘検証用装備をアカウントのローカル保存ロック内で差し替えます。
-     * 退避する装備はバッグに戻し、同じマスターの個体は再利用します。
+     * 退避する装備はバッグに戻し、同じマスターと強化値の個体は再利用します。
      * @param accountId 対象アカウント
      * @param gear 使用する装備マスター。空欄は装備解除
      * @return バッグの空きと個体準備が揃い、更新できた場合 true
      */
     public boolean applyProgressionPresetEquipment(
-        @NotNull UUID accountId, @NotNull Map<EquipmentType, ItemModel> gear
+        @NotNull UUID accountId, @NotNull Map<EquipmentType, ProgressionPresetGear> gear
     ) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) return false;
@@ -5415,7 +5415,7 @@ public class InventoryService {
         if (mainHand != null) hotbarEntries.remove(mainHand);
         Map<EquipmentType, InventoryEntryModel> reused = new LinkedHashMap<>();
         for (var entry : previous.entrySet()) {
-            ItemModel desired = gear.get(entry.getKey());
+            ProgressionPresetGear desired = gear.get(entry.getKey());
             if (matchesProgressionPresetGear(entry.getValue(), desired)) {
                 reused.put(entry.getKey(), entry.getValue());
             } else {
@@ -5444,8 +5444,9 @@ public class InventoryService {
         Map<EquipmentType, UUID> instanceIds = new LinkedHashMap<>();
         for (var target : gear.entrySet()) {
             InventoryEntryModel existing = reused.get(target.getKey());
+            var desired = target.getValue();
             UUID instanceId = existing == null
-                ? createEquipmentInstanceId(target.getValue(), accountId, "progression-preset")
+                ? createEquipmentInstanceId(desired.model(), accountId, desired.enhanceLevel())
                 : existing.getInstanceId();
             if (instanceId == null) {
                 created.forEach(id -> itemService.evictEquipmentInstanceFromCache(id.toString()));
@@ -5455,7 +5456,7 @@ public class InventoryService {
             instanceIds.put(target.getKey(), instanceId);
         }
         if (instanceIds.containsKey(EquipmentType.MAIN_HAND)) {
-            var weapon = gear.get(EquipmentType.MAIN_HAND);
+            var weapon = gear.get(EquipmentType.MAIN_HAND).model();
             InventoryEntryModel weaponEntry = reused.get(EquipmentType.MAIN_HAND);
             hotbarEntries.add(weaponEntry == mainHand && mainHand != null
                 ? mainHand
@@ -5473,15 +5474,18 @@ public class InventoryService {
         return true;
     }
 
+    /** 検証済みの装備マスターと初期強化値です。 */
+    public record ProgressionPresetGear(@NotNull ItemModel model, int enhanceLevel) { }
+
     private boolean matchesProgressionPresetGear(
-        @NotNull InventoryEntryModel entry, @Nullable ItemModel model
+        @NotNull InventoryEntryModel entry, @Nullable ProgressionPresetGear gear
     ) {
-        if (model == null || entry.getInstanceId() == null
+        if (gear == null || entry.getInstanceId() == null
             || !InventoryInstanceType.EQUIPMENT.getCode().equals(entry.getInstanceType())) return false;
         var instance = itemService.findLoadedEquipmentInstanceById(entry.getInstanceId().toString());
-        return instance != null && instance.getItemId().equalsIgnoreCase(model.getId())
+        return instance != null && instance.getItemId().equalsIgnoreCase(gear.model().getId())
             && instance.getDurabilityValue() == instance.getDurabilityMax()
-            && instance.getEnhanceLevel() == 0 && instance.getTranscendenceRank() == 0
+            && instance.getEnhanceLevel() == gear.enhanceLevel() && instance.getTranscendenceRank() == 0
             && instance.getEnchants().isEmpty() && instance.getRunes().isEmpty();
     }
 
@@ -9037,7 +9041,13 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull String source
     ) {
-        EquipmentInstance instance = itemService.createLocalEquipmentInstance(model, accountId);
+        return createEquipmentInstanceId(model, accountId, 0);
+    }
+
+    private @Nullable UUID createEquipmentInstanceId(
+        @NotNull ItemModel model, @NotNull UUID accountId, int enhanceLevel
+    ) {
+        EquipmentInstance instance = itemService.createLocalEquipmentInstance(model, accountId, enhanceLevel);
         String instanceId = instance == null ? null : instance.getEquipmentInstanceId();
         return instanceId == null ? null : parseUuidOrNull(instanceId);
     }

@@ -545,9 +545,36 @@ public class ItemService {
         @NotNull ItemModel model,
         @NotNull UUID accountId
     ) {
+        return createLocalEquipmentInstance(model, accountId, 0);
+    }
+
+    /**
+     * 超越していない装備を指定強化値で新規作成できるか判定します。
+     * @param model 装備マスター
+     * @param enhanceLevel 指定強化値
+     * @return 通常の強化定義とランク0の上限を満たす場合 true
+     */
+    public static boolean supportsInitialEquipmentEnhancement(@NotNull ItemModel model, int enhanceLevel) {
+        var equipment = model.getEquipment();
+        return equipment != null && (enhanceLevel == 0 || enhanceLevel > 0 && equipment.getEnhance() != null
+            && enhanceLevel <= EquipmentEnhanceCalculator.maxLevel(equipment, 0));
+    }
+
+    /**
+     * ランク0の指定強化値で装備個体を生成し、次の player-state snapshot で同時作成します。
+     * @param model 装備マスター
+     * @param accountId 所有アカウント
+     * @param enhanceLevel 初期強化値
+     * @return ローカル確定した装備。不正な強化値または個体生成に失敗した場合は null
+     */
+    public @Nullable EquipmentInstance createLocalEquipmentInstance(
+        @NotNull ItemModel model,
+        @NotNull UUID accountId,
+        int enhanceLevel
+    ) {
         try {
             var equipment = model.getEquipment();
-            if (equipment == null) {
+            if (!supportsInitialEquipmentEnhancement(model, enhanceLevel)) {
                 return null;
             }
 
@@ -591,6 +618,9 @@ public class ItemService {
                 List.of(),
                 List.of()
             );
+            if (enhanceLevel > 0) {
+                instance = EquipmentEnhanceCalculator.withLevel(equipment, instance, enhanceLevel);
+            }
             String key = normalize(instanceId);
             synchronized (equipmentStateMutex) {
                 loadedEquipmentInstances.put(key, instance);

@@ -81,8 +81,18 @@ public final class SkillSynthesisMaterialEligibility {
         @NotNull LearnedSkillInstance learnedSkill,
         @NotNull SkillDefinition definition
     ) {
+        return sigilSlotCount(learnedSkill.getLevel(), definition);
+    }
+
+    /**
+     * 指定したスキルレベルで利用できるシジル枠数を返します。
+     * @param level 検証対象のスキルレベル
+     * @param definition レベル別枠定義
+     * @return 指定レベル以下で最大の枠数。枠定義がなければ 0
+     */
+    public static int sigilSlotCount(int level, @NotNull SkillDefinition definition) {
         return definition.getSigilSlotsByLevel().stream()
-            .filter(slot -> slot.getLevel() <= learnedSkill.getLevel())
+            .filter(slot -> slot.getLevel() <= level)
             .mapToInt(SkillSigilSlotDefinition::getSlots)
             .max()
             .orElse(0);

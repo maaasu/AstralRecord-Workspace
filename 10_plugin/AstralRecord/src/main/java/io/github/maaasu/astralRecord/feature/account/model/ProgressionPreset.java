@@ -37,9 +37,17 @@ public record ProgressionPreset(String id, String name, String classId, String b
         }
     }
 
-    /** 装備先の枠と item: 参照です。 */
-    public record Equipment(String slot, String item) { }
+    /** 装備先の枠、item: 参照、強化値です。 */
+    public record Equipment(String slot, String item, int enhanceLevel) { }
 
-    /** 1始まりの設定枠と skill: 参照です。 */
-    public record SkillBinding(int slot, String skill) { }
+    /** 1始まりの設定枠、skill: 参照、個体のレベルとシジルです。 */
+    public record SkillBinding(int slot, String skill, int skillLevel, List<Sigil> sigils) {
+        /** シジルを不変リストとして保持します。 */
+        public SkillBinding {
+            sigils = List.copyOf(sigils);
+        }
+    }
+
+    /** スキル個体内の1始まりのシジル枠と item: 参照です。 */
+    public record Sigil(int slot, String item) { }
 }

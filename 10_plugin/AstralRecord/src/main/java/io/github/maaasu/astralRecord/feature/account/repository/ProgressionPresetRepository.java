@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.account.repository;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Checkpoint;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Equipment;
+import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Sigil;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.SkillBinding;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
@@ -81,10 +82,12 @@ public final class ProgressionPresetRepository {
         List<Equipment> equipment = new ArrayList<>();
         for (Object value : list(row.get("equipment"), "equipment")) {
             Map<?, ?> entry = map(value, "equipment");
-            fields(entry, Set.of("slot", "item"), Set.of());
+            fields(entry, Set.of("slot", "item"), Set.of("enhanceLevel"));
             String slot = string(entry.get("slot"), "equipment.slot");
             require(EQUIPMENT_SLOTS.contains(slot) && equipmentSlots.add(slot), "invalid or duplicate equipment slot: " + slot);
-            equipment.add(new Equipment(slot, reference(entry, "item")));
+            int enhanceLevel = entry.containsKey("enhanceLevel")
+                ? integer(entry.get("enhanceLevel"), "equipment.enhanceLevel", 0) : 0;
+            equipment.add(new Equipment(slot, reference(entry, "item"), enhanceLevel));
         }
         require(equipmentSlots.contains("MAIN_HAND"), "MAIN_HAND equipment is required");
         List<SkillBinding> skills = bindings(row.get("skills"), "skills", SkillBindPreset.ACTION_RING_SLOT_COUNT);
@@ -100,12 +103,29 @@ public final class ProgressionPresetRepository {
         List<SkillBinding> result = new ArrayList<>();
         for (Object entry : list(value, key)) {
             Map<?, ?> binding = map(entry, key);
-            fields(binding, Set.of("slot", "skill"), Set.of());
+            fields(binding, Set.of("slot", "skill"), Set.of("skillLevel", "sigils"));
             int slot = number(binding.get("slot"), key + ".slot");
             String skill = reference(binding, "skill");
             require(slot <= max && slots.add(slot), "invalid or duplicate " + key + " slot: " + slot);
             require(skills.add(skill), "duplicate " + key + " skill: " + skill);
-            result.add(new SkillBinding(slot, skill));
+            int skillLevel = binding.containsKey("skillLevel")
+                ? number(binding.get("skillLevel"), key + ".skillLevel") : 1;
+            List<Sigil> sigils = binding.containsKey("sigils") ? sigils(binding.get("sigils"), key) : List.of();
+            result.add(new SkillBinding(slot, skill, skillLevel, sigils));
+        }
+        return result;
+    }
+
+    private static List<Sigil> sigils(Object value, String key) {
+        String field = key + ".sigils";
+        Set<Integer> slots = new HashSet<>();
+        List<Sigil> result = new ArrayList<>();
+        for (Object element : list(value, field)) {
+            Map<?, ?> sigil = map(element, field);
+            fields(sigil, Set.of("slot", "item"), Set.of());
+            int slot = number(sigil.get("slot"), field + ".slot");
+            require(slots.add(slot), "duplicate " + field + " slot: " + slot);
+            result.add(new Sigil(slot, reference(sigil, "item")));
         }
         return result;
     }
@@ -130,8 +150,12 @@ public final class ProgressionPresetRepository {
     }
 
     private static int number(Object value, String field) {
-        if (value instanceof Integer number && number > 0) return number;
-        throw new IllegalArgumentException(field + " must be a positive integer");
+        return integer(value, field, 1);
+    }
+
+    private static int integer(Object value, String field, int minimum) {
+        if (value instanceof Integer number && number >= minimum) return number;
+        throw new IllegalArgumentException(field + " must be an integer >= " + minimum);
     }
 
     private static String string(Object value, String field) {
