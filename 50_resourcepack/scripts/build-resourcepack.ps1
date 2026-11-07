@@ -80,6 +80,7 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_right.png'
     'sunbird-presentation-version.txt'
     'selenea-presentation-version.txt'
+    'fishing-visuals-version.txt'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
@@ -161,6 +162,14 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/item/world/waystone_locked.png'
     'assets/astralrecord/textures/item/world/waystone_unlocked.png'
     'assets/astralrecord/textures/item/world/storage.png'
+    'assets/minecraft/items/black_concrete.json'
+    'assets/minecraft/items/tripwire_hook.json'
+    'assets/minecraft/items/light_blue_carpet.json'
+    'assets/astralrecord/models/item/fishing_line.json'
+    'assets/astralrecord/models/item/fishing_hook.json'
+    'assets/astralrecord/models/item/fishing_splash.json'
+    'assets/astralrecord/models/item/fishing_wake.json'
+    'assets/astralrecord/textures/item/fishing_visual.png'
     'assets/astralrecord/textures/item/world/blast_furnace.png'
     'assets/astralrecord/font/weapon_attack.json'
     'assets/astralrecord/font/skill_effect.json'
@@ -371,6 +380,11 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'render_controllers/selenea_skill.render_controllers.json'
     'models/entity/selenea_skill.geo.json'
     'textures/entity/selenea_skill.png'
+    'entity/fishing_visual.entity.json'
+    'animations/fishing_visual.animation.json'
+    'models/entity/fishing_visual.geo.json'
+    'render_controllers/fishing_visual.render_controllers.json'
+    'textures/entity/fishing_visual.png'
 )
 $seleneaSkillStyles = @(
     'warning_circle', 'warning_line', 'warning_boundary', 'warning_safe', 'impact', 'impact_line',
@@ -389,6 +403,12 @@ if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
     throw 'Invalid Selenea presentation version marker in resource pack.'
 }
 $bedrock.Add($seleneaVersionMarker, $java[$seleneaVersionMarker])
+
+$fishingVersionMarker = 'fishing-visuals-version.txt'
+if ($utf8.GetString($java[$fishingVersionMarker]) -cne '1') {
+    throw 'Invalid fishing visuals version marker in resource pack.'
+}
+$bedrock.Add($fishingVersionMarker, $java[$fishingVersionMarker])
 
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons

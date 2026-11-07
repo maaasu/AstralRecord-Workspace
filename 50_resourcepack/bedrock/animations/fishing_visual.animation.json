@@ -1,0 +1,120 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.fishing_visual.rig": {
+      "loop": true,
+      "bones": {
+        "bobber": {"position": ["16 * v.dx", "16 * v.dy", "-16 * v.dz"]},
+        "span_0": {
+          "position": ["0.80 * v.dx", "0.80 * v.dy - 2.880 * v.sag", "-0.80 * v.dz"]
+        },
+        "span_0_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (-0.3600) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_0_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (-0.3600) * v.sag, 2)) + 0.012"]
+        },
+        "span_1": {
+          "position": ["2.40 * v.dx", "2.40 * v.dy - 8.000 * v.sag", "-2.40 * v.dz"]
+        },
+        "span_1_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (-0.2800) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_1_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (-0.2800) * v.sag, 2)) + 0.012"]
+        },
+        "span_2": {
+          "position": ["4.00 * v.dx", "4.00 * v.dy - 11.840 * v.sag", "-4.00 * v.dz"]
+        },
+        "span_2_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (-0.2000) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_2_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (-0.2000) * v.sag, 2)) + 0.012"]
+        },
+        "span_3": {
+          "position": ["5.60 * v.dx", "5.60 * v.dy - 14.400 * v.sag", "-5.60 * v.dz"]
+        },
+        "span_3_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (-0.1200) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_3_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (-0.1200) * v.sag, 2)) + 0.012"]
+        },
+        "span_4": {
+          "position": ["7.20 * v.dx", "7.20 * v.dy - 15.680 * v.sag", "-7.20 * v.dz"]
+        },
+        "span_4_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (-0.0400) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_4_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (-0.0400) * v.sag, 2)) + 0.012"]
+        },
+        "span_5": {
+          "position": ["8.80 * v.dx", "8.80 * v.dy - 15.680 * v.sag", "-8.80 * v.dz"]
+        },
+        "span_5_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (0.0400) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_5_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (0.0400) * v.sag, 2)) + 0.012"]
+        },
+        "span_6": {
+          "position": ["10.40 * v.dx", "10.40 * v.dy - 14.400 * v.sag", "-10.40 * v.dz"]
+        },
+        "span_6_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (0.1200) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_6_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (0.1200) * v.sag, 2)) + 0.012"]
+        },
+        "span_7": {
+          "position": ["12.00 * v.dx", "12.00 * v.dy - 11.840 * v.sag", "-12.00 * v.dz"]
+        },
+        "span_7_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (0.2000) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_7_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (0.2000) * v.sag, 2)) + 0.012"]
+        },
+        "span_8": {
+          "position": ["13.60 * v.dx", "13.60 * v.dy - 8.000 * v.sag", "-13.60 * v.dz"]
+        },
+        "span_8_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (0.2800) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_8_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (0.2800) * v.sag, 2)) + 0.012"]
+        },
+        "span_9": {
+          "position": ["15.20 * v.dx", "15.20 * v.dy - 2.880 * v.sag", "-15.20 * v.dz"]
+        },
+        "span_9_heading": {
+          "rotation": ["-math.atan2(v.dy / 10 + (0.3600) * v.sag, v.horizontal_span)", "v.yaw", 0]
+        },
+        "span_9_length": {
+          "scale": [1, 1, "math.sqrt(v.horizontal_span * v.horizontal_span + math.pow(v.dy / 10 + (0.3600) * v.sag, 2)) + 0.012"]
+        }
+      }
+    },
+    "animation.astralrecord.fishing_visual.splash": {
+      "loop": true,
+      "bones": {
+        "ripple": {
+          "scale": ["math.lerp(0.45, 1, v.splash_age)", 1, "math.lerp(0.45, 1, v.splash_age)"]
+        },
+        "crown": {
+          "scale": ["math.lerp(0.75, 1, v.splash_age)", "0.25 + 0.85 * math.sin(180 * v.splash_age)", "math.lerp(0.75, 1, v.splash_age)"]
+        }
+      }
+    },
+    "animation.astralrecord.fishing_visual.wake": {
+      "loop": true,
+      "bones": {
+        "wake": {
+          "scale": ["math.lerp(0.55, 1, v.wake_age)", 1, "math.lerp(0.55, 1, v.wake_age)"]
+        }
+      }
+    }
+  }
+}

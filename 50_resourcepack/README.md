@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃の演出、GUI共通アイコンを配布します。配布する装備モデルは `item-models.json`、GUI専用の46種・84割り当ては `gui-icons.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布する装備モデルは `item-models.json`、GUI専用の46種・84割り当ては `gui-icons.json` で管理します。
 
 ## GUI
 
@@ -59,6 +59,16 @@ Java 版は本体のアイテム定義から翼を上げる、下げる、引く
 両版のパックに互換マーカー `selenea-presentation-version.txt` を収録します。Java 版は配布マニフェストの `java.seleneaPresentation` が文字列 `"1"` の管理パックの適用成功後に表示します。統合版は対応パックを配布した接続で Geyser 拡張 1.18.0 と AstralRecordProxy 1.6.0 を経由して表示します。非対応の接続ではウィッチと従来の予兆を使います。
 
 本体は Blockbench Web、技は両版の配布データをオフスクリーンで描画し、姿勢、境界、発動時の動きを確認しました。Minecraft 実クライアントでの描画は未確認です。
+
+### 釣り
+
+釣り竿の先端から赤とクリーム色のウキへ、弧を描く細い立体の釣り糸を伸ばします。着水は青緑の飛沫と外へ広がる波紋、魚の接近は泳いでいる位置に現れる小さな波で表します。
+
+- Java 版は ItemDisplay の `custom_model_data` の文字列で、黒色のコンクリートから `fishing_line`、トリップワイヤーフックから `fishing_hook`、空色のカーペットから `fishing_splash` と `fishing_wake` を選びます。通常アイテムにはバニラのモデルを使います。
+- 統合版は Geyser 拡張を経由して `astralrecord:fishing_visual` を描画します。`astralrecord:style` の `0` が釣り糸とウキ、`1` が着水、`2` が魚の波です。釣り糸は竿先を起点に、ウキまでの相対座標 `dx`・`dy`・`dz` とたるみ `sag` をブロック単位で受け取り、10 区間でつなぎます。
+- 両版の配布物に互換版 `1` の `fishing-visuals-version.txt` を収録します。`python scripts/generate-fishing-visuals.py --check` で両版のモデル、アニメーション、テクスチャを検証できます。
+
+配布データをオフスクリーンで描画し、投擲・浮遊・巻き取り時の釣り糸とウキ、着水と接近の演出を確認しました。Minecraft 実クライアントでの描画は未確認です。
 
 ### ダメージ数値
 

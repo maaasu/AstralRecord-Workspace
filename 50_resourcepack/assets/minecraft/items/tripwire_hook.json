@@ -1,0 +1,14 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "fishing_hook",
+        "model": {"type": "minecraft:model", "model": "astralrecord:item/fishing_hook"}
+      }
+    ],
+    "fallback": {"type": "minecraft:model", "model": "minecraft:item/tripwire_hook"}
+  }
+}

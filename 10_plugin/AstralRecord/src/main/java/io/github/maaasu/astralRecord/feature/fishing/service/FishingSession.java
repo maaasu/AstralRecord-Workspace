@@ -6,8 +6,6 @@ import io.github.maaasu.astralRecord.feature.fishing.message.FishingMsgId;
 import io.github.maaasu.astralRecord.feature.fishing.model.FishingEntityProtection;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -55,7 +53,7 @@ public final class FishingSession {
     private static final int[] DELTA_Y = {0, 0, 1, -1, 0, 0};
     private static final int[] DELTA_Z = {0, 0, 0, 0, 1, -1};
 
-    private final ParticleDisplayService particles;
+    private final FishingVisuals visuals;
     private final AstPlayer owner;
     private final Player player;
     private final MobService mobService;
@@ -92,7 +90,7 @@ public final class FishingSession {
      * 針と連続する読み込み済み水域へ、開始時マスタに従う魚を生成します。
      *
      * @param plugin 実行中のプラグイン。呼び出しはメインスレッドで行うこと
-     * @param particles 共通粒子表示サービス
+     * @param visuals 釣り専用のパック演出サービス
      * @param owner 釣りを開始したプレイヤー
      * @param submergedHook 水中にある仮想針の位置
      * @param maxLineLength 竿から許される糸の最大距離
@@ -100,7 +98,7 @@ public final class FishingSession {
      * @param masterService 釣果確定サービス
      * @param definition 着水ワールドと竿レベルから取得した開始時定義
      */
-    public FishingSession(@NotNull AstralRecord plugin, @NotNull ParticleDisplayService particles,
+    public FishingSession(@NotNull AstralRecord plugin, @NotNull FishingVisuals visuals,
                                    @NotNull AstPlayer owner, @NotNull Location submergedHook,
                                    double maxLineLength, double rodAttack,
                           @NotNull FishingMasterService masterService,
@@ -108,7 +106,7 @@ public final class FishingSession {
         this.masterService = masterService;
         this.definition = definition;
         this.rules = definition.rules();
-        this.particles = particles;
+        this.visuals = visuals;
         this.owner = owner;
         this.player = owner.getBukkit();
         this.mobService = plugin.getMobService();
@@ -163,14 +161,15 @@ public final class FishingSession {
             case RELEASED -> tickReleased();
             case FINISHED -> { }
         }
-        if (ticks % 5 == 0 && phase != Phase.FINISHED) {
-            List<Location> trail = new ArrayList<>(fish.size());
+        if (ticks % 5 == 0 && phase != Phase.FINISHED && phase != Phase.RELEASED) {
             for (Swimmer swimmer : fish) {
-                if (swimmer.entity.isValid() && isWaterAt(swimmer.entity.getLocation())) {
-                    trail.add(swimmer.entity.getLocation());
+                if (swimmer.entity.isValid()) {
+                    Location position = swimmer.entity.getLocation();
+                    if (isWaterAt(position)) {
+                        visuals.wake(player, position);
+                    }
                 }
             }
-            particles.spawnForNearbyViewers(trail, SharedParticleDefinitions.FISHING_ROD_TRAIL);
         }
     }
 
@@ -373,7 +372,7 @@ public final class FishingSession {
                 swimmer.nibbleTicks++;
                 nibble(swimmer);
                 if (swimmer.nibbleTicks % rules.nibbleCycleTicks() == rules.nibbleCycleTicks() / 2) {
-                    particles.spawnForNearbyViewers(submergedHook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
+                    visuals.splash(player, submergedHook);
                     player.playSound(submergedHook, Sound.ENTITY_FISHING_BOBBER_SPLASH,
                         SoundCategory.NEUTRAL, 0.5F, 1.45F);
                 }
@@ -435,7 +434,7 @@ public final class FishingSession {
         FishingFeedback.notify(owner, FishingMsgId.GAUGE_HINT);
         bar.setVisible(true);
         player.playSound(hook, Sound.ENTITY_FISHING_BOBBER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 0.9F);
-        particles.spawnForNearbyViewers(hook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
+        visuals.splash(player, hook);
     }
 
     /**
@@ -459,7 +458,7 @@ public final class FishingSession {
         bar.setProgress(gauge());
         if (phaseTicks % 5 == 0) showDistance();
         if (phaseTicks % 12 == 0) {
-            particles.spawnForNearbyViewers(hook, SharedParticleDefinitions.FISHING_ROD_SPLASH);
+            visuals.splash(player, hook);
             world.playSound(hook, Sound.ENTITY_COD_FLOP, SoundCategory.NEUTRAL, 0.3F, 1.2F);
         }
     }

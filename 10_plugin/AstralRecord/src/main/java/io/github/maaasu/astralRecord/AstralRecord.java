@@ -1632,7 +1632,7 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService,
             itemService,
             statusService,
-            particleDisplayService
+            resourcePackService
         );
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(

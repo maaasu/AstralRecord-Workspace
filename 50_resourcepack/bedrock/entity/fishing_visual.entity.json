@@ -1,0 +1,29 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:fishing_visual",
+      "materials": {"default": "entity"},
+      "textures": {"default": "textures/entity/fishing_visual"},
+      "geometry": {
+        "rig": "geometry.astralrecord.fishing_rig",
+        "splash": "geometry.astralrecord.fishing_splash",
+        "wake": "geometry.astralrecord.fishing_wake"
+      },
+      "animations": {
+        "rig": "animation.astralrecord.fishing_visual.rig",
+        "splash": "animation.astralrecord.fishing_visual.splash",
+        "wake": "animation.astralrecord.fishing_visual.wake"
+      },
+      "scripts": {
+        "pre_animation": ["v.style = q.property('astralrecord:style');", "v.dx = q.property('astralrecord:dx');", "v.dy = q.property('astralrecord:dy');", "v.dz = q.property('astralrecord:dz');", "v.sag = q.property('astralrecord:sag');", "v.horizontal_span = math.sqrt(v.dx * v.dx + v.dz * v.dz) / 10;", "v.yaw = -math.atan2(v.dx, v.dz);", "v.splash_age = math.clamp(q.life_time / 0.5, 0, 1);", "v.wake_age = math.clamp(q.life_time / 0.3, 0, 1);"],
+        "animate": [
+          {"rig": "v.style == 0"},
+          {"splash": "v.style == 1"},
+          {"wake": "v.style == 2"}
+        ]
+      },
+      "render_controllers": ["controller.render.astralrecord.fishing_visual"]
+    }
+  }
+}

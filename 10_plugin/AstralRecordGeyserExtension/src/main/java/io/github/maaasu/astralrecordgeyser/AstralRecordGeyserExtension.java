@@ -41,6 +41,7 @@ public final class AstralRecordGeyserExtension implements Extension {
     private WeaponAttackEntity weaponAttackProperties;
     private CustomEntityDefinition skillEffectDefinition;
     private SkillEffectEntity skillEffectProperties;
+    private FishingVisualEntity fishingVisuals;
     // Paper のボス用 UUID マーカー。並びは本体・技・モーション。
     private final BossDisplay sunbird = new BossDisplay("sunbird", "parrot",
         0x41535453554e4231L, 0x41535453554e4631L, 0x41535453554e4d31L, 5, 3,
@@ -73,6 +74,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         var effectDefinition = SkillEffectEntity.definition();
         event.register(effectDefinition);
         skillEffectDefinition = effectDefinition;
+        event.register(FishingVisualEntity.DEFINITION);
         event.register(COMBAT_RESULT);
         sunbird.register(event);
         event.register(WorldDisplayEntity.DEFINITION);
@@ -98,6 +100,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (skillEffectDefinition != null) {
             skillEffectProperties = SkillEffectEntity.registerProperties(event, skillEffectDefinition.identifier());
         }
+        fishingVisuals = FishingVisualEntity.registerProperties(event);
         worldDisplays = WorldDisplayEntity.registerProperties(event);
     }
 
@@ -219,6 +222,7 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
+        if (FishingVisualEntity.onSpawn(event, damagePacks, fishingVisuals)) return;
         if (SkillEffectEntity.isMarker(event.uuid())) {
             var properties = skillEffectProperties;
             var frame = SkillEffectEntity.decode(event.uuid());

@@ -173,6 +173,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().skillEffectsV2();
     }
 
+    boolean fishingVisualsReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().fishingVisuals();
+    }
+
     /** @return ログイン時に登録済みのパックが専用効果音に対応していればtrue */
     boolean gameplaySoundsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);

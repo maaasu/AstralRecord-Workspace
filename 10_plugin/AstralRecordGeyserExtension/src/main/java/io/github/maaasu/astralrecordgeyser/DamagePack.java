@@ -30,7 +30,7 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 /** APIで公開されたBedrockパックを検証し、書き換えないファイルとして保存する。 */
 record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
-    boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean skillEffectsV2,
+    boolean combatResult, boolean weaponAttack, boolean weaponAttackProjectiles, boolean skillEffectsV2, boolean fishingVisuals,
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
     String actionRingHudRevision
@@ -82,6 +82,11 @@ record DamagePack(
         "entity/skill_effect.entity.json", "animations/skill_effect.animation.json",
         "models/entity/skill_effect_v2.geo.json", "render_controllers/skill_effect.render_controllers.json",
         "textures/entity/skill_effect.png"
+    );
+    private static final List<String> FISHING_VISUAL_ENTRIES = List.of(
+        "entity/fishing_visual.entity.json", "animations/fishing_visual.animation.json",
+        "models/entity/fishing_visual.geo.json", "render_controllers/fishing_visual.render_controllers.json",
+        "textures/entity/fishing_visual.png"
     );
     private static final List<String> SUNBIRD_ENTRIES = List.of(
         "entity/sunbird.entity.json", "animations/sunbird.animation.json",
@@ -141,6 +146,7 @@ record DamagePack(
             boolean weaponAttack;
             boolean weaponAttackProjectiles;
             boolean skillEffectsV2;
+            boolean fishingVisuals;
             boolean gameplaySounds;
             boolean sunbird;
             boolean sunbirdMotion;
@@ -173,6 +179,8 @@ record DamagePack(
                     && WEAPON_ATTACK_PROJECTILE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 skillEffectsV2 = hasVersion(zip, "skill-effects-version.txt", '2')
                     && SKILL_EFFECT_V2_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                fishingVisuals = hasVersionOne(zip, "fishing-visuals-version.txt")
+                    && FISHING_VISUAL_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 gameplaySounds = hasGameplaySounds(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 sunbirdMotion = sunbird
@@ -198,7 +206,7 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, weaponAttack,
-                weaponAttackProjectiles, skillEffectsV2, gameplaySounds, sunbird, sunbirdMotion, selenea,
+                weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
                 heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision);
         } finally {
             if (!keep) Files.deleteIfExists(file);

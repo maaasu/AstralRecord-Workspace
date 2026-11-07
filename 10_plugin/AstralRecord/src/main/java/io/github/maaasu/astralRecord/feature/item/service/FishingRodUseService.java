@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.fishing.service.FishingSession;
+import io.github.maaasu.astralRecord.feature.fishing.service.FishingVisuals;
 import io.github.maaasu.astralRecord.feature.fishing.service.FishingFeedback;
 import io.github.maaasu.astralRecord.feature.fishing.message.FishingMsgId;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
@@ -19,8 +20,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.block.Block;
 import org.bukkit.FluidCollisionMode;
@@ -29,17 +29,13 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,8 +46,8 @@ import java.util.UUID;
 /**
  * 装備マスタの釣り竿による仮想キャストを扱います。
  * <p>
- * バニラの {@code FishHook} は生成せず、針を {@link BlockDisplay}、糸を小さい黒色dustとして表示します。
- * 糸は竿先と針を結ぶ浅い曲線として2tick間隔で描画し、食いつき後は張った直線へ切り替えます。
+ * 仮想の針と糸をリソースパックのモデルで表示します。
+ * 糸は竿先と針を結ぶ浅い曲線として描画し、食いつき後は張った直線へ切り替えます。
  * 固体へ接触した針は回収まで固定し、水中に沈んだ針から釣りセッションへ移行します。
  */
 public final class FishingRodUseService {
@@ -63,29 +59,24 @@ public final class FishingRodUseService {
     static final double WATER_SINK_SPEED_PER_TICK = 0.08D;
     static final int ROPE_SEGMENT_COUNT = 20;
     static final int ROPE_NODE_COUNT = ROPE_SEGMENT_COUNT + 1;
-    static final int LINE_PARTICLE_INTERVAL_TICKS = 2;
-    static final int MAX_LINE_POINTS_PER_SEGMENT = 8;
-    private static final double LINE_PARTICLE_SPACING = 0.075D;
+    private static final int VISUAL_UPDATE_TICKS = 2;
     private static final double MAX_LINE_SAG = 0.35D;
     static final double MIN_VECTOR_LENGTH_SQUARED = 1.0E-8D;
     static final Sound CAST_SOUND = Sound.ENTITY_FISHING_BOBBER_THROW;
     static final double RETRIEVE_SPEED_PER_TICK = 2.0D;
 
-    private static final float DISPLAY_VIEW_RANGE = Float.MAX_VALUE;
     private static final float FISHING_ROD_SOUND_VOLUME = 0.8F;
     private static final float FISHING_ROD_SOUND_PITCH = 1.0F;
     private static final double COLLISION_ADVANCE_EPSILON = 0.001D;
     private static final int MAX_PASSABLE_BLOCK_SKIPS = 32;
     private static final double MAX_RAY_TRACE_DISTANCE = 2.0D;
-    private static final int PARTICLE_INTERVAL_TICKS = 2;
-    private static final String HOOK_DISPLAY_TAG = "astralrecord_fishing_rod_hook";
     private static final double DEFAULT_ROD_ATTACK = 10.0D;
 
     private final AstralRecord plugin;
     private final InventoryService inventoryService;
     private final ItemReferenceResolver itemReferenceResolver;
     private final StatusService statusService;
-    private final ParticleDisplayService particleDisplayService;
+    private final FishingVisuals visuals;
     private final Map<UUID, ActiveCast> activeCasts = new HashMap<>();
 
     /**
@@ -95,20 +86,20 @@ public final class FishingRodUseService {
      * @param inventoryService 主手のアイテム参照を解決するサービス
      * @param itemService equipment instanceを解決するサービス
      * @param statusService キャスト距離を取得するステータスサービス
-     * @param particleDisplayService viewer設定に従って粒子を送るサービス
+     * @param resourcePacks Java版と統合版の判定に使用するサービス
      */
     public FishingRodUseService(
         @NotNull AstralRecord plugin,
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService,
         @NotNull StatusService statusService,
-        @NotNull ParticleDisplayService particleDisplayService
+        @NotNull ResourcePackService resourcePacks
     ) {
         this.plugin = plugin;
         this.inventoryService = inventoryService;
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
         this.statusService = statusService;
-        this.particleDisplayService = particleDisplayService;
+        this.visuals = new FishingVisuals(plugin, resourcePacks);
     }
 
     /** 現在の主手が釣り竿なら、そのequipment instance IDを返します。 */
@@ -178,6 +169,7 @@ public final class FishingRodUseService {
             if (!active.fishing.isTaut() && !active.fishing.isReleased()) {
                 active.fishing.close();
                 active.fishing = null;
+                active.display.clearWaterEffects();
                 retract(player);
                 return;
             }
@@ -243,11 +235,6 @@ public final class FishingRodUseService {
             return;
         }
 
-        BlockDisplay hookDisplay = spawnHookDisplay(rodTip);
-        if (hookDisplay == null) {
-            return;
-        }
-
         UUID playerId = bukkitPlayer.getUniqueId();
         ActiveCast active = new ActiveCast(
             current.instance().getEquipmentInstanceId(),
@@ -256,7 +243,7 @@ public final class FishingRodUseService {
             target,
             castDistance,
             false,
-            hookDisplay
+            visuals.createCast(bukkitPlayer)
         );
         double attack = statusService.getEquipmentStatus(player, current.model(), current.instance(), StatusType.ATTACK).rollValue();
         active.rodAttack = Double.isFinite(attack) && attack > 0.0D ? attack : DEFAULT_ROD_ATTACK;
@@ -271,7 +258,7 @@ public final class FishingRodUseService {
             1L,
             1L
         );
-        render(bukkitPlayer, active, rodTip);
+        render(bukkitPlayer, active);
         bukkitPlayer.playSound(
             bukkitPlayer.getLocation(),
             CAST_SOUND,
@@ -318,15 +305,19 @@ public final class FishingRodUseService {
     public void cancel(@NotNull UUID playerId) {
         ActiveCast active = activeCasts.remove(playerId);
         if (active == null) {
+            visuals.clearWaterEffects(playerId);
             return;
         }
         if (active.task != null) {
             active.task.cancel();
         }
-        if (active.fishing != null) {
-            active.fishing.close();
+        try {
+            if (active.fishing != null) {
+                active.fishing.close();
+            }
+        } finally {
+            active.display.close();
         }
-        removeDisplay(active.hookDisplay);
     }
 
     /** Plugin停止時にすべての仮想キャストを終了します。 */
@@ -334,6 +325,7 @@ public final class FishingRodUseService {
         for (UUID playerId : List.copyOf(activeCasts.keySet())) {
             cancel(playerId);
         }
+        visuals.shutdown();
     }
 
     /** テストと表示計算で共有する、目線から見た釣り竿先端の位置を返します。 */
@@ -404,22 +396,28 @@ public final class FishingRodUseService {
         active.retrieved = advanceHook(active);
         if (active.phase != CastPhase.RETRACTING && active.inWater
             && isWater(active.currentHook.getBlock().getType())) {
-            emitWaterImpact(active);
             var definition = plugin.getFishingMasterService().findDefinition(
                 active.currentHook.getWorld(), active.fishingLevel, plugin.getWorldService());
             if (definition == null) {
-                FishingFeedback.notify(astPlayer, FishingMsgId.NO_FISHING_AREA);
                 cancel(playerId);
+                emitWaterImpact(player, active);
+                FishingFeedback.notify(astPlayer, FishingMsgId.NO_FISHING_AREA);
                 return;
             }
-            active.fishing = new FishingSession(plugin, particleDisplayService, astPlayer,
+            active.fishing = new FishingSession(plugin, visuals, astPlayer,
                 active.currentHook.clone(), active.maxLineLength, active.rodAttack,
                 plugin.getFishingMasterService(), definition);
+            if (active.fishing.isFinished()) {
+                cancel(playerId);
+                emitWaterImpact(player, active);
+                return;
+            }
+            emitWaterImpact(player, active);
             tickFishing(playerId, player, active, rodTip);
             return;
         }
         advanceRope(active);
-        render(player, active, rodTip);
+        render(player, active);
     }
 
     /** 魚が所有する針位置と張力を既存の針・糸表示へ反映し、終了時は全表示を回収します。 */
@@ -432,11 +430,11 @@ public final class FishingRodUseService {
         active.currentHook = active.fishing.hookLocation();
         active.taut = active.fishing.isTaut();
         if (active.fishing.isReleased()) {
-            removeDisplay(active.hookDisplay);
+            active.display.close();
             return;
         }
         advanceRope(active);
-        render(player, active, rodTip);
+        render(player, active);
     }
 
     /**
@@ -487,6 +485,7 @@ public final class FishingRodUseService {
         double horizontal = Math.hypot(delta.getX(), delta.getZ());
         double sag = active.taut ? 0.0D : Math.min(MAX_LINE_SAG, Math.min(horizontal * 0.05D,
             Math.max(0.0D, active.maxLineLength - distance) * 0.5D));
+        active.sag = sag;
         for (int index = 0; index < ROPE_NODE_COUNT; index++) {
             double progress = (double) index / ROPE_SEGMENT_COUNT;
             active.ropeNodes.set(index, active.rodTip.clone().add(delta.clone().multiply(progress))
@@ -633,34 +632,25 @@ public final class FishingRodUseService {
         return length;
     }
 
-    /** 針・糸表示と、一定間隔の軌跡粒子および保留中の着水演出を描画します。 */
-    private void render(@NotNull Player player, @NotNull ActiveCast active, @NotNull Location rodTip) {
-        if (!active.hookDisplay.isValid()) {
-            cancel(player.getUniqueId());
-            return;
+    /** 針と糸のモデルを更新し、保留中の着水演出を再生します。 */
+    private void render(@NotNull Player player, @NotNull ActiveCast active) {
+        if (active.renderTicks++ % VISUAL_UPDATE_TICKS == 0) {
+            active.display.update(active.ropeNodes, active.sag);
         }
-        active.hookDisplay.teleport(active.currentHook);
-        if (active.renderTicks % LINE_PARTICLE_INTERVAL_TICKS == 0) {
-            renderRope(active);
-        }
-        emitWaterImpact(active);
-        if (active.renderTicks++ % PARTICLE_INTERVAL_TICKS == 0) {
-            particleDisplayService.spawnForNearbyViewers(rodTip, SharedParticleDefinitions.FISHING_ROD_TRAIL);
-            particleDisplayService.spawnForViewer(player, active.currentHook, SharedParticleDefinitions.FISHING_ROD_HOOK);
-        }
+        emitWaterImpact(player, active);
     }
 
     /**
      * 記録済みの着水演出を一度だけ表示します。
      *
+     * @param player キャストしたプレイヤー
      * @param active 着水位置を保持するキャスト状態
-     * @return 演出を消費して表示した場合はtrue
      */
-    boolean emitWaterImpact(@NotNull ActiveCast active) {
+    private void emitWaterImpact(@NotNull Player player, @NotNull ActiveCast active) {
         Location impact = active.pendingWaterImpact;
         active.pendingWaterImpact = null;
         if (impact == null || impact.getWorld() == null) {
-            return false;
+            return;
         }
         impact.getWorld().playSound(
             impact,
@@ -669,36 +659,7 @@ public final class FishingRodUseService {
             FISHING_ROD_SOUND_VOLUME,
             FISHING_ROD_SOUND_PITCH
         );
-        particleDisplayService.spawnForNearbyViewers(impact, SharedParticleDefinitions.FISHING_ROD_SPLASH);
-        return true;
-    }
-
-    /**
-     * 表示ノード間に小さい黒色dustの最大密度候補を配置します。各区間は最大8点とし、viewer探索をまとめます。
-     * 長さゼロの区間やviewerのいないworldでは粒子を生成しません。
-     *
-     * @param active 表示位置となる曲線ノードを保持するキャスト状態
-     */
-    void renderRope(@NotNull ActiveCast active) {
-        World world = active.rodTip.getWorld();
-        if (world == null || world.getPlayers().isEmpty()) {
-            return;
-        }
-        List<Location> points = new ArrayList<>(ROPE_SEGMENT_COUNT * MAX_LINE_POINTS_PER_SEGMENT);
-        for (int index = 0; index + 1 < active.ropeNodes.size(); index++) {
-            Location start = active.ropeNodes.get(index);
-            Location end = active.ropeNodes.get(index + 1);
-            Vector delta = end.toVector().subtract(start.toVector());
-            double length = delta.length();
-            if (!Double.isFinite(length) || length <= 0.0D) {
-                continue;
-            }
-            int count = (int) Math.min(MAX_LINE_POINTS_PER_SEGMENT, Math.ceil(length / LINE_PARTICLE_SPACING));
-            for (int point = 0; point < count; point++) {
-                points.add(start.clone().add(delta.clone().multiply((double) point / count)));
-            }
-        }
-        particleDisplayService.spawnForNearbyViewers(active.rodTip, points, SharedParticleDefinitions.FISHING_ROD_LINE);
+        visuals.splash(player, impact);
     }
 
     /**
@@ -769,42 +730,6 @@ public final class FishingRodUseService {
         return nodes;
     }
 
-    private @Nullable BlockDisplay spawnHookDisplay(@NotNull Location location) {
-        if (location.getWorld() == null) {
-            return null;
-        }
-        return location.getWorld().spawn(location, BlockDisplay.class, display -> {
-            display.setBlock(Material.TRIPWIRE_HOOK.createBlockData());
-            configureDisplay(display, HOOK_DISPLAY_TAG);
-            display.setTransformation(new Transformation(
-                new Vector3f(-0.20F, -0.20F, -0.20F),
-                new Quaternionf(),
-                new Vector3f(0.40F, 0.40F, 0.40F),
-                new Quaternionf()
-            ));
-        });
-    }
-
-    /**
-     * 針の表示Entityを、手動の物理・描画更新に適した設定へ初期化します。
-     *
-     * @param display 初期化対象の表示Entity
-     * @param tag 表示Entityへ付与する識別タグ
-     */
-    private static void configureDisplay(@NotNull BlockDisplay display, @NotNull String tag) {
-        // 針の重力・衝突はActiveCastで計算し、表示Entityは計算結果を描画するだけにする。
-        display.setGravity(false);
-        display.setInvulnerable(true);
-        display.setPersistent(false);
-        display.setSilent(true);
-        display.setViewRange(DISPLAY_VIEW_RANGE);
-        // 位置と形状を同じ1tickで補間し、サーバー更新間の瞬間移動を抑える。
-        display.setInterpolationDelay(0);
-        display.setInterpolationDuration(1);
-        display.setTeleportDuration(1);
-        display.addScoreboardTag(tag);
-    }
-
     private @Nullable CurrentFishingRod findCurrentFishingRod(@NotNull AstPlayer player) {
         InventoryEntryModel entry = inventoryService.getHotbarEntryInHand(player, EquipmentSlot.HAND);
         if (entry == null) {
@@ -859,12 +784,6 @@ public final class FishingRodUseService {
             || material == Material.KELP || material == Material.KELP_PLANT;
     }
 
-    private static void removeDisplay(@Nullable BlockDisplay display) {
-        if (display != null && display.isValid()) {
-            display.remove();
-        }
-    }
-
     private record CurrentFishingRod(
         @NotNull ItemReference reference,
         @NotNull ItemModel model,
@@ -891,7 +810,7 @@ public final class FishingRodUseService {
         Vector velocity;
         boolean inWater;
         @Nullable Location pendingWaterImpact;
-        private final BlockDisplay hookDisplay;
+        private final FishingVisuals.CastDisplay display;
         final List<Location> ropeNodes;
         CastPhase phase = CastPhase.OUTBOUND;
         private int renderTicks;
@@ -901,25 +820,7 @@ public final class FishingRodUseService {
         private double rodAttack = DEFAULT_ROD_ATTACK;
         private int fishingLevel;
         private boolean taut;
-
-        ActiveCast(
-            @NotNull String equipmentInstanceId,
-            @NotNull Location rodTip,
-            @NotNull Location currentHook,
-            @NotNull Location target,
-            boolean waterImpact,
-            @NotNull BlockDisplay hookDisplay
-        ) {
-            this(
-                equipmentInstanceId,
-                rodTip,
-                currentHook,
-                target,
-                currentHook.toVector().distance(target.toVector()),
-                waterImpact,
-                hookDisplay
-            );
-        }
+        private double sag;
 
         ActiveCast(
             @NotNull String equipmentInstanceId,
@@ -928,7 +829,7 @@ public final class FishingRodUseService {
             @NotNull Location target,
             double maxLineLength,
             boolean waterImpact,
-            @NotNull BlockDisplay hookDisplay
+            @NotNull FishingVisuals.CastDisplay display
         ) {
             this.equipmentInstanceId = equipmentInstanceId;
             this.rodTip = rodTip;
@@ -941,7 +842,7 @@ public final class FishingRodUseService {
                 this.phase = CastPhase.SINKING;
                 this.pendingWaterImpact = currentHook.clone();
             }
-            this.hookDisplay = hookDisplay;
+            this.display = display;
             this.ropeNodes = createRopeNodes(rodTip, currentHook);
         }
     }
