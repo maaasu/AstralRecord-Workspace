@@ -136,18 +136,18 @@ python 60_tool/spawner-planner/continent.py --terrain C:/server/AstralRecord-Cod
 
 ### Dev の地形をワールド別に更新する
 
-Python の `requirements.txt` と `requirements-detail.txt` を導入し、[スキャナーの JAR](../../spawner-planner/scanner/README.md) と Java 21 を用意します。Dev の正常停止中に `capture` で対象ワールドを新しい隔離先へコピーします。コピー後は Dev を再開でき、`publish` は隔離先で解析します。次はミズガルズの緑野を更新する例です。設定で解析データのディレクトリを変更している場合は、同じ場所を `--cache-root` に指定します。
+Python の `requirements.txt` と `requirements-detail.txt` を導入し、PowerShell 7、[スキャナーの JAR](../../spawner-planner/scanner/README.md)、Java 21 を用意します。Dev の正常停止中に `capture` で対象ワールドを新しい隔離先へコピーします。コピー後は Dev を再開でき、`publish` は隔離先で解析します。次はミズガルズの緑野を更新する例です。`$devRoot`、`$snapshotRoot`、`$scannerJar`、`$javaExe` には、それぞれの絶対パスを設定します。設定で解析データのディレクトリを変更している場合は、同じ場所を `--cache-root` に指定します。
 
 ```powershell
 python 60_tool/spawner-planner/refresh_world_map.py capture --world-id midgard_greenfields --dev-server $devRoot --snapshot-root $snapshotRoot --scanner-jar $scannerJar
 python 60_tool/spawner-planner/refresh_world_map.py publish --world-id midgard_greenfields --snapshot-root $snapshotRoot --cache-root 60_tool/skilltree-editor/.cache/spawner-planning --java $javaExe
 ```
 
-公開後、「解析結果を再読込」を押してワールドを選びます。地図は `worlds/<worldId>/<exportRevision>/` へ公開し、完成した版を `current.txt` で切り替えます。エリヴァの既存の単一出力も、そのワールドに新しい版を公開するまでは選択できます。AI 配置案のポリシーを持たないワールドは、地形と既存 Dev 配置を表示します。
+公開後、「解析結果を再読込」を押してワールドを選びます。地図は `worlds/<worldId>/<exportRevision>/` へ公開し、完成した版を `current.txt` で切り替えます。エリヴァの既存の単一出力も、そのワールドに新しい版を公開するまでは選択できます。エリヴァは既定で西側道路沿いの AI 案も再計算します。エリヴァの地図だけを先に更新するには `publish` に `--terrain-only` を付けます。AI 配置案のポリシーを持たないワールドは、地形と既存 Dev 配置を表示します。
 
 ## 読み取りAPIと世代管理
 
-`/api/spawner-planning/manifest` を取得してから、同じ `exportRevision` を `revision` クエリへ付けて `/cells`、`/regions`、manifestの `radiusOptions` に含まれる `/proposals/{radius}` を取得します。半径は32/48/64mの非空・重複なし部分集合を許可し、64m単独案にも対応します。未選択の半径は404です。すべてGET専用です。スキーマ、ワールドID、地形指紋、出力世代の一致を確認し、再計算途中で世代が混ざった場合は409を返します。出力がない場合は404となり、画面に準備方法を案内します。
+`/api/spawner-planning/worlds` で公開済みのワールドを取得し、`/manifest` と後続の取得すべてに `worldId` を指定します。`/cells`、`/regions`、`/terrain-detail`、`/terrain-detail/image`、`/proposals/{radius}` には、同じ manifest の `exportRevision` を `revision` クエリに指定します。`worldId` を省略すると旧形式の単一出力を読みます。AI 案の半径は32/48/64mの重複なし部分集合で、地形専用の出力では `radiusOptions` が空になります。未公開の半径と出力は404です。各 GET はワールドID、地形指紋、出力世代の一致を確認し、取得中に地図が更新された場合は409を返します。
 
 詳細地図は任意の `/terrain-detail` と `/terrain-detail/image` から読みます。両方に `revision` が必要です。固定名のメタデータは schemaVersion 1、元地形の SHA-256 `terrainFingerprint`、`minX` / `minZ` / `width` / `height`、`blocksPerPixel: 1`、`image: "terrain-detail.png"`、PNGの SHA-256 `imageSha256` を持ちます。APIはmanifestとの一致、PNGのハッシュ・寸法・最大8192画素/辺・最大128MiBを確認します。詳細地図が未生成なら404、不整合なら409で、配置案本体の利用は継続できます。
 

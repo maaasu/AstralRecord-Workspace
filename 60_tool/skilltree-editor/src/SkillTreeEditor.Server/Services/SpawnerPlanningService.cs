@@ -18,34 +18,44 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
     public async Task<IResult> ListWorldsAsync(HttpContext context, CancellationToken cancellationToken)
     {
         var root = ResolveDataDirectory();
-        var worlds = new Dictionary<string, string>(StringComparer.Ordinal);
-        await AddWorldAsync(null);
-        var publishedWorlds = Path.Combine(root, "worlds");
-        RequireNoLinks(publishedWorlds);
-        if (Directory.Exists(publishedWorlds))
-        {
-            foreach (var directory in Directory.EnumerateDirectories(publishedWorlds))
-            {
-                var id = Path.GetFileName(directory);
-                if (IsWorldId(id)) await AddWorldAsync(id);
-            }
-        }
-
-        context.Response.Headers.CacheControl = "no-store";
-        return Results.Ok(worlds.OrderBy(entry => entry.Key, StringComparer.Ordinal)
-            .Select(entry => new { id = entry.Key, name = entry.Value }));
-
-        async Task AddWorldAsync(string? id)
+        var ids = new SortedSet<string>(StringComparer.Ordinal);
+        var legacy = await TryReadWorldAsync(null);
+        if (legacy is not null && IsWorldId(legacy.WorldId)) ids.Add(legacy.WorldId);
+        var publishedWorlds = GetPublishedWorldsDirectory(root);
+        if (publishedWorlds is not null)
         {
             try
             {
-                var manifest = await ReadManifestSnapshotAsync(id, cancellationToken, root);
-                if (IsWorldId(manifest.WorldId)) worlds[manifest.WorldId] = manifest.WorldName;
+                foreach (var directory in Directory.EnumerateDirectories(publishedWorlds))
+                {
+                    var id = Path.GetFileName(directory);
+                    if (IsWorldId(id)) ids.Add(id);
+                }
+            }
+            catch (DirectoryNotFoundException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+        var worlds = new List<PlanningWorld>();
+        foreach (var id in ids)
+        {
+            var manifest = await TryReadWorldAsync(id);
+            if (manifest is not null) worlds.Add(new PlanningWorld(manifest.WorldId, manifest.WorldName));
+        }
+
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Ok(worlds);
+
+        async Task<ManifestSnapshot?> TryReadWorldAsync(string? id)
+        {
+            try
+            {
+                return await ReadManifestSnapshotAsync(id, cancellationToken, root);
             }
             catch (FileNotFoundException) { }
             catch (DirectoryNotFoundException) { }
             catch (InvalidDataException) { }
             catch (UnauthorizedAccessException) { }
+            return null;
         }
     }
 
@@ -222,9 +232,9 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         root ??= ResolveDataDirectory();
         string? revision = null;
         var directory = root;
-        if (worldId is not null)
+        if (worldId is not null && GetPublishedWorldsDirectory(root) is { } publishedWorlds)
         {
-            var worldDirectory = Path.Combine(root, "worlds", worldId);
+            var worldDirectory = Path.Combine(publishedWorlds, worldId);
             var pointer = Path.Combine(worldDirectory, "current.txt");
             RequireNoLinks(pointer);
             try
@@ -244,6 +254,17 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
             throw new InvalidDataException("地図の公開版と manifest が一致しません。");
         if (worldId is not null && snapshot.WorldId != worldId) throw new FileNotFoundException();
         return snapshot;
+    }
+
+    private static string? GetPublishedWorldsDirectory(string root)
+    {
+        var directory = Path.Combine(root, "worlds");
+        try
+        {
+            RequireNoLinks(directory);
+            return Directory.Exists(directory) ? directory : null;
+        }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     private static async Task<ManifestSnapshot> ReadManifestAtAsync(string directory, CancellationToken cancellationToken)
@@ -447,6 +468,7 @@ public sealed class SpawnerPlanningService(IOptions<EditorOptions> options, Work
         => Results.Problem(statusCode: StatusCodes.Status404NotFound,
             title: "詳細地図はまだありません。16m区画の地図を表示してください。");
 
+    private sealed record PlanningWorld(string Id, string Name);
     private sealed record ManifestSnapshot(string Directory, byte[] Bytes, string Revision, string WorldId, string WorldName,
         string TerrainFingerprint, int MinX, int MinZ, int Width, int Height,
         string CellsFile, string RegionsFile, Dictionary<string, string> ProposalFiles);

@@ -201,6 +201,13 @@ public sealed class SpawnerPlanningEndpointTests : IDisposable
         File.WriteAllText(Path.Combine(worldRoot, "current.txt"), "../" + scopedRevision);
         using var invalidPointer = await host.Client.GetAsync("/api/spawner-planning/manifest?worldId=midgard");
         Assert.Equal(HttpStatusCode.Conflict, invalidPointer.StatusCode);
+        var legacyOverride = Path.Combine(host.DataDirectory, "worlds", "eriva");
+        Directory.CreateDirectory(legacyOverride);
+        File.WriteAllText(Path.Combine(legacyOverride, "current.txt"), "unfinished");
+        using var unavailableCatalog = JsonDocument.Parse(await host.Client.GetStringAsync("/api/spawner-planning/worlds"));
+        Assert.Empty(unavailableCatalog.RootElement.EnumerateArray());
+        using var explicitLegacy = await host.Client.GetAsync("/api/spawner-planning/manifest");
+        Assert.Equal(HttpStatusCode.OK, explicitLegacy.StatusCode);
     }
 
     [Fact]
