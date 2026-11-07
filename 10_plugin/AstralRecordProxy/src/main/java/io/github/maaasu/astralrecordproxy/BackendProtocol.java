@@ -24,7 +24,7 @@ final class BackendProtocol {
     static final String CHANNEL_CONNECTION = "channel_connection";
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
-    static final String SKILL_EFFECTS_READY = "skill_effects_ready";
+    static final String SKILL_EFFECTS_V2_READY = "skill_effects_v2_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
     static final String SELENEA_READY = "selenea_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
@@ -149,8 +149,8 @@ final class BackendProtocol {
     }
 
     /** @return 対象プレイヤーの統合版パックが通常攻撃の飛翔演出に対応していることを伝える通知 */
-    static byte[] skillEffectsReady() {
-        return outgoing(SKILL_EFFECTS_READY, null);
+    static byte[] skillEffectsV2Ready() {
+        return outgoing(SKILL_EFFECTS_V2_READY, null);
     }
 
     static byte[] weaponAttackProjectilesReady() {

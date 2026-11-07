@@ -99,8 +99,8 @@ Java版は `astralrecord:weapon_attack` の字形を更新し、軌跡・着弾�
 台帳の行番号を0始まりの固定スロットとします。新規スキルは末尾に追加します。段階番号は発動0、軌跡1、着弾2、範囲3です。両版のアトラスは行優先で、セル番号は `(スロット × 4 + 段階番号) × 6 + コマ番号` です。
 
 - Java版は `astralrecord:skill_effect` のビットマップフォントを使います。字形は `U+E400` からセル番号順に並べます。
-- 統合版は `astralrecord:skill_effect` を使います。`astralrecord:style` はスロット×4＋段階番号、`astralrecord:size` は表示直径を1/16ブロック単位で示します。1枚のアトラスから[レンダーコントローラーとUV対応マテリアル](https://learn.microsoft.com/en-us/minecraft/creator/documents/practices/improvingperformanceandresourceusage#consider-texture-atlasing)でコマを選びます。
-- 配布物には `skill-effects-version.txt` を含めます。互換版は `1` です。Java版では配布マニフェストの `java.skillEffects` とパックの適用結果を確認します。統合版では Geyser 拡張 1.17.0 と Velocity の AstralRecordProxy 1.5.0 以降が接続単位で対応を通知します。API の配布パックとマニフェストを更新し、プラグインを更新してから再接続してください。
+- 統合版は `astralrecord:skill_effect` を使います。`astralrecord:style` はスロット×4＋段階番号、`astralrecord:size` は表示直径を1/16ブロック単位で示します。レンダーコントローラーが段階ごとの形状を選び、固定 UV を持つ6面から再生中の1面を組み込みマテリアルで描画します。
+- 配布物には `skill-effects-version.txt` を含めます。互換版は Java 版が `1`、統合版が `2` です。Java 版では配布マニフェストの `java.skillEffects` とパックの適用結果を確認します。統合版では Geyser 拡張 1.18.1 と Velocity の AstralRecordProxy 1.6.1 以降が接続単位で対応を通知します。API の配布パックとマニフェストを更新し、プラグインを更新してから再接続してください。
 
 `python scripts/generate-skill-effect-assets.py --check --preview <PNGパス>` で、配布素材の再現性と全スキルの代表コマを確認できます。`--preview-skill <ID>` を追加すると、指定スキルの4段階を各6コマで確認できます。
 

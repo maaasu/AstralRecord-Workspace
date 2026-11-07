@@ -16,6 +16,8 @@ FRAMES = 6
 PHASES = ("cast", "trail", "impact", "area")
 GLYPH_START = 0xE400
 MAX_SKILLS = 170
+BEDROCK_GEOMETRY = "geometry.astralrecord.skill_effect"
+BEDROCK_CONTROLLER = "controller.render.astralrecord.skill_effect"
 PALETTES = {
     "amber": (250, 173, 66), "astral": (87, 156, 255), "crimson": (255, 78, 109),
     "flame": (255, 117, 51), "frost": (144, 225, 255), "ghost": (141, 219, 224),
@@ -304,6 +306,66 @@ def copy_cell(target, width, x, y, cell):
         target[offset:offset + CELL * 4] = cell[line * CELL * 4:(line + 1) * CELL * 4]
 
 
+def bedrock_assets(styles):
+    geometries = []
+    aliases = {}
+    for style in range(styles):
+        alias = f"style_{style}"
+        identifier = f"{BEDROCK_GEOMETRY}.{alias}"
+        aliases[alias] = identifier
+        bones = [
+            {"name": "billboard", "pivot": [0, 0, 0]},
+            {"name": "sprite", "parent": "billboard", "pivot": [0, 0, 0]},
+        ]
+        for frame in range(FRAMES):
+            row, column = divmod(style * FRAMES + frame, GRID)
+            bones.append({
+                "name": f"frame_{frame}", "parent": "sprite", "pivot": [0, 0, 0],
+                "cubes": [{"origin": [-8, -8, -0.125], "size": [16, 16, 0.125],
+                           "uv": {"south": {"uv": [column * CELL, row * CELL], "uv_size": [CELL, CELL]}}}],
+            })
+        geometries.append({
+            "description": {"identifier": identifier, "texture_width": ATLAS, "texture_height": ATLAS,
+                            "visible_bounds_width": 16, "visible_bounds_height": 16,
+                            "visible_bounds_offset": [0, 0, 0]},
+            "bones": bones,
+        })
+    entity = {"format_version": "1.10.0", "minecraft:client_entity": {"description": {
+        "identifier": "astralrecord:skill_effect",
+        "materials": {"default": "entity_emissive_alpha"},
+        "textures": {"default": "textures/entity/skill_effect"},
+        "geometry": aliases,
+        "animations": {"motion": "animation.astralrecord.skill_effect.motion"},
+        "scripts": {
+            "initialize": ["variable.age = 0.0;"],
+            "pre_animation": [
+                "variable.style = query.property('astralrecord:style');",
+                "variable.sprite_scale = query.property('astralrecord:size') / 16.0;",
+                f"variable.frame = math.clamp(math.floor(variable.age * 20.0), 0, {FRAMES - 1});",
+                "variable.age = variable.age + query.delta_time;",
+            ],
+            "animate": ["motion"],
+        },
+        "render_controllers": [{BEDROCK_CONTROLLER: f"variable.style >= 0 && variable.style < {styles}"}],
+    }}}
+    controller = {"format_version": "1.8.0", "render_controllers": {BEDROCK_CONTROLLER: {
+        "arrays": {"geometries": {"Array.styles": [f"Geometry.{alias}" for alias in aliases]}},
+        "geometry": "Array.styles[variable.style]",
+        "materials": [{"*": "Material.default"}],
+        "textures": ["Texture.default"],
+        "part_visibility": [{f"frame_{frame}": f"variable.frame == {frame}"} for frame in range(FRAMES)],
+        "ignore_lighting": True,
+    }}}
+    # Keep each generated geometry on one line so adding a skill appends four lines.
+    geometry_lines = ("    " + json.dumps(geometry, separators=(",", ":")) for geometry in geometries)
+    geometry = '{\n  "format_version": "1.12.0",\n  "minecraft:geometry": [\n' + ",\n".join(geometry_lines) + "\n  ]\n}\n"
+    return {
+        "bedrock/entity/skill_effect.entity.json": (json.dumps(entity, indent=2) + "\n").encode(),
+        "bedrock/models/entity/skill_effect_v2.geo.json": geometry.encode(),
+        "bedrock/render_controllers/skill_effect.render_controllers.json": (json.dumps(controller, indent=2) + "\n").encode(),
+    }
+
+
 def generate(profiles):
     bedrock = bytearray(ATLAS * ATLAS * 4)
     frame_hashes = set()
@@ -333,6 +395,7 @@ def generate(profiles):
         "assets/astralrecord/font/skill_effect.json": (json.dumps(font, indent=2) + "\n").encode(),
         "assets/astralrecord/textures/font/skill_effect.png": png(ATLAS, ATLAS, java),
         "bedrock/textures/entity/skill_effect.png": png(ATLAS, ATLAS, bedrock),
+        **bedrock_assets(len(profiles) * len(PHASES)),
     }
 
 

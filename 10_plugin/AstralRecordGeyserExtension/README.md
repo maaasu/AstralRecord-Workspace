@@ -64,7 +64,7 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ## Bedrockのプレイヤースキル演出
 
-拡張 `1.17.0` と AstralRecordProxy `1.5.0` 以降は、`skill-effects-version.txt` が互換版 `1` を示し、演出のエンティティ定義、アニメーション、形状、レンダーコントローラー、テクスチャ、描画マテリアルが揃ったパックを接続ごとに確認します。ログイン後に Velocity が対応状況を RPG へ通知します。対応する接続では、RPG が送る演出用 TextDisplay を `astralrecord:skill_effect` に置き換え、種類と大きさを渡します。通知前や旧パックの接続では RPG が従来の粒子を表示します。導入後は Proxy を再起動し、統合版クライアントを再接続してください。
+拡張 `1.18.1` と AstralRecordProxy `1.6.1` 以降は、`skill-effects-version.txt` が互換版 `2` を示し、エンティティ定義、アニメーション、固定 UV の形状、レンダーコントローラー、テクスチャが揃ったパックを接続ごとに確認します。ログイン後に Velocity が対応状況を RPG へ通知します。対応する接続では、RPG が送る演出用 TextDisplay を `astralrecord:skill_effect` に置き換え、種類と大きさを渡します。通知前や旧パックの接続では RPG が代替粒子を表示します。導入後は Proxy を再起動し、統合版クライアントを再接続してください。
 
 ## Bedrockの陽冠のサンバード
 

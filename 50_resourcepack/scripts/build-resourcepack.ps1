@@ -330,9 +330,8 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/combat_result.png'
     'entity/skill_effect.entity.json'
     'animations/skill_effect.animation.json'
-    'models/entity/skill_effect.geo.json'
+    'models/entity/skill_effect_v2.geo.json'
     'render_controllers/skill_effect.render_controllers.json'
-    'materials/skill_effect.material'
     'textures/entity/skill_effect.png'
     'entity/weapon_attack.entity.json'
     'animations/weapon_attack.animation.json'
@@ -457,25 +456,54 @@ $skillEntity = (ConvertFrom-Json -InputObject ($utf8.GetString(
     $bedrock['entity/skill_effect.entity.json']))).'minecraft:client_entity'.description
 $skillAnimation = (ConvertFrom-Json -InputObject ($utf8.GetString(
     $bedrock['animations/skill_effect.animation.json']))).animations
-$skillGeometry = (ConvertFrom-Json -InputObject ($utf8.GetString(
-    $bedrock['models/entity/skill_effect.geo.json']))).'minecraft:geometry'[0].description
+$skillGeometries = (ConvertFrom-Json -InputObject ($utf8.GetString(
+    $bedrock['models/entity/skill_effect_v2.geo.json']))).'minecraft:geometry'
+$skillControllerId = 'controller.render.astralrecord.skill_effect'
 $skillController = (ConvertFrom-Json -InputObject ($utf8.GetString(
-    $bedrock['render_controllers/skill_effect.render_controllers.json']))).render_controllers
-$skillMaterial = (ConvertFrom-Json -InputObject ($utf8.GetString(
-    $bedrock['materials/skill_effect.material']))).materials
-$skillMaterialName = $skillEntity.materials.default + ':entity_emissive_alpha'
+    $bedrock['render_controllers/skill_effect.render_controllers.json']))).render_controllers.$skillControllerId
+$skillStyles = $skillEffectSlots.Count * 4
+$skillGeometryRefs = $skillController.arrays.geometries.'Array.styles'
 if ($skillEntity.identifier -cne 'astralrecord:skill_effect' -or
+    $skillEntity.materials.default -cne 'entity_emissive_alpha' -or
     $skillEntity.textures.default -cne 'textures/entity/skill_effect' -or
-    $skillEntity.geometry.default -cne $skillGeometry.identifier -or
-    $skillGeometry.texture_width -ne 32 -or $skillGeometry.texture_height -ne 32 -or
     $null -eq $skillAnimation.($skillEntity.animations.motion) -or
-    $null -eq $skillController.($skillEntity.render_controllers[0]).uv_anim -or
-    $skillMaterial.($skillMaterialName).'+defines' -cnotcontains 'USE_UV_ANIM') {
-    throw 'Skill effect Bedrock entity is missing its atlas, geometry, animation, UV controller or material.'
+    $skillEntity.render_controllers[0].$skillControllerId -cne "variable.style >= 0 && variable.style < $skillStyles" -or
+    $skillController.geometry -cne 'Array.styles[variable.style]' -or
+    $null -ne $skillController.uv_anim -or $skillController.part_visibility.Count -ne 6 -or
+    $skillGeometryRefs.Count -ne $skillStyles -or $skillGeometries.Count -ne $skillStyles) {
+    throw 'Invalid Bedrock skill effect entity, geometry array, animation or controller.'
 }
-$skillEffectVersion = $utf8.GetBytes('1')
-$java.Add('skill-effects-version.txt', $skillEffectVersion)
-$bedrock.Add('skill-effects-version.txt', $skillEffectVersion)
+for ($frame = 0; $frame -lt 6; $frame++) {
+    if ($skillController.part_visibility[$frame].("frame_$frame") -cne "variable.frame == $frame") {
+        throw "Invalid Bedrock skill effect frame visibility at frame $frame."
+    }
+}
+for ($style = 0; $style -lt $skillStyles; $style++) {
+    $alias = "style_$style"
+    $geometry = $skillGeometries[$style]
+    if ($skillGeometryRefs[$style] -cne "Geometry.$alias" -or
+        $skillEntity.geometry.$alias -cne "geometry.astralrecord.skill_effect.$alias" -or
+        $skillEntity.geometry.$alias -cne $geometry.description.identifier -or
+        $geometry.description.texture_width -ne 2048 -or $geometry.description.texture_height -ne 2048 -or
+        $geometry.bones.Count -ne 8 -or $geometry.bones[0].name -cne 'billboard' -or
+        $geometry.bones[1].name -cne 'sprite' -or $geometry.bones[1].parent -cne 'billboard') {
+        throw "Invalid Bedrock skill effect geometry at style $style."
+    }
+    for ($frame = 0; $frame -lt 6; $frame++) {
+        $cell = $style * 6 + $frame
+        $expectedU = ($cell % 64) * 32
+        $expectedV = [Math]::Floor($cell / 64) * 32
+        $bone = $geometry.bones[$frame + 2]
+        $face = $bone.cubes[0].uv.south
+        if ($bone.name -cne "frame_$frame" -or $bone.parent -cne 'sprite' -or $bone.cubes.Count -ne 1 -or
+            ($face.uv -join ',') -cne "$expectedU,$expectedV" -or
+            ($face.uv_size -join ',') -cne '32,32') {
+            throw "Invalid Bedrock skill effect UV at style $style frame $frame."
+        }
+    }
+}
+$java.Add('skill-effects-version.txt', $utf8.GetBytes('1'))
+$bedrock.Add('skill-effects-version.txt', $utf8.GetBytes('2'))
 
 # Derive the Bedrock event list and package only the Ogg files referenced by Java.
 $javaSoundPath = 'assets/astralrecord/sounds.json'

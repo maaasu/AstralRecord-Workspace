@@ -167,9 +167,10 @@ final class DamagePackDistribution {
             && (style <= WeaponAttackEntity.MAX_LEGACY_STYLE || selection.pack().weaponAttackProjectiles());
     }
 
-    boolean skillEffectsReady(GeyserConnection connection) {
+    /** @return ログイン時に登録済みのパックが固定UVのスキル演出に対応する場合はtrue */
+    boolean skillEffectsV2Ready(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().skillEffects();
+        return selection != null && selection.ready() && selection.pack().skillEffectsV2();
     }
 
     /** @return ログイン時に登録済みのパックが専用効果音に対応していればtrue */

@@ -156,13 +156,13 @@ public final class AstralRecordGeyserExtension implements Extension {
     }
 
     /**
-     * Velocity 上の AstralRecordProxy にプレイヤースキル演出の対応状況を返します。
+     * Velocity 上の AstralRecordProxy に固定UVのプレイヤースキル演出の対応状況を返します。
      * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return ログインを完了した接続に対応パックを配布していれば true
      */
-    public boolean hasSkillEffects(UUID playerId) {
+    public boolean hasSkillEffectsV2(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
-        return skillEffectProperties != null && connection != null && damagePacks.skillEffectsReady(connection);
+        return skillEffectProperties != null && connection != null && damagePacks.skillEffectsV2Ready(connection);
     }
 
     /**
@@ -222,7 +222,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (SkillEffectEntity.isMarker(event.uuid())) {
             var properties = skillEffectProperties;
             var frame = SkillEffectEntity.decode(event.uuid());
-            if (frame == null || properties == null || !damagePacks.skillEffectsReady(event.connection())) {
+            if (frame == null || properties == null || !damagePacks.skillEffectsV2Ready(event.connection())) {
                 event.setCancelled(true);
             } else {
                 event.definition(skillEffectDefinition);
