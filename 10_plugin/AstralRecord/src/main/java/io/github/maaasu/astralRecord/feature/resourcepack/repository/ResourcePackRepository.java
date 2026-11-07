@@ -82,6 +82,7 @@ public final class ResourcePackRepository {
                     case "2" -> new ProfileHud(wideCombatMeter, 2);
                     case "3" -> new ProfileHud(wideCombatMeter, 3);
                     case "4" -> new ProfileHud(wideCombatMeter, 4);
+                    case "5" -> new ProfileHud(wideCombatMeter, 5);
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,

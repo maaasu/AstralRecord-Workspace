@@ -69,6 +69,7 @@ public class PlayerHudView {
     private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
     private final Map<UUID, ProfileHudText> javaProfiles = new HashMap<>();
     private final ResourcePackService resourcePackService;
+    private final BuffHudIcons buffHudIcons = new BuffHudIcons();
 
     /**
      * @param resourcePackService Java版のパック適用状態の参照先
@@ -114,7 +115,7 @@ public class PlayerHudView {
     }
 
     /**
-     * 一時表示に個人情報と状態異常を合成して同じアクションバー更新で送ります。
+     * 一時表示に個人情報・バフ・状態異常を合成して同じアクションバー更新で送ります。
      * @param player 表示対象
      * @param combat 受付・詠唱など現在優先されるアクションバー本文
      * @param activeConditions 有効な状態異常
@@ -122,8 +123,10 @@ public class PlayerHudView {
     public void sendActionBar(Player player, Component combat, Collection<ActiveCondition> activeConditions) {
         UUID playerId = player.getUniqueId();
         if (resourcePackService.hasJavaHudV4(playerId)) {
+            boolean vanillaTypeface = resourcePackService.hasJavaHudV5(playerId);
+            BuffHudIcons.Line buffs = vanillaTypeface ? buffIcons(AstPlayerCache.get(player)) : BuffHudIcons.EMPTY;
             player.sendActionBar(JavaProfileHud.compose(combat, javaProfiles.get(playerId),
-                    conditionHudText(activeConditions)));
+                    conditionHudText(activeConditions), buffs, vanillaTypeface));
         } else {
             player.sendActionBar(combat);
         }
@@ -352,21 +355,23 @@ public class PlayerHudView {
         boolean wideJavaMeter = styledJavaHud && resourcePackService.hasWideJavaCombatMeter(playerId);
         boolean readableTypeface = styledJavaHud && resourcePackService.hasReadableJavaHudTypeface(playerId);
         boolean expandedHud = readableTypeface && resourcePackService.hasJavaHudV4(playerId);
+        boolean vanillaTypeface = expandedHud && resourcePackService.hasJavaHudV5(playerId);
         Component resourceGap = readableTypeface ? JavaProfileHud.READABLE_RESOURCE_GAP : ACTION_BAR_GAP;
         TextColor healthMeter = pack && maxHp > 0.0D && snapshot.getCurrentHp() / maxHp <= 0.25D
                 && (Bukkit.getCurrentTick() / 10 & 1) == 0 ? HEALTH_METER_PULSE : HEALTH_METER;
         Component additionalStats = Component.empty()
             .append(JavaProfileHud.styleStat(
-                    guardActionText(showGuard, currentGuard, maximumGuard), styledJavaHud, readableTypeface))
+                    guardActionText(showGuard, currentGuard, maximumGuard), styledJavaHud, readableTypeface, vanillaTypeface))
             .append(showPhoenix && currentPhoenix > 0.0D ? JavaProfileHud.styleStat(
                     separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)),
-                    styledJavaHud, readableTypeface)
+                    styledJavaHud, readableTypeface, vanillaTypeface)
                     : Component.empty())
             .append(additionalResource)
             .append(JavaProfileHud.styleStat(
-                    shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity), styledJavaHud, readableTypeface))
+                    shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity),
+                    styledJavaHud, readableTypeface, vanillaTypeface))
             .append(expandedHud ? Component.empty() : conditionActionText(activeConditions))
-            .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud, readableTypeface)
+            .append(showDps ? JavaProfileHud.styleStat(dpsActionText(currentDps), styledJavaHud, readableTypeface, vanillaTypeface)
                     : Component.empty());
         Component resources = Component.empty()
             .append(pack ? resourceGauge(CombatHudGlyphs.HEALTH, snapshot.getCurrentHp(), maxHp, healthMeter,
@@ -383,10 +388,17 @@ public class PlayerHudView {
         if (readableTypeface) {
             ProfileHudText profile = expandedHud ? javaProfiles.get(playerId) : null;
             Component conditions = expandedHud ? conditionHudText(activeConditions) : Component.empty();
-            player.sendActionBar(JavaProfileHud.arrangeCombat(resources, additionalStats, profile, conditions));
+            BuffHudIcons.Line buffs = vanillaTypeface ? buffIcons(astPlayer) : BuffHudIcons.EMPTY;
+            player.sendActionBar(JavaProfileHud.arrangeCombat(resources, additionalStats, profile, conditions,
+                    buffs, vanillaTypeface));
         } else {
             player.sendActionBar(resources.append(additionalStats));
         }
+    }
+
+    private BuffHudIcons.Line buffIcons(@Nullable AstPlayer astPlayer) {
+        return astPlayer == null || astPlayer.isBedrock()
+                ? BuffHudIcons.EMPTY : buffHudIcons.render(astPlayer.getActiveBuffs());
     }
 
     /**

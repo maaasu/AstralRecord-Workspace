@@ -58,7 +58,7 @@ public record ProfileHudText(Component playerLine, Component classLine, Componen
         Component playerLine = Component.empty()
                 .append(LEVEL).append(level).append(GAP)
                 .append(GOLD)
-                .append(Component.text(goldText, NamedTextColor.GOLD))
+                .append(Component.text(goldText, NamedTextColor.WHITE))
                 .append(Component.text(" G", NamedTextColor.YELLOW));
         int percent = (int) Math.round(Math.clamp(classProgress, 0.0D, 1.0D) * 100.0D);
         Component classLine = Component.empty()

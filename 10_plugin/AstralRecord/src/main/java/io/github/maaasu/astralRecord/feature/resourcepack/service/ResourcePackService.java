@@ -500,6 +500,16 @@ public class ResourcePackService {
     }
 
     /**
+     * Minecraft調の書体とバフアイコンを含むJava版パックの適用を確認します。
+     * @param playerId 表示対象のUUID
+     * @return 対応パックの適用が成功済みならtrue
+     */
+    public boolean hasJavaHudV5(UUID playerId) {
+        ResourcePackRepository.ProfileHud profileHud = requestedJavaProfileHud.get(playerId);
+        return profileHud != null && profileHud.version() >= 5 && hasManagedJavaPack(playerId);
+    }
+
+    /**
      * Sunbird演出の互換版1を含む管理Javaパックを適用済みか確認します。
      *
      * @param playerId 閲覧者のUUID
