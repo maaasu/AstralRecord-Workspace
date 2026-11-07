@@ -48,29 +48,63 @@
                 <pre>@lease.ResourceKeysJson</pre><p>@string.Join(", ", selected.Fences.Select(x => $"{x.HostId:D}:{x.Fence}"))</p>
             }
         </details>
+        @if (selected.Workflow.Status == WorkflowStatus.WaitingForStartup && selected.Lease?.Status == ReservationStatus.Prepared)
+        {
+            <div class="recovery-panel" id="workflow-recovery"><h3>保守作業の起動待ち</h3><p>この保守作業が予約を保持しています。元の配布ツールで同じ実行を続けてください。サーバーの操作画面では、対象の保守作業の起動が表示されている場合に使えます。</p></div>
+        }
         @if (selected.Lease?.Status == ReservationStatus.RecoveryRequired)
         {
-            <div class="recovery-panel"><h3>点検・復旧</h3><p>復旧操作の前に、対象PCのRunner状態と実プロセスを点検してください。</p>
-            <form method="post" asp-page-handler="Recover">
-                <input type="hidden" name="workflowId" value="@selected.Workflow.WorkflowId" />
-                <label>点検理由 <input name="reason" required maxlength="1024" /></label>
-                @if (selected.Workflow.Kind == "Maintenance" && !selected.Lease.PreparedOnce)
+            var canRelease = selected.Operations.All(x => OperationValidation.IsTerminal(x.Status));
+            var canResumeData = selected.Workflow.Kind == "SingleOperation" && selected.Operations.Any(x => x.Kind is (OperationKind.RestoreBackup or OperationKind.CreateBackup) && x.Status == OperationStatus.NeedsAttention);
+            var canRecoverPreparation = selected.Workflow.Kind == "Maintenance" && !selected.Lease.PreparedOnce;
+            var canUseForm = canRecoverPreparation || selected.Workflow.Kind == "SingleOperation" && (canRelease || canResumeData || Model.CanRescueShutdown);
+            <div class="recovery-panel" id="workflow-recovery"><h3>点検・復旧</h3>
+            @if (Model.ShutdownToRecover != null)
+            {
+                <p>正常停止の結果を確認中です。この操作の予約で対象を保護しています。停止を確認できれば、運転・保守履歴に結果が反映されます。</p>
+                @if (Model.CanRescueShutdown && Model.ShutdownInspection?.Session is { } session)
                 {
-                    <button type="submit" name="action" value="Resume">同じrunを再開</button><button type="submit" name="action" value="AbortAfterInspection">点検後に中断</button>
+                    <dl class="history-facts"><dt>照合済みセッション</dt><dd><code>@session.ServerSessionId</code></dd><dt>稼働中のプロセス ID</dt><dd>@session.ProcessId</dd></dl>
+                    <p>停止が必要な場合は、同じ予約内でこのプロセスを強制終了できます。未保存データが失われる可能性があります。再起動操作の復旧でも、強制終了後のサーバーは停止したままです。</p>
                 }
-                else if (selected.Workflow.Kind == "SingleOperation")
+                else if (selected.Operations.Any(x => x.Kind == OperationKind.Kill))
                 {
-                    @if (selected.Operations.Any(x => x.Kind is (OperationKind.RestoreBackup or OperationKind.CreateBackup) && x.Status == OperationStatus.NeedsAttention))
+                    <p>強制終了の結果を上の操作履歴で確認してください。要確認のままなら、対象PCの管理者がRunnerで点検してください。</p>
+                }
+                else
+                {
+                    <p>強制終了に必要な対象プロセスの照合を確認できません。時間をおいてこの詳細を開き直してください。要確認のままなら、対象PCの管理者がRunnerで点検してください。</p>
+                }
+            }
+            else if (!canUseForm)
+            {
+                <p>対象PCのRunnerと実行記録を点検し、元の操作の結果を確認してください。</p>
+            }
+            @if (canUseForm)
+            {
+                <form method="post" asp-page-handler="Recover">
+                    <input type="hidden" name="workflowId" value="@selected.Workflow.WorkflowId" />
+                    <label>点検理由 <input name="reason" required maxlength="1024" /></label>
+                    @if (canRecoverPreparation)
+                    {
+                        <button type="submit" name="action" value="Resume">同じrunを再開</button><button type="submit" name="action" value="AbortAfterInspection">点検後に中断</button>
+                    }
+                    @if (canResumeData)
                     {
                         <p>バックアップ・復元処理の中断です。同じ操作と保存済みデータを照合して再開します。起動禁止と退避コピーは完了まで保持します。</p><button type="submit" name="action" value="Resume">同じ処理を再開</button>
                     }
-                    else { <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button> }
-                    @if (selected.Operations.Any(x => x.Kind is (OperationKind.Stop or OperationKind.Restart) && x.Status == OperationStatus.NeedsAttention))
+                    @if (selected.Workflow.Kind == "SingleOperation" && canRelease)
                     {
-                        <label><input type="checkbox" name="killConfirmed" value="true" />対象Sessionと実プロセスを確認した</label><button class="button-danger" type="submit" name="action" value="KillAfterInspection">確認後に強制終了</button>
+                        <button type="submit" name="action" value="AbortAfterInspection">点検後に解放</button>
                     }
-                }
-            </form></div>
+                    @if (Model.CanRescueShutdown)
+                    {
+                        <input type="hidden" name="inspectedSessionId" value="@Model.ShutdownInspection?.Runtime.CurrentSessionId" />
+                        <label><input type="checkbox" name="killConfirmed" value="true" />表示された対象を確認し、保存せずに終了することを了承しました</label><button class="button-danger" type="submit" name="action" value="KillAfterInspection">このプロセスを強制終了</button>
+                    }
+                </form>
+            }
+            </div>
         }
         @if (selected.CanDelete)
         {

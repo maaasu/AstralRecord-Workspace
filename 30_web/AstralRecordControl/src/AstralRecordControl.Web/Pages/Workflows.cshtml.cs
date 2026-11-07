@@ -5,6 +5,7 @@ using AstralRecordControl.Web.Operations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordControl.Web.Pages;
@@ -21,6 +22,8 @@ public sealed class WorkflowsModel(ControlDbContext db, ReservationService reser
     public int HistoryPage { get; private set; } = 1;
     public bool HasNextPage { get; private set; }
     public string? Error { get; private set; }
+    public ControlOperation? ShutdownToRecover { get; private set; }
+    public RecoveryInspection? ShutdownInspection { get; private set; }
     public Dictionary<Guid, string> ServerNames { get; private set; } = [];
     public Dictionary<Guid, string> HostNames { get; private set; } = [];
     [TempData] public string? Notice { get; set; }
@@ -64,22 +67,29 @@ public sealed class WorkflowsModel(ControlDbContext db, ReservationService reser
         }
     }
 
-    public async Task<IActionResult> OnPostRecoverAsync(Guid workflowId, WorkflowRecoveryAction action, string? reason, bool killConfirmed)
+    public async Task<IActionResult> OnPostRecoverAsync(Guid workflowId, WorkflowRecoveryAction action, string? reason, bool killConfirmed, Guid? inspectedSessionId)
     {
         try
         {
             if (!ModelState.IsValid) throw new InventoryFault(400, "InvalidInput");
             if (string.IsNullOrWhiteSpace(reason) || reason.Length > 1024 || reason.Any(c => c is '\r' or '\n' or '\0') || !Enum.IsDefined(action)) throw new InventoryFault(400, "InvalidInput");
-            if (action == WorkflowRecoveryAction.KillAfterInspection && !killConfirmed) throw new InventoryFault(400, "KillConfirmationRequired");
+            if (action == WorkflowRecoveryAction.KillAfterInspection && (!killConfirmed || inspectedSessionId == null || inspectedSessionId == Guid.Empty))
+                throw new InventoryFault(400, "KillConfirmationRequired");
             var workflow = await db.Workflows.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId && x.HiddenAtUtc == null) ?? throw new InventoryFault(404, "NotFound");
             if (workflow.Kind == "Maintenance") await reservations.RecoverMaintenancePreparationAsync(workflowId, action, HttpContext.RequestAborted);
-            else if (workflow.Kind == "SingleOperation") await operations.RecoverAsync(workflowId, new WorkflowRecoveryRequest(action, reason), HttpContext.RequestAborted);
+            else if (workflow.Kind == "SingleOperation") await operations.RecoverAsync(workflowId, new WorkflowRecoveryRequest(action, reason), HttpContext.RequestAborted, inspectedSessionId);
             else throw new InventoryFault(409, "UnsupportedCapability");
             return RedirectToPage(new { workflowId });
         }
-        catch (Exception exception) when (exception is InventoryFault or IOException or ArgumentException)
+        catch (Exception exception) when (IsRecoveryUnavailable(exception) || exception is ArgumentException)
         {
-            Error = exception.Message;
+            Error = (exception as InventoryFault)?.Code switch
+            {
+                "KillConfirmationRequired" => "対象プロセスとセッションを確認し、強制終了の確認欄を選択してください。",
+                "InvalidInput" => "点検理由を1〜1024文字の1行で入力してください。",
+                "StateConflict" or "ReservationConflict" or "OperationConflict" => "処理または予約の状態が変わりました。表示された最新の状態を確認してください。",
+                _ => "復旧を確定できませんでした。対象PCの接続、処理結果、プロセスの照合結果を確認してください。"
+            };
             await LoadAsync(workflowId);
             return Page();
         }
@@ -105,7 +115,22 @@ public sealed class WorkflowsModel(ControlDbContext db, ReservationService reser
         }
         ServerNames = await db.Servers.AsNoTracking().ToDictionaryAsync(x => x.ServerId, x => x.DisplayName);
         HostNames = await db.Hosts.AsNoTracking().ToDictionaryAsync(x => x.HostId, x => x.DisplayName);
+        ShutdownToRecover = Selected is { Workflow.Kind: "SingleOperation", Lease.Status: ReservationStatus.RecoveryRequired } selected
+            ? selected.Operations.SingleOrDefault(x => x.Kind is (OperationKind.Stop or OperationKind.Restart) && x.Status == OperationStatus.NeedsAttention)
+            : null;
+        ShutdownInspection = null;
+        if (ShutdownToRecover is { } shutdown && Selected!.Operations.All(x => x.Kind != OperationKind.Kill))
+        {
+            try { ShutdownInspection = await operations.InspectShutdownRecoveryAsync(shutdown, HttpContext.RequestAborted); }
+            catch (Exception exception) when (IsRecoveryUnavailable(exception)) { }
+        }
     }
+
+    public bool CanRescueShutdown => ShutdownToRecover is { } shutdown && ShutdownInspection is { } inspection &&
+        ControlOperationsService.IsSameShutdownProcess(shutdown, inspection);
+
+    private bool IsRecoveryUnavailable(Exception exception) => exception is InventoryFault or IOException or HubException or TimeoutException ||
+        exception is OperationCanceledException && !HttpContext.RequestAborted.IsCancellationRequested;
 
     private async Task<WorkflowItem[]> ItemsAsync(ControlWorkflow[] rows)
     {

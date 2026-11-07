@@ -274,7 +274,10 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
             });
     }
 
-    public async Task ReleaseAsync(Guid reservationId, GateReleaseRequest request, CancellationToken token = default)
+    public Task ReleaseAsync(Guid reservationId, GateReleaseRequest request, CancellationToken token = default) =>
+        ReleaseCoreAsync(reservationId, request, inspected: false, token);
+
+    private async Task ReleaseCoreAsync(Guid reservationId, GateReleaseRequest request, bool inspected, CancellationToken token)
     {
         var lease = await store.WriteAsync(async () =>
         {
@@ -283,15 +286,25 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
             var current = Lease(history);
             var sameLease = current.WorkflowId == request.WorkflowId && (current.RunReference ?? "") == request.RunReference &&
                 request.ExpectedFences != null && current.Fences.Length == request.ExpectedFences.Length && current.Fences.All(request.ExpectedFences.Contains);
-            if (current.Status is ReservationStatus.Released or ReservationStatus.Releasing or ReservationStatus.RecoveryRequired)
+            var beginInspectedRelease = inspected && current.Status == ReservationStatus.RecoveryRequired && history.ReleaseOutcome == null;
+            if (inspected)
+            {
+                if (!sameLease || current.Status is not (ReservationStatus.RecoveryRequired or ReservationStatus.Releasing or ReservationStatus.Released))
+                    throw new InventoryFault(409, "ReservationConflict");
+                if (!await db.Workflows.AnyAsync(x => x.WorkflowId == request.WorkflowId && x.Kind == "SingleOperation", token))
+                    throw new InventoryFault(409, "UnsupportedCapability");
+            }
+            if (!beginInspectedRelease && current.Status is (ReservationStatus.Released or ReservationStatus.Releasing or ReservationStatus.RecoveryRequired))
             {
                 if (!sameLease || history.ReleaseOutcome != request.Outcome) throw new InventoryFault(409, "ReservationConflict");
                 if (current.Status == ReservationStatus.Released) return current;
             }
-            else RequireLease(current, request.WorkflowId, request.ExpectedFences!, request.RunReference);
+            else if (!beginInspectedRelease) RequireLease(current, request.WorkflowId, request.ExpectedFences!, request.RunReference);
             var pending = await db.Operations.AsNoTracking().Where(x => x.ReservationId == reservationId).ToArrayAsync();
-            if (pending.Any(x => !OperationValidation.IsTerminal(x.Status))) throw new InventoryFault(409, "RecoveryRequired");
-            if (current.Status == ReservationStatus.Prepared)
+            if (pending.Any(x => !OperationValidation.IsTerminal(x.Status)) ||
+                (inspected && (pending.Length == 0 || pending.Any(x => x.WorkflowId != request.WorkflowId))))
+                throw new InventoryFault(409, "RecoveryRequired");
+            if (current.Status == ReservationStatus.Prepared || beginInspectedRelease)
             {
                 var row = await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId);
                 row.ReleaseOutcome = request.Outcome; row.Status = ReservationStatus.Releasing;
@@ -310,29 +323,16 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
                 var history = await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId);
                 history.Status = ReservationStatus.Released; history.ReleasedAtUtc = Now;
                 var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == request.WorkflowId);
-                workflow.Status = request.Outcome == GateOutcome.Succeeded ? WorkflowStatus.Succeeded : WorkflowStatus.Failed; workflow.UpdatedAtUtc = Now;
+                workflow.Status = request.Outcome == GateOutcome.Succeeded ? WorkflowStatus.Succeeded : WorkflowStatus.Failed;
+                workflow.RecoveryRequired = false; workflow.UpdatedAtUtc = Now;
                 return true;
             });
         }
         catch { await MarkRecoveryAsync(request.WorkflowId, reservationId); throw; }
     }
 
-    public async Task ReleaseInspectedAsync(Guid reservationId, Guid workflowId, HostReservationFence[] fences, GateOutcome outcome, CancellationToken token = default)
-    {
-        var lease = await GetByReservationAsync(reservationId);
-        if (lease.WorkflowId != workflowId || lease.Status != ReservationStatus.RecoveryRequired || lease.Fences.Length != fences.Length || lease.Fences.Any(x => !fences.Contains(x))) throw new InventoryFault(409, "ReservationConflict");
-        var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
-        if (workflow.Kind != "SingleOperation") throw new InventoryFault(409, "UnsupportedCapability");
-        var children = await db.Operations.AsNoTracking().Where(x => x.WorkflowId == workflowId).ToArrayAsync();
-        if (children.Length == 0 || children.Any(x => !OperationValidation.IsTerminal(x.Status))) throw new InventoryFault(409, "RecoveryRequired");
-        await store.WriteAsync(async () =>
-        {
-            foreach (var row in await db.Reservations.Where(x => x.ReservationId == reservationId).ToArrayAsync()) row.State = ReservationStatus.Prepared;
-            (await db.ReservationLeases.SingleAsync(x => x.ReservationId == reservationId)).Status = ReservationStatus.Prepared;
-            return true;
-        });
-        await ReleaseAsync(reservationId, new GateReleaseRequest(workflowId, fences, outcome, lease.RunReference ?? ""), token);
-    }
+    public Task ReleaseInspectedAsync(Guid reservationId, Guid workflowId, HostReservationFence[] fences, GateOutcome outcome, CancellationToken token = default) =>
+        ReleaseCoreAsync(reservationId, new GateReleaseRequest(workflowId, fences, outcome, ""), inspected: true, token);
 
     public async Task RecoverMaintenancePreparationAsync(Guid workflowId, WorkflowRecoveryAction action, CancellationToken token = default)
     {

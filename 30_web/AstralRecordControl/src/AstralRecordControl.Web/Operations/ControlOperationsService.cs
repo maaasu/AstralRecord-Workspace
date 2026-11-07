@@ -243,7 +243,64 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         return await agents.ReadLogsAsync(server.HostId, request, token);
     }
 
-    public async Task<ControlOperation?> RecoverAsync(Guid workflowId, WorkflowRecoveryRequest request, CancellationToken token = default)
+    public async Task ReconcileSingleOperationReleaseAsync(Guid workflowId, CancellationToken token = default)
+    {
+        if (!await db.Workflows.AsNoTracking().AnyAsync(x => x.WorkflowId == workflowId && x.Kind == "SingleOperation", token)) return;
+        var lease = await reservations.GetAsync(workflowId);
+        if (lease.Status is ReservationStatus.Releasing or ReservationStatus.RecoveryRequired)
+        {
+            var previousOutcome = await db.ReservationLeases.AsNoTracking().Where(x => x.ReservationId == lease.ReservationId).Select(x => x.ReleaseOutcome).SingleAsync(token);
+            if (previousOutcome is GateOutcome recorded)
+            {
+                await reservations.ReleaseAsync(lease.ReservationId, new GateReleaseRequest(workflowId, lease.Fences, recorded, ""), token);
+                return;
+            }
+        }
+
+        var children = await db.Operations.AsNoTracking().Where(x => x.WorkflowId == workflowId).ToArrayAsync(token);
+        if (children.Length == 0 || children.Any(x => x.ReservationId != lease.ReservationId || !OperationValidation.IsTerminal(x.Status))) return;
+        var outcome = children.All(x => x.Status == OperationStatus.Succeeded) ? GateOutcome.Succeeded : GateOutcome.Failed;
+        if (lease.Status == ReservationStatus.Prepared)
+        {
+            await reservations.ReleaseAsync(lease.ReservationId, new GateReleaseRequest(workflowId, lease.Fences, outcome, ""), token);
+            return;
+        }
+        if (lease.Status != ReservationStatus.RecoveryRequired) return;
+        if (children.Any(x => x.Kind == OperationKind.Kill && x.Status == OperationStatus.Succeeded))
+        {
+            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, outcome, token);
+            return;
+        }
+
+        if (children is not [var child] || child.ServerId is not Guid serverId || !lease.ResourceKeys.Contains(ReservationService.ServerKey(serverId)) ||
+            !lease.Fences.Any(x => x.HostId == child.HostId)) return;
+        var completedShutdown = child.Kind == OperationKind.Stop && child.Status == OperationStatus.Succeeded ||
+            child.Kind == OperationKind.Restart && child.Status == OperationStatus.Failed && child.ErrorCode is "Timeout" or "RecoveryRequired";
+        var completedBackup = child.Kind is OperationKind.RestoreBackup or OperationKind.CreateBackup && child.Status == OperationStatus.Succeeded;
+        if (!completedShutdown && !completedBackup) return;
+        var inspection = await agents.InspectRecoveryAsync(child.HostId, serverId, token);
+        if (inspection.Runtime.ServerId != serverId || inspection.RecoveryRequired) return;
+        var stopped = !inspection.ProcessAlive && inspection.Runtime.ProcessState == ProcessState.Stopped && inspection.Runtime.CurrentSessionId == null && inspection.Session == null;
+        var running = inspection.ProcessAlive && inspection.IdentityMatches && inspection.Runtime.ProcessState == ProcessState.Running &&
+            inspection.Session is { } session && session.ServerId == serverId && inspection.Runtime.CurrentSessionId == session.ServerSessionId;
+        if (stopped || (completedBackup && running))
+            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, outcome, token);
+    }
+
+    internal async Task<RecoveryInspection> InspectShutdownRecoveryAsync(ControlOperation shutdown, CancellationToken token)
+    {
+        var serverId = shutdown.ServerId ?? throw new InventoryFault(409, "RecoveryRequired");
+        return await agents.InspectRecoveryAsync(shutdown.HostId, serverId, token);
+    }
+
+    internal static bool IsSameShutdownProcess(ControlOperation shutdown, RecoveryInspection inspection) =>
+        shutdown.ServerId == inspection.Runtime.ServerId && inspection.ProcessAlive && inspection.IdentityMatches &&
+        inspection.Runtime.ProcessState is (ProcessState.Stopping or ProcessState.Unmanaged) &&
+        inspection.Session is { ProcessId: not null } session && session.ServerId == shutdown.ServerId &&
+        inspection.Runtime.CurrentSessionId == session.ServerSessionId &&
+        ControlJson.Deserialize<OperationCommand>(shutdown.CommandJson).ExpectedServerSessionId == session.ServerSessionId;
+
+    public async Task<ControlOperation?> RecoverAsync(Guid workflowId, WorkflowRecoveryRequest request, CancellationToken token = default, Guid? inspectedSessionId = null)
     {
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length > 1024 || request.Reason.Any(c => c is '\r' or '\n' or '\0')) throw new InventoryFault(400, "InvalidInput");
         var lease = await reservations.GetAsync(workflowId);
@@ -266,23 +323,21 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 return null;
             }
             if (children.Length == 0 || children.Select(x => x.ServerId).Distinct().Count() != 1 || children[0].ServerId is not Guid inspectedServerId) throw new InventoryFault(409, "RecoveryRequired");
+            var outcome = GateOutcome.Succeeded;
             foreach (var child in children)
-                if (!OperationValidation.IsTerminal((await RefreshAsync(child.OperationId, token)).Status)) throw new InventoryFault(409, "RecoveryRequired");
+            {
+                var current = await RefreshAsync(child.OperationId, token);
+                if (!OperationValidation.IsTerminal(current.Status)) throw new InventoryFault(409, "RecoveryRequired");
+                if (current.Status != OperationStatus.Succeeded) outcome = GateOutcome.Failed;
+            }
             var inspectedServer = await db.Servers.AsNoTracking().SingleAsync(x => x.ServerId == inspectedServerId);
             var inspected = await agents.InspectRecoveryAsync(inspectedServer.HostId, inspectedServerId, token);
             ReservationService.RequireSafeRecoveryInspection(inspectedServerId, inspected);
-            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, GateOutcome.Failed, token);
+            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, outcome, token);
             return null;
         }
         var oldStop = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId && (x.Kind == OperationKind.Stop || x.Kind == OperationKind.Restart)) ?? throw new InventoryFault(409, "RecoveryRequired");
-        var serverId = oldStop.ServerId ?? throw new InventoryFault(409, "RecoveryRequired");
-        var server = await db.Servers.AsNoTracking().SingleAsync(x => x.ServerId == serverId);
-        var inspection = await agents.InspectRecoveryAsync(server.HostId, serverId, token);
-        if (inspection.Runtime.ServerId != serverId) throw new InventoryFault(409, "RecoveryRequired");
-        oldStop = await RefreshAsync(oldStop.OperationId, token);
-        if (request.Action != WorkflowRecoveryAction.KillAfterInspection || !inspection.ProcessAlive || !inspection.IdentityMatches || inspection.Runtime.CurrentSessionId is null) throw new InventoryFault(409, "RecoveryRequired");
-        if (oldStop.Status != OperationStatus.NeedsAttention) throw new InventoryFault(409, "StateConflict");
-        var fence = lease.Fences.SingleOrDefault(x => x.HostId == server.HostId) ?? throw new InventoryFault(409, "RecoveryRequired");
+        if (request.Action != WorkflowRecoveryAction.KillAfterInspection) throw new InventoryFault(409, "UnsupportedCapability");
         var operationId = ChildId(workflowId, "KillAfterInspection");
         var requestHash = ControlProtocol.Hash($"RecoveryKill:{workflowId:D}:{request.Reason}");
         var existing = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == operationId);
@@ -291,6 +346,14 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             if (existing.RequestSha256 != requestHash) throw new InventoryFault(409, "OperationConflict");
             return await RefreshAsync(existing.OperationId, token);
         }
+        oldStop = await RefreshAsync(oldStop.OperationId, token);
+        if (oldStop.Status != OperationStatus.NeedsAttention) throw new InventoryFault(409, "StateConflict");
+        var serverId = oldStop.ServerId ?? throw new InventoryFault(409, "RecoveryRequired");
+        var server = await db.Servers.AsNoTracking().SingleAsync(x => x.ServerId == serverId);
+        var inspection = await InspectShutdownRecoveryAsync(oldStop, token);
+        if (oldStop.HostId != server.HostId || !IsSameShutdownProcess(oldStop, inspection)) throw new InventoryFault(409, "RecoveryRequired");
+        if (inspectedSessionId.HasValue && inspection.Runtime.CurrentSessionId != inspectedSessionId) throw new InventoryFault(409, "StateConflict");
+        var fence = lease.Fences.SingleOrDefault(x => x.HostId == server.HostId) ?? throw new InventoryFault(409, "RecoveryRequired");
         var command = new OperationCommand
         {
             OperationId = operationId, HostId = server.HostId, ServerId = serverId, WorkflowId = workflowId,
@@ -306,10 +369,15 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         {
             var duplicate = await db.Operations.SingleOrDefaultAsync(x => x.OperationId == operationId);
             if (duplicate != null) return duplicate;
+            var currentLease = await db.ReservationLeases.AsNoTracking().SingleAsync(x => x.ReservationId == lease.ReservationId, token);
+            if (currentLease.Status != ReservationStatus.RecoveryRequired || currentLease.ReleaseOutcome != null || currentLease.WorkflowId != workflowId ||
+                !ControlJson.Deserialize<HostReservationFence[]>(currentLease.FencesJson).Contains(fence) ||
+                !await db.Operations.AnyAsync(x => x.OperationId == oldStop.OperationId && x.ReservationId == lease.ReservationId && x.Status == OperationStatus.NeedsAttention, token))
+                throw new InventoryFault(409, "StateConflict");
             var created = new ControlOperation { OperationId = operationId, IdempotencyKey = operationId, HostId = server.HostId, ServerId = serverId, WorkflowId = workflowId, ReservationId = lease.ReservationId, Kind = OperationKind.Kill, RequestSha256 = requestHash, CommandJson = json, CommandSha256 = ControlProtocol.Hash(json), Status = OperationStatus.Queued, CreatedAtUtc = Now };
             db.Operations.Add(created); return created;
         });
-        if (row.CommandSha256 != ControlProtocol.Hash(json) || row.RequestSha256 != requestHash) throw new InventoryFault(409, "OperationConflict");
+        if (row.RequestSha256 != requestHash) throw new InventoryFault(409, "OperationConflict");
         return await RefreshAsync(row.OperationId, token);
     }
 
